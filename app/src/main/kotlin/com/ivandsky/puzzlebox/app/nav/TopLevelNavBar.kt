@@ -1,12 +1,12 @@
 package com.ivandsky.puzzlebox.app.nav
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.LocalTextStyle
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -18,6 +18,7 @@ import androidx.compose.material3.NavigationRail
 import androidx.compose.material3.NavigationRailItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -84,7 +85,7 @@ internal fun TopLevelNavRail(
                         destination,
                         selected == destination.key,
                         showsBadge(destination, selected, badged),
-                        if (large) LargeIconSize else Dp.Unspecified,
+                        if (large) Modifier.size(LargeIconSize) else Modifier,
                     )
                 },
                 label = { Text(destination.label, style = if (large) MaterialTheme.typography.labelLarge else LocalTextStyle.current) },
@@ -93,8 +94,9 @@ internal fun TopLevelNavRail(
         }
         if (bottomActions != null) {
             Spacer(Modifier.weight(1f))
-            bottomActions()
-            Spacer(Modifier.height(8.dp))
+            Column(Modifier.height(LargeAvatarSlot), horizontalAlignment = Alignment.CenterHorizontally) {
+                bottomActions()
+            }
         }
     }
 }
@@ -103,7 +105,7 @@ private val LargeRailWidth = 96.dp
 private val LargeItemGap = 12.dp
 private val LargeIconSize = 28.dp
 
-/** Top spacer matching the avatar's slot at the bottom, so the tabs centre on the screen. */
+/** The slot's height at both ends of the rail: the top spacer and the bottom avatar box are each [LargeAvatarSlot] tall, so the tabs centre on the screen. */
 private val LargeAvatarSlot = 56.dp
 
 /** Content description of the badge dot, announced alongside the tab label. */
@@ -118,9 +120,8 @@ private fun showsBadge(destination: TopLevelDestination, selected: NavKey, badge
 
 /** The tab's icon: filled while [selected], outlined otherwise (N5). */
 @Composable
-private fun TabIcon(destination: TopLevelDestination, selected: Boolean, badged: Boolean, size: Dp = Dp.Unspecified) {
+private fun TabIcon(destination: TopLevelDestination, selected: Boolean, badged: Boolean, modifier: Modifier = Modifier) {
     val icon = if (selected) destination.selectedIcon() else destination.icon()
-    val iconModifier = if (size == Dp.Unspecified) Modifier else Modifier.size(size)
     if (badged) {
         BadgedBox(
             badge = {
@@ -132,10 +133,10 @@ private fun TabIcon(destination: TopLevelDestination, selected: Boolean, badged:
                 )
             },
         ) {
-            Icon(icon, contentDescription = null, modifier = iconModifier)
+            Icon(icon, contentDescription = null, modifier = modifier)
         }
     } else {
-        Icon(icon, contentDescription = null, modifier = iconModifier)
+        Icon(icon, contentDescription = null, modifier = modifier)
     }
 }
 
