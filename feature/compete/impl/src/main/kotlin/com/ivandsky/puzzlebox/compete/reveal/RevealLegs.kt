@@ -55,7 +55,7 @@ internal fun revealPlan(view: MatchView, nameOf: (GameId) -> String, rankOrderOf
                 is LegRef.Custom -> "Friend's puzzle"
             },
             rankOrder = order,
-            basis = basisLine(verdict, mySide, theirSide, order, me.name, opponent.name),
+            basis = basisLine(verdict, mySide, theirSide, order, opponent.name),
             pill = pillText(verdict, me.name, opponent.name),
         )
     }
@@ -83,27 +83,32 @@ private fun pillText(verdict: LegVerdict, me: String, them: String): String = wh
     LegVerdict.Void, LegVerdict.Pending -> "No point"
 }
 
-private fun basisLine(verdict: LegVerdict, mine: DuelSideState, theirs: DuelSideState, order: RankOrder, me: String, them: String) =
+private fun basisLine(verdict: LegVerdict, mine: DuelSideState, theirs: DuelSideState, order: RankOrder, opponent: String) =
     when (verdict) {
-        is LegVerdict.Win -> decidedLine(verdict.basis, mine, theirs, winnerName = me, loserName = them)
-        is LegVerdict.Loss -> decidedLine(verdict.basis, theirs, mine, winnerName = them, loserName = me)
+        is LegVerdict.Win -> decidedLine(verdict.basis, mine, theirs, viewerWon = true, opponent = opponent)
+        is LegVerdict.Loss -> decidedLine(verdict.basis, theirs, mine, viewerWon = false, opponent = opponent)
         LegVerdict.Draw -> drawLine(mine, theirs, order)
         LegVerdict.Void, LegVerdict.Pending -> "Doesn't count for either player"
     }
 
-private fun decidedLine(basis: LegBasis, winner: DuelSideState, loser: DuelSideState, winnerName: String, loserName: String): String {
-    if (winner !is DuelSideState.Time) return "Counts for $winnerName"
+/** The line for a puzzle [winner] took over [loser], worded from the viewer's side: [viewerWon] says which one I am. */
+private fun decidedLine(basis: LegBasis, winner: DuelSideState, loser: DuelSideState, viewerWon: Boolean, opponent: String): String {
+    val verdictTail = if (viewerWon) "you win this puzzle" else "$opponent wins this puzzle"
+    val loserName = if (viewerWon) opponent else "You"
+    if (winner !is DuelSideState.Time) return "Counts for ${if (viewerWon) "you" else opponent}"
     return when (loser) {
         is DuelSideState.Time -> when (basis) {
             LegBasis.Time -> "${marginSeconds(winner.timeMs, loser.timeMs)} s faster"
             LegBasis.Hints -> "Fewer hints · ${winner.hints} vs ${loser.hints}"
         }
-        DuelSideState.Sealed -> "$loserName's result isn't available · counts for $winnerName"
-        DuelSideState.NotPlayed, DuelSideState.GaveUp -> "No result from $loserName · counts for $winnerName"
+        DuelSideState.Sealed -> "$opponent's result isn't available · $verdictTail"
+        DuelSideState.NotPlayed -> "$loserName didn't play · $verdictTail"
+        DuelSideState.GaveUp -> "$loserName gave up · $verdictTail"
     }
 }
 
 private fun drawLine(mine: DuelSideState, theirs: DuelSideState, order: RankOrder): String = when {
+    mine == DuelSideState.GaveUp && theirs == DuelSideState.GaveUp -> "Both gave up · no point"
     mine !is DuelSideState.Time || theirs !is DuelSideState.Time -> "No result from either player · no point"
     order == RankOrder.TimeThenHints -> "Same whole second · no point"
     else -> "Same hints, same whole second · no point"

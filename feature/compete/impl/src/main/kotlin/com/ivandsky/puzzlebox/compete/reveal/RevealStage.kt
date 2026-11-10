@@ -256,7 +256,7 @@ private val previewPlan = RevealPlan(
         ),
         RevealCard(
             LegReveal(GameId("queens"), DuelSideState.NotPlayed, DuelSideState.Time(95_000, 0), LegVerdict.Loss(LegBasis.Time)),
-            "Queens #88", RankOrder.TimeThenHints, "No result from Ann · counts for Bob", "Bob wins",
+            "Queens #88", RankOrder.TimeThenHints, "You didn't play · Bob wins this puzzle", "Bob wins",
         ),
     ),
 )

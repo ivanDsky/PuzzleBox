@@ -139,6 +139,23 @@ class RevealSummaryModelTest {
     }
 
     @Test
+    fun aGaveUpSideReadsGaveUpInTheSummaryListAndNotPlayedReadsNoResult() {
+        val cards = listOf(
+            card(leg(DuelSideState.GaveUp, time(60_000), LegVerdict.Loss(LegBasis.Time)), "Zip #401"),
+            card(leg(time(60_000), DuelSideState.GaveUp, LegVerdict.Win(LegBasis.Time)), "Zip #402"),
+            card(leg(DuelSideState.NotPlayed, time(60_000), LegVerdict.Loss(LegBasis.Time)), "Zip #403"),
+            card(leg(time(60_000), DuelSideState.Sealed, LegVerdict.Win(LegBasis.Time)), "Zip #404"),
+        )
+
+        val rows = puzzleRows(cards)
+
+        assertEquals("Gave up", rows[0].mine)
+        assertEquals("Gave up", rows[1].theirs)
+        assertEquals("No result", rows[2].mine)
+        assertEquals("No result", rows[3].theirs)
+    }
+
+    @Test
     fun theSummaryCardNamesTheDayTheDuelWasCreatedNotItsDeadline() {
         val match = match(refs = listOf(zip), deadlineHours = 48, includeFriends = false)
         val plan = RevealPlan(match.challenger, match.opponent!!, listOf(card(leg(time(1_000), time(2_000), LegVerdict.Win(LegBasis.Time)), "Zip #1")))
