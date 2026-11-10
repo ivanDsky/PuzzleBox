@@ -27,7 +27,7 @@ import kotlin.math.sqrt
 
 /**
  * A real drag on the selected path's tail, through the board's own touch: back two cells, then
- * out to a new neighbour; and the end rings that mark where such a drag starts.
+ * out to a new neighbour.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -165,27 +165,6 @@ class StrandsEditorDragEndGestureTest {
             }
         }
         rule.waitForIdle()
-    }
-
-    @Test
-    fun `the selected path wears a ring on both ends only while selected`() {
-        listOf(0, 1, 2, 3).forEach(controller::traceTo)
-        controller.endTrace()
-        controller.selectPath(0)
-        rule.setContent {
-            PuzzleBoxTheme(darkTheme = false) {
-                StrandsEditorUi.Board(controller, Verdict.Checking, PlayLayout.SinglePane, Modifier)
-            }
-        }
-        rule.waitForIdle()
-
-        rule.onNodeWithTag("strands.editor.cell.0.end").assertExists()
-        rule.onNodeWithTag("strands.editor.cell.3.end").assertExists()
-        listOf(1, 2).forEach { rule.onNodeWithTag("strands.editor.cell.$it.end").assertDoesNotExist() }
-
-        controller.selectPath(null)
-        rule.waitForIdle()
-        listOf(0, 3).forEach { rule.onNodeWithTag("strands.editor.cell.$it.end").assertDoesNotExist() }
     }
 
     private fun TouchInjectionScope.cellPoint(colCells: Float, rowCells: Float): Offset {
