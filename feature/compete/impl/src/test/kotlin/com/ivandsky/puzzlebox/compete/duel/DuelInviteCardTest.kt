@@ -2,7 +2,10 @@ package com.ivandsky.puzzlebox.compete.duel
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -16,6 +19,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -122,5 +126,20 @@ class DuelInviteCardTest {
         assertEquals("Close leaves the card", 1, closed)
         assertAbsent("Accept duel")
         assertAbsent("Decline")
+    }
+
+    @Test
+    fun theSignedOutCardShowsDetailsAboveTheSignInTail() {
+        show(InviteKind.SignedOut, details(viewerIsChallenger = false))
+
+        assertShown("Ann challenges you")
+        assertAbsent("A friend challenges you")
+        rule.onNodeWithTag("duel.invite.rounds").assertTextEquals("Best of 3")
+        assertShown("Sign in to accept")
+        rule.onNodeWithTag("duel.invite.accept").assertIsNotEnabled()
+        rule.onNodeWithTag("duel.invite.signIn").assertIsEnabled()
+        val detailsBottom = rule.onNodeWithTag("duel.invite.rounds").getBoundsInRoot().bottom
+        val tailTop = rule.onNodeWithTag("duel.invite.signIn").getBoundsInRoot().top
+        assertTrue(detailsBottom <= tailTop)
     }
 }

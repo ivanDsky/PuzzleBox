@@ -96,7 +96,7 @@ private fun Unavailable(reason: MatchState, modifier: Modifier) {
     val (title, message) = when (reason) {
         is MatchState.UpdateApp -> "Update to see this duel" to "This duel needs a newer version of the app."
         MatchState.Offline -> "You're offline" to "Reconnect to see this duel."
-        MatchState.SignedOut -> "Sign in to see this duel" to "Sign in to see how it's going."
+        is MatchState.SignedOut -> "Sign in to see this duel" to "Sign in to see how it's going."
         else -> "This duel link doesn't work" to "It may have been removed."
     }
     EmptyState(title = title, message = message, modifier = modifier)
