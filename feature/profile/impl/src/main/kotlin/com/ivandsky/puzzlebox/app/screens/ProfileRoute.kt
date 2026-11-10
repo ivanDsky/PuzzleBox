@@ -14,7 +14,7 @@ import org.koin.androidx.compose.koinViewModel
  * Profile's DI-bound entry point. [onOpenHistory] opens History's timeline (N3);
  * [onOpenCatalog] is offered only in debuggable builds (the catalog is a debug tool).
  * [slim] hides the record blocks (identity and sign-in only); a non-null [onBack] draws
- * the back icon. The defaults are the full screen without a back icon.
+ * the back icon and a non-null [onOpenSettings] a gear beside it. The defaults are the full screen without a back icon.
  */
 @Composable
 fun ProfileRoute(
@@ -23,6 +23,7 @@ fun ProfileRoute(
     modifier: Modifier = Modifier,
     slim: Boolean = false,
     onBack: (() -> Unit)? = null,
+    onOpenSettings: (() -> Unit)? = null,
 ) {
     val viewModel: ProfileViewModel = koinViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -41,5 +42,6 @@ fun ProfileRoute(
         modifier = modifier.testTag("route.profile"),
         slim = slim,
         onBack = onBack,
+        onOpenSettings = onOpenSettings,
     )
 }

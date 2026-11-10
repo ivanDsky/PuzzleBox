@@ -31,10 +31,11 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * With NavV2 on a phone's bar, only Today's header carries the shell's avatar (`shell.avatar`)
- * and gear (`shell.settings`); every other screen carries neither. The avatar opens Profile
- * and the gear opens Settings on the current tab, so Back returns to Today. With the flag off
- * no screen shows either. The tablet's rail placement is pinned in the e2e tests.
+ * With NavV2 on a phone's bar, only Today's header carries the shell's avatar (`shell.avatar`);
+ * every other screen carries none, and no screen carries a shell gear (`shell.settings`). The
+ * avatar opens Profile on the current tab and Profile's gear (`profile.settings`) opens
+ * Settings above it, so Back returns through Profile to Today. With the flag off no screen
+ * shows either. The tablet's rail placement is pinned in the e2e tests.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -42,7 +43,7 @@ import org.robolectric.annotation.Config
 class ShellChromeTest {
 
     @Test
-    fun `the Today root shows the avatar and the gear, the History and Create roots do not`() = flagOn {
+    fun `the Today root shows the avatar, the History and Create roots do not`() = flagOn {
         assertRoute(HOME)
         assertShellActions(shown = true)
 
@@ -109,14 +110,20 @@ class ShellChromeTest {
         }
 
     @Test
-    fun `the gear opens Settings on the current tab and Back returns to the screen left`() =
+    fun `Profile's gear opens Settings above Profile and Back returns through Profile`() =
         flagOn {
             assertRoute(HOME)
 
-            tap(GEAR)
+            tap(AVATAR)
+            tap(PROFILE_GEAR)
 
-            assertState(at(HomeKey, SettingsKey))
+            assertState(at(HomeKey, ProfileKey, SettingsKey))
             assertRoute(SETTINGS)
+
+            back()
+
+            assertState(at(HomeKey, ProfileKey))
+            assertRoute(PROFILE)
 
             back()
 
@@ -172,7 +179,7 @@ class ShellChromeTest {
         if (shown) awaitTag(AVATAR)
         val expected = if (shown) 1 else 0
         assertEquals("avatars (state $state)", expected, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
-        assertEquals("gears (state $state)", expected, rule.onAllNodesWithTag(GEAR).fetchSemanticsNodes().size)
+        assertEquals("gears (state $state)", 0, rule.onAllNodesWithTag(GEAR).fetchSemanticsNodes().size)
     }
 
     private fun ShellRobot.avatarSemantics() = rule.onNodeWithTag(AVATAR).fetchSemanticsNode().config
@@ -183,6 +190,7 @@ class ShellChromeTest {
     private companion object {
         const val AVATAR = "shell.avatar"
         const val GEAR = "shell.settings"
+        const val PROFILE_GEAR = "profile.settings"
         const val ZIP = "zip"
         const val HOME = "route.home"
         const val HISTORY = "route.history"

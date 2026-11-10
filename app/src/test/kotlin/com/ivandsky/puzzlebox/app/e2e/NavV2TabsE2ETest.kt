@@ -198,9 +198,13 @@ class NavV2TabsE2ETest {
             assertState(navV2At(root))
             assertRoute(route)
 
+            tapAvatar()
             tapGear()
-            assertState(navV2At(root, SettingsKey))
+            assertState(navV2At(root, ProfileKey, SettingsKey))
             assertRoute(SETTINGS)
+            back()
+            assertState(navV2At(root, ProfileKey))
+            assertRoute(PROFILE)
             back()
             assertState(navV2At(root))
             assertRoute(route)
@@ -208,6 +212,7 @@ class NavV2TabsE2ETest {
     }
 
     private fun darkReachesStore() = navV2Robot {
+        tapAvatar()
         tapGear()
         assertRoute(SETTINGS)
         tap("profile.appearance.dark")

@@ -174,6 +174,7 @@ class NavV2SummariesE2ETest {
         assertOwnersOnly()
         back()
 
+        tapAvatar()
         tapGear()
         assertRoute(SETTINGS)
         assertOwnersOnly()

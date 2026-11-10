@@ -151,12 +151,15 @@ class ReachabilityInventoryE2ETest {
         back()
         assertRoute(HOME)
 
+        tapAvatar()
         tapGear()
         reachedV2(SETTINGS, width)
         tap("settings.catalog")
         reachedV2(CATALOG, width)
         back()
         assertRoute(SETTINGS)
+        back()
+        assertRoute(PROFILE)
         back()
         assertRoute(HOME)
 
