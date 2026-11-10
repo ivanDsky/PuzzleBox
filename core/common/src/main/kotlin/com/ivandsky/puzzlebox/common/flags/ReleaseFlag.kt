@@ -10,9 +10,6 @@ package com.ivandsky.puzzlebox.common.flags
  * @property releaseDefault the value every release build uses; debug builds start from it too.
  */
 enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
-    /** The Tango puzzle editor, 4×4 to 10×10. Live since 0.22.0. */
-    TangoEditor(label = "Tango editor", releaseDefault = true),
-
     /** The Mini Sudoku editor, and the debug-only 9×9 one. */
     SudokuEditor(label = "Sudoku editor", releaseDefault = false),
 

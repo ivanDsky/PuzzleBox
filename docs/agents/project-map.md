@@ -446,8 +446,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - **Editor seam** (ADR-0019) — `GamePlugin.editor` (`GameEditor`, `core:game`) + a
   `GameEditorUi` binding (`core:game-ui`, collected into `GameEditorRegistry`); the Studio
   holds an `EditorDraft` and feeds `VerdictPipeline`, so adding an editor never touches
-  `feature:create`. Queens and Zip ship their editors; Tango, Sudoku and Strands editors are wired
-  end to end behind `ReleaseFlag.TangoEditor`/`SudokuEditor`/`StrandsEditor`
+  `feature:create`. Queens, Zip and Tango ship their editors; Sudoku and Strands editors are wired
+  end to end behind `ReleaseFlag.SudokuEditor`/`StrandsEditor`
   (default off).
 - **`DraftRepository`** (`core:data`) — the draft store over Room `drafts`; drafts persist
   as the editor's versioned blob, autosaved by `DraftAutosave`.

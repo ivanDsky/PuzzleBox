@@ -63,7 +63,7 @@ object ZipCorridor : FriendGame("Zip") {
 }
 
 /** A unique 6×6 Tango board: ten givens and four edge markers. */
-object TangoSunMoon : FriendGame("Tango", listOf(ReleaseFlag.TangoEditor)) {
+object TangoSunMoon : FriendGame("Tango") {
     /** The board's full solution, row-major. */
     private val SOLUTION: List<TangoCell> = listOf("SSMSMM", "SSMSMM", "MMSMSS", "SSMMSM", "MMSSMS", "MMSMSS")
         .flatMap { row -> row.map { if (it == 'S') TangoCell.SUN else TangoCell.MOON } }
