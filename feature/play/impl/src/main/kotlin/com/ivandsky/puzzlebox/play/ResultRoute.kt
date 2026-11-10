@@ -43,6 +43,10 @@ import org.koin.core.parameter.parametersOf
  *
  * The hero page ([ResultHeroScreen]) draws the solve: the frozen facts, the view model's
  * insights and rank, and the same callbacks plus a sign in.
+ *
+ * With [onOpenBoard], today's official result swaps the daily board for one "Full board" row
+ * (`summary.leaderboard`) that hands back this result's game; the board has one owner, the game
+ * page. Null keeps the board. The hero's rank row stays the one sign-in action.
  */
 @Composable
 fun ResultRoute(
@@ -51,6 +55,7 @@ fun ResultRoute(
     onNext: (GameId) -> Unit,
     onDone: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenBoard: ((GameId) -> Unit)? = null,
 ) {
     val viewModel: ResultViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -78,7 +83,7 @@ fun ResultRoute(
                 }
             },
         )
-        HeroPage(key, viewModel, state, primary, onPrimary, onShare, onPlayAgain, context)
+        HeroPage(key, viewModel, state, primary, onPrimary, onShare, onPlayAgain, context, onOpenBoard)
     }
 }
 
@@ -93,6 +98,7 @@ private fun ColumnScope.HeroPage(
     onShare: () -> Unit,
     onPlayAgain: () -> Unit,
     context: Context,
+    onOpenBoard: ((GameId) -> Unit)?,
 ) {
     val insights by viewModel.heroInsights.collectAsStateWithLifecycle()
     val rank by viewModel.heroRank.collectAsStateWithLifecycle()
@@ -123,20 +129,30 @@ private fun ColumnScope.HeroPage(
         brand = viewModel.brand,
         rolloverAt = state.rolloverAt,
         writeFailed = state.writeFailed,
-        board = resultBoard(key, viewModel, state.game, context),
+        board = resultBoard(key, viewModel, state.game, context, onOpenBoard),
     )
 }
 
 /**
- * The daily board block for this result, or null when none shows (flag off, a past day, a
- * practice play: [ResultViewModel.dailyBoard]). Signed out it carries the friend board's
+ * The daily board block for this result, or null when none shows (a past day, a practice
+ * play: [ResultViewModel.dailyBoard]). With [onOpenBoard] it is one "Full board" row instead,
+ * which reports [key]'s game. Otherwise signed out it carries the friend board's
  * sign-in offer, which routes through the view model's one sign-in holder.
  */
 @Composable
-private fun resultBoard(key: ResultKey, viewModel: ResultViewModel, game: String, context: Context): (@Composable () -> Unit)? {
+private fun resultBoard(
+    key: ResultKey,
+    viewModel: ResultViewModel,
+    game: String,
+    context: Context,
+    onOpenBoard: ((GameId) -> Unit)?,
+): (@Composable () -> Unit)? {
     val board by viewModel.dailyBoard.collectAsStateWithLifecycle()
     val signIn by viewModel.signInStatus.collectAsStateWithLifecycle()
     val shown = board ?: return null
+    if (onOpenBoard != null) {
+        return { SummaryLinkRow("Full board", "summary.leaderboard", { onOpenBoard(GameId(key.gameId)) }) }
+    }
     return {
         DailyBoard(
             title = dailyBoardTitle(game),
