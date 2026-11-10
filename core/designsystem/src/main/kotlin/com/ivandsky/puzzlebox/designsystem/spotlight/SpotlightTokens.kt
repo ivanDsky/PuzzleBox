@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.sp
  * the callout is inverseSurface, the dim is an overlay of the board surface. Reduced motion is the overlay's rule.
  */
 object SpotlightTokens {
-    const val DIM_ALPHA = 0.40f
+    const val DIM_ALPHA = 0.60f
     const val TARGET_GHOST_ALPHA = 0.28f
     const val EXCLUDED_ALPHA = 0.50f
 
