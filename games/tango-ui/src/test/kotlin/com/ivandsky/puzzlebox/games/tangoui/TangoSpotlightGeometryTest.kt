@@ -38,7 +38,6 @@ class TangoSpotlightGeometryTest {
 
     private val model = TangoRendererModel.of(
         TangoState(TangoPlayFixture.puzzle, List(SIZE * SIZE) { TangoPlayFixture.puzzle.givens[it] }),
-        hint = null,
     )
 
     private val lit = Spotlight(

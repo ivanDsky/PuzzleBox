@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.games.tango
 
-import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoMove
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
@@ -16,7 +15,7 @@ class TangoRendererModelTest {
 
     @Test
     fun `empty grid renders IDLE with marker decorations`() {
-        val model = TangoRendererModel.of(TangoState(TangoTestSupport.sample, TangoTestSupport.gridOf()), null)
+        val model = TangoRendererModel.of(TangoState(TangoTestSupport.sample, TangoTestSupport.gridOf()))
         assertEquals(TangoRendererModel.Status.IDLE, model.status)
         assertEquals(4, model.markers.size)
         assertEquals(36, model.cells.size)
@@ -27,7 +26,7 @@ class TangoRendererModelTest {
     fun `a rejected verdict projects onto the offending cell`() {
         val state = TangoState(TangoTestSupport.sample, TangoTestSupport.gridOf())
         val verdict = TangoRules.validate(TangoMove(12, TangoCell.SUN), state)
-        val model = TangoRendererModel.of(state, null, verdict)
+        val model = TangoRendererModel.of(state, verdict)
         assertEquals(TangoVerdict.Reason.ThreeInARow, model.rejection?.reason)
         assertEquals(12, model.rejection?.idx)
         // Nothing placed yet — the board is idle even while showing the rejection.
@@ -37,23 +36,9 @@ class TangoRendererModelTest {
     @Test
     fun `the completed grid renders COMPLETE with no rejection`() {
         val state = TangoState(TangoTestSupport.sample, TangoTestSupport.solution)
-        val model = TangoRendererModel.of(state, null)
+        val model = TangoRendererModel.of(state)
         assertEquals(TangoRendererModel.Status.COMPLETE, model.status)
         assertNull(model.rejection)
         assertTrue(model.cells.all { it.value != null })
-    }
-
-    /** M1: the hint rides the model — highlight cell + WHY for the §4 caption slot. */
-    @Test
-    fun `a forced hint projects onto the model`() {
-        val state = TangoState(TangoTestSupport.sample, TangoTestSupport.gridOf())
-        val hint = TangoRules.hint(state) as TangoHint.Forced
-        val model = TangoRendererModel.of(state, hint)
-        assertEquals(hint.idx, model.hintCell)
-        assertEquals(hint.why, model.hintWhy)
-        // No hint — no payload.
-        val plain = TangoRendererModel.of(state, null)
-        assertNull(plain.hintCell)
-        assertNull(plain.hintWhy)
     }
 }

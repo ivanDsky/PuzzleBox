@@ -75,7 +75,7 @@ class TangoPlayController(
     private val clock = TangoRunClock(now)
     private val settle = TangoSettle(env.scope)
 
-    // HintParity (A1, A9, A10): reset per play, never rebuilt, so the solution memo survives.
+    // Reset per play, never rebuilt, so the solution memo survives (A1, A9, A10).
     private val stepHints = tangoStepHints(hintMode, env.scope, { session }, count = ::updateSession, solve = solve)
 
     /** The Stepwise hint on screen; null after any input. */
@@ -234,7 +234,7 @@ class TangoPlayController(
     override val hintEnabled: Boolean get() = session?.isComplete == false
     // The Spotlight's callout carries the hint text; a hint is never a caption (A11).
     override val hintCaption: String? get() = null
-    /** §6 state-driven live-grid violation (outranks [hintCaption]); placements LAND, so no [rejection]. */
+    /** §6 state-driven live-grid violation; placements LAND, so no [rejection]. */
     override val violation: String? get() =
         if (spotlight != null) null else rendererModel()?.let(TangoSemantics::firstViolationPhrase)
     override val rejection: String? get() = null
@@ -258,7 +258,6 @@ class TangoPlayController(
         val current = session ?: return null
         return TangoRendererModel.of(
             TangoState(current.puzzle, current.grid()),
-            hint = null,
             verdict = lastRejection,
             suppressedSets = suppressedSets,
         ).let(guidance::apply)

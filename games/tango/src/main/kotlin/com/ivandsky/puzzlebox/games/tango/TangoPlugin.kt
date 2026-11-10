@@ -94,7 +94,7 @@ val tangoPlugin: GamePlugin<TangoState, TangoSession, TangoRendererModel> =
                 is DecodeResult.Err -> DecodeResult.Err(decoded.error)
             }
         },
-        rendererModel = { state, hint, verdict -> TangoRendererModel.of(state, hint, verdict) },
+        rendererModel = { state, _, verdict -> TangoRendererModel.of(state, verdict) },
         editor = TangoEditor,
     )
 
