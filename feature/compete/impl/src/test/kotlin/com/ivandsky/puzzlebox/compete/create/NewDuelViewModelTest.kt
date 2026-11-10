@@ -231,9 +231,12 @@ class NewDuelViewModelTest {
 
         vm.create()
 
-        val code = vm.created.first()
+        val (code, puzzles) = vm.created.first()
         val match = server.matches.getValue(code)
         assertEquals(48, match.deadlineHours)
+        // One name per puzzle, in puzzle order, so the invite's "best of" and games match the duel that was drawn.
+        assertEquals(5, puzzles.size)
+        assertEquals(match.legs.map { it.ref.gameId.value.replaceFirstChar(Char::uppercase) }, puzzles)
         assertEquals(1, server.matches.size)
         assertTrue(vm.state.value.creating)
         assertEquals(null, vm.state.value.notice)

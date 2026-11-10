@@ -139,8 +139,8 @@ class ObserveMyDuels(
             !seated -> if (match.invitedUid == me && match.opponent == null && now < match.closesAt) DuelRowKind.Invited else null
             match.revealReady(me, taken, now) -> DuelRowKind.RevealReady.takeIf { cached?.revealSeenAt == null }
             now >= match.closesAt -> null
-            taken.size < match.legs.size -> DuelRowKind.YourMove
             match.opponent == null -> DuelRowKind.Unclaimed
+            taken.size < match.legs.size -> DuelRowKind.YourMove
             else -> DuelRowKind.Waiting
         } ?: return null
         val other = if (kind == DuelRowKind.Invited) match.challenger else match.opponentOf(me)
