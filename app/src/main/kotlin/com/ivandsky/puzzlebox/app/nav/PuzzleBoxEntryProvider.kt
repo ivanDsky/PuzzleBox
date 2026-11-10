@@ -28,7 +28,7 @@ import com.ivandsky.puzzlebox.profile.api.SettingsKey
 import com.ivandsky.puzzlebox.profile.navigation.profileEntry
 
 /**
- * The app's route table (ticket 17): one entry per [NavKey], every destination real —
+ * The app's route table: one entry per [NavKey], every destination real —
  * each feature contributes its own entries; the shell owns only the catalog page.
  * Building it is a plain lookup construction — no composition — so NavRoutesTest
  * resolves each key against it and fails fast if a pushed key ever lacks a route.

@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.update
 
 /**
  * In-memory [MatchLocalRepository]; [clock] stamps `openedAt` of new rows. It passes the same
- * contract test as the Room adapter, so it cannot drift (S15).
+ * contract test as the Room adapter, so it cannot drift.
  */
 class FakeMatchLocalRepository(private val clock: () -> Instant = Instant::now) : MatchLocalRepository {
 

@@ -15,7 +15,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Spec criterion 9: a finished puzzle whose result did not settle says why on its card, below my score — too late to
+ * A finished puzzle whose result did not settle says why on its card, below my score — too late to
  * count, or saved on this device only. The model-level mapping is `DuelLegsModelTest`'s; this renders the card.
  */
 @RunWith(RobolectricTestRunner::class)

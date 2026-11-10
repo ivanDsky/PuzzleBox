@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  */
 object Migrations {
 
-    /** v2 (ticket 12): adds the daily envelope store `puzzle_dailies`; v1 rows untouched. */
+    /** v2: adds the daily envelope store `puzzle_dailies`; v1 rows untouched. */
     val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL(
@@ -30,7 +30,7 @@ object Migrations {
         }
     }
 
-    /** v3 (ticket 15): adds the completions store (records + replays, A4/A5); v2 rows untouched. */
+    /** v3: adds the completions store (records + replays); v2 rows untouched. */
     val MIGRATION_2_3 = object : Migration(2, 3) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL(
@@ -89,7 +89,7 @@ object Migrations {
         }
     }
 
-    /** v6 (navigation-ux): adds the saved in-progress plays store `saved_plays` (A10); v5 rows untouched. */
+    /** v6: adds the saved in-progress plays store `saved_plays`; v5 rows untouched. */
     val MIGRATION_5_6 = object : Migration(5, 6) {
         override fun migrate(db: SupportSQLiteDatabase) {
             db.execSQL(
@@ -105,7 +105,7 @@ object Migrations {
     }
 
     /**
-     * v7 (editor mode, A6/A13): adds `drafts`, `published_puzzles`, `received_puzzles` and
+     * v7 (editor mode): adds `drafts`, `published_puzzles`, `received_puzzles` and
      * `custom_saved_plays` in one bump; only CREATE TABLE, v6 rows untouched.
      */
     val MIGRATION_6_7 = object : Migration(6, 7) {

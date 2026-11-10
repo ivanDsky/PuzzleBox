@@ -12,9 +12,9 @@ import kotlinx.coroutines.flow.update
  * In-memory [SavedPlayRepository]. It never evicts a [PlaySlot.Daily] (the per-game daily cap
  * is a Room-adapter detail), but keeps only the newest [CAP] [PlaySlot.Custom] slots and,
  * apart from them, the newest [CAP] [PlaySlot.Leg] slots, since the contract pins that a
- * friend save never evicts a daily (A13) and that a duel save never evicts, nor is evicted by,
- * another kind (A8). [rows] exposes every stored blob for assertions; it passes the same
- * contract test as the Room adapter, so it cannot drift (A12).
+ * friend save never evicts a daily and that a duel save never evicts, nor is evicted by,
+ * another kind. [rows] exposes every stored blob for assertions; it passes the same
+ * contract test as the Room adapter, so it cannot drift.
  */
 class FakeSavedPlayRepository : SavedPlayRepository {
 

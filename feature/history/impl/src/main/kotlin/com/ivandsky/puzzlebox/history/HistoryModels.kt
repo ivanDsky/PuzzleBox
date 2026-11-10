@@ -35,7 +35,7 @@ data class HistoryDayRow(
     val archived: Boolean = false,
     /** Solved in a duel: the row says so, with the opponent's name when known. */
     val duel: DuelOrigin? = null,
-    /** The year "today" falls in; days from any other year spell theirs out (A23). */
+    /** The year "today" falls in; days from any other year spell theirs out. */
     val currentYear: Int = LocalDate.now().year,
 ) {
     /** "Saturday, November 1" — the detail's date line; an archive day from another year
@@ -54,7 +54,7 @@ data class HistoryDayRow(
     val counts: Boolean
         get() = record != null && puzzleNumber != null
 
-    /** "Opened Nov 5 · doesn't count toward your streak" for an archived day (A21); the
+    /** "Opened Nov 5 · doesn't count toward your streak" for an archived day; the
      *  open date is the capture's, on the device's calendar. Null for a day played live. */
     val archiveNote: String?
         get() = if (!archived) {

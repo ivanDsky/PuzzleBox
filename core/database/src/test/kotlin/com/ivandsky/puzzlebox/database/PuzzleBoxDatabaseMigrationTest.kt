@@ -13,7 +13,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
- * Migration harness (ticket-04 deferral): replays committed schema JSONs from
+ * Migration harness: replays committed schema JSONs from
  * core/database/schemas (on the test classpath) so every version bump lands with a proof the
  * old data survives.
  */
@@ -285,7 +285,7 @@ class PuzzleBoxDatabaseMigrationTest {
         )
         v6.close()
 
-        // Validates against the committed 7.json (S17).
+        // Validates against the committed 7.json.
         val db = helper.runMigrationsAndValidate(dbName, 7, true, Migrations.MIGRATION_6_7)
 
         db.query(

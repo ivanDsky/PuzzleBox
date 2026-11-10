@@ -14,7 +14,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Finishing a duel leg queues exactly one result per (match, leg, player) (spec A22). */
+/** Finishing a duel leg queues exactly one result per (match, leg, player). */
 class FinishLegTest {
 
     private val now = Instant.ofEpochMilli(1_700_000_000_123)

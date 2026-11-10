@@ -57,7 +57,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The New duel sheet's draft and its Create outcomes (ticket 31), over the core:testing fakes and the real use cases. */
+/** The New duel sheet's draft and its Create outcomes, over the core:testing fakes and the real use cases. */
 @OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])

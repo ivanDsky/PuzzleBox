@@ -42,7 +42,7 @@ import org.koin.dsl.module
  */
 val dataModule = module {
     includes(databaseModule, networkModule, datastoreModule)
-    // Per-game "today" (A9/A23): the daily fetch and the hub cues share one calendar.
+    // Per-game "today": the daily fetch and the hub cues share one calendar.
     single<GameCalendar> { CadenceGameCalendar(get()) }
     single<DailyRepository> {
         OfflineFirstDailyRepository(
@@ -53,14 +53,14 @@ val dataModule = module {
             calendar = get(),
         )
     }
-    // Records/replays store (ADR-0004): the A4 first-win record is enforced here, so
-    // feature modules consume the interface only (pinned ticket-15 contract).
+    // Records/replays store (ADR-0004): the first-win record is enforced here, and
+    // feature modules consume the interface only, so the rule cannot be bypassed.
     single<CompletionRepository> { RoomCompletionRepository(get(), get(), get()) }
     single<UserPreferencesRepository> { OfflineUserPreferencesRepository(get()) }
     single<GameSettingsRepository> { OfflineGameSettingsRepository(get()) }
-    // Saved in-progress plays (A10); the slot cap is private to the Room adapter.
+    // Saved in-progress plays; the slot cap is private to the Room adapter.
     single<SavedPlayRepository> { RoomSavedPlayRepository(get(), get(), get()) }
-    // Editor drafts (A5): features read and write through the port, never Room.
+    // Editor drafts: features read and write through the port, never Room.
     single<DraftRepository> { RoomDraftRepository(get()) }
     // The author's published listing; the board stays on the kept, read-only draft.
     single<PublishedPuzzleRepository> { RoomPublishedPuzzleRepository(get()) }
@@ -75,7 +75,7 @@ val dataModule = module {
     single<MatchResultSync> { get<MatchResultPoster>() }
     // Process-wide so the 15-minute update-check throttle survives screen changes.
     single<AppReleaseRepository> { NetworkAppReleaseRepository(get()) }
-    // Shared-text hand-off (M5-08): app puts, the Create root takes it exactly once. In memory
-    // only — the shared text is transient, never persisted, never in a NavKey (P8).
+    // Shared-text hand-off: app puts, the Create root takes it exactly once. In memory
+    // only — the shared text is transient, never persisted, never in a NavKey.
     single<SharedTextStore> { InMemorySharedTextStore() }
 }

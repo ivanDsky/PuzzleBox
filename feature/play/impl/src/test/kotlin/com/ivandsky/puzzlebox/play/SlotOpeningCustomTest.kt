@@ -39,7 +39,7 @@ import org.junit.Test
 /**
  * A friend's puzzle ([PlaySlot.Custom]) opens fresh from the puzzle stored when its code
  * opened, or resumes its own saved row; every friend puzzle has its own slot, and no friend
- * save stands in for a daily's or a daily's for a friend's (A13). A friend's live board,
+ * save stands in for a daily's or a daily's for a friend's. A friend's live board,
  * reopened while it is still on a back stack (rotation, a tab's return), is the play as it
  * stands — a solve the board has not handed off yet is never reset under the player.
  */

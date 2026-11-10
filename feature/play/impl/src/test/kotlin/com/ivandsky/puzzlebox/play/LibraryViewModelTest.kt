@@ -59,10 +59,10 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * The library's state (A25–A29): rows in registry order with today's status, number,
+ * The library's state: rows in registry order with today's status, number,
  * archive progress and stats; the first game selected until [LibraryViewModel.select];
  * offline when any today can't load; the lesson opens and closing it marks it seen; the
- * page's calendar month and picked day (A26) survive a month change and reset to today; a
+ * page's calendar month and picked day survive a month change and reset to today; a
  * removed friend's puzzle comes back with its saved play on Undo, until its window closes.
  */
 class LibraryViewModelTest {

@@ -8,7 +8,7 @@ import java.time.Instant
 import kotlinx.coroutines.flow.first
 
 /**
- * Turns a finished duel leg into one result waiting to post (spec A22: one attempt per leg). Runs after the
+ * Turns a finished duel leg into one result waiting to post (one attempt per leg). Runs after the
  * leg's normal completion went through the first-win policy; it only enqueues, posting is the poster's job.
  * Signed out writes nothing; a leg already queued for this player keeps its first result. The time is stored
  * as the game reported it — flooring is the outcome's job.

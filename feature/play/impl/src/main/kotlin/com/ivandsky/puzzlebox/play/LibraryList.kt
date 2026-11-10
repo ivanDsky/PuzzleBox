@@ -39,7 +39,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.launch
 
 /**
- * The games list (06-a §List pane): "Games" over the one-line pitch, with [headerAction]
+ * The games list: "Games" over the one-line pitch, with [headerAction]
  * trailing them, then [friends] (the From friends section, empty by default), then every
  * game's [LibraryRow] in registry order. Both layouts scroll ([scroll], hoisted so back
  * from a page returns to the same offset), so a short tablet window still reaches every

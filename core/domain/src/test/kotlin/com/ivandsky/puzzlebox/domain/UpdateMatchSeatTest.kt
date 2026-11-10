@@ -24,7 +24,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Taking, withdrawing and refusing a duel's seat (ticket 33), against the in-memory server: each action's result
+ * Taking, withdrawing and refusing a duel's seat, against the in-memory server: each action's result
  * and what it leaves in the local list.
  */
 class UpdateMatchSeatTest {

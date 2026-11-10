@@ -91,7 +91,7 @@ class E2eKoinGraph(
 
     /**
      * The app's clock for the puzzle day: noon in Los Angeles on [today], fixed, so a run that straddles a puzzle
-     * day's rollover cannot read two days (ledger 46). Only the puzzle day and the next rollover read it.
+     * day's rollover cannot read two days. Only the puzzle day and the next rollover read it.
      */
     private val puzzleClock: Clock = Clock.fixed(today.atTime(LocalTime.NOON).atZone(PUZZLE_ZONE).toInstant(), PUZZLE_ZONE)
 

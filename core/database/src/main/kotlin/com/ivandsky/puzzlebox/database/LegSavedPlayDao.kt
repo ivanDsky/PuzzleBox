@@ -7,7 +7,7 @@ import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Saved in-progress plays of duel puzzles (A8): one slot per (matchCode, legIndex), capped at
+ * Saved in-progress plays of duel puzzles: one slot per (matchCode, legIndex), capped at
  * the newest `cap` across the table — apart from `saved_plays` and `custom_saved_plays`, so a
  * leg save never evicts a daily or friend save, nor they a leg.
  */

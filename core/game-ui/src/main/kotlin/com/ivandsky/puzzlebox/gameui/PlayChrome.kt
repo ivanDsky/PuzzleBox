@@ -26,11 +26,11 @@ import kotlinx.coroutines.delay
  * in game-ui from small seams the game's play state implements. What each seam MEANS is the
  * game's: when its clock starts, what a hint does, what an undo unit is, what Clear wipes
  * ([PlayClear]). A game's own settings (Queens' Auto-cross) ride the top bar's overflow
- * as [PlayOverflowItem]s (A14).
+ * as [PlayOverflowItem]s.
  */
 
 /**
- * The clock seam (F2 §2: active foreground play only; the loop lives in
+ * The clock seam (active foreground play only; the loop lives in
  * [PlayClockEffects]). [clockWindow] is a per-window identity that changes each time the
  * running window (re)opens — null while paused/not started. The game owns the semantics:
  * when the first window opens, what a background fold banks, what counts as elapsed.
@@ -46,7 +46,7 @@ interface PlayClock {
 /**
  * The hint seam. The game owns what a hint is; the chrome draws the button and the count,
  * and its caption slot shows [hintCaption] below any [PlayFeedback] message. [hintsUsed]
- * is the session's A3 count, [hintEnabled] folds the game's own gating (complete,
+ * is the session's count, [hintEnabled] folds the game's own gating (complete,
  * cooldown, nothing loaded), [hintCaption] is the reveal's explanation (null = none), and
  * [requestHint] runs the game's hint.
  */
@@ -69,7 +69,7 @@ interface PlayUndo {
 private const val CLOCK_TICK_MS = 200L
 
 /**
- * The shared play-screen clock (F2 §2: active foreground play only) — the tick loop runs
+ * The shared play-screen clock (active foreground play only) — the tick loop runs
  * while a running window is open ([PlayClock.clockWindow] keys it, so each new window
  * restarts), and background/foreground fold/reopen through the game's clock. The
  * lifecycle observer is registered once per screen and follows the CURRENT clock: a new
@@ -90,7 +90,7 @@ fun PlayClockEffects(clock: PlayClock) {
     val currentClock by rememberUpdatedState(clock)
     DisposableEffect(lifecycleOwner) {
         // Resumed and not yet paused: leaving the composition (tab switch, push on top)
-        // folds like backgrounding does, so only foreground-visible time counts (A14).
+        // folds like backgrounding does, so only foreground-visible time counts.
         var resumed = false
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
@@ -114,8 +114,8 @@ fun PlayClockEffects(clock: PlayClock) {
 }
 
 /**
- * The play chrome every game shares beside or under its board (A14, tango-05, split
- * core | game 2026-11-03): the degrade banner (§6 copy passed in) and the one reserved
+ * The play chrome every game shares beside or under its board: the
+ * degrade banner (its copy passed in) and the one reserved
  * caption slot ([PlayCaptionSlot] over [playCaption]: violation > rejection > hint, then the
  * route's [LocalRouteCaption]). The controls are the scaffold's [AdaptivePlayScaffold]
  * actions ([PlayActionBar]); the title, timer, How to play and the overflow live in the

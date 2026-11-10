@@ -34,7 +34,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * One slot's coalesced saves on virtual time (A10): the trailing throttle writes the
+ * One slot's coalesced saves on virtual time: the trailing throttle writes the
  * latest within its window under continuous offers, a solve's discard leaves no row,
  * flush writes at once, and the shared lane orders a released writer's final save
  * before a reopened slot's read and its new writer (patterns-7).

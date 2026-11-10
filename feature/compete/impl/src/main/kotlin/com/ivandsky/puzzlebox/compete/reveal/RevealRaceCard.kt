@@ -37,7 +37,7 @@ import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 private const val LoserDimAlpha = 0.6f
 
 /**
- * One puzzle's race card (handoff 03-reveal §5): the game glyph, "{title}" over "Puzzle {position} of {N}", both
+ * One puzzle's race card: the game glyph, "{title}" over "Puzzle {position} of {N}", both
  * sides with their figures counting up while the puzzle runs, and the winner's pill and basis line once it locks.
  * Past the race (Score, End) the card shows the full figures, resolved. The loser's half dims when it resolves.
  */

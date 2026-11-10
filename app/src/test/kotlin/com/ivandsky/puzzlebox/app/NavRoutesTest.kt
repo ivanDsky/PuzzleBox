@@ -19,7 +19,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Ticket 17 nav-route regression: [puzzleBoxEntryProvider] builds the route table as a
+ * Nav-route regression: [puzzleBoxEntryProvider] builds the route table as a
  * plain key→entry lookup, so these tests resolve every key the wired flow pushes and
  * fail on a missing entry — the exact gap that would strand a tap on an unregistered
  * destination (Home→History, history→Game, Play→Result, Profile→Catalog, and every
