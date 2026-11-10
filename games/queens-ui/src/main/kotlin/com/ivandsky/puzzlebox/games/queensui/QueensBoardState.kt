@@ -154,8 +154,12 @@ class QueensBoardState(
         val current = session
         if (current.isComplete || idx !in 0 until current.puzzle.cellCount) return
         val cell = Cell(idx)
-        // §5.1 idempotence: no change over a queen or any existing mark (no flicker).
-        if (cell in current.queens.toSet() || current.markAt(cell) != null) return
+        // §5.1 idempotence: no change over a queen or any existing mark (no flicker). A10: the
+        // Stepwise Spotlight still clears; the legacy hint state is untouched (flag off = today).
+        if (cell in current.queens.toSet() || current.markAt(cell) != null) {
+            stepHints?.inputMade()
+            return
+        }
         clearHint()
         commit(current.withCrossToggled(cell, now()))
     }
