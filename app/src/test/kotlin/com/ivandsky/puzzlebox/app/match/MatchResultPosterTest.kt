@@ -56,6 +56,7 @@ class MatchResultPosterTest {
     private val server = FakeMatchRepository().apply { signedInUid = ann.uid }
     private val matches = ScriptedMatchRepository(server)
     private val scheduler = TestCoroutineScheduler()
+    private val network = FakeNetworkStatus()
     private var process: CoroutineScope? = null
     private lateinit var poster: MatchResultPoster
 
@@ -83,7 +84,7 @@ class MatchResultPosterTest {
         process?.cancel()
         val scope = CoroutineScope(StandardTestDispatcher(scheduler) + Job())
         process = scope
-        poster = MatchResultPoster(identity = identity, outbox = outbox, matches = matches, scope = scope)
+        poster = MatchResultPoster(identity = identity, outbox = outbox, matches = matches, network = network, scope = scope)
         poster.start()
         scheduler.advanceUntilIdle()
     }
@@ -301,6 +302,56 @@ class MatchResultPosterTest {
 
         assertEquals(2, matches.posts)
         assertEquals(2, row(match = unknownMatch).attempts)
+    }
+
+    @Test
+    fun aRowDeferredAsUnavailableIsPostedWhenConnectivityReturns() = runTest {
+        givenAClaimedMatch()
+        server.online = false
+        network.setOnline(false)
+        outbox.enqueue(code, result())
+        appStart()
+        assertEquals(ResultPostState.Pending, row().state)
+
+        server.online = true
+        network.setOnline(true)
+        scheduler.advanceUntilIdle()
+
+        assertEquals(ResultPostState.Posted, row().state)
+        assertEquals(0, row().attempts)
+    }
+
+    @Test
+    fun aRegainedConnectionDoesNotRepostARowAlreadyInFlight() = runTest {
+        matches.holdPosts()
+        outbox.enqueue(unknownMatch, result())
+        appStart()
+
+        network.setOnline(false)
+        scheduler.advanceUntilIdle()
+        network.setOnline(true)
+        scheduler.advanceUntilIdle()
+        matches.release()
+        scheduler.advanceUntilIdle()
+
+        assertEquals(1, matches.posts)
+        assertEquals(1, row(match = unknownMatch).attempts)
+    }
+
+    @Test
+    fun aRowAtThreeRejectionsStaysLocalOnlyAcrossAReconnect() = runTest {
+        outbox.enqueue(unknownMatch, result())
+        repeat(3) { appStart() }
+        assertEquals(ResultPostState.LocalOnly, row(match = unknownMatch).state)
+
+        network.setOnline(false)
+        scheduler.advanceUntilIdle()
+        network.setOnline(true)
+        scheduler.advanceUntilIdle()
+
+        assertEquals(3, matches.posts)
+        assertEquals(ResultPostState.LocalOnly, row(match = unknownMatch).state)
+        assertEquals(3, row(match = unknownMatch).attempts)
     }
 
     private fun Identity.asPlayer() = Player(uid, displayName, photoUrl)

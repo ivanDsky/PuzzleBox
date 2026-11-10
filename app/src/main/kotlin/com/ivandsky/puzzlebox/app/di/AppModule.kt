@@ -1,10 +1,13 @@
 package com.ivandsky.puzzlebox.app.di
 
+import android.net.ConnectivityManager
 import com.ivandsky.puzzlebox.app.buildTypeChecksForUpdates
 import com.ivandsky.puzzlebox.app.buildTypeUnlistedGames
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
+import com.ivandsky.puzzlebox.app.match.AndroidNetworkStatus
 import com.ivandsky.puzzlebox.app.match.MatchResultPoster
+import com.ivandsky.puzzlebox.app.match.NetworkStatus
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.HintParity
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
@@ -73,9 +76,11 @@ val appModule = module {
             identity = get<IdentityService>(),
             outbox = get<MatchResultOutbox>(),
             matches = get<MatchRepository>(),
+            network = get<NetworkStatus>(),
             scope = get<CoroutineScope>(),
         )
     }
+    single<NetworkStatus> { AndroidNetworkStatus(androidContext().getSystemService(ConnectivityManager::class.java)) }
     single<MatchResultSync> { get<MatchResultPoster>() }
 
     // Game aggregation (ADR-0001): the composition root owns the seams no game module
