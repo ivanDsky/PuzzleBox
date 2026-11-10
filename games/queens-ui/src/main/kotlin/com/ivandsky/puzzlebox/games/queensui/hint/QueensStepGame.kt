@@ -16,12 +16,13 @@ import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
  * Queens behind [StepHints]: snapshots the live [session], runs [QueensStepper] off the main thread and maps the step
  * to its Spotlight. A press never places or removes anything (A1, A4): a culprit is only marked.
  *
- * The solution is resolved once per puzzle (A19) inside the compute block: the stored one when the puzzle carries it,
- * else a search bounded by a poll-counting [Budget], never wall-clock, so the answer is repeatable. The search keeps a
- * solution only when it is the one solution (Main ruling on 27, as Tango): judging entries against one of several would
- * accuse a queen that is right in another. A spent budget, no solution or several is null, and the stepper then
- * accuses only rule breaks and never reveals. Main-confined except the compute block, which only reads the snapshot
- * and the memo. [solve] is a seam for tests.
+ * The solution is resolved once per puzzle (A19) inside the compute block, by a search bounded by a poll-counting
+ * [Budget], never wall-clock, so the answer is repeatable; it runs even when the puzzle stores a solution. It keeps a
+ * solution only when it is the one solution (A3; Main ruling on 27, as Tango): judging entries against one of several
+ * would accuse a queen that is right in another. No solution or several is null, and the stepper then accuses only
+ * rule breaks and never reveals. A budget spent before a second solution turns up keeps the stored solution (null when
+ * none is stored), so a hard board judges as it did before the search ran. Main-confined except the compute block,
+ * which only reads the snapshot and the memo. [solve] is a seam for tests.
  */
 internal class QueensStepGame(
     private val session: () -> QueensSession,
@@ -50,7 +51,7 @@ internal class QueensStepGame(
 
     private fun solutionOf(puzzle: QueensPuzzle): Set<Cell>? {
         solved?.takeIf { it.puzzle == puzzle }?.let { return it.solution }
-        return (puzzle.solution?.toSet() ?: solve(puzzle)).also { solved = Solved(puzzle, it) }
+        return solve(puzzle).also { solved = Solved(puzzle, it) }
     }
 
     /** The cell a player's own edit touched; a clear names none. */
@@ -65,11 +66,17 @@ internal class QueensStepGame(
         /** Budget polls allowed, each after 1024 column candidates; only guarantees the call never hangs. */
         const val POLL_LIMIT = 20_000
 
-        /** [puzzle]'s one solution within [pollLimit] budget polls; null when exhausted, unsolvable or not unique. */
+        /**
+         * [puzzle]'s one solution within [pollLimit] budget polls; null when unsolvable or not unique. A spent budget
+         * gives the stored solution, if any, unchecked.
+         */
         fun boundedSolution(puzzle: QueensPuzzle, pollLimit: Int = POLL_LIMIT): Set<Cell>? {
             var polls = 0
             val outcome = QueensSolver().solutionsWithin(puzzle, limit = 2, budget = Budget { polls++ >= pollLimit })
-            return (outcome as? QueensSearchOutcome.Done)?.solutions?.singleOrNull()?.toSet()
+            return when (outcome) {
+                is QueensSearchOutcome.Done -> outcome.solutions.singleOrNull()?.toSet()
+                QueensSearchOutcome.Exhausted -> puzzle.solution?.toSet()
+            }
         }
     }
 }
