@@ -62,7 +62,7 @@ class DuelFlowE2ETest {
         val match = checkNotNull(graph.matches.matches[code])
         assertEquals("a Daily duel over Zip alone has one puzzle, Zip's", listOf(ZIP), match.legs.map { it.ref.gameId })
         tap(CREATED_DONE)
-        assertEquals("the new duel is mine to play, the opponent's seat still open", DuelRowKind.YourMove, row(code).kind)
+        assertEquals("the new duel waits for a friend to accept: nothing to play yet", DuelRowKind.Unclaimed, row(code).kind)
 
         // My invite waits; the friend's claim turns it into the duel's puzzles.
         tapDuelRow(code)

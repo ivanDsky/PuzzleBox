@@ -98,7 +98,7 @@ internal fun duelLegsModel(
                 is LegStatus.InProgress -> LegAction.Resume
                 is LegStatus.Solved, LegStatus.GaveUp -> null
             },
-            actionEnabled = status !is LegStatus.New || !settled,
+            actionEnabled = status !is LegStatus.New || (!settled && now < match.deadline),
         )
     }
     val footer = when {
@@ -129,10 +129,10 @@ private fun ResultPostState.caption(): PostingCaption? = when (this) {
     ResultPostState.Posted -> null
 }
 
-/** "17 h 42 m" until [closesAt], hours dropped under one hour, "<1 m" under a minute; null once [closesAt] has passed. */
-private fun remaining(closesAt: Instant, now: Instant): String? {
-    if (isClosed(closesAt, now)) return null
-    val minutes = Duration.between(now, closesAt).toMinutes()
+/** "17 h 42 m" until [deadline], hours dropped under one hour, "<1 m" under a minute; null once [deadline] has passed. */
+private fun remaining(deadline: Instant, now: Instant): String? {
+    if (isClosed(deadline, now)) return null
+    val minutes = Duration.between(now, deadline).toMinutes()
     val hours = minutes / MINUTES_PER_HOUR
     return when {
         hours > 0 -> "$hours h ${minutes % MINUTES_PER_HOUR} m"
@@ -141,16 +141,16 @@ private fun remaining(closesAt: Instant, now: Instant): String? {
     }
 }
 
-/** The countdown pill: "Closes in 17 h 42 m", or "Closed" once [closesAt] has passed. */
-internal fun timeLeftText(closesAt: Instant, now: Instant): String =
-    remaining(closesAt, now)?.let { "Closes in $it" } ?: "Closed"
+/** The countdown pill: "Closes in 17 h 42 m", or "Closed" once [deadline] has passed. */
+internal fun timeLeftText(deadline: Instant, now: Instant): String =
+    remaining(deadline, now)?.let { "Closes in $it" } ?: "Closed"
 
-/** True once [now] reaches [closesAt]. */
-internal fun isClosed(closesAt: Instant, now: Instant): Boolean = now >= closesAt
+/** True once [now] reaches [at]. */
+internal fun isClosed(at: Instant, now: Instant): Boolean = now >= at
 
 /** What the Nudge button shares: who it is for, when the duel closes, and the match link. */
-internal fun nudgeText(opponentName: String, code: ShareCode, closesAt: Instant, now: Instant): String {
-    val line = remaining(closesAt, now)?.let { "Your duel with $opponentName closes in $it." }
+internal fun nudgeText(opponentName: String, code: ShareCode, deadline: Instant, now: Instant): String {
+    val line = remaining(deadline, now)?.let { "Your duel with $opponentName closes in $it." }
         ?: "Your duel with $opponentName has closed."
     return "$line\n${code.matchLink}"
 }

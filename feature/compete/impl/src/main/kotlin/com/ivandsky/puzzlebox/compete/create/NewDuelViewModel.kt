@@ -176,7 +176,7 @@ internal class NewDuelViewModel(
     todaySet: ObserveTodaySet,
     calendar: GameCalendar,
     daily: DailyRepository,
-    registry: GameRegistry,
+    private val registry: GameRegistry,
     private val clock: () -> Instant,
 ) : ViewModel() {
 
@@ -191,7 +191,7 @@ internal class NewDuelViewModel(
 
     private val signInStep = DuelSignInStep(identity, idTokens)
     private val working = MutableStateFlow(Working(DuelDraft.quick(emptyList())))
-    private val createdCodes = Channel<ShareCode>(Channel.BUFFERED)
+    private val createdCodes = Channel<Pair<ShareCode, List<String>>>(Channel.BUFFERED)
 
     private val games: StateFlow<List<DuelGame>> = todaySet().map { entries ->
         entries.map { entry ->
@@ -205,8 +205,8 @@ internal class NewDuelViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    /** The new duel's code, once, after Create succeeded. */
-    val created: Flow<ShareCode> = createdCodes.receiveAsFlow()
+    /** The new duel's code and its puzzles' game names, one per puzzle in order, once, after Create succeeded. */
+    val created: Flow<Pair<ShareCode, List<String>>> = createdCodes.receiveAsFlow()
 
     val state: StateFlow<NewDuelState> = combine(working, games, identity.current, ::build)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), build(working.value, emptyList(), identity.current.value))
@@ -260,7 +260,9 @@ internal class NewDuelViewModel(
                     is CreateOutcome.Failed -> work.copy(creating = false, notice = DuelNotice.Failed(outcome.message))
                 }
             }
-            if (current && outcome is CreateOutcome.Created) createdCodes.send(outcome.code)
+            if (current && outcome is CreateOutcome.Created) {
+                createdCodes.send(outcome.code to outcome.legs.map { registry.displayName(it.ref.gameId) })
+            }
         }
     }
 

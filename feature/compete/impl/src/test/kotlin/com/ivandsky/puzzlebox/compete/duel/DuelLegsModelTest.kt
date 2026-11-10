@@ -157,6 +157,18 @@ class DuelLegsModelTest {
     }
 
     @Test
+    fun startIsDisabledFromTheDeadlineButResumeStays() {
+        val match = match(legs = 2)
+        val before = model(view(match), elapsed = mapOf(1 to 5_000L), now = match.deadline - 1.minutes.toJavaDuration()).rows
+        val after = model(view(match), elapsed = mapOf(1 to 5_000L), now = match.deadline).rows
+
+        assertTrue(before[0].actionEnabled)
+        assertFalse(after[0].actionEnabled)
+        assertEquals(LegAction.Resume, after[1].action)
+        assertTrue(after[1].actionEnabled)
+    }
+
+    @Test
     fun timeLeftRoundsDownToHoursAndMinutesAndSaysClosedAtZero() {
         val closesAt = createdAt + 30.hours.toJavaDuration()
         val left = 17.hours + 42.minutes + 59.seconds
