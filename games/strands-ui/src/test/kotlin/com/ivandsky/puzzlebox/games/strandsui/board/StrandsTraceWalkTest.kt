@@ -149,7 +149,7 @@ class StrandsTraceWalkTest {
 
     @Test
     fun `a diagonal joins at its square's near corner, 0_6 along each axis`() {
-        // F1: the old 0.40 joined (3, 2) with the finger barely past the corner of the token.
+        // The old 0.40 fraction joined (3, 2) with the finger barely past the corner of the token.
         val start = centre(Coord(2, 1))
         val short = polyline(listOf(start, start + Offset(0.57f, 0.57f)), FINE)
         assertEquals(emptyList<Coord>(), drag(short))
