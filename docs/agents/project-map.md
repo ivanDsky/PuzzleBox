@@ -74,7 +74,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `TabEntries.kt` (`rememberTabEntries`, the only Navigation3 adapter: per-tab saveable +
   per-entry `ViewModelStore` + `SceneCanvas` decorators, `OWNER_TAB`/`ENTRY_KEY` metadata),
   `PuzzleBoxNavShell.kt` (`NavDisplay`, `onBack` = `Navigator.pop`, `PlaySessionStore.retain`
-  on stack change and `flush` at ON_STOP), `NavTransitions.kt` (`NavMotion` values and the
+  on stack change and `flush` at ON_STOP; `withHintCooldown` wraps the entry provider and provides
+  `LocalHintCooldown` = `HINT_COOLDOWN` per entry while `HintParity` is on), `NavTransitions.kt` (`NavMotion` values and the
   push/pop/tab-switch/Result/reduced-motion chooser), `TopLevelNavBar.kt` (bar + rail,
   `badged` keys), `PuzzleBoxEntryProvider.kt` (route table from every feature's `*Entry`
   builder plus `CatalogKey`), `CatalogKey.kt`, `PuzzleBoxNavKeys.kt` (`puzzleBoxNavKeys`:
@@ -123,8 +124,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `NAVIGATION_STATE_KEY` (ADR-0011).
 - `core/common/` (`:core:common`) — `DispatcherProvider` seam (+ `DefaultDispatcherProvider`),
   `AppResult`/`AppError` and `resultOf` convention (typed errors, never thrown surprises),
-  `flags/` `ReleaseFlag` enum + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022), Koin
-  `commonModule`.
+  `flags/` `ReleaseFlag` enum + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022; `ReleaseFlag.HintParity`
+  gates stepwise hints, release default off), Koin `commonModule`.
 - `core/data/` (`:core:data`) — game-agnostic repositories: `DailyRepository` →
   `OfflineFirstDailyRepository` (`today(game)`/`cached(game, day)`/`observeHistory(game)`,
   by-date `day(game, day)` → `DailyDay` (cache first; on a miss fetches and persists only for an
@@ -167,7 +168,11 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   (buttons, chips, dialogs, top bars, states) carrying `@ShowkaseComposable` metadata,
   `ShowkaseTokens` color/typography registrations; the browser runtime is debug-only
   (`ShowkaseBrowserModule` `@ShowkaseRoot` in `src/debug`; the browser screen lives in
-  `app/src/debug`). Font license in `licenses/`.
+  `app/src/debug`). Font license in `licenses/`. `spotlight/` (ADR-0025): `Spotlight` (cell
+  `roles` by `SpotlightRole` TARGET/EVIDENCE/EXCLUDED/CULPRIT, optional `SpotlightCallout`, `SpotlightGlyphs`),
+  the shape-only `SpotlightGlyphs` seam each game implements, `SpotlightOverlay` (mounted over
+  the cell grid; `SpotlightSequence`, `SpotlightLayout`, `SpotlightMarks`, `SpotlightTokens`);
+  `CooldownRing.kt`: `Modifier.cooldownRing(progress, accent)` draws a Hint button's cooldown fill.
 - `core/model/` (`:core:model`, pure JVM) — dependency-free shared types in package
   `com.ivandsky.puzzlebox.model` (`GameId`, `ThemeMode`, `PlaySlot` (`Daily`/`Custom`)).
 - `core/domain/` (`:core:domain`) — use cases (package `com.ivandsky.puzzlebox.domain`, Koin
@@ -211,6 +216,13 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `CompletionRecordEmitter`. `editor/`: `GameEditorUi` (per-game `sizeLabel`,
   `createController`, `Board`), `GameEditorController` (draft `StateFlow`, `adopt`, overlay
   hooks), `GameEditorRegistry` (GameId → `GameEditorUi`), `EditorOverlay` (witness display).
+  `hint/` (ADR-0025, the one stepwise press flow; never interprets a step): `StepHints<S, K>`
+  (press → search off the main thread → ledger → current `Spotlight`; `StepHints.Game` is the
+  per-game adapter: `capture`, `keyOf`, `spotlight`), `HintLedger` (a step key counts once per play, in memory,
+  saturating at `MAX_HINTS_USED`), `HintSearch` (stale results dropped), `HintMode`
+  (`Legacy` / `Stepwise(compute)`), `HintModeSource` (bound once in `AppModule`; UI modules never read a flag),
+  `OncePerPuzzle<P, S>` (the solution memo, last puzzle only). Beside `HintButton`:
+  `HintCooldown` + `rememberHintCooldown` (the Hint button's wait; `LocalHintCooldown` null = none).
 - `core/testing/` (`:core:testing`) — test doubles, test configurations only (package
   `com.ivandsky.puzzlebox.testing`): `repository/` (`FakeDailyRepository`,
   `FakeCompletionRepository`, `FakeIdentityService`, `FakeLeaderboardRepository`,
@@ -276,8 +288,16 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `SudokuTutorial` `BOARDS` entry, and a `gridStrokes` branch in `SudokuGrid` if neither
   stroke weight suits it; as its own GameId it also needs a `SudokuGames` entry, its module
   pair in `appModules` and a `GAME_ORDER` line. A new elimination technique is an
-  `EliminationStep` file, a line in `EliminationSteps.DEFAULT` and a `SudokuTechnique` entry;
-  captions name only the single, so `SudokuHintCaptions` stays unchanged.
+  `EliminationStep` file, a line in `EliminationSteps.DEFAULT` (Classic's ladder) and a
+  `SudokuTechnique` entry; Mini's stepwise hint also needs a rung in `SudokuEliminations`
+  (`engine/hints/step/`) and a `SudokuStepCopy` entry in `sudoku-ui/hint/`. Legacy captions
+  name only the single, so `SudokuHintCaptions` stays unchanged.
+- `games/{queens,tango,sudoku}-ui/…/hint/` — each game's stepwise-hint adapter over core's
+  `StepHints` (Mini Sudoku only; Classic keeps the legacy hint, A24): `*SpotlightMapper` (step
+  → roles, no drawing), `*StepCopy` (the callout line), `*SpotlightGlyphs` (the game's
+  shape-only `SpotlightGlyphs`), `*StepGame : StepHints.Game` (capture, key, spotlight;
+  Queens and Tango keep their solution in `OncePerPuzzle`), plus `tangoStepHints`. Steps come from
+  each engine's `engine/…/step` package (`QueensStepper`, `TangoStepper`, `SudokuStepper`).
 - `feature/home/impl/` (`:feature:home:impl`) — `navigation/HomeEntry`, `HomeRoute` +
   `HomeViewModel` (today's set via `ObserveTodaySet`, stats via `ObserveGameStats`, the 7-day
   week, `GetNextRollover`, identity, cache-only history teaser via `ObserveGameHistory`;
@@ -412,6 +432,18 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   shell row by row in spec notation.
 - **`GamePlayRegistry`** (`core:game-ui`) — the game → UI seam; `:feature:play:impl` drives any
   game through `GamePlayController`, so adding a game never touches Play.
+- **Hint seams** (ADR-0025, flag `HintParity`) — `HintModeSource` (`core:game-ui`, bound once in
+  `AppModule`) hands each controller `HintMode.Legacy` (today's hint, byte for byte) or
+  `Stepwise`; a stepwise controller builds one `StepHints` over its game's `StepHints.Game`.
+  `StepHints` runs the press, `HintLedger` decides its cost, and the `Spotlight` the adapter
+  returns is drawn by `SpotlightOverlay` (`core:designsystem`). The recipe (A18): a new
+  deduction is one step class in that game's catalog (`QueensStepper` ladder, `TangoStepper`
+  rungs, `SudokuEliminations` rungs) plus its copy entry in `*StepCopy`; a new game is a
+  `*SpotlightMapper`, `*StepCopy`, `*SpotlightGlyphs` and one `StepHints.Game`.
+- **Hint cooldown** (F2, `core:game-ui`) — `LocalHintCooldown` (null = no wait),
+  `HINT_COOLDOWN` (5 s), `rememberHintCooldown` → `HintCooldown` (`press`/`gate`/`ring`) and
+  `Modifier.cooldownRing` in `core:designsystem`; `PuzzleBoxNavShell.withHintCooldown` provides
+  the local per entry only while `HintParity` is on.
 - **Editor seam** (ADR-0019) — `GamePlugin.editor` (`GameEditor`, `core:game`) + a
   `GameEditorUi` binding (`core:game-ui`, collected into `GameEditorRegistry`); the Studio
   holds an `EditorDraft` and feeds `VerdictPipeline`, so adding an editor never touches
@@ -455,6 +487,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   queens-ui, strands-ui, sudoku-ui) unifies the switch: default compares (never fails on drift, never writes goldens),
   `-Proborazzi.verify=true` fails on drift, `-Proborazzi.record=true` records.
   Committed goldens: `app/snapshots/` (14 pngs, `ShowkaseBrowserScreenshotTest`),
+  `core/designsystem/snapshots/` (8, `SpotlightOverlayGoldenTest`: culprit, deduction,
+  elimination, reveal, each light and dark),
   `games/queens-ui/snapshots/` (36, `QueensGoldenScreenshots`),
   `games/strands-ui/snapshots/` (24, `StrandsGoldenScreenshots`, the real 2026-11-06 NYT day
   through the production source), `games/sudoku-ui/snapshots/` (26, `SudokuGoldenScreenshots`),
