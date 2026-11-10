@@ -153,17 +153,23 @@ internal fun GameStartRow(
 internal val PreviewGames: List<CreateUiState.NewGame> = listOf(
     previewGame("queens", "Queens", GameBrand(AccentSlot.Violet, GameGlyphs.Queens), (4..12).toList()),
     previewGame("zip", "Zip", GameBrand(AccentSlot.Blue, GameGlyphs.Zip), (5..8).toList()),
-    previewGame("tango", "Tango", GameBrand(AccentSlot.Orange, GameGlyphs.Tango), listOf(6)),
+    previewGame("tango", "Tango", GameBrand(AccentSlot.Orange, GameGlyphs.Tango), listOf(4, 6, 8, 10), defaultSize = 6),
 )
 
-private fun previewGame(id: String, name: String, brand: GameBrand, sizes: List<Int>): CreateUiState.NewGame {
+private fun previewGame(
+    id: String,
+    name: String,
+    brand: GameBrand,
+    sizes: List<Int>,
+    defaultSize: Int = sizes[sizes.size / 2],
+): CreateUiState.NewGame {
     val all = sizes.map { CreateUiState.Size(VariantId("$id/$it"), "$it×$it") }
     return CreateUiState.NewGame(
         id = GameId(id),
         name = name,
         brand = brand,
         rule = gameRuleLine(GameId(id)),
-        defaultSize = all[all.size / 2],
+        defaultSize = all.first { it.variant == VariantId("$id/$defaultSize") },
         sizes = all,
     )
 }

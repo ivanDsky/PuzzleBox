@@ -55,6 +55,7 @@ class TangoEditorController(
     }
 
     override fun adopt(draft: EditorDraft<*>) {
+        pressed.value = null
         current.value = typed(draft)
     }
 

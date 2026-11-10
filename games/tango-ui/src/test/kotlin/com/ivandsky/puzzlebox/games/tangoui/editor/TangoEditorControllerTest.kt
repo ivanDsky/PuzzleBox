@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.editor.TangoDraft
 import com.ivandsky.puzzlebox.games.tango.editor.TangoEditor
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -44,5 +45,34 @@ class TangoEditorControllerTest {
 
         val undone = checkNotNull(controller.draft.value.undo())
         assertEquals(mapOf(3 to TangoCell.SUN), givens(undone))
+    }
+
+    @Test
+    fun `an adopted draft that shrinks the board drops a held press`() {
+        val sixBySix = controller.draft.value
+        val fourByFour = sixBySix.resize(TangoDraft.variantOf(4))
+        controller.adopt(sixBySix)
+        controller.press(TangoEditorTarget.Square(20))
+
+        controller.adopt(fourByFour)
+
+        assertNull(controller.preview.value)
+        controller.release()
+        assertEquals(emptyMap<Int, TangoCell>(), givens(controller.draft.value))
+        assertTrue(edits.isEmpty())
+    }
+
+    @Test
+    fun `a release after adopting a same size draft edits nothing`() {
+        tap(3)
+        edits.clear()
+        controller.press(TangoEditorTarget.Square(4))
+
+        controller.adopt(checkNotNull(controller.draft.value.undo()))
+        controller.release()
+
+        assertNull(controller.preview.value)
+        assertTrue(givens(controller.draft.value).isEmpty())
+        assertTrue(edits.isEmpty())
     }
 }
