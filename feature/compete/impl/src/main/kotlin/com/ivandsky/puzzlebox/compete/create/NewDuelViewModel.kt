@@ -176,7 +176,7 @@ internal class NewDuelViewModel(
     todaySet: ObserveTodaySet,
     calendar: GameCalendar,
     daily: DailyRepository,
-    registry: GameRegistry,
+    private val registry: GameRegistry,
     private val clock: () -> Instant,
 ) : ViewModel() {
 
@@ -205,7 +205,7 @@ internal class NewDuelViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
-    /** The new duel's code and the names of the games its puzzles are from, in puzzle order, once, after Create succeeded. */
+    /** The new duel's code and its puzzles' game names, one per puzzle in order, once, after Create succeeded. */
     val created: Flow<Pair<ShareCode, List<String>>> = createdCodes.receiveAsFlow()
 
     val state: StateFlow<NewDuelState> = combine(working, games, identity.current, ::build)
@@ -261,8 +261,7 @@ internal class NewDuelViewModel(
                 }
             }
             if (current && outcome is CreateOutcome.Created) {
-                val names = outcome.legs.map { it.ref.gameId }.distinct().mapNotNull { id -> games.value.firstOrNull { it.id == id }?.name }
-                createdCodes.send(outcome.code to names)
+                createdCodes.send(outcome.code to outcome.legs.map { registry.displayName(it.ref.gameId) })
             }
         }
     }
