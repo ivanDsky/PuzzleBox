@@ -12,8 +12,10 @@ import kotlinx.coroutines.withContext
  *
  * Call [request] and [invalidate] from [scope]'s dispatcher (the controller's main thread). A
  * throwing compute is not swallowed: it surfaces on [scope]'s exception handler and nothing is
- * delivered. Cancelling cannot interrupt a compute already running (it is a plain lambda); it only
- * stops the delivery, and the engine budget (A19) bounds the wasted work.
+ * delivered. [StepHints] turns an [Exception] into "no hint" (logged) before it gets here; an [Error]
+ * is never caught and always surfaces on the handler. Cancelling cannot interrupt a compute already
+ * running (it is a plain lambda); it only stops the delivery, and the engine budget (A19) bounds the
+ * wasted work.
  */
 class HintSearch(private val scope: CoroutineScope, compute: CoroutineDispatcher) {
     private val computeDispatcher = compute

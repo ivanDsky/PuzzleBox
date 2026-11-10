@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.gameui.hint
 
+import android.util.Log
 import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -8,6 +9,7 @@ import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightGlyphs
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.Runnable
@@ -20,8 +22,14 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLog
 
-/** Pins the press flow's counting, free repeat, show-only and stale-result rules (spec A1, A4, A9, A10, A19). */
+/** Pins the press flow's counting, free repeat, show-only, stale-result and failure rules (spec A1, A4, A9, A10, A19). */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
 class StepHintsTest {
 
     private val scheduler = TestCoroutineScheduler()
@@ -223,6 +231,37 @@ class StepHintsTest {
         assertEquals(1, strictHints.spotlight?.playId)
     }
 
+    @Test
+    fun `a compute that throws an Exception is logged with its throwable under the StepHints tag`() {
+        game.step = "a"
+        game.throwing = true
+        press()
+
+        val logged = ShadowLog.getLogsForTag("StepHints")
+        assertEquals(1, logged.size)
+        assertEquals(Log.WARN, logged.single().type)
+        assertEquals("boom", logged.single().throwable?.message)
+    }
+
+    @Test
+    fun `an Error from the compute is not turned into no hint and reaches the scope's exception handler`() {
+        val escaped = mutableListOf<Throwable>()
+        val handlerScope = CoroutineScope(
+            SupervisorJob() + StandardTestDispatcher(scheduler, name = "main") +
+                CoroutineExceptionHandler { _, e -> escaped += e },
+        )
+        val errorHints = StepHints(HintMode.Stepwise(compute), handlerScope, game, used = { used }, onCount = { counts += it; used = it })
+        game.step = "a"
+        game.failWith = StackOverflowError("deep")
+        errorHints.press()
+        scheduler.runCurrent()
+
+        assertEquals(listOf<Class<*>>(StackOverflowError::class.java), escaped.map { it.javaClass })
+        assertNull(errorHints.spotlight)
+        assertTrue(counts.isEmpty())
+        assertTrue(ShadowLog.getLogsForTag("StepHints").isEmpty())
+    }
+
     private class FlaggingDispatcher(private val inner: CoroutineDispatcher) : CoroutineDispatcher() {
         @Volatile
         var running = false
@@ -242,6 +281,7 @@ class StepHintsTest {
     private inner class FakeGame : StepHints.Game<String, String> {
         var step = ""
         var throwing = false
+        var failWith: Error? = null
         val nullKeys = mutableSetOf<String>()
         val spotlighted = mutableListOf<String>()
         val spotlightSeenInInputMade = mutableListOf<Spotlight?>()
@@ -258,8 +298,10 @@ class StepHintsTest {
             captureInCompute = compute.running
             val snapshot = step
             val fail = throwing
+            val failure = failWith
             return {
                 blockInCompute = compute.running
+                failure?.let { throw it }
                 if (fail) error("boom")
                 snapshot
             }
