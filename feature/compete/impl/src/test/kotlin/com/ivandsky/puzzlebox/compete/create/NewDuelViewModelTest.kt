@@ -231,7 +231,7 @@ class NewDuelViewModelTest {
 
         vm.create()
 
-        val code = vm.created.first()
+        val (code, _) = vm.created.first()
         val match = server.matches.getValue(code)
         assertEquals(48, match.deadlineHours)
         assertEquals(1, server.matches.size)
