@@ -15,7 +15,6 @@ import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.CreateKey
@@ -71,9 +70,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The New puzzle sheet over the real Tango editor behind [ReleaseFlag.TangoEditor]: off, the
- * sheet has no Tango option; on, it opens a Tango draft whose first placed given moves the
- * verdict pill off Incomplete.
+ * The New puzzle sheet over the real Tango editor with no flag on: it offers Tango, opens a Tango
+ * draft, and its first placed given moves the verdict pill off Incomplete.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
@@ -92,18 +90,10 @@ class NewPuzzleSheetTangoGateTest {
     }
 
     @Test
-    fun `with TangoEditor off the sheet offers no Tango option`() {
+    fun `Tango is offered and opens the Tango editor, and one given moves the verdict`() {
         open(FakeReleaseFlags())
         rule.onNodeWithTag(NEW).performClick()
-
-        rule.onNodeWithTag("$GAME${QueensDefinition.id.value}").assertExists()
-        rule.onNodeWithTag("$GAME${tango.value}").assertDoesNotExist()
-    }
-
-    @Test
-    fun `with TangoEditor on the option opens the Tango editor and one given moves the verdict`() {
-        open(FakeReleaseFlags(ReleaseFlag.TangoEditor))
-        rule.onNodeWithTag(NEW).performClick()
+        rule.onNodeWithTag("$GAME${tango.value}").assertExists()
         rule.onNodeWithTag("$GAME${tango.value}").performClick()
         assertEquals(TangoEditor.variants.map { "$SIZE${it.value}" }, tagsStartingWith(SIZE))
         rule.onNodeWithTag("$SIZE${TangoEditor.defaultVariant.value}").performClick()
