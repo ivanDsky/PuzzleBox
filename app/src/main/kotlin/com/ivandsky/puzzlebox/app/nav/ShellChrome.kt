@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.app.nav
 
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -10,45 +12,41 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.data.identity.Identity
-import androidx.compose.foundation.layout.RowScope
 import com.ivandsky.puzzlebox.designsystem.LocalShellActions
-import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.gameui.PlayerAvatar
+import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * The shell's chrome for Browse screens (ADR-0027): the avatar (→ Profile), pushed on the
- * current tab, in one fixed place. With [railActions] the rail carries it at its bottom
- * ([RailChromeActions]) and no header does; otherwise only Today's header draws it.
+ * The shell's chrome (ADR-0027): the avatar ([ShellAvatar], → Profile), pushed on the
+ * current tab, in one fixed place. With [avatarInTodayHeader] Today's header draws it;
+ * otherwise the rail carries it at its bottom and no header does.
  * Settings is reached from Profile's own gear. Everything else passes through unchanged.
  *
  * [LocalShellActions] is static: a new value would recompose every Browse subtree. The one
- * actions lambda is built here, once per decorator, and collects [identity] inside its own
- * body, so a sign-in or a photo load recomposes only the slot.
+ * actions lambda is built here, once per decorator, and [ShellAvatar] collects the identity
+ * inside its own body, so a sign-in or a photo load recomposes only the slot.
  */
 internal fun shellChromeDecorator(
     navigator: Navigator,
     identity: StateFlow<Identity?>,
-    railActions: Boolean,
+    avatarInTodayHeader: Boolean,
 ): NavEntryDecorator<NavKey> {
-    val onProfile = { navigator.pushOnce(ProfileKey) }
     val actions: @Composable RowScope.() -> Unit = {
-        val current by identity.collectAsStateWithLifecycle()
-        ShellChromeActions(current, onProfile)
+        ShellAvatar(navigator, identity, ShellAvatarSize.Header)
     }
     return NavEntryDecorator { entry ->
         val key = entry.metadata[ENTRY_KEY]
-        if (!railActions && key is HomeKey) {
+        if (avatarInTodayHeader && key is HomeKey) {
             CompositionLocalProvider(LocalShellActions provides actions) { entry.Content() }
         } else {
             entry.Content()
@@ -56,11 +54,22 @@ internal fun shellChromeDecorator(
     }
 }
 
-/** The rail's bottom slot: the avatar, pushing Profile on the current tab. */
+/** The shell's one avatar: collects [identity] and pushes Profile on the current tab. */
 @Composable
-internal fun RailChromeActions(navigator: Navigator, identity: StateFlow<Identity?>) {
+internal fun ShellAvatar(
+    navigator: Navigator,
+    identity: StateFlow<Identity?>,
+    size: ShellAvatarSize,
+    modifier: Modifier = Modifier,
+) {
     val current by identity.collectAsStateWithLifecycle()
-    ShellChromeActions(current, { navigator.pushOnce(ProfileKey) }, RailAvatarSize)
+    AvatarButton(current, { navigator.pushOnce(ProfileKey) }, size, modifier)
+}
+
+/** Where the avatar sits: the header's is a touch larger than the 24dp icons beside it; the rail's matches its larger tabs. */
+internal enum class ShellAvatarSize(val photo: Dp, val icon: Dp) {
+    Header(28.dp, 24.dp),
+    Rail(36.dp, 36.dp),
 }
 
 /**
@@ -68,26 +77,20 @@ internal fun RailChromeActions(navigator: Navigator, identity: StateFlow<Identit
  * is the player's photo over their initial; signed out, the Profile icon.
  */
 @Composable
-internal fun ShellChromeActions(identity: Identity?, onProfile: () -> Unit, avatarSize: Dp = AvatarSize) {
+private fun AvatarButton(identity: Identity?, onClick: () -> Unit, size: ShellAvatarSize, modifier: Modifier) {
     IconButton(
-        onClick = onProfile,
-        modifier = Modifier.testTag("shell.avatar").semantics { contentDescription = "Profile" },
+        onClick = onClick,
+        modifier = modifier.testTag("shell.avatar").semantics { contentDescription = "Profile" },
     ) {
         if (identity == null) {
             Icon(
                 imageVector = PuzzleIcons.Profile,
                 contentDescription = null,
-                modifier = if (avatarSize == AvatarSize) Modifier else Modifier.size(avatarSize),
+                modifier = Modifier.size(size.icon),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            PlayerAvatar(name = identity.displayName, photoUrl = identity.photoUrl, size = avatarSize)
+            PlayerAvatar(name = identity.displayName, photoUrl = identity.photoUrl, size = size.photo)
         }
     }
 }
-
-/** A touch larger than the 24dp icons beside it, so a face reads at a glance. */
-private val AvatarSize = 28.dp
-
-/** The NavV2 rail's avatar: bigger to match its larger tabs; its target is 48dp. */
-private val RailAvatarSize = 36.dp

@@ -27,7 +27,8 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.nav.FriendLink
 import com.ivandsky.puzzlebox.app.nav.LocalChromePadding
 import com.ivandsky.puzzlebox.app.nav.PuzzleBoxNavShell
-import com.ivandsky.puzzlebox.app.nav.RailChromeActions
+import com.ivandsky.puzzlebox.app.nav.ShellAvatar
+import com.ivandsky.puzzlebox.app.nav.ShellAvatarSize
 import com.ivandsky.puzzlebox.app.nav.TabRef
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
@@ -209,7 +210,7 @@ fun PuzzleBoxApp(
                     badged = badged,
                     destinations = destinations,
                     bottomActions = if (navV2) {
-                        { RailChromeActions(navigator, identityService.current) }
+                        { ShellAvatar(navigator, identityService.current, ShellAvatarSize.Rail) }
                     } else {
                         null
                     },
