@@ -2,21 +2,9 @@ package com.ivandsky.puzzlebox.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.SummaryLinkRow
 import com.ivandsky.puzzlebox.model.GameId
 
 /**
@@ -47,51 +35,19 @@ internal fun HomeSummaryRows(state: HomeUiState, summaries: HomeSummaries) {
     val duels = if (onOpenDuels != null) summaries.duelsNeedYou?.invoke() ?: 0 else 0
     val showRank = rank != null && onOpenRank != null
     if (!showRank && duels <= 0) return
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         if (rank != null && onOpenRank != null) {
-            SummaryRow(
+            SummaryLinkRow(
                 text = "Today's rank: #${rank.position} on ${rank.gameName}",
                 tag = "summary.leaderboard",
                 onClick = { onOpenRank(rank.gameId) },
             )
         }
         if (onOpenDuels != null && duels > 0) {
-            SummaryRow(
+            SummaryLinkRow(
                 text = if (duels == 1) "1 duel needs you" else "$duels duels need you",
                 tag = "summary.duels",
                 onClick = onOpenDuels,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SummaryRow(text: String, tag: String, onClick: () -> Unit) {
-    Surface(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .testTag(tag),
-        shape = MaterialTheme.shapes.small,
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                modifier = Modifier.weight(1f),
-            )
-            Icon(
-                imageVector = PuzzleIcons.Chevron,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
     }
