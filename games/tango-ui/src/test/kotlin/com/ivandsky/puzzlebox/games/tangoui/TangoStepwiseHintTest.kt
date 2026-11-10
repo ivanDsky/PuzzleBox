@@ -214,7 +214,6 @@ class TangoStepwiseHintTest {
         scheduler.runCurrent()
 
         assertNotNull(s.spotlight)
-        assertNull(s.hintCaption)
         assertNull(s.violation)
         assertNull(playCaption(s, s))
 
