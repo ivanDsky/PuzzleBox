@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -189,6 +190,31 @@ class ToolSlotSwapTest {
 
         assertFullActionArea()
     }
+
+    @Test
+    fun `on a phone a publish from Edit board never brings Test again or the readiness line back on its way to the ticket`() {
+        open(PlayLayout.SinglePane)
+        awaitTag(EDIT_BOARD)
+        composeRule.onNodeWithTag(EDIT_BOARD).performClick()
+        awaitGone(TEST_SOLVE)
+        val enabled = hasTestTag(PUBLISH) and isEnabled()
+        awaitTrue { composeRule.onAllNodes(enabled).fetchSemanticsNodes().isNotEmpty() }
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onNode(enabled).performClick()
+
+        // Frame by frame through the publish and the morph, the leaving action area included.
+        val flashed = mutableSetOf<String>()
+        composeRule.waitUntil(TIMEOUT_MS) {
+            ShadowLooper.idleMainLooper(FRAME_MS, TimeUnit.MILLISECONDS)
+            composeRule.mainClock.advanceTimeByFrame()
+            flashed += listOf(TEST_STATUS, TEST_SOLVE, READINESS).filter { shown(it) }
+            shown(TICKET) && !shown(PUBLISH)
+        }
+        assertTrue("$flashed showed on the way to the ticket", flashed.isEmpty())
+    }
+
+    private fun shown(tag: String) = composeRule.onAllNodes(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
 
     /** The status line, Test solve, the readiness line and Publish, all shown. */
     private fun assertFullActionArea() {
@@ -447,6 +473,7 @@ class ToolSlotSwapTest {
         const val TEST_SOLVE = "create.action.testSolve"
         const val READINESS = "create.readiness"
         const val PUBLISH = "create.action.publish"
+        const val TICKET = "create.published.ticket"
 
         fun storedRow(board: EditorDraft<TestDraft>) = Draft(
             id = DRAFT_ID,

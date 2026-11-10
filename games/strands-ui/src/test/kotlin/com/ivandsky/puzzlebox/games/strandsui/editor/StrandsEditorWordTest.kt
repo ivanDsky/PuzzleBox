@@ -3,14 +3,17 @@ package com.ivandsky.puzzlebox.games.strandsui.editor
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -153,7 +156,7 @@ class StrandsEditorWordTest {
     }
 
     @Test
-    fun `on the phone the field is one 56dp box, its overflow line under it only while too long`() {
+    fun `on the phone the field is one box, its overflow line under it only while too long`() {
         selectedPath()
         val field = rule.onNodeWithTag("strands.editor.word").getUnclippedBoundsInRoot()
         // One text box: a floating label or a resting supporting line would each add a line.
@@ -165,6 +168,29 @@ class StrandsEditorWordTest {
 
         val fit = rule.onNodeWithTag("strands.editor.word.fit", useUnmergedTree = true).assertIsDisplayed().getUnclippedBoundsInRoot()
         assertTrue("fit line $fit not under the field $field", fit.top >= field.bottom - 0.5.dp)
+    }
+
+    @Test
+    fun `on the phone the field keeps its name once a word hides the placeholder`() {
+        selectedPath()
+        val name = rule.onNodeWithTag("strands.editor.word.label", useUnmergedTree = true).text()
+
+        controller.typeWord("sta")
+        answerLookups()
+
+        rule.onNodeWithTag("strands.editor.word.label", useUnmergedTree = true).assertDoesNotExist()
+        val description = rule.onNodeWithTag("strands.editor.word").fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription)
+        assertTrue("field named $description, not $name", description.orEmpty().contains(name))
+    }
+
+    @Test
+    fun `the off field's hint stays readable, 4_5 to 1 against what is behind it`() {
+        show()
+        answerLookups()
+        val pixels = rule.onNodeWithTag("strands.editor.word.label", useUnmergedTree = true).captureToImage().toPixelMap()
+        val luminances = (0 until pixels.width).flatMap { x -> (0 until pixels.height).map { y -> pixels[x, y].luminance() } }
+        val contrast = (luminances.max() + 0.05f) / (luminances.min() + 0.05f)
+        assertTrue("hint contrast $contrast under 4.5:1", contrast >= 4.5f)
     }
 
     /** The check node in [expected] state, with a description to read it by. */
@@ -184,6 +210,9 @@ class StrandsEditorWordTest {
         rule.onNodeWithTag("strands.editor.word.label", useUnmergedTree = true).assertIsDisplayed()
         assertEquals("", controller.word.value)
     }
+
+    private fun SemanticsNodeInteraction.text(): String =
+        fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text).orEmpty().joinToString { it.text }
 
     @Test
     fun `a lift selects the new path and the field then names it with no extra tap`() {
