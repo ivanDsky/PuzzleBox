@@ -69,6 +69,7 @@ class StrandsEditorController(
      * shows the letters the path holds; dropping the selection clears it.
      */
     fun selectPath(index: Int?) {
+        yieldDrag()
         select(index)
         if (selected.value != null) tracing.value = emptyList()
     }
