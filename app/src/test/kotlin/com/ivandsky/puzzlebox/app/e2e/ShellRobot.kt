@@ -50,6 +50,7 @@ import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
@@ -65,6 +66,7 @@ import com.ivandsky.puzzlebox.play.ActivePlay
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.time.Duration
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
@@ -74,6 +76,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.runner.Description
 import org.junit.runners.model.Statement
+import org.koin.core.module.Module
+import org.koin.dsl.module
 import org.robolectric.Shadows.shadowOf
 
 /**
@@ -108,6 +112,26 @@ internal fun shellRobot(
     } finally {
         graph.stop()
     }
+}
+
+/** The graph with NavV2 on, plus [also]'s flags. */
+internal fun navV2Graph(vararg also: ReleaseFlag, overrides: Module = module {}): E2eKoinGraph =
+    E2eKoinGraph(E2E_TODAY, overrides, FakeReleaseFlags(ReleaseFlag.NavV2, *also))
+
+/** [shellRobot] with NavV2 on: the flag-on tab set over [graph], starting at [state]. */
+internal fun navV2Robot(
+    state: NavigationState = puzzleBoxNavigationState(navV2 = true),
+    graph: E2eKoinGraph = navV2Graph(),
+    block: ShellRobot.() -> Unit,
+) = shellRobot(state, graph = graph, destinations = topLevelDestinations(navV2 = true), block = block)
+
+/** The fresh flag-on state, selected on [tab], whose stack is [tab] then [pushed]. */
+internal fun navV2At(tab: NavKey, vararg pushed: NavKey): NavigationState {
+    val fresh = puzzleBoxNavigationState(navV2 = true)
+    return NavigationState(
+        tab = tab,
+        stacks = fresh.stacks.map { stack -> if (stack.first() == tab) stack + pushed else stack },
+    )
 }
 
 /**
@@ -557,6 +581,25 @@ class ShellRobot internal constructor(
         assertTrue("rail hugs the start: $tabs in $window", tabs.first().right <= window.left + window.width / 4)
     }
 
+    /** NavV2: the top bar's avatar, which opens Profile on the current tab. */
+    fun tapAvatar() = tap(AVATAR)
+
+    /** NavV2: the top bar's gear, which opens Settings on the current tab. */
+    fun tapGear() = tap(GEAR)
+
+    /** NavV2 Browse chrome: the avatar and the gear each show exactly once. */
+    fun assertChromeActions() {
+        awaitTag(AVATAR)
+        assertEquals("avatars (state $state)", 1, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
+        assertEquals("gears (state $state)", 1, rule.onAllNodesWithTag(GEAR).fetchSemanticsNodes().size)
+    }
+
+    /** Neither the avatar nor the gear shows: immersive play, a Tool screen, or the flag off. */
+    fun assertNoChromeActions() {
+        assertEquals("avatars (state $state)", 0, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
+        assertEquals("gears (state $state)", 0, rule.onAllNodesWithTag(GEAR).fetchSemanticsNodes().size)
+    }
+
     private fun tabBounds(): List<Rect> = destinations.map {
         rule.onNodeWithTag(it.tag).assertIsDisplayed().fetchSemanticsNode().boundsInRoot
     }
@@ -597,6 +640,8 @@ class ShellRobot internal constructor(
         const val IDLE_STEP_MS = 100L
         const val CLOCK_STEP_MS = 50L
         const val CLOCK_BUDGET_MS = 60_000L
+        const val AVATAR = "shell.avatar"
+        const val GEAR = "shell.settings"
         const val GAME_ROUTE = "route.game"
         const val ZIP_SIZE = 5
         const val RESULT_ROUTE = "route.result"

@@ -57,13 +57,13 @@ import org.robolectric.RuntimeEnvironment
 internal const val FRIEND_TIMEOUT_MS = 10_000L
 
 /**
- * Two signed-in users on one phone over the real shell's graph, with only [flag]'s editor on:
+ * Two signed-in users on one phone over the real shell's graph, with only [flags] on (an editor, plus NavV2 for a flag-on run):
  * the author's Studio publishes through [shared]; the friend opens the code into [received] and
  * wins into a file-backed Room record store, which stamps first wins as the app does, so the
  * started [CustomBoardSubmitter] posts the win to [boards] and [LeaderboardSubmitWatcher] posts
  * the dailies to the graph's daily board. [close] after the run.
  */
-internal class FriendWorld(flag: ReleaseFlag) {
+internal class FriendWorld(vararg flags: ReleaseFlag) {
 
     val drafts = FakeDraftRepository()
     val shared = FakeSharedPuzzleRepository()
@@ -89,7 +89,7 @@ internal class FriendWorld(flag: ReleaseFlag) {
                 }.also { room = it }.koin.get()
             }
         },
-        releaseFlags = FakeReleaseFlags(flag),
+        releaseFlags = FakeReleaseFlags(*flags),
     )
 
     fun close() {
