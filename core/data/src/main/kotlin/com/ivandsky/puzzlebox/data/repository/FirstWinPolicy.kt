@@ -47,6 +47,7 @@ internal class FirstWinPolicy {
             firstCompletedAtMs = if (isRecord) completedAtMs else null,
             isRecord = isRecord,
             matchCode = record.matchCode,
+            source = record.source.storedName,
         )
     }
 }
