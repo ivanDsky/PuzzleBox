@@ -70,3 +70,5 @@ to merge without being reachable in a release build.
   on by default, so the shell tests waited on the hero page (`result.hero.screen`).
 - The ResultsHero flag was removed, with the old daily result page and every branch on it, on
   2026-11-08. The e2e graph is back to no flags on.
+- HintParity flipped to `releaseDefault = true` in 0.20.0 on 2026-11-09. Queens, Tango and Mini
+  Sudoku give one deduction per press; Classic Sudoku, Zip and Strands are unchanged.

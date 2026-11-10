@@ -125,7 +125,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - `core/common/` (`:core:common`) — `DispatcherProvider` seam (+ `DefaultDispatcherProvider`),
   `AppResult`/`AppError` and `resultOf` convention (typed errors, never thrown surprises),
   `flags/` `ReleaseFlag` enum + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022; `ReleaseFlag.HintParity`
-  gates stepwise hints, release default off), Koin `commonModule`.
+  gates stepwise hints, release default on since 0.20.0), Koin `commonModule`.
 - `core/data/` (`:core:data`) — game-agnostic repositories: `DailyRepository` →
   `OfflineFirstDailyRepository` (`today(game)`/`cached(game, day)`/`observeHistory(game)`,
   by-date `day(game, day)` → `DailyDay` (cache first; on a miss fetches and persists only for an
