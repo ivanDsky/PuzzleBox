@@ -138,13 +138,38 @@ class StrandsTraceWalkTest {
     }
 
     @Test
-    fun `a diagonal joins only 0_55 of the way along its step`() {
+    fun `a diagonal joins at its square's near corner, 0_6 along each axis`() {
         // F1: the old 0.40 joined (3, 2) with the finger barely past the corner of the token.
         val start = centre(Coord(2, 1))
-        val short = polyline(listOf(start, start + Offset(0.52f, 0.52f)), FINE)
+        val short = polyline(listOf(start, start + Offset(0.57f, 0.57f)), FINE)
         assertEquals(emptyList<Coord>(), drag(short))
-        val past = polyline(listOf(start, start + Offset(0.58f, 0.58f)), FINE)
+        val past = polyline(listOf(start, start + Offset(0.63f, 0.63f)), FINE)
         assertEquals(listOf(Coord(2, 1), Coord(3, 2)), drag(past))
+    }
+
+    @Test
+    fun `a finger in a side letter's square corner joins it, though outside the old circle about its centre`() {
+        // Down 0.35 from (3, 1)'s centre, then east along that line: it enters (3, 2)'s square at
+        // 0.6 from the centre of (3, 2) — beyond the old 0.4 circle — and joins at once.
+        val start = centre(Coord(3, 1))
+        val finger = polyline(listOf(start, start + Offset(0f, 0.35f), start + Offset(0.7f, 0.35f)), FINE)
+        assertEquals(listOf(Coord(3, 1), Coord(3, 2)), drag(finger))
+        // 0.5 down is outside the square: the finger passes under the letter and joins nothing.
+        val under = polyline(listOf(start, start + Offset(0f, 0.5f), start + Offset(0.7f, 0.5f)), FINE)
+        assertEquals(emptyList<Coord>(), drag(under))
+    }
+
+    @Test
+    fun `a diagonal stroke through the corner channel joins the diagonal letter, never a side letter`() {
+        val start = centre(Coord(3, 1))
+        for (pitch in listOf(FINE, SPARSE)) {
+            // On the centre line, through the corner point between the two side squares.
+            val centred = polyline(listOf(start, start + Offset(0.9f, 0.9f)), pitch)
+            assertEquals("centred every $pitch", listOf(Coord(3, 1), Coord(4, 2)), drag(centred))
+            // Off the line: y = x - 0.3 clips (3, 2)'s square corner at (0.65, 0.35) and must still take (4, 2).
+            val beside = polyline(listOf(start + Offset(0.3f, 0f), start + Offset(1.2f, 0.9f)), pitch)
+            assertEquals("beside every $pitch", listOf(Coord(3, 1), Coord(4, 2)), drag(beside))
+        }
     }
 
     @Test
@@ -233,6 +258,6 @@ class StrandsTraceWalkTest {
         const val SPARSE = 0.6f
 
         /** Where an east drag from (3, 1)'s centre, dipping south, first takes the diagonal. */
-        val SLIP = Offset(2.05f, 3.8f)
+        val SLIP = Offset(2.06f, 4.06f)
     }
 }

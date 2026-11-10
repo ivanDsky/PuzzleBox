@@ -14,11 +14,11 @@ import com.ivandsky.puzzlebox.games.strands.Coord
  * back at the previous letter; anywhere else, no tip. Null without a finger, an empty path or
  * a finger resting on the tail centre.
  *
- * A forward lean ends where the walk's join line for that letter begins
- * ([StrandsBoardSpec.DiagonalJoinFraction], or the step less [StrandsBoardSpec.SideJoinCells]):
- * a finger past it that the walk did not join (off the letter's centre, or heading elsewhere)
- * has been refused, and a line leant on to the letter would read as a link to a letter outside
- * the path.
+ * A forward lean ends where the finger is [StrandsBoardSpec.TargetHalf] short of that
+ * letter's centre along the step, the near edge of its square target (the corner, for a
+ * diagonal): a finger past it that the walk did not join (off the letter's square, or
+ * heading elsewhere) has been refused, and a line leant on to the letter would read as a
+ * link to a letter outside the path.
  */
 internal fun strandsTip(
     path: List<Coord>,
@@ -40,10 +40,5 @@ internal fun strandsTip(
         },
     ) ?: return null
     if (tip.kind != TipKind.Forward) return tip
-    val joinLine = if (direction.dRow != 0 && direction.dCol != 0) {
-        StrandsBoardSpec.DiagonalJoinFraction
-    } else {
-        1f - StrandsBoardSpec.SideJoinCells
-    }
-    return tip.takeIf { it.extent < joinLine }
+    return tip.takeIf { it.extent < 1f - StrandsBoardSpec.TargetHalf }
 }

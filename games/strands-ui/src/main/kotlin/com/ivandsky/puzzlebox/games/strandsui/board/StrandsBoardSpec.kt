@@ -49,28 +49,33 @@ internal object StrandsBoardSpec {
     /*
      * Drag acceptance (A5, prototype 02 variant E), in cell pitches from the tail's centre
      * unless named otherwise. The direction is the finger's travel over TravelWindowCells,
-     * so a diagonal drawn beside the centre line, wobbling, still reads as diagonal. A side
-     * letter needs both a heading inside its cone and the finger deep in its token,
-     * so it never steals a corner-cutting diagonal.
+     * so a diagonal drawn beside the centre line, wobbling, still reads as diagonal. A
+     * neighbour joins when the finger is inside its square target (TargetHalf) and the
+     * heading is toward it: a side letter needs a heading inside its cone, so it never steals
+     * a corner-cutting diagonal, and the squares leave a no-join channel at each corner.
      */
     const val TravelWindowCells: Float = 0.25f
     const val SideConeDegrees: Float = 22.5f
-    const val SideJoinCells: Float = 0.40f
 
     /** What the side cone leaves of the 45° between an axis and a diagonal: the cones tile the circle, so every heading decides one. */
     const val DiagonalConeDegrees: Float = 45f - SideConeDegrees
 
-    /** Of the diagonal step (√2 pitches): the diagonal letter joins this far along it. */
-    const val DiagonalJoinFraction: Float = 0.55f
+    /**
+     * Half the side of a letter's square target, about the size of the token face. A side letter
+     * joins 0.6 pitch from the tail, as its circle did; a diagonal joins at its square's near
+     * corner, 0.6 pitch along each axis. The squares leave a channel of 1 - 2 × this between
+     * them, where nothing joins.
+     */
+    const val TargetHalf: Float = 0.4f
+
+    /** Half the side of the square about the letter before the tail the finger steps into to back up onto it; earlier letters are a wall and join nothing. Smaller than [TargetHalf]: a corner cut past the previous letter must not back up. */
+    const val BackHalf: Float = 0.30f
 
     /** A joined letter grows the trace only once the finger comes this close to its centre. */
     const val ArriveCells: Float = 0.55f
 
-    /** Within this of the letter before the tail the drag steps back onto it; earlier letters are a wall and join nothing. */
-    const val BackJoinCells: Float = 0.30f
-
-    /** A free letter beside the tail joins, heading or not, once the finger is this close to its centre. */
-    const val HeartCells: Float = 0.30f
+    /** A free letter beside the tail joins, heading or not, once the finger is inside the square of this half side about its centre. */
+    const val HeartHalf: Float = 0.25f
 
     /** Within this of the tail's centre nothing joins: a resting finger never picks a neighbour. */
     const val StillCells: Float = 0.30f

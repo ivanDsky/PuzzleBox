@@ -29,33 +29,34 @@ class StrandsTraceTipTest {
         strandsTip(path, finger(path.last(), tailDx, tailDy), rows, cols, found)
 
     @Test
-    fun `toward a free letter the tip follows the finger, to the walk's join line and no further`() {
+    fun `toward a free letter the tip follows the finger, to its square target's near edge and no further`() {
         val tail = Coord(1, 1)
         val near = tip(listOf(tail), 0.3f, 0f)!!
         assertEquals(TipKind.Forward, near.kind)
         assertEquals(Coord(1, 2), near.toward)
         assertEquals(0.3f, near.extent, 1e-4f)
 
-        val atLine = 1f - StrandsBoardSpec.SideJoinCells
-        assertEquals(atLine - 0.01f, tip(listOf(tail), atLine - 0.01f, 0f)!!.extent, 1e-4f)
-        assertNull("past the join line the letter was refused", tip(listOf(tail), atLine + 0.01f, 0f))
+        val edge = 1f - StrandsBoardSpec.TargetHalf
+        assertEquals(edge - 0.01f, tip(listOf(tail), edge - 0.01f, 0f)!!.extent, 1e-4f)
+        assertNull("past the near edge the letter was refused", tip(listOf(tail), edge + 0.01f, 0f))
         assertNull(tip(listOf(tail), 3f, 0f))
     }
 
     @Test
-    fun `a diagonal tip ends at the diagonal join line`() {
+    fun `a diagonal tip ends where the finger has come the target's near edge along the diagonal`() {
         val tail = Coord(1, 1)
-        val below = StrandsBoardSpec.DiagonalJoinFraction - 0.01f
-        assertEquals(below, tip(listOf(tail), below, below)!!.extent, 1e-4f)
-        val past = StrandsBoardSpec.DiagonalJoinFraction + 0.01f
-        assertNull(tip(listOf(tail), past, past))
+        val edge = 1f - StrandsBoardSpec.TargetHalf
+        assertEquals(edge - 0.01f, tip(listOf(tail), edge - 0.01f, edge - 0.01f)!!.extent, 1e-4f)
+        assertNull(tip(listOf(tail), edge + 0.01f, edge + 0.01f))
+        // Off the line, 0.9 across and 0.5 down is 0.7 along the step: past the edge, so refused.
+        assertNull(tip(listOf(tail), 0.9f, 0.5f))
     }
 
     @Test
     fun `a finger the walk refused a letter leaves no link to it, though it points at it`() {
-        // The finger takes O from G, then goes 0.45 east of O's centre and south to 1.1 pitches
-        // below it: 0.45 from the centre of the G below O at the nearest, so the walk joins
-        // nothing (a side letter needs the finger within 0.4 of its centre), yet the finger
+        // The finger takes O from G, then goes 0.5 east of O's centre and south to 1.1 pitches
+        // below it: 0.5 from the centre of the G below O at the nearest, outside that letter's
+        // 0.4 square target, so the walk joins nothing, yet the finger
         // points south of O, so the tip once leaned the connector 0.9 of the way into that G:
         // a link to a letter outside the path.
         val rows = 8
@@ -64,7 +65,7 @@ class StrandsTraceTipTest {
         val o = Coord(5, 3)
         val session = StrandsDragSession(rows, cols, g, centreOf(g))
         var trace = Trace()
-        for (point in listOf(centreOf(o), Offset(3.95f, 5.5f), Offset(3.95f, 6.6f))) {
+        for (point in listOf(centreOf(o), Offset(4.0f, 5.5f), Offset(4.0f, 6.6f))) {
             session.move(point, trace).forEach { trace = (it as TraceStep.Updated).trace }
         }
         assertEquals(listOf(g, o), trace.path)

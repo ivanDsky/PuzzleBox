@@ -52,16 +52,15 @@ class StrandsDragSessionTest {
 
     @Test
     fun `the finger tracks every move once the touch is a drag`() {
-        // An east drag dipping 29° cuts into the diagonal (4, 2) from inside (3, 2), then
-        // wanders on toward it, short of (3, 2) and (4, 2) alike: the walk grows nothing,
-        // but the tip still leans where the finger is.
+        // An east drag joins (3, 2), then wanders short of every square around it: the walk
+        // grows nothing more, but the tip still leans where the finger is.
         val session = session()
         var trace = Trace()
-        for (point in listOf(Offset(2.05f, 3.8f), Offset(2.2f, 3.95f))) {
+        for (point in listOf(Offset(2.4f, 3.5f), Offset(2.6f, 3.9f))) {
             session.move(point, trace).forEach { trace = (it as TraceStep.Updated).trace }
         }
-        assertEquals(listOf(start, Coord(4, 2)), trace.path)
-        assertEquals(Offset(2.2f, 3.95f), session.finger())
+        assertEquals(listOf(start, Coord(3, 2)), trace.path)
+        assertEquals(Offset(2.6f, 3.9f), session.finger())
     }
 
     @Test
