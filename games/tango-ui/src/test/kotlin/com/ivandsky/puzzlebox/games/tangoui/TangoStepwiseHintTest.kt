@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.gameui.playCaption
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
+import com.ivandsky.puzzlebox.games.tangoui.hint.TangoStepGame
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineDispatcher
@@ -313,6 +314,53 @@ class TangoStepwiseHintTest {
         assertEquals(first.roles, s.spotlight?.roles)
         assertEquals(1, s.hintsUsed)
         assertEquals(1, lastSaved().hintsUsed)
+    }
+
+    @Test
+    fun `adopting a second session clears the spotlight and counts the same step again`() {
+        val s = loaded().apply { requestHint() }
+        val first = s.spotlight
+        assertEquals(1, s.hintsUsed)
+
+        assertEquals(Adopt.Adopted, s.adoptToday(TangoPlayFixture.envelope(), TangoPlayFixture.ref(today)))
+
+        assertNull(s.spotlight)
+        assertEquals(0, s.hintsUsed)
+        s.requestHint()
+        assertEquals(first?.roles, s.spotlight?.roles)
+        assertEquals(1, s.hintsUsed)
+    }
+
+    @Test
+    fun `restoring a session clears the spotlight and counts the same step again`() {
+        val s = loaded().apply { requestHint() }
+        val fresh = TangoSession(ref = TangoPlayFixture.ref(today), puzzle = TangoPlayFixture.puzzle)
+
+        assertNotNull(s.adoptRestored(TangoSessionCodec.serialize(fresh)))
+
+        assertNull(s.spotlight)
+        s.requestHint()
+        assertNotNull(s.spotlight)
+        assertEquals(1, s.hintsUsed)
+    }
+
+    @Test
+    fun `replay keeps the searched solution, so the solver runs once`() {
+        var solves = 0
+        val s = TangoPlayController(
+            env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), onSessionChanged = {}, onWon = {}),
+            now = { Instant.parse("2026-10-31T00:00:00Z") },
+            hintMode = HintMode.Stepwise(Dispatchers.Unconfined),
+            solve = { solves++; TangoStepGame.boundedSolution(it) },
+        )
+        s.adoptToday(TangoPlayFixture.envelope(), TangoPlayFixture.ref(today))
+        s.requestHint()
+
+        s.replay()
+        s.requestHint()
+
+        assertNotNull(s.spotlight)
+        assertEquals(1, solves)
     }
 
     @Test

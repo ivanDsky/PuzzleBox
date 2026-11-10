@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoSession
@@ -31,6 +32,7 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
+import com.ivandsky.puzzlebox.games.tangoui.hint.TangoStepGame
 import com.ivandsky.puzzlebox.games.tangoui.hint.tangoStepHints
 import java.time.Instant
 
@@ -58,6 +60,7 @@ class TangoPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
     internal val hintMode: HintMode = HintMode.Legacy,
+    solve: (TangoPuzzle) -> List<TangoCell>? = { TangoStepGame.boundedSolution(it) },
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     var session by mutableStateOf<TangoSession?>(null)
@@ -78,8 +81,10 @@ class TangoPlayController(
     private val settle = TangoSettle(env.scope)
     private val legacyHint = TangoLegacyHint()
 
-    // HintParity (A1, A9, A10): built per play; null in Legacy mode, so the legacy path below runs unchanged.
-    private var stepHints by mutableStateOf((hintMode as? HintMode.Stepwise)?.let(::newStepHints))
+    // HintParity (A1, A9, A10): reset per play, never rebuilt, so the solution memo survives; null in Legacy mode.
+    private val stepHints = (hintMode as? HintMode.Stepwise)?.let {
+        tangoStepHints(it, env.scope, { session }, count = ::updateSession, solve = solve)
+    }
 
     /** The Stepwise hint on screen; null in Legacy mode and after any input. */
     val spotlight: Spotlight? get() = stepHints?.spotlight
@@ -170,6 +175,7 @@ class TangoPlayController(
     //region adopt / restore
 
     override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt {
+        stepHints?.reset() // a new puzzle: no Spotlight, no search, no counted steps (A9, A10)
         val tango = when (val decoded = TangoCodec.decode(puzzle.payload)) {
             is DecodeResult.Ok -> decoded.value
             is DecodeResult.Err -> return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
@@ -190,6 +196,7 @@ class TangoPlayController(
         when (val restored = TangoSessionCodec.deserialize(bytes)) {
             is DecodeResult.Ok -> {
                 val s = restored.value
+                stepHints?.reset() // a restored session is a new play (A9, A10)
                 session = s
                 // The running clock is process-local (≠ session state): a restored in-progress
                 // session restarts its window now, or the timer reads frozen forever (user QA 2026-11-02).
@@ -210,8 +217,6 @@ class TangoPlayController(
         stepHints?.let { it.press(); return } // Stepwise never places (A1)
         legacyHint.resolve(current, now(), ::commit)
     }
-
-    private fun newStepHints(mode: HintMode.Stepwise) = tangoStepHints(mode, env.scope, { session }, count = ::updateSession)
 
     //region timer (F2 §2: active foreground play only)
 
@@ -254,7 +259,7 @@ class TangoPlayController(
         lastRejection = null
         clock.start()
         commit(TangoSession(ref = current.ref, puzzle = current.puzzle)) // drops the old play's search
-        stepHints = (hintMode as? HintMode.Stepwise)?.let(::newStepHints) // a fresh play forgets counted steps
+        stepHints?.reset() // a fresh play forgets counted steps but keeps the solution memo
     }
 
     //region derived + persistence
