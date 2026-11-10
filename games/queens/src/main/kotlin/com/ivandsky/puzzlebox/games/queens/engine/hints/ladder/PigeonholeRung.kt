@@ -61,13 +61,19 @@ object PigeonholeRung : QueensRung {
     ): List<ConfinementFound> {
         fun missing(unit: List<Int>): Int = puzzle.queensPerUnit - unit.count { it in candidates.queens }
         val open = groups.filter { missing(it) > 0 }
-        val total = open.sumOf(::missing)
+        val needs = IntArray(open.size) { missing(open[it]) }
+        val total = needs.sum()
         val found = ArrayList<ConfinementFound>()
         for (mask in 1 until (1 shl open.size)) {
             if (Integer.bitCount(mask) < 2) continue
-            val chosen = open.filterIndexed { i, _ -> mask and (1 shl i) != 0 }
-            val need = chosen.sumOf(::missing)
+            var need = 0
+            var bits = mask
+            while (bits != 0) {
+                need += needs[Integer.numberOfTrailingZeros(bits)]
+                bits = bits and (bits - 1)
+            }
             if (need * 2 > total) continue
+            val chosen = open.filterIndexed { i, _ -> mask and (1 shl i) != 0 }
             val inside = chosen.flatten().toSet()
             val lines = inside.filter(candidates::isOpen).map(targetOf).toSortedSet()
             if (lines.sumOf { missing(targets[it]) } != need) continue
