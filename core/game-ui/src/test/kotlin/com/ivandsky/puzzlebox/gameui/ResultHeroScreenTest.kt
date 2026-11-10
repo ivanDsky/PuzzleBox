@@ -38,16 +38,14 @@ class ResultHeroScreenTest {
     private fun setContent(widthDp: Int, heightDp: Int, writeFailed: Boolean = false) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
+                val facts = heroSampleFacts()
                 ResultHeroScreen(
-                    facts = heroSampleFacts(),
-                    onPrimary = {},
-                    onShare = {},
-                    onPlayAgain = {},
+                    facts = facts,
                     onSignIn = {},
-                    onRetryWrite = { retried++ },
                     modifier = Modifier.requiredSize(widthDp.dp, heightDp.dp),
                     brand = brand,
-                    writeFailed = writeFailed,
+                    onRetryWrite = if (writeFailed) ({ retried++ }) else null,
+                    actions = { ResultHeroActions(facts.primary, onPrimary = {}, onShare = {}, onPlayAgain = {}) },
                 )
             }
         }

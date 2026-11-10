@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.gameui.ResultHeroActions
 import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
@@ -120,15 +121,19 @@ private fun ColumnScope.HeroPage(
             rank = rank,
             primary = primary,
         ),
-        onPrimary = onPrimary,
-        onShare = onShare,
-        onPlayAgain = onPlayAgain,
         onSignIn = { viewModel.signIn(context) },
-        onRetryWrite = viewModel::retryRecordWrite,
         modifier = Modifier.weight(1f),
         brand = viewModel.brand,
-        rolloverAt = state.rolloverAt,
-        writeFailed = state.writeFailed,
+        onRetryWrite = viewModel::retryRecordWrite.takeIf { state.writeFailed },
+        actions = {
+            ResultHeroActions(
+                primary = primary,
+                onPrimary = onPrimary,
+                onShare = onShare,
+                onPlayAgain = onPlayAgain,
+                rolloverAt = state.rolloverAt,
+            )
+        },
         board = resultBoard(key, viewModel, state.game, context, onOpenBoard),
     )
 }

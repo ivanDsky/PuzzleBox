@@ -61,7 +61,7 @@ private const val SOLVED_ALPHA = 0.5f
  * week, a hairline, the time spread chart, and the rank row. It draws [model] and nothing
  * else; a block whose model part is null is left out, and a model with none of them draws
  * no card at all (a practice puzzle). [onSignIn] is the rank row's Sign in button for a
- * signed-out player; the route supplies the real action.
+ * signed-out player; the route supplies the real action, and without one the row has no button.
  *
  * The streak, week and heading come in on the blocks beat (the streak counts up as it does);
  * the chart's bars grow on their own stagger, and the rank row rises in last.
@@ -70,7 +70,7 @@ private const val SOLVED_ALPHA = 0.5f
 internal fun ResultSideCard(
     model: ResultHeroModel,
     brand: GameBrand,
-    onSignIn: () -> Unit,
+    onSignIn: (() -> Unit)?,
     modifier: Modifier = Modifier,
     wide: Boolean = false,
 ) {
@@ -200,7 +200,7 @@ private fun WeekDot(index: Int, day: HeroWeekDot, accent: Color, modifier: Modif
 
 /** The rank row: a bold place and its sub line, or the sign-in prompt with its button. No chevron: nothing opens from it. */
 @Composable
-private fun RankRow(rank: HeroRank, onSignIn: () -> Unit, modifier: Modifier) {
+private fun RankRow(rank: HeroRank, onSignIn: (() -> Unit)?, modifier: Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -233,7 +233,9 @@ private fun RankRow(rank: HeroRank, onSignIn: () -> Unit, modifier: Modifier) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f).padding(vertical = Spacing.sm),
                 )
-                AppTextButton(text = SIGN_IN_LABEL, onClick = onSignIn, modifier = Modifier.testTag("result.side.rank.signin"))
+                if (onSignIn != null) {
+                    AppTextButton(text = SIGN_IN_LABEL, onClick = onSignIn, modifier = Modifier.testTag("result.side.rank.signin"))
+                }
             }
         }
     }

@@ -19,7 +19,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import java.time.Instant
 
 /** Below this pane height the page top-aligns and tightens, as the old result screen does. */
 private val CompactHeight = 480.dp
@@ -48,26 +47,20 @@ private const val SIDE_WEIGHT = 1f
  * time takes its 96 sp step once the hero column is 520 dp. A pane under 480 dp tall
  * top-aligns and tightens; the page scrolls rather than squeezing the actions.
  *
- * While `facts.primary` is null the hero's actions stay in place, invisible and inert. A
- * failed record write ([writeFailed]) shows above the cards and retries through
- * [onRetryWrite]. [onSignIn] is the rank row's sign-in when the player is signed out.
+ * [actions] is the hero's action row (the daily result passes [ResultHeroActions]); null draws none.
+ * [chip] replaces the Today chip. A non-null [onRetryWrite] shows a failed-record-write notice above
+ * the cards that retries through it. [onSignIn] is the rank row's sign-in when the player is signed out.
  * [board], when given, is a board block drawn below the cards (the daily board, behind its own flag).
- * [actions] false drops the hero's action row; [chip] is the duel's count, shown in place of the Today chip.
  */
 @Composable
 fun ResultHeroScreen(
     facts: ResultHeroFacts,
-    onPrimary: () -> Unit,
-    onShare: () -> Unit,
-    onPlayAgain: (() -> Unit)?,
-    onSignIn: () -> Unit,
-    onRetryWrite: () -> Unit,
     modifier: Modifier = Modifier,
     brand: GameBrand = GameBrand.Neutral,
-    rolloverAt: Instant? = null,
-    writeFailed: Boolean = false,
-    actions: Boolean = true,
-    chip: String? = null,
+    onSignIn: (() -> Unit)? = null,
+    onRetryWrite: (() -> Unit)? = null,
+    actions: (@Composable () -> Unit)? = null,
+    chip: ResultHeroChip? = null,
     board: (@Composable () -> Unit)? = null,
 ) {
     val model = remember(facts, chip) { resultHeroModel(facts, chip = chip) }
@@ -95,14 +88,14 @@ fun ResultHeroScreen(
                 modifier = Modifier.widthIn(max = if (twoColumns) ContentMaxWidth else SingleColumnMaxWidth).fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(gap),
             ) {
-                if (writeFailed) WriteFailedRow(onRetryWrite)
+                if (onRetryWrite != null) WriteFailedRow(onRetryWrite)
                 if (twoColumns) {
                     Row(horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top) {
-                        ResultHeroCard(model, brand, onPrimary, onShare, onPlayAgain, rolloverAt, Modifier.weight(HERO_WEIGHT), wide, actions)
+                        ResultHeroCard(model, brand, Modifier.weight(HERO_WEIGHT), wide, actions)
                         ResultSideCard(model, brand, onSignIn, Modifier.weight(SIDE_WEIGHT), wide)
                     }
                 } else {
-                    ResultHeroCard(model, brand, onPrimary, onShare, onPlayAgain, rolloverAt, Modifier, wide, actions)
+                    ResultHeroCard(model, brand, Modifier, wide, actions)
                     ResultSideCard(model, brand, onSignIn, Modifier, wide)
                 }
                 board?.invoke()
