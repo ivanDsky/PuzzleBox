@@ -250,6 +250,30 @@ class QueensStepwiseHintTest {
     }
 
     @Test
+    fun `a drag over an existing mark clears the spotlight and leaves the mark`() {
+        val c = stepwise()
+        c.state.onTap(FREE_CELL)
+        c.requestHint()
+        assertNotNull(c.state.spotlight)
+        val marked = c.state.session
+
+        c.state.onDragCell(FREE_CELL)
+
+        assertNull(c.state.spotlight)
+        assertEquals(marked, c.state.session)
+    }
+
+    @Test
+    fun `a drag outside the board changes nothing and keeps the spotlight`() {
+        val c = stepwise()
+        c.requestHint()
+
+        c.state.onDragCell(QueensPlayFixtures.puzzle().cellCount)
+
+        assertNotNull(c.state.spotlight)
+    }
+
+    @Test
     fun `a press still computing when a tap lands never shows and counts nothing`() {
         val scheduler = TestCoroutineScheduler()
         val c = stepwise(compute = StandardTestDispatcher(scheduler))
