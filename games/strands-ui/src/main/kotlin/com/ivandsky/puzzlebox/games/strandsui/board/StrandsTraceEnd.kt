@@ -12,8 +12,6 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -124,13 +122,8 @@ internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEn
                             drawPath(line, faded, style = stroke)
                         } else {
                             tokens.reset()
-                            val reach = half * now.scale
-                            val drop = half * 2 * StrandsBoardSpec.TokenLipFraction * now.scale
                             now.path.forEach { coord ->
-                                val c = geometry.centerOf(GridCell(coord.row, coord.col))
-                                tokens.addRoundRect(
-                                    RoundRect(c.x - reach, c.y - reach, c.x + reach, c.y + reach + drop, CornerRadius(reach * 2 * StrandsBoardSpec.TokenCornerFraction)),
-                                )
+                                tokens.addToken(geometry.centerOf(GridCell(coord.row, coord.col)), half, now.scale)
                             }
                             clipPath(tokens, ClipOp.Difference) { drawPath(line, faded, style = stroke) }
                         }
