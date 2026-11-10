@@ -2,6 +2,12 @@ package com.ivandsky.puzzlebox.app.nav
 
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -61,22 +67,44 @@ internal fun TopLevelNavRail(
     destinations: List<TopLevelDestination> = topLevelDestinations,
     bottomActions: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
-    NavigationRail(modifier = modifier) {
-        destinations.forEach { destination ->
+    // NavV2 (an avatar slot) gets the larger rail: tabs centred, avatar pinned at the bottom.
+    val large = bottomActions != null
+    NavigationRail(modifier = if (large) modifier.width(LargeRailWidth) else modifier) {
+        if (large) {
+            Spacer(Modifier.height(LargeAvatarSlot))
+            Spacer(Modifier.weight(1f))
+        }
+        destinations.forEachIndexed { index, destination ->
+            if (large && index > 0) Spacer(Modifier.height(LargeItemGap))
             NavigationRailItem(
                 selected = selected == destination.key,
                 onClick = { onSelect(destination.key) },
-                icon = { TabIcon(destination, selected == destination.key, showsBadge(destination, selected, badged)) },
-                label = { Text(destination.label) },
+                icon = {
+                    TabIcon(
+                        destination,
+                        selected == destination.key,
+                        showsBadge(destination, selected, badged),
+                        if (large) LargeIconSize else Dp.Unspecified,
+                    )
+                },
+                label = { Text(destination.label, style = if (large) MaterialTheme.typography.labelLarge else LocalTextStyle.current) },
                 modifier = Modifier.testTag(destination.tag),
             )
         }
         if (bottomActions != null) {
             Spacer(Modifier.weight(1f))
             bottomActions()
+            Spacer(Modifier.height(8.dp))
         }
     }
 }
+
+private val LargeRailWidth = 96.dp
+private val LargeItemGap = 12.dp
+private val LargeIconSize = 28.dp
+
+/** Top spacer matching the avatar's slot at the bottom, so the tabs centre on the screen. */
+private val LargeAvatarSlot = 56.dp
 
 /** Content description of the badge dot, announced alongside the tab label. */
 internal const val IN_PROGRESS_BADGE_DESCRIPTION = "Game in progress"
@@ -90,8 +118,9 @@ private fun showsBadge(destination: TopLevelDestination, selected: NavKey, badge
 
 /** The tab's icon: filled while [selected], outlined otherwise (N5). */
 @Composable
-private fun TabIcon(destination: TopLevelDestination, selected: Boolean, badged: Boolean) {
+private fun TabIcon(destination: TopLevelDestination, selected: Boolean, badged: Boolean, size: Dp = Dp.Unspecified) {
     val icon = if (selected) destination.selectedIcon() else destination.icon()
+    val iconModifier = if (size == Dp.Unspecified) Modifier else Modifier.size(size)
     if (badged) {
         BadgedBox(
             badge = {
@@ -103,10 +132,10 @@ private fun TabIcon(destination: TopLevelDestination, selected: Boolean, badged:
                 )
             },
         ) {
-            Icon(icon, contentDescription = null)
+            Icon(icon, contentDescription = null, modifier = iconModifier)
         }
     } else {
-        Icon(icon, contentDescription = null)
+        Icon(icon, contentDescription = null, modifier = iconModifier)
     }
 }
 

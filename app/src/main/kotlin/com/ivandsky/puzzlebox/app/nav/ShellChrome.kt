@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntryDecorator
@@ -58,7 +60,7 @@ internal fun shellChromeDecorator(
 @Composable
 internal fun RailChromeActions(navigator: Navigator, identity: StateFlow<Identity?>) {
     val current by identity.collectAsStateWithLifecycle()
-    ShellChromeActions(current, { navigator.pushOnce(ProfileKey) })
+    ShellChromeActions(current, { navigator.pushOnce(ProfileKey) }, RailAvatarSize)
 }
 
 /**
@@ -66,18 +68,26 @@ internal fun RailChromeActions(navigator: Navigator, identity: StateFlow<Identit
  * is the player's photo over their initial; signed out, the Profile icon.
  */
 @Composable
-internal fun ShellChromeActions(identity: Identity?, onProfile: () -> Unit) {
+internal fun ShellChromeActions(identity: Identity?, onProfile: () -> Unit, avatarSize: Dp = AvatarSize) {
     IconButton(
         onClick = onProfile,
         modifier = Modifier.testTag("shell.avatar").semantics { contentDescription = "Profile" },
     ) {
         if (identity == null) {
-            Icon(imageVector = PuzzleIcons.Profile, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            Icon(
+                imageVector = PuzzleIcons.Profile,
+                contentDescription = null,
+                modifier = if (avatarSize == AvatarSize) Modifier else Modifier.size(avatarSize),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         } else {
-            PlayerAvatar(name = identity.displayName, photoUrl = identity.photoUrl, size = AvatarSize)
+            PlayerAvatar(name = identity.displayName, photoUrl = identity.photoUrl, size = avatarSize)
         }
     }
 }
 
 /** A touch larger than the 24dp icons beside it, so a face reads at a glance. */
 private val AvatarSize = 28.dp
+
+/** The NavV2 rail's avatar: bigger to match its larger tabs; its target is 48dp. */
+private val RailAvatarSize = 36.dp
