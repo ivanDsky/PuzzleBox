@@ -45,7 +45,7 @@ import java.time.LocalDate
 // DoD interaction suite (queens-08): every A10–A12/A14 interaction against the real
 // session value type driven in-memory (a ref-less play session — the "fake session"),
 // JVM/Robolectric only; on-device checks are queens-09. Fix round 6: ALWAYS-ON
-// violations (A14 revised), the Auto-cross session toggle, the staged hint ladder,
+// violations (A14 revised), the Auto-cross session toggle,
 // and the win → result-ROUTE handoff (the modal overlay is deleted).
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

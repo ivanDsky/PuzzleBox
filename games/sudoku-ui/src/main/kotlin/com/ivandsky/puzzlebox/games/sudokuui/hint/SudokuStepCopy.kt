@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStep
 
 /**
  * The callout line for a [SudokuStep] (catalog `sudoku-deductions.md`): one line, starting with the technique name,
- * naming what the Spotlight draws. Keyed by technique like `QueensRungCopy` is keyed by rung, so no `when` over
+ * naming what the Spotlight draws. Keyed by technique, so no `when` over
  * techniques exists to hide a missing entry; the last-cell single has its own entry because it has no technique.
  * [board] must be the board the step was computed from, or the digits named may be stale.
  */

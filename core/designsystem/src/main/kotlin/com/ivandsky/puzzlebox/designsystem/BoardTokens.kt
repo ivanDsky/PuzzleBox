@@ -37,13 +37,10 @@ data class BoardColors(
     val boardSelection: Color,
     val boardRegion: Color,
 
-    // Tango glyph fills: sun/moon clear the 3:1 non-text bar vs boardSurface and vs the
-    // hint tile in both modes; identity rides the silhouette (disc+rays vs crescent).
+    // Tango glyph fills: sun/moon clear the 3:1 non-text bar vs boardSurface in both modes;
+    // identity rides the silhouette (disc+rays vs crescent).
     val sunFill: Color,
     val moonFill: Color,
-    // The hinted square: the Tango orange tint as a tile on its lip.
-    val tangoHintFill: Color,
-    val tangoHintLip: Color,
 
     // Mini Sudoku: the selected cell is the full teal fill with the hue's deep ink on
     // it; its row/column/box peers sit on the teal tint.
@@ -109,8 +106,6 @@ val DarkBoardTokens = BoardColors(
     boardRegion = DarkColorScheme.surfaceContainerHigh, // future fill tint; stroke its boundary with wall/gridline when built
     sunFill = Color(0xFFFF8524),
     moonFill = Color(0xFF21B7FF),
-    tangoHintFill = Color(0xFF4E270B),
-    tangoHintLip = Color(0xFF0F0300), // −0.20 from a dark tint lands near black, like the neutral lip
     sudokuSelection = Color(0xFF00E8DC),
     sudokuSelectionInk = Color(0xFF002E2B),
     sudokuSelectionLip = Color(0xFF00A198),
@@ -154,8 +149,6 @@ val LightBoardTokens = BoardColors(
     boardRegion = LightColorScheme.surfaceContainerHigh, // future fill tint
     sunFill = Color(0xFFCB6400),
     moonFill = Color(0xFF0089C3),
-    tangoHintFill = Color(0xFFFFDDC9),
-    tangoHintLip = Color(0xFFD4B3A0),
     sudokuSelection = Color(0xFF00C8BD),
     sudokuSelectionInk = Color(0xFF002E2B),
     sudokuSelectionLip = Color(0xFF009B92),

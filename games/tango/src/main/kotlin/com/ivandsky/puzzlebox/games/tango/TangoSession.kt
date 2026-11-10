@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.tango
 
 import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.GameSession
-import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import java.time.Instant
@@ -102,13 +101,6 @@ data class TangoSession(
 
     /** Invalid-drop rejection: a mistake for analytics, never scored (A3). */
     fun withRejection(): TangoSession = copy(mistakeCount = mistakeCount + 1)
-
-    /**
-     * Counts a hint as consumed (A3) only when it actually forced a move — a [TangoHint.Stuck]
-     * answer carries no information and must not cost the player (I7).
-     */
-    fun withHintApplied(hint: TangoHint): TangoSession =
-        if (hint is TangoHint.Forced) copy(hintsUsed = hintsUsed + 1) else this
 
     /** The full rules grid: givens under the player overlay. */
     fun grid(): List<TangoCell?> =

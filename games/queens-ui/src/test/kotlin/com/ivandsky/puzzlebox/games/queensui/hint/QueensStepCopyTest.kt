@@ -5,7 +5,6 @@ import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensLadder
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep.Deduction.Result
-import com.ivandsky.puzzlebox.games.queensui.QueensRungCopy
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -38,13 +37,6 @@ class QueensStepCopyTest {
         assertTrue(text(HintReason.Kind.ROW).contains("row"))
         assertTrue(text(HintReason.Kind.COLUMN).contains("column"))
         assertTrue(text(HintReason.Kind.REGION).contains("color"))
-    }
-
-    @Test
-    fun `copy never reuses a legacy caption`() {
-        val legacy = QueensLadder.Stepwise.rungs.mapNotNull { QueensRungCopy.caption(it.captionKey) }.toSet()
-
-        for (step in deductions) assertFalse(QueensStepCopy.text(step) in legacy)
     }
 
     @Test
