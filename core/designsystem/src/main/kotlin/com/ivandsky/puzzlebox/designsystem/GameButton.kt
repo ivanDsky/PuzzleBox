@@ -110,6 +110,9 @@ internal fun Modifier.gameButtonClick(interactionSource: MutableInteractionSourc
         onClick = onClick,
     )
 
+private fun <T> gameButtonSpec(reduced: Boolean): AnimationSpec<T> =
+    if (reduced) snap() else spring(MotionTokens.SpringDampingDefault, MotionTokens.SpringStiffnessDefault)
+
 /**
  * The face every game button draws; [modifier] already carries its click or toggle, and
  * [describe] names it [label] when no visible label does. The sink is the press feedback
@@ -131,12 +134,13 @@ internal fun GameButtonFace(
     val scheme = MaterialTheme.colorScheme
     val pressed by interactionSource.collectIsPressedAsState()
     // One spring for sink and all three colours so enable/disable lands as a single motion.
-    fun <T> spec(): AnimationSpec<T> = if (reduced) snap() else spring(MotionTokens.SpringDampingDefault, MotionTokens.SpringStiffnessDefault)
-    val sink by animateDpAsState(if (pressed || !enabled) GameButtonLipDepth else 0.dp, spec(), label = "game-button-sink")
+    val dpSpec = remember(reduced) { gameButtonSpec<Dp>(reduced) }
+    val colorSpec = remember(reduced) { gameButtonSpec<Color>(reduced) }
+    val sink by animateDpAsState(if (pressed || !enabled) GameButtonLipDepth else 0.dp, dpSpec, label = "game-button-sink")
     val target = gameButtonTarget(colors, enabled, scheme)
-    val fill by animateColorAsState(target.fill, spec(), label = "game-button-fill")
-    val ink by animateColorAsState(target.content, spec(), label = "game-button-content")
-    val lip by animateColorAsState(target.lip, spec(), label = "game-button-lip")
+    val fill by animateColorAsState(target.fill, colorSpec, label = "game-button-fill")
+    val ink by animateColorAsState(target.content, colorSpec, label = "game-button-content")
+    val lip by animateColorAsState(target.lip, colorSpec, label = "game-button-lip")
     val shape = MaterialTheme.shapes.medium
     Box(
         modifier = modifier
