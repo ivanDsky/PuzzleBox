@@ -133,7 +133,10 @@ internal fun DuelCard(row: DuelRow, now: () -> Instant, onClick: () -> Unit, mod
     )
 }
 
-/** The shared row: avatar, one-line title over one-line sub, [trailing], chevron; ellipsizes before it pushes [trailing]. */
+/**
+ * The shared row: avatar, one-line title over one-line sub, [trailing], chevron; ellipsizes before it pushes [trailing].
+ * [below] sits in the text column under the sub line, where a row carries actions of its own.
+ */
 @Composable
 internal fun DuelRowShell(
     title: String,
@@ -143,6 +146,7 @@ internal fun DuelRowShell(
     modifier: Modifier = Modifier,
     highlighted: Boolean = false,
     trailing: @Composable () -> Unit = {},
+    below: (@Composable () -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val shape = AppShapes.large
@@ -176,6 +180,7 @@ internal fun DuelRowShell(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
+            below?.invoke()
         }
         CompositionLocalProvider(LocalContentColor provides onContainer) { trailing() }
         Icon(PuzzleIcons.Chevron, contentDescription = null, tint = quiet)
