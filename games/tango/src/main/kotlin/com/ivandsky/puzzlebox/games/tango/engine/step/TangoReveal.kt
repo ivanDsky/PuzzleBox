@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.engine.TangoLineRule
+import com.ivandsky.puzzlebox.games.tango.engine.TangoLines
 import com.ivandsky.puzzlebox.games.tango.engine.TangoMarkerRule
 
 /**
@@ -20,11 +21,11 @@ internal object TangoReveal {
         val empties = (0 until puzzle.cellCount).filter { grid[it] == null }
             .sortedWith(compareBy({ chebyshev(n, it, lastMove) }, { it }))
         if (empties.isEmpty()) return null
-        val lines = Array(2 * n) { line -> IntArray(n) { pos -> if (line < n) line * n + pos else pos * n + line - n } }
+        val lines = TangoLines.all(n)
         val scratch = grid.toMutableList()
         val idx = empties.firstOrNull { idx ->
             for (cell in scratch.indices) scratch[cell] = grid[cell]
-            scratch[idx] = solution[idx].other()
+            scratch[idx] = solution[idx].other
             contradicts(puzzle, lines, scratch)
         } ?: empties.first()
         return TangoStep.Reveal(idx, solution[idx])
@@ -51,10 +52,10 @@ internal object TangoReveal {
                 if (va != null && vb != null) {
                     if ((va == vb) != same) return true
                 } else if (va != null) {
-                    g[b] = if (same) va else va.other()
+                    g[b] = if (same) va else va.other
                     changed = true
                 } else if (vb != null) {
-                    g[a] = if (same) vb else vb.other()
+                    g[a] = if (same) vb else vb.other
                     changed = true
                 }
             }
@@ -73,6 +74,4 @@ internal object TangoReveal {
         }
         return TangoMarkerRule.violation(puzzle, g) != null
     }
-
-    private fun TangoCell.other(): TangoCell = if (this == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
 }

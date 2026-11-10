@@ -261,13 +261,13 @@ object TangoSemantics {
             val sameRow = why.first / n == why.second / n
             val line = if (sameRow) "Row ${why.first / n + 1}" else "Column ${why.first % n + 1}"
             "$line would hold three ${plural(value ?: TangoCell.SUN)} — " +
-                "this cell is a ${singular(other(value ?: TangoCell.SUN))}."
+                "this cell is a ${singular((value ?: TangoCell.SUN).other)}."
         }
         is TangoHint.Why.LineFull -> {
             val row = why.row
             val line = if (row != null) "Row ${row + 1}" else "Column ${(why.col ?: 0) + 1}"
             val half = numberWord(model.n / 2)
-            "$line already has $half ${plural(why.fullOf)} — the rest are ${plural(other(why.fullOf))}."
+            "$line already has $half ${plural(why.fullOf)} — the rest are ${plural(why.fullOf.other)}."
         }
         is TangoHint.Why.LineFills -> {
             val row = why.row
@@ -294,6 +294,4 @@ object TangoSemantics {
     }
 
     private fun plural(value: TangoCell): String = if (value == TangoCell.SUN) "suns" else "moons"
-
-    private fun other(value: TangoCell): TangoCell = if (value == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
 }

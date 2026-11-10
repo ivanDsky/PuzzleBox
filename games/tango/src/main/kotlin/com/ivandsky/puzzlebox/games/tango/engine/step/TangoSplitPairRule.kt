@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.tango.engine.step
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
+import com.ivandsky.puzzlebox.games.tango.engine.TangoLines
 
 /**
  * D6 split pair: two empty cells between a sun and a moon (`sun _ _ moon`) hold one of each, since
@@ -22,7 +23,7 @@ object TangoSplitPairRule : TangoStepRule {
         for (line in 0 until 2 * n) {
             var suns = 0
             var moons = 0
-            for (j in 0 until n) when (grid[cellAt(n, line, j)]) {
+            for (j in 0 until n) when (grid[TangoLines.cellAt(n, line, j)]) {
                 TangoCell.SUN -> suns++
                 TangoCell.MOON -> moons++
                 null -> Unit
@@ -41,14 +42,14 @@ object TangoSplitPairRule : TangoStepRule {
                 for (pair in pairs) {
                     inPair[pair.at] = true
                     inPair[pair.at + 1] = true
-                    evidence += cellAt(n, line, pair.at)
-                    evidence += cellAt(n, line, pair.at + 1)
+                    evidence += TangoLines.cellAt(n, line, pair.at)
+                    evidence += TangoLines.cellAt(n, line, pair.at + 1)
                     pair.ends?.let { evidence += it }
                 }
                 val targets = LinkedHashMap<Int, TangoCell>()
                 for (j in 0 until n) {
-                    val idx = cellAt(n, line, j)
-                    if (grid[idx] == null && !inPair[j]) targets[idx] = usedUp.other()
+                    val idx = TangoLines.cellAt(n, line, j)
+                    if (grid[idx] == null && !inPair[j]) targets[idx] = usedUp.other
                 }
                 if (targets.isEmpty() || !seen.add(targets)) continue
                 for ((idx, value) in targets) {
@@ -74,11 +75,11 @@ object TangoSplitPairRule : TangoStepRule {
             val used = BooleanArray(n)
             val pairs = mutableListOf<OneOfEach>()
             for (j in order) {
-                val a = cellAt(n, line, j)
-                val b = cellAt(n, line, j + 1)
+                val a = TangoLines.cellAt(n, line, j)
+                val b = TangoLines.cellAt(n, line, j + 1)
                 if (grid[a] != null || grid[b] != null || used[j] || used[j + 1]) continue
-                val before = if (j > 0) cellAt(n, line, j - 1) else -1
-                val after = if (j + 2 < n) cellAt(n, line, j + 2) else -1
+                val before = if (j > 0) TangoLines.cellAt(n, line, j - 1) else -1
+                val after = if (j + 2 < n) TangoLines.cellAt(n, line, j + 2) else -1
                 val pair = when {
                     puzzle.markerBetween(a, b) == TangoMarkerKind.OPPOSITE -> OneOfEach(j, ends = null)
                     before >= 0 && after >= 0 && grid[before] != null && grid[after] != null && grid[before] != grid[after] ->
@@ -92,9 +93,4 @@ object TangoSplitPairRule : TangoStepRule {
             pairs
         }
     }
-
-    /** Row-major index of position [j] in [line]: lines 0 until n are rows, n until 2n columns. */
-    private fun cellAt(n: Int, line: Int, j: Int): Int = if (line < n) line * n + j else j * n + (line - n)
-
-    private fun TangoCell.other(): TangoCell = if (this == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
 }

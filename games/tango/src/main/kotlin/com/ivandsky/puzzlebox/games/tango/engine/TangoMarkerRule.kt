@@ -35,7 +35,7 @@ object TangoMarkerRule {
             val emptyIdx = if (a == null) marker.cell else nb
             val forced = when (marker.kind) {
                 TangoMarkerKind.SAME -> filled
-                TangoMarkerKind.OPPOSITE -> filled.other()
+                TangoMarkerKind.OPPOSITE -> filled.other
             }
             found += TangoHint.Forced(
                 idx = emptyIdx,
@@ -65,6 +65,4 @@ object TangoMarkerRule {
         com.ivandsky.puzzlebox.games.tango.TangoEdgeSide.RIGHT -> marker.cell + 1
         com.ivandsky.puzzlebox.games.tango.TangoEdgeSide.DOWN -> marker.cell + n
     }
-
-    private fun TangoCell.other(): TangoCell = if (this == TangoCell.SUN) TangoCell.MOON else TangoCell.SUN
 }
