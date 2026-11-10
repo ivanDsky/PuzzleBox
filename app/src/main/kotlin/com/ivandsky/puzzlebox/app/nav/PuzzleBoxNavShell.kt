@@ -47,8 +47,9 @@ import org.koin.compose.koinInject
  * [libraryRequests] is the one-shot Games request: Games reads its pending value and takes it.
  * [duels] and [onOpenDuel] (both null with the Competitions flag off) add the Duels tab and
  * let Enter code open a duel. [navV2] is the NavV2 value the app read once at launch
- * ([rememberNavV2]); the shell never reads the flag itself. With it on, Browse screens get
- * the avatar and gear ([shellChromeDecorator]) over [identityService]'s signed-in player.
+ * ([rememberNavV2]); the shell never reads the flag itself. With it on, the shell draws the
+ * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
+ * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
  * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
  */
 @Composable
@@ -76,7 +77,7 @@ internal fun PuzzleBoxNavShell(
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { store.flush() }
     val shellChrome = if (navV2) {
         remember(navigator, identityService, form) {
-            shellChromeDecorator(navigator, identityService.current, railActions = form == NavForm.Tablet)
+            shellChromeDecorator(navigator, identityService.current, avatarInTodayHeader = form == NavForm.Phone)
         }
     } else {
         null

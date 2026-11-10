@@ -32,10 +32,9 @@ import org.robolectric.annotation.Config
 
 /**
  * With NavV2 on a phone's bar, only Today's header carries the shell's avatar (`shell.avatar`);
- * every other screen carries none, and no screen carries a shell gear (`shell.settings`). The
- * avatar opens Profile on the current tab and Profile's gear (`profile.settings`) opens
- * Settings above it, so Back returns through Profile to Today. With the flag off no screen
- * shows either. The tablet's rail placement is pinned in the e2e tests.
+ * every other screen carries none. The avatar opens Profile on the current tab and Profile's gear
+ * (`profile.settings`) opens Settings above it, so Back returns through Profile to Today. With
+ * the flag off no screen shows the avatar. The tablet's rail placement is pinned in the e2e tests.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -179,7 +178,6 @@ class ShellChromeTest {
         if (shown) awaitTag(AVATAR)
         val expected = if (shown) 1 else 0
         assertEquals("avatars (state $state)", expected, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
-        assertEquals("gears (state $state)", 0, rule.onAllNodesWithTag(GEAR).fetchSemanticsNodes().size)
     }
 
     private fun ShellRobot.avatarSemantics() = rule.onNodeWithTag(AVATAR).fetchSemanticsNode().config
@@ -189,7 +187,6 @@ class ShellChromeTest {
 
     private companion object {
         const val AVATAR = "shell.avatar"
-        const val GEAR = "shell.settings"
         const val PROFILE_GEAR = "profile.settings"
         const val ZIP = "zip"
         const val HOME = "route.home"
