@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.BoardColors
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
+import com.ivandsky.puzzlebox.games.strandsui.board.strandsStroke
 
 /** The gap between a letter token's edge and the end ring round it. */
 private val RingGap = 3.dp
@@ -30,7 +31,8 @@ internal fun BoardColors.tintOf(board: StrandsDraft, index: Int): Color = when {
 
 /** A solid ring just outside the cell's letter token, in [color]: the mark of a draggable end. */
 internal fun DrawScope.drawEndRing(color: Color) {
-    val width = RingWidth.toPx()
-    val radius = minOf(size.width, size.height) * StrandsBoardSpec.TokenFraction / 2 + RingGap.toPx() + width / 2
+    val pitch = minOf(size.width, size.height)
+    val width = strandsStroke(RingWidth, pitch)
+    val radius = pitch * StrandsBoardSpec.TokenFraction / 2 + strandsStroke(RingGap, pitch) + width / 2
     drawCircle(color = color, radius = radius, style = Stroke(width))
 }

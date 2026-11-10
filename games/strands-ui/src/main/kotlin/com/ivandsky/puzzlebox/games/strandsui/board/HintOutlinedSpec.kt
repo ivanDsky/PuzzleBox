@@ -47,8 +47,8 @@ internal object HintOutlinedSpec : StrandsCellSpec {
     }
 
     override fun DrawScope.decorate(colors: BoardColors, tokenRadius: Float, frame: StrandsCellFrame) {
-        val width = StrandsBoardSpec.HintRingWidth.toPx()
-        val dash = floatArrayOf(StrandsBoardSpec.HintDash.toPx(), StrandsBoardSpec.HintGap.toPx())
+        val width = tokenStroke(StrandsBoardSpec.HintRingWidth, tokenRadius)
+        val dash = floatArrayOf(tokenStroke(StrandsBoardSpec.HintDash, tokenRadius), tokenStroke(StrandsBoardSpec.HintGap, tokenRadius))
         val half = (tokenRadius + width / 2) * frame.ringScale
         drawRoundRect(
             color = colors.strandsHintRing,

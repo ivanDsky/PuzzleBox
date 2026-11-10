@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.invisibleToUser
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
+import com.ivandsky.puzzlebox.games.strandsui.board.strandsStroke
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -220,8 +221,8 @@ private fun CellTaps(
 
 /** A dashed rectangle just inside the cell: the mark of a cell no word can fill. */
 private fun DrawScope.drawPocketOutline(color: Color) {
-    val width = 2.dp.toPx()
-    val dash = 4.dp.toPx()
+    val width = strandsStroke(2.dp, size.minDimension)
+    val dash = strandsStroke(4.dp, size.minDimension)
     drawRect(
         color = color,
         topLeft = Offset(width, width),

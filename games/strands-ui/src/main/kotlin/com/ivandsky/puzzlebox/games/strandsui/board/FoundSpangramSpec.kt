@@ -34,8 +34,8 @@ internal object FoundSpangramSpec : StrandsCellSpec {
         FoundThemeSpec.settle(elapsedMs - delayMs(cue), reduceMotion, StrandsMotion.SpangramSweep.enterEasing)
 
     override fun DrawScope.decorate(colors: BoardColors, tokenRadius: Float, frame: StrandsCellFrame) {
-        val width = StrandsBoardSpec.SpangramRingWidth.toPx()
-        val half = tokenRadius - StrandsBoardSpec.SpangramRingInset.toPx() - width / 2
+        val width = tokenStroke(StrandsBoardSpec.SpangramRingWidth, tokenRadius)
+        val half = tokenRadius - tokenStroke(StrandsBoardSpec.SpangramRingInset, tokenRadius) - width / 2
         drawTokenSquare(
             color = colors.strandsTileText,
             half = half * frame.ringScale,
