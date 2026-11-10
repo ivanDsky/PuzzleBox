@@ -161,7 +161,7 @@ private fun LegsHeader(content: LegsContent) {
             }
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Pill(timeLeftText(content.closesAt, content.now), Modifier.testTag("duel.legs.timeLeft"))
+            Pill(timeLeftText(content.deadline, content.now), Modifier.testTag("duel.legs.timeLeft"))
             Pill("Score hidden until it settles")
         }
     }
@@ -209,7 +209,7 @@ private fun LegsFooter(content: LegsContent) {
         DuelFooter.Waiting -> FooterCard("Waiting on $name") {
             SecondaryButton(
                 text = "Nudge",
-                onClick = { content.actions.onNudge(nudgeText(name, content.code, content.closesAt, content.now)) },
+                onClick = { content.actions.onNudge(nudgeText(name, content.code, content.deadline, content.now)) },
                 modifier = Modifier.testTag("duel.legs.nudge"),
             )
         }
