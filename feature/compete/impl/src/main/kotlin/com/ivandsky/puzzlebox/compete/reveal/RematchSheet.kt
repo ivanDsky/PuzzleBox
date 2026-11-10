@@ -9,26 +9,24 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.CreateOutcome
-import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
+import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 /**
- * "Rematch {Opponent}?" for [match]: Send new invite creates the duel again through [CreateMatch] with the same
- * settings and a fresh draw, and hands the created duel to [onCreated]; Not now (or a dismissal, once nothing is in
- * flight) calls [onDismiss]. A refusal stays on the sheet as a note under the buttons.
+ * "Rematch {Opponent}?" for [match]: Send new invite, run by a [RematchViewModel], creates the duel again with the
+ * same settings and a fresh draw, and hands the created duel to [onCreated]; Not now (or a dismissal, once nothing is
+ * in flight) calls [onDismiss]. A refusal stays on the sheet as a note under the buttons.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -38,34 +36,31 @@ internal fun RematchSheet(
     onCreated: (CreateOutcome.Created) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: RematchViewModel = koinViewModel(key = "rematch:${match.code.value}", parameters = { parametersOf(match) }),
 ) {
-    val createMatch = koinInject<CreateMatch>()
-    val scope = rememberCoroutineScope()
-    var sending by remember { mutableStateOf(false) }
-    var note by remember { mutableStateOf<String?>(null) }
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    val handOver by rememberUpdatedState(onCreated)
+    LaunchedEffect(viewModel) {
+        viewModel.created.collect {
+            handOver(it)
+            viewModel.reset()
+        }
+    }
+    val dismiss = {
+        viewModel.reset()
+        onDismiss()
+    }
     ModalBottomSheet(
-        onDismissRequest = { if (!sending) onDismiss() },
+        onDismissRequest = { if (!state.sending) dismiss() },
         modifier = modifier.testTag("reveal.rematch.sheet"),
     ) {
         RematchContent(
             opponent = opponent,
             count = match.legs.size,
-            sending = sending,
-            note = note,
-            onSend = {
-                sending = true
-                note = null
-                scope.launch {
-                    when (val outcome = createMatch(rematchSettings(match), rematchOf = match)) {
-                        is CreateOutcome.Created -> onCreated(outcome)
-                        else -> {
-                            sending = false
-                            note = refusalNote(outcome)
-                        }
-                    }
-                }
-            },
-            onDismiss = onDismiss,
+            sending = state.sending,
+            note = state.note,
+            onSend = viewModel::send,
+            onDismiss = dismiss,
         )
     }
 }
@@ -107,13 +102,4 @@ internal fun RematchContent(
             )
         }
     }
-}
-
-private fun refusalNote(outcome: CreateOutcome): String? = when (outcome) {
-    is CreateOutcome.Created -> null
-    CreateOutcome.Offline -> "You're offline. Check the connection and try again."
-    CreateOutcome.DailyCapReached -> "You've reached today's limit on new duels. Try again tomorrow."
-    CreateOutcome.SignedOut -> "Sign in to send a rematch."
-    CreateOutcome.NoPuzzles -> "There are no puzzles left to draw. Try again later."
-    is CreateOutcome.Failed -> outcome.message ?: "Couldn't send the invite. Try again."
 }
