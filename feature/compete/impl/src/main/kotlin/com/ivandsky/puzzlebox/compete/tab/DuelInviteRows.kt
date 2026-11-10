@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.compete.duel.rememberCompeteTime
 import com.ivandsky.puzzlebox.compete.share.UNKNOWN_INVITER
 import com.ivandsky.puzzlebox.compete.share.inviteText
 import com.ivandsky.puzzlebox.compete.share.shareInvite
@@ -16,8 +17,6 @@ import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.DuelRow
 import com.ivandsky.puzzlebox.gameui.PlayerAvatar
-import java.time.ZoneId
-import java.util.Locale
 
 private val AvatarSize = 48.dp
 
@@ -77,6 +76,7 @@ private fun InviteNote.text(): String = when (this) {
 @Composable
 internal fun UnclaimedRow(row: DuelRow, inviter: String?, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val time = rememberCompeteTime()
     DuelRowShell(
         title = "Waiting on a friend to accept",
         sub = "Code ${row.code.display} · Best of ${row.legs}",
@@ -93,8 +93,8 @@ internal fun UnclaimedRow(row: DuelRow, inviter: String?, onClick: () -> Unit, m
                             bestOf = row.legs,
                             games = null,
                             endsAt = row.deadline,
-                            zone = ZoneId.systemDefault(),
-                            locale = Locale.getDefault(),
+                            zone = time.zone,
+                            locale = time.locale,
                             code = row.code,
                         ),
                     )
