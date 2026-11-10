@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.app.nav
 
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -16,7 +15,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.data.identity.Identity
+import androidx.compose.foundation.layout.RowScope
 import com.ivandsky.puzzlebox.designsystem.LocalShellActions
+import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 import com.ivandsky.puzzlebox.navigation.Navigator
@@ -25,16 +26,21 @@ import com.ivandsky.puzzlebox.profile.api.SettingsKey
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * The shell's chrome for Browse screens (ADR-0027): wraps every entry whose placement
- * chrome is [Chrome.Browse] so its top bar draws the avatar (→ Profile) and the gear
- * (→ Settings), each pushed on the current tab. Immersive and Tool entries pass through
- * unchanged, so Profile and Settings never link to themselves.
+ * The shell's chrome for Browse screens (ADR-0027): the avatar (→ Profile) and the gear
+ * (→ Settings), each pushed on the current tab, in one fixed place. With [railActions] the
+ * rail carries them at its bottom ([RailChromeActions]) and no header does; otherwise only
+ * Today's header draws them. Everything else passes through unchanged, so Profile and
+ * Settings never link to themselves.
  *
  * [LocalShellActions] is static: a new value would recompose every Browse subtree. The one
  * actions lambda is built here, once per decorator, and collects [identity] inside its own
  * body, so a sign-in or a photo load recomposes only the slot.
  */
-internal fun shellChromeDecorator(navigator: Navigator, identity: StateFlow<Identity?>): NavEntryDecorator<NavKey> {
+internal fun shellChromeDecorator(
+    navigator: Navigator,
+    identity: StateFlow<Identity?>,
+    railActions: Boolean,
+): NavEntryDecorator<NavKey> {
     val onProfile = { navigator.pushOnce(ProfileKey) }
     val onSettings = { navigator.pushOnce(SettingsKey) }
     val actions: @Composable RowScope.() -> Unit = {
@@ -43,7 +49,7 @@ internal fun shellChromeDecorator(navigator: Navigator, identity: StateFlow<Iden
     }
     return NavEntryDecorator { entry ->
         val key = entry.metadata[ENTRY_KEY]
-        if (key != null && placements[key::class]?.chrome == Chrome.Browse) {
+        if (!railActions && key is HomeKey) {
             CompositionLocalProvider(LocalShellActions provides actions) { entry.Content() }
         } else {
             entry.Content()
@@ -51,12 +57,19 @@ internal fun shellChromeDecorator(navigator: Navigator, identity: StateFlow<Iden
     }
 }
 
+/** The rail's bottom slot: the avatar and gear, stacked, pushing on the current tab. */
+@Composable
+internal fun RailChromeActions(navigator: Navigator, identity: StateFlow<Identity?>) {
+    val current by identity.collectAsStateWithLifecycle()
+    ShellChromeActions(current, { navigator.pushOnce(ProfileKey) }, { navigator.pushOnce(SettingsKey) })
+}
+
 /**
  * The avatar, then the gear: 48dp targets like the bars' own actions. Signed in, the avatar
  * is the player's photo over their initial; signed out, the Profile icon.
  */
 @Composable
-internal fun RowScope.ShellChromeActions(identity: Identity?, onProfile: () -> Unit, onSettings: () -> Unit) {
+internal fun ShellChromeActions(identity: Identity?, onProfile: () -> Unit, onSettings: () -> Unit) {
     IconButton(
         onClick = onProfile,
         modifier = Modifier.testTag("shell.avatar").semantics { contentDescription = "Profile" },

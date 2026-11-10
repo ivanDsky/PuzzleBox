@@ -27,6 +27,7 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.nav.FriendLink
 import com.ivandsky.puzzlebox.app.nav.LocalChromePadding
 import com.ivandsky.puzzlebox.app.nav.PuzzleBoxNavShell
+import com.ivandsky.puzzlebox.app.nav.RailChromeActions
 import com.ivandsky.puzzlebox.app.nav.TabRef
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
@@ -46,6 +47,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
 import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -135,6 +137,7 @@ fun PuzzleBoxApp(
         isLandscape = isLandscape,
     )
     val expanded = layout == HomeLayout.TwoPane
+    val identityService = koinInject<IdentityService>()
     val destinations = topLevelDestinations(navV2)
     val selected = navigator.state.tab
     val top = navigator.state.currentStack.last()
@@ -205,6 +208,11 @@ fun PuzzleBoxApp(
                     onSelect = onSelect,
                     badged = badged,
                     destinations = destinations,
+                    bottomActions = if (navV2) {
+                        { RailChromeActions(navigator, identityService.current) }
+                    } else {
+                        null
+                    },
                     modifier = Modifier
                         .fillMaxHeight()
                         .onSizeChanged { railWidth = with(density) { it.width.toDp() } },
