@@ -3,8 +3,11 @@ package com.ivandsky.puzzlebox.games.strandsui.board
 import androidx.compose.animation.core.Easing
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.DrawStyle
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -97,6 +100,19 @@ internal fun DrawScope.drawTokenSquare(
         alpha = alpha,
         style = style,
     )
+}
+
+/**
+ * What [drawTokenSquare] paints for one token at [scale] about its face's centre [center]: the face
+ * and, [StrandsBoardSpec.TokenLipFraction] lower, its lip. A connector cut out of its tokens
+ * clips this exact shape, so the line meets the visible edge with no gap at a corner or the lip.
+ */
+internal fun Path.addToken(center: Offset, half: Float, scale: Float = 1f) {
+    val reach = half * scale
+    val drop = half * 2 * StrandsBoardSpec.TokenLipFraction * scale
+    val corner = CornerRadius(reach * 2 * StrandsBoardSpec.TokenCornerFraction)
+    addRoundRect(RoundRect(Rect(center.x - reach, center.y - reach, center.x + reach, center.y + reach), corner))
+    addRoundRect(RoundRect(Rect(center.x - reach, center.y - reach + drop, center.x + reach, center.y + reach + drop), corner))
 }
 
 /**
