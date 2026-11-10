@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.PostResult
+import com.ivandsky.puzzlebox.data.match.PuzzleCodeCheck
 import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.data.match.WriteResult
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -255,6 +256,34 @@ class FirestoreMatchRepositoryContractTest : MatchResultsContract() {
     private fun denied() = FirebaseFirestoreException("denied", FirebaseFirestoreException.Code.PERMISSION_DENIED)
 
     // ----- Firebase failures -----
+
+    @Test
+    fun aDeniedCodeReadIsRejectedNotOffline() = runTest {
+        signInAs(ANN.uid)
+        store.failures["codeTaken"] = denied()
+
+        assertEquals(CreateResult.Rejected("denied"), repository.create(draft()))
+        assertEquals(PuzzleCodeCheck.Unavailable(offline = false, message = "denied"), repository.puzzleCodeTaken(code()))
+    }
+
+    @Test
+    fun aTransientCodeReadIsOffline() = runTest {
+        signInAs(ANN.uid)
+        for (failure in listOf(FirebaseFirestoreException.Code.UNAVAILABLE, FirebaseFirestoreException.Code.DEADLINE_EXCEEDED)) {
+            store.failures["codeTaken"] = FirebaseFirestoreException("slow", failure)
+
+            assertEquals(CreateResult.Offline, repository.create(draft()))
+            assertEquals(PuzzleCodeCheck.Unavailable(offline = true, message = "slow"), repository.puzzleCodeTaken(code()))
+        }
+    }
+
+    @Test
+    fun aDeniedMatchReadIsNotOfflineEither() = runTest {
+        signInAs(ANN.uid)
+        store.failures["matchExists"] = denied()
+
+        assertEquals(false, (repository.puzzleCodeTaken(code()) as PuzzleCodeCheck.Unavailable).offline)
+    }
 
     @Test
     fun `a transient store failure on create is offline`() = runTest {

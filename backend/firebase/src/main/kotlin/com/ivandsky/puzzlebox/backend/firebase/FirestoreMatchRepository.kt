@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.PostResult
+import com.ivandsky.puzzlebox.data.match.PuzzleCodeCheck
 import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.data.match.WriteResult
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -44,19 +45,20 @@ internal class FirestoreMatchRepository(
     private val postTimeout: Duration = POST_TIMEOUT,
 ) : MatchRepository {
 
-    override suspend fun puzzleCodeTaken(code: ShareCode): Boolean? {
-        if (puzzleCodeExists(code) ?: return null) return true
-        return orNull { store.matchExists(code.value) }
+    override suspend fun puzzleCodeTaken(code: ShareCode): PuzzleCodeCheck {
+        val puzzle = codeRead { store.codeTaken(code.value) }
+        return if (puzzle == PuzzleCodeCheck.Free) codeRead { store.matchExists(code.value) } else puzzle
     }
 
     override suspend fun create(draft: MatchDraft): CreateResult {
         val uid = currentUid() ?: return CreateResult.SignedOut
         if (draft.challenger.uid != uid) return CreateResult.Rejected("the challenger is not the signed-in user")
         // Only a puzzle blocks the code here: an existing match of the caller's own is a retry.
-        when (puzzleCodeExists(draft.code)) {
-            true -> return CreateResult.CodeTaken
-            null -> return CreateResult.Offline
-            false -> Unit
+        when (val puzzle = codeRead { store.codeTaken(draft.code.value) }) {
+            PuzzleCodeCheck.Taken -> return CreateResult.CodeTaken
+            is PuzzleCodeCheck.Unavailable ->
+                return if (puzzle.offline) CreateResult.Offline else CreateResult.Rejected(puzzle.message)
+            PuzzleCodeCheck.Free -> Unit
         }
         return attempt(CreateResult.Offline, CreateResult::Rejected) {
             val fields = MatchDocCodec.encodeCreate(draft)
@@ -164,7 +166,14 @@ internal class FirestoreMatchRepository(
         if (e.isDenied()) ResultRead.Sealed else ResultRead.Offline
     }
 
-    private suspend fun puzzleCodeExists(code: ShareCode): Boolean? = orNull { store.codeTaken(code.value) }
+    /** [read] as a [PuzzleCodeCheck]: a failure a retry can fix is offline, any other is a refusal that will repeat. */
+    private suspend fun codeRead(read: suspend () -> Boolean): PuzzleCodeCheck = try {
+        if (read()) PuzzleCodeCheck.Taken else PuzzleCodeCheck.Free
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        PuzzleCodeCheck.Unavailable(offline = e.isTransient(), message = e.message)
+    }
 
     private fun utcDay(): String = clock().atZone(ZoneOffset.UTC).toLocalDate().toString()
 
