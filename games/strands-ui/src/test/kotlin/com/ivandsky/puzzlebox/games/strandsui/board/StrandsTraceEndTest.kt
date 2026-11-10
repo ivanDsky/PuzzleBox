@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.strands.StrandsState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strandsui.StrandsBoardContent
+import com.ivandsky.puzzlebox.games.strandsui.StrandsMotion
 import com.ivandsky.puzzlebox.games.strandsui.StrandsUiFixtures
 import com.ivandsky.puzzlebox.games.strandsui.Trace
 import com.ivandsky.puzzlebox.games.strandsui.TraceEnd
@@ -97,6 +98,36 @@ class StrandsTraceEndTest {
 
         rule.mainClock.advanceTimeBy(300)
         assertFalse(redOnBoard())
+    }
+
+    /** The pixel [dx] pitches right of and [dy] pitches below cell ([row], [col])'s centre. */
+    private fun PixelMap.at(row: Int, col: Int, dx: Float, dy: Float): Color {
+        val pitch = width / 4f
+        return this[(pitch * (col + 0.5f + dx)).toInt(), (pitch * (row + 0.5f + dy)).toInt()]
+    }
+
+    /**
+     * A tile fading out is translucent: the path's connector beneath it must not show
+     * through. Inside a tile of the path, a pixel on the connector's line matches one off it.
+     */
+    private fun assertNoLineThroughTiles(kind: TraceEndKind, atMs: Long) {
+        show(reduceMotion = false)
+        end.post(TraceEnd(StrandsUiFixtures.row(0), kind, 1))
+        rule.mainClock.advanceTimeBy(atMs)
+        val pixels = rule.onNodeWithTag("strands.board").captureToImage().toPixelMap()
+        for (col in 1..2) {
+            assertEquals("col $col at $atMs ms", pixels.at(0, col, 0.3f, -0.25f), pixels.at(0, col, 0.3f, 0f))
+        }
+    }
+
+    @Test
+    fun `no connector shows through a refused word's tiles while they dissolve`() {
+        assertNoLineThroughTiles(TraceEndKind.Error, 280)
+    }
+
+    @Test
+    fun `no connector shows through a set-aside word's tiles while they dissolve`() {
+        assertNoLineThroughTiles(TraceEndKind.Short, StrandsMotion.ShortHoldMs + 60L)
     }
 
     @Test

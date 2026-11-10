@@ -12,11 +12,15 @@ import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
@@ -87,6 +91,8 @@ private fun frameOf(end: TraceEnd, elapsedMs: Int, reduceMotion: Boolean, amplit
  * The submitted word's connector while it plays out, drawn after the board's own links and
  * under the letters: a round-capped polyline through the path's centres, red or neutral, shaken
  * and faded with its tokens. Its own layer, so [StrandsConnectors]' trace motion never has to know.
+ * A dissolving token is translucent and shows what is under it, so from the first faded frame
+ * the line is cut out of the path's tokens (as they are scaled), never seen through them.
  */
 @Composable
 internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEndFrame?, colors: BoardColors) {
@@ -98,6 +104,8 @@ internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEn
                 val width = connectorWidth(LinkKind.Trace, geometry.pitch)
                 var builtFor: List<Coord>? = null
                 val line = Path()
+                val tokens = Path()
+                val half = geometry.pitch * StrandsBoardSpec.TokenFraction / 2
                 onDrawBehind {
                     val now = frame() ?: return@onDrawBehind
                     if (builtFor !== now.path) {
@@ -110,7 +118,23 @@ internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEn
                     }
                     val color = now.connector(colors)
                     val stroke = Stroke(width = width * now.scale, cap = StrokeCap.Round, join = StrokeJoin.Round)
-                    translate(now.offsetPx, 0f) { drawPath(line, color.copy(alpha = color.alpha * now.alpha), style = stroke) }
+                    translate(now.offsetPx, 0f) {
+                        val faded = color.copy(alpha = color.alpha * now.alpha)
+                        if (now.alpha >= 1f) {
+                            drawPath(line, faded, style = stroke)
+                        } else {
+                            tokens.reset()
+                            val reach = half * now.scale
+                            val drop = half * 2 * StrandsBoardSpec.TokenLipFraction * now.scale
+                            now.path.forEach { coord ->
+                                val c = geometry.centerOf(GridCell(coord.row, coord.col))
+                                tokens.addRoundRect(
+                                    RoundRect(c.x - reach, c.y - reach, c.x + reach, c.y + reach + drop, CornerRadius(reach * 2 * StrandsBoardSpec.TokenCornerFraction)),
+                                )
+                            }
+                            clipPath(tokens, ClipOp.Difference) { drawPath(line, faded, style = stroke) }
+                        }
+                    }
                 }
             },
     )
