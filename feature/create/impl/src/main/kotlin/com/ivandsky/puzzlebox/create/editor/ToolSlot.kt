@@ -43,9 +43,9 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 /**
  * The Studio's tool slot, under the board on a phone and in the tablet's side pane: the [tools], or, while [open] and not [editBoard],
  * the publish details [form] with Undo and Redo and an Edit board chip ([onEditBoard]) that brings the tools back.
- * While [open] the slot holds the taller of the two, so the board above keeps its size across
- * Edit board and back; once the details no longer apply it fits the tools again. Faded-out
- * content leaves the composition.
+ * While the details show the slot holds the taller of the two, so the tools faded out under
+ * them leave no jump; Edit board fits the tools again and hands the board above the rest of
+ * the height, the room a game needs to edit. Faded-out content leaves the composition.
  *
  * Motion: tools and form **Crossfade** in place and the slot's height follows (DurationMedium
  * on the standard curve); under reduced motion, and when the Studio opens on the details, they
@@ -94,7 +94,7 @@ fun ToolSlot(
         val shownTools = measurables.firstOrNull { it.layoutId == TOOLS }?.measure(loose)
         val shownForm = measurables.firstOrNull { it.layoutId == FORM }?.measure(loose)
         if (shownTools != null && shownTools.height > 0) toolsHeight = shownTools.height
-        if (!open) formHeight = 0 else if (shownForm != null && shownForm.height > formHeight) formHeight = shownForm.height
+        if (!details) formHeight = 0 else if (shownForm != null && shownForm.height > formHeight) formHeight = shownForm.height
         val height = maxOf(toolsHeight, formHeight, 0).coerceIn(constraints.minHeight, constraints.maxHeight)
         layout(constraints.maxWidth, height) {
             shownTools?.place(0, 0)

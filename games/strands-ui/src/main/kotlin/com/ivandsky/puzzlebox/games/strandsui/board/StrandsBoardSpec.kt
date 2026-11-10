@@ -78,7 +78,11 @@ internal object StrandsBoardSpec {
     /** A move is walked in steps no longer than this, so a fast swipe skips no letter. */
     const val SubStepCells: Float = 0.15f
 
-    /** SC11: no cell, and so no touch-down target, is ever smaller than this. */
+    /**
+     * SC11: no cell, and so no touch-down target, is smaller than this in play and in the tablet
+     * Studio. The phone Studio lowers the floor so the whole grid fits its slot, since a scroll
+     * there would lose the drag to the trace.
+     */
     val TouchFloor: Dp = 48.dp
 
     /** Cap on a large pane: a tablet's board grows to finger-sized cells, not a phone's. */

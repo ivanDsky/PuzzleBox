@@ -89,7 +89,9 @@ internal fun StrandsWordField(controller: StrandsEditorController, modifier: Mod
             } else {
                 Text(
                     text = when (check) {
-                        WordCheck.Empty -> ""
+                        // A no-break space, not "": an empty paragraph measures shorter than a line, and the
+                        // field, and the phone board sized round it, would shrink and grow with the verdict.
+                        WordCheck.Empty -> "\u00A0"
                         WordCheck.NoPath -> StrandsEditorCopy.TRACE_FIRST
                         WordCheck.Prefix -> "Keep typing"
                         WordCheck.Word -> "In the dictionary"

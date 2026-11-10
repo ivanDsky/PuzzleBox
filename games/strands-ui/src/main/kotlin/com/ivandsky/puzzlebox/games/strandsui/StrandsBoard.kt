@@ -19,6 +19,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -27,6 +28,7 @@ import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsConnectors
+import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsDim
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsGestureLayer
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsHaptics
@@ -82,7 +84,7 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
  * editor's empty tiles), so the live line is never covered. [onFinger] gets the dragging
  * finger in cell units after each move's steps, and null at the lift, before the lift's step.
  * [dim] fades the letters and connectors it names (the editor's unselected paths); the live
- * trace is never faded.
+ * trace is never faded. [floor] is the least cell pitch ([strandsCellSizeFor]).
  */
 @Composable
 internal fun StrandsBoardContent(
@@ -95,6 +97,7 @@ internal fun StrandsBoardContent(
     tiles: @Composable BoxScope.() -> Unit = {},
     onFinger: (Offset?) -> Unit = {},
     dim: StrandsDim = StrandsDim.None,
+    floor: Dp = StrandsBoardSpec.TouchFloor,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalBoardColors.current
@@ -115,7 +118,7 @@ internal fun StrandsBoardContent(
     val end = rememberTraceEndFrame(traceEnd(), reduceMotion, touchSeq)
     val settle = rememberLinkSettle(found, model.links, reduceMotion, touchSeq)
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val cell = strandsCellSizeFor(maxWidth, maxHeight, model.rows, model.cols)
+        val cell = strandsCellSizeFor(maxWidth, maxHeight, model.rows, model.cols, floor)
         val boardSize = DpSize(cell * model.cols, cell * model.rows)
         Box(Modifier.fillMaxWidth().height(boardSize.height), contentAlignment = Alignment.Center) {
             BoardGrid(
