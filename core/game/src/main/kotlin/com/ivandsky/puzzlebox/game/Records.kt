@@ -55,4 +55,6 @@ data class CompletionRecord(
     val isRecord: Boolean = false,
     /** The duel match this play belongs to; null for a normal play. */
     val matchCode: String? = null,
+    /** Where the completion came from; `LinkedIn` for an import of the player's own LinkedIn result. */
+    val source: CompletionSource = CompletionSource.App,
 )
