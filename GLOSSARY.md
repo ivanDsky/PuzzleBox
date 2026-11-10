@@ -21,7 +21,7 @@ The per-play record of which steps have been paid for.
 _Avoid_: counter
 
 **Hint mode**:
-Legacy (today's hint, which Classic Sudoku keeps) or Stepwise (one deduction per press), chosen per game at registration; read from the `HintParity` flag while it exists.
+Legacy (today's hint, which Classic Sudoku keeps) or Stepwise (one deduction per press), chosen per game where the game is registered.
 _Avoid_: hint type
 
 **Match** (visible word: duel):

@@ -72,3 +72,6 @@ to merge without being reachable in a release build.
   2026-11-08. The e2e graph is back to no flags on.
 - HintParity flipped to `releaseDefault = true` in 0.20.0 on 2026-11-09. Queens, Tango and Mini
   Sudoku give one deduction per press; Classic Sudoku, Zip and Strands are unchanged.
+- The HintParity flag was removed on 2026-11-10, with the app's `HintModeSource` binding. The
+  Queens and Tango legacy hint paths were removed in 37a/37b and 38a/38b. Classic Sudoku keeps
+  the legacy hint (A24).

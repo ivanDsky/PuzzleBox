@@ -17,9 +17,8 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * How long a Hint button waits after every press (F2); null is no wait, today's behavior. The
- * app provides it around its destinations while HintParity is on (spec A20); UI modules never
- * read the flag.
+ * How long a Hint button waits after every press (F2); null is no wait. The app provides
+ * [HINT_COOLDOWN] around its destinations.
  */
 val LocalHintCooldown = staticCompositionLocalOf<Duration?> { null }
 

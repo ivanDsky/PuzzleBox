@@ -10,13 +10,13 @@ Queens, Tango and Mini Sudoku are moving from "one hint = the answer" to "one pr
 2. **Spotlight glyphs are shape-only.** A `Spotlight` carries its glyphs. `SpotlightGlyphs` is a shape-only seam: the game draws its native glyph shape, and colour, alpha, sequence and badge belong to the overlay. So `core:designsystem` still has no game type and ADR-0001 holds. A `Spotlight` never carries a step, and steps never carry roles.
 3. **Solution cached once per puzzle.** Steppers take a solution that the game adapter caches once per puzzle. There is no constrained solve per press. The solver budget still bounds any work that runs (A19).
 4. **Queens rungs state their own proof.** A Queens rung emits `QueensProof`, the rung's own statement of its proof. Nothing rebuilds evidence afterwards.
-5. **The flag is bound once.** `HintModeSource` (`fun interface`, `current(): HintMode`) is bound once, in the app's Koin module where the release flags are in reach. No UI module reads a flag.
+5. **The mode is chosen at registration.** `HintModeSource` (`fun interface`, `current(): HintMode`) is supplied where a game is registered: `SudokuUiModules` gives Mini Stepwise and Classic Legacy, and Queens and Tango pass `HintMode.Stepwise` directly. No UI module reads a flag.
 6. **Overlay bounds equal the grid.** The overlay's bounds equal the cell grid's bounds (rows × cols uniform cells). Callers mount it inside any frame padding.
 7. **Classic Sudoku keeps today's hint.** Classic Sudoku is not wired to stepwise and keeps today's hint for good (A24). The callout carries the hint text, so the game's caption in the shared slot is empty while a Spotlight shows, and the game's violation line is suppressed (A11).
 
 ## Consequences
 + A new deduction is one step class added to one game's catalog list. A new game is one mapper, its step copy, its glyphs and one `StepHints.Game` adapter (A18).
-+ Flag off is today's code path, byte-for-byte. The `HintParity` flag and the app's `HintModeSource` binding are removed by the cleanup tickets (37a / 37b Queens, 38a / 38b Tango, 39 flag), which also remove the Queens and Tango legacy hint code.
++ Queens and Tango have no legacy hint path; Mini Sudoku is always Stepwise. There is no hint release flag.
 + `HintMode.Legacy` and Sudoku's legacy hint path stay for Classic.
 − `core:designsystem` grows a Spotlight drawing module and tokens.
 − Queens has two ladders until cleanup. Queens keeps its default ladder for grading and drafting, and adds a stepwise ladder for hints. The two-ladder situation in Queens ends only if a later ADR converges them.
@@ -29,6 +29,6 @@ Queens, Tango and Mini Sudoku are moving from "one hint = the answer" to "one pr
 - **Steps carrying roles, or a Spotlight carrying a step.** Couples the engine to drawing and the drawing to the engine. Roles belong to the mapper, outside both.
 - **`lastMove` or marks through `GameRules.hint`.** Grows a contract that Zip and Strands share.
 - **`Dispatchers.Default` in controllers.** Compute runs on an injected dispatcher from `DispatcherProvider` (konsist rule P2).
-- **Reading the flag in UI modules.** Spreads the release decision across modules. The app binds `HintModeSource` once.
+- **Choosing the mode with a release flag.** Spreads the release decision across modules. Each game picks its mode where it is registered.
 
 Respects ADR-0001, 0008 (no new forbidden edge), 0009, 0022, 0023. Contradicts none.

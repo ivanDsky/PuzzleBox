@@ -14,9 +14,6 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.HintParity
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.LocalNavLift
@@ -52,7 +49,7 @@ import org.koin.compose.koinInject
  * let Enter code open a duel. [navV2] is the NavV2 value the app read once at launch
  * ([rememberNavV2]); the shell never reads the flag itself. With it on, Browse screens get
  * the avatar and gear ([shellChromeDecorator]) over [identityService]'s signed-in player.
- * Every entry sees [LocalHintCooldown] from [flags] ([withHintCooldown]).
+ * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
  */
 @Composable
 internal fun PuzzleBoxNavShell(
@@ -69,7 +66,6 @@ internal fun PuzzleBoxNavShell(
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
-    flags: ReleaseFlags = koinInject(),
 ) {
     val reduceMotion = rememberReducedMotion()
     val layoutDirection = LocalLayoutDirection.current
@@ -98,7 +94,7 @@ internal fun PuzzleBoxNavShell(
             onOpenDuel = onOpenDuel,
             navV2 = navV2,
             libraryRequests = libraryRequests,
-        ).withHintCooldown(flags),
+        ).withHintCooldown(),
         shellChrome = shellChrome,
     )
     val motion = remember { mutableStateOf(NavMotion.Idle) }
@@ -147,19 +143,12 @@ private class LiftedKey {
 }
 
 /**
- * Gives each entry's content [LocalHintCooldown]: [HINT_COOLDOWN] while HintParity is on, else
- * nothing (A20, today's composition). Read once when the entry first composes, so a debug
- * override applies from the next board and never mid-play, like
- * [com.ivandsky.puzzlebox.gameui.hint.HintModeSource.current].
+ * Gives each entry's content [LocalHintCooldown] = [HINT_COOLDOWN], so the core action bar gates
+ * every game's Hint button the same way.
  */
-internal fun ((NavKey) -> NavEntry<NavKey>).withHintCooldown(flags: ReleaseFlags): (NavKey) -> NavEntry<NavKey> = { key ->
+internal fun ((NavKey) -> NavEntry<NavKey>).withHintCooldown(): (NavKey) -> NavEntry<NavKey> = { key ->
     val entry = this(key)
     NavEntry(key, entry.contentKey, entry.metadata) {
-        val cooldown = remember { HINT_COOLDOWN.takeIf { flags.isEnabled(HintParity) } }
-        if (cooldown == null) {
-            entry.Content()
-        } else {
-            CompositionLocalProvider(LocalHintCooldown provides cooldown) { entry.Content() }
-        }
+        CompositionLocalProvider(LocalHintCooldown provides HINT_COOLDOWN) { entry.Content() }
     }
 }

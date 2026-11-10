@@ -379,7 +379,7 @@ class ZipPlayControllerTest {
     }
 
     @Test
-    fun `hint cooldown no-ops rapid presses and telemetry records placements`() {
+    fun `hint telemetry records each press's origin and placement`() {
         var clockMs = 0L
         val c = readyController(now = { Instant.ofEpochMilli(clockMs) })
         c.hint() // places the start (empty trace, no arrow)
@@ -389,12 +389,8 @@ class ZipPlayControllerTest {
             c.hintHistory,
         )
 
-        c.hint() // inside the 5s cooldown: a no-op — not counted, not recorded
-        assertEquals(1, c.session?.hintsUsed)
-        assertEquals(1, c.hintHistory.size)
-
         clockMs += 5_000L
-        c.hint() // cooldown expired: places the next solution segment
+        c.hint() // places the next solution segment
         assertEquals(2, c.session?.hintsUsed)
         assertEquals(
             listOf(

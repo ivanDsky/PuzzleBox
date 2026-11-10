@@ -63,7 +63,6 @@ class ZipPlayController(
      *  persistence is a future call. Cleared on replay (fresh session, fresh log). */
     val hintHistory = mutableStateListOf<HintEvent>()
 
-    private var lastHintAtMs: Long? = null
     var nowMs by mutableStateOf(0L)
         private set
 
@@ -153,7 +152,6 @@ class ZipPlayController(
     fun hint() {
         val current = session ?: return
         if (current.isComplete) return
-        if (hintCooldownActive()) return
         val puzzle = current.puzzle
         val fromIdx = current.path.lastOrNull()?.idx
         var next = current
@@ -184,18 +182,14 @@ class ZipPlayController(
         kept?.let { feedback.trimmed(puzzle.board, it) }
         hintCell = (resolved as? ZipHint.Step)?.cell?.idx
         val atMs = now().toEpochMilli()
-        lastHintAtMs = atMs
         hintHistory.add(HintEvent(atMs = atMs, fromIdx = fromIdx, placedIdx = placedIdx))
     }
 
-    //region PlayHints (core chrome seam over hint()/hintCooldownActive())
+    //region PlayHints (core chrome seam over hint())
 
     override val hintsUsed: Int get() = session?.hintsUsed ?: 0
 
-    /** Cooldown (2026-11-02): the tick loop recomposes the chrome ~5x/s while a timer
-     *  runs, so the button re-enables itself as the window expires. */
-    override val hintEnabled: Boolean
-        get() = session?.isComplete == false && !hintCooldownActive()
+    override val hintEnabled: Boolean get() = session?.isComplete == false
 
     /** Zip's hint is the placed arrow; prose only when the free trim fixed the trace. */
     override val hintCaption: String? get() = feedback.hintCaption
@@ -203,13 +197,6 @@ class ZipPlayController(
     override fun requestHint() = hint()
 
     //endregion
-
-    /** User-set hint cooldown (2026-11-02): presses inside the window are no-ops. Runs
-     *  on the injected clock — not the tick-cached nowMs — so it holds without ticks. */
-    fun hintCooldownActive(): Boolean {
-        val last = lastHintAtMs ?: return false
-        return now().toEpochMilli() - last < HINT_COOLDOWN_MS
-    }
 
     /** The screen calls this after the hold/fade window (reduced motion: immediately). */
     fun clearHintArrow() {
@@ -251,7 +238,6 @@ class ZipPlayController(
         hintCell = null
         hintArrow = null
         feedback.clear()
-        lastHintAtMs = null
         hintHistory.clear()
         commit(ZipSession(ref = current.ref, puzzle = current.puzzle).onForeground(now()))
     }
@@ -294,11 +280,6 @@ class ZipPlayController(
     private fun cellOf(cell: GridCell, n: Int) = Cell(cell.row * n + cell.col)
 
     //endregion
-
-    /** User-set hint cooldown (2026-11-02). */
-    private companion object {
-        const val HINT_COOLDOWN_MS = 5_000L
-    }
 }
 
 /** The hint arrow's geometry (ticket 28): the placed segment tail → new head, as row-major indices. */

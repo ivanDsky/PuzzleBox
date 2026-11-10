@@ -33,7 +33,7 @@ seam (`GameEditor` in `core:game`, `GameEditorUi` in `core:game-ui`, one game-ag
 `feature:create`), ADR-0020 shared puzzles in Firestore, ADR-0021 the tools module family,
 ADR-0022 trunk delivery (unfinished work merges dark behind a
 `ReleaseFlag`, bound per build type; the flip PR releases), ADR-0023 CI on main only (PRs
-run no CI; the local `assembleDebug test` is the merge gate; main tests before releasing), ADR-0024 per-game daily boards (rules allow-list, day window, rank-ordered queries; amends ADR-0013 and ADR-0020), ADR-0025 Spotlight and press ledger (one generic `StepHints` press flow, shape-only glyph seam, `HintModeSource` bound once; hint-parity seams). ADR-0026 Competitions (match documents, sealed results, device-derived outcome). ADR-0027 navigation placement (one owner per content type, placement table and Konsist P9, chrome types, one flag-on convention; amends ADR-0011).
+run no CI; the local `assembleDebug test` is the merge gate; main tests before releasing), ADR-0024 per-game daily boards (rules allow-list, day window, rank-ordered queries; amends ADR-0013 and ADR-0020), ADR-0025 Spotlight and press ledger (one generic `StepHints` press flow, shape-only glyph seam, `HintMode` supplied per game at registration; hint-parity seams). ADR-0026 Competitions (match documents, sealed results, device-derived outcome). ADR-0027 navigation placement (one owner per content type, placement table and Konsist P9, chrome types, one flag-on convention; amends ADR-0011).
 
 ## Layout
 
@@ -75,7 +75,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   per-entry `ViewModelStore` + `SceneCanvas` decorators, `OWNER_TAB`/`ENTRY_KEY` metadata),
   `PuzzleBoxNavShell.kt` (`NavDisplay`, `onBack` = `Navigator.pop`, `PlaySessionStore.retain`
   on stack change and `flush` at ON_STOP; `withHintCooldown` wraps the entry provider and provides
-  `LocalHintCooldown` = `HINT_COOLDOWN` per entry while `HintParity` is on), `NavTransitions.kt` (`NavMotion` values and the
+  `LocalHintCooldown` = `HINT_COOLDOWN` per entry), `NavTransitions.kt` (`NavMotion` values and the
   push/pop/tab-switch/Result/reduced-motion chooser), `TopLevelNavBar.kt` (bar + rail,
   `badged` keys), `PuzzleBoxEntryProvider.kt` (route table from every feature's `*Entry`
   builder plus `CatalogKey`), `CatalogKey.kt`, `PuzzleBoxNavKeys.kt` (`puzzleBoxNavKeys`:
@@ -124,8 +124,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `NAVIGATION_STATE_KEY` (ADR-0011).
 - `core/common/` (`:core:common`) — `DispatcherProvider` seam (+ `DefaultDispatcherProvider`),
   `AppResult`/`AppError` and `resultOf` convention (typed errors, never thrown surprises),
-  `flags/` `ReleaseFlag` enum + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022; `ReleaseFlag.HintParity`
-  gates stepwise hints, release default on since 0.20.0), Koin `commonModule`.
+  `flags/` `ReleaseFlag` enum + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022), Koin `commonModule`.
 - `core/data/` (`:core:data`) — game-agnostic repositories: `DailyRepository` →
   `OfflineFirstDailyRepository` (`today(game)`/`cached(game, day)`/`observeHistory(game)`,
   by-date `day(game, day)` → `DailyDay` (cache first; on a miss fetches and persists only for an
@@ -220,7 +219,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   (press → search off the main thread → ledger → current `Spotlight`; `StepHints.Game` is the
   per-game adapter: `capture`, `keyOf`, `spotlight`), `HintLedger` (a step key counts once per play, in memory,
   saturating at `MAX_HINTS_USED`), `HintSearch` (stale results dropped), `HintMode`
-  (`Legacy` / `Stepwise(compute)`), `HintModeSource` (bound once in `AppModule`; UI modules never read a flag),
+  (`Legacy` / `Stepwise(compute)`), `HintModeSource` (supplied per game at registration; UI modules never read a flag),
   `OncePerPuzzle<P, S>` (the solution memo, last puzzle only). Beside `HintButton`:
   `HintCooldown` + `rememberHintCooldown` (the Hint button's wait; `LocalHintCooldown` null = none).
 - `core/testing/` (`:core:testing`) — test doubles, test configurations only (package
@@ -432,8 +431,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   shell row by row in spec notation.
 - **`GamePlayRegistry`** (`core:game-ui`) — the game → UI seam; `:feature:play:impl` drives any
   game through `GamePlayController`, so adding a game never touches Play.
-- **Hint seams** (ADR-0025, flag `HintParity`) — `HintModeSource` (`core:game-ui`, bound once in
-  `AppModule`) hands each controller `HintMode.Legacy` (today's hint, byte for byte) or
+- **Hint seams** (ADR-0025) — `HintModeSource` (`core:game-ui`) hands each controller
+  `HintMode.Legacy` (today's hint, byte for byte) or
   `Stepwise`; a stepwise controller builds one `StepHints` over its game's `StepHints.Game`.
   `StepHints` runs the press, `HintLedger` decides its cost, and the `Spotlight` the adapter
   returns is drawn by `SpotlightOverlay` (`core:designsystem`). The recipe (A18): a new
@@ -443,7 +442,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - **Hint cooldown** (F2, `core:game-ui`) — `LocalHintCooldown` (null = no wait),
   `HINT_COOLDOWN` (5 s), `rememberHintCooldown` → `HintCooldown` (`press`/`gate`/`ring`) and
   `Modifier.cooldownRing` in `core:designsystem`; `PuzzleBoxNavShell.withHintCooldown` provides
-  the local per entry only while `HintParity` is on.
+  the local for every entry.
 - **Editor seam** (ADR-0019) — `GamePlugin.editor` (`GameEditor`, `core:game`) + a
   `GameEditorUi` binding (`core:game-ui`, collected into `GameEditorRegistry`); the Studio
   holds an `EditorDraft` and feeds `VerdictPipeline`, so adding an editor never touches

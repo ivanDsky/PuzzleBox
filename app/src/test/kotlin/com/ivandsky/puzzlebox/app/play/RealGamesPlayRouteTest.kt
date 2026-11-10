@@ -85,7 +85,6 @@ import kotlinx.coroutines.SupervisorJob
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -256,7 +255,6 @@ class RealGamesPlayRouteTest {
         restoration.setContent { PlayStack() }
         pick(ZipDefinition.id)
         val live = composeRule.runOnIdle { (play(ZipDefinition.id)!!.controller as ZipPlayController).also { it.hint() } }
-        composeRule.runOnIdle { assertTrue(live.hintCooldownActive()) }
 
         // Configuration change: ON_PAUSE folds the clock before the state is saved, then
         // the composition is rebuilt while the store keeps the slot's play.
@@ -267,8 +265,6 @@ class RealGamesPlayRouteTest {
         composeRule.waitForIdle()
 
         composeRule.runOnIdle {
-            // Same controller ⇒ same cooldown anchor; the cooldown itself runs on the wall
-            // clock, which the paused-lifecycle hop can outlast under Robolectric.
             assertSame(live, play(ZipDefinition.id)!!.controller)
             assertEquals(1, live.hintHistory.size)
         }
