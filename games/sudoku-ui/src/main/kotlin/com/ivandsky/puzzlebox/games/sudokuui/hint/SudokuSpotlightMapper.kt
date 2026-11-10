@@ -25,9 +25,7 @@ internal object SudokuSpotlightMapper {
 
     /** The Spotlight of a keyed [step]; [SudokuStep.Solved] has none and throws. */
     fun map(step: SudokuStep, puzzle: SudokuPuzzle, board: SudokuBoard, playId: Int): Spotlight = when (step) {
-        is SudokuStep.Single -> spotlight(
-            step, puzzle, board, singleRoles(step, puzzle), mapOf(step.place.cell to step.place.digit.toString()), playId,
-        )
+        is SudokuStep.Single -> spotlight(step, puzzle, board, singleRoles(step, puzzle), singleTexts(step), playId)
         is SudokuStep.Elimination -> spotlight(
             step, puzzle, board, eliminationRoles(step),
             step.struck.mapValues { (_, mask) -> SudokuStepCopy.digitsOf(mask).joinToString(" ") }, playId,
@@ -74,13 +72,26 @@ internal object SudokuSpotlightMapper {
     /** The callout sits by the evidence, else by the cell the step is about, else by the struck cells. */
     private val ANCHOR_ORDER = listOf(SpotlightRole.EVIDENCE, SpotlightRole.TARGET, SpotlightRole.CULPRIT, SpotlightRole.EXCLUDED)
 
-    /** One role per cell: later writes win, so the target or struck mark replaces evidence on the same cell. */
+    /**
+     * One role per cell: later writes win, so the target or struck mark replaces evidence on the same cell. The cells
+     * a strike keeps the digit out of are drawn as struck ghosts; a naked single's struck digits sit on its own
+     * cell, where the target digit is drawn, so they are told in the callout only.
+     */
     private fun singleRoles(step: SudokuStep.Single, puzzle: SudokuPuzzle): Map<Int, SpotlightRole> {
         val roles = LinkedHashMap<Int, SpotlightRole>()
         step.blockers.forEach { roles[it] = SpotlightRole.EVIDENCE }
         litUnit(step)?.let { unit -> puzzle.geometry.cellsOf(unit).forEach { roles[it] = SpotlightRole.EVIDENCE } }
+        step.struck.keys.forEach { roles[it] = SpotlightRole.EXCLUDED }
         roles[step.place.cell] = SpotlightRole.TARGET
         return roles
+    }
+
+    /** The digit on the target, and on each struck cell the digits its strike removed. */
+    private fun singleTexts(step: SudokuStep.Single): Map<Int, String> {
+        val texts = LinkedHashMap<Int, String>()
+        step.struck.forEach { (cell, mask) -> texts[cell] = SudokuStepCopy.digitsOf(mask).joinToString(" ") }
+        texts[step.place.cell] = step.place.digit.toString()
+        return texts
     }
 
     private fun eliminationRoles(step: SudokuStep.Elimination): Map<Int, SpotlightRole> {

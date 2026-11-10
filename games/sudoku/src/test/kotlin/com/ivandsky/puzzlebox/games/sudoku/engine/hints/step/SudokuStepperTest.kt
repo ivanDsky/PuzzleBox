@@ -44,8 +44,15 @@ class SudokuStepperTest {
 
     private fun SudokuBoard.put(idx: Int, digit: Int): SudokuBoard = with(idx, SudokuCell.Entry(digit))
 
-    private fun single(cell: Int, digit: Int, technique: SudokuTechnique, unit: SudokuUnit?, lastCell: SudokuUnit?, blockers: Set<Int>) =
-        SudokuStep.Single(SudokuHint.Place(cell, digit, technique, unit, null, emptyList()), lastCell, blockers)
+    private fun single(
+        cell: Int,
+        digit: Int,
+        technique: SudokuTechnique,
+        unit: SudokuUnit?,
+        lastCell: SudokuUnit?,
+        blockers: Set<Int>,
+        struck: Map<Int, Int> = emptyMap(),
+    ) = SudokuStep.Single(SudokuHint.Place(cell, digit, technique, unit, null, emptyList()), lastCell, blockers, struck)
 
     private fun unit(kind: UnitKind, index: Int) = SudokuUnit(kind, index)
 
@@ -175,10 +182,27 @@ class SudokuStepperTest {
         val puzzle = puzzle(shifted, lineAndNaked)
         val line = single(0, 6, SudokuTechnique.HIDDEN_SINGLE_LINE, unit(UnitKind.COLUMN, 0), null, setOf(9))
         assertEquals(line, next(puzzle, known = emptyMap()))
-        // Striking 6 from r0c1 and r0c2 leaves cell 0 as box 0's only home; the strikes are not blockers.
+        // Striking 6 from r0c1 and r0c2 leaves cell 0 as box 0's only home; the strikes are not blockers, they are carried.
         assertEquals(
-            single(0, 6, SudokuTechnique.HIDDEN_SINGLE_BOX, unit(UnitKind.BOX, 0), null, setOf(9)),
+            single(0, 6, SudokuTechnique.HIDDEN_SINGLE_BOX, unit(UnitKind.BOX, 0), null, setOf(9), mapOf(1 to digit6, 2 to digit6)),
             next(puzzle, known = mapOf(1 to digit6, 2 to digit6)),
+        )
+    }
+
+    @Test
+    fun `a known strike the single does not lean on is not carried`() {
+        // Col 0's other open cells are all explained by the 6 at r1c3; the strike on r0c1 changes nothing for it.
+        val line = single(0, 6, SudokuTechnique.HIDDEN_SINGLE_LINE, unit(UnitKind.COLUMN, 0), null, setOf(9))
+        assertEquals(line, next(puzzle(shifted, lineAndNaked), known = mapOf(1 to digit6)))
+    }
+
+    @Test
+    fun `a naked single carries the digits of its cell that only a strike rules out`() {
+        // Cell 0 sees 3 4 5 in row 0 and 1 in col 0, so it could be 2 or 6; the strike on 2 leaves 6.
+        val puzzle = puzzle(shifted, mapOf(3 to 3, 4 to 4, 5 to 5, 18 to 1))
+        assertEquals(
+            single(0, 6, SudokuTechnique.NAKED_SINGLE, null, null, setOf(3, 4, 5, 18), mapOf(0 to (1 shl 1))),
+            next(puzzle, known = mapOf(0 to (1 shl 1))),
         )
     }
 

@@ -107,8 +107,9 @@ object SudokuStepper {
                     val holders = candidates.indices.filter { board.digitAt(it) == digit }
                     val explained = others.filter { cell -> holders.any { sees(it, cell) } }
                     val blockers = blockers(explained, holders)
-                    val single = SudokuStep.Single(place(target, digit, technique, unit), null, blockers)
-                    found += Ranked(single, blockers.size + others.size - explained.size)
+                    val struck = (others - explained.toSet()).associateWith { bit }
+                    val single = SudokuStep.Single(place(target, digit, technique, unit), null, blockers, struck)
+                    found += Ranked(single, blockers.size + struck.size)
                 }
             }
             return found
@@ -116,17 +117,23 @@ object SudokuStepper {
 
         /**
          * D3: a cell with one candidate; per digit it sees, the nearest peer holding it, lowest index on a tie.
-         * Every other digit is either a blocker or a strike mark, so all naked singles cost the same.
+         * Every other digit is either a blocker or a strike mark, so all naked singles cost the same; the strike
+         * marks are the digits no peer holds, all on the cell itself.
          */
         fun nakedSingles(): List<Ranked> = candidates.indices
             .filter { Integer.bitCount(candidates[it]) == 1 }
             .map { cell ->
                 val digit = digitOf(candidates[cell])
                 val peers = geometry.peersOf(cell)
-                val blockers = (1..geometry.size).filter { it != digit }.mapNotNullTo(LinkedHashSet()) { seen ->
-                    peers.filter { board.digitAt(it) == seen }.minByOrNull { geometry.distance(it, cell) }
+                val blockers = LinkedHashSet<Int>()
+                var struckMask = 0
+                for (seen in 1..geometry.size) {
+                    if (seen == digit) continue
+                    val nearest = peers.filter { board.digitAt(it) == seen }.minByOrNull { geometry.distance(it, cell) }
+                    if (nearest != null) blockers += nearest else struckMask = struckMask or (1 shl (seen - 1))
                 }
-                Ranked(SudokuStep.Single(place(cell, digit, SudokuTechnique.NAKED_SINGLE, null), null, blockers), geometry.size - 1)
+                val struck = if (struckMask == 0) emptyMap() else mapOf(cell to struckMask)
+                Ranked(SudokuStep.Single(place(cell, digit, SudokuTechnique.NAKED_SINGLE, null), null, blockers, struck), geometry.size - 1)
             }
 
         /**
