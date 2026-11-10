@@ -1,11 +1,6 @@
 package com.ivandsky.puzzlebox.history
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -20,7 +15,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
-import com.ivandsky.puzzlebox.designsystem.LocalShellActions
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
@@ -93,7 +87,6 @@ class HistoryScreenTest {
         hintsRanked: Set<GameId> = emptySet(),
         onBack: (() -> Unit)? = {},
         reselect: SharedFlow<Unit> = MutableSharedFlow(),
-        shell: (@Composable RowScope.() -> Unit)? = null,
     ) {
         handedToShell = null
         shellBacks = 0
@@ -107,7 +100,7 @@ class HistoryScreenTest {
             // Stand-in for the shell's NavDisplay pop: registered first, so History's own
             // handler (registered later) wins while it is enabled.
             BackHandler { shellBacks++ }
-            CompositionLocalProvider(LocalTabReselect provides reselect, LocalShellActions provides (shell ?: {})) {
+            CompositionLocalProvider(LocalTabReselect provides reselect) {
                 PuzzleBoxTheme {
                     HistoryRoute(
                         key = key,
@@ -384,17 +377,6 @@ class HistoryScreenTest {
 
         awaitTag("history.detail_hint")
         openRow(ZIP)
-    }
-
-    @Test
-    @Config(sdk = [34], qualifiers = "w800dp-h1000dp")
-    fun `two-pane draws the shell actions once, from the list pane, with a day selected`() {
-        val action: @Composable RowScope.() -> Unit = { Box(Modifier.testTag("test.shellAction")) }
-        setContent(listOf(HistoryTestSupport.entry(day)), layout = HistoryLayout.TwoPane, shell = action)
-
-        awaitTag("history.detail_hint")
-        openRow(ZIP)
-        composeRule.onAllNodesWithTag("test.shellAction", useUnmergedTree = true).assertCountEquals(1)
     }
 
     @Test
