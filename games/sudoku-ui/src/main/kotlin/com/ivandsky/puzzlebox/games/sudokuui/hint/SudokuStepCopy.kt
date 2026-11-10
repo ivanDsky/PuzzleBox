@@ -50,12 +50,6 @@ internal object SudokuStepCopy {
         SudokuTechnique.HIDDEN_PAIR to { step, _ ->
             "Hidden pair: ${digitList(step.group)} only fit these two cells, so they take nothing else"
         },
-        SudokuTechnique.NAKED_TRIPLE to { step, _ ->
-            "Naked triple: these 3 cells only take ${digitList(step.group)}, so the rest of ${unitName(requireNotNull(step.unit))} loses all"
-        },
-        SudokuTechnique.HIDDEN_TRIPLE to { step, _ ->
-            "Hidden triple: ${digitList(step.group)} only fit these 3 cells, so they take nothing else"
-        },
     )
 
     fun text(step: SudokuStep, puzzle: SudokuPuzzle, board: SudokuBoard): String {

@@ -16,12 +16,15 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuTechnique
  */
 internal object SudokuEliminations {
 
-    private val rungs: List<(SudokuGeometry, IntArray) -> List<SudokuStep.Elimination>> = listOf(
-        { g, c -> intersections(g, c, pointing = true) },
-        { g, c -> intersections(g, c, pointing = false) },
-        ::nakedPairs,
-        ::hiddenPairs,
+    private val rungs: List<Pair<SudokuTechnique, (SudokuGeometry, IntArray) -> List<SudokuStep.Elimination>>> = listOf(
+        SudokuTechnique.POINTING to { g, c -> intersections(g, c, pointing = true) },
+        SudokuTechnique.CLAIMING to { g, c -> intersections(g, c, pointing = false) },
+        SudokuTechnique.NAKED_PAIR to ::nakedPairs,
+        SudokuTechnique.HIDDEN_PAIR to ::hiddenPairs,
     )
+
+    /** The techniques [next] can emit, derived from the rungs. */
+    val emitted: Set<SudokuTechnique> = rungs.mapTo(LinkedHashSet()) { it.first }
 
     /**
      * [candidates] already carry the known strikes, so an elimination the player was shown strikes
@@ -35,7 +38,7 @@ internal object SudokuEliminations {
     ): SudokuStep.Elimination? {
         val nearest = compareBy<SudokuStep.Elimination> { step -> step.struck.keys.minOf { geometry.distance(it, lastMove) } }
         var fallback: SudokuStep.Elimination? = null
-        for (rung in rungs) {
+        for ((_, rung) in rungs) {
             val found = rung(geometry, candidates)
             if (found.isEmpty()) continue
             found.filter { unlocks(after(candidates, it.struck)) }.minWithOrNull(nearest)?.let { return it }
@@ -125,3 +128,6 @@ internal object SudokuEliminations {
     private fun strike(candidates: IntArray, cells: List<Int>, mask: Int): Map<Int, Int> =
         cells.mapNotNull { cell -> (candidates[cell] and mask).takeIf { it != 0 }?.let { cell to it } }.toMap()
 }
+
+/** The techniques the Mini stepper offers as an elimination; each needs step copy. */
+val emittedEliminationTechniques: Set<SudokuTechnique> get() = SudokuEliminations.emitted
