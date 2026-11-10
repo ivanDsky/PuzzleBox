@@ -84,6 +84,28 @@ class SudokuSpotlightMapperTest {
         assertEquals(SpotlightRole.TARGET, roles[7])
     }
 
+    @Test
+    fun `a hidden single strikes the cells only a remembered strike clears, with the struck digit`() {
+        val step = SudokuStep.Single(place(7, 4, SudokuTechnique.HIDDEN_SINGLE_BOX, box0), null, setOf(20), mapOf(1 to bit(4), 8 to bit(4)))
+
+        val spotlight = map(step)
+
+        val expected = (listOf(0, 2, 6, 20).associateWith { SpotlightRole.EVIDENCE }) +
+            mapOf(1 to SpotlightRole.EXCLUDED, 8 to SpotlightRole.EXCLUDED, 7 to SpotlightRole.TARGET)
+        assertEquals(expected, spotlight.roles)
+        assertEquals(SudokuSpotlightGlyphs(mapOf(7 to "4", 1 to "4", 8 to "4")), spotlight.glyphs)
+    }
+
+    @Test
+    fun `a naked single's struck digits sit on its own cell, which stays the target`() {
+        val step = SudokuStep.Single(place(0, 4, SudokuTechnique.NAKED_SINGLE, null), null, setOf(1), mapOf(0 to (bit(2) or bit(3))))
+
+        val spotlight = map(step)
+
+        assertEquals(mapOf(0 to SpotlightRole.TARGET, 1 to SpotlightRole.EVIDENCE), spotlight.roles)
+        assertEquals(SudokuSpotlightGlyphs(mapOf(0 to "4")), spotlight.glyphs)
+    }
+
     // Elimination
 
     @Test
@@ -192,6 +214,8 @@ class SudokuSpotlightMapperTest {
         assertEquals(key(elim), key(elim.copy(struck = mapOf(3 to bit(6)))))
         assertNotEquals(key(single), key(SudokuStep.Single(place(8, 4, SudokuTechnique.NAKED_SINGLE, null), null, setOf(1))))
         assertNotEquals(key(single), key(SudokuStep.Single(place(7, 5, SudokuTechnique.NAKED_SINGLE, null), null, setOf(1))))
+        // The struck cells a single leans on are not part of its identity.
+        assertEquals(key(single), key(single.copy(struck = mapOf(0 to bit(2)))))
         assertNotEquals(key(elim), key(elim.copy(technique = SudokuTechnique.CLAIMING)))
         assertNotEquals(key(elim), key(elim.copy(unit = SudokuUnit(UnitKind.BOX, 1))))
         assertNotEquals(key(elim), key(elim.copy(struck = mapOf(3 to bit(5)))))
