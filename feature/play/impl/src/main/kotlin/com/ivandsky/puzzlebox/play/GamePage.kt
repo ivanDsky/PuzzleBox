@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -20,9 +22,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.LocalShellActions
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -37,7 +42,10 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
  * calendar; right: stats over how to play). [PlayLayout.SinglePane] stacks them in one
  * scrolling column under a back button ([onBack]; null hides it). [offline] adds the
  * offline pill; [hasLesson] false hides "Open the lesson" ([onOpenLesson]). [scroll] is
- * the phone column's, so picking a day can bring the day card back into view.
+ * the phone column's, so picking a day can bring the day card back into view. A [board]
+ * (the game's leaderboard) goes under the stats card and an [onOpenHistory] adds a "Your history"
+ * row under it, before how to play; null draws neither. With either, the tablet's right column
+ * scrolls as one so how to play keeps its place under them.
  */
 @Composable
 internal fun GamePage(
@@ -51,6 +59,8 @@ internal fun GamePage(
     offline: Boolean = false,
     hasLesson: Boolean = true,
     scroll: ScrollState = rememberScrollState(),
+    board: (@Composable () -> Unit)? = null,
+    onOpenHistory: (() -> Unit)? = null,
 ) {
     val reduced = rememberReducedMotion()
     val tag = "library.page.${row.card.game.value}"
@@ -65,10 +75,21 @@ internal fun GamePage(
                     EnterFade(0, reduced) { dayCard() }
                     EnterFade(1, reduced, Modifier.weight(1f).fillMaxWidth()) { calendar() }
                 }
-                Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                val extras = board != null || onOpenHistory != null
+                Column(
+                    Modifier.weight(1f).fillMaxHeight().then(if (extras) Modifier.verticalScroll(rememberScrollState()) else Modifier),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+                ) {
                     EnterFade(2, reduced) { GameStatsCard(row) }
-                    EnterFade(3, reduced, Modifier.weight(1f).fillMaxWidth()) {
-                        HowToPlayCard(row, hasLesson, onOpenLesson, Modifier.fillMaxHeight(), fill = true)
+                    if (extras) {
+                        // The right column scrolls as one: stats, board, history, then how to play at its own height.
+                        board?.let { EnterFade(3, reduced) { it() } }
+                        onOpenHistory?.let { EnterFade(3, reduced) { HistoryRow(it) } }
+                        EnterFade(3, reduced) { HowToPlayCard(row, hasLesson, onOpenLesson) }
+                    } else {
+                        EnterFade(3, reduced, Modifier.weight(1f).fillMaxWidth()) {
+                            HowToPlayCard(row, hasLesson, onOpenLesson, Modifier.fillMaxHeight(), fill = true)
+                        }
                     }
                 }
             }
@@ -95,6 +116,8 @@ internal fun GamePage(
             EnterFade(0, reduced) { dayCard() }
             EnterFade(1, reduced) { calendar() }
             EnterFade(2, reduced) { GameStatsCard(row) }
+            board?.let { EnterFade(3, reduced) { it() } }
+            onOpenHistory?.let { EnterFade(3, reduced) { HistoryRow(it) } }
             EnterFade(3, reduced) { HowToPlayCard(row, hasLesson, onOpenLesson) }
         }
     }
@@ -114,5 +137,24 @@ private fun PageTitle(row: LibraryRowModel, modifier: Modifier = Modifier) {
                 overflow = TextOverflow.Ellipsis,
             )
         } ?: Box(Modifier.height(20.dp))
+    }
+}
+
+/** The "Your history" row: a full-width card in the stats card's surface, at least 56dp tall, a chevron at the end. */
+@Composable
+private fun HistoryRow(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier
+            .fillMaxWidth()
+            .clip(AppShapes.extraLarge)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .clickable(role = Role.Button, onClick = onClick)
+            .heightIn(min = 56.dp)
+            .padding(horizontal = 24.dp)
+            .testTag("summary.history"),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("Your history", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+        Icon(PuzzleIcons.Chevron, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

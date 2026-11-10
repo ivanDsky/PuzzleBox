@@ -42,6 +42,8 @@ import org.koin.compose.koinInject
  * is only carried here. A duel puzzle's [MatchLegKey] draws its leg's board; Up pops, and a
  * solve, a give up or a puzzle already taken replaces it with its [MatchLegResultKey]. The library
  * acts once on [libraryRequest]'s game page or section and hands it back through [onLibraryRequestTaken].
+ * The game page shows its leaderboard with [showGameBoard] and a "Your history" row calling [onOpenGameHistory];
+ * the defaults are the page without either.
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -53,6 +55,8 @@ fun EntryProviderScope<NavKey>.playEntry(
     onOpenDuel: ((DuelKey) -> Unit)? = null,
     libraryRequest: () -> LibraryRequest? = { null },
     onLibraryRequestTaken: () -> Unit = {},
+    showGameBoard: Boolean = false,
+    onOpenGameHistory: (() -> Unit)? = null,
 ) {
     entry<PlayKey> {
         LibraryRoute(
@@ -65,6 +69,8 @@ fun EntryProviderScope<NavKey>.playEntry(
             onOpenDuel = onOpenDuel,
             request = libraryRequest(),
             onRequestTaken = onLibraryRequestTaken,
+            showGameBoard = showGameBoard,
+            onOpenGameHistory = onOpenGameHistory,
         )
     }
     entry<FriendPuzzleKey> { key ->

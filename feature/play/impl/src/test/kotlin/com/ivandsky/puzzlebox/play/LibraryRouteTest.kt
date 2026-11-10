@@ -1,5 +1,12 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.ui.test.performScrollTo
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
+import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
@@ -138,6 +145,10 @@ class LibraryRouteTest {
                     factory { ObserveGameStats(get(), get(), ComputeStreak(GetPuzzleDay(get()))) }
                     factory { ObserveArchiveProgress(get(), get(), get()) }
                     factory { ObserveArchiveMonth(get(), get(), get(), get()) }
+                    single<IdentityService> { FakeIdentityService() }
+                    single<LeaderboardRepository> { FakeLeaderboardRepository(emptyMap()) }
+                    single<GoogleIdTokenProvider> { dismissedGoogleSignIn }
+                    factory { ObserveLeaderboard(get(), get(), get(), get()) }
                 },
                 playModule,
             )
@@ -399,5 +410,88 @@ class LibraryRouteTest {
 
     private fun assertShellCount(count: Int) {
         composeRule.onAllNodesWithTag("test.shellAction", useUnmergedTree = true).assertCountEquals(count)
+    }
+
+    private fun setBoardContent(
+        layout: PlayLayout,
+        showGameBoard: Boolean = false,
+        onOpenGameHistory: (() -> Unit)? = null,
+    ) {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                LibraryRoute(
+                    layout = layout,
+                    onPlay = { _, _ -> },
+                    onOpenCode = {},
+                    showGameBoard = showGameBoard,
+                    onOpenGameHistory = onOpenGameHistory,
+                )
+            }
+        }
+    }
+
+    private fun openAlphaPage(layout: PlayLayout) {
+        if (layout == PlayLayout.SinglePane) {
+            awaitTag("library.list")
+        } else {
+            awaitTag("library.page.zip")
+        }
+        tap("library.row.alpha")
+        awaitTag("library.page.alpha")
+    }
+
+    private fun exists(tag: String) =
+        composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+
+    @Test
+    fun `showGameBoard alone puts the board on the phone page and no history row`() {
+        setBoardContent(PlayLayout.SinglePane, showGameBoard = true)
+        openAlphaPage(PlayLayout.SinglePane)
+        awaitTag("leaderboard.today")
+        assertTrue(!exists("summary.history"))
+    }
+
+    @Test
+    fun `onOpenGameHistory alone puts the history row on the phone page and no board`() {
+        setBoardContent(PlayLayout.SinglePane, onOpenGameHistory = {})
+        openAlphaPage(PlayLayout.SinglePane)
+        awaitTag("summary.history")
+        assertTrue(!exists("leaderboard.today") && !exists("leaderboard.yesterday"))
+    }
+
+    @Test
+    fun `both set on the tablet show the board, the history row and how to play under them`() {
+        setBoardContent(PlayLayout.TwoPane, showGameBoard = true, onOpenGameHistory = {})
+        openAlphaPage(PlayLayout.TwoPane)
+        awaitTag("leaderboard.today")
+        awaitTag("summary.history")
+        val history = composeRule.onNodeWithTag("summary.history").getUnclippedBoundsInRoot()
+        val howTo = composeRule.onNodeWithTag("library.howto").getUnclippedBoundsInRoot()
+        assertTrue("how to play sits under the history row", howTo.top >= history.bottom)
+        assertTrue("history row is at least 48dp tall", (history.bottom - history.top).value >= 48f)
+    }
+
+    @Test
+    fun `tapping the history row calls the callback once`() {
+        var opened = 0
+        setBoardContent(PlayLayout.SinglePane, onOpenGameHistory = { opened++ })
+        openAlphaPage(PlayLayout.SinglePane)
+        composeRule.onNodeWithTag("summary.history").performScrollTo()
+        tap("summary.history")
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun `neither set leaves the phone page without a board or a history row`() {
+        setBoardContent(PlayLayout.SinglePane)
+        openAlphaPage(PlayLayout.SinglePane)
+        assertTrue(!exists("leaderboard.today") && !exists("summary.history"))
+    }
+
+    @Test
+    fun `neither set leaves the tablet page without a board or a history row`() {
+        setBoardContent(PlayLayout.TwoPane)
+        openAlphaPage(PlayLayout.TwoPane)
+        assertTrue(!exists("leaderboard.today") && !exists("summary.history"))
     }
 }
