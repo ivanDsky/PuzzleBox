@@ -65,7 +65,7 @@ internal object LookAheadChain {
         /** Plays one round; false when nothing applies. */
         fun advance(puzzle: QueensPuzzle, cheap: List<QueensRung>): Boolean {
             collided = false
-            val singles = SinglesRung.steps(puzzle, state).map { (it.deduction as QueensDeduction.Place).cell }.distinct().toList()
+            val singles = SinglesRung.cells(puzzle, state)
             if (singles.isNotEmpty()) {
                 for (cell in singles) {
                     if (!state.isOpen(cell)) {
