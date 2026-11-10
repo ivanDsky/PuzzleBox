@@ -19,12 +19,12 @@ internal const val COUNT_UP_DURATION_MS = MotionTokens.CountUpDuration
 internal fun countUpValue(target: Long, progress: Float): Long = (target * progress).toLong()
 
 /**
- * A number that rolls from 0 to [target] over [MotionTokens.CountUpDuration] on
+ * A number that rolls from 0 to [target] over [durationMs] (default [MotionTokens.CountUpDuration]) on
  * [MotionTokens.EasingEmphasizedDecelerate], after [delayMs]. Reduced motion and previews
  * show [target] at once. A new [target] rolls again from 0.
  */
 @Composable
-fun rememberCountUp(target: Long, delayMs: Int = 0): Long {
+fun rememberCountUp(target: Long, delayMs: Int = 0, durationMs: Int = COUNT_UP_DURATION_MS): Long {
     val instant = rememberReducedMotion() || LocalInspectionMode.current
     val progress = remember(target) { Animatable(if (instant) 1f else 0f) }
     LaunchedEffect(progress, instant) {
@@ -33,7 +33,7 @@ fun rememberCountUp(target: Long, delayMs: Int = 0): Long {
         } else {
             progress.animateTo(
                 1f,
-                tween(COUNT_UP_DURATION_MS, delayMillis = delayMs, easing = MotionTokens.EasingEmphasizedDecelerate),
+                tween(durationMs, delayMillis = delayMs, easing = MotionTokens.EasingEmphasizedDecelerate),
             )
         }
     }

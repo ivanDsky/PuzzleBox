@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
 import com.ivandsky.puzzlebox.compete.reveal.RevealMachine.Companion.DuelSpeedUp
-import com.ivandsky.puzzlebox.compete.reveal.RevealMachine.Companion.IntroMs
-import com.ivandsky.puzzlebox.compete.reveal.RevealMachine.Companion.LegMs
 import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.gameui.DuelSideState
@@ -11,6 +9,11 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+
+// The spec's numbers (VS intro about 600 ms, about 3 s per puzzle), written out so a drift in RevealMachine's
+// constants fails here instead of the test following them.
+private const val IntroMs = 600L
+private const val LegMs = 3_000L
 
 /** Drives [RevealMachine] on a virtual clock: every instant is reached by `advance`, never by a real timer. */
 class RevealMachineTest {
@@ -23,9 +26,11 @@ class RevealMachineTest {
             listOf(RevealPhase.VsIntro, RevealPhase.Leg(0), RevealPhase.Leg(1), RevealPhase.Leg(2), RevealPhase.Score, RevealPhase.End),
             run.map { it.phase }.distinctConsecutive(),
         )
-        assertEquals(RevealPhase.VsIntro, stateAt(mixedLegs, IntroMs - 1).phase)
-        assertEquals(RevealPhase.Leg(0), stateAt(mixedLegs, IntroMs).phase)
-        assertEquals(RevealPhase.Leg(1), stateAt(mixedLegs, IntroMs + LegMs).phase)
+        assertEquals(RevealPhase.VsIntro, stateAt(mixedLegs, 599).phase)
+        assertEquals(RevealPhase.Leg(0), stateAt(mixedLegs, 600).phase)
+        assertEquals(RevealPhase.Leg(0), stateAt(mixedLegs, 3_599).phase)
+        assertEquals(RevealPhase.Leg(1), stateAt(mixedLegs, 3_600).phase)
+        assertEquals(RevealPhase.Leg(2), stateAt(mixedLegs, 6_600).phase)
     }
 
     @Test
