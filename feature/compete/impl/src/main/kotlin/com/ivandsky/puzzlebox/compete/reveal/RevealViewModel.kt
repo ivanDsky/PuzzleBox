@@ -97,7 +97,7 @@ internal class RevealViewModel(
             MatchState.NotFound -> latest ?: return RevealUiState.NotFound
             MatchState.Offline -> latest ?: return RevealUiState.Offline
             is MatchState.UpdateApp -> latest ?: return RevealUiState.UpdateApp
-            MatchState.SignedOut -> latest ?: return RevealUiState.SignedOut
+            is MatchState.SignedOut -> latest ?: return RevealUiState.SignedOut
         }
         val plan = revealPlan(view, registry::displayName, registry::rankOrderOf)
         val current = race

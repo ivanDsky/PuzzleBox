@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.compete.create.DuelSignIn
 import com.ivandsky.puzzlebox.compete.create.DuelSignInStep
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
@@ -76,7 +77,7 @@ internal data class InviteDetails(
 internal sealed interface DuelUiState {
     data object Loading : DuelUiState
 
-    /** No seat held. [details] is null while signed out: no match is read then. [working] is a seat call in flight. */
+    /** No seat held. [details] is null only while signed out with the match unread. [working] is a seat call in flight. */
     data class Invite(
         val kind: InviteKind,
         val code: ShareCode,
@@ -153,7 +154,9 @@ internal class DuelViewModel(
         MatchState.NotFound -> DuelUiState.NotFound
         MatchState.Offline -> DuelUiState.Offline
         is MatchState.UpdateApp -> DuelUiState.UpdateApp
-        MatchState.SignedOut -> DuelUiState.Invite(InviteKind.SignedOut, code, null, false, null, work.signIn)
+        is MatchState.SignedOut -> DuelUiState.Invite(
+            InviteKind.SignedOut, code, match.match?.let { inviteDetails(it, null, solved) }, false, null, work.signIn,
+        )
         is MatchState.Loaded -> loaded(code, match.view, solved, work, elapsed)
     }
 
@@ -168,18 +171,21 @@ internal class DuelViewModel(
             challenger -> InviteKind.Waiting
             else -> InviteKind.Open
         }
-        val details = InviteDetails(
-            challenger = match.challenger,
-            games = match.legs.map { it.ref.gameId }.distinct().map { InviteGame(it, registry.displayName(it)) },
-            rounds = match.legs.size,
-            deadline = match.deadline,
-            viewerIsChallenger = challenger,
-            declined = match.declined,
-            solvedBefore = match.legs.any { it.ref.wire in solved },
-            canDecline = match.invitedUid == me,
-        )
+        val details = inviteDetails(match, me, solved)
         return DuelUiState.Invite(kind, code, details, work.seat != null, work.notice, work.signIn)
     }
+
+    /** The card's facts; [me] is null signed out, when the viewer is neither challenger nor invitee. */
+    private fun inviteDetails(match: Match, me: String?, solved: Set<String>) = InviteDetails(
+        challenger = match.challenger,
+        games = match.legs.map { it.ref.gameId }.distinct().map { InviteGame(it, registry.displayName(it)) },
+        rounds = match.legs.size,
+        deadline = match.deadline,
+        viewerIsChallenger = match.challenger.uid == me,
+        declined = match.declined,
+        solvedBefore = match.legs.any { it.ref.wire in solved },
+        canDecline = me != null && match.invitedUid == me,
+    )
 
     /** Reads the duel again after an Offline. */
     fun retry() = reloads.update { it + 1 }

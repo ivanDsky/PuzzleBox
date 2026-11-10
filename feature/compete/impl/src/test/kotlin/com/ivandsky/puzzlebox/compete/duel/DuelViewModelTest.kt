@@ -129,8 +129,30 @@ class DuelViewModelTest {
         val state = invite(vm)
 
         assertEquals(InviteKind.SignedOut, state.kind)
-        assertNull(state.details)
         assertEquals(code, state.code)
+    }
+
+    @Test
+    fun aSignedOutViewerSeesTheChallengerGamesAndDeadline() = runTest {
+        annChallenges(viewer = null)
+        val vm = started(viewModel())
+
+        val details = invite(vm).details!!
+
+        assertEquals(ann, details.challenger)
+        assertEquals(listOf("Alpha", "Beta"), details.games.map { it.name })
+        assertEquals(2, details.rounds)
+        assertEquals(now.plusSeconds(24 * 3600), details.deadline)
+        assertFalse(details.viewerIsChallenger)
+        assertFalse(details.canDecline)
+    }
+
+    @Test
+    fun aSignedOutViewerOfAMissingMatchSeesNotFound() = runTest {
+        viewAs(null)
+        val vm = started(viewModel())
+
+        assertEquals(DuelUiState.NotFound, vm.state.value)
     }
 
     @Test

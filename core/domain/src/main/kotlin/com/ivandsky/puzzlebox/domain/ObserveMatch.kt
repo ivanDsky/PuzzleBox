@@ -46,8 +46,18 @@ class ObserveMatch(
 
     operator fun invoke(code: ShareCode): Flow<MatchState> =
         identity.current.map { it?.uid }.distinctUntilChanged().flatMapLatest { me ->
-            if (me == null) flowOf(MatchState.SignedOut) else observeAs(code, me)
+            if (me == null) observePublic(code) else observeAs(code, me)
         }
+
+    /** The match document alone: the rules let anyone `get` it, and it holds no results. Offline keeps the sign-in card bare. */
+    private fun observePublic(code: ShareCode): Flow<MatchState> = repo.observe(code).map { fetch ->
+        when (fetch) {
+            MatchFetch.NotFound -> MatchState.NotFound
+            MatchFetch.Offline -> MatchState.SignedOut(null)
+            is MatchFetch.UnsupportedVersion -> MatchState.UpdateApp(fetch.found)
+            is MatchFetch.Found -> MatchState.SignedOut(fetch.match)
+        }
+    }
 
     private fun observeAs(code: ShareCode, me: String): Flow<MatchState> {
         val revealed = HashMap<Int, LegResult>()

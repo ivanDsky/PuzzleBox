@@ -137,18 +137,36 @@ class ObserveMatchTest {
     }
 
     @Test
-    fun signedOutEmitsSignedOutAndReadsNothing() = runTest {
+    fun aSignedOutViewerSeesTheChallengerGamesAndDeadline() = runTest {
         created()
         posts(bob.uid, 0)
         myRow(0, Posted)
         identity.currentIdentity = null
         observe().test {
-            assertEquals(MatchState.SignedOut, awaitItem())
-            assertEquals(0, subscriptions)
+            val state = awaitItem() as MatchState.SignedOut
+            assertEquals(server.matches.getValue(code), state.match)
             assertTrue(reads.isEmpty())
 
             viewAs(ann)
             assertEquals(ann.uid, view().me)
+        }
+    }
+
+    @Test
+    fun aSignedOutViewerOfAMissingMatchSeesNotFound() = runTest {
+        identity.currentIdentity = null
+        observe().test {
+            assertEquals(MatchState.NotFound, awaitItem())
+        }
+    }
+
+    @Test
+    fun aSignedOutViewerOfflineKeepsTheSignInCardWithoutDetails() = runTest {
+        created()
+        identity.currentIdentity = null
+        server.online = false
+        observe().test {
+            assertEquals(MatchState.SignedOut(null), awaitItem())
         }
     }
 
