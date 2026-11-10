@@ -15,6 +15,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -28,13 +31,14 @@ import kotlinx.coroutines.launch
  *
  * Each row is tried at most once per process: a rejection waits for the next app start or [poke], so [MAX_ATTEMPTS]
  * spans app starts rather than one burst. An unavailable repository or a failed call leaves the row Pending and
- * untried, so the next change of identity or rows tries again. A row is never posted twice at once: [poke] forgets
- * only the rows whose post has finished, so a post still in flight is its own retry.
+ * untried, so the next change of identity or rows, or the network coming back, tries again. A row is never posted
+ * twice at once: [poke] forgets only the rows whose post has finished, so a post still in flight is its own retry.
  */
 class MatchResultPoster(
     private val identity: IdentityService,
     private val outbox: MatchResultOutbox,
     private val matches: MatchRepository,
+    private val network: NetworkStatus,
     private val scope: CoroutineScope,
 ) : MatchResultSync {
 
@@ -67,6 +71,10 @@ class MatchResultPoster(
                     }
                 }
             }
+        }
+        // A regained connection retries what is still Pending; the first value is the state at start, not an edge.
+        scope.launch {
+            network.online.distinctUntilChanged().drop(1).filter { it }.collect { poke() }
         }
     }
 
