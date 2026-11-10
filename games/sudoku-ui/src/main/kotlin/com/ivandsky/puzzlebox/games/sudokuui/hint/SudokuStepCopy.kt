@@ -86,10 +86,10 @@ internal object SudokuStepCopy {
         UnitKind.BOX -> "box ${unit.index + 1}"
     }
 
-    /** The row or column holding every struck cell of a pointing step. */
+    /** The row or column holding every holder of a pointing step's digit in the box: its [SudokuStep.Elimination.evidence]. */
     private fun sharedLine(step: SudokuStep.Elimination, geometry: SudokuGeometry): String {
-        val first = step.struck.keys.first()
-        return if (step.struck.keys.all { geometry.rowOf(it) == geometry.rowOf(first) }) {
+        val first = step.evidence.first()
+        return if (step.evidence.all { geometry.rowOf(it) == geometry.rowOf(first) }) {
             "row ${geometry.rowOf(first) + 1}"
         } else {
             "col ${geometry.colOf(first) + 1}"
