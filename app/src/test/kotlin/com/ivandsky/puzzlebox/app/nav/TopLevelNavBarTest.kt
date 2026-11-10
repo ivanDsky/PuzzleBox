@@ -1,6 +1,13 @@
 package com.ivandsky.puzzlebox.app.nav
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -124,6 +131,26 @@ class TopLevelNavBarTest {
     fun `flag-on rail shows the dot on games only`() {
         val flagOn = topLevelDestinations(navV2 = true)
         assertBadge(flagOn) { badged -> TopLevelNavRail(selected = HomeKey, onSelect = {}, badged = badged, destinations = flagOn) }
+    }
+
+    @Test
+    fun `flag-on rail with an avatar slot is 96dp wide`() {
+        val flagOn = topLevelDestinations(navV2 = true)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                Box(Modifier.height(900.dp)) {
+                    TopLevelNavRail(
+                        selected = HomeKey,
+                        onSelect = {},
+                        modifier = Modifier.testTag("test.rail"),
+                        destinations = flagOn,
+                        bottomActions = { Box(Modifier.size(48.dp)) },
+                    )
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag("test.rail").assertWidthIsEqualTo(96.dp)
     }
 
     /** The bar or rail shows exactly [destinations]' items, and no flag-off Profile item. */

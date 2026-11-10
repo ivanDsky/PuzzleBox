@@ -28,9 +28,10 @@ import org.robolectric.annotation.Config
 
 /**
  * NavV2 on the real shell (SC1, SC5, SC6), on a phone's bar and a tablet's rail: the tab set
- * is Today, Games, History and Create; the rail carries the avatar and the gear once at
- * its bottom on every screen it shows, the bar only in Today's header and nowhere else; the
- * avatar opens Profile and the gear opens Settings on the current tab (on a bar from Today),
+ * is Today, Games, History and Create; the rail carries the avatar once at
+ * its bottom on every screen it shows, centres its tabs on the window and gives the avatar a 48dp
+ * target below them, the bar carries the avatar only in Today's header and nowhere else; the
+ * avatar opens Profile and Profile's gear opens Settings on the current tab (on a bar from Today),
  * and Back returns to the screen left; Dark reaches the preferences store, Settings
  * survives a saved-state restore, and the pushed Profile has no Appearance block.
  */
@@ -49,30 +50,30 @@ class NavV2TabsE2ETest {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `on a phone only Today shows the avatar and the gear`() = browseChrome(rail = false)
+    fun `on a phone only Today shows the avatar`() = browseChrome(rail = false)
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `on a tablet every screen the rail shows has the avatar and the gear once at its bottom`() =
+    fun `on a tablet every screen the rail shows has the avatar once at its bottom`() =
         browseChrome(rail = true)
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `on a phone a board, a result, a reveal, Settings and Profile show neither`() = noChrome(rail = false)
+    fun `on a phone a board, a result, a reveal, Settings and Profile show no avatar`() = noChrome(rail = false)
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `on a tablet the rail's actions hide on a board, a result and a reveal, not on Settings and Profile`() =
+    fun `on a tablet the rail's avatar hides on a board, a result and a reveal, not on Settings and Profile`() =
         noChrome(rail = true)
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `on a phone the avatar and the gear open Profile and Settings from every root and Back returns`() =
+    fun `on a phone the avatar opens Profile and Profile's gear opens Settings from every root and Back returns`() =
         avatarAndGearFromEveryRoot(rail = false)
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `on a tablet the avatar and the gear open Profile and Settings from every root and Back returns`() =
+    fun `on a tablet the avatar opens Profile and Profile's gear opens Settings from every root and Back returns`() =
         avatarAndGearFromEveryRoot(rail = true)
 
     @Test
@@ -98,6 +99,16 @@ class NavV2TabsE2ETest {
     @Test
     @Config(qualifiers = RAIL)
     fun `on a tablet the pushed Profile has no Appearance block`() = profileHasNoAppearance()
+
+    @Test
+    @Config(qualifiers = RAIL)
+    fun `on a tablet the rail centres its tabs and gives the avatar a 48dp target below them on every root`() = navV2Robot {
+        ROOTS.forEach { (tab, route) ->
+            tapTab(tab)
+            assertRoute(route)
+            assertRailGeometry()
+        }
+    }
 
     private fun tabSet(width: Width) = navV2Robot {
         assertRoute(HOME)

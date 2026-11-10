@@ -592,8 +592,8 @@ class ShellRobot internal constructor(
     fun tapGear() = tap(PROFILE_GEAR)
 
     /**
-     * NavV2 placement of the avatar (the shell has no gear; Settings opens from Profile): on a [rail] they show once wherever the rail
-     * shows (every screen but the immersive ones); on the bar only Today's root shows them.
+     * NavV2 placement of the avatar (Settings opens from Profile's gear): on a [rail] it shows once wherever the rail
+     * shows (every screen but the immersive ones); on the bar only Today's root shows it.
      */
     fun assertChromeFor(rail: Boolean) {
         val top = state.currentStack.last()
@@ -606,17 +606,37 @@ class ShellRobot internal constructor(
         }
     }
 
-    /** The avatar shows exactly once and the shell shows no gear. */
+    /** The avatar shows exactly once. */
     fun assertChromeActions() {
         awaitTag(AVATAR)
         assertEquals("avatars (state $state)", 1, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
-        assertEquals("gears (state $state)", 0, rule.onAllNodesWithTag(GEAR).fetchSemanticsNodes().size)
     }
 
-    /** No avatar and no gear shows: immersive play, a bar screen but Today, or the flag off. */
+    /** No avatar shows: immersive play, a bar screen but Today, or the flag off. */
     fun assertNoChromeActions() {
         assertEquals("avatars (state $state)", 0, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
-        assertEquals("gears (state $state)", 0, rule.onAllNodesWithTag(GEAR).fetchSemanticsNodes().size)
+    }
+
+    /**
+     * The NavV2 rail's geometry: the tabs' block (first tab's top to last tab's bottom) is centred on the window's
+     * height within [RAIL_CENTRE_SLACK_DP] (the approved rail sits 2dp above it), and the avatar is a target of at least 48dp x 48dp below the last tab.
+     */
+    fun assertRailGeometry() {
+        awaitTag(AVATAR)
+        val density = rule.density
+        val tabs = tabBounds()
+        val window = rule.onRoot().fetchSemanticsNode().boundsInRoot
+        val node = rule.onNodeWithTag(AVATAR).fetchSemanticsNode()
+        val avatar = node.boundsInRoot
+        // The touch target, not the drawn button: a 40dp button still takes touches in a 48dp square.
+        val target = node.touchBoundsInRoot
+        with(density) {
+            assertTrue("avatar target is ${target.width.toDp()} x ${target.height.toDp()}, under 48dp (state $state)", target.width.toDp().value >= 47.5f && target.height.toDp().value >= 47.5f)
+        }
+        val blockCentre = (tabs.first().top + tabs.last().bottom) / 2
+        val offDp = with(density) { (blockCentre - window.height / 2).toDp().value }
+        assertTrue("tabs' block is ${offDp}dp off the window's centre: $tabs in $window (state $state)", kotlin.math.abs(offDp) <= RAIL_CENTRE_SLACK_DP)
+        assertTrue("avatar sits below the last tab: $avatar vs $tabs (state $state)", avatar.top >= tabs.last().bottom)
     }
 
     private fun tabBounds(): List<Rect> = destinations.map {
@@ -659,8 +679,8 @@ class ShellRobot internal constructor(
         const val IDLE_STEP_MS = 100L
         const val CLOCK_STEP_MS = 50L
         const val CLOCK_BUDGET_MS = 60_000L
+        const val RAIL_CENTRE_SLACK_DP = 2.5f
         const val AVATAR = "shell.avatar"
-        const val GEAR = "shell.settings"
         const val PROFILE_GEAR = "profile.settings"
         const val GAME_ROUTE = "route.game"
         const val ZIP_SIZE = 5

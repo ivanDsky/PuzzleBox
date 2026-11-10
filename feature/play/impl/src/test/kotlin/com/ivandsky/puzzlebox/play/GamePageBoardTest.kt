@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import android.content.Context
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -113,6 +114,15 @@ class GamePageBoardTest {
     }
 
     @Test
+    fun `the player's pinned row is the only row of the player on the board`() {
+        show(FakeIdentityService(me), repository(today to entries("P", 10, meRank = 8)))
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("leaderboard.you").assertExists()
+        composeRule.onAllNodes(hasTestTag("daily_board.row.name") and hasText("Me")).assertCountEquals(1)
+    }
+
+    @Test
     fun `the player's row inside the top is not pinned again`() {
         show(FakeIdentityService(me), repository(today to entries("P", 10, meRank = 3)))
         composeRule.waitForIdle()
@@ -122,12 +132,11 @@ class GamePageBoardTest {
     }
 
     @Test
-    fun `without a row of the player's nothing is pinned and the view toggle is gone`() {
+    fun `without a row of the player's nothing is pinned`() {
         show(FakeIdentityService(me), repository(today to entries("P", 10)))
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag("leaderboard.you").assertDoesNotExist()
-        composeRule.onNodeWithTag("leaderboard.near").assertDoesNotExist()
         assertTrue(shows("P1"))
     }
 

@@ -89,6 +89,25 @@ class NavV2SummariesE2ETest {
     @Config(qualifiers = RAIL)
     fun `on a tablet each block shows only on its owner and each summary at most once`() = sweep()
 
+    @Test
+    @Config(qualifiers = PHONE)
+    fun `on a phone Today's See all opens the History root, back to Today`() = seeAll()
+
+    @Test
+    @Config(qualifiers = RAIL)
+    fun `on a tablet Today's See all opens the History root, back to Today`() = seeAll()
+
+    private fun seeAll() = navV2Robot {
+        assertRoute(HOME)
+        tapText("See all")
+
+        assertRoute(HISTORY)
+        assertState(navV2At(HistoryRootKey))
+        back()
+        assertRoute(HOME)
+        assertState(navV2At(HomeKey))
+    }
+
     private fun rank(width: Width) = navV2Robot(graph = rankedGraph()) {
         seedBoards()
         assertRoute(HOME)
