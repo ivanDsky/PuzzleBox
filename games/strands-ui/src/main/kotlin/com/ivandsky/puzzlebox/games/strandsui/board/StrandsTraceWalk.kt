@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.strandsui.board
 
 import androidx.compose.ui.geometry.Offset
 import com.ivandsky.puzzlebox.games.strands.Coord
+import kotlin.math.abs
 import kotlin.math.ceil
 
 /**
@@ -12,13 +13,13 @@ import kotlin.math.ceil
  * finger resting off-centre, in a token's corner, decides nothing.
  *
  * From the tail: nothing joins within [StrandsBoardSpec.StillCells]; the letter before the
- * tail joins (a backtrack of one) inside [StrandsBoardSpec.BackJoinCells] of its centre —
+ * tail joins (a backtrack of one) once the finger is inside the [StrandsBoardSpec.BackHalf] square about its centre —
  * the only way onto the drawn path, which is otherwise a wall: an earlier letter joins
  * nothing, never cuts and never re-joins; any other letter only once the travel has decided
- * a heading: a diagonal letter once the finger has come
- * [StrandsBoardSpec.DiagonalJoinFraction] of the diagonal step, a side letter only inside
- * [StrandsBoardSpec.SideJoinCells] of its centre; a free neighbour whose heart
- * ([StrandsBoardSpec.HeartCells]) the finger has come to joins whatever the heading, so a
+ * a heading toward it and the finger is inside its square target, a diagonal's included, so
+ * a diagonal through the channel between the side squares joins the corner letter and no
+ * side letter; a free neighbour whose heart
+ * ([StrandsBoardSpec.HeartHalf], a square) the finger has come to joins whatever the heading, so a
  * corner cut that reads diagonal never skips the letter it passed through. A used or off-board target joins nothing:
  * no side letter stands in for a diagonal. Only a tail the finger has reached
  * ([StrandsBoardSpec.ArriveCells]) grows the trace, so a corner cut into the wrong diagonal
@@ -64,25 +65,19 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
         val fromTail = point - centreOf(tail)
         if (reaches(point, path)) reached = tail
         if (fromTail.getDistance() < StrandsBoardSpec.StillCells) return null
-        if (back != null && (point - centreOf(back)).getDistance() <= StrandsBoardSpec.BackJoinCells) return back
+        if (back != null && inSquare(point, back, StrandsBoardSpec.BackHalf)) return back
         if (reached != tail) return back?.let { reroute(point, path, tail, it) }
         return heartOf(point, path, tail) ?: joinFrom(point, path, tail)
     }
 
-    /** The free letter beside [anchor] the finger is within [StrandsBoardSpec.HeartCells] of the centre of, whatever its heading. */
+    /** The free letter beside [anchor] the finger is inside the heart square of, whatever its heading. */
     private fun heartOf(point: Offset, path: List<Coord>, anchor: Coord): Coord? {
-        var best: Coord? = null
-        var bestDistance = StrandsBoardSpec.HeartCells
         for (dRow in -1..1) for (dCol in -1..1) {
             val cell = Coord(anchor.row + dRow, anchor.col + dCol)
             if (cell.row !in 0 until rows || cell.col !in 0 until cols || cell in path) continue
-            val distance = (point - centreOf(cell)).getDistance()
-            if (distance <= bestDistance) {
-                best = cell
-                bestDistance = distance
-            }
+            if (inSquare(point, cell, StrandsBoardSpec.HeartHalf)) return cell
         }
-        return best
+        return null
     }
 
     /** The letter beside [anchor] the finger's heading and position join, if any. */
@@ -91,14 +86,7 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
         val direction = TraceDirection.of(heading.x, heading.y)
         val next = Coord(anchor.row + direction.dRow, anchor.col + direction.dCol)
         if (next.row !in 0 until rows || next.col !in 0 until cols || next in path) return null
-        val joins = if (direction.isDiagonal) {
-            val fromAnchor = point - centreOf(anchor)
-            val advanced = (fromAnchor.x * direction.dCol + fromAnchor.y * direction.dRow) / direction.length
-            advanced >= StrandsBoardSpec.DiagonalJoinFraction * direction.length
-        } else {
-            (point - centreOf(next)).getDistance() <= StrandsBoardSpec.SideJoinCells
-        }
-        return next.takeIf { joins }
+        return next.takeIf { inSquare(point, next, StrandsBoardSpec.TargetHalf) }
     }
 
     /**
@@ -119,6 +107,12 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
 }
 
 internal fun centreOf(cell: Coord): Offset = Offset(cell.col + 0.5f, cell.row + 0.5f)
+
+/** Whether [point] is inside the axis-aligned square of half side [half] about [cell]'s centre. */
+internal fun inSquare(point: Offset, cell: Coord, half: Float): Boolean {
+    val from = point - centreOf(cell)
+    return abs(from.x) <= half && abs(from.y) <= half
+}
 
 /**
  * The finger's recent positions with the distance travelled to each, in a fixed ring: the
