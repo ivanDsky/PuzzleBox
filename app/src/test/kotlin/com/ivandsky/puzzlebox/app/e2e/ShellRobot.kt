@@ -298,19 +298,14 @@ class ShellRobot internal constructor(
     }
 
     /**
-     * Taps [code]'s row under the Duels pill (already open), holding the clock first when [holdClock] (see
-     * [holdClockAndTap]). The rows carry no tags: the list holds the challenge card, then the rows in
-     * [ObserveMyDuels] order.
+     * Taps [code]'s row (`duel.row.<code>`) under the Duels pill (already open), holding the clock first when
+     * [holdClock] (see [holdClockAndTap]).
      */
     fun tapDuelRow(code: ShareCode, holdClock: Boolean = false) {
         awaitTag(DUELS_LIST)
-        val index = 1 + duels().rows.indexOfFirst { it.code == code }
-        check(index > 0) { "no duel row for ${code.value}: ${duels().rows}" }
-        rule.waitUntil(TIMEOUT_MS) { rule.onNodeWithTag(DUELS_LIST).onChildren().fetchSemanticsNodes().size > index }
-        val row = rule.onNodeWithTag(DUELS_LIST).onChildAt(index).performScrollTo()
-        if (holdClock) rule.mainClock.autoAdvance = false
-        row.performClick()
-        rule.waitForIdle()
+        val row = "duel.row.${code.value}"
+        check(shows(row) || duels().rows.any { it.code == code }) { "no duel row for ${code.value}: ${duels().rows}" }
+        if (holdClock) holdClockAndTap(row) else tap(row)
     }
 
     /**
@@ -318,17 +313,25 @@ class ShellRobot internal constructor(
      * and leaves its Created sheet open. Returns the new duel's code.
      */
     fun createDuel(game: GameId): ShareCode {
+        val mine = "duel.game.${game.value}"
+        return createDuelFrom("duel.preset.daily") {
+            rule.onAllNodes(isDuelGame).fetchSemanticsNodes()
+                .map { it.config[SemanticsProperties.TestTag] to (it.config.getOrNull(SemanticsProperties.Selected) == true) }
+                .filter { (tag, selected) -> selected != (tag == mine) }
+                .forEach { (tag, _) -> tap(tag) }
+        }
+    }
+
+    /** Creates a Quick duel (best of 3, mixed past dailies, 24 h) with the preset's own settings; leaves its Created sheet open. */
+    fun createQuickDuel(): ShareCode = createDuelFrom("duel.preset.quick") {}
+
+    private fun createDuelFrom(preset: String, adjust: () -> Unit): ShareCode {
         val before = graph.matches.matches.keys
         openDuelsTab()
-        rule.onNodeWithTag(DUELS_LIST).onChildAt(0).performClick()
-        rule.waitForIdle()
+        tap("duels.challenge")
         awaitTag("duel.new.sheet")
-        tap("duel.preset.daily")
-        val mine = "duel.game.${game.value}"
-        rule.onAllNodes(isDuelGame).fetchSemanticsNodes()
-            .map { it.config[SemanticsProperties.TestTag] to (it.config.getOrNull(SemanticsProperties.Selected) == true) }
-            .filter { (tag, selected) -> selected != (tag == mine) }
-            .forEach { (tag, _) -> tap(tag) }
+        tap(preset)
+        adjust()
         tap("duel.create")
         awaitTag("duel.created.sheet")
         return (graph.matches.matches.keys - before).single()
@@ -339,7 +342,7 @@ class ShellRobot internal constructor(
 
     /** A tap on the reveal's stage, off its Skip button: it speeds the reveal up. */
     fun tapRevealStage() {
-        rule.onNodeWithTag("reveal.title").performTouchInput { click() }
+        rule.onNodeWithTag("reveal.stage").performTouchInput { click() }
         rule.waitForIdle()
     }
 

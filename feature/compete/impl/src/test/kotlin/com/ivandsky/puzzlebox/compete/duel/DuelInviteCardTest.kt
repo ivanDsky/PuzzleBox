@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.compete.create.DuelSignIn
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -14,6 +15,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -54,10 +56,10 @@ class DuelInviteCardTest {
         canDecline = false,
     )
 
-    private fun show(kind: InviteKind, details: InviteDetails?) {
+    private fun show(kind: InviteKind, details: InviteDetails?, onClose: () -> Unit = {}) {
         val invite = DuelUiState.Invite(kind, code, details, working = false, notice = null, signIn = DuelSignIn.Idle)
         rule.setContent {
-            PuzzleBoxTheme { DuelInviteCard(invite, InviteActions({}, {}, {}, {}, {})) }
+            PuzzleBoxTheme { DuelInviteCard(invite, InviteActions({}, {}, {}, onClose, {})) }
         }
     }
 
@@ -94,5 +96,31 @@ class DuelInviteCardTest {
         assertShown("A friend challenges you")
         assertAbsent("Your duel")
         assertAbsent("You challenged a friend")
+    }
+
+    @Test
+    fun aTakenInviteSaysTwoPlayersAreInAndOffersOnlyClose() {
+        var closed = 0
+        show(InviteKind.Taken, details(viewerIsChallenger = false), onClose = { closed++ })
+
+        assertShown("This duel already has two players")
+        assertShown("Someone accepted before you. Start a duel of your own.")
+        rule.onNodeWithTag("duel.invite.close").assertTextEquals("Close").performClick()
+        assertEquals("Close leaves the card", 1, closed)
+        assertAbsent("Accept duel")
+        assertAbsent("Decline")
+    }
+
+    @Test
+    fun aCancelledInviteNamesWhoCalledItOffAndOffersOnlyClose() {
+        var closed = 0
+        show(InviteKind.Cancelled, details(viewerIsChallenger = false), onClose = { closed++ })
+
+        assertShown("Cancelled")
+        assertShown("Ann called this duel off before anyone accepted.")
+        rule.onNodeWithTag("duel.invite.close").assertTextEquals("Close").performClick()
+        assertEquals("Close leaves the card", 1, closed)
+        assertAbsent("Accept duel")
+        assertAbsent("Decline")
     }
 }
