@@ -19,18 +19,16 @@ object CountSqueezeRung : QueensRung {
     override val captionKey: String = "queens.hint.rung.count-squeeze"
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
-        found(puzzle, candidates).sortedWith(order).asSequence().map { QueensProof(it.deduction, it.evidence()) }
+        found(puzzle, candidates).proofs(order)
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
-        found(puzzle, candidates).minWithOrNull(order)?.deduction
+        found(puzzle, candidates).first(order)
 
-    /** A deduction with its evidence still unbuilt, so [step] builds none for the losing candidates. */
-    private class Found(val firstCell: Int, val deduction: QueensDeduction.Exclude, val evidence: () -> Set<Int>)
-
-    private val order: Comparator<Found> = compareBy({ it.deduction.unit.kind }, { it.deduction.unit.unit }, { it.firstCell })
+    private val order: Comparator<Found<QueensDeduction.Exclude>> =
+        compareBy({ it.deduction.unit.kind }, { it.deduction.unit.unit }, { it.deduction.cells.min() })
 
     /** Eager: the order needs every violation, so every open cell is probed. */
-    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<Found> {
+    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<Found<QueensDeduction.Exclude>> {
         val causes = LinkedHashMap<HallViolation.Violation, MutableSet<Int>>()
         val scratch = HallViolation.Scratch(puzzle)
         for (x in puzzle.regions.indices) {
@@ -40,8 +38,7 @@ object CountSqueezeRung : QueensRung {
         }
         return causes.map { (violation, cells) ->
             val unit = HintReason(violation.kind, violation.units.first(), this)
-            // Insertion order is ascending x, so the first cause is the lowest.
-            Found(cells.first(), QueensDeduction.Exclude(this, unit, cells)) {
+            Found(QueensDeduction.Exclude(this, unit, cells)) {
                 violation.cells(puzzle).filter { candidates.isOpen(it) && it !in cells }.toSet()
             }
         }

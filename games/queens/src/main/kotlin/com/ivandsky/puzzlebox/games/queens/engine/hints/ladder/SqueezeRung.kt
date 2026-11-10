@@ -4,8 +4,6 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
-private typealias SqueezeFound = Pair<QueensDeduction.Exclude, () -> Set<Int>>
-
 /**
  * D8: a row, column or region still missing queens, with at least 2 open cells, would be
  * left no room by a queen on any open cell outside it that rules out all of them, so each
@@ -21,16 +19,16 @@ object SqueezeRung : QueensRung {
     override val captionKey: String = "queens.hint.rung.squeeze"
 
     override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
-        found(puzzle, candidates).map { (deduction, evidence) -> QueensProof(deduction, evidence()) }
+        found(puzzle, candidates).map(Found<QueensDeduction.Exclude>::proof)
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
-        found(puzzle, candidates).firstOrNull()?.first
+        found(puzzle, candidates).firstOrNull()?.deduction
 
     /**
      * Lazy and already in order, one unit at a time, so [step] stops at the first and builds
      * no evidence. The buffers are shared across units: a unit's scan finishes before the next.
      */
-    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<SqueezeFound> {
+    private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<Found<QueensDeduction.Exclude>> {
         val n = puzzle.size
         val isOpen = BooleanArray(n * n) { candidates.isOpen(it) }
         val queens = HintReason.Kind.entries.associateWith { kind ->
@@ -49,7 +47,7 @@ object SqueezeRung : QueensRung {
                 }.toSet()
                 if (squeezing.isEmpty()) return@mapNotNull null
                 val reason = HintReason(kind, unit, this)
-                QueensDeduction.Exclude(this, reason, squeezing) to {
+                Found(QueensDeduction.Exclude(this, reason, squeezing)) {
                     QueensUnits.cells(puzzle, kind)[unit].filter { isOpen[it] }.toSet()
                 }
             }
