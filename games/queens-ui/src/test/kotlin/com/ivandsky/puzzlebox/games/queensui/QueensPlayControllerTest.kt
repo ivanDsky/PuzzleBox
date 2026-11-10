@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.gameui.Restored
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.StandardTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -403,6 +404,24 @@ class QueensPlayControllerTest {
         assertFalse(restored.board!!.session.autoCross)
         assertFalse(restored.board!!.hasAutoMarks())
         assertTrue(Cell(0) in restored.board!!.session.queens)
+    }
+
+    /** The stored value is read at creation: nothing the settings flow delivers later is needed for frame 0. */
+    @Test
+    fun `a restored board with Auto-cross OFF shows no AUTO marks at frame 0`() {
+        val played = readyBoard()
+        played.board!!.placeQueen(0)
+        assertTrue(played.board!!.hasAutoMarks())
+        val bytes = savedSession().let(QueensSessionCodec::serialize)
+
+        settings.stored.value = false
+        val neverRuns = CoroutineScope(StandardTestDispatcher()) // the collector never delivers
+        val cold = QueensPlayController(PlayEnvironment(neverRuns, { saved += it }, { won += it }), settings, hintMode = QueensPlayFixtures.hintMode)
+        assertEquals(Restored(QueensPlayFixtures.ref()), cold.adoptRestored(bytes))
+
+        assertFalse(cold.autoCross)
+        assertFalse(cold.board!!.hasAutoMarks())
+        assertTrue(Cell(0) in cold.board!!.session.queens)
     }
 
     private fun solve(board: QueensBoardState) {

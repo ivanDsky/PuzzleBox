@@ -78,6 +78,8 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.Instant
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -128,7 +130,7 @@ class PlayBoardPositionTest {
                     single<DailyRepository> { freshDailyForAllGames() }
                     single<CompletionRepository> { FakeCompletionRepository() }
                     single { GameRegistry(listOf(zipPlugin, tangoPlugin, queensPlugin)) }
-                    single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(HintMode.Stepwise(get<DispatcherProvider>().default)), QueensPlayUi(PreferencesQueensSettings(FakeGameSettingsRepository()), HintMode.Stepwise(get<DispatcherProvider>().default)))) }
+                    single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(HintMode.Stepwise(get<DispatcherProvider>().default)), QueensPlayUi(PreferencesQueensSettings(FakeGameSettingsRepository(), CoroutineScope(Dispatchers.Unconfined)), HintMode.Stepwise(get<DispatcherProvider>().default)))) }
                     single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
