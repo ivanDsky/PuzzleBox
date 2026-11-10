@@ -4,6 +4,8 @@ import com.ivandsky.puzzlebox.data.calendar.CadenceGameCalendar
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
+import com.ivandsky.puzzlebox.data.match.MatchResultPoster
+import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.match.RoomMatchLocalRepository
 import com.ivandsky.puzzlebox.data.match.RoomMatchResultOutbox
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -67,6 +69,10 @@ val dataModule = module {
     // This device's memory of duels (invite opened, reveal seen, dismissed).
     single<MatchLocalRepository> { RoomMatchLocalRepository(get()) }
     single<MatchResultOutbox> { RoomMatchResultOutbox(get()) }
+    // Duel results post from the outbox; the duel screen pokes the same instance to retry now. The identity,
+    // the match repository, the NetworkStatus and the process scope are supplied by app and the backend.
+    single { MatchResultPoster(identity = get(), outbox = get(), matches = get(), network = get(), scope = get()) }
+    single<MatchResultSync> { get<MatchResultPoster>() }
     // Process-wide so the 15-minute update-check throttle survives screen changes.
     single<AppReleaseRepository> { NetworkAppReleaseRepository(get()) }
     // Shared-text hand-off (M5-08): app puts, the Create root takes it exactly once. In memory

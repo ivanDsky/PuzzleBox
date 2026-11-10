@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.app.match
+package com.ivandsky.puzzlebox.data.network
 
 import kotlinx.coroutines.flow.Flow
 
