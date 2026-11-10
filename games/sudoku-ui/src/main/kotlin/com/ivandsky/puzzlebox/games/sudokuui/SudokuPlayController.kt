@@ -25,8 +25,6 @@ import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuSessionCodec
 import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
  * Plays one [definition]'s board: adopt / restore / replay and the clock. Every game decision
@@ -56,18 +54,16 @@ class SudokuPlayController(
         env.scope.launch { highlights.sameDigit.collect { sameDigitHighlight = it } }
     }
 
-    // Taps queue behind one lock (FIFO), so DataStore sees the writes in tap order.
-    private val highlightWrites = Mutex()
-
-    // The local flag flips first so the board repaints now; the write only makes it stick.
+    // The local flag flips first so the board repaints now; the write only makes it stick. Launches on the
+    // main-confined scope are FIFO, so the store sees the writes in tap order.
     fun choosePeerHighlight(enabled: Boolean) {
         peerHighlight = enabled
-        env.scope.launch { highlightWrites.withLock { highlights.setPeer(enabled) } }
+        env.scope.launch { highlights.setPeer(enabled) }
     }
 
     fun chooseSameDigitHighlight(enabled: Boolean) {
         sameDigitHighlight = enabled
-        env.scope.launch { highlightWrites.withLock { highlights.setSameDigit(enabled) } }
+        env.scope.launch { highlights.setSameDigit(enabled) }
     }
 
     /** The live interaction holder, null until a session is adopted. */

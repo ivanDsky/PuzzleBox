@@ -89,7 +89,7 @@ val appModule = module {
     // Sudoku's two tint toggles live in the persisted preferences; its UI module only sees this seam.
     single<SudokuHighlightSettings> { PreferencesSudokuHighlightSettings(get<GameSettingsRepository>()) }
     // Queens' Auto-cross lives in the persisted game settings; its UI module only sees this seam.
-    single<QueensSettings> { PreferencesQueensSettings(get<GameSettingsRepository>()) }
+    single<QueensSettings> { PreferencesQueensSettings(get<GameSettingsRepository>(), get<CoroutineScope>()) }
 }
 
 /** ADR-0008 "Adding a game": a plugin bound without its GamePlayUi is a wiring bug —

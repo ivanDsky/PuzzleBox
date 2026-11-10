@@ -81,6 +81,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -141,7 +142,7 @@ class RealGamesPlayRouteTest {
                     single<CompletionRepository> { FakeCompletionRepository() }
                     // The hub names games from the registry, in the app's order.
                     single { GameRegistry(listOf(zipPlugin, tangoPlugin, queensPlugin, strandsPlugin)) }
-                    single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(HintMode.Stepwise(get<DispatcherProvider>().default)), QueensPlayUi(PreferencesQueensSettings(FakeGameSettingsRepository()), HintMode.Stepwise(get<DispatcherProvider>().default)), StrandsPlayUi())) }
+                    single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(HintMode.Stepwise(get<DispatcherProvider>().default)), QueensPlayUi(PreferencesQueensSettings(FakeGameSettingsRepository(), CoroutineScope(Dispatchers.Unconfined)), HintMode.Stepwise(get<DispatcherProvider>().default)), StrandsPlayUi())) }
                     single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
