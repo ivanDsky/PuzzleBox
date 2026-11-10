@@ -8,6 +8,9 @@ internal object ZipEditorDefaults {
      */
     const val EDGE_BAND = 0.38f
 
-    /** Dead length at each end of an edge: none, so a wall is hit along its whole side. */
+    /**
+     * Dead length at each end of an edge: none, so a wall is hit along its whole side. Near a
+     * corner, where the bands of two lines overlap, the nearer line wins.
+     */
     const val EDGE_INSET = 0f
 }
