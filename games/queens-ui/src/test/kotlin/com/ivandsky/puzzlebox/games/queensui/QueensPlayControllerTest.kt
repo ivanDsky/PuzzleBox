@@ -34,6 +34,7 @@ class QueensPlayControllerTest {
     private fun controller() = QueensPlayController(
         env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), { saved += it }, { won += it }),
         settings = settings,
+        hintMode = QueensPlayFixtures.hintMode,
         now = { Instant.ofEpochMilli(clockMs) },
     )
 

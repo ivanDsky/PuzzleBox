@@ -20,7 +20,7 @@ class QueensClearReproTest {
     @Test
     fun `repro - queen placed after clear shows QUEEN in the renderer model`() {
         val placed = QueensUiFixtures.session().withQueenPlaced(Cell(1), QueensUiFixtures.T0)
-        val state = QueensBoardState(initialSession = placed)
+        val state = QueensPlayFixtures.boardState(placed)
         assertEquals(listOf(Cell(1)), state.session.queens)
 
         state.clearBoard()
@@ -28,7 +28,7 @@ class QueensClearReproTest {
 
         state.onTap(8) // empty → MANUAL X
         state.onTap(8) // X → queen at (2,0)
-        val model = QueensBoardModel.of(state.session, state.hint, state.hintPointed)
+        val model = QueensBoardModel.of(state.session)
         assertEquals(QueensCellVisual.QUEEN, model.visuals[8])
         assertEquals(listOf(8), model.queens)
     }
@@ -39,7 +39,7 @@ class QueensClearReproTest {
     fun `clear wipes everything - one undo restores the pre-clear board`() {
         var session: QueensSession = QueensUiFixtures.session().withCrossToggled(Cell(15), QueensUiFixtures.T0)
         session = session.withQueenPlaced(Cell(1), QueensUiFixtures.T0)
-        val state = QueensBoardState(initialSession = session)
+        val state = QueensPlayFixtures.boardState(session)
 
         val before = QueensBoardModel.of(state.session)
         assertEquals(1, before.queens.size)
@@ -62,7 +62,7 @@ class QueensClearReproTest {
 
         // ONE undo unit: the exact pre-clear board comes back — MANUAL mark included.
         state.undo()
-        val restored = QueensBoardModel.of(state.session, state.hint, state.hintPointed)
+        val restored = QueensBoardModel.of(state.session)
         assertEquals(before.queens, restored.queens)
         assertEquals(before.visuals, restored.visuals)
         assertEquals(QueensCellVisual.X_MANUAL, restored.visuals[15])
@@ -78,7 +78,7 @@ class QueensClearReproTest {
         assertTrue(session.queens.isEmpty())
         assertEquals(2, session.marks.size)
 
-        val state = QueensBoardState(initialSession = session)
+        val state = QueensPlayFixtures.boardState(session)
         state.clearBoard()
         assertTrue(state.session.marks.isEmpty())
         assertTrue(state.session.queens.isEmpty())
@@ -94,7 +94,7 @@ class QueensClearReproTest {
             acc.withQueenPlaced(c, QueensUiFixtures.T0)
         }
         assertTrue(solved.isComplete)
-        val state = QueensBoardState(initialSession = solved)
+        val state = QueensPlayFixtures.boardState(solved)
 
         state.clearBoard()
         assertTrue("clearBoard no-ops on a completed session (button disabled anyway)", state.session.isComplete)

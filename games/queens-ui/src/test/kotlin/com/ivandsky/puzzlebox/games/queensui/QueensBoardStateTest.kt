@@ -9,8 +9,6 @@ import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
@@ -20,8 +18,8 @@ class QueensBoardStateTest {
 
     private val ref = QueensPuzzleRef(PuzzleKey.Daily(LocalDate.parse("2026-11-02"), 1))
     private fun fresh(settle: (QueensSession) -> QueensSession = { it }, onWin: (CompletionRecord) -> Unit = {}) =
-        QueensBoardState(
-            initialSession = QueensSession(ref = ref, puzzle = QueensUiFixtures.puzzle()),
+        QueensPlayFixtures.boardState(
+            session = QueensSession(ref = ref, puzzle = QueensUiFixtures.puzzle()),
             score = QueensScoreModel(),
             onWinRecord = onWin,
             settle = settle,
@@ -80,29 +78,6 @@ class QueensBoardStateTest {
     }
 
     @Test
-    fun `undo clears the staged hint`() {
-        val state = fresh()
-        state.onTap(0)
-        state.requestHint()
-        assertTrue(state.hintCaption != null)
-        state.undo()
-        assertNull(state.hintCaption)
-    }
-
-    @Test
-    fun `a drag over an existing mark leaves the legacy hint showing`() {
-        val state = fresh()
-        state.onTap(0)
-        state.requestHint()
-        val shown = state.hint
-        assertNotNull(shown)
-
-        state.onDragCell(0)
-
-        assertEquals(shown, state.hint)
-    }
-
-    @Test
     fun `settle sees every committed change and its time reaches the win record`() {
         var records = emptyList<CompletionRecord>()
         var changes = 0
@@ -139,15 +114,6 @@ class QueensBoardStateTest {
         state.clearBoard()
         assertEquals(before, state.session)
         assertFalse(state.canUndo)
-    }
-
-    @Test
-    fun `hint caption names the region the engine points at`() {
-        val state = fresh()
-        state.requestHint()
-        assertEquals("Hint — the red region", state.hintCaption)
-        assertEquals(1, state.session.hintsUsed)
-        assertNull(state.spotlight)
     }
 
     @Test

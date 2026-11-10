@@ -35,7 +35,7 @@ class QueensAppThemeTest {
     val composeRule = createComposeRule()
 
     /** Empty fixture board: its regions are its rows, so cell 0 is bare region 0 fill. */
-    private val state = QueensBoardState(initialSession = QueensUiFixtures.session())
+    private val state = QueensPlayFixtures.boardState(QueensUiFixtures.session())
 
     private fun cellZeroCentre(themeDark: Boolean, deviceNight: Boolean): Color {
         composeRule.setContent {

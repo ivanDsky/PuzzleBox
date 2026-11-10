@@ -8,6 +8,11 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensSession
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 
 /**
  * queens-08's hand-off to queens-09 (direction doc §8): every cell state × light/dark
@@ -28,6 +33,17 @@ private val previewT0: java.time.Instant = java.time.Instant.parse("2026-11-02T0
 
 private fun previewSession(): QueensSession = QueensSession(ref = null, puzzle = previewPuzzle())
 
+/** Runs a block on the calling thread; a preview never presses the hint button, so nothing is ever dispatched. */
+private object PreviewDispatcher : CoroutineDispatcher() {
+    override fun dispatch(context: CoroutineContext, block: Runnable) = block.run()
+}
+
+private fun previewBoardState(session: QueensSession) = QueensBoardState(
+    initialSession = session,
+    mode = HintMode.Stepwise(PreviewDispatcher),
+    scope = CoroutineScope(SupervisorJob() + PreviewDispatcher),
+)
+
 private fun previewState(
     queens: List<Int> = emptyList(),
     manual: List<Int> = emptyList(),
@@ -35,7 +51,7 @@ private fun previewState(
     var s = previewSession()
     manual.forEach { s = s.withCrossToggled(Cell(it), previewT0) }
     queens.forEach { s = s.withQueenPlaced(Cell(it), previewT0) }
-    return QueensBoardState(initialSession = s)
+    return previewBoardState(s)
 }
 
 private val solvedSession: QueensSession by lazy {
@@ -99,7 +115,7 @@ internal fun QueensBoardSolvedPreview() {
     // Fix round 6: no win overlay on the board — the solved state hands off to the
     // result ROUTE at screen level (Zip's presentation). The board just rests.
     PuzzleBoxTheme {
-        QueensPlayBoard(QueensBoardState(initialSession = solvedSession), Modifier.fillMaxWidth())
+        QueensPlayBoard(previewBoardState(solvedSession), Modifier.fillMaxWidth())
     }
 }
 

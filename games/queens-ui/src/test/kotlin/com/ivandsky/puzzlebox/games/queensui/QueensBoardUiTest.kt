@@ -28,7 +28,6 @@ import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.MarkKind
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.QueensSession
-import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -63,8 +62,8 @@ class QueensBoardUiTest {
 
     private fun setContent(session: QueensSession, score: ScoreModel<QueensSession>? = null): QueensBoardState {
         winRecords.clear()
-        val state = QueensBoardState(
-            initialSession = session,
+        val state = QueensPlayFixtures.boardState(
+            session = session,
             score = score,
             onWinRecord = { winRecords.add(it) },
         )
@@ -258,84 +257,6 @@ class QueensBoardUiTest {
         assertNull(state.session.markAt(Cell(0)))
     }
 
-    // ------------------------------------- fix round 6 (F-2): staged hint ladder
-
-    /** Stage 1: with placed queens proving the forcing, the caption NAMES the row
-     *  elimination; a NEW presented hint counts once. */
-    @Test
-    fun `staged hint stage 1 shows the deduction caption and counts once`() {
-        val state = setContent(QueensUiFixtures.session())
-        // queens (1,3), (2,0), (3,2) — row 0's queen is forced to cell 1 (ROW elimination)
-        listOf(7, 8, 14).forEach { idx -> state.onTap(idx); state.onTap(idx) }
-        composeRule.waitForIdle()
-        state.requestHint()
-        composeRule.waitForIdle()
-        val hint = state.hint
-        assertTrue("unexpected $hint", hint is com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region)
-        hint as com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region
-        assertEquals(HintReason(HintReason.Kind.ROW, 0), hint.reason)
-        assertEquals("one presented hint counts once", 1, state.session.hintsUsed)
-        assertNotNull(state.hintCaption)
-    }
-
-    /** Stage 2 (the repeat tap): the same forced cell is POINTED at — the crown ghost
-     *  target — without counting a second hint. */
-    @Test
-    fun `staged hint repeat tap points at the forced cell without recounting`() {
-        val state = setContent(QueensUiFixtures.session())
-        listOf(7, 8, 14).forEach { idx -> state.onTap(idx); state.onTap(idx) }
-        state.requestHint()
-        composeRule.waitForIdle()
-        assertFalse(state.hintPointed)
-        state.requestHint()
-        composeRule.waitForIdle()
-        assertTrue("stage 2 engaged", state.hintPointed)
-        assertEquals(1, (state.hint as com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region).cell.idx)
-        assertEquals("the repeat is presentation only", 1, state.session.hintsUsed)
-        val model = QueensBoardModel.of(state.session, state.hint, state.hintPointed)
-        assertEquals(1, model.hintCell)
-    }
-
-    /** The neutral fallback: with NO placed premises the engine has no human-checkable
-     *  elimination — the caption stays honest (region named, no deduction claimed). */
-    @Test
-    fun `staged hint without a human reason falls back to the neutral caption`() {
-        val state = setContent(QueensUiFixtures.session())
-        state.requestHint()
-        composeRule.waitForIdle()
-        val hint = state.hint
-        assertTrue(hint is com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region)
-        assertNull((hint as com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Region).reason)
-        assertEquals("an empty-board hint counts", 1, state.session.hintsUsed)
-        assertEquals("Hint — the red region", state.hintCaption)
-    }
-
-    /** The Incorrect hint counts too, with its own caption; None never counts. */
-    @Test
-    fun `incorrect hint surfaces its caption and counts`() {
-        val state = setContent(QueensUiFixtures.session())
-        state.onTap(0); state.onTap(0) // misplaced queen at (0,0)
-        state.requestHint()
-        composeRule.waitForIdle()
-        assertTrue(state.hint is com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint.Incorrect)
-        assertEquals(1, state.session.hintsUsed)
-        assertEquals("Some of these queens can't stay. Take one away.", state.hintCaption)
-    }
-
-    /** Any board action clears the staged hint (caption + ghost). */
-    @Test
-    fun `a board action clears the staged hint`() {
-        val state = setContent(QueensUiFixtures.session())
-        state.requestHint()
-        composeRule.waitForIdle()
-        assertNotNull(state.hint)
-        state.onTap(5)
-        composeRule.waitForIdle()
-        assertNull(state.hint)
-        assertFalse(state.hintPointed)
-        assertNull(state.hintCaption)
-    }
-
     // ------------------------------- fix round 6 (F-3): win → result-route handoff
 
     /** F-3: the solved transition hands ONE frozen record (time + hints facts) to the
@@ -444,8 +365,8 @@ class QueensBoardUiTest {
      *  must reach it, not the state it replaced. */
     @Test
     fun `a new board of the same size takes the taps`() {
-        val first = QueensBoardState(initialSession = QueensUiFixtures.session())
-        val second = QueensBoardState(initialSession = QueensUiFixtures.session())
+        val first = QueensPlayFixtures.boardState(QueensUiFixtures.session())
+        val second = QueensPlayFixtures.boardState(QueensUiFixtures.session())
         var current by mutableStateOf(first)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -471,6 +392,7 @@ class QueensBoardUiTest {
                 onWon = {},
             ),
             settings = null,
+            hintMode = QueensPlayFixtures.hintMode,
         )
         val lesson = QueensTutorial.steps.first()
         controller.adoptToday(lesson.puzzle, lesson.ref)
