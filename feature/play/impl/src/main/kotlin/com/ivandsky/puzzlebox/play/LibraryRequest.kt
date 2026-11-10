@@ -31,7 +31,7 @@ internal fun ConsumeLibraryRequest(
     request: LibraryRequest?,
     rows: List<GameId>,
     onGamePage: (GameId) -> Unit,
-    onSection: (GamesTab) -> Unit,
+    onSection: suspend (GamesTab) -> Unit,
     onTaken: () -> Unit,
 ) {
     var acted by rememberSaveable(request) { mutableStateOf(false) }
