@@ -62,7 +62,7 @@ import org.robolectric.annotation.Config
 /**
  * The duel puzzle route's two decisions: where this puzzle sits in its duel (the caption's
  * opponent, number and count), and whether my own queued result makes it taken, so the route
- * lands on that result instead of a board (A22), never opening a taken puzzle's play while the
+ * lands on that result instead of a board, never opening a taken puzzle's play while the
  * player is still being restored.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -126,6 +126,11 @@ class MatchLegRouteTest {
     @Test
     fun anUnclaimedMatchHasNoOpponentName() = runTest {
         assertEquals(LegPosition(null, 1, 3), legPosition(duel(seated = null), leg(0), ann.uid))
+    }
+
+    @Test
+    fun signedOutTheOpponentIsUnknownButThePlaceIsNot() = runTest {
+        assertEquals(LegPosition(null, 2, 3), legPosition(duel(), leg(1), uid = null))
     }
 
     @Test
