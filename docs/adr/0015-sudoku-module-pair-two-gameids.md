@@ -38,8 +38,10 @@ LinkedIn has no 9x9. It is wanted only so the engine can be exercised at 9x9.
   (three lesson boards for that size) and, if the `SudokuGrid` stroke weights (one branch for
   sizes up to 6, one above) do not suit it, a new branch in `gridStrokes`.
 - A new elimination technique is an `EliminationStep` file, one line in
-  `EliminationSteps.DEFAULT` and a `SudokuTechnique` entry. Hint captions name only the single
-  ("After ruling out some numbers, ..."), so `SudokuHintCaptions` does not change.
+  `EliminationSteps.DEFAULT` and a `SudokuTechnique` entry for Classic's legacy hint. Mini Sudoku's
+  stepwise hint (ADR-0025) also needs a rung in `SudokuEliminations` and a `SudokuStepCopy` entry
+  in `:games:sudoku-ui`; the legacy captions name only the single ("After ruling out some
+  numbers, ..."), so `SudokuHintCaptions` does not change.
 - The 9x9 classes (`BundledSudokuDailySource`, `SudokuSamples`, `sudokuModule`,
   `sudokuUiModule`) live in `main` source sets and ship in release, unregistered. Only the
   module registration is gated by build type.
