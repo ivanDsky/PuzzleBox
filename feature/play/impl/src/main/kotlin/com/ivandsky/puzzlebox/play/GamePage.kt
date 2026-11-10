@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,12 +20,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.LocalShellActions
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -84,7 +79,7 @@ internal fun GamePage(
                     if (extras) {
                         // The right column scrolls as one: stats, board, history, then how to play at its own height.
                         board?.let { EnterFade(3, reduced) { it() } }
-                        onOpenHistory?.let { EnterFade(3, reduced) { HistoryRow(it) } }
+                        onOpenHistory?.let { EnterFade(3, reduced) { SummaryLinkRow("Your history", "summary.history", it) } }
                         EnterFade(3, reduced) { HowToPlayCard(row, hasLesson, onOpenLesson) }
                     } else {
                         EnterFade(3, reduced, Modifier.weight(1f).fillMaxWidth()) {
@@ -117,7 +112,7 @@ internal fun GamePage(
             EnterFade(1, reduced) { calendar() }
             EnterFade(2, reduced) { GameStatsCard(row) }
             board?.let { EnterFade(3, reduced) { it() } }
-            onOpenHistory?.let { EnterFade(3, reduced) { HistoryRow(it) } }
+            onOpenHistory?.let { EnterFade(3, reduced) { SummaryLinkRow("Your history", "summary.history", it) } }
             EnterFade(3, reduced) { HowToPlayCard(row, hasLesson, onOpenLesson) }
         }
     }
@@ -137,24 +132,5 @@ private fun PageTitle(row: LibraryRowModel, modifier: Modifier = Modifier) {
                 overflow = TextOverflow.Ellipsis,
             )
         } ?: Box(Modifier.height(20.dp))
-    }
-}
-
-/** The "Your history" row: a full-width card in the stats card's surface, at least 56dp tall, a chevron at the end. */
-@Composable
-private fun HistoryRow(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier
-            .fillMaxWidth()
-            .clip(AppShapes.extraLarge)
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .clickable(role = Role.Button, onClick = onClick)
-            .heightIn(min = 56.dp)
-            .padding(horizontal = 24.dp)
-            .testTag("summary.history"),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text("Your history", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-        Icon(PuzzleIcons.Chevron, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

@@ -333,6 +333,70 @@ class ResultScreenTest {
         }
     }
 
+    @Test
+    fun `with onOpenBoard today's official result swaps the board for one row that reports the game`() {
+        var opened = mutableListOf<GameId>()
+        withResult(day, onOpenBoard = { opened += it }) {
+            composeRule.onNodeWithTag("summary.leaderboard").assertExists()
+            composeRule.onNodeWithTag("daily_board.title").assertDoesNotExist()
+            composeRule.onNodeWithTag("summary.leaderboard").performScrollTo().performClick()
+            composeRule.runOnIdle { assertEquals(listOf(game), opened) }
+        }
+    }
+
+    @Test
+    fun `without onOpenBoard today's official result draws the shared board and no row`() {
+        withResult(day, onOpenBoard = null) {
+            composeRule.onNodeWithTag("daily_board.title").assertExists()
+            composeRule.onNodeWithTag("summary.leaderboard").assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `a past day's replay draws neither the row nor the board`() {
+        withResult(day.minusDays(1), onOpenBoard = {}) {
+            composeRule.onNodeWithTag("summary.leaderboard").assertDoesNotExist()
+            composeRule.onNodeWithTag("daily_board.title").assertDoesNotExist()
+        }
+    }
+
+    @Test
+    fun `signed out, the row draws no sign-in of its own`() {
+        withResult(day, onOpenBoard = {}) {
+            composeRule.onNodeWithTag("summary.leaderboard").assertExists()
+            composeRule.onNodeWithTag("custom_board.sign_in").assertDoesNotExist()
+        }
+    }
+
+    /** Renders [ResultRoute] for [resultDay] on an official puzzle (history seeded for today and yesterday), then runs [check]. */
+    private fun withResult(resultDay: LocalDate, onOpenBoard: ((GameId) -> Unit)?, check: () -> Unit) {
+        val daily = FakeDailyRepository().apply {
+            setToday(game, DailyToday.Fresh(TestGames.puzzle(game)))
+            setHistory(
+                game,
+                listOf(DailyEntry(game, day, 7, "alpha/v1", 0L), DailyEntry(game, day.minusDays(1), 6, "alpha/v1", 0L)),
+            )
+        }
+        val koin = startGraph(FakeGames(listOf(game)), daily)
+        try {
+            composeRule.setContent {
+                PuzzleBoxTheme(darkTheme = false) {
+                    ResultRoute(
+                        key = ResultKey(game.value, resultDay.toString(), 12_340, 0),
+                        onPlayAgain = {},
+                        onNext = {},
+                        onDone = {},
+                        onOpenBoard = onOpenBoard,
+                    )
+                }
+            }
+            composeRule.waitForIdle()
+            check()
+        } finally {
+            koin.close()
+        }
+    }
+
     private fun startGraph(fakes: FakeGames, daily: FakeDailyRepository): KoinApplication {
         stopKoin() // tests share the JVM-global Koin context
         return startKoin {

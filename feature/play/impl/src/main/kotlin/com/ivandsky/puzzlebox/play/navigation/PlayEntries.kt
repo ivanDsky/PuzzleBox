@@ -4,6 +4,7 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GameRoute
@@ -116,9 +117,10 @@ fun EntryProviderScope<NavKey>.playEntry(
 /**
  * A slot's result: "Play again" starts a fresh attempt of the same day explicitly
  * ([PlaySessionStore.replay], A9) and replaces the result with its game; Next replaces it
- * with another game's today (17); Up and Done pop.
+ * with another game's today (17); Up and Done pop. [onOpenBoard] turns today's board block into a
+ * "Full board" row handing back the result's game; null keeps the board.
  */
-fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator) {
+fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator, onOpenBoard: ((GameId) -> Unit)? = null) {
     entry<ResultKey> { key ->
         val store = koinInject<PlaySessionStore>()
         ResultRoute(
@@ -129,6 +131,7 @@ fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator) {
             },
             onNext = { game -> navigator.replaceTop(GameKey(game.value)) },
             onDone = { navigator.pop() },
+            onOpenBoard = onOpenBoard,
         )
     }
 }
