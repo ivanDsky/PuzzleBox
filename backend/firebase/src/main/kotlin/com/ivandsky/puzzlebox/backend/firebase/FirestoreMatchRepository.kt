@@ -18,6 +18,7 @@ import java.time.ZoneOffset
 import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
@@ -108,10 +110,10 @@ internal class FirestoreMatchRepository(
                 MatchSnapshot.Unconfirmed -> MatchFetch.Offline
             }
         }
-        .catch { emit(MatchFetch.Offline) }
+        .recovering(onFailure = MatchFetch.Offline, answered = { it != MatchFetch.Offline })
         .distinctUntilChanged()
 
-    /** The signed-in user is read when collection starts; a failed listener ends as null, like the boards. */
+    /** The signed-in user is read whenever the listener (re)subscribes; a failed listener reads null, then recovers. */
     override fun observeMine(): Flow<List<Match>?> = flow {
         val uid = currentUid()
         if (uid == null) {
@@ -119,7 +121,7 @@ internal class FirestoreMatchRepository(
         } else {
             emitAll(store.observeMine(uid).map { docs -> docs.newestFirst() })
         }
-    }.catch { emit(null) }.distinctUntilChanged()
+    }.recovering(onFailure = null).distinctUntilChanged()
 
     private fun Map<String, Map<String, Any?>>.newestFirst(): List<Match> = mapNotNull { (id, fields) ->
         ShareCode.parse(id)?.let { MatchDocCodec.decode(it, fields) as? MatchFetch.Found }?.match
@@ -199,7 +201,30 @@ internal class FirestoreMatchRepository(
         /** How long a post waits for the server before it stays queued and is [PostResult.Unavailable]. */
         val POST_TIMEOUT: Duration = 10.seconds
 
-        /** I5: a refusal within this long of the close is [PostResult.Late] on the device's clock. */
+        /** A refusal within this long of the close is [PostResult.Late] on the device's clock. */
         const val CLOSE_MARGIN_SECONDS = 60L
+    }
+}
+
+/** The wait before a failed listener resubscribes: [LISTEN_RETRY_FIRST], doubling per failure up to [LISTEN_RETRY_MAX]. */
+private val LISTEN_RETRY_FIRST: Duration = 1.seconds
+private val LISTEN_RETRY_MAX: Duration = 30.seconds
+
+/**
+ * This listener with its failures contained: each failure first emits [onFailure], then, when a retry can fix it
+ * ([isTransient]), the listener is resubscribed after a doubling wait capped at [LISTEN_RETRY_MAX]; any other failure
+ * (denied, malformed) is final and ends the flow, since resubscribing would only repeat it. The wait starts over once
+ * the listener delivers an element for which [answered] holds; one that only says it could not tell does not.
+ */
+private fun <T> Flow<T>.recovering(onFailure: T, answered: (T) -> Boolean = { true }): Flow<T> = flow {
+    var wait = LISTEN_RETRY_FIRST
+    while (true) {
+        var failure: Throwable? = null
+        emitAll(this@recovering.onEach { if (answered(it)) wait = LISTEN_RETRY_FIRST }.catch { failure = it })
+        val failed = failure ?: return@flow
+        emit(onFailure)
+        if (failed !is Exception || !failed.isTransient()) return@flow
+        delay(wait)
+        wait = minOf(wait * 2, LISTEN_RETRY_MAX)
     }
 }

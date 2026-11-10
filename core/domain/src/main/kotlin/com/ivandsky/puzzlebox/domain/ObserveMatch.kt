@@ -29,10 +29,12 @@ import kotlinx.coroutines.flow.transformLatest
 /**
  * The read model of one duel, for every match screen: the server match, my outbox rows, this device's cached row and
  * the signed-in identity, as one [MatchState]. The only caller of the sealed result read: an opponent's leg is read
- * once its progress names it and my own result for it is Posted, and a revealed result is kept for the collector's
- * life. Late and LocalOnly rows are listed but never counted (A17). The view re-emits at each future time boundary
- * (`closesAt`, and `deadline` while unclaimed) with no upstream change (A1). Writes nothing and holds no listener of
- * its own.
+ * once its progress names it and my own result for it is Posted, or the match has closed (a leg one player never
+ * finished is lost to them, so the other's time must show), and a revealed result is kept for the collector's life.
+ * A read that is Offline or Sealed after the close is tried again every [CLOSE_READ_RETRY]. Late and LocalOnly rows
+ * are listed but never counted, nor is a Pending one once the match has closed. The view re-reads and re-emits at each
+ * future time boundary (`closesAt`, and `deadline` while unclaimed) with no upstream change. Writes nothing and holds
+ * no listener of its own.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveMatch(
@@ -70,44 +72,57 @@ class ObserveMatch(
                 is MatchFetch.UnsupportedVersion -> emit(MatchState.UpdateApp(fetch.found))
                 is MatchFetch.Found -> {
                     val match = fetch.match
-                    val theirs = theirLegs(code, match, me, mine, revealed)
                     var now = clock()
-                    emit(MatchState.Loaded(view(match, me, mine, theirs, cached, now)))
-                    var next = nextBoundary(match, now)
+                    var seen = theirLegs(code, match, me, mine, revealed, now)
+                    emit(MatchState.Loaded(view(match, me, mine, seen.legs, cached, now)))
+                    var next = nextWake(match, now, seen.unread)
                     while (next != null) {
                         delay(Duration.between(now, next).toKotlinDuration())
                         now = clock()
-                        emit(MatchState.Loaded(view(match, me, mine, theirs, cached, now)))
-                        next = nextBoundary(match, now)
+                        seen = theirLegs(code, match, me, mine, revealed, now)
+                        emit(MatchState.Loaded(view(match, me, mine, seen.legs, cached, now)))
+                        next = nextWake(match, now, seen.unread)
                     }
                 }
             }
         }
     }
 
-    /** One [LegSeen] per leg; reads only a leg the opponent played and I posted, and never one already revealed. */
+    /** What [theirLegs] saw, and whether a read the rules allow came back Offline and so wants another try. */
+    private class Seen(val legs: List<LegSeen>, val unread: Boolean)
+
+    /**
+     * One [LegSeen] per leg; reads a leg the opponent played once I posted mine or the match has closed (where a leg
+     * I never finished is lost to me and must show their time), never before, and never one already revealed.
+     */
     private suspend fun theirLegs(
         code: ShareCode,
         match: Match,
         me: String,
         mine: List<OutboxResult>,
         revealed: MutableMap<Int, LegResult>,
-    ): List<LegSeen> {
-        val them = match.opponentOf(me)?.uid ?: return match.legs.map { LegSeen.NotPlayed }
+        now: Instant,
+    ): Seen {
+        val them = match.opponentOf(me)?.uid ?: return Seen(match.legs.map { LegSeen.NotPlayed }, unread = false)
         val played = match.progress[them].orEmpty()
         val posted = mine.filter { it.state == ResultPostState.Posted }.mapTo(HashSet()) { it.result.legIndex }
-        return match.legs.indices.map { leg ->
+        val closed = now >= match.closesAt
+        var unread = false
+        val legs = match.legs.indices.map { leg ->
             val known = revealed[leg]
             when {
                 leg !in played -> LegSeen.NotPlayed
                 known != null -> LegSeen.Revealed(known)
-                leg !in posted -> LegSeen.Played
+                leg !in posted && !closed -> LegSeen.Played
                 else -> when (val read = repo.readResult(code, leg, them)) {
                     is ResultRead.Found -> LegSeen.Revealed(read.result).also { revealed[leg] = read.result }
-                    ResultRead.Sealed, ResultRead.Missing, ResultRead.Offline -> LegSeen.Played
+                    ResultRead.Missing -> LegSeen.Played
+                    // After the close a Sealed answer means this clock is ahead of the server's: ask again shortly.
+                    ResultRead.Sealed, ResultRead.Offline -> LegSeen.Played.also { unread = unread || closed }
                 }
             }
         }
+        return Seen(legs, unread)
     }
 
     private fun view(
@@ -118,13 +133,24 @@ class ObserveMatch(
         cached: LocalMatch?,
         now: Instant,
     ): MatchView {
-        val counted = mine.filter { it.state == ResultPostState.Pending || it.state == ResultPostState.Posted }
+        // A Pending post is refused once the match has closed, so the opponent's device does not count it either.
+        val closed = now >= match.closesAt
+        val counted = mine.filter { it.state == ResultPostState.Posted || (it.state == ResultPostState.Pending && !closed) }
             .map { it.result } + theirs.filterIsInstance<LegSeen.Revealed>().map { it.result }
         val outcome = ComputeMatchOutcome(match, counted, me, now, registry::rankOrderOf)
         return MatchView(match, me, mine, theirs, outcome, cached)
     }
 
-    /** The earliest of `closesAt` and, while unclaimed, `deadline` still after [now]; null once both have passed. */
-    private fun nextBoundary(match: Match, now: Instant): Instant? =
+    /**
+     * When to look again: the earliest of `closesAt` and, while unclaimed, `deadline` still after [now]; once both have
+     * passed, [CLOSE_READ_RETRY] on while a read is [unread], else null.
+     */
+    private fun nextWake(match: Match, now: Instant, unread: Boolean): Instant? =
         listOfNotNull(match.closesAt, match.deadline.takeIf { match.opponent == null }).filter { it > now }.minOrNull()
+            ?: now.plus(CLOSE_READ_RETRY).takeIf { unread }
+
+    private companion object {
+        /** How long after the close an Offline read of their result waits before the next try. */
+        val CLOSE_READ_RETRY: Duration = Duration.ofSeconds(10)
+    }
 }
