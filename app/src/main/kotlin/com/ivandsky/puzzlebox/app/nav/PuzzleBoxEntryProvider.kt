@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.play.GamesTab
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.play.navigation.resultEntry
+import com.ivandsky.puzzlebox.profile.api.SettingsKey
 import com.ivandsky.puzzlebox.profile.navigation.profileEntry
 
 /**
@@ -47,7 +48,7 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  * Result's "Full board" row open their owner (a game page or Games section through
  * [libraryRequests], History's tab root through [openOwner]); Today hides what is owned
  * elsewhere, the game page draws its board, the tablet times card signs in in place, and
- * Profile is slim with its own back. Off, every screen keeps its old form.
+ * Profile is slim with its own back and a gear to Settings. Off, every screen keeps its old form.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -98,6 +99,7 @@ internal fun puzzleBoxEntryProvider(
         onBack = back,
         slim = navV2,
         onProfileBack = back.takeIf { navV2 },
+        onOpenSettings = { navigator.pushOnce(SettingsKey) }.takeIf { navV2 },
     )
     competeEntry(navigator, playLayout)
     entry<CatalogKey> { CatalogScreen(openGame = { navigator.pushOnce(GameKey(it)) }) }

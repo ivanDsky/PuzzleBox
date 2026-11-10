@@ -588,11 +588,11 @@ class ShellRobot internal constructor(
     /** NavV2: the avatar (the rail's bottom, or Today's header on a bar), which opens Profile on the current tab. */
     fun tapAvatar() = tap(AVATAR)
 
-    /** NavV2: the gear (the rail's bottom, or Today's header on a bar), which opens Settings on the current tab. */
-    fun tapGear() = tap(GEAR)
+    /** NavV2: Profile's top-right gear, which opens Settings above Profile. */
+    fun tapGear() = tap(PROFILE_GEAR)
 
     /**
-     * NavV2 placement of the avatar and the gear: on a [rail] they show once wherever the rail
+     * NavV2 placement of the avatar (the shell has no gear; Settings opens from Profile): on a [rail] they show once wherever the rail
      * shows (every screen but the immersive ones); on the bar only Today's root shows them.
      */
     fun assertChromeFor(rail: Boolean) {
@@ -601,21 +601,19 @@ class ShellRobot internal constructor(
         if (shown) assertChromeActions() else assertNoChromeActions()
         if (shown && rail) {
             val avatar = rule.onNodeWithTag(AVATAR).fetchSemanticsNode().boundsInRoot
-            val gear = rule.onNodeWithTag(GEAR).fetchSemanticsNode().boundsInRoot
             val lowestTab = tabBounds().maxOf { it.bottom }
             assertTrue("avatar sits below the tabs: $avatar vs $lowestTab", avatar.top >= lowestTab)
-            assertTrue("gear sits below the avatar: $gear vs $avatar", gear.top >= avatar.bottom)
         }
     }
 
-    /** The avatar and the gear each show exactly once. */
+    /** The avatar shows exactly once and the shell shows no gear. */
     fun assertChromeActions() {
         awaitTag(AVATAR)
         assertEquals("avatars (state $state)", 1, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
-        assertEquals("gears (state $state)", 1, rule.onAllNodesWithTag(GEAR).fetchSemanticsNodes().size)
+        assertEquals("gears (state $state)", 0, rule.onAllNodesWithTag(GEAR).fetchSemanticsNodes().size)
     }
 
-    /** Neither the avatar nor the gear shows: immersive play, a bar screen but Today, or the flag off. */
+    /** No avatar and no gear shows: immersive play, a bar screen but Today, or the flag off. */
     fun assertNoChromeActions() {
         assertEquals("avatars (state $state)", 0, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
         assertEquals("gears (state $state)", 0, rule.onAllNodesWithTag(GEAR).fetchSemanticsNodes().size)
@@ -663,6 +661,7 @@ class ShellRobot internal constructor(
         const val CLOCK_BUDGET_MS = 60_000L
         const val AVATAR = "shell.avatar"
         const val GEAR = "shell.settings"
+        const val PROFILE_GEAR = "profile.settings"
         const val GAME_ROUTE = "route.game"
         const val ZIP_SIZE = 5
         const val RESULT_ROUTE = "route.result"
