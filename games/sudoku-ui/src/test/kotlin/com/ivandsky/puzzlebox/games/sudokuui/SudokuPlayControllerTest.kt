@@ -22,6 +22,8 @@ import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestCoroutineScheduler
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -325,6 +327,24 @@ class SudokuPlayControllerTest {
         c.requestHint()
         assertEquals(first.roles, c.board!!.spotlight?.roles)
         assertEquals(1, c.hintsUsed)
+    }
+
+    @Test
+    fun `a press still computing when the board is replayed never touches the new session`() {
+        val scheduler = TestCoroutineScheduler()
+        val held = HintMode.Stepwise(StandardTestDispatcher(scheduler))
+        val c = SudokuPlayController(SudokuGames.MINI, env, InMemorySudokuHighlightSettings(), now = { Instant.ofEpochMilli(clockMs) }, hintMode = held)
+        assertEquals(Adopt.Adopted, c.adoptToday(envelope(noSingle), ref))
+        c.requestHint()
+
+        c.replay()
+        val savedByReplay = saved.size
+        scheduler.advanceUntilIdle()
+
+        assertEquals(savedByReplay, saved.size)
+        assertEquals(0, savedSession().hintsUsed)
+        assertEquals(0, c.hintsUsed)
+        assertNull(c.board!!.spotlight)
     }
 
     @OptIn(KoinInternalApi::class)
