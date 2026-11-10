@@ -64,8 +64,8 @@ class HostingFilesTest {
         val page = read("hosting/$dir/index.html")
         val srcs = Regex("<script[^>]*\\bsrc\\s*=\\s*\"([^\"]+)\"", RegexOption.IGNORE_CASE)
             .findAll(page).map { it.groupValues[1] }.toList()
-        assertEquals(listOf("/$dir/code.js"), srcs)
-        assertFalse(Regex("<link[^>]*stylesheet", RegexOption.IGNORE_CASE).containsMatchIn(page))
+        assertEquals("$dir", listOf("/$dir/code.js"), srcs)
+        assertFalse("$dir", Regex("<link[^>]*stylesheet", RegexOption.IGNORE_CASE).containsMatchIn(page))
     }
 
     @Test
@@ -73,11 +73,11 @@ class HostingFilesTest {
         val page = read("hosting/$dir/index.html")
         val ogTitle = if (dir == "p") "A PuzzleBox puzzle from a friend" else "A PuzzleBox duel from a friend"
         val steps = if (dir == "p") "Enter a code" else "Enter code"
-        assertTrue(page.contains("<meta property=\"og:title\" content=\"$ogTitle\">"))
-        assertTrue(page.contains("<meta property=\"og:description\""))
-        assertTrue(page.contains("@media (prefers-color-scheme: dark)"))
-        assertTrue(Regex("<noscript>[\\s\\S]*?$steps[\\s\\S]*?</noscript>").containsMatchIn(page))
-        assertTrue(page.contains("This link doesn't contain a valid PuzzleBox code"))
+        assertTrue("$dir", page.contains("<meta property=\"og:title\" content=\"$ogTitle\">"))
+        assertTrue("$dir", page.contains("<meta property=\"og:description\""))
+        assertTrue("$dir", page.contains("@media (prefers-color-scheme: dark)"))
+        assertTrue("$dir", Regex("<noscript>[\\s\\S]*?$steps[\\s\\S]*?</noscript>").containsMatchIn(page))
+        assertTrue("$dir", page.contains("This link doesn't contain a valid PuzzleBox code"))
     }
 
     @Test
@@ -86,11 +86,11 @@ class HostingFilesTest {
         val hrefs = Regex("<a[^>]*\\bhref\\s*=\\s*\"([^\"]+)\"[^>]*>").findAll(page).map { it.groupValues[1] }.toList()
         val link = hrefs.single { Regex("https://github\\.com/[^/]+/[^/]+/.*").matches(it) }
         val url = java.net.URI(link)
-        assertEquals("github.com", url.host)
-        assertTrue(url.path.startsWith("/ivanDsky/PuzzleBox/"))
+        assertEquals("$dir", "github.com", url.host)
+        assertTrue("$dir", url.path.startsWith("/ivanDsky/PuzzleBox/"))
         val tag = Regex("<a[^>]*\\bhref\\s*=\\s*\"[^\"]*github\\.com[^\"]*\"[^>]*>").find(page)!!.value
-        assertTrue(tag.contains("rel=\"noopener\""))
-        assertTrue(tag.contains("target=\"_blank\""))
+        assertTrue("$dir", tag.contains("rel=\"noopener\""))
+        assertTrue("$dir", tag.contains("target=\"_blank\""))
     }
 
     @Test
