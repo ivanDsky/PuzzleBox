@@ -143,7 +143,7 @@ abstract class RevealGoldenScreenshots(private val device: String, private val w
         )
         val NO_RESULT = card(
             QUEENS, "Queens #89", DuelSideState.NotPlayed, time(60_000), LegVerdict.Loss(LegBasis.Time),
-            "No result from Ivan · counts for Sam", "Sam wins",
+            "You didn't play · Sam wins this puzzle", "Sam wins",
         )
         val TIE = card(ZIP, "Zip #402", time(61_000), time(61_400), LegVerdict.Draw, "Same whole second · no point", "Tie")
 

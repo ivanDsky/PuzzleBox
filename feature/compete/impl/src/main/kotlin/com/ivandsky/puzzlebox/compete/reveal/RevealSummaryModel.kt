@@ -20,8 +20,8 @@ internal enum class VerdictKind { Win, Loss, Draw }
 internal data class SummaryTiles(val puzzlesWon: Int, val puzzles: Int, val fastestMs: Long?, val totalMs: Long)
 
 /**
- * One line of the puzzles list: the card's title and basis, each side's time text ("No result" without one), the
- * [winner] (null when nobody took the puzzle) and whether the puzzle was [tied].
+ * One line of the puzzles list: the card's title and basis, each side's time text ("Gave up" or "No result" without
+ * one), the [winner] (null when nobody took the puzzle) and whether the puzzle was [tied].
  */
 internal data class PuzzleRow(
     val gameId: GameId,
@@ -104,8 +104,14 @@ internal fun puzzleRows(cards: List<RevealCard>): List<PuzzleRow> = cards.map { 
     )
 }
 
-private fun timeText(side: DuelSideState): String =
-    if (side is DuelSideState.Time) formatDuration(side.timeMs) else "No result"
+private fun timeText(side: DuelSideState): String = when (side) {
+    is DuelSideState.Time -> formatDuration(side.timeMs)
+    DuelSideState.GaveUp -> GAVE_UP
+    DuelSideState.NotPlayed, DuelSideState.Sealed -> NO_RESULT
+}
+
+internal const val GAVE_UP = "Gave up"
+internal const val NO_RESULT = "No result"
 
 /** "PuzzleBox · Ivan 2–1 Sam 🟩🟥🟩 · link": one square per puzzle in order, ⬜ for a draw or a void one. */
 internal fun shareText(me: String, opponent: String, myWins: Int, theirWins: Int, verdicts: List<LegVerdict>, link: String): String {

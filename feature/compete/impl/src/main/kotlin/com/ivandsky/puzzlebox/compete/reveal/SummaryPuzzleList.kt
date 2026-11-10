@@ -78,11 +78,11 @@ private fun PuzzleRowView(row: PuzzleRow, summary: DuelSummary, brands: GamePlay
     }
 }
 
-/** One player's time: the winner's in bold with a check, a tie's after "=", "No result" muted. */
+/** One player's time: the winner's in bold with a check, a tie's after "=", "Gave up" and "No result" muted. */
 @Composable
 private fun TimeLine(name: String, time: String, won: Boolean, tied: Boolean) {
     val scheme = MaterialTheme.colorScheme
-    val missing = time == "No result"
+    val missing = time == NO_RESULT || time == GAVE_UP
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
             text = name,

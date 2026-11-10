@@ -151,11 +151,48 @@ class RevealLegsTest {
         assertEquals("Fewer hints · 0 vs 2", basis(LegVerdict.Win(hints), myRow(0, hints = 0), theirs(0, hints = 2), RankOrder.HintsThenTime))
         assertEquals("Fewer hints · 1 vs 3", basis(LegVerdict.Loss(hints), myRow(0, hints = 3), theirs(0, hints = 1), RankOrder.HintsThenTime))
         assertEquals("Same whole second · no point", basis(LegVerdict.Draw, myRow(0, 58_100), theirs(0, 58_900)))
-        assertEquals("No result from Bob · counts for Ann", basis(LegVerdict.Win(time), myRow(0), LegSeen.NotPlayed))
-        assertEquals("No result from Bob · counts for Ann", basis(LegVerdict.Win(time), myRow(0), theirs(0, gaveUp = true)))
-        assertEquals("No result from Ann · counts for Bob", basis(LegVerdict.Loss(time), null, theirs(0)))
         assertEquals("No result from either player · no point", basis(LegVerdict.Draw, null, LegSeen.NotPlayed))
         assertEquals("Doesn't count for either player", basis(LegVerdict.Void, myRow(0), theirs(0)))
+    }
+
+    @Test
+    fun aGaveUpOpponentReadsAsGaveUpAndYouWin() {
+        assertEquals("Bob gave up · you win this puzzle", basis(LegVerdict.Win(LegBasis.Time), myRow(0), theirs(0, gaveUp = true)))
+    }
+
+    @Test
+    fun iGaveUpReadsAsYouGaveUpAndTheyWin() {
+        assertEquals(
+            "You gave up · Bob wins this puzzle",
+            basis(LegVerdict.Loss(LegBasis.Time), myRow(0, timeMs = 0, gaveUp = true), theirs(0)),
+        )
+    }
+
+    @Test
+    fun aNotPlayedOpponentReadsAsDidntPlay() {
+        assertEquals("Bob didn't play · you win this puzzle", basis(LegVerdict.Win(LegBasis.Time), myRow(0), LegSeen.NotPlayed))
+    }
+
+    @Test
+    fun iDidNotPlayReadsAsYouDidntPlay() {
+        assertEquals("You didn't play · Bob wins this puzzle", basis(LegVerdict.Loss(LegBasis.Time), null, theirs(0)))
+    }
+
+    @Test
+    fun aSealedOpponentKeepsItsLineInTheSecondPerson() {
+        assertEquals("Bob's result isn't available · you win this puzzle", basis(LegVerdict.Win(LegBasis.Time), myRow(0), LegSeen.Played))
+    }
+
+    @Test
+    fun bothGaveUpIsADrawWithItsOwnLine() {
+        assertEquals("Both gave up · no point", basis(LegVerdict.Draw, myRow(0, timeMs = 0, gaveUp = true), theirs(0, gaveUp = true)))
+    }
+
+    @Test
+    fun noResultFromEitherPlayerOnlyWhenNobodyPosted() {
+        assertEquals("No result from either player · no point", basis(LegVerdict.Draw, null, LegSeen.NotPlayed))
+        assertEquals("No result from either player · no point", basis(LegVerdict.Draw, myRow(0, timeMs = 0, gaveUp = true), LegSeen.NotPlayed))
+        assertEquals("No result from either player · no point", basis(LegVerdict.Draw, null, theirs(0, gaveUp = true)))
     }
 
     @Test
