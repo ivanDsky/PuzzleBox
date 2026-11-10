@@ -67,9 +67,10 @@ fun SudokuGrid(model: SudokuBoardModel, onSelect: (Int) -> Unit, modifier: Modif
                 }
                 .padding(strokes.box),
         ) {
-            val cell = min(maxWidth, maxHeight) / model.size
+            val grid = gridMetrics(min(maxWidth, maxHeight), model.size)
+            val cell = grid.cell
             val noteSlot = min(cell / model.boxRows, cell / model.boxCols)
-            val digitStyle = cellTextStyle(cell * DIGIT_FRACTION)
+            val digitStyle = grid.digitStyle
             val noteStyle = cellTextStyle(noteSlot * NOTE_FRACTION)
             Column(Modifier.fillMaxSize()) {
                 for (row in 0 until model.size) {
@@ -96,13 +97,24 @@ fun SudokuGrid(model: SudokuBoardModel, onSelect: (Int) -> Unit, modifier: Modif
 @Composable
 private fun BoxScope.SpotlightLayer(spotlight: Spotlight, size: Int, frame: Dp) {
     BoxWithConstraints(Modifier.matchParentSize().padding(frame)) {
-        val cell = min(maxWidth, maxHeight) / size
-        val digitStyle = cellTextStyle(cell * DIGIT_FRACTION)
+        val grid = gridMetrics(min(maxWidth, maxHeight), size)
+        val cell = grid.cell
+        val digitStyle = grid.digitStyle
         val cellPx = with(LocalDensity.current) { cell.toPx() }
         val measurer = rememberTextMeasurer()
         val shown = remember(spotlight, digitStyle, cellPx, measurer) { spotlight.withDigitStyle(measurer, digitStyle, cellPx) }
         SpotlightOverlay(shown, Modifier.testTag(SPOTLIGHT_TAG))
     }
+}
+
+/** The grid's cell pitch and digit style; the base cells and the Spotlight layer both read them, so they cannot drift. */
+private class GridMetrics(val cell: Dp, val digitStyle: TextStyle)
+
+/** The metrics of a grid of [size] cells a side in a square [side] wide. */
+@Composable
+private fun gridMetrics(side: Dp, size: Int): GridMetrics {
+    val cell = side / size
+    return GridMetrics(cell, cellTextStyle(cell * DIGIT_FRACTION))
 }
 
 /** The cell text style at [fontSize], one line box tall so it centres in its cell; digits use tabular figures. */

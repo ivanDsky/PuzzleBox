@@ -16,8 +16,9 @@ import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 
 /**
  * The digit text a Spotlight draws over the grid. [texts] maps a cell to its text: the digit for a target or
- * culprit, the struck digits for an excluded cell. The mapper knows no fonts, so this draws nothing itself: the
- * grid swaps in [StyledSudokuGlyphs] through [withDigitStyle] before the overlay sees it.
+ * culprit, the struck digits for an excluded cell. The mapper knows no fonts, so its [draw] is a placeholder that
+ * draws nothing: `SudokuGrid` is the only drawer, swapping in [StyledSudokuGlyphs] through [withDigitStyle] (with the
+ * grid's one cell pitch and digit style) before the overlay sees it.
  */
 internal data class SudokuSpotlightGlyphs(val texts: Map<Int, String>) : SpotlightGlyphs {
     override fun DrawScope.draw(cell: Int, role: SpotlightRole, size: Size, color: Color) = Unit
