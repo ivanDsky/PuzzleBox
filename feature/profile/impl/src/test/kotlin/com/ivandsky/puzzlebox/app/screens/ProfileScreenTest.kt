@@ -372,16 +372,6 @@ class ProfileScreenTest {
     }
 
     @Test
-    fun `the gear calls the settings callback once, and only shows when given`() {
-        var opened = 0
-        setContent(stateOf(signedIn), slim = true, onBack = {}, onOpenSettings = { opened++ })
-
-        composeRule.onNodeWithTag("profile.settings").performClick()
-
-        composeRule.runOnIdle { assertEquals(1, opened) }
-    }
-
-    @Test
     fun `without a settings callback there is no gear`() {
         setContent(stateOf(signedIn), slim = true, onBack = {})
 

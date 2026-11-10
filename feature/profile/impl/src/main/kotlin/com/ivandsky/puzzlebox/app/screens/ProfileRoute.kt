@@ -13,8 +13,9 @@ import org.koin.androidx.compose.koinViewModel
 /**
  * Profile's DI-bound entry point. [onOpenHistory] opens History's timeline (N3);
  * [onOpenCatalog] is offered only in debuggable builds (the catalog is a debug tool).
- * [slim] hides the record blocks (identity and sign-in only); a non-null [onBack] draws
- * the back icon and a non-null [onOpenSettings] a gear beside it. The defaults are the full screen without a back icon.
+ * [slim] hides the record blocks (identity and sign-in only). Each of [onBack] and
+ * [onOpenSettings] draws its own control in the top bar, the back icon and the gear. The
+ * defaults are the full screen without a top bar.
  */
 @Composable
 fun ProfileRoute(
