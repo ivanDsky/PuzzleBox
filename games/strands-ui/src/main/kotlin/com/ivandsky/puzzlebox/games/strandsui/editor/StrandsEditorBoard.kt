@@ -37,7 +37,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
@@ -55,8 +54,8 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
  * under the line ([StrandsIdleTiles]), and the live trace over them, its cells as trace
  * tokens. Touch is the play board's: a drag or taps trace cells, a lift commits the
  * path ([StrandsEditorController.endTrace]); a tap on a traced cell or its chip selects that
- * path, which keeps its word look while everything else fades ([dimOf]), a ring on each of its
- * ends: a drag from one shortens or extends it ([StrandsEndDrag]); uncovered areas too small
+ * path, which keeps its word look while everything else fades ([dimOf]), whose ends
+ * a drag from one shortens or extends it ([StrandsEndDrag]); uncovered areas too small
  * for a word get a dashed outline (`strands.editor.cell.<idx>.pocket`). The [verdict] and the card's witness choice
  * ([StrandsEditorController.overlay]) are drawn by [StrandsDiagnosticsLayer]. With [withTools]
  * the [StrandsAuthoringTools] follow the grid in one scroll and the grid keeps its width's touch
@@ -154,8 +153,6 @@ private fun StrandsEditorGrid(controller: StrandsEditorController, verdict: Verd
         CellTaps(
             onTap = controller::tapCell,
             pockets = pockets,
-            ends = board.endsOf(selected),
-            endColor = selected?.let { LocalBoardColors.current.tintOf(board, it) } ?: Color.Unspecified,
             modifier = Modifier.fillMaxSize(),
         )
     }
@@ -164,14 +161,12 @@ private fun StrandsEditorGrid(controller: StrandsEditorController, verdict: Verd
 /**
  * One pointer-transparent node per cell, laid over the board exactly as the board lays itself
  * out, so the cell's tag (`strands.editor.cell.<idx>`) answers a click as the board's own tap.
- * It also carries the pocket outlines and the selected path's end rings, above the letters.
+ * It also carries the pocket outlines above the letters.
  */
 @Composable
 private fun CellTaps(
     onTap: (Int) -> Unit,
     pockets: Set<Int>,
-    ends: Set<Int>,
-    endColor: Color,
     modifier: Modifier = Modifier,
 ) {
     val outline = MaterialTheme.colorScheme.error
@@ -199,14 +194,6 @@ private fun CellTaps(
                                                 .fillMaxSize()
                                                 .drawBehind { drawPocketOutline(outline) }
                                                 .testTag("strands.editor.cell.$idx.pocket"),
-                                        )
-                                    }
-                                    if (idx in ends) {
-                                        Box(
-                                            Modifier
-                                                .fillMaxSize()
-                                                .drawBehind { drawEndRing(endColor) }
-                                                .testTag("strands.editor.cell.$idx.end"),
                                         )
                                     }
                                 }
