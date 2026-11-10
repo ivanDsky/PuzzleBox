@@ -210,4 +210,34 @@ class LookAheadChainTest {
         }
         assertTrue(fired > 0)
     }
+
+    /** Counts, in [calls], every step a chain round asks of [inner]. */
+    private class Counting(private val inner: QueensRung, private val calls: IntArray) : QueensRung by inner {
+        override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? {
+            calls[0]++
+            return inner.step(puzzle, candidates)
+        }
+    }
+
+    @Test
+    fun `on one press D11 resumes the chains D10 played and finds what a fresh press finds`() {
+        val calls = IntArray(1)
+        val counted = cheap.map { Counting(it, calls) }
+        val short = ShortLookAheadRung(counted)
+        val long = LongLookAheadRung(counted)
+        var shortWork = 0
+        for ((name, puzzle) in goldenBoards()) for (state in prefixes(puzzle)) {
+            calls[0] = 0
+            val fresh = long.simplestSteps(puzzle, state, QueensRung.Press()).toList()
+            val longAlone = calls[0]
+            val press = QueensRung.Press()
+            calls[0] = 0
+            short.simplestSteps(puzzle, state, press).toList()
+            shortWork += calls[0]
+            assertEquals(name, fresh, long.simplestSteps(puzzle, state, press).toList())
+            // D10's rounds are not played twice: both rungs together cost what D11 costs alone.
+            assertEquals(name, longAlone, calls[0])
+        }
+        assertTrue(shortWork > 0)
+    }
 }
