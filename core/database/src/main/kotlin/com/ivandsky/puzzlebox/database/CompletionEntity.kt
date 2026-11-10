@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -32,4 +33,6 @@ data class CompletionEntity(
     val isRecord: Boolean,
     /** Schema v8: the duel's match code when this puzzle was played as a duel leg, else null. */
     val matchCode: String? = null,
+    /** Schema v9: where the completion came from — 'app' when earned in the app, 'linkedin' for an import. */
+    @ColumnInfo(defaultValue = "app") val source: String = "app",
 )
