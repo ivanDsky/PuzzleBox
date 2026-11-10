@@ -55,8 +55,8 @@ sealed interface ResultRead {
  * `Late` = rules rejection when device time >= `closesAt - 1 min` or `completedAtMs > deadline`.
  */
 interface MatchRepository {
-    /** Null = offline. */
-    suspend fun puzzleCodeTaken(code: ShareCode): Boolean?
+    /** [PuzzleCodeCheck.Unavailable] when the server could not say, offline or refused. */
+    suspend fun puzzleCodeTaken(code: ShareCode): PuzzleCodeCheck
 
     /** Create-if-absent plus quota bump; the caller's own existing document is `Created`. */
     suspend fun create(draft: MatchDraft): CreateResult

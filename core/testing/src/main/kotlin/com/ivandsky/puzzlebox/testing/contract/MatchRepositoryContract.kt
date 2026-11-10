@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.Player
+import com.ivandsky.puzzlebox.data.match.PuzzleCodeCheck
 import com.ivandsky.puzzlebox.data.match.WriteResult
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -86,7 +87,7 @@ abstract class MatchRepositoryContract {
         created()
 
         assertMatch(match())
-        assertEquals(true, repository.puzzleCodeTaken(code()))
+        assertEquals(PuzzleCodeCheck.Taken, repository.puzzleCodeTaken(code()))
     }
 
     @Test
@@ -110,7 +111,7 @@ abstract class MatchRepositoryContract {
     fun createWithAPublishedPuzzleCodeIsCodeTaken() = runTest {
         occupyPuzzleCode(code())
 
-        assertEquals(true, by(ANN) { puzzleCodeTaken(code()) })
+        assertEquals(PuzzleCodeCheck.Taken, by(ANN) { puzzleCodeTaken(code()) })
         assertEquals(CreateResult.CodeTaken, repository.create(draft()))
         assertEquals(MatchFetch.NotFound, fetch())
     }
@@ -122,7 +123,7 @@ abstract class MatchRepositoryContract {
 
         assertEquals(CreateResult.DailyCapReached, repository.create(draft(code = codes.last())))
         assertEquals(MatchFetch.NotFound, fetch(codes.last()))
-        assertEquals(false, repository.puzzleCodeTaken(codes.last()))
+        assertEquals(PuzzleCodeCheck.Free, repository.puzzleCodeTaken(codes.last()))
     }
 
     @Test
