@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.database.CompletionDao
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -32,6 +33,12 @@ internal class RoomCompletionRepository(
     override suspend fun onCompleted(record: CompletionRecord) {
         val refKey = PuzzleRefKeys.encode(record.puzzleRef)
         db.withTransaction {
+            // A repeated import adds nothing; checking inside the transaction keeps two racing imports from both inserting.
+            if (record.source == CompletionSource.LinkedIn &&
+                dao.hasSource(refKey, CompletionSource.LinkedIn.storedName)
+            ) {
+                return@withTransaction
+            }
             val decision = policy.decide(hasRecord = dao.record(refKey) != null, nowMs = clock())
             dao.insert(policy.stamp(record, refKey, decision))
         }
@@ -39,6 +46,11 @@ internal class RoomCompletionRepository(
 
     override fun observeRecords(): Flow<List<CompletionRecord>> =
         dao.observeRecords().map { rows -> rows.mapNotNull { it.toModel(registry) } }
+
+    override fun observeImports(): Flow<List<CompletionRecord>> =
+        dao.observeBySource(CompletionSource.LinkedIn.storedName).map { rows ->
+            rows.mapNotNull { it.toModel(registry) }
+        }
 
     override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
         dao.observeReplays(PuzzleRefKeys.encode(puzzleRef)).map { rows ->

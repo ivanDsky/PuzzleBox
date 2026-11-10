@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
@@ -41,10 +42,22 @@ class FakeCompletionRepository(
     override suspend fun onCompleted(record: CompletionRecord) {
         writeGate?.await()
         if (fail) throw IllegalStateException("disk full")
-        all.update { it + record }
+        all.update { rows -> if (record.isDuplicateImport(rows)) rows else rows + record }
     }
 
-    override fun observeRecords(): Flow<List<CompletionRecord>> = all
+    /** Room returns only record rows, so an import replay stored beside an app record stays out. */
+    override fun observeRecords(): Flow<List<CompletionRecord>> =
+        all.map { rows -> rows.filter { it.source == CompletionSource.App || it.isRecord } }
+
+    override fun observeImports(): Flow<List<CompletionRecord>> =
+        all.map { rows -> rows.filter { it.source == CompletionSource.LinkedIn } }
+
+    /** Room's import idempotence: a ref holds at most one LinkedIn row. */
+    private fun CompletionRecord.isDuplicateImport(rows: List<CompletionRecord>): Boolean {
+        if (source != CompletionSource.LinkedIn) return false
+        val key = PuzzleRefKeys.encode(puzzleRef)
+        return rows.any { it.source == CompletionSource.LinkedIn && PuzzleRefKeys.encode(it.puzzleRef) == key }
+    }
 
     override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
         all.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
