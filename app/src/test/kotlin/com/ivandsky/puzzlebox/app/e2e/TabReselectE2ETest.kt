@@ -2,11 +2,13 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.NavV2
+import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.Test
@@ -18,7 +20,8 @@ import org.robolectric.annotation.Config
  * Reselect at a root (NavV2): tapping the selected tab while it sits at its root scrolls
  * that root to the top; at a non-root the tap only pops, and nothing scrolls. With the flag
  * off a root reselect stays the no-op it is today. Today's list is the probe: its header
- * sits above the fold once the list is scrolled to "See all".
+ * sits above the fold once the list is scrolled to its last block, the streak's week strip
+ * (with the flag on Today no longer links to History, so the pushed screen is pushed directly).
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -39,7 +42,8 @@ class TabReselectE2ETest {
     @Test
     fun `reselecting Today over a pushed screen pops to the root and does not scroll`() = flagOnRobot {
         assertRoute(HOME)
-        tapText("See all")
+        scrollTodayDown()
+        push(HistoryKey())
         assertRoute(HISTORY)
 
         tapTab(HomeKey)
@@ -60,7 +64,7 @@ class TabReselectE2ETest {
     }
 
     private fun ShellRobot.scrollTodayDown() {
-        rule.onNodeWithText("See all").performScrollTo()
+        rule.onNodeWithTag("home.week").performScrollTo()
         header().assertIsNotDisplayed()
     }
 
