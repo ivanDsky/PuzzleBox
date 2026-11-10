@@ -37,7 +37,7 @@ class TangoGuideTest {
 
     /** A controller holding [step]'s board, guided the way the tutorial sandbox guides it. */
     private fun lesson(step: TutorialStep, won: MutableList<CompletionRecord> = mutableListOf()) =
-        TangoPlayController(env(won)).also {
+        TangoPlayController(env(won), hintMode = HintMode.Stepwise(Dispatchers.Unconfined)).also {
             assertEquals(Adopt.Adopted, it.adoptToday(step.puzzle, step.ref))
             if (step.guided) it.guide()
         }
@@ -68,7 +68,7 @@ class TangoGuideTest {
 
     @Test
     fun `a sun on every open square shows no caption and no violation while guided`() {
-        val unguided = TangoPlayController(env(mutableListOf())).apply {
+        val unguided = TangoPlayController(env(mutableListOf()), hintMode = HintMode.Stepwise(Dispatchers.Unconfined)).apply {
             adoptToday(lesson1.puzzle, lesson1.ref)
             answer.keys.forEach { onTap(it) }
         }
@@ -133,7 +133,7 @@ class TangoGuideTest {
 
     @Test
     fun `an unguided daily never shows ghosts`() {
-        val daily = TangoPlayController(env(mutableListOf())).also {
+        val daily = TangoPlayController(env(mutableListOf()), hintMode = HintMode.Stepwise(Dispatchers.Unconfined)).also {
             assertEquals(
                 Adopt.Adopted,
                 it.adoptToday(TangoPlayFixture.envelope(), TangoPlayFixture.ref(LocalDate.of(2026, 11, 4))),

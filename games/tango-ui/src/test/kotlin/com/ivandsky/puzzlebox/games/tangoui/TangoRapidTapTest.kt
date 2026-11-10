@@ -43,6 +43,7 @@ class TangoRapidTapTest {
 
     private val controller = TangoPlayController(
         PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), onSessionChanged = {}, onWon = {}),
+        hintMode = HintMode.Stepwise(Dispatchers.Unconfined),
     ).also {
         assertEquals(Adopt.Adopted, it.adoptToday(TangoPlayFixture.envelope(), TangoPlayFixture.ref(LocalDate.parse("2026-11-09"))))
     }

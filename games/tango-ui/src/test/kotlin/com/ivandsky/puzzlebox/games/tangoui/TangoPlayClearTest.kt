@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -30,7 +31,10 @@ class TangoPlayClearTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val controller = TangoPlayController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {})).also {
+    private val controller = TangoPlayController(
+        PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}),
+        hintMode = HintMode.Stepwise(Dispatchers.Unconfined),
+    ).also {
         check(it.adoptToday(TangoPlayFixture.envelope(), TangoPlayFixture.ref(LocalDate.of(2026, 10, 31))) == Adopt.Adopted)
     }
 

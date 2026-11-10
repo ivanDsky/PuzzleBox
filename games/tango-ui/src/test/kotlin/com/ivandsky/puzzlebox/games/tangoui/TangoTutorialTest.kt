@@ -45,6 +45,7 @@ class TangoTutorialTest {
 
     private fun controller(won: MutableList<CompletionRecord> = mutableListOf()) = TangoPlayController(
         env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), onSessionChanged = {}, onWon = { won += it }),
+        hintMode = HintMode.Stepwise(Dispatchers.Unconfined),
     )
 
     /** A controller that adopted [step]'s board, and guides it if the step is guided, the way the tutorial sandbox does. */

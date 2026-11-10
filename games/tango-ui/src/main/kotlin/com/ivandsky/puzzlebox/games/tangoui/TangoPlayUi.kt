@@ -154,7 +154,6 @@ private fun TangoBoard(controller: TangoPlayController, paneCap: Dp?, modifier: 
     val model = remember(
         controller,
         controller.session,
-        controller.hintCell,
         controller.lastRejection,
         controller.suppressedSets,
         controller.guidance.answer,

@@ -24,7 +24,6 @@ import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
-import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoMove
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
@@ -59,16 +58,12 @@ import java.time.Instant
 class TangoPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
-    internal val hintMode: HintMode = HintMode.Legacy,
+    internal val hintMode: HintMode.Stepwise,
     solve: (TangoPuzzle) -> List<TangoCell>? = { TangoStepGame.boundedSolution(it) },
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     var session by mutableStateOf<TangoSession?>(null)
         private set
-    val hintCell: Int? get() = legacyHint.cell
-
-    /** The last hint's WHY (§6 hint caption — the reveal names the deduction class). */
-    val hintWhy: TangoHint.Why? get() = legacyHint.why
     var lastRejection by mutableStateOf<TangoVerdict.Rejected?>(null)
         private set
 
@@ -79,15 +74,12 @@ class TangoPlayController(
 
     private val clock = TangoRunClock(now)
     private val settle = TangoSettle(env.scope)
-    private val legacyHint = TangoLegacyHint()
 
-    // HintParity (A1, A9, A10): reset per play, never rebuilt, so the solution memo survives; null in Legacy mode.
-    private val stepHints = (hintMode as? HintMode.Stepwise)?.let {
-        tangoStepHints(it, env.scope, { session }, count = ::updateSession, solve = solve)
-    }
+    // HintParity (A1, A9, A10): reset per play, never rebuilt, so the solution memo survives.
+    private val stepHints = tangoStepHints(hintMode, env.scope, { session }, count = ::updateSession, solve = solve)
 
-    /** The Stepwise hint on screen; null in Legacy mode and after any input. */
-    val spotlight: Spotlight? get() = stepHints?.spotlight
+    /** The Stepwise hint on screen; null after any input. */
+    val spotlight: Spotlight? get() = stepHints.spotlight
 
     //region input (placements land; violations are state-driven, §6)
 
@@ -105,8 +97,7 @@ class TangoPlayController(
 
     fun onPlacement(placement: TangoPlacement) {
         lastRejection = null // next input clears the violation verdict (Zip hintArrow discipline)
-        legacyHint.clear()
-        stepHints?.inputMade()
+        stepHints.inputMade()
         settle.arm()
         val current = session ?: return
         if (current.isComplete) return
@@ -151,7 +142,7 @@ class TangoPlayController(
      */
     private fun stepHistory(step: (TangoSession) -> TangoSession) {
         val current = session ?: return
-        stepHints?.inputMade() // any history press is input, even one with nothing to move (A10)
+        stepHints.inputMade() // any history press is input, even one with nothing to move (A10)
         val next = step(current)
         if (next == current) return // nothing to move, or the session is complete
         lastRejection = null
@@ -175,7 +166,7 @@ class TangoPlayController(
     //region adopt / restore
 
     override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt {
-        stepHints?.reset() // a new puzzle: no Spotlight, no search, no counted steps (A9, A10)
+        stepHints.reset() // a new puzzle: no Spotlight, no search, no counted steps (A9, A10)
         val tango = when (val decoded = TangoCodec.decode(puzzle.payload)) {
             is DecodeResult.Ok -> decoded.value
             is DecodeResult.Err -> return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
@@ -196,7 +187,7 @@ class TangoPlayController(
         when (val restored = TangoSessionCodec.deserialize(bytes)) {
             is DecodeResult.Ok -> {
                 val s = restored.value
-                stepHints?.reset() // a restored session is a new play (A9, A10)
+                stepHints.reset() // a restored session is a new play (A9, A10)
                 session = s
                 // The running clock is process-local (≠ session state): a restored in-progress
                 // session restarts its window now, or the timer reads frozen forever (user QA 2026-11-02).
@@ -209,13 +200,12 @@ class TangoPlayController(
 
     //endregion
 
-    /** Hint (spec hints bullet, Zip parity): the ONE counted hint; [TangoLegacyHint] auto-places the forced move. */
+    /** Hint (spec hints bullet, Zip parity): the ONE counted hint per new step; it places nothing (A1). */
     override fun requestHint() {
         val current = session ?: return
         if (current.isComplete) return
-        clock.resume() // a hint that places is play
-        stepHints?.let { it.press(); return } // Stepwise never places (A1)
-        legacyHint.resolve(current, now(), ::commit)
+        clock.resume() // a hint is play
+        stepHints.press()
     }
 
     //region timer (F2 §2: active foreground play only)
@@ -242,8 +232,8 @@ class TangoPlayController(
     //region PlayHints + PlayFeedback + PlayGuide
     override val hintsUsed: Int get() = session?.hintsUsed ?: 0
     override val hintEnabled: Boolean get() = session?.isComplete == false
-    // While a Spotlight shows its callout carries the text: one message on screen (A11).
-    override val hintCaption: String? get() = if (spotlight != null) null else session?.let(legacyHint::caption)
+    // The Spotlight's callout carries the hint text; a hint is never a caption (A11).
+    override val hintCaption: String? get() = null
     /** §6 state-driven live-grid violation (outranks [hintCaption]); placements LAND, so no [rejection]. */
     override val violation: String? get() =
         if (spotlight != null) null else rendererModel()?.let(TangoSemantics::firstViolationPhrase)
@@ -255,11 +245,10 @@ class TangoPlayController(
      *  cleared and a fresh clock window open — the next win is a new transition and emits again. */
     override fun replay() {
         val current = session ?: return
-        legacyHint.clear()
         lastRejection = null
         clock.start()
         commit(TangoSession(ref = current.ref, puzzle = current.puzzle)) // drops the old play's search
-        stepHints?.reset() // a fresh play forgets counted steps but keeps the solution memo
+        stepHints.reset() // a fresh play forgets counted steps but keeps the solution memo
     }
 
     //region derived + persistence
@@ -267,13 +256,12 @@ class TangoPlayController(
     /** The renderer model the board draws — built here (F2: the state→model call site). */
     fun rendererModel(): TangoRendererModel? {
         val current = session ?: return null
-        // The hint rides the renderer model for the cell highlight (§7 HintReveal).
         return TangoRendererModel.of(
             TangoState(current.puzzle, current.grid()),
-            hint = legacyHint.forced(current),
+            hint = null,
             verdict = lastRejection,
             suppressedSets = suppressedSets,
-        ).copy(hintWhy = null).let(guidance::apply)
+        ).let(guidance::apply)
     }
 
     /** Versioned session bytes (A19/F2 §2) — what [PlayEnvironment.onSessionChanged] receives. */
@@ -284,8 +272,7 @@ class TangoPlayController(
     //region internals
 
     private fun commit(next: TangoSession) {
-        legacyHint.clear()
-        stepHints?.inputMade()
+        stepHints.inputMade()
         updateSession(next)
     }
 
