@@ -170,6 +170,150 @@ class ObserveMatchTest {
         }
     }
 
+    /** The rules let a seated reader read the opponent's results once the match has closed, posted or not. */
+    private fun serverClosesTheMatch() {
+        server.now = proto.closesAt
+    }
+
+    @Test
+    fun anOpponentResultIsReadAtCloseWhenINeverPlayed() = runTest {
+        created()
+        val bobs = posts(bob.uid, 0)
+        observe().test {
+            assertEquals(listOf(LegSeen.Played, LegSeen.NotPlayed, LegSeen.NotPlayed), view().theirs)
+            advanceTimeBy(closesAtMs - 1)
+            expectNoEvents()
+            assertTrue(reads.isEmpty())
+
+            serverClosesTheMatch()
+            advanceTimeBy(2)
+            val closed = view()
+            assertEquals(listOf(LegSeen.Revealed(bobs), LegSeen.NotPlayed, LegSeen.NotPlayed), closed.theirs)
+            assertEquals(LegVerdict.Loss(LegBasis.Time), closed.outcome.legs[0])
+            assertEquals(MatchVerdict.Lost, closed.outcome.verdict)
+        }
+        assertEquals(listOf(0), reads)
+    }
+
+    @Test
+    fun anOpponentResultIsReadAtCloseWhenMyRowIsLateOrLocalOnlyOrPending() = runTest {
+        created()
+        val bobs = (0..2).map { posts(bob.uid, it) }
+        myRow(0, Late)
+        myRow(1, LocalOnly)
+        myRow(2, Pending)
+        observe().test {
+            assertEquals(List(3) { LegSeen.Played }, view().theirs)
+            assertTrue(reads.isEmpty())
+
+            serverClosesTheMatch()
+            advanceTimeBy(closesAtMs + 1)
+            assertEquals(bobs.map { LegSeen.Revealed(it) }, view().theirs)
+        }
+    }
+
+    @Test
+    fun aLegReadBeforeCloseThatCameBackMissingOrOfflineIsReadAgainAtClose() = runTest {
+        created(legCount = 2)
+        val bobs = (0..1).map { posts(bob.uid, it) }
+        myRow(0, Posted)
+        myRow(1, Posted)
+        scriptedReads[0] = ResultRead.Missing
+        scriptedReads[1] = ResultRead.Offline
+        observe().test {
+            assertEquals(List(2) { LegSeen.Played }, view().theirs)
+            scriptedReads.clear()
+            advanceTimeBy(closesAtMs + 1)
+            assertEquals(bobs.map { LegSeen.Revealed(it) }, view().theirs)
+        }
+    }
+
+    @Test
+    fun aRevealedLegIsNotReadAgainAtClose() = runTest {
+        created(legCount = 1)
+        val bobs = posts(bob.uid, 0)
+        myRow(0, Posted)
+        observe().test {
+            assertEquals(listOf(LegSeen.Revealed(bobs)), view().theirs)
+            advanceTimeBy(closesAtMs + 1)
+            assertEquals(listOf(LegSeen.Revealed(bobs)), view().theirs)
+        }
+        assertEquals(listOf(0), reads)
+    }
+
+    @Test
+    fun aReadThatIsOfflineAtCloseIsRetriedUntilTheResultArrives() = runTest {
+        created(legCount = 1)
+        val bobs = posts(bob.uid, 0)
+        scriptedReads[0] = ResultRead.Offline
+        observe().test {
+            assertEquals(listOf(LegSeen.Played), view().theirs)
+            advanceTimeBy(closesAtMs + 1)
+            assertEquals(listOf(LegSeen.Played), view().theirs)
+
+            scriptedReads.remove(0)
+            serverClosesTheMatch()
+            val retried = view()
+            assertEquals(listOf(LegSeen.Revealed(bobs)), retried.theirs)
+            assertEquals(MatchVerdict.Lost, retried.outcome.verdict)
+            expectNoEvents()
+        }
+    }
+
+    /** A device clock ahead of the server's close reads Sealed for a moment; it must not settle as a win. */
+    @Test
+    fun aSealedReadAtCloseIsRetriedUntilTheResultArrives() = runTest {
+        created(legCount = 1)
+        val bobs = posts(bob.uid, 0)
+        scriptedReads[0] = ResultRead.Sealed
+        observe().test {
+            assertEquals(listOf(LegSeen.Played), view().theirs)
+            advanceTimeBy(closesAtMs + 1)
+            assertEquals(listOf(LegSeen.Played), view().theirs)
+
+            scriptedReads.remove(0)
+            serverClosesTheMatch()
+            val retried = view()
+            assertEquals(listOf(LegSeen.Revealed(bobs)), retried.theirs)
+            assertEquals(LegVerdict.Loss(LegBasis.Time), retried.outcome.legs.single())
+            assertEquals(MatchVerdict.Lost, retried.outcome.verdict)
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun aPendingRowStopsCountingOnceTheMatchHasClosedButAPostedOneStillDoes() = runTest {
+        created(legCount = 2)
+        posts(bob.uid, 0, timeMs = 60_000)
+        posts(bob.uid, 1, timeMs = 60_000)
+        myRow(0, Pending, timeMs = 30_000)
+        myRow(1, Posted, timeMs = 30_000)
+        observe().test {
+            view()
+            serverClosesTheMatch()
+            advanceTimeBy(closesAtMs + 1)
+            val closed = view()
+            assertEquals(listOf(LegVerdict.Loss(LegBasis.Time), LegVerdict.Win(LegBasis.Time)), closed.outcome.legs)
+            assertEquals(listOf(Pending, Posted), closed.mine.map { it.state })
+        }
+    }
+
+    @Test
+    fun aMissingResultAtCloseIsNotReadForever() = runTest {
+        created(legCount = 1)
+        posts(bob.uid, 0)
+        scriptedReads[0] = ResultRead.Missing
+        observe().test {
+            view()
+            advanceTimeBy(closesAtMs + 1)
+            assertEquals(listOf(LegSeen.Played), view().theirs)
+            val readsAtClose = reads.size
+            advanceTimeBy(closesAtMs)
+            expectNoEvents()
+            assertEquals(readsAtClose, reads.size)
+        }
+    }
+
     @Test
     fun theirLegIsNotPlayedUntilTheirProgressNamesIt() = runTest {
         created(legCount = 2)
@@ -242,8 +386,8 @@ class ObserveMatchTest {
             assertEquals(listOf(Late, LocalOnly, Pending), view().mine.map { it.state })
             advanceTimeBy(closesAtMs + 1)
             val closed = view().outcome
-            assertEquals(listOf(LegVerdict.Draw, LegVerdict.Draw, LegVerdict.Win(LegBasis.Time)), closed.legs)
-            assertEquals(1, closed.myWins)
+            assertEquals(List(3) { LegVerdict.Draw }, closed.legs)
+            assertEquals(0, closed.myWins)
         }
     }
 

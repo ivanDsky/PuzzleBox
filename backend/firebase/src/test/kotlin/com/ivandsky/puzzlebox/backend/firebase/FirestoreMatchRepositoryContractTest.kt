@@ -18,14 +18,22 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.contract.MatchResultsContract
 import java.time.Instant
 import kotlin.coroutines.cancellation.CancellationException
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Duration.Companion.minutes
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
@@ -67,6 +75,10 @@ class FirestoreMatchRepositoryContractTest : MatchResultsContract() {
         val failures = HashMap<String, Exception>()
         private val raceLosses = HashMap<String, Pair<FirebaseFirestoreException.Code, suspend () -> Unit>>()
         val queuedPosts: Int get() = queued.size
+        var observeCalls = 0
+            private set
+        var observeMineCalls = 0
+            private set
 
         fun disconnect() {
             connected.value = false
@@ -177,15 +189,29 @@ class FirestoreMatchRepositoryContractTest : MatchResultsContract() {
             return SeatWrite.Done
         }
 
-        override fun observe(code: String): Flow<MatchSnapshot> = combine(matches, connected) { all, online ->
-            when {
-                !online -> MatchSnapshot.Unconfirmed
-                else -> all[code]?.let(MatchSnapshot::Doc) ?: MatchSnapshot.Absent
+        override fun observe(code: String): Flow<MatchSnapshot> = flow {
+            observeCalls++
+            failures["observe"]?.let { throw it }
+            failures["observeUnconfirmed"]?.let {
+                emit(MatchSnapshot.Unconfirmed)
+                throw it
             }
+            emitAll(
+                combine(matches, connected) { all, online ->
+                    when {
+                        !online -> MatchSnapshot.Unconfirmed
+                        else -> all[code]?.let(MatchSnapshot::Doc) ?: MatchSnapshot.Absent
+                    }
+                },
+            )
         }
 
-        override fun observeMine(uid: String): Flow<Map<String, Map<String, Any?>>> = matches.map { all ->
-            all.filterValues { uid in (it[MatchDocCodec.FIELD_PARTICIPANTS] as List<*>) }
+        override fun observeMine(uid: String): Flow<Map<String, Map<String, Any?>>> = flow {
+            observeMineCalls++
+            failures["observeMine"]?.let { throw it }
+            emitAll(
+                matches.map { all -> all.filterValues { uid in (it[MatchDocCodec.FIELD_PARTICIPANTS] as List<*>) } },
+            )
         }
 
         override suspend fun post(code: String, fields: Map<String, Any?>, uid: String, legIndex: Int) {
@@ -428,6 +454,116 @@ class FirestoreMatchRepositoryContractTest : MatchResultsContract() {
 
             assertEquals(ClaimResult.Claimed, by(BOB) { claim(code(), BOB) })
             assertEquals(listOf(match(opponent = BOB)), awaitItem())
+        }
+    }
+
+    // ----- listener errors -----
+
+    @Test
+    fun `a match listener that errors reads offline and then resubscribes to the document`() = runTest {
+        created()
+        store.failures["observe"] = FirebaseFirestoreException("dropped", FirebaseFirestoreException.Code.UNAVAILABLE)
+
+        repository.observe(code()).test {
+            assertEquals(MatchFetch.Offline, awaitItem())
+            store.failures.clear()
+            assertEquals(MatchFetch.Found(match()), awaitItem())
+            assertEquals(ClaimResult.Claimed, by(BOB) { claim(code(), BOB) })
+            assertEquals(MatchFetch.Found(match(opponent = BOB)), awaitItem())
+        }
+    }
+
+    @Test
+    fun `a match listener denied for a match I cannot read reads offline once and stops`() = runTest {
+        created()
+        store.failures["observe"] = denied()
+
+        repository.observe(code()).test {
+            assertEquals(MatchFetch.Offline, awaitItem())
+            awaitComplete()
+        }
+        assertEquals(1, store.observeCalls)
+    }
+
+    @Test
+    fun `a match listener that keeps failing retries at a bounded pace and never stops`() = runTest {
+        store.failures["observe"] = FirebaseNetworkException("down")
+
+        val seen = mutableListOf<MatchFetch>()
+        backgroundScope.launch { repository.observe(code()).toList(seen) }
+
+        advanceTimeBy(1.seconds)
+        assertTrue("resubscribed in a tight loop: ${store.observeCalls}", store.observeCalls <= 2)
+        advanceTimeBy(1.hours)
+        val afterAnHour = store.observeCalls
+        advanceTimeBy(10.minutes)
+        assertTrue("stopped resubscribing", store.observeCalls - afterAnHour >= 5)
+        assertEquals(listOf(MatchFetch.Offline), seen)
+    }
+
+    @Test
+    fun `a mine listener that errors reads null and then resubscribes to the list`() = runTest {
+        signInAs(ANN.uid)
+        created()
+        store.failures["observeMine"] = FirebaseFirestoreException("dropped", FirebaseFirestoreException.Code.UNAVAILABLE)
+
+        repository.observeMine().test {
+            assertNull(awaitItem())
+            store.failures.clear()
+            assertEquals(listOf(match()), awaitItem())
+            assertEquals(ClaimResult.Claimed, by(BOB) { claim(code(), BOB) })
+            assertEquals(listOf(match(opponent = BOB)), awaitItem())
+        }
+    }
+
+    @Test
+    fun `a mine listener denied by the rules reads null once and stops`() = runTest {
+        signInAs(ANN.uid)
+        store.failures["observeMine"] = denied()
+
+        repository.observeMine().test {
+            assertNull(awaitItem())
+            awaitComplete()
+        }
+        assertEquals(1, store.observeMineCalls)
+    }
+
+    @Test
+    fun `a mine listener that keeps failing retries at a bounded pace and never stops`() = runTest {
+        signInAs(ANN.uid)
+        store.failures["observeMine"] = FirebaseNetworkException("down")
+
+        backgroundScope.launch { repository.observeMine().collect {} }
+
+        advanceTimeBy(1.seconds)
+        assertTrue("resubscribed in a tight loop: ${store.observeMineCalls}", store.observeMineCalls <= 2)
+        advanceTimeBy(1.hours)
+        val afterAnHour = store.observeMineCalls
+        advanceTimeBy(10.minutes)
+        assertTrue("stopped resubscribing", store.observeMineCalls - afterAnHour >= 5)
+    }
+
+    @Test
+    fun `a match listener that only ever reads unconfirmed before failing keeps backing off`() = runTest {
+        store.failures["observeUnconfirmed"] = FirebaseNetworkException("down")
+
+        backgroundScope.launch { repository.observe(code()).collect {} }
+
+        advanceTimeBy(10.seconds)
+        assertTrue("wait restarted after an unconfirmed read: ${store.observeCalls}", store.observeCalls <= 5)
+    }
+
+    @Test
+    fun `a mine listener reads the signed-in user again when it resubscribes`() = runTest {
+        signInAs(ANN.uid)
+        created()
+        store.failures["observeMine"] = FirebaseFirestoreException("dropped", FirebaseFirestoreException.Code.UNAVAILABLE)
+
+        repository.observeMine().test {
+            assertNull(awaitItem())
+            signInAs(CAT.uid)
+            store.failures.clear()
+            assertEquals(emptyList<Match>(), awaitItem())
         }
     }
 
