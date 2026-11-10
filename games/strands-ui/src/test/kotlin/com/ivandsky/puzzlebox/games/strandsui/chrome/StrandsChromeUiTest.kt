@@ -47,6 +47,11 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowSystemClock
+import java.time.Duration
+import androidx.compose.runtime.CompositionLocalProvider
+import com.ivandsky.puzzlebox.gameui.HINT_COOLDOWN
+import com.ivandsky.puzzlebox.gameui.LocalHintCooldown
 
 /**
  * The chrome composables on their own (SC3 header, SC4 hint control semantics, A7 modals,
@@ -107,6 +112,25 @@ class StrandsChromeUiTest {
             .assert(hasStateDescription("2 hints available, 0 of 3 words toward the next hint"))
             .performClick()
         assertEquals(1, presses)
+    }
+
+    @Test
+    fun `under the hint cooldown a press disables the control until the wait is over (F2)`() {
+        var presses = 0
+        show {
+            CompositionLocalProvider(LocalHintCooldown provides HINT_COOLDOWN) {
+                StrandsHintControl(HintUi(count = 0, meterThirds = 1), onHint = { presses++ }, reduceMotion = true)
+            }
+        }
+        rule.mainClock.autoAdvance = false
+        rule.onNodeWithTag("strands.hint").performClick()
+        rule.mainClock.advanceTimeByFrame()
+        rule.onNodeWithTag("strands.hint").assertIsNotEnabled().performClick()
+        assertEquals(1, presses)
+        ShadowSystemClock.advanceBy(Duration.ofMillis(5_100))
+        rule.mainClock.advanceTimeBy(5_100)
+        rule.onNodeWithTag("strands.hint").assertIsEnabled().performClick()
+        assertEquals(2, presses)
     }
 
     @Test
