@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
 import com.ivandsky.puzzlebox.games.tangoui.TangoPlacement
@@ -55,7 +56,7 @@ class TangoCompeteLoopTest {
     private var fakeNow: Instant = Instant.parse("2026-10-31T00:00:00Z")
 
     /** The real Tango play UI with the controller's clock pinned to [fakeNow]. */
-    private val tangoUi = object : GamePlayUi by TangoPlayUi() {
+    private val tangoUi = object : GamePlayUi by TangoPlayUi(HintMode.Stepwise(Dispatchers.Unconfined)) {
         override fun createController(env: PlayEnvironment): GamePlayController =
             TangoPlayController(env, now = { fakeNow })
     }

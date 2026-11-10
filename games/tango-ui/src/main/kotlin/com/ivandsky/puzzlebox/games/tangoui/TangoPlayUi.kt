@@ -29,18 +29,17 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
-import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.model.GameId
 
 /** Tango's one play registration (ADR-0001): its controller, its board and its play screen. */
-class TangoPlayUi(private val hintMode: HintModeSource = HintModeSource { HintMode.Legacy }) : GamePlayUi {
+class TangoPlayUi(private val hintMode: HintMode.Stepwise) : GamePlayUi {
     override val gameId: GameId get() = TangoDefinition.id
 
     override val brand: GameBrand get() = TangoBrand
 
     override fun createController(env: PlayEnvironment): GamePlayController =
-        TangoPlayController(env, hintMode = hintMode.current())
+        TangoPlayController(env, hintMode = hintMode)
 
     /** Clear wipes the player's cells as one undo unit; always enabled (an empty or solved board ignores it). */
     override fun clearFor(controller: GamePlayController): PlayClear = tangoClear(controller as TangoPlayController)

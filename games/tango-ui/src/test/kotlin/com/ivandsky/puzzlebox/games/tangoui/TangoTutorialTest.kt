@@ -11,9 +11,11 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -54,7 +56,7 @@ class TangoTutorialTest {
 
     @Test
     fun `the play registration ships four lessons`() {
-        assertSame(steps, TangoPlayUi().tutorial)
+        assertSame(steps, TangoPlayUi(HintMode.Stepwise(UnconfinedTestDispatcher())).tutorial)
         assertEquals(4, steps.size)
         assertEquals(steps.size, taps.size)
     }

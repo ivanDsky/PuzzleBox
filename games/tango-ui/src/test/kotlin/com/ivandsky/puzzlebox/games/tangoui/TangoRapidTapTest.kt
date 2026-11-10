@@ -10,9 +10,11 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -48,7 +50,7 @@ class TangoRapidTapTest {
     private fun showBoard() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                TangoPlayUi().Board(controller, Modifier.fillMaxWidth())
+                TangoPlayUi(HintMode.Stepwise(UnconfinedTestDispatcher())).Board(controller, Modifier.fillMaxWidth())
             }
         }
         composeRule.waitForIdle()
