@@ -1,7 +1,12 @@
 package com.ivandsky.puzzlebox.compete.tab
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -41,19 +46,22 @@ internal fun InvitedRow(
         onClick = onClick,
         modifier = modifier.testTag("duel.invited"),
         avatar = { PlayerAvatar(name, row.opponent?.photoUrl, size = AvatarSize, tone = DuelTone.Them) },
-        trailing = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        below = {
+            Row(
+                modifier = Modifier.padding(top = Spacing.sm).fillMaxWidth().height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
                 PrimaryButton(
                     text = "Accept",
                     onClick = onAccept,
                     enabled = !inFlight,
-                    modifier = Modifier.testTag("duel.invited.accept"),
+                    modifier = Modifier.weight(1f).fillMaxHeight().testTag("duel.invited.accept"),
                 )
                 SecondaryButton(
                     text = "Decline",
                     onClick = onDecline,
                     enabled = !inFlight,
-                    modifier = Modifier.testTag("duel.invited.decline"),
+                    modifier = Modifier.weight(1f).fillMaxHeight().testTag("duel.invited.decline"),
                 )
             }
         },
