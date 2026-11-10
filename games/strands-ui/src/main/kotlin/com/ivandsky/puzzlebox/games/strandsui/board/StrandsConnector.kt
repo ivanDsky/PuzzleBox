@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.CacheDrawScope
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.ClipOp
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -111,7 +110,7 @@ private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry
             Path().apply {
                 link.cells.forEach { cell ->
                     val c = geometry.centerOf(GridCell(cell.row, cell.col))
-                    addRect(Rect(c.x - tokenRadius, c.y - tokenRadius, c.x + tokenRadius, c.y + tokenRadius))
+                    addToken(c, tokenRadius)
                 }
             }
         }
