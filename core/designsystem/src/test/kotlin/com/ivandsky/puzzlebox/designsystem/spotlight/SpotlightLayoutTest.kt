@@ -16,6 +16,10 @@ class SpotlightLayoutTest {
     private fun spotlight(rows: Int, cols: Int, roles: Map<Int, SpotlightRole>, anchor: Set<Int>? = null) =
         Spotlight(rows, cols, roles, anchor?.let { SpotlightCallout("Step: text.", it) }, glyphs, playId = 0)
 
+    private fun Spotlight.hairlineEdges() = hairlineEdges(litCells())
+
+    private fun Spotlight.calloutPlacement(size: Size, height: Float) = calloutPlacement(litCells(), size, height)
+
     private fun Spotlight.callout(size: Size, height: Float): Pair<CalloutPlacement, Rect> {
         val placement = checkNotNull(calloutPlacement(size, height))
         return placement to Rect(0f, placement.top, size.width, placement.top + height)

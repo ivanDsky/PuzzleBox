@@ -38,9 +38,8 @@ internal fun cellRect(cell: Int, rows: Int, cols: Int, size: Size): Rect {
     return Rect(col * w, row * h, (col + 1) * w, (row + 1) * h)
 }
 
-/** The outer boundary of the lit set as unit edges; none on a culprit step (A14). */
-internal fun Spotlight.hairlineEdges(): List<GridEdge> {
-    val lit = litCells()
+/** The outer boundary of [lit] (see [litCells]) as unit edges; none on a culprit step (A14). */
+internal fun Spotlight.hairlineEdges(lit: Set<Int>): List<GridEdge> {
     if (lit.any { roles[it] == SpotlightRole.CULPRIT }) return emptyList()
     fun isLit(row: Int, col: Int) = row in 0 until rows && col in 0 until cols && row * cols + col in lit
     return buildList {
@@ -61,9 +60,8 @@ internal fun Spotlight.hairlineEdges(): List<GridEdge> {
  * evidence, target, culprit and anchor cells weighted far ahead of excluded ones (prototype 07 `placeCallout`).
  * Null when there is no callout or nothing is lit.
  */
-internal fun Spotlight.calloutPlacement(size: Size, height: Float): CalloutPlacement? {
+internal fun Spotlight.calloutPlacement(lit: Set<Int>, size: Size, height: Float): CalloutPlacement? {
     val callout = callout ?: return null
-    val lit = litCells()
     if (lit.isEmpty()) return null
     val cellH = size.height / rows
     val anchor = callout.anchor.filter { it in 0 until cellCount }.ifEmpty { lit.toList() }

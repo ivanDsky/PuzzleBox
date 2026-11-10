@@ -20,8 +20,8 @@ import kotlin.math.min
  * Scale in staggered, the callout Scale in, then one Pulse on a TARGET or CULPRIT. A step with neither (an
  * elimination) has no Pulse and ends as soon as its marks and callout have settled. Never longer than TOTAL_MS.
  */
-internal class SpotlightSequence(spotlight: Spotlight) {
-    private val onBoard: List<SpotlightRole> = spotlight.litCells().map(spotlight.roles::getValue)
+internal class SpotlightSequence(spotlight: Spotlight, lit: Set<Int>) {
+    private val onBoard: List<SpotlightRole> = lit.map(spotlight.roles::getValue)
 
     val pulses: Boolean = onBoard.any { it == SpotlightRole.TARGET || it == SpotlightRole.CULPRIT }
 
