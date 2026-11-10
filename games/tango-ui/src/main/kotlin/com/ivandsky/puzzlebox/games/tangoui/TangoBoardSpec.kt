@@ -81,7 +81,7 @@ object TangoBoardSpec {
     /** Editor press wash over the square or edge under the finger. */
     const val editPressWashAlpha: Float = 0.18f
 
-    /** Editor "2+ solutions" shade over the cells two answers disagree on; never the hint tint. */
+    /** Editor "2+ solutions" shade over the cells two answers disagree on. */
     const val editDifferAlpha: Float = 0.28f
 
     /** Editor clash ring weight, fraction of the cell. */
