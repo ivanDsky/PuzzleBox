@@ -175,8 +175,11 @@ class StrandsBoardGestureTest {
             val start = centreOf(Coord(0, 0)) + beside
             down(start)
             var at = start
-            for (i in 0 until 90) {
-                val heading = Math.toRadians(45.0 + 20.0 * sin(i * 0.7))
+            // Sweep on until the finger's progress along the diagonal reaches the far letter's centre.
+            val far = centreOf(Coord(3, 3))
+            var i = 0
+            while (at.x + at.y < far.x + far.y) {
+                val heading = Math.toRadians(45.0 + 20.0 * sin(i++ * 0.7))
                 at += Offset(cos(heading).toFloat(), sin(heading).toFloat()) * (pitch * 0.05f)
                 moveTo(at)
             }

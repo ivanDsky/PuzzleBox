@@ -53,9 +53,10 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
  * under the line ([StrandsIdleTiles]), and the live trace over them, its cells as trace
  * tokens. Touch is the play board's: a drag or taps trace cells, a lift commits the
  * path ([StrandsEditorController.endTrace]); a tap on a traced cell or its chip selects that
- * path, which keeps its word look while everything else fades ([dimOf]), whose ends
- * a drag from one shortens or extends it ([StrandsEndDrag]); uncovered areas too small
- * for a word get a dashed outline (`strands.editor.cell.<idx>.pocket`). The [verdict] and the card's witness choice
+ * path, which keeps its word look while everything else fades ([dimOf]); its ends are
+ * draggable without a mark, and a drag from one shortens or extends it ([StrandsEndDrag]).
+ * Uncovered areas too small for a word get a dashed outline (`strands.editor.cell.<idx>.pocket`).
+ * The [verdict] and the card's witness choice
  * ([StrandsEditorController.overlay]) are drawn by [StrandsDiagnosticsLayer]. The trace takes
  * any drag on the grid, so nothing scrolls it: with [withTools] (the phone Studio) the whole
  * grid fits the slot, below the touch floor if it must, the word field under it while the slot

@@ -8,6 +8,7 @@ import kotlin.math.cos
 import kotlin.math.floor
 import kotlin.math.sin
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -21,6 +22,15 @@ class StrandsTraceWalkTest {
 
     private val rows = 8
     private val cols = 6
+
+    @Test
+    fun `neighbouring heart squares never overlap, so the walk's first hit is the only hit`() {
+        // Letters sit one pitch apart; two squares of half side h about adjacent centres overlap once 2h > 1.
+        assertTrue(
+            "HeartHalf ${StrandsBoardSpec.HeartHalf} would let heartOf pick by iteration order",
+            2 * StrandsBoardSpec.HeartHalf <= 1f,
+        )
+    }
 
     @Test
     fun `a wobbly diagonal joins only the diagonal letters, on and off the centre line`() {
