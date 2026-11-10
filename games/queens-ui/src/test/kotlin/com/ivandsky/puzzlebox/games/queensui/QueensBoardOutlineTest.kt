@@ -2,8 +2,8 @@ package com.ivandsky.puzzlebox.games.queensui
 
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.Canvas
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.unit.Density
@@ -42,5 +42,11 @@ class QueensBoardOutlineTest {
         assertEquals(1f, pixels[100, 1].alpha, 0.01f)
         assertEquals(1f, pixels[198, 100].alpha, 0.01f)
         assertEquals(1f, pixels[100, 198].alpha, 0.01f)
+        // The frame is exactly 1.5dp = 3px: the pixel just inside it, mid-cell so no lattice
+        // line crosses it, is still bare board.
+        assertEquals(0f, pixels[3, 75].alpha, 0.01f)
+        assertEquals(0f, pixels[75, 3].alpha, 0.01f)
+        assertEquals(0f, pixels[196, 75].alpha, 0.01f)
+        assertEquals(0f, pixels[75, 196].alpha, 0.01f)
     }
 }
