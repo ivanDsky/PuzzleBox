@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -86,6 +87,19 @@ class QueensBoardStateTest {
         assertTrue(state.hintCaption != null)
         state.undo()
         assertNull(state.hintCaption)
+    }
+
+    @Test
+    fun `a drag over an existing mark leaves the legacy hint showing`() {
+        val state = fresh()
+        state.onTap(0)
+        state.requestHint()
+        val shown = state.hint
+        assertNotNull(shown)
+
+        state.onDragCell(0)
+
+        assertEquals(shown, state.hint)
     }
 
     @Test
