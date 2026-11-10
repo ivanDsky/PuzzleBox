@@ -7,5 +7,5 @@ import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 
 /** The violating cell-sets of a grid, via the shared scan (no suppression applied). */
 internal fun violatingSets(puzzle: TangoPuzzle, grid: List<TangoCell?>): Set<Set<Int>> =
-    TangoSemantics.violations(TangoRendererModel.of(state = TangoState(puzzle, grid), hint = null))
+    TangoSemantics.violations(TangoRendererModel.of(state = TangoState(puzzle, grid)))
         .mapTo(mutableSetOf()) { it.cells }

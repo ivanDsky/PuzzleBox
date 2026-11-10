@@ -1,12 +1,10 @@
 package com.ivandsky.puzzlebox.games.tango.render
 
-import com.ivandsky.puzzlebox.game.Hint
 import com.ivandsky.puzzlebox.game.MoveVerdict
 import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
-import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
@@ -24,9 +22,6 @@ data class TangoRendererModel(
     val markers: List<MarkerRender>,
     val rejection: RejectedMove?,
     val status: Status,
-    /** Hint reveal payload (§7 HintReveal): highlight cell + WHY for the caption slot. */
-    val hintCell: Int? = null,
-    val hintWhy: TangoHint.Why? = null,
     /** Cell-sets of violations NEWLY introduced by the last placement, hidden until
      *  0.5 s after the last touch (user QA 2026-11-02). Pre-existing violations are
      *  never suppressed — an unfixed error only leaves when the grid fixes it. */
@@ -59,12 +54,10 @@ data class TangoRendererModel(
 
         fun of(
             state: TangoState,
-            hint: Hint?,
             verdict: MoveVerdict? = null,
             suppressedSets: Set<Set<Int>> = emptySet(),
         ): TangoRendererModel {
             val merged = state.grid
-            val forced = hint as? TangoHint.Forced
             return TangoRendererModel(
                 n = state.puzzle.n,
                 cells = merged.withIndex().map { (idx, value) ->
@@ -79,8 +72,6 @@ data class TangoRendererModel(
                     merged.withIndex().all { (idx, value) -> state.puzzle.isGiven(idx) || value == null } -> Status.IDLE
                     else -> Status.PLAYING
                 },
-                hintCell = forced?.idx,
-                hintWhy = forced?.why,
                 suppressedSets = suppressedSets,
             )
         }
