@@ -30,9 +30,6 @@ class QueensBoardOutlineTest {
             visuals = List(n * n) { QueensCellVisual.EMPTY },
             queens = emptyList(),
             violations = emptySet(),
-            hintRegion = null,
-            hintCells = emptySet(),
-            hintCell = null,
             win = false,
         )
         val bitmap = ImageBitmap(200, 200)

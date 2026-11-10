@@ -54,7 +54,7 @@ class QueensMotionTest {
 
     @Test
     fun `a placement pops the queen in and its clean region pulses`() {
-        val state = QueensBoardState(QueensUiFixtures.session())
+        val state = QueensPlayFixtures.boardState(QueensUiFixtures.session())
         val motion = host(state)
 
         commit { state.place(1) }
@@ -76,7 +76,7 @@ class QueensMotionTest {
 
     @Test
     fun `a clashing queen shakes with its rival and nothing pulses`() {
-        val state = QueensBoardState(QueensUiFixtures.session())
+        val state = QueensPlayFixtures.boardState(QueensUiFixtures.session())
         val motion = host(state)
         commit { state.place(1) }
         composeRule.mainClock.advanceTimeBy(1_000)
@@ -96,7 +96,7 @@ class QueensMotionTest {
     fun `the board as first seen and a cross tap play nothing`() {
         var restored = QueensSession(ref = null, puzzle = QueensUiFixtures.puzzle())
         restored = restored.withQueenPlaced(Cell(1), QueensUiFixtures.T0)
-        val state = QueensBoardState(restored)
+        val state = QueensPlayFixtures.boardState(restored)
         val motion = host(state)
         composeRule.runOnIdle {
             assertEquals(1f, motion().scaleOf(1))
@@ -113,7 +113,7 @@ class QueensMotionTest {
 
     @Test
     fun `a live solve fades the crosses out, then pulses the queens in placement order`() {
-        val state = QueensBoardState(QueensUiFixtures.session())
+        val state = QueensPlayFixtures.boardState(QueensUiFixtures.session())
         val motion = host(state)
         commit { listOf(1, 7, 8).forEach { state.place(it) } }
         composeRule.mainClock.advanceTimeBy(1_000)
@@ -155,7 +155,7 @@ class QueensMotionTest {
 
     @Test
     fun `queen taps buzz heavy, a cross tap ticks light, a no-op is silent`() {
-        val state = QueensBoardState(QueensUiFixtures.session())
+        val state = QueensPlayFixtures.boardState(QueensUiFixtures.session())
         var before = state.session
         state.onTap(0)
         assertEquals(HapticFeedbackType.TextHandleMove, state.tapHaptic(before))

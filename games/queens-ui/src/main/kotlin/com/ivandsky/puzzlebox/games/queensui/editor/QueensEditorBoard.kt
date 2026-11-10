@@ -208,16 +208,13 @@ private fun DrawScope.drawSelection(selection: Set<Int>, n: Int, accent: Color) 
 private fun describe(region: Int): String =
     if (region == QueensDraft.UNPAINTED) UNPAINTED_DESCRIPTION else QueensRegionPalette.hueName(region)
 
-/** A draft has no queens, marks or hints: only the regions reach the play board's model. */
+/** A draft has no queens or marks: only the regions reach the play board's model. */
 private fun modelOf(board: QueensDraft): QueensBoardModel = QueensBoardModel(
     n = board.size,
     regions = board.regions,
     visuals = List(board.size * board.size) { QueensCellVisual.EMPTY },
     queens = emptyList(),
     violations = emptySet(),
-    hintRegion = null,
-    hintCells = emptySet(),
-    hintCell = null,
     win = false,
 )
 

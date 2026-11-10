@@ -43,8 +43,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Pins the Stepwise wiring through the controller (ticket 28): a press shows a Spotlight and never reaches the legacy
- * region pulse or crown ghost (A1, A15), counts once into the saved session (A9), marks a wrong queen or cross and
+ * Pins the Stepwise wiring through the controller (ticket 28): a press shows a Spotlight and places nothing (A1),
+ * counts once into the saved session (A9), marks a wrong queen or cross and
  * re-shows it for free without touching the board (A4), clears on every board input (A10), hides the rule-conflict
  * line while it shows (A11), and the board draws it over the cell grid without taking taps. The press rules
  * themselves are StepHints' (04b), the step is QueensStepGame's (27).
@@ -84,15 +84,13 @@ class QueensStepwiseHintTest {
     // Press (A1, A9, A15)
 
     @Test
-    fun `a press shows a spotlight, never the legacy hint, and counts once into the saved session`() {
+    fun `a press shows a spotlight, changes no cell, and counts once into the saved session`() {
         val c = stepwise()
         val board = c.state.session.board
 
         c.requestHint()
 
         assertNotNull(c.state.spotlight)
-        assertNull(c.state.hint)
-        assertFalse(c.state.hintPointed)
         assertEquals(board, c.state.session.board)
         assertFalse(c.canUndo)
         assertEquals(1, c.hintsUsed)
@@ -119,7 +117,7 @@ class QueensStepwiseHintTest {
     }
 
     @Test
-    fun `re-pressing the same step is free and never escalates to the crown ghost`() {
+    fun `re-pressing the same step is free`() {
         val c = stepwise()
         c.requestHint()
 
@@ -127,8 +125,6 @@ class QueensStepwiseHintTest {
         c.requestHint()
 
         assertNotNull(c.state.spotlight)
-        assertNull(c.state.hint)
-        assertFalse(c.state.hintPointed)
         assertEquals(1, c.hintsUsed)
     }
 
@@ -335,7 +331,6 @@ class QueensStepwiseHintTest {
 
         controller.requestHint()
         assertNotNull(controller.state.spotlight)
-        assertNull(controller.state.hint)
     }
 
     // Overlay

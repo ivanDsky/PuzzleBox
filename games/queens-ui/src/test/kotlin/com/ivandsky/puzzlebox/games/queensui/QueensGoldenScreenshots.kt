@@ -69,7 +69,7 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
         session: QueensSession,
         controls: Boolean = false,
     ) {
-        val state = QueensBoardState(initialSession = session)
+        val state = QueensPlayFixtures.boardState(session)
         // Deterministic captures: the board's reduced-motion path (§5) snaps every
         // entrance to its end state — identical pixels, no mid-pop race in the bitmap.
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
@@ -112,11 +112,6 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
                     ) {
                         androidx.compose.foundation.layout.Column {
                             QueensPlayBoard(state, Modifier.size(side))
-                            if (controls) {
-                                // Clear and Auto-cross are core chrome now (action bar,
-                                // overflow); the hint caption stays in the capture.
-                                state.hintCaption?.let { androidx.compose.material3.Text(it) }
-                            }
                         }
                     }
                 }

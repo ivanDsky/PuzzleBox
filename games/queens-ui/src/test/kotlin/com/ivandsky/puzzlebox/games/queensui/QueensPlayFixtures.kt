@@ -1,16 +1,20 @@
 package com.ivandsky.puzzlebox.games.queensui
 
+import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
+import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 
 /** Deterministic 8×8 fixture (queens-10 wiring tests): [solution] is the only layout of [puzzle], so the stepper judges
@@ -53,7 +57,24 @@ object QueensPlayFixtures {
     /** Today's resolved record identity (#42). */
     fun ref(): QueensPuzzleRef = QueensPuzzleRef(PuzzleKey.Daily(today(), 42))
 
-    /** The play registration as a release wires it: Stepwise hints, computed on the calling thread. */
-    fun playUi(settings: QueensSettings = InMemoryQueensSettings()): QueensPlayUi =
-        QueensPlayUi(settings, HintMode.Stepwise(Dispatchers.Unconfined))
+    /** The hint mode a release builds: Stepwise, computed on the calling thread. */
+    val hintMode = HintMode.Stepwise(Dispatchers.Unconfined)
+
+    /** The play registration as a release wires it. */
+    fun playUi(settings: QueensSettings = InMemoryQueensSettings()): QueensPlayUi = QueensPlayUi(settings, hintMode)
+
+    /** A board state as a release builds it: Stepwise hints on an unconfined scope. */
+    fun boardState(
+        session: QueensSession,
+        score: ScoreModel<QueensSession>? = null,
+        onWinRecord: (CompletionRecord) -> Unit = {},
+        settle: (QueensSession) -> QueensSession = { it },
+    ) = QueensBoardState(
+        initialSession = session,
+        score = score,
+        onWinRecord = onWinRecord,
+        settle = settle,
+        mode = hintMode,
+        scope = CoroutineScope(Dispatchers.Unconfined),
+    )
 }

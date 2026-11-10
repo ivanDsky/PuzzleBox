@@ -59,6 +59,7 @@ class QueensTutorialTest {
     private fun controller(won: MutableList<CompletionRecord> = mutableListOf()) = QueensPlayController(
         env = PlayEnvironment(scope, onSessionChanged = {}, onWon = { won += it }),
         settings = null,
+        hintMode = QueensPlayFixtures.hintMode,
     )
 
     private fun adopted(step: TutorialStep, won: MutableList<CompletionRecord> = mutableListOf()) =
@@ -72,7 +73,7 @@ class QueensTutorialTest {
 
     /** The board model the screen draws right now (guide included). */
     private val QueensPlayController.model: QueensBoardModel
-        get() = board!!.let { QueensBoardModel.of(it.session, it.hint, it.hintPointed, it.guide) }
+        get() = board!!.let { QueensBoardModel.of(it.session, it.guide) }
 
     /** Answers to [puzzle] under the row, column and color rules only (the touch rule off). */
     private fun answersWithoutTouch(puzzle: QueensPuzzle): Int {
@@ -166,7 +167,7 @@ class QueensTutorialTest {
     private fun assertClean(s: QueensPlayController, at: String) {
         val session = s.board!!.session
         assertFalse(at, QueensRules.evaluate(session.puzzle, session.queens.toSet()) is QueensRulesVerdict.Invalid)
-        assertTrue(at, QueensBoardModel.of(session, s.board!!.hint, s.board!!.hintPointed).violations.isEmpty())
+        assertTrue(at, QueensBoardModel.of(session).violations.isEmpty())
         assertNoRuleShown(s, at)
     }
 
