@@ -41,7 +41,7 @@ class SudokuPlayController(
     hintMode: HintMode = HintMode.Legacy,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
-    /** The hint path every board this controller builds runs (ticket 34); CLASSIC always gets Legacy (A24). */
+    /** The hint path every board this controller builds runs (ticket 34). The caller picks it: Classic's registration passes no source, so it stays Legacy (A24). */
     internal val hintMode: HintMode = hintMode
 
     /** The two board tints; true until the player switches one off in the ⋮ menu. */
@@ -127,18 +127,22 @@ class SudokuPlayController(
         openWindow()
     }
 
-    private fun boardFor(session: SudokuSession) = SudokuBoardState(
-        initialSession = session,
-        score = score,
-        onWinRecord = env.onWon,
-        now = now,
-        onSessionChanged = ::publish,
-        settle = ::settle,
-        hintMode = hintMode,
-        scope = env.scope,
-        peerHighlight = { peerHighlight },
-        sameDigitHighlight = { sameDigitHighlight },
-    )
+    /** A fresh holder per board; the old one's search in flight is dropped first, so it can neither show nor save over the new session. */
+    private fun boardFor(session: SudokuSession): SudokuBoardState {
+        board?.stepHints?.reset()
+        return SudokuBoardState(
+            initialSession = session,
+            score = score,
+            onWinRecord = env.onWon,
+            now = now,
+            onSessionChanged = ::publish,
+            settle = ::settle,
+            hintMode = hintMode,
+            scope = env.scope,
+            peerHighlight = { peerHighlight },
+            sameDigitHighlight = { sameDigitHighlight },
+        )
+    }
 
     private fun publish(s: SudokuSession) {
         env.onSessionChanged(SudokuSessionCodec.serialize(s))
