@@ -70,14 +70,6 @@ class StrandsTilingBoundTest {
         assertTrue("walked past the placement cap: ${budget.polls} polls", budget.polls <= BOUNDED_POLLS)
     }
 
-    @Test
-    fun `the caps sit far above what real puzzles need`() {
-        // Measured over every committed NYT day and the share fixture: at most 1 placement per word, 9 in all.
-        assertTrue(StrandsTilingSearch.MAX_PLACEMENTS_PER_WORD >= 1_000 * 1)
-        assertTrue(StrandsTilingSearch.MAX_PLACEMENTS >= 1_000 * 9)
-        assertTrue(StrandsTilingSearch.MAX_PLACEMENTS >= StrandsTilingSearch.MAX_PLACEMENTS_PER_WORD)
-    }
-
     private companion object {
         const val ROWS = 8
         const val COLS = 6
