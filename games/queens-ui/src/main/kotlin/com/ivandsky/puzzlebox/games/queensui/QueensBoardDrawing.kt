@@ -16,7 +16,7 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
  * hairline on every interior cell edge in low-alpha ink, a full-contrast
  * [QueensBoardDefaults.regionBorderWeight] stroke on every interior edge
  * between two different regions so region shapes read, and the
- * board outline in full ink at [QueensBoardDefaults.regionBorderWeight] (the Tango/Zip frame weight).
+ * board outline in full ink at [QueensBoardDefaults.regionBorderWeight] (the core board grid line weight, 1.5dp; Tango's frame is twice that).
  * The [drawRegionTexture] dots go down first, so the lattice and borders stay on top.
  */
 internal fun DrawScope.drawCellEdges(model: QueensBoardModel, ink: Color) {
