@@ -4,7 +4,7 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.codec.QueensWireParser
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.LineLockRung
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.PigeonholeRung

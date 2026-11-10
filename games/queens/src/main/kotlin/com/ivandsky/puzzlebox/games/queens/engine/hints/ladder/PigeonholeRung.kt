@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
 /**
  * Third rung: k ≥ 2 regions whose open cells lie in k rows (or columns) take those lines'
@@ -76,7 +75,7 @@ object PigeonholeRung : QueensRung {
             if (lines.sumOf { candidates.missing(puzzle, targets[it]) } != need) continue
             val cells = lines.flatMap { targets[it] }.filter { candidates.isOpen(it) && it !in inside }.toSet()
             if (cells.isNotEmpty()) {
-                val deduction = QueensDeduction.Exclude(this, HintReason(kind, lines.first(), this), cells)
+                val deduction = QueensDeduction.Exclude(HintReason(kind, lines.first(), this), cells)
                 found += Found(deduction) { chosen.flatten().filter(candidates::isOpen).toSet() }
             }
         }

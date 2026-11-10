@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
 /**
  * Second rung (spec A9): a region whose open cells all lie in one row (or column) owes
@@ -41,7 +40,7 @@ object LineLockRung : QueensRung {
             val lineOf: (Int) -> Int = { QueensUnits.indexOf(puzzle, kind, it) }
             val lines = QueensUnits.cells(puzzle, kind)
             fun lock(line: Int, cells: Set<Int>, evidence: List<Int>) {
-                if (cells.isNotEmpty()) found += Found(QueensDeduction.Exclude(this, HintReason(kind, line, this), cells)) { evidence.toSet() }
+                if (cells.isNotEmpty()) found += Found(QueensDeduction.Exclude(HintReason(kind, line, this), cells)) { evidence.toSet() }
             }
             // A region locked into one line closes the rest of that line …
             regions.forEachIndexed { region, cells ->

@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.games.queensui.hint
 
 import com.ivandsky.puzzlebox.games.queens.Cell
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensLadder
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep.Deduction.Result
@@ -14,7 +14,7 @@ import org.junit.Test
 class QueensStepCopyTest {
 
     private val deductions: List<QueensStep> = QueensLadder.Stepwise.rungs.flatMap { rung ->
-        HintReason.Kind.entries.map { QueensStep.Deduction(rung, HintReason(it, 0), emptySet(), Result.LastCell(Cell(0))) }
+        HintReason.Kind.entries.map { QueensStep.Deduction(HintReason(it, 0, rung), emptySet(), Result.LastCell(Cell(0))) }
     }
 
     private val mistakes = QueensStep.Mistake.Kind.entries.map { QueensStep.Mistake(Cell(0), it, null) }
@@ -32,7 +32,7 @@ class QueensStepCopyTest {
     @Test
     fun `copy names the unit it is about`() {
         fun text(kind: HintReason.Kind) = QueensStepCopy.text(
-            QueensStep.Deduction(QueensLadder.Stepwise.rungs.first { it.id == "singles" }, HintReason(kind, 0), emptySet(), Result.LastCell(Cell(0))),
+            QueensStep.Deduction(HintReason(kind, 0), emptySet(), Result.LastCell(Cell(0))),
         )
 
         assertTrue(text(HintReason.Kind.ROW).contains("row"))

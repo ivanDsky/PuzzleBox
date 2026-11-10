@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason.Kind
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason.Kind
 import org.junit.Assert.assertTrue
 import org.junit.Test
 

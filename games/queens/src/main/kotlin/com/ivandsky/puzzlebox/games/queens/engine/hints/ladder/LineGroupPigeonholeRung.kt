@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
 /**
  * D6, the row↔column case [PigeonholeRung] leaves out (X-wing shape): k ≥ 2 rows whose open
@@ -84,7 +83,7 @@ object LineGroupPigeonholeRung : QueensRung {
             val lines = targets.indices.filter { reach[mask] and (1 shl it) != 0 }
             val cells = lines.flatMap { targets[it] }.filter { candidates.isOpen(it) && it !in inside }.toSet()
             if (cells.isEmpty()) continue
-            val deduction = QueensDeduction.Exclude(this, HintReason(kind, lines.first(), this), cells)
+            val deduction = QueensDeduction.Exclude(HintReason(kind, lines.first(), this), cells)
             found += Found(deduction, rank = chosen.size) { chosen.flatMap { opens[it] }.toSet() }
         }
         return found

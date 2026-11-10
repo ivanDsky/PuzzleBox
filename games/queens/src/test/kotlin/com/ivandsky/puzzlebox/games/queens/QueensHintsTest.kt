@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.games.queens
 
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
 import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints
 import org.junit.Assert.assertEquals

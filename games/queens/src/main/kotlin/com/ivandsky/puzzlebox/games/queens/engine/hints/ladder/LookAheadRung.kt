@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
 /**
  * Last rung (spec A9): an open cell is excluded when standing a queen on it and running
@@ -27,7 +26,7 @@ class LookAheadRung(private val propagate: List<QueensRung>) : QueensRung {
             .mapNotNull { cell ->
                 probe(puzzle, candidates.place(puzzle, cell))?.let { unit ->
                     val cells = QueensUnits.cells(puzzle, unit.kind)[unit.unit]
-                    QueensProof(QueensDeduction.Exclude(this, unit, setOf(cell)), cells.filter { it != cell && candidates.isOpen(it) }.toSet())
+                    QueensProof(QueensDeduction.Exclude(unit, setOf(cell)), cells.filter { it != cell && candidates.isOpen(it) }.toSet())
                 }
             }
 

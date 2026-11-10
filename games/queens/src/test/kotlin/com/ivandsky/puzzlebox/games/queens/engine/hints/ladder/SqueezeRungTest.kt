@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -55,7 +54,7 @@ class SqueezeRungTest {
     @Test
     fun `a cell reaching both open cells of a row by column and region is crossed, naming the row`() {
         val proof = naming(five, rowZeroOpenOnZeroAndThree, row(0))!!
-        assertEquals(QueensDeduction.Exclude(SqueezeRung, row(0), setOf(10)), proof.deduction)
+        assertEquals(QueensDeduction.Exclude(row(0), setOf(10)), proof.deduction)
         assertEquals(setOf(0, 3), proof.evidence)
     }
 

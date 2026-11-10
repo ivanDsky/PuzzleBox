@@ -1,8 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.step
 
 import com.ivandsky.puzzlebox.games.queens.Cell
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
-import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensRung
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 
 /** The one step a stepwise Queens hint shows. Carries no roles or copy; the UI maps it. */
 sealed interface QueensStep {
@@ -15,8 +14,8 @@ sealed interface QueensStep {
         enum class Kind { RULE_BREAK, OFF_SOLUTION, WRONG_CROSS }
     }
 
-    /** [rung] proves [result] about [unit]; [evidence] is the cells the rung read, as its proof states them. */
-    data class Deduction(val rung: QueensRung, val unit: HintReason, val evidence: Set<Cell>, val result: Result) : QueensStep {
+    /** [unit] (and the rung it names) proves [result]; [evidence] is the cells the rung read, as its proof states them. */
+    data class Deduction(val unit: HintReason, val evidence: Set<Cell>, val result: Result) : QueensStep {
         sealed interface Result {
             data class Cross(val cells: Set<Cell>) : Result
             data class LastCell(val cell: Cell) : Result

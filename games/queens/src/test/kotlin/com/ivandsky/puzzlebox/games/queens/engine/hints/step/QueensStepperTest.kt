@@ -5,7 +5,7 @@ import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensBoard
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.AttackRung
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.LongLookAheadRung
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensCandidates
@@ -243,7 +243,7 @@ class QueensStepperTest {
     fun `auto-cross off lists the crosses a queen still owes as D0`() {
         // 18 touches queen 10 and is outside everything queen 5 attacks, so queen 10's list is the nearer one.
         val step = next(board(queens = listOf(5, 10)), lastMove = Cell(18), autoCross = false) as QueensStep.Deduction
-        assertEquals(AttackRung, step.rung)
+        assertEquals(AttackRung, step.unit.rung)
         assertEquals(cells(10), step.evidence)
         assertEquals(Result.Cross((attackedBy(n8, 10) - 5).map(::Cell).toSet()), step.result)
     }
@@ -253,7 +253,7 @@ class QueensStepperTest {
         val crossed = attackedBy(n8, 5) + attackedBy(n8, 10) - setOf(5, 10)
         val byHand = next(board(queens = listOf(5, 10), manual = crossed), autoCross = false) as QueensStep.Deduction
         val auto = next(board(queens = listOf(5, 10))) as QueensStep.Deduction
-        assertNotEquals(AttackRung, byHand.rung)
+        assertNotEquals(AttackRung, byHand.unit.rung)
         assertEquals(byHand, auto)
     }
 
@@ -269,7 +269,7 @@ class QueensStepperTest {
 
     private val n4 = QueensTestSupport.n4Puzzle()
 
-    private fun exclude(rung: QueensRung, vararg cells: Int) = QueensDeduction.Exclude(rung, HintReason(HintReason.Kind.ROW, 0, rung), cells.toSet())
+    private fun exclude(rung: QueensRung, vararg cells: Int) = QueensDeduction.Exclude(HintReason(HintReason.Kind.ROW, 0, rung), cells.toSet())
 
     /** Runs the n4 empty board through one fake rung listing [proofs] (crossed cells to evidence), and returns the crossed cells. */
     private fun pick(lastMove: Cell?, vararg proofs: Pair<Set<Int>, Set<Int>>): Set<Cell> {
@@ -294,20 +294,20 @@ class QueensStepperTest {
         val low = FakeRung("low") { r -> listOf(exclude(r, 0) to setOf(4, 5, 6)) }
         val high = FakeRung("high") { r -> listOf(exclude(r, 15) to setOf(9)) }
         val step = QueensStepper.next(n4, QueensBoard(), true, Cell(15), null, QueensLadder(listOf(low, high))) as QueensStep.Deduction
-        assertEquals(low, step.rung)
+        assertEquals(low, step.unit.rung)
     }
 
     @Test
     fun `a place becomes the last cell and an exclusion the whole cross set, with the proof's evidence`() {
         val reason = HintReason(HintReason.Kind.REGION, 3, AttackRung)
-        val place = FakeRung("place") { r -> listOf(QueensDeduction.Place(r, reason, 14) to setOf(12, 13, 15)) }
+        val place = FakeRung("place") { listOf(QueensDeduction.Place(reason, 14) to setOf(12, 13, 15)) }
         assertEquals(
-            QueensStep.Deduction(place, reason, cells(12, 13, 15), Result.LastCell(Cell(14))),
+            QueensStep.Deduction(reason, cells(12, 13, 15), Result.LastCell(Cell(14))),
             QueensStepper.next(n4, QueensBoard(), true, null, null, QueensLadder(listOf(place))),
         )
-        val cross = FakeRung("cross") { r -> listOf(QueensDeduction.Exclude(r, reason, setOf(2, 3, 9)) to setOf(0, 4)) }
+        val cross = FakeRung("cross") { listOf(QueensDeduction.Exclude(reason, setOf(2, 3, 9)) to setOf(0, 4)) }
         assertEquals(
-            QueensStep.Deduction(cross, reason, cells(0, 4), Result.Cross(cells(2, 3, 9))),
+            QueensStep.Deduction(reason, cells(0, 4), Result.Cross(cells(2, 3, 9))),
             QueensStepper.next(n4, QueensBoard(), true, null, null, QueensLadder(listOf(cross))),
         )
     }
@@ -391,8 +391,8 @@ class QueensStepperTest {
 
     @Test
     fun `auto-cross off replays step through D0`() {
-        assertTrue(replays.getValue("n8N2 auto-cross off").steps.any { (it as? QueensStep.Deduction)?.rung == AttackRung })
-        assertTrue(replays.getValue("gen-n8-q1").steps.none { (it as? QueensStep.Deduction)?.rung == AttackRung })
+        assertTrue(replays.getValue("n8N2 auto-cross off").steps.any { (it as? QueensStep.Deduction)?.unit?.rung == AttackRung })
+        assertTrue(replays.getValue("gen-n8-q1").steps.none { (it as? QueensStep.Deduction)?.unit?.rung == AttackRung })
     }
 
     @Test

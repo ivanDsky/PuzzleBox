@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
 /**
  * D9: an open cell is excluded when a queen on it would leave k ≥ 2 units of one kind
@@ -38,7 +37,7 @@ object CountSqueezeRung : QueensRung {
         }
         return causes.map { (violation, cells) ->
             val unit = HintReason(violation.kind, violation.units.first(), this)
-            Found(QueensDeduction.Exclude(this, unit, cells)) {
+            Found(QueensDeduction.Exclude(unit, cells)) {
                 violation.cells(puzzle).filter { candidates.isOpen(it) && it !in cells }.toSet()
             }
         }
