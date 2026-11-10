@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -75,7 +76,12 @@ internal fun StrandsPlayScreen(
             // board a sliver. NYT's page scrolls the same way.
             BoxWithConstraints(Modifier.fillMaxSize()) {
                 val viewport = maxHeight
-                Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("strands.scroll")) {
+                // heightIn(min) + Center: a page shorter than the viewport floats at its middle,
+                // a taller one grows past it and scrolls, so nothing clips.
+                Column(
+                    Modifier.fillMaxWidth().heightIn(min = viewport).verticalScroll(rememberScrollState()).testTag("strands.scroll"),
+                    verticalArrangement = Arrangement.Center,
+                ) {
                     BoardColumn(controller, header, reduceMotion, fitHeight = viewport, withChrome = true)
                     SidePanel(controller, status, reduceMotion, withChrome = false)
                 }
