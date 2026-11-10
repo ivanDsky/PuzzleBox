@@ -79,6 +79,7 @@ import org.koin.compose.koinInject
  * A [pendingLink] (a tapped share link's URI) lands on the back stack in the composition
  * that first sees it, so a cold start draws the friend's card on its first frame; then
  * [onLinkApplied]. A link whose code doesn't parse opens Play's code sheet holding its text.
+ * A duel link (`/m/`) opens the duel screen when the Competitions flag is on.
  * A [pendingShare] (shared text waiting in the store, which `MainActivity` filled) shows
  * Create's root the same way, then [onShareApplied]; the root imports the text.
  *
@@ -100,11 +101,11 @@ fun PuzzleBoxApp(
 ) {
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
     val libraryRequests = rememberLibraryRequests()
+    val competitions = Competitions in koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle().value
     if (pendingLink != null) {
-        val matchesEnabled = Competitions in koinInject<ReleaseFlags>().enabled.value
         remember(pendingLink) {
             FriendLink.of(pendingLink)?.let { link ->
-                navigator.applyFriendLink(link, matchesEnabled)
+                navigator.applyFriendLink(link, competitions)
                 if (link is FriendLink.Invalid) codeDraft = link.text
             }
         }
@@ -145,7 +146,6 @@ fun PuzzleBoxApp(
     val anyInProgress by remember(todaySet) {
         todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)
-    val competitions = Competitions in koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle().value
     val duels = if (competitions) {
         remember(navigator) {
             DuelsSlot(

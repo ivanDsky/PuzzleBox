@@ -115,7 +115,6 @@ internal fun LibraryRoute(
             onOpenFriend = onOpenCode,
             onRemoveFriend = viewModel::removeFriend,
             duels = duels,
-            onOpenDuel = onOpenDuel,
             request = request,
             onRequestTaken = onRequestTaken,
             showGameBoard = showGameBoard,
@@ -159,7 +158,7 @@ internal fun LibraryRoute(
  * only with an [onEnterCode]. [friends] heads the list as From friends, each card opening its
  * puzzle through [onOpenFriend] and removing it through [onRemoveFriend]. A [duels] slot turns
  * the list into the Dailies, Friends and Duels tabs (the tab is saved here, so it survives a
- * page push); [onOpenDuel] is carried for Enter code and unused here. A [request] acts once
+ * page push). A [request] acts once
  * ([ConsumeLibraryRequest]; a section needs [duels]) and is reported taken ([onRequestTaken]). The game page
  * shows its leaderboard with [showGameBoard] and a "Your history" row with [onOpenGameHistory].
  */
@@ -181,7 +180,6 @@ internal fun LibraryScreen(
     onOpenFriend: (ShareCode) -> Unit = {},
     onRemoveFriend: (ShareCode) -> Unit = {},
     duels: DuelsSlot? = null,
-    onOpenDuel: ((DuelKey) -> Unit)? = null,
     request: LibraryRequest? = null,
     onRequestTaken: () -> Unit = {},
     showGameBoard: Boolean = false,
