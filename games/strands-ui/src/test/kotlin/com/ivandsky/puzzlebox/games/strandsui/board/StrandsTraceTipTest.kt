@@ -36,18 +36,16 @@ class StrandsTraceTipTest {
         assertEquals(Coord(1, 2), near.toward)
         assertEquals(0.3f, near.extent, 1e-4f)
 
-        val edge = 1f - StrandsBoardSpec.TargetHalf
-        assertEquals(edge - 0.01f, tip(listOf(tail), edge - 0.01f, 0f)!!.extent, 1e-4f)
-        assertNull("past the near edge the letter was refused", tip(listOf(tail), edge + 0.01f, 0f))
+        assertEquals(0.59f, tip(listOf(tail), 0.59f, 0f)!!.extent, 1e-4f)
+        assertNull("past the near edge, 0.6, the letter was refused", tip(listOf(tail), 0.61f, 0f))
         assertNull(tip(listOf(tail), 3f, 0f))
     }
 
     @Test
     fun `a diagonal tip ends where the finger has come the target's near edge along the diagonal`() {
         val tail = Coord(1, 1)
-        val edge = 1f - StrandsBoardSpec.TargetHalf
-        assertEquals(edge - 0.01f, tip(listOf(tail), edge - 0.01f, edge - 0.01f)!!.extent, 1e-4f)
-        assertNull(tip(listOf(tail), edge + 0.01f, edge + 0.01f))
+        assertEquals(0.59f, tip(listOf(tail), 0.59f, 0.59f)!!.extent, 1e-4f)
+        assertNull(tip(listOf(tail), 0.61f, 0.61f))
         // Off the line, 0.9 across and 0.5 down is 0.7 along the step: past the edge, so refused.
         assertNull(tip(listOf(tail), 0.9f, 0.5f))
     }
@@ -56,9 +54,9 @@ class StrandsTraceTipTest {
     fun `a finger the walk refused a letter leaves no link to it, though it points at it`() {
         // The finger takes O from G, then goes 0.5 east of O's centre and south to 1.1 pitches
         // below it: 0.5 from the centre of the G below O at the nearest, outside that letter's
-        // 0.4 square target, so the walk joins nothing, yet the finger
-        // points south of O, so the tip once leaned the connector 0.9 of the way into that G:
-        // a link to a letter outside the path.
+        // 0.4 square target, so the walk joins nothing, yet the finger points south of O, so the
+        // tip once leaned the connector 0.9 of the way into that G: a link to a letter outside
+        // the path.
         val rows = 8
         val cols = 6
         val g = Coord(5, 4)

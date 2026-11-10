@@ -53,6 +53,8 @@ internal object StrandsBoardSpec {
      * neighbour joins when the finger is inside its square target (TargetHalf) and the
      * heading is toward it: a side letter needs a heading inside its cone, so it never steals
      * a corner-cutting diagonal, and the squares leave a no-join channel at each corner.
+     * Units: ArriveCells and StillCells are circle radii; TargetHalf, BackHalf and HeartHalf are
+     * half-sides of axis-aligned squares.
      */
     const val TravelWindowCells: Float = 0.25f
     const val SideConeDegrees: Float = 22.5f
@@ -74,7 +76,11 @@ internal object StrandsBoardSpec {
     /** A joined letter grows the trace only once the finger comes this close to its centre. */
     const val ArriveCells: Float = 0.55f
 
-    /** A free letter beside the tail joins, heading or not, once the finger is inside the square of this half side about its centre. */
+    /**
+     * A free letter beside the tail joins, heading or not, once the finger is inside the square of
+     * this half side about its centre. At most half a pitch, so neighbouring heart squares never
+     * overlap and the walk's first hit is the only hit (guarded by a test).
+     */
     const val HeartHalf: Float = 0.25f
 
     /** Within this of the tail's centre nothing joins: a resting finger never picks a neighbour. */

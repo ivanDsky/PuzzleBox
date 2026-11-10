@@ -12,19 +12,24 @@ import kotlin.math.ceil
  * angle from the last centre, so a diagonal drawn beside the centre line stays diagonal and a
  * finger resting off-centre, in a token's corner, decides nothing.
  *
- * From the tail: nothing joins within [StrandsBoardSpec.StillCells]; the letter before the
- * tail joins (a backtrack of one) once the finger is inside the [StrandsBoardSpec.BackHalf] square about its centre —
- * the only way onto the drawn path, which is otherwise a wall: an earlier letter joins
- * nothing, never cuts and never re-joins; any other letter only once the travel has decided
- * a heading toward it and the finger is inside its square target, a diagonal's included, so
- * a diagonal through the channel between the side squares joins the corner letter and no
- * side letter; a free neighbour whose heart
- * ([StrandsBoardSpec.HeartHalf], a square) the finger has come to joins whatever the heading, so a
- * corner cut that reads diagonal never skips the letter it passed through. A used or off-board target joins nothing:
- * no side letter stands in for a diagonal. Only a tail the finger has reached
- * ([StrandsBoardSpec.ArriveCells]) grows the trace, so a corner cut into the wrong diagonal
- * holds there until the finger backs out or comes to it, or until the finger's heading joins
- * a free letter beside the one before it, which the wrong tail then gives way to.
+ * From the tail, nothing joins within [StrandsBoardSpec.StillCells]. Beyond it, three zones
+ * decide, each an axis-aligned square about a letter's centre:
+ *  - **back**: the letter before the tail joins (a backtrack of one) once the finger is inside
+ *    its [StrandsBoardSpec.BackHalf] square. This is the only way onto the drawn path, which is
+ *    otherwise a wall: an earlier letter joins nothing, never cuts and never re-joins.
+ *  - **heart**: a free neighbour joins, whatever the heading, once the finger is inside its
+ *    [StrandsBoardSpec.HeartHalf] square, so a corner cut that reads diagonal never skips the
+ *    letter it passed through.
+ *  - **target**: any other free neighbour, diagonals included, joins only once the travel has
+ *    decided a heading toward it and the finger is inside its [StrandsBoardSpec.TargetHalf]
+ *    square. The squares leave a channel at each corner, so a diagonal through the channel
+ *    between the side squares joins the corner letter and no side letter.
+ *
+ * A used or off-board target joins nothing: no side letter stands in for a diagonal. Only a
+ * tail the finger has reached ([StrandsBoardSpec.ArriveCells]) grows the trace, so a corner cut
+ * into the wrong diagonal holds there until the finger backs out or comes to it, or until the
+ * finger's heading joins a free letter beside the one before it, which the wrong tail then
+ * gives way to.
  */
 internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, down: Offset) {
     private val trail = TravelTrail().apply { push(down) }
@@ -70,7 +75,12 @@ internal class StrandsTraceWalk(private val rows: Int, private val cols: Int, do
         return heartOf(point, path, tail) ?: joinFrom(point, path, tail)
     }
 
-    /** The free letter beside [anchor] the finger is inside the heart square of, whatever its heading. */
+    /**
+     * The free letter beside [anchor] the finger is inside the heart square of, whatever its heading.
+     * The first hit wins, which is right only while neighbouring heart squares cannot overlap:
+     * at a pitch of 1 that holds for [StrandsBoardSpec.HeartHalf] up to half a pitch, and a
+     * spec test guards it.
+     */
     private fun heartOf(point: Offset, path: List<Coord>, anchor: Coord): Coord? {
         for (dRow in -1..1) for (dCol in -1..1) {
             val cell = Coord(anchor.row + dRow, anchor.col + dCol)
