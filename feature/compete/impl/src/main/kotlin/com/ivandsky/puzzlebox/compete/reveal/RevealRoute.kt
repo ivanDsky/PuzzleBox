@@ -14,6 +14,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -24,110 +25,88 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.compete.share.DuelCreatedSheet
 import com.ivandsky.puzzlebox.compete.share.createdInviteSaver
 import com.ivandsky.puzzlebox.compete.share.createdInviteText
-import com.ivandsky.puzzlebox.data.match.Match
-import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.ErrorState
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.domain.MatchState
-import com.ivandsky.puzzlebox.domain.ObserveMatch
-import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.Navigator
-import java.time.Instant
 import java.time.ZoneId
-import java.util.Locale
-import org.koin.compose.koinInject
+import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 /** The longest frame the clock advances by: a backgrounded app that resumes must not skip ahead through the race. */
 private const val MaxFrameMs = 100L
 
 private const val NanosPerMilli = 1_000_000L
 
-/** One opening of the reveal: the [match] and its [plan] drawn, the [summary] it ends in and how it [start]ed. */
-private class RevealRun(val match: Match, val plan: RevealPlan, val summary: DuelSummary, val start: RevealStart)
-
-/** Holds the run built from the first loaded match, so a later re-emission or offline blip never replays the reveal. */
-private class RunHolder {
-    var run: RevealRun? = null
-}
-
 /**
- * The reveal of the duel at [code]. The first loaded match builds the plan and the machine once; this route then feeds the
- * machine frame time and taps. Skip and system Back jump to the end, where the summary takes over: Rematch, Share and
- * Watch again (a new machine from the intro); its back arrow (and Back) leaves. Reduced motion or a reveal already
- * seen starts at the end, and a first opening records that it was seen.
+ * The reveal of the duel at [code], held by a [RevealViewModel]: once the race has opened this route feeds the machine
+ * frame time and taps. Skip and system Back jump to the end, where the summary takes over: Rematch, Share and Watch
+ * again (a new machine from the intro); its back arrow (and Back) leaves. Reduced motion or a reveal already seen
+ * starts at the end. The zone and locale of the summary's date are read once, when the view model is made.
  */
 @Composable
 internal fun RevealRoute(code: String, navigator: Navigator, layout: PlayLayout) {
-    val shareCode = remember(code) { ShareCode.parse(code) }
-    if (shareCode == null) {
-        RevealMessage(navigator) { EmptyState("This duel link doesn't work", "Check the code with your friend and try again.") }
-        return
-    }
-    val observe = koinInject<ObserveMatch>()
-    val games = koinInject<GameRegistry>()
     val reduced = rememberReducedMotion()
-    val state by remember(shareCode) { observe(shareCode) }.collectAsStateWithLifecycle(initialValue = null)
-    val holder = remember(shareCode) { RunHolder() }
-    val loaded = state as? MatchState.Loaded
-    if (holder.run == null && loaded != null) {
-        val view = loaded.view
-        val plan = revealPlan(view, games::displayName, games::rankOrderOf)
-        holder.run = RevealRun(
-            match = view.match,
-            plan = plan,
-            summary = duelSummary(view.match, plan, view.outcome, ZoneId.systemDefault(), Locale.getDefault()),
-            start = RevealStart.of(reduced, view.local?.revealSeenAt),
-        )
-    }
-    val run = holder.run
-    when {
-        run != null && run.plan.cards.isEmpty() -> RevealMessage(navigator) {
+    val locale = LocalConfiguration.current.locales[0]
+    val vm: RevealViewModel = koinViewModel(key = code, parameters = { parametersOf(code, reduced, ZoneId.systemDefault(), locale) })
+    val state by vm.state.collectAsStateWithLifecycle()
+    when (val current = state) {
+        is RevealUiState.Running -> RevealRunScreen(current, layout == PlayLayout.TwoPane, vm.brands, navigator, vm::gameName, vm::watchAgain)
+        RevealUiState.Unsettled -> RevealMessage(navigator) {
             EmptyState("Nothing to reveal yet", "The puzzles haven't been settled. Check back once both players have played.")
         }
-        run != null -> RevealRunScreen(shareCode, run, layout == PlayLayout.TwoPane, navigator, games::displayName)
-        else -> RevealMessage(navigator) {
-            when (state) {
-                null -> CircularProgressIndicator(Modifier.align(Alignment.Center))
-                MatchState.NotFound -> EmptyState("This duel link doesn't work", "Check the code with your friend and try again.")
-                MatchState.Offline -> ErrorState(
-                    title = "You're offline",
-                    message = "The reveal needs a connection to open. Check it and try again.",
-                    onRetry = null,
-                    modifier = Modifier.align(Alignment.Center),
-                )
-                is MatchState.UpdateApp -> EmptyState("Update PuzzleBox", "This duel needs a newer version of the app. Update it to see the reveal.")
-                MatchState.SignedOut -> EmptyState("Sign in to see the reveal", "Sign in to the account you played this duel with.")
-                is MatchState.Loaded -> Unit
-            }
+        RevealUiState.Loading -> RevealMessage(navigator) { CircularProgressIndicator(Modifier.align(Alignment.Center)) }
+        RevealUiState.NotFound -> RevealMessage(navigator) {
+            EmptyState("This duel link doesn't work", "Check the code with your friend and try again.")
+        }
+        RevealUiState.Offline -> RevealMessage(navigator) {
+            ErrorState(
+                title = "You're offline",
+                message = "The reveal needs a connection to open. Check it and try again.",
+                onRetry = null,
+                modifier = Modifier.align(Alignment.Center),
+            )
+        }
+        RevealUiState.UpdateApp -> RevealMessage(navigator) {
+            EmptyState("Update PuzzleBox", "This duel needs a newer version of the app. Update it to see the reveal.")
+        }
+        RevealUiState.SignedOut -> RevealMessage(navigator) {
+            EmptyState("Sign in to see the reveal", "Sign in to the account you played this duel with.")
         }
     }
 }
 
 @Composable
-private fun RevealRunScreen(code: ShareCode, run: RevealRun, wide: Boolean, navigator: Navigator, nameOf: (GameId) -> String) {
+private fun RevealRunScreen(
+    run: RevealUiState.Running,
+    wide: Boolean,
+    brands: GamePlayRegistry,
+    navigator: Navigator,
+    nameOf: (GameId) -> String,
+    onWatchAgain: () -> Unit,
+) {
     val reduced = rememberReducedMotion()
-    var replays by remember(run) { mutableIntStateOf(0) }
-    val machine = remember(run, replays) { RevealMachine(run.plan.legs, reduced = if (replays == 0) run.start.startAtEnd else reduced) }
-    val state by machine.state.collectAsStateWithLifecycle()
-    val localRepo = koinInject<MatchLocalRepository>()
-    val brands = koinInject<GamePlayRegistry>()
-    var rematch by remember(run) { mutableStateOf(false) }
-    var invite by rememberSaveable(stateSaver = createdInviteSaver) { mutableStateOf<Pair<String, String>?>(null) }
-    LaunchedEffect(run) {
-        if (run.start.markSeen) localRepo.markRevealSeen(code, Instant.now())
+    // The last run this screen showed; a screen recreated mid-run (rotation, process death) opens at the summary.
+    var shownReplay by rememberSaveable { mutableIntStateOf(-1) }
+    val machine = remember(run.race, run.replay) {
+        val atEnd = run.replay <= shownReplay || if (run.replay == 0) run.start.startAtEnd else reduced
+        RevealMachine(run.race.legs, reduced = atEnd)
     }
+    SideEffect { shownReplay = run.replay }
+    val state by machine.state.collectAsStateWithLifecycle()
+    var rematch by remember { mutableStateOf(false) }
+    var invite by rememberSaveable(stateSaver = createdInviteSaver) { mutableStateOf<Pair<String, String>?>(null) }
     LaunchedEffect(machine) {
         var last = withFrameNanos { it }
         while (machine.state.value.phase != RevealPhase.End) {
@@ -147,12 +126,12 @@ private fun RevealRunScreen(code: ShareCode, run: RevealRun, wide: Boolean, navi
             onWatchAgain = {
                 rematch = false
                 invite = null
-                replays++
+                onWatchAgain()
             },
         )
     } else {
         RevealStage(
-            plan = run.plan,
+            plan = run.race,
             state = state,
             brands = brands,
             wide = wide,
@@ -163,11 +142,11 @@ private fun RevealRunScreen(code: ShareCode, run: RevealRun, wide: Boolean, navi
     if (rematch) {
         RematchSheet(
             match = run.match,
-            opponent = run.plan.opponent.name,
+            opponent = run.race.opponent.name,
             onCreated = { created ->
                 rematch = false
                 val games = created.legs.map { nameOf(it.ref.gameId) }.distinct()
-                invite = createdInviteText(run.plan.me.name, created.legs.size, games, run.match.deadlineHours, created.code) to
+                invite = createdInviteText(run.race.me.name, created.legs.size, games, run.match.deadlineHours, created.code) to
                     created.code.matchLink
             },
             onDismiss = { rematch = false },
