@@ -16,7 +16,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
-/** No cooldown: presses pass straight through, nothing is remembered or run (flag off, A20). */
+/** No cooldown: [LocalHintCooldown] is not provided, so presses pass straight through and nothing is remembered or run. */
 private val NoCooldown = HintCooldown(window = null, now = { 0L }, pressedAt = mutableStateOf(null), sweeps = false)
 
 /**

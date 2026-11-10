@@ -34,7 +34,7 @@ import kotlinx.coroutines.CoroutineScope
  * before the session is stored and the win record built, so the record carries the real time.
  * Selection and the Notes toggle never reach it.
  *
- * [HintMode.Stepwise] with a [scope] (HintParity, Mini only) swaps the staged hint for [StepHints]:
+ * [HintMode.Stepwise] with a [scope] (Mini only) swaps the staged hint for [StepHints]:
  * a press shows a [spotlight] and never places (A1), a culprit is only marked and a second press
  * re-shows it for free (A4), and every input above clears the Spotlight in the same call (A10).
  * [hint] then stays null, so the legacy wash, rings and caption never draw (A15).

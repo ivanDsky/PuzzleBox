@@ -25,9 +25,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     /** PuzzleBox as an Android share target for plain text (spec A3, A28). */
     ShareTarget(label = "Share text to PuzzleBox", releaseDefault = false),
 
-    /** Hint parity: one deduction per Hint press in Queens, Tango and Mini Sudoku (ADR-0022, spec A20). Live since 0.20.0. */
-    HintParity(label = "Hint parity: one deduction per press", releaseDefault = true),
-
     /** Competitions: async 1v1 duels between friends (spec A16). */
     Competitions(label = "Competitions: 1v1 duels", releaseDefault = false),
 

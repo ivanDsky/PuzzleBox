@@ -7,9 +7,6 @@ import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.app.match.AndroidNetworkStatus
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.HintParity
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -26,8 +23,6 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
-import com.ivandsky.puzzlebox.gameui.hint.HintMode
-import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import com.ivandsky.puzzlebox.games.queensui.QueensSettings
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuHighlightSettings
 import kotlinx.coroutines.CoroutineScope
@@ -95,17 +90,6 @@ val appModule = module {
     single<SudokuHighlightSettings> { PreferencesSudokuHighlightSettings(get<GameSettingsRepository>()) }
     // Queens' Auto-cross lives in the persisted game settings; its UI module only sees this seam.
     single<QueensSettings> { PreferencesQueensSettings(get<GameSettingsRepository>()) }
-    // The HintParity flag as game controllers see it (spec A20): read inside current(), so each
-    // controller's one call at creation picks up a debug override. UI modules never read the flag.
-    single<HintModeSource> {
-        HintModeSource {
-            if (get<ReleaseFlags>().isEnabled(HintParity)) {
-                HintMode.Stepwise(get<DispatcherProvider>().default)
-            } else {
-                HintMode.Legacy
-            }
-        }
-    }
 }
 
 /** ADR-0008 "Adding a game": a plugin bound without its GamePlayUi is a wiring bug —
