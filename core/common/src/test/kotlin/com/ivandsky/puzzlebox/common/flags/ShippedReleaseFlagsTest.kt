@@ -14,4 +14,9 @@ class ShippedReleaseFlagsTest {
     fun `shipped flags exclude NavV2 until its flip ticket`() {
         assertFalse(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.NavV2))
     }
+
+    @Test
+    fun `shipped flags exclude LinkedInAccount until its flip ticket`() {
+        assertFalse(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.LinkedInAccount))
+    }
 }
