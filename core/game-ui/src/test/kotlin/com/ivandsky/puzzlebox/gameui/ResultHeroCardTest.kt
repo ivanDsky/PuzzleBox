@@ -43,19 +43,27 @@ class ResultHeroCardTest {
         rolloverAt: Instant? = null,
         playAgain: Boolean = true,
         wide: Boolean = false,
-        actions: Boolean = true,
+        withActions: Boolean = true,
     ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 ResultHeroCard(
                     model = model,
                     brand = brand,
-                    onPrimary = { next++ },
-                    onShare = { shared++ },
-                    onPlayAgain = if (playAgain) ({ again++ }) else null,
-                    rolloverAt = rolloverAt,
                     wide = wide,
-                    actions = actions,
+                    actions = if (withActions) {
+                        {
+                            ResultHeroActions(
+                                primary = model.primary,
+                                onPrimary = { next++ },
+                                onShare = { shared++ },
+                                onPlayAgain = if (playAgain) ({ again++ }) else null,
+                                rolloverAt = rolloverAt,
+                            )
+                        }
+                    } else {
+                        null
+                    },
                 )
             }
         }
@@ -172,8 +180,8 @@ class ResultHeroCardTest {
     }
 
     @Test
-    fun `actionsOffDrawsNoActionButtons`() {
-        setContent(heroSampleModel(verdict = RecordVerdict.NotBest), actions = false)
+    fun `no actions slot draws no action buttons`() {
+        setContent(heroSampleModel(verdict = RecordVerdict.NotBest), withActions = false)
 
         composeRule.onNodeWithTag("result.next").assertDoesNotExist()
         composeRule.onNodeWithTag("result.share").assertDoesNotExist()
@@ -181,20 +189,21 @@ class ResultHeroCardTest {
     }
 
     @Test
-    fun `duelChipReplacesTodayChip`() {
-        setContent(resultHeroModel(heroSampleFacts(), chip = "1 of 3"))
+    fun `a supplied chip replaces the Today chip`() {
+        val chip = ResultHeroChip("test.chip", "1 of 3", "Supplied")
+        setContent(resultHeroModel(heroSampleFacts(), chip = chip))
 
-        composeRule.onNodeWithTag("result.hero.chip.duel").assertIsDisplayed()
-        composeRule.onNodeWithText("1 of 3").assertIsDisplayed()
+        composeRule.onNodeWithTag("test.chip").assertIsDisplayed()
+        composeRule.onNodeWithText(chip.value).assertIsDisplayed()
+        composeRule.onNodeWithText(chip.label).assertIsDisplayed()
         composeRule.onNodeWithTag("result.hero.chip.today").assertDoesNotExist()
         composeRule.onNodeWithTag("result.hero.chip.hints").assertIsDisplayed()
     }
 
     @Test
-    fun `noDuelChipKeepsTodayChip`() {
+    fun `without a supplied chip the Today chip stays`() {
         setContent(heroSampleModel(verdict = RecordVerdict.NotBest))
 
         composeRule.onNodeWithTag("result.hero.chip.today").assertIsDisplayed()
-        composeRule.onNodeWithTag("result.hero.chip.duel").assertDoesNotExist()
     }
 }

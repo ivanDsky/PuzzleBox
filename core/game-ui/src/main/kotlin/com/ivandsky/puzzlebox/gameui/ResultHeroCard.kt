@@ -23,11 +23,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -48,7 +46,6 @@ import com.ivandsky.puzzlebox.designsystem.resultHeroTimeStyle
 import com.ivandsky.puzzlebox.designsystem.solveSweep
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.designsystem.timePulse
-import java.time.Instant
 import kotlinx.coroutines.delay
 
 private const val HOUR_MS = 3_600_000L
@@ -59,27 +56,22 @@ private val BurstOrigin = Offset(0.3f, 0.5f)
 /**
  * The Results hero card (spec: Results hero): the game's glyph, title and date line with the
  * pill, the hero time counting up under a sweep across the card, the best line, the chips,
- * and the actions. It draws [model] and nothing else; the screen supplies the callbacks.
+ * and the actions. It draws [model] and nothing else; the screen supplies the actions.
  *
  * It enters in beats: glyph stamp at 0, time and sweep at 120, pill and best line at 520,
  * chips at 640, actions at 840 ms. A [ResultHeroModel.celebrate] solve pulses its time once
  * the count-up lands, and a new best adds the burst. Reduced motion fades everything at
- * once and skips the pulse, burst and sweep band; a preview shows the end state. A null
- * [ResultHeroModel.primary] keeps the actions in place but invisible and inert until known.
+ * once and skips the pulse, burst and sweep band; a preview shows the end state.
  * [wide] sets the 96 sp time of a wide container over the phone's 76 sp.
- * [actions] false draws no action row; a duel result's buttons sit in a card below the hero.
+ * [actions] is the action row, entering on its beat; null draws none.
  */
 @Composable
 internal fun ResultHeroCard(
     model: ResultHeroModel,
     brand: GameBrand,
-    onPrimary: () -> Unit,
-    onShare: () -> Unit,
-    onPlayAgain: (() -> Unit)?,
-    rolloverAt: Instant?,
     modifier: Modifier = Modifier,
     wide: Boolean = false,
-    actions: Boolean = true,
+    actions: (@Composable () -> Unit)? = null,
 ) {
     val accent = brand.accent.colors()
     val shape = MaterialTheme.shapes.large
@@ -137,18 +129,8 @@ internal fun ResultHeroCard(
                     HeroChipTile(chip, Modifier.weight(1f).resultBeat(ResultBeats.Blocks, index))
                 }
             }
-            if (actions) {
-                val pending = model.primary == null
-                ResultActions(
-                    primary = model.primary ?: ResultPrimaryAction.Done,
-                    onPrimary = { if (!pending) onPrimary() },
-                    onShare = { if (!pending) onShare() },
-                    onPlayAgain = onPlayAgain?.let { again -> { if (!pending) again() } },
-                    rolloverAt = rolloverAt,
-                    modifier = (if (pending) Modifier.alpha(0f).clearAndSetSemantics {} else Modifier)
-                        .padding(top = Spacing.lg)
-                        .resultBeat(ResultBeats.Actions),
-                )
+            if (actions != null) {
+                Box(Modifier.padding(top = Spacing.lg).resultBeat(ResultBeats.Actions)) { actions() }
             }
         }
     }
@@ -215,9 +197,9 @@ private fun HeroPill(text: String, brand: GameBrand, modifier: Modifier = Modifi
     }
 }
 
-/** One stat chip: its bold [HeroChip.value] over its [HeroChip.label], on the tonal surface. */
+/** One stat chip: its bold [ResultHeroChip.value] over its [ResultHeroChip.label], on the tonal surface. */
 @Composable
-private fun HeroChipTile(chip: HeroChip, modifier: Modifier = Modifier) {
+private fun HeroChipTile(chip: ResultHeroChip, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .heightIn(min = ChipMinHeight)

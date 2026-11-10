@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
+import com.ivandsky.puzzlebox.gameui.ResultHeroActions
 import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
@@ -98,13 +99,10 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
     private fun ColumnScope.Page(facts: ResultHeroFacts, brand: GameBrand) {
         ResultHeroScreen(
             facts = facts,
-            onPrimary = {},
-            onShare = {},
-            onPlayAgain = {},
             onSignIn = {},
-            onRetryWrite = {},
             modifier = Modifier.weight(1f),
             brand = brand,
+            actions = { ResultHeroActions(facts.primary, onPrimary = {}, onShare = {}, onPlayAgain = {}) },
         )
     }
 
