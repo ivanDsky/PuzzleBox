@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.history
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -20,7 +19,6 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,7 +26,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
-import com.ivandsky.puzzlebox.designsystem.LocalShellActions
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -41,8 +38,6 @@ import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.bestScoreText
 
 private val ReplayHeight = 56.dp
-
-private val NoShellActions: @Composable RowScope.() -> Unit = {}
 
 /** Expanded-width detail placeholder until a day is selected (home's DetailPane voice). */
 @Composable
@@ -99,27 +94,22 @@ internal fun DayDetailPane(
             .fillMaxWidth()
             .testTag("history.detail.${row.gameId.value}.${row.day}"),
     ) {
-        // Two-pane's detail bar has no back icon, so it stays clear: the list pane's bar already draws the shell actions.
-        CompositionLocalProvider(
-            LocalShellActions provides if (onBackToDayList == null) NoShellActions else LocalShellActions.current,
-        ) {
-            CompactTopBar(
-                // The header below already names the puzzle: single-pane says where Back
-                // goes, two-pane keeps the bar for alignment with the list's (Result's pattern).
-                title = if (onBackToDayList != null) "History" else "",
-                navigationIcon = onBackToDayList?.let {
-                    {
-                        IconButton(onClick = it) {
-                            Icon(
-                                imageVector = PuzzleIcons.Back,
-                                contentDescription = "Back to days",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+        CompactTopBar(
+            // The header below already names the puzzle: single-pane says where Back
+            // goes, two-pane keeps the bar for alignment with the list's (Result's pattern).
+            title = if (onBackToDayList != null) "History" else "",
+            navigationIcon = onBackToDayList?.let {
+                {
+                    IconButton(onClick = it) {
+                        Icon(
+                            imageVector = PuzzleIcons.Back,
+                            contentDescription = "Back to days",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                },
-            )
-        }
+                }
+            },
+        )
         Column(
             modifier = Modifier
                 .fillMaxWidth()

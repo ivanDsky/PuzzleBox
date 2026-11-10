@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.LocalShellActions
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -105,7 +104,6 @@ internal fun GamePage(
                     }
                 }
                 PageTitle(row, Modifier.weight(1f))
-                LocalShellActions.current.invoke(this)
             }
             if (offline) OfflinePill()
             EnterFade(0, reduced) { dayCard() }
