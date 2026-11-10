@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.app.e2e
 
-import com.ivandsky.puzzlebox.app.match.MatchResultPoster
+import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag

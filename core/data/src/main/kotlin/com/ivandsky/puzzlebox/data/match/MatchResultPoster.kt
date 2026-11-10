@@ -1,13 +1,8 @@
-package com.ivandsky.puzzlebox.app.match
+package com.ivandsky.puzzlebox.data.match
 
 import android.util.Log
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.data.match.MatchRepository
-import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
-import com.ivandsky.puzzlebox.data.match.MatchResultSync
-import com.ivandsky.puzzlebox.data.match.OutboxResult
-import com.ivandsky.puzzlebox.data.match.PostResult
-import com.ivandsky.puzzlebox.data.match.ResultPostState
+import com.ivandsky.puzzlebox.data.network.NetworkStatus
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.cancellation.CancellationException

@@ -1,20 +1,10 @@
-package com.ivandsky.puzzlebox.app.match
+package com.ivandsky.puzzlebox.data.match
 
 import android.app.Application
 import com.ivandsky.puzzlebox.data.identity.Identity
-import com.ivandsky.puzzlebox.data.match.ClaimResult
-import com.ivandsky.puzzlebox.data.match.CreateResult
-import com.ivandsky.puzzlebox.data.match.LegRef
-import com.ivandsky.puzzlebox.data.match.LegResult
-import com.ivandsky.puzzlebox.data.match.MatchDraft
-import com.ivandsky.puzzlebox.data.match.MatchLeg
-import com.ivandsky.puzzlebox.data.match.MatchRepository
-import com.ivandsky.puzzlebox.data.match.OutboxResult
-import com.ivandsky.puzzlebox.data.match.Player
-import com.ivandsky.puzzlebox.data.match.PostResult
-import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.testing.network.FakeNetworkStatus
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
