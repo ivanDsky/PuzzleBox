@@ -135,7 +135,7 @@ class ObserveMyDuelsTest {
             val rows = latest(this@runTest).kinds()
             assertEquals(
                 mapOf(
-                    invited to DuelRowKind.YourMove, yourMove to DuelRowKind.YourMove,
+                    invited to DuelRowKind.Unclaimed, yourMove to DuelRowKind.YourMove,
                     reveal to DuelRowKind.RevealReady, waiting to DuelRowKind.Waiting,
                     unclaimed to DuelRowKind.Unclaimed,
                 ),
