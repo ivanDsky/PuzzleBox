@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.app.match
 
 import android.net.ConnectivityManager
 import android.net.Network
+import com.ivandsky.puzzlebox.data.network.NetworkStatus
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow

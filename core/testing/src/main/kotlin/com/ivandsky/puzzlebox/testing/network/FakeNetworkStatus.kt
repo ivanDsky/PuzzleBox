@@ -1,5 +1,6 @@
-package com.ivandsky.puzzlebox.app.match
+package com.ivandsky.puzzlebox.testing.network
 
+import com.ivandsky.puzzlebox.data.network.NetworkStatus
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 

@@ -6,8 +6,6 @@ import com.ivandsky.puzzlebox.app.buildTypeUnlistedGames
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.app.match.AndroidNetworkStatus
-import com.ivandsky.puzzlebox.app.match.MatchResultPoster
-import com.ivandsky.puzzlebox.app.match.NetworkStatus
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.HintParity
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
@@ -18,9 +16,7 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
-import com.ivandsky.puzzlebox.data.match.MatchRepository
-import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
-import com.ivandsky.puzzlebox.data.match.MatchResultSync
+import com.ivandsky.puzzlebox.data.network.NetworkStatus
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.GameSettingsRepository
@@ -70,18 +66,8 @@ val appModule = module {
             scope = get<CoroutineScope>(),
         )
     }
-    // Duel results post from the outbox; the duel screen pokes the same instance to retry now.
-    single {
-        MatchResultPoster(
-            identity = get<IdentityService>(),
-            outbox = get<MatchResultOutbox>(),
-            matches = get<MatchRepository>(),
-            network = get<NetworkStatus>(),
-            scope = get<CoroutineScope>(),
-        )
-    }
+    // The one Android-specific seam of the duel result poster, which core:data wires.
     single<NetworkStatus> { AndroidNetworkStatus(androidContext().getSystemService(ConnectivityManager::class.java)) }
-    single<MatchResultSync> { get<MatchResultPoster>() }
 
     // Game aggregation (ADR-0001): the composition root owns the seams no game module
     // may know about. The registry is the one lookup for consumers that must not know
