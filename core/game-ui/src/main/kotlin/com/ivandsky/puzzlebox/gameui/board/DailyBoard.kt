@@ -1,8 +1,10 @@
 package com.ivandsky.puzzlebox.gameui.board
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,6 +46,10 @@ private fun Ranked(state: DailyBoardState.Ranked, order: RankOrder) {
         Line("No one is on today's board yet.", "daily_board.empty")
     } else {
         state.rows.forEach { DailyBoardRow(it, order) }
+    }
+    state.pinned?.let {
+        HorizontalDivider()
+        Box(Modifier.testTag("leaderboard.you")) { DailyBoardRow(it, order) }
     }
     state.note?.let { Line(it.text, "daily_board.note") }
 }
