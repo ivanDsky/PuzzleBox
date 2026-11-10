@@ -1,0 +1,52 @@
+{
+  "data": {
+    "data": {
+      "identityDashGameConnectionsEntitiesByOptedInToLeaderboardAndPlayed": {
+        "paging": {"count": 50, "start": 0, "total": 5},
+        "elements": [
+          {
+            "ranking": 1,
+            "gameScore": {"timeElapsed": 14},
+            "completionAttributes": {"isHintFree": true},
+            "isFlawless": false,
+            "playerDetails": {"player": {"*profile": "urn:li:fsd_profile:ACoAAFAKE0001"}}
+          },
+          {
+            "ranking": 2,
+            "gameScore": {"timeElapsed": 21},
+            "completionAttributes": {"isHintFree": false},
+            "isFlawless": false,
+            "playerDetails": {"player": {"*profile": "urn:li:fsd_profile:ACoAAFAKE0002"}}
+          },
+          {
+            "ranking": 3,
+            "gameScore": {"timeElapsed": 28},
+            "completionAttributes": {"isHintFree": true},
+            "isFlawless": true,
+            "playerDetails": {"player": {"*profile": "urn:li:fsd_profile:ACoAAFAKE0003"}}
+          },
+          {
+            "ranking": null,
+            "gameScore": null,
+            "completionAttributes": null,
+            "isFlawless": false,
+            "playerDetails": {"player": {"*profile": "urn:li:fsd_profile:ACoAAFAKE0004"}}
+          },
+          {
+            "ranking": 5,
+            "gameScore": {"timeElapsed": 57},
+            "completionAttributes": {"isHintFree": false},
+            "isFlawless": false,
+            "playerDetails": {"player": {"*profile": "urn:li:fsd_profile:ACoAAFAKE0009"}}
+          }
+        ]
+      }
+    }
+  },
+  "included": [
+    {"entityUrn": "urn:li:fsd_profile:ACoAAFAKE0001", "firstName": "Pat", "lastName": "Example"},
+    {"entityUrn": "urn:li:fsd_profile:ACoAAFAKE0002", "firstName": "Anna", "lastName": "Sample"},
+    {"entityUrn": "urn:li:fsd_profile:ACoAAFAKE0003", "firstName": "Lee( Q)", "lastName": "Test"},
+    {"entityUrn": "urn:li:fsd_profile:ACoAAFAKE0004", "firstName": "Hidden", "lastName": "Person"}
+  ]
+}
