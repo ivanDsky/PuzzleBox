@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app
 
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.ShippedReleaseFlags
 import org.junit.Assert.assertSame
