@@ -312,6 +312,20 @@ class QueensStepperTest {
         )
     }
 
+    @Test
+    fun `the stepper weighs only the proofs a rung calls its simplest, whatever the rung`() {
+        val wide = FakeRung("wide") { r -> listOf(exclude(r, 0) to setOf(4, 5, 6), exclude(r, 15) to setOf(9)) }
+        // Not a look-ahead rung: the stepper must ask it the same question it asks every rung.
+        val narrowed = object : QueensRung by wide {
+            override fun simplestSteps(puzzle: QueensPuzzle, candidates: QueensCandidates, press: QueensRung.Press) =
+                wide.steps(puzzle, candidates).take(1)
+        }
+        fun crossed(rung: QueensRung) =
+            ((QueensStepper.next(n4, QueensBoard(), true, null, null, QueensLadder(listOf(rung))) as QueensStep.Deduction).result as Result.Cross).cells
+        assertEquals(cells(15), crossed(wide))
+        assertEquals(cells(0), crossed(narrowed))
+    }
+
     // ---- reveal, unavailable ----
 
     @Test
