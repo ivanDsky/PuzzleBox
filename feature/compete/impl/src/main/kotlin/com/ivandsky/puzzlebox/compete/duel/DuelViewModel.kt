@@ -10,18 +10,15 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.match.Player
-import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
-import com.ivandsky.puzzlebox.data.repository.CompletionRepository
-import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.domain.DuelSnapshot
 import com.ivandsky.puzzlebox.domain.MatchState
 import com.ivandsky.puzzlebox.domain.MatchView
-import com.ivandsky.puzzlebox.domain.ObserveMatch
+import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.SeatAction
 import com.ivandsky.puzzlebox.domain.SeatResult
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import kotlin.coroutines.cancellation.CancellationException
@@ -98,18 +95,16 @@ internal sealed interface DuelUiState {
 private const val STOP_TIMEOUT_MS = 5_000L
 
 /**
- * The duel screen's state holder for one [code]: [ObserveMatch] mapped to a [DuelUiState], the seat actions through
+ * The duel screen's state holder for one [code]: [ObserveDuel] mapped to a [DuelUiState], the seat actions through
  * [updateSeat], and the Google sign-in a signed-out viewer gets first. A seat call is one at a time. [closes] fires
  * once when the screen is done with its viewer: after a Decline. Opening the duel asks [resultSync] to retry the
  * result posts still pending.
  */
 internal class DuelViewModel(
     code: String,
-    observeMatch: ObserveMatch,
+    observeDuel: ObserveDuel,
     private val updateSeat: UpdateMatchSeat,
-    savedPlays: SavedPlayRepository,
     resultSync: MatchResultSync,
-    completions: CompletionRepository,
     identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
     private val registry: GameRegistry,
@@ -139,51 +134,46 @@ internal class DuelViewModel(
     val state: StateFlow<DuelUiState> = if (shareCode == null) {
         MutableStateFlow<DuelUiState>(DuelUiState.NotFound).asStateFlow()
     } else {
-        val solved = completions.observeRecords().map { rows -> rows.mapTo(HashSet()) { PuzzleRefKeys.encode(it.puzzleRef) } }
-        val playing = savedPlays.observeInProgress().map { slots ->
-            slots.mapNotNull { (slot, elapsed) ->
-                (slot as? PlaySlot.Leg)?.takeIf { it.matchCode == shareCode.value }?.let { it.legIndex to elapsed }
-            }.toMap()
-        }
-        combine(reloads.flatMapLatest { observeMatch(shareCode) }, solved, working, playing) { match, done, work, elapsed ->
-            build(shareCode, match, done, work, elapsed)
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DuelUiState.Loading)
+        combine(reloads.flatMapLatest { observeDuel(shareCode) }, working) { duel, work -> build(shareCode, duel, work) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DuelUiState.Loading)
     }
 
-    private fun build(code: ShareCode, match: MatchState, solved: Set<String>, work: Working, elapsed: Map<Int, Long>): DuelUiState = when (match) {
+    private fun build(code: ShareCode, duel: DuelSnapshot, work: Working): DuelUiState = when (val match = duel.match) {
         MatchState.NotFound -> DuelUiState.NotFound
         MatchState.Offline -> DuelUiState.Offline
         is MatchState.UpdateApp -> DuelUiState.UpdateApp
         is MatchState.SignedOut -> DuelUiState.Invite(
-            InviteKind.SignedOut, code, match.match?.let { inviteDetails(it, null, solved) }, false, null, work.signIn,
+            InviteKind.SignedOut, code, match.match?.let { inviteDetails(it, null, duel.solvedBefore) }, false, null, work.signIn,
         )
-        is MatchState.Loaded -> loaded(code, match.view, solved, work, elapsed)
+        is MatchState.Loaded -> loaded(code, match.view, duel, work)
     }
 
-    private fun loaded(code: ShareCode, view: MatchView, solved: Set<String>, work: Working, elapsed: Map<Int, Long>): DuelUiState {
+    private fun loaded(code: ShareCode, view: MatchView, duel: DuelSnapshot, work: Working): DuelUiState {
         val match = view.match
         val me = view.me
         val challenger = match.challenger.uid == me
-        if (match.opponent?.uid == me || challenger && match.opponent != null) return DuelUiState.Participant(view, elapsed)
+        if (match.opponent?.uid == me || challenger && match.opponent != null) {
+            return DuelUiState.Participant(view, duel.elapsedMs)
+        }
         val kind = work.outcome ?: when {
             match.opponent != null -> InviteKind.Taken
             match.cancelled || match.declined -> InviteKind.Cancelled
             challenger -> InviteKind.Waiting
             else -> InviteKind.Open
         }
-        val details = inviteDetails(match, me, solved)
+        val details = inviteDetails(match, me, duel.solvedBefore)
         return DuelUiState.Invite(kind, code, details, work.seat != null, work.notice, work.signIn)
     }
 
     /** The card's facts; [me] is null signed out, when the viewer is neither challenger nor invitee. */
-    private fun inviteDetails(match: Match, me: String?, solved: Set<String>) = InviteDetails(
+    private fun inviteDetails(match: Match, me: String?, solvedBefore: Boolean) = InviteDetails(
         challenger = match.challenger,
         games = match.legs.map { it.ref.gameId }.distinct().map { InviteGame(it, registry.displayName(it)) },
         rounds = match.legs.size,
         deadline = match.deadline,
         viewerIsChallenger = match.challenger.uid == me,
         declined = match.declined,
-        solvedBefore = match.legs.any { it.ref.wire in solved },
+        solvedBefore = solvedBefore,
         canDecline = me != null && match.invitedUid == me,
     )
 
