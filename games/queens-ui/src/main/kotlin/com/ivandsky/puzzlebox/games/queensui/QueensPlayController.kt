@@ -25,8 +25,6 @@ import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 
 /**
  * The Queens play controller (queens-10 wiring; Zip controller shape): one adopted board
@@ -64,25 +62,23 @@ class QueensPlayController(
         private set
 
     /**
-     * Auto-cross as the player set it (on until switched off in the ⋮ menu). It follows [settings]
-     * live: every board, fresh or restored, derives under it, and a flip re-derives the open
-     * board at once. A lesson ([settings] null) stays on.
+     * Auto-cross as the player set it (on until switched off in the ⋮ menu), seeded from the stored
+     * value so a restored board's first frame is right. It follows [settings] live: every board,
+     * fresh or restored, derives under it, and a flip re-derives the open board at once. A lesson
+     * ([settings] null) stays on.
      */
-    var autoCross by mutableStateOf(true)
+    var autoCross by mutableStateOf(settings?.autoCross?.value ?: true)
         private set
 
     init {
         settings?.let { s -> env.scope.launch { s.autoCross.collect(::applyAutoCross) } }
     }
 
-    // Taps queue behind one lock (FIFO), so the store sees the writes in tap order.
-    private val autoCrossWrites = Mutex()
-
     /** The ⋮ menu's Auto-cross item: the board repaints now, the write only makes it stick. */
     fun chooseAutoCross(enabled: Boolean) {
         applyAutoCross(enabled)
         val s = settings ?: return
-        env.scope.launch { autoCrossWrites.withLock { s.setAutoCross(enabled) } }
+        env.scope.launch { s.setAutoCross(enabled) } // FIFO on the main-confined scope: writes land in tap order
     }
 
     private fun applyAutoCross(enabled: Boolean) {
