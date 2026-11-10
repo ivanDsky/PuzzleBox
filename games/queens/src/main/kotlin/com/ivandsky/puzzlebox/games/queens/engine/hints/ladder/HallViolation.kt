@@ -17,7 +17,7 @@ internal object HallViolation {
         val k: Int get() = units.size
 
         /** Every cell of [units], open or not. */
-        fun cells(puzzle: QueensPuzzle): List<Int> = puzzle.regions.indices.filter { indexOf(puzzle, kind, it) in units }
+        fun cells(puzzle: QueensPuzzle): List<Int> = puzzle.regions.indices.filter { QueensUnits.indexOf(puzzle, kind, it) in units }
     }
 
     /** The lab's order: it decides which of two equally small violations is reported. */
@@ -45,7 +45,7 @@ internal object HallViolation {
      */
     class Scratch(private val puzzle: QueensPuzzle) {
         private val n = puzzle.size
-        private val unitOf = Array(Kind.entries.size) { kind -> IntArray(n * n) { indexOf(puzzle, Kind.entries[kind], it) } }
+        private val unitOf = Array(Kind.entries.size) { kind -> IntArray(n * n) { QueensUnits.indexOf(puzzle, Kind.entries[kind], it) } }
         private val isOpen = BooleanArray(n * n)
         private val missingOf = Array(Kind.entries.size) { IntArray(n) }
         private val open = IntArray(n)
@@ -105,11 +105,5 @@ internal object HallViolation {
             }
             return found
         }
-    }
-
-    private fun indexOf(puzzle: QueensPuzzle, kind: Kind, cell: Int): Int = when (kind) {
-        Kind.ROW -> cell / puzzle.size
-        Kind.COLUMN -> cell % puzzle.size
-        Kind.REGION -> puzzle.regions[cell]
     }
 }

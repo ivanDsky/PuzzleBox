@@ -19,31 +19,26 @@ class LookAheadRung(private val propagate: List<QueensRung>) : QueensRung {
     override val captionKey: String = "queens.hint.rung.look-ahead"
 
     /** Lazy: probes cells in order and yields at each failed one, so [step] stops at the first. */
-    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> {
-        val units = units(puzzle)
-        return puzzle.regions.indices
+    override fun steps(puzzle: QueensPuzzle, candidates: QueensCandidates): Sequence<QueensProof> =
+        puzzle.regions.indices
             .filter(candidates::isOpen)
             .sortedWith(compareBy({ puzzle.regions[it] }, { it }))
             .asSequence()
             .mapNotNull { cell ->
-                probe(puzzle, units, candidates.place(puzzle, cell))?.let { (unit, cells) ->
+                probe(puzzle, candidates.place(puzzle, cell))?.let { unit ->
+                    val cells = QueensUnits.cells(puzzle, unit.kind)[unit.unit]
                     QueensProof(QueensDeduction.Exclude(this, unit, setOf(cell)), cells.filter { it != cell && candidates.isOpen(it) }.toSet())
                 }
             }
-    }
 
     override fun step(puzzle: QueensPuzzle, candidates: QueensCandidates): QueensDeduction? =
         steps(puzzle, candidates).firstOrNull()?.deduction
 
-    /** Propagates [hypothesis] with the lower rungs; the first emptied unit with its cells, or null if none. */
-    private fun probe(
-        puzzle: QueensPuzzle,
-        units: List<Pair<HintReason, List<Int>>>,
-        hypothesis: QueensCandidates,
-    ): Pair<HintReason, List<Int>>? {
+    /** Propagates [hypothesis] with the lower rungs; the first emptied unit, or null if none. */
+    private fun probe(puzzle: QueensPuzzle, hypothesis: QueensCandidates): HintReason? {
         var state = hypothesis
         while (true) {
-            emptied(puzzle, units, state)?.let { return it }
+            emptied(puzzle, state)?.let { return it }
             state = when (val deduction = propagate.firstNotNullOfOrNull { it.step(puzzle, state) } ?: return null) {
                 is QueensDeduction.Place -> state.place(puzzle, deduction.cell)
                 is QueensDeduction.Exclude -> state.exclude(deduction.cells)
@@ -51,16 +46,15 @@ class LookAheadRung(private val propagate: List<QueensRung>) : QueensRung {
         }
     }
 
-    private fun emptied(puzzle: QueensPuzzle, units: List<Pair<HintReason, List<Int>>>, state: QueensCandidates): Pair<HintReason, List<Int>>? =
-        units.firstOrNull { (_, cells) ->
-            cells.count { it in state.queens } + cells.count(state::isOpen) < puzzle.queensPerUnit
+    /** The first unit (ROW → COLUMN → REGION, then lowest index) too short of room for its queens. */
+    private fun emptied(puzzle: QueensPuzzle, state: QueensCandidates): HintReason? {
+        for (kind in HintReason.Kind.entries) {
+            val units = QueensUnits.cells(puzzle, kind)
+            for (index in units.indices) {
+                val cells = units[index]
+                if (cells.count { it in state.queens } + cells.count(state::isOpen) < puzzle.queensPerUnit) return HintReason(kind, index, this)
+            }
         }
-
-    private fun units(puzzle: QueensPuzzle): List<Pair<HintReason, List<Int>>> {
-        val n = puzzle.size
-        val byRegion = puzzle.regions.indices.groupBy { puzzle.regions[it] }
-        return List(n) { row -> HintReason(HintReason.Kind.ROW, row, this) to List(n) { row * n + it } } +
-            List(n) { col -> HintReason(HintReason.Kind.COLUMN, col, this) to List(n) { it * n + col } } +
-            List(n) { region -> HintReason(HintReason.Kind.REGION, region, this) to byRegion[region].orEmpty() }
+        return null
     }
 }
