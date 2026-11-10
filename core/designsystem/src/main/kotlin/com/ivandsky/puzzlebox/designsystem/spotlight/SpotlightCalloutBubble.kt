@@ -35,7 +35,7 @@ internal const val SpotlightCalloutTag = "SpotlightCallout"
  * CALLOUT_START_SCALE out of the pointer tip as [progress] runs 0 → 1; [progress] is read in the layer only.
  */
 @Composable
-internal fun SpotlightCalloutBubble(callout: SpotlightCallout, spotlight: Spotlight, progress: () -> Float) {
+internal fun SpotlightCalloutBubble(callout: SpotlightCallout, spotlight: Spotlight, lit: Set<Int>, progress: () -> Float) {
     val fill = SpotlightTokens.calloutBubble(MaterialTheme.colorScheme)
     Layout(
         content = {
@@ -51,7 +51,7 @@ internal fun SpotlightCalloutBubble(callout: SpotlightCallout, spotlight: Spotli
         val inset = margin + SpotlightTokens.CalloutRadius.roundToPx() + pointerW / 2
         val body = measurables[0].measure(Constraints.fixedWidth((width - 2 * margin).coerceAtLeast(0)))
         val pointer = measurables[1].measure(Constraints.fixed(pointerW, pointerH))
-        val placement = spotlight.calloutPlacement(Size(width.toFloat(), height.toFloat()), (body.height + pointerH).toFloat())
+        val placement = spotlight.calloutPlacement(lit, Size(width.toFloat(), height.toFloat()), (body.height + pointerH).toFloat())
         layout(width, height) {
             if (placement == null) return@layout
             val top = placement.top.toInt()
