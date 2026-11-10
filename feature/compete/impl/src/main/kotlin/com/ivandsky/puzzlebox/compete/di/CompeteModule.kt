@@ -13,11 +13,11 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
- * Compete feature wiring. [com.ivandsky.puzzlebox.domain.ObserveMyDuels], ObserveMatch, UpdateMatchSeat and
- * RecordRevealSeen come from :core:domain's domainModule and the identity service from the app's aggregation; the
+ * Compete feature wiring. [com.ivandsky.puzzlebox.domain.ObserveMyDuels], ObserveMatch, ObserveDuel, UpdateMatchSeat
+ * and RecordRevealSeen come from :core:domain's domainModule and the identity service from the app's aggregation; the
  * Duels tab's, the New duel sheet's, the duel screen's and the reveal's view models are bound here (the duel screen's
- * by its code; the reveal's by its code and the screen's reduced motion, zone and locale). The saved plays come from
- * :core:data and the result sync from the app, which binds it to the result poster.
+ * by its code; the reveal's by its code and the screen's reduced motion, zone and locale). The result sync comes from
+ * the app, which binds it to the result poster.
  */
 val competeModule: Module = module {
     viewModel {
@@ -40,11 +40,9 @@ val competeModule: Module = module {
     viewModel { (code: String) ->
         DuelViewModel(
             code = code,
-            observeMatch = get(),
+            observeDuel = get(),
             updateSeat = get(),
-            savedPlays = get(),
             resultSync = get(),
-            completions = get(),
             identity = get(),
             idTokens = get(),
             registry = get(),

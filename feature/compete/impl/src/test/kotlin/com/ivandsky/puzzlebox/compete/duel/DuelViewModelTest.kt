@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.match.Player
+import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -89,11 +90,13 @@ class DuelViewModelTest {
 
     private fun viewModel(rawCode: String = code.value) = DuelViewModel(
         code = rawCode,
-        observeMatch = ObserveMatch(repo, FakeMatchResultOutbox(), local, identity, registry) { now },
+        observeDuel = ObserveDuel(
+            observeMatch = ObserveMatch(repo, FakeMatchResultOutbox(), local, identity, registry) { now },
+            completions = completions,
+            savedPlays = FakeSavedPlayRepository(),
+        ),
         updateSeat = UpdateMatchSeat(repo, local, identity),
-        savedPlays = FakeSavedPlayRepository(),
         resultSync = MatchResultSync { },
-        completions = completions,
         identity = identity,
         idTokens = idTokens,
         registry = registry,
