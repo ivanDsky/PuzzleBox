@@ -24,9 +24,8 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * [game]'s leaderboard, the one home it has: a Today / Yesterday toggle, a Top / Near you
- * toggle (Near you once the player has a row that day), and the shared [DailyBoard] under
- * them. Signed out, the board's slot offers Google sign-in, which signs in here and loads
+ * [game]'s leaderboard, the one home it has: a Today / Yesterday toggle and the shared [DailyBoard] under
+ * it, the player's own row pinned at its bottom when it is outside the top rows. Signed out, the board's slot offers Google sign-in, which signs in here and loads
  * the board in the same place.
  */
 @Composable
@@ -38,9 +37,6 @@ internal fun GamePageBoard(game: GameId, modifier: Modifier = Modifier) {
     val scope = rememberCoroutineScope()
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Toggle(BoardDay.entries, state.day, viewModel::selectDay, { it.label }, { it.tag })
-        if (state.nearOffered) {
-            Toggle(BoardView.entries, state.view, viewModel::selectView, { it.label }, { it.tag })
-        }
         DailyBoard(
             title = if (state.day == BoardDay.Today) dailyBoardTitle(viewModel.gameName) else "${viewModel.gameName} · yesterday",
             order = viewModel.order,
@@ -61,8 +57,6 @@ internal fun GamePageBoard(game: GameId, modifier: Modifier = Modifier) {
 
 private val BoardDay.label get() = if (this == BoardDay.Today) "Today" else "Yesterday"
 private val BoardDay.tag get() = if (this == BoardDay.Today) "leaderboard.today" else "leaderboard.yesterday"
-private val BoardView.label get() = if (this == BoardView.Top) "Top" else "Near you"
-private val BoardView.tag get() = if (this == BoardView.Top) "leaderboard.top" else "leaderboard.near"
 
 @Composable
 private fun <T> Toggle(options: List<T>, selected: T, onSelect: (T) -> Unit, label: (T) -> String, tag: (T) -> String) {

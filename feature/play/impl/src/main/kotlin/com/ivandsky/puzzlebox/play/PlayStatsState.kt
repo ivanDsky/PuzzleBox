@@ -57,6 +57,10 @@ internal sealed interface PlayTimes {
         val top: List<PlayTimeRow>
             get() = if (you < TOP) rows.take(TOP) else rows.take(TOP) + rows[you]
 
+        /** The player's own row when it ranks below the [top] rows' first [TOP]; null when it is inside them or absent. */
+        val pinned: PlayTimeRow?
+            get() = if (you < TOP) null else rows[you]
+
         /** The player's row with [NEAR] ranks either side; null until the player has posted. */
         val nearYou: List<PlayTimeRow>?
             get() = if (you < 0) null else rows.subList((you - NEAR).coerceAtLeast(0), (you + NEAR + 1).coerceAtMost(rows.size))

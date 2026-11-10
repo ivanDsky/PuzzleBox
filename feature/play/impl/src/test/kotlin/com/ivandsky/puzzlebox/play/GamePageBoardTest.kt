@@ -109,24 +109,24 @@ class GamePageBoardTest {
 
         (1..5).forEach { assertTrue("rank $it should show", shows("P$it")) }
         assertFalse("rank 6 is outside Top", shows("P6"))
+        composeRule.onNodeWithTag("leaderboard.you").assertExists()
+    }
+
+    @Test
+    fun `the player's row inside the top is not pinned again`() {
+        show(FakeIdentityService(me), repository(today to entries("P", 10, meRank = 3)))
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("leaderboard.you").assertDoesNotExist()
         composeRule.onNodeWithTag("daily_board.row.self").assertExists()
     }
 
     @Test
-    fun `near you shows two ranks either side of the player`() {
-        show(FakeIdentityService(me), repository(today to entries("P", 10, meRank = 8)))
-        composeRule.onNodeWithTag("leaderboard.near").performClick()
-        composeRule.waitForIdle()
-
-        listOf("P6", "P7", "Me", "P9", "P10").forEach { assertTrue("$it should show", shows(it)) }
-        assertFalse("rank 1 is outside Near you", shows("P1"))
-    }
-
-    @Test
-    fun `near you is not offered without a row of the player's`() {
+    fun `without a row of the player's nothing is pinned and the view toggle is gone`() {
         show(FakeIdentityService(me), repository(today to entries("P", 10)))
         composeRule.waitForIdle()
 
+        composeRule.onNodeWithTag("leaderboard.you").assertDoesNotExist()
         composeRule.onNodeWithTag("leaderboard.near").assertDoesNotExist()
         assertTrue(shows("P1"))
     }
