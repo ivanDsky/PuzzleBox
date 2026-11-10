@@ -8,8 +8,10 @@ import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.queensVariantId
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
+import kotlinx.coroutines.Dispatchers
 
 /** Deterministic 8×8 fixture (queens-10 wiring tests): [solution] is the only layout of [puzzle], so the stepper judges
  *  entries against it (ticket 43: a stored solution counts only when the board has no other). */
@@ -50,4 +52,8 @@ object QueensPlayFixtures {
 
     /** Today's resolved record identity (#42). */
     fun ref(): QueensPuzzleRef = QueensPuzzleRef(PuzzleKey.Daily(today(), 42))
+
+    /** The play registration as a release wires it: Stepwise hints, computed on the calling thread. */
+    fun playUi(settings: QueensSettings = InMemoryQueensSettings()): QueensPlayUi =
+        QueensPlayUi(settings, HintMode.Stepwise(Dispatchers.Unconfined))
 }

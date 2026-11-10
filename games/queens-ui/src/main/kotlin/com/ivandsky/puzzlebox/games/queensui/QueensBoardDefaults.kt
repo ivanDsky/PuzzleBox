@@ -25,11 +25,10 @@ object QueensBoardDefaults {
     // a 1dp hairline at low-alpha ink on every cell edge (outline included), and a
     // heavier full-contrast region-boundary stroke so region shapes read even when
     // adjacent fills sit close in lightness. The region-boundary weight IS the core
-    // gridline token; the hint boundary is the heaviest edge.
+    // gridline token.
     val cellGridLineWeight: Dp = 1.dp
     const val cellGridLineAlpha: Float = 0.25f
     val regionBorderWeight: Dp = BoardTokens.boardGridLineWeight
-    val hintBorderWeight: Dp = 2.dp
 
     // §3.5 Violation stripes: 45°, 10dp pitch along the edge (≈7dp across the stripes),
     // a 3dp error band on a 4dp black under-band. The old 6dp pitch put 5dp of stroke
@@ -43,14 +42,8 @@ object QueensBoardDefaults {
     // highlight catches a tile; QueensMotion scales its peak per theme.
     val pulseWash: Color = Color.White
 
-    // §5.5 hint: boardSelection overlay at 25%, two pulse cycles of DurationExpressive.
-    // Stage 2 (fix round 6): the repeat tap points at the forced cell — the overlay
-    // emphasis triples and the cell renders the crown ghost at reduced alpha.
-    const val hintOverlayAlpha: Float = 0.25f
-    const val hintPulseCycles: Int = 2
-    const val hintPointedAlphaBoost: Float = 3f
-    const val hintGhostAlpha: Float = 0.45f
-    // The ghost is a dashed crown outline, so it never reads as a placed (solid) queen.
+    // The guided lesson's answer ghost is a dashed crown outline, so it never reads as a
+    // placed (solid) queen.
     const val ghostOutlineAlpha: Float = 0.7f
     val ghostStrokeWeight: Dp = 2.dp
     val ghostDash: Dp = 5.dp
@@ -58,6 +51,7 @@ object QueensBoardDefaults {
     // Guided lesson (spec A12): a queen off the answer carries a faint × in its corner
     // (Tango's guide badge size), so a lesson with every answer placed never looks stuck.
     const val strayBadgeFraction: Float = 0.4f
+    const val strayBadgeAlpha: Float = 0.45f
     val strayBadgeWeight: Dp = 1.75.dp
     const val strayBadgeLengthFraction: Float = 0.55f
 

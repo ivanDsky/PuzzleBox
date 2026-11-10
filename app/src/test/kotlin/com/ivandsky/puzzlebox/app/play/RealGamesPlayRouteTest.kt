@@ -53,6 +53,7 @@ import com.ivandsky.puzzlebox.games.zipui.ZipPlayUi
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
@@ -141,7 +142,7 @@ class RealGamesPlayRouteTest {
                     single<CompletionRepository> { FakeCompletionRepository() }
                     // The hub names games from the registry (A5), in the app's order.
                     single { GameRegistry(listOf(zipPlugin, tangoPlugin, queensPlugin, strandsPlugin)) }
-                    single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(), QueensPlayUi(PreferencesQueensSettings(FakeGameSettingsRepository())), StrandsPlayUi())) }
+                    single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(), QueensPlayUi(PreferencesQueensSettings(FakeGameSettingsRepository()), HintMode.Stepwise(get<DispatcherProvider>().default)), StrandsPlayUi())) }
                     single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }

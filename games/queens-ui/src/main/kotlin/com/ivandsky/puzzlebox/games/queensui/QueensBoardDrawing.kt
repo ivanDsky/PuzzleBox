@@ -15,18 +15,16 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
  * §3.1 edge layer (F-1), drawn above the opaque region fills: a [QueensBoardDefaults.cellGridLineWeight]
  * hairline on every interior cell edge in low-alpha ink, a full-contrast
  * [QueensBoardDefaults.regionBorderWeight] stroke on every interior edge
- * between two different regions so region shapes read, the hinted region's boundary
- * in [QueensBoardDefaults.hintBorderWeight] boardSelection (§5.5) on top of that, and the
+ * between two different regions so region shapes read, and the
  * board outline in full ink at [QueensBoardDefaults.regionBorderWeight] (the Tango/Zip frame weight).
  * The [drawRegionTexture] dots go down first, so the lattice and borders stay on top.
  */
-internal fun DrawScope.drawCellEdges(model: QueensBoardModel, hintColor: Color, ink: Color) {
+internal fun DrawScope.drawCellEdges(model: QueensBoardModel, ink: Color) {
     drawRegionTexture(model, ink)
     val n = model.n
     val g = GridGeometry(n, n, size.width, size.height)
     val hairline = QueensBoardDefaults.cellGridLineWeight.toPx()
     val regionWeight = QueensBoardDefaults.regionBorderWeight.toPx()
-    val hintWeight = QueensBoardDefaults.hintBorderWeight.toPx()
     val faint = ink.copy(alpha = QueensBoardDefaults.cellGridLineAlpha)
 
     fun line(x0: Float, y0: Float, x1: Float, y1: Float, color: Color, width: Float) {
@@ -45,28 +43,17 @@ internal fun DrawScope.drawCellEdges(model: QueensBoardModel, hintColor: Color, 
         style = Stroke(width = regionWeight),
     )
     // Interior edges toward a different region: region boundary at full-contrast ink
-    // (each interior edge visited once — right/down neighbors only), upgraded to the
-    // §5.5 hint boundary when it separates the hinted region from another.
-    val hintCells = model.hintCells
+    // (each interior edge visited once — right/down neighbors only).
     for (row in 0 until n) for (col in 0 until n) {
         val idx = row * n + col
         val region = model.regions[idx]
-        val hinted = idx in hintCells && model.hintRegion != null
         if (col + 1 < n && model.regions[idx + 1] != region) {
-            val otherHinted = idx + 1 in hintCells && model.hintRegion != null
             val x = (col + 1) * g.cellWidth
-            line(x, row * g.cellHeight, x, (row + 1) * g.cellHeight,
-                if (hinted || otherHinted) hintColor else ink,
-                if (hinted || otherHinted) hintWeight else regionWeight,
-            )
+            line(x, row * g.cellHeight, x, (row + 1) * g.cellHeight, ink, regionWeight)
         }
         if (row + 1 < n && model.regions[idx + n] != region) {
-            val otherHinted = idx + n in hintCells && model.hintRegion != null
             val y = (row + 1) * g.cellHeight
-            line(col * g.cellWidth, y, (col + 1) * g.cellWidth, y,
-                if (hinted || otherHinted) hintColor else ink,
-                if (hinted || otherHinted) hintWeight else regionWeight,
-            )
+            line(col * g.cellWidth, y, (col + 1) * g.cellWidth, y, ink, regionWeight)
         }
     }
 }

@@ -28,9 +28,7 @@ import java.io.File
  * preview-first, device-confirm, so the state matrix is walkable from these.
  *
  * Fix round 6: the win goldens are GONE (the modal overlay is deleted — the solved
- * state presents as the result route at app level) and the staged hint ladder is
- * captured instead: neutral stage 1, the ROW-deduction caption, and the stage-2
- * pointed ghost.
+ * state presents as the result route at app level).
  *
  * One state per test method: the activity renders exactly one board, so the
  * window-cropped capture is exactly that board (Roborazzi crops the window bitmap).
@@ -69,13 +67,9 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
         name: String,
         dark: Boolean,
         session: QueensSession,
-        hint: Boolean = false,
-        pointed: Boolean = false,
         controls: Boolean = false,
     ) {
         val state = QueensBoardState(initialSession = session)
-        if (hint) state.requestHint()
-        if (pointed) state.requestHint() // the repeat tap escalates to stage 2
         // Deterministic captures: the board's reduced-motion path (§5) snaps every
         // entrance to its end state — identical pixels, no mid-pop race in the bitmap.
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
@@ -154,16 +148,4 @@ abstract class QueensGoldenTestBase(private val widthLabel: String) {
     // R-2 (fix round 4): live violation with its self-explanatory caption near the controls.
     @Test fun `violation caption light`() = capture("violation-caption", false, state(queens = listOf(1, 2)), controls = true)
     @Test fun `violation caption dark`() = capture("violation-caption", true, state(queens = listOf(1, 2)), controls = true)
-
-    // Fix round 6 (§5.5 staged ladder): stage 1 neutral (no human reason yet — region
-    // pulse + fallback caption), stage 1 with the ROW deduction, and stage 2's pointed
-    // ghost on the forced cell.
-    @Test fun `hint neutral light`() = capture("hint", false, QueensUiFixtures.session(), hint = true, controls = true)
-    @Test fun `hint neutral dark`() = capture("hint", true, QueensUiFixtures.session(), hint = true, controls = true)
-
-    @Test fun `hint deduction light`() = capture("hint-deduction", false, state(queens = listOf(7, 8, 14)), hint = true, controls = true)
-    @Test fun `hint deduction dark`() = capture("hint-deduction", true, state(queens = listOf(7, 8, 14)), hint = true, controls = true)
-
-    @Test fun `hint point light`() = capture("hint-point", false, state(queens = listOf(7, 8, 14)), hint = true, pointed = true, controls = true)
-    @Test fun `hint point dark`() = capture("hint-point", true, state(queens = listOf(7, 8, 14)), hint = true, pointed = true, controls = true)
 }
