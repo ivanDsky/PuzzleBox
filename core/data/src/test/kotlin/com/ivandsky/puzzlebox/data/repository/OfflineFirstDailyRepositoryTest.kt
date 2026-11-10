@@ -450,6 +450,16 @@ class OfflineFirstDailyRepositoryTest {
     }
 
     @Test
+    fun `linkedInGameTypeId passes the source's id through, null without one`() {
+        alphaSource.linkedInGameTypeId = 6
+
+        assertEquals(6, repository.linkedInGameTypeId(alpha))
+        assertNull(repository.linkedInGameTypeId(beta))
+        assertNull(repository.linkedInGameTypeId(GameId("strands")))
+        assertTrue(alphaSource.requestedDates.isEmpty())
+    }
+
+    @Test
     fun `history marks archived only rows fetched after their own day`() = runTest {
         val dao = db.puzzleDailyDao()
         val live = LocalDate.of(2026, 10, 30)

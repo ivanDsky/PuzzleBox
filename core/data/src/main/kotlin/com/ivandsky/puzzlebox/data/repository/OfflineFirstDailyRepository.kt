@@ -103,6 +103,8 @@ internal class OfflineFirstDailyRepository(
 
     override fun puzzleNumber(game: GameId, day: LocalDate): Int? = sources[game]?.puzzleNumber(day)
 
+    override fun linkedInGameTypeId(game: GameId): Int? = sources[game]?.linkedInGameTypeId
+
     override suspend fun cachedPuzzle(game: GameId, day: LocalDate): Puzzle? = withContext(dispatchers.io) {
         cachedRow(game, day)?.takeUnless { isPast(game, day) && isPlaceholder(game, it) }
     }

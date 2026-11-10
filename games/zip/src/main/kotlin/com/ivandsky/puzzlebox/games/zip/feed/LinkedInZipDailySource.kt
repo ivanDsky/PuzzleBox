@@ -42,6 +42,8 @@ class LinkedInZipDailySource(
 
     override val archiveSince: LocalDate = EDITION.day1
 
+    override val linkedInGameTypeId: Int? = EDITION.gameTypeId
+
     override fun puzzleNumber(day: LocalDate): Int? = EDITION.numberOrNull(day)
 
     override suspend fun fetchDaily(date: LocalDate): FetchResult<DailyFetch> {

@@ -38,6 +38,9 @@ interface DailySource : PuzzleSource {
     /** This source's puzzle number for [day] in its archive range, or null when it numbers no days (A20). */
     fun puzzleNumber(day: LocalDate): Int? = null
 
+    /** The LinkedIn Games type id this source serves, or null when it is not a LinkedIn feed. */
+    val linkedInGameTypeId: Int? get() = null
+
     /**
      * True when a stored [puzzle] is a stand-in rather than its day's real puzzle (A10):
      * a past day opened by date reads such a row as a cache miss and never serves it.
