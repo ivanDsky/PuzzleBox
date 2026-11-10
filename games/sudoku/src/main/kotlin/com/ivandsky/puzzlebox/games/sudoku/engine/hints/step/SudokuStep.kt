@@ -14,9 +14,17 @@ sealed interface SudokuStep {
      * [place] is the digit the board forces, with `via == null` and empty `struck`. [lastCell] is the unit whose only
      * empty cell it fills (catalog D0), null for the other singles; a last cell's [place] carries that unit's hidden
      * single technique. [blockers] are the placed cells whose digits rule the digit out of the unit's other cells, or
-     * for a naked single the cells holding the digits the target sees.
+     * for a naked single the cells holding the digits the target sees. [struck] (cell to digit mask) are the remembered
+     * strikes the single leans on: a hidden single's other open cells that only a strike keeps the digit out of, or
+     * the digits of a naked single's cell that no placed digit rules out. Empty when it leans on none; it is not part
+     * of the step's identity (the ledger keys a single by cell and digit).
      */
-    data class Single(val place: SudokuHint.Place, val lastCell: SudokuUnit?, val blockers: Set<Int>) : SudokuStep
+    data class Single(
+        val place: SudokuHint.Place,
+        val lastCell: SudokuUnit?,
+        val blockers: Set<Int>,
+        val struck: Map<Int, Int> = emptyMap(),
+    ) : SudokuStep
 
     /**
      * [technique] in [unit] clears [struck] (cell to digit mask); [evidence] are the cells that prove it. [group] is

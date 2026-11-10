@@ -100,6 +100,24 @@ class SudokuStepCopyTest {
     }
 
     @Test
+    fun `a naked single names the digits it sees, then the digits only a strike rules out`() {
+        val board = miniBoard(1 to 3, 2 to 1)
+        val one = SudokuStep.Single(place(0, 4, SudokuTechnique.NAKED_SINGLE, null), null, setOf(1, 2), mapOf(0 to bit(2)))
+        val several = SudokuStep.Single(place(0, 4, SudokuTechnique.NAKED_SINGLE, null), null, setOf(1, 2), mapOf(0 to (bit(2) or bit(5) or bit(6))))
+
+        assertEquals("Naked single: it sees 1, 3 and has 2 ruled out, so it is 4", text(one, mini, board))
+        assertEquals("Naked single: it sees 1, 3 and has 2, 5 and 6 ruled out, so it is 4", text(several, mini, board))
+    }
+
+    @Test
+    fun `a naked single that sees nothing names only its struck digits`() {
+        val struck = mapOf(0 to (bit(1) or bit(2) or bit(3) or bit(5) or bit(6)))
+        val step = SudokuStep.Single(place(0, 4, SudokuTechnique.NAKED_SINGLE, null), null, emptySet(), struck)
+
+        assertEquals("Naked single: it has 1, 2, 3, 5 and 6 ruled out, so it is 4", text(step, mini, miniBoard()))
+    }
+
+    @Test
     fun `pointing names the digit from the mask for every digit and the shared line`() {
         for (digit in 1..9) {
             val row = SudokuStep.Elimination(
@@ -197,8 +215,14 @@ class SudokuStepCopyTest {
         )
         val worstSingle = SudokuStep.Single(place(0, 4, SudokuTechnique.NAKED_SINGLE, null), null, setOf(1, 2, 3, 4, 5))
         val worstBoard = miniBoard(1 to 6, 2 to 1, 3 to 5, 4 to 2, 5 to 3)
+        // Classic, as many seen digits as struck ones: the longest a naked single's line gets.
+        val classicWorstBoard = (1..4).fold(classicBoard) { board, cell -> board.with(cell, SudokuCell.Given(cell)) }
+        val classicWorst = SudokuStep.Single(
+            place(0, 9, SudokuTechnique.NAKED_SINGLE, null), null, setOf(1, 2, 3, 4), mapOf(0 to (bit(5) or bit(6) or bit(7) or bit(8))),
+        )
         val texts = everyStep().mapValues { (_, step) -> text(step) } +
             ("WORST_NAKED" to text(worstSingle, mini, worstBoard)) +
+            ("WORST_NAKED_STRUCK" to text(classicWorst, classic, classicWorstBoard)) +
             ("WORST_CLASH" to text(SudokuStep.Mistake(2, 8, 0)))
 
         for ((name, line) in texts) {

@@ -25,7 +25,12 @@ internal object SudokuStepCopy {
         },
         SudokuTechnique.NAKED_SINGLE to { step, board ->
             val seen = step.blockers.map { board.digitAt(it) }.distinct().sorted()
-            "Naked single: it sees ${seen.joinToString(", ")}, so it is ${step.place.digit}"
+            val ruledOut = step.struck[step.place.cell] ?: 0
+            val clauses = listOfNotNull(
+                if (seen.isEmpty()) null else "sees ${seen.joinToString(", ")}",
+                if (ruledOut == 0) null else "has ${digitList(ruledOut)} ruled out",
+            )
+            "Naked single: it ${clauses.joinToString(" and ")}, so it is ${step.place.digit}"
         },
     )
 
