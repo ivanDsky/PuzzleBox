@@ -92,7 +92,7 @@ internal fun DuelInviteCard(invite: DuelUiState.Invite, actions: InviteActions, 
 private fun InviteHeader(invite: DuelUiState.Invite, modifier: Modifier) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         Text(
-            text = "Duel · from a friend",
+            text = if (invite.details?.viewerIsChallenger == true) "Your duel" else "Duel · from a friend",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -113,7 +113,11 @@ private fun Headline(details: InviteDetails?, modifier: Modifier) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         if (details != null) PlayerAvatar(details.challenger.name, details.challenger.photoUrl, tone = DuelTone.Them)
         Text(
-            text = if (details == null) "A friend challenges you" else "${details.challenger.name} challenges you",
+            text = when {
+                details == null -> "A friend challenges you"
+                details.viewerIsChallenger -> "You challenged a friend"
+                else -> "${details.challenger.name} challenges you"
+            },
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 2,
