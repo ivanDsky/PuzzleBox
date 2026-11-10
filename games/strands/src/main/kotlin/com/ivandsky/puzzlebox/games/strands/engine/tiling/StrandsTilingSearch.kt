@@ -8,6 +8,14 @@ import com.ivandsky.puzzlebox.game.editor.Budget
  * owns each cell. Cells are bits of a [Long], so a board holds at most 64 cells.
  */
 object StrandsTilingSearch {
+    /**
+     * Distinct placements one word may have, and all the words together. Real puzzles have at most one
+     * placement per word and nine in all; a board of one repeated letter has millions. Past either cap
+     * [bounded] answers [StrandsTilingOutcome.Exhausted] before it builds them.
+     */
+    const val MAX_PLACEMENTS_PER_WORD: Int = 20_000
+    const val MAX_PLACEMENTS: Int = 60_000
+
     /** Tilings of [letters] (rows × cols) by [words], each an 8-neighbour path, disjoint, covering every cell.
      *  [first], when given, is tried first so the author's tiling is witness A. */
     fun bounded(rows: Int, cols: Int, letters: String, words: List<String>, first: List<Int>?, limit: Int, budget: Budget): StrandsTilingOutcome {
@@ -15,10 +23,16 @@ object StrandsTilingSearch {
         val board = Board(rows, cols, letters)
         if (words.sumOf { it.length } != letters.length) return StrandsTilingOutcome.Done(emptyList())
         val byText = HashMap<String, LongArray>()
+        var distinctTotal = 0
         for (text in words.distinct()) {
-            byText[text] = PlacementWalk(board, text, budget).all() ?: return StrandsTilingOutcome.Exhausted
+            val found = PlacementWalk(board, text, budget).all() ?: return StrandsTilingOutcome.Exhausted
+            distinctTotal += found.size
+            if (distinctTotal > MAX_PLACEMENTS) return StrandsTilingOutcome.Exhausted
+            byText[text] = found
         }
         val placements = words.map { checkNotNull(byText[it]) }
+        // Repeated words share one walk but each gets its own copy in the cover.
+        if (placements.sumOf { it.size.toLong() } > MAX_PLACEMENTS) return StrandsTilingOutcome.Exhausted
         return Cover(board.cells, placements, first, limit, budget).run()
     }
 
@@ -100,7 +114,7 @@ private class Board(rows: Int, cols: Int, val letters: String) {
         extend(word, start, visited, start, word.length - visited.countOneBits(), forward = false, budget)
 }
 
-/** Every distinct placement of one word, or null once the budget runs out mid-walk. */
+/** Every distinct placement of one word, or null once the budget runs out or the word passes its placement cap. */
 private class PlacementWalk(private val board: Board, private val word: String, private val budget: Budget) {
     private val found = LinkedHashSet<Long>()
     private var steps = 0
@@ -121,6 +135,7 @@ private class PlacementWalk(private val board: Board, private val word: String, 
         if (exhausted) return
         if (index == word.lastIndex) {
             found += visited
+            if (found.size > StrandsTilingSearch.MAX_PLACEMENTS_PER_WORD) exhausted = true
             return
         }
         for (neighbour in board.neighbours[at]) {
@@ -147,8 +162,15 @@ private class Cover(
     private val budget: Budget,
 ) {
     private val wordCount = placements.size
-    private val wordOf: IntArray = placements.flatMapIndexed { word, masks -> List(masks.size) { word } }.toIntArray()
-    private val maskOf: LongArray = placements.flatMap { it.asList() }.toLongArray()
+    private val wordOf = IntArray(placements.sumOf { it.size })
+    private val maskOf = LongArray(wordOf.size).also { all ->
+        var at = 0
+        placements.forEachIndexed { word, masks ->
+            masks.copyInto(all, at)
+            wordOf.fill(word, at, at + masks.size)
+            at += masks.size
+        }
+    }
     private val authorCell: List<Int>? = first?.takeIf { it.size == cells }
     private val authorMask: LongArray = LongArray(wordCount).also { masks ->
         authorCell?.forEachIndexed { cell, word -> if (word in 0 until wordCount) masks[word] = masks[word] or bit(cell) }
