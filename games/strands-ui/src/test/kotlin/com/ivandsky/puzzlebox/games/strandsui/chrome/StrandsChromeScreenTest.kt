@@ -22,6 +22,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.HintStage
@@ -269,6 +270,21 @@ class StrandsChromeScreenTest {
         rule.onNodeWithTag("strands.cell.7.5").performClick()
         assertEquals(listOf(Coord(7, 5)), controller.trace.path)
         rule.onNodeWithTag("strands.hint").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h900dp-420dpi")
+    fun `on a tall phone the page floats at the vertical middle, equal space above and below`() {
+        show(adopted(), PlayLayout.SinglePane)
+
+        val scroll = rule.onNodeWithTag("strands.scroll").getBoundsInRoot()
+        // The board area's tag sits inside its own sm padding, which belongs to the group.
+        val top = rule.onNodeWithTag("strands.board_area").getBoundsInRoot().top - Spacing.sm
+        val bottom = rule.onNodeWithTag("strands.side_panel").getBoundsInRoot().bottom
+        val above = top - scroll.top
+        val below = scroll.bottom - bottom
+        assertTrue("room to centre in: above $above below $below", above > 8.dp)
+        assertEquals("equal space above and below", above.value, below.value, 1f)
     }
 
     private fun tall() = StrandsPlayController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}))
