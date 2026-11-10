@@ -16,8 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -147,9 +145,7 @@ private fun Cell(
     val render = model.cells.getOrNull(idx)
     val violationPhrase = TangoSemantics.violationPhraseAt(model, idx)
     val violating = violationPhrase != null
-    val hinted = model.hintCell == idx
     val scheme = MaterialTheme.colorScheme
-    val board = LocalBoardColors.current
     val gridLineWeight = BoardTokens.boardGridLineWeight
     val reducedMotion = rememberReducedMotion()
     // ViolationFlash retired (user QA 2026-11-02): the 1→0.86 cell scale read as a
@@ -173,16 +169,6 @@ private fun Cell(
                         color = scheme.surfaceVariant.copy(alpha = TangoBoardSpec.givenTintAlpha),
                         cornerRadius = stateRadius,
                     )
-                }
-                if (hinted) {
-                    // HintReveal (§2/§7, spec A14): an inset orange tile on its own lip —
-                    // state-driven highlight, persists until the next input clears it.
-                    val inset = TangoBoardSpec.hintTileInset.toPx()
-                    val depth = TangoBoardSpec.hintTileLipDepth.toPx()
-                    val corner = CornerRadius(pitchPx * TangoBoardSpec.hintTileCornerFraction)
-                    val face = Size(size.width - inset * 2, size.height - inset * 2 - depth)
-                    drawRoundRect(board.tangoHintLip, Offset(inset, inset + depth), face, corner)
-                    drawRoundRect(board.tangoHintFill, Offset(inset, inset), face, corner)
                 }
                 if (violating) {
                     // errorContainer tint 0.7 (Zip rejection precedent) + dashed border

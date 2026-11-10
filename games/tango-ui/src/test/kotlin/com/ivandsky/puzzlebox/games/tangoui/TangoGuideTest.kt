@@ -8,9 +8,11 @@ import com.ivandsky.puzzlebox.gameui.TutorialSandbox
 import com.ivandsky.puzzlebox.gameui.TutorialSession
 import com.ivandsky.puzzlebox.gameui.TutorialState
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -149,7 +151,7 @@ class TangoGuideTest {
     @Test
     fun `the sandbox guides lesson 1 and plays through to ready`() {
         val session = TutorialSession(TangoTutorial.steps)
-        val sandbox = TutorialSandbox(TangoPlayUi(), session)
+        val sandbox = TutorialSandbox(TangoPlayUi(HintMode.Stepwise(UnconfinedTestDispatcher())), session)
         val scope = CoroutineScope(Dispatchers.Unconfined)
         val lessonTaps = listOf(answer.keys.toList(), listOf(6), listOf(1, 8), listOf(15))
 

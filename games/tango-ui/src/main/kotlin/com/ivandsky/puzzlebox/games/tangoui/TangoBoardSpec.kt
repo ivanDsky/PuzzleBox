@@ -65,13 +65,6 @@ object TangoBoardSpec {
     /** Violation tint alpha over the offending cell (Zip rejection precedent). */
     const val violationTintAlpha: Float = 0.7f
 
-    /** HintReveal tile (spec A14): inset from the gridlines, sitting [hintTileLipDepth] up on its lip. */
-    val hintTileInset: Dp = 3.dp
-    val hintTileLipDepth: Dp = 3.dp
-
-    /** HintReveal tile corner, fraction of pitch. */
-    const val hintTileCornerFraction: Float = 0.18f
-
     /** Guide ghost alpha (spec A12): the lesson's answer glyph, faint until the square
      *  matches (Queens' hint-ghost precedent, a touch lighter for a whole board of them). */
     const val ghostAlpha: Float = 0.4f
