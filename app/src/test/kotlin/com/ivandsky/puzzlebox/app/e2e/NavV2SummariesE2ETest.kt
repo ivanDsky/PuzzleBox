@@ -168,6 +168,7 @@ class NavV2SummariesE2ETest {
         assertRoute(CREATE)
         assertOwnersOnly()
 
+        tapTab(HomeKey)
         tapAvatar()
         assertRoute(PROFILE)
         assertOwnersOnly()

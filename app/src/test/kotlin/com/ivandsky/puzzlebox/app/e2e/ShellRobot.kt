@@ -46,6 +46,7 @@ import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.nav.NAVIGATION_STATE_KEY
 import com.ivandsky.puzzlebox.app.nav.TopLevelDestination
 import com.ivandsky.puzzlebox.app.nav.isImmersive
+import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
@@ -584,20 +585,37 @@ class ShellRobot internal constructor(
         assertTrue("rail hugs the start: $tabs in $window", tabs.first().right <= window.left + window.width / 4)
     }
 
-    /** NavV2: the top bar's avatar, which opens Profile on the current tab. */
+    /** NavV2: the avatar (the rail's bottom, or Today's header on a bar), which opens Profile on the current tab. */
     fun tapAvatar() = tap(AVATAR)
 
-    /** NavV2: the top bar's gear, which opens Settings on the current tab. */
+    /** NavV2: the gear (the rail's bottom, or Today's header on a bar), which opens Settings on the current tab. */
     fun tapGear() = tap(GEAR)
 
-    /** NavV2 Browse chrome: the avatar and the gear each show exactly once. */
+    /**
+     * NavV2 placement of the avatar and the gear: on a [rail] they show once wherever the rail
+     * shows (every screen but the immersive ones); on the bar only Today's root shows them.
+     */
+    fun assertChromeFor(rail: Boolean) {
+        val top = state.currentStack.last()
+        val shown = if (rail) !isImmersive(top) else top == HomeKey
+        if (shown) assertChromeActions() else assertNoChromeActions()
+        if (shown && rail) {
+            val avatar = rule.onNodeWithTag(AVATAR).fetchSemanticsNode().boundsInRoot
+            val gear = rule.onNodeWithTag(GEAR).fetchSemanticsNode().boundsInRoot
+            val lowestTab = tabBounds().maxOf { it.bottom }
+            assertTrue("avatar sits below the tabs: $avatar vs $lowestTab", avatar.top >= lowestTab)
+            assertTrue("gear sits below the avatar: $gear vs $avatar", gear.top >= avatar.bottom)
+        }
+    }
+
+    /** The avatar and the gear each show exactly once. */
     fun assertChromeActions() {
         awaitTag(AVATAR)
         assertEquals("avatars (state $state)", 1, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
         assertEquals("gears (state $state)", 1, rule.onAllNodesWithTag(GEAR).fetchSemanticsNodes().size)
     }
 
-    /** Neither the avatar nor the gear shows: immersive play, a Tool screen, or the flag off. */
+    /** Neither the avatar nor the gear shows: immersive play, a bar screen but Today, or the flag off. */
     fun assertNoChromeActions() {
         assertEquals("avatars (state $state)", 0, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
         assertEquals("gears (state $state)", 0, rule.onAllNodesWithTag(GEAR).fetchSemanticsNodes().size)

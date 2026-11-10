@@ -31,14 +31,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * With NavV2 on, every Browse screen carries the shell's avatar (`shell.avatar`) and gear
- * (`shell.settings`) in its top bar; immersive and Tool screens carry neither. The avatar
- * opens Profile and the gear opens Settings on the tab the player is on, so Back returns to
- * the screen they left. With the flag off no screen shows either.
- *
- * The Games root is not listed: its Library header is a custom one that renders the slot
- * only once ticket 14 lands. Rows run on a phone: until 14, two-pane History draws the slot
- * in both panes.
+ * With NavV2 on a phone's bar, only Today's header carries the shell's avatar (`shell.avatar`)
+ * and gear (`shell.settings`); every other screen carries neither. The avatar opens Profile
+ * and the gear opens Settings on the current tab, so Back returns to Today. With the flag off
+ * no screen shows either. The tablet's rail placement is pinned in the e2e tests.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -46,30 +42,29 @@ import org.robolectric.annotation.Config
 class ShellChromeTest {
 
     @Test
-    fun `the Today, History and Create roots show the avatar and the gear`() = flagOn {
+    fun `the Today root shows the avatar and the gear, the History and Create roots do not`() = flagOn {
         assertRoute(HOME)
         assertShellActions(shown = true)
 
         tapTab(HistoryRootKey)
         assertRoute(HISTORY)
-        assertShellActions(shown = true)
+        assertShellActions(shown = false)
 
         tapTab(CreateKey)
         assertRoute(CREATE)
-        assertShellActions(shown = true)
+        assertShellActions(shown = false)
     }
 
     @Test
-    fun `a pushed friend puzzle shows the avatar and the gear`() =
-        flagOn(at(PlayKey, FriendPuzzleKey("K7Q2MX"))) {
-            assertRoute(FRIEND)
-            assertShellActions(shown = true)
-        }
+    fun `a pushed friend puzzle shows neither`() = flagOn(at(PlayKey, FriendPuzzleKey("K7Q2MX"))) {
+        assertRoute(FRIEND)
+        assertShellActions(shown = false)
+    }
 
     @Test
-    fun `a pushed History shows the avatar and the gear`() = flagOn(at(HomeKey, HistoryKey())) {
+    fun `a pushed History shows neither`() = flagOn(at(HomeKey, HistoryKey())) {
         assertRoute(HISTORY)
-        assertShellActions(shown = true)
+        assertShellActions(shown = false)
     }
 
     @Test
@@ -99,34 +94,34 @@ class ShellChromeTest {
 
     @Test
     fun `the avatar opens Profile on the current tab and Back returns to the screen left`() =
-        flagOn(at(HomeKey, HistoryKey())) {
-            assertRoute(HISTORY)
+        flagOn {
+            assertRoute(HOME)
 
             tap(AVATAR)
 
-            assertState(at(HomeKey, HistoryKey(), ProfileKey))
+            assertState(at(HomeKey, ProfileKey))
             assertRoute(PROFILE)
 
             back()
 
-            assertState(at(HomeKey, HistoryKey()))
-            assertRoute(HISTORY)
+            assertState(at(HomeKey))
+            assertRoute(HOME)
         }
 
     @Test
     fun `the gear opens Settings on the current tab and Back returns to the screen left`() =
-        flagOn(at(PlayKey, FriendPuzzleKey("K7Q2MX"))) {
-            assertRoute(FRIEND)
+        flagOn {
+            assertRoute(HOME)
 
             tap(GEAR)
 
-            assertState(at(PlayKey, FriendPuzzleKey("K7Q2MX"), SettingsKey))
+            assertState(at(HomeKey, SettingsKey))
             assertRoute(SETTINGS)
 
             back()
 
-            assertState(at(PlayKey, FriendPuzzleKey("K7Q2MX")))
-            assertRoute(FRIEND)
+            assertState(at(HomeKey))
+            assertRoute(HOME)
         }
 
     @Test
