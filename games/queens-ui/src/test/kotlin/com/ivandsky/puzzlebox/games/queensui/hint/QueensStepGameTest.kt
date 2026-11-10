@@ -21,9 +21,13 @@ import org.junit.Test
  */
 class QueensStepGameTest {
 
-    /** 4×4, rows are regions; stored solution 1, 7, 8, 14. Cell 2 is off it and breaks no rule alone. */
+    /** 4×4, rows are regions; stored solution 1, 7, 8, 14, the other one 2, 4, 11, 13. Cell 2 is off the stored one and breaks no rule alone. */
     private val small: QueensPuzzle = QueensUiFixtures.puzzle()
     private val smallSolution: Set<Cell> = QueensUiFixtures.solutionCells.toSet()
+
+    /** A queen of the other solution, and a cell of the stored one that the other leaves empty. */
+    private val otherQueen = Cell(4)
+    private val otherEmpty = Cell(8)
 
     /** gen-n8-q1 of the solver golden workload (unique; the ladder opens with a deduction). Solution 5, 10, 16, 28, 39, 43, 49, 62. */
     private val big: QueensPuzzle = QueensPuzzle(
@@ -87,13 +91,32 @@ class QueensStepGameTest {
     }
 
     @Test
-    fun `a puzzle with a stored solution never calls the solver`() {
-        val play = Play(small, solve = { error("must not solve") })
+    fun `a puzzle with a stored solution is still searched, once across presses`() {
+        val play = Play(big, solve = { QueensStepGame.boundedSolution(it) })
 
+        play.next()
         play.place(offSolution)
+        play.next()
 
-        assertEquals(QueensStep.Mistake(offSolution, QueensStep.Mistake.Kind.OFF_SOLUTION, null), play.next())
-        assertEquals(0, play.solves)
+        assertEquals(1, play.solves)
+    }
+
+    @Test
+    fun `a stored solution on a two-solution board accuses neither the other solution's queen nor its cross, and reveals nothing`() {
+        assertNull("precondition: the search finds two solutions", QueensStepGame.boundedSolution(small.copy(solution = null)))
+        val queen = Play(small)
+        queen.place(otherQueen)
+        val cross = Play(small)
+        cross.session = cross.session.withCrossToggled(otherEmpty, QueensUiFixtures.T0)
+
+        for (step in listOf(queen.next(), cross.next())) {
+            assertTrue("$step", step !is QueensStep.Mistake && step !is QueensStep.Reveal)
+        }
+    }
+
+    @Test
+    fun `a spent budget keeps the stored solution`() {
+        assertEquals(big.solution!!.toSet(), QueensStepGame.boundedSolution(big, pollLimit = 0))
     }
 
     @Test
@@ -145,14 +168,14 @@ class QueensStepGameTest {
 
     @Test
     fun `the block answers for the board at capture, not the live one`() {
-        val play = Play(small)
+        val play = Play(big)
         val block = play.game.capture()
 
         play.place(offSolution)
         val step = block()
 
         assertFalse("$step", step is QueensStep.Mistake)
-        assertEquals(QueensStepper.next(small, QueensBoard(), true, null, smallSolution), step)
+        assertEquals(QueensStepper.next(big, QueensBoard(), true, null, big.solution!!.toSet()), step)
     }
 
     @Test
@@ -187,14 +210,14 @@ class QueensStepGameTest {
 
     @Test
     fun `the newest command is the last move, whichever kind it is`() {
-        val play = Play(small)
-        play.place(Cell(3))
-        play.place(Cell(12))
+        val play = Play(big)
+        play.place(Cell(0))
+        play.place(Cell(63))
 
-        assertEquals(QueensStep.Mistake(Cell(12), QueensStep.Mistake.Kind.OFF_SOLUTION, null), play.next())
+        assertEquals(QueensStep.Mistake(Cell(63), QueensStep.Mistake.Kind.OFF_SOLUTION, null), play.next())
 
         play.session = play.session.withCrossToggled(Cell(2), QueensUiFixtures.T0)
-        assertEquals(QueensStep.Mistake(Cell(3), QueensStep.Mistake.Kind.OFF_SOLUTION, null), play.next())
+        assertEquals(QueensStep.Mistake(Cell(0), QueensStep.Mistake.Kind.OFF_SOLUTION, null), play.next())
     }
 
     @Test
