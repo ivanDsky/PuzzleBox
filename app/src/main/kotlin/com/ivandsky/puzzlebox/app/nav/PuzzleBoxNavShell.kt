@@ -79,7 +79,9 @@ internal fun PuzzleBoxNavShell(
     LaunchedEffect(state.allKeys) { store.retain(state.allKeys) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { store.flush() }
     val shellChrome = if (navV2) {
-        remember(navigator, identityService) { shellChromeDecorator(navigator, identityService.current) }
+        remember(navigator, identityService, form) {
+            shellChromeDecorator(navigator, identityService.current, railActions = form == NavForm.Tablet)
+        }
     } else {
         null
     }

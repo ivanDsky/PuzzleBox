@@ -28,10 +28,10 @@ import org.robolectric.annotation.Config
 
 /**
  * NavV2 on the real shell (SC1, SC5, SC6), on a phone's bar and a tablet's rail: the tab set
- * is Today, Games, History and Create; every Browse screen carries the avatar and the gear
- * exactly once (the Games root included) and immersive and Tool screens carry neither; the
- * avatar opens Profile and the gear opens Settings on the current tab, one tap from every
- * root, and Back returns to the screen left; Dark reaches the preferences store, Settings
+ * is Today, Games, History and Create; the rail carries the avatar and the gear once at
+ * its bottom on every screen it shows, the bar only in Today's header and nowhere else; the
+ * avatar opens Profile and the gear opens Settings on the current tab (on a bar from Today),
+ * and Back returns to the screen left; Dark reaches the preferences store, Settings
  * survives a saved-state restore, and the pushed Profile has no Appearance block.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -49,29 +49,31 @@ class NavV2TabsE2ETest {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `on a phone every browse screen shows the avatar and the gear once`() = browseChrome()
+    fun `on a phone only Today shows the avatar and the gear`() = browseChrome(rail = false)
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `on a tablet every browse screen shows the avatar and the gear once`() = browseChrome()
+    fun `on a tablet every screen the rail shows has the avatar and the gear once at its bottom`() =
+        browseChrome(rail = true)
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `on a phone a board, a result, a reveal, Settings and Profile show neither`() = noChrome()
+    fun `on a phone a board, a result, a reveal, Settings and Profile show neither`() = noChrome(rail = false)
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `on a tablet a board, a result, a reveal, Settings and Profile show neither`() = noChrome()
+    fun `on a tablet the rail's actions hide on a board, a result and a reveal, not on Settings and Profile`() =
+        noChrome(rail = true)
 
     @Test
     @Config(qualifiers = PHONE)
     fun `on a phone the avatar and the gear open Profile and Settings from every root and Back returns`() =
-        avatarAndGearFromEveryRoot()
+        avatarAndGearFromEveryRoot(rail = false)
 
     @Test
     @Config(qualifiers = RAIL)
     fun `on a tablet the avatar and the gear open Profile and Settings from every root and Back returns`() =
-        avatarAndGearFromEveryRoot()
+        avatarAndGearFromEveryRoot(rail = true)
 
     @Test
     @Config(qualifiers = PHONE)
@@ -105,7 +107,7 @@ class NavV2TabsE2ETest {
         if (width == Width.Phone) assertBottomBar() else assertRail()
     }
 
-    private fun browseChrome() = navV2Robot(
+    private fun browseChrome(rail: Boolean) = navV2Robot(
         NavigationState(
             tab = HomeKey,
             stacks = listOf(
@@ -117,35 +119,35 @@ class NavV2TabsE2ETest {
         ),
     ) {
         assertRoute(HISTORY)
-        assertChromeActions()
+        assertChromeFor(rail)
         back()
         assertRoute(HOME)
-        assertChromeActions()
+        assertChromeFor(rail)
 
         tapTab(PlayKey)
         assertRoute(FRIEND)
-        assertChromeActions()
+        assertChromeFor(rail)
         back()
         awaitTag("duel.back")
         assertEquals("the duel page is on top", DuelKey(CODE), state.currentStack.last())
-        assertChromeActions()
+        assertChromeFor(rail)
         back()
         assertRoute(LIBRARY)
-        assertChromeActions()
+        assertChromeFor(rail)
         tap("library.row.$ZIP")
         awaitTag("library.page.$ZIP")
-        assertChromeActions()
+        assertChromeFor(rail)
 
         tapTab(HistoryRootKey)
         assertRoute(HISTORY)
-        assertChromeActions()
+        assertChromeFor(rail)
 
         tapTab(CreateKey)
         assertRoute(CREATE)
-        assertChromeActions()
+        assertChromeFor(rail)
     }
 
-    private fun noChrome() = navV2Robot(
+    private fun noChrome(rail: Boolean) = navV2Robot(
         NavigationState(
             tab = PlayKey,
             stacks = listOf(
@@ -157,32 +159,37 @@ class NavV2TabsE2ETest {
         ),
     ) {
         assertRoute(GAME)
-        assertNoChromeActions()
+        assertChromeFor(rail)
 
         switchTab(HomeKey)
         assertRoute(RESULT)
-        assertNoChromeActions()
+        assertChromeFor(rail)
 
         switchTab(HistoryRootKey)
         awaitTag("reveal.back")
         assertEquals("the reveal is on top", DuelRevealKey(CODE), state.currentStack.last())
-        assertNoChromeActions()
+        assertChromeFor(rail)
 
         switchTab(CreateKey)
         assertRoute(SETTINGS)
-        assertNoChromeActions()
+        assertChromeFor(rail)
 
         back()
         assertRoute(CREATE)
-        tapAvatar()
-        assertRoute(PROFILE)
-        assertNoChromeActions()
+        if (rail) {
+            tapAvatar()
+            assertRoute(PROFILE)
+            assertChromeFor(rail)
+        }
     }
 
-    private fun avatarAndGearFromEveryRoot() = navV2Robot {
-        ROOTS.forEach { (root, route) ->
-            tapTab(root)
-            assertRoute(route)
+    private fun avatarAndGearFromEveryRoot(rail: Boolean) = navV2Robot {
+        ROOTS.forEach { (tab, tabRoute) ->
+            tapTab(tab)
+            assertRoute(tabRoute)
+            // A bar shows the actions on Today only: reach them from there, Back returns to it.
+            val (root, route) = if (rail) tab to tabRoute else HomeKey to HOME
+            if (!rail) tapTab(root)
 
             tapAvatar()
             assertState(navV2At(root, ProfileKey))

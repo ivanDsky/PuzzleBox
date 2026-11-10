@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.app.nav
 
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -57,6 +59,7 @@ internal fun TopLevelNavRail(
     badged: Set<NavKey> = emptySet(),
     modifier: Modifier = Modifier,
     destinations: List<TopLevelDestination> = topLevelDestinations,
+    bottomActions: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     NavigationRail(modifier = modifier) {
         destinations.forEach { destination ->
@@ -67,6 +70,10 @@ internal fun TopLevelNavRail(
                 label = { Text(destination.label) },
                 modifier = Modifier.testTag(destination.tag),
             )
+        }
+        if (bottomActions != null) {
+            Spacer(Modifier.weight(1f))
+            bottomActions()
         }
     }
 }

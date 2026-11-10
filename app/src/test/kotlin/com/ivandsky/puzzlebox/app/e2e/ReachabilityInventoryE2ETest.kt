@@ -33,9 +33,10 @@ import org.robolectric.annotation.Config
  * [FriendWorld] with only the Zip editor on.
  *
  * The flag-on list (NavV2) is the same reach from launch over the new tab set: Profile and
- * Settings are pushed from the avatar and the gear, History is a tab root, and the catalog is
+ * Settings are pushed from the avatar and the gear (the rail's bottom, or Today's header), History is a tab root, and the catalog is
  * Settings' Developer link. Each screen also checks the shell actions its placement's chrome
- * needs: a `Browse` screen shows the avatar and the gear exactly once, any other neither. With
+ * needs: the avatar and the gear show exactly once on every screen the rail shows, and on a bar
+ * only on Today's root. With
  * the flag on, no screen links to a pushed History any more, so History's tab root stands for it.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -214,13 +215,13 @@ class ReachabilityInventoryE2ETest {
     }
 
     /**
-     * NavV2: [reached], with the chrome read from the top screen's placement: `Browse` shows the
-     * tabs and exactly one avatar and gear, `Tool` the tabs and neither, `Immersive` nothing.
+     * NavV2: [reached], with the chrome read from the top screen's placement: `Browse` and `Tool` show
+     * the tabs, `Immersive` nothing; the avatar and gear sit on the rail, else on Today only.
      */
     private fun ShellRobot.reachedV2(route: String, width: Width) {
         val chrome = placementOf(state.currentStack.last()).chrome
         reached(route, if (chrome == PlacementChrome.Immersive) Chrome.None else Chrome.Tabs, width)
-        if (chrome == PlacementChrome.Browse) assertChromeActions() else assertNoChromeActions()
+        assertChromeFor(rail = width == Width.Rail)
     }
 
     /** What the shell shows around a screen: browse and tool screens carry the tabs, boards and results none. */
