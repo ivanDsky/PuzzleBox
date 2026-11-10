@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
+import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLatestSolvedToday
@@ -101,6 +102,7 @@ val domainModule = module {
             clock = { Instant.now() },
         )
     }
+    factory { ObserveDuel(observeMatch = get(), completions = get(), savedPlays = get()) }
     factory {
         ObserveMyDuels(repo = get(), outbox = get(), local = get(), identity = get(), clock = { Instant.now() })
     }
