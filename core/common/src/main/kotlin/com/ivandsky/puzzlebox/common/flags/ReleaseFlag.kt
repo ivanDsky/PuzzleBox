@@ -11,7 +11,7 @@ package com.ivandsky.puzzlebox.common.flags
  */
 enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     /** The Zip puzzle editor. */
-    ZipEditor(label = "Zip editor", releaseDefault = false),
+    ZipEditor(label = "Zip editor", releaseDefault = true),
 
     /** The Tango puzzle editor. */
     TangoEditor(label = "Tango editor", releaseDefault = false),
