@@ -16,6 +16,8 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.GameSettingsRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.domain.GetNextRollover
+import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -28,7 +30,10 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
+import java.time.Clock
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.ZoneId
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.Koin
 import org.koin.core.context.startKoin
@@ -84,7 +89,15 @@ class E2eKoinGraph(
     /** The running graph; resolve production singles (e.g. the play store) through it. */
     val koin: Koin get() = checkNotNull(started) { "E2eKoinGraph is not started" }
 
+    /**
+     * The app's clock for the puzzle day: noon in Los Angeles on [today], fixed, so a run that straddles a puzzle
+     * day's rollover cannot read two days (ledger 46). Only the puzzle day and the next rollover read it.
+     */
+    private val puzzleClock: Clock = Clock.fixed(today.atTime(LocalTime.NOON).atZone(PUZZLE_ZONE).toInstant(), PUZZLE_ZONE)
+
     private val fakes = module {
+        factory { GetPuzzleDay(registry = get(), clock = puzzleClock) }
+        factory { GetNextRollover(registry = get(), clock = puzzleClock) }
         single<DailyRepository> { daily }
         single<CompletionRepository> { records }
         single<SavedPlayRepository> { saved }
@@ -111,5 +124,9 @@ class E2eKoinGraph(
     fun stop() {
         stopKoin()
         started = null
+    }
+
+    private companion object {
+        val PUZZLE_ZONE: ZoneId = ZoneId.of("America/Los_Angeles")
     }
 }

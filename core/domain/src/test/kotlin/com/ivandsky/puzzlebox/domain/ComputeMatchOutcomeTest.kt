@@ -213,6 +213,16 @@ class ComputeMatchOutcomeTest(private val row: Row) {
                 outcome(Draw, mine = 0, theirs = 0, verdict = Drawn),
             ),
             row(
+                "ledger 07: with two results for one leg of mine, the first in list order wins",
+                match(alpha), listOf(mine(0, 60_000), mine(0, 30_000), sams(0, 45_000)), beforeDeadline,
+                outcome(Loss(Time), mine = 0, theirs = 1, verdict = Lost),
+            ),
+            row(
+                "ledger 07: with two results for one leg of theirs, the first in list order wins",
+                match(alpha), listOf(mine(0, 60_000), sams(0, 75_000), sams(0, 30_000)), beforeDeadline,
+                outcome(Win(Time), mine = 1, theirs = 0, verdict = Won),
+            ),
+            row(
                 "cancelled match is all void, settled, no verdict",
                 match(alpha, beta, cancelled = true), listOf(mine(0, 60_000), sams(0, 70_000)), beforeDeadline,
                 outcome(Void, Void, mine = 0, theirs = 0, verdict = null),

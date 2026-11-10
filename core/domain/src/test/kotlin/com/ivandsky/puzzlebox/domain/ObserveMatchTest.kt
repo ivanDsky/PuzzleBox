@@ -244,6 +244,20 @@ class ObserveMatchTest {
         }
     }
 
+    /** Ledger 07: the outbox is write-once per (uid, leg), so a second result for a leg never replaces the first. */
+    @Test
+    fun twoResultsForOneLegCountTheFirst() = runTest {
+        created(legCount = 1)
+        posts(bob.uid, 0, timeMs = 45_000)
+        myRow(0, Posted, timeMs = 60_000)
+        outbox.enqueue(code, result(ann.uid, 0, timeMs = 30_000))
+        observe().test {
+            val view = view()
+            assertEquals(listOf(60_000L), view.mine.map { it.result.timeMs })
+            assertEquals(listOf<LegVerdict>(LegVerdict.Loss(LegBasis.Time)), view.outcome.legs)
+        }
+    }
+
     @Test
     fun theLocalRowRidesTheView() = runTest {
         created()
