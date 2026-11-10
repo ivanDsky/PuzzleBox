@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.Player
+import com.ivandsky.puzzlebox.data.match.PuzzleCodeCheck
 import com.ivandsky.puzzlebox.model.ShareCode
 import kotlin.random.Random
 
@@ -41,10 +42,11 @@ class CreateMatch(
         val rival = rematchOf?.opponentOf(me.uid)
         repeat(MAX_CODE_ATTEMPTS) {
             val code = ShareCode.random(random)
-            when (repo.puzzleCodeTaken(code)) {
-                null -> return CreateOutcome.Offline
-                true -> return@repeat
-                false -> Unit
+            when (val check = repo.puzzleCodeTaken(code)) {
+                is PuzzleCodeCheck.Unavailable ->
+                    return if (check.offline) CreateOutcome.Offline else CreateOutcome.Failed(check.message)
+                PuzzleCodeCheck.Taken -> return@repeat
+                PuzzleCodeCheck.Free -> Unit
             }
             val draft = MatchDraft(
                 code = code,

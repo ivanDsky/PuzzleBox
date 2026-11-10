@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.match.CreateResult
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchRepository
+import com.ivandsky.puzzlebox.data.match.PuzzleCodeCheck
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.CreateOutcome
@@ -21,6 +22,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
@@ -95,6 +97,11 @@ class NewDuelViewModelTest {
             gate.await()
             return server.create(draft)
         }
+    }
+
+    /** The fake server whose code read is refused by the rules, which a retry cannot fix. */
+    private class DeniedCodeReadMatchRepository(server: FakeMatchRepository) : MatchRepository by server {
+        override suspend fun puzzleCodeTaken(code: ShareCode): PuzzleCodeCheck = PuzzleCodeCheck.Unavailable(offline = false, message = "denied")
     }
 
     private fun viewModel(createMatch: CreateMatch = this.createMatch) = NewDuelViewModel(
@@ -318,6 +325,21 @@ class NewDuelViewModelTest {
 
         assertEquals(DuelNotice.NoPuzzles, vm.state.value.notice)
         assertEquals(setOf(gamma), vm.state.value.draft.games)
+    }
+
+    @Test
+    fun aDeniedCodeReadSurfacesAsFailedInTheSheet() = runTest {
+        val denied = CreateMatch(
+            DeniedCodeReadMatchRepository(server), local,
+            ComputeMatchLegs(registry, daily, calendar, history, received, Random(DRAW_SEED)), identity, Random(CODE_SEED),
+        )
+        val vm = started(denied)
+
+        vm.create()
+
+        assertTrue(vm.state.value.notice is DuelNotice.Failed)
+        assertEquals(DuelStep.Create, vm.state.value.step)
+        assertTrue(server.matches.isEmpty())
     }
 
     @Test

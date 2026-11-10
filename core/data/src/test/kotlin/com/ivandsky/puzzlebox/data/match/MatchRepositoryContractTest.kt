@@ -49,7 +49,7 @@ class MatchRepositoryContractTest : MatchResultsContract() {
         assertEquals(WriteResult.Offline, fake.cancel(code()))
         assertEquals(WriteResult.Offline, fake.decline(code()))
         assertEquals(PostResult.Unavailable::class, fake.post(code(), result(BOB.uid))::class)
-        assertNull(fake.puzzleCodeTaken(code()))
+        assertEquals(PuzzleCodeCheck.Unavailable(offline = true), fake.puzzleCodeTaken(code()))
         assertEquals(before, fake.matches)
 
         fake.online = true

@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.PostResult
+import com.ivandsky.puzzlebox.data.match.PuzzleCodeCheck
 import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.data.match.WriteResult
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -68,8 +69,12 @@ class FakeMatchRepository : MatchRepository {
         synchronized(lock) { occupied += code }
     }
 
-    override suspend fun puzzleCodeTaken(code: ShareCode): Boolean? = synchronized(lock) {
-        if (online) code in stored.value || code in occupied else null
+    override suspend fun puzzleCodeTaken(code: ShareCode): PuzzleCodeCheck = synchronized(lock) {
+        when {
+            !online -> PuzzleCodeCheck.Unavailable(offline = true)
+            code in stored.value || code in occupied -> PuzzleCodeCheck.Taken
+            else -> PuzzleCodeCheck.Free
+        }
     }
 
     override suspend fun create(draft: MatchDraft): CreateResult =

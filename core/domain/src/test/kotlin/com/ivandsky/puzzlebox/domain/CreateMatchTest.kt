@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.Player
+import com.ivandsky.puzzlebox.data.match.PuzzleCodeCheck
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.model.GameId
@@ -163,7 +164,7 @@ class CreateMatchTest {
         assertEquals(CreateOutcome.Failed(null), create(settings()))
         assertTrue(repo.drafts.size > 1)
 
-        val crowded = ScriptedMatchRepository(server).apply { codeCheck = { true } }
+        val crowded = ScriptedMatchRepository(server).apply { codeCheck = { PuzzleCodeCheck.Taken } }
         assertEquals(CreateOutcome.Failed(null), createMatch(crowded)(settings()))
         assertTrue(crowded.checked.size > 1)
         assertTrue(crowded.drafts.isEmpty())
@@ -172,8 +173,22 @@ class CreateMatchTest {
     }
 
     @Test
+    fun aRefusedCodeCheckIsFailedAndAnUnreachableOneIsOffline() = runTest {
+        val refused = ScriptedMatchRepository(server).apply {
+            codeCheck = { PuzzleCodeCheck.Unavailable(offline = false, message = "denied") }
+        }
+        assertEquals(CreateOutcome.Failed("denied"), createMatch(refused)(settings()))
+
+        val unreachable = ScriptedMatchRepository(server).apply {
+            codeCheck = { PuzzleCodeCheck.Unavailable(offline = true) }
+        }
+        assertEquals(CreateOutcome.Offline, createMatch(unreachable)(settings()))
+        assertTrue(refused.drafts.isEmpty() && unreachable.drafts.isEmpty())
+    }
+
+    @Test
     fun anOwnExistingDocCountsAsCreated() = runTest {
-        repo.codeCheck = { false } // a check that ran before the first write was visible
+        repo.codeCheck = { PuzzleCodeCheck.Free } // a check that ran before the first write was visible
 
         val first = createMatch()(settings()) as CreateOutcome.Created
         val again = createMatch()(settings()) as CreateOutcome.Created
@@ -268,10 +283,10 @@ class CreateMatchTest {
     private class ScriptedMatchRepository(private val server: FakeMatchRepository) : MatchRepository by server {
         val checked = mutableListOf<ShareCode>()
         val drafts = mutableListOf<MatchDraft>()
-        var codeCheck: suspend (ShareCode) -> Boolean? = { server.puzzleCodeTaken(it) }
+        var codeCheck: suspend (ShareCode) -> PuzzleCodeCheck = { server.puzzleCodeTaken(it) }
         var createAnswer: suspend (MatchDraft) -> CreateResult = { server.create(it) }
 
-        override suspend fun puzzleCodeTaken(code: ShareCode): Boolean? {
+        override suspend fun puzzleCodeTaken(code: ShareCode): PuzzleCodeCheck {
             checked += code
             return codeCheck(code)
         }
