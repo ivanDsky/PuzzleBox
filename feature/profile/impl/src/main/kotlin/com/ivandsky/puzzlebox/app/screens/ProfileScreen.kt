@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.app.screens
 
 import androidx.compose.foundation.background
-import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
+import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -51,9 +51,9 @@ import java.time.LocalDate
  * (N4), and — only when [onOpenCatalog] is given (debug builds) — the catalog link.
  *
  * [slim] keeps only the header and the account line: it hides the lifetime grid, the game
- * rows, today's board, Appearance and the catalog link. A non-null [onBack] draws a top
- * bar with a back icon at the left, in either form, and a non-null [onOpenSettings] adds
- * a gear at its right.
+ * rows, today's board, Appearance and the catalog link. Each of [onBack] and
+ * [onOpenSettings] draws its own control in the top bar (the back icon at the left, the
+ * gear at the right); the bar appears when either is given.
  */
 @Composable
 internal fun ProfileContent(
@@ -71,10 +71,56 @@ internal fun ProfileContent(
 ) {
     val account = state.account
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-    if (onBack != null) {
-        CompactTopBar(
-            title = "Profile",
-            navigationIcon = {
+        if (onBack != null || onOpenSettings != null) {
+            ProfileTopBar(onBack = onBack, onOpenSettings = onOpenSettings)
+        }
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Spacing.xl, vertical = Spacing.xxl),
+            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+        ) {
+            val name = when (account) {
+                is ProfileUiState.Account.SignedIn -> account.identity.displayName.ifEmpty { "Player" }
+                is ProfileUiState.Account.SignedOut -> "Guest player"
+            }
+            ProfileHeader(name = name, playingSince = state.stats.playingSince)
+            if (!slim) {
+                LifetimeGrid(stats = state.stats, daysPlayed = state.daysPlayed)
+                if (state.games.isNotEmpty()) {
+                    GameRows(games = state.games, onOpenHistory = onOpenHistory)
+                }
+                HorizontalDivider()
+            }
+            when (account) {
+                is ProfileUiState.Account.SignedOut -> SignedOutSection(account, onSignIn)
+                is ProfileUiState.Account.SignedIn ->
+                    SignedInSection(account, onSignOut, state.games, state.perGameBoard, onSelectGame, showBoard = !slim)
+            }
+            if (!slim) {
+                HorizontalDivider()
+                AppearanceRow(current = state.themeMode, onSelect = onSetThemeMode)
+                if (onOpenCatalog != null) {
+                    SecondaryButton(
+                        text = "Design system catalog",
+                        onClick = onOpenCatalog,
+                        modifier = Modifier.fillMaxWidth().testTag("profile.catalog"),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Profile's bar: each control is drawn by its own callback, the back icon and the gear. */
+@Composable
+private fun ProfileTopBar(onBack: (() -> Unit)?, onOpenSettings: (() -> Unit)?) {
+    CompactTopBar(
+        title = "Profile",
+        navigationIcon = {
+            if (onBack != null) {
                 IconButton(onClick = onBack, modifier = Modifier.testTag("profile.back")) {
                     Icon(
                         imageVector = PuzzleIcons.Back,
@@ -82,58 +128,20 @@ internal fun ProfileContent(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-            },
-            actions = {
-                if (onOpenSettings != null) {
-                    IconButton(onClick = onOpenSettings, modifier = Modifier.testTag("profile.settings")) {
-                        Icon(
-                            imageVector = PuzzleIcons.Settings,
-                            contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
+            }
+        },
+        actions = {
+            if (onOpenSettings != null) {
+                IconButton(onClick = onOpenSettings, modifier = Modifier.testTag("profile.settings")) {
+                    Icon(
+                        imageVector = PuzzleIcons.Settings,
+                        contentDescription = "Settings",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-            },
-        )
-    }
-    Column(
-        modifier = Modifier
-            .weight(1f)
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Spacing.xl, vertical = Spacing.xxl),
-        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
-    ) {
-        val name = when (account) {
-            is ProfileUiState.Account.SignedIn -> account.identity.displayName.ifEmpty { "Player" }
-            is ProfileUiState.Account.SignedOut -> "Guest player"
-        }
-        ProfileHeader(name = name, playingSince = state.stats.playingSince)
-        if (!slim) {
-            LifetimeGrid(stats = state.stats, daysPlayed = state.daysPlayed)
-            if (state.games.isNotEmpty()) {
-                GameRows(games = state.games, onOpenHistory = onOpenHistory)
             }
-            HorizontalDivider()
-        }
-        when (account) {
-            is ProfileUiState.Account.SignedOut -> SignedOutSection(account, onSignIn)
-            is ProfileUiState.Account.SignedIn ->
-                SignedInSection(account, onSignOut, state.games, state.perGameBoard, onSelectGame, showBoard = !slim)
-        }
-        if (!slim) {
-            HorizontalDivider()
-            AppearanceRow(current = state.themeMode, onSelect = onSetThemeMode)
-            if (onOpenCatalog != null) {
-                SecondaryButton(
-                    text = "Design system catalog",
-                    onClick = onOpenCatalog,
-                    modifier = Modifier.fillMaxWidth().testTag("profile.catalog"),
-                )
-            }
-        }
-    }
-    }
+        },
+    )
 }
 
 @Composable
