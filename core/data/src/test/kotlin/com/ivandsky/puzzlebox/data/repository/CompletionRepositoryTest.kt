@@ -6,8 +6,11 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
+import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
+import com.ivandsky.puzzlebox.database.CompletionEntity
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
@@ -53,13 +56,21 @@ class CompletionRepositoryTest {
         db.close()
     }
 
-    private fun completion(day: LocalDate, puzzleNumber: Int?, timeMs: Long, hints: Int, matchCode: String? = null) =
+    private fun completion(
+        day: LocalDate,
+        puzzleNumber: Int?,
+        timeMs: Long,
+        hints: Int,
+        matchCode: String? = null,
+        source: CompletionSource = CompletionSource.App,
+    ) =
         CompletionRecord(
             puzzleRef = Ref(alpha, PuzzleKey.Daily(day, puzzleNumber)),
             time = timeMs,
             hints = hints,
             stats = RecordStats(schemaVersion = 1, blob = """{"v":1,"mistakes":3}"""),
             matchCode = matchCode,
+            source = source,
         )
 
     @Test
@@ -153,5 +164,48 @@ class CompletionRepositoryTest {
 
         assertNull(repository.observeRecords().first().single().matchCode)
         assertEquals("XYZ789", repository.observeReplays(ref).first().single().matchCode)
+    }
+
+    @Test
+    fun `a LinkedIn import reads back as LinkedIn and an app completion as App`() = runTest {
+        val day = LocalDate.of(2026, 10, 31)
+        repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 0, source = CompletionSource.LinkedIn))
+        nowMs += 1_000
+        repository.onCompleted(completion(day, 593, timeMs = 88_000, hints = 0))
+
+        val sources = repository.observeRecords().first().associate { (it.puzzleRef.key as PuzzleKey.Daily).puzzleNumber to it.source }
+        assertEquals(mapOf(592 to CompletionSource.LinkedIn, 593 to CompletionSource.App), sources)
+    }
+
+    @Test
+    fun `a replay keeps the source it was stored with`() = runTest {
+        val day = LocalDate.of(2026, 10, 31)
+        val ref = Ref(alpha, PuzzleKey.Daily(day, 592))
+        repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 0))
+        nowMs += 1_000
+        repository.onCompleted(completion(day, 592, timeMs = 71_000, hints = 0, source = CompletionSource.LinkedIn))
+
+        assertEquals(CompletionSource.App, repository.observeRecords().first().single().source)
+        assertEquals(CompletionSource.LinkedIn, repository.observeReplays(ref).first().single().source)
+    }
+
+    @Test
+    fun `a row with a source this build does not know reads back as App`() = runTest {
+        val day = LocalDate.of(2026, 10, 31)
+        db.completionDao().insert(
+            CompletionEntity(
+                puzzleRef = PuzzleRefKeys.encode(Ref(alpha, PuzzleKey.Daily(day, 592))),
+                timeMs = 95_000,
+                hints = 0,
+                statsVersion = 1,
+                statsBlob = """{"v":1}""",
+                completedAtMs = 7_000,
+                firstCompletedAtMs = 7_000,
+                isRecord = true,
+                source = "future",
+            ),
+        )
+
+        assertEquals(CompletionSource.App, repository.observeRecords().first().single().source)
     }
 }

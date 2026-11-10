@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.data.model
 
 import com.ivandsky.puzzlebox.database.CompletionEntity
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import java.time.Instant
@@ -17,5 +18,6 @@ internal fun CompletionEntity.toModel(registry: GameRegistry): CompletionRecord?
         firstCompletedAt = firstCompletedAtMs?.let(Instant::ofEpochMilli),
         isRecord = isRecord,
         matchCode = matchCode,
+        source = CompletionSource.fromStored(source),
     )
 }
