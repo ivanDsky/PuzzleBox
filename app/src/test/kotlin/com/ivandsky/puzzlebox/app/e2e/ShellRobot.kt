@@ -180,6 +180,12 @@ class ShellRobot internal constructor(
         rule.waitForIdle()
     }
 
+    /** A push of [key] on the current tab, for rows whose screen no longer offers a link to it. */
+    fun push(key: NavKey) {
+        rule.runOnIdle { navigator.push(key) }
+        rule.waitForIdle()
+    }
+
     /** Taps the node tagged [tag], scrolling it into view first when it sits in a scrolling screen. */
     fun tap(tag: String) {
         scrollIntoView(tag)
