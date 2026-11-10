@@ -65,8 +65,8 @@ class QueensDotTextureGoldenTest {
             cellsPerSide = n,
             maxSide = QueensBoardDefaults.cellMaxSize * n,
         )
-        val state = QueensBoardState(
-            initialSession = QueensSession(ref = null, puzzle = QueensPuzzle(size = n, regions = LAYOUT_12)),
+        val state = QueensPlayFixtures.boardState(
+            QueensSession(ref = null, puzzle = QueensPuzzle(size = n, regions = LAYOUT_12)),
         )
         composeRule.setContent {
             val config = Configuration(LocalConfiguration.current).apply {

@@ -55,8 +55,8 @@ class QueensPlayController(
     /** The player's Queens settings; null for a tutorial lesson, which keeps Auto-cross on. */
     private val settings: QueensSettings?,
     private val now: () -> Instant = Instant::now,
-    /** Read once at creation (spec A20); [HintMode.Stepwise] gives every board the Spotlight hint (28). */
-    internal val hintMode: HintMode = HintMode.Legacy,
+    /** Read once at creation (spec A20); gives every board the Spotlight hint (28). */
+    private val hintMode: HintMode.Stepwise,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     /** The live interaction holder, null until a session is adopted. */
@@ -144,7 +144,7 @@ class QueensPlayController(
             now = now,
             onSessionChanged = ::publish,
             settle = this::settle,
-            hintMode = hintMode,
+            mode = hintMode,
             scope = env.scope,
         )
     }
@@ -230,8 +230,8 @@ class QueensPlayController(
     override val hintEnabled: Boolean
         get() = board?.session?.isComplete == false
 
-    /** The §5.5 deduction caption, shown by the shared chrome until the next board action. */
-    override val hintCaption: String? get() = board?.hintCaption
+    /** Queens shows its hint as a Spotlight, never as a chrome caption (A11). */
+    override val hintCaption: String? get() = null
 
     /** A14 always-on conflict line (R-2): live while any rule break stands; derived from
      *  the observable board session, so the shared caption slot recomposes with it. A
@@ -240,7 +240,7 @@ class QueensPlayController(
     override val violation: String?
         get() = board?.takeIf { it.spotlight == null }?.let { b ->
             RULE_CONFLICT.takeIf {
-                QueensBoardModel.of(b.session, b.hint, b.hintPointed, b.guide).violations.isNotEmpty()
+                QueensBoardModel.of(b.session, b.guide).violations.isNotEmpty()
             }
         }
 

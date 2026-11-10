@@ -10,10 +10,6 @@ import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.StepHints
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensSession
-import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
-import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHint
-import com.ivandsky.puzzlebox.games.queens.engine.hints.QueensHints
-import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.SinglesRung
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
 import com.ivandsky.puzzlebox.games.queensui.hint.QueensSpotlightMapper
@@ -24,7 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 /**
  * The Queens board state holder (ZipPlayController precedent): the [QueensSession] is the
  * single source of truth; the holder owns the transient UI overlay state (Auto-cross
- * toggle, staged hint) and the interaction set of A10–A12/A14.
+ * toggle, Spotlight hint) and the interaction set of A10–A12/A14.
  *
  * Interaction semantics (spec A11 ruling reversed 2026-11-02 + direction doc):
  * - STRICT tap cycle on EVERY cell: empty → MANUAL X (withCrossToggled), X → queen
@@ -40,16 +36,9 @@ import kotlinx.coroutines.CoroutineScope
  *   MANUAL marks — and one undo restores the queens + manual marks it removed.
  * - MANUAL marks are cleared only by their own cell's cycle closing (or by Clear).
  *
- * Staged hint ladder (§5.5, fix round 6): the first tap presents the queens-05
- * engine's smallest-safe-help payload with its DEDUCTION caption (or the neutral
- * fallback when the forcing is solver-only); a repeat tap on the same forced cell
- * escalates to stage 2 — [hintPointed] renders the crown ghost directly on the cell.
- * Any board action clears the hint. A NEW presented hint counts into the session's
- * result facts ([QueensSession.hintsUsed]); the stage-2 repeat is presentation only.
- * [HintMode.Stepwise] with a [scope] (HintParity) swaps the ladder for [StepHints]: a press shows a [spotlight] and
- * never places (A1), a culprit is only marked and a second press re-shows it for free (A4), every input clears it in
- * the same call (A10). [hint] and [hintPointed] then stay unset, so the region pulse, crown ghost and caption never
- * draw (A15).
+ * Hint: a press shows a [spotlight] through [StepHints] and never places (A1), a culprit is only marked and a second
+ * press re-shows it for free (A4), every input clears it in the same call (A10). A newly shown step counts into the
+ * session's result facts ([QueensSession.hintsUsed]).
  *
  * Clock: the owner (the play state) holds the running window; [settle] is its hook on
  * every committed session — start the window, or fold it into the session's banked
@@ -69,14 +58,13 @@ import kotlinx.coroutines.CoroutineScope
  */
 class QueensBoardState(
     initialSession: QueensSession,
-    private val hints: QueensHints = QueensHints(),
     private val score: ScoreModel<QueensSession>? = null,
     private val onWinRecord: (CompletionRecord) -> Unit = {},
     private val now: () -> Instant = Instant::now,
     private val onSessionChanged: (QueensSession) -> Unit = {},
     private val settle: (QueensSession) -> QueensSession = { it },
-    hintMode: HintMode = HintMode.Legacy,
-    scope: CoroutineScope? = null,
+    mode: HintMode.Stepwise,
+    scope: CoroutineScope,
 ) {
 
     var session by mutableStateOf(initialSession)
@@ -84,14 +72,6 @@ class QueensBoardState(
 
     /** The Auto-cross value the session derives its AUTO marks under: the player's setting, never saved. */
     val autoCross: Boolean get() = session.autoCross
-
-    /** The current hint presentation (§5.5); cleared by any board action. */
-    var hint by mutableStateOf<QueensHint?>(null)
-        private set
-
-    /** Stage 2 of the ladder: the repeat tap points at the same forced cell. */
-    var hintPointed by mutableStateOf(false)
-        private set
 
     /** The removal whose AUTO marks exit staggered (§3.3) — transient for animation. */
     var lastRemovedQueen by mutableStateOf<Int?>(null)
@@ -109,14 +89,11 @@ class QueensBoardState(
     var guide by mutableStateOf<Set<Int>?>(null)
         private set
 
-    private var lastHintCellIdx: Int? = null
+    internal val stepHints: StepHints<QueensStep, QueensSpotlightMapper.Key> =
+        StepHints(mode, scope, QueensStepGame({ session }), { session.hintsUsed }, ::storeHintsUsed)
 
-    internal val stepHints: StepHints<QueensStep, QueensSpotlightMapper.Key>? = (hintMode as? HintMode.Stepwise)?.let { mode ->
-        scope?.let { StepHints(mode, it, QueensStepGame({ session }), { session.hintsUsed }, ::storeHintsUsed) }
-    }
-
-    /** The Stepwise hint on screen; null in Legacy mode and after any input. */
-    val spotlight: Spotlight? get() = stepHints?.spotlight
+    /** The Spotlight on screen; null after any input. */
+    val spotlight: Spotlight? get() = stepHints.spotlight
 
     /** Turns on the guided lesson (spec A12): the solver's answer becomes [guide]. */
     fun guide() {
@@ -155,9 +132,9 @@ class QueensBoardState(
         if (current.isComplete || idx !in 0 until current.puzzle.cellCount) return
         val cell = Cell(idx)
         // §5.1 idempotence: no change over a queen or any existing mark (no flicker). A10: the
-        // Stepwise Spotlight still clears; the legacy hint state is untouched (flag off = today).
+        // Spotlight still clears.
         if (cell in current.queens.toSet() || current.markAt(cell) != null) {
-            stepHints?.inputMade()
+            stepHints.inputMade()
             return
         }
         clearHint()
@@ -179,29 +156,9 @@ class QueensBoardState(
     val canUndo: Boolean get() = session.canUndo
     val canRedo: Boolean get() = session.canRedo
 
-    /** The §5.5 caption of the active hint, null when there is none (PlayHints seam). */
-    val hintCaption: String? get() = queensHintCaption(hint)
-
-    /** Test tag of [hintCaption]: `queens.hint.caption.<rung.id>`, or the unit kind for singles. */
-    val hintCaptionTag: String? get() = queensHintCaptionTag(hint)
-
-    /**
-     * §5.5 staged ladder: first tap presents the hint (stage 1); a repeat tap while the
-     * engine still forces the SAME cell escalates to stage 2 ([hintPointed] — the crown
-     * ghost). A new presentation counts once into [QueensSession.hintsUsed]; the stage-2
-     * repeat does not. The hint changes no cell, so it is not an undo unit.
-     */
+    /** A press runs one Spotlight step; it never places a queen or cross (A1). A won board's step is Solved, which shows nothing. */
     fun requestHint() {
-        stepHints?.let { it.press(); return } // a won board's step is Solved, which shows nothing
-        val next = hints.hint(session.puzzle, session.queens)
-        val regionCell = (next as? QueensHint.Region)?.cell
-        val repeat = regionCell != null && regionCell.idx == lastHintCellIdx
-        lastHintCellIdx = regionCell?.idx
-        hint = next
-        hintPointed = repeat
-        if (!repeat && next != QueensHint.None && !session.isComplete) {
-            store(settle(session.withHintUsed()))
-        }
+        stepHints.press()
     }
 
     /** Folds [deltaMs] of finished running time into the session's banked clock. */
@@ -229,13 +186,10 @@ class QueensBoardState(
     }
 
     private fun clearHint() {
-        hint = null
-        hintPointed = false
-        lastHintCellIdx = null
-        stepHints?.inputMade()
+        stepHints.inputMade()
     }
 
-    /** A newly counted Stepwise hint: through [settle] like the legacy count, never [commit], so the Spotlight stays. */
+    /** A newly counted hint: through [settle], never [commit], so the Spotlight stays. */
     private fun storeHintsUsed(used: Int) {
         store(settle(session.copy(hintsUsed = used)))
     }
@@ -255,39 +209,4 @@ class QueensBoardState(
         session = next
         onSessionChanged(next)
     }
-}
-
-/**
- * The §5.5 caption text for the active hint (fix round 6). The region is always named
- * by its palette color (the pulsed fill); a singles deduction names the unit whose every
- * other square is blocked, a higher rung adds its own why-sentence from [QueensRungCopy]
- * (spec A9). null = nothing to show (no hint, or a no-op hint).
- */
-internal fun queensHintCaption(hint: QueensHint?): String? = when (hint) {
-    is QueensHint.Region -> {
-        val color = QueensRegionPalette.hueName(hint.region)
-        val reason = hint.reason
-        val rungCaption = reason?.rung?.takeIf { it != SinglesRung }?.let { QueensRungCopy.caption(it.captionKey) }
-        when {
-            rungCaption != null -> "The $color queen goes here. $rungCaption"
-            reason == null -> "Hint — the $color region" // solver-only forcing: never a fabricated reason
-            else -> when (reason.kind) {
-                HintReason.Kind.ROW -> "The $color queen goes in this row. The other squares are blocked."
-                HintReason.Kind.COLUMN -> "The $color queen goes in this column. The other squares are blocked."
-                HintReason.Kind.REGION -> "The $color queen goes here. The other $color squares are blocked."
-            }
-        }
-    }
-    is QueensHint.Incorrect -> "Some of these queens can't stay. Take one away."
-    QueensHint.None, null -> null
-}
-
-/**
- * The caption's test tag (spec A9): `queens.hint.caption.<rung.id>` for a rung above singles,
- * `queens.hint.caption.<kind>` (ROW/COLUMN/REGION) for singles; null without a reason.
- */
-internal fun queensHintCaptionTag(hint: QueensHint?): String? {
-    val reason = (hint as? QueensHint.Region)?.reason ?: return null
-    val suffix = if (reason.rung == SinglesRung) reason.kind.name else reason.rung.id
-    return "queens.hint.caption.$suffix"
 }
