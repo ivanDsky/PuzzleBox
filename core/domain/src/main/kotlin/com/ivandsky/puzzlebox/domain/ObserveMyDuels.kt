@@ -34,7 +34,9 @@ import kotlinx.coroutines.coroutineScope
  * The read model behind the Duels tab rows and the Play-tab badge. One `observeMine` listener, one `observe(code)`
  * listener per cached link invite that is still open, the local cache and my outbox; it never reads a sealed result
  * and shows no score or verdict (A7, A27). Rows needing me come first, then by the nearest deadline. The list
- * re-emits at each future time boundary (`closesAt`, and `deadline` while unclaimed) with no upstream change (A1).
+ * re-emits at each future time boundary (`closesAt` and `deadline`) with no upstream change (A1). Past `deadline` a
+ * match has no move left to ask for (a started puzzle is resumed from the duel screen) and an unaccepted invite is
+ * dropped, so neither needs me.
  * Signed out, or an `observeMine` of null, is empty. Writes nothing.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -136,11 +138,11 @@ class ObserveMyDuels(
         if (match.cancelled || match.declined) return null
         val seated = me == match.challenger.uid || me == match.opponent?.uid
         val kind = when {
-            !seated -> if (match.invitedUid == me && match.opponent == null && now < match.closesAt) DuelRowKind.Invited else null
+            !seated -> if (match.invitedUid == me && match.opponent == null && now < match.deadline) DuelRowKind.Invited else null
             match.revealReady(me, taken, now) -> DuelRowKind.RevealReady.takeIf { cached?.revealSeenAt == null }
             now >= match.closesAt -> null
             match.opponent == null -> DuelRowKind.Unclaimed
-            taken.size < match.legs.size -> DuelRowKind.YourMove
+            taken.size < match.legs.size && now < match.deadline -> DuelRowKind.YourMove
             else -> DuelRowKind.Waiting
         } ?: return null
         val other = if (kind == DuelRowKind.Invited) match.challenger else match.opponentOf(me)
@@ -149,15 +151,14 @@ class ObserveMyDuels(
 
     /** An open, unclaimed match of someone else, known only from a cached link; the challenger is who invited me. */
     private fun linkInvite(match: Match, me: String, now: Instant): DuelRow? {
-        val open = !match.cancelled && !match.declined && match.opponent == null && now < match.closesAt
+        val open = !match.cancelled && !match.declined && match.opponent == null && now < match.deadline
         if (!open || match.challenger.uid == me) return null
         return DuelRow(match.code, match.challenger, DuelRowKind.Invited, 0, match.legs.size, match.deadline)
     }
 
-    /** The earliest of each match's `closesAt` and, while unclaimed, `deadline` that is still after [now]. */
+    /** The earliest of each match's `closesAt` and `deadline` that is still after [now]. */
     private fun nextBoundary(matches: List<Match>, now: Instant): Instant? =
-        matches.flatMap { listOfNotNull(it.closesAt, it.deadline.takeIf { _ -> it.opponent == null }) }
-            .filter { it > now }.minOrNull()
+        matches.flatMap { listOf(it.closesAt, it.deadline) }.filter { it > now }.minOrNull()
 
     private fun rank(kind: DuelRowKind): Int = when (kind) {
         DuelRowKind.Invited, DuelRowKind.YourMove, DuelRowKind.RevealReady -> kind.ordinal
