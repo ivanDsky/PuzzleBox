@@ -256,6 +256,21 @@ class NewDuelViewModelTest {
     }
 
     @Test
+    fun theCreatedInviteListsTheDrawnPuzzlesNotTheWiderDraft() = runTest {
+        val vm = started()
+        vm.setCount(2)
+        val draftGames = vm.state.value.draft.games
+
+        vm.create()
+
+        val (code, puzzles) = vm.created.first()
+        val drawn = server.matches.getValue(code).legs.map { it.ref.gameId.value.replaceFirstChar(Char::uppercase) }
+        assertEquals(3, draftGames.size)
+        assertEquals(2, drawn.size)
+        assertEquals(drawn, puzzles)
+    }
+
+    @Test
     fun dismissingMidCreateDropsTheLateOutcomeAndLeavesAFreshDraft() = runTest {
         val gate = CompletableDeferred<Unit>()
         val held = CreateMatch(

@@ -159,7 +159,7 @@ class DuelLegsModelTest {
     @Test
     fun startIsDisabledFromTheDeadlineButResumeStays() {
         val match = match(legs = 2)
-        val before = model(view(match), elapsed = mapOf(1 to 5_000L), now = match.deadline - 1.minutes.toJavaDuration()).rows
+        val before = model(view(match), elapsed = mapOf(1 to 5_000L), now = match.deadline - 1.seconds.toJavaDuration()).rows
         val after = model(view(match), elapsed = mapOf(1 to 5_000L), now = match.deadline).rows
 
         assertTrue(before[0].actionEnabled)
@@ -169,34 +169,46 @@ class DuelLegsModelTest {
     }
 
     @Test
+    fun theCountdownRunsToTheDeadlineNotTheClose() {
+        val match = match(legs = 2)
+        val now = match.deadline - (23.hours + 59.minutes).toJavaDuration()
+
+        // The grace after the deadline is for posting only: what the screen counts down to is the deadline.
+        assertTrue(match.closesAt > match.deadline)
+        assertEquals("Closes in 23 h 59 m", timeLeftText(match.deadline, now))
+        assertEquals("Closed", timeLeftText(match.deadline, match.deadline))
+        assertTrue(nudgeText("Bob", code, match.deadline, match.deadline).contains("has closed."))
+    }
+
+    @Test
     fun timeLeftRoundsDownToHoursAndMinutesAndSaysClosedAtZero() {
-        val closesAt = createdAt + 30.hours.toJavaDuration()
+        val deadline = createdAt + 30.hours.toJavaDuration()
         val left = 17.hours + 42.minutes + 59.seconds
 
-        assertEquals("Closes in 17 h 42 m", timeLeftText(closesAt, closesAt - left.toJavaDuration()))
-        assertEquals("Closes in 42 m", timeLeftText(closesAt, closesAt - 42.minutes.toJavaDuration()))
-        assertEquals("Closed", timeLeftText(closesAt, closesAt))
-        assertEquals("Closed", timeLeftText(closesAt, closesAt + 5.minutes.toJavaDuration()))
-        assertFalse(isClosed(closesAt, closesAt - 1.minutes.toJavaDuration()))
-        assertTrue(isClosed(closesAt, closesAt))
+        assertEquals("Closes in 17 h 42 m", timeLeftText(deadline, deadline - left.toJavaDuration()))
+        assertEquals("Closes in 42 m", timeLeftText(deadline, deadline - 42.minutes.toJavaDuration()))
+        assertEquals("Closed", timeLeftText(deadline, deadline))
+        assertEquals("Closed", timeLeftText(deadline, deadline + 5.minutes.toJavaDuration()))
+        assertFalse(isClosed(deadline, deadline - 1.minutes.toJavaDuration()))
+        assertTrue(isClosed(deadline, deadline))
     }
 
     @Test
     fun underAMinuteLeftIsStillOpenAndOnlyClosesAtTheDeadline() {
-        val closesAt = createdAt + 30.hours.toJavaDuration()
-        val now = closesAt - 30.seconds.toJavaDuration()
+        val deadline = createdAt + 30.hours.toJavaDuration()
+        val now = deadline - 30.seconds.toJavaDuration()
 
-        assertEquals("Closes in <1 m", timeLeftText(closesAt, now))
-        assertFalse(isClosed(closesAt, now))
-        assertTrue(nudgeText("Bob", code, closesAt, now).contains("closes in <1 m."))
+        assertEquals("Closes in <1 m", timeLeftText(deadline, now))
+        assertFalse(isClosed(deadline, now))
+        assertTrue(nudgeText("Bob", code, deadline, now).contains("closes in <1 m."))
     }
 
     @Test
     fun nudgeTextNamesTheOpponentAndTheTimeLeft() {
-        val closesAt = createdAt + 30.hours.toJavaDuration()
-        val now = closesAt - (17.hours + 42.minutes).toJavaDuration()
+        val deadline = createdAt + 30.hours.toJavaDuration()
+        val now = deadline - (17.hours + 42.minutes).toJavaDuration()
 
-        val text = nudgeText("Bob", code, closesAt, now)
+        val text = nudgeText("Bob", code, deadline, now)
 
         assertTrue(text.contains("Your duel with Bob closes in 17 h 42 m."))
         assertTrue(text.contains(code.matchLink))

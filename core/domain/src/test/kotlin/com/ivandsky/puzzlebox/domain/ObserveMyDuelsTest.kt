@@ -154,6 +154,35 @@ class ObserveMyDuelsTest {
     }
 
     @Test
+    fun anUnclaimedDuelIAmTheChallengerOfIsWaitingNotYourMove() = runTest {
+        val none = code("K7Q2M1")
+        val some = code("K7Q2M2")
+        val all = code("K7Q2M3")
+        val claimed = code("K7Q2M4")
+        duel(none)
+        duel(some)
+        duel(all)
+        duel(claimed, claimedBy = bob)
+        takes(ann, some, 0)
+        for (leg in 0..1) takes(ann, all, leg)
+
+        viewAs(ann)
+        observe().test {
+            val duels = latest(this@runTest)
+            assertEquals(
+                mapOf(
+                    none to DuelRowKind.Unclaimed, some to DuelRowKind.Unclaimed, all to DuelRowKind.Unclaimed,
+                    claimed to DuelRowKind.YourMove,
+                ),
+                duels.kinds(),
+            )
+            // Only the claimed duel is mine to move on; nobody has accepted the others.
+            assertEquals(1, duels.needYou)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun aRowCountsMyTakenPuzzlesAndShowsTheOpponent() = runTest {
         val c = code("K7Q2M1")
         duel(c, legCount = 3, claimedBy = bob)
