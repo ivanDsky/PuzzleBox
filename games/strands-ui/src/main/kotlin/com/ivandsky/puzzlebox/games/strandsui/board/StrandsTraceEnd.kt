@@ -95,7 +95,7 @@ internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEn
             .fillMaxSize()
             .drawWithCache {
                 val geometry = GridGeometry(rows, cols, size.width, size.height)
-                val width = connectorWidth(LinkKind.Trace).toPx()
+                val width = connectorWidth(LinkKind.Trace, geometry.pitch)
                 var builtFor: List<Coord>? = null
                 val line = Path()
                 onDrawBehind {
