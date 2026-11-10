@@ -218,8 +218,8 @@ class ReachabilityInventoryE2ETest {
     }
 
     /**
-     * NavV2: [reached], with the chrome read from the top screen's placement: `Browse` and `Tool` show
-     * the tabs, `Immersive` nothing; the avatar and gear sit on the rail, else on Today only.
+     * NavV2: [reached], with the chrome read from the top screen's placement: `Bar` shows the
+     * tabs, `Immersive` nothing; the avatar and gear sit on the rail, else on Today only.
      */
     private fun ShellRobot.reachedV2(route: String, width: Width) {
         val chrome = placementOf(state.currentStack.last()).chrome

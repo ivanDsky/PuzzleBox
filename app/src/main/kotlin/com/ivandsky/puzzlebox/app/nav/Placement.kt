@@ -52,46 +52,46 @@ internal sealed interface Home {
     /** Pushed on [tab]'s stack. */
     data class PushedOn(val tab: Tab) : Home
 
-    /** Belongs to the shell, on no tab: Profile and Settings. */
+    /** Belongs to the shell, pushed on the current tab: Profile and Settings. */
     data object Shell : Home
 
     /** Exists in debug builds only. */
     data object DebugOnly : Home
 }
 
-/** What the shell draws around a key's screen. */
+/**
+ * What the shell draws around a key's screen: the bar or the rail, or neither. Where the
+ * avatar sits is the shell's rule, not a placement field.
+ */
 internal enum class Chrome {
-    /** The bar, plus the avatar and gear once the shell actions land. */
-    Browse,
+    /** The bar or rail shows. */
+    Bar,
 
-    /** The bar, no avatar or gear. */
-    Tool,
-
-    /** No bar, no avatar or gear. */
+    /** No bar or rail. */
     Immersive,
 }
 
 /** A list, not a map literal, so a test can see a key class written twice. */
 internal val placementRows: List<PlacementRow> = listOf(
-    PlacementRow(HomeKey::class, Placement(TabRoot(Tab.Today), Chrome.Browse)),
-    PlacementRow(PlayKey::class, Placement(TabRoot(Tab.Games), Chrome.Browse)),
-    PlacementRow(CreateKey::class, Placement(TabRoot(Tab.Create), Chrome.Browse)),
-    PlacementRow(HistoryRootKey::class, Placement(TabRoot(Tab.History), Chrome.Browse)),
-    PlacementRow(HistoryKey::class, Placement(PushedOn(Tab.History), Chrome.Browse)),
-    PlacementRow(ProfileKey::class, Placement(Shell, Chrome.Tool)),
-    PlacementRow(SettingsKey::class, Placement(Shell, Chrome.Tool)),
+    PlacementRow(HomeKey::class, Placement(TabRoot(Tab.Today), Chrome.Bar)),
+    PlacementRow(PlayKey::class, Placement(TabRoot(Tab.Games), Chrome.Bar)),
+    PlacementRow(CreateKey::class, Placement(TabRoot(Tab.Create), Chrome.Bar)),
+    PlacementRow(HistoryRootKey::class, Placement(TabRoot(Tab.History), Chrome.Bar)),
+    PlacementRow(HistoryKey::class, Placement(PushedOn(Tab.History), Chrome.Bar)),
+    PlacementRow(ProfileKey::class, Placement(Shell, Chrome.Bar)),
+    PlacementRow(SettingsKey::class, Placement(Shell, Chrome.Bar)),
     PlacementRow(GameKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(ResultKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(CustomGameKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(CustomResultKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
-    PlacementRow(FriendPuzzleKey::class, Placement(PushedOn(Tab.Games), Chrome.Browse)),
+    PlacementRow(FriendPuzzleKey::class, Placement(PushedOn(Tab.Games), Chrome.Bar)),
     PlacementRow(MatchLegKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(MatchLegResultKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
-    PlacementRow(DuelKey::class, Placement(PushedOn(Tab.Games), Chrome.Browse)),
+    PlacementRow(DuelKey::class, Placement(PushedOn(Tab.Games), Chrome.Bar)),
     PlacementRow(DuelRevealKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
-    PlacementRow(EditorKey::class, Placement(PushedOn(Tab.Create), Chrome.Tool)),
-    PlacementRow(PublishedPuzzleKey::class, Placement(PushedOn(Tab.Create), Chrome.Browse)),
-    PlacementRow(CatalogKey::class, Placement(DebugOnly, Chrome.Tool)),
+    PlacementRow(EditorKey::class, Placement(PushedOn(Tab.Create), Chrome.Bar)),
+    PlacementRow(PublishedPuzzleKey::class, Placement(PushedOn(Tab.Create), Chrome.Bar)),
+    PlacementRow(CatalogKey::class, Placement(DebugOnly, Chrome.Bar)),
 )
 
 /** [placementRows] by key class. */
