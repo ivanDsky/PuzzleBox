@@ -23,9 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.BoardColors
 import com.ivandsky.puzzlebox.games.strands.Coord
@@ -44,6 +46,7 @@ import com.ivandsky.puzzlebox.games.strandsui.board.at
 import com.ivandsky.puzzlebox.games.strandsui.board.dimSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
 import com.ivandsky.puzzlebox.games.strandsui.board.tokenColor
+import kotlin.math.ceil
 
 /** Called with a letter's cell each time its token composes; a no-op outside tests, which count recompositions with it. */
 internal val LocalTokenComposed = staticCompositionLocalOf<(Coord) -> Unit> { {} }
@@ -97,6 +100,7 @@ internal fun LetterToken(
         Box(
             Modifier
                 .size(tokenSize)
+                .withLipRoom()
                 .graphicsLayer {
                     val ended = end.value.at(cell.coord)
                     val scale = base.value.scale * join.value.scale * (ended?.scale ?: 1f)
@@ -141,6 +145,17 @@ internal fun LetterToken(
             )
         }
     }
+}
+
+/**
+ * The token's layer bounds reach as far above the face as below it, a lip's depth, while it
+ * lays out as the face's own square: the lip hangs below the face and a translucent layer clips
+ * to its bounds, which would cut it. The face centre, the scale pivot, is exactly where it was.
+ */
+private fun Modifier.withLipRoom(): Modifier = layout { measurable, constraints ->
+    val lip = ceil(constraints.maxHeight * StrandsBoardSpec.TokenLipFraction).toInt()
+    val placeable = measurable.measure(Constraints.fixed(constraints.maxWidth, constraints.maxHeight + 2 * lip))
+    layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(0, -lip) }
 }
 
 /** A letter joining the trace fills and pops once; the key is constant because leaving the trace resets it. */

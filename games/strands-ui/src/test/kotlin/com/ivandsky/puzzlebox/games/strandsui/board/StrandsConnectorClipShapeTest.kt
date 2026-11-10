@@ -83,6 +83,32 @@ class StrandsConnectorClipShapeTest {
 
     private fun board(): PixelMap = rule.onNodeWithTag("strands.board").captureToImage().toPixelMap()
 
+    /** A faded tile's lip hangs below the layer's face box: the strip just under the face, mid-column, must be painted. */
+    private fun assertLipPainted(pixels: PixelMap) {
+        val pitch = pixels.width / 4f
+        val half = pitch * StrandsBoardSpec.TokenFraction / 2
+        val drop = half * 2 * StrandsBoardSpec.TokenLipFraction
+        val x = (pitch * 0.5f + half * 0.3f).toInt()
+        val y = (pitch * 0.5f + half + drop / 2).toInt()
+        assertNotEquals("bare board where the lip is", pixels[1, 1], pixels[x, y])
+    }
+
+    @Test
+    fun `a dimmed tile paints its whole lip`() {
+        val alone = listOf(Coord(0, 0))
+        val link = StrandsLink(alone, LinkKind.Theme)
+        show(listOf(link), StrandsDim(alone.toSet(), setOf(link), alpha = 0.4f), end = null, reduceMotion = true)
+        rule.mainClock.advanceTimeByFrame()
+        assertLipPainted(board())
+    }
+
+    @Test
+    fun `a dissolving rejected tile paints its whole lip`() {
+        show(emptyList(), StrandsDim.None, TraceEnd(listOf(Coord(0, 0)), TraceEndKind.Short, 1), reduceMotion = false)
+        rule.mainClock.advanceTimeBy(StrandsMotion.ShortHoldMs + 40L)
+        assertLipPainted(board())
+    }
+
     @Test
     fun `a dimmed vertical link leaves no bare board between its tiles, whatever lip they paint`() {
         val vertical = listOf(Coord(0, 0), Coord(1, 0))
