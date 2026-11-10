@@ -15,7 +15,6 @@ import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.CreateKey
@@ -71,9 +70,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The New puzzle sheet over the real Zip plugin and editor UI, behind `ZipEditor`: off, the sheet
- * has no Zip option; on, it offers Zip, opens the Zip editor, and one stroke on its board moves
- * the verdict pill off Incomplete. The plugin carries [ZipEditor] either way.
+ * The New puzzle sheet over the real Zip plugin and editor UI: it offers Zip with no flag on,
+ * opens the Zip editor, and one stroke on its board moves the verdict pill off Incomplete.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
@@ -97,18 +95,10 @@ class NewPuzzleSheetZipGateTest {
     }
 
     @Test
-    fun `with ZipEditor off the sheet shows no Zip option`() {
+    fun `Zip is offered and opens the Zip editor, and one stroke changes the verdict pill`() {
         open(flags = FakeReleaseFlags())
         rule.onNodeWithTag(NEW).performClick()
-
-        rule.onNodeWithTag("$GAME${QueensDefinition.id.value}").assertExists()
-        rule.onNodeWithTag("$GAME${zip.value}").assertDoesNotExist()
-    }
-
-    @Test
-    fun `with ZipEditor on the option opens the Zip editor and one stroke changes the verdict pill`() {
-        open(flags = FakeReleaseFlags(ReleaseFlag.ZipEditor))
-        rule.onNodeWithTag(NEW).performClick()
+        rule.onNodeWithTag("$GAME${zip.value}").assertExists()
         rule.onNodeWithTag("$GAME${zip.value}").performClick()
         rule.onNodeWithTag("$SIZE${ZipEditor.variants.first().value}").performClick()
 
