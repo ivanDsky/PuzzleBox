@@ -12,7 +12,10 @@ import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ObserveLatestSolvedToday
+import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
@@ -27,11 +30,14 @@ import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -46,7 +52,8 @@ import kotlinx.coroutines.launch
  * set lands, the first game). [stats] and [week] feed the streak card (A8): the solved-day
  * numbers and the last 7 puzzle days, oldest first, ending on [puzzleDay]. [rolloverAt] is
  * when the next puzzles land, the CTA's countdown once every game is solved. [updateUrl] is
- * a newer release's page (spec A7), null while none is known.
+ * a newer release's page (spec A7), null while none is known. [rank] is the player's place on
+ * the game they solved last today, null unless signed in and ranked.
  */
 internal data class HomeUiState(
     val today: List<TodayRow>,
@@ -58,6 +65,7 @@ internal data class HomeUiState(
     val week: List<WeekDay>,
     val rolloverAt: Instant,
     val updateUrl: String? = null,
+    val rank: TodayRank? = null,
 ) {
     /**
      * One game's Today row (A9, A10): [status] is null until today's set first emits,
@@ -97,6 +105,7 @@ internal data class HomeUiState(
  * on every resume), so a game that can't load reads Offline. [checkForUpdate] (also on every
  * resume) asks [GetAppUpdate] for a newer release; its URL lands in [HomeUiState.updateUrl].
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
     observeGameHistory: ObserveGameHistory,
     observeGameStats: ObserveGameStats,
@@ -108,6 +117,8 @@ class HomeViewModel(
     private val nextRollover: GetNextRollover,
     private val syncTodayPuzzles: SyncTodayPuzzles,
     private val getAppUpdate: GetAppUpdate,
+    observeLatestSolvedToday: ObserveLatestSolvedToday,
+    observeResultRank: ObserveResultRank,
 ) : ViewModel() {
 
     private val updateUrl = MutableStateFlow<String?>(null)
@@ -136,6 +147,17 @@ class HomeViewModel(
     // Seeded (null) so the recent days never wait on today's set (it reads Room and DataStore).
     private val today: Flow<List<TodayEntry>?> = todaySet().onStart<List<TodayEntry>?> { emit(null) }
 
+    // A new latest solve cancels the old game's rank stream; no rank until a ranked result lands.
+    private val rank: Flow<TodayRank?> = observeLatestSolvedToday().flatMapLatest { game ->
+        if (game == null) {
+            flowOf(null)
+        } else {
+            observeResultRank(game, puzzleDay()).map { result ->
+                (result as? ResultRank.Ranked)?.let { TodayRank(game, registry.displayName(game), it.position) }
+            }
+        }
+    }.distinctUntilChanged().onStart { emit(null) }
+
     internal val uiState: StateFlow<HomeUiState> =
         combine(
             today,
@@ -158,22 +180,24 @@ class HomeViewModel(
                 week = week(days, endingOn = day),
                 rolloverAt = nextRollover(),
             )
-        }.combine(updateUrl) { state, url -> state.copy(updateUrl = url) }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = puzzleDay().let { day ->
-                HomeUiState(
-                    today = seed,
-                    identity = identityService.current.value,
-                    history = emptyList(),
-                    puzzleDay = day,
-                    playTarget = seedTarget,
-                    stats = NO_STATS,
-                    week = week(emptyList(), endingOn = day),
-                    rolloverAt = nextRollover(),
-                )
-            },
-        )
+        }.combine(updateUrl) { state, url -> state.copy(updateUrl = url) }
+            .combine(rank) { state, rank -> state.copy(rank = rank) }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = puzzleDay().let { day ->
+                    HomeUiState(
+                        today = seed,
+                        identity = identityService.current.value,
+                        history = emptyList(),
+                        puzzleDay = day,
+                        playTarget = seedTarget,
+                        stats = NO_STATS,
+                        week = week(emptyList(), endingOn = day),
+                        rolloverAt = nextRollover(),
+                    )
+                },
+            )
 
     fun syncToday() {
         viewModelScope.launch { syncTodayPuzzles() }

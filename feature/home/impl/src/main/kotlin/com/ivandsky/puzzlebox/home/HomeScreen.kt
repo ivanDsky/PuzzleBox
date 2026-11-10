@@ -45,6 +45,7 @@ internal fun HomeScreen(
     onOpenHistory: () -> Unit = {},
     onOpenUpdate: (String) -> Unit = {},
     hideOwnedElsewhere: Boolean = false,
+    summaries: HomeSummaries? = null,
 ) {
     var selectedDay by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -61,6 +62,7 @@ internal fun HomeScreen(
                     onOpenGame = onOpenGame,
                     onOpenProfile = onOpenProfile,
                     hideOwnedElsewhere = hideOwnedElsewhere,
+                    summaries = summaries,
                     modifier = Modifier
                         .weight(0.42f)
                         .fillMaxHeight(),
@@ -86,6 +88,7 @@ internal fun HomeScreen(
                 onOpenGame = onOpenGame,
                 onOpenProfile = onOpenProfile,
                 hideOwnedElsewhere = hideOwnedElsewhere,
+                summaries = summaries,
                 modifier = Modifier.fillMaxSize(),
                 onOpenUpdate = onOpenUpdate,
             )

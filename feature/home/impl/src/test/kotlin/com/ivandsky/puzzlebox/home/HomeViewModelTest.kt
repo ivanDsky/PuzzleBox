@@ -1,5 +1,11 @@
 package com.ivandsky.puzzlebox.home
 
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.domain.ObserveLatestSolvedToday
+import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.ObserveResultRank
+import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
@@ -90,6 +96,7 @@ class HomeViewModelTest {
         hintsRanked: Set<GameId> = emptySet(),
         release: AppRelease? = null,
         releases: AppReleaseRepository = FakeAppReleaseRepository(release),
+        boards: Map<LeaderboardRef, List<LeaderboardEntry>> = emptyMap(),
     ): Deps {
         val registry = GameRegistry(
             listOf(zip, tango).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
@@ -114,6 +121,10 @@ class HomeViewModelTest {
             getAppUpdate = GetAppUpdate(
                 releases,
                 AppBuild(versionName = "1.2.0", checksForUpdates = true),
+            ),
+            observeLatestSolvedToday = ObserveLatestSolvedToday(completions, calendar, registry),
+            observeResultRank = ObserveResultRank(
+                ObserveLeaderboard(identity, FakeLeaderboardRepository(boards), registry, calendar),
             ),
         )
         if (collect) backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
@@ -429,6 +440,68 @@ class HomeViewModelTest {
         assertEquals(listOf(TodayStatus.NotStarted, TodayStatus.NotStarted), state.today.map { it.status })
         assertEquals(listOf("2026-10-31"), state.history.map { it.isoDay })
         assertNull(state.updateUrl)
+    }
+
+    private fun entry(uid: String, seconds: Int) =
+        LeaderboardEntry(uid, uid, "x/2026-11-04/1", seconds * 1_000L, 0, 1_700_000_000_000)
+
+    /** [game]'s board with [me] twelfth: eleven faster players ahead. */
+    private fun twelfth(game: GameId) = LeaderboardRef(game.value, day) to
+        (1..11).map { entry("p$it", it) } + entry("me", 60)
+
+    private suspend fun Deps.solve(game: GameId, at: String) = completions.onCompleted(
+        CompletionRecord(
+            puzzleRef = TestGames.Ref(game, PuzzleKey.Daily(day, 100)),
+            time = 30_000L,
+            hints = 0,
+            stats = RecordStats(schemaVersion = 1, blob = "{}"),
+            firstCompletedAt = Instant.parse(at),
+            isRecord = true,
+        ),
+    )
+
+    private val me = Identity("me", "Me", null)
+
+    @Test
+    fun `a signed-in player ranked on the latest solved game gets that rank`() = runTest {
+        val deps = viewModel(identity = FakeIdentityService(initial = me), boards = mapOf(twelfth(zip)))
+        deps.solve(zip, "2026-11-04T08:00:00Z")
+
+        assertEquals(TodayRank(zip, "Zip", 12), deps.vm.uiState.value.rank)
+    }
+
+    @Test
+    fun `a signed-out player has no rank`() = runTest {
+        val deps = viewModel(boards = mapOf(twelfth(zip)))
+        deps.solve(zip, "2026-11-04T08:00:00Z")
+
+        assertNull(deps.vm.uiState.value.rank)
+    }
+
+    @Test
+    fun `a hidden rank gives none`() = runTest {
+        val deps = viewModel(identity = FakeIdentityService(initial = me))
+        deps.solve(zip, "2026-11-04T08:00:00Z")
+
+        assertNull(deps.vm.uiState.value.rank)
+    }
+
+    @Test
+    fun `no solve today gives no rank`() = runTest {
+        val deps = viewModel(identity = FakeIdentityService(initial = me), boards = mapOf(twelfth(zip)))
+
+        assertNull(deps.vm.uiState.value.rank)
+    }
+
+    @Test
+    fun `a new latest solve of another game moves the rank to it`() = runTest {
+        val deps = viewModel(identity = FakeIdentityService(initial = me), boards = mapOf(twelfth(zip), twelfth(tango)))
+        deps.solve(zip, "2026-11-04T08:00:00Z")
+        assertEquals(TodayRank(zip, "Zip", 12), deps.vm.uiState.value.rank)
+
+        deps.solve(tango, "2026-11-04T09:00:00Z")
+
+        assertEquals(TodayRank(tango, "Tango", 12), deps.vm.uiState.value.rank)
     }
 
     /** A release check stuck on the network: it never answers. */

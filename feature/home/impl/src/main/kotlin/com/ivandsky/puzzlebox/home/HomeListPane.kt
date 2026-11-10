@@ -44,6 +44,7 @@ internal fun ListPane(
     onOpenGame: (GameId) -> Unit,
     onOpenProfile: () -> Unit,
     hideOwnedElsewhere: Boolean,
+    summaries: HomeSummaries?,
     modifier: Modifier = Modifier,
     onOpenUpdate: (String) -> Unit = {},
 ) {
@@ -77,6 +78,8 @@ internal fun ListPane(
                     HomeStreakSection(stats = state.stats, week = state.week, total = state.today.size)
                 }
             }
+            // The summaries sit under the streak, one line each, only when there is something to say.
+            if (summaries != null) HomeSummaryRows(state = state, summaries = summaries)
             // History owns past plays and Profile owns identity once the nav is v2.
             if (!hideOwnedElsewhere) {
                 StaggeredItem(2) {
