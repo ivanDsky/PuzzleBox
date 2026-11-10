@@ -124,18 +124,18 @@ class DiGraphTest : KoinTest {
                 setOf(GameId("zip"), GameId("tango"), GameId("queens"), GameId("minisudoku"), GameId("sudoku"), GameId("strands")),
                 koin.getAll<DailySource>().map { it.gameId }.toSet(),
             )
-            // A9: one bound source per game — the repository's associateBy would silently keep the last.
+            // One bound source per game — the repository's associateBy would silently keep the last.
             val boundIds = koin.getAll<DailySource>().map { it.gameId }
             assertEquals("a gameId is bound to more than one DailySource", boundIds.distinct(), boundIds)
             assertNotNull(koin.get<UserPreferencesRepository>())
-            // Ticket 16: backend bindings resolve against the app-provided scope.
+            // Backend bindings resolve against the app-provided scope.
             // The real binding is pinned by `identity binds the Firebase service lazily`.
             assertNotNull(koin.get<IdentityService>())
             assertNotNull(koin.get<LeaderboardRepository>())
             assertNotNull(koin.get<SharedPuzzleRepository>())
             assertNotNull(koin.get<CustomBoardRepository>())
             assertNotNull(koin.get<GoogleIdTokenProvider>())
-            // C1 regression: ProfileRoute's koinViewModel() needs this definition —
+            // Regression: ProfileRoute's koinViewModel() needs this definition —
             // without it the first Profile composition throws NoDefinitionFound.
             assertNotNull(koin.get<ProfileViewModel> { parametersOf(SavedStateHandle()) })
             // Home/History routes' koinViewModel() and their domain use cases.
@@ -154,7 +154,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<ObserveResultRank>())
             assertNotNull(koin.get<ObservePlayStats>())
             // Home's resume update check: the use case over the shell-bound installed build;
-            // this debug-variant graph never checks (spec A4).
+            // this debug-variant graph never checks.
             assertNotNull(koin.get<GetAppUpdate>())
             assertEquals(false, koin.get<AppBuild>().checksForUpdates)
             // Today's featured game (Profile's board, the leaderboard) is the registry's first.
@@ -173,7 +173,7 @@ class DiGraphTest : KoinTest {
             // The one shared play session store resolves off the real graph.
             assertNotNull(koin.get<PlaySessionStore>())
 
-            // Navigation-ux bindings (arch-8): saved plays, the per-game calendar, the
+            // Navigation bindings: saved plays, the per-game calendar, the
             // progress cues, and the play routes' ViewModels with their key parameters.
             assertNotNull(koin.get<SavedPlayRepository>())
             assertNotNull(koin.get<GameCalendar>())
@@ -193,7 +193,7 @@ class DiGraphTest : KoinTest {
         }
     }
 
-    /** S18: two editor UIs for one game is a wiring bug that fails the registry's first resolve. */
+    /** Two editor UIs for one game is a wiring bug that fails the registry's first resolve. */
     @Test
     fun `a second editor UI for one game fails the registry`() {
         val duplicate = module { single<GameEditorUi>(qualifier = qualifier("queens.editor.again")) { QueensEditorUi } }

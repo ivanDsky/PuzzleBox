@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
-/** The rank-order key that decided a leg: the first key of the game's order on which the two results differ (A2). */
+/** The rank-order key that decided a leg: the first key of the game's order on which the two results differ. */
 enum class LegBasis { Time, Hints }
 
 /** One leg of a duel as the viewer sees it. */
@@ -11,7 +11,7 @@ sealed interface LegVerdict {
 
     data object Draw : LegVerdict
 
-    /** Counts for neither side: authored by a player (A10), or the match was cancelled, declined or never claimed. */
+    /** Counts for neither side: authored by a player, or the match was cancelled, declined or never claimed. */
     data object Void : LegVerdict
 
     /** Can still change: a player has no counted result and the match has not closed. */

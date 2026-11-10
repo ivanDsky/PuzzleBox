@@ -99,8 +99,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The Play tab over the REAL games: its root is the games hub, listing every registered
- * game (A5); picking one pushes that game's [GameKey] on the Play stack (N2), whose board
- * loads today's puzzle; back returns to the hub (N3); a configuration change keeps the
+ * game; picking one pushes that game's [GameKey] on the Play stack, whose board
+ * loads today's puzzle; back returns to the hub; a configuration change keeps the
  * store's live controller. The play feature pins the same paths over stand-in games.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -139,7 +139,7 @@ class RealGamesPlayRouteTest {
                     single<CoroutineScope> { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().default) }
                     single { daily }
                     single<CompletionRepository> { FakeCompletionRepository() }
-                    // The hub names games from the registry (A5), in the app's order.
+                    // The hub names games from the registry, in the app's order.
                     single { GameRegistry(listOf(zipPlugin, tangoPlugin, queensPlugin, strandsPlugin)) }
                     single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(HintMode.Stepwise(get<DispatcherProvider>().default)), QueensPlayUi(PreferencesQueensSettings(FakeGameSettingsRepository()), HintMode.Stepwise(get<DispatcherProvider>().default)), StrandsPlayUi())) }
                     single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
@@ -159,7 +159,7 @@ class RealGamesPlayRouteTest {
                         )
                     }
                 },
-                // The app's real use-case wiring, so the hub gets every use case it asks for (A20).
+                // The app's real use-case wiring, so the hub gets every use case it asks for.
                 domainModule,
                 playModule,
             )

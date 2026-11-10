@@ -68,7 +68,7 @@ import org.robolectric.annotation.Config
 /**
  * The GameKey route over stand-in games: a key draws its slot's live board under the
  * `route.game` tag, Up and system back both reach the entry's back, and two entries
- * naming the same slot draw one shared controller (A9, N21).
+ * naming the same slot draw one shared controller.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])

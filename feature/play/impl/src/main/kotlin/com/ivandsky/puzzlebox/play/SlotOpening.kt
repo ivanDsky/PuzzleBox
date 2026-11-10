@@ -31,15 +31,15 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 
 /**
- * Decides where a slot's board comes from (A11), in this order:
+ * Decides where a slot's board comes from, in this order:
  * 1. the slot's saved row, read through the [lane] (no network). It is checked with the
  *    decoders the store restores with: the [SessionBlob] envelope must name the slot's
  *    game and the game's session codec must read it. An undecodable row is deleted and
- *    the slot is built fresh (arch-11);
+ *    the slot is built fresh, so a corrupt save can never block the board;
  * 2. today's daily fetch, when the slot's day is the game's current day;
  * 3. a past day opened by date — from the cache, or fetched once for an archive game —
  *    carrying the day's puzzleNumber from the cache so the record identity (ADR-0004)
- *    survives keys that name only game and day (arch-2);
+ *    survives keys that name only game and day;
  * 4. a friend's puzzle ([PlaySlot.Custom]) from the [received] puzzles stored when it opened;
  * 5. a duel puzzle ([PlaySlot.Leg]) named by its match's leg, built as a replay under the leg
  *    puzzle's own identity: a day through the same past-day path (today's falls back to the
@@ -202,7 +202,7 @@ internal class SlotOpening(
 /** Copy for a day outside the game's archive, or one its source says doesn't exist. */
 internal const val PAST_DAY_OUT_OF_RANGE = "This puzzle isn't available."
 
-/** Why an archive day that isn't on the device could not be fetched (SC9). */
+/** Why an archive day that isn't on the device could not be fetched. */
 internal fun pastDayUnavailableMessage(day: LocalDate, error: FetchError): String = when (error) {
     is FetchError.NotFound -> PAST_DAY_OUT_OF_RANGE
     // Unavailable covers 5xx and unreadable bodies too, so offline is named as likely, not certain.

@@ -1,11 +1,11 @@
 rules_version = '2';
 
-// PuzzleBox Firestore rules (ticket 16).
+// PuzzleBox Firestore rules.
 //
 // Layout: leaderboards/{boardId}/entries/{uid}
 //   boardId = "<gameId>_<ISO-day>" (e.g. "zip_2026-10-31") — one board per official
-//   daily puzzle (A5); one entry per uid (the first write wins, A4 record semantics).
-//   Entries carry the full puzzleRef "<gameId>/<ISO-day>/<n>" and the A3 score inputs.
+//   daily puzzle; one entry per uid (the first write wins, as with records).
+//   Entries carry the full puzzleRef "<gameId>/<ISO-day>/<n>" and the score inputs.
 //   Only the games in dailyGameIds() have daily boards, and only for a puzzle day in
 //   [server UTC date - 2, server UTC date + 1] (ADR-0024): an explicit allow-list, not a
 //   generic id pattern, because entries can never be deleted; no historical backfill.
@@ -13,7 +13,7 @@ rules_version = '2';
 //
 // Posture (brief product decisions): deny-all default; reads authenticated; writes
 // owner-only with sanity validation (timeMs > 0, hints >= 0, puzzleRef shape and
-// board consistency). Immutable once written: replays (A5) and score edits can never
+// board consistency). Immutable once written: replays and score edits can never
 // land, so the board is first-win by construction.
 //
 // Layout: puzzles/{code} — one shared puzzle per share code, readable by id only;
@@ -52,7 +52,7 @@ service cloud.firestore {
         && request.auth.uid == uid
         && validEntry();
 
-      // First write stands (A4): no score edits, no deletes, no replay overwrites (A5).
+      // First write stands: no score edits, no deletes, no replay overwrites.
       allow update, delete: if false;
 
       // The four UTC days an entry may be for: server today -2, -1, 0 and +1 (ADR-0024).

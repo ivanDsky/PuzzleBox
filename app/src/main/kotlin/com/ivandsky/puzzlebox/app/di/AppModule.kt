@@ -80,7 +80,7 @@ val appModule = module {
 
     // Every game module's editor UI (ADR-0019); a duplicate game id throws.
     single { GameEditorRegistry(getAll<GameEditorUi>()) }
-    // The installed build GetAppUpdate compares against; debug never checks (spec A4).
+    // The installed build GetAppUpdate compares against; debug never checks.
     single {
         val context = androidContext()
         val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)

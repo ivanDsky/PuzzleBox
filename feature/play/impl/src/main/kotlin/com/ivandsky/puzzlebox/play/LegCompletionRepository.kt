@@ -8,7 +8,7 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
 
 /**
- * A duel leg's completions (A8, A30): a leg solve is a normal completion, tagged with its
+ * A duel leg's completions: a leg solve is a normal completion, tagged with its
  * match. The leg's outbox row is the one record of "this puzzle is taken", so it is queued
  * first and the completion written after it through [inner] (first-win rules, boards and
  * records see it as any solve). A kill between the two keeps the duel result and loses only

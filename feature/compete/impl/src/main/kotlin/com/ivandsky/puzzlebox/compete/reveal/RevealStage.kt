@@ -68,7 +68,7 @@ private val VsStampSize = 56.dp
 private const val VsStampDelayMs = 160L
 
 /**
- * The reveal at one instant of the machine's [state] (handoff 03-reveal §4–§5): the chrome, then the VS intro, or the
+ * The reveal at one instant of the machine's [state]: the chrome, then the VS intro, or the
  * last race card's puzzle with the running score. The route shows the summary at End instead.
  * [wide] is the tablet layout. It draws [state] and animates only its own entrances.
  */

@@ -12,9 +12,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-// Canonical motion vocabulary (A12): the app animates with shared-axis screen
+// Canonical motion vocabulary: the app animates with shared-axis screen
 // transitions, a container transform into a puzzle, and spring physics on
-// interactions. Transitions are wired in later tickets; they consume these tokens
+// interactions. Transitions consume these tokens
 // so every screen moves on the same physics.
 object MotionTokens {
     // Feedback stays under ~160ms; only full-screen patterns go longer.
@@ -32,7 +32,7 @@ object MotionTokens {
     const val NavTransitionExit = 90
 
     // Back is quicker than forward: the destination is a screen the user just left, so it
-    // returns in ~180ms instead of ~300ms (S9 HITL: the 0.11 back felt slow).
+    // returns in ~180ms instead of ~300ms (the 0.11 back felt slow).
     const val NavPopTravel = 180
     const val NavPopEnter = 120
     const val NavPopEnterDelay = 60
@@ -83,7 +83,7 @@ object MotionTokens {
     const val SpringDampingMomentum = 0.8f
     const val SpringStiffnessDefault = 380f
 
-    // Identity §2.6: one name per job. Each job's reduced-motion fallback sits beside it;
+    // One name per job. Each job's reduced-motion fallback sits beside it;
     // "none" means the state change is instant (read rememberReducedMotion()).
 
     // Press: scale 0.97 on the default spring. Reduced: none.
@@ -124,7 +124,7 @@ object MotionTokens {
     const val SweepOutlineDuration = 160
     val SweepOutlineWidth: Dp = 3.dp
 
-    // Stamp: a glyph lands from 1.15× to 1 (spec A6 overrides identity's 0.6) on the app's
+    // Stamp: a glyph lands from 1.15× to 1 (not the design identity's 0.6) on the app's
     // only bouncy spring, kept for wins, while it fades in. Reduced: the static glyph.
     const val StampFromScale = 1.15f
     const val StampSpringDamping = 0.55f
@@ -186,7 +186,7 @@ object MotionTokens {
     const val BonusRiseDuration = 640
     const val BonusReducedHold = 700
 
-    // Trace (Zip + Strands, spec A1/A4): the line end leans from the last committed cell along
+    // Trace (Zip + Strands): the line end leans from the last committed cell along
     // ONE legal direction toward the finger (never freehand, never into a refused cell) and
     // rests on the cell when the finger points anywhere else; a head disc rides the end.
     // Cells added grow in along the path and a backtrack retracts along it. Reduced: the tip

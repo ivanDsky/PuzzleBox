@@ -7,7 +7,7 @@ import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 
 /**
- * The one rule for immersive play (A15, N2): a key whose screen is full-window hides the
+ * The one rule for immersive play: a key whose screen is full-window hides the
  * tab bar and rail while it is on top. The answer is the key's row in the placement table
  * ([placementRows]): immersive when its chrome is [Chrome.Immersive]. Boards and results
  * of every kind are immersive, a duel's leg board and leg result included, and so is a

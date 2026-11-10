@@ -33,8 +33,8 @@ import kotlinx.coroutines.coroutineScope
 /**
  * The read model behind the Duels tab rows and the Play-tab badge. One `observeMine` listener, one `observe(code)`
  * listener per cached link invite that is still open, the local cache and my outbox; it never reads a sealed result
- * and shows no score or verdict (A7, A27). Rows needing me come first, then by the nearest deadline. The list
- * re-emits at each future time boundary (`closesAt` and `deadline`) with no upstream change (A1). Past `deadline` a
+ * and shows no score or verdict. Rows needing me come first, then by the nearest deadline. The list
+ * re-emits at each future time boundary (`closesAt` and `deadline`) with no upstream change. Past `deadline` a
  * match has no move left to ask for (a started puzzle is resumed from the duel screen) and an unaccepted invite is
  * dropped, so neither needs me.
  * Signed out, or an `observeMine` of null, is empty. Writes nothing.

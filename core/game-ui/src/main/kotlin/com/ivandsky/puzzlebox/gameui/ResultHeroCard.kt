@@ -54,7 +54,7 @@ private val ChipMinHeight = 64.dp
 private val BurstOrigin = Offset(0.3f, 0.5f)
 
 /**
- * The Results hero card (spec: Results hero): the game's glyph, title and date line with the
+ * The Results hero card: the game's glyph, title and date line with the
  * pill, the hero time counting up under a sweep across the card, the best line, the chips,
  * and the actions. It draws [model] and nothing else; the screen supplies the actions.
  *

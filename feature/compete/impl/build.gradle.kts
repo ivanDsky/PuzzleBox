@@ -9,7 +9,7 @@ android {
 }
 
 dependencies {
-    // DuelKey and DuelRevealKey (I2) and the entry keys the navigation extension registers.
+    // DuelKey, DuelRevealKey and the entry keys the navigation extension registers.
     implementation(projects.feature.compete.api)
     // MatchLegKey: Start and Resume on the duel screen open a puzzle's play screen (36).
     implementation(projects.feature.play.api)

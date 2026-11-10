@@ -66,8 +66,8 @@ import org.koin.compose.koinInject
 /**
  * The app shell: tab bar (or rail) beneath [PuzzleBoxNavShell]. The highlight is the
  * [navigator]'s selected tab, so it always names the tab that owns the screen on top.
- * The Play tab carries a dot while any of today's games is in progress (A13, SC11).
- * Play is immersive (A15, N2): while the selected tab's top is immersive ([isImmersive]: a
+ * The Play tab carries a dot while any of today's games is in progress.
+ * Play is immersive: while the selected tab's top is immersive ([isImmersive]: a
  * board or a result, a duel's leg board or result, or a duel's reveal) neither bar nor rail
  * shows, and back is the way out.
  *

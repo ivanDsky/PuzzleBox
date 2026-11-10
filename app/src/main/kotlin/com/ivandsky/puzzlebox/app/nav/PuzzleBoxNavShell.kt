@@ -38,7 +38,7 @@ import org.koin.compose.koinInject
  * [Navigator.pop]: it pops the current tab, returns a Play/Profile root to Home, and at the
  * Home root returns false so the back press falls through and the app exits.
  *
- * Play lifetime (A10, SC5): whenever the stacks change the shell hands every key they
+ * Play lifetime: whenever the stacks change the shell hands every key they
  * hold to [PlaySessionStore.retain], so a popped, replaced or reselected-away game folds
  * and saves; at activity stop it [PlaySessionStore.flush]es every live play, so a pending
  * throttled save is never lost.

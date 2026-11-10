@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.data.match.Match
 
-/** What a match screen shows for one duel code; [UpdateApp] names the format version this build cannot read (A25). */
+/** What a match screen shows for one duel code; [UpdateApp] names the format version this build cannot read. */
 sealed interface MatchState {
     data class Loaded(val view: MatchView) : MatchState
 

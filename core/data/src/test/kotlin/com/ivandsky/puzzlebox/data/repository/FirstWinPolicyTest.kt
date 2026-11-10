@@ -12,7 +12,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Pure A4/A5 decision (A17): first win is the record; replays never become it. */
+/** Pure first-win decision: first win is the record; replays never become it. */
 class FirstWinPolicyTest {
 
     private val policy = FirstWinPolicy()

@@ -127,7 +127,7 @@ internal class MatchLegResultViewModel(
         )
     }
 
-    /** Never a time before both have finished (A7): a played leg stays sealed until the view reveals it. */
+    /** Never a time before both have finished: a played leg stays sealed until the view reveals it. */
     private fun theirSide(view: MatchView): DuelSideState = when (val seen = view.theirs.getOrNull(key.legIndex)) {
         is LegSeen.Revealed -> seen.result.let { if (it.gaveUp) DuelSideState.GaveUp else DuelSideState.Time(it.timeMs, it.hints) }
         LegSeen.Played -> DuelSideState.Sealed

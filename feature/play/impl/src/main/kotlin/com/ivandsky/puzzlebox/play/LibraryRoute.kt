@@ -43,13 +43,13 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
 
 /**
- * The Play tab's root (A25–A29, N2): the games library. [PlayLayout.TwoPane] shows the
+ * The Play tab's root: the games library. [PlayLayout.TwoPane] shows the
  * list beside the selected game's page, a game always selected; [PlayLayout.SinglePane]
  * shows the list and pushes a game's page over it, back returning to the list. The day
  * card's action is [onPlay] with the shown day, null for today (the entry pushes the
- * game's key, so back from the board returns here, N3). The page's calendar picks the
+ * game's key, so back from the board returns here). The page's calendar picks the
  * day card's day and pages months ([LibraryViewModel.page]). A row whose today can't load also retries; each start prefetches
- * today's uncached puzzles ([LibraryViewModel.syncToday], A12). "Open the lesson" runs
+ * today's uncached puzzles ([LibraryViewModel.syncToday]). "Open the lesson" runs
  * the game's tutorial over the library. The header's Enter code opens the code sheet, whose
  * Open is [onOpenCode]. A From friends card's Remove shows "Removed <code>" with Undo. A
  * [codeDraft] opens the sheet with that text already in the field, then is taken

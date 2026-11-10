@@ -31,7 +31,7 @@ import org.robolectric.annotation.Config
  * Process-death restore of the per-tab state: a [NavigationState] holding every key the app
  * can push survives the saved-state round trip through [puzzleBoxNavKeys], and a 0.8
  * single-`NavBackStack` bundle does not decode as one (rememberNavigator then starts fresh,
- * A17 — the shell-level fallback is PerTabShellTest's).
+ * the shell-level fallback is PerTabShellTest's).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = Application::class)
@@ -39,14 +39,14 @@ class NavKeySavedStateTest {
 
     /**
      * Every key in the placement table. A live root (a key of [topLevelDestinations], which
-     * includes ProfileKey with the flag off) sits at index 0 of its own stack, because I4
-     * allows a root only there; every other key goes on the stack of the destination whose
+     * includes ProfileKey with the flag off) sits at index 0 of its own stack, because a
+     * root is only allowed there; every other key goes on the stack of the destination whose
      * [TopLevelDestination.tab] is the key's home tab, or on stack 0 when that tab is not in
      * the set (History with the flag off) or the key has no tab (Shell, DebugOnly).
      */
     private val everyKey: NavigationState = run {
         val roots = topLevelDestinations.map { it.key }
-        // A per-game History key keeps the nullable payload covered (A8).
+        // A per-game History key keeps the nullable payload covered.
         val pushed = PlacementSamples.everyRow().filter { it !in roots } + HistoryKey("zip")
         val stackOf = { key: NavKey ->
             topLevelDestinations.indexOfFirst { it.tab != null && it.tab == homeTab(key) }.coerceAtLeast(0)

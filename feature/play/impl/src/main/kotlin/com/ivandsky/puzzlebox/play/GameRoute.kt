@@ -42,16 +42,16 @@ import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
 /**
- * One [GameKey]'s board on any stack (A9, N21): the entry's [GameViewModel] opens the
+ * One [GameKey]'s board on any stack: the entry's [GameViewModel] opens the
  * slot's live play in the [PlaySessionStore], and this draws its board and status under
- * the shared play top bar (A14): Up ([onBack], the same navigator pop as system back),
+ * the shared play top bar: Up ([onBack], the same navigator pop as system back),
  * the game's glyph, its name and number ("Yesterday's puzzle" when the board was kept
  * across its game's midnight), then the timer, How to play and the game's overflow
  * settings. There is no BackHandler (predictive back stays the scene's) and no saveable
- * blob: the store's slot row is what survives process death (A8, A11).
+ * blob: the store's slot row is what survives process death.
  *
  * A game's first play shows its tutorial before the board, and the bar's How to play
- * reopens it over the live play (spec A11); Skip or "Let's play" hands back to the board.
+ * reopens it over the live play; Skip or "Let's play" hands back to the board.
  * The bar's Up stays, so back leaves the game from a tutorial too.
  */
 @Composable
@@ -148,7 +148,7 @@ internal fun GameBoard(
         ) {
             if (!playing) return@PlayTopBar
             val clock = board.controller as? PlayClock
-            // TwoPane's side panel draws the large live timer in place of this one (A15).
+            // TwoPane's side panel draws the large live timer in place of this one.
             if (layout != PlayLayout.TwoPane && board.status is PlayBoardStatus.Ready && clock != null) {
                 TimerBar(clock.displayedElapsedMs(), Modifier.width(IntrinsicSize.Max).testTag("play.timer"))
             }
@@ -171,7 +171,7 @@ internal fun GameBoard(
                 onFinished = onTutorialFinished,
             )
             TutorialGate.Closed -> {
-                // Phones never build the stats: only the two-pane side panel shows them (A15).
+                // Phones never build the stats: only the two-pane side panel shows them.
                 val stats: PlayStatsViewModel? = if (layout == PlayLayout.TwoPane) {
                     koinViewModel(key = "stats:${play.slot}", parameters = { parametersOf(play.slot) })
                 } else {
@@ -195,7 +195,7 @@ internal fun GameBoard(
 }
 
 /**
- * The tablet side panel's content (A15): [PlayStatsPanel] over [stats], under the game's
+ * The tablet side panel's content: [PlayStatsPanel] over [stats], under the game's
  * chrome, timing it off [clock] (null while the board isn't ready).
  */
 private fun statsPanel(stats: PlayStatsViewModel, clock: PlayClock?, activityContext: Context?): @Composable ColumnScope.() -> Unit = {
@@ -245,7 +245,7 @@ private fun PlayTopBar(
 }
 
 /**
- * The game's settings behind the bar's overflow button (A14), e.g. Queens' Auto-cross.
+ * The game's settings behind the bar's overflow button, e.g. Queens' Auto-cross.
  * A toggle shows a check while on; picking an item closes the menu. No items, no button.
  */
 @Composable

@@ -10,7 +10,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// The spec's numbers (VS intro about 600 ms, about 3 s per puzzle), written out so a drift in RevealMachine's
+// The designed timings (VS intro about 600 ms, about 3 s per puzzle), written out so a drift in RevealMachine's
 // constants fails here instead of the test following them.
 private const val IntroMs = 600L
 private const val LegMs = 3_000L

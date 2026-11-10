@@ -32,7 +32,7 @@ import com.ivandsky.puzzlebox.profile.di.profileModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.startKoin
 
-// Debug-only startup hook (spec A7): the same reflective binding PuzzleBoxApp.kt's Catalog
+// Debug-only startup hook: the same reflective binding PuzzleBoxApp.kt's Catalog
 // route loads. Release has no such class, and the FLAG_DEBUGGABLE gate keeps release off
 // the reflection path entirely.
 private const val DEBUG_CATALOG_BINDING = "com.ivandsky.puzzlebox.app.debug.CatalogDebugBinding"
@@ -46,8 +46,8 @@ class PuzzleBoxApplication : Application() {
             androidContext(this@PuzzleBoxApplication)
             modules(appModules)
         }.koin
-        // The submit hook (A5): record writes are the only leaderboard source; async,
-        // eventual, and silent when signed out or offline (A7).
+        // The submit hook: record writes are the only leaderboard source; async,
+        // eventual, and silent when signed out or offline.
         koin.get<LeaderboardSubmitWatcher>().start()
         // Friend puzzle wins: posts pending at the last run retry on every app start.
         koin.get<CustomBoardSubmitter>().start()

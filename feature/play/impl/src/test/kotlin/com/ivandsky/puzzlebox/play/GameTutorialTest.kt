@@ -60,7 +60,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The GameKey route's tutorial (spec A11) over stand-in games: a game with unseen lessons
+ * The GameKey route's tutorial over stand-in games: a game with unseen lessons
  * plays them before its board, finishing or skipping marks it seen, a seen game or one
  * without lessons shows the board at once, and How to play reopens the lessons over the
  * live play with its clock folded until the board returns. Lessons run in a sandbox:

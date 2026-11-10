@@ -95,7 +95,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Every real game is opened on the same Play stack in turn, at one window size, and its
  * board is read once ready — a phone (one pane) and a tablet (two panes). The shared board
- * pane centres each board vertically in its pane. A15: on the tablet every game's route
+ * pane centres each board vertically in its pane. On the tablet every game's route
  * hands it the live stats panel, whose timer replaces the top bar's.
  */
 @RunWith(RobolectricTestRunner::class)

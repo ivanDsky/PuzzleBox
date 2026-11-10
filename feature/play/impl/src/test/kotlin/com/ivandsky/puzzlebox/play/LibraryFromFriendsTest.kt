@@ -77,7 +77,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
- * From friends in the Play library (spec A19): the section lists every received puzzle with
+ * From friends in the Play library: the section lists every received puzzle with
  * its status and is hidden while there is none; a friend puzzle's saved play shows on its
  * card, never in a daily's status; a card opens the puzzle's card by its code. A long press
  * removes the puzzle with its saved play and offers Undo, which brings both back; once the

@@ -37,7 +37,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Creating a duel (ticket 27): the puzzles are drawn once, the code is free as a puzzle and as a match, the
+ * Creating a duel: the puzzles are drawn once, the code is free as a puzzle and as a match, the
  * document is written once and the duel remembered as mine; every failure comes back as its own outcome.
  */
 class CreateMatchTest {

@@ -42,8 +42,8 @@ import org.junit.Test
 
 /**
  * The play feature's game-agnostic half of a play, over a stand-in game: opening → adopt
- * (A7/A8 degrade states first-class, A11 a saved row before the network), the record
- * identity (ADR-0004), the fire-and-observe record write (F2 §7) and the A10 verdict from
+ * (degrade states first-class, a saved row before the network), the record
+ * identity (ADR-0004), the fire-and-observe record write and the verdict from
  * the session-start baseline. The game halves (decode, moves, onWon once per win) are
  * pinned in each games:*-ui controller test.
  */
@@ -186,7 +186,7 @@ class ActivePlayTest {
     @Test
     fun `a replay faster than the record is still a replay and never ranks`() {
         // The game's best is a slower record of this very puzzle (FirstWinPolicy keeps it
-        // the record); the replay beats it on a known board, so it earns no best (A10).
+        // the record); the replay beats it on a known board, so it earns no best.
         val slower = FakeController.TIME_MS + 10_000
         completions.setRecords(listOf(FakeController.record(ref).copy(time = slower, isRecord = true)))
         val play = loaded()

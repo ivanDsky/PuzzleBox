@@ -64,7 +64,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The store's live plays by slot on virtual time (A9–A11, N21): one play per (game, day)
+ * The store's live plays by slot on virtual time: one play per (game, day)
  * whichever key opens it, a null day pinned to the day it first opened, a released slot's
  * final save resumed by its reopen without the network, a solve's row deleted, and the
  * app-stop flush folding the clock before it writes.
@@ -384,7 +384,7 @@ class PlaySessionStoreSlotsTest {
         override fun createController(env: PlayEnvironment): GamePlayController = ClockedController(env)
     }
 
-    /** Publishes only when a background fold banks the running window (F2 §2). */
+    /** Publishes only when a background fold banks the running window. */
     private class ClockedController(private val env: PlayEnvironment) : GamePlayController, PlayClock {
         private var folds = 0
         override val isComplete = false

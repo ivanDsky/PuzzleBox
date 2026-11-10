@@ -38,7 +38,7 @@ internal data class RevealState(
 )
 
 /**
- * The reveal race's timeline (handoff 03-reveal §5): pure, with no clock of its own. The screen feeds it elapsed
+ * The reveal race's timeline: pure, with no clock of its own. The screen feeds it elapsed
  * milliseconds through [advance] and the viewer's taps; every timing rule lives here.
  *
  * Phases run [RevealPhase.VsIntro] for [IntroMs], one [RevealPhase.Leg] of [LegMs] per puzzle, then
@@ -130,7 +130,7 @@ private const val WinnerMaxRunMs = 1_900L
 /** The run of the only side with a time, when the other has none to show. */
 private const val SoloRunMs = 1_800L
 
-/** The hold on the final score before the summary (handoff §5, near `SolveHoldMillis`). */
+/** The hold on the final score before the summary. */
 private const val ScoreHoldMs = 900L
 
 /** One ticker: counts linearly from 0 up to [toMs] over [runMs], then holds. */

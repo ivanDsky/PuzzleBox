@@ -31,10 +31,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Origin precedence of a slot's opening (A11): a decodable save before the network, an
+ * Origin precedence of a slot's opening: a decodable save before the network, an
  * undecodable save dropped for a fresh start, today's fetch, a past day opened by date
- * carrying the day's puzzleNumber (arch-2), and Unavailable — with copy naming the cause
- * (SC9) — when nothing is playable.
+ * carrying the day's puzzleNumber, and Unavailable (copy naming the cause) when nothing is playable.
  */
 class SlotOpeningTest {
 

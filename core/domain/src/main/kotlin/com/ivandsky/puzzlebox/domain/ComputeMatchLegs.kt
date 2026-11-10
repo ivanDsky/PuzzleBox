@@ -13,7 +13,7 @@ import kotlin.random.Random
 import kotlinx.coroutines.flow.first
 
 /**
- * Picks the puzzles of a new duel from what the device already holds (spec A4–A8); never touches the
+ * Picks the puzzles of a new duel from what the device already holds; never touches the
  * network. Pasted codes come first, in order, when this device has received them. The rest rotates
  * over the shuffled sources — one daily pool per registered requested game (its unsolved days, or its
  * solved ones when none is left) plus, with [DrawRequest.includeFriends], the friends' puzzles of those

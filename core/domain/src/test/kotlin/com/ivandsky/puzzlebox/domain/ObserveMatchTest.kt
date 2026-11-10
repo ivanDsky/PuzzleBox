@@ -406,7 +406,7 @@ class ObserveMatchTest {
         }
     }
 
-    /** Ledger 07: the outbox is write-once per (uid, leg), so a second result for a leg never replaces the first. */
+    /** The outbox is write-once per (uid, leg), so a second result for a leg never replaces the first. */
     @Test
     fun twoResultsForOneLegCountTheFirst() = runTest {
         created(legCount = 1)

@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOf
 
 /**
- * The tablet play side panel's data for one [PlaySlot] (A15): today's set ([ObserveTodaySet]),
+ * The tablet play side panel's data for one [PlaySlot]: today's set ([ObserveTodaySet]),
  * the game's stats ([ObserveGameStats]) and streak days off the merged history, the game's
  * day ([GameCalendar.observeToday]), and the slot's own board through [ObserveLeaderboard]'s
  * identity gate — the slot's game, not the featured one, since every daily is posted.

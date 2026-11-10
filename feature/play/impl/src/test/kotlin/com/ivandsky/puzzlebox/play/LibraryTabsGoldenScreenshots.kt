@@ -90,7 +90,7 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
             rule.onNodeWithTag("library.tab.${tab.name.lowercase()}").performClick()
             rule.mainClock.advanceTimeBy(SETTLE_MS)
         }
-        // The frame is the tab it names: the Duels golden (criterion 6) is the Duels pill selected, not a stale Dailies.
+        // The frame is the tab it names: the Duels golden is the Duels pill selected, not a stale Dailies.
         rule.onNodeWithTag("library.tab.${tab.name.lowercase()}").assertIsSelected()
         rule.settleAndCapture("tabs", name, device, dark)
     }

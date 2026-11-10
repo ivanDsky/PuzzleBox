@@ -15,9 +15,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
  * Room adapter of [SavedPlayRepository]: a [PlaySlot.Daily] lives in `saved_plays` ([dao]),
- * a [PlaySlot.Custom] in `custom_saved_plays` ([customDao], A13), a [PlaySlot.Leg] in
- * `leg_saved_plays` ([legDao], A8). Each save is stamped with [clock] (epoch ms) and prunes in
- * the same transaction (SC8, SC16), so the save just made always survives: dailies to the
+ * a [PlaySlot.Custom] in `custom_saved_plays` ([customDao]), a [PlaySlot.Leg] in
+ * `leg_saved_plays` ([legDao]). Each save is stamped with [clock] (epoch ms) and prunes in
+ * the same transaction, so the save just made always survives: dailies to the
  * newest [CAP] per game, friend puzzles and duel puzzles each to the newest [CAP] of their own
  * table — no kind of save ever evicts another kind. [PlaySlot.Daily.day] is stored as its
  * ISO-8601 string.

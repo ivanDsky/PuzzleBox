@@ -76,7 +76,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The win-moment coverage. [ResultScreen] (a friend puzzle's result): the header, the time
- * and the Hints tile; the A10 pill rides the in-memory verdict, absent while the write is in
+ * and the Hints tile; the pill rides the in-memory verdict, absent while the write is in
  * flight; a replay names the best it left standing; Done, Share and "Play again" hand back.
  * Then the daily [ResultRoute] on the hero page: its slot's live play, the key's facts alone,
  * and Next for the next unsolved game. Assertions ride tags, never copy.

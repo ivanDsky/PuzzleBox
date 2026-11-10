@@ -52,9 +52,9 @@ import org.robolectric.annotation.Config
 
 /**
  * The user-check's second round, replayed over the real shell and the match fakes: create a Daily duel and press
- * Done (F1: the row waits on a friend); open it as its challenger (F2); the Created sheet's share text lists the
- * drawn puzzles' games and carries the code and Share (F3, ledger 47); a friend claims and the countdown and the
- * header's "ends" time share the deadline (F4); both finish and the header pills give way to the reveal (F5).
+ * Done (the row waits on a friend); open it as its challenger; the Created sheet's share text lists the
+ * drawn puzzles' games and carries the code and Share; a friend claims and the countdown and the
+ * header's "ends" time share the deadline; both finish and the header pills give way to the reveal.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -77,7 +77,7 @@ class DuelUserCheckE2ETest {
         assertTrue("the sheet offers Share", shows(CREATED_SHARE))
         tap(CREATED_DONE)
 
-        // F1: nobody has accepted, so the row waits on a friend, offers Share again, and needs nothing from me.
+        // Nobody has accepted, so the row waits on a friend, offers Share again, and needs nothing from me.
         val waiting = duels()
         assertEquals(DuelRowKind.Unclaimed, waiting.rows.single { it.code == code }.kind)
         assertEquals("a duel nobody accepted is not in the Duels badge", 0, waiting.needYou)
@@ -85,7 +85,7 @@ class DuelUserCheckE2ETest {
         assertTrue("the row waits on a friend", textShown("Waiting on a friend", substring = true))
         assertTrue("the row offers Share again", textShown("Share again"))
 
-        // F2: opened by its challenger, the invite reads as their own duel, waiting, with Cancel.
+        // Opened by its challenger, the invite reads as their own duel, waiting, with Cancel.
         tapDuelRow(code)
         awaitTag(INVITE_CODE)
         assertTrue(textShown("Your duel"))
@@ -95,17 +95,17 @@ class DuelUserCheckE2ETest {
         assertTrue("the challenger can cancel", shows(INVITE_CANCEL))
         assertFalse("nothing to play before a claim", shows(LEGS_TITLE))
 
-        // F4: once a friend claims, the pill counts to the deadline and the header's "ends" is the same instant.
+        // Once a friend claims, the pill counts to the 24 h deadline, not closesAt (+6 h grace), and the header's
+        // "ends" is the same instant; the minutes depend on the wall clock.
         friendClaims(code)
         awaitTag(LEGS_TITLE)
-        // F4: counts to the 24 h deadline, not closesAt (+6 h grace); the minutes depend on the wall clock.
         rule.onNodeWithTag(TIME_LEFT).assert(hasText("Closes in 23 h ", substring = true))
         val ends = DateTimeFormatter.ofPattern("EEE HH:mm", Locale.getDefault()).format(match.deadline.atZone(ZoneId.systemDefault()))
         assertEquals("the deadline is a day after the create", Duration.ofHours(24), Duration.between(match.createdAt, match.deadline))
         rule.onNodeWithText("Best of ${match.legs.size} · ends $ends").assertExists()
         assertTrue("the score pill shows while playing", textShown(HIDDEN_SCORE))
 
-        // F5: both sides finish every puzzle: the pills are gone and the footer offers the reveal.
+        // Both sides finish every puzzle: the pills are gone and the footer offers the reveal.
         friendPlays(code)
         playMyLeg(code)
         tap(RESULT_UP)

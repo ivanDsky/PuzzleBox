@@ -4,9 +4,9 @@ import com.ivandsky.puzzlebox.database.CompletionEntity
 import com.ivandsky.puzzlebox.game.CompletionRecord
 
 /**
- * Pure A4/A5 decision core (JVM-tested, A17): the FIRST in-app completion of a puzzleRef
+ * Pure first-win decision core (JVM-tested): the FIRST in-app completion of a puzzleRef
  * is the player's record; every later play of the same ref is a replay — stored, but it
- * NEVER mutates the record (A5: only records are leaderboard-eligible). Android-free so
+ * NEVER mutates the record (only records are leaderboard-eligible). Android-free so
  * the first-win rule stays provable without Room or Robolectric.
  */
 internal class FirstWinPolicy {
@@ -16,7 +16,7 @@ internal class FirstWinPolicy {
         /** Insert as the ref's record row — the only isRecord row the ref will ever get. */
         data class Record(val completedAtMs: Long) : Decision
 
-        /** Insert as a replay row; the existing record stays untouched (A4). */
+        /** Insert as a replay row; the existing record stays untouched. */
         data class Replay(val completedAtMs: Long) : Decision
     }
 
@@ -28,8 +28,8 @@ internal class FirstWinPolicy {
         if (hasRecord) Decision.Replay(nowMs) else Decision.Record(nowMs)
 
     /**
-     * The row to insert for an emitted record under [decision]: A3 score inputs pass
-     * through untouched; the A4 stamps come from the decision, never from the emitted
+     * The row to insert for an emitted record under [decision]: the score inputs pass
+     * through untouched; the record stamps come from the decision, never from the emitted
      * flags (emitted firstCompletedAt/isRecord are null/false per the core/game contract).
      */
     fun stamp(record: CompletionRecord, refKey: String, decision: Decision): CompletionEntity {

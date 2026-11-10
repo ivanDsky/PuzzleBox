@@ -6,7 +6,7 @@ import java.time.Instant
 
 /**
  * One row of the Duels list. [legsDone] counts the puzzles I have taken (an outbox row each); no score or verdict
- * is ever here (A7). [opponent] is null while nobody has claimed the seat.
+ * is ever here. [opponent] is null while nobody has claimed the seat.
  */
 data class DuelRow(
     val code: ShareCode,

@@ -22,7 +22,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Spec criterion 1, the Quick preset: the New duel sheet's `duel.preset.quick` creates a best-of-3 over mixed past
+ * The Quick preset: the New duel sheet's `duel.preset.quick` creates a best-of-3 over mixed past
  * dailies of different games with 24 hours to play, with no further choice made.
  */
 @RunWith(RobolectricTestRunner::class)

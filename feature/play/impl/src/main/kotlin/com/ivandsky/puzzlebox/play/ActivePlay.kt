@@ -29,12 +29,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * One slot's live play (ticket 23, A9): the game's [GamePlayController] plus everything the
- * play feature owns around it — the opening → adopt lifecycle (A7/A8 degrade states
- * first-class, A11 restore order through [opening]), the record identity (ADR-0004), the
- * record write (F2 §7 fire-and-observe, on [recordScope] so a release never cancels it),
- * the A10 verdict derived from the session-start best baseline, and the slot's saves: every
- * in-progress session change is offered to [writer], a solve discards the row (A10).
+ * One slot's live play: the game's [GamePlayController] plus everything the
+ * play feature owns around it — the opening → adopt lifecycle (degrade states
+ * first-class, restore order through [opening]), the record identity (ADR-0004), the
+ * record write (fire-and-observe, on [recordScope] so a release never cancels it),
+ * the verdict derived from the session-start best baseline, and the slot's saves: every
+ * in-progress session change is offered to [writer], a solve discards the row.
  *
  * Every [load] adopts into a NEW controller; callbacks and async results of an older
  * controller are dropped (the generation guard), so a superseded session can never
@@ -42,7 +42,7 @@ import kotlinx.coroutines.launch
  * (the record token): only [load] and [replay] start a new record.
  */
 class ActivePlay internal constructor(
-    /** The (game, day) this is the one live play of (N21). */
+    /** The (game, day) this is the one live play of. */
     val slot: PlaySlot,
     private val plugin: GamePlugin<*, *, *>,
     /** The game's play registration — draws [controller]. */
@@ -59,7 +59,7 @@ class ActivePlay internal constructor(
     data class Board(val controller: GamePlayController, val status: PlayBoardStatus)
 
     /**
-     * What the result route reads. [verdict] is the A10 verdict for THIS play — null while
+     * What the result route reads. [verdict] is the verdict for THIS play — null while
      * the write is in flight or the baseline is unknown; [previousBest] is the game's best
      * before this session by [rankOrder] (null with no completion, or until [verdict] lands);
      * [label] is the result screen's game line ("Zip · #123"); [solve] is the win this
@@ -96,7 +96,7 @@ class ActivePlay internal constructor(
     private var ref: PuzzleRef? = null
 
     /** The game's best BEFORE this session and whether this puzzle was already
-     *  solved (a replay), read at session start (A10): the verdict is derived from this
+     *  solved (a replay), read at session start: the verdict is derived from this
      *  baseline, never from the stored rows after the write. [baselineKnown] false = the
      *  read has not landed (the verdict stays null). */
     private var baselineKnown = false
@@ -104,7 +104,7 @@ class ActivePlay internal constructor(
     private var baselineReplay = false
     private var lastWon: CompletionRecord? = null
 
-    /** Opening → board (A7/A8/A11): a restored session resumes; a Fresh fetch plays; a
+    /** Opening → board: a restored session resumes; a Fresh fetch plays; a
      *  Cached one plays with a degrade banner; Unavailable is the error state; an envelope
      *  the game rejects is never playable. */
     fun load() = load(newController())
@@ -157,7 +157,7 @@ class ActivePlay internal constructor(
         return PlayBoardStatus.Ready(banner = null)
     }
 
-    /** Result's "Play again": a fresh session of the SAME puzzle (A9), always a replay —
+    /** Result's "Play again": a fresh session of the SAME puzzle, always a replay —
      *  the verdict resets until the new write lands; the best is re-read. The banner stays. */
     fun replay() {
         if (_board.value.status !is PlayBoardStatus.Ready) return
@@ -171,7 +171,7 @@ class ActivePlay internal constructor(
         emit(lastWon ?: return)
     }
 
-    /** Banks the running clock window (F2 §2) so the next save carries it. */
+    /** Banks the running clock window so the next save carries it. */
     internal fun fold() {
         (controller as? PlayClock)?.onBackground()
     }
@@ -202,7 +202,7 @@ class ActivePlay internal constructor(
                 scope = scope,
                 onSessionChanged = { bytes ->
                     if (gen == generation) {
-                        // A finished session never saves: the solve deleted the row (A10).
+                        // A finished session never saves: the solve deleted the row.
                         if (!created.isComplete) {
                             val elapsedMs = (created as? PlayClock)?.displayedElapsedMs() ?: 0L
                             writer.offer(SessionBlob.encode(slot.gameId, bytes), elapsedMs)
@@ -231,7 +231,7 @@ class ActivePlay internal constructor(
         }.emit(record) { result ->
             if (token != recordToken) return@emit
             when (result) {
-                // A10 verdict for THIS play against the session-start best; an unknown
+                // Verdict for THIS play against the session-start best; an unknown
                 // baseline (the write raced the baseline read) stays null. A practice
                 // puzzle (no edition number) never ranks: its verdict stays null.
                 is AppResult.Ok -> _record.update {

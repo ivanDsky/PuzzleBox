@@ -57,7 +57,7 @@ private val RankMinHeight = 56.dp
 private const val SOLVED_ALPHA = 0.5f
 
 /**
- * The Results side card (spec: Results hero, side card): the streak with its flame and the
+ * The Results side card: the streak with its flame and the
  * week, a hairline, the time spread chart, and the rank row. It draws [model] and nothing
  * else; a block whose model part is null is left out, and a model with none of them draws
  * no card at all (a practice puzzle). [onSignIn] is the rank row's Sign in button for a

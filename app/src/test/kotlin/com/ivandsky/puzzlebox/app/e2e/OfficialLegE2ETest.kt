@@ -75,7 +75,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
- * SC4 over the real shell, a file-backed Room record store and the daily board's submitter: a
+ * Over the real shell, a file-backed Room record store and the daily board's submitter: a
  * duel's day puzzle is that day's official puzzle. Its first solve is the day's solo solve with
  * its duel origin, so history, stats, archive progress and the daily board move as a solo
  * solve's would; a later solo solve of it is a replay; the leg plays in its own slot, never a

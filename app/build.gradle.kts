@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.puzzlebox.android.application.compose)
     alias(libs.plugins.puzzlebox.android.roborazzi)
     alias(libs.plugins.kotlin.serialization)
-    // Ticket 16: merges the root google-services.json into resources (FirebaseInitProvider
+    // Merges the root google-services.json into resources (FirebaseInitProvider
     // auto-initializes FirebaseApp; the type-3 web client surfaces as default_web_client_id).
     alias(libs.plugins.google.services)
 }
@@ -149,13 +149,13 @@ dependencies {
     testImplementation(libs.koin.test)
     testImplementation(libs.koin.test.junit4)
     // LinkedInArchiveE2ETest: the production LinkedIn transport (linkedInFeedTransport, which
-    // takes the app's Json) over a local HTTP server that answers as LinkedIn does (F1
-    // handshake, A17 cooldown).
+    // takes the app's Json) over a local HTTP server that answers as LinkedIn does (the
+    // handshake, the cooldown).
     testImplementation(projects.core.network)
     testImplementation(libs.kotlinx.serialization.json)
     testImplementation(libs.okhttp.mockwebserver)
 
-    // Device tests (ticket 23): the real MainActivity over the shared fakes graph.
+    // Device tests: the real MainActivity over the shared fakes graph.
     androidTestImplementation(projects.core.testing)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)

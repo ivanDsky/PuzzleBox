@@ -27,7 +27,7 @@ import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
 /**
- * Every SC3 case (spec A2, A3, A10), one row each: a match, the results seen so far, the viewer and a fixed now in,
+ * Every outcome case, one row each: a match, the results seen so far, the viewer and a fixed now in,
  * the full [Outcome] out. `alpha` ranks time then hints; `beta` ranks hints then time, as Strands does.
  */
 @RunWith(Parameterized::class)

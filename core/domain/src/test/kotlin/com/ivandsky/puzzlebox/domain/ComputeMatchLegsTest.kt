@@ -24,7 +24,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Properties of a duel's draw (spec A4–A8): local pools only, distinct puzzles, never more than asked. */
+/** Properties of a duel's draw: local pools only, distinct puzzles, never more than asked. */
 class ComputeMatchLegsTest {
 
     private val today = LocalDate.of(2026, 11, 8)
