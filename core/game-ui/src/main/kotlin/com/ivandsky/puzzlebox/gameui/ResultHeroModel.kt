@@ -6,9 +6,6 @@ import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.SpreadBin
 import java.util.Locale
 
-/** One stat chip under the hero time: [tag] is its test tag, [label] sits under the [value]. */
-internal data class HeroChip(val tag: String, val value: String, val label: String)
-
 /** One dot of the week: [label] is the weekday's initial; [solved] fills it, [today] marks the last. */
 internal data class HeroWeekDot(val label: String, val solved: Boolean, val today: Boolean)
 
@@ -51,7 +48,7 @@ internal data class ResultHeroModel(
     val pill: String?,
     val bestLine: String?,
     val bestImproved: Boolean,
-    val chips: List<HeroChip>,
+    val chips: List<ResultHeroChip>,
     val streak: HeroStreak?,
     val spread: HeroSpread?,
     val rank: HeroRank?,
@@ -65,12 +62,12 @@ internal data class ResultHeroModel(
  * pill, streak, spread or rank. A replay counts nothing either but shows the spread: no
  * pill, streak or rank. The streak, spread and rank wait for their data, so none shows a
  * placeholder; the Average chip hides on a first solve.
- * A non-null [chip] (a duel's count) replaces the Today chip with its own "In this duel" chip.
+ * A non-null [chip] replaces the Today chip with the caller's own.
  */
 internal fun resultHeroModel(
     facts: ResultHeroFacts,
     locale: Locale = Locale.getDefault(),
-    chip: String? = null,
+    chip: ResultHeroChip? = null,
 ): ResultHeroModel {
     val counts = !facts.practice && !facts.replay
     val insights = facts.insights.takeUnless { facts.practice }
@@ -103,20 +100,20 @@ internal fun resultHeroModel(
     )
 }
 
-private fun chips(facts: ResultHeroFacts, insights: ResultInsights?, duel: String?): List<HeroChip> = buildList {
+private fun chips(facts: ResultHeroFacts, insights: ResultInsights?, supplied: ResultHeroChip?): List<ResultHeroChip> = buildList {
     add(
-        HeroChip(
+        ResultHeroChip(
             tag = "result.hero.chip.hints",
             value = if (facts.hintsUsed == 0) "None" else "${facts.hintsUsed}",
             label = if (facts.hintsUsed == 1) "Hint" else "Hints",
         ),
     )
-    if (duel != null) {
-        add(HeroChip("result.hero.chip.duel", duel, "In this duel"))
+    if (supplied != null) {
+        add(supplied)
     } else if (facts.doneToday != null && facts.total != null && facts.total > 0) {
-        add(HeroChip("result.hero.chip.today", "${facts.doneToday} of ${facts.total}", "Today"))
+        add(ResultHeroChip("result.hero.chip.today", "${facts.doneToday} of ${facts.total}", "Today"))
     }
-    insights?.averageMs?.let { add(HeroChip("result.hero.chip.average", formatDuration(it), "Average")) }
+    insights?.averageMs?.let { add(ResultHeroChip("result.hero.chip.average", formatDuration(it), "Average")) }
 }
 
 private fun streak(insights: ResultInsights, locale: Locale) = HeroStreak(

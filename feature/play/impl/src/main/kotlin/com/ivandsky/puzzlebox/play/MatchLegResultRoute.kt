@@ -33,6 +33,7 @@ import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.domain.MatchState
 import com.ivandsky.puzzlebox.gameui.DuelCompare
 import com.ivandsky.puzzlebox.gameui.DuelSideState
+import com.ivandsky.puzzlebox.gameui.ResultHeroChip
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
@@ -116,14 +117,8 @@ private fun Ready(ready: MatchLegResultState.Ready, onNext: (LegNext) -> Unit, o
     } else {
         ResultHeroScreen(
             facts = hero,
-            onPrimary = {},
-            onShare = {},
-            onPlayAgain = null,
-            onSignIn = {},
-            onRetryWrite = {},
             brand = ready.brand,
-            actions = false,
-            chip = "${ready.number} of ${ready.count}",
+            chip = ResultHeroChip(tag = "result.hero.chip.duel", value = "${ready.number} of ${ready.count}", label = "In this duel"),
             board = card,
         )
     }

@@ -125,11 +125,10 @@ private fun HeroPreview(
             ResultHeroCard(
                 model = model,
                 brand = brand,
-                onPrimary = {},
-                onShare = {},
-                onPlayAgain = {},
-                rolloverAt = rolloverAt,
                 wide = wide,
+                actions = {
+                    ResultHeroActions(model.primary, onPrimary = {}, onShare = {}, onPlayAgain = {}, rolloverAt = rolloverAt)
+                },
             )
         }
     }
@@ -231,13 +230,17 @@ private fun ScreenPreview(facts: ResultHeroFacts = ScreenNewBest) {
         Surface(color = MaterialTheme.colorScheme.background) {
             ResultHeroScreen(
                 facts = facts,
-                onPrimary = {},
-                onShare = {},
-                onPlayAgain = {},
                 onSignIn = {},
-                onRetryWrite = {},
                 brand = PreviewBrand,
-                rolloverAt = previewRollover(),
+                actions = {
+                    ResultHeroActions(
+                        facts.primary,
+                        onPrimary = {},
+                        onShare = {},
+                        onPlayAgain = {},
+                        rolloverAt = previewRollover(),
+                    )
+                },
             )
         }
     }
@@ -250,13 +253,17 @@ internal fun ResultHeroScreenPhonePreview() {
         Surface(color = MaterialTheme.colorScheme.background) {
             ResultHeroScreen(
                 facts = ScreenNewBest,
-                onPrimary = {},
-                onShare = {},
-                onPlayAgain = {},
                 onSignIn = {},
-                onRetryWrite = {},
                 brand = PreviewBrand,
-                rolloverAt = previewRollover(),
+                actions = {
+                    ResultHeroActions(
+                        ScreenNewBest.primary,
+                        onPrimary = {},
+                        onShare = {},
+                        onPlayAgain = {},
+                        rolloverAt = previewRollover(),
+                    )
+                },
             )
         }
     }
