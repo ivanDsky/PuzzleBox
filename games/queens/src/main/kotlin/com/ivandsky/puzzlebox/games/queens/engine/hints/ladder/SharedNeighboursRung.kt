@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
 /**
  * D4: a row, column or region still missing queens, with at least 2 open cells, would be
@@ -32,7 +31,7 @@ object SharedNeighboursRung : QueensRung {
                     candidates.isOpen(cell) && open.all { QueensAttack.touches(cell, it, n) }
                 }.toSet()
                 if (smothering.isNotEmpty()) {
-                    yield(QueensProof(QueensDeduction.Exclude(this@SharedNeighboursRung, HintReason(kind, index, this@SharedNeighboursRung), smothering), open.toSet()))
+                    yield(QueensProof(QueensDeduction.Exclude(HintReason(kind, index, this@SharedNeighboursRung), smothering), open.toSet()))
                 }
             }
         }

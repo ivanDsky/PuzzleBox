@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
@@ -53,19 +52,17 @@ class PigeonholeRungTest {
     fun `two regions confined to two rows exclude the other region's cells in those rows`() {
         val puzzle = twoRegionsInTwoRows()
         val step = PigeonholeRung.step(puzzle, empty(puzzle))
-        assertEquals(QueensDeduction.Exclude(PigeonholeRung, HintReason(HintReason.Kind.ROW, 0, PigeonholeRung), setOf(4, 9)), step)
-        assertEquals(step!!.rung, step.unit.rung)
-        assertEquals(PigeonholeRung, step.rung)
-        assertEquals("pigeonhole", step.rung.id)
-        assertEquals(Difficulty.Level.Hard, step.rung.level)
-        assertEquals("queens.hint.rung.pigeonhole", step.rung.captionKey)
+        assertEquals(QueensDeduction.Exclude(HintReason(HintReason.Kind.ROW, 0, PigeonholeRung), setOf(4, 9)), step)
+        assertEquals("pigeonhole", step!!.unit.rung.id)
+        assertEquals(Difficulty.Level.Hard, step.unit.rung.level)
+        assertEquals("queens.hint.rung.pigeonhole", step.unit.rung.captionKey)
     }
 
     @Test
     fun `two rows confined to two regions exclude those regions' cells elsewhere`() {
         val puzzle = twoRowsInTwoRegions()
         val step = PigeonholeRung.step(puzzle, empty(puzzle))
-        assertEquals(QueensDeduction.Exclude(PigeonholeRung, HintReason(HintReason.Kind.REGION, 0, PigeonholeRung), setOf(10, 14)), step)
+        assertEquals(QueensDeduction.Exclude(HintReason(HintReason.Kind.REGION, 0, PigeonholeRung), setOf(10, 14)), step)
     }
 
     @Test
@@ -83,7 +80,7 @@ class PigeonholeRungTest {
         val after = before.exclude(step.cells)
         assertNotEquals(before, after)
         assertEquals(
-            QueensDeduction.Exclude(PigeonholeRung, HintReason(HintReason.Kind.REGION, 3, PigeonholeRung), setOf(10, 11, 12, 13)),
+            QueensDeduction.Exclude(HintReason(HintReason.Kind.REGION, 3, PigeonholeRung), setOf(10, 11, 12, 13)),
             PigeonholeRung.step(puzzle, after),
         )
     }
@@ -93,8 +90,8 @@ class PigeonholeRungTest {
         val puzzle = twoRegionsInTwoRows()
         val ladder = QueensLadder(listOf(SinglesRung, PigeonholeRung))
         val first = ladder.next(puzzle, empty(puzzle)) as QueensDeduction.Exclude
-        assertEquals(PigeonholeRung, first.rung)
+        assertEquals(PigeonholeRung, first.unit.rung)
         val second = ladder.next(puzzle, empty(puzzle).exclude(first.cells))
-        assertEquals(QueensDeduction.Place(SinglesRung, HintReason(HintReason.Kind.REGION, 2), 14), second)
+        assertEquals(QueensDeduction.Place(HintReason(HintReason.Kind.REGION, 2), 14), second)
     }
 }

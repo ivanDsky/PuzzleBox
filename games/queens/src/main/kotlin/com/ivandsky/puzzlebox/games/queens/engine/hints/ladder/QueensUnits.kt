@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason.Kind
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason.Kind
 
 /** The row, column and region units the rungs read, by [Kind]: one table per puzzle, never rebuilt per call. */
 internal object QueensUnits {

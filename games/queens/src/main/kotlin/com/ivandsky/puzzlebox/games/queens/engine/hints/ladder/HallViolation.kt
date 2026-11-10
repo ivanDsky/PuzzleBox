@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason.Kind
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason.Kind
 
 /**
  * Hall's condition between unit kinds: the queens k units of one kind still miss must stand

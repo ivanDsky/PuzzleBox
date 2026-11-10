@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -48,7 +47,7 @@ class AttackRungTest {
         val state = QueensCandidates(5, setOf(12), emptySet())
         val proof = AttackRung.steps(five, state).single()
         assertEquals(
-            QueensDeduction.Exclude(AttackRung, row(2), setOf(2, 6, 7, 8, 10, 11, 13, 14, 16, 17, 18, 19, 22)),
+            QueensDeduction.Exclude(row(2), setOf(2, 6, 7, 8, 10, 11, 13, 14, 16, 17, 18, 19, 22)),
             proof.deduction,
         )
         assertEquals(setOf(12), proof.evidence)

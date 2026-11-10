@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
 /**
  * D8: a row, column or region still missing queens, with at least 2 open cells, would be
@@ -47,7 +46,7 @@ object SqueezeRung : QueensRung {
                 }.toSet()
                 if (squeezing.isEmpty()) return@mapNotNull null
                 val reason = HintReason(kind, unit, this)
-                Found(QueensDeduction.Exclude(this, reason, squeezing)) {
+                Found(QueensDeduction.Exclude(reason, squeezing)) {
                     QueensUnits.cells(puzzle, kind)[unit].filter { isOpen[it] }.toSet()
                 }
             }

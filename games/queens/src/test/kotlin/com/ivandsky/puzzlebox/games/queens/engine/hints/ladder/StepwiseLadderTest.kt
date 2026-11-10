@@ -72,7 +72,7 @@ class StepwiseLadderTest {
                     is QueensDeduction.Exclude -> state.exclude(deduction.cells)
                 }
                 states += state
-                used += deduction.rung
+                used += deduction.unit.rung
             }
             return Solve(puzzle, states, used)
         }

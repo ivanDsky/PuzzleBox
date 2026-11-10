@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -74,7 +73,7 @@ class LineLockRungTest {
         val puzzle = regionLocksColumn()
         assertNull(SinglesRung.step(puzzle, start(puzzle)))
         assertEquals(
-            QueensDeduction.Exclude(LineLockRung, HintReason(HintReason.Kind.COLUMN, 4, LineLockRung), setOf(4, 9, 14)),
+            QueensDeduction.Exclude(HintReason(HintReason.Kind.COLUMN, 4, LineLockRung), setOf(4, 9, 14)),
             LineLockRung.step(puzzle, start(puzzle)),
         )
     }
@@ -84,11 +83,7 @@ class LineLockRungTest {
         val puzzle = columnLocksRegion()
         assertNull(SinglesRung.step(puzzle, start(puzzle)))
         assertEquals(
-            QueensDeduction.Exclude(
-                LineLockRung,
-                HintReason(HintReason.Kind.COLUMN, 2, LineLockRung),
-                setOf(3, 8, 13, 14, 16, 18, 21),
-            ),
+            QueensDeduction.Exclude(HintReason(HintReason.Kind.COLUMN, 2, LineLockRung), setOf(3, 8, 13, 14, 16, 18, 21)),
             LineLockRung.step(puzzle, start(puzzle)),
         )
     }
@@ -113,7 +108,7 @@ class LineLockRungTest {
                 val step = withLineLock.next(puzzle, candidates) ?: break
                 candidates = when (step) {
                     is QueensDeduction.Exclude -> {
-                        assertEquals(LineLockRung, step.rung)
+                        assertEquals(LineLockRung, step.unit.rung)
                         assertTrue("$step", step.cells.isNotEmpty() && step.cells.all(candidates::isOpen))
                         pendingExclude = true
                         candidates.exclude(step.cells)

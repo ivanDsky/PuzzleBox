@@ -113,7 +113,7 @@ object QueensStepper {
             is QueensDeduction.Place -> QueensStep.Deduction.Result.LastCell(Cell(d.cell))
             is QueensDeduction.Exclude -> QueensStep.Deduction.Result.Cross(d.cells.mapTo(HashSet(d.cells.size * 2), ::Cell))
         }
-        return QueensStep.Deduction(deduction.rung, deduction.unit, evidence.mapTo(HashSet(evidence.size * 2), ::Cell), result)
+        return QueensStep.Deduction(deduction.unit, evidence.mapTo(HashSet(evidence.size * 2), ::Cell), result)
     }
 
     /**

@@ -4,7 +4,7 @@ import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightCallout
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 
 /** Turns a [QueensStep] into everything the Spotlight draws (roles, callout, glyphs) and its ledger [Key]. */
@@ -75,7 +75,7 @@ internal object QueensSpotlightMapper {
     fun keyOf(step: QueensStep): Key? = when (step) {
         is QueensStep.Mistake -> Key.Mistake(step.cell.idx, step.kind)
         is QueensStep.Deduction -> Key.Deduction(
-            rungId = step.rung.id,
+            rungId = step.unit.rung.id,
             unitKind = step.unit.kind,
             unit = step.unit.unit,
             result = when (val result = step.result) {

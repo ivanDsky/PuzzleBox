@@ -22,7 +22,7 @@ class QueensLadder(rungs: List<QueensRung>) {
                 is QueensDeduction.Place -> candidates.place(puzzle, deduction.cell)
                 is QueensDeduction.Exclude -> candidates.exclude(deduction.cells)
             }
-            hardest = maxOf(hardest, rungs.indexOf(deduction.rung))
+            hardest = maxOf(hardest, rungs.indexOf(deduction.unit.rung))
             steps++
         }
         return QueensLadderRun(

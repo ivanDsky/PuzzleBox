@@ -5,7 +5,6 @@ import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
 import com.ivandsky.puzzlebox.games.queens.codec.QueensWireParser
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import com.ivandsky.puzzlebox.games.queens.feed.QueensGameExtractor
 import java.time.LocalDate
 import kotlinx.serialization.json.Json
@@ -167,10 +166,10 @@ class QueensRungStepsTest {
         val state = QueensCandidates.start(puzzle, emptySet())
         val proofs = LineLockRung.steps(puzzle, state).toList()
         assertEquals(2, proofs.size)
-        assertEquals(QueensDeduction.Exclude(LineLockRung, HintReason(HintReason.Kind.COLUMN, 4, LineLockRung), setOf(4, 9, 14)), proofs.first().deduction)
+        assertEquals(QueensDeduction.Exclude(HintReason(HintReason.Kind.COLUMN, 4, LineLockRung), setOf(4, 9, 14)), proofs.first().deduction)
         assertEquals(setOf(19, 24), proofs.first().evidence)
         assertEquals(
-            QueensDeduction.Exclude(LineLockRung, HintReason(HintReason.Kind.ROW, 4, LineLockRung), setOf(24)),
+            QueensDeduction.Exclude(HintReason(HintReason.Kind.ROW, 4, LineLockRung), setOf(24)),
             proofs[1].deduction,
         )
         assertEquals(setOf(20, 21, 22, 23), proofs[1].evidence)

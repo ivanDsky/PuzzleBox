@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -48,8 +47,8 @@ class CountSqueezeRungTest {
         val proofs = CountSqueezeRung.steps(five, twoRows).toList()
         assertEquals(
             listOf(
-                QueensDeduction.Exclude(CountSqueezeRung, region(0), setOf(7, 9)),
-                QueensDeduction.Exclude(CountSqueezeRung, region(0), setOf(22, 24)),
+                QueensDeduction.Exclude(region(0), setOf(7, 9)),
+                QueensDeduction.Exclude(region(0), setOf(22, 24)),
             ),
             proofs.map { it.deduction },
         )
@@ -71,7 +70,7 @@ class CountSqueezeRungTest {
         val sixN2 = QueensTestSupport.puzzle(6, queensPerUnit = 2) { _, col -> col }
         val state = QueensCandidates(6, emptySet(), setOf(0, 6, 24, 30, 1, 7, 25, 31))
         val proof = CountSqueezeRung.steps(sixN2, state).single()
-        assertEquals(QueensDeduction.Exclude(CountSqueezeRung, region(0), setOf(17, 23)), proof.deduction)
+        assertEquals(QueensDeduction.Exclude(region(0), setOf(17, 23)), proof.deduction)
         assertEquals(setOf(12, 13, 18, 19), proof.evidence)
     }
 

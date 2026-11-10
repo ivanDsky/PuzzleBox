@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
 /**
  * First rung: a row, column or region whose missing queens fit only its open cells
@@ -52,7 +51,7 @@ object SinglesRung : QueensRung {
     private fun found(puzzle: QueensPuzzle, candidates: QueensCandidates): List<Found<QueensDeduction.Place>> {
         val found = ArrayList<Found<QueensDeduction.Place>>()
         forEachSingle(puzzle, candidates) { kind, index, cell ->
-            found += Found(QueensDeduction.Place(this, HintReason(kind, index), cell)) { QueensUnits.cells(puzzle, kind)[index].toSet() }
+            found += Found(QueensDeduction.Place(HintReason(kind, index), cell)) { QueensUnits.cells(puzzle, kind)[index].toSet() }
         }
         return found
     }

@@ -81,7 +81,7 @@ class QueensStepperTimingTest {
         val millis = (System.nanoTime() - start) / 1_000_000
 
         println("QueensStepperTimingTest gen-n8-q1 look-ahead next: $millis ms")
-        val rung = (step as QueensStep.Deduction).rung
+        val rung = (step as QueensStep.Deduction).unit.rung
         assertTrue("$step", rung is ShortLookAheadRung || rung is LongLookAheadRung)
         assertTrue("next took $millis ms, bound is 2000 ms", millis < 2_000)
     }

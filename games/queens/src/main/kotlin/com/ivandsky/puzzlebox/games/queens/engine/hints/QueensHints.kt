@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRules
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRulesVerdict
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensCandidates
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensDeduction
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensLadder
@@ -34,16 +35,6 @@ sealed interface QueensHint : Hint {
 
     /** The board is already complete and correct — nothing to hint. */
     data object None : QueensHint
-}
-
-/**
- * The deduction a player can verify BY EYE: [rung] is the ladder rung that found it and
- * [unit] the row/column/region it names — for [SinglesRung], every OTHER cell of that unit
- * is directly blocked by the standing queens, so [QueensHint.Region]'s cell must take the
- * unit's queen. Carries a unit kind + index only; no solution data ever leaves the engine (A5).
- */
-data class HintReason(val kind: Kind, val unit: Int, val rung: QueensRung = SinglesRung) {
-    enum class Kind { ROW, COLUMN, REGION }
 }
 
 /**
@@ -147,11 +138,11 @@ class QueensHints(
         while (true) {
             when (val step = ladder.next(puzzle, candidates) ?: return null) {
                 is QueensDeduction.Exclude -> {
-                    used += step.rung
+                    used += step.unit.rung
                     candidates = candidates.exclude(step.cells)
                 }
                 is QueensDeduction.Place -> {
-                    val hardest = (used + step.rung).maxBy { it.level }
+                    val hardest = (used + step.unit.rung).maxBy { it.level }
                     return Cell(step.cell) to step.unit.copy(rung = hardest)
                 }
             }

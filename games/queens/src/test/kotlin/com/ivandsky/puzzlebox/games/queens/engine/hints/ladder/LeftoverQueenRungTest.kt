@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -83,7 +82,7 @@ class LeftoverQueenRungTest {
 
     private fun empty(size: Int) = QueensCandidates(size, emptySet(), emptySet())
     private fun proof(kind: HintReason.Kind, unit: Int, cells: Set<Int>, evidence: Set<Int>) =
-        QueensProof(QueensDeduction.Exclude(LeftoverQueenRung, HintReason(kind, unit, LeftoverQueenRung), cells), evidence)
+        QueensProof(QueensDeduction.Exclude(HintReason(kind, unit, LeftoverQueenRung), cells), evidence)
     private fun rows(size: Int, vararg rows: Int): Set<Int> = rows.flatMap { r -> (0 until size).map { r * size + it } }.toSet()
     private fun cells(proof: QueensProof) = (proof.deduction as QueensDeduction.Exclude).cells
 

@@ -44,7 +44,7 @@ games/queens/src/main/kotlin/com/ivandsky/puzzlebox/games/queens/QueensPlugin.kt
 games/queens/src/main/kotlin/com/ivandsky/puzzlebox/games/queens/QueensPuzzle.kt 3  # S1
 games/queens/src/main/kotlin/com/ivandsky/puzzlebox/games/queens/QueensSession.kt 3  # S1
 games/queens/src/main/kotlin/com/ivandsky/puzzlebox/games/queens/QueensVariants.kt 2  # S1
-games/queens/src/main/kotlin/com/ivandsky/puzzlebox/games/queens/engine/hints/QueensHints.kt 3  # S1
+games/queens/src/main/kotlin/com/ivandsky/puzzlebox/games/queens/engine/hints/QueensHints.kt 2  # S1
 games/queens/src/main/kotlin/com/ivandsky/puzzlebox/games/queens/engine/rules/QueensRule.kt 2  # S1
 games/tango-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/tangoui/TangoPlayUi.kt 2  # S1
 games/tango-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/tangoui/TangoTapPolicy.kt 2  # S1

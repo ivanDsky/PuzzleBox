@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.games.queensui.hint
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.LineLockRung
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.SinglesRung
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
@@ -25,7 +25,7 @@ class QueensSpotlightMapperTest {
     private fun map(step: QueensStep, playId: Int = 0) = QueensSpotlightMapper.map(step, puzzle, playId)
 
     private fun deduction(evidence: Set<Cell>, result: Result, rung: com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.QueensRung = SinglesRung) =
-        QueensStep.Deduction(rung, row, evidence, result)
+        QueensStep.Deduction(row.copy(rung = rung), evidence, result)
 
     @Test
     fun `a rule break marks one culprit and the queen it attacks as evidence`() {

@@ -4,8 +4,7 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason.Kind
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason.Kind
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HallViolation.Violation
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -127,7 +126,7 @@ class LookAheadChainTest {
     @Test
     fun `a short proof names the broken unit and reads its open cells plus the forced queen`() {
         val proof = short.steps(five, oneRound).single { 0 in (it.deduction as QueensDeduction.Exclude).cells }
-        assertEquals(QueensDeduction.Exclude(short, HintReason(Kind.ROW, 2, short), setOf(0)), proof.deduction)
+        assertEquals(QueensDeduction.Exclude(HintReason(Kind.ROW, 2, short), setOf(0)), proof.deduction)
         assertEquals(setOf(7, 11, 13), proof.evidence)
         assertFalse(0 in crossed(long, five, oneRound))
     }
@@ -135,7 +134,7 @@ class LookAheadChainTest {
     @Test
     fun `a long proof adds every queen the earlier rounds forced`() {
         val proof = long.steps(five, twoForcedRounds).single { 0 in (it.deduction as QueensDeduction.Exclude).cells }
-        assertEquals(QueensDeduction.Exclude(long, HintReason(Kind.REGION, 3, long), setOf(0)), proof.deduction)
+        assertEquals(QueensDeduction.Exclude(HintReason(Kind.REGION, 3, long), setOf(0)), proof.deduction)
         // Region 3's cells still open on the board (3, 18, 23) and the queens 7, 21, 14.
         assertEquals(setOf(3, 7, 14, 18, 21, 23), proof.evidence)
         assertFalse(0 in crossed(short, five, twoForcedRounds))
@@ -183,7 +182,7 @@ class LookAheadChainTest {
         val sixN2 = QueensTestSupport.puzzle(6, queensPerUnit = 2) { _, col -> col }
         val state = QueensCandidates(6, emptySet(), setOf(19, 21, 23))
         val proof = short.steps(sixN2, state).single { 13 in (it.deduction as QueensDeduction.Exclude).cells }
-        assertEquals(QueensDeduction.Exclude(short, HintReason(Kind.ROW, 3, short), setOf(13)), proof.deduction)
+        assertEquals(QueensDeduction.Exclude(HintReason(Kind.ROW, 3, short), setOf(13)), proof.deduction)
         assertEquals(setOf(18, 20, 22), proof.evidence)
         assertEquals(0, LookAheadChain.run(sixN2, state, 13, cheap)?.rounds)
         val lower = (SqueezeRung.steps(sixN2, state) + CountSqueezeRung.steps(sixN2, state)).flatMap { (it.deduction as QueensDeduction.Exclude).cells }

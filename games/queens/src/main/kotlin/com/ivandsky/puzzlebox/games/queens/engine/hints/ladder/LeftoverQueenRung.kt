@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason
 
 /**
  * D7: a band of k unsolved lines (2 ≤ k ≤ [MAX_BAND]) and the unsolved regions whose open
@@ -120,7 +119,7 @@ object LeftoverQueenRung : QueensRung {
                 for (i in 0 until size) inLeftover[leftover[i]] = false
                 if (cells.isEmpty()) continue
                 val unit = HintReason(bands.kind, Integer.numberOfTrailingZeros(bandBits), LeftoverQueenRung)
-                found += Found(QueensDeduction.Exclude(LeftoverQueenRung, unit, cells), rank = k) {
+                found += Found(QueensDeduction.Exclude(unit, cells), rank = k) {
                     (0 until n * n).filter { candidates.isOpen(it) && bandBits and (1 shl bands.of(it)) != 0 && it !in cells }.toSet()
                 }
             }

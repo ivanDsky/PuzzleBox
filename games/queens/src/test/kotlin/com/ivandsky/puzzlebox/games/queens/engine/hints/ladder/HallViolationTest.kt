@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.games.queens.engine.hints.ladder
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensTestSupport
-import com.ivandsky.puzzlebox.games.queens.engine.hints.HintReason.Kind
+import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HintReason.Kind
 import com.ivandsky.puzzlebox.games.queens.engine.hints.ladder.HallViolation.Violation
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
