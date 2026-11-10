@@ -135,6 +135,67 @@ class ToolSlotSwapTest {
     }
 
     @Test
+    fun `on a phone Edit board leaves the action area only the summary and Publish, and the details bring the rest back`() {
+        open(PlayLayout.SinglePane)
+        awaitTag(EDIT_BOARD)
+        assertFullActionArea()
+
+        composeRule.onNodeWithTag(EDIT_BOARD).performClick()
+
+        awaitTag(STRIP)
+        awaitGone(TEST_STATUS)
+        awaitGone(TEST_SOLVE)
+        awaitGone(READINESS)
+        awaitTag(SUMMARY)
+        awaitTag(PUBLISH)
+
+        composeRule.onNodeWithTag(SUMMARY).performClick()
+
+        awaitTag(DETAILS)
+        assertFullActionArea()
+    }
+
+    @Test
+    fun `on a phone a board edit after Edit board brings the whole action area back with Test solve, and a restored test slims it again`() {
+        open(PlayLayout.SinglePane)
+        awaitTag(EDIT_BOARD)
+        composeRule.onNodeWithTag(EDIT_BOARD).performClick()
+        awaitGone(TEST_SOLVE)
+
+        editMarks(2)
+
+        awaitTrue { vm.testSolve.passed.value == null }
+        awaitTag(TEST_STATUS)
+        awaitTag(TEST_SOLVE)
+        awaitTag(STRIP)
+
+        editMarks(1)
+
+        awaitTrue { vm.testSolve.passed.value != null }
+        assertStillEditingTheBoard()
+        awaitGone(TEST_SOLVE)
+        awaitTag(SUMMARY)
+        awaitTag(PUBLISH)
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp-land")
+    fun `on a tablet Edit board keeps the whole action area`() {
+        open(PlayLayout.TwoPane)
+        awaitTag(EDIT_BOARD)
+        composeRule.onNodeWithTag(EDIT_BOARD).performClick()
+        awaitTag(STRIP)
+        awaitTag(SUMMARY)
+
+        assertFullActionArea()
+    }
+
+    /** The status line, Test solve, the readiness line and Publish, all shown. */
+    private fun assertFullActionArea() {
+        listOf(TEST_STATUS, TEST_SOLVE, READINESS, PUBLISH).forEach(::awaitTag)
+    }
+
+    @Test
     fun `a board edit after Edit board clears the test and keeps the tools, and the toast's Undo restores the test and keeps them`() {
         open(PlayLayout.SinglePane)
         awaitTag(EDIT_BOARD)
@@ -382,6 +443,10 @@ class ToolSlotSwapTest {
         const val BOARD = "create.editor.board"
         const val TOOL_SLOT = "create.tool.slot"
         const val SIDE_PANE = "create.studio.sidePane"
+        const val TEST_STATUS = "create.action.testStatus"
+        const val TEST_SOLVE = "create.action.testSolve"
+        const val READINESS = "create.readiness"
+        const val PUBLISH = "create.action.publish"
 
         fun storedRow(board: EditorDraft<TestDraft>) = Draft(
             id = DRAFT_ID,
