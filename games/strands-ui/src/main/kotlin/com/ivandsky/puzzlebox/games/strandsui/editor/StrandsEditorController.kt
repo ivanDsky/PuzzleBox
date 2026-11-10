@@ -85,6 +85,7 @@ class StrandsEditorController(
 
     /** Removes the path at [index] as one undoable step; a no-op for an index no path has. */
     fun removePath(index: Int) {
+        yieldDrag()
         val before = current.value.state.draft
         val path = before.paths.getOrNull(index) ?: return
         val next = current.value.apply(StrandsDraftCommand.RemovePath(index, path, before.spangram))
@@ -99,6 +100,7 @@ class StrandsEditorController(
      * path has.
      */
     fun toggleSpangram(index: Int) {
+        yieldDrag()
         val before = current.value.state.draft
         if (index !in before.paths.indices) return
         val target = if (before.spangram == index) StrandsDraft.NO_SPANGRAM else index
@@ -114,6 +116,7 @@ class StrandsEditorController(
      * breaks are dropped: the notation writes the clue on one line.
      */
     fun setClue(text: String) {
+        yieldDrag()
         val clue = text.filter { it != '\n' && it != '\r' }
         val before = current.value.state.draft.clue
         if (clue == before) return
@@ -130,6 +133,13 @@ class StrandsEditorController(
         onEdit(next)
     }
 
+    /** Another edit wins over a running end drag: the drag stops, so its next move can't revert that edit. */
+    private fun yieldDrag() {
+        if (grip.drag == null) return
+        grip.drop()
+        tracing.value = emptyList()
+    }
+
     override fun adoptOverlay(overlay: EditorOverlay) {
         shownOverlay.value = overlay
     }
@@ -143,6 +153,7 @@ class StrandsEditorController(
      * type onto: the text is ignored and no text waits for a later lift.
      */
     fun typeWord(text: String) {
+        yieldDrag()
         val index = selected.value ?: return
         val previous = typedWord.value
         val letters = text.filter { it in 'A'..'Z' || it in 'a'..'z' }.uppercase()
