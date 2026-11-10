@@ -1,11 +1,11 @@
 package com.ivandsky.puzzlebox.games.sudokuui
 
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.games.sudoku.SudokuDefinition
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
-import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.After
@@ -26,9 +26,17 @@ class SudokuHintModeWiringTest {
     // by another test (or test class) would leak in. Drop those instances before and after each test.
     private val koins = mutableListOf<Koin>()
 
-    private fun koinWith(source: HintModeSource): Koin = koinApplication {
+    private val defaultDispatcher = Dispatchers.Unconfined
+
+    private fun koinWith(): Koin = koinApplication {
         modules(miniSudokuUiModule, sudokuUiModule, module {
-            single { source }
+            single<DispatcherProvider> {
+                object : DispatcherProvider {
+                    override val main = Dispatchers.Default
+                    override val io = Dispatchers.IO
+                    override val default = defaultDispatcher
+                }
+            }
             single<SudokuHighlightSettings> { InMemorySudokuHighlightSettings() }
         })
     }.koin.also { koins += it }
@@ -63,13 +71,13 @@ class SudokuHintModeWiringTest {
     }
 
     @Test
-    fun `a bound stepwise source reaches mini but never classic`() {
-        val koin = koinWith(HintModeSource { HintMode.Stepwise(Dispatchers.Unconfined) })
+    fun `mini resolves stepwise on the provider's default dispatcher and classic resolves legacy`() {
+        val koin = koinWith()
 
         val mini = playUi(koin, SudokuGames.MINI).createController(env) as SudokuPlayController
         val classic = playUi(koin, SudokuGames.CLASSIC).createController(env) as SudokuPlayController
 
-        assertEquals(HintMode.Stepwise(Dispatchers.Unconfined), mini.hintMode)
+        assertEquals(HintMode.Stepwise(defaultDispatcher), mini.hintMode)
         assertEquals(HintMode.Legacy, classic.hintMode)
     }
 }

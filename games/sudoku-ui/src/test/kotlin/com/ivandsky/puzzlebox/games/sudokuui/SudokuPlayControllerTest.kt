@@ -349,8 +349,8 @@ class SudokuPlayControllerTest {
 
     @OptIn(KoinInternalApi::class)
     @Test
-    fun `classic keeps the legacy hint under a stepwise source`() {
-        val koin = koinApplication { modules(miniSudokuUiModule, sudokuUiModule, module { single { stepwiseSource }; single<SudokuHighlightSettings> { InMemorySudokuHighlightSettings() } }) }.koin
+    fun `classic as registered plays the legacy staged hint`() {
+        val koin = koinApplication { modules(miniSudokuUiModule, sudokuUiModule, module { single<SudokuHighlightSettings> { InMemorySudokuHighlightSettings() } }) }.koin
         try {
             val c = koin.get<GamePlayUi>(qualifier(SudokuGames.CLASSIC.id.value)).createController(env) as SudokuPlayController
             val classicRef = SudokuPuzzleRef(SudokuGames.CLASSIC.id, ref.key)
