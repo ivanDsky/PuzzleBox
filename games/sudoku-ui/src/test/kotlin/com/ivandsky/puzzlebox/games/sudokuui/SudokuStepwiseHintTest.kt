@@ -207,6 +207,23 @@ class SudokuStepwiseHintTest {
     }
 
     @Test
+    fun `after an unrelated move the same step re-shows twice for free`() {
+        val s = stepwise()
+        s.requestHint()
+        val first = checkNotNull(s.spotlight)
+        assertEquals(1, s.session.hintsUsed)
+
+        s.select(UNRELATED_CELL)
+        s.input(peanut450.solution[UNRELATED_CELL]) // a right digit off the step
+        assertNull(s.spotlight)
+        s.requestHint()
+        s.requestHint()
+
+        assertEquals(first.roles, s.spotlight?.roles)
+        assertEquals(1, s.session.hintsUsed)
+    }
+
+    @Test
     fun `a shown elimination is not shown again after an input`() {
         val s = stepwise(SudokuSession(ref = null, puzzle = noSingle))
         s.requestHint()
@@ -365,6 +382,10 @@ class SudokuStepwiseHintTest {
     private companion object {
         /** Not cell 0's solution (4), and a clash with the given 1 in column 1. */
         const val WRONG_DIGIT = 1
+
+        /** Row 5, column 6: empty on peanut450, a 5 in the solution, off the first step, which stays the one shown after it. */
+        const val UNRELATED_CELL = 29
+
         const val RED_MIN = 0.5f
         const val OTHER_MAX = 0.35f
     }

@@ -300,6 +300,22 @@ class TangoStepwiseHintTest {
     }
 
     @Test
+    fun `after an unrelated move the same step re-shows twice for free`() {
+        val s = loaded().apply { requestHint() }
+        val first = checkNotNull(s.spotlight)
+        assertEquals(1, s.hintsUsed)
+
+        s.onPlacement(TangoPlacement(UNRELATED_IDX, TangoPlayFixture.solution[UNRELATED_IDX])) // a right value off the step
+        assertNull(s.spotlight)
+        s.requestHint()
+        s.requestHint()
+
+        assertEquals(first.roles, s.spotlight?.roles)
+        assertEquals(1, s.hintsUsed)
+        assertEquals(1, lastSaved().hintsUsed)
+    }
+
+    @Test
     fun `a search still pending when the player places never produces a spotlight`() {
         val scheduler = TestCoroutineScheduler()
         val s = loaded(compute = StandardTestDispatcher(scheduler))
@@ -411,6 +427,9 @@ class TangoStepwiseHintTest {
 
         /** A moon where the solution has a sun; its SAME marker partner below is empty, so no rule breaks. */
         const val WRONG_MOON_IDX = 3
+
+        /** Row 1, column 4: empty, a moon in the solution, off the first step, which stays the one shown after it. */
+        const val UNRELATED_IDX = 10
 
         /** A tenth of the glyph's colour counts as a surviving pixel: the faintest rim a player could see. */
         const val VISIBLE_SHARE = 0.10f
