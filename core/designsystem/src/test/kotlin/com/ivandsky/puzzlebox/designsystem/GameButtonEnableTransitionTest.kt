@@ -28,7 +28,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import kotlin.math.abs
 
-// T6 (the disabled-to-enabled fade the user approved): on a paused clock the face fill eases
+// The disabled-to-enabled fade: on a paused clock the face fill eases
 // from the muted wash to the accent, every frame between the two with no jump, and under
 // reduced motion the first frame after the flip is already the accent.
 @RunWith(RobolectricTestRunner::class)
