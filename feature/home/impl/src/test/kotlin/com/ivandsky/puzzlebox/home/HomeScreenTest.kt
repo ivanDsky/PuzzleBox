@@ -144,7 +144,7 @@ class HomeScreenTest {
         val rest = composeRule.onNodeWithTag("home.streak_pane").getUnclippedBoundsInRoot().top
 
         composeRule.mainClock.autoAdvance = false
-        composeRule.onNodeWithTag("home.history_row_2026-11-03").performClick()
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
         // A paused clock never idles the looper, so the platform's deferred snapshot apply
         // would not run; apply the pick ourselves or the swap is never seen.
         composeRule.runOnIdle { Snapshot.sendApplyNotifications() }
@@ -357,26 +357,25 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `phone with owned-elsewhere hidden drops recent days and the account card`() {
+    fun `phone with owned-elsewhere hidden keeps recent days and drops the account card`() {
         val day = HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))
         setContent(HomeLayout.SinglePane, history = listOf(day), hideOwnedElsewhere = true)
 
-        composeRule.onNodeWithTag("home.history_row_2026-11-03").assertDoesNotExist()
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").assertExists()
         composeRule.onNodeWithText("Sign in").assertDoesNotExist()
         composeRule.onNodeWithTag("home.today").assertExists()
         composeRule.onNodeWithTag("home.streak").assertExists()
     }
 
     @Test
-    fun `tablet with owned-elsewhere hidden always shows the streak pane without bests or day detail`() {
+    fun `tablet with owned-elsewhere hidden shows a tapped day's detail and hides the bests`() {
         val day = HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))
         setContent(HomeLayout.TwoPane, history = listOf(day), hideOwnedElsewhere = true)
 
-        composeRule.onNodeWithTag("home.history_row_2026-11-03").assertDoesNotExist()
         composeRule.onNodeWithTag("home.streak_pane").assertExists()
-        composeRule.onNodeWithTag("home.pane_week").assertExists()
         TODAY.forEach { composeRule.onNodeWithTag("home.best.${it.game.value}", useUnmergedTree = true).assertDoesNotExist() }
-        composeRule.onNodeWithTag("home.day_detail").assertDoesNotExist()
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
+        composeRule.onNodeWithTag("home.day_detail").assertExists()
     }
 
     private val zipRank = TodayRank(GameId("zip"), "Zip", 12)

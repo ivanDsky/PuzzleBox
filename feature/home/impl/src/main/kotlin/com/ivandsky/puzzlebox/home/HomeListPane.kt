@@ -80,17 +80,17 @@ internal fun ListPane(
             }
             // The summaries sit under the streak, one line each, only when there is something to say.
             if (summaries != null) HomeSummaryRows(state = state, summaries = summaries)
-            // History owns past plays and Profile owns identity once the nav is v2.
+            StaggeredItem(2) {
+                HomeRecentSection(
+                    days = state.history,
+                    onSeeAll = onOpenHistory,
+                    selectedDay = selectedDay,
+                    onDayClick = onDayClick,
+                    selectable = selectable,
+                )
+            }
+            // Profile owns identity once the nav is v2.
             if (!hideOwnedElsewhere) {
-                StaggeredItem(2) {
-                    HomeRecentSection(
-                        days = state.history,
-                        onSeeAll = onOpenHistory,
-                        selectedDay = selectedDay,
-                        onDayClick = onDayClick,
-                        selectable = selectable,
-                    )
-                }
                 StaggeredItem(3) {
                     AccountCard(identity = state.identity, onOpenProfile = onOpenProfile)
                 }

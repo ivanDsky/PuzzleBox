@@ -31,9 +31,8 @@ internal data class HistoryDay(val isoDay: String, val headline: String, val gam
  * history and the account surface. Game titles render from [state]'s rows, never from a
  * hardcoded id; the header's date is the puzzle roll-over day (A9), never the phone's.
  * A non-null [HomeUiState.updateUrl] shows the Update available pill in the header (spec A7);
- * its tap calls [onOpenUpdate] with that URL. [hideOwnedElsewhere] leaves out the recent days,
- * the account card, the day detail and the bests list, which History, Profile and the game
- * page own; false is the full screen.
+ * its tap calls [onOpenUpdate] with that URL. [hideOwnedElsewhere] leaves out the account card
+ * and the bests list, which Profile and the game page own; false is the full screen.
  */
 @Composable
 internal fun HomeScreen(

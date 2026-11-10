@@ -70,6 +70,7 @@ internal fun puzzleBoxEntryProvider(
             onOpenDuels = { libraryRequests.openGamesSection(navigator, GamesTab.Duels) },
             duelsNeedYou = duels?.needYou,
         ).takeIf { navV2 },
+        onOpenHistory = { navigator.openOwner(HistoryRootKey) }.takeIf { navV2 },
     )
     historyEntry(navigator, historyLayout)
     playEntry(

@@ -14,7 +14,7 @@ import com.ivandsky.puzzlebox.profile.api.ProfileKey
 /**
  * Home's route: a Today tile or the CTA pushes that game's [GameKey] once on Home's stack
  * (A6, A10, N1/N8/N9: back returns to Home), "See all" pushes [HistoryKey] on Home's
- * stack, and the account card selects the Profile tab. A non-null [summaries] adds the rank
+ * stack (or runs [onOpenHistory] when given), and the account card selects the Profile tab. A non-null [summaries] adds the rank
  * and duels rows to Today; null is Today without them.
  */
 fun EntryProviderScope<NavKey>.homeEntry(
@@ -22,6 +22,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
     layout: HomeLayout,
     hideOwnedElsewhere: Boolean = false,
     summaries: HomeSummaries? = null,
+    onOpenHistory: (() -> Unit)? = null,
 ) {
     entry<HomeKey> {
         HomeRoute(
@@ -32,7 +33,7 @@ fun EntryProviderScope<NavKey>.homeEntry(
             // A6: the account card is a tab switch, not a push. Home's stack is untouched,
             // so Home (bar or back from the Profile root) returns to it as it was.
             onOpenProfile = { navigator.selectTab(ProfileKey) },
-            onOpenHistory = { navigator.pushOnce(HistoryKey()) },
+            onOpenHistory = onOpenHistory ?: { navigator.pushOnce(HistoryKey()) },
         )
     }
 }
