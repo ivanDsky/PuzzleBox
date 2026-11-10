@@ -39,6 +39,8 @@ import com.ivandsky.puzzlebox.gameui.bestScoreText
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardNote
 import com.ivandsky.puzzlebox.gameui.board.toBoardNote
 import com.ivandsky.puzzlebox.gameui.rankRuleText
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
+import com.ivandsky.puzzlebox.play.friend.SignInPrompt
 
 private enum class TimesTab(val label: String, val tag: String) {
     Top("Top", "play.stats.tab.top"),
@@ -60,7 +62,12 @@ private const val LIST_ROWS = 6
  * out, loading, unavailable and empty boards show a note in the same reserved area.
  */
 @Composable
-internal fun PlayTimesCard(times: PlayTimes, modifier: Modifier = Modifier) {
+internal fun PlayTimesCard(
+    times: PlayTimes,
+    modifier: Modifier = Modifier,
+    signIn: BoardSignIn = BoardSignIn.Idle,
+    onSignIn: (() -> Unit)? = null,
+) {
     var tab by rememberSaveable { mutableStateOf(TimesTab.Top) }
     val board = times as? PlayTimes.Board
     StatsCard(modifier.testTag("play.stats.times")) {
@@ -75,6 +82,12 @@ internal fun PlayTimesCard(times: PlayTimes, modifier: Modifier = Modifier) {
                     modifier = Modifier.testTag(entry.tag),
                 ) { Text(entry.label) }
             }
+        }
+        if (times == PlayTimes.SignedOut && onSignIn != null) {
+            Box(Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
+                SignInPrompt(title = "Sign in to see today's times", yourTimeMs = null, signIn = signIn, onSignIn = onSignIn)
+            }
+            return@StatsCard
         }
         Box(Modifier.fillMaxWidth().padding(top = Spacing.sm).height(RowHeight * LIST_ROWS)) {
             val rows = board?.let { if (tab == TimesTab.Top) it.top else it.nearYou }
