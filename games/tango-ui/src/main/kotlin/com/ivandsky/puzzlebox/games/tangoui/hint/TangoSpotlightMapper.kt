@@ -21,23 +21,31 @@ internal object TangoSpotlightMapper {
         data class Mistake(val idx: Int) : Key
     }
 
-    /** The Spotlight of [step], null for a solved board or when no sound step exists. */
-    fun map(step: TangoStep, puzzle: TangoPuzzle, grid: List<TangoCell?>, playId: Int): Spotlight? {
-        val (roles, anchor) = when (step) {
-            is TangoStep.Deduction -> deductionRoles(step)
-            is TangoStep.Reveal -> single(step.idx, SpotlightRole.TARGET)
-            is TangoStep.Mistake -> single(step.idx, SpotlightRole.CULPRIT)
-            TangoStep.Solved, TangoStep.Unavailable -> return null
-        }
-        return Spotlight(
-            rows = puzzle.n,
-            cols = puzzle.n,
-            roles = roles,
-            callout = SpotlightCallout(TangoStepCopy.text(step, puzzle), anchor),
-            glyphs = TangoSpotlightGlyphs(puzzle.n, values(step, grid)),
-            playId = playId,
-        )
+    /** The Spotlight of a keyed [step]; [TangoStep.Solved] and [TangoStep.Unavailable] have none and throw. */
+    fun map(step: TangoStep, puzzle: TangoPuzzle, grid: List<TangoCell?>, playId: Int): Spotlight = when (step) {
+        is TangoStep.Deduction ->
+            spotlight(step, puzzle, deductionRoles(step), mapOf(step.idx to step.value), playId)
+        is TangoStep.Reveal ->
+            spotlight(step, puzzle, single(step.idx, SpotlightRole.TARGET), mapOf(step.idx to step.value), playId)
+        is TangoStep.Mistake ->
+            spotlight(step, puzzle, single(step.idx, SpotlightRole.CULPRIT), mistakeValues(step, grid), playId)
+        TangoStep.Solved, TangoStep.Unavailable -> error("$step has no Spotlight")
     }
+
+    private fun spotlight(
+        step: TangoStep,
+        puzzle: TangoPuzzle,
+        shape: Pair<Map<Int, SpotlightRole>, Set<Int>>,
+        values: Map<Int, TangoCell>,
+        playId: Int,
+    ): Spotlight = Spotlight(
+        rows = puzzle.n,
+        cols = puzzle.n,
+        roles = shape.first,
+        callout = SpotlightCallout(TangoStepCopy.text(step, puzzle), shape.second),
+        glyphs = TangoSpotlightGlyphs(puzzle.n, values),
+        playId = playId,
+    )
 
     fun keyOf(step: TangoStep): Key? = when (step) {
         is TangoStep.Deduction -> Key.Deduction(step.rung, step.idx, step.value, step.evidence)
@@ -62,10 +70,7 @@ internal object TangoSpotlightMapper {
         return roles to evidence.ifEmpty { setOf(step.idx) }
     }
 
-    private fun values(step: TangoStep, grid: List<TangoCell?>): Map<Int, TangoCell> = when (step) {
-        is TangoStep.Deduction -> mapOf(step.idx to step.value)
-        is TangoStep.Reveal -> mapOf(step.idx to step.value)
-        is TangoStep.Mistake -> grid.getOrNull(step.idx)?.let { mapOf(step.idx to it) } ?: emptyMap()
-        TangoStep.Solved, TangoStep.Unavailable -> emptyMap()
-    }
+    /** The wrong entry's own glyph is read from the press-time board; it is absent when the cell is off the board. */
+    private fun mistakeValues(step: TangoStep.Mistake, grid: List<TangoCell?>): Map<Int, TangoCell> =
+        grid.getOrNull(step.idx)?.let { mapOf(step.idx to it) } ?: emptyMap()
 }

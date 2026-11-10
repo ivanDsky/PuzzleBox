@@ -23,27 +23,26 @@ internal object QueensSpotlightMapper {
         }
     }
 
-    /** The Spotlight of [step], null for a solved board or when no sound step exists. */
-    fun map(step: QueensStep, puzzle: QueensPuzzle, playId: Int): Spotlight? {
-        val roles = LinkedHashMap<Int, SpotlightRole>()
-        when (step) {
-            is QueensStep.Mistake -> {
-                step.other?.let { roles[it.idx] = SpotlightRole.EVIDENCE }
-                roles[step.cell.idx] = SpotlightRole.CULPRIT
-            }
-            is QueensStep.Deduction -> when (val result = step.result) {
-                is QueensStep.Deduction.Result.Cross -> {
-                    step.evidence.forEach { roles[it.idx] = SpotlightRole.EVIDENCE }
-                    result.cells.forEach { roles[it.idx] = SpotlightRole.EXCLUDED }
-                }
-                is QueensStep.Deduction.Result.LastCell -> {
-                    step.evidence.forEach { roles[it.idx] = SpotlightRole.EVIDENCE }
-                    roles[result.cell.idx] = SpotlightRole.TARGET
-                }
-            }
-            is QueensStep.Reveal -> roles[step.cell.idx] = SpotlightRole.EXCLUDED
-            QueensStep.Solved, QueensStep.Unavailable -> return null
-        }
+    /** The Spotlight of a keyed [step]; [QueensStep.Solved] and [QueensStep.Unavailable] have none and throw. */
+    fun map(step: QueensStep, puzzle: QueensPuzzle, playId: Int): Spotlight = when (step) {
+        is QueensStep.Mistake -> spotlight(
+            step, puzzle, playId, mistakeRoles(step),
+            culpritIsCross = step.kind == QueensStep.Mistake.Kind.WRONG_CROSS,
+        )
+        is QueensStep.Deduction -> spotlight(step, puzzle, playId, deductionRoles(step), culpritIsCross = false)
+        is QueensStep.Reveal -> spotlight(
+            step, puzzle, playId, mapOf(step.cell.idx to SpotlightRole.EXCLUDED), culpritIsCross = false,
+        )
+        QueensStep.Solved, QueensStep.Unavailable -> error("$step has no Spotlight")
+    }
+
+    private fun spotlight(
+        step: QueensStep,
+        puzzle: QueensPuzzle,
+        playId: Int,
+        roles: Map<Int, SpotlightRole>,
+        culpritIsCross: Boolean,
+    ): Spotlight {
         val lit = roles.filterValues { it != SpotlightRole.EXCLUDED }.keys
         val anchor = lit.ifEmpty { roles.keys }
         return Spotlight(
@@ -51,9 +50,26 @@ internal object QueensSpotlightMapper {
             cols = puzzle.size,
             roles = roles,
             callout = SpotlightCallout(QueensStepCopy.text(step), anchor),
-            glyphs = QueensSpotlightGlyphs(culpritIsCross = (step as? QueensStep.Mistake)?.kind == QueensStep.Mistake.Kind.WRONG_CROSS),
+            glyphs = QueensSpotlightGlyphs(culpritIsCross = culpritIsCross),
             playId = playId,
         )
+    }
+
+    private fun mistakeRoles(step: QueensStep.Mistake): Map<Int, SpotlightRole> {
+        val roles = LinkedHashMap<Int, SpotlightRole>()
+        step.other?.let { roles[it.idx] = SpotlightRole.EVIDENCE }
+        roles[step.cell.idx] = SpotlightRole.CULPRIT
+        return roles
+    }
+
+    private fun deductionRoles(step: QueensStep.Deduction): Map<Int, SpotlightRole> {
+        val roles = LinkedHashMap<Int, SpotlightRole>()
+        step.evidence.forEach { roles[it.idx] = SpotlightRole.EVIDENCE }
+        when (val result = step.result) {
+            is QueensStep.Deduction.Result.Cross -> result.cells.forEach { roles[it.idx] = SpotlightRole.EXCLUDED }
+            is QueensStep.Deduction.Result.LastCell -> roles[result.cell.idx] = SpotlightRole.TARGET
+        }
+        return roles
     }
 
     fun keyOf(step: QueensStep): Key? = when (step) {

@@ -59,12 +59,14 @@ class SudokuStepGameTest {
         /** What the next press would find, read off the game's own pure block. */
         fun next(): SudokuStep = game.capture()()
 
-        /** Presses, checks the Spotlight on screen is exactly the step's, and returns that step. */
+        /** Presses, checks the Spotlight on screen is exactly the step's (none for a step without a key), and returns that step. */
         fun press(): SudokuStep {
             val step = next()
             hints.press()
             val shown = hints.spotlight
-            assertEquals(SudokuSpotlightMapper.map(step, session.puzzle, session.board, shown?.playId ?: 0), shown)
+            val expected = SudokuSpotlightMapper.keyOf(step)
+                ?.let { SudokuSpotlightMapper.map(step, session.puzzle, session.board, shown?.playId ?: 0) }
+            assertEquals(expected, shown)
             return step
         }
 
@@ -289,7 +291,7 @@ class SudokuStepGameTest {
         play.place(0, 1)
         val step = play.next()
 
-        assertEquals(SudokuSpotlightGlyphs(mapOf(0 to "1")), play.game.spotlight(step, 7)?.glyphs)
+        assertEquals(SudokuSpotlightGlyphs(mapOf(0 to "1")), play.game.spotlight(step, 7).glyphs)
     }
 
     private companion object {

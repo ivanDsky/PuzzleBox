@@ -43,7 +43,7 @@ internal class TangoStepGame(
     override fun keyOf(step: TangoStep): TangoSpotlightMapper.Key? = TangoSpotlightMapper.keyOf(step)
 
     /** The press-time board: any input invalidates the search before it delivers, so the live board is the snapshot. */
-    override fun spotlight(step: TangoStep, playId: Int): Spotlight? {
+    override fun spotlight(step: TangoStep, playId: Int): Spotlight {
         val current = session()
         return TangoSpotlightMapper.map(step, current.puzzle, current.grid(), playId)
     }
