@@ -250,8 +250,7 @@ class QueensStepGameTest {
 
         val spotlight = play.game.spotlight(mistake, playId = 7)
 
-        assertEquals(big.size, spotlight?.rows)
-        assertEquals(7, spotlight?.playId)
-        assertNull(play.game.spotlight(QueensStep.Solved, playId = 8))
+        assertEquals(big.size, spotlight.rows)
+        assertEquals(7, spotlight.playId)
     }
 }

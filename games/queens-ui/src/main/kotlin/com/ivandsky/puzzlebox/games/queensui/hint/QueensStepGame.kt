@@ -46,7 +46,7 @@ internal class QueensStepGame(
 
     override fun keyOf(step: QueensStep): QueensSpotlightMapper.Key? = QueensSpotlightMapper.keyOf(step)
 
-    override fun spotlight(step: QueensStep, playId: Int): Spotlight? =
+    override fun spotlight(step: QueensStep, playId: Int): Spotlight =
         QueensSpotlightMapper.map(step, session().puzzle, playId)
 
     private fun solutionOf(puzzle: QueensPuzzle): Set<Cell>? {

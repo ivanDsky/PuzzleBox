@@ -15,6 +15,10 @@ import kotlinx.coroutines.CoroutineScope
  *
  * Confined to [scope]'s dispatcher (the controller's main thread), like [HintSearch] and
  * [HintLedger]. [spotlight] and the play id change only inside [press], [inputMade] and [reset].
+ *
+ * @param onCount Called with the new count when a press costs one, right after [spotlight] is set. It must not call
+ * [inputMade] (or [reset]): that clears the Spotlight the press has just set, so the player would see nothing for a
+ * press that was counted. Store the count only.
  */
 class StepHints<S : Any, K : Any>(
     mode: HintMode.Stepwise,
@@ -31,7 +35,11 @@ class StepHints<S : Any, K : Any>(
         /** Null = nothing to show (solved / unavailable): no Spotlight, nothing counted. */
         fun keyOf(step: S): K?
 
-        fun spotlight(step: S, playId: Int): Spotlight?
+        /**
+         * The Spotlight of [step]; called only for a step whose [keyOf] is non-null, so a keyed step always has
+         * something to show. An adapter fails loudly on any other step rather than answer with an empty Spotlight.
+         */
+        fun spotlight(step: S, playId: Int): Spotlight
 
         /** Called by [StepHints.inputMade], after the search step and the Spotlight clear. */
         fun inputMade() {}

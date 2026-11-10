@@ -37,7 +37,7 @@ internal class SudokuStepGame(
     override fun keyOf(step: SudokuStep): SudokuSpotlightMapper.Key? = SudokuSpotlightMapper.keyOf(step)
 
     /** The press-time board: any input invalidates the search before it delivers, so the live board is the snapshot. */
-    override fun spotlight(step: SudokuStep, playId: Int): Spotlight? {
+    override fun spotlight(step: SudokuStep, playId: Int): Spotlight {
         val current = session()
         shown = step
         return SudokuSpotlightMapper.map(step, current.puzzle, current.board, playId)
