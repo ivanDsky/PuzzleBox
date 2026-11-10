@@ -153,6 +153,40 @@ class StrandsStudioPhoneBoardTest {
         assertTrue("the field took ${controller.word.value}", controller.word.value == "SPRINGS")
     }
 
+    @Test
+    @Config(qualifiers = "w360dp-h780dp-420dpi")
+    fun `on a 360x780 phone an untested board has cells of at least 30dp`() {
+        assertCells(tested = false, floor = 30.dp)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h780dp-420dpi")
+    fun `on a 360x780 phone Edit board after a test solve has cells of at least 30dp`() {
+        assertCells(tested = true, floor = 30.dp)
+    }
+
+    @Test
+    fun `on a 411x914 phone an untested board keeps its 46_5dp cells`() {
+        assertCells(tested = false, floor = 46.5.dp)
+    }
+
+    @Test
+    fun `on a 411x914 phone Edit board after a test solve keeps its 35_67dp cells`() {
+        assertCells(tested = true, floor = 35.67.dp)
+    }
+
+    /** The settled cell height, untested or in Edit board after a passed test, at least [floor]. */
+    private fun assertCells(tested: Boolean, floor: Dp) {
+        show(tested = tested)
+        if (tested) {
+            rule.onNodeWithTag(EDIT_BOARD).performClick()
+            rule.mainClock.advanceTimeBy(SETTLE_MS)
+            rule.onNodeWithTag(STRIP).assertExists()
+        }
+        val cell = rule.onNodeWithTag("strands.editor.cell.0").getUnclippedBoundsInRoot().height
+        assertTrue("cells $cell under $floor (tested: $tested)", cell >= floor - 0.01.dp)
+    }
+
     /** The Studio with every row but the last a path, then the last row traced by taps. */
     private fun traceTheLastRow() {
         if (!::controller.isInitialized) show(tested = false, traced = StrandsDraft.ROWS - 1)
@@ -404,6 +438,7 @@ class StrandsStudioPhoneBoardTest {
                     publish = publish,
                     title = TITLE,
                     onShowDetails = { editBoard = false }.takeIf { editBoard },
+                    compact = true,
                     fieldCopy = StrandsEditorUi.publishFieldCopy,
                 )
             },
