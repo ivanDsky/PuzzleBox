@@ -2,6 +2,11 @@ package com.ivandsky.puzzlebox.data.di
 
 import com.ivandsky.puzzlebox.data.calendar.CadenceGameCalendar
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.linkedin.DataStoreLinkedInLink
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInCallBudget
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
+import com.ivandsky.puzzlebox.data.linkedin.RoomLinkedInDays
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
@@ -78,4 +83,13 @@ val dataModule = module {
     // Shared-text hand-off: app puts, the Create root takes it exactly once. In memory
     // only — the shared text is transient, never persisted, never in a NavKey.
     single<SharedTextStore> { InMemorySharedTextStore() }
+    // The LinkedIn budget is one instance for the process, so every day shares the same per-minute window.
+    single { LinkedInCallBudget(nowMs = System::currentTimeMillis) }
+    single<LinkedInLink> { DataStoreLinkedInLink(get(), get(), get()) }
+    single<LinkedInDays> {
+        RoomLinkedInDays(
+            link = get(), source = get(), completions = get(), daily = get(), calendar = get(),
+            registry = get(), db = get(), budget = get(), clock = System::currentTimeMillis,
+        )
+    }
 }

@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.network.di
 
 import com.ivandsky.puzzlebox.game.FeedTransport
 import com.ivandsky.puzzlebox.game.NytTransport
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.network.GITHUB_API_BASE_URL
 import com.ivandsky.puzzlebox.network.GitHubReleaseTransport
 import com.ivandsky.puzzlebox.network.LINKEDIN_BASE_URL
@@ -9,6 +11,7 @@ import com.ivandsky.puzzlebox.network.NYT_BASE_URL
 import com.ivandsky.puzzlebox.network.NytApi
 import com.ivandsky.puzzlebox.network.NytHttpTransport
 import com.ivandsky.puzzlebox.network.gitHubReleaseTransport
+import com.ivandsky.puzzlebox.network.linkedin.linkedInAccountSource
 import com.ivandsky.puzzlebox.network.linkedInFeedTransport
 import com.ivandsky.puzzlebox.network.retrofit
 import com.ivandsky.puzzlebox.network.sessionlessClient
@@ -24,6 +27,8 @@ import org.koin.dsl.module
 val networkModule = module {
     single { Json { ignoreUnknownKeys = true } }
     single<FeedTransport> { linkedInFeedTransport(LINKEDIN_BASE_URL, get()) }
+    // Anonymous feed transport stays separate; this client carries the player's session cookies.
+    single<LinkedInAccountSource> { linkedInAccountSource(LINKEDIN_BASE_URL, get<LinkedInSessionCookies>()) }
     single {
         retrofit(baseUrl = NYT_BASE_URL, client = sessionlessClient(), json = get()).create(NytApi::class.java)
     }
