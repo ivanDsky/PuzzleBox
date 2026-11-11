@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.history
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,10 +16,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -26,6 +27,8 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.pressScale
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.DayRing
 import java.time.DayOfWeek
@@ -92,17 +95,19 @@ internal fun CalendarMonth(month: YearMonth, state: HistoryUiState, onSelectDay:
                 )
             }
         }
-        monthGrid(month).forEach { week ->
-            Row(Modifier.fillMaxWidth()) {
-                week.forEach { date ->
-                    CalendarDay(
-                        date = date,
-                        weekday = null,
-                        inMonth = YearMonth.from(date) == month,
-                        state = state,
-                        onSelectDay = onSelectDay,
-                        modifier = Modifier.weight(1f),
-                    )
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            monthGrid(month).forEach { week ->
+                Row(Modifier.fillMaxWidth()) {
+                    week.forEach { date ->
+                        CalendarDay(
+                            date = date,
+                            weekday = null,
+                            inMonth = YearMonth.from(date) == month,
+                            state = state,
+                            onSelectDay = onSelectDay,
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         }
@@ -134,10 +139,16 @@ private fun CalendarDay(
         else -> null
     }
     val shown = inMonth && !later
+    val interaction = remember { MutableInteractionSource() }
+    val reducedMotion = rememberReducedMotion()
     Column(
         modifier = modifier
-            .clip(MaterialTheme.shapes.small)
-            .clickable(enabled = inMonth && state.canSelect(date)) { onSelectDay(date) }
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                enabled = inMonth && state.canSelect(date),
+            ) { onSelectDay(date) }
+            .pressScale(interaction, reducedMotion)
             .then(if (inMonth) Modifier.testTag("history.calendar.day.$date") else Modifier)
             .alpha(if (shown) 1f else DIMMED),
         horizontalAlignment = Alignment.CenterHorizontally,

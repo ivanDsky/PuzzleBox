@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.ZoneOffset
 import kotlinx.coroutines.flow.flowOf
 
@@ -108,5 +109,30 @@ private fun HistoryRootPreview() {
             onSelectDay = {},
             onReplay = { _, _ -> },
         )
+    }
+}
+
+/** The expanded month with a day picked: today ringed, the picked day inked, later days dimmed. */
+@PuzzleBoxPreviews
+@Composable
+private fun HistoryMonthCalendarPreview() {
+    val rows = listOf(LiveRow, previewRow(PreviewToday.minusDays(1), number = 593, archived = false), ArchivedRow)
+    val state = HistoryUiState(
+        rows = rows,
+        calendarDay = PreviewToday,
+        calendarExpanded = true,
+        earliestDay = ArchivedRow.day,
+        selectedDay = PreviewToday.minusDays(1),
+        solvedByDay = solvedByDay(rows, listOf(PreviewGame)),
+        daysWithRows = rows.map { it.day }.toSet(),
+        gamesPerDay = 1,
+        today = PreviewToday,
+    )
+    PuzzleBoxTheme {
+        Surface {
+            Column(Modifier.padding(Spacing.lg)) {
+                CalendarMonth(YearMonth.from(PreviewToday), state, onSelectDay = {})
+            }
+        }
     }
 }
