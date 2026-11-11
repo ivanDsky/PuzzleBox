@@ -14,7 +14,6 @@ import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.CreateKey
@@ -75,8 +74,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Strands' editor is gated by [ReleaseFlag.StrandsEditor]: with it off the New puzzle sheet
- * lists no Strands option; with it on the option shows, opens the Strands editor on a new
+ * The New puzzle sheet offers Strands with no flag on, opens the Strands editor on a new
  * board, and lifting the last path of a board that needs only it moves the verdict pill off Incomplete.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -95,18 +93,10 @@ class NewPuzzleSheetStrandsGateTest {
     }
 
     @Test
-    fun `with the flag off the sheet offers Queens and no Strands`() {
+    fun `Strands is offered and opens the Strands editor`() {
         open(FakeReleaseFlags())
         rule.onNodeWithTag(NEW).performClick()
-
-        rule.onNodeWithTag("$GAME${QueensDefinition.id.value}").assertExists()
-        rule.onNodeWithTag("$GAME${StrandsDefinition.id.value}").assertDoesNotExist()
-    }
-
-    @Test
-    fun `with the flag on the Strands option opens the Strands editor`() {
-        open(FakeReleaseFlags(ReleaseFlag.StrandsEditor))
-        rule.onNodeWithTag(NEW).performClick()
+        rule.onNodeWithTag("$GAME${StrandsDefinition.id.value}").assertExists()
         // Strands has one size: its row opens the editor, with no size step between.
         rule.onNodeWithTag("$GAME${StrandsDefinition.id.value}").performClick()
 
@@ -120,7 +110,7 @@ class NewPuzzleSheetStrandsGateTest {
         val draftId = "strands-1"
         runBlocking { drafts.upsert(storedRow(draftId, almostDone())) }
         navigator.pushOnce(EditorKey(draftId))
-        open(FakeReleaseFlags(ReleaseFlag.StrandsEditor))
+        open(FakeReleaseFlags())
         rule.waitUntil(WAIT_MS) { count(BOARD) > 0 }
         rule.waitUntil(WAIT_MS) { pill() == INCOMPLETE }
 

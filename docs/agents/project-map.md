@@ -144,7 +144,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `NAVIGATION_STATE_KEY` (ADR-0011).
 - `core/common/` (`:core:common`) — `DispatcherProvider` seam (+ `DefaultDispatcherProvider`),
   `AppResult`/`AppError` and `resultOf` convention (typed errors, never thrown surprises),
-  `flags/` `ReleaseFlag` enum (StrandsEditor, TextImport, ShareTarget, Competitions, LinkedInAccount) + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022), Koin `commonModule`.
+  `flags/` `ReleaseFlag` enum (TextImport, ShareTarget, Competitions, LinkedInAccount) + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022), Koin `commonModule`.
 - `core/data/` (`:core:data`) — game-agnostic repositories: `DailyRepository` →
   `OfflineFirstDailyRepository` (`today(game)`/`cached(game, day)`/`observeHistory(game)`,
   by-date `day(game, day)` → `DailyDay` (cache first; on a miss fetches and persists only for an
@@ -543,8 +543,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - **Editor seam** (ADR-0019) — `GamePlugin.editor` (`GameEditor`, `core:game`) + a
   `GameEditorUi` binding (`core:game-ui`, collected into `GameEditorRegistry`); the Studio
   holds an `EditorDraft` and feeds `VerdictPipeline`, so adding an editor never touches
-  `feature:create`. Queens, Zip, Tango and Sudoku (Mini) ship their editors; the Strands editor is wired
-  end to end behind `ReleaseFlag.StrandsEditor` (default off). The 9×9 Sudoku editor is debug-only.
+  `feature:create`. Queens, Zip, Tango, Sudoku (Mini) and Strands ship their editors, with no release flag
+  gating the New puzzle sheet. The 9×9 Sudoku editor is debug-only.
 - **`DraftRepository`** (`core:data`) — the draft store over Room `drafts`; drafts persist
   as the editor's versioned blob, autosaved by `DraftAutosave`.
 - **`EditorNotation` / `NotationText`** (`core:game`, 00-interfaces §2.1/§2.8) — the text

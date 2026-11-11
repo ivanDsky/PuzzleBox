@@ -36,7 +36,8 @@ class DebugReleaseFlagsBindingTest {
     fun `a stored override named for a deleted flag is ignored`() {
         val context = RuntimeEnvironment.getApplication()
         context.getSharedPreferences("release_flags", android.content.Context.MODE_PRIVATE)
-            .edit().putBoolean("ZipEditor", false).putBoolean("TangoEditor", false).putBoolean("SudokuEditor", false).commit()
+            .edit().putBoolean("ZipEditor", false).putBoolean("TangoEditor", false).putBoolean("SudokuEditor", false)
+            .putBoolean("StrandsEditor", false).commit()
 
         val flags = DebugReleaseFlags(context)
 

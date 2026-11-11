@@ -6,7 +6,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.strands.Coord
@@ -21,7 +20,7 @@ import com.ivandsky.puzzlebox.model.PlaySlot
  * friend drags letter to letter on the board, plus three dictionary words off the theme
  * ([NON_THEME]) the friend can tap in to earn a hint.
  */
-object StrandsWoods : FriendGame("Strands", listOf(ReleaseFlag.StrandsEditor)) {
+object StrandsWoods : FriendGame("Strands") {
     const val BOARD = "strands.board"
     private const val ROWS = 8
     private const val COLS = 6
