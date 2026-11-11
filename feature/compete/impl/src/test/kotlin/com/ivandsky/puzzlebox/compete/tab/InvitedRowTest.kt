@@ -47,6 +47,7 @@ class InvitedRowTest {
         opponent = Player(uid = "uid-jonas", name = "Jonas", photoUrl = null),
         kind = DuelRowKind.Invited,
         legsDone = 0,
+        theirDone = 0,
         legs = 3,
         deadline = Instant.parse("2026-11-10T12:00:00Z"),
     )

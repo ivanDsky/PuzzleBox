@@ -23,6 +23,8 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Icon
@@ -159,6 +161,24 @@ object PuzzleIcons {
 
     /** Share a result or invite: the share glyph from the core set. */
     val Share: ImageVector = Icons.Rounded.Share
+
+    /** A duel invite: the envelope from the core set. */
+    val Mail: ImageVector = Icons.Rounded.Email
+
+    /** A duel waiting on my move: the play triangle from the core set. */
+    val Play: ImageVector = Icons.Rounded.PlayArrow
+
+    /** A duel waiting on the other player: `hourglass_empty`. */
+    val Hourglass: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_hourglass_empty)
+
+    /** Time left: `schedule`, a clock face. */
+    val Clock: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_schedule)
+
+    /** A drawn duel: `equal`. */
+    val Equals: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_equal)
 }
 
 private const val PREVIEW_COLUMNS = 4
@@ -213,6 +233,11 @@ internal fun PuzzleIconsPreview() {
             "Copy" to PuzzleIcons.Copy,
             "Trophy" to PuzzleIcons.Trophy,
             "Share" to PuzzleIcons.Share,
+            "Mail" to PuzzleIcons.Mail,
+            "Play" to PuzzleIcons.Play,
+            "Hourglass" to PuzzleIcons.Hourglass,
+            "Clock" to PuzzleIcons.Clock,
+            "Equals" to PuzzleIcons.Equals,
         )
         Column(
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.md),
