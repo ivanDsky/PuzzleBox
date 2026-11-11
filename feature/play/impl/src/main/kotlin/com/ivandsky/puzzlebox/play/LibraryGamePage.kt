@@ -9,6 +9,8 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.play.linkedin.LinkedInCardSlot
+import com.ivandsky.puzzlebox.play.linkedin.LinkedInCardState
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.launch
@@ -18,6 +20,7 @@ import kotlinx.coroutines.launch
  * game's calendar (another game's is ignored) and [month] the one it asked for (null = today's);
  * on the phone a picked day scrolls the page up to the day card. [onBack] is the phone's back row.
  * [showGameBoard] adds the game's leaderboard; an [onOpenGameHistory] adds the "Your history" row.
+ * A non-null [linkedIn] puts the LinkedIn lines on the day card, which collects them while it is shown.
  */
 @Composable
 internal fun LibraryGamePage(
@@ -34,6 +37,7 @@ internal fun LibraryGamePage(
     hasLesson: Boolean,
     showGameBoard: Boolean = false,
     onOpenGameHistory: (() -> Unit)? = null,
+    linkedIn: LinkedInCardState? = null,
 ) {
     val game = row.card.game
     val shown = page?.takeIf { it.game == game }
@@ -55,6 +59,7 @@ internal fun LibraryGamePage(
                 onPlay = { onPlay(game, past?.date) },
                 onRetry = onRetry,
                 onBackToToday = calendar.onBackToToday,
+                linkedIn = linkedIn?.let { card -> { LinkedInCardSlot(card, row) } },
             )
         },
         calendar = {
