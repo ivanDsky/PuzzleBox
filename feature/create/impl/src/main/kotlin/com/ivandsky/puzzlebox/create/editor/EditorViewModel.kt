@@ -91,7 +91,7 @@ class EditorViewModel(
     )
 
     /** The draft's title, rename, duplicate and delete. */
-    val meta = DraftMeta(key.draftId, copyDraft, viewModelScope, locked = { published }) { title -> lastStored?.let { write(it.copy(title = title)) } }
+    val meta = DraftMeta(key.draftId, copyDraft, viewModelScope, locked = { published }, otherTitles = { drafts.observeAll().first().mapTo(HashSet()) { it.title } }) { title -> lastStored?.let { write(it.copy(title = title)) } }
 
     /** The required test solve: its sandbox, the test valid for the board, and the clear toast. */
     val testSolve = TestSolveSession(key.draftId, plays, games, dispatchers, viewModelScope) { test -> lastStored?.let { write(it.copy(testSolve = test)) } }

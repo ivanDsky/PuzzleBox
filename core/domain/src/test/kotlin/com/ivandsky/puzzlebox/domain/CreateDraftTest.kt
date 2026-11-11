@@ -15,14 +15,17 @@ import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import java.time.Instant
+import kotlin.random.Random
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** A new draft is a blank board of the asked variant, stored under the next free "Untitled" title. */
+/** A new draft is a blank board of the asked variant, stored under a random codename no other draft has. */
 class CreateDraftTest {
 
     private val drafts = FakeDraftRepository()
@@ -33,6 +36,7 @@ class CreateDraftTest {
         drafts = drafts,
         newId = { "draft-${++ids}" },
         clock = { now },
+        random = Random(5),
     )
 
     @Test
@@ -45,7 +49,7 @@ class CreateDraftTest {
         assertEquals(SMALL, created.variant)
         assertEquals(FakeEditor.draftFormatVersion, created.draftFormatVersion)
         assertArrayEquals(byteArrayOf(3), created.blob)
-        assertEquals("Untitled Alpha", created.title)
+        assertEquals(ComputeCodename()(Random(5), emptySet()), created.title)
         assertEquals(now, created.updatedAt)
         assertNull(created.testSolve)
         assertNull(created.reservedCode)
@@ -55,14 +59,31 @@ class CreateDraftTest {
     }
 
     @Test
-    fun `titles take the smallest free number per game`() = runTest {
-        assertEquals("Untitled Alpha", createDraft(alpha, SMALL).title)
-        assertEquals("Untitled Alpha 2", createDraft(alpha, SMALL).title)
-        assertEquals("Untitled Alpha 3", createDraft(alpha, SMALL).title)
-        drafts.delete("draft-2")
+    fun `a codename is Adjective Noun`() = runTest {
+        assertTrue(Regex("[A-Z][a-z]+ [A-Z][a-z]+").matches(createDraft(alpha, SMALL).title))
+    }
 
-        assertEquals("Untitled Alpha 2", createDraft(alpha, SMALL).title)
-        assertEquals("Untitled Beta", createDraft(beta, SMALL).title)
+    @Test
+    fun `a new draft never takes an existing draft's title`() = runTest {
+        val titles = List(30) { createDraft(alpha, SMALL).title }
+
+        assertEquals(titles.size, titles.toSet().size)
+    }
+
+    @Test
+    fun `the title it would pick is skipped when another draft has it`() = runTest {
+        val wanted = ComputeCodename()(Random(5), emptySet())
+        createDraft(alpha, SMALL)
+
+        val second = CreateDraft(
+            registry = GameRegistry(listOf(withEditor(alpha))),
+            drafts = drafts,
+            newId = { "other" },
+            clock = { now },
+            random = Random(5),
+        )(alpha, SMALL)
+
+        assertNotEquals(wanted, second.title)
     }
 
     /** A board of `size` blank cells, encoded as its one size byte. */

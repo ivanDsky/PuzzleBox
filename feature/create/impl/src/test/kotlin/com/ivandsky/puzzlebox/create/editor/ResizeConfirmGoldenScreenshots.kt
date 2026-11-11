@@ -72,6 +72,7 @@ abstract class ResizeConfirmGoldenScreenshots(private val layout: PlayLayout, pr
             layout = layout,
             onBack = {},
             onRename = {},
+            onRollTitle = { "Amber Falcon" },
             onDuplicate = {},
             onDelete = {},
             board = { boardModifier ->

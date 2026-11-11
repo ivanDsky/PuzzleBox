@@ -111,6 +111,18 @@ class StudioTopBarTest {
     }
 
     @Test
+    fun `the dice fills the field with a codename that Save stores`() {
+        open()
+        openRename()
+
+        composeRule.onNodeWithTag(DICE).performClick()
+        composeRule.onNodeWithTag(SAVE).assertIsEnabled()
+        composeRule.onNodeWithTag(SAVE).performClick()
+
+        awaitTrue { drafts.rows[DRAFT_ID]?.title?.matches(CODENAME) == true }
+    }
+
+    @Test
     fun `the overflow's rename item opens the rename sheet`() {
         open()
 
@@ -220,6 +232,8 @@ class StudioTopBarTest {
         const val RENAME_SHEET = "create.rename.sheet"
         const val FIELD = "create.rename.field"
         const val SAVE = "create.rename.save"
+        const val DICE = "create.rename.dice"
+        val CODENAME = Regex("[A-Z][a-z]+ [A-Z][a-z]+")
         const val SNACKBAR = "create.snackbar"
 
         fun storedRow(blob: ByteArray) = Draft(

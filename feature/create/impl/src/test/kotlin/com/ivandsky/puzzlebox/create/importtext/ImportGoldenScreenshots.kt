@@ -179,6 +179,7 @@ abstract class ImportGoldenScreenshots(private val layout: PlayLayout, private v
             layout = layout,
             onBack = {},
             onRename = {},
+            onRollTitle = { "Amber Falcon" },
             onDuplicate = {},
             onDelete = {},
             board = { boardModifier ->

@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -31,13 +33,14 @@ import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import kotlinx.coroutines.launch
 
 /**
  * Rename (02 handoff "Dialogs › Rename"): a field holding the current [title], all selected, a
- * `{len}/60` counter, Cancel ([onDismiss]) and Save ([onSave] with the trimmed title), which
+ * `{len}/60` counter, a dice button that fills the field with a fresh [onRoll] codename, Cancel ([onDismiss]) and Save ([onSave] with the trimmed title), which
  * is enabled only for 1–[Draft.TITLE_MAX] characters (spec A25); over the cap the counter
  * turns the error colour.
  *
@@ -49,6 +52,7 @@ fun RenameSheet(
     title: String,
     onSave: (String) -> Unit,
     onDismiss: () -> Unit,
+    onRoll: suspend () -> String,
     modifier: Modifier = Modifier,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -65,19 +69,21 @@ fun RenameSheet(
             title = title,
             onSave = { next -> hideThen { onSave(next) } },
             onCancel = { hideThen(onDismiss) },
+            onRoll = onRoll,
             autoFocus = true,
         )
     }
 }
 
 @Composable
-private fun RenameContent(title: String, onSave: (String) -> Unit, onCancel: () -> Unit, autoFocus: Boolean) {
+private fun RenameContent(title: String, onSave: (String) -> Unit, onCancel: () -> Unit, onRoll: suspend () -> String, autoFocus: Boolean) {
     var field by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue(title, selection = TextRange(0, title.length)))
     }
     val length = field.text.trim().length
     val valid = DraftMeta.isValidTitle(field.text)
     val focus = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
     if (autoFocus) LaunchedEffect(Unit) { focus.requestFocus() }
     Column(
         modifier = Modifier
@@ -96,6 +102,14 @@ private fun RenameContent(title: String, onSave: (String) -> Unit, onCancel: () 
             onValueChange = { field = it },
             modifier = Modifier.fillMaxWidth().focusRequester(focus).testTag("create.rename.field"),
             singleLine = true,
+            trailingIcon = {
+                IconButton(
+                    onClick = { scope.launch { field = onRoll().let { TextFieldValue(it, selection = TextRange(it.length)) } } },
+                    modifier = Modifier.testTag("create.rename.dice"),
+                ) {
+                    Icon(PuzzleIcons.Dice, contentDescription = "Suggest a name")
+                }
+            },
             isError = length > Draft.TITLE_MAX,
             supportingText = {
                 Text(
@@ -122,7 +136,7 @@ private fun RenameContent(title: String, onSave: (String) -> Unit, onCancel: () 
 @Composable
 private fun RenameSheetPreview() {
     PuzzleBoxTheme {
-        RenameSheet(title = "Castle", onSave = {}, onDismiss = {})
+        RenameSheet(title = "Castle", onSave = {}, onDismiss = {}, onRoll = { "Amber Falcon" })
     }
 }
 
@@ -131,7 +145,7 @@ private fun RenameSheetPreview() {
 @Composable
 private fun RenameContentPreview() {
     PuzzleBoxTheme {
-        RenameContent(title = "Castle", onSave = {}, onCancel = {}, autoFocus = false)
+        RenameContent(title = "Castle", onSave = {}, onCancel = {}, onRoll = { "Amber Falcon" }, autoFocus = false)
     }
 }
 
@@ -140,6 +154,6 @@ private fun RenameContentPreview() {
 @Composable
 private fun RenameContentTooLongPreview() {
     PuzzleBoxTheme {
-        RenameContent(title = "x".repeat(Draft.TITLE_MAX + 1), onSave = {}, onCancel = {}, autoFocus = false)
+        RenameContent(title = "x".repeat(Draft.TITLE_MAX + 1), onSave = {}, onCancel = {}, onRoll = { "Amber Falcon" }, autoFocus = false)
     }
 }
