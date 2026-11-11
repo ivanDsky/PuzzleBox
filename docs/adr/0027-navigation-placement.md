@@ -1,6 +1,6 @@
 # ADR-0027 — Navigation placement: one owner per content type
 
-Date: 2026-11-09 · Status: accepted · Source: `.scratch/nav-ia/spec.md` (A1–A19) · Amended by ADR-0028 (§2 owner table gains the row "LinkedIn connection | Settings | —") · Amended 2026-11-10 by the re-gate fixes F1–F8 (§2, §3, §4, §11, §12)
+Date: 2026-11-09 · Status: accepted · Source: `.scratch/nav-ia/spec.md` (A1–A19) · Amended by ADR-0028 (§2 owner table gains the row "LinkedIn connection | Profile (Accounts list) | —") · Amended 2026-11-10 by the re-gate fixes F1–F8 (§2, §3, §4, §11, §12)
 
 ## Context
 The app grew screen by screen. Stats show on five screens, boards on four and the week strip on two, so no screen is
@@ -32,7 +32,7 @@ becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag w
    | Drafts and published | Create | — |
    | Identity and sign in/out | Profile (opened by the avatar) | A signed-out prompt *in place* on identity-gated owners |
    | Settings: Appearance, About (version), Developer (debug: Catalog) | Settings (opened by Profile's top-right gear) | — |
-   | LinkedIn connection (link state, Resume, Disconnect) | Settings (opened by Profile's top-right gear) | — |
+   | LinkedIn connection (link state, Resume, Disconnect) | Profile (Accounts list) | — |
 
    A section inside a tab (the update pill) is a valid home. History (what I played) and Archive (play a past day) are
    two content types with two owners, cross-linked by one row each.
