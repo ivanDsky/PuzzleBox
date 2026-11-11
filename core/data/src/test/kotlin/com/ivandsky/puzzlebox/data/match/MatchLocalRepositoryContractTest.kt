@@ -14,6 +14,7 @@ import kotlinx.coroutines.withTimeout
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -111,10 +112,15 @@ class MatchLocalRepositoryContractTest(private val adapter: String) {
     }
 
     @Test
-    fun `markRevealSeen is a no-op for an unknown code`() = runTest {
+    fun `markRevealSeen remembers a duel this device never stored as a participant`() = runTest {
         repository.markRevealSeen(A, Instant.ofEpochMilli(5_000L), 2, 1)
 
-        assertTrue(repository.observeAll().first().isEmpty())
+        val row = only()
+        assertEquals(LocalRole.Participant, row.role)
+        assertEquals(Instant.ofEpochMilli(5_000L), row.revealSeenAt)
+        assertEquals(2, row.myScore)
+        assertEquals(1, row.theirScore)
+        assertFalse(row.dismissed)
     }
 
     @Test

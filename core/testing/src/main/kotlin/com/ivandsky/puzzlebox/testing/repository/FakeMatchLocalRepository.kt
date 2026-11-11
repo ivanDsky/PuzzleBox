@@ -39,12 +39,15 @@ class FakeMatchLocalRepository(private val clock: () -> Instant = Instant::now) 
     }
 
     override suspend fun markRevealSeen(code: ShareCode, at: Instant, myScore: Int, theirScore: Int) {
-        edit(code) {
-            if (it.revealSeenAt == null) {
-                it.copy(revealSeenAt = at.truncatedTo(ChronoUnit.MILLIS), myScore = myScore, theirScore = theirScore)
+        val stamp = at.truncatedTo(ChronoUnit.MILLIS)
+        store.update { rows ->
+            val old = rows[code] ?: LocalMatch(code, LocalRole.Participant, null, stamp, null, false)
+            val next = if (old.revealSeenAt == null) {
+                old.copy(revealSeenAt = stamp, myScore = myScore, theirScore = theirScore)
             } else {
-                it
+                old
             }
+            rows + (code to next)
         }
     }
 
