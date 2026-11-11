@@ -273,7 +273,22 @@ match closed at `2026-11-07T06:00:00Z`.
 | deny | create | `matches/D7K2QX/results/1_bob` | bob | post without its progress in the same write |
 | deny | create | `matches/D7K2QX/results/1_bob` | bob | post on a cancelled match |
 | deny | create | `matches/D7K2QX/results/1_bob` | bob | an extra field |
+| deny | create | `matches/D7K2QX/results/1_bob` | bob | replay as a string |
 | deny | delete | `matches/D7K2QX/results/1_bob` | bob | owner deletes a result |
+
+`replay` is optional bytes of at most 12 288. The Rules Test API takes request data as JSON and cannot send a
+bytes value, so these rows are checked on the Firestore emulator instead (2026-11-11, seven fields plus
+`replay`, one commit with the progress write, bob):
+
+| Expect | Case |
+|---|---|
+| allow | the old seven fields, no `replay` |
+| allow | `replay` of 12 288 bytes |
+| allow | `replay` of 0 bytes |
+| deny | `replay` of 12 289 bytes |
+| deny | `replay` as null |
+| deny | `replay` as an int |
+| deny | `replay` of 10 bytes beside another unknown key |
 
 ## results (sealed read)
 
@@ -316,8 +331,8 @@ match closed at `2026-11-07T06:00:00Z`.
 
 ## Last run
 
-2026-11-09, local `firestore.rules` after the duel rules (`matches`, `results`, `matchQuota`; not deployed;
-the run uses the local source on the Rules Test API): **212 cases, 212/212 passed**, exit 0.
+2026-11-11, local `firestore.rules` with the optional result `replay` (not deployed;
+the run uses the local source on the Rules Test API): **213 cases, 213/213 passed**, exit 0.
 
 ```
 PASS  ALLOW  [puzzles] anonymous get of a puzzle
@@ -510,6 +525,7 @@ PASS  DENY  [results (create)] completedAtMs 0
 PASS  DENY  [results (create)] post without its progress in the same write
 PASS  DENY  [results (create)] post on a cancelled match
 PASS  DENY  [results (create)] an extra field
+PASS  DENY  [results (create)] replay as a string
 PASS  DENY  [results (create)] owner deletes a result
 PASS  ALLOW  [results (sealed read)] owner reads own result
 PASS  DENY  [results (sealed read)] opponent reads before posting own leg
@@ -532,5 +548,5 @@ PASS  DENY  [matchQuota] owner deletes the quota
 PASS  DENY  [deny-all] signed-in read of an unmatched path
 PASS  DENY  [deny-all] signed-in write of an unmatched path
 PASS  DENY  [deny-all] signed-in read of a puzzle's unknown subcollection
-212/212 passed
+213/213 passed
 ```
