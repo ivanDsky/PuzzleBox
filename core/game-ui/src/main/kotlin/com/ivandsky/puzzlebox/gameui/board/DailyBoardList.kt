@@ -7,10 +7,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.RankOrder
 
 private val DividerHeight = 1.dp
@@ -20,6 +22,11 @@ private val DividerHeight = 1.dp
  * divider when it is outside them. One list for every board, so the game page and the play screen's times card draw
  * the same rows. A list whose places differ from the PuzzleBox ranks (connections among the rows, or a row at a
  * LinkedIn time) names each row's PuzzleBox rank.
+ *
+ * With [animated] a row whose place changes slides to it, an arriving row fades and expands in and a leaving one fades
+ * and shrinks out, the pinned row and its divider too; under reduced motion every change lands at once. Rows are the
+ * same rows by their player or connection, never by place, and by the [day] they belong to: another day's rows leave
+ * and arrive, they do not slide into one another's places. Without [animated] the list is drawn plainly.
  */
 @Composable
 fun DailyBoardList(
@@ -27,19 +34,20 @@ fun DailyBoardList(
     order: RankOrder,
     modifier: Modifier = Modifier,
     pinned: DailyBoardLine.Real? = null,
+    animated: Boolean = false,
+    day: String? = null,
 ) {
-    if (lines.isEmpty() && pinned == null) return
     val withPuzzleBoxRank = (lines + listOfNotNull(pinned)).placesDifferFromPuzzleBox()
+    if (animated && !(rememberReducedMotion() || LocalInspectionMode.current)) {
+        AnimatedBoardList(boardKeys(lines, day, pinned != null), lines + listOfNotNull(pinned), pinned != null, order, withPuzzleBoxRank, modifier)
+        return
+    }
+    if (lines.isEmpty() && pinned == null) return
     Column(modifier.fillMaxWidth().testTag("daily_board.list"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        lines.forEach {
-            when (it) {
-                is DailyBoardLine.Real -> DailyBoardRow(it.row, order, place = it.place, showPuzzleBoxRank = withPuzzleBoxRank)
-                is DailyBoardLine.Ghost -> GhostRow(it.row, it.place, order)
-            }
-        }
+        lines.forEach { BoardLine(it, order, withPuzzleBoxRank) }
         pinned?.let {
             HorizontalDivider()
-            Box(Modifier.testTag("leaderboard.you")) { DailyBoardRow(it.row, order, place = it.place, showPuzzleBoxRank = withPuzzleBoxRank) }
+            Box(Modifier.testTag("leaderboard.you")) { BoardLine(it, order, withPuzzleBoxRank) }
         }
     }
 }

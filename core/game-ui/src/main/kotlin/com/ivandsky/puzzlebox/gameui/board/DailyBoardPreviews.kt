@@ -18,15 +18,15 @@ import com.ivandsky.puzzlebox.game.RankOrder
 private const val TabletSpec = "spec:width=1280dp,height=800dp,dpi=240"
 
 private val Rows = listOf(
-    DailyBoardRowModel(1, "Maya", 62_000L, 0, isSelf = false),
-    DailyBoardRowModel(2, "You", 75_000L, 1, isSelf = true),
-    DailyBoardRowModel(3, "Jonas", 131_000L, 3, isSelf = false),
+    DailyBoardRowModel(1, "Maya", 62_000L, 0, isSelf = false, playerId = "maya"),
+    DailyBoardRowModel(2, "You", 75_000L, 1, isSelf = true, playerId = "you"),
+    DailyBoardRowModel(3, "Jonas", 131_000L, 3, isSelf = false, playerId = "jonas"),
 )
 
 private val StrandsRows = listOf(
-    DailyBoardRowModel(1, "Maya", 252_000L, 0, isSelf = false),
-    DailyBoardRowModel(2, "You", 185_000L, 2, isSelf = true),
-    DailyBoardRowModel(3, "Jonas", 90_000L, 4, isSelf = false),
+    DailyBoardRowModel(1, "Maya", 252_000L, 0, isSelf = false, playerId = "maya"),
+    DailyBoardRowModel(2, "You", 185_000L, 2, isSelf = true, playerId = "you"),
+    DailyBoardRowModel(3, "Jonas", 90_000L, 4, isSelf = false, playerId = "jonas"),
 )
 
 private val Ghosts = listOf(
@@ -57,13 +57,13 @@ internal fun DailyBoardPinnedPreview() = Padded {
         RankOrder.TimeThenHints,
         DailyBoardState.Ranked(
             rows = listOf(
-                DailyBoardRowModel(1, "Maya", 62_000L, 0, isSelf = false),
-                DailyBoardRowModel(2, "Jonas", 70_000L, 0, isSelf = false),
-                DailyBoardRowModel(3, "Priya", 81_000L, 1, isSelf = false),
-                DailyBoardRowModel(4, "Sam", 94_000L, 1, isSelf = false),
-                DailyBoardRowModel(5, "Lee", 103_000L, 2, isSelf = false),
+                DailyBoardRowModel(1, "Maya", 62_000L, 0, isSelf = false, playerId = "maya"),
+                DailyBoardRowModel(2, "Jonas", 70_000L, 0, isSelf = false, playerId = "jonas"),
+                DailyBoardRowModel(3, "Priya", 81_000L, 1, isSelf = false, playerId = "priya"),
+                DailyBoardRowModel(4, "Sam", 94_000L, 1, isSelf = false, playerId = "sam"),
+                DailyBoardRowModel(5, "Lee", 103_000L, 2, isSelf = false, playerId = "lee"),
             ),
-            pinned = DailyBoardRowModel(12, "You", 188_000L, 3, isSelf = true),
+            pinned = DailyBoardRowModel(12, "You", 188_000L, 3, isSelf = true, playerId = "you"),
         ),
     )
 }
@@ -160,13 +160,13 @@ internal fun DailyBoardSignedOutGhostsPreview() = Padded {
 @Composable
 internal fun DailyBoardPinnedGhostsPreview() = Padded {
     val rows = listOf(
-        DailyBoardRowModel(1, "Maya", 62_000L, 0, isSelf = false),
-        DailyBoardRowModel(2, "Jonas", 70_000L, 0, isSelf = false),
-        DailyBoardRowModel(3, "Priya", 81_000L, 1, isSelf = false),
-        DailyBoardRowModel(4, "Sam", 94_000L, 1, isSelf = false),
-        DailyBoardRowModel(5, "Lee", 103_000L, 2, isSelf = false),
+        DailyBoardRowModel(1, "Maya", 62_000L, 0, isSelf = false, playerId = "maya"),
+        DailyBoardRowModel(2, "Jonas", 70_000L, 0, isSelf = false, playerId = "jonas"),
+        DailyBoardRowModel(3, "Priya", 81_000L, 1, isSelf = false, playerId = "priya"),
+        DailyBoardRowModel(4, "Sam", 94_000L, 1, isSelf = false, playerId = "sam"),
+        DailyBoardRowModel(5, "Lee", 103_000L, 2, isSelf = false, playerId = "lee"),
     )
-    val pinned = DailyBoardRowModel(6, "You", 188_000L, 3, isSelf = true)
+    val pinned = DailyBoardRowModel(6, "You", 188_000L, 3, isSelf = true, playerId = "you")
     val ghosts = listOf(Ghosts[0], GhostRowModel("ref-noor", "Noor Vale", 150_000L, hintFree = true))
     DailyBoard(
         dailyBoardTitle("Queens"),
@@ -186,6 +186,14 @@ internal fun DailyBoardPinnedGhostsPreview() = Padded {
 internal fun DailyBoardListPreview() = Padded {
     val lines = rankWithGhosts(Rows.take(1) + Rows.drop(2), Ghosts, RankOrder.TimeThenHints)
     DailyBoardList(lines, RankOrder.TimeThenHints, pinned = DailyBoardLine.Real(Rows[1], place = 5))
+}
+
+// The animated list as the LinkedIn account draws it; a preview shows the settled rows, motion needs a device.
+@PuzzleBoxPreviews
+@Composable
+internal fun DailyBoardAnimatedListPreview() = Padded {
+    val lines = rankWithGhosts(Rows.take(1) + Rows.drop(2), Ghosts, RankOrder.TimeThenHints)
+    DailyBoardList(lines, RankOrder.TimeThenHints, pinned = DailyBoardLine.Real(Rows[1], place = 5), animated = true, day = "2026-11-11")
 }
 
 @PuzzleBoxPreviews

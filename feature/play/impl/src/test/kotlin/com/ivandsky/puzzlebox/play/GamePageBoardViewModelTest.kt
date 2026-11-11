@@ -510,7 +510,7 @@ class GamePageBoardViewModelTest {
     private fun settle() = main.testDispatcher.scheduler.runCurrent()
 
     private fun row(name: String) =
-        DailyBoardRowModel(rank = 1, name = name, timeMs = 10_000L, hints = 0, isSelf = false)
+        DailyBoardRowModel(rank = 1, name = name, timeMs = 10_000L, hints = 0, isSelf = false, playerId = name)
 
     private companion object {
         const val HOUR_MS = 3_600_000L

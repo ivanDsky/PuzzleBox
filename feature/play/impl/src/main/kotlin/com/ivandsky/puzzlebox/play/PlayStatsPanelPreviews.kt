@@ -34,7 +34,7 @@ private fun previewWeek(solvedBack: Set<Long>): List<WeekDay> = (6L downTo 0L).m
 }
 
 private fun real(place: Int, name: String, timeMs: Long, hints: Int = 0, you: Boolean = false, rank: Int = place) =
-    DailyBoardLine.Real(DailyBoardRowModel(rank, name, timeMs, hints, isSelf = you), place)
+    DailyBoardLine.Real(DailyBoardRowModel(rank, name, timeMs, hints, isSelf = you, playerId = name), place)
 
 private fun ghost(place: Int, name: String, timeMs: Long, hintFree: Boolean = true) =
     DailyBoardLine.Ghost(GhostRowModel("ref-$name", name, timeMs, hintFree), place)

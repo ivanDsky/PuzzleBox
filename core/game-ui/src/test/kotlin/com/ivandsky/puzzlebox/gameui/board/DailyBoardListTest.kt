@@ -28,7 +28,7 @@ class DailyBoardListTest {
     val composeRule = createComposeRule()
 
     private fun real(rank: Int, place: Int = rank, self: Boolean = false) =
-        DailyBoardLine.Real(DailyBoardRowModel(rank, "Player $rank", rank * 10_000L, 0, self), place)
+        DailyBoardLine.Real(DailyBoardRowModel(rank, "Player $rank", rank * 10_000L, 0, self, playerId = "player-$rank"), place)
 
     private fun ghost(place: Int?) = DailyBoardLine.Ghost(GhostRowModel("ref-$place", "Ada $place", 25_000L, hintFree = true), place)
 

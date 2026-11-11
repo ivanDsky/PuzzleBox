@@ -8,7 +8,7 @@ import org.junit.Test
 /** A LinkedIn time wins: the player's own import replaces the self row's time, a same-name connection replaces its row's. */
 class RankWithLinkedInTest {
     private fun real(rank: Int, name: String, seconds: Int, hints: Int = 0, isSelf: Boolean = false) =
-        DailyBoardRowModel(rank, name, seconds * 1000L, hints, isSelf)
+        DailyBoardRowModel(rank, name, seconds * 1000L, hints, isSelf, playerId = name)
 
     private fun ghost(name: String, seconds: Int?, hintFree: Boolean = true) =
         GhostRowModel("ref-$name", name, seconds?.let { it * 1000L }, hintFree)

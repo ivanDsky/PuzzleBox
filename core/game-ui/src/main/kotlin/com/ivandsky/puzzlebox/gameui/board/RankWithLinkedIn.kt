@@ -7,6 +7,9 @@ import com.ivandsky.puzzlebox.game.linkedin.linkedInTimeWins
 
 private const val UNNAMED_YOU = "You"
 
+// The player's own LinkedIn row has no PuzzleBox uid; one fixed id keeps it the same row from sync to sync.
+private const val LINKEDIN_YOU_ID = "linkedin:you"
+
 /**
  * [rankWithGhosts] once a LinkedIn time wins over the PuzzleBox one (see [linkedInTimeWins]): the player's row, which
  * is this profile's own row, else the row named like their LinkedIn name, else their LinkedIn row added at the end of
@@ -46,7 +49,7 @@ fun rankWithLinkedIn(
     val added = listOfNotNull(
         if (wins.addOwnRow && you?.score != null) {
             val name = you.name?.takeIf { it.isNotBlank() } ?: UNNAMED_YOU
-            DailyBoardRowModel(rows.size + 1, name, you.score.timeMs, you.score.hints, isSelf = true, photo = photo, fromLinkedIn = true, timeFromLinkedIn = true)
+            DailyBoardRowModel(rows.size + 1, name, you.score.timeMs, you.score.hints, isSelf = true, photo = photo, fromLinkedIn = true, timeFromLinkedIn = true, playerId = LINKEDIN_YOU_ID)
         } else {
             null
         },

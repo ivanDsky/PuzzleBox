@@ -74,7 +74,7 @@ internal fun ColumnScope.PlayStatsPanel(
         }
         TodayProgressCard(state)
         StreakCard(state)
-        PlayTimesCard(state.times, signIn = signIn, onSignIn = onSignIn)
+        PlayTimesCard(state.times, signIn = signIn, onSignIn = onSignIn, animated = state.linkedIn)
     }
 }
 
