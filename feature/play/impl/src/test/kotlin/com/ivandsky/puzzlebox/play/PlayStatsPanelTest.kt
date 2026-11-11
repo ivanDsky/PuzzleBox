@@ -69,8 +69,8 @@ import java.time.LocalDate
 
 /**
  * The tablet play side panel (A15) over fake repositories: the live timer, today's set
- * progress, this game's streak with best and average, and today's board with its
- * Top | Near you toggle.
+ * progress, this game's streak with best and average, and today's board: its top rows with the
+ * player's own row pinned under them.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w1280dp-h1600dp")
@@ -190,60 +190,54 @@ class PlayStatsPanelTest {
     }
 
     @Test
-    fun `solved before the own time reaches the board, near you says the time is posting`() {
+    fun `solved before the own time reaches the board, the card says the time is posting under the rows`() {
         val solvedToday = FakeCompletionRepository().apply { setRecords(listOf(record(alpha, day, 40_000L))) }
         val othersOnly = FakeLeaderboardRepository(mapOf(board to (1..3).map { entry("p$it", "Player $it", it * 10_000L) }))
         show(viewModel(completions = solvedToday, leaderboard = othersOnly))
 
-        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
-        composeRule.waitForIdle()
-
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(3)
     }
 
     @Test
-    fun `unsolved, near you asks to finish first`() {
+    fun `unsolved, the card shows the rows and no note about the player's own time`() {
         val othersOnly = FakeLeaderboardRepository(mapOf(board to (1..3).map { entry("p$it", "Player $it", it * 10_000L) }))
         show(viewModel(leaderboard = othersOnly))
 
-        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Finish to see who's near you")
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(3)
+        composeRule.onNodeWithTag("play.stats.times.note").assertDoesNotExist()
     }
 
-    /** Solved, the own row not on the board, the watcher at [status]: the panel on Near you. */
-    private fun showNearYouAwaitingRow(status: SubmitStatus) {
+    /** Solved, the own row not on the board, the watcher at [status]: the panel. */
+    private fun showAwaitingRow(status: SubmitStatus) {
         val solvedToday = FakeCompletionRepository().apply { setRecords(listOf(record(alpha, day, 40_000L))) }
         val othersOnly = FakeLeaderboardRepository(mapOf(board to (1..3).map { entry("p$it", "Player $it", it * 10_000L) }))
         posts.set(me.uid, "${alpha.value}/$day/7", status)
         show(viewModel(completions = solvedToday, leaderboard = othersOnly))
-        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
-        composeRule.waitForIdle()
     }
 
     @Test
     fun `a post in flight says the time is posting`() {
-        showNearYouAwaitingRow(SubmitStatus.Posting)
+        showAwaitingRow(SubmitStatus.Posting)
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Posting your time…")
     }
 
     @Test
     fun `a deferred post says it is saved on this device`() {
-        showNearYouAwaitingRow(SubmitStatus.Deferred)
+        showAwaitingRow(SubmitStatus.Deferred)
         composeRule.onNodeWithTag("play.stats.times.note")
             .assertTextEquals("Saved on this device — it'll post when you're online.")
     }
 
     @Test
     fun `a rejected post says it could not post`() {
-        showNearYouAwaitingRow(SubmitStatus.Rejected)
+        showAwaitingRow(SubmitStatus.Rejected)
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Couldn't post this time.")
     }
 
     @Test
     fun `a posted entry outside the rows says so`() {
-        showNearYouAwaitingRow(SubmitStatus.Posted)
+        showAwaitingRow(SubmitStatus.Posted)
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Your time is posted — outside the top 100.")
     }
 
@@ -255,12 +249,10 @@ class PlayStatsPanelTest {
             mapOf(LeaderboardRef(alpha.value, past) to (1..3).map { entry("p$it", "Player $it", it * 10_000L) }),
         )
         show(viewModel(completions = solvedPast, leaderboard = othersPast, slotDay = past))
-        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
-        composeRule.waitForIdle()
     }
 
     @Test
-    fun `a past day's near you says past days aren't ranked`() {
+    fun `a past day's card says past days aren't ranked`() {
         showPastDayAwaitingRow()
         composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Past days aren't ranked.")
     }
@@ -287,8 +279,6 @@ class PlayStatsPanelTest {
                 ),
             ),
         )
-        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
-        composeRule.waitForIdle()
     }
 
 
@@ -311,48 +301,61 @@ class PlayStatsPanelTest {
     }
 
     @Test
-    fun `top shows the first five with your row pinned, near you shows two either side`() {
+    fun `the card shows no tabs, only the top rows`() {
         show(viewModel())
 
-        // Top: ranks 1-5, then the player's 7th place pinned under them.
-        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(5)
-        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("7")
-        composeRule.onNodeWithText("Player 1").assertExists()
-
-        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
-        composeRule.waitForIdle()
-
-        // Near you: ranks 5-8 (the board ends one below the player).
-        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(3)
-        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.name")).assertTextEquals("You")
-        composeRule.onNodeWithText("Player 5").assertExists()
-        composeRule.onNodeWithText("Player 1").assertDoesNotExist()
-
-        composeRule.onNodeWithTag("play.stats.tab.top").performClick()
-        composeRule.waitForIdle()
-        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(5)
+        composeRule.onAllNodesWithTag("play.stats.tab.top").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("play.stats.tab.near").assertCountEquals(0)
+        composeRule.onNodeWithText("Near you").assertDoesNotExist()
+        composeRule.onNodeWithText("Top").assertDoesNotExist()
     }
 
     @Test
-    fun `connections rank into top and near you by the combined place and are marked as LinkedIn`() {
+    fun `the first five show with your row pinned under them when it ranks lower`() {
+        show(viewModel())
+
+        // Ranks 1-5, then the player's 7th place pinned under them.
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(5)
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("7")
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.name")).assertTextEquals("You")
+        composeRule.onNodeWithTag("leaderboard.you").assertExists()
+        composeRule.onNodeWithText("Player 1").assertExists()
+        composeRule.onNodeWithText("Player 6").assertDoesNotExist()
+    }
+
+    @Test
+    fun `your row is not pinned when it is inside the first five`() {
+        val inside = FakeLeaderboardRepository(
+            mapOf(board to (1..8).map { entry(if (it == 3) "me" else "p$it", "Player $it", it * 10_000L) }),
+        )
+        show(viewModel(leaderboard = inside))
+
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(4)
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("3")
+        composeRule.onAllNodesWithTag("leaderboard.you").assertCountEquals(0)
+    }
+
+    @Test
+    fun `every row on the card has a photo slot, PuzzleBox rows and the player's own alike`() {
+        show(viewModel())
+
+        composeRule.onAllNodesWithTag("daily_board.row.photo").assertCountEquals(6)
+    }
+
+    @Test
+    fun `connections rank into the rows by the combined place and are marked as LinkedIn`() {
         cachedConnections(ghost("Ada Lin", 25), ghost("Cy Park", 65))
         show(viewModel(linkedIn = true))
 
-        // Top: Player 1, 2, Ada (3rd), Player 3, 4, then the player's 9th place pinned under them.
+        // Player 1, 2, Ada (3rd), Player 3, 4, then the player's 9th place pinned under them.
         composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(4)
         composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(1)
         composeRule.onNodeWithTag("daily_board.ghost.name").assertTextEquals("Ada Lin")
         composeRule.onNodeWithTag("daily_board.ghost.rank").assertTextEquals("3")
         composeRule.onNodeWithTag("daily_board.ghost.detail").assertTextContains("LinkedIn", substring = true)
         composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("9")
-
-        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
-        composeRule.waitForIdle()
-
-        // Near you: Player 6, Cy (7th), the player, Player 8.
-        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(2)
-        composeRule.onNodeWithTag("daily_board.ghost.name").assertTextEquals("Cy Park")
-        composeRule.onNodeWithText("Ada Lin").assertDoesNotExist()
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.puzzlebox_rank")).assertTextEquals("#7 on PuzzleBox")
+        composeRule.onNodeWithText("Cy Park").assertDoesNotExist()
     }
 
     @Test
@@ -381,13 +384,12 @@ class PlayStatsPanelTest {
     @Test
     fun `a hinted connection shows its time alone and ranks behind hint free times in a hints first game`() {
         cachedConnections(ghost("Dee Moss", 5, hintFree = false))
-        show(viewModel(linkedIn = true))
-        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
-        composeRule.waitForIdle()
+        val fewTimes = FakeLeaderboardRepository(mapOf(board to (1..3).map { entry("p$it", "Player $it", it * 10_000L) }))
+        show(viewModel(leaderboard = fewTimes, linkedIn = true))
 
-        // Player 8 is last of the hint-free times, so the hinted 0:05 comes after it.
+        // Player 3 is last of the hint-free times, so the hinted 0:05 comes after it.
         composeRule.onNodeWithTag("daily_board.ghost.score").assertTextEquals("0:05")
-        composeRule.onNodeWithTag("daily_board.ghost.rank").assertTextEquals("9")
+        composeRule.onNodeWithTag("daily_board.ghost.rank").assertTextEquals("4")
     }
 
     @Test
