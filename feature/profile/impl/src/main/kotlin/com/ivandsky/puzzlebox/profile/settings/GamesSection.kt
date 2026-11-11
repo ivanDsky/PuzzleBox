@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -13,12 +14,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
- * The Settings Games block: one switch per in-game option, worded as the games' own overflow menus word them.
+ * The Settings Games block: one switch per in-game option under its game's sub-heading, labelled exactly as the game's own overflow menu.
  * Stateless: it draws [state] and reports the new value of the tapped switch.
  */
 @Composable
@@ -33,21 +35,28 @@ internal fun GamesSection(
         modifier = modifier.fillMaxWidth().testTag("settings.games"),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Text(text = "Games", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
-        GameSwitchRow("Queens: Auto-cross", state.queensAutoCross, "settings.games.queens.autocross", onQueensAutoCross)
+        SectionTitle("Games")
+        GameHeading("Queens")
+        GameSwitchRow("Auto-cross", state.queensAutoCross, "settings.games.queens.autocross", onQueensAutoCross)
+        GameHeading("Sudoku")
         GameSwitchRow(
-            "Sudoku: Highlight row, column & box",
+            "Highlight row, column & box",
             state.sudokuPeerHighlight,
             "settings.games.sudoku.peer",
             onSudokuPeerHighlight,
         )
         GameSwitchRow(
-            "Sudoku: Highlight same numbers",
+            "Highlight same numbers",
             state.sudokuSameDigitHighlight,
             "settings.games.sudoku.samedigit",
             onSudokuSameDigitHighlight,
         )
     }
+}
+
+@Composable
+private fun GameHeading(text: String) {
+    Text(text = text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 /** The whole row is the tap target; the switch only shows the state, so a screen reader sees one switch per row. */
@@ -56,6 +65,7 @@ private fun GameSwitchRow(label: String, checked: Boolean, tag: String, onChecke
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .heightIn(min = MinRowHeight)
             .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
             .testTag(tag),
         verticalAlignment = Alignment.CenterVertically,
@@ -65,6 +75,8 @@ private fun GameSwitchRow(label: String, checked: Boolean, tag: String, onChecke
         Switch(checked = checked, onCheckedChange = null)
     }
 }
+
+private val MinRowHeight = 48.dp
 
 @PuzzleBoxPreviews
 @Composable
