@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.editor.QueensAnswerFit
 import com.ivandsky.puzzlebox.games.queens.editor.QueensContiguity
+import com.ivandsky.puzzlebox.games.queens.editor.QueensCrowns
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queensui.QueensBoardDefaults
 import com.ivandsky.puzzlebox.games.queensui.drawQueen
@@ -36,7 +37,7 @@ import kotlinx.coroutines.delay
 
 /**
  * What the editor board flags for the author (prototype 03 b, spec S19): [diff] are the cells
- * two solutions disagree on (a Multiple verdict), [clash] the cells that break a rule (None),
+ * two solutions disagree on (a Multiple verdict), [clash] the cells that break a rule (None) plus every crown clashing with another crown,
  * [split] the stray pieces of regions in more than one piece, [ghosts] the other answer's
  * queens when the author has crowns (40), [witness] the queens of the solution the verdict
  * card shows on a board without crowns (31).
@@ -82,7 +83,7 @@ internal fun rememberQueensDiagnostics(
     val b = overlay.witness == EditorOverlay.Witness.B
     return QueensDiagnostics(
         diff = ambiguous?.movable ?: (verdict as? Verdict.Multiple)?.differingCells.orEmpty(),
-        clash = (verdict as? Verdict.None)?.conflicts.orEmpty(),
+        clash = (verdict as? Verdict.None)?.conflicts.orEmpty() + QueensCrowns.conflicts(board),
         split = settled intersect strays,
         ghosts = when {
             ambiguous == null -> emptySet()

@@ -2,10 +2,10 @@ package com.ivandsky.puzzlebox.games.queens.editor
 
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft.Companion.UNPAINTED
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Answer-crown rules for authoring (flow C, round 6): crossed cells, seeding, refusal, removal. */
+/** Answer-crown rules for authoring (flow C, round 6): crossed cells, conflicts, seeding, removal. */
 class QueensCrownsTest {
 
     private fun blank(size: Int, crowns: Set<Int> = emptySet()) =
@@ -51,10 +51,46 @@ class QueensCrownsTest {
     }
 
     @Test
-    fun `a tap on a crossed cell is refused`() {
+    fun `a tap on a crossed cell still places a crown`() {
         val draft = blank(5, setOf(12))
 
-        for (cell in QueensCrowns.crossed(draft)) assertNull(QueensCrowns.toggle(draft, cell))
+        for (cell in QueensCrowns.crossed(draft)) {
+            val placed = QueensCrowns.toggle(draft, cell)
+            assertEquals(cell, placed.cell)
+            assertTrue(placed.placed)
+            assertEquals(setOf(12, cell), placed.apply(draft).crowns)
+        }
+    }
+
+    @Test
+    fun `a placement with every region id held stays unpainted`() {
+        val regions = List(16) { UNPAINTED }.toMutableList().apply { this[0] = 0; this[1] = 1; this[2] = 2; this[3] = 3 }
+        val draft = QueensDraft(4, regions, setOf(0, 1, 2, 3))
+
+        assertEquals(QueensDraftCommand.Crown(8, placed = true, seed = null), QueensCrowns.toggle(draft, 8))
+    }
+
+    @Test
+    fun `crowns in one row, one column, touching or one region all conflict, both of each pair`() {
+        assertEquals(setOf(0, 3), QueensCrowns.conflicts(blank(4, setOf(0, 3))))
+        assertEquals(setOf(1, 13), QueensCrowns.conflicts(blank(4, setOf(1, 13))))
+        assertEquals(setOf(5, 10), QueensCrowns.conflicts(blank(4, setOf(5, 10))))
+        val oneRegion = QueensDraft(4, List(16) { if (it == 2 || it == 12) 1 else UNPAINTED }, setOf(2, 12))
+        assertEquals(setOf(2, 12), QueensCrowns.conflicts(oneRegion))
+    }
+
+    @Test
+    fun `a crown clear of the others is not in the conflict set and removing one clears the pair`() {
+        val three = blank(5, setOf(0, 1, 23))
+
+        assertEquals(setOf(0, 1), QueensCrowns.conflicts(three))
+        assertEquals(emptySet<Int>(), QueensCrowns.conflicts(blank(5, setOf(1, 23))))
+        assertEquals(emptySet<Int>(), QueensCrowns.conflicts(blank(5)))
+    }
+
+    @Test
+    fun `unpainted crowns share no region`() {
+        assertEquals(emptySet<Int>(), QueensCrowns.conflicts(blank(5, setOf(0, 8, 21))))
     }
 
     @Test
@@ -83,9 +119,9 @@ class QueensCrownsTest {
 
     @Test
     fun `a tap on a crown removes it without a seed and its paint stays`() {
-        val placed = QueensCrowns.toggle(blank(4), 6)!!.apply(blank(4))
+        val placed = QueensCrowns.toggle(blank(4), 6).apply(blank(4))
 
-        val remove = QueensCrowns.toggle(placed, 6)!!
+        val remove = QueensCrowns.toggle(placed, 6)
         val removed = remove.apply(placed)
 
         assertEquals(QueensDraftCommand.Crown(6, placed = false, seed = null), remove)

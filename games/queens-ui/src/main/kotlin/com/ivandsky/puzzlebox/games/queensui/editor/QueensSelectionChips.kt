@@ -22,6 +22,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -30,6 +31,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.tooling.preview.Preview
+import com.ivandsky.puzzlebox.designsystem.LocalDarkTheme
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -37,6 +39,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queensui.LocalQueensReducedMotion
+import com.ivandsky.puzzlebox.games.queensui.QueensRegionPalette
 
 /**
  * The context bar over [controller]'s selection: **Area** spans the first to the last
@@ -50,8 +53,12 @@ internal fun QueensSelectionChips(
     modifier: Modifier = Modifier,
 ) {
     val selection by controller.selection.collectAsState()
+    val draft by controller.draft.collectAsState()
+    val fillRegion = queensFillRegion(draft.state.draft as QueensDraft, selection)
     QueensSelectionChips(
         count = selection.size,
+        fillRegion = fillRegion,
+        onFill = controller::settle,
         onArea = {
             controller.selection.value.let { controller.selectArea(it.first(), it.last()) }
             onGrown(controller.selection.value)
@@ -69,7 +76,7 @@ internal fun QueensSelectionChips(
 /**
  * The context bar under the editor board (prototype 03 b). With nothing selected ([count] 0)
  * it shows the first-timer hint; with a selection, "{k} cells" and the chips **Area**,
- * **All of colour** and **Cancel**. It is always one line of one touch-target height, scrolling
+ * **All of colour** and **Cancel**, plus **Fill** (when [fillRegion] is set) tinted with the queen's region colour, previewing the fill, for a selection holding one queen, which stands in for the colour ring. It is always one line of one touch-target height, scrolling
  * sideways when the board is narrow, never wrapping, so the board above never jumps or shrinks
  * (ledger ruling, 28). The count node says k in its state description.
  */
@@ -80,6 +87,8 @@ internal fun QueensSelectionChips(
     onAllOfColour: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
+    fillRegion: Int? = null,
+    onFill: () -> Unit = {},
 ) {
     // A chip is its label plus padding, at least one touch target; the bar reserves that height
     // with or without chips, so a large font scale cannot make the selection push the board up.
@@ -117,15 +126,26 @@ internal fun QueensSelectionChips(
         )
         // Takes the slack while the line fits (chips to the end); nothing once it scrolls.
         Spacer(Modifier.weight(1f))
+        if (fillRegion != null) {
+            val fill = QueensRegionPalette.fill(fillRegion, LocalDarkTheme.current)
+            val scheme = MaterialTheme.colorScheme
+            ContextChip("Fill", "queens.editor.chip.fill", onFill, fill, QueensRegionPalette.onInkFor(fill, scheme.onSurface, scheme.scrim))
+        }
         ContextChip("Area", "queens.editor.chip.area", onArea)
         ContextChip("All of colour", "queens.editor.chip.allOf", onAllOfColour)
         ContextChip("Cancel", "queens.editor.chip.cancel", onCancel)
     }
 }
 
-/** A pill on `surfaceContainerHigh` with a full touch target and Press / Tap feedback. */
+/** A pill on `surfaceContainerHigh` (or [container]/[content] when given) with a full touch target and Press / Tap feedback. */
 @Composable
-private fun ContextChip(label: String, tag: String, onClick: () -> Unit) {
+private fun ContextChip(
+    label: String,
+    tag: String,
+    onClick: () -> Unit,
+    container: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
+    content: Color = MaterialTheme.colorScheme.onSurface,
+) {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
     val still = LocalQueensReducedMotion.current
@@ -143,8 +163,8 @@ private fun ContextChip(label: String, tag: String, onClick: () -> Unit) {
             }
             .testTag(tag),
         shape = PillShape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        contentColor = MaterialTheme.colorScheme.onSurface,
+        color = container,
+        contentColor = content,
         interactionSource = interaction,
     ) {
         Text(

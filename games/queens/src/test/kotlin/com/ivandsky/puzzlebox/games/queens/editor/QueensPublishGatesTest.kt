@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.queens.editor
 
+import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
@@ -65,6 +66,15 @@ class QueensPublishGatesTest {
         val draft = EditorDraft(QueensEditor, DraftState(SPLIT))
 
         assertEquals(QueensPublishGates.blocks(SPLIT, Verdict.Undetermined), draft.publishBlocks(Verdict.Undetermined))
+    }
+
+    @Test
+    fun `clashing answer crowns leave the gates and the verdict as they were`() {
+        // Cells 6 and 7 touch, share row 1, and sit in one region: every crown rule is broken.
+        val crowned = SPLIT.copy(crowns = setOf(6, 7))
+
+        assertEquals(QueensPublishGates.blocks(SPLIT, Verdict.Undetermined), QueensPublishGates.blocks(crowned, Verdict.Undetermined))
+        assertEquals(SPLIT.let { QueensDraftAnalyzer.analyze(it, Budget.Unlimited) }, QueensDraftAnalyzer.analyze(crowned, Budget.Unlimited))
     }
 
     @Test
