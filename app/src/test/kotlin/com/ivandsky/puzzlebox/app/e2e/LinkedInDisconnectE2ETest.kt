@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import java.time.Duration
+import java.util.concurrent.CompletableFuture
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -57,10 +58,14 @@ class LinkedInDisconnectE2ETest {
             assertEquals("the connections' rows were stored", GHOSTS.size, storedGhosts())
             assertTrue("the link is on disk", linkFileNames(PROFILE_ID))
             // Photos come after the log entry, so the day can be read before the last of them is on disk.
-            awaitLooper { avatarFiles().size == GHOSTS.size }
+            offMain {
+                graph.koin.get<LinkedInDays>().observe(ZipDefinition.id, today)
+                    .first { day -> day.ghosts.size == GHOSTS.size && day.ghosts.all { it.photoPath != null } }
+            }
+            assertEquals("one photo file per connection", GHOSTS.size, avatarFiles().size)
             assertTrue("no photo file is named after a member", avatarFiles().none { "GHOST" in it.name })
 
-            runBlocking { link().disconnect() }
+            offMain { link().disconnect() }
 
             assertTrue("the session cookies are cleared", world.cookies.cleared)
             assertEquals("no connection's row is left", 0, storedGhosts())
@@ -85,6 +90,16 @@ class LinkedInDisconnectE2ETest {
             assertEquals("no photo asked for after the disconnect", photosAsked, world.photos.calls)
             assertTrue("and none stored", avatarFiles().isEmpty())
         }
+    }
+
+    /**
+     * Runs [block] on another thread while this one keeps turning the main looper, so work that needs the
+     * main thread to finish (the day view's collectors, a photo's last step) is never waited on from it.
+     */
+    private fun <T> ShellRobot.offMain(block: suspend () -> T): T {
+        val done = CompletableFuture.supplyAsync { runBlocking { block() } }
+        awaitLooper { done.isDone }
+        return done.get()
     }
 
     private fun ShellRobot.storedGhosts(): Int =

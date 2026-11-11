@@ -78,7 +78,7 @@ class RoomLinkedInDaysSyncTest {
     private fun newDays(
         source: LinkedInAccountSource = this.source,
         budget: LinkedInCallBudget = LinkedInCallBudget({ now }, limit = 100),
-    ) = RoomLinkedInDays(link, source, completions, daily, calendar, TestGames.registry(listOf(zip)), db, budget, avatars) { now }
+    ) = RoomLinkedInDays(link, source, completions, daily, calendar, TestGames.registry(listOf(zip)), db, budget, avatars, LinkedInStoreLock()) { now }
 
     private fun number(day: LocalDate): Int = 700 + ChronoUnit.DAYS.between(EPOCH, day).toInt()
 
@@ -160,6 +160,20 @@ class RoomLinkedInDaysSyncTest {
         assertEquals(LinkState.Paused("me", Kind.SessionExpired), link.state.first())
         assertEquals(LinkedInSync.Paused(Kind.SessionExpired), days.sync(zip, day))
         assertEquals(listOf(ownCall(day)), source.calls)
+    }
+
+    @Test
+    fun `a session no request can be built from pauses the link as unexpected and later views ask nothing`() = runTest {
+        val day = ago(3)
+        // What the account source answers for a session whose header OkHttp refuses to send.
+        respondOwn(day, LinkedInRead.Rejected(Kind.Unexpected))
+        respondBoard(day)
+
+        assertEquals(LinkedInSync.Paused(Kind.Unexpected), days.sync(zip, day))
+        assertEquals(LinkState.Paused("me", Kind.Unexpected), link.state.first())
+        assertEquals(LinkedInSync.Paused(Kind.Unexpected), days.sync(zip, day))
+        assertEquals(listOf(ownCall(day)), source.calls)
+        assertEquals(emptyList<Any>(), imports())
     }
 
     @Test

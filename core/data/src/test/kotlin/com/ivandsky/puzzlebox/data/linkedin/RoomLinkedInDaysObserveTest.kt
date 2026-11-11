@@ -78,7 +78,7 @@ class RoomLinkedInDaysObserveTest {
     private fun newDays(
         source: LinkedInAccountSource = this.source,
         budget: LinkedInCallBudget = LinkedInCallBudget({ now }, limit = 100),
-    ) = RoomLinkedInDays(link, source, completions, daily, calendar, registry, db, budget, avatars) { now }
+    ) = RoomLinkedInDays(link, source, completions, daily, calendar, registry, db, budget, avatars, LinkedInStoreLock()) { now }
 
     private fun number(day: LocalDate): Int = 700 + ChronoUnit.DAYS.between(EPOCH, day).toInt()
 

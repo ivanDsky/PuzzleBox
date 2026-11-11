@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInAvatars
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInCallBudget
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInStoreLock
 import com.ivandsky.puzzlebox.data.linkedin.RoomLinkedInAccount
 import com.ivandsky.puzzlebox.data.linkedin.RoomLinkedInDays
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
@@ -43,7 +44,14 @@ import com.ivandsky.puzzlebox.datastore.di.datastoreModule
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.network.di.networkModule
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import org.koin.dsl.onClose
+
+private val LinkedInPhotoScope = named("data.linkedin_photos.scope")
 
 /**
  * Game-agnostic data wiring. Games plug in through Koin, never through this module:
@@ -92,14 +100,20 @@ val dataModule = module {
     // The LinkedIn budget is one instance for the process, so every day shares the same per-minute window.
     single { LinkedInCallBudget(nowMs = System::currentTimeMillis) }
     // Photos live in noBackupFilesDir: Auto Backup and device transfer never carry a connection's face.
+    // Photos are downloaded after a board is stored and must outlive the day view that asked for them.
+    single(LinkedInPhotoScope) { CoroutineScope(get<DispatcherProvider>().io + SupervisorJob()) } onClose { it?.cancel() }
     single {
-        LinkedInAvatars(File(get<Context>().noBackupFilesDir, "linkedin_avatars"), get(), get<DispatcherProvider>().io)
+        LinkedInAvatars(
+            File(get<Context>().noBackupFilesDir, "linkedin_avatars"), get(), get<DispatcherProvider>().io, get(LinkedInPhotoScope),
+        )
     }
-    single<LinkedInLink> { DataStoreLinkedInLink(get(), get(), get(), get()) }
+    // One lock for the process: a sync's stores and a disconnect's wipe are never interleaved.
+    single { LinkedInStoreLock() }
+    single<LinkedInLink> { DataStoreLinkedInLink(get(), get(), get(), get(), get()) }
     single<LinkedInDays> {
         RoomLinkedInDays(
             link = get(), source = get(), completions = get(), daily = get(), calendar = get(),
-            registry = get(), db = get(), budget = get(), avatars = get(), clock = System::currentTimeMillis,
+            registry = get(), db = get(), budget = get(), avatars = get(), storeLock = get(), clock = System::currentTimeMillis,
         )
     }
     single<LinkedInAccount> { RoomLinkedInAccount(link = get(), db = get(), avatars = get()) }
