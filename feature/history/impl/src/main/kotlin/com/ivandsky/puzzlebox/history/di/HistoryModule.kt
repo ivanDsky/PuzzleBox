@@ -8,8 +8,9 @@ import org.koin.dsl.module
 /**
  * History feature wiring: the use cases come from :core:domain's domainModule, the
  * [com.ivandsky.puzzlebox.game.GameRegistry] and the game brands
- * ([com.ivandsky.puzzlebox.gameui.GamePlayRegistry]) from the app's aggregation (ADR-0001).
+ * ([com.ivandsky.puzzlebox.gameui.GamePlayRegistry]) from the app's aggregation (ADR-0001);
+ * the optional [com.ivandsky.puzzlebox.data.cloud.CloudSync] is resolved with getOrNull (unbound = no restoring state).
  */
 val historyModule = module {
-    viewModel { (key: HistoryKey) -> HistoryViewModel(get(), get(), get(), get(), get(), key) }
+    viewModel { (key: HistoryKey) -> HistoryViewModel(get(), get(), get(), get(), get(), getOrNull(), key) }
 }

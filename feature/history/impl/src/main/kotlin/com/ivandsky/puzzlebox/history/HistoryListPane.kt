@@ -85,7 +85,7 @@ internal fun ListPane(
             }
         }
         if (empty) {
-            emptyItem(cardColor)
+            emptyItem(cardColor, restoring = state.restoring)
             return@LazyColumn
         }
         // Stats and the calendar are always items 1 and 2 (rows start at 3), filled once they load.
@@ -174,8 +174,8 @@ internal fun ListPane(
     }
 }
 
-/** The tab's "Nothing here yet" card. */
-private fun LazyListScope.emptyItem(cardColor: Color) {
+/** The tab's "Nothing here yet" card; while the first cloud [restoring] runs, the history is coming back instead (A34). */
+private fun LazyListScope.emptyItem(cardColor: Color, restoring: Boolean) {
     item(key = "empty") {
         Surface(
             modifier = Modifier
@@ -184,11 +184,19 @@ private fun LazyListScope.emptyItem(cardColor: Color) {
             shape = MaterialTheme.shapes.large,
             color = cardColor,
         ) {
-            EmptyState(
-                title = "Nothing here yet",
-                message = "Solve a puzzle and it shows up here.",
-                modifier = Modifier.testTag("history.empty"),
-            )
+            if (restoring) {
+                EmptyState(
+                    title = "Bringing back your history…",
+                    message = "Your solved days will show up here in a moment.",
+                    modifier = Modifier.testTag("history.restoring"),
+                )
+            } else {
+                EmptyState(
+                    title = "Nothing here yet",
+                    message = "Solve a puzzle and it shows up here.",
+                    modifier = Modifier.testTag("history.empty"),
+                )
+            }
         }
     }
 }
