@@ -12,7 +12,7 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * Settings' DI-bound entry point. [onOpenCatalog] is offered only in debuggable builds
- * (the catalog is a debug tool), with the same check Profile uses. A non-null [onConnectLinkedIn]
+ * (the catalog is a debug tool). A non-null [onConnectLinkedIn]
  * (the shell's LinkedIn switch) opens the LinkedIn block and makes the view model resolve the link;
  * null resolves nothing LinkedIn.
  */

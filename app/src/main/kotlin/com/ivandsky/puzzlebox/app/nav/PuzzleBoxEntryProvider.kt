@@ -105,7 +105,6 @@ internal fun puzzleBoxEntryProvider(
     profileEntry(
         onOpenCatalog = { navigator.push(CatalogKey) },
         onBack = back,
-        onProfileBack = back,
         onOpenSettings = { navigator.pushOnce(SettingsKey) },
         onOpenLinkedInLogin = { navigator.pushOnce(LinkedInLoginKey) }.takeIf { linkedIn },
     )
