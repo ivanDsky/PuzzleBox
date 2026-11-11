@@ -15,24 +15,14 @@ import org.koin.dsl.module
 
 /**
  * Profile feature wiring: ProfileRoute's koinViewModel(). The sign-in seam comes from
- * authModule, the use cases from domainModule; the GameRegistry, the per-game brands
- * (GamePlayRegistry) and UserPreferencesRepository come from the app graph; the
- * SavedStateHandle (the board pick, first in the repo) is injected by Koin's viewModel scope.
+ * authModule, the use cases from domainModule.
  */
 val profileModule: Module = module {
     viewModel {
         ProfileViewModel(
             identityService = get<IdentityService>(),
             idTokenProvider = get<GoogleIdTokenProvider>(),
-            observeLeaderboard = get(),
-            getFeaturedGame = get(),
             observeGameStats = get(),
-            observeGameHistory = get(),
-            registry = get(),
-            brands = get(),
-            preferences = get(),
-            observeLatestSolvedToday = get(),
-            savedStateHandle = get(),
         )
     }
     // The parameter says whether the LinkedIn block is on; off, no LinkedIn object is resolved at all.
