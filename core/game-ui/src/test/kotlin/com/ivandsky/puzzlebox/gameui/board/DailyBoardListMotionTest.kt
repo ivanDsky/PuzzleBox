@@ -218,6 +218,32 @@ class DailyBoardListMotionTest {
     }
 
     @Test
+    fun `a board that stays ranked across a day keeps a shared person's row, which slides under the new title`() {
+        var title by mutableStateOf("Alpha · Mon")
+        var board by mutableStateOf(DailyBoardState.Ranked(listOf(real("ada").row, real("bo").row, real("cy").row)))
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                DailyBoard(title, RankOrder.TimeThenHints, board, animated = true)
+            }
+        }
+        composeRule.mainClock.advanceTimeBy(SETTLED_MS)
+        val start = top("ada")
+        val inkBefore = ink("ada")
+
+        change {
+            title = "Alpha · Sun"
+            board = DailyBoardState.Ranked(listOf(real("cy", 9).row, real("ada", 11).row, real("di", 12).row))
+        }
+        composeRule.mainClock.advanceTimeBy(STAGGER_MS + 130)
+
+        composeRule.onNodeWithTag("daily_board.title").assertTextEquals("Alpha · Sun")
+        assertEquals("ada is one row, not one leaving and one arriving", 1, count("ada"))
+        assertTrue("ada at ${top("ada")}, past its old place $start", top("ada") > start)
+        assertTrue("ink ${ink("ada")} stays the ink $inkBefore of a row not fading", ink("ada") <= inkBefore + 8)
+    }
+
+    @Test
     fun `switching day shrinks out a person only on the old day`() {
         show(listOf(real("ada"), real("bo"), real("cy")))
         val full = listHeight()

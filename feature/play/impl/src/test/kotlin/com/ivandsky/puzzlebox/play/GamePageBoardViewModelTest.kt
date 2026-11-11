@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
@@ -39,9 +40,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -49,7 +52,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** The board shows the day card's day, or the picked one over it, and no other day's rows stay under it while its board loads. */
+/** The board shows the day card's day, or the picked one over it; with LinkedIn the title and the rows change together, once the new day is ready. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class GamePageBoardViewModelTest {
 
@@ -103,7 +106,18 @@ class GamePageBoardViewModelTest {
 
     private val days = FakeLinkedInDays()
     private val syncLinkedIn = SyncLinkedInDay(days, 500)
-    private val observeLinkedIn = ObserveLinkedInDay(days, registry)
+
+    /** When set, the phone has not yet read [past]'s LinkedIn day, so a test sees the state while that read is awaited. */
+    private var pastReadWaits = false
+    private val pastRead = MutableSharedFlow<Unit>(replay = 1)
+
+    private val phone = object : LinkedInDays by days {
+        override fun observe(game: GameId, day: LocalDate) = flow {
+            if (day == past && pastReadWaits) pastRead.first()
+            emitAll(days.observe(game, day))
+        }
+    }
+    private val observeLinkedIn = ObserveLinkedInDay(phone, registry)
 
     /** A holder like the page's; the board only observes it. */
     private fun holder() = LinkedInDayState(observeLinkedIn, syncLinkedIn, FakeLinkedInLink())
@@ -325,26 +339,120 @@ class GamePageBoardViewModelTest {
         assertEquals(listOf(GhostRowModel("ref-Ada", "Ada", 61_000L, true)), model.state.value.ghosts)
     }
 
+    /** Every state the board reaches once collected, in order, as the screen would have drawn them. */
+    private fun drawn(model: GamePageBoardViewModel): MutableList<GamePageBoardState> {
+        val seen = mutableListOf<GamePageBoardState>()
+        model.state.onEach { seen += it }.launchIn(screen)
+        return seen
+    }
+
     @Test
-    fun `rows and ghosts of the previous day never show under a newly picked day while it loads`() {
+    fun `a day switch keeps the drawn day until the new day's rows and ghosts are both in, then changes once`() {
+        pastBoardWaits = true
+        pastReadWaits = true
+        days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L))))
+        days.emit(game, past, dayData(listOf(ghost("Cy", 70_000L))))
+        val model = linkedInModel()
+        val seen = drawn(model)
+        settle()
+        val before = model.state.value
+        assertEquals(today, before.day)
+        assertEquals(listOf(row("Today1")), rowsOf(model))
+        seen.clear()
+
+        model.show(picked = past, cardDay = null)
+        settle()
+        assertEquals("while the new board loads", before, model.state.value)
+
+        pastBoardReady.tryEmit(Unit)
+        settle()
+        assertEquals("the rows are in, the phone's read of the ghosts is not", before, model.state.value)
+
+        pastRead.tryEmit(Unit)
+        settle()
+        val arrived = model.state.value
+        assertEquals(past, arrived.day)
+        assertEquals(listOf(row("Past1")), rowsOf(model))
+        assertEquals(listOf("Cy"), arrived.ghosts.map { it.name })
+        assertEquals("one change, no Loading or ghost-less day in between", listOf(arrived), seen)
+    }
+
+    @Test
+    fun `within the new day a later ghost change still flows through`() {
+        days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L))))
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        model.show(picked = past, cardDay = null)
+        settle()
+        assertEquals(past, model.state.value.day)
+
+        days.emit(game, past, dayData(listOf(ghost("Cy", 70_000L))))
+        settle()
+        assertEquals(listOf("Cy"), model.state.value.ghosts.map { it.name })
+    }
+
+    @Test
+    fun `a new day that never arrives is named and shows Loading after the hold's cap`() {
         pastBoardWaits = true
         days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L))))
         val model = linkedInModel()
         model.state.launchIn(screen)
         settle()
-        assertEquals(listOf(row("Today1")), rowsOf(model))
+        val before = model.state.value
 
         model.show(picked = past, cardDay = null)
-        settle()
+        after(HOLD_CAP_MS - 1)
+        assertEquals(before, model.state.value)
+
+        after(1)
         assertEquals(past, model.state.value.day)
         assertEquals(DailyBoardState.Loading, model.state.value.board)
         assertEquals(emptyList<GhostRowModel>(), model.state.value.ghosts)
 
-        days.emit(game, past, dayData(listOf(ghost("Cy", 70_000L))))
         pastBoardReady.tryEmit(Unit)
         settle()
         assertEquals(listOf(row("Past1")), rowsOf(model))
-        assertEquals(listOf("Cy"), model.state.value.ghosts.map { it.name })
+    }
+
+    @Test
+    fun `after the cap gave up on a day, the next switch names its day at once`() {
+        pastBoardWaits = true
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        model.show(picked = past, cardDay = null)
+        after(HOLD_CAP_MS)
+        assertEquals(DailyBoardState.Loading, model.state.value.board)
+
+        model.show(picked = yesterday, cardDay = null)
+        settle()
+        assertEquals(yesterday, model.state.value.day)
+        assertEquals(listOf(row("Yest1")), rowsOf(model))
+    }
+
+    @Test
+    fun `the first load names its day and shows Loading first`() {
+        pastBoardWaits = true
+        pastReadWaits = true
+        val model = linkedInModel()
+        model.show(picked = past, cardDay = null)
+        val seen = drawn(model)
+        settle()
+
+        assertEquals(GamePageBoardState(day = past, isToday = false), model.state.value)
+        assertEquals(listOf(GamePageBoardState(), GamePageBoardState(day = past, isToday = false)), seen)
+    }
+
+    @Test
+    fun `without LinkedIn a day switch names the new day at once and shows Loading while it loads`() {
+        pastBoardWaits = true
+        viewModel.state.launchIn(screen)
+        settle()
+        assertEquals(DailyBoardState.Ranked(listOf(row("Today1"))), viewModel.state.value.board)
+
+        viewModel.show(picked = past, cardDay = null)
+        settle()
+        assertEquals(past, viewModel.state.value.day)
+        assertEquals(DailyBoardState.Loading, viewModel.state.value.board)
     }
 
     @Test
@@ -514,5 +622,6 @@ class GamePageBoardViewModelTest {
 
     private companion object {
         const val HOUR_MS = 3_600_000L
+        const val HOLD_CAP_MS = 1_500L
     }
 }

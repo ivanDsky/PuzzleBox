@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
-import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
@@ -24,31 +23,41 @@ import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState.Target
 import com.ivandsky.puzzlebox.play.linkedin.toBoardInput
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.update
 
 /**
  * What [GamePageBoard] draws: the [day] shown (null until the first read is chosen), whether it [isToday] on the
  * game's calendar, and the [board] to draw for it, the top rows with the player's own row pinned under them when
- * it ranks lower. While that day's board has not arrived, [board] is Loading. [ghosts] are the LinkedIn
- * connections of that day, none until they are read.
+ * it ranks lower. While that day's board has not arrived, [board] is Loading, except that with LinkedIn a board
+ * already drawn stays whole (day, rows and ghosts) until the next day is ready: the title and the rows change together.
+ * [ghosts] are the LinkedIn connections of that day, none until they are read.
  */
 internal data class GamePageBoardState(
     val day: LocalDate? = null,
     val isToday: Boolean = true,
     val board: DailyBoardState = DailyBoardState.Loading,
     val ghosts: List<GhostRowModel> = emptyList(),
-)
+) {
+    /** Whether rows or ghosts are on screen, so the next day can replace them rather than start from nothing. */
+    fun isDrawn(): Boolean = board is DailyBoardState.Ranked || (board == DailyBoardState.SignedOut && ghosts.isNotEmpty())
+}
 
 /**
  * One game's board on its page: the day the page's day card shows, read through [leaderboard] so every
@@ -77,13 +86,11 @@ internal class GamePageBoardViewModel(
     /** The game's own rank rule. */
     val order: RankOrder = registry.rankOrderOf(game)
 
-    val state: StateFlow<GamePageBoardState> = shown()
-        .flatMapLatest { shown ->
-            // The shown day is named at once; another day's rows or ghosts never stay under it while its data loads.
-            combine(leaderboard(game, shown.day), linkedInInput(shown.day)) { board, input -> stateOf(shown, board, input) }
-                .onStart { emit(GamePageBoardState(day = shown.day, isToday = shown.isToday)) }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GamePageBoardState())
+    val state: StateFlow<GamePageBoardState> = flow {
+        // What the board last said, so a day switch can tell whether a board is on screen to keep.
+        var said = GamePageBoardState()
+        emitAll(shown().flatMapLatest { shown -> statesOf(shown, held = said).onEach { said = it } })
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GamePageBoardState())
 
     /** How this block's last sign-in went. */
     val signInStatus: StateFlow<BoardSignIn> = signInHolder.status
@@ -107,12 +114,38 @@ internal class GamePageBoardViewModel(
         }.distinctUntilChanged()
 
     /**
-     * [day]'s LinkedIn ghosts and the player's own import as the phone holds them. Starts empty so the board is not
-     * held back by a read that arrives later than the leaderboard's. Without LinkedIn it is empty and touches nothing.
+     * What [shown] says, [held] being what the board said before it. The title and the rows change together: with
+     * LinkedIn and a board already drawn, [held] stays until the new day is ready (see [HeldDay]) and is then
+     * replaced in one step; past [HOLD_CAP_MS] the day is named and shows Loading, as when nothing is drawn.
+     * Within the day, every change flows through.
      */
-    private fun linkedInInput(day: LocalDate): Flow<LinkedInBoardInput> {
+    private fun statesOf(shown: Shown, held: GamePageBoardState): Flow<GamePageBoardState> {
+        val loading = GamePageBoardState(day = shown.day, isToday = shown.isToday)
+        val days: Flow<HeldDay.Arrived> = combine(leaderboard(game, shown.day), linkedInInput(shown.day)) { board, input ->
+            val drawn = board.toDailyBoardState()
+            // Without LinkedIn, or a day that is not a board to wait for, nothing is read late.
+            val ready = drawn != DailyBoardState.Loading && (drawn !is DailyBoardState.Ranked || input != null)
+            HeldDay.Arrived(stateOf(shown, drawn, input ?: LinkedInBoardInput()), ready)
+        }
+        if (linkedIn == null || !held.isDrawn()) return days.map { it.state }.onStart { emit(loading) }
+        var released = false
+        val cap: Flow<HeldDay> = flow { delay(HOLD_CAP_MS); emit(HeldDay.CapReached) }
+        return merge(days, cap).transform { day ->
+            when {
+                released -> if (day is HeldDay.Arrived) emit(day.state)
+                day is HeldDay.Arrived && day.ready -> { released = true; emit(day.state) }
+                day is HeldDay.CapReached -> { released = true; emit(loading) }
+            }
+        }
+    }
+
+    /**
+     * [day]'s LinkedIn ghosts and the player's own import as the phone holds them, null until the phone has
+     * delivered its first read. Without LinkedIn it is empty and touches nothing.
+     */
+    private fun linkedInInput(day: LocalDate): Flow<LinkedInBoardInput?> {
         val holder = linkedIn ?: return flowOf(LinkedInBoardInput())
-        return holder.observed(Target(game, day)).map { it.toBoardInput() }.onStart { emit(LinkedInBoardInput()) }
+        return holder.observed(Target(game, day)).map<_, LinkedInBoardInput?> { it.toBoardInput() }.onStart { emit(null) }
     }
 
     /**
@@ -123,8 +156,7 @@ internal class GamePageBoardViewModel(
      * this profile's, else the one named like their LinkedIn name, else their LinkedIn row added; the rows follow the
      * times they show, each keeping its PuzzleBox rank.
      */
-    private fun stateOf(shown: Shown, board: TodayLeaderboard, input: LinkedInBoardInput): GamePageBoardState {
-        val drawn = board.toDailyBoardState()
+    private fun stateOf(shown: Shown, drawn: DailyBoardState, input: LinkedInBoardInput): GamePageBoardState {
         if (drawn !is DailyBoardState.Ranked) return GamePageBoardState(day = shown.day, isToday = shown.isToday, board = drawn, ghosts = input.ghosts)
         val ranked = if (input.ghosts.isEmpty() && input.you == null) null else rankWithLinkedIn(drawn.rows, input.ghosts, input.you, order)
         val reals = ranked?.filterIsInstance<DailyBoardLine.Real>()
@@ -156,8 +188,19 @@ internal class GamePageBoardViewModel(
     /** A day on the board and whether it is the game calendar's today, which only the title tells apart. */
     private data class Shown(val day: LocalDate, val isToday: Boolean)
 
+    /** What one day reads while the board on screen is held for it. */
+    private sealed interface HeldDay {
+        /** The day's [state] from what has been read, and whether it is [ready] to replace the board on screen. */
+        data class Arrived(val state: GamePageBoardState, val ready: Boolean) : HeldDay
+
+        data object CapReached : HeldDay
+    }
+
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
+
+        /** How long a board on screen waits for the next day to be ready before that day is named with Loading. */
+        const val HOLD_CAP_MS = 1_500L
         const val TOP_ROWS = 5
     }
 }
