@@ -16,9 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.core.app.ApplicationProvider
@@ -146,15 +144,6 @@ abstract class StrandsStudioGoldenScreenshots(private val layout: PlayLayout, pr
             }
         }
         rule.mainClock.advanceTimeBy(SETTLE_MS)
-        // The word field's dictionary check answers off the main thread: wait for its line.
-        if (!publishing) {
-            rule.waitUntil(WORD_CHECK_TIMEOUT_MS) {
-                rule.mainClock.advanceTimeByFrame()
-                rule.onAllNodes(hasTestTag("strands.editor.word.check") and IN_DICTIONARY, useUnmergedTree = true)
-                    .fetchSemanticsNodes().isNotEmpty()
-            }
-            rule.mainClock.advanceTimeBy(SETTLE_MS)
-        }
     }
 
     @Composable
@@ -251,13 +240,10 @@ abstract class StrandsStudioGoldenScreenshots(private val layout: PlayLayout, pr
 
     private companion object {
         const val SETTLE_MS = 2_000L
-        const val WORD_CHECK_TIMEOUT_MS = 20_000L
         const val TITLE = "Sunday Strands"
         const val CLUE = "Around the house"
         const val SPANGRAM = 5
         const val SIDE_PANE = "create.studio.sidePane"
-
-        val IN_DICTIONARY = SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, "Word")
 
         /** One word per row, eight rows: the only tiling is the rows themselves; WINDOW spans. */
         val WORDS = listOf("SPRING", "PLANET", "HOLLOW", "BRIGHT", "FLOWER", "WINDOW", "CASTLE", "QUIVER")

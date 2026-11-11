@@ -203,8 +203,8 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
     }
 
     /**
-     * The same path with a word the dictionary lacks: the field warns with its caution icon, not
-     * the error treatment. The word field is in the phone's board only.
+     * The same path with a word the dictionary lacks: the border and one line under the field warn
+     * in amber, not the error red. The word field is in the phone's board only.
      */
     private fun unknownWord(dark: Boolean) {
         assumeTrue(device == "phone")
