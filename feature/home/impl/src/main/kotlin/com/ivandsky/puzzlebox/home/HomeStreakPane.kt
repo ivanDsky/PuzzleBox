@@ -5,8 +5,11 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -157,7 +160,7 @@ private fun StatTiles(stats: GameStats) {
     // Playing since is a date, too long for Headline: Title size on the same 34 line keeps tiles level.
     val dateValue = MaterialTheme.typography.titleLarge.tabular().copy(lineHeight = 34.sp)
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         StatTile("Solved", grouped(stats.solved), headline, "home.stat_solved", Modifier.weight(1f))
@@ -183,6 +186,7 @@ private fun StatTiles(stats: GameStats) {
 private fun StatTile(label: String, value: String, valueStyle: TextStyle, tag: String, modifier: Modifier) {
     Column(
         modifier = modifier
+            .fillMaxHeight()
             .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(Spacing.lg)
