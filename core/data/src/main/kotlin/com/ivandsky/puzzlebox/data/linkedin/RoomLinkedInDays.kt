@@ -26,7 +26,7 @@ import kotlinx.coroutines.flow.map
 /**
  * The only caller of the account's own-result and board reads, so every rule about asking LinkedIn
  * is kept in one place: nothing is sent while the link is paused or absent, an item is asked only
- * when its cache window says it is due and the call budget allows it, and the first rejection pauses
+ * when its cache window says it is due and a call slot of the budget is free (a shown day waits for one), and the first rejection pauses
  * every later read. A board member's photo, the player's too, is fetched right after a board read, outside the budget and the
  * pause latch. Takes no dispatcher: Room's suspend DAOs are main-safe and the source is a
  * suspending port.
@@ -166,9 +166,9 @@ internal class RoomLinkedInDays(
 
     /** Null when the own result is done (read, or not due) and the sync goes on; else the result that ends it. */
     private suspend fun syncOwn(request: Request, number: Int): LinkedInSync? {
+        if (!due(request, LinkedInItem.Own, clock())) return null
+        awaitSlot(request)?.let { return it }
         val nowMs = clock()
-        if (!due(request, LinkedInItem.Own, nowMs)) return null
-        if (!budget.tryAcquire()) return LinkedInSync.OverBudget
         val read = source.ownResult(request.profileId, request.typeId, number)
         return settle(request, read) { result ->
             when (result) {
@@ -186,9 +186,9 @@ internal class RoomLinkedInDays(
 
     /** Null when the board is done (read, or not due); else the result that ends the sync. */
     private suspend fun syncBoard(request: Request, todayNumber: Int): LinkedInSync? {
+        if (!due(request, LinkedInItem.Board, clock())) return null
+        awaitSlot(request)?.let { return it }
         val nowMs = clock()
-        if (!due(request, LinkedInItem.Board, nowMs)) return null
-        if (!budget.tryAcquire()) return LinkedInSync.OverBudget
         val read = source.board(request.profileId, request.typeId, todayNumber, request.delta)
         return settle(request, read) { board ->
             val kept = ghosts.write(request.game, request.day, request.today, request.profileId, board, nowMs)
@@ -199,6 +199,18 @@ internal class RoomLinkedInDays(
             avatars.download(kept)
             null
         }
+    }
+
+    /**
+     * Waits for a free call slot for as long as the day is on screen: the sync is cancelled with the day, so
+     * a day left never sends the call it waited for. The wait can be long and another day's call may have been
+     * rejected meanwhile, so the link is read again once the slot is taken: null when the call may go out,
+     * else the result that ends the sync.
+     */
+    private suspend fun awaitSlot(request: Request): LinkedInSync? {
+        budget.acquire()
+        val linked = link.state.first()
+        return if (linked == LinkState.Connected(request.profileId)) null else unlinked(linked)
     }
 
     private suspend fun due(request: Request, item: LinkedInItem, nowMs: Long): Boolean {

@@ -85,7 +85,6 @@ private fun statusLine(
         LinkedInDayStatus.DidNotPlay -> StatusLine("You didn't play this on LinkedIn", null)
         LinkedInDayStatus.Offline -> StatusLine("Can't reach LinkedIn right now", retry)
         LinkedInDayStatus.SessionExpired -> expired
-        LinkedInDayStatus.OverBudget -> StatusLine("Try again in a moment", retry)
         is LinkedInDayStatus.Paused -> when (status.kind) {
             Kind.SessionExpired -> expired
             Kind.Challenge -> paused("LinkedIn asked for a check, so PuzzleBox stopped reading")

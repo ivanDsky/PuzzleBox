@@ -36,14 +36,18 @@ private fun LinkedInDayData.status(): LinkedInDayStatus = when (val linked = lin
         LinkedInRead.Rejected.Kind.SessionExpired -> LinkedInDayStatus.SessionExpired
         else -> LinkedInDayStatus.Paused(linked.kind)
     }
-    is LinkState.Connected -> when (val result = own) {
-        is LinkedInOwnState.Imported -> LinkedInDayStatus.Imported(result.record.time, result.record.hints)
-        LinkedInOwnState.NotPlayed -> LinkedInDayStatus.DidNotPlay
-        LinkedInOwnState.Unknown -> when {
-            inFlight -> LinkedInDayStatus.Loading
-            lastSync == LinkedInSync.Offline -> LinkedInDayStatus.Offline
-            lastSync == LinkedInSync.OverBudget -> LinkedInDayStatus.OverBudget
-            else -> LinkedInDayStatus.Idle
+    is LinkState.Connected -> when {
+        // The player's result is known but the board is not, and the sync that was to read it could not reach
+        // LinkedIn: without this line the card would show a result and no board with no word on why.
+        !inFlight && lastSync == LinkedInSync.Offline && boardInWindow && boardFetchedAtMs == null -> LinkedInDayStatus.Offline
+        else -> when (val result = own) {
+            is LinkedInOwnState.Imported -> LinkedInDayStatus.Imported(result.record.time, result.record.hints)
+            LinkedInOwnState.NotPlayed -> LinkedInDayStatus.DidNotPlay
+            LinkedInOwnState.Unknown -> when {
+                inFlight -> LinkedInDayStatus.Loading
+                lastSync == LinkedInSync.Offline -> LinkedInDayStatus.Offline
+                else -> LinkedInDayStatus.Idle
+            }
         }
     }
 }
