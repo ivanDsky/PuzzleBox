@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -47,7 +49,7 @@ import kotlinx.coroutines.launch
  *
  * With a [duels] slot the list is tabbed instead: the header and the pill row stay put and
  * the [tab]'s body fills the rest, Dailies and Friends ([friendsTab], [friendCount] on its
- * pill) scrolling on [scroll] and Duels owning its own scrolling. A tab change ([onTab])
+ * pill) scrolling on [scroll] and Duels on [duelsScroll], which the Duels body lays its list out on. A tab change ([onTab])
  * scrolls back to the top and fades the new body in. There is no From friends carousel then:
  * the Friends tab is where those cards live.
  */
@@ -65,12 +67,18 @@ internal fun LibraryList(
     onTab: (GamesTab) -> Unit = {},
     friendsTab: @Composable () -> Unit = {},
     friendCount: Int = 0,
+    duelsScroll: LazyListState = rememberLazyListState(),
 ) {
     val phone = layout == PlayLayout.SinglePane
     val reselect = LocalTabReselect.current
-    LaunchedEffect(reselect, scroll) { reselect.collect { scroll.animateScrollTo(0) } }
+    LaunchedEffect(reselect, scroll, duelsScroll) {
+        reselect.collect {
+            scroll.animateScrollTo(0)
+            duelsScroll.requestScrollToItem(0)
+        }
+    }
     if (duels != null) {
-        TabbedList(state, phone, scroll, onRow, modifier, headerAction, duels, tab, onTab, friendsTab, friendCount)
+        TabbedList(state, phone, scroll, duelsScroll, onRow, modifier, headerAction, duels, tab, onTab, friendsTab, friendCount)
         return
     }
     Column(
@@ -93,6 +101,7 @@ private fun TabbedList(
     state: LibraryUiState,
     phone: Boolean,
     scroll: ScrollState,
+    duelsScroll: LazyListState,
     onRow: (GameId) -> Unit,
     modifier: Modifier,
     headerAction: @Composable () -> Unit,
@@ -108,6 +117,7 @@ private fun TabbedList(
     val select: (GamesTab) -> Unit = { next ->
         if (next != tab) {
             scope.launch { scroll.scrollTo(0) }
+            duelsScroll.requestScrollToItem(0)
             onTab(next)
         }
     }
@@ -160,7 +170,7 @@ private fun TabbedList(
                 // Like Dailies: inset on the phone, flush with the pane on the tablet; the tab pads no sides itself.
                 GamesTab.Duels -> Box(
                     Modifier.fillMaxSize().then(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier),
-                ) { duels.content() }
+                ) { duels.content(duelsScroll) }
             }
         }
     }

@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,7 +21,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToIndex
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -105,6 +109,16 @@ class LibraryRequestTest {
 
     private val slot = DuelsSlot(
         content = { Text("duels body", Modifier.testTag(DUELS_BODY)) },
+        needYou = { 0 },
+    )
+
+    /** A Duels body that is a long list of its own, laid out on the state Games hands it. */
+    private val scrollingSlot = DuelsSlot(
+        content = { state ->
+            LazyColumn(Modifier.testTag(DUELS_LIST), state = state) {
+                items(DUEL_COUNT) { Text("duel $it", Modifier.testTag(duelTag(it)).height(48.dp)) }
+            }
+        },
         needYou = { 0 },
     )
 
@@ -281,22 +295,19 @@ class LibraryRequestTest {
     }
 
     @Test
-    @Config(qualifiers = "w411dp-h240dp")
-    fun `a section request leaves the Games list at the top`() {
-        setContent(PlayLayout.SinglePane, duels = slot)
-        awaitTag("library.row.alpha")
-        composeRule.onNodeWithTag("library.row.alpha").performScrollTo()
-        composeRule.onNodeWithTag("library.row.zip").assertIsNotDisplayed()
+    @Config(qualifiers = "w411dp-h400dp")
+    fun `a section request leaves the scrolled Duels list at its first item`() {
+        setContent(PlayLayout.SinglePane, duels = scrollingSlot)
+        awaitTag("library.tab.duels")
+        tap("library.tab.duels")
+        awaitTag(DUELS_LIST)
+        composeRule.onNodeWithTag(DUELS_LIST).performScrollToIndex(DUEL_COUNT - 1)
+        composeRule.onNodeWithTag(duelTag(0)).assertIsNotDisplayed()
 
         request = LibraryRequest.Section(GamesTab.Duels)
-        awaitTag(DUELS_BODY)
         composeRule.waitForIdle()
-        // Opening a page does not scroll, so Dailies shows the offset the request left.
-        request = LibraryRequest.GamePage("alpha")
-        awaitTag("library.page.alpha")
-        back()
 
-        composeRule.onNodeWithTag("library.row.zip").assertIsDisplayed()
+        composeRule.onNodeWithTag(duelTag(0)).assertIsDisplayed()
     }
 
     @Test
@@ -336,5 +347,9 @@ class LibraryRequestTest {
 
     private companion object {
         const val DUELS_BODY = "fake.duels.body"
+        const val DUELS_LIST = "fake.duels.list"
+        const val DUEL_COUNT = 30
+
+        fun duelTag(index: Int) = "fake.duel.$index"
     }
 }

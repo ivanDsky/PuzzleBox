@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,6 +41,7 @@ fun DuelsTab(
     onOpenDuel: (DuelKey) -> Unit,
     onOpenReveal: (DuelRevealKey) -> Unit,
     modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
 ) {
     val viewModel: DuelsTabViewModel = koinViewModel()
     val state = viewModel.state.collectAsStateWithLifecycle()
@@ -60,6 +63,7 @@ fun DuelsTab(
         onOpenDuel = onOpenDuel,
         onOpenReveal = onOpenReveal,
         modifier = modifier,
+        listState = listState,
         inFlight = state.value.inFlight,
         notes = state.value.notes,
         onAccept = viewModel::accept,
@@ -79,12 +83,14 @@ internal fun DuelsTabContent(
     onOpenDuel: (DuelKey) -> Unit,
     onOpenReveal: (DuelRevealKey) -> Unit,
     modifier: Modifier = Modifier,
+    listState: LazyListState = rememberLazyListState(),
     inFlight: Set<ShareCode> = emptySet(),
     notes: Map<ShareCode, InviteNote> = emptyMap(),
     onAccept: (ShareCode) -> Unit = {},
     onDecline: (ShareCode) -> Unit = {},
 ) {
     LazyColumn(
+        state = listState,
         modifier = modifier.fillMaxSize().testTag("duels.tab"),
         contentPadding = PaddingValues(vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),

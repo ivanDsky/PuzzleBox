@@ -150,7 +150,9 @@ fun PuzzleBoxApp(
     val duels = if (competitions) {
         remember(navigator) {
             DuelsSlot(
-                content = { DuelsTab(onOpenDuel = navigator::pushOnce, onOpenReveal = navigator::pushOnce) },
+                content = { listState ->
+                    DuelsTab(onOpenDuel = navigator::pushOnce, onOpenReveal = navigator::pushOnce, listState = listState)
+                },
                 needYou = { rememberDuelsNeedYou() },
             )
         }

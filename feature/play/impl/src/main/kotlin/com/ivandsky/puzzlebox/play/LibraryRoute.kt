@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -186,6 +187,7 @@ internal fun LibraryScreen(
     onOpenGameHistory: (() -> Unit)? = null,
 ) {
     val listScroll = rememberScrollState()
+    val duelsScroll = rememberLazyListState()
     val enterCode: @Composable () -> Unit = {
         onEnterCode?.let { SecondaryButton(text = "Enter code", onClick = it, modifier = Modifier.testTag("library.enterCode")) }
     }
@@ -218,6 +220,7 @@ internal fun LibraryScreen(
                 tab = next
                 pageOpen = false
                 listScroll.scrollTo(0)
+                duelsScroll.requestScrollToItem(0)
             }
         },
         onTaken = onRequestTaken,
@@ -227,6 +230,7 @@ internal fun LibraryScreen(
     fun GamesList(onRow: (GameId) -> Unit, modifier: Modifier = Modifier) = LibraryList(
         state, layout, listScroll, onRow, modifier, headerAction = enterCode, friends = fromFriends,
         duels = duels, tab = tab, onTab = { tab = it }, friendsTab = friendsTab, friendCount = friends.size,
+        duelsScroll = duelsScroll,
     )
     if (layout == PlayLayout.TwoPane) {
         Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {
