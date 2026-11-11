@@ -202,6 +202,49 @@ class ObserveMyDuelsTest {
     }
 
     @Test
+    fun aRowCountsTheOpponentsPlayedPuzzlesFromProgress() = runTest {
+        val c = code("K7Q2M1")
+        duel(c, legCount = 3, claimedBy = bob)
+        takes(bob, c, 0)
+        takes(bob, c, 2)
+        takes(ann, c, 1)
+        viewAs(ann)
+        observe().test {
+            val row = latest(this@runTest).rows.single()
+            assertEquals(1, row.legsDone)
+            assertEquals(2, row.theirDone)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun anUnclaimedRowAndAnInviteCountNoOpponentPuzzles() = runTest {
+        val unclaimed = code("K7Q2M1")
+        val invited = code("K7Q2M2")
+        val link = code("K7Q2M3")
+        duel(unclaimed)
+        duel(invited, invited = bob)
+        duel(link)
+        local.remember(link, LocalRole.Invite, "Ann")
+        viewAs(ann)
+        observe().test {
+            val rows = latest(this@runTest).rows.associateBy { it.code }
+            assertEquals(DuelRowKind.Unclaimed, rows.getValue(unclaimed).kind)
+            assertEquals(0, rows.getValue(unclaimed).theirDone)
+            cancelAndIgnoreRemainingEvents()
+        }
+        viewAs(bob)
+        observe().test {
+            val rows = latest(this@runTest).rows.associateBy { it.code }
+            assertEquals(DuelRowKind.Invited, rows.getValue(invited).kind)
+            assertEquals(0, rows.getValue(invited).theirDone)
+            assertEquals(DuelRowKind.Invited, rows.getValue(link).kind)
+            assertEquals(0, rows.getValue(link).theirDone)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun needYouCountsYourMoveRevealReadyAndInvited() = runTest {
         val invited = code("K7Q2M1")
         val yourMove = code("K7Q2M2")
