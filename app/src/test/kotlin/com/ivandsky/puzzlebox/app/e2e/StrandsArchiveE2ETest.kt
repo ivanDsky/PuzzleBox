@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import androidx.room.Room
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -23,13 +24,13 @@ import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.strandsModule
 import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.testing.network.FakeNytTransport
 import java.time.LocalDate
 import java.time.YearMonth
@@ -283,7 +284,7 @@ class StrandsArchiveE2ETest {
 
     private val playHub = NavigationState(
         tab = PlayKey,
-        stacks = listOf<List<NavKey>>(listOf(HomeKey), listOf(PlayKey), listOf(ProfileKey)),
+        stacks = listOf<List<NavKey>>(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey)),
     )
 
     private companion object {

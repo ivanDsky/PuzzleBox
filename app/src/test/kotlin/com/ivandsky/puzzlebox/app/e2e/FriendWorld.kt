@@ -57,7 +57,7 @@ import org.robolectric.RuntimeEnvironment
 internal const val FRIEND_TIMEOUT_MS = 10_000L
 
 /**
- * Two signed-in users on one phone over the real shell's graph, with only [flags] on (an editor, plus NavV2 for a flag-on run):
+ * Two signed-in users on one phone over the real shell's graph, with only [flags] on (an editor):
  * the author's Studio publishes through [shared]; the friend opens the code into [received] and
  * wins into a file-backed Room record store, which stamps first wins as the app does, so the
  * started [CustomBoardSubmitter] posts the win to [boards] and [LeaderboardSubmitWatcher] posts

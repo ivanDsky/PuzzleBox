@@ -27,7 +27,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * NavV2 on the real shell (SC1, SC5, SC6), on a phone's bar and a tablet's rail: the tab set
+ * The real shell (SC1, SC5, SC6), on a phone's bar and a tablet's rail: the tab set
  * is Today, Games, History and Create; the rail carries the avatar once at
  * its bottom on every screen it shows, centres its tabs on the window and gives the avatar a 48dp
  * target below them, the bar carries the avatar only in Today's header and nowhere else; the
@@ -102,7 +102,7 @@ class NavV2TabsE2ETest {
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `on a tablet the rail centres its tabs and gives the avatar a 48dp target below them on every root`() = navV2Robot {
+    fun `on a tablet the rail centres its tabs and gives the avatar a 48dp target below them on every root`() = shellRobot {
         ROOTS.forEach { (tab, route) ->
             tapTab(tab)
             assertRoute(route)
@@ -110,7 +110,7 @@ class NavV2TabsE2ETest {
         }
     }
 
-    private fun tabSet(width: Width) = navV2Robot {
+    private fun tabSet(width: Width) = shellRobot {
         assertRoute(HOME)
         LABELS.forEach { (tag, label) -> rule.onNodeWithTag(tag).assert(hasText(label)) }
         assertFalse("Profile is not a tab", shows("nav.tab.profile"))
@@ -118,7 +118,7 @@ class NavV2TabsE2ETest {
         if (width == Width.Phone) assertBottomBar() else assertRail()
     }
 
-    private fun browseChrome(rail: Boolean) = navV2Robot(
+    private fun browseChrome(rail: Boolean) = shellRobot(
         NavigationState(
             tab = HomeKey,
             stacks = listOf(
@@ -158,7 +158,7 @@ class NavV2TabsE2ETest {
         assertChromeFor(rail)
     }
 
-    private fun noChrome(rail: Boolean) = navV2Robot(
+    private fun noChrome(rail: Boolean) = shellRobot(
         NavigationState(
             tab = PlayKey,
             stacks = listOf(
@@ -194,7 +194,7 @@ class NavV2TabsE2ETest {
         }
     }
 
-    private fun avatarAndGearFromEveryRoot(rail: Boolean) = navV2Robot {
+    private fun avatarAndGearFromEveryRoot(rail: Boolean) = shellRobot {
         ROOTS.forEach { (tab, tabRoute) ->
             tapTab(tab)
             assertRoute(tabRoute)
@@ -203,26 +203,26 @@ class NavV2TabsE2ETest {
             if (!rail) tapTab(root)
 
             tapAvatar()
-            assertState(navV2At(root, ProfileKey))
+            assertState(tabAt(root, ProfileKey))
             assertRoute(PROFILE)
             back()
-            assertState(navV2At(root))
+            assertState(tabAt(root))
             assertRoute(route)
 
             tapAvatar()
             tapGear()
-            assertState(navV2At(root, ProfileKey, SettingsKey))
+            assertState(tabAt(root, ProfileKey, SettingsKey))
             assertRoute(SETTINGS)
             back()
-            assertState(navV2At(root, ProfileKey))
+            assertState(tabAt(root, ProfileKey))
             assertRoute(PROFILE)
             back()
-            assertState(navV2At(root))
+            assertState(tabAt(root))
             assertRoute(route)
         }
     }
 
-    private fun darkReachesStore() = navV2Robot {
+    private fun darkReachesStore() = shellRobot {
         tapAvatar()
         tapGear()
         assertRoute(SETTINGS)
@@ -231,8 +231,8 @@ class NavV2TabsE2ETest {
     }
 
     private fun settingsRestores() {
-        val seed = navV2At(HistoryRootKey, SettingsKey)
-        navV2Robot(seed) {
+        val seed = tabAt(HistoryRootKey, SettingsKey)
+        shellRobot(seed) {
             assertRoute(SETTINGS)
             restoreState()
             assertRoute(SETTINGS)
@@ -240,7 +240,7 @@ class NavV2TabsE2ETest {
         }
     }
 
-    private fun profileHasNoAppearance() = navV2Robot {
+    private fun profileHasNoAppearance() = shellRobot {
         tapAvatar()
         assertRoute(PROFILE)
         assertFalse("the pushed Profile shows no Appearance block", shows("profile.appearance"))

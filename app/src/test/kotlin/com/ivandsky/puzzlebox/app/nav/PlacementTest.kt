@@ -91,16 +91,15 @@ class PlacementTest {
     }
 
     @Test
-    fun `tab roots are exactly the flag-on tab set, one row per tab`() {
+    fun `tab roots are exactly the tab set, one row per tab`() {
         val roots = placementRows.mapNotNull { row -> (row.placement.home as? Home.TabRoot)?.let { it.tab to row.key } }
         val tabs = roots.map { it.first }
-        val flagOn = topLevelDestinations(navV2 = true)
 
         assertEquals("two tab roots share a tab: $tabs", tabs.distinct(), tabs)
-        assertEquals(flagOn.map { it.tab }.toSet(), tabs.toSet())
+        assertEquals(topLevelDestinations.map { it.tab }.toSet(), tabs.toSet())
         assertEquals(
             "a tab root's key differs from its destination's",
-            flagOn.associate { it.tab to it.key::class },
+            topLevelDestinations.associate { it.tab to it.key::class },
             roots.toMap(),
         )
     }

@@ -6,10 +6,10 @@ import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -50,7 +50,7 @@ class SharedTextTest {
             stacks(HomeKey, home = listOf(HomeKey, HistoryKey())),
             stacks(PlayKey),
             stacks(PlayKey, play = listOf(PlayKey, EditorKey("castle"))),
-            stacks(ProfileKey, profile = listOf(ProfileKey, HistoryKey())),
+            stacks(HistoryRootKey, history = listOf(HistoryRootKey, HistoryKey())),
             stacks(PlayKey, create = listOf(CreateKey, EditorKey("castle"))),
             stacks(HomeKey, create = listOf(CreateKey, EditorKey("castle"), EditorKey("other"))),
         ).forEach { before ->
@@ -80,7 +80,7 @@ class SharedTextTest {
         tab: NavKey,
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
+        history: List<NavKey> = listOf(HistoryRootKey),
         create: List<NavKey> = listOf(CreateKey),
-        profile: List<NavKey> = listOf(ProfileKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, create, profile))
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, history, create))
 }

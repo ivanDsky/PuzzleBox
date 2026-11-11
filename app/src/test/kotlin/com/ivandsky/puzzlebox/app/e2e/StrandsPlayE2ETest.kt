@@ -18,6 +18,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.play.script
+import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.game.FetchResult
@@ -30,12 +31,12 @@ import com.ivandsky.puzzlebox.games.strands.codec.StrandsSessionCodec
 import com.ivandsky.puzzlebox.games.strands.feed.NytStrandsDailySource
 import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.testing.network.FakeNytTransport
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
@@ -243,7 +244,7 @@ class StrandsPlayE2ETest {
 
     private val playHub = NavigationState(
         tab = PlayKey,
-        stacks = listOf<List<NavKey>>(listOf(HomeKey), listOf(PlayKey), listOf(ProfileKey)),
+        stacks = listOf<List<NavKey>>(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey)),
     )
 
     private companion object {

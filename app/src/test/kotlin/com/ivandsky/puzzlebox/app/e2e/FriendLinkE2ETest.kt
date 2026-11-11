@@ -218,7 +218,7 @@ class FriendLinkE2ETest {
         val isRoute = SemanticsMatcher("test tag route.*") {
             it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("route.") == true
         }
-        val TABS = listOf("nav.tab.home", "nav.tab.play", "nav.tab.create", "nav.tab.profile")
+        val TABS = listOf("nav.tab.home", "nav.tab.play", "nav.tab.history", "nav.tab.create")
         const val TIMEOUT_MS = 10_000L
     }
 }
