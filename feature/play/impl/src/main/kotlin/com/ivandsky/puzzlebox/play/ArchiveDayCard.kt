@@ -67,7 +67,8 @@ private sealed interface DayLine {
  * with one it shows that day, tagged "From the archive" or "Past puzzle", plus
  * "Back to today" ([onBackToToday]). [onPlay] opens the shown day's board. A day that
  * can't load — today offline, or a never-opened past day while [offline] — offers
- * "Try again", whose tap is [onRetry]. Each slot cross-fades on a day change.
+ * "Try again", whose tap is [onRetry]. Each slot cross-fades on a day change. A non-null
+ * [linkedIn] draws between the note and the action row, and only while the card is composed.
  */
 @Composable
 internal fun ArchiveDayCard(
@@ -79,6 +80,7 @@ internal fun ArchiveDayCard(
     onRetry: () -> Unit,
     onBackToToday: () -> Unit,
     modifier: Modifier = Modifier,
+    linkedIn: (@Composable () -> Unit)? = null,
 ) {
     val card = row.card
     val colors = libraryCardColors(card.brand)
@@ -112,6 +114,10 @@ internal fun ArchiveDayCard(
             CardSlot(line, 24.dp) { shown -> StatusRow(shown, colors) }
             CardSlot(note(past), 20.dp) { shown ->
                 Text(shown, style = MaterialTheme.typography.labelLarge, color = colors.fg2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            linkedIn?.let { slot ->
+                Spacer(Modifier.height(6.dp))
+                slot()
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {

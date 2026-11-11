@@ -38,10 +38,13 @@ import com.ivandsky.puzzlebox.gameui.TutorialHost
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.friend.EnterCodeSheet
+import com.ivandsky.puzzlebox.play.linkedin.LinkedInCardState
+import com.ivandsky.puzzlebox.play.linkedin.rememberLinkedInCard
 import java.time.LocalDate
 import java.time.YearMonth
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 /**
  * The Play tab's root: the games library. [PlayLayout.TwoPane] shows the
@@ -56,6 +59,7 @@ import org.koin.compose.koinInject
  * [codeDraft] opens the sheet with that text already in the field, then is taken
  * ([onCodeDraftTaken]); a [request] opens a game's page or a tab, then is taken ([onRequestTaken]).
  * The game page's leaderboard shows with [showGameBoard] and its "Your history" row with [onOpenGameHistory].
+ * With [linkedIn] the day card shows the LinkedIn lines, and [onReconnectLinkedIn] opens its login.
  */
 @Composable
 internal fun LibraryRoute(
@@ -71,13 +75,17 @@ internal fun LibraryRoute(
     onRequestTaken: () -> Unit = {},
     showGameBoard: Boolean = false,
     onOpenGameHistory: (() -> Unit)? = null,
+    linkedIn: Boolean = false,
+    onReconnectLinkedIn: (() -> Unit)? = null,
 ) {
-    val viewModel: LibraryViewModel = koinViewModel()
+    val viewModel: LibraryViewModel = koinViewModel(parameters = { parametersOf(linkedIn) })
     val registry: GamePlayRegistry = koinInject()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val lesson by viewModel.lesson.collectAsStateWithLifecycle()
     val page by viewModel.page.collectAsStateWithLifecycle()
     val month by viewModel.shownMonth.collectAsStateWithLifecycle()
+    // The card collects the view itself, so the route never starts a LinkedIn read.
+    val linkedInCard = rememberLinkedInCard(viewModel, onReconnectLinkedIn)
     val friends by viewModel.friends.collectAsStateWithLifecycle()
     val removedFriend by viewModel.removedFriend.collectAsStateWithLifecycle()
     var enteringCode by rememberSaveable { mutableStateOf(false) }
@@ -120,6 +128,7 @@ internal fun LibraryRoute(
             onRequestTaken = onRequestTaken,
             showGameBoard = showGameBoard,
             onOpenGameHistory = onOpenGameHistory,
+            linkedIn = linkedInCard,
         )
         FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))
         if (enteringCode) {
@@ -162,6 +171,7 @@ internal fun LibraryRoute(
  * page push). A [request] acts once
  * ([ConsumeLibraryRequest]; a section needs [duels]) and is reported taken ([onRequestTaken]). The game page
  * shows its leaderboard with [showGameBoard] and a "Your history" row with [onOpenGameHistory].
+ * A non-null [linkedIn] puts the LinkedIn lines on the page's day card.
  */
 @Composable
 internal fun LibraryScreen(
@@ -185,6 +195,7 @@ internal fun LibraryScreen(
     onRequestTaken: () -> Unit = {},
     showGameBoard: Boolean = false,
     onOpenGameHistory: (() -> Unit)? = null,
+    linkedIn: LinkedInCardState? = null,
 ) {
     val listScroll = rememberScrollState()
     val duelsScroll = rememberLazyListState()
@@ -202,7 +213,7 @@ internal fun LibraryScreen(
     fun Page(row: LibraryRowModel, onBack: (() -> Unit)?) = LibraryGamePage(
         row, page, month, layout, calendar, onPlay, onRetry, onOpenLesson, onBack,
         offline = state.offline, hasLesson = hasLesson(row.card.game),
-        showGameBoard = showGameBoard, onOpenGameHistory = onOpenGameHistory,
+        showGameBoard = showGameBoard, onOpenGameHistory = onOpenGameHistory, linkedIn = linkedIn,
     )
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()
     var tab by rememberSaveable { mutableStateOf(GamesTab.Dailies) }
