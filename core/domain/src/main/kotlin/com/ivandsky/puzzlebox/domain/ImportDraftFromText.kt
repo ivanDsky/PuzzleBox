@@ -10,7 +10,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * Whole-text import (spec A23): parse on dispatchers.default, and only a parse that succeeds
- * touches storage — one [CreateDraft] row for the title rule, then one upsert that swaps in
+ * touches storage — one [CreateDraft] row for the codename title, then one upsert that swaps in
  * the parsed blob and marks the row imported.
  */
 class ImportDraftFromText(
@@ -21,10 +21,10 @@ class ImportDraftFromText(
 ) {
     /**
      * NotationText.parse on dispatchers.default (the cap is its first step, so over-cap text is never
-     * parsed). Parsed → createDraft(gameId, variant) for the title rule, then one upsert of that row
+     * parsed). Parsed → createDraft(gameId, variant) for the codename title, then one upsert of that row
      * with blob = parsed.encode() and imported = true. Every other outcome writes nothing. The two
      * writes are not cancellable, so a cancel leaves no row or one complete imported row, never a
-     * blank "Untitled" one.
+     * blank untitled one.
      */
     suspend operator fun invoke(text: String): ImportResult = withContext(dispatchers.default) {
         when (val parse = NotationText.parse(text, registry)) {

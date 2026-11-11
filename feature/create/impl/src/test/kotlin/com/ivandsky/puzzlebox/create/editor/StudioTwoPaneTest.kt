@@ -155,6 +155,7 @@ class StudioTwoPaneTest {
             layout = layout,
             onBack = {},
             onRename = {},
+            onRollTitle = { "Amber Falcon" },
             onDuplicate = {},
             onDelete = {},
             board = { boardModifier ->

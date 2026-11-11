@@ -60,7 +60,7 @@ class ImportDraftFromTextTest {
         assertEquals(ImportResult.Imported("draft-1"), result)
         val row = drafts.rows.getValue("draft-1")
         assertTrue(row.imported)
-        assertEquals("Untitled Queens", row.title)
+        assertTrue(Regex("[A-Z][a-z]+ [A-Z][a-z]+").matches(row.title))
         val opened = EditorDraft.open(Queens, row.blob)
         assertTrue(opened is DecodeResult.Ok)
         val draft = (opened as DecodeResult.Ok).value

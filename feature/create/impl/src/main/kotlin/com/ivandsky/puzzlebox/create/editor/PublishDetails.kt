@@ -61,6 +61,7 @@ fun PublishDetails(
     details: PublishSession.Details,
     signedIn: Boolean,
     onRename: (String) -> Unit,
+    onRollTitle: () -> String,
     onAuthorName: (String) -> Unit,
     onNote: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -155,6 +156,7 @@ fun PublishDetails(
                 onRename(next)
             },
             onDismiss = { renaming = false },
+            onRoll = onRollTitle,
         )
     }
 }
@@ -230,6 +232,7 @@ private fun PublishDetailsPreview() {
             details = PublishSession.Details(authorName = "Ivan"),
             signedIn = true,
             onRename = {},
+            onRollTitle = { "Amber Falcon" },
             onAuthorName = {},
             onNote = {},
             modifier = Modifier.fillMaxWidth(),
@@ -266,6 +269,6 @@ private fun PublishDetailsBusyPreview() {
 @Composable
 private fun PreviewDetails(details: PublishSession.Details, signedIn: Boolean = true, enabled: Boolean = true, title: String = "Castle") {
     PuzzleBoxTheme {
-        PublishDetails(title, details, signedIn, onRename = {}, onAuthorName = {}, onNote = {}, Modifier.fillMaxWidth(), enabled)
+        PublishDetails(title, details, signedIn, onRename = {}, onRollTitle = { "Amber Falcon" }, onAuthorName = {}, onNote = {}, Modifier.fillMaxWidth(), enabled)
     }
 }

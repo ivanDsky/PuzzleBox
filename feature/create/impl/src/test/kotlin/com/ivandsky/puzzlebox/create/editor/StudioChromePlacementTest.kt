@@ -53,6 +53,7 @@ class StudioChromePlacementTest {
                     layout = layout,
                     onBack = {},
                     onRename = {},
+                    onRollTitle = { "Amber Falcon" },
                     onDuplicate = {},
                     onDelete = {},
                     board = { Box(it) },

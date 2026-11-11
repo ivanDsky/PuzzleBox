@@ -194,6 +194,7 @@ private fun PreviewForm(modifier: Modifier, editBoard: @Composable (compact: Boo
         details = PublishSession.Details(authorName = "Ivan"),
         signedIn = true,
         onRename = {},
+        onRollTitle = { "Amber Falcon" },
         onAuthorName = {},
         onNote = {},
         modifier = modifier,

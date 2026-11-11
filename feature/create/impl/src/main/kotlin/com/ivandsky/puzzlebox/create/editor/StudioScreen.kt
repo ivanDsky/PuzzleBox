@@ -87,6 +87,7 @@ fun StudioScreen(
     layout: PlayLayout,
     onBack: () -> Unit,
     onRename: (String) -> Unit,
+    onRollTitle: () -> String,
     onDuplicate: () -> Unit,
     onDelete: () -> Unit,
     board: @Composable (Modifier) -> Unit,
@@ -182,6 +183,7 @@ fun StudioScreen(
                 onRename(next)
             },
             onDismiss = { renaming = false },
+            onRoll = onRollTitle,
         )
     }
     ImportSheet(ui = importSheet, actions = importActions)
@@ -238,7 +240,7 @@ private fun StudioScreenPreview() {
             verdict = Verdict.Incomplete(IncompleteReason("queens.unpainted", 16)),
             layout = PlayLayout.SinglePane,
             onBack = {},
-            onRename = {},
+            onRename = {}, onRollTitle = { "Amber Falcon" },
             onDuplicate = {},
             onDelete = {},
             board = { PreviewBoard(it) },
@@ -275,7 +277,7 @@ private fun StudioScreenPublishedPreview() {
             verdict = Verdict.Unique(Solution(emptyList())),
             layout = PlayLayout.SinglePane,
             onBack = {},
-            onRename = {},
+            onRename = {}, onRollTitle = { "Amber Falcon" },
             onDuplicate = {},
             onDelete = {},
             board = { PreviewBoard(it) },

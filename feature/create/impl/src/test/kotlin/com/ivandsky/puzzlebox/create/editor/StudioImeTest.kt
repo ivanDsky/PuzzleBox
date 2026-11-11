@@ -206,6 +206,7 @@ abstract class StudioImeTest(private val layout: PlayLayout, private val device:
             layout = layout,
             onBack = {},
             onRename = {},
+            onRollTitle = { "Amber Falcon" },
             onDuplicate = {},
             onDelete = {},
             board = { boardModifier -> Board(boardModifier) },
