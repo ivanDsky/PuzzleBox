@@ -14,4 +14,5 @@ data object ProfileKey : NavKey
 fun PolymorphicModuleBuilder<NavKey>.profileNavKeys() {
     subclass(ProfileKey::class, ProfileKey.serializer())
     subclass(SettingsKey::class, SettingsKey.serializer())
+    subclass(LinkedInLoginKey::class, LinkedInLoginKey.serializer())
 }

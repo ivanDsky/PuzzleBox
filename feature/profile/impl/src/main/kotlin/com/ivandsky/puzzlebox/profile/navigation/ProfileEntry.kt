@@ -4,8 +4,10 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.screens.ProfileRoute
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.profile.api.LinkedInLoginKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.profile.api.SettingsKey
+import com.ivandsky.puzzlebox.profile.linkedin.LinkedInLoginRoute
 import com.ivandsky.puzzlebox.profile.settings.SettingsRoute
 
 /**
@@ -15,7 +17,8 @@ import com.ivandsky.puzzlebox.profile.settings.SettingsRoute
  * identity and sign-in only. A non-null [onProfileBack] draws Profile's back icon and a
  * non-null [onOpenSettings] its gear, each on its own; the defaults are today's screen.
  * Settings ([SettingsKey]) is a shell screen: [onBack] pops it and it reuses the same
- * [onOpenCatalog].
+ * [onOpenCatalog]. [onOpenLinkedInLogin] opens the LinkedIn login; null hides Settings' LinkedIn
+ * section, so the flag-off screen is unchanged.
  */
 fun EntryProviderScope<NavKey>.profileEntry(
     onOpenHistory: (GameId) -> Unit,
@@ -24,6 +27,7 @@ fun EntryProviderScope<NavKey>.profileEntry(
     slim: Boolean = false,
     onProfileBack: (() -> Unit)? = null,
     onOpenSettings: (() -> Unit)? = null,
+    onOpenLinkedInLogin: (() -> Unit)? = null,
 ) {
     entry<ProfileKey> {
         ProfileRoute(
@@ -35,6 +39,9 @@ fun EntryProviderScope<NavKey>.profileEntry(
         )
     }
     entry<SettingsKey> {
-        SettingsRoute(onBack = onBack, onOpenCatalog = onOpenCatalog)
+        SettingsRoute(onBack = onBack, onOpenCatalog = onOpenCatalog, onConnectLinkedIn = onOpenLinkedInLogin)
+    }
+    entry<LinkedInLoginKey> {
+        LinkedInLoginRoute(onDone = onBack)
     }
 }
