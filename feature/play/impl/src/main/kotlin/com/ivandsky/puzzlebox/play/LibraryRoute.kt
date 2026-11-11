@@ -240,16 +240,12 @@ internal fun LibraryScreen(
         duelsScroll = duelsScroll,
     )
     if (layout == PlayLayout.TwoPane) {
-        // The Duels tab has no game page beside it: it takes the whole width, its sections in two columns.
-        val duelsWide = tab == GamesTab.Duels && duels != null
         Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {
-            GamesList(onRow, if (duelsWide) Modifier.fillMaxWidth() else Modifier.width(400.dp))
-            if (!duelsWide) {
-                Spacer(Modifier.width(Spacing.xl))
-                if (selected != null) {
-                    key(selected.card.game) {
-                        Box(Modifier.fillMaxWidth()) { Page(selected, onBack = null) }
-                    }
+            GamesList(onRow, Modifier.width(400.dp))
+            Spacer(Modifier.width(Spacing.xl))
+            if (selected != null) {
+                key(selected.card.game) {
+                    Box(Modifier.fillMaxWidth()) { Page(selected, onBack = null) }
                 }
             }
         }

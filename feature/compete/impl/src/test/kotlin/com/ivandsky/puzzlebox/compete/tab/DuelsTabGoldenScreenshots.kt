@@ -36,16 +36,16 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 private const val GOLDEN_PHONE = "w411dp-h891dp-420dpi"
-private const val GOLDEN_TABLET = "w1280dp-h800dp-land-mdpi"
+
+/** The tablet's Games list column: 400 dp wide, so the tab gets exactly that on a tablet. */
+private const val GOLDEN_PANE = "w400dp-h800dp-mdpi"
 private const val SETTLE_MS = 2_000L
 
-/** The tablet hosts the Duels tab across the Games screen: past the 80 dp rail, inset like the two-pane layout. */
-private val TABLET_RAIL = 80.dp
-
 /**
- * The Duels tab body, phone and tablet, light and dark: every row kind in its section with the challenge card, the empty
- * note, the signed-out card, and a long opponent name. The tablet is the wide layout, two columns. Goldens in
- * `snapshots/tab/`.
+ * The Duels tab body at the two widths it gets, light and dark: every row kind in its section with the challenge card,
+ * the empty note, the signed-out card, a long opponent name, and a Waiting row with five Finished ones. The phone is the
+ * screen less the host's side inset; the pane is the tablet's 400 dp Games column, the same one Dailies and Friends sit
+ * in. Goldens in `snapshots/tab/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -54,8 +54,8 @@ class DuelsTabPhoneGoldenScreenshots : DuelsTabGoldenScreenshots("phone")
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = GOLDEN_TABLET)
-class DuelsTabTabletGoldenScreenshots : DuelsTabGoldenScreenshots("tablet")
+@Config(sdk = [34], qualifiers = GOLDEN_PANE)
+class DuelsTabPaneGoldenScreenshots : DuelsTabGoldenScreenshots("pane")
 
 abstract class DuelsTabGoldenScreenshots(private val device: String) {
 
@@ -77,12 +77,12 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
     @Test fun `tab long name light`() = tab("tab-long-name", LONG_NAME, dark = false)
     @Test fun `tab long name dark`() = tab("tab-long-name", LONG_NAME, dark = true)
 
-    private val tablet = device == "tablet"
+    private val pane = device == "pane"
 
     private fun tab(name: String, state: DuelsTabState, dark: Boolean) {
         rule.showGolden(dark) {
             // Surface forces its child to full size; the inner Box stands in for the Games host, which insets the
-            // phone by Spacing.lg and gives the tablet the whole width past the rail.
+            // phone by Spacing.lg and gives the tablet's pane its whole width, with no inset.
             Box(Modifier.fillMaxSize()) {
                 DuelsTabContent(
                     rows = state.rows,
@@ -92,12 +92,7 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
                     onNewDuel = {},
                     onOpenDuel = {},
                     onOpenReveal = {},
-                    modifier = if (tablet) {
-                        Modifier.padding(start = TABLET_RAIL + Spacing.xl, end = Spacing.xxl)
-                    } else {
-                        Modifier.padding(horizontal = Spacing.lg)
-                    },
-                    wide = tablet,
+                    modifier = if (pane) Modifier else Modifier.padding(horizontal = Spacing.lg),
                 )
             }
         }

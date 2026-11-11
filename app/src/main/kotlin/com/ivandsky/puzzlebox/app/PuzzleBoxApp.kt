@@ -51,7 +51,6 @@ import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.TodayStatus
-import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.playLayoutFor
 import com.ivandsky.puzzlebox.history.historyLayoutFor
 import com.ivandsky.puzzlebox.home.HomeLayout
@@ -142,15 +141,10 @@ fun PuzzleBoxApp(
         todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)
     val duels = if (competitions) {
-        remember(navigator, playLayout) {
+        remember(navigator) {
             DuelsSlot(
                 content = { listState ->
-                    DuelsTab(
-                        onOpenDuel = navigator::pushOnce,
-                        onOpenReveal = navigator::pushOnce,
-                        listState = listState,
-                        wide = playLayout == PlayLayout.TwoPane,
-                    )
+                    DuelsTab(onOpenDuel = navigator::pushOnce, onOpenReveal = navigator::pushOnce, listState = listState)
                 },
                 needYou = { rememberDuelsNeedYou() },
                 onOpenDuel = navigator::pushOnce,
