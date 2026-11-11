@@ -385,7 +385,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   (drawn by Settings), `profile/settings/` (`SettingsRoute`, `SettingsScreen`,
   `SettingsViewModel`, `SettingsUiState`: Appearance, About with `AppBuild.versionName`, and a
   Developer link to the catalog in debug builds), `profile/di/ProfileModule` (`profileModule`),
-  `profile/navigation/ProfileEntry` (`profileEntry` and the Settings entry; `onProfileBack` draws
+  `profile/navigation/ProfileEntry` (`profileEntry` and the Settings entry; `onBack` draws
   the back icon and `onOpenSettings` the gear, both required). The Google ID-token provider moved
   to `:core:auth`.
 - `feature/create/impl/` (`:feature:create:impl`, ADR-0019; no `games:*` dependency; `published/` hosts `PublishedPuzzleRoute`) —

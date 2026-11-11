@@ -17,8 +17,8 @@ fun ProfileRoute(
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
+    viewModel: ProfileViewModel = koinViewModel(),
 ) {
-    val viewModel: ProfileViewModel = koinViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     // The credential sheet launches from the current Activity's context (I2) —
     // read in composition (LocalContext is composable-scoped), handed per call.
