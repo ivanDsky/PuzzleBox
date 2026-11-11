@@ -58,6 +58,7 @@ class GamePageBoardViewModelTest {
     private val game = TestGames.alpha
     private val today = LocalDate.of(2026, 11, 9)
     private val yesterday = today.minusDays(1)
+    private val past = today.minusDays(4)
 
     private fun entry(name: String) =
         LeaderboardEntry(uid = name, displayName = name, puzzleRef = "alpha/$today/1", timeMs = 10_000L, hints = 0, completedAtMs = 0L)
@@ -65,10 +66,21 @@ class GamePageBoardViewModelTest {
     /** Today's board as these names in order, instead of the one row of the day's own name. */
     private var standings: List<String>? = null
 
+    /** When set, the board of [past] has not started, so a test sees the state while it loads. */
+    private var pastBoardWaits = false
+    private val pastBoardReady = MutableSharedFlow<Unit>(replay = 1)
+
     private val repository = object : LeaderboardRepository {
-        override fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?> {
-            val names = standings ?: listOf(if (board.day == yesterday) "Yest1" else "Today1")
-            return flowOf(LeaderboardSnapshot(board, names.map { entry(it) }))
+        override fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?> = flow {
+            if (board.day == past && pastBoardWaits) pastBoardReady.first()
+            val names = standings ?: listOf(
+                when (board.day) {
+                    yesterday -> "Yest1"
+                    past -> "Past1"
+                    else -> "Today1"
+                },
+            )
+            emit(LeaderboardSnapshot(board, names.map { entry(it) }))
         }
 
         override suspend fun submit(entry: LeaderboardEntry): SubmitResult = error("never submitted")
@@ -260,6 +272,64 @@ class GamePageBoardViewModelTest {
         after(HOUR_MS)
 
         assertEquals(emptyList<Any>(), days.syncCalls)
+    }
+
+    @Test
+    fun `a picked past day shows that days board and ghosts, and unpicking returns to today`() {
+        days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L))))
+        days.emit(game, past, dayData(listOf(ghost("Cy", 70_000L, hintFree = false))))
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        settle()
+
+        model.pick(past)
+        settle()
+        assertEquals(past, model.state.value.picked)
+        assertEquals(DailyBoardState.Ranked(listOf(row("Past1"))), model.state.value.board)
+        assertEquals(listOf(GhostRowModel("Cy", 70_000L, false)), model.state.value.ghosts)
+
+        model.pick(null)
+        settle()
+        assertEquals(null, model.state.value.picked)
+        assertEquals(BoardDay.Today, model.state.value.day)
+        assertEquals(DailyBoardState.Ranked(listOf(row("Today1"))), model.state.value.board)
+        assertEquals(listOf(GhostRowModel("Ada", 61_000L, true)), model.state.value.ghosts)
+    }
+
+    @Test
+    fun `a picked past day reads ghosts without syncing`() {
+        days.emit(game, past, dayData(listOf(ghost("Cy", 70_000L))))
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        settle()
+
+        model.pick(past)
+        after(HOUR_MS)
+
+        assertEquals(emptyList<Any>(), days.syncCalls)
+        assertEquals(listOf("Cy"), model.state.value.ghosts.map { it.name })
+    }
+
+    @Test
+    fun `rows and ghosts of the previous day never show under a newly picked day while it loads`() {
+        pastBoardWaits = true
+        days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L))))
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        settle()
+        assertEquals(DailyBoardState.Ranked(listOf(row("Today1"))), model.state.value.board)
+
+        model.pick(past)
+        settle()
+        assertEquals(past, model.state.value.picked)
+        assertEquals(DailyBoardState.Loading, model.state.value.board)
+        assertEquals(emptyList<GhostRowModel>(), model.state.value.ghosts)
+
+        days.emit(game, past, dayData(listOf(ghost("Cy", 70_000L))))
+        pastBoardReady.tryEmit(Unit)
+        settle()
+        assertEquals(DailyBoardState.Ranked(listOf(row("Past1"))), model.state.value.board)
+        assertEquals(listOf("Cy"), model.state.value.ghosts.map { it.name })
     }
 
     @Test
