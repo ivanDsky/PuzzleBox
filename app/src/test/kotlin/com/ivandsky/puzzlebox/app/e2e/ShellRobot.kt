@@ -89,8 +89,7 @@ import org.robolectric.Shadows.shadowOf
  * every feature entry — over [graph] (the production Koin modules with fakes on the
  * edges), starting at [state]. The width class comes from the real window, so a row's
  * `@Config(qualifiers = …)` picks bar or rail. [destinations] is the tab set the shell
- * shows: the flag-off set by default; a run with NavV2 on in [graph] passes the flag-on
- * one. The caller's test class runs on Robolectric with a plain `Application`
+ * shows. The caller's test class runs on Robolectric with a plain `Application`
  * (`@Config(application = Application::class)`), so the merged manifest's application
  * never starts a second Koin.
  */
@@ -118,20 +117,13 @@ internal fun shellRobot(
     }
 }
 
-/** The graph with NavV2 on, plus [also]'s flags. */
-internal fun navV2Graph(vararg also: ReleaseFlag, overrides: Module = module {}): E2eKoinGraph =
-    E2eKoinGraph(E2E_TODAY, overrides, FakeReleaseFlags(ReleaseFlag.NavV2, *also))
+/** The graph with [also]'s flags on. */
+internal fun shellGraph(vararg also: ReleaseFlag, overrides: Module = module {}): E2eKoinGraph =
+    E2eKoinGraph(E2E_TODAY, overrides, FakeReleaseFlags(*also))
 
-/** [shellRobot] with NavV2 on: the flag-on tab set over [graph], starting at [state]. */
-internal fun navV2Robot(
-    state: NavigationState = puzzleBoxNavigationState(navV2 = true),
-    graph: E2eKoinGraph = navV2Graph(),
-    block: ShellRobot.() -> Unit,
-) = shellRobot(state, graph = graph, destinations = topLevelDestinations(navV2 = true), block = block)
-
-/** The fresh flag-on state, selected on [tab], whose stack is [tab] then [pushed]. */
-internal fun navV2At(tab: NavKey, vararg pushed: NavKey): NavigationState {
-    val fresh = puzzleBoxNavigationState(navV2 = true)
+/** The fresh state, selected on [tab], whose stack is [tab] then [pushed]. */
+internal fun tabAt(tab: NavKey, vararg pushed: NavKey): NavigationState {
+    val fresh = puzzleBoxNavigationState()
     return NavigationState(
         tab = tab,
         stacks = fresh.stacks.map { stack -> if (stack.first() == tab) stack + pushed else stack },
@@ -588,14 +580,14 @@ class ShellRobot internal constructor(
         assertTrue("rail hugs the start: $tabs in $window", tabs.first().right <= window.left + window.width / 4)
     }
 
-    /** NavV2: the avatar (the rail's bottom, or Today's header on a bar), which opens Profile on the current tab. */
+    /** the avatar (the rail's bottom, or Today's header on a bar), which opens Profile on the current tab. */
     fun tapAvatar() = tap(AVATAR)
 
-    /** NavV2: Profile's top-right gear, which opens Settings above Profile. */
+    /** Profile's top-right gear, which opens Settings above Profile. */
     fun tapGear() = tap(PROFILE_GEAR)
 
     /**
-     * NavV2 placement of the avatar (Settings opens from Profile's gear): on a [rail] it shows once wherever the rail
+     * Placement of the avatar (Settings opens from Profile's gear): on a [rail] it shows once wherever the rail
      * shows (every screen but the immersive ones); on the bar only Today's root shows it.
      */
     fun assertChromeFor(rail: Boolean) {
@@ -621,7 +613,7 @@ class ShellRobot internal constructor(
     }
 
     /**
-     * The NavV2 rail's geometry: the tabs' block (first tab's top to last tab's bottom) is centred on the window's
+     * The rail's geometry: the tabs' block (first tab's top to last tab's bottom) is centred on the window's
      * height within [RAIL_CENTRE_SLACK_DP] (the approved rail sits 2dp above it), and the avatar is a target of at least 48dp x 48dp below the last tab.
      */
     fun assertRailGeometry() {

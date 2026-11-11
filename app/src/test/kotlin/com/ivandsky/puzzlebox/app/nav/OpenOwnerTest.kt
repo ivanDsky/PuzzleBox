@@ -20,7 +20,7 @@ class OpenOwnerTest {
 
     @Test
     fun `a tab root from another tab selects it at its root and leaves the stack behind`() {
-        val before = flagOn(PlayKey, play = listOf(PlayKey, GameKey("zip")))
+        val before = stacks(PlayKey, play = listOf(PlayKey, GameKey("zip")))
 
         val after = before.opening(HistoryRootKey)
 
@@ -31,28 +31,28 @@ class OpenOwnerTest {
 
     @Test
     fun `a tab already selected deeper than its root is reset to the root`() {
-        val before = flagOn(HistoryRootKey, history = listOf(HistoryRootKey, HistoryKey("zip")))
+        val before = stacks(HistoryRootKey, history = listOf(HistoryRootKey, HistoryKey("zip")))
 
-        assertEquals(flagOn(HistoryRootKey), before.opening(HistoryRootKey))
+        assertEquals(stacks(HistoryRootKey), before.opening(HistoryRootKey))
     }
 
     @Test
     fun `a tab root from a deeper unselected stack resets that stack too`() {
-        val before = flagOn(PlayKey, history = listOf(HistoryRootKey, HistoryKey("zip")))
+        val before = stacks(PlayKey, history = listOf(HistoryRootKey, HistoryKey("zip")))
 
         assertEquals(listOf<NavKey>(HistoryRootKey), before.opening(HistoryRootKey).stackOf(HistoryRootKey))
     }
 
     @Test
     fun `the root of the selected tab changes nothing`() {
-        val before = flagOn(PlayKey)
+        val before = stacks(PlayKey)
 
         assertEquals(before, before.opening(PlayKey))
     }
 
     @Test
     fun `back from the owner root reaches Today`() {
-        val navigator = Navigator(flagOn(PlayKey, play = listOf(PlayKey, GameKey("zip"))))
+        val navigator = Navigator(stacks(PlayKey, play = listOf(PlayKey, GameKey("zip"))))
 
         navigator.openOwner(HistoryRootKey)
         navigator.pop()
@@ -63,7 +63,7 @@ class OpenOwnerTest {
     @Test
     fun `a pushed key is a plain push on the current tab`() {
         listOf<NavKey>(GameKey("zip"), HistoryKey("zip")).forEach { key ->
-            val before = flagOn(CreateKey)
+            val before = stacks(CreateKey)
 
             val after = before.opening(key)
 
@@ -74,26 +74,16 @@ class OpenOwnerTest {
 
     @Test
     fun `a debug-only key is a plain push on the current tab`() {
-        val after = flagOn(PlayKey).opening(CatalogKey)
+        val after = stacks(PlayKey).opening(CatalogKey)
 
         assertEquals(PlayKey, after.tab)
         assertEquals(listOf(PlayKey, CatalogKey), after.currentStack)
     }
 
-    @Test
-    fun `an owner tab that is not live is a plain push on the current tab`() {
-        val before = puzzleBoxNavigationState(navV2 = false)
-
-        val after = before.opening(HistoryRootKey)
-
-        assertEquals(before.tab, after.tab)
-        assertEquals(before.currentStack + HistoryRootKey, after.currentStack)
-    }
-
     private fun NavigationState.opening(key: NavKey): NavigationState =
         Navigator(this).apply { openOwner(key) }.state
 
-    private fun flagOn(
+    private fun stacks(
         tab: NavKey,
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),

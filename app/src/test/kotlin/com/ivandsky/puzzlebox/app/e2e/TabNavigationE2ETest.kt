@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.history.api.HistoryKey
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -53,9 +54,9 @@ class TabNavigationE2ETest {
             assertState(inGame)
             assertRoute(GAME)
 
-            switchTab(ProfileKey)
-            assertState(inGame.selectTab(ProfileKey))
-            assertRoute(PROFILE)
+            switchTab(HistoryRootKey)
+            assertState(inGame.selectTab(HistoryRootKey))
+            assertRoute(HISTORY)
 
             tapTab(PlayKey)
             assertState(inGame)
@@ -77,12 +78,12 @@ class TabNavigationE2ETest {
 
     @Test
     fun `N14 back walks Catalog to Profile to Home, then exits`() {
-        val catalog = stacks(tab = ProfileKey, profile = listOf(ProfileKey, CatalogKey))
+        val catalog = stacks(tab = HomeKey, home = listOf(HomeKey, ProfileKey, CatalogKey))
         shellRobot(catalog) {
             assertRoute(CATALOG)
 
             back()
-            assertState(stacks(tab = ProfileKey))
+            assertState(stacks(tab = HomeKey, home = listOf(HomeKey, ProfileKey)))
             assertRoute(PROFILE)
 
             back()
@@ -98,14 +99,14 @@ class TabNavigationE2ETest {
 
     @Test
     fun `N14 predictive back cancelled stays, committed pops`() {
-        val catalog = stacks(tab = ProfileKey, profile = listOf(ProfileKey, CatalogKey))
+        val catalog = stacks(tab = HomeKey, home = listOf(HomeKey, ProfileKey, CatalogKey))
         shellRobot(catalog) {
             predictiveBack(commit = false)
             assertState(catalog)
             assertRoute(CATALOG)
 
             predictiveBack(commit = true)
-            assertState(stacks(tab = ProfileKey))
+            assertState(stacks(tab = HomeKey, home = listOf(HomeKey, ProfileKey)))
             assertRoute(PROFILE)
         }
     }
@@ -115,9 +116,8 @@ class TabNavigationE2ETest {
         val graph = E2eKoinGraph(E2E_TODAY).apply {
             daily.setHistory(ZipDefinition.id, List(HISTORY_DAYS) { ZipPlayFixture.entry(E2E_TODAY.minusDays(it.toLong())) })
         }
-        val history = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey()))
-        shellRobot(graph = graph) {
-            tapText("See all")
+        val history = stacks(tab = HistoryRootKey)
+        shellRobot(history, graph = graph) {
             assertState(history)
             assertRoute(HISTORY)
             // The stats and weeks cards sit above the rows: wait for the first page by scrolling to it.
@@ -128,23 +128,15 @@ class TabNavigationE2ETest {
             rule.waitForIdle()
             assertScrolled()
 
-            tapTab(ProfileKey)
-            assertState(history.selectTab(ProfileKey))
-            assertRoute(PROFILE)
+            tapTab(CreateKey)
+            assertState(history.selectTab(CreateKey))
+            assertRoute(CREATE)
 
-            tapTab(HomeKey)
+            tapTab(HistoryRootKey)
             assertState(history)
             assertRoute(HISTORY)
             assertScrolled()
         }
-    }
-
-    @Test
-    fun `N16 the account card opens Profile and leaves Home's stack alone`() = shellRobot {
-        tapText("Sign in")
-
-        assertState(stacks(tab = ProfileKey))
-        assertRoute(PROFILE)
     }
 
     @Test
@@ -153,8 +145,8 @@ class TabNavigationE2ETest {
             stacks(tab = HomeKey) to HOME,
             stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey())) to HISTORY,
             stacks(tab = PlayKey) to HUB,
-            stacks(tab = ProfileKey) to PROFILE,
-            stacks(tab = ProfileKey, profile = listOf(ProfileKey, CatalogKey)) to CATALOG,
+            stacks(tab = HomeKey, home = listOf(HomeKey, ProfileKey)) to PROFILE,
+            stacks(tab = HomeKey, home = listOf(HomeKey, ProfileKey, CatalogKey)) to CATALOG,
         ).forEach { (seed, route) ->
             shellRobot(seed) {
                 assertState(seed)
@@ -199,7 +191,7 @@ class TabNavigationE2ETest {
         listOf(
             stacks(tab = HomeKey) to HOME,
             stacks(tab = PlayKey) to HUB,
-            stacks(tab = ProfileKey, profile = listOf(ProfileKey, CatalogKey)) to CATALOG,
+            stacks(tab = HomeKey, home = listOf(HomeKey, ProfileKey, CatalogKey)) to CATALOG,
         ).forEach { (seed, route) ->
             shellRobot(seed) {
                 assertState(seed)
@@ -225,12 +217,12 @@ class TabNavigationE2ETest {
     }
 
     @Test
-    fun `SC14 the tab and all three stacks survive a restore, saved under 100 KB`() {
+    fun `SC14 the tab and every stack survive a restore, saved under 100 KB`() {
         val worst = stacks(
-            tab = ProfileKey,
+            tab = CreateKey,
             home = listOf(HomeKey, HistoryKey(), GameKey(QUEENS)),
             play = listOf(PlayKey, GameKey(ZIP)),
-            profile = listOf(ProfileKey, CatalogKey),
+            create = listOf(CreateKey, ProfileKey, CatalogKey),
         )
         shellRobot(worst) {
             // Visit every tab so each stack's top composes and both games are live.
@@ -239,7 +231,7 @@ class TabNavigationE2ETest {
             assertRoute(GAME)
             switchTab(PlayKey)
             assertRoute(GAME)
-            switchTab(ProfileKey)
+            switchTab(CreateKey)
             assertRoute(CATALOG)
 
             val bytes = savedStateBytes()
@@ -265,8 +257,9 @@ class TabNavigationE2ETest {
             puzzleBoxNavKeys,
         )
         shellRobot {
-            tapTab(ProfileKey)
-            tapText("Design system catalog")
+            tapAvatar()
+            tapGear()
+            tap("settings.catalog")
             assertRoute(CATALOG)
 
             restoreLegacy(legacy)
@@ -289,9 +282,9 @@ class TabNavigationE2ETest {
         tab: NavKey,
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
+        history: List<NavKey> = listOf(HistoryRootKey),
         create: List<NavKey> = listOf(CreateKey),
-        profile: List<NavKey> = listOf(ProfileKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, create, profile))
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, history, create))
 
     private companion object {
         const val HOME = "route.home"
@@ -299,6 +292,7 @@ class TabNavigationE2ETest {
         const val HUB = "route.library"
         const val GAME = "route.game"
         const val RESULT = "route.result"
+        const val CREATE = "route.create"
         const val PROFILE = "route.profile"
         const val CATALOG = "route.catalog"
         const val ZIP = "zip"

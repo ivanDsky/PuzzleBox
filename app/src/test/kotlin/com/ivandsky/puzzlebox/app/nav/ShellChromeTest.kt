@@ -6,10 +6,8 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.e2e.E2E_TODAY
-import com.ivandsky.puzzlebox.app.e2e.E2eKoinGraph
 import com.ivandsky.puzzlebox.app.e2e.ShellRobot
 import com.ivandsky.puzzlebox.app.e2e.shellRobot
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.NavV2
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.history.api.HistoryKey
@@ -22,7 +20,6 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.profile.api.SettingsKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -31,10 +28,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * With NavV2 on a phone's bar, only Today's header carries the shell's avatar (`shell.avatar`);
+ * On a phone's bar, only Today's header carries the shell's avatar (`shell.avatar`);
  * every other screen carries none. The avatar opens Profile on the current tab and Profile's gear
- * (`profile.settings`) opens Settings above it, so Back returns through Profile to Today. With
- * the flag off no screen shows the avatar. The tablet's rail placement is pinned in the e2e tests.
+ * (`profile.settings`) opens Settings above it, so Back returns through Profile to Today. The tablet's rail placement is pinned in the e2e tests.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -42,7 +38,7 @@ import org.robolectric.annotation.Config
 class ShellChromeTest {
 
     @Test
-    fun `the Today root shows the avatar, the History and Create roots do not`() = flagOn {
+    fun `the Today root shows the avatar, the History and Create roots do not`() = shellAt {
         assertRoute(HOME)
         assertShellActions(shown = true)
 
@@ -56,45 +52,45 @@ class ShellChromeTest {
     }
 
     @Test
-    fun `a pushed friend puzzle shows neither`() = flagOn(at(PlayKey, FriendPuzzleKey("K7Q2MX"))) {
+    fun `a pushed friend puzzle shows neither`() = shellAt(at(PlayKey, FriendPuzzleKey("K7Q2MX"))) {
         assertRoute(FRIEND)
         assertShellActions(shown = false)
     }
 
     @Test
-    fun `a pushed History shows neither`() = flagOn(at(HomeKey, HistoryKey())) {
+    fun `a pushed History shows neither`() = shellAt(at(HomeKey, HistoryKey())) {
         assertRoute(HISTORY)
         assertShellActions(shown = false)
     }
 
     @Test
-    fun `a game board shows neither`() = flagOn(at(PlayKey, GameKey(ZIP))) {
+    fun `a game board shows neither`() = shellAt(at(PlayKey, GameKey(ZIP))) {
         assertRoute(GAME)
         assertShellActions(shown = false)
     }
 
     @Test
     fun `a result shows neither`() =
-        flagOn(at(PlayKey, ResultKey(ZIP, E2E_TODAY.toString(), timeMs = 61_000, hintsUsed = 0))) {
+        shellAt(at(PlayKey, ResultKey(ZIP, E2E_TODAY.toString(), timeMs = 61_000, hintsUsed = 0))) {
             assertRoute(RESULT)
             assertShellActions(shown = false)
         }
 
     @Test
-    fun `Profile shows neither`() = flagOn(at(HomeKey, ProfileKey)) {
+    fun `Profile shows neither`() = shellAt(at(HomeKey, ProfileKey)) {
         assertRoute(PROFILE)
         assertShellActions(shown = false)
     }
 
     @Test
-    fun `Settings shows neither`() = flagOn(at(HomeKey, SettingsKey)) {
+    fun `Settings shows neither`() = shellAt(at(HomeKey, SettingsKey)) {
         assertRoute(SETTINGS)
         assertShellActions(shown = false)
     }
 
     @Test
     fun `the avatar opens Profile on the current tab and Back returns to the screen left`() =
-        flagOn {
+        shellAt {
             assertRoute(HOME)
 
             tap(AVATAR)
@@ -110,7 +106,7 @@ class ShellChromeTest {
 
     @Test
     fun `Profile's gear opens Settings above Profile and Back returns through Profile`() =
-        flagOn {
+        shellAt {
             assertRoute(HOME)
 
             tap(AVATAR)
@@ -131,7 +127,7 @@ class ShellChromeTest {
         }
 
     @Test
-    fun `signed out the avatar is the Profile icon, signed in it draws the player's initial`() = flagOn {
+    fun `signed out the avatar is the Profile icon, signed in it draws the player's initial`() = shellAt {
         assertRoute(HOME)
         awaitTag(AVATAR)
         assertNull("signed out the avatar draws no initial", avatarText())
@@ -143,31 +139,12 @@ class ShellChromeTest {
         assertEquals("signed in the avatar draws the player's initial", listOf("A"), avatarText())
     }
 
-    @Test
-    fun `with the flag off no browse screen shows either`() = shellRobot {
-        assertRoute(HOME)
-        assertShellActions(shown = false)
+    private fun shellAt(state: NavigationState = puzzleBoxNavigationState(), block: ShellRobot.() -> Unit) =
+        shellRobot(state = state, block = block)
 
-        tapText("See all")
-        assertRoute(HISTORY)
-        assertShellActions(shown = false)
-
-        tapTab(CreateKey)
-        assertRoute(CREATE)
-        assertShellActions(shown = false)
-    }
-
-    private fun flagOn(state: NavigationState = puzzleBoxNavigationState(navV2 = true), block: ShellRobot.() -> Unit) =
-        shellRobot(
-            state = state,
-            graph = E2eKoinGraph(E2E_TODAY, releaseFlags = FakeReleaseFlags(NavV2)),
-            destinations = topLevelDestinations(navV2 = true),
-            block = block,
-        )
-
-    /** The fresh flag-on state, selected on [tab], whose stack is [tab] then [pushed]. */
+    /** The fresh state, selected on [tab], whose stack is [tab] then [pushed]. */
     private fun at(tab: NavKey, vararg pushed: NavKey): NavigationState {
-        val fresh = puzzleBoxNavigationState(navV2 = true)
+        val fresh = puzzleBoxNavigationState()
         return NavigationState(
             tab = tab,
             stacks = fresh.stacks.map { stack -> if (stack.first() == tab) stack + pushed else stack },

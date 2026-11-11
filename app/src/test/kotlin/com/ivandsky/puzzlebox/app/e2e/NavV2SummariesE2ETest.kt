@@ -38,7 +38,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * NavV2's one-line summaries on the real shell (SC2, SC7), on a phone's bar and a tablet's
+ * The one-line summaries on the real shell (SC2, SC7), on a phone's bar and a tablet's
  * rail: each opens its owner tab at its root and shows the owner's block, and Back from that
  * root returns to Today. The sweep pins one owner per block: off its owner no screen draws the
  * game page's board (`leaderboard.*`) or History's stats (`history.stats*`), and no screen
@@ -105,37 +105,37 @@ class NavV2SummariesE2ETest {
     @Config(qualifiers = RAIL)
     fun `on a tablet Today's See all opens the History root, back to Today`() = seeAll()
 
-    private fun seeAll() = navV2Robot {
+    private fun seeAll() = shellRobot {
         assertRoute(HOME)
         tapText("See all")
 
         assertRoute(HISTORY)
-        assertState(navV2At(HistoryRootKey))
+        assertState(tabAt(HistoryRootKey))
         back()
         assertRoute(HOME)
-        assertState(navV2At(HomeKey))
+        assertState(tabAt(HomeKey))
     }
 
-    private fun rank(width: Width) = navV2Robot(graph = rankedGraph()) {
+    private fun rank(width: Width) = shellRobot(graph = rankedGraph()) {
         seedBoards()
         assertRoute(HOME)
         tap(RANK_ROW)
 
         awaitTag(ZIP_PAGE)
         awaitTag("leaderboard.today")
-        assertState(navV2At(PlayKey))
+        assertState(tabAt(PlayKey))
         if (width == Width.Phone) {
             back()
             assertRoute(LIBRARY)
             assertFalse("the page closed onto the list", shows(ZIP_PAGE))
-            assertState(navV2At(PlayKey))
+            assertState(tabAt(PlayKey))
         }
         back()
         assertRoute(HOME)
-        assertState(navV2At(HomeKey))
+        assertState(tabAt(HomeKey))
     }
 
-    private fun duels() = navV2Robot(graph = navV2Graph(ReleaseFlag.Competitions)) {
+    private fun duels() = shellRobot(graph = shellGraph(ReleaseFlag.Competitions)) {
         seedDuelNeedingMe()
         assertRoute(HOME)
         tap(DUELS_ROW)
@@ -143,45 +143,45 @@ class NavV2SummariesE2ETest {
         awaitTag("duels.tab")
         rule.onNodeWithTag("library.tab.duels").assertIsSelected()
         assertRoute(LIBRARY)
-        assertState(navV2At(PlayKey))
+        assertState(tabAt(PlayKey))
         back()
         assertRoute(HOME)
-        assertState(navV2At(HomeKey))
+        assertState(tabAt(HomeKey))
     }
 
-    private fun history() = navV2Robot {
+    private fun history() = shellRobot {
         tapTab(PlayKey)
         tap("library.row.$ZIP")
         awaitTag(ZIP_PAGE)
         tap("summary.history")
 
         assertRoute(HISTORY)
-        assertState(navV2At(HistoryRootKey))
+        assertState(tabAt(HistoryRootKey))
         assertFalse("the History root has no back icon", shows("history.back"))
         back()
         assertRoute(HOME)
-        assertState(navV2At(HomeKey))
+        assertState(tabAt(HomeKey))
     }
 
     // Signed out: the row needs only today's official solve, which the record store holds.
-    private fun fullBoard() = navV2Robot(navV2At(PlayKey, todaysResult()), solvedGraph()) {
+    private fun fullBoard() = shellRobot(tabAt(PlayKey, todaysResult()), graph = solvedGraph()) {
         assertRoute(RESULT)
         tap(RANK_ROW)
 
         awaitTag(ZIP_PAGE)
         assertRoute(LIBRARY)
-        assertState(navV2At(PlayKey))
+        assertState(tabAt(PlayKey))
         assertTrue("no stack holds the Result", state.stacks.flatten().none { it is ResultKey })
     }
 
     // Played from Today: the Result sits on Home's stack, which opening Games does not reset.
-    private fun fullBoardFromToday(width: Width) = navV2Robot(navV2At(HomeKey, todaysResult()), solvedGraph()) {
+    private fun fullBoardFromToday(width: Width) = shellRobot(tabAt(HomeKey, todaysResult()), graph = solvedGraph()) {
         assertRoute(RESULT)
         tap(RANK_ROW)
 
         awaitTag(ZIP_PAGE)
         assertRoute(LIBRARY)
-        assertState(navV2At(PlayKey))
+        assertState(tabAt(PlayKey))
         assertTrue("no stack holds the Result: $state", state.stacks.flatten().none { it is ResultKey })
         if (width == Width.Phone) {
             back()
@@ -190,10 +190,10 @@ class NavV2SummariesE2ETest {
         }
         back()
         assertRoute(HOME)
-        assertState(navV2At(HomeKey))
+        assertState(tabAt(HomeKey))
     }
 
-    private fun sweep() = navV2Robot(navV2At(PlayKey, todaysResult()), rankedGraph(ReleaseFlag.Competitions)) {
+    private fun sweep() = shellRobot(tabAt(PlayKey, todaysResult()), graph = rankedGraph(ReleaseFlag.Competitions)) {
         seedBoards()
         seedDuelNeedingMe()
         assertRoute(RESULT)
@@ -242,7 +242,7 @@ class NavV2SummariesE2ETest {
     }
 
     /** Today's Zip daily solved, signed out. */
-    private fun solvedGraph(vararg also: ReleaseFlag) = navV2Graph(*also).apply {
+    private fun solvedGraph(vararg also: ReleaseFlag) = shellGraph(*also).apply {
         records.setRecords(
             listOf(CompletionRecord(ZipPuzzleRef(PuzzleKey.Daily(E2E_TODAY, ZIP_NUMBER)), TIME_MS, 0, RecordStats(1, "{}"))),
         )

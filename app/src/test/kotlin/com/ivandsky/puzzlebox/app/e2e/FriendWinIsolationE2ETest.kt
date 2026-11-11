@@ -8,6 +8,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
+import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
 import com.ivandsky.puzzlebox.data.di.dataModule
@@ -42,6 +43,7 @@ import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.games.queensui.QueensPlayController
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.history.api.HistoryKey
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -51,7 +53,6 @@ import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
@@ -307,7 +308,7 @@ class FriendWinIsolationE2ETest {
     /** Home's stack holds History, so a relaunch opens on it and back reaches Home. */
     private val historyOverHome = NavigationState(
         tab = HomeKey,
-        stacks = listOf(listOf(HomeKey, HistoryKey()), listOf(PlayKey), listOf(ProfileKey)),
+        stacks = listOf(listOf(HomeKey, HistoryKey()), listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey)),
     )
 
     private companion object {

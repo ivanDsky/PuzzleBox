@@ -9,9 +9,9 @@ import com.ivandsky.puzzlebox.navigation.Navigator
  * - A key whose home is `TabRoot(tab)` selects that tab and resets it to its root; nothing
  *   is pushed, and back from the root returns to the start tab. The owner key is found by
  *   [TopLevelDestination.tab] and then looked up in the live `state.tabs`, because the
- *   placement table describes the NavV2 target, not the tabs that exist.
+ *   placement table names tabs, not the stacks that exist.
  * - Every other key (`PushedOn`, `Shell`, `DebugOnly`), and a `TabRoot` whose tab is not
- *   live (NavV2 off), is a plain push on the current tab.
+ *   live, is a plain push on the current tab.
  */
 internal fun Navigator.openOwner(key: NavKey) {
     val home = placementOf(key).home
@@ -25,4 +25,4 @@ internal fun Navigator.openOwner(key: NavKey) {
     if (state.currentStack.size > 1) selectTab(owner)
 }
 
-private fun ownerKey(tab: Tab): NavKey? = topLevelDestinations(navV2 = true).firstOrNull { it.tab == tab }?.key
+private fun ownerKey(tab: Tab): NavKey? = topLevelDestinations.firstOrNull { it.tab == tab }?.key

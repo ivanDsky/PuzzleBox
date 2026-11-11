@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.app.e2e
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
+import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -14,13 +15,13 @@ import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -149,8 +150,9 @@ class ResumeSolveE2ETest {
         tab: NavKey,
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
-        profile: List<NavKey> = listOf(ProfileKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, profile))
+        history: List<NavKey> = listOf(HistoryRootKey),
+        create: List<NavKey> = listOf(CreateKey),
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, history, create))
 
     private val playHub = stacks(tab = PlayKey)
     private val todaySlot = PlaySlot.Daily(ZipDefinition.id, E2E_TODAY)

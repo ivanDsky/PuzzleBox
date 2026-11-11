@@ -40,7 +40,6 @@ import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.app.nav.playTabBadged
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
-import com.ivandsky.puzzlebox.app.nav.rememberNavV2
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.Competitions
@@ -83,17 +82,12 @@ import org.koin.compose.koinInject
  * A duel link (`/m/`) opens the duel screen when the Competitions flag is on.
  * A [pendingShare] (shared text waiting in the store, which `MainActivity` filled) shows
  * Create's root the same way, then [onShareApplied]; the root imports the text.
- *
- * [navV2] is the NavV2 flag, read once per launch ([rememberNavV2]); a flip lands on the
- * next launch. It picks the tab set (Home, Play, Create, Profile off; Today, Games, History,
- * Create on) for the bar, the rail and the [navigator]'s fresh state.
  */
 @Composable
 fun PuzzleBoxApp(
     windowWidthSizeClass: WindowWidthSizeClass,
     modifier: Modifier = Modifier,
-    navV2: Boolean = rememberNavV2(),
-    navigator: Navigator = rememberNavigator(puzzleBoxNavigationState(navV2)),
+    navigator: Navigator = rememberNavigator(puzzleBoxNavigationState()),
     pendingLink: String? = null,
     onLinkApplied: () -> Unit = {},
     pendingShare: Boolean = false,
@@ -140,7 +134,7 @@ fun PuzzleBoxApp(
     )
     val expanded = layout == HomeLayout.TwoPane
     val identityService = koinInject<IdentityService>()
-    val destinations = topLevelDestinations(navV2)
+    val destinations = topLevelDestinations
     val selected = navigator.state.tab
     val top = navigator.state.currentStack.last()
     val immersive = isImmersive(top)
@@ -166,12 +160,12 @@ fun PuzzleBoxApp(
     }
     val badged = playTabBadged(anyInProgress, duelsNeedYou = duels?.needYou?.invoke() ?: 0)
     // A tap on the selected tab at its root is a reducer no-op, so the shell spots it here
-    // and tells the roots (NavV2 only); the tap still goes through selectTab.
+    // and tells the roots; the tap still goes through selectTab.
     val tabReselect = remember { MutableSharedFlow<Unit>(extraBufferCapacity = 1) }
     val onSelect = { tab: NavKey ->
         val atRoot = tab == navigator.state.tab && navigator.state.currentStack.size == 1
         navigator.selectTab(tab)
-        if (navV2 && atRoot) tabReselect.tryEmit(Unit)
+        if (atRoot) tabReselect.tryEmit(Unit)
     }
 
     val reduceMotion = rememberReducedMotion()
@@ -211,11 +205,7 @@ fun PuzzleBoxApp(
                     onSelect = onSelect,
                     badged = badged,
                     destinations = destinations,
-                    bottomActions = if (navV2) {
-                        { ShellAvatar(navigator, identityService.current, ShellAvatarSize.Rail) }
-                    } else {
-                        null
-                    },
+                    bottomActions = { ShellAvatar(navigator, identityService.current, ShellAvatarSize.Rail) },
                     modifier = Modifier
                         .fillMaxHeight()
                         .onSizeChanged { railWidth = with(density) { it.width.toDp() } },
@@ -235,7 +225,6 @@ fun PuzzleBoxApp(
                     onCodeDraftTaken = { codeDraft = null },
                     duels = duels,
                     onOpenDuel = onOpenDuel,
-                    navV2 = navV2,
                     libraryRequests = libraryRequests,
                 )
             }
