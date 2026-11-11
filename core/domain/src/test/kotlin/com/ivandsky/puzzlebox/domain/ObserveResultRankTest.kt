@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -60,7 +61,11 @@ class ObserveResultRankTest {
     )
 
     /** A connected day whose connections board was read. */
-    private fun connections(vararg ghosts: LinkedInGhost, own: LinkedInOwnState = LinkedInOwnState.Unknown) = days.emit(
+    private fun connections(
+        vararg ghosts: LinkedInGhost,
+        own: LinkedInOwnState = LinkedInOwnState.Unknown,
+        owner: LinkedInOwner? = null,
+    ) = days.emit(
         tango,
         day,
         LinkedInDayData(
@@ -72,6 +77,7 @@ class ObserveResultRankTest {
             own = own,
             ghosts = ghosts.toList(),
             boardFetchedAtMs = 1L,
+            owner = owner,
         ),
     )
 
@@ -177,6 +183,30 @@ class ObserveResultRankTest {
         rank(me, fourPlayers, withConnections = true).test {
             assertEquals(
                 ResultRank.Ranked(position = 3, count = 4, topPercent = 75, withConnections = ResultRank.WithConnections(position = 2, count = 4)),
+                nextRanked(),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `the player's own row stays the you row at the imported time and a same-name other entry is left alone`() = runTest {
+        // The owner's LinkedIn name is "Owner Name", which another entry (60s) carries: the player's own entry, not that one,
+        // takes the 35s import, so it is ahead of b (40s) and behind the 20s connection.
+        val repo = FakeLeaderboardRepository(
+            mapOf(
+                board to listOf(
+                    entry("a", 30),
+                    entry("b", 40),
+                    entry("me", 50),
+                    LeaderboardEntry("o", "Owner Name", "tango/2026-11-07/12", 60_000L, 0, 1_700_000_000_000),
+                ),
+            ),
+        )
+        connections(ghost(1, 20), own = imported(35), owner = LinkedInOwner("Owner Name", photoPath = "/p/owner.jpg"))
+        rank(me, repo, withConnections = true).test {
+            assertEquals(
+                ResultRank.Ranked(position = 3, count = 4, topPercent = 75, withConnections = ResultRank.WithConnections(position = 3, count = 5)),
                 nextRanked(),
             )
             cancelAndIgnoreRemainingEvents()

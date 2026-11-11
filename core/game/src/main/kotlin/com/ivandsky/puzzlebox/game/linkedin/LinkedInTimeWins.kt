@@ -3,8 +3,17 @@ package com.ivandsky.puzzlebox.game.linkedin
 import com.ivandsky.puzzlebox.game.BestScore
 import java.util.Locale
 
-/** The board after a LinkedIn time wins: each PuzzleBox row's [rowScores], and which ghosts are still [ghostKept]. */
-data class LinkedInTimeWins(val rowScores: List<BestScore>, val ghostKept: List<Boolean>)
+/**
+ * The board after a LinkedIn time wins: each PuzzleBox row's [rowScores], and which ghosts are still [ghostKept].
+ * [youRow] is the PuzzleBox row that is the player (null when none is), and [addOwnRow] says that none is but the
+ * player's own LinkedIn row must be added to the board at their imported time.
+ */
+data class LinkedInTimeWins(
+    val rowScores: List<BestScore>,
+    val ghostKept: List<Boolean>,
+    val youRow: Int? = null,
+    val addOwnRow: Boolean = false,
+)
 
 private val Spaces = Regex("\\s+")
 
@@ -16,8 +25,11 @@ private fun linkKey(name: String): String? =
 /**
  * Lets a LinkedIn time win over the PuzzleBox one, for a board's PuzzleBox rows ([rowNames], [rowScores]) and its
  * LinkedIn ghosts ([ghostNames], [ghostScores], a null score being a hidden time):
- *  - the self row ([selfRow], null when the player is not on the board) takes the player's imported [own] score;
- *  - a ghost whose name matches a PuzzleBox row that is not the self row is that same person: the row takes the
+ *  - the player's row is the self row ([selfRow], null when this profile is not on the board); else the first row named
+ *    like the owner's LinkedIn name ([ownName], the same loose match as for ghosts), which is the player's account under
+ *    another profile; else, when the player has an imported [own] score, their own LinkedIn row is to be added
+ *    ([LinkedInTimeWins.addOwnRow]). The player's row takes the [own] score, when there is one;
+ *  - a ghost whose name matches a PuzzleBox row that is not the player's row is that same person: the row takes the
  *    ghost's score (a hidden-time ghost leaves the row's own) and the ghost is dropped, so the person is drawn once.
  * Display only: nothing here is posted, and the rows' PuzzleBox ranks are the caller's to keep.
  */
@@ -28,13 +40,16 @@ fun linkedInTimeWins(
     ghostNames: List<String>,
     ghostScores: List<BestScore?>,
     own: BestScore?,
+    ownName: String? = null,
 ): LinkedInTimeWins {
     val scores = rowScores.toMutableList()
-    if (own != null && selfRow != null) scores[selfRow] = own
+    val rowKeys = rowNames.map(::linkKey)
+    val ownKey = ownName?.let(::linkKey)
+    val youRow = selfRow ?: ownKey?.let { key -> rowKeys.indexOf(key).takeIf { it >= 0 } }
+    if (own != null && youRow != null) scores[youRow] = own
     val rowsByKey = HashMap<String, MutableList<Int>>()
-    rowNames.forEachIndexed { row, name ->
-        val key = linkKey(name)
-        if (key != null && row != selfRow) rowsByKey.getOrPut(key) { ArrayList(1) } += row
+    rowKeys.forEachIndexed { row, key ->
+        if (key != null && row != youRow) rowsByKey.getOrPut(key) { ArrayList(1) } += row
     }
     val takenFrom = HashSet<Int>()
     val kept = ghostNames.mapIndexed { ghost, name ->
@@ -44,5 +59,5 @@ fun linkedInTimeWins(
         if (score != null) rows.filter(takenFrom::add).forEach { scores[it] = score }
         false
     }
-    return LinkedInTimeWins(scores, kept)
+    return LinkedInTimeWins(scores, kept, youRow, addOwnRow = youRow == null && own != null && ownKey != null)
 }
