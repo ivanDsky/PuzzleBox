@@ -77,3 +77,6 @@ to merge without being reachable in a release build.
   the legacy hint (A24).
 - NavV2 flipped to `releaseDefault = true` in 0.24.0 on 2026-11-10.
 - The NavV2 flag was removed, with every branch on it, on 2026-11-11.
+- Competitions flipped to `releaseDefault = true` in 0.26.0 on 2026-11-11. The Games tab gains
+  Dailies / Friends / Duels, the Play tab badge counts duels that need you, and `/m/` links open
+  a duel. Hosting, Firestore rules and the App Links filter were live before the flip.
