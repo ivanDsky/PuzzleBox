@@ -32,8 +32,9 @@ rules_version = '2';
 //   a matchQuota bump; afterwards only claim, cancel, decline and progress updates; never deleted.
 //   deadline = createdAt + deadlineHours; close = deadline + 6 h grace.
 // Layout: matches/{code}/results/{legIndex}_{uid} — one write-once result per player and leg,
-//   posted with that player's progress in the same batch. Sealed: readable by its owner, by a
-//   participant who has posted the same leg, and by any participant once the match closes.
+//   posted with that player's progress in the same batch, plus an optional `replay` (bytes, at most
+//   12288). Sealed: readable by its owner, by a participant who has posted the same leg, and by any
+//   participant once the match closes.
 // Layout: matchQuota/{uid} = {day, count, last} — match creates on one UTC day, capped at 20;
 //   `last` names the code the bump is for, so one bump covers one create.
 
@@ -369,7 +370,8 @@ service cloud.firestore {
         let uid = request.auth.uid;
         let fields = ['formatVersion', 'uid', 'legIndex', 'timeMs', 'hints', 'completedAtMs', 'gaveUp'];
         return result.keys().hasAll(fields)
-          && result.keys().hasOnly(fields)
+          && result.keys().hasOnly(fields.concat(['replay']))
+          && (!('replay' in result) || (result.replay is bytes && result.replay.size() <= 12288))
           && result.formatVersion == 1
           && result.uid == uid
           && result.legIndex is int
