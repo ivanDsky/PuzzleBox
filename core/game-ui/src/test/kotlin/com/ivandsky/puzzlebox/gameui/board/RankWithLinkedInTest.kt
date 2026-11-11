@@ -13,7 +13,8 @@ class RankWithLinkedInTest {
     private fun ghost(name: String, seconds: Int?, hintFree: Boolean = true) =
         GhostRowModel("ref-$name", name, seconds?.let { it * 1000L }, hintFree)
 
-    private fun own(seconds: Int, hints: Int = 0) = BestScore(seconds * 1000L, hints)
+    private fun own(seconds: Int, hints: Int = 0, name: String? = null, photo: String? = null) =
+        LinkedInYou(BestScore(seconds * 1000L, hints), name, photo)
 
     /** Each line as `Real(name)=place@seconds` or `Ghost(name)=place@seconds`, a hidden ghost's place being `-`. */
     private fun labels(lines: List<DailyBoardLine>) = lines.map {
@@ -92,5 +93,63 @@ class RankWithLinkedInTest {
     @Test
     fun `without an import or ghosts the rows are drawn as given`() {
         assertEquals(rows.map { DailyBoardLine.Real(it, it.rank) }, rankWithLinkedIn(rows, emptyList(), null, RankOrder.TimeThenHints))
+    }
+
+    private fun youOf(lines: List<DailyBoardLine>) = lines.filterIsInstance<DailyBoardLine.Real>().single { it.row.isSelf }
+
+    @Test
+    fun `with no self row the PuzzleBox row named like the owner becomes the highlighted you row with the LinkedIn time and photo`() {
+        val others = listOf(real(1, "a", 30), real(2, "b", 40), real(3, " Owner  Name ", 50), real(4, "c", 60))
+
+        val lines = rankWithLinkedIn(others, listOf(ghost("g", 45)), own(35, name = "owner name", photo = "/p/owner.jpg"), RankOrder.TimeThenHints)
+
+        assertEquals(
+            listOf("Real(a)=1@30", "Real( Owner  Name )=2@35", "Real(b)=3@40", "Ghost(g)=4@45", "Real(c)=5@60"),
+            labels(lines),
+        )
+        val you = youOf(lines)
+        assertEquals("/p/owner.jpg", you.row.photo)
+        assertEquals(3, you.row.rank)
+        assertEquals(false, you.row.fromLinkedIn)
+    }
+
+    @Test
+    fun `with no self row and no name match the owner's LinkedIn row is added as the you row and ranks by its time`() {
+        val lines = rankWithLinkedIn(rows.map { it.copy(isSelf = false) }, listOf(ghost("g", 45)), own(35, name = "Owner", photo = "/p/owner.jpg"), RankOrder.TimeThenHints)
+
+        assertEquals(
+            listOf("Real(a)=1@30", "Real(Owner)=2@35", "Real(b)=3@40", "Ghost(g)=4@45", "Real(me)=5@50", "Real(c)=6@60"),
+            labels(lines),
+        )
+        val you = youOf(lines)
+        assertEquals("/p/owner.jpg", you.row.photo)
+        assertEquals(true, you.row.fromLinkedIn)
+    }
+
+    @Test
+    fun `an added you row at the same time as a PuzzleBox row goes after it`() {
+        val lines = rankWithLinkedIn(listOf(real(1, "a", 30)), emptyList(), own(30, name = "Owner"), RankOrder.TimeThenHints)
+
+        assertEquals(listOf("Real(a)=1@30", "Real(Owner)=1@30"), labels(lines))
+    }
+
+    @Test
+    fun `with no import and no name match nothing is added`() {
+        val others = rows.map { it.copy(isSelf = false) }
+
+        val lines = rankWithLinkedIn(others, emptyList(), LinkedInYou(score = null, name = "Owner", photo = "/p/owner.jpg"), RankOrder.TimeThenHints)
+
+        assertEquals(others.map { DailyBoardLine.Real(it, it.rank) }, lines)
+    }
+
+    @Test
+    fun `a self row stays the you row, gets the photo and the LinkedIn time, and a same-name other row is left alone`() {
+        val named = listOf(real(1, "a", 30), real(2, "Owner", 40), real(3, "Tablet", 50, isSelf = true), real(4, "c", 60))
+
+        val lines = rankWithLinkedIn(named, emptyList(), own(35, name = "Owner", photo = "/p/owner.jpg"), RankOrder.TimeThenHints)
+
+        assertEquals(listOf("Real(a)=1@30", "Real(Tablet)=2@35", "Real(Owner)=3@40", "Real(c)=4@60"), labels(lines))
+        assertEquals("/p/owner.jpg", youOf(lines).row.photo)
+        assertEquals(false, lines.filterIsInstance<DailyBoardLine.Real>().single { it.row.name == "Owner" }.row.isSelf)
     }
 }

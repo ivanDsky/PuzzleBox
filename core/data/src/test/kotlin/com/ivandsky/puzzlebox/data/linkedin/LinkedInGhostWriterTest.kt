@@ -82,17 +82,27 @@ class LinkedInGhostWriterTest {
     }
 
     @Test
-    fun `the player's own row is dropped before the cap`() = runTest {
-        val rows = (1..50).map { row(it) }.toMutableList()
+    fun `the player's own row is kept next to the first 50 connections, not among them`() = runTest {
+        val rows = (1..51).map { row(it) }.toMutableList()
         rows.add(10, row(10).copy(memberRef = ownProfileId, name = "Me"))
-        assertEquals(51, rows.size)
+        assertEquals(52, rows.size)
 
-        write(LinkedInBoard(rows))
+        val kept = write(LinkedInBoard(rows))
 
-        val refs = stored(today).map { it.memberRef }
-        assertEquals(50, refs.size)
-        assertTrue(ownProfileId !in refs)
-        assertEquals((1..50).map { "m$it" }.toSet(), refs.toSet())
+        val stored = stored(today)
+        val connections = stored.filter { it.memberRef != ownProfileId }
+        assertEquals((1..50).map { "m$it" }.toSet(), connections.map { it.memberRef }.toSet())
+        assertEquals(50, connections.size)
+        assertEquals("Me", stored.single { it.memberRef == ownProfileId }.name)
+        assertEquals(51, kept.size)
+        assertTrue(kept.any { it.memberRef == ownProfileId })
+    }
+
+    @Test
+    fun `a board without the player's row stores no own row`() = runTest {
+        write(LinkedInBoard(listOf(row(1), row(2))))
+
+        assertEquals(setOf("m1", "m2"), stored(today).map { it.memberRef }.toSet())
     }
 
     @Test

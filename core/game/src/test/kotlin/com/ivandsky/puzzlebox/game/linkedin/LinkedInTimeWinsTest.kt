@@ -89,4 +89,73 @@ class LinkedInTimeWinsTest {
         assertEquals(listOf(score(20)), wins.rowScores)
         assertEquals(listOf(false, false, false), wins.ghostKept)
     }
+
+    @Test
+    fun `with no self row the row named like the owner is the you row at the imported score`() {
+        val wins = linkedInTimeWins(
+            rowNames = listOf("Ada", "  me  myself "),
+            rowScores = listOf(score(30), score(50)),
+            selfRow = null,
+            ghostNames = emptyList(),
+            ghostScores = emptyList(),
+            own = score(35, hints = 1),
+            ownName = "Me Myself",
+        )
+
+        assertEquals(1, wins.youRow)
+        assertEquals(false, wins.addOwnRow)
+        assertEquals(listOf(score(30), score(35, hints = 1)), wins.rowScores)
+    }
+
+    @Test
+    fun `a name match without an import is still the you row and keeps its PuzzleBox score`() {
+        val wins = linkedInTimeWins(listOf("Me"), listOf(score(50)), selfRow = null, ghostNames = emptyList(), ghostScores = emptyList(), own = null, ownName = "me")
+
+        assertEquals(0, wins.youRow)
+        assertEquals(listOf(score(50)), wins.rowScores)
+    }
+
+    @Test
+    fun `a connection named like the owner never takes the you row's time`() {
+        val wins = linkedInTimeWins(listOf("Me"), listOf(score(50)), selfRow = null, ghostNames = listOf("Me"), ghostScores = listOf(score(10)), own = score(35), ownName = "Me")
+
+        assertEquals(listOf(score(35)), wins.rowScores)
+        assertEquals(listOf(true), wins.ghostKept)
+    }
+
+    @Test
+    fun `with no self row and no name match the owner's own row is added`() {
+        val wins = linkedInTimeWins(listOf("Ada"), listOf(score(30)), selfRow = null, ghostNames = emptyList(), ghostScores = emptyList(), own = score(35), ownName = "Me")
+
+        assertEquals(null, wins.youRow)
+        assertEquals(true, wins.addOwnRow)
+        assertEquals(listOf(score(30)), wins.rowScores)
+    }
+
+    @Test
+    fun `nothing is added without an import or without the owner's name`() {
+        val noImport = linkedInTimeWins(listOf("Ada"), listOf(score(30)), selfRow = null, ghostNames = emptyList(), ghostScores = emptyList(), own = null, ownName = "Me")
+        val noName = linkedInTimeWins(listOf("Ada"), listOf(score(30)), selfRow = null, ghostNames = emptyList(), ghostScores = emptyList(), own = score(35), ownName = " ")
+
+        assertEquals(false, noImport.addOwnRow)
+        assertEquals(false, noName.addOwnRow)
+        assertEquals(null, noName.youRow)
+    }
+
+    @Test
+    fun `a self row stays the you row and a same-name other row is left alone`() {
+        val wins = linkedInTimeWins(
+            rowNames = listOf("Me", "Tablet"),
+            rowScores = listOf(score(50), score(60)),
+            selfRow = 1,
+            ghostNames = emptyList(),
+            ghostScores = emptyList(),
+            own = score(35),
+            ownName = "Me",
+        )
+
+        assertEquals(1, wins.youRow)
+        assertEquals(false, wins.addOwnRow)
+        assertEquals(listOf(score(50), score(35)), wins.rowScores)
+    }
 }

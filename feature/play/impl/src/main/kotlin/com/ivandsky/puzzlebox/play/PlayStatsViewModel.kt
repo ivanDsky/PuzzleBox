@@ -135,7 +135,7 @@ class PlayStatsViewModel(
             DailyBoardRowModel(rank = index + 1, name = entry.displayName, timeMs = entry.timeMs, hints = entry.hints, isSelf = entry.uid == uid)
         }
         return PlayTimes.Board(
-            rows = rankWithLinkedIn(board, input.ghosts, input.own, order).timed(),
+            rows = rankWithLinkedIn(board, input.ghosts, input.you, order).timed(),
             solved = solved,
             order = order,
             post = post,

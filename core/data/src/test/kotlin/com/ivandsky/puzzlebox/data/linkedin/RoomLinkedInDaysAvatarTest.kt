@@ -124,13 +124,13 @@ class RoomLinkedInDaysAvatarTest {
     }
 
     @Test
-    fun `the member the player is gets no photo`() = runTest {
+    fun `the player's own photo is downloaded like a connection's`() = runTest {
         scriptPhotos("me", "a")
         respond(ago(3), LinkedInRead.Ok(LinkedInBoard(listOf(row("me", url("me")), row("a", url("a"))))))
 
         newDays().sync(zip, ago(3))
 
-        assertEquals(listOf(url("a")), photos.calls)
+        assertEquals(listOf(url("a"), url("me")), photos.calls.sorted())
     }
 
     @Test
@@ -208,6 +208,22 @@ class RoomLinkedInDaysAvatarTest {
 
             while (data.ghosts.single().photoPath == null) data = awaitItem()
             assertEquals(avatars.pathOf("a", avatars.present.first()), data.ghosts.single().photoPath)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `the owner of a day shows the player's cached photo, and no ghost is the player`() = runTest {
+        scriptPhotos("me", "a")
+        respond(ago(3), LinkedInRead.Ok(LinkedInBoard(listOf(row("me", url("me")), row("a", url("a"))))))
+        val days = newDays()
+        days.sync(zip, ago(3))
+
+        days.observe(zip, ago(3)).test {
+            var data = awaitItem()
+            while (data.owner?.photoPath == null) data = awaitItem()
+            assertEquals(LinkedInOwner("me", avatars.pathOf("me", avatars.present.first())), data.owner)
+            assertEquals(listOf("a"), data.ghosts.map { it.memberRef })
             cancelAndIgnoreRemainingEvents()
         }
     }

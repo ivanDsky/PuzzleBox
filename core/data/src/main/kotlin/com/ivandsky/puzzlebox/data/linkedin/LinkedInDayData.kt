@@ -19,4 +19,6 @@ data class LinkedInDayData(
     val own: LinkedInOwnState,
     val ghosts: List<LinkedInGhost>,
     val boardFetchedAtMs: Long?,
+    /** The player's own row of the board this phone read for the day; null until a board that names them was read. */
+    val owner: LinkedInOwner? = null,
 )

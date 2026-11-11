@@ -7,15 +7,17 @@ import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
 /**
- * The only writer of the `ghosts` table: turns a fetched connections board into stored rows. Cap 50,
- * the player's own row dropped, days older than `today - 8` pruned on every write. The caller passes
+ * The only writer of the `ghosts` table: turns a fetched connections board into stored rows. Cap 50
+ * connections; the player's own row is stored beside them (it is told apart on read by its member ref) and
+ * never counts against the cap. Days older than `today - 8` are pruned on every write. The caller passes
  * both dates and the fetch time, so this class reads no clock and nothing here leaves the phone.
  */
 internal class LinkedInGhostWriter(private val dao: GhostDao) {
 
     /**
      * Replaces the board of ([game], [day]) with [board]; other games and days are untouched. Returns the
-     * rows it kept. [today] is the game's cadence-zone date and [ownProfileId] the connected member.
+     * rows it kept, the player's own among them. [today] is the game's cadence-zone date and [ownProfileId]
+     * the connected member.
      */
     suspend fun write(
         game: GameId,
@@ -25,11 +27,13 @@ internal class LinkedInGhostWriter(private val dao: GhostDao) {
         board: LinkedInBoard,
         fetchedAtMs: Long,
     ): List<LinkedInBoard.Row> {
-        // The player's own result is their import, shown as the "you" row, so it is never a ghost.
-        // LinkedIn returns rows already ranked, so the cap keeps the best 50 non-own rows.
+        // The player's own result is their import, shown as the "you" row, so it is never a ghost: the row is
+        // kept only for the player's LinkedIn name and photo. LinkedIn returns rows already ranked, so the cap
+        // keeps the best 50 other rows.
+        val own = board.rows.firstOrNull { it.memberRef == ownProfileId }
         val kept = board.rows
             .filter { it.memberRef != ownProfileId }
-            .take(MAX_GHOSTS)
+            .take(MAX_GHOSTS) + listOfNotNull(own)
         val rows = kept
             .map { row ->
                 GhostEntity(

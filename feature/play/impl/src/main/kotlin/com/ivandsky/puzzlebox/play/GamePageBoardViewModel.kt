@@ -119,13 +119,14 @@ internal class GamePageBoardViewModel(
      * The page's board: the first [TOP_ROWS] rows, with the player's own row pinned under them when it ranks lower.
      * With LinkedIn [input] the rows and the ghosts are ranked together over the whole board before the cut, so a
      * place (the pinned row's too) counts every connection ahead of it, not only those among the rows drawn. The
-     * player's own imported time and a same-name connection's time replace the PuzzleBox ones, and the rows follow
-     * the times they show, each keeping its PuzzleBox rank.
+     * player's own imported time and a same-name connection's time replace the PuzzleBox ones, the player's row being
+     * this profile's, else the one named like their LinkedIn name, else their LinkedIn row added; the rows follow the
+     * times they show, each keeping its PuzzleBox rank.
      */
     private fun stateOf(shown: Shown, board: TodayLeaderboard, input: LinkedInBoardInput): GamePageBoardState {
         val drawn = board.toDailyBoardState()
         if (drawn !is DailyBoardState.Ranked) return GamePageBoardState(day = shown.day, isToday = shown.isToday, board = drawn, ghosts = input.ghosts)
-        val ranked = if (input.ghosts.isEmpty() && input.own == null) null else rankWithLinkedIn(drawn.rows, input.ghosts, input.own, order)
+        val ranked = if (input.ghosts.isEmpty() && input.you == null) null else rankWithLinkedIn(drawn.rows, input.ghosts, input.you, order)
         val reals = ranked?.filterIsInstance<DailyBoardLine.Real>()
         val rows = reals?.map { it.row } ?: drawn.rows
         val own = rows.indexOfFirst { it.isSelf }

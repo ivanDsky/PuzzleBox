@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
@@ -122,6 +123,7 @@ class GamePageBoardViewModelTest {
         inWindow: Boolean = true,
         fetchedAtMs: Long? = 1L,
         own: LinkedInOwnState = LinkedInOwnState.Unknown,
+        owner: LinkedInOwner? = null,
     ) = LinkedInDayData(
         link = LinkState.Connected("member-1"),
         delta = 0,
@@ -131,6 +133,7 @@ class GamePageBoardViewModelTest {
         own = own,
         ghosts = ghosts,
         boardFetchedAtMs = fetchedAtMs,
+        owner = owner,
     )
 
     private fun after(ms: Long) {
@@ -402,6 +405,70 @@ class GamePageBoardViewModelTest {
         assertEquals(listOf("a" to 1, "me" to 2, "b" to 3, "c" to 4, "d" to 5), board.lines.orEmpty().map { it.name() to it.place() })
         assertEquals(null, board.pinned)
         assertEquals(7, board.lines.orEmpty().filterIsInstance<DailyBoardLine.Real>().single { it.row.isSelf }.row.rank)
+    }
+
+    private val owner = LinkedInOwner("Owner Name", photoPath = "/cache/owner.jpg")
+
+    private fun youOf(board: DailyBoardState.Ranked) =
+        board.lines.orEmpty().filterIsInstance<DailyBoardLine.Real>().single { it.row.isSelf }
+
+    @Test
+    fun `with no row of this profile, the row named like the owner is the you row at the imported time with the LinkedIn photo`() {
+        standings = listOf("a", " owner  name ", "c")
+        days.emit(game, today, dayData(emptyList(), own = imported(10_500L), owner = owner))
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        settle()
+
+        val board = model.state.value.board as DailyBoardState.Ranked
+        assertEquals(listOf("a" to 1, " owner  name " to 2, "c" to 3), board.lines.orEmpty().map { it.name() to it.place() })
+        assertEquals(10_500L, youOf(board).row.timeMs)
+        assertEquals("/cache/owner.jpg", youOf(board).row.photo)
+        assertFalse(youOf(board).row.fromLinkedIn)
+    }
+
+    @Test
+    fun `with no row of this profile and no name match the owner's LinkedIn row is added as the you row`() {
+        standings = listOf("a", "b")
+        days.emit(game, today, dayData(emptyList(), own = imported(10_500L), owner = owner))
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        settle()
+
+        val board = model.state.value.board as DailyBoardState.Ranked
+        assertEquals(listOf("a" to 1, "Owner Name" to 2, "b" to 3), board.lines.orEmpty().map { it.name() to it.place() })
+        assertEquals(10_500L, youOf(board).row.timeMs)
+        assertEquals("/cache/owner.jpg", youOf(board).row.photo)
+        assertTrue(youOf(board).row.fromLinkedIn)
+    }
+
+    @Test
+    fun `a row of this profile stays the you row with the LinkedIn time and photo, and a same-name row is left alone`() {
+        standings = listOf("a", "Owner Name", "me")
+        days.emit(game, today, dayData(emptyList(), own = imported(10_500L), owner = owner))
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        settle()
+
+        val board = model.state.value.board as DailyBoardState.Ranked
+        assertEquals(listOf("a" to 1, "me" to 2, "Owner Name" to 3), board.lines.orEmpty().map { it.name() to it.place() })
+        assertEquals("/cache/owner.jpg", youOf(board).row.photo)
+        assertFalse(board.lines.orEmpty().filterIsInstance<DailyBoardLine.Real>().single { it.row.name == "Owner Name" }.row.isSelf)
+    }
+
+    @Test
+    fun `a pinned you row follows the same choice`() {
+        standings = listOf("a", "b", "c", "d", "e", "f", "Owner Name")
+        days.emit(game, today, dayData(emptyList(), own = imported(18_000L), owner = owner))
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        settle()
+
+        val board = model.state.value.board as DailyBoardState.Ranked
+        assertEquals("Owner Name", board.pinned?.name)
+        assertEquals("/cache/owner.jpg", board.pinned?.photo)
+        assertEquals(18_000L, board.pinned?.timeMs)
+        assertEquals(7, board.pinnedPlace)
     }
 
     @Test

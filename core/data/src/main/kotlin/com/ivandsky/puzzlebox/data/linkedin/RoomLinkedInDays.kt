@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.map
  * The only caller of the account's own-result and board reads, so every rule about asking LinkedIn
  * is kept in one place: nothing is sent while the link is paused or absent, an item is asked only
  * when its cache window says it is due and the call budget allows it, and the first rejection pauses
- * every later read. A connection's photo is fetched right after a board read, outside the budget and the
+ * every later read. A board member's photo, the player's too, is fetched right after a board read, outside the budget and the
  * pause latch. Takes no dispatcher: Room's suspend DAOs are main-safe and the source is a
  * suspending port.
  */
@@ -83,8 +83,9 @@ internal class RoomLinkedInDays(
                     inFlight = inFlight,
                     lastSync = lastSync,
                     own = ownState(import, fetches),
-                    ghosts = board,
+                    ghosts = board.ghosts,
                     boardFetchedAtMs = fetches.firstOrNull { it.item == LinkedInItem.Board.name }?.fetchedAtMs,
+                    owner = board.owner,
                 )
             }
             // Room emits again on any write to a table, so a sync of another day would repeat this one.
@@ -100,15 +101,22 @@ internal class RoomLinkedInDays(
             rows.firstOrNull { it.puzzleRef.gameId == game && (it.puzzleRef.key as? PuzzleKey.Daily)?.date == day }
         }
 
-    /** The day's board; nothing without a link, whatever a disconnect has not wiped yet. */
-    private fun stored(game: GameId, day: LocalDate, profileId: String?): Flow<List<LinkedInGhost>> =
+    /**
+     * The day's board; nothing without a link, whatever a disconnect has not wiped yet. The player's own row sits
+     * in the same table, so it is split out by the profile it was read for and never reaches the connections.
+     */
+    private fun stored(game: GameId, day: LocalDate, profileId: String?): Flow<StoredBoard> =
         if (profileId == null) {
-            flowOf(emptyList())
+            flowOf(StoredBoard(emptyList(), null))
         } else {
             combine(ghostDao.observe(game.value, day.toString()), avatars.present) { rows, photos ->
-                rows.map {
-                    LinkedInGhost(it.memberRef, it.name, it.timeMs, it.hintFree, it.flawless, avatars.pathOf(it.memberRef, photos))
-                }
+                val (own, others) = rows.partition { it.memberRef == profileId }
+                StoredBoard(
+                    ghosts = others.map {
+                        LinkedInGhost(it.memberRef, it.name, it.timeMs, it.hintFree, it.flawless, avatars.pathOf(it.memberRef, photos))
+                    },
+                    owner = own.firstOrNull()?.let { LinkedInOwner(it.name, avatars.pathOf(it.memberRef, photos)) },
+                )
             }
         }
 
@@ -245,6 +253,9 @@ internal class RoomLinkedInDays(
             ),
         )
     }
+
+    /** A day's stored board as observers see it: the connections and, apart, the player. */
+    private class StoredBoard(val ghosts: List<LinkedInGhost>, val owner: LinkedInOwner?)
 
     /** What one sync asks for, fixed when it starts: a link or a midnight that changes meanwhile cannot move it. */
     private class Request(

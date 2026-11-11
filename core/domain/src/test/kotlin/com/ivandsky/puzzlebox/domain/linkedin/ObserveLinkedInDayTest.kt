@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInSync
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -43,7 +44,8 @@ class ObserveLinkedInDayTest {
         own: LinkedInOwnState = LinkedInOwnState.Unknown,
         ghosts: List<LinkedInGhost> = emptyList(),
         boardFetchedAtMs: Long? = fetchedAtMs,
-    ) = LinkedInDayData(link, delta, boardInWindow, inFlight, lastSync, own, ghosts, boardFetchedAtMs)
+        owner: LinkedInOwner? = null,
+    ) = LinkedInDayData(link, delta, boardInWindow, inFlight, lastSync, own, ghosts, boardFetchedAtMs, owner)
 
     private fun ghost(i: Int, timeMs: Long?, hintFree: Boolean = true) =
         LinkedInGhost("member-$i", "Member $i", timeMs, hintFree, flawless = false)
@@ -145,6 +147,19 @@ class ObserveLinkedInDayTest {
         assertEquals(12, shown.total)
         assertEquals(listOf(ghost(11, 50_000), ghost(10, 55_000)) + slower, shown.ghosts)
         assertEquals(fetchedAtMs, shown.updatedAtMs)
+    }
+
+    @Test
+    fun `the owner's LinkedIn name and photo reach the view beside the own score, and are no connection`() = observing {
+        val owner = LinkedInOwner("Me Myself", "/cache/me.jpg")
+
+        val view = viewOf(data(own = imported(60_000), ghosts = listOf(ghost(1, 50_000)), owner = owner))
+
+        assertEquals(owner, view.owner)
+        assertEquals(60_000L, view.ownScore?.timeMs)
+        val shown = view.board as LinkedInBoardView.Shown
+        assertEquals(listOf(ghost(1, 50_000)), shown.ghosts)
+        assertEquals(2, shown.total)
     }
 
     @Test

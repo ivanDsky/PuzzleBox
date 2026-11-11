@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ComputeStreak
@@ -135,7 +136,11 @@ class PlayStatsPanelTest {
     }
 
     /** The slot day's connections board as read from LinkedIn and held on the phone. */
-    private fun cachedConnections(vararg ghosts: LinkedInGhost, own: LinkedInOwnState = LinkedInOwnState.Unknown) = linkedInDays.emit(
+    private fun cachedConnections(
+        vararg ghosts: LinkedInGhost,
+        own: LinkedInOwnState = LinkedInOwnState.Unknown,
+        owner: LinkedInOwner? = null,
+    ) = linkedInDays.emit(
         alpha,
         day,
         LinkedInDayData(
@@ -147,6 +152,7 @@ class PlayStatsPanelTest {
             own = own,
             ghosts = ghosts.toList(),
             boardFetchedAtMs = 1L,
+            owner = owner,
         ),
     )
 
@@ -379,6 +385,48 @@ class PlayStatsPanelTest {
         composeRule.onAllNodesWithText("Player 3").assertCountEquals(1)
         composeRule.onAllNodesWithTag("daily_board.row.name")[0].assertTextEquals("Player 3")
         composeRule.onAllNodesWithTag("daily_board.row.rank")[0].assertTextEquals("1")
+    }
+
+    private val tablet = Identity(uid = "tablet", displayName = "Tablet", photoUrl = null)
+
+    private fun youRow(vm: PlayStatsViewModel) =
+        (vm.state.value.times as PlayTimes.Board).rows.filterIsInstance<DailyBoardLine.Real>().single { it.row.isSelf }
+
+    @Test
+    fun `with no row of this profile the row named like the owner is the you row at the LinkedIn time with the photo`() {
+        cachedConnections(own = importedTime(15), owner = LinkedInOwner(" player  7 ", "/cache/owner.jpg"))
+        val vm = viewModel(identity = tablet, linkedIn = true)
+        show(vm)
+
+        assertEquals("Player 7", youRow(vm).row.name)
+        assertEquals("/cache/owner.jpg", youRow(vm).row.photo)
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("2")
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.score")).assertTextEquals("Perfect · 0:15")
+    }
+
+    @Test
+    fun `with no row of this profile and no name match the owner's LinkedIn row is added and ranks by its time`() {
+        cachedConnections(own = importedTime(15), owner = LinkedInOwner("Owner Name", "/cache/owner.jpg"))
+        val vm = viewModel(identity = tablet, linkedIn = true)
+        show(vm)
+
+        assertTrue(youRow(vm).row.fromLinkedIn)
+        assertEquals("/cache/owner.jpg", youRow(vm).row.photo)
+        assertEquals("Owner Name", youRow(vm).row.name)
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("2")
+        composeRule.onAllNodes(inRow("daily_board.row.self", "daily_board.row.puzzlebox_rank")).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a row of this profile stays the you row and a same-name row is left alone`() {
+        cachedConnections(own = importedTime(15), owner = LinkedInOwner("Player 3", "/cache/owner.jpg"))
+        val vm = viewModel(linkedIn = true)
+        show(vm)
+
+        assertEquals("Player 7", youRow(vm).row.name)
+        assertEquals("/cache/owner.jpg", youRow(vm).row.photo)
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("2")
+        composeRule.onAllNodesWithText("Player 3").assertCountEquals(1)
     }
 
     @Test
