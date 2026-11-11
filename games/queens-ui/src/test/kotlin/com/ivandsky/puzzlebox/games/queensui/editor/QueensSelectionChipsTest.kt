@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.QueensVariants
+import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -53,6 +54,25 @@ class QueensSelectionChipsTest {
 
         assertEquals(boardBefore, rule.onNodeWithTag(BOARD).getBoundsInRoot())
         assertEquals(barBefore.height, rule.onNodeWithTag(CONTEXT).getBoundsInRoot().height)
+    }
+
+    @Test
+    fun `a selection holding one queen offers Fill, not the colour ring, and Fill paints it`() {
+        val blank = EditorDraft.fresh(QueensEditor, QueensVariants.variant(SIZE).id)
+        val regions = List(SIZE * SIZE) { it / SIZE }
+        val state = blank.state.copy(draft = blank.state.draft.copy(regions = regions, crowns = setOf(1)))
+        val edits = ArrayList<EditorDraft<*>>()
+        val controller = QueensEditorController(EditorDraft(QueensEditor, state)) { edits += it }
+        rule.setContent { PuzzleBoxTheme { QueensEditorBoard(controller, Verdict.Checking, Modifier.fillMaxSize()) } }
+
+        rule.onNodeWithTag("queens.editor.cell.9", useUnmergedTree = true).performClick()
+        rule.onNodeWithTag("queens.editor.chip.fill").assertDoesNotExist()
+        rule.onNodeWithTag("queens.editor.cell.1", useUnmergedTree = true).performClick()
+        rule.onNodeWithTag("queens.editor.chip.fill").assertExists().performClick()
+
+        assertEquals(1, edits.size)
+        assertEquals(0, (edits.single().state.draft as QueensDraft).regions[9])
+        assertEquals(emptySet<Int>(), controller.selection.value)
     }
 
     private companion object {

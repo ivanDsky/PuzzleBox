@@ -66,7 +66,7 @@ internal const val UNPAINTED_DESCRIPTION = "unpainted"
  * The editor's square board (spec S3, select then colour; flow C crowns): the play board's
  * region fills and edges over the [controller]'s draft, an unpainted cell left on the surface
  * tone, and the answer crowns with their auto-× ([QueensCrownLayer]) in both modes. Touch is
- * [queensBoardGestures]: a tap toggles a crown (Crown, a refused tap jolts that cell) or a
+ * [queensBoardGestures]: a tap toggles a crown (Crown; a crown clashing with another is placed and washed as a clash) or a
  * selected cell (Paint); a drag from a coloured cell previews its colour stroke live (crossed
  * cells tagged `.stroke`), and a drag from an unpainted cell selects what it crosses (Paint).
  * The selection wears an accent wash and outline, and while it is non-empty the colour
@@ -104,7 +104,6 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
     val fit = remember(board, probed) { QueensAnswerFit.of(board, probed) }
     val diagnostics = rememberQueensDiagnostics(verdict, probed, board, fit, overlay)
     val autoX = remember(board) { QueensCrowns.crossed(board) }
-    val rejection = rememberQueensRejection(controller)
     var frame by remember { mutableStateOf(BoardFrame.Zero) }
     CompositionLocalProvider(LocalQueensReducedMotion provides reducedMotion) {
         Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -137,7 +136,7 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                             }
                             QueensClashWash(idx, diagnostics, reducedMotion)
                             val ghosted = idx in diagnostics.ghosts
-                            QueensCrownLayer(idx, region, idx in board.crowns, idx in autoX, ghosted, idx in diagnostics.clash, rejection, reducedMotion)
+                            QueensCrownLayer(idx, region, idx in board.crowns, idx in autoX, ghosted, idx in diagnostics.clash)
                             QueensCellDiagnostics(idx, diagnostics, reducedMotion)
                             if (idx in stroked) Box(Modifier.matchParentSize().testTag("queens.editor.cell.$idx.stroke"))
                         }
@@ -150,7 +149,7 @@ internal fun QueensEditorBoard(controller: QueensEditorController, verdict: Verd
                     drawSelection(selection, n, accent)
                 }
                 QueensSelectionRing(
-                    visible = selection.isNotEmpty() && !touch.dragging,
+                    visible = selection.isNotEmpty() && !touch.dragging && queensFillRegion(board, selection) == null,
                     board = board,
                     selection = selection,
                     lift = touch.lift,

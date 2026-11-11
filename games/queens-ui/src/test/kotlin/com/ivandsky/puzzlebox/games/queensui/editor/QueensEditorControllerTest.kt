@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.QueensVariants
 import com.ivandsky.puzzlebox.games.queens.editor.QueensAnswerFit
+import com.ivandsky.puzzlebox.games.queens.editor.QueensCrowns
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
@@ -63,13 +64,6 @@ class QueensEditorControllerTest {
 
     private fun crownsOf(draft: EditorDraft<*>): Set<Int> = (draft.state.draft as QueensDraft).crowns
 
-    /** Every cell [QueensEditorController.rejected] emits, collected eagerly so none is missed. */
-    private fun TestScope.rejections(controller: QueensEditorController): List<Int> {
-        val seen = ArrayList<Int>()
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { controller.rejected.collect { seen += it } }
-        return seen
-    }
-
     @Test
     fun `a fresh draft opens in Crown and a painted draft in Paint`() {
         assertEquals(QueensEditorMode.Crown, QueensEditorController(fresh()) {}.mode.value)
@@ -94,17 +88,27 @@ class QueensEditorControllerTest {
     }
 
     @Test
-    fun `a crown tap on a crossed cell is refused without an edit`() = runTest {
+    fun `a crown tap on a crossed cell places it and both crowns clash`() {
         val controller = QueensEditorController(fresh()) { edits += it }
-        val refused = rejections(controller)
         controller.tap(7)
-        val before = controller.draft.value
 
         controller.tap(8)
 
-        assertEquals(1, edits.size)
-        assertEquals(before, controller.draft.value)
-        assertEquals(listOf(8), refused)
+        assertEquals(2, edits.size)
+        assertEquals(setOf(7, 8), crownsOf(controller.draft.value))
+        assertEquals(setOf(7, 8), QueensCrowns.conflicts(controller.draft.value.state.draft as QueensDraft))
+    }
+
+    @Test
+    fun `removing one of two clashing crowns clears the clash`() {
+        val controller = QueensEditorController(fresh()) { edits += it }
+        controller.tap(7)
+        controller.tap(8)
+
+        controller.tap(8)
+
+        assertEquals(setOf(7), crownsOf(controller.draft.value))
+        assertEquals(emptySet<Int>(), QueensCrowns.conflicts(controller.draft.value.state.draft as QueensDraft))
     }
 
     @Test
@@ -120,9 +124,8 @@ class QueensEditorControllerTest {
     }
 
     @Test
-    fun `in Paint a tap selects as before and never edits crowns`() = runTest {
+    fun `in Paint a tap selects as before and never edits crowns`() {
         val controller = QueensEditorController(fresh()) { edits += it }
-        val refused = rejections(controller)
         controller.tap(7)
 
         controller.setMode(QueensEditorMode.Paint)
@@ -133,7 +136,97 @@ class QueensEditorControllerTest {
         assertEquals(setOf(7, 8), controller.selection.value)
         assertEquals(1, edits.size)
         assertEquals(setOf(7), crownsOf(controller.draft.value))
-        assertEquals(emptyList<Int>(), refused)
+    }
+
+    /** [painted] with crowns on [crowns]; row r is region r, so each crown's region is its row. */
+    private fun crowned(vararg crowns: Int): QueensEditorController {
+        val base = painted()
+        val state = base.state.copy(draft = base.state.draft.copy(crowns = crowns.toSet()))
+        return QueensEditorController(EditorDraft(QueensEditor, state)) { edits += it }
+    }
+
+    @Test
+    fun `tapping the queen last accumulates without filling until settle, then one undo step`() {
+        val controller = crowned(1)
+
+        listOf(7, 14, 20, 1).forEach(controller::tap)
+        assertEquals(setOf(7, 14, 20, 1), controller.selection.value)
+        assertEquals(0, edits.size)
+        controller.settle()
+
+        assertEquals(1, edits.size)
+        listOf(1, 7, 14, 20).forEach { assertEquals(0, regionsOf(edits.single())[it]) }
+        assertEquals(emptySet<Int>(), controller.selection.value)
+        assertEquals(regionsOf(painted()), regionsOf(edits.single().undo()!!))
+    }
+
+    @Test
+    fun `tapping the queen first accumulates without filling until settle, then one undo step`() {
+        val controller = crowned(1)
+
+        listOf(1, 7, 14, 20).forEach(controller::tap)
+        assertEquals(setOf(1, 7, 14, 20), controller.selection.value)
+        assertEquals(0, edits.size)
+        controller.settle()
+
+        assertEquals(1, edits.size)
+        listOf(1, 7, 14, 20).forEach { assertEquals(0, regionsOf(edits.single())[it]) }
+        assertEquals(regionsOf(painted()), regionsOf(edits.single().undo()!!))
+    }
+
+    @Test
+    fun `an area holding one crown paints with its region as one undo step`() {
+        val controller = crowned(14)
+        controller.tap(7)
+
+        controller.selectArea(7, 14)
+
+        assertEquals(1, edits.size)
+        assertEquals(2, regionsOf(edits.single())[7])
+        assertEquals(emptySet<Int>(), controller.selection.value)
+        assertEquals(regionsOf(painted()), regionsOf(edits.single().undo()!!))
+    }
+
+    @Test
+    fun `a selection with two crowns or none is not settled and makes no edit`() {
+        val two = crowned(1, 14)
+        listOf(1, 14, 7).forEach(two::tap)
+        val none = controller()
+        listOf(7, 1, 14).forEach(none::tap)
+
+        two.settle()
+        none.settle()
+
+        assertEquals(setOf(7, 1, 14), two.selection.value)
+        assertEquals(setOf(7, 1, 14), none.selection.value)
+        assertEquals(0, edits.size)
+    }
+
+    @Test
+    fun `a crown alone, or with cells already its colour, has nothing to fill and keeps the selection`() {
+        val controller = crowned(1)
+
+        controller.tap(1)
+        controller.tap(2)
+        controller.settle()
+
+        assertEquals(setOf(1, 2), controller.selection.value)
+        assertEquals(0, edits.size)
+    }
+
+    @Test
+    fun `an unpainted crown cannot lend a colour`() {
+        val base = fresh()
+        val state = base.state.copy(draft = base.state.draft.copy(crowns = setOf(1)))
+        val controller = QueensEditorController(EditorDraft(QueensEditor, state)) { edits += it }
+        controller.setMode(QueensEditorMode.Paint)
+
+        controller.tap(7)
+        controller.tap(1)
+        controller.settle()
+
+        assertEquals(setOf(7, 1), controller.selection.value)
+        assertEquals(0, edits.size)
     }
 
     @Test
