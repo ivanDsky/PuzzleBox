@@ -119,6 +119,27 @@ class DiGraphTest : KoinTest {
         }
     }
 
+    /**
+     * Each LinkedIn game reports its LinkedIn type id through the registered source. A source
+     * bound behind a wrapper must pass it on, or the account sync skips that game silently.
+     */
+    @Test
+    fun `every LinkedIn game reports its type id off the real graph`() {
+        val koinApp = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(PuzzleBoxApplication.appModules)
+        }
+        try {
+            val daily = koinApp.koin.get<DailyRepository>()
+            assertEquals(
+                mapOf("queens" to 3, "tango" to 5, "zip" to 6, "minisudoku" to 7),
+                listOf("queens", "tango", "zip", "minisudoku").associateWith { daily.linkedInGameTypeId(GameId(it)) },
+            )
+        } finally {
+            stopKoin()
+        }
+    }
+
     /** The LinkedIn use cases resolve off the real graph, so the ViewModels that inject them bind. */
     @Test
     fun `the LinkedIn use cases resolve off the real graph`() {
