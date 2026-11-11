@@ -142,6 +142,7 @@ class LibraryTabsTest {
     private val slot = DuelsSlot(
         content = { Text("duels body", Modifier.testTag(DUELS_BODY)) },
         needYou = { needYou },
+        onOpenDuel = {},
     )
 
     private fun content(duels: DuelsSlot?): @Composable () -> Unit = {

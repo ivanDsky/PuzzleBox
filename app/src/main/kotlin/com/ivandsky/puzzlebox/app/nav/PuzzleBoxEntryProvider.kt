@@ -4,7 +4,6 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.app.CatalogScreen
-import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.navigation.competeEntry
 import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
@@ -63,7 +62,6 @@ internal fun puzzleBoxEntryProvider(
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
-    onOpenDuel: ((DuelKey) -> Unit)? = null,
     libraryRequests: LibraryRequests = LibraryRequests(),
     linkedIn: Boolean = false,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
@@ -91,7 +89,6 @@ internal fun puzzleBoxEntryProvider(
         onLibraryRequestTaken = libraryRequests::take,
         onCodeDraftTaken = onCodeDraftTaken,
         duels = duels,
-        onOpenDuel = onOpenDuel,
         onOpenGameHistory = { navigator.openOwner(HistoryRootKey) },
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) }.takeIf { linkedIn },
     )

@@ -14,7 +14,6 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
-import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.LocalNavLift
 import com.ivandsky.puzzlebox.designsystem.NavLift
@@ -45,8 +44,8 @@ import org.koin.compose.koinInject
  *
  * [codeDraft] and [onCodeDraftTaken] reach the Play library: a draft opens its code sheet.
  * [libraryRequests] is the one-shot Games request: Games reads its pending value and takes it.
- * [duels] and [onOpenDuel] (both null with the Competitions flag off) add the Duels tab and
- * let Enter code open a duel. The shell draws the
+ * [duels] (null with the Competitions flag off) adds the Duels tab and
+ * lets Enter code open a duel. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
  * [linkedIn] is read once per launch through [rememberLinkedIn] and gates the LinkedIn entries.
@@ -62,7 +61,6 @@ internal fun PuzzleBoxNavShell(
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
-    onOpenDuel: ((DuelKey) -> Unit)? = null,
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
     linkedIn: Boolean = rememberLinkedIn(),
     store: PlaySessionStore = koinInject(),
@@ -88,7 +86,6 @@ internal fun PuzzleBoxNavShell(
             codeDraft = codeDraft,
             onCodeDraftTaken = onCodeDraftTaken,
             duels = duels,
-            onOpenDuel = onOpenDuel,
             libraryRequests = libraryRequests,
             linkedIn = linkedIn,
         ).withHintCooldown(),

@@ -132,6 +132,7 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
                 }
             },
             needYou = { 3 },
+            onOpenDuel = {},
         )
 
         fun row(id: String, name: String, brand: GameBrand, status: TodayStatus?, total: Int, solved: Int): LibraryRowModel {

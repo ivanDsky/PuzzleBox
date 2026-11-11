@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.play.navigation
 
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
-import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
@@ -37,7 +36,7 @@ import org.koin.compose.koinInject
  * whose Play again replaces it with the board again. The library opens its code sheet on
  * [codeDraft]'s text and hands it back through [onCodeDraftTaken]. A [duels] slot turns the
  * library into the Dailies, Friends and Duels tabs; without one it is the single games list.
- * [onOpenDuel] is what the code sheet calls when an entered code names a duel (null: duels are off, the sheet never
+ * Its [DuelsSlot.onOpenDuel] is what the code sheet calls when an entered code names a duel (no slot: duels are off, the sheet never
  * tries a code as one). A duel puzzle's [MatchLegKey] draws its leg's board; Up pops, and a
  * solve, a give up or a puzzle already taken replaces it with its [MatchLegResultKey]. The library
  * acts once on [libraryRequest]'s game page or section and hands it back through [onLibraryRequestTaken].
@@ -52,7 +51,6 @@ fun EntryProviderScope<NavKey>.playEntry(
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
-    onOpenDuel: ((DuelKey) -> Unit)? = null,
     libraryRequest: () -> LibraryRequest? = { null },
     onLibraryRequestTaken: () -> Unit = {},
     onReconnectLinkedIn: (() -> Unit)? = null,
@@ -65,7 +63,6 @@ fun EntryProviderScope<NavKey>.playEntry(
             codeDraft = codeDraft(),
             onCodeDraftTaken = onCodeDraftTaken,
             duels = duels,
-            onOpenDuel = onOpenDuel,
             request = libraryRequest(),
             onRequestTaken = onLibraryRequestTaken,
             onOpenGameHistory = onOpenGameHistory,

@@ -133,6 +133,7 @@ private val scrollingDuels = DuelsSlot(
         }
     },
     needYou = { 0 },
+    onOpenDuel = {},
 )
 
 @Composable

@@ -116,6 +116,7 @@ class LibraryRequestTest {
     private val slot = DuelsSlot(
         content = { Text("duels body", Modifier.testTag(DUELS_BODY)) },
         needYou = { 0 },
+        onOpenDuel = {},
     )
 
     /** A Duels body that is a long list of its own, laid out on the state Games hands it. */
@@ -126,6 +127,7 @@ class LibraryRequestTest {
             }
         },
         needYou = { 0 },
+        onOpenDuel = {},
     )
 
     private var koin: KoinApplication? = null

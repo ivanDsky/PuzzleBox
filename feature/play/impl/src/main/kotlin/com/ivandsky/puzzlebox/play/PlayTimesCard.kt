@@ -12,9 +12,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -30,6 +27,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
+import com.ivandsky.puzzlebox.designsystem.SegmentedToggle
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
@@ -72,17 +70,15 @@ internal fun PlayTimesCard(
     val board = times as? PlayTimes.Board
     StatsCard(modifier.testTag("play.stats.times")) {
         CardLabel(board?.order?.let(::rankRuleText) ?: "Times today", Modifier.padding(bottom = Spacing.sm))
-        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-            TimesTab.entries.forEachIndexed { index, entry ->
-                SegmentedButton(
-                    selected = tab == entry,
-                    onClick = { tab = entry },
-                    shape = SegmentedButtonDefaults.itemShape(index = index, count = TimesTab.entries.size),
-                    enabled = board != null,
-                    modifier = Modifier.testTag(entry.tag),
-                ) { Text(entry.label) }
-            }
-        }
+        SegmentedToggle(
+            options = TimesTab.entries,
+            selected = tab,
+            onSelect = { tab = it },
+            label = { it.label },
+            tag = { it.tag },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = board != null,
+        )
         if (times == PlayTimes.SignedOut) {
             Box(Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
                 SignInPrompt(title = "Sign in to see today's times", yourTimeMs = null, signIn = signIn, onSignIn = onSignIn)
