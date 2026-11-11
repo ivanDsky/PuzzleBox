@@ -38,18 +38,17 @@ import org.robolectric.annotation.Config
 class NavKeySavedStateTest {
 
     /**
-     * Every key in the placement table. A live root (a key of [topLevelDestinations], which
-     * includes ProfileKey with the flag off) sits at index 0 of its own stack, because a
+     * Every key in the placement table. A live root (a key of [topLevelDestinations]) sits at index 0 of its own stack, because a
      * root is only allowed there; every other key goes on the stack of the destination whose
-     * [TopLevelDestination.tab] is the key's home tab, or on stack 0 when that tab is not in
-     * the set (History with the flag off) or the key has no tab (Shell, DebugOnly).
+     * [TopLevelDestination.tab] is the key's home tab, or on stack 0 when the key has no tab
+     * (Shell, DebugOnly).
      */
     private val everyKey: NavigationState = run {
         val roots = topLevelDestinations.map { it.key }
         // A per-game History key keeps the nullable payload covered.
         val pushed = PlacementSamples.everyRow().filter { it !in roots } + HistoryKey("zip")
         val stackOf = { key: NavKey ->
-            topLevelDestinations.indexOfFirst { it.tab != null && it.tab == homeTab(key) }.coerceAtLeast(0)
+            topLevelDestinations.indexOfFirst { it.tab == homeTab(key) }.coerceAtLeast(0)
         }
         NavigationState(
             tab = PlayKey,

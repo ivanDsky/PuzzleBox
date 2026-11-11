@@ -32,17 +32,15 @@ import kotlin.reflect.KClass
  * for a key without one, and the Konsist P9 rule fails the build for a declaration that
  * has none.
  *
- * The homes describe the NavV2 information architecture, the target. They are not the live
- * tab set: with the flag off Profile is a tab and History is not, and the table still
- * describes the target. `NavigationState.tabs` is the runtime truth for which tabs exist;
- * code that needs the live tab set reads it there, never here.
+ * `NavigationState.tabs` is the runtime truth for which tabs exist; code that needs the
+ * live tab set reads it there, never here.
  */
 internal data class Placement(val home: Home, val chrome: Chrome)
 
 /** One row of the table: [key]'s class and its [placement]. */
 internal data class PlacementRow(val key: KClass<out NavKey>, val placement: Placement)
 
-/** The four tabs of the NavV2 IA. A tab is named here, not by a key. */
+/** The four tabs. A tab is named here, not by a key. */
 internal enum class Tab { Today, Games, History, Create }
 
 /** Where a key lives. */

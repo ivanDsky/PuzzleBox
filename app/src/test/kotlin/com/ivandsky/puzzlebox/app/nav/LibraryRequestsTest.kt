@@ -14,7 +14,7 @@ import org.junit.Test
 /** The app's holder for a Games request: go to Games first, then remember what to open. */
 class LibraryRequestsTest {
 
-    private fun todayNavigator() = Navigator(puzzleBoxNavigationState(navV2 = true))
+    private fun todayNavigator() = Navigator(puzzleBoxNavigationState())
 
     @Test
     fun `openGamePage lands on Games root with the page pending and back returns to Today`() {

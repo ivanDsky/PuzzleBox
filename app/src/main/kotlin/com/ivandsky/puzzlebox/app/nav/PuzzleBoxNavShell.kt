@@ -35,7 +35,7 @@ import org.koin.compose.koinInject
  * for the window's [NavForm], gated by the live reduce-motion flag, and publishes it to the
  * scenes' scrims ([LocalNavMotion]). On the tablet form a push of a game whose card is on
  * screen lifts out of that card ([NavLift]), and its pop shrinks back into it. System back is
- * [Navigator.pop]: it pops the current tab, returns a Play/Profile root to Home, and at the
+ * [Navigator.pop]: it pops the current tab, returns a Games/History/Create root to Today, and at the
  * Home root returns false so the back press falls through and the app exits.
  *
  * Play lifetime: whenever the stacks change the shell hands every key they
@@ -46,8 +46,7 @@ import org.koin.compose.koinInject
  * [codeDraft] and [onCodeDraftTaken] reach the Play library: a draft opens its code sheet.
  * [libraryRequests] is the one-shot Games request: Games reads its pending value and takes it.
  * [duels] and [onOpenDuel] (both null with the Competitions flag off) add the Duels tab and
- * let Enter code open a duel. [navV2] is the NavV2 value the app read once at launch
- * ([rememberNavV2]); the shell never reads the flag itself. With it on, the shell draws the
+ * let Enter code open a duel. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
  * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
@@ -63,7 +62,6 @@ internal fun PuzzleBoxNavShell(
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
     onOpenDuel: ((DuelKey) -> Unit)? = null,
-    navV2: Boolean = false,
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
@@ -75,12 +73,8 @@ internal fun PuzzleBoxNavShell(
     val state = navigator.state
     LaunchedEffect(state.allKeys) { store.retain(state.allKeys) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { store.flush() }
-    val shellChrome = if (navV2) {
-        remember(navigator, identityService, form) {
-            shellChromeDecorator(navigator, identityService.current, avatarInTodayHeader = form == NavForm.Phone)
-        }
-    } else {
-        null
+    val shellChrome = remember(navigator, identityService, form) {
+        shellChromeDecorator(navigator, identityService.current, avatarInTodayHeader = form == NavForm.Phone)
     }
     val entries = rememberTabEntries(
         state = navigator.state,
@@ -93,7 +87,6 @@ internal fun PuzzleBoxNavShell(
             onCodeDraftTaken = onCodeDraftTaken,
             duels = duels,
             onOpenDuel = onOpenDuel,
-            navV2 = navV2,
             libraryRequests = libraryRequests,
         ).withHintCooldown(),
         shellChrome = shellChrome,

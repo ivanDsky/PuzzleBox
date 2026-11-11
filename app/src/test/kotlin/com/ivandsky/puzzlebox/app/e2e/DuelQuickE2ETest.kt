@@ -1,17 +1,18 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.time.Instant
 import org.junit.Assert.assertEquals
@@ -61,6 +62,6 @@ class DuelQuickE2ETest {
     /** The Play tab is selected; Home's stack holds History. */
     private val onPlay = NavigationState(
         tab = PlayKey,
-        stacks = listOf(listOf(HomeKey, HistoryKey()), listOf(PlayKey), listOf(ProfileKey)),
+        stacks = listOf(listOf(HomeKey, HistoryKey()), listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey)),
     )
 }

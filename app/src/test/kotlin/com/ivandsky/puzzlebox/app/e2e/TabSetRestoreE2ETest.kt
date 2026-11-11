@@ -8,9 +8,6 @@ import androidx.savedstate.serialization.encodeToSavedState
 import com.ivandsky.puzzlebox.app.nav.CatalogKey
 import com.ivandsky.puzzlebox.app.nav.NAVIGATION_STATE_KEY
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
-import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
-import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.NavV2
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
@@ -19,7 +16,6 @@ import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,9 +25,8 @@ import org.robolectric.annotation.Config
 /**
  * A saved navigation state restores against the fresh state of the tab set the app launched
  * with, through the reducer's unchanged `reconciledWith`: a v1 (Home, Play, Create,
- * Profile) bundle under NavV2, and a NavV2 (Today, Games, History, Create) bundle with the
- * flag off. Each row asserts the restored state, the selected tab of the set on screen and
- * its route.
+ * Profile) bundle. Each row asserts the restored state, the selected tab of the set on screen
+ * and its route.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -39,8 +34,8 @@ import org.robolectric.annotation.Config
 class TabSetRestoreE2ETest {
 
     @Test
-    fun `a v1 bundle selected on Profile restores under NavV2 to Home with a fresh History root`() =
-        flagOnRobot {
+    fun `a v1 bundle selected on Profile restores to Home with a fresh History root`() =
+        shellRobot {
             restoreLegacy(bundleOf(v1(tab = ProfileKey)))
 
             assertState(
@@ -54,8 +49,8 @@ class TabSetRestoreE2ETest {
         }
 
     @Test
-    fun `a v1 bundle selected on Play restores under NavV2 with Play still selected`() =
-        flagOnRobot {
+    fun `a v1 bundle selected on Play restores with Play still selected`() =
+        shellRobot {
             restoreLegacy(bundleOf(v1(tab = PlayKey)))
 
             assertState(
@@ -67,46 +62,6 @@ class TabSetRestoreE2ETest {
             assertRoute(HISTORY)
             assertProfileTabGone()
         }
-
-    @Test
-    fun `a NavV2 bundle on History restores with the flag off to Home with a fresh Profile root`() = shellRobot {
-        val saved = NavigationState(
-            tab = HistoryRootKey,
-            stacks = listOf(V1_HOME, listOf(PlayKey), listOf(HistoryRootKey, HistoryKey("zip")), listOf(CreateKey)),
-        )
-
-        restoreLegacy(bundleOf(saved))
-
-        assertState(
-            NavigationState(
-                tab = HomeKey,
-                stacks = listOf(V1_HOME, listOf(PlayKey), listOf(CreateKey), listOf(ProfileKey)),
-            ),
-        )
-        assertRoute(HISTORY)
-    }
-
-    @Test
-    fun `a NavV2 bundle with Profile pushed on Home restores with the flag off to the fresh Home`() = shellRobot {
-        val saved = NavigationState(
-            tab = HomeKey,
-            stacks = listOf(listOf(HomeKey, ProfileKey), listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey)),
-        )
-
-        restoreLegacy(bundleOf(saved))
-
-        // Reconciled, Profile would be a root pushed above Home's index 0 (I4): the
-        // navigator starts fresh instead, and no exception reaches the shell.
-        assertState(puzzleBoxNavigationState())
-        assertRoute(HOME)
-    }
-
-    private fun flagOnRobot(block: ShellRobot.() -> Unit) = shellRobot(
-        state = puzzleBoxNavigationState(navV2 = true),
-        graph = E2eKoinGraph(E2E_TODAY, releaseFlags = FakeReleaseFlags(NavV2)),
-        destinations = topLevelDestinations(navV2 = true),
-        block = block,
-    )
 
     private fun ShellRobot.assertProfileTabGone() {
         assertEquals(0, rule.onAllNodesWithTag(PROFILE_TAB).fetchSemanticsNodes().size)

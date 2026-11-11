@@ -46,7 +46,6 @@ import org.robolectric.annotation.Config
  * `nav.tab.<name>` item per top-level destination, only the selected destination's item
  * carries selected semantics, and a tap reports that destination's key. SC11: a badged key
  * shows the described dot on its own item only, and never while that item is selected.
- * The flag-off set is the default; the flag-on rows pass `topLevelDestinations(navV2 = true)`.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
@@ -56,19 +55,21 @@ class TopLevelNavBarTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `tabs are home, play, create, profile in that order`() {
+    fun `tabs are today, games, history, create in that order`() {
+        assertEquals(listOf("Today", "Games", "History", "Create"), topLevelDestinations.map { it.label })
         assertEquals(
-            listOf("nav.tab.home", "nav.tab.play", "nav.tab.create", "nav.tab.profile"),
+            listOf("nav.tab.home", "nav.tab.play", "nav.tab.history", "nav.tab.create"),
             topLevelDestinations.map { it.tag },
         )
+        assertEquals(listOf(HomeKey, PlayKey, HistoryRootKey, CreateKey), topLevelDestinations.map { it.key })
+        assertEquals(listOf(Tab.Today, Tab.Games, Tab.History, Tab.Create), topLevelDestinations.map { it.tab })
     }
 
     @Test
-    fun `every flag-on tab swaps to a different icon when selected`() {
-        val flagOn = topLevelDestinations(navV2 = true)
+    fun `every tab swaps to a different icon when selected`() {
         val unchanged = mutableListOf<String>()
         composeRule.setContent {
-            flagOn.forEach { if (it.icon().pathData() == it.selectedIcon().pathData()) unchanged += it.label }
+            topLevelDestinations.forEach { if (it.icon().pathData() == it.selectedIcon().pathData()) unchanged += it.label }
         }
         composeRule.waitForIdle()
 
@@ -80,81 +81,43 @@ class TopLevelNavBarTest {
     private fun ImageVector.pathData() = root.mapNotNull { (it as? VectorPath)?.pathData }
 
     @Test
-    fun `bar highlights exactly the selected destination`() {
+    fun `bar shows four tabs, no profile, and highlights exactly the selected one`() {
         assertHighlight { selected, onSelect -> TopLevelNavBar(selected = selected, onSelect = onSelect) }
+        assertOnlyTabs(topLevelDestinations)
     }
 
     @Test
-    fun `rail highlights exactly the selected destination`() {
-        assertHighlight { selected, onSelect -> TopLevelNavRail(selected = selected, onSelect = onSelect) }
+    fun `rail shows four tabs, no profile, and highlights exactly the selected one`() {
+        assertHighlight { selected, onSelect ->
+            TopLevelNavRail(selected = selected, onSelect = onSelect, bottomActions = RAIL_SLOT)
+        }
+        assertOnlyTabs(topLevelDestinations)
     }
 
     @Test
-    fun `bar shows the dot on play only when play is badged`() {
+    fun `bar shows the dot on games only when games is badged`() {
         assertBadge { badged -> TopLevelNavBar(selected = HomeKey, onSelect = {}, badged = badged) }
     }
 
     @Test
-    fun `rail shows the dot on play only when play is badged`() {
-        assertBadge { badged -> TopLevelNavRail(selected = HomeKey, onSelect = {}, badged = badged) }
+    fun `rail shows the dot on games only when games is badged`() {
+        assertBadge { badged -> TopLevelNavRail(selected = HomeKey, onSelect = {}, badged = badged, bottomActions = RAIL_SLOT) }
     }
 
     @Test
-    fun `bar hides the dot while play is selected`() {
+    fun `bar hides the dot while games is selected`() {
         assertBadgeHiddenWhenSelected { selected -> TopLevelNavBar(selected = selected, onSelect = {}, badged = setOf(PlayKey)) }
     }
 
     @Test
-    fun `rail hides the dot while play is selected`() {
-        assertBadgeHiddenWhenSelected { selected -> TopLevelNavRail(selected = selected, onSelect = {}, badged = setOf(PlayKey)) }
-    }
-
-    @Test
-    fun `flag-on tabs are today, games, history, create in that order`() {
-        val flagOn = topLevelDestinations(navV2 = true)
-
-        assertEquals(listOf("Today", "Games", "History", "Create"), flagOn.map { it.label })
-        assertEquals(
-            listOf("nav.tab.home", "nav.tab.play", "nav.tab.history", "nav.tab.create"),
-            flagOn.map { it.tag },
-        )
-        assertEquals(listOf(HomeKey, PlayKey, HistoryRootKey, CreateKey), flagOn.map { it.key })
-        assertEquals(listOf(Tab.Today, Tab.Games, Tab.History, Tab.Create), flagOn.map { it.tab })
-    }
-
-    @Test
-    fun `flag-on bar shows four tabs, no profile, and highlights exactly the selected one`() {
-        val flagOn = topLevelDestinations(navV2 = true)
-        assertHighlight(flagOn) { selected, onSelect ->
-            TopLevelNavBar(selected = selected, onSelect = onSelect, destinations = flagOn)
+    fun `rail hides the dot while games is selected`() {
+        assertBadgeHiddenWhenSelected { selected ->
+            TopLevelNavRail(selected = selected, onSelect = {}, badged = setOf(PlayKey), bottomActions = RAIL_SLOT)
         }
-        assertOnlyTabs(flagOn)
     }
 
     @Test
-    fun `flag-on rail shows four tabs, no profile, and highlights exactly the selected one`() {
-        val flagOn = topLevelDestinations(navV2 = true)
-        assertHighlight(flagOn) { selected, onSelect ->
-            TopLevelNavRail(selected = selected, onSelect = onSelect, destinations = flagOn)
-        }
-        assertOnlyTabs(flagOn)
-    }
-
-    @Test
-    fun `flag-on bar shows the dot on games only`() {
-        val flagOn = topLevelDestinations(navV2 = true)
-        assertBadge(flagOn) { badged -> TopLevelNavBar(selected = HomeKey, onSelect = {}, badged = badged, destinations = flagOn) }
-    }
-
-    @Test
-    fun `flag-on rail shows the dot on games only`() {
-        val flagOn = topLevelDestinations(navV2 = true)
-        assertBadge(flagOn) { badged -> TopLevelNavRail(selected = HomeKey, onSelect = {}, badged = badged, destinations = flagOn) }
-    }
-
-    @Test
-    fun `flag-on rail with an avatar slot is 96dp wide`() {
-        val flagOn = topLevelDestinations(navV2 = true)
+    fun `rail with an avatar slot is 96dp wide`() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Box(Modifier.height(900.dp)) {
@@ -162,8 +125,7 @@ class TopLevelNavBarTest {
                         selected = HomeKey,
                         onSelect = {},
                         modifier = Modifier.testTag("test.rail"),
-                        destinations = flagOn,
-                        bottomActions = { Box(Modifier.size(48.dp)) },
+                        bottomActions = RAIL_SLOT,
                     )
                 }
             }
@@ -173,33 +135,21 @@ class TopLevelNavBarTest {
     }
 
     @Test
-    fun `flag-on rail draws 28dp tab icons`() {
-        val flagOn = topLevelDestinations(navV2 = true)
+    fun `rail draws 28dp tab icons`() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Box(Modifier.height(900.dp)) {
-                    TopLevelNavRail(selected = HomeKey, onSelect = {}, destinations = flagOn, bottomActions = { Box(Modifier.size(48.dp)) })
+                    TopLevelNavRail(selected = HomeKey, onSelect = {}, bottomActions = RAIL_SLOT)
                 }
             }
         }
 
-        flagOn.forEach { destination ->
+        topLevelDestinations.forEach { destination ->
             composeRule.onNodeWithTag(iconTag(destination), useUnmergedTree = true).assertWidthIsEqualTo(28.dp).assertHeightIsEqualTo(28.dp)
         }
     }
 
-    @Test
-    fun `flag-off rail keeps 24dp tab icons`() {
-        composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) { TopLevelNavRail(selected = HomeKey, onSelect = {}) }
-        }
-
-        topLevelDestinations.forEach { destination ->
-            composeRule.onNodeWithTag(iconTag(destination), useUnmergedTree = true).assertWidthIsEqualTo(24.dp).assertHeightIsEqualTo(24.dp)
-        }
-    }
-
-    /** The bar or rail shows exactly [destinations]' items, and no flag-off Profile item. */
+    /** The bar or rail shows exactly [destinations]' items, and no Profile item. */
     private fun assertOnlyTabs(destinations: List<TopLevelDestination>) {
         val tabItem = SemanticsMatcher("a nav.tab.<name> item") {
             it.config.getOrNull(SemanticsProperties.TestTag)?.matches(Regex("nav\\.tab\\.[a-z]+")) == true
@@ -266,5 +216,9 @@ class TopLevelNavBarTest {
                 if (destination == target) node.assertIsSelected() else node.assertIsNotSelected()
             }
         }
+    }
+
+    private companion object {
+        val RAIL_SLOT: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit = { Box(Modifier.size(48.dp)) }
     }
 }

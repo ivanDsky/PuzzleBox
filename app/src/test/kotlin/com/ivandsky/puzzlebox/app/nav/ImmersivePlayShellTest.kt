@@ -11,7 +11,6 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -19,14 +18,13 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.history.api.HistoryKey
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
-import com.ivandsky.puzzlebox.profile.api.ProfileKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
@@ -74,8 +72,6 @@ class ImmersivePlayShellTest {
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
-                    // The old four-tab shell (Profile as a tab): pinned flag-off until ticket 27 deletes it.
-                    single<ReleaseFlags> { FakeReleaseFlags() }
                 },
             )
         }
@@ -128,7 +124,7 @@ class ImmersivePlayShellTest {
             step(false) { push(GameKey(ZIP)) },
             step(false) { replaceTop(RESULT) },
             step(true) { pop() }, // back on the hub
-            step(true) { selectTab(ProfileKey) },
+            step(true) { selectTab(HistoryRootKey) },
             step(true) { push(CatalogKey) },
             step(false) { selectTab(HomeKey) }, // Home's top is still the replay
         ).forEach { (move, shown) ->

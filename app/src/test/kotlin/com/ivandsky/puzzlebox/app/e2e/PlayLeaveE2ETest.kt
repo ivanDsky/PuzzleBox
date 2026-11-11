@@ -19,13 +19,13 @@ import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import java.time.Duration
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -53,13 +53,13 @@ import org.robolectric.annotation.Config
 class PlayLeaveE2ETest {
 
     @Test
-    fun `N12 hopping to Profile and back keeps the board, and the clock pauses while away`() = shellRobot(playHub) {
+    fun `N12 hopping to History and back keeps the board, and the clock pauses while away`() = shellRobot(playHub) {
         openGame(ZIP)
         val live = playMidGame()
 
-        switchTab(ProfileKey)
-        assertState(inZip.selectTab(ProfileKey))
-        assertRoute(PROFILE)
+        switchTab(HistoryRootKey)
+        assertState(inZip.selectTab(HistoryRootKey))
+        assertRoute(HISTORY)
         val away = session(live)
         assertNull("clock paused while away", away.runningSince)
         Thread.sleep(AWAY_MS)
@@ -282,8 +282,8 @@ class PlayLeaveE2ETest {
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
         create: List<NavKey> = listOf(CreateKey),
-        profile: List<NavKey> = listOf(ProfileKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, create, profile))
+        history: List<NavKey> = listOf(HistoryRootKey),
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, history, create))
 
     private val playHub = stacks(tab = PlayKey)
     private val inZip = stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP)))
@@ -293,7 +293,7 @@ class PlayLeaveE2ETest {
         const val HOME = "route.home"
         const val HUB = "route.library"
         const val GAME = "route.game"
-        const val PROFILE = "route.profile"
+        const val HISTORY = "route.history"
         const val GAME_UP = "game.up"
         const val BOARD_ERROR = "play.error"
         const val HOME_PLAY = "home.today_play"

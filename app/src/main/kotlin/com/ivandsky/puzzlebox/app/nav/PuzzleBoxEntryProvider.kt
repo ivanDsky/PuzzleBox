@@ -37,20 +37,18 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  *
  * Loop wiring: Home's Today card selects the Play tab; its history teaser pushes History
  * on Home's stack, and the games hub's "Older puzzles" pushes it on Play's stack; history
- * rows push the day's game key; the account card
- * selects the Profile tab, leaving Home's stack as it was; a Profile game row pushes that
- * game's [HistoryKey] and Profile's (debug-only) catalog link pushes [CatalogKey], both on
- * Profile's stack. The Create tab's New puzzle and its draft rows push that draft's
+ * rows push the day's game key; a Profile game row pushes that game's [HistoryKey] and
+ * Profile's (debug-only) catalog link pushes [CatalogKey], both on the current tab's stack.
+ * The Create tab's New puzzle and its draft rows push that draft's
  * Studio on Create's stack, and its published rows that puzzle's page. Back pops the current tab's stack ([Navigator.pop]),
  * including after process-death restore. A [codeDraft] (a tapped link's text that isn't a
  * code) opens the Play library's code sheet holding it.
  *
- * With [navV2] on, every screen gets its NavV2 form and each content type one owner
- * (ADR-0027): Today's rank and duels summaries, the game page's "Your history" row and
- * Result's "Full board" row open their owner (a game page or Games section through
- * [libraryRequests], History's tab root through [openOwner]); Today hides what is owned
- * elsewhere, the game page draws its board, the tablet times card signs in in place, and
- * Profile is slim with its own back and a gear to Settings. Off, every screen keeps its old form.
+ * Each content type has one owner (ADR-0027): Today's rank and duels summaries, the game
+ * page's "Your history" row and Result's "Full board" row open their owner (a game page or
+ * Games section through [libraryRequests], History's tab root through [openOwner]); Today
+ * hides what is owned elsewhere, the game page draws its board, the tablet times card signs
+ * in in place, and Profile is slim with its own back and a gear to Settings.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -61,20 +59,19 @@ internal fun puzzleBoxEntryProvider(
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
     onOpenDuel: ((DuelKey) -> Unit)? = null,
-    navV2: Boolean = false,
     libraryRequests: LibraryRequests = LibraryRequests(),
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(
         navigator,
         homeLayout,
-        hideOwnedElsewhere = navV2,
-        title = topLevelDestinations(navV2).first { it.key == HomeKey }.label.takeIf { navV2 },
+        hideOwnedElsewhere = true,
+        title = topLevelDestinations.first { it.key == HomeKey }.label,
         summaries = HomeSummaries(
             onOpenRank = { libraryRequests.openGamePage(navigator, it.value) },
             onOpenDuels = { libraryRequests.openGamesSection(navigator, GamesTab.Duels) },
             duelsNeedYou = duels?.needYou,
-        ).takeIf { navV2 },
-        onOpenHistory = { navigator.openOwner(HistoryRootKey) }.takeIf { navV2 },
+        ),
+        onOpenHistory = { navigator.openOwner(HistoryRootKey) },
     )
     historyEntry(navigator, historyLayout)
     playEntry(
@@ -87,9 +84,9 @@ internal fun puzzleBoxEntryProvider(
         onCodeDraftTaken = onCodeDraftTaken,
         duels = duels,
         onOpenDuel = onOpenDuel,
-        showGameBoard = navV2,
-        onOpenGameHistory = { navigator.openOwner(HistoryRootKey) }.takeIf { navV2 },
-        signInInPlace = navV2,
+        showGameBoard = true,
+        onOpenGameHistory = { navigator.openOwner(HistoryRootKey) },
+        signInInPlace = true,
     )
     resultEntry(
         navigator,
@@ -97,7 +94,7 @@ internal fun puzzleBoxEntryProvider(
             // Leave no Result behind: openOwner resets only a reselected tab, so a Result on Today's stack would outlive it.
             if (navigator.state.currentStack.last() is ResultKey) navigator.pop()
             libraryRequests.openGamePage(navigator, game.value)
-        }.takeIf { navV2 },
+        },
     )
     createEntry(navigator)
     editorEntry(navigator, playLayout)
@@ -107,9 +104,9 @@ internal fun puzzleBoxEntryProvider(
         onOpenHistory = { game -> navigator.pushOnce(HistoryKey(game.value)) },
         onOpenCatalog = { navigator.push(CatalogKey) },
         onBack = back,
-        slim = navV2,
-        onProfileBack = back.takeIf { navV2 },
-        onOpenSettings = { navigator.pushOnce(SettingsKey) }.takeIf { navV2 },
+        slim = true,
+        onProfileBack = back,
+        onOpenSettings = { navigator.pushOnce(SettingsKey) },
     )
     competeEntry(navigator, playLayout)
     entry<CatalogKey> { CatalogScreen(openGame = { navigator.pushOnce(GameKey(it)) }) }

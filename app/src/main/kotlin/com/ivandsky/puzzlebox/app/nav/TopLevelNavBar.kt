@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
@@ -31,7 +30,7 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 
 /**
  * The bottom bar for the single-pane shapes: one item per entry of [destinations] (the
- * flag-off [topLevelDestinations] by default), tagged with [TopLevelDestination.tag]; the
+ * [topLevelDestinations] by default), tagged with [TopLevelDestination.tag]; the
  * item whose key is [selected] carries the selected semantics. Items whose key is in
  * [badged] carry a primary-coloured badge dot at the icon's top end, except the selected
  * item, whose screen already shows the cue (A13, SC11); the caller decides which keys, so
@@ -66,17 +65,14 @@ internal fun TopLevelNavRail(
     badged: Set<NavKey> = emptySet(),
     modifier: Modifier = Modifier,
     destinations: List<TopLevelDestination> = topLevelDestinations,
-    bottomActions: (@Composable ColumnScope.() -> Unit)? = null,
+    bottomActions: @Composable ColumnScope.() -> Unit,
 ) {
-    // NavV2 (an avatar slot) gets the larger rail: tabs centred, avatar pinned at the bottom.
-    val large = bottomActions != null
-    NavigationRail(modifier = if (large) modifier.width(LargeRailWidth) else modifier) {
-        if (large) {
-            Spacer(Modifier.height(LargeAvatarSlot))
-            Spacer(Modifier.weight(1f))
-        }
+    // The larger rail: tabs centred, the [bottomActions] avatar pinned at the bottom.
+    NavigationRail(modifier = modifier.width(LargeRailWidth)) {
+        Spacer(Modifier.height(LargeAvatarSlot))
+        Spacer(Modifier.weight(1f))
         destinations.forEachIndexed { index, destination ->
-            if (large && index > 0) Spacer(Modifier.height(LargeItemGap))
+            if (index > 0) Spacer(Modifier.height(LargeItemGap))
             NavigationRailItem(
                 selected = selected == destination.key,
                 onClick = { onSelect(destination.key) },
@@ -85,18 +81,16 @@ internal fun TopLevelNavRail(
                         destination,
                         selected == destination.key,
                         showsBadge(destination, selected, badged),
-                        if (large) Modifier.size(LargeIconSize) else Modifier,
+                        Modifier.size(LargeIconSize),
                     )
                 },
-                label = { Text(destination.label, style = if (large) MaterialTheme.typography.labelLarge else LocalTextStyle.current) },
+                label = { Text(destination.label, style = MaterialTheme.typography.labelLarge) },
                 modifier = Modifier.testTag(destination.tag),
             )
         }
-        if (bottomActions != null) {
-            Spacer(Modifier.weight(1f))
-            Column(Modifier.height(LargeAvatarSlot), horizontalAlignment = Alignment.CenterHorizontally) {
-                bottomActions()
-            }
+        Spacer(Modifier.weight(1f))
+        Column(Modifier.height(LargeAvatarSlot), horizontalAlignment = Alignment.CenterHorizontally) {
+            bottomActions()
         }
     }
 }
@@ -149,13 +143,5 @@ private fun TabIcon(destination: TopLevelDestination, selected: Boolean, badged:
 internal fun TopLevelNavBarPreview() {
     PuzzleBoxTheme {
         TopLevelNavBar(selected = HomeKey, onSelect = {}, badged = setOf(PlayKey))
-    }
-}
-
-@PuzzleBoxPreviews
-@Composable
-internal fun TopLevelNavRailPreview() {
-    PuzzleBoxTheme {
-        TopLevelNavRail(selected = HomeKey, onSelect = {}, badged = setOf(PlayKey))
     }
 }

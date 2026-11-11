@@ -9,22 +9,18 @@ import androidx.compose.ui.test.hasTextExactly
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
-import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.NavV2
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Reselect at a root (NavV2): tapping the selected tab while it sits at its root scrolls
- * that root to the top; at a non-root the tap only pops, and nothing scrolls. With the flag
- * off a root reselect stays the no-op it is today. Today's list is the probe: its header
- * sits above the fold once the list is scrolled to its last block, the streak's week strip
- * (with the flag on Today no longer links to History, so the pushed screen is pushed directly).
+ * Reselect at a root: tapping the selected tab while it sits at its root scrolls
+ * that root to the top; at a non-root the tap only pops, and nothing scrolls. Today's list is
+ * the probe: its header sits above the fold once the list is scrolled to its last block, the
+ * streak's week strip (Today no longer links to History, so the pushed screen is pushed directly).
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -32,18 +28,18 @@ import org.robolectric.annotation.Config
 class TabReselectE2ETest {
 
     @Test
-    fun `reselecting Today at its root brings its header back`() = flagOnRobot {
+    fun `reselecting Today at its root brings its header back`() = shellRobot {
         assertRoute(HOME)
         scrollTodayDown()
 
         tapTab(HomeKey)
 
         header().assertIsDisplayed()
-        assertState(puzzleBoxNavigationState(navV2 = true))
+        assertState(puzzleBoxNavigationState())
     }
 
     @Test
-    fun `reselecting Today over a pushed screen pops to the root and does not scroll`() = flagOnRobot {
+    fun `reselecting Today over a pushed screen pops to the root and does not scroll`() = shellRobot {
         assertRoute(HOME)
         scrollTodayDown()
         push(HistoryKey())
@@ -51,38 +47,21 @@ class TabReselectE2ETest {
 
         tapTab(HomeKey)
 
-        assertState(puzzleBoxNavigationState(navV2 = true))
+        assertState(puzzleBoxNavigationState())
         assertRoute(HOME)
         header().assertIsNotDisplayed()
     }
 
-    @Test
-    fun `with the flag off reselecting Home at its root leaves the list scrolled`() = shellRobot {
-        assertRoute(HOME)
-        scrollTodayDown("PuzzleBox")
-
-        tapTab(HomeKey)
-
-        header("PuzzleBox").assertIsNotDisplayed()
-    }
-
-    private fun ShellRobot.scrollTodayDown(title: String = "Today") {
+    private fun ShellRobot.scrollTodayDown() {
         rule.onNodeWithTag("home.week").performScrollTo()
-        header(title).assertIsNotDisplayed()
+        header().assertIsNotDisplayed()
     }
 
-    // Under NavV2 the header reads "Today", like the tab; the tab item is not the header.
-    private fun ShellRobot.header(title: String = "Today"): SemanticsNodeInteraction {
+    // The header reads "Today", like the tab; the tab item is not the header.
+    private fun ShellRobot.header(): SemanticsNodeInteraction {
         val tab = hasTestTag("nav.tab.home")
-        return rule.onNode(hasTextExactly(title) and !tab and !hasAnyAncestor(tab))
+        return rule.onNode(hasTextExactly("Today") and !tab and !hasAnyAncestor(tab))
     }
-
-    private fun flagOnRobot(block: ShellRobot.() -> Unit) = shellRobot(
-        state = puzzleBoxNavigationState(navV2 = true),
-        graph = E2eKoinGraph(E2E_TODAY, releaseFlags = FakeReleaseFlags(NavV2)),
-        destinations = topLevelDestinations(navV2 = true),
-        block = block,
-    )
 
     private companion object {
         const val HOME = "route.home"

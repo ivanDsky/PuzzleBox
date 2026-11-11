@@ -14,12 +14,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.e2e.E2E_TODAY
 import com.ivandsky.puzzlebox.app.e2e.E2eKoinGraph
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.NavV2
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -31,7 +29,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * With NavV2 on, a width class change mid-session (rotation, fold, split screen) swaps the
+ * A width class change mid-session (rotation, fold, split screen) swaps the
  * bar for the rail and back while the selected tab, every stack and the highlight stay as
  * they were. The window is a landscape tablet, so the width class alone picks bar or rail.
  */
@@ -43,7 +41,7 @@ class TabSetWidthChangeTest {
     @get:Rule
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
-    private val graph = E2eKoinGraph(E2E_TODAY, releaseFlags = FakeReleaseFlags(NavV2))
+    private val graph = E2eKoinGraph(E2E_TODAY)
 
     @Before
     fun startGraph() = graph.start()
@@ -53,7 +51,7 @@ class TabSetWidthChangeTest {
 
     @Test
     fun `a width class change keeps History selected and its stack, with four tabs in bar and rail`() {
-        val inHistory = puzzleBoxNavigationState(navV2 = true).selectTab(HistoryRootKey).push(HistoryKey("zip"))
+        val inHistory = puzzleBoxNavigationState().selectTab(HistoryRootKey).push(HistoryKey("zip"))
         var width by mutableStateOf(WindowWidthSizeClass.Compact)
         lateinit var navigator: Navigator
         composeRule.setContent {
@@ -80,11 +78,11 @@ class TabSetWidthChangeTest {
     }
 
     /**
-     * The four flag-on tabs show once each, no Profile tab, only History highlighted; in one
+     * The four tabs show once each, no Profile tab, only History highlighted; in one
      * row along the bottom for the bar, in one column at the start for the [rail].
      */
     private fun assertTabs(rail: Boolean) {
-        val tabs = topLevelDestinations(navV2 = true)
+        val tabs = topLevelDestinations
         val bounds = tabs.map { destination ->
             composeRule.onAllNodesWithTag(destination.tag).fetchSemanticsNodes().let { nodes ->
                 assertEquals("tab ${destination.label} shown once", 1, nodes.size)

@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.navigation.NavigationState
@@ -19,7 +20,6 @@ import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
-import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
@@ -105,8 +105,8 @@ class ResultIsolationE2ETest {
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
         create: List<NavKey> = listOf(CreateKey),
-        profile: List<NavKey> = listOf(ProfileKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, create, profile))
+        history: List<NavKey> = listOf(HistoryRootKey),
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, history, create))
 
     private val todaySlot = PlaySlot.Daily(ZipDefinition.id, E2E_TODAY)
 

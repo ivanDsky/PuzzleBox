@@ -15,7 +15,6 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavBackStack
@@ -26,7 +25,6 @@ import androidx.savedstate.serialization.encodeToSavedState
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -35,12 +33,13 @@ import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.history.api.HistoryKey
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
+import com.ivandsky.puzzlebox.profile.api.SettingsKey
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
@@ -62,7 +61,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The real shell (bar, NavDisplay, every feature entry) over per-tab stacks: hopping tabs
- * restores each stack, reselect pops to the root, back at a non-start root highlights Home,
+ * restores each stack, reselect pops to the root, back at a non-start root highlights Today,
  * and the `puzzlebox.navigation.v1` saved state restores, reconciles or starts fresh.
  * Data and backend singles are fakes over the production graph.
  */
@@ -89,8 +88,6 @@ class PerTabShellTest {
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
-                    // The old four-tab shell (Profile as a tab): pinned flag-off until ticket 27 deletes it.
-                    single<ReleaseFlags> { FakeReleaseFlags() }
                 },
             )
         }
@@ -116,8 +113,11 @@ class PerTabShellTest {
         composeRule.waitForIdle()
     }
 
+    /** Today's avatar opens Profile, its gear Settings, and Settings' Developer link the catalog. */
     private fun openCatalog() {
-        composeRule.onNodeWithText(CATALOG_BUTTON).performScrollTo().performClick()
+        tap(AVATAR)
+        tap(PROFILE_GEAR)
+        composeRule.onNodeWithTag(CATALOG_LINK).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 
@@ -129,53 +129,39 @@ class PerTabShellTest {
     private fun state(): NavigationState = composeRule.runOnIdle { navigator.state }
 
     @Test
-    fun `hopping tabs restores the profile stack`() {
+    fun `hopping tabs restores a tab's stack`() {
         composeRule.setContent { Shell() }
-        tap(PROFILE_TAB)
+        openCatalog()
+
+        tap(HISTORY_TAB)
+        composeRule.onNodeWithTag(HISTORY_TAB).assertIsSelected()
+        tap(HOME_TAB)
+
+        composeRule.onNodeWithTag(HOME_TAB).assertIsSelected()
+        composeRule.onNodeWithTag(CATALOG_LINK).assertDoesNotExist()
+        assertEquals(listOf<NavKey>(HomeKey, ProfileKey, SettingsKey, CatalogKey), state().currentStack)
+    }
+
+    @Test
+    fun `reselecting a tab shows its root`() {
+        composeRule.setContent { Shell() }
         openCatalog()
 
         tap(HOME_TAB)
-        composeRule.onNodeWithTag(HOME_TAB).assertIsSelected()
-        tap(PROFILE_TAB)
 
-        composeRule.onNodeWithTag(PROFILE_TAB).assertIsSelected()
-        composeRule.onNodeWithText(CATALOG_BUTTON).assertDoesNotExist()
-        assertEquals(listOf<NavKey>(ProfileKey, CatalogKey), state().currentStack)
+        assertEquals(listOf<NavKey>(HomeKey), state().currentStack)
     }
 
     @Test
-    fun `reselecting profile shows its root`() {
+    fun `back at a non-start root highlights home`() {
         composeRule.setContent { Shell() }
-        tap(PROFILE_TAB)
-        openCatalog()
-
-        tap(PROFILE_TAB)
-
-        composeRule.onNodeWithText(CATALOG_BUTTON).assertExists()
-        assertEquals(listOf<NavKey>(ProfileKey), state().currentStack)
-    }
-
-    @Test
-    fun `a profile game row opens that game's history on the profile stack - N3`() {
-        composeRule.setContent { Shell() }
-        tap(PROFILE_TAB)
-
-        composeRule.onNodeWithTag("profile.game.tango").performScrollTo().performClick()
-        composeRule.waitForIdle()
-
-        assertEquals(listOf<NavKey>(ProfileKey, HistoryKey("tango")), state().currentStack)
-    }
-
-    @Test
-    fun `back at the profile root highlights home`() {
-        composeRule.setContent { Shell() }
-        tap(PROFILE_TAB)
+        tap(HISTORY_TAB)
 
         pressBack()
 
         composeRule.onNodeWithTag(HOME_TAB).assertIsSelected()
         assertEquals(HomeKey, state().tab)
-        assertEquals(listOf<NavKey>(ProfileKey), state().stackOf(ProfileKey))
+        assertEquals(listOf<NavKey>(HistoryRootKey), state().stackOf(HistoryRootKey))
     }
 
     @Test
@@ -184,7 +170,7 @@ class PerTabShellTest {
         restoration.setContent { Shell() }
         composeRule.runOnIdle {
             navigator.push(HistoryKey())
-            navigator.selectTab(ProfileKey)
+            navigator.selectTab(CreateKey)
             navigator.push(CatalogKey)
         }
         val before = state()
@@ -192,7 +178,7 @@ class PerTabShellTest {
         restoration.emulateSavedInstanceStateRestore()
 
         assertEquals(before, state())
-        composeRule.onNodeWithTag(PROFILE_TAB).assertIsSelected()
+        composeRule.onNodeWithTag(CREATE_TAB).assertIsSelected()
     }
 
     @Test
@@ -203,7 +189,7 @@ class PerTabShellTest {
             puzzleBoxNavKeys,
         )
 
-        restoreShellWith(legacy) { navigator.selectTab(ProfileKey) }
+        restoreShellWith(legacy) { navigator.selectTab(CreateKey) }
 
         assertEquals(puzzleBoxNavigationState(), state())
         composeRule.onNodeWithTag(HOME_TAB).assertIsSelected()
@@ -212,8 +198,8 @@ class PerTabShellTest {
     @Test
     fun `a restored state missing a tab gains that tab's root`() {
         val withoutPlay = NavigationState(
-            tab = ProfileKey,
-            stacks = listOf(listOf(HomeKey), listOf(ProfileKey, CatalogKey)),
+            tab = CreateKey,
+            stacks = listOf(listOf(HomeKey), listOf(CreateKey, CatalogKey)),
         )
         val saved = savedState {
             putSavedState(
@@ -226,13 +212,13 @@ class PerTabShellTest {
 
         assertEquals(
             NavigationState(
-                tab = ProfileKey,
-                stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(CreateKey), listOf(ProfileKey, CatalogKey)),
+                tab = CreateKey,
+                stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey, CatalogKey)),
             ),
             state(),
         )
-        composeRule.onNodeWithTag(PROFILE_TAB).assertIsSelected()
-        composeRule.onNodeWithText(CATALOG_BUTTON).assertDoesNotExist()
+        composeRule.onNodeWithTag(CREATE_TAB).assertIsSelected()
+        composeRule.onNodeWithTag(CATALOG_LINK).assertDoesNotExist()
     }
 
     /**
@@ -270,7 +256,10 @@ class PerTabShellTest {
 
     private companion object {
         const val HOME_TAB = "nav.tab.home"
-        const val PROFILE_TAB = "nav.tab.profile"
-        const val CATALOG_BUTTON = "Design system catalog"
+        const val HISTORY_TAB = "nav.tab.history"
+        const val CREATE_TAB = "nav.tab.create"
+        const val AVATAR = "shell.avatar"
+        const val PROFILE_GEAR = "profile.settings"
+        const val CATALOG_LINK = "settings.catalog"
     }
 }

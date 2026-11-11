@@ -2,14 +2,12 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import com.ivandsky.puzzlebox.app.nav.Chrome as PlacementChrome
 import com.ivandsky.puzzlebox.app.nav.placementOf
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,27 +15,22 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The flag-off reachability inventory (SC3): from a fresh launch, scripted taps reach every
+ * The reachability inventory (SC3): from a fresh launch, scripted taps reach every
  * `route.*` screen the shell reaches today, on a phone (bottom bar) and on an expanded
  * landscape window (rail). Each screen is checked twice: [ShellRobot.assertRoute] (its tag is
- * displayed and is the only route on screen) and the chrome its kind needs — browse and tool
+ * displayed and is the only route on screen) and the chrome its placement needs — browse and tool
  * screens show the bar or the rail, boards and results show neither. It asserts no copy and
  * no placement: where a screen lives is for the tickets that move it; that it can be reached
  * is what this pins. Compete routes are left out: they have no tap path yet and
  * [OfficialLegE2ETest] covers their seeded one.
  *
- * Catalog is reached by tapping Profile's `profile.catalog` button, which shows only when the
- * app is debuggable; Robolectric's `applicationInfo` is, so no seeded stack is needed.
+ * Profile and Settings are pushed from the avatar and the gear (the rail's bottom, or Today's
+ * header), History is a tab root, and the catalog is Settings' Developer link. Each screen also
+ * checks the shell actions its placement's chrome needs: the avatar and the gear show exactly
+ * once on every screen the rail shows, and on a bar only on Today's root.
  *
  * Per width: the daily and Create run on the default graph, and the friend run on a
  * [FriendWorld] with only the Zip editor on.
- *
- * The flag-on list (NavV2) is the same reach from launch over the new tab set: Profile and
- * Settings are pushed from the avatar and the gear (the rail's bottom, or Today's header), History is a tab root, and the catalog is
- * Settings' Developer link. Each screen also checks the shell actions its placement's chrome
- * needs: the avatar and the gear show exactly once on every screen the rail shows, and on a bar
- * only on Today's root. With
- * the flag on, no screen links to a pushed History any more, so History's tab root stands for it.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -47,115 +40,39 @@ class ReachabilityInventoryE2ETest {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `a phone reaches every daily and Create screen`() = dailyAndCreateRun(Width.Phone)
+    fun `a phone reaches every daily, Create and shell screen`() = dailyAndCreateRun(Width.Phone)
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `a phone reaches a published puzzle and a friend's card, board and result`() = friendRun(Width.Phone)
+    fun `a phone reaches a published puzzle and a friend's card, board and result`() =
+        friendRun(Width.Phone)
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `a rail window reaches every daily and Create screen`() = dailyAndCreateRun(Width.Rail)
+    fun `a rail window reaches every daily, Create and shell screen`() = dailyAndCreateRun(Width.Rail)
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `a rail window reaches a published puzzle and a friend's card, board and result`() = friendRun(Width.Rail)
-
-    @Test
-    @Config(qualifiers = PHONE)
-    fun `with NavV2 on a phone reaches every daily, Create and shell screen`() = navV2DailyAndCreateRun(Width.Phone)
-
-    @Test
-    @Config(qualifiers = PHONE)
-    fun `with NavV2 on a phone reaches a published puzzle and a friend's card, board and result`() =
-        navV2FriendRun(Width.Phone)
-
-    @Test
-    @Config(qualifiers = RAIL)
-    fun `with NavV2 on a rail window reaches every daily, Create and shell screen`() = navV2DailyAndCreateRun(Width.Rail)
-
-    @Test
-    @Config(qualifiers = RAIL)
-    fun `with NavV2 on a rail window reaches a published puzzle and a friend's card, board and result`() =
-        navV2FriendRun(Width.Rail)
+    fun `a rail window reaches a published puzzle and a friend's card, board and result`() =
+        friendRun(Width.Rail)
 
     private fun dailyAndCreateRun(width: Width) = shellRobot {
-        reached(HOME, Chrome.Tabs, width)
-
-        tapText("See all")
-        reached(HISTORY, Chrome.Tabs, width)
-        back()
-        assertRoute(HOME)
-
-        tapTab(ProfileKey)
-        reached(PROFILE, Chrome.Tabs, width)
-        tap("profile.catalog")
-        reached(CATALOG, Chrome.Tabs, width)
-        back()
-        assertRoute(PROFILE)
-
-        tapTab(PlayKey)
-        reached(LIBRARY, Chrome.Tabs, width)
-        openGame(ZIP)
-        reached(GAME, Chrome.None, width)
-        solveTodaysZip()
-        reached(RESULT, Chrome.None, width)
-        back()
-        assertRoute(LIBRARY)
-
-        tapTab(CreateKey)
-        reached(CREATE, Chrome.Tabs, width)
-        tap("create.empty.game.queens")
-        awaitTag("create.editor.board")
-        reached(EDITOR, Chrome.Tabs, width)
-    }
-
-    private fun friendRun(width: Width) {
-        val world = FriendWorld(ZipCorridor.flags)
-        try {
-            shellRobot(graph = world.graph) {
-                val code = world.publishAsAuthor(this, ZipCorridor.board, TITLE)
-                // The Studio shows the published ticket; back is the Create list, whose Published tab holds the row.
-                back()
-                assertRoute(CREATE)
-                tap("create.tab.published")
-                tap("create.published.row")
-                reached(PUBLISHED, Chrome.Tabs, width)
-                world.signInFriend()
-
-                tapTab(PlayKey)
-                openByCode(code)
-                reached(FRIEND, Chrome.Tabs, width)
-                tap("friend.card.play")
-                reached(GAME, Chrome.None, width)
-                assertEquals("the board is the friend's custom one", CustomGameKey(ZIP, code.value), state.currentStack.last())
-
-                with(ZipCorridor) { solve(PlaySlot.Custom(id, code.value)) }
-                awaitCustomResult()
-                reached(CUSTOM_RESULT, Chrome.None, width)
-            }
-        } finally {
-            world.close()
-        }
-    }
-
-    private fun navV2DailyAndCreateRun(width: Width) = navV2Robot {
-        reachedV2(HOME, width)
+        reached(HOME, width)
 
         tapTab(HistoryRootKey)
-        reachedV2(HISTORY, width)
+        reached(HISTORY, width)
 
         tapTab(HomeKey)
         tapAvatar()
-        reachedV2(PROFILE, width)
+        reached(PROFILE, width)
         back()
         assertRoute(HOME)
 
         tapAvatar()
         tapGear()
-        reachedV2(SETTINGS, width)
+        reached(SETTINGS, width)
         tap("settings.catalog")
-        reachedV2(CATALOG, width)
+        reached(CATALOG, width)
         back()
         assertRoute(SETTINGS)
         back()
@@ -164,71 +81,64 @@ class ReachabilityInventoryE2ETest {
         assertRoute(HOME)
 
         tapTab(PlayKey)
-        reachedV2(LIBRARY, width)
+        reached(LIBRARY, width)
         openGame(ZIP)
-        reachedV2(GAME, width)
+        reached(GAME, width)
         solveTodaysZip()
-        reachedV2(RESULT, width)
+        reached(RESULT, width)
         back()
         assertRoute(LIBRARY)
 
         tapTab(CreateKey)
-        reachedV2(CREATE, width)
+        reached(CREATE, width)
         tap("create.empty.game.queens")
         awaitTag("create.editor.board")
-        reachedV2(EDITOR, width)
+        reached(EDITOR, width)
     }
 
-    private fun navV2FriendRun(width: Width) {
-        val world = FriendWorld(ZipCorridor.flags + ReleaseFlag.NavV2)
+    private fun friendRun(width: Width) {
+        val world = FriendWorld(ZipCorridor.flags)
         try {
-            navV2Robot(graph = world.graph) {
+            shellRobot(graph = world.graph) {
                 val code = world.publishAsAuthor(this, ZipCorridor.board, TITLE)
                 back()
                 assertRoute(CREATE)
                 tap("create.tab.published")
                 tap("create.published.row")
-                reachedV2(PUBLISHED, width)
+                reached(PUBLISHED, width)
                 world.signInFriend()
 
                 tapTab(PlayKey)
                 openByCode(code)
-                reachedV2(FRIEND, width)
+                reached(FRIEND, width)
                 tap("friend.card.play")
-                reachedV2(GAME, width)
+                reached(GAME, width)
                 assertEquals("the board is the friend's custom one", CustomGameKey(ZIP, code.value), state.currentStack.last())
 
                 with(ZipCorridor) { solve(PlaySlot.Custom(id, code.value)) }
                 awaitCustomResult()
-                reachedV2(CUSTOM_RESULT, width)
+                reached(CUSTOM_RESULT, width)
             }
         } finally {
             world.close()
         }
     }
 
-    /** [route] is the only route on screen, under the shell [chrome] its kind needs at [width]. */
-    private fun ShellRobot.reached(route: String, chrome: Chrome, width: Width) {
-        assertRoute(route)
-        when {
-            chrome == Chrome.None -> assertNoNavigation()
-            width == Width.Phone -> assertBottomBar()
-            else -> assertRail()
-        }
-    }
-
     /**
-     * NavV2: [reached], with the chrome read from the top screen's placement: `Bar` shows the
-     * tabs, `Immersive` nothing; the avatar and gear sit on the rail, else on Today only.
+     * [route] is the only route on screen, with the chrome read from the top screen's placement:
+     * `Bar` shows the tabs, `Immersive` nothing; the avatar and gear sit on the rail, else on Today only.
      */
-    private fun ShellRobot.reachedV2(route: String, width: Width) {
-        val chrome = placementOf(state.currentStack.last()).chrome
-        reached(route, if (chrome == PlacementChrome.Immersive) Chrome.None else Chrome.Tabs, width)
+    private fun ShellRobot.reached(route: String, width: Width) {
+        assertRoute(route)
+        if (placementOf(state.currentStack.last()).chrome == PlacementChrome.Immersive) {
+            assertNoNavigation()
+        } else if (width == Width.Phone) {
+            assertBottomBar()
+        } else {
+            assertRail()
+        }
         assertChromeFor(rail = width == Width.Rail)
     }
-
-    /** What the shell shows around a screen: browse and tool screens carry the tabs, boards and results none. */
-    private enum class Chrome { Tabs, None }
 
     private enum class Width { Phone, Rail }
 
