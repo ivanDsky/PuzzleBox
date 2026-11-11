@@ -58,6 +58,7 @@ class DataStoreLinkedInLinkTest {
     private var cookies: LinkedInSessionCookies = FakeLinkedInSessionCookies(session = null)
     private lateinit var avatars: LinkedInAvatars
     private var process: CoroutineScope? = null
+    private val storeLock = LinkedInStoreLock()
 
     private val ghost = GhostEntity(
         game = "queens",
@@ -102,7 +103,7 @@ class DataStoreLinkedInLinkTest {
         process = scope
         val file = File(folder.root, "linkedin_link.preferences_pb")
         source = LinkedInLinkDataSource(PreferenceDataStoreFactory.create(scope = scope) { file })
-        return DataStoreLinkedInLink(source, db, cookies, avatars)
+        return DataStoreLinkedInLink(source, db, cookies, avatars, storeLock)
     }
 
     private suspend fun ghosts(): List<GhostEntity> = db.ghostDao().observe(ghost.game, ghost.day).first()

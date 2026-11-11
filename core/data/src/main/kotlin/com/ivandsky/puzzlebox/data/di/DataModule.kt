@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInAvatars
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInCallBudget
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInStoreLock
 import com.ivandsky.puzzlebox.data.linkedin.RoomLinkedInAccount
 import com.ivandsky.puzzlebox.data.linkedin.RoomLinkedInDays
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
@@ -95,11 +96,13 @@ val dataModule = module {
     single {
         LinkedInAvatars(File(get<Context>().noBackupFilesDir, "linkedin_avatars"), get(), get<DispatcherProvider>().io)
     }
-    single<LinkedInLink> { DataStoreLinkedInLink(get(), get(), get(), get()) }
+    // One lock for the process: a sync's stores and a disconnect's wipe are never interleaved.
+    single { LinkedInStoreLock() }
+    single<LinkedInLink> { DataStoreLinkedInLink(get(), get(), get(), get(), get()) }
     single<LinkedInDays> {
         RoomLinkedInDays(
             link = get(), source = get(), completions = get(), daily = get(), calendar = get(),
-            registry = get(), db = get(), budget = get(), avatars = get(), clock = System::currentTimeMillis,
+            registry = get(), db = get(), budget = get(), avatars = get(), storeLock = get(), clock = System::currentTimeMillis,
         )
     }
     single<LinkedInAccount> { RoomLinkedInAccount(link = get(), db = get(), avatars = get()) }

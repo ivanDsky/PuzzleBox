@@ -29,6 +29,7 @@ internal class LinkedInDaySync(
     private val ghosts: LinkedInGhostWriter,
     private val budget: LinkedInCallBudget,
     private val avatars: LinkedInAvatars,
+    private val storeLock: LinkedInStoreLock,
     private val syncState: LinkedInSyncState,
     private val clock: () -> Long,
 ) {
@@ -113,23 +114,27 @@ internal class LinkedInDaySync(
 
     /**
      * What a finished read means for the sync. The link is read again first: a disconnect wipes the
-     * store while a read is still on the wire, and nothing else stops that read from landing. When the
-     * link is no longer the one that asked, the answer is dropped and nothing is written, not even a
-     * pause. Only a successful read reaches [store], so an offline or rejected read is never logged.
+     * store while a read is still on the wire, and nothing else stops that read from landing. The check
+     * and the store run under [storeLock], which a disconnect holds for its whole wipe, so the link
+     * cannot change in between and a store that began is wiped with the rest. When the link is no longer
+     * the one that asked, the answer is dropped and nothing is written, not even a pause. Only a
+     * successful read reaches [store], so an offline or rejected read is never logged.
      */
     private suspend fun <T> settle(
         request: Request,
         read: LinkedInRead<T>,
         store: suspend (T) -> LinkedInSync?,
     ): LinkedInSync? {
-        val linked = link.state.first()
-        if (linked != LinkState.Connected(request.profileId)) return unlinked(linked)
-        return when (read) {
-            is LinkedInRead.Ok -> store(read.value)
-            LinkedInRead.Offline -> LinkedInSync.Offline
-            // Nothing was sent, but the session is gone all the same, so the player is asked to reconnect.
-            LinkedInRead.SignedOut -> pause(LinkedInRead.Rejected.Kind.SessionExpired)
-            is LinkedInRead.Rejected -> pause(read.kind)
+        return storeLock.withLock {
+            val linked = link.state.first()
+            if (linked != LinkState.Connected(request.profileId)) return@withLock unlinked(linked)
+            when (read) {
+                is LinkedInRead.Ok -> store(read.value)
+                LinkedInRead.Offline -> LinkedInSync.Offline
+                // Nothing was sent, but the session is gone all the same, so the player is asked to reconnect.
+                LinkedInRead.SignedOut -> pause(LinkedInRead.Rejected.Kind.SessionExpired)
+                is LinkedInRead.Rejected -> pause(read.kind)
+            }
         }
     }
 

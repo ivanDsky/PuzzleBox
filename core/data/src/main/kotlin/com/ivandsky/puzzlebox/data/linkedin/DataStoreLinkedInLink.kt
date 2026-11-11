@@ -21,6 +21,7 @@ internal class DataStoreLinkedInLink(
     private val db: LinkedInDatabase,
     private val cookies: LinkedInSessionCookies,
     private val avatars: LinkedInAvatars,
+    private val storeLock: LinkedInStoreLock,
 ) : LinkedInLink {
 
     override val state: Flow<LinkState> = source.link.map { it.toLinkState() }.distinctUntilChanged()
@@ -47,11 +48,15 @@ internal class DataStoreLinkedInLink(
      */
     override suspend fun disconnect() {
         withContext(NonCancellable) {
-            cookies.clear()
-            db.ghostDao().clear()
-            db.fetchLogDao().clear()
-            avatars.clear()
-            source.clear()
+            // Held for the whole wipe: a day sync's read that is still on the wire waits for it and then finds
+            // the link gone, instead of storing into a wiped account.
+            storeLock.withLock {
+                cookies.clear()
+                db.ghostDao().clear()
+                db.fetchLogDao().clear()
+                avatars.clear()
+                source.clear()
+            }
         }
     }
 }
