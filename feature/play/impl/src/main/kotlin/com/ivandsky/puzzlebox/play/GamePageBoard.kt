@@ -51,6 +51,8 @@ internal fun GamePageBoard(
             order = viewModel.order,
             state = state.board,
             ghosts = state.ghosts,
+            animated = linkedIn,
+            day = day?.toString(),
             signIn = {
                 Column(Modifier.testTag("leaderboard.signIn")) {
                     SignInPrompt(

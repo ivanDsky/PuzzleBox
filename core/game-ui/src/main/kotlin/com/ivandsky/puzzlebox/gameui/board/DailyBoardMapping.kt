@@ -17,6 +17,7 @@ fun TodayLeaderboard.toDailyBoardState(note: DailyBoardNote? = null): DailyBoard
                     timeMs = entry.timeMs,
                     hints = entry.hints,
                     isSelf = entry.uid == identity.uid,
+                    playerId = entry.uid,
                 )
             },
             note = note,

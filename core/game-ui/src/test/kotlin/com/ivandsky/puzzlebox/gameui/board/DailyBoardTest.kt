@@ -63,7 +63,7 @@ class DailyBoardTest {
         GhostRowModel("ref-$name", name, seconds?.let { it * 1000L }, hintFree)
 
     private fun real(rank: Int, seconds: Int, isSelf: Boolean = false) =
-        DailyBoardRowModel(rank, "r$seconds", seconds * 1000L, 0, isSelf)
+        DailyBoardRowModel(rank, "r$seconds", seconds * 1000L, 0, isSelf, playerId = "r$seconds")
 
     private val anyRow = hasTestTag("daily_board.row") or hasTestTag("daily_board.ghost")
 
@@ -73,9 +73,9 @@ class DailyBoardTest {
         assertEquals(
             DailyBoardState.Ranked(
                 listOf(
-                    DailyBoardRowModel(1, "Ann", 60_000, 0, false),
-                    DailyBoardRowModel(2, "Me", 70_000, 1, true),
-                    DailyBoardRowModel(3, "Bo", 80_000, 0, false),
+                    DailyBoardRowModel(1, "Ann", 60_000, 0, false, playerId = "a"),
+                    DailyBoardRowModel(2, "Me", 70_000, 1, true, playerId = "me"),
+                    DailyBoardRowModel(3, "Bo", 80_000, 0, false, playerId = "b"),
                 ),
             ),
             state,
@@ -97,7 +97,7 @@ class DailyBoardTest {
 
     @Test
     fun `ranked shows title caption rows and tags the self row`() {
-        val rows = listOf(DailyBoardRowModel(1, "Ann", 60_000, 0, false), DailyBoardRowModel(2, "Me", 70_000, 0, true))
+        val rows = listOf(DailyBoardRowModel(1, "Ann", 60_000, 0, false, playerId = "ann"), DailyBoardRowModel(2, "Me", 70_000, 0, true, playerId = "me"))
         show(RankOrder.TimeThenHints, DailyBoardState.Ranked(rows))
 
         composeRule.onNodeWithTag("daily_board.title").assertTextEquals("Queens · today")
@@ -109,7 +109,7 @@ class DailyBoardTest {
 
     @Test
     fun `a hints-first row leads with hints`() {
-        show(RankOrder.HintsThenTime, DailyBoardState.Ranked(listOf(DailyBoardRowModel(1, "Ann", 252_000, 2, false))))
+        show(RankOrder.HintsThenTime, DailyBoardState.Ranked(listOf(DailyBoardRowModel(1, "Ann", 252_000, 2, false, playerId = "ann"))))
 
         composeRule.onNodeWithTag("daily_board.caption").assertTextEquals("Fewest hints first, then time")
         composeRule.onNodeWithTag("daily_board.row.score").assertTextEquals("2 hints · 4:12")
@@ -117,7 +117,7 @@ class DailyBoardTest {
 
     @Test
     fun `a time-first row leads with time`() {
-        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(listOf(DailyBoardRowModel(1, "Ann", 252_000, 2, false))))
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(listOf(DailyBoardRowModel(1, "Ann", 252_000, 2, false, playerId = "ann"))))
 
         composeRule.onNodeWithTag("daily_board.row.score").assertTextEquals("4:12")
     }

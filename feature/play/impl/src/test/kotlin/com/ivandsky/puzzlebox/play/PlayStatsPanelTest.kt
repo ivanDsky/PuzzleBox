@@ -278,7 +278,7 @@ class PlayStatsPanelTest {
                 rankOrder = RankOrder.TimeThenHints,
                 averageMs = null,
                 times = PlayTimes.Board(
-                    (1..3).map { DailyBoardLine.Real(DailyBoardRowModel(it, "Player $it", it * 10_000L, hints = 0, isSelf = false), it) },
+                    (1..3).map { DailyBoardLine.Real(DailyBoardRowModel(it, "Player $it", it * 10_000L, hints = 0, isSelf = false, playerId = "player-$it"), it) },
                     solved = true,
                     order = RankOrder.TimeThenHints,
                     post = post,

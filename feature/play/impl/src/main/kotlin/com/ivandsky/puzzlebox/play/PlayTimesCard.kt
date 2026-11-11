@@ -29,7 +29,8 @@ import com.ivandsky.puzzlebox.play.friend.SignInPrompt
  * ranks lower, drawn by the same [DailyBoardList] as the game page's board, connections included. There is no friend
  * graph yet, so the card does not claim to be friends. The list area always reserves five rows and a pinned one, so
  * loading, notes and the rows share one height. Signed out, loading, unavailable and empty boards show a note in the
- * same area; a solved day whose own row is missing explains why under the rows.
+ * same area; a solved day whose own row is missing explains why under the rows. With [animated] the rows move,
+ * arrive and leave with motion.
  */
 @Composable
 internal fun PlayTimesCard(
@@ -37,6 +38,7 @@ internal fun PlayTimesCard(
     signIn: BoardSignIn,
     onSignIn: () -> Unit,
     modifier: Modifier = Modifier,
+    animated: Boolean = false,
 ) {
     val board = times as? PlayTimes.Board
     StatsCard(modifier.testTag("play.stats.times")) {
@@ -60,7 +62,12 @@ internal fun PlayTimesCard(
             } else if (board != null) {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     // A board with no rank rule reads as time-first rows.
-                    DailyBoardList(board.head.map { if (it is DailyBoardLine.Real) it.asYou() else it }, board.order ?: RankOrder.TimeThenHints, pinned = board.pinned?.asYou())
+                    DailyBoardList(
+                        board.head.map { if (it is DailyBoardLine.Real) it.asYou() else it },
+                        board.order ?: RankOrder.TimeThenHints,
+                        pinned = board.pinned?.asYou(),
+                        animated = animated,
+                    )
                     ownRowNote(board)?.let {
                         Text(
                             it,

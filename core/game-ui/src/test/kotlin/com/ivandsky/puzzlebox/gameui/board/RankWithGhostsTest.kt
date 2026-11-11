@@ -7,7 +7,7 @@ import org.junit.Test
 /** One combined rank: board order, ties share a place and go to the real row first, hidden times unranked and last, real rows untouched. */
 class RankWithGhostsTest {
     private fun real(rank: Int, name: String, seconds: Int, hints: Int = 0, isSelf: Boolean = false) =
-        DailyBoardRowModel(rank, name, seconds * 1000L, hints, isSelf)
+        DailyBoardRowModel(rank, name, seconds * 1000L, hints, isSelf, playerId = name)
 
     private fun ghost(name: String, seconds: Int?, hintFree: Boolean = true) =
         GhostRowModel("ref-$name", name, seconds?.let { it * 1000L }, hintFree)

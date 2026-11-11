@@ -400,7 +400,7 @@ class ResultViewModelTest {
         cachedConnections(ghost("Ada", 20), ghost("Bo", 40), ghost("Cy", 45), ghost("Di", null))
 
         val rows = listOf("a" to 30, "b" to 40, ME.uid to 40, "c" to 50)
-            .mapIndexed { i, (uid, s) -> DailyBoardRowModel(i + 1, uid, s * 1_000L, 0, uid == ME.uid) }
+            .mapIndexed { i, (uid, s) -> DailyBoardRowModel(i + 1, uid, s * 1_000L, 0, uid == ME.uid, playerId = uid) }
         val ghosts = listOf(ghost("Ada", 20), ghost("Bo", 40), ghost("Cy", 45), ghost("Di", null))
             .map { GhostRowModel(it.memberRef, it.name, it.timeMs, it.hintFree) }
         val onBoard = rankWithGhosts(rows, ghosts, fakes.games.rankOrderOf(alpha))

@@ -34,8 +34,8 @@ class BoardRowLayoutTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private val real = DailyBoardRowModel(1, "Maya", 62_000L, 0, isSelf = false)
-    private val self = DailyBoardRowModel(2, "Jonas", 75_000L, 1, isSelf = true)
+    private val real = DailyBoardRowModel(1, "Maya", 62_000L, 0, isSelf = false, playerId = "maya")
+    private val self = DailyBoardRowModel(2, "Jonas", 75_000L, 1, isSelf = true, playerId = "jonas")
     private val linkedInSelf = self.copy(timeFromLinkedIn = true)
     private val ghost = GhostRowModel("ref-ada", "Ada", 68_000L, hintFree = true)
 

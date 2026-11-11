@@ -198,13 +198,13 @@ private fun PreviewBoard(gameName: String) {
         RankOrder.HintsThenTime,
         DailyBoardState.Ranked(
             rows = listOf(
-                DailyBoardRowModel(1, "Maya", 90_000L, 0, isSelf = false),
-                DailyBoardRowModel(2, "Jonas", 120_000L, 0, isSelf = false),
-                DailyBoardRowModel(3, "Priya", 95_000L, 1, isSelf = false),
-                DailyBoardRowModel(4, "Sam", 140_000L, 1, isSelf = false),
-                DailyBoardRowModel(5, "Lee", 110_000L, 2, isSelf = false),
+                DailyBoardRowModel(1, "Maya", 90_000L, 0, isSelf = false, playerId = "maya"),
+                DailyBoardRowModel(2, "Jonas", 120_000L, 0, isSelf = false, playerId = "jonas"),
+                DailyBoardRowModel(3, "Priya", 95_000L, 1, isSelf = false, playerId = "priya"),
+                DailyBoardRowModel(4, "Sam", 140_000L, 1, isSelf = false, playerId = "sam"),
+                DailyBoardRowModel(5, "Lee", 110_000L, 2, isSelf = false, playerId = "lee"),
             ),
-            pinned = DailyBoardRowModel(12, "You", 261_000L, 3, isSelf = true),
+            pinned = DailyBoardRowModel(12, "You", 261_000L, 3, isSelf = true, playerId = "you"),
         ),
     )
 }
