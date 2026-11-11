@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.WeekDay
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 
 /**
  * What the tablet play side panel shows beside the board (A15), besides the live clock
@@ -34,7 +35,8 @@ internal sealed interface PlayTimes {
     data object Unavailable : PlayTimes
 
     /**
-     * Every posted time in board order; [rows] is empty before anyone has posted. [solved]
+     * Every posted time in board order, as the leaderboard's own lines (a connection with a hidden time has
+     * no line here); [rows] is empty before anyone has posted. [solved]
      * is the player's own solve of the slot, whose time can trail it onto the board.
      * [order] is the game's rank rule when the per-game board is on (rows then lead with
      * its key and the label names the rule); null keeps the time-only rows. [post] is how
@@ -44,29 +46,29 @@ internal sealed interface PlayTimes {
      * so instead of any post status (RG10).
      */
     data class Board(
-        val rows: List<PlayTimeRow>,
+        val rows: List<DailyBoardLine>,
         val solved: Boolean,
         val order: RankOrder? = null,
         val post: SubmitStatus? = null,
         val pastDay: Boolean = false,
     ) : PlayTimes {
 
-        private val you: Int = rows.indexOfFirst { it.you }
+        private val you: Int = rows.indexOfFirst { it is DailyBoardLine.Real && it.row.isSelf }
 
         /** The first [TOP] rows; never the player's own row appended below them. */
-        val head: List<PlayTimeRow>
+        val head: List<DailyBoardLine>
             get() = rows.take(TOP)
 
         /** The [head] rows, with the player's own row pinned below when it ranks lower. */
-        val top: List<PlayTimeRow>
+        val top: List<DailyBoardLine>
             get() = head + listOfNotNull(pinned)
 
         /** The player's own row when it ranks below the [top] rows' first [TOP]; null when it is inside them or absent. */
-        val pinned: PlayTimeRow?
+        val pinned: DailyBoardLine?
             get() = if (you < TOP) null else rows[you]
 
         /** The player's row with [NEAR] ranks either side; null until the player has posted. */
-        val nearYou: List<PlayTimeRow>?
+        val nearYou: List<DailyBoardLine>?
             get() = if (you < 0) null else rows.subList((you - NEAR).coerceAtLeast(0), (you + NEAR + 1).coerceAtMost(rows.size))
 
         private companion object {
@@ -75,17 +77,3 @@ internal sealed interface PlayTimes {
         }
     }
 }
-
-/**
- * One time: its [rank] (1-based; the combined place when connections are in), who, its [hints], and whether it is the
- * player's. A [ghost] is a LinkedIn connection's time; its [hints] only say hinted (1) or not (0), since LinkedIn gives
- * no count, so a hinted one shows its time alone.
- */
-internal data class PlayTimeRow(
-    val rank: Int,
-    val name: String,
-    val timeMs: Long,
-    val hints: Int,
-    val you: Boolean,
-    val ghost: Boolean = false,
-)
