@@ -91,6 +91,9 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
     @Test fun `selected path with overflow text light`() = overflow(dark = false)
     @Test fun `selected path with overflow text dark`() = overflow(dark = true)
 
+    @Test fun `selected path with a word outside the dictionary light`() = unknownWord(dark = false)
+    @Test fun `selected path with a word outside the dictionary dark`() = unknownWord(dark = true)
+
     @Test fun `pockets light`() = pockets(dark = false)
     @Test fun `pockets dark`() = pockets(dark = true)
 
@@ -197,6 +200,15 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
     private fun selectedDim(dark: Boolean) {
         val draft = board(WORDS, startRow = 0).copy(spangram = SPANGRAM)
         capture("selected-dim", dark, draft, analyzed<Verdict.Unique>(draft)) { it.selectPath(1) }
+    }
+
+    /**
+     * The same path with a word the dictionary lacks: the field warns with its caution icon, not
+     * the error treatment. The word field is in the phone's board only.
+     */
+    private fun unknownWord(dark: Boolean) {
+        assumeTrue(device == "phone")
+        selected("selected-unknown", "XQZV", dark)
     }
 
     /** Row 0's word starts at its third cell: cells 0 and 1 are too few for any word, a pocket. */
