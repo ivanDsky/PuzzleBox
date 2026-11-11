@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** What a row is, for the board that moves rows about: the player or connection, never the place. */
@@ -14,10 +13,10 @@ class BoardKeysTest {
 
     private fun ghost(ref: String, seconds: Int?) = GhostRowModel(ref, "Name of $ref", seconds?.let { it * 1000L }, hintFree = true)
 
-    private fun keysOf(lines: List<DailyBoardLine>, day: String? = "2026-11-10") = boardKeys(lines, day)
+    private fun keysOf(lines: List<DailyBoardLine>) = boardKeys(lines)
 
-    private fun keyOfPlayer(lines: List<DailyBoardLine>, player: String, day: String? = "2026-11-10") =
-        keysOf(lines, day)[lines.indexOfFirst { it is DailyBoardLine.Real && it.row.playerId == player }]
+    private fun keyOfPlayer(lines: List<DailyBoardLine>, player: String) =
+        keysOf(lines)[lines.indexOfFirst { it is DailyBoardLine.Real && it.row.playerId == player }]
 
     @Test
     fun `the same player keeps the key when the place changes`() {
@@ -46,13 +45,43 @@ class BoardKeysTest {
     }
 
     @Test
-    fun `another day's rows do not reuse the key of the same player`() {
-        val lines = rankWithGhosts(listOf(real(1, "ada", 30), real(2, "bo", 40)), listOf(ghost("ref-x", 35)), RankOrder.TimeThenHints)
+    fun `the same person has the same key on two different days`() {
+        val today = rankWithGhosts(listOf(real(1, "ada", 30), real(2, "bo", 40)), listOf(ghost("ref-x", 35)), RankOrder.TimeThenHints)
+        val yesterday = rankWithGhosts(listOf(real(1, "bo", 20), real(2, "ada", 45)), listOf(ghost("ref-x", 25)), RankOrder.TimeThenHints)
 
-        val today = keysOf(lines, day = "2026-11-10")
-        val yesterday = keysOf(lines, day = "2026-11-09")
+        for (player in listOf("ada", "bo")) {
+            assertEquals(keyOfPlayer(today, player), keyOfPlayer(yesterday, player))
+        }
+        fun connectionKey(lines: List<DailyBoardLine>) = keysOf(lines)[lines.indexOfFirst { it is DailyBoardLine.Ghost }]
+        assertEquals(connectionKey(today), connectionKey(yesterday))
+    }
 
-        assertTrue(today.intersect(yesterday.toSet()).isEmpty())
+    @Test
+    fun `the own row has the same key in the top list and when pinned`() {
+        val others = listOf(real(1, "ada", 30), real(2, "bo", 40))
+        val inTop = rankWithGhosts(others + real(3, "me", 50, isSelf = true), emptyList(), RankOrder.TimeThenHints)
+        val topKey = keysOf(inTop).last()
+
+        val pinnedLines = rankWithGhosts(others, emptyList(), RankOrder.TimeThenHints) + DailyBoardLine.Real(real(9, "me", 90, isSelf = true), 9)
+        val pinnedKey = boardKeys(pinnedLines, pinned = true).last()
+
+        assertEquals(topKey, pinnedKey)
+    }
+
+    @Test
+    fun `the you row has the self key whichever way it got on the board`() {
+        val rows = listOf(real(1, "ada", 30), real(2, "Me", 50, isSelf = true))
+        val profileRow = keysOf(rankWithGhosts(rows, emptyList(), RankOrder.TimeThenHints)).last()
+
+        val sameName = rankWithLinkedIn(listOf(real(1, "ada", 30), real(2, "Me", 50)), emptyList(), LinkedInYou(BestScore(20_000L, 0), "Me", null), RankOrder.TimeThenHints)
+        val sameNameKey = keysOf(sameName)[sameName.indexOfFirst { it is DailyBoardLine.Real && it.row.isSelf }]
+
+        val added = rankWithLinkedIn(listOf(real(1, "ada", 30)), emptyList(), LinkedInYou(BestScore(40_000L, 0), "Someone", null), RankOrder.TimeThenHints)
+        val addedKey = keysOf(added)[added.indexOfFirst { it is DailyBoardLine.Real && it.row.fromLinkedIn }]
+
+        assertEquals(profileRow, sameNameKey)
+        assertEquals(profileRow, addedKey)
+        assertNotEquals(keyOfPlayer(rankWithGhosts(rows, emptyList(), RankOrder.TimeThenHints), "ada"), profileRow)
     }
 
     @Test

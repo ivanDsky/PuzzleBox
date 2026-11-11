@@ -1,11 +1,14 @@
 package com.ivandsky.puzzlebox.gameui.board
 
 import android.content.Context
+import android.graphics.Color
 import android.provider.Settings
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -28,8 +31,9 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * What the list does when its lines change, on a paused clock: a row whose place changes slides there, a row that
- * arrives expands in, a row that leaves shrinks out and is then gone, the pinned row does the same, and another day's
- * rows are not slid into the first day's places. With animation off, or with reduced motion, the change lands at once.
+ * arrives expands in, a row that leaves shrinks out and is then gone, the pinned row does the same, the own row slides
+ * between the top list and the pinned place, and on another day's board the people on both days slide, the others
+ * arrive and leave. With animation off, or with reduced motion, the change lands at once.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -41,7 +45,6 @@ class DailyBoardListMotionTest {
 
     private var lines by mutableStateOf<List<DailyBoardLine>>(emptyList())
     private var pinned by mutableStateOf<DailyBoardLine.Real?>(null)
-    private var day by mutableStateOf<String?>("2026-11-10")
 
     private fun real(player: String, seconds: Int = 10, self: Boolean = false) =
         DailyBoardLine.Real(DailyBoardRowModel(1, player, seconds * 1000L, 0, self, playerId = player), 1)
@@ -55,7 +58,7 @@ class DailyBoardListMotionTest {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                DailyBoardList(lines, RankOrder.TimeThenHints, pinned = pinned, animated = animated, day = day)
+                DailyBoardList(lines, RankOrder.TimeThenHints, pinned = pinned, animated = animated)
             }
         }
         // The first lines are on show from the start; the rows' own entrance, if any, is played out.
@@ -143,21 +146,80 @@ class DailyBoardListMotionTest {
         assertEquals(0, composeRule.onAllNodesWithTag("leaderboard.you").fetchSemanticsNodes().size)
     }
 
+    // The darkest pixel of the person's name: a name drawn at part alpha is lighter than one drawn whole.
+    private fun ink(player: String): Int {
+        val image = composeRule.onNodeWithText(player).captureToImage().asAndroidBitmap()
+        var darkest = 255
+        for (x in 0 until image.width) for (y in 0 until image.height) {
+            val pixel = image.getPixel(x, y)
+            darkest = minOf(darkest, (Color.red(pixel) + Color.green(pixel) + Color.blue(pixel)) / 3)
+        }
+        return darkest
+    }
+
+    private fun switchDay() = change {
+        lines = listOf(real("cy", 9), real("ada", 11), real("di", 12))
+    }
+
     @Test
-    fun `switching day replaces the rows and slides none of them`() {
-        show(listOf(real("ada"), real("bo")))
+    fun `switching day slides a person on both days between the two places and never fades them`() {
+        show(listOf(real("ada"), real("bo"), real("cy")))
+        val start = top("ada")
+        val inkBefore = ink("ada")
+
+        switchDay()
+        composeRule.mainClock.advanceTimeBy(60)
+
+        val during = top("ada")
+        assertEquals("ada is one row on both days", 1, count("ada"))
+        assertTrue("ada at $during, past its old place $start", during > start)
+        assertTrue("ink ${ink("ada")} stays the ink $inkBefore of a row not fading", ink("ada") <= inkBefore + 8)
+        settle()
+        assertTrue("ada at ${top("ada")}, past the $during seen mid-way", top("ada") > during)
+    }
+
+    @Test
+    fun `switching day fades out a person only on the old day`() {
+        show(listOf(real("ada"), real("bo"), real("cy")))
+        val inkBefore = ink("bo")
+
+        switchDay()
+        composeRule.mainClock.advanceTimeBy(60)
+
+        assertEquals("bo is still on its way out", 1, count("bo"))
+        assertTrue("ink ${ink("bo")} lighter than the whole $inkBefore", ink("bo") > inkBefore + 30)
+        settle()
+        assertEquals(0, count("bo"))
+    }
+
+    @Test
+    fun `switching day fades in a person only on the new day`() {
+        show(listOf(real("ada"), real("bo"), real("cy")))
+
+        switchDay()
+        composeRule.mainClock.advanceTimeBy(60)
+        val during = ink("di")
+        settle()
+
+        assertEquals(1, count("di"))
+        assertTrue("ink $during lighter than the settled ${ink("di")}", during > ink("di") + 30)
+    }
+
+    @Test
+    fun `the own row slides from the top list to the pinned place instead of leaving and arriving`() {
+        show(listOf(real("ada"), real("bo"), real("me", self = true)))
+        val from = top("me")
 
         change {
-            day = "2026-11-09"
-            lines = listOf(real("bo"), real("ada"))
+            lines = listOf(real("ada"), real("bo"))
+            pinned = real("me", self = true)
         }
         composeRule.mainClock.advanceTimeBy(60)
 
-        assertEquals("ada: the old day's row leaving and the new day's arriving", 2, count("ada"))
-        assertEquals(2, count("bo"))
+        assertEquals("me is one row, not one leaving and one arriving", 1, count("me"))
         settle()
-        assertEquals(1, count("ada"))
-        assertTrue(top("bo") < top("ada"))
+        assertEquals(1, count("me"))
+        assertTrue("me at ${top("me")}, under the divider past $from", top("me") > from)
     }
 
     @Test

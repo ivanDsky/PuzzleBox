@@ -25,8 +25,8 @@ private val DividerHeight = 1.dp
  *
  * With [animated] a row whose place changes slides to it, an arriving row fades and expands in and a leaving one fades
  * and shrinks out, the pinned row and its divider too; under reduced motion every change lands at once. Rows are the
- * same rows by their player or connection, never by place, and by the [day] they belong to: another day's rows leave
- * and arrive, they do not slide into one another's places. Without [animated] the list is drawn plainly.
+ * same rows by their player or connection, never by place or day: on another day's board the people on both days
+ * slide to their new places and update in place, the others arrive and leave. Without [animated] the list is drawn plainly.
  */
 @Composable
 fun DailyBoardList(
@@ -35,11 +35,10 @@ fun DailyBoardList(
     modifier: Modifier = Modifier,
     pinned: DailyBoardLine.Real? = null,
     animated: Boolean = false,
-    day: String? = null,
 ) {
     val withPuzzleBoxRank = (lines + listOfNotNull(pinned)).placesDifferFromPuzzleBox()
     if (animated && !(rememberReducedMotion() || LocalInspectionMode.current)) {
-        AnimatedBoardList(boardKeys(lines, day, pinned != null), lines + listOfNotNull(pinned), pinned != null, order, withPuzzleBoxRank, modifier)
+        AnimatedBoardList(lines, pinned, order, withPuzzleBoxRank, modifier)
         return
     }
     if (lines.isEmpty() && pinned == null) return
