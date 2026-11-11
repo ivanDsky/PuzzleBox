@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.domain
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -54,6 +55,22 @@ class ObserveGameStatsTest {
             stats = RecordStats(schemaVersion = 1, blob = "{}"),
             isRecord = true,
         )
+
+    /** The same solve as it arrives from a LinkedIn import. */
+    private fun imported(game: GameId, daysAgo: Long, time: Long, hints: Int = 0) =
+        solve(game, daysAgo, time, hints).copy(source = CompletionSource.LinkedIn)
+
+    /** Marks [game]'s day [daysAgo] as opened from the archive: fetched after its own day. */
+    private fun archive(game: GameId, daysAgo: Long) = daily.addEntry(
+        DailyEntry(
+            gameId = game,
+            day = today.minusDays(daysAgo),
+            puzzleNumber = 99,
+            variant = "v",
+            fetchedAtMs = clock.millis(),
+            archived = true,
+        ),
+    )
 
     @Test
     fun `no solves is zeros and no times`() = runTest {
@@ -200,6 +217,105 @@ class ObserveGameStatsTest {
             GameStats(
                 currentStreak = 1,
                 bestStreak = 1,
+                solved = 2,
+                hintFree = 1,
+                averageTimeMs = 30_000L,
+                playingSince = today.minusDays(1),
+                best = BestScore(timeMs = 20_000L, hints = 1),
+                rankOrder = RankOrder.TimeThenHints,
+            ),
+            stats().first(),
+        )
+    }
+
+    @Test
+    fun `an archived day with an import counts for the streak`() = runTest {
+        completions.setRecords(
+            listOf(
+                solve(alpha, daysAgo = 0, time = 40_000L),
+                imported(alpha, daysAgo = 1, time = 20_000L, hints = 1),
+            ),
+        )
+        archive(alpha, daysAgo = 1)
+
+        assertEquals(
+            GameStats(
+                currentStreak = 2,
+                bestStreak = 2,
+                solved = 2,
+                hintFree = 1,
+                averageTimeMs = 30_000L,
+                playingSince = today.minusDays(1),
+                best = BestScore(timeMs = 20_000L, hints = 1),
+                rankOrder = RankOrder.TimeThenHints,
+            ),
+            stats().first(),
+        )
+    }
+
+    @Test
+    fun `an import beside an app record counts the day and keeps the app record's numbers`() = runTest {
+        completions.setRecords(
+            listOf(
+                solve(alpha, daysAgo = 0, time = 40_000L),
+                solve(alpha, daysAgo = 1, time = 20_000L, hints = 1),
+                // The player had already solved the day in the app: the import is a replay.
+                imported(alpha, daysAgo = 1, time = 5_000L, hints = 0).copy(isRecord = false),
+            ),
+        )
+        archive(alpha, daysAgo = 1)
+
+        assertEquals(
+            GameStats(
+                currentStreak = 2,
+                bestStreak = 2,
+                solved = 2,
+                hintFree = 1,
+                averageTimeMs = 30_000L,
+                playingSince = today.minusDays(1),
+                best = BestScore(timeMs = 20_000L, hints = 1),
+                rankOrder = RankOrder.TimeThenHints,
+            ),
+            stats().first(),
+        )
+    }
+
+    @Test
+    fun `importing a day twice is the same as importing it once`() = runTest {
+        completions.setRecords(listOf(solve(alpha, daysAgo = 0, time = 40_000L)))
+        archive(alpha, daysAgo = 1)
+        val import = imported(alpha, daysAgo = 1, time = 20_000L, hints = 1)
+        val expected = GameStats(
+            currentStreak = 2,
+            bestStreak = 2,
+            solved = 2,
+            hintFree = 1,
+            averageTimeMs = 30_000L,
+            playingSince = today.minusDays(1),
+            best = BestScore(timeMs = 20_000L, hints = 1),
+            rankOrder = RankOrder.TimeThenHints,
+        )
+
+        completions.onCompleted(import)
+        assertEquals(expected, stats().first())
+
+        completions.onCompleted(import)
+        assertEquals(expected, stats().first())
+    }
+
+    @Test
+    fun `an import with no captured daily row counts for the streak`() = runTest {
+        completions.setRecords(
+            listOf(
+                solve(alpha, daysAgo = 0, time = 40_000L),
+                imported(alpha, daysAgo = 1, time = 20_000L, hints = 1),
+            ),
+        )
+
+        assertEquals(
+            GameStats(
+                currentStreak = 2,
+                bestStreak = 2,
                 solved = 2,
                 hintFree = 1,
                 averageTimeMs = 30_000L,

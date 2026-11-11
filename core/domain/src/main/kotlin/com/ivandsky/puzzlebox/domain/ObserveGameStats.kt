@@ -15,7 +15,8 @@ import kotlinx.coroutines.flow.map
  * ([ObserveGameHistory]) so they never disagree: [game]'s solved dailies, or every game's
  * when null. Each day's record row counts (A4: the first completion). Practice solves
  * (no edition number) never count, so they move no streak, time or count. Archived days
- * (A23) count as solves but never move a streak. [GameStats.best] ranks by [game]'s
+ * count as solves but never move a streak, unless an import covers the day: an imported
+ * result is the player's real solve of that day. [GameStats.best] ranks by [game]'s
  * [RankOrder]; across every game, time first.
  */
 class ObserveGameStats(
@@ -56,5 +57,8 @@ internal fun GameHistoryDay.isSolvedDaily(): Boolean =
 internal fun PuzzleKey.isOfficialDaily(on: LocalDate? = null): Boolean =
     this is PuzzleKey.Daily && puzzleNumber != null && (on == null || date == on)
 
-/** A solve that moves a streak: archived days (A23) count as solves but never as streak days. */
-internal fun GameHistoryDay.isStreakDay(): Boolean = isSolvedDaily() && !archived
+/**
+ * A solve that moves a streak. Archived days count as solves but never as streak days, unless
+ * a LinkedIn import covers the day: the player really solved it on its own day.
+ */
+internal fun GameHistoryDay.isStreakDay(): Boolean = isSolvedDaily() && (!archived || fromLinkedIn)
