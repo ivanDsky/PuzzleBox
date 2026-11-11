@@ -147,6 +147,7 @@ class RoomLinkedInDaysDeltaTest {
         }
         private val days = RoomLinkedInDays(
             avatars = testAvatars(createTempDirectory("avatars").toFile()),
+            storeLock = LinkedInStoreLock(),
             link = FakeLinkedInLink(LinkState.Connected("me")),
             source = source,
             completions = FakeCompletionRepository(),

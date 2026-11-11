@@ -53,7 +53,10 @@ internal class VoyagerLinkedInAccountSource(
     private suspend fun <T : Any> read(queryId: String, variables: String, parse: (String) -> T?): LinkedInRead<T> {
         val headers = session.current() ?: return LinkedInRead.SignedOut
         return try {
-            classify(send(headers, variables, queryId), parse)
+            // A session no header can carry is as useless as a refused one: it pauses the link, so the player
+            // is asked to reconnect instead of every view of the day failing.
+            val response = send(headers, variables, queryId) ?: return LinkedInRead.Rejected(Kind.Unexpected)
+            classify(response, parse)
         } catch (_: IOException) {
             // OkHttp reports a cancelled call as an IOException; that is cancellation, not a dead network.
             currentCoroutineContext().ensureActive()
@@ -61,7 +64,8 @@ internal class VoyagerLinkedInAccountSource(
         }
     }
 
-    private suspend fun send(headers: LinkedInAccountSession, variables: String, queryId: String): Response<ResponseBody> =
+    /** Null when no request could be built from [headers]; nothing was sent then. */
+    private suspend fun send(headers: LinkedInAccountSession, variables: String, queryId: String): Response<ResponseBody>? =
         try {
             api.graphql(
                 cookie = headers.cookieHeader,
@@ -73,8 +77,8 @@ internal class VoyagerLinkedInAccountSource(
             )
         } catch (_: IllegalArgumentException) {
             // OkHttp quotes a header value it refuses in its message, and redacts only the cookie. The
-            // original is dropped, not chained, so the token cannot ride an exception out of here.
-            throw IllegalArgumentException(UNSENDABLE)
+            // exception is dropped, not kept or chained, so the token cannot ride out of here.
+            null
         }
 
     private fun <T : Any> classify(response: Response<ResponseBody>, parse: (String) -> T?): LinkedInRead<T> {
@@ -112,6 +116,5 @@ internal class VoyagerLinkedInAccountSource(
         val REDIRECTS = 300..399
         const val CONTENT_TYPE = "Content-Type"
         const val JSON = "json"
-        const val UNSENDABLE = "The LinkedIn request could not be built; the cause is withheld because it can quote the session"
     }
 }

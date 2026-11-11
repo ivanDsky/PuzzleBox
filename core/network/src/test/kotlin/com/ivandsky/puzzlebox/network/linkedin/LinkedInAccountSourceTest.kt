@@ -160,14 +160,14 @@ class LinkedInAccountSourceTest {
     }
 
     @Test
-    fun `a session a header cannot carry fails without quoting it and sends nothing`() = runBlocking {
+    fun `a session a header cannot carry is a rejection that quotes nothing and sends nothing`() = runBlocking {
         val server = server(json(TODAY))
         val unsendable = LinkedInAccountSession(SESSION.cookieHeader, "ajax:SENTINEL-CSRF\n", SESSION.userAgent)
 
-        val thrown = runCatching { server.source(unsendable).check(6) }.exceptionOrNull()
+        val read = server.source(unsendable).check(6)
 
-        assertTrue(thrown is IllegalArgumentException)
-        assertFalse(generateSequence(thrown) { it.cause }.any { it.toString().contains("SENTINEL") })
+        assertEquals(Rejected(Kind.Unexpected), read)
+        assertFalse(read.toString().contains("SENTINEL"))
         assertEquals(0, server.requestCount)
     }
 

@@ -60,6 +60,7 @@ class RoomLinkedInDaysOwnerAnyDayTest {
             db,
             LinkedInCallBudget({ NOW }, limit = 100),
             avatars,
+            LinkedInStoreLock(),
         ) { NOW }
     }
 
