@@ -197,6 +197,17 @@ internal fun GhostRowPreview() = Padded {
     }
 }
 
+// The player's own row with a LinkedIn time carries the LinkedIn dot too, between a PuzzleBox row and a connection.
+@PuzzleBoxPreviews
+@Composable
+internal fun DailyBoardLinkedInTimePreview() = Padded {
+    Column {
+        DailyBoardRow(Rows[0], RankOrder.TimeThenHints)
+        DailyBoardRow(Rows[1].copy(timeFromLinkedIn = true), RankOrder.TimeThenHints, place = 2)
+        GhostRow(Ghosts[0], 3, RankOrder.TimeThenHints)
+    }
+}
+
 @Preview(name = "Tablet light", device = TabletSpec, showBackground = true)
 @Preview(name = "Tablet dark", device = TabletSpec, uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
 @Composable

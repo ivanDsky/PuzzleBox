@@ -13,6 +13,7 @@ private val SelfTags = BoardRowTags("daily_board.row.self", "daily_board.row", "
  * One ranked [row] at [place] in the board's one ranking, drawn as every board row is; the signed-in player's own row
  * stands out on the secondary container. [showPuzzleBoxRank] adds the row's own PuzzleBox rank under the name, which
  * differs from [place] once LinkedIn connections take places among the rows; a row added from LinkedIn has none.
+ * A row whose time came from LinkedIn carries the LinkedIn dot on its photo.
  */
 @Composable
 fun DailyBoardRow(
@@ -31,5 +32,6 @@ fun DailyBoardRow(
         score = bestScoreText(BestScore(row.timeMs, row.hints), order),
         modifier = modifier,
         self = row.isSelf,
+        linkedIn = row.timeFromLinkedIn,
     )
 }

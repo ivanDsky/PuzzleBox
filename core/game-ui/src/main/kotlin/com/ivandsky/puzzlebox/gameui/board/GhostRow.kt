@@ -11,8 +11,8 @@ private val Tags = BoardRowTags("daily_board.ghost", "daily_board.ghost", "daily
 
 /**
  * A LinkedIn connection's [row], drawn as every board row is: its [place] in the board's one ranking, or "—" while its
- * time is hidden; the detail line says whose result it is and that it stays on this phone. A hint-free time reads in
- * [order]'s voice; a hinted one shows the time alone, because a ghost's real hint count is unknown.
+ * time is hidden. Instead of text it has a LinkedIn-blue frame and the LinkedIn dot on its photo. A hint-free time
+ * reads in [order]'s voice; a hinted one shows the time alone, because a ghost's real hint count is unknown.
  */
 @Composable
 fun GhostRow(row: GhostRowModel, place: Int?, order: RankOrder, modifier: Modifier = Modifier) {
@@ -21,9 +21,11 @@ fun GhostRow(row: GhostRowModel, place: Int?, order: RankOrder, modifier: Modifi
         name = row.name.ifEmpty { "Connection" },
         photo = row.photo,
         place = place?.toString() ?: "—",
-        detail = "LinkedIn · on this phone",
+        detail = null,
         score = scoreText(row, order),
         modifier = modifier,
+        connection = true,
+        linkedIn = true,
         muted = row.timeMs == null,
     )
 }

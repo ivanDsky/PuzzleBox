@@ -358,7 +358,7 @@ class PlayStatsPanelTest {
         composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(1)
         composeRule.onNodeWithTag("daily_board.ghost.name").assertTextEquals("Ada Lin")
         composeRule.onNodeWithTag("daily_board.ghost.rank").assertTextEquals("3")
-        composeRule.onNodeWithTag("daily_board.ghost.detail").assertTextContains("LinkedIn", substring = true)
+        composeRule.onNodeWithTag("daily_board.ghost.linkedin_dot").assertExists()
         composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("9")
         composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.puzzlebox_rank")).assertTextEquals("#7 on PuzzleBox")
         composeRule.onNodeWithText("Cy Park").assertDoesNotExist()

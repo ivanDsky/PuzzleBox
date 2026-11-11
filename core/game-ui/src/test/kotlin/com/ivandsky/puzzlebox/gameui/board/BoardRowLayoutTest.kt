@@ -36,6 +36,7 @@ class BoardRowLayoutTest {
 
     private val real = DailyBoardRowModel(1, "Maya", 62_000L, 0, isSelf = false)
     private val self = DailyBoardRowModel(2, "Jonas", 75_000L, 1, isSelf = true)
+    private val linkedInSelf = self.copy(timeFromLinkedIn = true)
     private val ghost = GhostRowModel("ref-ada", "Ada", 68_000L, hintFree = true)
 
     private fun show(showPuzzleBoxRank: Boolean = true) {
@@ -44,6 +45,18 @@ class BoardRowLayoutTest {
                 Column {
                     DailyBoardRow(real, RankOrder.TimeThenHints, place = 1, showPuzzleBoxRank = showPuzzleBoxRank)
                     DailyBoardRow(self, RankOrder.TimeThenHints, place = 2, showPuzzleBoxRank = showPuzzleBoxRank)
+                    GhostRow(ghost, 3, RankOrder.TimeThenHints)
+                }
+            }
+        }
+    }
+
+    private fun showLinkedInRows() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                Column {
+                    DailyBoardRow(real, RankOrder.TimeThenHints, place = 1)
+                    DailyBoardRow(linkedInSelf, RankOrder.TimeThenHints, place = 2)
                     GhostRow(ghost, 3, RankOrder.TimeThenHints)
                 }
             }
@@ -96,5 +109,34 @@ class BoardRowLayoutTest {
         show(showPuzzleBoxRank = true)
         val withLine = composeRule.onAllNodesWithTag("daily_board.row")[0].getBoundsInRoot().height
         composeRule.onNodeWithTag("daily_board.ghost").assertHeightIsEqualTo(withLine)
+    }
+
+    @Test
+    fun `a connection row has the LinkedIn dot and no second line, a PuzzleBox row has no dot`() {
+        showLinkedInRows()
+
+        composeRule.onNodeWithTag("daily_board.ghost.linkedin_dot").assertExists()
+        composeRule.onNodeWithTag("daily_board.ghost.detail").assertDoesNotExist()
+        composeRule.onNode(hasText("on this phone", substring = true)).assertDoesNotExist()
+        composeRule.onAllNodesWithTag("daily_board.row.linkedin_dot").assertCountEquals(1)
+    }
+
+    @Test
+    fun `the player's own row with a LinkedIn time has the dot and keeps its highlight`() {
+        showLinkedInRows()
+
+        composeRule.onNode(hasTestTag("daily_board.row.linkedin_dot") and hasAnyAncestor(hasTestTag("daily_board.row.self")))
+            .assertExists()
+        composeRule.onAllNodesWithTag("daily_board.row.self").assertCountEquals(1)
+    }
+
+    @Test
+    fun `the LinkedIn dot is a sticker on the photo that does not change the row's size`() {
+        showLinkedInRows()
+        val photo = composeRule.onNodeWithTag("daily_board.ghost.photo").getBoundsInRoot()
+        val dot = composeRule.onNodeWithTag("daily_board.ghost.linkedin_dot").getBoundsInRoot()
+
+        assertTrue("dot $dot sits on the photo's bottom-right corner $photo", dot.right >= photo.right - 2.dp && dot.bottom >= photo.bottom - 2.dp)
+        assertEquals(composeRule.onAllNodesWithTag("daily_board.row")[0].getBoundsInRoot().height, composeRule.onNodeWithTag("daily_board.ghost").getBoundsInRoot().height)
     }
 }
