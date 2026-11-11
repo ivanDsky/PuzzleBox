@@ -31,6 +31,15 @@ val DarkPrimaryText = Color(0xFF6BDF17)
 val LightTimerFill = Color(0xFF3A8200)
 val DarkTimerFill = Color(0xFF6BDF17)
 
+// The WARNING role: something is allowed but deserves a second look (the Strands word field
+// for a word outside the dictionary). Not `error`, which means the input is refused. Light
+// colorScheme.tertiary (#FF9600) holds only 2.18:1 on white, so light renders this deeper
+// same-family amber: 5.85:1 on white, 4.75:1 on surfaceContainerHighest, clearing 4.5:1 text
+// and 3:1 border on every light surface. Dark reuses tertiary's amber, 9.3:1 to 12.5:1 on the
+// dark surfaces.
+val LightWarning = Color(0xFF945600)
+val DarkWarning = Color(0xFFFFC800)
+
 // Content (text, marks, motif) on a full accent fill. Dark mode does not reuse the dark
 // pastel `onAccent`: it is too light on the vivid fills, so dark takes the dark surface.
 val LightOnFill = Color(0xFFFFFFFF)

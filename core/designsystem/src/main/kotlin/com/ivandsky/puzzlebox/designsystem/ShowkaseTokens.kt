@@ -84,6 +84,9 @@ internal val ShowkaseSurfaceContainer: Color = DarkColorScheme.surfaceContainer
 internal val ShowkaseSurfaceContainerHigh: Color = DarkColorScheme.surfaceContainerHigh
 @ShowkaseColor(name = "surfaceContainerHighest", group = "Colors")
 internal val ShowkaseSurfaceContainerHighest: Color = DarkColorScheme.surfaceContainerHighest
+// The warning role (ColorTokens.kt), dark value like the roles above; light is in the token tests.
+@ShowkaseColor(name = "warning", group = "Colors")
+internal val ShowkaseWarning: Color = DarkWarning
 
 // The nine type roles (Type.kt, spec A4 — Baloo 2 throughout), by role name; the other
 // M3 slots alias these. The tabular entry is how every formatDuration time renders.
