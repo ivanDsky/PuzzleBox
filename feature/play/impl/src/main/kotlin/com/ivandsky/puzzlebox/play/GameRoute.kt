@@ -60,6 +60,7 @@ internal fun GameRoute(
     layout: PlayLayout,
     onBack: () -> Unit,
     onSolved: (slot: PlaySlot, timeMs: Long, hintsUsed: Int) -> Unit,
+    linkedIn: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: GameViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
@@ -75,6 +76,7 @@ internal fun GameRoute(
         onBack = onBack,
         onSolved = onSolved,
         overflow = emptyList(),
+        linkedIn = linkedIn,
         modifier = modifier,
     )
 }
@@ -109,7 +111,7 @@ internal fun GameRoute(
 
 /** One live [play]'s top bar and board, behind the [tutorial] gate; How to play shows
  *  when [onHowToPlay] is given and the game has lessons, and the route's [overflow] items
- *  follow the game's own in the bar's menu. */
+ *  follow the game's own in the bar's menu. [linkedIn] ranks the day's LinkedIn connections into the side panel's times. */
 @Composable
 internal fun GameBoard(
     play: ActivePlay?,
@@ -122,6 +124,7 @@ internal fun GameBoard(
     onSolved: (slot: PlaySlot, timeMs: Long, hintsUsed: Int) -> Unit,
     overflow: List<PlayOverflowItem>,
     modifier: Modifier,
+    linkedIn: Boolean = false,
 ) {
     Column(modifier = modifier.testTag("route.game")) {
         if (play == null) {
@@ -170,7 +173,7 @@ internal fun GameBoard(
             TutorialGate.Closed -> {
                 // Phones never build the stats: only the two-pane side panel shows them.
                 val stats: PlayStatsViewModel? = if (layout == PlayLayout.TwoPane) {
-                    koinViewModel(key = "stats:${play.slot}", parameters = { parametersOf(play.slot) })
+                    koinViewModel(key = "stats:${play.slot}", parameters = { parametersOf(play.slot, linkedIn) })
                 } else {
                     null
                 }

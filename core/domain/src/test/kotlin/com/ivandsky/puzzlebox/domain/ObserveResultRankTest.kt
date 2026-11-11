@@ -1,12 +1,19 @@
 package com.ivandsky.puzzlebox.domain
 
+import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.linkedin.LinkState
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import java.time.LocalDate
@@ -25,8 +32,34 @@ class ObserveResultRankTest {
     private fun entry(uid: String, seconds: Int) =
         LeaderboardEntry(uid, uid, "tango/2026-11-07/12", seconds * 1_000L, 0, 1_700_000_000_000)
 
-    private fun rank(identity: Identity?, repo: FakeLeaderboardRepository) =
-        ObserveResultRank(ObserveLeaderboard(FakeIdentityService(initial = identity), repo, TestGames.registry(listOf(tango)), FakeGameCalendar(day)))(tango, day)
+    private val registry = TestGames.registry(listOf(tango))
+    private val days = FakeLinkedInDays()
+
+    private fun rank(identity: Identity?, repo: FakeLeaderboardRepository, withConnections: Boolean = false) =
+        ObserveResultRank(ObserveLeaderboard(FakeIdentityService(initial = identity), repo, registry, FakeGameCalendar(day)), registry)(
+            tango,
+            day,
+            connections = if (withConnections) ObserveLinkedInDay(days, registry)(tango, day) else null,
+        )
+
+    private fun ghost(i: Int, seconds: Int?, hintFree: Boolean = true) =
+        LinkedInGhost("member-$i", "Member $i", seconds?.let { it * 1_000L }, hintFree, flawless = false)
+
+    /** A connected day whose connections board was read. */
+    private fun connections(vararg ghosts: LinkedInGhost) = days.emit(
+        tango,
+        day,
+        LinkedInDayData(
+            link = LinkState.Connected("me"),
+            delta = 0,
+            boardInWindow = true,
+            inFlight = false,
+            lastSync = null,
+            own = LinkedInOwnState.Unknown,
+            ghosts = ghosts.toList(),
+            boardFetchedAtMs = 1L,
+        ),
+    )
 
     @Test
     fun `a ranked player gets position count and top percent`() = runTest {
@@ -78,5 +111,82 @@ class ObserveResultRankTest {
             assertEquals(ResultRank.SignedOut, awaitItem())
             expectNoEvents()
         }
+    }
+
+    private val fourPlayers = FakeLeaderboardRepository(
+        mapOf(board to listOf(entry("a", 30), entry("b", 40), entry("me", 50), entry("c", 60))),
+    )
+
+    @Test
+    fun `connections ahead of the player push the combined place down and join the count`() = runTest {
+        connections(ghost(1, 20), ghost(2, 45), ghost(3, 70))
+        rank(me, fourPlayers, withConnections = true).test {
+            assertEquals(
+                ResultRank.Ranked(position = 3, count = 4, topPercent = 75, withConnections = ResultRank.WithConnections(position = 5, count = 7)),
+                nextRanked(),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a connection with the player's time shares the place and does not push it`() = runTest {
+        connections(ghost(1, 50))
+        rank(me, fourPlayers, withConnections = true).test {
+            assertEquals(ResultRank.WithConnections(position = 3, count = 5), nextRanked().withConnections)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a hinted connection is behind a hint free player at the same time but ahead with a faster one`() = runTest {
+        connections(ghost(1, 50, hintFree = false), ghost(2, 40, hintFree = false))
+        rank(me, fourPlayers, withConnections = true).test {
+            assertEquals(ResultRank.WithConnections(position = 4, count = 6), nextRanked().withConnections)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a hidden connection time takes no place and is not counted`() = runTest {
+        connections(ghost(1, null), ghost(2, 10))
+        rank(me, fourPlayers, withConnections = true).test {
+            assertEquals(ResultRank.WithConnections(position = 4, count = 5), nextRanked().withConnections)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a day with no connections ranks as the board alone`() = runTest {
+        rank(me, fourPlayers, withConnections = true).test {
+            assertEquals(ResultRank.Ranked(position = 3, count = 4, topPercent = 75), nextRanked())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `without the connections flow the rank ignores any cached ones`() = runTest {
+        connections(ghost(1, 20))
+        rank(me, fourPlayers, withConnections = false).test {
+            assertEquals(ResultRank.Ranked(position = 3, count = 4, topPercent = 75), nextRanked())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `connections landing later update the line`() = runTest {
+        rank(me, fourPlayers, withConnections = true).test {
+            assertEquals(ResultRank.Ranked(position = 3, count = 4, topPercent = 75), nextRanked())
+            connections(ghost(1, 20))
+            assertEquals(ResultRank.WithConnections(position = 4, count = 5), nextRanked().withConnections)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    /** The first ranked row: a board still loading reads Hidden before it lands. */
+    private suspend fun ReceiveTurbine<ResultRank>.nextRanked(): ResultRank.Ranked {
+        var item = awaitItem()
+        while (item !is ResultRank.Ranked) item = awaitItem()
+        return item
     }
 }

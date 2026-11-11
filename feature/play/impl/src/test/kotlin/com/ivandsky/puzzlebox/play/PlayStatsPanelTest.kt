@@ -21,6 +21,10 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
+import com.ivandsky.puzzlebox.data.linkedin.LinkState
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
@@ -30,6 +34,7 @@ import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -41,11 +46,13 @@ import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.play.friend.oneGoogleAccount
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -86,6 +93,7 @@ class PlayStatsPanelTest {
         mapOf(board to (1..8).map { entry(if (it == 7) "me" else "p$it", "Player $it", it * 10_000L) }),
     )
     private val posts = SubmitStatusTracker()
+    private val linkedInDays = FakeLinkedInDays()
 
     private fun viewModel(
         identity: Identity? = me,
@@ -93,6 +101,7 @@ class PlayStatsPanelTest {
         leaderboard: FakeLeaderboardRepository = this.leaderboard,
         slotDay: LocalDate = day,
         idTokens: GoogleIdTokenProvider = dismissedGoogleSignIn,
+        linkedIn: Boolean = false,
     ): PlayStatsViewModel {
         val history = ObserveGameHistory(fakes.games, daily, completions)
         val identityService = FakeIdentityService(identity)
@@ -114,8 +123,28 @@ class PlayStatsPanelTest {
             posts = posts,
             identity = identityService,
             idTokens = idTokens,
+            linkedIn = if (linkedIn) ObserveLinkedInDay(linkedInDays, fakes.games) else null,
         )
     }
+
+    /** The slot day's connections board as read from LinkedIn and held on the phone. */
+    private fun cachedConnections(vararg ghosts: LinkedInGhost) = linkedInDays.emit(
+        alpha,
+        day,
+        LinkedInDayData(
+            link = LinkState.Connected("me"),
+            delta = 0,
+            boardInWindow = true,
+            inFlight = false,
+            lastSync = null,
+            own = LinkedInOwnState.Unknown,
+            ghosts = ghosts.toList(),
+            boardFetchedAtMs = 1L,
+        ),
+    )
+
+    private fun ghost(name: String, seconds: Long?, hintFree: Boolean = true) =
+        LinkedInGhost("ref-$name", name, seconds?.let { it * 1_000L }, hintFree, flawless = false)
 
     private fun show(vm: PlayStatsViewModel, elapsedMs: Long? = 83_000L) {
         composeRule.setContent {
@@ -288,6 +317,67 @@ class PlayStatsPanelTest {
         composeRule.onNodeWithTag("play.stats.tab.top").performClick()
         composeRule.waitForIdle()
         composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(5)
+    }
+
+    @Test
+    fun `connections rank into top and near you by the combined place and are marked as LinkedIn`() {
+        cachedConnections(ghost("Ada Lin", 25), ghost("Cy Park", 65))
+        show(viewModel(linkedIn = true))
+
+        // Top: Player 1, 2, Ada (3rd), Player 3, 4, then the player's 9th place pinned under them.
+        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(4)
+        composeRule.onAllNodesWithTag("play.stats.row.ghost").assertCountEquals(1)
+        composeRule.onNodeWithTag("play.stats.row.ghost").assertTextContains("Ada Lin", substring = true).assertTextContains("3", substring = true)
+        composeRule.onNodeWithTag("play.stats.row.ghost").assertTextContains("LinkedIn", substring = true)
+        composeRule.onNodeWithTag("play.stats.row.you").assertTextContains("9", substring = true)
+
+        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
+        composeRule.waitForIdle()
+
+        // Near you: Player 6, Cy (7th), the player, Player 8.
+        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(2)
+        composeRule.onNodeWithTag("play.stats.row.ghost").assertTextContains("Cy Park", substring = true)
+        composeRule.onNodeWithText("Ada Lin").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a hinted connection shows its time alone and ranks behind hint free times in a hints first game`() {
+        cachedConnections(ghost("Dee Moss", 5, hintFree = false))
+        show(viewModel(linkedIn = true))
+        composeRule.onNodeWithTag("play.stats.tab.near").performClick()
+        composeRule.waitForIdle()
+
+        // Player 8 is last of the hint-free times, so the hinted 0:05 comes after it.
+        composeRule.onNodeWithTag("play.stats.row.ghost").assertTextContains("0:05", substring = true)
+        composeRule.onNodeWithTag("play.stats.row.ghost").assertTextContains("9", substring = true)
+    }
+
+    @Test
+    fun `a connection with a hidden time is left out of the times`() {
+        cachedConnections(ghost("Ada Lin", null))
+        show(viewModel(linkedIn = true))
+
+        composeRule.onAllNodesWithTag("play.stats.row.ghost").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(5)
+    }
+
+    @Test
+    fun `with LinkedIn off cached connections stay out of the times`() {
+        cachedConnections(ghost("Ada Lin", 25))
+        show(viewModel(linkedIn = false))
+
+        composeRule.onAllNodesWithTag("play.stats.row.ghost").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(5)
+        composeRule.onNodeWithTag("play.stats.row.you").assertTextContains("7", substring = true)
+    }
+
+    @Test
+    fun `a day with no connections draws the board alone and never asks LinkedIn for any`() {
+        show(viewModel(linkedIn = true))
+
+        composeRule.onAllNodesWithTag("play.stats.row.ghost").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(5)
+        assertTrue(linkedInDays.syncCalls.isEmpty())
     }
 
     @Test

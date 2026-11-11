@@ -99,6 +99,7 @@ internal fun puzzleBoxEntryProvider(
             if (navigator.state.currentStack.last() is ResultKey) navigator.pop()
             libraryRequests.openGamePage(navigator, game.value)
         },
+        linkedIn = linkedIn,
     )
     createEntry(navigator)
     editorEntry(navigator, playLayout)

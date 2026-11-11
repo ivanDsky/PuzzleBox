@@ -84,7 +84,7 @@ val domainModule = module {
     }
     factory { ObserveLeaderboard(identity = get(), leaderboard = get(), registry = get(), calendar = get()) }
     factory { ObserveLatestSolvedToday(completions = get(), calendar = get(), registry = get()) }
-    factory { ObserveResultRank(leaderboard = get()) }
+    factory { ObserveResultRank(leaderboard = get(), registry = get()) }
     factory {
         CreateDraft(
             registry = get(),

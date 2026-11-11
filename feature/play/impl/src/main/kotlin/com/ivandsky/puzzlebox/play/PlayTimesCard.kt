@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -133,9 +134,11 @@ private fun TimeRow(row: PlayTimeRow, order: RankOrder?) {
             .fillMaxWidth()
             .height(RowHeight)
             .then(if (row.you) Modifier.background(colors.primaryContainer, AppShapes.small) else Modifier)
+            // A connection's row is outlined rather than filled, so it never reads as the player's own.
+            .then(if (row.ghost) Modifier.border(1.dp, colors.outlineVariant, AppShapes.small) else Modifier)
             .padding(horizontal = Spacing.sm)
             .semantics(mergeDescendants = true) {}
-            .testTag(if (row.you) "play.stats.row.you" else "play.stats.row"),
+            .testTag(if (row.you) "play.stats.row.you" else if (row.ghost) "play.stats.row.ghost" else "play.stats.row"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -148,17 +151,23 @@ private fun TimeRow(row: PlayTimeRow, order: RankOrder?) {
         Box(Modifier.size(AvatarSize).background(colors.surfaceContainerHighest, CircleShape), contentAlignment = Alignment.Center) {
             Text(name.take(1).uppercase(), style = MaterialTheme.typography.labelMedium, color = colors.onSurface)
         }
+        Column(Modifier.weight(1f)) {
+            Text(
+                name,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = ink,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (row.ghost) {
+                Text("LinkedIn", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, maxLines = 1)
+            }
+        }
         Text(
-            name,
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold,
-            color = ink,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            order?.let { bestScoreText(BestScore(row.timeMs, row.hints), it) } ?: formatDuration(row.timeMs),
+            // A hinted connection has no hint count to show, so its time stands alone.
+            if (row.ghost && row.hints > 0) formatDuration(row.timeMs)
+            else order?.let { bestScoreText(BestScore(row.timeMs, row.hints), it) } ?: formatDuration(row.timeMs),
             style = MaterialTheme.typography.titleSmall.tabular(),
             fontWeight = FontWeight.Bold,
             color = ink,

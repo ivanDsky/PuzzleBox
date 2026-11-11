@@ -98,6 +98,25 @@ internal fun PlayStatsPanelPostingPreview() = PanelPreview(
 internal fun PlayStatsPanelEmptyBoardPreview() =
     PanelPreview(Loaded.copy(times = PlayTimes.Board(emptyList(), solved = false)), elapsedMs = 4_000L)
 
+/** LinkedIn connected: connections' times rank in among the PuzzleBox times, outlined and marked. */
+@PuzzleBoxPreviews
+@Composable
+internal fun PlayStatsPanelConnectionsPreview() = PanelPreview(
+    Loaded.copy(
+        times = PlayTimes.Board(
+            listOf(
+                PlayTimeRow(1, "Mia", 30_000L, hints = 0, you = false),
+                PlayTimeRow(2, "Ada Lin", 35_000L, hints = 0, you = false, ghost = true),
+                PlayTimeRow(3, "Jonas", 39_000L, hints = 0, you = false),
+                PlayTimeRow(4, "Cy Park", 44_000L, hints = 1, you = false, ghost = true),
+                PlayTimeRow(5, "Ivan", 48_000L, hints = 0, you = true),
+            ),
+            solved = true,
+        ),
+    ),
+    elapsedMs = 31_000L,
+)
+
 /** Per-game board on, hints-first game: rows lead with hints and the label names the rule. */
 @PuzzleBoxPreviews
 @Composable

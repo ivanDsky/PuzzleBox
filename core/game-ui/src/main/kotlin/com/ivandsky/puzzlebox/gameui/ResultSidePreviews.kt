@@ -75,6 +75,16 @@ internal fun ResultSideSignedOutPreview() {
 
 @PuzzleBoxPreviews
 @Composable
+internal fun ResultSideConnectionsRankPreview() {
+    SidePreview(
+        heroSampleModel(
+            rank = ResultRank.Ranked(position = 14, count = 212, topPercent = 7, withConnections = ResultRank.WithConnections(3, 12)),
+        ),
+    )
+}
+
+@PuzzleBoxPreviews
+@Composable
 internal fun ResultSideNoRankPreview() {
     SidePreview(heroSampleModel(rank = ResultRank.Hidden))
 }

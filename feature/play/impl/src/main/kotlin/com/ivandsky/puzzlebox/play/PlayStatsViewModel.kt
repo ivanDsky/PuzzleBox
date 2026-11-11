@@ -14,12 +14,18 @@ import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.PlayStats
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.WeekDay
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
+import com.ivandsky.puzzlebox.gameui.board.rankWithGhosts
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.board.BoardSignInHolder
+import com.ivandsky.puzzlebox.play.linkedin.toGhostRows
 import com.ivandsky.puzzlebox.model.PlaySlot
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,7 +42,8 @@ import kotlinx.coroutines.flow.stateIn
 /**
  * The tablet play side panel's state holder (A15) for one [slot]: maps [ObservePlayStats]
  * to what the panel draws, the week strip in this game's brand, rank-ordered by the game's
- * rule. The player's post status from [posts] stands in for the plain Posting line.
+ * rule. The player's post status from [posts] stands in for the plain Posting line. With [linkedIn] the slot day's
+ * LinkedIn connections already on the phone rank into the times by the combined place; it only observes, never fetches.
  */
 class PlayStatsViewModel(
     private val slot: PlaySlot,
@@ -47,6 +54,7 @@ class PlayStatsViewModel(
     private val posts: SubmitStatusTracker,
     identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
+    linkedIn: ObserveLinkedInDay?,
 ) : ViewModel() {
 
     private val signInHolder = BoardSignInHolder(identity, idTokens)
@@ -73,11 +81,17 @@ class PlayStatsViewModel(
     )
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    internal val state: StateFlow<PlayStatsState> = observePlayStats(slot)
-        .flatMapLatest { stats -> post(stats.board).map { post -> toState(stats, post) } }
+    internal val state: StateFlow<PlayStatsState> = combine(observePlayStats(slot), ghosts(linkedIn), ::Pair)
+        .flatMapLatest { (stats, ghosts) -> post(stats.board).map { post -> toState(stats, post, ghosts) } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), initial)
 
-    private fun toState(stats: PlayStats, post: SubmitStatus?): PlayStatsState = initial.copy(
+    /** The slot day's connections; none off a daily slot or with LinkedIn off. */
+    private fun ghosts(linkedIn: ObserveLinkedInDay?): Flow<List<GhostRowModel>> {
+        val daily = slot as? PlaySlot.Daily
+        return if (daily == null || linkedIn == null) flowOf(emptyList()) else linkedIn(daily.gameId, daily.day).map { it.toGhostRows() }
+    }
+
+    private fun toState(stats: PlayStats, post: SubmitStatus?, ghosts: List<GhostRowModel>): PlayStatsState = initial.copy(
         solvedToday = stats.solvedToday,
         gamesToday = stats.gamesToday,
         streak = stats.stats.currentStreak,
@@ -85,7 +99,7 @@ class PlayStatsViewModel(
         best = stats.stats.best,
         rankOrder = stats.stats.rankOrder,
         averageMs = stats.stats.averageTimeMs,
-        times = times(stats.board, stats.solved, post),
+        times = times(stats.board, stats.solved, post, ghosts),
     )
 
     /** The signed-in player's post to the slot's daily board; null when none is observed. */
@@ -104,30 +118,42 @@ class PlayStatsViewModel(
         }
     }
 
-    private fun times(board: TodayLeaderboard?, solved: Boolean, post: SubmitStatus?): PlayTimes = when (board) {
+    private fun times(board: TodayLeaderboard?, solved: Boolean, post: SubmitStatus?, ghosts: List<GhostRowModel>): PlayTimes = when (board) {
         null -> PlayTimes.Unavailable
         TodayLeaderboard.SignedOut -> PlayTimes.SignedOut
         is TodayLeaderboard.SignedIn -> when (val state = board.board) {
             TodayLeaderboard.Board.Loading -> PlayTimes.Loading
             TodayLeaderboard.Board.Unavailable -> PlayTimes.Unavailable
-            is TodayLeaderboard.Board.Loaded -> rows(state.snapshot, board.identity.uid, solved, post)
+            is TodayLeaderboard.Board.Loaded -> rows(state.snapshot, board.identity.uid, solved, post, ghosts)
         }
     }
 
-    private fun rows(snapshot: LeaderboardSnapshot, uid: String, solved: Boolean, post: SubmitStatus?): PlayTimes.Board {
+    private fun rows(snapshot: LeaderboardSnapshot, uid: String, solved: Boolean, post: SubmitStatus?, ghosts: List<GhostRowModel>): PlayTimes.Board {
         val daily = slot as? PlaySlot.Daily
+        val order = registry.rankOrderOf(slot.gameId)
+        val board = snapshot.entries.mapIndexed { index, entry ->
+            DailyBoardRowModel(rank = index + 1, name = entry.displayName, timeMs = entry.timeMs, hints = entry.hints, isSelf = entry.uid == uid)
+        }
         return PlayTimes.Board(
-            rows = snapshot.entries.mapIndexed { index, entry ->
-                PlayTimeRow(rank = index + 1, name = entry.displayName, timeMs = entry.timeMs, hints = entry.hints, you = entry.uid == uid)
-            },
+            rows = rankWithGhosts(board, ghosts, order).mapNotNull(::timeRow),
             solved = solved,
-            order = registry.rankOrderOf(slot.gameId),
+            order = order,
             post = post,
             pastDay = daily != null && !calendar.inSubmitWindow(daily.gameId, daily.day),
         )
     }
 
+    private fun timeRow(line: DailyBoardLine): PlayTimeRow? = when (line) {
+        is DailyBoardLine.Real -> PlayTimeRow(line.place, line.row.name, line.row.timeMs, line.row.hints, you = line.row.isSelf)
+        // A time list has no place for a connection whose time is hidden.
+        is DailyBoardLine.Ghost -> line.place?.let { place ->
+            val timeMs = line.row.timeMs ?: return null
+            PlayTimeRow(place, line.row.name.ifEmpty { CONNECTION }, timeMs, hints = if (line.row.hintFree) 0 else 1, you = false, ghost = true)
+        }
+    }
+
     private companion object {
+        const val CONNECTION = "Connection"
         const val STOP_TIMEOUT_MS = 5_000L
         const val WEEK_DAYS = 7L
     }
