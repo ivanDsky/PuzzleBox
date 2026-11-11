@@ -1,6 +1,10 @@
 package com.ivandsky.puzzlebox.profile.settings
 
 import android.app.Application
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -38,6 +42,7 @@ class SettingsScreenTest {
     private fun setContent(
         state: SettingsUiState = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0"),
         showCatalog: Boolean = true,
+        debugSections: @Composable () -> Unit = {},
     ) {
         composeRule.setContent {
             PuzzleBoxTheme {
@@ -49,6 +54,7 @@ class SettingsScreenTest {
                     onSetSudokuSameDigitHighlight = { sudokuSameDigit += it },
                     onBack = { backClicks++ },
                     onOpenCatalog = if (showCatalog) ({ catalogClicks++ }) else null,
+                    debugSections = debugSections,
                 )
             }
         }
@@ -91,6 +97,21 @@ class SettingsScreenTest {
         composeRule.onNodeWithTag("settings.developer").assertExists()
         composeRule.onNodeWithTag("settings.catalog").performScrollTo().performClick()
         assertEquals(1, catalogClicks)
+    }
+
+    @Test
+    fun `debug sections render in the settings column`() {
+        setContent(debugSections = { Text("debug tools", modifier = Modifier.testTag("settings.debug.probe")) })
+
+        composeRule.onNodeWithTag("settings.debug.probe").performScrollTo().assertExists()
+    }
+
+    @Test
+    fun `release settings has no debug sections`() {
+        setContent(showCatalog = false)
+
+        composeRule.onNodeWithTag("settings.debug.probe").assertDoesNotExist()
+        composeRule.onNodeWithTag("settings.developer").assertDoesNotExist()
     }
 
     @Test

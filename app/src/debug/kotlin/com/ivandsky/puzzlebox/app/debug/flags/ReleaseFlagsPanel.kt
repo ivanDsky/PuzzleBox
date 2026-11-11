@@ -3,11 +3,7 @@ package com.ivandsky.puzzlebox.app.debug.flags
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -23,7 +19,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import org.koin.compose.koinInject
 
 /**
- * The debug Catalog's Release flags tab (ADR-0022): one switch per [ReleaseFlag]. A switch
+ * Settings' Release flags section (ADR-0022): one switch per [ReleaseFlag]. A switch
  * forces the flag in this debug build and every collecting screen updates live; Reset drops
  * the override back to the flag's release default. Debug only: release compiles none of this.
  */
@@ -34,10 +30,7 @@ internal fun ReleaseFlagsPanel(
 ) {
     val overrides by flags.overrides.collectAsStateWithLifecycle()
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(Spacing.md),
+        modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         if (ReleaseFlag.entries.isEmpty()) {

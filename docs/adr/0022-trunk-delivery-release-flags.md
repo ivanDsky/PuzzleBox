@@ -30,7 +30,7 @@ to merge without being reachable in a release build.
      holds every `releaseDefault`. Release builds have no override path.
    - Debug (`src/debug`) binds `DebugReleaseFlags`: a local override when one is set, otherwise
      the release default. Overrides live in SharedPreferences (`release_flags`) and change live
-     from Catalog → **Release flags** (Profile → Design system catalog, debug builds only).
+     from Settings → **Release flags** (debug builds only).
      Collecting screens re-render without a restart.
 4. **Lifecycle, one PR per step.**
    - Ticket 01 of a feature adds the entry with `releaseDefault = false`.

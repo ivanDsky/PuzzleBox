@@ -27,7 +27,7 @@ import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.profile.AppearanceRow
 
 /**
- * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Games, About (the version name), and — only when [onOpenCatalog] is given (debug builds) — Developer.
+ * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Games, About (the version name), and — in debug builds only — the [debugSections] slot (the app's flags, design and game tools) then, when [onOpenCatalog] is given, the Component catalog row.
  */
 @Composable
 internal fun SettingsScreen(
@@ -39,6 +39,7 @@ internal fun SettingsScreen(
     onBack: () -> Unit,
     onOpenCatalog: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    debugSections: @Composable () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CompactTopBar(
@@ -91,14 +92,15 @@ internal fun SettingsScreen(
                     )
                 }
             }
+            debugSections()
             if (onOpenCatalog != null) {
                 Column(
                     modifier = Modifier.fillMaxWidth().testTag("settings.developer"),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    SectionTitle("Developer")
+                    SectionTitle("Component catalog")
                     SecondaryButton(
-                        text = "Design system catalog",
+                        text = "Open component browser",
                         onClick = onOpenCatalog,
                         modifier = Modifier.fillMaxWidth().testTag("settings.catalog"),
                     )
