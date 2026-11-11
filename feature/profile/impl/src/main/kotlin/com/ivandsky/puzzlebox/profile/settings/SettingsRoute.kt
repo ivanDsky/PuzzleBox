@@ -18,7 +18,7 @@ internal fun SettingsRoute(
     onBack: () -> Unit,
     onOpenCatalog: (() -> Unit)?,
     modifier: Modifier = Modifier,
-    debugSections: @Composable () -> Unit = {},
+    debugSections: (@Composable () -> Unit)? = null,
     viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -31,7 +31,7 @@ internal fun SettingsRoute(
         onSetSudokuSameDigitHighlight = viewModel::onSetSudokuSameDigitHighlight,
         onBack = onBack,
         onOpenCatalog = onOpenCatalog.takeIf { debuggable },
-        debugSections = if (debuggable) debugSections else ({}),
+        debugSections = debugSections.takeIf { debuggable },
         modifier = modifier.testTag("route.settings"),
     )
 }

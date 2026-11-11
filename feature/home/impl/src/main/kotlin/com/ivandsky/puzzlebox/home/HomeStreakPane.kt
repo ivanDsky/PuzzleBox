@@ -162,9 +162,11 @@ private fun BigStreakRow(stats: GameStats) {
 @Composable
 private fun StatTiles(stats: GameStats) {
     val headline = MaterialTheme.typography.headlineLarge.tabular()
-    // Playing since is a date, too long for Headline: Title size on the same 34 line keeps tiles level.
+    // Playing since is a date, too long for Headline: Title size. The 34.sp line only sets where its baseline falls
+    // before the layout below shifts it onto the headline's.
     val dateValue = MaterialTheme.typography.titleLarge.tabular().copy(lineHeight = 34.sp)
-    // The date keeps its smaller type but sits on the headline values' baseline inside a headline-tall box.
+    // The date keeps its smaller type but sits on the headline values' baseline inside a headline-tall box
+    // (values are single-line, maxLines = 1, so first and last baseline coincide).
     val measurer = rememberTextMeasurer()
     val headlineRef = remember(measurer, headline) { measurer.measure("0", headline) }
     val dateModifier = Modifier.layout { measurable, constraints ->
