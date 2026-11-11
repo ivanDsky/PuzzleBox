@@ -34,8 +34,12 @@ import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.linkedin.CreateLinkedInLink
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
@@ -51,6 +55,7 @@ import com.ivandsky.puzzlebox.play.ResultViewModel
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
@@ -96,6 +101,28 @@ class DiGraphTest : KoinTest {
             assertNotNull(koinApp.koin.get<IdentityService>())
         } finally {
             stopKoin()
+        }
+    }
+
+    /** The LinkedIn use cases resolve off the real graph, so the ViewModels that inject them bind. */
+    @Test
+    fun `the LinkedIn use cases resolve off the real graph`() {
+        val koinApp = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(
+                PuzzleBoxApplication.appModules +
+                    module {
+                        single<IdentityService> { FakeIdentityService() }
+                        single<LinkedInSessionCookies> { FakeLinkedInSessionCookies(null) }
+                    },
+            )
+        }
+        try {
+            assertNotNull(koinApp.koin.get<SyncLinkedInDay>())
+            assertNotNull(koinApp.koin.get<ObserveLinkedInDay>())
+            assertNotNull(koinApp.koin.get<CreateLinkedInLink>())
+        } finally {
+            stopKoin() // close() alone leaves the JVM-global context registered for later tests
         }
     }
 
