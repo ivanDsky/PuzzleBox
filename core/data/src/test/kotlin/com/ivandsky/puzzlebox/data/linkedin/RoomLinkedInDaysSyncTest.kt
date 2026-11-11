@@ -163,6 +163,20 @@ class RoomLinkedInDaysSyncTest {
     }
 
     @Test
+    fun `a session no request can be built from pauses the link as unexpected and later views ask nothing`() = runTest {
+        val day = ago(3)
+        // What the account source answers for a session whose header OkHttp refuses to send.
+        respondOwn(day, LinkedInRead.Rejected(Kind.Unexpected))
+        respondBoard(day)
+
+        assertEquals(LinkedInSync.Paused(Kind.Unexpected), days.sync(zip, day))
+        assertEquals(LinkState.Paused("me", Kind.Unexpected), link.state.first())
+        assertEquals(LinkedInSync.Paused(Kind.Unexpected), days.sync(zip, day))
+        assertEquals(listOf(ownCall(day)), source.calls)
+        assertEquals(emptyList<Any>(), imports())
+    }
+
+    @Test
     fun `an unlinked install or a game without a LinkedIn type makes no call`() = runTest {
         respondOwn(today)
         respondBoard(today)
