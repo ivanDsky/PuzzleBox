@@ -95,7 +95,7 @@ class PlayFlowE2ETest {
         solveZipFromHub()
 
         // Result scrolls on the 320×470 test window; Play again sits below the fold.
-        awaitTag(PLAY_AGAIN)
+        awaitActionable(PLAY_AGAIN)
         rule.onNodeWithTag(PLAY_AGAIN).performScrollTo().performClick()
         rule.waitForIdle()
 
