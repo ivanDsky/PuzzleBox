@@ -26,6 +26,7 @@ import androidx.savedstate.serialization.encodeToSavedState
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -39,6 +40,7 @@ import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
@@ -87,6 +89,8 @@ class PerTabShellTest {
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
+                    // The old four-tab shell (Profile as a tab): pinned flag-off until ticket 27 deletes it.
+                    single<ReleaseFlags> { FakeReleaseFlags() }
                 },
             )
         }
