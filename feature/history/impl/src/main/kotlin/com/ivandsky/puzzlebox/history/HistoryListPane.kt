@@ -69,7 +69,7 @@ internal fun ListPane(
     ) {
         item(key = "top") {
             if (onBack == null) {
-                // The tab root (NavV2 only): Create's and Today's large editorial header.
+                // The tab root: Create's and Today's large editorial header.
                 LargeTopBar(title = "History")
             } else {
                 CompactTopBar(

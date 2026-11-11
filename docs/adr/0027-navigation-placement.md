@@ -10,7 +10,7 @@ a new feature where it belongs (Duels landed as a Games sub-tab by local choice)
 
 ADR-0011 fixed how navigation moves (one immutable `NavigationState`, one stack per tab). It says nothing about *where
 content lives*. This ADR adds that. The reducer, its verbs and its invariants stay as ADR-0011 has them. The tab set
-becomes Today · Games · History · Create behind `ReleaseFlag.NavV2` (ADR-0022); Profile stops being a tab.
+becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag was removed); Profile stops being a tab.
 
 ## Decision
 1. **One owner.** Each content type has one owner screen. Every other screen shows at most one summary row for it, and
@@ -45,7 +45,7 @@ becomes Today · Games · History · Create behind `ReleaseFlag.NavV2` (ADR-0022
    Today's header), and Profile is its
    only target. On the tablet it sits at the rail's bottom on every non-immersive screen, Profile and Settings
    included. On the phone it sits in Today's header only. Other phone screens show none, and the phone bar is
-   unchanged. The shell has no gear; the gear is Profile's own control (§4). The NavV2 rail is 96dp wide with the tabs
+   unchanged. The shell has no gear; the gear is Profile's own control (§4). The rail is 96dp wide with the tabs
    centred, a 56dp avatar slot, 28dp icons, `labelLarge` labels and 12dp gaps.
 4. **Movement rules.**
    - A summary tap switches to the owner's tab and resets it to its root. Back from that root returns to Today.
@@ -67,9 +67,9 @@ becomes Today · Games · History · Create behind `ReleaseFlag.NavV2` (ADR-0022
    example `summary.leaderboard`, `summary.duels`, `summary.history`.
 8. **The one exemption.** The tablet in-game side panel (`PlayStatsPanel`) stays. It is an immersive in-play companion,
    so it does not break one-owner.
-9. **Placement describes the target.** The placement table's homes describe the NavV2 information architecture.
-   `NavigationState.tabs` is the runtime truth for which tabs exist. With NavV2 off the tab set differs (Profile is a
-   tab, History is not), and the table still describes the target. Code that needs the live tab set reads
+9. **Placement describes the target.** The placement table's homes describe the four-tab information architecture.
+   `NavigationState.tabs` is the runtime truth for which tabs exist. Before 0.24.0 the tab set differed (Profile was a
+   tab, History was not); that is historical. Code that needs the live tab set reads
    `NavigationState`, never the table.
 10. **One flag-on convention.** A feature never reads the flag. Its entry takes:
     - (a) a nullable callback or a nullable slot object for every new link or block, where `null` is the old form
@@ -107,8 +107,8 @@ becomes Today · Games · History · Create behind `ReleaseFlag.NavV2` (ADR-0022
 ## Consequences
 - Every new key needs a placement row in the PR that adds it, or P9 fails.
 - A new feature has one table to read for where its content goes, and one convention for how it takes the flag.
-- Profile, Settings and History (root) get keys and entries before the tab set changes; the shell shows them only when
-  `NavV2` is on.
+- Profile, Settings and History (root) get keys and entries before the tab set changes; the shell showed them only when
+  the NavV2 flag was on (shipped in 0.24.0; the flag was removed).
 - Navigation state restores as ADR-0011 §4 says: `NAVIGATION_STATE_KEY` stays `v1`, no shipped serial name is
   retired, old bundles reconcile (the Profile stack is dropped, the History stack is added fresh).
 - When the flag is deleted, cleanup removes the null or default branches and the flag-off tab set.

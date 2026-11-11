@@ -83,7 +83,7 @@ private fun ArchivedDetailPreview() {
     }
 }
 
-/** The tab root (NavV2): the list pane under the large "History" header (as Create's) with no back arrow. */
+/** The tab root: the list pane under the large "History" header (as Create's) with no back arrow. */
 @PuzzleBoxPreviews
 @Composable
 private fun HistoryRootPreview() {

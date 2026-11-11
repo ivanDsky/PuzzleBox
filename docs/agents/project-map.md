@@ -33,7 +33,7 @@ seam (`GameEditor` in `core:game`, `GameEditorUi` in `core:game-ui`, one game-ag
 `feature:create`), ADR-0020 shared puzzles in Firestore, ADR-0021 the tools module family,
 ADR-0022 trunk delivery (unfinished work merges dark behind a
 `ReleaseFlag`, bound per build type; the flip PR releases), ADR-0023 CI on main only (PRs
-run no CI; the local `assembleDebug test` is the merge gate; main tests before releasing), ADR-0024 per-game daily boards (rules allow-list, day window, rank-ordered queries; amends ADR-0013 and ADR-0020), ADR-0025 Spotlight and press ledger (one generic `StepHints` press flow, shape-only glyph seam, `HintMode` supplied per game at registration; hint-parity seams). ADR-0026 Competitions (match documents in Firestore, sealed results, device-derived outcome, a Duels tab in Games). ADR-0027 navigation placement (one owner per content type, the placement table and Konsist P9, chrome types `Bar`/`Immersive`, the shell's one avatar and Profile's gear, one flag-on convention behind `NavV2`; amends ADR-0011). ADR-0028 LinkedIn account reads (the player's own result and connections' boards through the logged-in WebView session; amends ADR-0027's owner table).
+run no CI; the local `assembleDebug test` is the merge gate; main tests before releasing), ADR-0024 per-game daily boards (rules allow-list, day window, rank-ordered queries; amends ADR-0013 and ADR-0020), ADR-0025 Spotlight and press ledger (one generic `StepHints` press flow, shape-only glyph seam, `HintMode` supplied per game at registration; hint-parity seams). ADR-0026 Competitions (match documents in Firestore, sealed results, device-derived outcome, a Duels tab in Games). ADR-0027 navigation placement (one owner per content type, the placement table and Konsist P9, chrome types `Bar`/`Immersive`, the shell's one avatar and Profile's gear, one flag-on convention (the NavV2 flag shipped in 0.24.0 and was removed); amends ADR-0011). ADR-0028 LinkedIn account reads (the player's own result and connections' boards through the logged-in WebView session; amends ADR-0027's owner table).
 
 ## Layout
 
@@ -71,23 +71,23 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `MainActivity` (Compose host, theme resolution, edge-to-edge), `PuzzleBoxApp` (bar or rail
   over the shell; highlight = `navigator.state.tab`; Games tab badge while
   `ObserveTodaySet` reports any of today's games in progress or a duel needs the player;
-  holds the Enter-code draft and the one-shot `LibraryRequests`; the NavV2 rail carries the avatar), `nav/` the shell
+  holds the Enter-code draft and the one-shot `LibraryRequests`; the rail carries the avatar), `nav/` the shell
   (ADR-0011, ADR-0027): `TopLevelDestination.kt` (`topLevelDestinations` tab registry: key, label, icon,
-  test tag, `Tab`; the set follows `NavV2`), `RememberNavV2.kt` (the one flag read),
+  test tag, `Tab`; the four-tab set Today, Games, History, Create),
   `PuzzleBoxNavigationState.kt` (fresh state, start tab first),
   `RememberNavigator.kt` (`rememberNavigator`, saved under `NAVIGATION_STATE_KEY`
   `"puzzlebox.navigation.v1"`, restored via `reconciledWith`; foreign/undecodable → fresh),
   `Placement.kt` (the placement table: `Placement`, `Home`, `Chrome` `Bar`/`Immersive`, `Tab`,
   `placementOf`; one row per `NavKey`, guarded by Konsist P9) and `Immersive.kt` (`isImmersive`),
   `TabEntries.kt` (`rememberTabEntries`, the only Navigation3 adapter: per-tab saveable +
-  per-entry `ViewModelStore` + `SceneCanvas` decorators, and `shellChromeDecorator` with NavV2; `OWNER_TAB`/`ENTRY_KEY` metadata),
+  per-entry `ViewModelStore` + `SceneCanvas` decorators, and `shellChromeDecorator`; `OWNER_TAB`/`ENTRY_KEY` metadata),
   `ShellChrome.kt` (`shellChromeDecorator`, `ShellAvatar`, `ShellAvatarSize`),
   `PuzzleBoxNavShell.kt` (`NavDisplay`, `onBack` = `Navigator.pop`, `PlaySessionStore.retain`
   on stack change and `flush` at ON_STOP; `withHintCooldown` wraps the entry provider and provides
   `LocalHintCooldown` = `HINT_COOLDOWN` per entry), `NavTransitions.kt` (`NavMotion` values and the
   push/pop/tab-switch/Result/reduced-motion chooser), `ChromeMotion.kt` (bar and rail enter and
   exit, `TabRef`, `chromePadding`), `TopLevelNavBar.kt` (bar + rail,
-  `badged` keys; the NavV2 rail is 96dp wide with centred tabs and an avatar slot), `OpenOwner.kt`
+  `badged` keys; the rail is 96dp wide with centred tabs and an avatar slot), `OpenOwner.kt`
   (`Navigator.openOwner`), `LibraryRequests.kt`, `PlayTabBadge.kt` (`playTabBadged`),
   `ApplyFriendLink.kt`/`FriendLink.kt` (friend and duel links) and `ApplySharedText.kt`/`SharedText.kt`,
   `PuzzleBoxEntryProvider.kt` (route table from every feature's `*Entry`
@@ -107,7 +107,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   the app's `e2e` test package, the E2E robot (`shellRobot`/`ShellRobot`: gestures, back and
   predictive back, background/restore/relaunch, spec-notation row assertions; `E2eKoinGraph`:
   production `appModules` with core:testing fakes on the edges; `TabNavigationE2ETest`,
-  `HistoryE2ETest`, `ProcessDeathE2ETest`, `NavV2TabsE2ETest`, `NavV2SummariesE2ETest`,
+  `HistoryE2ETest`, `ProcessDeathE2ETest`, `ShellTabsE2ETest`, `ShellSummariesE2ETest`,
   `StrandsPlayE2ETest`, `StrandsArchiveE2ETest`, `DuelFlowE2ETest`),
   `nav/PerTabShellTest`, `nav/ShellSessionLifecycleTest`, `nav/PlacementTest`, `nav/ShellChromeTest`.
 - `konsist/` (`:konsist`, test-only `puzzlebox.jvm.library`, no project dependencies) — the
@@ -144,7 +144,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `NAVIGATION_STATE_KEY` (ADR-0011).
 - `core/common/` (`:core:common`) — `DispatcherProvider` seam (+ `DefaultDispatcherProvider`),
   `AppResult`/`AppError` and `resultOf` convention (typed errors, never thrown surprises),
-  `flags/` `ReleaseFlag` enum (StrandsEditor, TextImport, ShareTarget, Competitions, NavV2, LinkedInAccount) + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022), Koin `commonModule`.
+  `flags/` `ReleaseFlag` enum (StrandsEditor, TextImport, ShareTarget, Competitions, LinkedInAccount) + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022), Koin `commonModule`.
 - `core/data/` (`:core:data`) — game-agnostic repositories: `DailyRepository` →
   `OfflineFirstDailyRepository` (`today(game)`/`cached(game, day)`/`observeHistory(game)`,
   by-date `day(game, day)` → `DailyDay` (cache first; on a miss fetches and persists only for an
@@ -440,10 +440,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   step, then hosts `PuzzleBoxApp` with the width size class, `ThemeMode`, and the setter.
 - `PuzzleBoxApp` route table (`puzzleBoxEntryProvider`, entries contributed by each feature
   impl's `*Entry` builder; placement of every key is a row in `Placement.kt`, ADR-0027). Tab
-  roots with `NavV2` on: HomeKey → `HomeRoute` (Today), PlayKey → `LibraryRoute` (Games, with
+  roots: HomeKey → `HomeRoute` (Today), PlayKey → `LibraryRoute` (Games, with
   its Dailies, Friends and Duels tabs), HistoryRootKey → `HistoryRoute` (History, no back arrow),
-  CreateKey → `CreateRoute`. With `NavV2` off the tabs are Home, Play, Create and ProfileKey →
-  `ProfileRoute`. Shell screens pushed on the current tab's stack: ProfileKey → `ProfileRoute`
+  CreateKey → `CreateRoute`. Shell screens pushed on the current tab's stack: ProfileKey → `ProfileRoute`
   (slim, with a back icon and the gear) and SettingsKey → `SettingsRoute`. Pushed on a tab:
   EditorKey(draftId) → `EditorRoute` (the Studio; swaps to `TestSolveScreen` while
   test-solving), PublishedPuzzleKey → `PublishedPuzzleRoute`, HistoryKey →
@@ -456,7 +455,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   immersive (no bar or rail). Each tab keeps its own stack; reselecting a tab pops it to its
   root; back at a non-start root returns to the start tab; back at the start root exits
   (ADR-0011). Bottom bar on compact widths, rail on expanded-width landscape
-  (`homeLayoutFor`/`playLayoutFor`/`historyLayoutFor`); the NavV2 rail also carries the avatar.
+  (`homeLayoutFor`/`playLayoutFor`/`historyLayoutFor`); the rail also carries the avatar.
 - Share target (`ShareTarget` flag, debug builds only): the debug manifest
   (`app/src/debug/AndroidManifest.xml`) adds a plain-text `SEND` intent filter to
   `MainActivity`; M5-22 moves it to the main manifest. `MainActivity` (new intent or fresh
@@ -502,10 +501,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `placementOf` throws for a key with no row. `isImmersive` (`Immersive.kt`) derives only the
   bar-hiding predicate from it. Konsist P9 fails a production `NavKey` without a row. The
   per-key table is never copied into docs.
-- **`NavV2`** (ADR-0022) — read once per launch by `rememberNavV2` (`RememberNavV2.kt`, the
-  app's one flag read); `topLevelDestinations(navV2)` picks the tab set (off: Home, Play,
-  Create, Profile; on: Today, Games, History, Create). Features never read the flag: each
-  entry takes nullable callbacks or a slot, and the app passes them (ADR-0027 §10).
+- **Tab set** (ADR-0027) — `topLevelDestinations` is the one registry: Today, Games, History, Create.
+  Features never read a flag for it: each entry takes nullable callbacks or a slot, and the app
+  passes them (ADR-0027 §10).
 - **Shell actions and the avatar** (ADR-0027) — `ShellAvatar` (`app/nav/ShellChrome.kt`) is the
   one avatar; it pushes `ProfileKey` with `pushOnce`. The tablet rail shows it at its bottom
   (`TopLevelNavRail` `bottomActions`, 96dp rail). The phone shows it in Today's header only,
@@ -515,7 +513,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - **`SummaryLinkRow`** (`core:designsystem`) — the one summary card: Today's rank and duels
   rows (`HomeSummaries`), the game page's "Your history" row, Result's "Full board" row.
 - **`LocalTabReselect`** (`core:designsystem`) — the shell tells tab roots that the selected
-  tab was tapped again (NavV2 only); Today, History, the Games list and Create's lists scroll to the top.
+  tab was tapped again; Today, History, the Games list and Create's lists scroll to the top.
 - **`openOwner`** (`app/nav/OpenOwner.kt`) and **`LibraryRequests`** (`app/nav/LibraryRequests.kt`)
   — "go to owner" composes `selectTab` and `push`; the app holds a one-shot `LibraryRequest`
   (open a game's page, or a Games section such as Duels) and the Games entry takes it once.
@@ -644,10 +642,10 @@ census and the engine tests), over the whole repo's sources (not in the count ab
 when any source, build script or allowlist changes).
 
 - `:app:testDebugUnitTest` — 384 (DI graph, nav routes, saved-state restore, per-tab shell,
-  the placement table and the NavV2 shell: `nav/PlacementTest`, `nav/ShellChromeTest`,
+  the placement table and the shell: `nav/PlacementTest`, `nav/ShellChromeTest`,
   `nav/OpenOwnerTest`, `nav/LibraryRequestsTest`, `nav/TopLevelNavBarTest`,
-  `nav/TabSetWidthChangeTest`; E2E robot rows incl. `e2e/NavV2TabsE2ETest`,
-  `e2e/NavV2SummariesE2ETest`, `e2e/TabSetRestoreE2ETest`, `e2e/TabReselectE2ETest`,
+  `nav/TabSetWidthChangeTest`; E2E robot rows incl. `e2e/ShellTabsE2ETest`,
+  `e2e/ShellSummariesE2ETest`, `e2e/TabSetRestoreE2ETest`, `e2e/TabReselectE2ETest`,
   `e2e/ReachabilityInventoryE2ETest`, the duel flows `e2e/DuelFlowE2ETest` and
   `e2e/DuelLinkE2ETest`, and `e2e/LinkedInArchiveE2ETest`; submit watcher, share target,
   browser screenshots)
@@ -687,7 +685,7 @@ when any source, build script or allowlist changes).
 [docs/agents/project-map.html](project-map.html) — module-graph diagram regenerated from
 `.archify/project-map/architecture-candidate.json` at `89c0672` (pre-0.9): the modules and
 edges listed under Layout, with the forbidden-edge rules of ADR-0008. It predates the
-per-tab navigation seams, the NavV2 shell, `:core:auth`, `:feature:compete:*`, the LinkedIn
+per-tab navigation seams, the four-tab shell, `:core:auth`, `:feature:compete:*`, the LinkedIn
 account reads and the Strands modules; this file is authoritative where they differ. The
 Strands addition (app → features → `:games:strands-ui` → `:games:strands` →
 `:core:game`, `NytHttpTransport`, by-date `DailyRepository`, trust gate, `CellState` specs) has
