@@ -4841,6 +4841,42 @@
     },
     {
       "group": "results (create)",
+      "name": "replay as a string",
+      "expect": "deny",
+      "method": "create",
+      "path": "matches/D7K2QX/results/1_bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "result",
+        "replay": "AQIDBA=="
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch"
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "matches/D7K2QX",
+          "data": {
+            "$fixture": "claimedMatch",
+            "progress": {
+              "alice": [
+                0
+              ],
+              "bob": [
+                1
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "results (create)",
       "name": "owner deletes a result",
       "expect": "deny",
       "method": "delete",
