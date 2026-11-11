@@ -50,7 +50,7 @@ private val flagOn = listOf(
     home.copy(label = "Today"),
     play.copy(label = "Games"),
     TopLevelDestination(
-        HistoryRootKey, "History", { PuzzleIcons.History }, { PuzzleIcons.History }, "nav.tab.history", Tab.History,
+        HistoryRootKey, "History", { PuzzleIcons.History }, { PuzzleIcons.HistoryFilled }, "nav.tab.history", Tab.History,
     ),
     create,
 )
@@ -61,6 +61,6 @@ internal val topLevelDestinations: List<TopLevelDestination> = flagOff
 /**
  * The tab set for a [navV2] value. Off: Home, Play, Create, Profile. On: Today, Games,
  * History, Create; Today and Games keep Home's and Play's keys, icons and tags, and History
- * has one icon for both states.
+ * has an outlined and a filled icon like the others.
  */
 internal fun topLevelDestinations(navV2: Boolean): List<TopLevelDestination> = if (navV2) flagOn else flagOff

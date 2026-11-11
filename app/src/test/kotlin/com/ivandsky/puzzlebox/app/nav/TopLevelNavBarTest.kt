@@ -8,6 +8,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.VectorPath
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,6 +62,22 @@ class TopLevelNavBarTest {
             topLevelDestinations.map { it.tag },
         )
     }
+
+    @Test
+    fun `every flag-on tab swaps to a different icon when selected`() {
+        val flagOn = topLevelDestinations(navV2 = true)
+        val unchanged = mutableListOf<String>()
+        composeRule.setContent {
+            flagOn.forEach { if (it.icon().pathData() == it.selectedIcon().pathData()) unchanged += it.label }
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(emptyList<String>(), unchanged)
+    }
+
+    // ImageVector is compared by identity, and a composed resource is a fresh instance each
+    // time, so two icons are the same glyph exactly when their path data is.
+    private fun ImageVector.pathData() = root.mapNotNull { (it as? VectorPath)?.pathData }
 
     @Test
     fun `bar highlights exactly the selected destination`() {

@@ -67,12 +67,19 @@ object PuzzleIcons {
     val More: ImageVector = Icons.Rounded.MoreVert
 
     /**
-     * History tab, both states: Material Symbols `history`, a clock with a counter-clockwise
-     * arrow. The Symbols set has no distinct filled form, so the nav bar's selection indicator
-     * alone marks the selected tab.
+     * History tab, unselected: Material Symbols `history` (outlined), a clock with a
+     * counter-clockwise arrow.
      */
     val History: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ic_history)
+
+    /**
+     * History tab, selected: the same glyph with a solid clock face and the hands cut out.
+     * Material Symbols' own `history` has no distinct filled form, so this is hand-written
+     * from its path, no new dependency.
+     */
+    val HistoryFilled: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_history_filled)
 
     /** The shell's gear: the Outlined settings glyph from the core set. */
     val Settings: ImageVector = Icons.Outlined.Settings
@@ -175,6 +182,7 @@ internal fun PuzzleIconsPreview() {
             "Profile" to PuzzleIcons.Profile,
             "ProfileFilled" to PuzzleIcons.ProfileFilled,
             "History" to PuzzleIcons.History,
+            "HistoryFilled" to PuzzleIcons.HistoryFilled,
             "Settings" to PuzzleIcons.Settings,
             "Appearance" to PuzzleIcons.Appearance,
             "HowTo" to PuzzleIcons.HowTo,
