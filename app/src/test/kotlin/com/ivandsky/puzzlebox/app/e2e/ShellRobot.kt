@@ -413,6 +413,15 @@ class ShellRobot internal constructor(
     }
 
     /**
+     * [awaitTag] on the merged tree, the one a click targets. A node can sit in the unmerged tree
+     * while a parent has cleared its semantics (the result actions while their primary loads), so
+     * [awaitTag] passes and the tap then finds nothing.
+     */
+    fun awaitActionable(tag: String) {
+        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    /**
      * [awaitTag] for state behind a coroutine hop to the main looper, such as a Room commit
      * handed back to the play store or a throttle window. The compose rule's wait only
      * advances frames, and a stopped activity draws none, so that hop would never run.

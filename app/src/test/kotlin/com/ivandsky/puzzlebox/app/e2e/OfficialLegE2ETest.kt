@@ -189,6 +189,7 @@ class OfficialLegE2ETest {
 
         tap(RESULT_UP)
         openGame(ZIP.value, landing = RESULT_ROUTE)
+        awaitActionable(PLAY_AGAIN)
         tap(PLAY_AGAIN)
         awaitTag(GAME_ROUTE)
         val replay = awaitDaily { it.zip.session?.path?.isEmpty() == true && !it.controller.isComplete }
