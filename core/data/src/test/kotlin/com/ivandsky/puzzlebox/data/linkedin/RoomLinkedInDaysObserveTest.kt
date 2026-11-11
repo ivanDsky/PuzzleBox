@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import java.time.LocalDate
+import kotlin.io.path.createTempDirectory
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
@@ -51,6 +52,7 @@ class RoomLinkedInDaysObserveTest {
     private var now = 1_800_000_000_000L
     private val link = FakeLinkedInLink(LinkState.Connected("me"))
     private val source = FakeLinkedInAccountSource()
+    private val avatars = testAvatars(createTempDirectory("avatars").toFile())
     private val completions = FakeCompletionRepository()
     private val calendar = FakeGameCalendar(today)
     private val daily = FakeDailyRepository().apply {
@@ -76,7 +78,7 @@ class RoomLinkedInDaysObserveTest {
     private fun newDays(
         source: LinkedInAccountSource = this.source,
         budget: LinkedInCallBudget = LinkedInCallBudget({ now }, limit = 100),
-    ) = RoomLinkedInDays(link, source, completions, daily, calendar, registry, db, budget) { now }
+    ) = RoomLinkedInDays(link, source, completions, daily, calendar, registry, db, budget, avatars) { now }
 
     private fun number(day: LocalDate): Int = 700 + ChronoUnit.DAYS.between(EPOCH, day).toInt()
 
