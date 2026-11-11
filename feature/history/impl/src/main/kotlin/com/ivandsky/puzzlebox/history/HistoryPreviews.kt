@@ -77,7 +77,7 @@ private fun ArchivedDetailPreview() {
                 row = ArchivedRow,
                 gameBest = ArchivedRow,
                 onBackToDayList = {},
-                onReplay = {},
+                onPlayAgain = {},
                 cardColor = MaterialTheme.colorScheme.surfaceContainerLow,
             )
         }
@@ -107,7 +107,7 @@ private fun HistoryRootPreview() {
             state = state,
             onShowCalendar = { _, _ -> },
             onSelectDay = {},
-            onReplay = { _, _ -> },
+            onPlayAgain = { _, _ -> },
         )
     }
 }

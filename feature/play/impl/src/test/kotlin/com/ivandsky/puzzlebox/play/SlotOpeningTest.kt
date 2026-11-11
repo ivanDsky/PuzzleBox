@@ -121,7 +121,7 @@ class SlotOpeningTest {
 
         val origin = opening.open(PlaySlot.Daily(alpha, yesterday)) as SlotOpening.Origin.Restored
 
-        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, PuzzleKey.Daily(yesterday, 412)), origin.session)
+        assertArrayEquals(TestGames.playAgainBlob(alpha, puzzle, PuzzleKey.Daily(yesterday, 412)), origin.session)
         assertEquals(0, daily.todayCalls(alpha))
     }
 
@@ -152,7 +152,7 @@ class SlotOpeningTest {
 
         val origin = opening.open(PlaySlot.Daily(alpha, yesterday)) as SlotOpening.Origin.Restored
 
-        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, PuzzleKey.Daily(yesterday, 412)), origin.session)
+        assertArrayEquals(TestGames.playAgainBlob(alpha, puzzle, PuzzleKey.Daily(yesterday, 412)), origin.session)
         assertEquals(1, daily.dayCalls(alpha, yesterday))
     }
 

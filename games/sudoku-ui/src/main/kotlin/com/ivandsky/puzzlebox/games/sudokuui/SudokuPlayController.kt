@@ -109,7 +109,7 @@ class SudokuPlayController(
             is DecodeResult.Err -> null
         }
 
-    override fun replay() {
+    override fun playAgain() {
         val current = session ?: return
         start(SudokuSession(ref = current.ref, puzzle = current.puzzle))
     }

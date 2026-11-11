@@ -21,7 +21,7 @@ interface RendererModel
  * restored (or freshly built) session, and [rendererModel] projects state + hint + the
  * last move's verdict onto the drawable model. [refOf] rebuilds the game's typed
  * [PuzzleRef] from its persisted [PuzzleKey] (a day's daily or a friend's custom puzzle,
- * ADR-0018), so storage round-trips refs without knowing any game. [replaySession] turns a
+ * ADR-0018), so storage round-trips refs without knowing any game. [playAgainSession] turns a
  * cached [Puzzle] into the play route's replay hand-off: the [SessionBlob]-encoded bytes of
  * a fresh session carrying that key, or the typed reason it can't be replayed (A16) —
  * History replays any game, and a friend's puzzle replays, without naming one.
@@ -41,7 +41,7 @@ class GamePlugin<P, S : GameSession, M : RendererModel>(
     val stateOf: (session: S) -> P,
     val initialSession: (puzzle: Puzzle) -> DecodeResult<S>,
     val refOf: (key: PuzzleKey) -> PuzzleRef,
-    val replaySession: (cached: Puzzle, key: PuzzleKey) -> DecodeResult<ByteArray>,
+    val playAgainSession: (cached: Puzzle, key: PuzzleKey) -> DecodeResult<ByteArray>,
     val rendererModel: (state: P, hint: Hint?, lastVerdict: MoveVerdict?) -> M,
     val editor: GameEditor<*>? = null,
 )

@@ -53,7 +53,7 @@ class HistoryCalendarTest {
                     key = HistoryKey(),
                     layout = HistoryLayout.SinglePane,
                     onBack = {},
-                    onReplay = { _, _ -> },
+                    onPlayAgain = { _, _ -> },
                     viewModel = viewModel,
                 )
             }

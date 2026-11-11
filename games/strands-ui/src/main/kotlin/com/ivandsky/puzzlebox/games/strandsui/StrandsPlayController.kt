@@ -203,7 +203,7 @@ class StrandsPlayController(
         }
 
     /** Result's "Play again": the same puzzle from scratch with a fresh clock window; its next win is a new transition. */
-    override fun replay() {
+    override fun playAgain() {
         val current = session ?: return
         resetTransient()
         runningSince = null

@@ -107,7 +107,7 @@ object TestGame {
         stateOf = { session -> stateOf(session) },
         initialSession = { puzzle -> initialSession(puzzle) },
         refOf = { key -> KeyRef(key) },
-        replaySession = { cached, _ -> DecodeResult.Ok(SessionBlob.encode(Definition.id, cached.payload)) },
+        playAgainSession = { cached, _ -> DecodeResult.Ok(SessionBlob.encode(Definition.id, cached.payload)) },
         rendererModel = { state, _, lastVerdict -> Model(state.solved, lastVerdict) },
     )
 }

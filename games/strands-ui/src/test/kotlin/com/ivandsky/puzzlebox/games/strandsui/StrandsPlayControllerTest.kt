@@ -210,7 +210,7 @@ class StrandsPlayControllerTest {
         c.onTrace(TraceInput.outside())
         c.play(listOf(Coord(0, 0), Coord(0, 1), Coord(0, 2)))
         assertNotNull(c.traceEnd)
-        c.replay()
+        c.playAgain()
         assertNull(c.traceEnd)
     }
 
@@ -372,7 +372,7 @@ class StrandsPlayControllerTest {
     fun `replay starts the same puzzle over and its win is a new transition`() {
         val c = adopted()
         c.solve()
-        c.replay()
+        c.playAgain()
 
         assertFalse(c.isComplete)
         assertEquals(0, c.model.foundCount)
@@ -389,7 +389,7 @@ class StrandsPlayControllerTest {
         c.solve()
         assertNull(c.clockWindow)
 
-        c.replay()
+        c.playAgain()
         assertNotNull(c.clockWindow)
         assertEquals(0L, c.shown())
         clockMs = 9_700

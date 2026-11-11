@@ -286,7 +286,7 @@ class TangoStepwiseHintTest {
         val first = s.spotlight
         assertEquals(1, s.hintsUsed)
 
-        s.replay()
+        s.playAgain()
 
         assertNull(s.spotlight)
         assertEquals(0, s.hintsUsed)
@@ -353,7 +353,7 @@ class TangoStepwiseHintTest {
         s.adoptToday(TangoPlayFixture.envelope(), TangoPlayFixture.ref(today))
         s.requestHint()
 
-        s.replay()
+        s.playAgain()
         s.requestHint()
 
         assertNotNull(s.spotlight)

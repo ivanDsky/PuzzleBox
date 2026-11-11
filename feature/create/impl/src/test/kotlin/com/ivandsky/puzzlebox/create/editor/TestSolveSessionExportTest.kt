@@ -183,7 +183,7 @@ class TestSolveSessionExportTest {
             stateOf = base.stateOf,
             initialSession = base.initialSession,
             refOf = base.refOf,
-            replaySession = base.replaySession,
+            playAgainSession = base.playAgainSession,
             rendererModel = base.rendererModel,
             editor = editor,
         )
@@ -292,7 +292,7 @@ private class ExportController(private val env: PlayEnvironment) : GamePlayContr
 
     override fun adoptRestored(bytes: ByteArray): Restored? = null
 
-    override fun replay() = Unit
+    override fun playAgain() = Unit
 
     fun win() {
         env.onWon(

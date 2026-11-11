@@ -152,7 +152,7 @@ class HomeViewModelTest {
         stateOf = plugin.stateOf,
         initialSession = plugin.initialSession,
         refOf = plugin.refOf,
-        replaySession = plugin.replaySession,
+        playAgainSession = plugin.playAgainSession,
         rendererModel = plugin.rendererModel,
     )
 

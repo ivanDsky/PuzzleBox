@@ -78,7 +78,7 @@ internal fun FriendPuzzleCardResumePreview() {
 @Composable
 internal fun FriendPuzzleCardReplayPreview() {
     val top = listOf(previewBoardRow(1, "Maja", 74_000L), previewBoardRow(2, "Me", 125_000L, isMe = true), previewBoardRow(3, "Lea", 131_000L, hints = 1))
-    PreviewCard(previewCard(FriendCardAction.Replay, yours = BestScore(125_000L, 0), board = CustomBoardView.Ranked(top, mine = null, author = PreviewBoardAuthor)))
+    PreviewCard(previewCard(FriendCardAction.PlayAgain, yours = BestScore(125_000L, 0), board = CustomBoardView.Ranked(top, mine = null, author = PreviewBoardAuthor)))
 }
 
 // Preview: a game without a difficulty ladder, no difficulty chip.

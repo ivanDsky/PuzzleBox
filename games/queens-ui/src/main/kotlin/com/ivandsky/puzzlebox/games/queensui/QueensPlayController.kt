@@ -151,7 +151,7 @@ class QueensPlayController(
 
     /** Result's "Play again" parity (zip replay): a fresh session of the same puzzle with
      *  a fresh clock window open — the next win is a new transition and emits again (A4). */
-    override fun replay() {
+    override fun playAgain() {
         val current = board?.session ?: return
         runningSince = null
         val fresh = QueensSession(ref = current.ref, puzzle = current.puzzle, autoCross = autoCross)

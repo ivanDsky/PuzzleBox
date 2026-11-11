@@ -17,7 +17,7 @@ import org.junit.Test
  * codec with THIS day's identity (ADR-0005 envelope); an unreadable payload never
  * launches (A16).
  */
-class ZipReplaySessionTest {
+class ZipPlayAgainSessionTest {
 
     private val day: LocalDate = LocalDate.of(2026, 10, 31)
 
@@ -31,7 +31,7 @@ class ZipReplaySessionTest {
     @Test
     fun `zip blob round-trips through the play session codec`() {
         val original = ZipTestSupport.n5Puzzle()
-        val session = zipPlugin.replaySession(envelope(original), PuzzleKey.Daily(day, 592)).getOrThrow()
+        val session = zipPlugin.playAgainSession(envelope(original), PuzzleKey.Daily(day, 592)).getOrThrow()
 
         // The envelope NAMES the game (ADR-0005) — the play route dispatches on it.
         val blob = SessionBlob.decode(session)
@@ -49,7 +49,7 @@ class ZipReplaySessionTest {
 
     @Test
     fun `missing puzzle number still yields a valid ref`() {
-        val blob = SessionBlob.decode(zipPlugin.replaySession(envelope(), PuzzleKey.Daily(day, null)).getOrThrow())
+        val blob = SessionBlob.decode(zipPlugin.playAgainSession(envelope(), PuzzleKey.Daily(day, null)).getOrThrow())
         val zip = ZipSessionCodec.deserialize(blob!!.session).getOrThrow()
         assertEquals(ZipPuzzleRef(PuzzleKey.Daily(day, null)), zip.ref)
     }
@@ -57,7 +57,7 @@ class ZipReplaySessionTest {
     @Test
     fun `a custom key replays carrying the friend's puzzle identity`() {
         val custom = PuzzleKey.Custom("K7Q2MX")
-        val blob = SessionBlob.decode(zipPlugin.replaySession(envelope(), custom).getOrThrow())
+        val blob = SessionBlob.decode(zipPlugin.playAgainSession(envelope(), custom).getOrThrow())
         assertEquals(ZipPuzzleRef(custom), ZipSessionCodec.deserialize(blob!!.session).getOrThrow().ref)
     }
 
@@ -74,7 +74,7 @@ class ZipReplaySessionTest {
         // unsupported-version branch, not a guessed decode (ADR-0005).
         assertEquals(
             DecodeResult.Err(DecodeError.UnsupportedVersion(found = 't'.code, maxKnown = ZipCodec.VERSION)),
-            zipPlugin.replaySession(corrupt, key),
+            zipPlugin.playAgainSession(corrupt, key),
         )
     }
 }

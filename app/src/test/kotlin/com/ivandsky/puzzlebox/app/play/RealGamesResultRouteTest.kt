@@ -132,7 +132,7 @@ class RealGamesResultRouteTest {
             composeRule.onNodeWithTag("result.playAgain").performScrollTo().performClick()
             composeRule.runOnIdle {
                 assertTrue(replayed)
-                store.replay(ResultKey(ZipDefinition.id.value, today.toString(), solved.elapsedMs, solved.hintsUsed))
+                store.playAgain(ResultKey(ZipDefinition.id.value, today.toString(), solved.elapsedMs, solved.hintsUsed))
                 assertTrue(zip().session?.path?.isEmpty() == true)
                 assertTrue(zip().session?.isComplete == false)
             }

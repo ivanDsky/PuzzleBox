@@ -119,7 +119,7 @@ class LessonGame(lessons: Int = 3, guided: Set<Int> = emptySet()) : GamePlayUi {
 
         override fun adoptRestored(bytes: ByteArray): Restored? = null
 
-        override fun replay() = Unit
+        override fun playAgain() = Unit
 
         fun solve() {
             if (isComplete) return
