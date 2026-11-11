@@ -30,6 +30,9 @@ import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
+import com.ivandsky.puzzlebox.domain.linkedin.CreateLinkedInLink
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import java.time.Instant
 import java.util.UUID
 import kotlin.random.Random
@@ -130,4 +133,7 @@ val domainModule = module {
             random = Random.Default,
         )
     }
+    factory { SyncLinkedInDay(days = get()) }
+    factory { ObserveLinkedInDay(days = get(), registry = get()) }
+    factory { CreateLinkedInLink(source = get(), link = get(), daily = get(), registry = get(), clock = System::currentTimeMillis) }
 }
