@@ -7,6 +7,8 @@ import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
 import com.ivandsky.puzzlebox.testing.game.FakeDailySource
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
@@ -14,6 +16,11 @@ import com.ivandsky.puzzlebox.database.PuzzleDailyDao
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.FeedTransport
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.datastore.LinkedInLinkDataSource
+import com.ivandsky.puzzlebox.datastore.PuzzleBoxPreferencesDataSource
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,6 +48,7 @@ class DataModuleGraphTest : KoinTest {
         val games = module {
             single { TestGames.registry(listOf(alpha)) }
             single { FakeDailySource(alpha) } bind DailySource::class
+            single<LinkedInSessionCookies> { FakeLinkedInSessionCookies(null) }
         }
         val koinApp = koinApplication {
             androidContext(RuntimeEnvironment.getApplication())
@@ -56,6 +64,29 @@ class DataModuleGraphTest : KoinTest {
             assertNotNull(koin.get<PublishedPuzzleRepository>())
             assertNotNull(koin.get<ReceivedPuzzleRepository>())
             assertNotNull(koin.get<PuzzleDailyDao>())
+        } finally {
+            koinApp.close()
+        }
+    }
+
+    @Test
+    fun `the LinkedIn bindings resolve and both DataStores coexist`() {
+        val games = module {
+            single { TestGames.registry(listOf(alpha)) }
+            single { FakeDailySource(alpha) } bind DailySource::class
+            single<LinkedInSessionCookies> { FakeLinkedInSessionCookies(null) }
+        }
+        val koinApp = koinApplication {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(commonModule, dataModule, games)
+        }
+        try {
+            val koin = koinApp.koin
+            assertNotNull(koin.get<LinkedInLink>())
+            assertNotNull(koin.get<LinkedInDays>())
+            assertNotNull(koin.get<LinkedInAccountSource>())
+            assertNotNull(koin.get<PuzzleBoxPreferencesDataSource>())
+            assertNotNull(koin.get<LinkedInLinkDataSource>())
         } finally {
             koinApp.close()
         }
