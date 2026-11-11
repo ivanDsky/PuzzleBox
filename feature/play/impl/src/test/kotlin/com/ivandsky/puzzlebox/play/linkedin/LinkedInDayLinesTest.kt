@@ -133,19 +133,11 @@ class LinkedInDayLinesTest {
     }
 
     @Test
-    fun offlineAndOverBudgetOfferRetry() {
+    fun offlineOffersRetry() {
         show(status(LinkedInDayStatus.Offline))
         tag("linkedin.retry").performClick()
         assertEquals(1, retries)
         tag("linkedin.resume").assertDoesNotExist()
-    }
-
-    @Test
-    fun overBudgetOffersRetry() {
-        show(status(LinkedInDayStatus.OverBudget))
-        tag("linkedin.status").assertTextEquals("Try again in a moment")
-        tag("linkedin.retry").performClick()
-        assertEquals(1, retries)
     }
 
     @Test

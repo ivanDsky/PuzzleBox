@@ -74,7 +74,7 @@ internal class LinkedInSyncState {
         }
         // Paused and not-linked are never kept: the persisted link state is their only source, so the
         // two cannot disagree.
-        if (result is LinkedInSync.Done || result is LinkedInSync.Offline || result is LinkedInSync.OverBudget) {
+        if (result is LinkedInSync.Done || result is LinkedInSync.Offline) {
             results.update { it + (key to result) }
         }
         release(key, mine)

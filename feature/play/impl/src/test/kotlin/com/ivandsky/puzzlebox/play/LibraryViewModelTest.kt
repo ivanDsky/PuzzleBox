@@ -434,7 +434,7 @@ class LibraryViewModelTest {
     @Test
     fun selectingAnotherGameChangesTheView() {
         days.emit(alpha, day, data(inFlight = true))
-        days.emit(beta, day, data(lastSync = LinkedInSync.OverBudget))
+        days.emit(beta, day, data(lastSync = LinkedInSync.Offline))
         val vm = observedVm(linkedIn = holder())
         showDayCard(vm)
         assertEquals(viewOf(alpha, day), vm.linkedInView.value)

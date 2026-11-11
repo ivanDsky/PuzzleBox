@@ -230,10 +230,8 @@ class RoomLinkedInDaysObserveTest {
     }
 
     @Test
-    fun `lastSync reports Done, Offline and OverBudget only`() = runTest {
-        // Past the board window a sync is one call, so a budget of one call a minute refuses the second.
+    fun `lastSync reports Done and Offline only`() = runTest {
         val day = ago(8)
-        val days = newDays(budget = LinkedInCallBudget({ now }, limit = 1))
 
         days.observe(zip, day).test {
             assertNull(awaitItem().lastSync)
@@ -241,10 +239,6 @@ class RoomLinkedInDaysObserveTest {
             assertEquals(LinkedInSync.Offline, days.sync(zip, day))
             awaitWhere { it.lastSync == LinkedInSync.Offline && !it.inFlight }
 
-            assertEquals(LinkedInSync.OverBudget, days.sync(zip, day))
-            awaitWhere { it.lastSync == LinkedInSync.OverBudget && !it.inFlight }
-
-            now += 60_000
             respondOwn(day)
             assertEquals(LinkedInSync.Done, days.sync(zip, day))
             awaitWhere { it.lastSync == LinkedInSync.Done && !it.inFlight }

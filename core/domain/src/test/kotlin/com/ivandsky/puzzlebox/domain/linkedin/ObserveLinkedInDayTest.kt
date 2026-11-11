@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -114,11 +115,31 @@ class ObserveLinkedInDayTest {
     }
 
     @Test
+    fun `an offline sync that left the board unread shows Offline over a known own result`() = observing {
+        for (own in listOf(imported(60_000), LinkedInOwnState.NotPlayed)) {
+            assertEquals(
+                LinkedInDayStatus.Offline,
+                viewOf(data(own = own, lastSync = LinkedInSync.Offline, boardFetchedAtMs = null)).status,
+            )
+            // A read board, a board that is not served for the day, or a sync still running is no reason to say so.
+            assertNotEquals(LinkedInDayStatus.Offline, viewOf(data(own = own, lastSync = LinkedInSync.Offline)).status)
+            assertNotEquals(
+                LinkedInDayStatus.Offline,
+                viewOf(data(own = own, lastSync = LinkedInSync.Offline, boardFetchedAtMs = null, boardInWindow = false)).status,
+            )
+            assertNotEquals(
+                LinkedInDayStatus.Offline,
+                viewOf(data(own = own, lastSync = LinkedInSync.Offline, boardFetchedAtMs = null, inFlight = true)).status,
+            )
+        }
+    }
+
+    @Test
     fun `a not-played day shows DidNotPlay`() = observing {
         assertEquals(LinkedInDayStatus.DidNotPlay, viewOf(data(own = LinkedInOwnState.NotPlayed)).status)
         assertEquals(
             LinkedInDayStatus.DidNotPlay,
-            viewOf(data(own = LinkedInOwnState.NotPlayed, inFlight = true, lastSync = LinkedInSync.OverBudget)).status,
+            viewOf(data(own = LinkedInOwnState.NotPlayed, inFlight = true, lastSync = LinkedInSync.Offline)).status,
         )
     }
 
@@ -128,7 +149,6 @@ class ObserveLinkedInDayTest {
         assertEquals(LinkedInDayStatus.Loading, viewOf(data(inFlight = true, lastSync = LinkedInSync.Offline)).status)
 
         assertEquals(LinkedInDayStatus.Offline, viewOf(data(lastSync = LinkedInSync.Offline)).status)
-        assertEquals(LinkedInDayStatus.OverBudget, viewOf(data(lastSync = LinkedInSync.OverBudget)).status)
 
         assertEquals(LinkedInDayStatus.Idle, viewOf(data(lastSync = LinkedInSync.Done)).status)
         assertEquals(LinkedInDayStatus.Idle, viewOf(data(lastSync = null)).status)

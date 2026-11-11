@@ -303,22 +303,6 @@ class RoomLinkedInDaysSyncTest {
     }
 
     @Test
-    fun `an item over the call budget is not sent and is fetched after the window`() = runTest {
-        val day = ago(3)
-        val days = newDays(budget = LinkedInCallBudget({ now }, limit = 1))
-        respondOwn(day)
-        respondBoard(day)
-
-        assertEquals(LinkedInSync.OverBudget, days.sync(zip, day))
-        assertEquals(listOf(ownCall(day)), source.calls)
-        assertEquals(LinkState.Connected("me"), link.state.first())
-
-        now += 60_000
-        assertEquals(LinkedInSync.Done, days.sync(zip, day))
-        assertEquals(listOf(ownCall(day), boardCall(day)), source.calls)
-    }
-
-    @Test
     fun `two concurrent syncs of one day make one own call and one board call`() = runTest {
         val day = ago(3)
         val key = DayKey(zip, day)

@@ -120,11 +120,6 @@ internal fun LinkedInPausedUnexpectedPreview() = PreviewCards(status(LinkedInDay
 @Composable
 internal fun LinkedInPausedSessionExpiredPreview() = PreviewCards(status(LinkedInDayStatus.Paused(Kind.SessionExpired)))
 
-// Preview: over budget, a short wait with Retry.
-@PuzzleBoxPreviews
-@Composable
-internal fun LinkedInOverBudgetPreview() = PreviewCards(status(LinkedInDayStatus.OverBudget))
-
 // Preview: the skeleton and a ranked list on the Orange accent (Tango).
 @PuzzleBoxPreviews
 @Composable
