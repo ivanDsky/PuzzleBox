@@ -117,6 +117,9 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
                 row("JON333", DuelRowKind.Invited, "Jonas", 0, 3, Duration.ofHours(23)),
                 row("MAYA44", DuelRowKind.Waiting, "Maya", 3, 3, Duration.ofMinutes(12 * 60 + 5L)),
                 row("K7Q2MX", DuelRowKind.Unclaimed, null, 0, 3, Duration.ofHours(24)),
+                row("RIO777", DuelRowKind.Finished(2, 1), "Rio", 3, 3, Duration.ofHours(30)),
+                row("LEO888", DuelRowKind.Finished(0, 2), "Leo", 2, 2, Duration.ofHours(40)),
+                row("OLD999", DuelRowKind.Finished(null, null), "Nia", 3, 3, Duration.ofHours(50)),
             ),
         )
 
@@ -125,6 +128,7 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
                 row("ALEX11", DuelRowKind.YourMove, "Alexandrina Konstantinopolska", 1, 3, Duration.ofMinutes(21 * 60 + 40L)),
                 row("ALEX22", DuelRowKind.RevealReady, "Alexandrina Konstantinopolska", 3, 3, Duration.ofHours(2)),
                 row("ALEX33", DuelRowKind.Invited, "Alexandrina Konstantinopolska", 0, 3, Duration.ofHours(23)),
+                row("ALEX44", DuelRowKind.Finished(1, 1), "Alexandrina Konstantinopolska", 2, 2, Duration.ofHours(40)),
             ),
         )
     }

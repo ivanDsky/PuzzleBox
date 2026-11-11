@@ -32,11 +32,13 @@ import kotlinx.coroutines.coroutineScope
 
 /**
  * The read model behind the Duels tab rows and the Play-tab badge. One `observeMine` listener, one `observe(code)`
- * listener per cached link invite that is still open, the local cache and my outbox; it never reads a sealed result
- * and shows no score or verdict. Rows needing me come first, then by the nearest deadline. The list
- * re-emits at each future time boundary (`closesAt` and `deadline`) with no upstream change. Past `deadline` a
- * match has no move left to ask for (a started puzzle is resumed from the duel screen) and an unaccepted invite is
- * dropped, so neither needs me.
+ * listener per cached link invite that is still open, the local cache and my outbox; it never reads a sealed result.
+ * Rows needing me come first, then by the nearest deadline. A duel whose reveal this device has seen stays as a
+ * [DuelRowKind.Finished] row after every active one, newest seen first, for seven days after it was first seen;
+ * the score it shows is the one this device stored when it revealed the duel, so a finished duel is never counted as
+ * needing me. The list re-emits at each future time boundary (`closesAt`, `deadline`, and the end of a finished
+ * row's stay) with no upstream change. Past `deadline` a match has no move left to ask for (a started puzzle is
+ * resumed from the duel screen) and an unaccepted invite is dropped, so neither needs me.
  * Signed out, or an `observeMine` of null, is empty. Writes nothing.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -74,12 +76,12 @@ class ObserveMyDuels(
                         var at = clock()
                         val candidates = mine + fetched.values.mapNotNull { (it as? MatchFetch.Found)?.match }
                         emit(duels(me, now, mine, fetched, at))
-                        var next = nextBoundary(candidates, at)
+                        var next = nextBoundary(candidates, now.locals, at)
                         while (next != null) {
                             delay(Duration.between(at, next).toKotlinDuration())
                             at = clock()
                             emit(duels(me, now, mine, fetched, at))
-                            next = nextBoundary(candidates, at)
+                            next = nextBoundary(candidates, now.locals, at)
                         }
                     }
                 }.distinctUntilChanged(),
@@ -128,9 +130,11 @@ class ObserveMyDuels(
         }
         val invited = fetched.values.mapNotNull { (it as? MatchFetch.Found)?.match }
             .mapNotNull { match -> linkInvite(match, me, now) }
-        val rows = (served + invited).sortedWith(
+        val (done, active) = (served + invited).partition { it.kind is DuelRowKind.Finished }
+        val seenAt = { row: DuelRow -> localByCode[row.code]?.revealSeenAt ?: Instant.EPOCH }
+        val rows = active.sortedWith(
             compareBy<DuelRow> { rank(it.kind) }.thenBy { it.deadline }.thenBy { it.code.value },
-        )
+        ) + done.sortedWith(compareByDescending(seenAt).thenBy { it.code.value })
         return MyDuels(rows, rows.count { it.kind.needsYou() })
     }
 
@@ -139,7 +143,8 @@ class ObserveMyDuels(
         val seated = me == match.challenger.uid || me == match.opponent?.uid
         val kind = when {
             !seated -> if (match.invitedUid == me && match.opponent == null && now < match.deadline) DuelRowKind.Invited else null
-            match.revealReady(me, taken, now) -> DuelRowKind.RevealReady.takeIf { cached?.revealSeenAt == null }
+            match.revealReady(me, taken, now) ->
+                if (cached?.revealSeenAt == null) DuelRowKind.RevealReady else cached.finished(now)
             now >= match.closesAt -> null
             match.opponent == null -> DuelRowKind.Unclaimed
             taken.size < match.legs.size && now < match.deadline -> DuelRowKind.YourMove
@@ -156,19 +161,31 @@ class ObserveMyDuels(
         return DuelRow(match.code, match.challenger, DuelRowKind.Invited, 0, match.legs.size, match.deadline)
     }
 
-    /** The earliest of each match's `closesAt` and `deadline` that is still after [now]. */
-    private fun nextBoundary(matches: List<Match>, now: Instant): Instant? =
-        matches.flatMap { listOf(it.closesAt, it.deadline) }.filter { it > now }.minOrNull()
+    /** The finished row of a reveal seen here and still inside its stay at [now]; null once it is seen no longer or not seen. */
+    private fun LocalMatch.finished(now: Instant): DuelRowKind.Finished? =
+        revealSeenAt?.takeIf { now < it + FINISHED_KEPT }?.let { DuelRowKind.Finished(myScore, theirScore) }
+
+    /** The earliest of each match's `closesAt` and `deadline`, and of each seen reveal's stay ending, still after [now]. */
+    private fun nextBoundary(matches: List<Match>, locals: List<LocalMatch>, now: Instant): Instant? =
+        (
+            matches.flatMap { listOf(it.closesAt, it.deadline) } +
+                locals.mapNotNull { it.revealSeenAt?.plus(FINISHED_KEPT) }
+            ).filter { it > now }.minOrNull()
 
     private fun rank(kind: DuelRowKind): Int = when (kind) {
-        DuelRowKind.Invited, DuelRowKind.YourMove, DuelRowKind.RevealReady -> kind.ordinal
-        DuelRowKind.Waiting, DuelRowKind.Unclaimed -> DuelRowKind.Waiting.ordinal
+        DuelRowKind.Invited -> 0
+        DuelRowKind.YourMove -> 1
+        DuelRowKind.RevealReady -> 2
+        DuelRowKind.Waiting, DuelRowKind.Unclaimed -> 3
+        is DuelRowKind.Finished -> 4
     }
 
     private fun DuelRowKind.needsYou() =
         this == DuelRowKind.Invited || this == DuelRowKind.YourMove || this == DuelRowKind.RevealReady
 
     private companion object {
+        /** How long a duel stays in the list as a finished row after its reveal was first seen. */
+        val FINISHED_KEPT: Duration = Duration.ofDays(7)
         val EMPTY = MyDuels(emptyList(), 0)
     }
 }

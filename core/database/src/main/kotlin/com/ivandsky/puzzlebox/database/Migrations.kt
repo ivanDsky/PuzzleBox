@@ -227,6 +227,17 @@ object Migrations {
         }
     }
 
+    /**
+     * v10 (finished duels keep their score): adds `matches_local.revealMyScore` and `revealTheirScore`, both
+     * nullable; additive only, a reveal seen under v9 keeps its stamp with no scores.
+     */
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `matches_local` ADD COLUMN `revealMyScore` INTEGER")
+            db.execSQL("ALTER TABLE `matches_local` ADD COLUMN `revealTheirScore` INTEGER")
+        }
+    }
+
     val ALL: Array<Migration> =
         arrayOf(
             MIGRATION_1_2,
@@ -237,5 +248,6 @@ object Migrations {
             MIGRATION_6_7,
             MIGRATION_7_8,
             MIGRATION_8_9,
+            MIGRATION_9_10,
         )
 }

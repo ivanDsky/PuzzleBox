@@ -6,10 +6,10 @@ import com.ivandsky.puzzlebox.data.match.ResultPostState
 import java.time.Instant
 
 /**
- * The one reveal-ready rule (28's RevealReady row, 36's "See the reveal" footer). False for a cancelled, declined or
- * unclaimed match. Otherwise true when [now] >= closesAt, or when [mine] has a row of [me] for every leg index, each
- * Posted, Late or LocalOnly (Late and LocalOnly are final; a Pending row is not done), and the opponent's
- * `progress` covers every leg index.
+ * The one reveal-ready rule (the Duels tab's "See results" row and the duel screen's "See results" footer). False
+ * for a cancelled, declined or unclaimed match. Otherwise true when [now] >= closesAt, or when [mine] has a row of
+ * [me] for every leg index, each Posted, Late or LocalOnly (Late and LocalOnly are final; a Pending row is not done),
+ * and the opponent's `progress` covers every leg index.
  */
 fun Match.revealReady(me: String, mine: List<OutboxResult>, now: Instant): Boolean {
     if (cancelled || declined) return false

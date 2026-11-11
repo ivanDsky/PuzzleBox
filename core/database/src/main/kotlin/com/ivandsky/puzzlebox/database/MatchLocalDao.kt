@@ -30,8 +30,12 @@ interface MatchLocalDao {
     )
     suspend fun merge(code: String, role: String, name: String?)
 
-    @Query("UPDATE matches_local SET revealSeenAt = :at WHERE code = :code AND revealSeenAt IS NULL")
-    suspend fun markRevealSeen(code: String, at: Long)
+    /** Stamps the first reveal with its scores; a row already stamped keeps both. */
+    @Query(
+        "UPDATE matches_local SET revealSeenAt = :at, revealMyScore = :myScore, revealTheirScore = :theirScore " +
+            "WHERE code = :code AND revealSeenAt IS NULL",
+    )
+    suspend fun markRevealSeen(code: String, at: Long, myScore: Int, theirScore: Int)
 
     @Query("UPDATE matches_local SET dismissed = 1 WHERE code = :code")
     suspend fun dismiss(code: String)

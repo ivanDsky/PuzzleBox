@@ -99,15 +99,19 @@ internal fun DuelChallengeCard(signedIn: Boolean, onClick: () -> Unit, modifier:
     }
 }
 
-/** A duel I am in: reveal ready (highlighted, trophy), my move or waiting on them, over "Best of n · k of n played". */
+/**
+ * A duel I am in: results ready (highlighted, trophy), my move, waiting on them, or finished with its score, over
+ * "Best of n · k of n played".
+ */
 @Composable
 internal fun DuelCard(row: DuelRow, now: () -> Instant, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val name = row.opponent?.name ?: "a friend"
     val revealReady = row.kind == DuelRowKind.RevealReady
     DuelRowShell(
-        title = when (row.kind) {
-            DuelRowKind.RevealReady -> "Reveal ready vs $name"
+        title = when (val kind = row.kind) {
+            DuelRowKind.RevealReady -> "See results vs $name"
             DuelRowKind.YourMove -> "Your move vs $name"
+            is DuelRowKind.Finished -> finishedTitle(kind, name)
             else -> "Waiting on $name"
         },
         sub = "Best of ${row.legs} · ${row.legsDone} of ${row.legs} played",
@@ -126,11 +130,22 @@ internal fun DuelCard(row: DuelRow, now: () -> Instant, onClick: () -> Unit, mod
         trailing = {
             if (revealReady) {
                 Icon(PuzzleIcons.Trophy, contentDescription = null)
-            } else {
+            } else if (row.kind !is DuelRowKind.Finished) {
                 TimeLeft { timeLeft(row.deadline, now()) }
             }
         },
     )
+}
+
+/** "You won 2–1 vs Sam", "Sam won 2–0", "Draw 1–1 vs Sam", the winner's score first; "Finished vs Sam" when the scores were not kept. */
+internal fun finishedTitle(kind: DuelRowKind.Finished, name: String): String {
+    val mine = kind.myScore ?: return "Finished vs $name"
+    val theirs = kind.theirScore ?: return "Finished vs $name"
+    return when {
+        mine > theirs -> "You won $mine–$theirs vs $name"
+        mine < theirs -> "$name won $theirs–$mine"
+        else -> "Draw $mine–$theirs vs $name"
+    }
 }
 
 /**
