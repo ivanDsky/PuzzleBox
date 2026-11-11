@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
@@ -22,6 +24,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
@@ -39,6 +42,8 @@ import kotlinx.coroutines.flow.stateIn
  * with any row (solved or not). [selectedDay] filters the list to one day. [today] is
  * the puzzle day the list's "Today" / "Yesterday" count from. [openingRowKey] is the row a
  * game's archive link asked for, null when the key names no game or that day has no such row.
+ * [restoring] is true while the cloud's first restore on this device runs (A34): the empty list
+ * says history is coming back instead of the first-time copy.
  */
 data class HistoryUiState(
     val rows: List<HistoryDayRow> = emptyList(),
@@ -52,6 +57,7 @@ data class HistoryUiState(
     val gamesPerDay: Int = 0,
     val today: LocalDate? = null,
     val openingRowKey: String? = null,
+    val restoring: Boolean = false,
 ) {
     /** Whether the calendar's [date] taps: a day with rows, never after today. */
     fun canSelect(date: LocalDate): Boolean = today != null && date <= today && date in daysWithRows
@@ -89,6 +95,7 @@ class HistoryViewModel(
     private val registry: GameRegistry,
     private val playRegistry: GamePlayRegistry,
     private val puzzleDay: GetPuzzleDay,
+    cloudSync: CloudSync? = null,
     opening: HistoryKey = HistoryKey(),
 ) : ViewModel() {
 
@@ -108,12 +115,19 @@ class HistoryViewModel(
             .markBest { id -> registry[id]?.score?.rankOrder ?: RankOrder.TimeThenHints }
     }.distinctUntilChanged().shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
+    // No CloudSync bound (the flag is off) is never restoring.
+    private val restoring: Flow<Boolean> = cloudSync?.state
+        ?.map { it is CloudSyncState.Syncing && it.firstRestore }
+        ?.distinctUntilChanged()
+        ?: flowOf(false)
+
     val uiState: StateFlow<HistoryUiState> = combine(
         rows,
         observeGameStats(),
         calendar,
         day,
-    ) { rows, stats, (wanted, wide), selected ->
+        restoring,
+    ) { rows, stats, (wanted, wide), selected, restoring ->
         val today = puzzleDay()
         val earliest = rows.minOfOrNull { it.day }?.coerceAtMost(today) ?: today
         HistoryUiState(
@@ -127,6 +141,7 @@ class HistoryViewModel(
             daysWithRows = rows.mapTo(HashSet()) { it.day },
             gamesPerDay = order.size,
             today = today,
+            restoring = restoring,
             openingRowKey = openingGame?.let { game ->
                 rows.firstOrNull { it.gameId == game && it.day == openingDay }?.key
             },

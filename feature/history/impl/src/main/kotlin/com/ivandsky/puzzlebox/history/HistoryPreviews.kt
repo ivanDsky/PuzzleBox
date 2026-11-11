@@ -112,6 +112,23 @@ private fun HistoryRootPreview() {
     }
 }
 
+/** The empty tab while the first cloud restore runs (A34). */
+@PuzzleBoxPreviews
+@Composable
+private fun HistoryRestoringPreview() {
+    PuzzleBoxTheme {
+        HistoryScreen(
+            layout = HistoryLayout.SinglePane,
+            onBack = null,
+            days = flowOf(PagingData.empty<HistoryDayRow>()).collectAsLazyPagingItems(),
+            state = HistoryUiState(today = PreviewToday, restoring = true),
+            onShowCalendar = { _, _ -> },
+            onSelectDay = {},
+            onPlayAgain = { _, _ -> },
+        )
+    }
+}
+
 /** The expanded month with a day picked: today ringed, the picked day inked, later days dimmed. */
 @PuzzleBoxPreviews
 @Composable
