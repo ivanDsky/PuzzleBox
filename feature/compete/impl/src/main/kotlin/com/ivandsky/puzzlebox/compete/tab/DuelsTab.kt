@@ -2,12 +2,8 @@ package com.ivandsky.puzzlebox.compete.tab
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -20,11 +16,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
@@ -41,8 +35,8 @@ import org.koin.androidx.compose.koinViewModel
 /**
  * The body under the Games screen's Duels pill: the challenge card, then my duels in their sections, then a one-line
  * note when there are none. It scrolls as one list on [listState], which the Games host holds so it can send the list
- * to its top; the host owns the side inset. [wide] (the Games two-pane layout) splits the sections in two columns.
- * [onOpenDuel] opens the duel screen and [onOpenReveal] the reveal of a duel whose reveal is ready or already seen.
+ * to its top; the host owns the side inset. [onOpenDuel] opens the duel screen and [onOpenReveal] the reveal of a duel
+ * whose reveal is ready or already seen.
  */
 @Composable
 fun DuelsTab(
@@ -50,7 +44,6 @@ fun DuelsTab(
     onOpenReveal: (DuelRevealKey) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
-    wide: Boolean = false,
 ) {
     val viewModel: DuelsTabViewModel = koinViewModel()
     val state = viewModel.state.collectAsStateWithLifecycle()
@@ -73,7 +66,6 @@ fun DuelsTab(
         onOpenReveal = onOpenReveal,
         modifier = modifier,
         listState = listState,
-        wide = wide,
         inFlight = state.value.inFlight,
         notes = state.value.notes,
         onAccept = viewModel::accept,
@@ -84,9 +76,7 @@ fun DuelsTab(
 
 /**
  * The stateless tab: [rows], [signedIn], and the Invited rows' [inFlight] and [notes] in, taps out; [now] is read only by
- * the time-left text. The rows sit in their sections ([sectionRows]). With [wide] there are always two columns, each at
- * most 560 dp, 20 dp apart and centred as a pair; the challenge card spans the pair, and the sections are dealt to the
- * shorter column ([dealColumns]). Both columns scroll together as one list on [listState].
+ * the time-left text. The rows sit in their sections ([sectionRows]), one column on [listState].
  */
 @Composable
 internal fun DuelsTabContent(
@@ -99,7 +89,6 @@ internal fun DuelsTabContent(
     onOpenReveal: (DuelRevealKey) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
-    wide: Boolean = false,
     inFlight: Set<ShareCode> = emptySet(),
     notes: Map<ShareCode, InviteNote> = emptyMap(),
     onAccept: (ShareCode) -> Unit = {},
@@ -133,30 +122,10 @@ internal fun DuelsTabContent(
         modifier = modifier.fillMaxSize().testTag("duels.tab"),
         contentPadding = PaddingValues(vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
-        horizontalAlignment = if (wide) Alignment.CenterHorizontally else Alignment.Start,
     ) {
-        val pair = if (wide) Modifier.widthIn(max = PairWidth).fillMaxWidth() else Modifier
-        item(key = "challenge") { DuelChallengeCard(signedIn = signedIn, onClick = onNewDuel, modifier = pair) }
-        if (wide) {
-            item(key = "columns") {
-                val columns = remember(sections) { dealColumns(sections) }
-                Row(pair, horizontalArrangement = Arrangement.spacedBy(ColumnGap)) {
-                    for (column in listOf(columns.left, columns.right)) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) { column.forEach { section(it) } }
-                    }
-                }
-            }
-        } else {
-            items(sections, key = { it.section.tag }) { section(it) }
-        }
+        item(key = "challenge") { DuelChallengeCard(signedIn = signedIn, onClick = onNewDuel) }
+        items(sections, key = { it.section.tag }) { section(it) }
         if (rows.isEmpty()) item(key = "empty") { DuelsEmptyNote() }
     }
 }
-
-/** The gap between the two columns of the wide tab, and the widest one column. */
-private val ColumnGap = 20.dp
-private val ColumnMaxWidth = 560.dp
-
-/** The wide tab's pair of columns, and the challenge card above them. */
-private val PairWidth = ColumnMaxWidth * 2 + ColumnGap
 

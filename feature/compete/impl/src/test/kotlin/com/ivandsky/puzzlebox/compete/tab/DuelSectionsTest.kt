@@ -58,47 +58,6 @@ class DuelSectionsTest {
         assertTrue(sectionRows(emptyList()).isEmpty())
     }
 
-    private fun dealt(rows: List<DuelRow>): Pair<List<DuelSection>, List<DuelSection>> =
-        dealColumns(sectionRows(rows)).let { it.left.map { s -> s.section } to it.right.map { s -> s.section } }
-
-    @Test
-    fun `the user's data deals Waiting left and Finished right`() {
-        val rows = listOf(row("D5CW81", DuelRowKind.Unclaimed)) + List(5) { finished("FNS22$it", 2, 1) }
-
-        assertEquals(listOf(DuelSection.Waiting) to listOf(DuelSection.Finished), dealt(rows))
-    }
-
-    @Test
-    fun `the busy data deals Invites, Results ready and Finished left, Your move and Waiting right`() {
-        val rows = listOf(
-            row("M4D7QP", DuelRowKind.Invited),
-            row("S9A2KF", DuelRowKind.YourMove),
-            row("A7LX4Z", DuelRowKind.YourMove),
-            row("D2N8WE", DuelRowKind.RevealReady),
-            row("Y5M3HB", DuelRowKind.Waiting),
-            row("K7Q2MX", DuelRowKind.Unclaimed),
-        ) + List(6) { finished("FNS22$it", 2, 1) }
-
-        assertEquals(
-            listOf(DuelSection.Invites, DuelSection.ResultsReady, DuelSection.Finished) to
-                listOf(DuelSection.YourMove, DuelSection.Waiting),
-            dealt(rows),
-        )
-    }
-
-    @Test
-    fun `one section stays left and the right column is empty`() {
-        assertEquals(listOf(DuelSection.YourMove) to emptyList<DuelSection>(), dealt(listOf(row("YMV222", DuelRowKind.YourMove))))
-        assertEquals(emptyList<DuelSection>() to emptyList<DuelSection>(), dealt(emptyList()))
-    }
-
-    @Test
-    fun `a tie in height goes left`() {
-        val rows = listOf(row("YMV222", DuelRowKind.YourMove), row("WTG222", DuelRowKind.Waiting), finished("FNS222", 2, 1))
-
-        assertEquals(listOf(DuelSection.YourMove, DuelSection.Finished) to listOf(DuelSection.Waiting), dealt(rows))
-    }
-
     @Test
     fun `the tally counts won, lost and drawn finished duels and skips rows without scores`() {
         val tally = tallyOf(

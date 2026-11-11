@@ -65,39 +65,6 @@ internal fun sectionRows(rows: List<DuelRow>): List<SectionRows> =
         rows.filter { it.kind.section() == section }.takeIf { it.isNotEmpty() }?.let { SectionRows(section, it) }
     }
 
-/** The two columns of the wide Duels tab: [left] and [right] hold whole sections, each in display order. */
-internal class DuelColumns(val left: List<SectionRows>, val right: List<SectionRows>)
-
-private const val HeaderEstimate = 48
-private const val RowEstimate = 64
-private const val InviteRowEstimate = 116
-private const val SectionGapEstimate = 16
-
-private fun SectionRows.estimatedHeight(): Int =
-    HeaderEstimate + rows.sumOf { if (it.kind == DuelRowKind.Invited) InviteRowEstimate else RowEstimate }
-
-/**
- * Deals [sections], in order, to the shorter of two columns by estimated height (a header 48 dp, a row 64, an invite
- * row 116, 16 dp between the sections of a column); a tie goes left. With one section the right column stays empty.
- */
-internal fun dealColumns(sections: List<SectionRows>): DuelColumns {
-    val left = mutableListOf<SectionRows>()
-    val right = mutableListOf<SectionRows>()
-    var leftHeight = 0
-    var rightHeight = 0
-    for (section in sections) {
-        val height = section.estimatedHeight()
-        if (leftHeight <= rightHeight) {
-            leftHeight += (if (left.isEmpty()) 0 else SectionGapEstimate) + height
-            left += section
-        } else {
-            rightHeight += (if (right.isEmpty()) 0 else SectionGapEstimate) + height
-            right += section
-        }
-    }
-    return DuelColumns(left, right)
-}
-
 /** How a finished duel ended for me. */
 internal enum class DuelOutcome { Won, Lost, Drawn }
 
