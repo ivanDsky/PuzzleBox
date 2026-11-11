@@ -35,6 +35,9 @@ class CommandHistory<S, C : Command<S>>(
     /** [command] has just been applied by the caller: push it, forget the redo stack. */
     fun record(command: C): CommandHistory<S, C> = CommandHistory(done + command, emptyList())
 
+    /** Swap the newest command for [command] (a gesture growing its own unit); [command] is just applied. */
+    fun replaceLast(command: C): CommandHistory<S, C> = CommandHistory(done.dropLast(1) + command, emptyList())
+
     /** Revert the newest command on [state]; null when there is nothing to undo. */
     fun undo(state: S): Step<S, C>? {
         val command = done.lastOrNull() ?: return null

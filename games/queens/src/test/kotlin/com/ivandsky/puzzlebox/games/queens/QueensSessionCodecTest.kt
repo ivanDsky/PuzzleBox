@@ -65,6 +65,9 @@ class QueensSessionCodecTest {
         s = s.withQueenPlaced(cell(0, 0), now)
         s = s.withQueenPlaced(cell(1, 2), now)
         s = s.withCrossToggled(cell(6, 6), now)
+        s = s.withCrossToggled(cell(7, 7), now)
+        s = s.withCrossErased(cell(6, 6), extendRun = false, now = now) // EraseCrosses, widened by the next step
+        s = s.withCrossErased(cell(7, 7), extendRun = true, now = now)
         s = s.withCleared(now) // Clear
         s = s.withQueenPlaced(cell(5, 5), now)
         return s.withUndo() // the last placement lands on the redo stack
@@ -88,6 +91,7 @@ class QueensSessionCodecTest {
         assertTrue(original.history.done.any { it is QueensCommand.Clear })
         assertTrue(original.history.done.any { it is QueensCommand.RemoveQueen && it.hadMark })
         assertTrue(original.history.done.any { it is QueensCommand.ToggleCross })
+        assertTrue(original.history.done.any { it is QueensCommand.EraseCrosses && it.cells.size == 2 })
         assertTrue(original.history.done.any { it is QueensCommand.PlaceQueen })
         assertTrue(original.canRedo)
 

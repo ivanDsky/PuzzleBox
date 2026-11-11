@@ -50,6 +50,12 @@ sealed interface QueensCommand : Command<QueensBoard> {
         override fun revert(state: QueensBoard) = state.copy(manual = state.manual.with(cell, wasMarked))
     }
 
+    /** One erase swipe: every manual cross in [cells] leaves as ONE undo unit. */
+    data class EraseCrosses(val cells: Set<Cell>) : QueensCommand {
+        override fun apply(state: QueensBoard) = state.copy(manual = state.manual - cells)
+        override fun revert(state: QueensBoard) = state.copy(manual = state.manual + cells)
+    }
+
     /** Clear: wipes everything; the removed [queens] and [manual] marks are the delta. */
     data class Clear(val queens: List<Cell>, val manual: Set<Cell>) : QueensCommand {
         override fun apply(state: QueensBoard) = QueensBoard()

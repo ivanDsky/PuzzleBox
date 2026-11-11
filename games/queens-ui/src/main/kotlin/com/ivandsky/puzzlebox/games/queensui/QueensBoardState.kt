@@ -27,9 +27,10 @@ import kotlinx.coroutines.CoroutineScope
  *   (withQueenPlaced, A10 auto-fill when Auto-cross is ON), queen → EMPTY
  *   (withQueenRemoved — the removal takes the queen AND its stored mark, so the cycle
  *   closes; fix round 5). §5.2 haptics are fired by the board.
- * - Drag (drag-start + each newly entered cell): MANUAL X on markless queen-free
- *   cells only — idempotent, no flicker over an already-X cell (§5.1). One painted
- *   cell = one command (no gesture coalescing).
+ * - Drag (drag-start + each newly entered cell): a swipe starting on an empty or queen cell
+ *   paints MANUAL X on markless queen-free cells only — idempotent, no flicker over an
+ *   already-X cell (§5.1); one painted cell = one command. A swipe starting on a cross
+ *   erases the manual crosses it crosses instead, as ONE undo unit.
  * - Undo / Redo: the session's command history (A12; one action = one command, its
  *   auto-fill side effects revert with it). A new action drops the redo stack.
  * - Clear (fix round 6): ONE command that wipes EVERYTHING — queens, AUTO and
@@ -92,6 +93,9 @@ class QueensBoardState(
     internal val stepHints: StepHints<QueensStep, QueensSpotlightMapper.Key> =
         StepHints(mode, scope, QueensStepGame({ session }), { session.hintsUsed }, ::storeHintsUsed)
 
+    private var erasing = false
+    private var eraseRunOpen = false
+
     /** The Spotlight on screen; null after any input. */
     val spotlight: Spotlight? get() = stepHints.spotlight
 
@@ -127,10 +131,28 @@ class QueensBoardState(
         }
     }
 
+    /** The swipe's first cell decides its mode: on a cross it erases, anywhere else it paints. */
+    fun onDragStart(idx: Int) {
+        val current = session
+        erasing = idx in 0 until current.puzzle.cellCount && current.markAt(Cell(idx)) != null &&
+            Cell(idx) !in current.queens
+        eraseRunOpen = false
+        onDragCell(idx)
+    }
+
+    fun onDragEnd() {
+        erasing = false
+        eraseRunOpen = false
+    }
+
     fun onDragCell(idx: Int) {
         val current = session
         if (current.isComplete || idx !in 0 until current.puzzle.cellCount) return
         val cell = Cell(idx)
+        if (erasing) {
+            eraseCross(current, cell)
+            return
+        }
         // §5.1 idempotence: no change over a queen or any existing mark (no flicker). A10: the
         // Spotlight clears.
         if (cell in current.queens.toSet() || current.markAt(cell) != null) {
@@ -139,6 +161,17 @@ class QueensBoardState(
         }
         clearHint()
         commit(current.withCrossToggled(cell, now()))
+    }
+
+    private fun eraseCross(current: QueensSession, cell: Cell) {
+        val next = current.withCrossErased(cell, eraseRunOpen, now())
+        if (next == current) {
+            stepHints.inputMade()
+            return
+        }
+        clearHint()
+        eraseRunOpen = true
+        commit(next)
     }
 
     /** A12: one command reverted; its auto-fill side effects revert with it. */
