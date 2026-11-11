@@ -53,6 +53,7 @@ internal class QueensStepGame(
         is QueensCommand.PlaceQueen -> command.cell
         is QueensCommand.RemoveQueen -> command.cell
         is QueensCommand.ToggleCross -> command.cell
+        is QueensCommand.EraseCrosses -> null
         is QueensCommand.Clear -> null
     }
 

@@ -121,7 +121,7 @@ private fun QueensPlayBoardContent(
                         tracedCell = cell
                         pressedCell = cell
                         haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        state.onDragCell(cell.first * model.n + cell.second)
+                        state.onDragStart(cell.first * model.n + cell.second)
                     },
                     onDrag = { change, _ ->
                         val cell = cellOf(change.position.x, change.position.y, size.width.toFloat())
@@ -133,10 +133,12 @@ private fun QueensPlayBoardContent(
                         }
                     },
                     onDragEnd = {
+                        state.onDragEnd()
                         tracedCell = null
                         pressedCell = null
                     },
                     onDragCancel = {
+                        state.onDragEnd()
                         tracedCell = null
                         pressedCell = null
                     },
