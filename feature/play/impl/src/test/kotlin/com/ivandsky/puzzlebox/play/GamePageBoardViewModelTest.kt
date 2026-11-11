@@ -62,10 +62,13 @@ class GamePageBoardViewModelTest {
     private fun entry(name: String) =
         LeaderboardEntry(uid = name, displayName = name, puzzleRef = "alpha/$today/1", timeMs = 10_000L, hints = 0, completedAtMs = 0L)
 
+    /** Today's board as these names in order, instead of the one row of the day's own name. */
+    private var standings: List<String>? = null
+
     private val repository = object : LeaderboardRepository {
         override fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?> {
-            val name = if (board.day == yesterday) "Yest1" else "Today1"
-            return flowOf(LeaderboardSnapshot(board, listOf(entry(name))))
+            val names = standings ?: listOf(if (board.day == yesterday) "Yest1" else "Today1")
+            return flowOf(LeaderboardSnapshot(board, names.map { entry(it) }))
         }
 
         override suspend fun submit(entry: LeaderboardEntry): SubmitResult = error("never submitted")
@@ -156,6 +159,29 @@ class GamePageBoardViewModelTest {
         settle()
         assertEquals(BoardDay.Yesterday, viewModel.state.value.day)
         assertEquals(DailyBoardState.Ranked(listOf(row("Yest1"))), viewModel.state.value.board)
+    }
+
+    @Test
+    fun `a board past the top five pins the players own row under them`() {
+        standings = listOf("A", "B", "C", "D", "E", "F", "me")
+        viewModel.state.launchIn(screen)
+        settle()
+
+        val board = viewModel.state.value.board as DailyBoardState.Ranked
+        assertEquals(listOf("A", "B", "C", "D", "E"), board.rows.map { it.name })
+        assertEquals(7, board.pinned?.rank)
+        assertTrue(board.pinned?.isSelf == true)
+    }
+
+    @Test
+    fun `a player inside the top five is not pinned`() {
+        standings = listOf("A", "me", "C")
+        viewModel.state.launchIn(screen)
+        settle()
+
+        val board = viewModel.state.value.board as DailyBoardState.Ranked
+        assertEquals(listOf("A", "me", "C"), board.rows.map { it.name })
+        assertEquals(null, board.pinned)
     }
 
     @Test

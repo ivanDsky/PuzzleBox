@@ -12,7 +12,6 @@ import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
 import com.ivandsky.puzzlebox.gameui.board.toDailyBoardState
@@ -49,7 +48,7 @@ internal data class GamePageBoardState(
 
 /**
  * One game's board on its page: today's or yesterday's, read through [leaderboard] so every
- * identity change restarts it, and sliced by [PlayTimes.Board]'s own top rule.
+ * identity change restarts it, and cut to the top rows with the player's own row pinned under them.
  * Sign-in goes through one [BoardSignInHolder], so the page's board signs in without leaving.
  * A non-null [linkedIn] adds the day's LinkedIn ghosts; its collection on the chosen day is the only thing that
  * syncs that day, so the board asks LinkedIn nothing for a day nobody picked, and null touches nothing of LinkedIn.
@@ -125,23 +124,19 @@ internal class GamePageBoardViewModel(
     private fun ghostsOf(view: LinkedInDayView?): List<GhostRowModel> =
         (view?.board as? LinkedInBoardView.Shown)?.ghosts.orEmpty().map { GhostRowModel(it.name, it.timeMs, it.hintFree) }
 
+    /** The page's board: the first [TOP_ROWS] rows, with the player's own row pinned under them when it ranks lower. */
     private fun stateOf(day: BoardDay, board: TodayLeaderboard): GamePageBoardState {
         val drawn = board.toDailyBoardState()
-        val ranked = (drawn as? DailyBoardState.Ranked)?.rows?.let { rows ->
-            PlayTimes.Board(rows.map { PlayTimeRow(it.rank, it.name, it.timeMs, it.hints, it.isSelf) }, solved = false)
-        } ?: return GamePageBoardState(day = day, board = drawn)
+        if (drawn !is DailyBoardState.Ranked) return GamePageBoardState(day = day, board = drawn)
+        val own = drawn.rows.indexOfFirst { it.isSelf }
         return GamePageBoardState(
             day = day,
-            board = DailyBoardState.Ranked(
-                ranked.head.map { it.toRow() },
-                pinned = ranked.pinned?.toRow(),
-            ),
+            board = drawn.copy(rows = drawn.rows.take(TOP_ROWS), pinned = if (own < TOP_ROWS) null else drawn.rows[own]),
         )
     }
 
-    private fun PlayTimeRow.toRow() = DailyBoardRowModel(rank, name, timeMs, hints, isSelf = you)
-
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
+        const val TOP_ROWS = 5
     }
 }

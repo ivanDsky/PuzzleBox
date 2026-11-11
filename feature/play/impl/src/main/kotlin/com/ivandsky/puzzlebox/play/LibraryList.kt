@@ -22,7 +22,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
@@ -71,10 +73,11 @@ internal fun LibraryList(
 ) {
     val phone = layout == PlayLayout.SinglePane
     val reselect = LocalTabReselect.current
+    // Only the list on screen glides: a tab change already snaps the other one back to its top.
+    val duelsShown by rememberUpdatedState(duels != null && tab == GamesTab.Duels)
     LaunchedEffect(reselect, scroll, duelsScroll) {
         reselect.collect {
-            scroll.animateScrollTo(0)
-            duelsScroll.requestScrollToItem(0)
+            if (duelsShown) duelsScroll.animateScrollToItem(0) else scroll.animateScrollTo(0)
         }
     }
     if (duels != null) {
