@@ -13,7 +13,7 @@ import com.ivandsky.puzzlebox.profile.settings.SettingsRoute
  * Profile's route (pushed on the current tab) and the pages it opens. [onBack] is the back
  * icon of Profile and Settings and closes the LinkedIn login; [onOpenSettings] is Profile's gear.
  * Settings uses [onOpenCatalog], the design-system catalog, an app-owned deep page.
- * [onOpenLinkedInLogin] opens the LinkedIn login; null hides Settings' LinkedIn section.
+ * [onOpenLinkedInLogin] opens the LinkedIn login; null hides Profile's LinkedIn row.
  */
 fun EntryProviderScope<NavKey>.profileEntry(
     onOpenCatalog: () -> Unit,
@@ -22,10 +22,10 @@ fun EntryProviderScope<NavKey>.profileEntry(
     onOpenLinkedInLogin: (() -> Unit)? = null,
 ) {
     entry<ProfileKey> {
-        ProfileRoute(onBack = onBack, onOpenSettings = onOpenSettings)
+        ProfileRoute(onBack = onBack, onOpenSettings = onOpenSettings, onConnectLinkedIn = onOpenLinkedInLogin)
     }
     entry<SettingsKey> {
-        SettingsRoute(onBack = onBack, onOpenCatalog = onOpenCatalog, onConnectLinkedIn = onOpenLinkedInLogin)
+        SettingsRoute(onBack = onBack, onOpenCatalog = onOpenCatalog)
     }
     entry<LinkedInLoginKey> {
         LinkedInLoginRoute(onDone = onBack)

@@ -117,4 +117,14 @@ class SettingsScreenTest {
 
         assertEquals(1, backClicks)
     }
+
+    @Test
+    fun `settings carries no LinkedIn block`() {
+        setContent()
+
+        composeRule.onNodeWithTag("settings.linkedin.section").assertDoesNotExist()
+        composeRule.onNodeWithTag("settings.linkedin").assertDoesNotExist()
+        composeRule.onNodeWithText("LinkedIn").assertDoesNotExist()
+        composeRule.onNodeWithText("Connect").assertDoesNotExist()
+    }
 }

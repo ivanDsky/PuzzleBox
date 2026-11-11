@@ -51,7 +51,7 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  * hides what is owned elsewhere, the game page draws its board, the tablet times card signs
  * in in place, and Profile has its own back and a gear to Settings.
  *
- * [linkedIn] turns on the LinkedIn entry points (the game page's reconnect and Settings'
+ * [linkedIn] turns on the LinkedIn entry points (the game page's reconnect and Profile's
  * connect), both opening [LinkedInLoginKey]; off, those entries stay hidden.
  */
 internal fun puzzleBoxEntryProvider(

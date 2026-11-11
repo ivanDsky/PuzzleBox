@@ -3,33 +3,28 @@ package com.ivandsky.puzzlebox.app.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextAlign
-import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.profile.ProfileAvatar
 import com.ivandsky.puzzlebox.profile.ProfileHeader
+import com.ivandsky.puzzlebox.profile.accounts.AccountsSection
 
 /**
  * Profile (A20): the top bar (back icon at the left, [onOpenSettings] gear at the right),
- * then the header (avatar, name and "Playing since") and the account: Google sign-in, or
- * the account line with Sign out.
+ * then the header (avatar, name and "Playing since") and the Accounts card: the Google row, and the
+ * LinkedIn row when [onConnectLinkedIn] is given (the feature is on). [nowMs] phrases the LinkedIn update time.
  */
 @Composable
 internal fun ProfileContent(
@@ -38,7 +33,11 @@ internal fun ProfileContent(
     onSignOut: () -> Unit,
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
+    nowMs: Long,
     modifier: Modifier = Modifier,
+    onConnectLinkedIn: (() -> Unit)? = null,
+    onResumeLinkedIn: () -> Unit = {},
+    onDisconnectLinkedIn: () -> Unit = {},
 ) {
     val account = state.account
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -68,10 +67,16 @@ internal fun ProfileContent(
                     )
                 },
             )
-            when (account) {
-                is ProfileUiState.Account.SignedOut -> SignedOutSection(account, onSignIn)
-                is ProfileUiState.Account.SignedIn -> SignedInSection(onSignOut)
-            }
+            AccountsSection(
+                account = account,
+                linkedIn = state.linkedIn,
+                nowMs = nowMs,
+                onSignIn = onSignIn,
+                onSignOut = onSignOut,
+                onConnectLinkedIn = onConnectLinkedIn,
+                onResumeLinkedIn = onResumeLinkedIn,
+                onDisconnectLinkedIn = onDisconnectLinkedIn,
+            )
         }
     }
 }
@@ -100,47 +105,4 @@ private fun ProfileTopBar(onBack: () -> Unit, onOpenSettings: () -> Unit) {
             }
         },
     )
-}
-
-@Composable
-private fun SignedOutSection(account: ProfileUiState.Account.SignedOut, onSignIn: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxWidth().testTag("profile-signed-out"),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        Text(
-            text = "Sign in with Google to put your times on the leaderboards.",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        Button(onClick = onSignIn, enabled = !account.signingIn) {
-            Text(if (account.signingIn) "Signing in…" else "Sign in with Google")
-        }
-        account.signInMessage?.let { message ->
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                textAlign = TextAlign.Center,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SignedInSection(onSignOut: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().testTag("profile-signed-in"),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = "Signed in with Google",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.weight(1f),
-        )
-        AppTextButton(text = "Sign out", onClick = onSignOut)
-    }
 }
