@@ -114,6 +114,9 @@ internal const val IN_PROGRESS_BADGE_DESCRIPTION = "Game in progress"
 /** Test tag of a badge dot: `<tab tag>.badge`. */
 internal fun badgeTag(destination: TopLevelDestination): String = "${destination.tag}.badge"
 
+/** Test tag of a tab's icon: `<tab tag>.icon`. */
+internal fun iconTag(destination: TopLevelDestination): String = "${destination.tag}.icon"
+
 /** The dot shows on a badged tab only while another tab is selected. */
 private fun showsBadge(destination: TopLevelDestination, selected: NavKey, badged: Set<NavKey>): Boolean =
     destination.key in badged && destination.key != selected
@@ -122,6 +125,7 @@ private fun showsBadge(destination: TopLevelDestination, selected: NavKey, badge
 @Composable
 private fun TabIcon(destination: TopLevelDestination, selected: Boolean, badged: Boolean, modifier: Modifier = Modifier) {
     val icon = if (selected) destination.selectedIcon() else destination.icon()
+    val tagged = modifier.testTag(iconTag(destination))
     if (badged) {
         BadgedBox(
             badge = {
@@ -133,10 +137,10 @@ private fun TabIcon(destination: TopLevelDestination, selected: Boolean, badged:
                 )
             },
         ) {
-            Icon(icon, contentDescription = null, modifier = modifier)
+            Icon(icon, contentDescription = null, modifier = tagged)
         }
     } else {
-        Icon(icon, contentDescription = null, modifier = modifier)
+        Icon(icon, contentDescription = null, modifier = tagged)
     }
 }
 

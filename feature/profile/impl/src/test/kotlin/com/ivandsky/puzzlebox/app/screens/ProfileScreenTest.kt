@@ -2,6 +2,12 @@ package com.ivandsky.puzzlebox.app.screens
 
 import android.app.Application
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import com.ivandsky.puzzlebox.profile.settings.SettingsScreen
+import com.ivandsky.puzzlebox.profile.settings.SettingsUiState
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.Modifier
@@ -376,6 +382,42 @@ class ProfileScreenTest {
         setContent(stateOf(signedIn), slim = true, onBack = {})
 
         composeRule.onNodeWithTag("profile.settings").assertDoesNotExist()
+    }
+
+    @Test
+    fun `under its top bar profile's content starts where settings' does`() {
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                Row(Modifier.fillMaxSize()) {
+                    Box(Modifier.weight(1f).fillMaxHeight()) {
+                        ProfileContent(
+                            state = stateOf(signedIn),
+                            onSignIn = {},
+                            onSignOut = {},
+                            onSetThemeMode = {},
+                            onOpenHistory = {},
+                            onSelectGame = {},
+                            onOpenCatalog = null,
+                            slim = true,
+                            onBack = {},
+                            onOpenSettings = {},
+                        )
+                    }
+                    Box(Modifier.weight(1f).fillMaxHeight()) {
+                        SettingsScreen(
+                            state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0"),
+                            onSetThemeMode = {},
+                            onBack = {},
+                            onOpenCatalog = null,
+                        )
+                    }
+                }
+            }
+        }
+
+        val profileTop = composeRule.onNodeWithTag("profile.header").getUnclippedBoundsInRoot().top
+        val settingsTop = composeRule.onNodeWithTag("settings.appearance").getUnclippedBoundsInRoot().top
+        assertEquals("profile's content top vs settings' under the same bar", settingsTop, profileTop)
     }
 
 }

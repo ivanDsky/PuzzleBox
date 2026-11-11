@@ -86,11 +86,11 @@ private fun AvatarButton(identity: Identity?, onClick: () -> Unit, size: ShellAv
             Icon(
                 imageVector = PuzzleIcons.Profile,
                 contentDescription = null,
-                modifier = Modifier.size(size.icon),
+                modifier = Modifier.size(size.icon).testTag("shell.avatar.image"),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         } else {
-            PlayerAvatar(name = identity.displayName, photoUrl = identity.photoUrl, size = size.photo)
+            PlayerAvatar(name = identity.displayName, photoUrl = identity.photoUrl, size = size.photo, modifier = Modifier.testTag("shell.avatar.image"))
         }
     }
 }

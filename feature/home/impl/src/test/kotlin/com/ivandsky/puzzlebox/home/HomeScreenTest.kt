@@ -4,6 +4,8 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
@@ -426,6 +428,14 @@ class HomeScreenTest {
         setContent(HomeLayout.SinglePane, summaries = HomeSummaries(null, {}, { 1 }))
 
         composeRule.onNodeWithTag("summary.duels").performScrollTo().assert(hasText("1 duel needs you"))
+    }
+
+    @Test
+    fun `rank and duels rows are 56dp tall`() {
+        setContent(HomeLayout.SinglePane, rank = zipRank, summaries = HomeSummaries({}, {}, { 2 }))
+
+        composeRule.onNodeWithTag("summary.leaderboard").performScrollTo().assertHeightIsEqualTo(56.dp)
+        composeRule.onNodeWithTag("summary.duels").performScrollTo().assertHeightIsEqualTo(56.dp)
     }
 
     @Test

@@ -21,6 +21,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.isEnabled
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsDisplayed
@@ -633,6 +636,8 @@ class ShellRobot internal constructor(
         with(density) {
             assertTrue("avatar target is ${target.width.toDp()} x ${target.height.toDp()}, under 48dp (state $state)", target.width.toDp().value >= 47.5f && target.height.toDp().value >= 47.5f)
         }
+        // The drawn avatar is 36dp, whether it is the photo or the Profile icon.
+        rule.onNodeWithTag(AVATAR_IMAGE, useUnmergedTree = true).assertWidthIsEqualTo(36.dp).assertHeightIsEqualTo(36.dp)
         val blockCentre = (tabs.first().top + tabs.last().bottom) / 2
         val offDp = with(density) { (blockCentre - window.height / 2).toDp().value }
         assertTrue("tabs' block is ${offDp}dp off the window's centre: $tabs in $window (state $state)", kotlin.math.abs(offDp) <= RAIL_CENTRE_SLACK_DP)
@@ -681,6 +686,7 @@ class ShellRobot internal constructor(
         const val CLOCK_BUDGET_MS = 60_000L
         const val RAIL_CENTRE_SLACK_DP = 2.5f
         const val AVATAR = "shell.avatar"
+        const val AVATAR_IMAGE = "shell.avatar.image"
         const val PROFILE_GEAR = "profile.settings"
         const val GAME_ROUTE = "route.game"
         const val ZIP_SIZE = 5
