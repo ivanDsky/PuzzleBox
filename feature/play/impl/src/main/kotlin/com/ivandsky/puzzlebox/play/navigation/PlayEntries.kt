@@ -94,7 +94,7 @@ fun EntryProviderScope<NavKey>.playEntry(
             onDone = { navigator.pop() },
         )
     }
-    entry<GameKey> { key -> GameEntry(key, layout, navigator) }
+    entry<GameKey> { key -> GameEntry(key, layout, navigator, linkedIn = onReconnectLinkedIn != null) }
     entry<MatchLegKey> { key ->
         GameRoute(
             key = key,
@@ -115,8 +115,9 @@ fun EntryProviderScope<NavKey>.playEntry(
  * ([PlaySessionStore.replay]) and replaces the result with its game; Next replaces it
  * with another game's today (17); Up and Done pop. Today's board block is a
  * "Full board" row that hands back the result's game through [onOpenBoard].
+ * [linkedIn] adds the day's LinkedIn connections to the rank row.
  */
-fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator, onOpenBoard: (GameId) -> Unit) {
+fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator, onOpenBoard: (GameId) -> Unit, linkedIn: Boolean = false) {
     entry<ResultKey> { key ->
         val store = koinInject<PlaySessionStore>()
         ResultRoute(
@@ -128,6 +129,7 @@ fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator, onOpenBoard: (G
             onNext = { game -> navigator.replaceTop(GameKey(game.value)) },
             onDone = { navigator.pop() },
             onOpenBoard = onOpenBoard,
+            linkedIn = linkedIn,
         )
     }
 }

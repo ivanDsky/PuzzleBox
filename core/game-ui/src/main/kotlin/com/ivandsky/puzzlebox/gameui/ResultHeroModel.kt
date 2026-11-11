@@ -29,9 +29,12 @@ internal data class HeroSpread(
     val description: String,
 )
 
-/** The rank row: a bold [value] and its [sub] line, or a sign-in prompt. */
+/**
+ * The rank row: a bold [value] and its [sub] line, or a sign-in prompt. A [connections] line, when present, gives the
+ * place among players and LinkedIn connections under the PuzzleBox rank.
+ */
 internal sealed interface HeroRank {
-    data class Place(val value: String, val sub: String) : HeroRank
+    data class Place(val value: String, val sub: String, val connections: String? = null) : HeroRank
     data class SignIn(val text: String) : HeroRank
 }
 
@@ -157,5 +160,6 @@ private fun rank(rank: ResultRank): HeroRank? = when (rank) {
     is ResultRank.Ranked -> HeroRank.Place(
         value = heroRankValue(rank.position, rank.count, rank.topPercent),
         sub = heroRankSub(rank.count),
+        connections = rank.withConnections?.let { heroRankConnections(it.position, it.count) },
     )
 }

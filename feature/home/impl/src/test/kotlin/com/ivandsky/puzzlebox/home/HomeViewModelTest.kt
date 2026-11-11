@@ -129,6 +129,7 @@ class HomeViewModelTest {
             observeLatestSolvedToday = ObserveLatestSolvedToday(completions, calendar, registry),
             observeResultRank = ObserveResultRank(
                 ObserveLeaderboard(identity, FakeLeaderboardRepository(boards), registry, calendar),
+                registry,
             ),
             savedState = savedState,
         )

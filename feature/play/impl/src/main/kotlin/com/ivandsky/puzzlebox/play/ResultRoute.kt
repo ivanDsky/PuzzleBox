@@ -45,7 +45,7 @@ import org.koin.core.parameter.parametersOf
  *
  * Today's official result draws one "Full board" row (`summary.leaderboard`) that hands back this
  * result's game through [onOpenBoard]; the board has one owner, the game page. The hero's rank row
- * is the one sign-in action.
+ * is the one sign-in action. With [linkedIn] on, that rank also gives the place among the player's LinkedIn connections.
  */
 @Composable
 fun ResultRoute(
@@ -54,9 +54,10 @@ fun ResultRoute(
     onNext: (GameId) -> Unit,
     onDone: () -> Unit,
     onOpenBoard: (GameId) -> Unit,
+    linkedIn: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel: ResultViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
+    val viewModel: ResultViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key, linkedIn) })
     val state by viewModel.state.collectAsStateWithLifecycle()
     val primary by viewModel.primary.collectAsStateWithLifecycle()
     val context = LocalContext.current

@@ -119,3 +119,16 @@ internal fun heroRankValue(position: Int, count: Int, topPercent: Int): String =
 /** The rank row's sub line: "of players today", naming the board's size for a place. */
 internal fun heroRankSub(count: Int): String =
     if (count >= RANK_PERCENT_MIN_PLAYERS) "of players today" else "of $count players today"
+
+/** The rank row's line for a place among players and LinkedIn connections: "3rd of 12 with connections". */
+internal fun heroRankConnections(position: Int, count: Int): String = "${ordinal(position)} of $count with connections"
+
+private fun ordinal(n: Int): String {
+    val suffix = if (n % 100 in 11..13) "th" else when (n % 10) {
+        1 -> "st"
+        2 -> "nd"
+        3 -> "rd"
+        else -> "th"
+    }
+    return "$n$suffix"
+}

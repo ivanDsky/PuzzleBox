@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.domain.ResultInsights
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.nextUnsolved
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -94,6 +95,7 @@ class ResultViewModel internal constructor(
     games: GameRegistry,
     insights: ObserveResultInsights,
     rank: ObserveResultRank,
+    linkedIn: ObserveLinkedInDay?,
     private val board: FriendPuzzleBoard,
 ) : ViewModel() {
 
@@ -155,9 +157,12 @@ class ResultViewModel internal constructor(
         insights(slot.gameId, slot.day, BestScore(key.timeMs, key.hintsUsed), counted = today)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
-    /** The hero page's rank on today's board; hidden for a replay, which has no board to read. */
+    /**
+     * The hero page's rank on today's board; hidden for a replay, which has no board to read. With [linkedIn] on, the
+     * day's connections already on the phone fold into it; the day is only observed here, never fetched.
+     */
     val heroRank: StateFlow<ResultRank> =
-        (if (today) rank(slot.gameId, slot.day) else flowOf(ResultRank.Hidden))
+        (if (today) rank(slot.gameId, slot.day, connections = linkedIn?.invoke(slot.gameId, slot.day)) else flowOf(ResultRank.Hidden))
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ResultRank.Hidden)
 
     /** The rank row's Google button: [activityContext] hosts Google's account picker, and is not kept. */

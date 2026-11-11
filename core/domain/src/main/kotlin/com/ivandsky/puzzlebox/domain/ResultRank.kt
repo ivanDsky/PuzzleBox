@@ -8,6 +8,21 @@ sealed interface ResultRank {
     /** Signed out: the row offers sign in. */
     data object SignedOut : ResultRank
 
-    /** 1-based [position] among [count] entries; [topPercent] is `max(1, ceil(position / count * 100))`. */
-    data class Ranked(val position: Int, val count: Int, val topPercent: Int) : ResultRank
+    /**
+     * 1-based [position] among [count] entries; [topPercent] is `max(1, ceil(position / count * 100))`.
+     * [withConnections] is the player's place once the LinkedIn connections who played the day join the board; null
+     * when none of them has a time, so the row is exactly the PuzzleBox rank alone.
+     */
+    data class Ranked(
+        val position: Int,
+        val count: Int,
+        val topPercent: Int,
+        val withConnections: WithConnections? = null,
+    ) : ResultRank
+
+    /**
+     * The 1-based [position] among [count] players and connections with a time. Equal scores share a place, so the
+     * place is one more than the entries strictly ahead, as the board draws it.
+     */
+    data class WithConnections(val position: Int, val count: Int)
 }

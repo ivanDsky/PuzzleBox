@@ -89,10 +89,16 @@ val playModule = module {
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
         )
     }
-    viewModel { (slot: PlaySlot) -> PlayStatsViewModel(slot, get(), get(), get(), get(), get(), get(), get()) }
-    viewModel { (key: ResultKey) ->
+    viewModel { params ->
+        PlayStatsViewModel(
+            params.get<PlaySlot>(), get(), get(), get(), get(), get(), get(), get(),
+            linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
+        )
+    }
+    // The flag-as-parameter rule again: with it off the result never touches LinkedIn.
+    viewModel { params ->
         ResultViewModel(
-            key = key,
+            key = params.get<ResultKey>(),
             store = get(),
             todaySet = get(),
             calendar = get(),
@@ -102,6 +108,7 @@ val playModule = module {
             games = get(),
             insights = get(),
             rank = get(),
+            linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
             board = get(),
         )
     }
