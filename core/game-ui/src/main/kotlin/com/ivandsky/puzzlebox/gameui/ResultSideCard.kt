@@ -219,12 +219,21 @@ private fun RankRow(rank: HeroRank, onSignIn: (() -> Unit)?, modifier: Modifier)
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                 )
-                Text(
-                    text = rank.sub,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
+                Column(Modifier.weight(1f).padding(vertical = Spacing.sm)) {
+                    Text(
+                        text = rank.sub,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (rank.connections != null) {
+                        Text(
+                            text = rank.connections,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.testTag("result.side.rank.connections"),
+                        )
+                    }
+                }
             }
             is HeroRank.SignIn -> {
                 Text(

@@ -156,6 +156,26 @@ class ResultSideCardTest {
     }
 
     @Test
+    fun `connections show their combined place under the PuzzleBox rank`() {
+        val model = heroSampleModel(
+            rank = ResultRank.Ranked(position = 14, count = 212, topPercent = 7, withConnections = ResultRank.WithConnections(3, 12)),
+        )
+        setContent(model)
+
+        val rank = model.rank as HeroRank.Place
+        composeRule.onAllNodesWithText(rank.value).assertCountEquals(1)
+        composeRule.onAllNodesWithText(rank.sub).assertCountEquals(1)
+        composeRule.onNodeWithTag("result.side.rank.connections").assertIsDisplayed().assertTextEquals("3rd of 12 with connections")
+    }
+
+    @Test
+    fun `without connections the rank row has no connections line`() {
+        setContent(heroSampleModel(rank = ResultRank.Ranked(position = 14, count = 212, topPercent = 7)))
+
+        composeRule.onNodeWithTag("result.side.rank.connections").assertDoesNotExist()
+    }
+
+    @Test
     fun `a signed out player gets the prompt and a Sign in button that calls back`() {
         val model = heroSampleModel(rank = ResultRank.SignedOut)
         setContent(model)

@@ -204,7 +204,7 @@ class RealGamesResultRouteTest {
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }
                     single<GoogleIdTokenProvider> { DismissedGoogleIdTokenProvider }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
-                    factory { ObserveResultRank(get()) }
+                    factory { ObserveResultRank(get(), get()) }
                     factory { ObserveResultInsights(get(), get(), get(), get()) }
                     // Tutorial seen: this path is about the result; the lessons have their own tests.
                     single<UserPreferencesRepository> {

@@ -76,5 +76,16 @@ internal sealed interface PlayTimes {
     }
 }
 
-/** One posted time: its board [rank] (1-based), who, its [hints], and whether it is the player's. */
-internal data class PlayTimeRow(val rank: Int, val name: String, val timeMs: Long, val hints: Int, val you: Boolean)
+/**
+ * One time: its [rank] (1-based; the combined place when connections are in), who, its [hints], and whether it is the
+ * player's. A [ghost] is a LinkedIn connection's time; its [hints] only say hinted (1) or not (0), since LinkedIn gives
+ * no count, so a hinted one shows its time alone.
+ */
+internal data class PlayTimeRow(
+    val rank: Int,
+    val name: String,
+    val timeMs: Long,
+    val hints: Int,
+    val you: Boolean,
+    val ghost: Boolean = false,
+)

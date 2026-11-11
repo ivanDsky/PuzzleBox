@@ -4,6 +4,10 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.linkedin.LinkState
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.ComputeStreak
@@ -19,6 +23,7 @@ import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -26,6 +31,10 @@ import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
+import com.ivandsky.puzzlebox.gameui.board.rankWithGhosts
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
@@ -34,6 +43,7 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.friend.signedOutBoard
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -89,6 +99,7 @@ class ResultViewModelTest {
     }
     private val completions = FakeCompletionRepository()
     private val leaderboard = FakeLeaderboardRepository()
+    private val linkedInDays = FakeLinkedInDays()
     private val dispatcher = main.testDispatcher
     private val calendar = FakeGameCalendar(day)
     private val saved = FakeSavedPlayRepository()
@@ -136,6 +147,7 @@ class ResultViewModelTest {
         ui: GamePlayRegistry = fakes.registry,
         store: PlaySessionStore = this.store,
         identity: Identity? = null,
+        linkedIn: Boolean = false,
     ): ResultViewModel {
         val history = ObserveGameHistory(games, daily, completions)
         val observeBoard = ObserveLeaderboard(FakeIdentityService(initial = identity), leaderboard, games, calendar)
@@ -149,7 +161,8 @@ class ResultViewModelTest {
             ui = ui,
             games = games,
             insights = ObserveResultInsights(games, history, ComputeStreak(GetPuzzleDay(games, clock)), GetPuzzleDay(games, clock)),
-            rank = ObserveResultRank(observeBoard),
+            rank = ObserveResultRank(observeBoard, games),
+            linkedIn = if (linkedIn) ObserveLinkedInDay(linkedInDays, games) else null,
             board = signedOutBoard(),
         )
     }
@@ -341,6 +354,98 @@ class ResultViewModelTest {
         leaderboard.setEntries(board, listOf(entry("a", 30), entry(ME.uid, 40)))
         val vm = vm(identity = ME).heroObserved()
         assertEquals(ResultRank.Ranked(position = 2, count = 2, topPercent = 100), vm.heroRank.value)
+    }
+
+    private fun ghost(name: String, seconds: Int?) =
+        LinkedInGhost("ref-$name", name, seconds?.let { it * 1_000L }, hintFree = true, flawless = false)
+
+    /** The slot day's connections board as read from LinkedIn and held on the phone. */
+    private fun cachedConnections(vararg ghosts: LinkedInGhost) = linkedInDays.emit(
+        alpha,
+        day,
+        LinkedInDayData(
+            link = LinkState.Connected("me"),
+            delta = 0,
+            boardInWindow = true,
+            inFlight = false,
+            lastSync = null,
+            own = LinkedInOwnState.Unknown,
+            ghosts = ghosts.toList(),
+            boardFetchedAtMs = 1L,
+        ),
+    )
+
+    private fun playersAt(vararg seconds: Pair<String, Int>) =
+        leaderboard.setEntries(LeaderboardRef(alpha.value, day), seconds.map { (uid, s) -> entry(uid, s) })
+
+    @Test
+    fun `cached connections give the rank a combined place and keep the PuzzleBox rank`() {
+        playersAt("a" to 30, ME.uid to 40, "b" to 50)
+        cachedConnections(ghost("Ada", 20), ghost("Bo", 35), ghost("Cy", 45))
+
+        val rank = vm(identity = ME, linkedIn = true).heroObserved().heroRank.value
+
+        assertEquals(
+            ResultRank.Ranked(
+                position = 2, count = 3, topPercent = 67,
+                withConnections = ResultRank.WithConnections(position = 4, count = 6),
+            ),
+            rank,
+        )
+    }
+
+    @Test
+    fun `the combined place is the one the board draws for the player`() {
+        playersAt("a" to 30, "b" to 40, ME.uid to 40, "c" to 50)
+        cachedConnections(ghost("Ada", 20), ghost("Bo", 40), ghost("Cy", 45), ghost("Di", null))
+
+        val rows = listOf("a" to 30, "b" to 40, ME.uid to 40, "c" to 50)
+            .mapIndexed { i, (uid, s) -> DailyBoardRowModel(i + 1, uid, s * 1_000L, 0, uid == ME.uid) }
+        val ghosts = listOf(ghost("Ada", 20), ghost("Bo", 40), ghost("Cy", 45), ghost("Di", null))
+            .map { GhostRowModel(it.memberRef, it.name, it.timeMs, it.hintFree) }
+        val onBoard = rankWithGhosts(rows, ghosts, fakes.games.rankOrderOf(alpha))
+            .filterIsInstance<DailyBoardLine.Real>().first { it.row.isSelf }.place
+
+        val rank = vm(identity = ME, linkedIn = true).heroObserved().heroRank.value as ResultRank.Ranked
+
+        assertEquals(onBoard, rank.withConnections?.position)
+    }
+
+    @Test
+    fun `a day with no cached connections ranks as before`() {
+        playersAt("a" to 30, ME.uid to 40)
+
+        val rank = vm(identity = ME, linkedIn = true).heroObserved().heroRank.value
+
+        assertEquals(ResultRank.Ranked(position = 2, count = 2, topPercent = 100), rank)
+    }
+
+    @Test
+    fun `with LinkedIn off cached connections are ignored`() {
+        playersAt("a" to 30, ME.uid to 40)
+        cachedConnections(ghost("Ada", 20))
+
+        val rank = vm(identity = ME, linkedIn = false).heroObserved().heroRank.value
+
+        assertEquals(ResultRank.Ranked(position = 2, count = 2, topPercent = 100), rank)
+    }
+
+    @Test
+    fun `the result rank never asks LinkedIn for anything`() {
+        playersAt("a" to 30, ME.uid to 40)
+        cachedConnections(ghost("Ada", 20))
+
+        vm(identity = ME, linkedIn = true).heroObserved()
+
+        assertTrue(linkedInDays.syncCalls.isEmpty())
+    }
+
+    @Test
+    fun `a replay shows no rank even with cached connections`() {
+        cachedConnections(ghost("Ada", 20))
+        val replay = key.copy(day = day.minusDays(1).toString())
+
+        assertEquals(ResultRank.Hidden, vm(replay, identity = ME, linkedIn = true).heroObserved().heroRank.value)
     }
 
     @Test

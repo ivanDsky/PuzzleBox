@@ -337,6 +337,31 @@ class ResultHeroCopyTest {
     }
 
     @Test
+    fun `connections add their combined place under the unchanged PuzzleBox rank`() {
+        val withConnections = ResultRank.Ranked(14, 212, 7, ResultRank.WithConnections(position = 3, count = 12))
+
+        assertEquals(
+            HeroRank.Place("Top 7%", "of players today", connections = "3rd of 12 with connections"),
+            model(facts(rank = withConnections)).rank,
+        )
+    }
+
+    @Test
+    fun `the connections place reads as an English ordinal`() {
+        fun line(position: Int) = (model(facts(rank = ResultRank.Ranked(14, 212, 7, ResultRank.WithConnections(position, 120)))).rank as HeroRank.Place).connections
+
+        assertEquals(
+            listOf("1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "22nd", "23rd", "101st", "111th").map { "$it of 120 with connections" },
+            listOf(1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 101, 111).map(::line),
+        )
+    }
+
+    @Test
+    fun `a rank without connections has no connections line`() {
+        assertNull((model(facts()).rank as HeroRank.Place).connections)
+    }
+
+    @Test
     fun `a replay hides the pill, streak and rank and keeps the spread`() {
         val model = model(facts(verdict = RecordVerdict.NewBest, replay = true))
 
