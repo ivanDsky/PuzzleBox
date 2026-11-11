@@ -78,6 +78,7 @@ class PlayStatsViewModel(
         rankOrder = registry[slot.gameId]?.score?.rankOrder ?: RankOrder.TimeThenHints,
         averageMs = null,
         times = PlayTimes.Loading,
+        linkedIn = linkedIn != null,
     )
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -132,7 +133,7 @@ class PlayStatsViewModel(
         val daily = slot as? PlaySlot.Daily
         val order = registry.rankOrderOf(slot.gameId)
         val board = snapshot.entries.mapIndexed { index, entry ->
-            DailyBoardRowModel(rank = index + 1, name = entry.displayName, timeMs = entry.timeMs, hints = entry.hints, isSelf = entry.uid == uid)
+            DailyBoardRowModel(rank = index + 1, name = entry.displayName, timeMs = entry.timeMs, hints = entry.hints, isSelf = entry.uid == uid, playerId = entry.uid)
         }
         return PlayTimes.Board(
             rows = rankWithLinkedIn(board, input.ghosts, input.you, order).timed(),
