@@ -10,11 +10,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import java.time.LocalDate
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -30,7 +32,7 @@ import org.robolectric.annotation.GraphicsMode
  * this one; the title opens the month, whose arrows page months, and folds it back to a
  * week. A day with plays filters the list to that day and the filter pill brings every
  * day back; later days and days with no plays never select. Drives [HistoryRoute] over a
- * real [HistoryViewModel]; tags only.
+ * real [HistoryViewModel]; tags and bounds only.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -151,6 +153,19 @@ class HistoryCalendarTest {
         waitWithout("history.calendar.grid")
         assertTrue(hasTag(dayTag(october)))
         assertFalse(hasTag(dayTag(LocalDate.of(2026, 10, 1))))
+    }
+
+    @Test
+    fun `month weeks sit one spacing step apart, so neighbouring day rings never touch`() {
+        setContent(listOf(HistoryTestSupport.entry(today)))
+        scrollTo(rowTag(today))
+        scrollTo("history.calendar.expand")
+        composeRule.onNodeWithTag("history.calendar.expand").performClick()
+        waitForTag("history.calendar.grid")
+
+        val week = composeRule.onNodeWithTag(dayTag(monday)).fetchSemanticsNode().boundsInRoot
+        val nextWeek = composeRule.onNodeWithTag(dayTag(monday.plusWeeks(1))).fetchSemanticsNode().boundsInRoot
+        assertEquals(with(composeRule.density) { Spacing.sm.toPx() }, nextWeek.top - week.bottom, 0.5f)
     }
 
     @Test
