@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.paddingFrom
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.LastBaseline
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
@@ -196,6 +198,7 @@ private fun StatTile(label: String, value: String, valueStyle: TextStyle, tag: S
         Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             text = value,
+            modifier = Modifier.paddingFrom(LastBaseline, before = VALUE_BASELINE),
             style = valueStyle,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
@@ -205,6 +208,9 @@ private fun StatTile(label: String, value: String, valueStyle: TextStyle, tag: S
 }
 
 private fun grouped(value: Int): String = NumberFormat.getIntegerInstance().format(value)
+
+// Value text sits this far below its tile content top, so Headline numbers and the Title date share one baseline.
+private val VALUE_BASELINE = 32.dp
 
 private const val NO_VALUE = "–"
 private val SINCE_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
