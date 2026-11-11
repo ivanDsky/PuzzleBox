@@ -5,6 +5,7 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.HomeRoute
+import com.ivandsky.puzzlebox.home.HomeDefaultTitle
 import com.ivandsky.puzzlebox.home.HomeSummaries
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.Navigator
@@ -23,11 +24,13 @@ fun EntryProviderScope<NavKey>.homeEntry(
     hideOwnedElsewhere: Boolean = false,
     summaries: HomeSummaries? = null,
     onOpenHistory: (() -> Unit)? = null,
+    title: String? = null,
 ) {
     entry<HomeKey> {
         HomeRoute(
             layout = layout,
             hideOwnedElsewhere = hideOwnedElsewhere,
+            title = title ?: HomeDefaultTitle,
             summaries = summaries,
             onOpenGame = { id -> navigator.pushOnce(GameKey(id.value)) },
             // A6: the account card is a tab switch, not a push. Home's stack is untouched,

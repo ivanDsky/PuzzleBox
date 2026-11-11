@@ -46,6 +46,7 @@ internal fun ListPane(
     onOpenProfile: () -> Unit,
     hideOwnedElsewhere: Boolean,
     summaries: HomeSummaries?,
+    title: String,
     modifier: Modifier = Modifier,
     onOpenUpdate: (String) -> Unit = {},
 ) {
@@ -60,7 +61,7 @@ internal fun ListPane(
             .verticalScroll(scroll),
     ) {
         LargeTopBar(
-            title = "PuzzleBox",
+            title = title,
             subtitle = state.puzzleDay.format(HEADER_DATE),
             actions = {
                 state.updateUrl?.let { url -> UpdatePill(onClick = { onOpenUpdate(url) }) }
@@ -130,3 +131,6 @@ private fun StaggeredItem(
 }
 
 private val HEADER_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d")
+
+/** Today's header title when the app names none: the brand. NavV2 passes the tab's label. */
+internal const val HomeDefaultTitle = "PuzzleBox"
