@@ -12,7 +12,7 @@ data class LinkedInDayData(
     val boardInWindow: Boolean,
     val inFlight: Boolean,
     /**
-     * This process only; null before the first sync of this day. Only Done, Offline and OverBudget are ever
+     * This process only; null before the first sync of this day. Only Done and Offline are ever
      * recorded: Paused and NotLinked come from [link].
      */
     val lastSync: LinkedInSync?,

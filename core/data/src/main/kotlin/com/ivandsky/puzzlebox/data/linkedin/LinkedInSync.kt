@@ -14,6 +14,4 @@ sealed interface LinkedInSync {
     data class Paused(val kind: LinkedInRead.Rejected.Kind) : LinkedInSync
 
     data object Offline : LinkedInSync
-
-    data object OverBudget : LinkedInSync
 }

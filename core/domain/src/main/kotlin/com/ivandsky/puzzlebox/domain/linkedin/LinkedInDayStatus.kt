@@ -12,7 +12,6 @@ sealed interface LinkedInDayStatus {
     data object Offline : LinkedInDayStatus
     data object SessionExpired : LinkedInDayStatus
     data class Paused(val kind: LinkedInRead.Rejected.Kind) : LinkedInDayStatus
-    data object OverBudget : LinkedInDayStatus
 
     /** Connected, with nothing to say yet. */
     data object Idle : LinkedInDayStatus
