@@ -28,9 +28,7 @@ import org.koin.compose.koinInject
 /**
  * The play feature's routes. [PlayKey] is the Play tab's games library: a day card's
  * action pushes that game's [GameKey] for today, or with the day for a past one picked on
- * the calendar (guarded against a double tap), so back returns to the library. [onOpenHistory] is unused since the library replaced the hub's
- * "Older puzzles" footer; it stays because the app's entry provider (in the app module)
- * still passes it. A [GameKey] on any stack draws its slot's live play: Up is
+ * the calendar (guarded against a double tap), so back returns to the library. A [GameKey] on any stack draws its slot's live play: Up is
  * the navigator's back, and solving replaces the board with its slot's result, so back
  * from there lands on the game's origin; [GameEntry] sends a finished day to its
  * result instead. The library's Enter code pushes that code's
@@ -43,24 +41,20 @@ import org.koin.compose.koinInject
  * is only carried here. A duel puzzle's [MatchLegKey] draws its leg's board; Up pops, and a
  * solve, a give up or a puzzle already taken replaces it with its [MatchLegResultKey]. The library
  * acts once on [libraryRequest]'s game page or section and hands it back through [onLibraryRequestTaken].
- * The game page shows its leaderboard with [showGameBoard] and a "Your history" row calling [onOpenGameHistory];
- * [signInInPlace] puts Google sign-in on a signed-out game's side-panel times card (off = Profile's note).
+ * The game page shows its leaderboard and a "Your history" row calling [onOpenGameHistory]; a signed-out
+ * game's side-panel times card carries Google sign-in.
  * A non-null [onReconnectLinkedIn] turns the LinkedIn lines on the game page's day card on and is what its Reconnect opens.
- * The defaults are the page without any of these.
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
     layout: PlayLayout,
-    onOpenHistory: () -> Unit,
+    onOpenGameHistory: () -> Unit,
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
     onOpenDuel: ((DuelKey) -> Unit)? = null,
     libraryRequest: () -> LibraryRequest? = { null },
     onLibraryRequestTaken: () -> Unit = {},
-    showGameBoard: Boolean = false,
-    onOpenGameHistory: (() -> Unit)? = null,
-    signInInPlace: Boolean = false,
     onReconnectLinkedIn: (() -> Unit)? = null,
 ) {
     entry<PlayKey> {
@@ -74,7 +68,6 @@ fun EntryProviderScope<NavKey>.playEntry(
             onOpenDuel = onOpenDuel,
             request = libraryRequest(),
             onRequestTaken = onLibraryRequestTaken,
-            showGameBoard = showGameBoard,
             onOpenGameHistory = onOpenGameHistory,
             linkedIn = onReconnectLinkedIn != null,
             onReconnectLinkedIn = onReconnectLinkedIn,
@@ -104,7 +97,7 @@ fun EntryProviderScope<NavKey>.playEntry(
             onDone = { navigator.pop() },
         )
     }
-    entry<GameKey> { key -> GameEntry(key, layout, navigator, signInInPlace) }
+    entry<GameKey> { key -> GameEntry(key, layout, navigator) }
     entry<MatchLegKey> { key ->
         GameRoute(
             key = key,
@@ -123,10 +116,10 @@ fun EntryProviderScope<NavKey>.playEntry(
 /**
  * A slot's result: "Play again" starts a fresh attempt of the same day explicitly
  * ([PlaySessionStore.replay]) and replaces the result with its game; Next replaces it
- * with another game's today (17); Up and Done pop. [onOpenBoard] turns today's board block into a
- * "Full board" row handing back the result's game; null keeps the board.
+ * with another game's today (17); Up and Done pop. Today's board block is a
+ * "Full board" row that hands back the result's game through [onOpenBoard].
  */
-fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator, onOpenBoard: ((GameId) -> Unit)? = null) {
+fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator, onOpenBoard: (GameId) -> Unit) {
     entry<ResultKey> { key ->
         val store = koinInject<PlaySessionStore>()
         ResultRoute(

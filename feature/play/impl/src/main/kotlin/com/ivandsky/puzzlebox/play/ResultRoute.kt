@@ -20,12 +20,9 @@ import com.ivandsky.puzzlebox.gameui.ResultHeroActions
 import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
-import com.ivandsky.puzzlebox.gameui.board.DailyBoard
-import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
 import com.ivandsky.puzzlebox.gameui.resultShareText
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.ResultKey
-import com.ivandsky.puzzlebox.play.friend.SignInPrompt
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -46,9 +43,9 @@ import org.koin.core.parameter.parametersOf
  * The hero page ([ResultHeroScreen]) draws the solve: the frozen facts, the view model's
  * insights and rank, and the same callbacks plus a sign in.
  *
- * With [onOpenBoard], today's official result swaps the daily board for one "Full board" row
- * (`summary.leaderboard`) that hands back this result's game; the board has one owner, the game
- * page. Null keeps the board. The hero's rank row stays the one sign-in action.
+ * Today's official result draws one "Full board" row (`summary.leaderboard`) that hands back this
+ * result's game through [onOpenBoard]; the board has one owner, the game page. The hero's rank row
+ * is the one sign-in action.
  */
 @Composable
 fun ResultRoute(
@@ -56,8 +53,8 @@ fun ResultRoute(
     onPlayAgain: () -> Unit,
     onNext: (GameId) -> Unit,
     onDone: () -> Unit,
+    onOpenBoard: (GameId) -> Unit,
     modifier: Modifier = Modifier,
-    onOpenBoard: ((GameId) -> Unit)? = null,
 ) {
     val viewModel: ResultViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -100,7 +97,7 @@ private fun ColumnScope.HeroPage(
     onShare: () -> Unit,
     onPlayAgain: () -> Unit,
     context: Context,
-    onOpenBoard: ((GameId) -> Unit)?,
+    onOpenBoard: (GameId) -> Unit,
 ) {
     val insights by viewModel.heroInsights.collectAsStateWithLifecycle()
     val rank by viewModel.heroRank.collectAsStateWithLifecycle()
@@ -135,47 +132,12 @@ private fun ColumnScope.HeroPage(
                 rolloverAt = state.rolloverAt,
             )
         },
-        board = resultBoard(key, viewModel, state.game, context, onOpenBoard),
+        board = if (!viewModel.replay && state.puzzleNumber != null) {
+            { SummaryLinkRow("Full board", "summary.leaderboard", { onOpenBoard(GameId(key.gameId)) }) }
+        } else {
+            null
+        },
     )
-}
-
-/**
- * The daily board block for this result, or null when none shows (a past day, a practice
- * play: [ResultViewModel.dailyBoard]). With [onOpenBoard] it is one "Full board" row instead,
- * which reports [key]'s game. Otherwise signed out it carries the friend board's
- * sign-in offer, which routes through the view model's one sign-in holder.
- */
-@Composable
-private fun resultBoard(
-    key: ResultKey,
-    viewModel: ResultViewModel,
-    game: String,
-    context: Context,
-    onOpenBoard: ((GameId) -> Unit)?,
-): (@Composable () -> Unit)? {
-    val board by viewModel.dailyBoard.collectAsStateWithLifecycle()
-    val signIn by viewModel.signInStatus.collectAsStateWithLifecycle()
-    val shown = board ?: return null
-    if (onOpenBoard != null) {
-        return { SummaryLinkRow("Full board", "summary.leaderboard", { onOpenBoard(GameId(key.gameId)) }) }
-    }
-    return {
-        DailyBoard(
-            title = dailyBoardTitle(game),
-            order = viewModel.boardOrder,
-            state = shown,
-            signIn = {
-                // The hero rank row is the one sign-in action, so the board says text only.
-                SignInPrompt(
-                    title = "Sign in to see today's board",
-                    yourTimeMs = key.timeMs,
-                    signIn = signIn,
-                    onSignIn = { viewModel.signIn(context) },
-                    button = false,
-                )
-            },
-        )
-    }
 }
 
 /** The hero page's date line: the slot's day as "Sat 7 Nov", led by "Today · " on today's result. */

@@ -33,8 +33,8 @@ import com.ivandsky.puzzlebox.designsystem.colors
 
 /**
  * How to play (06-a §How-to-play card): the game's three [LibraryRowModel.rules], each on
- * a numbered accent disc, and "Open the lesson" ([onOpenLesson]) pinned to the bottom;
- * [hasLesson] false hides it. [fill] lets the tablet stretch the card to its column.
+ * a numbered accent disc, and "Open the lesson" ([onOpenLesson]) below them;
+ * [hasLesson] false hides it.
  */
 @Composable
 internal fun HowToPlayCard(
@@ -42,7 +42,6 @@ internal fun HowToPlayCard(
     hasLesson: Boolean,
     onOpenLesson: () -> Unit,
     modifier: Modifier = Modifier,
-    fill: Boolean = false,
 ) {
     val accent = row.card.brand.accent.colors().accent
     Column(
@@ -68,7 +67,6 @@ internal fun HowToPlayCard(
             }
         }
         if (hasLesson) {
-            if (fill) Spacer(Modifier.weight(1f))
             FilledTonalButton(
                 onClick = onOpenLesson,
                 shape = PillShape,

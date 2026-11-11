@@ -122,7 +122,7 @@ class PlayStatsPanelTest {
             PuzzleBoxTheme(darkTheme = false) {
                 Column {
                     val state by vm.state.collectAsStateWithLifecycle()
-                    PlayStatsPanel(state = state, elapsedMs = { elapsedMs })
+                    PlayStatsPanel(state = state, elapsedMs = { elapsedMs }, signIn = BoardSignIn.Idle, onSignIn = {})
                 }
             }
         }
@@ -130,7 +130,7 @@ class PlayStatsPanelTest {
     }
 
     /** The panel over [state] as given, frozen: what it draws before any source has emitted. */
-    private fun showFrozen(state: PlayStatsState, signIn: BoardSignIn = BoardSignIn.Idle, onSignIn: (() -> Unit)? = null) {
+    private fun showFrozen(state: PlayStatsState, signIn: BoardSignIn = BoardSignIn.Idle, onSignIn: () -> Unit = {}) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Column { PlayStatsPanel(state = state, elapsedMs = { null }, signIn = signIn, onSignIn = onSignIn) }
@@ -295,7 +295,7 @@ class PlayStatsPanelTest {
         show(viewModel(identity = null))
 
         composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(0)
-        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Sign in on Profile to see today's times")
+        composeRule.onNodeWithTag("custom_board.sign_in").assertExists()
     }
 
 
@@ -389,26 +389,6 @@ class PlayStatsPanelTest {
 
         composeRule.onNodeWithTag("custom_board.sign_in").assertDoesNotExist()
         composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(5)
-    }
-
-    @Test
-    fun `signed out without sign-in in place, the card keeps the Profile note`() {
-        showFrozen(
-            PlayStatsState(
-                gameName = "Zip",
-                solvedToday = null,
-                gamesToday = 2,
-                streak = null,
-                week = emptyList(),
-                best = null,
-                rankOrder = RankOrder.TimeThenHints,
-                averageMs = null,
-                times = PlayTimes.SignedOut,
-            ),
-        )
-
-        composeRule.onNodeWithTag("play.stats.times.note").assertTextEquals("Sign in on Profile to see today's times")
-        composeRule.onNodeWithTag("custom_board.sign_in").assertDoesNotExist()
     }
 
     @Test

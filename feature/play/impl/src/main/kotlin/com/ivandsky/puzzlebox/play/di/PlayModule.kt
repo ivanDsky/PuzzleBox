@@ -102,8 +102,6 @@ val playModule = module {
             games = get(),
             insights = get(),
             rank = get(),
-            leaderboard = get(),
-            posts = get(),
             board = get(),
         )
     }

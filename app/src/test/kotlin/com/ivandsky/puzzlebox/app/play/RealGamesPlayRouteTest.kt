@@ -150,6 +150,13 @@ class RealGamesPlayRouteTest {
                     single<MatchLocalRepository> { FakeMatchLocalRepository() }
                     single<MatchResultOutbox> { FakeMatchResultOutbox() }
                     single<IdentityService> { FakeIdentityService() }
+                    single<com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository> { com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository(emptyMap()) }
+                    single<com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider> {
+                        object : com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider {
+                            override suspend fun idToken(activityContext: android.content.Context) =
+                                com.ivandsky.puzzlebox.auth.GoogleIdToken.Unavailable(com.ivandsky.puzzlebox.auth.GoogleIdToken.Unavailable.Reason.CANCELLED)
+                        }
+                    }
                     // Every real game shares the America/Los_Angeles cadence zone.
                     single<GameCalendar> { FakeGameCalendar(cadenceToday) }
 
@@ -175,7 +182,7 @@ class RealGamesPlayRouteTest {
                 backStack = navigator.state.currentStack,
                 onBack = { navigator.pop() },
                 entryProvider = entryProvider {
-                    playEntry(navigator, PlayLayout.SinglePane, onOpenHistory = {})
+                    playEntry(navigator, PlayLayout.SinglePane, onOpenGameHistory = {})
                     entry<ResultKey> { Text("result") }
                 },
             )

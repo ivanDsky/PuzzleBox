@@ -30,9 +30,12 @@ import com.ivandsky.puzzlebox.play.linkedin.LinkedInCardState
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.core.KoinApplication
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
@@ -45,6 +48,19 @@ class LibraryGamePageLinkedInTest {
 
     @get:Rule
     val composeRule = createComposeRule()
+
+    private var koin: KoinApplication? = null
+
+    /** The page always carries the game's board, which a view model builds. */
+    @Before
+    fun startGraph() {
+        koin = startGamePageBoardKoin(listOf(row.card.game))
+    }
+
+    @After
+    fun stopGraph() {
+        koin?.close()
+    }
 
     private val today = LocalDate.parse("2026-11-05")
     private val view = MutableStateFlow<LinkedInDayView?>(null)
@@ -86,6 +102,7 @@ class LibraryGamePageLinkedInTest {
                         onBack = null,
                         offline = false,
                         hasLesson = false,
+                        onOpenGameHistory = {},
                         linkedIn = card,
                     )
                 }

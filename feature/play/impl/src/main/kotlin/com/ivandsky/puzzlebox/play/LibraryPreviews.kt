@@ -105,6 +105,7 @@ private fun PreviewScreen(state: LibraryUiState, layout: PlayLayout) {
                 onRetry = {},
                 onOpenLesson = {},
                 calendar = CalendarActions(),
+                onOpenGameHistory = {},
                 onEnterCode = {},
             )
         }
@@ -146,31 +147,12 @@ internal fun LibraryTabletEmptyPreview() {
     PreviewScreen(previewState(List(5) { TodayStatus.Offline }, solvedScale = 0), PlayLayout.TwoPane)
 }
 
-// Preview: Strands' page pushed on the phone, hints-first best.
-@PuzzleBoxPreviews
-@Composable
-internal fun GamePagePhonePreview() {
-    val row = previewState().rows[3]
-    PuzzleBoxTheme {
-        Box(Modifier.background(MaterialTheme.colorScheme.background)) {
-            GamePage(
-                row = row,
-                layout = PlayLayout.SinglePane,
-                dayCard = { PreviewDayCard(row) },
-                calendar = {},
-                onBack = {},
-                onOpenLesson = {},
-            )
-        }
-    }
-}
-
-// Preview: the NavV2 phone page: the game's leaderboard (the player pinned below the top five)
+// Preview: the phone page: the game's leaderboard (the player pinned below the top five)
 // and the "Your history" row under the stats card.
 @Preview(name = "Light", widthDp = 360, heightDp = 1900, showBackground = true)
 @Preview(name = "Dark", widthDp = 360, heightDp = 1900, showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-internal fun GamePageNavV2PhonePreview() {
+internal fun GamePagePhonePreview() {
     val row = previewState().rows[3]
     PuzzleBoxTheme {
         Surface(color = MaterialTheme.colorScheme.background) {
@@ -188,10 +170,10 @@ internal fun GamePageNavV2PhonePreview() {
     }
 }
 
-// Preview: the NavV2 tablet page: the right column scrolls as one, board and history row before how to play.
-@Preview(name = "Tablet NavV2", widthDp = 1400, heightDp = 1200)
+// Preview: the tablet page: the right column scrolls as one, board and history row before how to play.
+@Preview(name = "Tablet", widthDp = 1400, heightDp = 1200)
 @Composable
-internal fun GamePageNavV2TabletPreview() {
+internal fun GamePageTabletPreview() {
     val row = previewState().rows[3]
     PuzzleBoxTheme {
         Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.padding(Spacing.lg)) {
