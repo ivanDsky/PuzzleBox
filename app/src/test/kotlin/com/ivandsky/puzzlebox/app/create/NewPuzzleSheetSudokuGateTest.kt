@@ -3,10 +3,8 @@ package com.ivandsky.puzzlebox.app.create
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavKey
@@ -14,7 +12,6 @@ import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.CreateKey
@@ -66,9 +63,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 
 /**
- * The New puzzle sheet over the real Mini Sudoku plugin and editor UI, behind
- * [ReleaseFlag.SudokuEditor]: with the flag off the sheet offers no Sudoku; with it on the
- * option shows, opens the Sudoku editor, and one placed digit moves the verdict pill.
+ * The New puzzle sheet over the real Mini Sudoku plugin and editor UI with no flag on: it offers
+ * Sudoku, opens the Sudoku editor, and one placed digit moves the verdict pill.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = android.app.Application::class)
@@ -87,19 +83,10 @@ class NewPuzzleSheetSudokuGateTest {
     }
 
     @Test
-    fun `with SudokuEditor off the sheet offers no Sudoku`() {
+    fun `Sudoku is offered, opens the editor, and a digit moves the pill`() {
         show(FakeReleaseFlags())
-
         rule.onNodeWithTag(NEW).performClick()
-
         rule.onNodeWithTag(SHEET).assertIsDisplayed()
-        rule.onAllNodesWithTag("$GAME${mini.value}").assertCountEquals(0)
-    }
-
-    @Test
-    fun `with SudokuEditor on the option opens the editor and a digit moves the pill`() {
-        show(FakeReleaseFlags(ReleaseFlag.SudokuEditor))
-        rule.onNodeWithTag(NEW).performClick()
         // The mini board is Sudoku's one size: its row opens the editor, with no size step between.
         rule.onNodeWithTag("$GAME${mini.value}").performClick()
         rule.waitUntil(TIMEOUT_MS) { navigator.state.currentStack.last() is EditorKey }
