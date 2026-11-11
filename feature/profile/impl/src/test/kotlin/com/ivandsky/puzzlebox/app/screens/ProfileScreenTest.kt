@@ -11,18 +11,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.linkedin.LinkedInAccountView
 import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.profile.accounts.LinkedInRowState
 import com.ivandsky.puzzlebox.profile.settings.SettingsScreen
 import com.ivandsky.puzzlebox.profile.settings.SettingsUiState
 import java.time.LocalDate
@@ -52,6 +57,7 @@ class ProfileScreenTest {
 
     private var signInClicks = 0
     private var signOutClicks = 0
+    private val linkedInTaps = mutableListOf<String>()
     private lateinit var scheme: ColorScheme
 
     private fun setContent(account: ProfileUiState.Account) = setContent(ProfileUiState(account = account))
@@ -60,9 +66,11 @@ class ProfileScreenTest {
         state: ProfileUiState,
         onBack: () -> Unit = {},
         onOpenSettings: () -> Unit = {},
+        linkedInOn: Boolean = false,
     ) {
         signInClicks = 0
         signOutClicks = 0
+        linkedInTaps.clear()
         composeRule.setContent {
             PuzzleBoxTheme {
                 scheme = MaterialTheme.colorScheme
@@ -72,6 +80,10 @@ class ProfileScreenTest {
                     onSignOut = { signOutClicks++ },
                     onBack = onBack,
                     onOpenSettings = onOpenSettings,
+                    nowMs = NOW,
+                    onConnectLinkedIn = if (linkedInOn) ({ linkedInTaps += "connect" }) else null,
+                    onResumeLinkedIn = { linkedInTaps += "resume" },
+                    onDisconnectLinkedIn = { linkedInTaps += "disconnect" },
                 )
             }
         }
@@ -197,6 +209,7 @@ class ProfileScreenTest {
                             onSignOut = {},
                             onBack = {},
                             onOpenSettings = {},
+                            nowMs = NOW,
                         )
                     }
                     Box(Modifier.weight(1f).fillMaxHeight()) {
@@ -217,5 +230,145 @@ class ProfileScreenTest {
         val profileTop = composeRule.onNodeWithTag("profile.header").getUnclippedBoundsInRoot().top
         val settingsTop = composeRule.onNodeWithTag("settings.appearance").getUnclippedBoundsInRoot().top
         assertEquals("profile's content top vs settings' under the same bar", settingsTop, profileTop)
+    }
+
+    // ---- Accounts: the Google row keeps what the old sections did ---------------------
+
+    @Test
+    fun `the accounts list titles itself and holds the Google row`() {
+        setContent(signedIn)
+
+        composeRule.onNodeWithText("Accounts").assertExists()
+        composeRule.onNodeWithText("Google").assertExists()
+        composeRule.onNodeWithText("Signed in with Google").assertExists()
+    }
+
+    @Test
+    fun `the sign-in failure message sits under the sign-in button inside the Google row`() {
+        setContent(ProfileUiState.Account.SignedOut(signInMessage = "Sign-in failed. Please try again."))
+
+        composeRule.onNodeWithTag("profile-signed-out").assertExists()
+        composeRule.onNodeWithText("Sign-in failed. Please try again.").assertExists()
+    }
+
+    @Test
+    fun `signing in disables the Google button`() {
+        setContent(ProfileUiState.Account.SignedOut(signingIn = true))
+
+        composeRule.onNodeWithText("Signing in…").assertIsNotEnabled()
+    }
+
+    // ---- LinkedIn row ---------------------------------------------------------------
+
+    private val known = LinkedInAccountView(
+        name = "Mira Voss", photoPath = null, connectionsSeen = 142, daysThisWeek = 5, daysTotal = 213,
+        games = listOf("Queens", "Tango", "Zip"), updatedAtMs = NOW - 12 * MINUTE,
+    )
+    private val unknown = LinkedInAccountView(null, null, 0, 0, 0, emptyList(), null)
+
+    private fun setLinkedIn(row: LinkedInRowState?, account: ProfileUiState.Account = signedIn) =
+        setContent(ProfileUiState(account = account, linkedIn = row), linkedInOn = true)
+
+    @Test
+    fun `with the flag off no LinkedIn row is drawn even when the state has one`() {
+        setContent(ProfileUiState(account = signedIn, linkedIn = LinkedInRowState.NotConnected), linkedInOn = false)
+
+        composeRule.onNodeWithTag("profile.linkedin").assertDoesNotExist()
+        composeRule.onNodeWithText("Connect LinkedIn").assertDoesNotExist()
+    }
+
+    @Test
+    fun `not connected offers Connect LinkedIn and tapping it opens login once`() {
+        setLinkedIn(LinkedInRowState.NotConnected)
+
+        composeRule.onNodeWithText("LinkedIn").assertExists()
+        composeRule.onNodeWithText(
+            "Import your own LinkedIn game results and see your connections' times on this phone.",
+        ).assertExists()
+        composeRule.onNodeWithTag("profile.linkedin.overflow").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Connect LinkedIn").performScrollTo().performClick()
+
+        assertEquals(listOf("connect"), linkedInTaps)
+    }
+
+    @Test
+    fun `the LinkedIn row is the same whether Google is signed in or out`() {
+        setLinkedIn(LinkedInRowState.NotConnected, account = ProfileUiState.Account.SignedOut())
+
+        composeRule.onNodeWithText("Connect LinkedIn").assertExists()
+        composeRule.onNodeWithText("Sign in with Google").assertExists()
+    }
+
+    @Test
+    fun `connected with a name shows the name, the counts and the update time`() {
+        setLinkedIn(LinkedInRowState.Connected(known))
+
+        composeRule.onNodeWithText("Mira Voss").assertExists()
+        composeRule.onNodeWithText("142 connections seen · 5 days this week").assertExists()
+        composeRule.onNodeWithText("213 days total · Queens, Tango, Zip · Updated 12 min ago").assertExists()
+        composeRule.onNodeWithTag("profile.linkedin.connect").assertDoesNotExist()
+    }
+
+    @Test
+    fun `connected before the first update says the name is on its way and never doubles Updated`() {
+        setLinkedIn(LinkedInRowState.Connected(unknown))
+
+        composeRule.onNodeWithText("LinkedIn account").assertExists()
+        composeRule.onNodeWithText("Name and photo appear after the first update").assertExists()
+        composeRule.onNodeWithText("0 days total · no games yet · Updating…").assertExists()
+    }
+
+    @Test
+    fun `disconnect is in the overflow, acts at once and the menu closes`() {
+        setLinkedIn(LinkedInRowState.Connected(known))
+
+        composeRule.onNodeWithContentDescription("LinkedIn options").performScrollTo().performClick()
+        composeRule.onNodeWithText("Disconnect LinkedIn").performClick()
+
+        assertEquals(listOf("disconnect"), linkedInTaps)
+        composeRule.onNodeWithText("Disconnect LinkedIn").assertDoesNotExist()
+    }
+
+    @Test
+    fun `paused shows the reason in the sub, Resume and the overflow`() {
+        setLinkedIn(LinkedInRowState.Paused(known, "LinkedIn is busy.", needsReconnect = false))
+
+        composeRule.onNodeWithText("Paused · LinkedIn is busy.").assertExists()
+        composeRule.onNodeWithText("213 days total · Queens, Tango, Zip · Updated 12 min ago").assertExists()
+        composeRule.onNodeWithTag("profile.linkedin.overflow").assertExists()
+
+        composeRule.onNodeWithText("Resume").performScrollTo().performClick()
+
+        assertEquals(listOf("resume"), linkedInTaps)
+    }
+
+    @Test
+    fun `needing a reconnect shows Reconnect with no Resume and no stats`() {
+        setLinkedIn(LinkedInRowState.Paused(known, "Your LinkedIn login expired.", needsReconnect = true))
+
+        composeRule.onNodeWithText("LinkedIn signed this phone out.").assertExists()
+        composeRule.onNodeWithText("Resume").assertDoesNotExist()
+        composeRule.onNodeWithText("213 days total · Queens, Tango, Zip · Updated 12 min ago").assertDoesNotExist()
+        composeRule.onNodeWithTag("profile.linkedin.overflow").assertExists()
+
+        composeRule.onNodeWithText("Reconnect").performScrollTo().performClick()
+
+        assertEquals(listOf("connect"), linkedInTaps)
+    }
+
+    @Test
+    fun `a long LinkedIn name stays on one line`() {
+        val long = known.copy(name = "Mira Voss-Halloran Åkerström-Lindqvist the Third of Nowhere in Particular")
+        setLinkedIn(LinkedInRowState.Connected(long))
+
+        val title = composeRule.onNodeWithText(long.name!!).getUnclippedBoundsInRoot()
+        val sub = composeRule.onNodeWithText("142 connections seen · 5 days this week").getUnclippedBoundsInRoot()
+        assertEquals("one line for the name", sub.top - title.top < 40.dp, true)
+    }
+
+    private companion object {
+        const val NOW = 1_800_000_000_000L
+        const val MINUTE = 60_000L
     }
 }

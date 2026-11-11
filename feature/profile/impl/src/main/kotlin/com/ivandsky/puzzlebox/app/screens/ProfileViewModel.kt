@@ -9,11 +9,19 @@ import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.linkedin.LinkState
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.linkedin.LinkedInAccountView
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
+import com.ivandsky.puzzlebox.profile.accounts.LinkedInRowState
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -28,13 +36,16 @@ private const val SIGN_IN_RETRY_MESSAGE = "Sign-in failed. Please try again."
 /**
  * Profile's state holder (A20): the account read from [IdentityService.current], the sign-in
  * flow's own progress/outcome while signed out, and the player's overall `playingSince`
- * ([ObserveGameStats]). The activity context the credential sheet needs (I2) is passed per
+ * ([ObserveGameStats]). With a [link] and [observeAccount] (the LinkedIn switch is on) it also follows the LinkedIn
+ * row and carries its Resume and Disconnect. The activity context the credential sheet needs (I2) is passed per
  * call and never stored.
  */
 class ProfileViewModel(
     private val identityService: IdentityService,
     private val idTokenProvider: GoogleIdTokenProvider,
     observeGameStats: ObserveGameStats,
+    private val link: LinkedInLink? = null,
+    observeAccount: ObserveLinkedInAccount? = null,
 ) : ViewModel() {
 
     private val signIn = MutableStateFlow(ProfileUiState.Account.SignedOut())
@@ -42,9 +53,17 @@ class ProfileViewModel(
     private fun account(identity: Identity?, prompt: ProfileUiState.Account.SignedOut): ProfileUiState.Account =
         identity?.let { ProfileUiState.Account.SignedIn(it) } ?: prompt
 
+    // Null while the feature is off: nothing LinkedIn is observed, and the row stays out of the state.
+    private val linkedIn: Flow<LinkedInRowState?> =
+        if (link == null || observeAccount == null) {
+            flowOf(null)
+        } else {
+            combine(link.state, observeAccount()) { state, summary -> state.toRow(summary) }
+        }
+
     val uiState: StateFlow<ProfileUiState> =
-        combine(identityService.current, signIn, observeGameStats()) { identity, prompt, stats ->
-            ProfileUiState(account(identity, prompt), stats.playingSince)
+        combine(identityService.current, signIn, observeGameStats(), linkedIn) { identity, prompt, stats, row ->
+            ProfileUiState(account(identity, prompt), stats.playingSince, row)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -73,6 +92,18 @@ class ProfileViewModel(
         viewModelScope.launch { identityService.signOut() }
     }
 
+    /** Lifts the pause only; the latch is the link's. */
+    fun onResumeLinkedIn() {
+        val link = link ?: return
+        viewModelScope.launch { link.resume() }
+    }
+
+    /** The cookie wipe and database clear are the link's; this only asks. */
+    fun onDisconnectLinkedIn() {
+        val link = link ?: return
+        viewModelScope.launch { link.disconnect() }
+    }
+
     private fun friendly(error: AuthError): String = when (error) {
         // Backend half: FirebaseNetworkException — the only branch allowed to blame
         // the connection (ticket 24).
@@ -95,4 +126,21 @@ class ProfileViewModel(
         GoogleIdToken.Unavailable.Reason.OTHER,
         -> SIGN_IN_RETRY_MESSAGE
     }
+}
+
+private fun LinkState.toRow(summary: LinkedInAccountView): LinkedInRowState = when (this) {
+    LinkState.NotConnected -> LinkedInRowState.NotConnected
+    is LinkState.Connected -> LinkedInRowState.Connected(summary)
+    is LinkState.Paused -> LinkedInRowState.Paused(
+        summary = summary,
+        reason = kind.reason(),
+        needsReconnect = kind == LinkedInRead.Rejected.Kind.SessionExpired,
+    )
+}
+
+private fun LinkedInRead.Rejected.Kind.reason(): String = when (this) {
+    LinkedInRead.Rejected.Kind.SessionExpired -> "Your LinkedIn login expired. Reconnect to keep reading."
+    LinkedInRead.Rejected.Kind.Challenge -> "LinkedIn asked for a check, so reading is paused."
+    LinkedInRead.Rejected.Kind.RateLimited -> "LinkedIn is asking us to slow down, so reading is paused."
+    LinkedInRead.Rejected.Kind.Unexpected -> "LinkedIn answered in a way we didn't expect, so reading is paused."
 }

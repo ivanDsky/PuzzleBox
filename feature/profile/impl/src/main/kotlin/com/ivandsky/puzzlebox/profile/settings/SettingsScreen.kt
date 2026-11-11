@@ -27,8 +27,7 @@ import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.profile.AppearanceRow
 
 /**
- * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Games, LinkedIn (only when
- * [onConnectLinkedIn] is given), About (the version name), and — only when [onOpenCatalog] is given (debug builds) — Developer.
+ * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Games, About (the version name), and — only when [onOpenCatalog] is given (debug builds) — Developer.
  */
 @Composable
 internal fun SettingsScreen(
@@ -40,9 +39,6 @@ internal fun SettingsScreen(
     onBack: () -> Unit,
     onOpenCatalog: (() -> Unit)?,
     modifier: Modifier = Modifier,
-    onConnectLinkedIn: (() -> Unit)? = null,
-    onResumeLinkedIn: () -> Unit = {},
-    onDisconnectLinkedIn: () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CompactTopBar(
@@ -73,16 +69,6 @@ internal fun SettingsScreen(
                 onSudokuPeerHighlight = onSetSudokuPeerHighlight,
                 onSudokuSameDigitHighlight = onSetSudokuSameDigitHighlight,
             )
-            if (onConnectLinkedIn != null) {
-                Column(Modifier.testTag("settings.linkedin.section")) {
-                    LinkedInSection(
-                        state = state.linkedIn,
-                        onConnect = onConnectLinkedIn,
-                        onResume = onResumeLinkedIn,
-                        onDisconnect = onDisconnectLinkedIn,
-                    )
-                }
-            }
             Column(
                 modifier = Modifier.fillMaxWidth().testTag("settings.about"),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -139,7 +125,6 @@ internal fun SettingsScreenPreview() {
             onSetSudokuSameDigitHighlight = {},
             onBack = {},
             onOpenCatalog = {},
-            onConnectLinkedIn = {},
         )
     }
 }

@@ -18,22 +18,18 @@ import org.koin.dsl.module
  * authModule, the use cases from domainModule.
  */
 val profileModule: Module = module {
-    viewModel {
+    // The parameter says whether the LinkedIn row is on; off, no LinkedIn object is resolved at all.
+    viewModel { params ->
+        val linkedIn = params.getOrNull<Boolean>() == true
         ProfileViewModel(
             identityService = get<IdentityService>(),
             idTokenProvider = get<GoogleIdTokenProvider>(),
             observeGameStats = get(),
+            link = if (linkedIn) get() else null,
+            observeAccount = if (linkedIn) get() else null,
         )
     }
-    // The parameter says whether the LinkedIn block is on; off, no LinkedIn object is resolved at all.
-    viewModel { params ->
-        SettingsViewModel(
-            preferences = get(),
-            games = get(),
-            appBuild = get(),
-            link = if (params.getOrNull<Boolean>() == true) get() else null,
-        )
-    }
+    viewModel { SettingsViewModel(preferences = get(), games = get(), appBuild = get()) }
     viewModel { LinkedInLoginViewModel(createLink = get(), cookies = get()) }
     // Both providers are lambdas, so resolving this neither starts the web view provider nor reads a cookie.
     single<LinkedInSessionCookies> { WebViewLinkedInSession({ CookieManager.getInstance() }, { WebSettings.getDefaultUserAgent(get()) }, get()) }

@@ -7,6 +7,13 @@ import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 /**
+ * The rowid of the last row read for [memberRef] on any game or day. One rule for every query that wants "the
+ * member's newest row", so the day stand-in and the account summary can never pick different rows.
+ */
+private const val NEWEST_ROW_OF_MEMBER =
+    "SELECT rowid FROM ghosts WHERE memberRef = :memberRef ORDER BY fetchedAtMs DESC, day DESC, game LIMIT 1"
+
+/**
  * The connections boards kept on this device, one board per game day. A board is only ever
  * swapped whole, so a reader never sees half of an old board mixed with half of a new one.
  */
@@ -26,10 +33,17 @@ interface GhostDao {
     @Query(
         "SELECT * FROM ghosts WHERE (game = :game AND day = :day) OR (" +
             "NOT EXISTS (SELECT 1 FROM ghosts WHERE game = :game AND day = :day AND memberRef = :memberRef) " +
-            "AND rowid = (SELECT rowid FROM ghosts WHERE memberRef = :memberRef " +
-            "ORDER BY fetchedAtMs DESC, day DESC, game LIMIT 1))",
+            "AND rowid = ($NEWEST_ROW_OF_MEMBER))",
     )
     fun observeWithNewest(game: String, day: String, memberRef: String): Flow<List<GhostEntity>>
+
+    /** The last row read for [memberRef] on any game or day, the same row [observeWithNewest] stands in; null when none. */
+    @Query("SELECT * FROM ghosts WHERE rowid = ($NEWEST_ROW_OF_MEMBER)")
+    fun observeNewestOf(memberRef: String): Flow<GhostEntity?>
+
+    /** How many distinct members other than [excluding] any stored board names. */
+    @Query("SELECT COUNT(DISTINCT memberRef) FROM ghosts WHERE memberRef != :excluding")
+    fun observeConnectionCount(excluding: String): Flow<Int>
 
     /** Swaps the board of one game day for [rows], atomically; an empty list clears it. */
     @Transaction
