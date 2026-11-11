@@ -9,11 +9,17 @@ import androidx.room.RoomDatabase
  * transfer leave out whole files, not tables. It holds no session: no cookie or token
  * column exists in any table.
  */
-@Database(entities = [GhostEntity::class, FetchLogEntity::class], version = 1, exportSchema = true)
+@Database(
+    entities = [GhostEntity::class, FetchLogEntity::class, SavedBoardEntity::class],
+    version = 2,
+    exportSchema = true,
+)
 abstract class LinkedInDatabase : RoomDatabase() {
     abstract fun ghostDao(): GhostDao
 
     abstract fun fetchLogDao(): FetchLogDao
+
+    abstract fun savedBoardDao(): SavedBoardDao
 
     companion object {
         const val NAME = "linkedin.db"
