@@ -38,7 +38,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -91,11 +90,8 @@ class EditorViewModel(
         autoShow = { autoShowWitness.value },
     )
 
-    private val storedTitles: StateFlow<Set<String>> =
-        drafts.observeAll().map { rows -> rows.mapTo(HashSet()) { it.title } }.stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
-
     /** The draft's title, rename, duplicate and delete. */
-    val meta = DraftMeta(key.draftId, copyDraft, viewModelScope, locked = { published }, otherTitles = { storedTitles.value }) { title -> lastStored?.let { write(it.copy(title = title)) } }
+    val meta = DraftMeta(key.draftId, copyDraft, viewModelScope, locked = { published }, otherTitles = { drafts.observeAll().first().mapTo(HashSet()) { it.title } }) { title -> lastStored?.let { write(it.copy(title = title)) } }
 
     /** The required test solve: its sandbox, the test valid for the board, and the clear toast. */
     val testSolve = TestSolveSession(key.draftId, plays, games, dispatchers, viewModelScope) { test -> lastStored?.let { write(it.copy(testSolve = test)) } }

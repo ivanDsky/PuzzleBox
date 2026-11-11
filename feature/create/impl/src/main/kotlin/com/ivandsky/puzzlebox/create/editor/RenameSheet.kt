@@ -52,7 +52,7 @@ fun RenameSheet(
     title: String,
     onSave: (String) -> Unit,
     onDismiss: () -> Unit,
-    onRoll: () -> String,
+    onRoll: suspend () -> String,
     modifier: Modifier = Modifier,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -76,13 +76,14 @@ fun RenameSheet(
 }
 
 @Composable
-private fun RenameContent(title: String, onSave: (String) -> Unit, onCancel: () -> Unit, onRoll: () -> String, autoFocus: Boolean) {
+private fun RenameContent(title: String, onSave: (String) -> Unit, onCancel: () -> Unit, onRoll: suspend () -> String, autoFocus: Boolean) {
     var field by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue(title, selection = TextRange(0, title.length)))
     }
     val length = field.text.trim().length
     val valid = DraftMeta.isValidTitle(field.text)
     val focus = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
     if (autoFocus) LaunchedEffect(Unit) { focus.requestFocus() }
     Column(
         modifier = Modifier
@@ -103,7 +104,7 @@ private fun RenameContent(title: String, onSave: (String) -> Unit, onCancel: () 
             singleLine = true,
             trailingIcon = {
                 IconButton(
-                    onClick = { field = onRoll().let { TextFieldValue(it, selection = TextRange(it.length)) } },
+                    onClick = { scope.launch { field = onRoll().let { TextFieldValue(it, selection = TextRange(it.length)) } } },
                     modifier = Modifier.testTag("create.rename.dice"),
                 ) {
                     Icon(PuzzleIcons.Dice, contentDescription = "Suggest a name")

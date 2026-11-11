@@ -23,6 +23,14 @@ class ComputeCodenameTest {
     }
 
     @Test
+    fun `each word list has at least 100 distinct words`() {
+        listOf(ComputeCodename.adjectives, ComputeCodename.nouns).forEach { words ->
+            assertTrue(words.size >= 100)
+            assertEquals(words.size, words.toSet().size)
+        }
+    }
+
+    @Test
     fun `the same seed gives the same codename`() {
         assertEquals(codename(Random(42), emptySet()), codename(Random(42), emptySet()))
     }
@@ -54,6 +62,6 @@ class ComputeCodenameTest {
         }
 
         assertTrue(name !in taken)
-        assertEquals(1600, taken.size)
+        assertEquals(ComputeCodename.adjectives.size * ComputeCodename.nouns.size, taken.size)
     }
 }

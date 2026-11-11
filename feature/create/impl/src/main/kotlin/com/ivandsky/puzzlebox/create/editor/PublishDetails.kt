@@ -61,7 +61,7 @@ fun PublishDetails(
     details: PublishSession.Details,
     signedIn: Boolean,
     onRename: (String) -> Unit,
-    onRollTitle: () -> String,
+    onRollTitle: suspend () -> String,
     onAuthorName: (String) -> Unit,
     onNote: (String) -> Unit,
     modifier: Modifier = Modifier,

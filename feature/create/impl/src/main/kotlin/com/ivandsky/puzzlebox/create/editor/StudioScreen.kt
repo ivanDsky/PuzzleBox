@@ -87,7 +87,7 @@ fun StudioScreen(
     layout: PlayLayout,
     onBack: () -> Unit,
     onRename: (String) -> Unit,
-    onRollTitle: () -> String,
+    onRollTitle: suspend () -> String,
     onDuplicate: () -> Unit,
     onDelete: () -> Unit,
     board: @Composable (Modifier) -> Unit,

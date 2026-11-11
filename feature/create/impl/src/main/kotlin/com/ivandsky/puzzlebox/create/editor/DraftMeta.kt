@@ -23,7 +23,7 @@ class DraftMeta(
     private val copyDraft: CreateDraftCopy,
     private val scope: CoroutineScope,
     private val locked: () -> Boolean,
-    private val otherTitles: () -> Set<String>,
+    private val otherTitles: suspend () -> Set<String>,
     private val random: Random = Random.Default,
     private val store: (title: String) -> Unit,
 ) {
@@ -46,7 +46,7 @@ class DraftMeta(
     }
 
     /** A codename that no draft, this one included, is titled. */
-    fun rollCodename(): String = computeCodename(random, otherTitles() + mutableTitle.value)
+    suspend fun rollCodename(): String = computeCodename(random, otherTitles() + mutableTitle.value)
 
     /** Stores a copy of the draft and reports its id; a draft gone from the store copies nothing. */
     fun duplicate(onCopied: (draftId: String) -> Unit) {
