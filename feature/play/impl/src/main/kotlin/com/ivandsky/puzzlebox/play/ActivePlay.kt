@@ -101,7 +101,7 @@ class ActivePlay internal constructor(
      *  read has not landed (the verdict stays null). */
     private var baselineKnown = false
     private var baselineBest: BestScore? = null
-    private var baselineReplay = false
+    private var baselinePlayAgain = false
     private var lastWon: CompletionRecord? = null
 
     /** Opening → board: a restored session resumes; a Fresh fetch plays; a
@@ -162,7 +162,7 @@ class ActivePlay internal constructor(
     fun playAgain() {
         if (_board.value.status !is PlayBoardStatus.Ready) return
         resetRecord(ref)
-        refreshBaseline(ref, replay = true)
+        refreshBaseline(ref, playAgain = true)
         controller.playAgain()
     }
 
@@ -239,7 +239,7 @@ class ActivePlay internal constructor(
                         it
                     } else {
                         it.copy(
-                            verdict = RecordVerdict.of(baselineBest, record.time, record.hints, baselineReplay, rankOrder),
+                            verdict = RecordVerdict.of(baselineBest, record.time, record.hints, baselinePlayAgain, rankOrder),
                             previousBest = baselineBest,
                         )
                     }
@@ -254,22 +254,22 @@ class ActivePlay internal constructor(
         this.ref = ref
         baselineKnown = false
         baselineBest = null
-        baselineReplay = false
+        baselinePlayAgain = false
         lastWon = null
         _record.value = blankRecord(labelFor(ref))
     }
 
-    /** [replay] true = known without a read (Play again: the solve's write may still be in
+    /** [playAgain] true = known without a read (Play again: the solve's write may still be in
      *  flight). Otherwise a record row with this ref's identity (ADR-0004) makes it one. */
-    private fun refreshBaseline(ref: PuzzleRef?, replay: Boolean = false) {
+    private fun refreshBaseline(ref: PuzzleRef?, playAgain: Boolean = false) {
         if (ref == null) return
         val token = recordToken
         scope.launch {
             val best = completions.best(ref.gameId)
-            val solved = replay || completions.observeRecords().first().any { it.puzzleRef.sameIdentity(ref) }
+            val solved = playAgain || completions.observeRecords().first().any { it.puzzleRef.sameIdentity(ref) }
             if (token == recordToken) {
                 baselineBest = best
-                baselineReplay = solved
+                baselinePlayAgain = solved
                 baselineKnown = true
             }
         }

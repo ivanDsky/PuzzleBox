@@ -143,20 +143,20 @@ class ResultScreenTest {
 
     @Test
     fun `a replay claims no pill and says it was a replay`() {
-        setContent(verdict = RecordVerdict.Replay, previousBestMs = 80_000)
+        setContent(verdict = RecordVerdict.PlayAgain, previousBestMs = 80_000)
         composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
         composeRule.onNodeWithTag("result.previous_best").assertExists()
     }
 
     @Test
     fun `a hints-first replay leads its best line with the hints`() {
-        setContent(verdict = RecordVerdict.Replay, previousBestMs = 102_000, rankOrder = RankOrder.HintsThenTime)
+        setContent(verdict = RecordVerdict.PlayAgain, previousBestMs = 102_000, rankOrder = RankOrder.HintsThenTime)
         composeRule.onNodeWithText("Replay · Best Perfect · 1:42").assertExists()
     }
 
     @Test
     fun `a time-first best line never shows hints`() {
-        setContent(verdict = RecordVerdict.Replay, previousBestMs = 80_000, previousHints = 2)
+        setContent(verdict = RecordVerdict.PlayAgain, previousBestMs = 80_000, previousHints = 2)
         composeRule.onNodeWithText("Replay · Best 1:20").assertExists()
     }
 

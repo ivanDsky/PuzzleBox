@@ -178,7 +178,7 @@ class ActivePlayTest {
         completions.setRecords(listOf(FakeController.record(ref)))
         val play = loaded()
         ui.latest.win()
-        assertEquals(RecordVerdict.Replay, play.record.value.verdict)
+        assertEquals(RecordVerdict.PlayAgain, play.record.value.verdict)
         assertEquals("a replay shows the best it plays against", FakeController.TIME_MS, play.record.value.previousBest?.timeMs)
         assertEquals(2, records().size)
     }
@@ -191,7 +191,7 @@ class ActivePlayTest {
         completions.setRecords(listOf(FakeController.record(ref).copy(time = slower, isRecord = true)))
         val play = loaded()
         ui.latest.win()
-        assertEquals(RecordVerdict.Replay, play.record.value.verdict)
+        assertEquals(RecordVerdict.PlayAgain, play.record.value.verdict)
         assertEquals(slower, play.record.value.previousBest?.timeMs)
     }
 
@@ -228,7 +228,7 @@ class ActivePlayTest {
 
         ui.latest.win()
         assertEquals(2, records().size)
-        assertEquals(RecordVerdict.Replay, play.record.value.verdict)
+        assertEquals(RecordVerdict.PlayAgain, play.record.value.verdict)
     }
 
     @Test

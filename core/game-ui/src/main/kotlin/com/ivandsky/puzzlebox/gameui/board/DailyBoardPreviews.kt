@@ -91,8 +91,8 @@ internal fun DailyBoardPostingPreview() = Padded {
 
 @PuzzleBoxPreviews
 @Composable
-internal fun DailyBoardReplayPreview() = Padded {
-    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows, DailyBoardNote.ReplayFirstTimeStands))
+internal fun DailyBoardPlayAgainPreview() = Padded {
+    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows, DailyBoardNote.PlayAgainFirstTimeStands))
 }
 
 @PuzzleBoxPreviews

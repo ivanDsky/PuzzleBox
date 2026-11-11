@@ -32,13 +32,13 @@ internal data class HeroScopeView(
 )
 
 /**
- * The histogram block: one [HeroScopeView] per scope, opening on [defaultScope]; [replay] draws this solve's bar dashed.
+ * The histogram block: one [HeroScopeView] per scope, opening on [defaultScope]; [playAgain] draws this solve's bar dashed.
  * [switchable]: the scopes hold a different number of solves, so the heading carries a chip that swaps them.
  */
 internal data class HeroSpread(
     val views: Map<SpreadScope, HeroScopeView>,
     val defaultScope: SpreadScope,
-    val replay: Boolean,
+    val playAgain: Boolean,
     val switchable: Boolean,
 )
 
@@ -85,7 +85,7 @@ internal fun resultHeroModel(
     locale: Locale = Locale.getDefault(),
     chip: ResultHeroChip? = null,
 ): ResultHeroModel {
-    val counts = !facts.practice && !facts.replay
+    val counts = !facts.practice && !facts.playAgain
     val insights = facts.insights.takeUnless { facts.practice }
     val verdict = facts.verdict.takeUnless { facts.practice }
     val pill = heroPill(verdict).takeIf { counts }
@@ -98,7 +98,7 @@ internal fun resultHeroModel(
             null
         } else {
             heroBestLine(
-                verdict = if (facts.replay) RecordVerdict.Replay else verdict,
+                verdict = if (facts.playAgain) RecordVerdict.PlayAgain else verdict,
                 previousBest = facts.previousBest,
                 order = facts.rankOrder,
                 timeMs = facts.timeMs,
@@ -148,7 +148,7 @@ private fun spread(facts: ResultHeroFacts, insights: ResultInsights, locale: Loc
         HeroScopeView(
             heading = heading,
             caption = heroSpreadCaption(scope, spread.isFirstSolve, weekday, switchable),
-            verdict = heroSpreadVerdict(scope, facts.rankOrder, spread, facts.game, weekday, facts.replay),
+            verdict = heroSpreadVerdict(scope, facts.rankOrder, spread, facts.game, weekday, facts.playAgain),
             notes = listOfNotNull(
                 heroRankNote(facts.rankOrder, spread),
                 heroWeekdayNote(insights.spread, insights.weekday.spread, weekday, insights.weekday.fastest),
@@ -160,7 +160,7 @@ private fun spread(facts: ResultHeroFacts, insights: ResultInsights, locale: Loc
         )
     }
     val defaultScope = if (switchable) insights.defaultScope else SpreadScope.All
-    return HeroSpread(views = views, defaultScope = defaultScope, replay = facts.replay, switchable = switchable)
+    return HeroSpread(views = views, defaultScope = defaultScope, playAgain = facts.playAgain, switchable = switchable)
 }
 
 private fun rank(rank: ResultRank): HeroRank? = when (rank) {

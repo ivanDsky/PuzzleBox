@@ -100,10 +100,10 @@ internal fun CustomResultScreen(
         game = state.title,
         verdict = when (state.standing) {
             CustomStanding.Record -> RecordVerdict.NewBest
-            is CustomStanding.Replay -> RecordVerdict.Replay
+            is CustomStanding.PlayAgain -> RecordVerdict.PlayAgain
             null -> null
         },
-        previousBest = (state.standing as? CustomStanding.Replay)?.record,
+        previousBest = (state.standing as? CustomStanding.PlayAgain)?.record,
         rankOrder = state.rankOrder,
         details = {
             CustomBoard(
@@ -122,7 +122,7 @@ internal fun CustomResultScreen(
 
 /** This device's best on the puzzle: this solve until a replay names the record that stands. */
 private fun yoursOf(state: CustomResultState): BestScore = when (val standing = state.standing) {
-    is CustomStanding.Replay -> standing.record
+    is CustomStanding.PlayAgain -> standing.record
     CustomStanding.Record, null -> BestScore(state.timeMs, state.hintsUsed)
 }
 
@@ -200,10 +200,10 @@ internal fun CustomResultRecordPreview() {
 // Preview: a slower replay with two hints, signed out; the board offers sign-in.
 @PuzzleBoxPreviews
 @Composable
-internal fun CustomResultReplayPreview() {
+internal fun CustomResultPlayAgainPreview() {
     PreviewScreen(
         previewState(
-            CustomStanding.Replay(BestScore(118_000L, 0)),
+            CustomStanding.PlayAgain(BestScore(118_000L, 0)),
             timeMs = 131_000L,
             hints = 2,
             board = CustomBoardView.SignedOut(PreviewBoardAuthor),

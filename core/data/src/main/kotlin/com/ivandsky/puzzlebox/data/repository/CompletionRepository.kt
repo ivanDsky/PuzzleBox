@@ -21,7 +21,7 @@ interface CompletionRepository {
     /** Every LinkedIn import, records and replays alike. */
     fun observeImports(): Flow<List<CompletionRecord>>
 
-    fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>>
+    fun observePlayAgains(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>>
 
     /** Record and replay rows of one friend puzzle (ref key `custom/<gameId>/<puzzleId>`), newest completedAt first. */
     fun observeCustom(gameId: GameId, puzzleId: String): Flow<List<CompletionRecord>>

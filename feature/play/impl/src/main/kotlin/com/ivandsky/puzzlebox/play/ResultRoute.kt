@@ -112,8 +112,8 @@ private fun ColumnScope.HeroPage(
             game = state.game,
             puzzleNumber = state.puzzleNumber,
             practice = state.practice,
-            replay = viewModel.replay,
-            dateLine = resultDateLine(LocalDate.parse(key.day), today = !viewModel.replay),
+            playAgain = viewModel.playAgain,
+            dateLine = resultDateLine(LocalDate.parse(key.day), today = !viewModel.playAgain),
             doneToday = state.doneToday,
             total = state.total,
             insights = insights,
@@ -133,7 +133,7 @@ private fun ColumnScope.HeroPage(
                 rolloverAt = state.rolloverAt,
             )
         },
-        board = if (!viewModel.replay && state.puzzleNumber != null) {
+        board = if (!viewModel.playAgain && state.puzzleNumber != null) {
             { SummaryLinkRow("Full board", { onOpenBoard(GameId(key.gameId)) }, Modifier.testTag("summary.leaderboard")) }
         } else {
             null

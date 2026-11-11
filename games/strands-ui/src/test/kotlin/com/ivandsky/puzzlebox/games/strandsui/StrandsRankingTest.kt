@@ -12,7 +12,7 @@ class StrandsRankingTest {
     private val best = BestScore(timeMs = 60_000L, hints = 2)
 
     private fun verdict(timeMs: Long, hints: Int) =
-        RecordVerdict.of(best, timeMs, hints, replay = false, order = strandsPlugin.score.rankOrder)
+        RecordVerdict.of(best, timeMs, hints, playAgain = false, order = strandsPlugin.score.rankOrder)
 
     @Test
     fun `fewer hints beat a faster time`() {

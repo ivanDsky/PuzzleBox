@@ -101,7 +101,7 @@ fun ResultScreen(
                             color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.testTag("result.time"),
                         )
-                        if (verdict == RecordVerdict.Replay) ReplayLine(previousBest, rankOrder)
+                        if (verdict == RecordVerdict.PlayAgain) PlayAgainLine(previousBest, rankOrder)
                     }
                     ResultStatTiles(hintsUsed)
                     details?.invoke()

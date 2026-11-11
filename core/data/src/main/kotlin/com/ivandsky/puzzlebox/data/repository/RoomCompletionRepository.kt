@@ -52,8 +52,8 @@ internal class RoomCompletionRepository(
             rows.mapNotNull { it.toModel(registry) }
         }
 
-    override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
-        dao.observeReplays(PuzzleRefKeys.encode(puzzleRef)).map { rows ->
+    override fun observePlayAgains(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
+        dao.observePlayAgains(PuzzleRefKeys.encode(puzzleRef)).map { rows ->
             rows.mapNotNull { it.toModel(registry) }
         }
 

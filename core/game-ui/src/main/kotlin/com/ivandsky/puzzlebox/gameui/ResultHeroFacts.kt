@@ -15,7 +15,7 @@ data class ResultHeroFacts(
     val game: String,
     val puzzleNumber: Int?,
     val practice: Boolean,
-    val replay: Boolean,
+    val playAgain: Boolean,
     val dateLine: String,
     val doneToday: Int?,
     val total: Int?,
