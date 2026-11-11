@@ -22,7 +22,7 @@ fun EntryProviderScope<NavKey>.profileEntry(
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenLinkedInLogin: (() -> Unit)? = null,
-    debugSections: @Composable () -> Unit = {},
+    debugSections: (@Composable () -> Unit)? = null,
 ) {
     entry<ProfileKey> {
         ProfileRoute(onBack = onBack, onOpenSettings = onOpenSettings, onConnectLinkedIn = onOpenLinkedInLogin)
