@@ -52,7 +52,6 @@ internal fun GamePageBoard(
             state = state.board,
             ghosts = state.ghosts,
             animated = linkedIn,
-            day = day?.toString(),
             signIn = {
                 Column(Modifier.testTag("leaderboard.signIn")) {
                     SignInPrompt(
