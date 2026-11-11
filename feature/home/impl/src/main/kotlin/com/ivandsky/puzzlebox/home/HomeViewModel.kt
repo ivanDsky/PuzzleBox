@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.home
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -53,7 +54,7 @@ import kotlinx.coroutines.launch
  * numbers and the last 7 puzzle days, oldest first, ending on [puzzleDay]. [rolloverAt] is
  * when the next puzzles land, the CTA's countdown once every game is solved. [updateUrl] is
  * a newer release's page (spec A7), null while none is known. [rank] is the player's place on
- * the game they solved last today, null unless signed in and ranked.
+ * the game they solved last today, null unless signed in and ranked. [selectedDay]: two-pane's detail day.
  */
 internal data class HomeUiState(
     val today: List<TodayRow>,
@@ -66,6 +67,7 @@ internal data class HomeUiState(
     val rolloverAt: Instant,
     val updateUrl: String? = null,
     val rank: TodayRank? = null,
+    val selectedDay: String? = null,
 ) {
     /**
      * One game's Today row (A9, A10): [status] is null until today's set first emits,
@@ -88,6 +90,9 @@ internal data class HomeUiState(
     val allSolved: Boolean
         get() = today.isNotEmpty() && today.all { it.status is TodayStatus.Solved }
 }
+
+/** [SavedStateHandle] key of the picked day's iso date, so the two-pane detail survives process death. */
+internal const val SELECTED_DAY_KEY = "home.selectedDay"
 
 /**
  * Home's state holder. The Today tiles are [ObserveTodaySet] (A10): every registered game in
@@ -119,9 +124,14 @@ class HomeViewModel(
     private val getAppUpdate: GetAppUpdate,
     observeLatestSolvedToday: ObserveLatestSolvedToday,
     observeResultRank: ObserveResultRank,
+    private val savedState: SavedStateHandle,
 ) : ViewModel() {
 
     private val updateUrl = MutableStateFlow<String?>(null)
+    private val pickedDay: StateFlow<String?> = savedState.getStateFlow(SELECTED_DAY_KEY, null)
+
+    /** The recent day the two-pane detail shows; null clears it. A day history drops is forgotten for good. */
+    fun selectDay(isoDay: String?) = savedState.set(SELECTED_DAY_KEY, isoDay)
 
     // Declared before uiState: its initial value already builds the week.
     private val registryOrder: Comparator<GameHistoryDay> =
@@ -196,6 +206,11 @@ class HomeViewModel(
             )
         }.combine(updateUrl) { state, url -> state.copy(updateUrl = url) }
             .combine(rank) { state, rank -> state.copy(rank = rank) }
+            .combine(pickedDay) { state, picked ->
+                val listed = picked?.takeIf { day -> state.history.any { it.isoDay == day } }
+                if (picked != null && listed == null) savedState[SELECTED_DAY_KEY] = null
+                state.copy(selectedDay = listed)
+            }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),

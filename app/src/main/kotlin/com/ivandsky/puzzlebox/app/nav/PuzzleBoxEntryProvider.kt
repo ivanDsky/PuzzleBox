@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.history.navigation.historyEntry
+import com.ivandsky.puzzlebox.home.HomeDuelsSummary
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.HomeSummaries
@@ -72,8 +73,12 @@ internal fun puzzleBoxEntryProvider(
         title = topLevelDestinations.first { it.key == HomeKey }.label,
         summaries = HomeSummaries(
             onOpenRank = { libraryRequests.openGamePage(navigator, it.value) },
-            onOpenDuels = { libraryRequests.openGamesSection(navigator, GamesTab.Duels) },
-            duelsNeedYou = duels?.needYou,
+            duels = duels?.let {
+                HomeDuelsSummary(
+                    onOpen = { libraryRequests.openGamesSection(navigator, GamesTab.Duels) },
+                    needYou = it.needYou,
+                )
+            },
         ),
         onOpenHistory = { navigator.openOwner(HistoryRootKey) },
     )

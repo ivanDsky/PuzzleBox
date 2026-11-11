@@ -31,7 +31,8 @@ fun HomeRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
-    // No reset on dispose: leaving Today and coming back must not drop the rank and pop the row in again.
+    // No reset on dispose: a return within the state's 5 s WhileSubscribed grace keeps the rank. After
+    // the grace the stream restarts from no rank, so the row can blip out and back in.
     SideEffect { viewModel.setSummariesShown(true) }
     LifecycleResumeEffect(viewModel) {
         viewModel.syncToday()
@@ -44,6 +45,7 @@ fun HomeRoute(
         state = uiState,
         onOpenGame = onOpenGame,
         onOpenHistory = onOpenHistory,
+        onSelectDay = viewModel::selectDay,
         summaries = summaries,
         title = title,
         onOpenUpdate = { url ->
