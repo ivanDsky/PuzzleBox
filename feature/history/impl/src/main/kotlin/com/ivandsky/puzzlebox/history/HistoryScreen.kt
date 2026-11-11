@@ -40,7 +40,7 @@ import java.time.LocalDate
  * back arrow); expanded landscape is list-detail side by side (07).
  *
  * Replay (A4, ticket 11): tapping a day opens its detail; "See result" / "Keep going"
- * reports the (game, day) through [onReplay] and the shell opens that day's game slot.
+ * reports the (game, day) through [onPlayAgain] and the shell opens that day's game slot.
  * Every identity (selection, best lookup, replay) is (game, day), never day alone
  * (tango-05).
  */
@@ -52,7 +52,7 @@ fun HistoryScreen(
     state: HistoryUiState,
     onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
     onSelectDay: (LocalDate?) -> Unit,
-    onReplay: (GameId, LocalDate) -> Unit,
+    onPlayAgain: (GameId, LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
@@ -121,7 +121,7 @@ fun HistoryScreen(
                             row = selected,
                             gameBest = state.bestOf(selected),
                             onBackToDayList = null,
-                            onReplay = { onReplay(selected.gameId, selected.day) },
+                            onPlayAgain = { onPlayAgain(selected.gameId, selected.day) },
                             cardColor = cardColor,
                             modifier = Modifier.fillMaxSize(),
                         )
@@ -155,7 +155,7 @@ fun HistoryScreen(
                         row = selected,
                         gameBest = state.bestOf(selected),
                         onBackToDayList = { selectedKey = null },
-                        onReplay = { onReplay(selected.gameId, selected.day) },
+                        onPlayAgain = { onPlayAgain(selected.gameId, selected.day) },
                         cardColor = cardColor,
                         modifier = Modifier.fillMaxSize(),
                     )

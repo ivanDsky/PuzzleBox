@@ -36,7 +36,7 @@ import org.koin.core.parameter.parametersOf
  *
  * Up and Done both hand back [onDone] (a pop to the game's origin). "Play again" hands
  * back [onPlayAgain]: the app resets the solved live play to a fresh attempt
- * ([PlaySessionStore.replay]) and replaces this entry with the game. "Next: <game>" hands back
+ * ([PlaySessionStore.playAgain]) and replaces this entry with the game. "Next: <game>" hands back
  * [onNext] with the next unsolved daily. Share opens the system share sheet
  * with the plain [resultShareText] — no screen of our own.
  *

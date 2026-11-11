@@ -207,7 +207,7 @@ class NotationTextTest {
         stateOf = { Unit },
         initialSession = { DecodeResult.Err(DecodeError.Malformed("unused")) },
         refOf = { key -> KeyRef(key, id) },
-        replaySession = { _, _ -> DecodeResult.Err(DecodeError.Malformed("unused")) },
+        playAgainSession = { _, _ -> DecodeResult.Err(DecodeError.Malformed("unused")) },
         rendererModel = { _, _, _ -> Model },
         editor = editor,
     )

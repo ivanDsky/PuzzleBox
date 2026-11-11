@@ -158,8 +158,8 @@ internal class SlotOpening(
         if (opened != PastDayOutcome.Missing || ref.day != calendar.today(ref.gameId)) return pastDay(ref.day, opened)
         val key = PuzzleKey.Daily(ref.day, ref.number)
         return when (val fetched = daily.today(ref.gameId)) {
-            is DailyToday.Fresh -> replay(plugin, fetched.puzzle, key)
-            is DailyToday.Cached -> replay(plugin, fetched.puzzle, key)
+            is DailyToday.Fresh -> playAgainBuild(plugin, fetched.puzzle, key)
+            is DailyToday.Cached -> playAgainBuild(plugin, fetched.puzzle, key)
             is DailyToday.Unavailable -> Origin.Unavailable(unavailableMessage(fetched.error))
         }
     }
@@ -169,7 +169,7 @@ internal class SlotOpening(
         when (val opened = withContext(dispatchers.default) { loadShared(ref.code) }) {
             is OpenOutcome.Opened -> opened.puzzle.takeIf { it.gameId == ref.gameId }?.let { row ->
                 val puzzle = Puzzle(row.gameId, row.variant, row.sharedFormatVersion, row.puzzleBytes)
-                replay(plugin, puzzle, PuzzleKey.Custom(ref.code.value))
+                playAgainBuild(plugin, puzzle, PuzzleKey.Custom(ref.code.value))
             } ?: Origin.Unavailable(DUEL_PUZZLE_MISSING, retryable = false)
             OpenOutcome.Offline -> Origin.Unavailable(DUEL_OFFLINE)
             is OpenOutcome.NeedsUpdate -> Origin.Unavailable(DUEL_NEEDS_UPDATE, retryable = false)
@@ -177,8 +177,8 @@ internal class SlotOpening(
                 Origin.Unavailable(DUEL_PUZZLE_MISSING, retryable = false)
         }
 
-    private fun replay(plugin: GamePlugin<*, *, *>, puzzle: Puzzle, key: PuzzleKey): Origin =
-        when (val session = plugin.replaySession(puzzle, key)) {
+    private fun playAgainBuild(plugin: GamePlugin<*, *, *>, puzzle: Puzzle, key: PuzzleKey): Origin =
+        when (val session = plugin.playAgainSession(puzzle, key)) {
             is DecodeResult.Ok -> Origin.Restored(session.value)
             is DecodeResult.Err -> Origin.Unavailable(PUZZLE_UNREADABLE, retryable = false)
         }

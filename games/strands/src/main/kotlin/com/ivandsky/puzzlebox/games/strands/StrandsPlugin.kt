@@ -33,7 +33,7 @@ val strandsPlugin: GamePlugin<StrandsState, StrandsSession, StrandsRendererModel
             }
         },
         refOf = { key -> StrandsPuzzleRef(key) },
-        replaySession = { cached, key ->
+        playAgainSession = { cached, key ->
             StrandsCodec.decode(cached.payload).map { puzzle ->
                 SessionBlob.encode(
                     StrandsDefinition.id,

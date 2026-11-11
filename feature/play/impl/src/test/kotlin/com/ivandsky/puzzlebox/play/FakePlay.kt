@@ -184,7 +184,7 @@ class FakeController(
         return Restored(ref)
     }
 
-    override fun replay() {
+    override fun playAgain() {
         replays++
         moves = 0
         isComplete = false
@@ -259,7 +259,7 @@ class FakeGames(ids: List<GameId>, hintsRanked: Set<GameId> = emptySet()) {
         stateOf = plugin.stateOf,
         initialSession = plugin.initialSession,
         refOf = plugin.refOf,
-        replaySession = plugin.replaySession,
+        playAgainSession = plugin.playAgainSession,
         rendererModel = plugin.rendererModel,
     )
 }

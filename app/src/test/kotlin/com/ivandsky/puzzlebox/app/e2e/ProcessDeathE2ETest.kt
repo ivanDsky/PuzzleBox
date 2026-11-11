@@ -117,7 +117,7 @@ class ProcessDeathE2ETest {
 
     @Test
     fun `N20 a History replay's Result saved before process death returns to its origin on Done`() =
-        shellRobot(pastGame, graph = replayableGraph()) {
+        shellRobot(pastGame, graph = playAgainGraph()) {
             solveThenDie(pastSlot)
 
             tap(DONE)
@@ -253,7 +253,7 @@ class ProcessDeathE2ETest {
     private fun ZipPlayController.extend(cell: Cell) = onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
 
     /** [PAST_DAY] is a captured, cached day, so its History replay has a board to open. */
-    private fun replayableGraph() = E2eKoinGraph(E2E_TODAY).apply {
+    private fun playAgainGraph() = E2eKoinGraph(E2E_TODAY).apply {
         daily.setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(E2E_TODAY), ZipPlayFixture.entry(PAST_DAY)))
         daily.setCached(ZipDefinition.id, PAST_DAY, ZipPlayFixture.envelope())
     }

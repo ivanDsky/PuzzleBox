@@ -228,14 +228,14 @@ private val FriendCardAction.label: String
     get() = when (this) {
         FriendCardAction.Play -> "Play"
         is FriendCardAction.Resume -> "Resume · ${formatDuration(elapsedMs)}"
-        FriendCardAction.Replay -> "Replay"
+        FriendCardAction.PlayAgain -> "Replay"
     }
 
 private val FriendCardAction.tag: String
     get() = when (this) {
         FriendCardAction.Play -> "play"
         is FriendCardAction.Resume -> "resume"
-        FriendCardAction.Replay -> "replay"
+        FriendCardAction.PlayAgain -> "replay"
     }
 
 private fun hintsLabel(hints: Int) = if (hints == 1) "1 hint" else "$hints hints"

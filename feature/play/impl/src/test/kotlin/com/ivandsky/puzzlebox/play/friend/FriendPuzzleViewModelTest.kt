@@ -172,7 +172,7 @@ class FriendPuzzleViewModelTest {
 
         val card = readyCard(viewModel())
 
-        assertEquals(FriendCardAction.Replay, card.action)
+        assertEquals(FriendCardAction.PlayAgain, card.action)
         assertEquals(BestScore(90_000L, 1), card.yours)
     }
 

@@ -213,7 +213,7 @@ class SudokuPlayControllerTest {
         assertTrue(c.isComplete)
         assertNull(c.clockWindow)
 
-        c.replay()
+        c.playAgain()
         assertEquals(0L, c.shown())
         clockMs += 700
         assertEquals(700L, c.shown())
@@ -321,7 +321,7 @@ class SudokuPlayControllerTest {
         val first = checkNotNull(c.board!!.spotlight)
         c.board!!.toggleNotesMode()
 
-        c.replay()
+        c.playAgain()
 
         assertNull(c.board!!.spotlight)
         c.requestHint()
@@ -337,7 +337,7 @@ class SudokuPlayControllerTest {
         assertEquals(Adopt.Adopted, c.adoptToday(envelope(noSingle), ref))
         c.requestHint()
 
-        c.replay()
+        c.playAgain()
         val savedByReplay = saved.size
         scheduler.advanceUntilIdle()
 

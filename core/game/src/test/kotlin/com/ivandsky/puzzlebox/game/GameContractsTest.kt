@@ -112,7 +112,7 @@ class GameContractsTest {
             base.stateOf,
             base.initialSession,
             base.refOf,
-            base.replaySession,
+            base.playAgainSession,
             base.rendererModel,
         )
 

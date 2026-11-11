@@ -169,7 +169,7 @@ class ObserveFriendPuzzlesTest {
                 }
             },
             refOf = base.refOf,
-            replaySession = base.replaySession,
+            playAgainSession = base.playAgainSession,
             rendererModel = base.rendererModel,
         )
     }

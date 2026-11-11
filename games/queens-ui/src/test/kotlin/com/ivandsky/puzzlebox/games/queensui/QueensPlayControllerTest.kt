@@ -101,7 +101,7 @@ class QueensPlayControllerTest {
         assertTrue("undo is persisted too", savedSession().markAt(Cell(1)) == null)
         assertTrue(savedSession().history.canRedo)
 
-        state.replay()
+        state.playAgain()
         assertEquals("replay saves a fresh session", state.board!!.session, savedSession())
         assertFalse(savedSession().history.canUndo)
     }
@@ -128,7 +128,7 @@ class QueensPlayControllerTest {
         solve(state.board!!)
         assertEquals(1, won.size)
 
-        state.replay()
+        state.playAgain()
         assertFalse(state.isComplete)
         solve(state.board!!)
         assertEquals(2, won.size)
@@ -217,7 +217,7 @@ class QueensPlayControllerTest {
         clockMs += 8_000L
         solve(state.board!!)
 
-        state.replay()
+        state.playAgain()
         assertNotNull(state.clockWindow)
         assertEquals(0L, state.shown())
         clockMs += 700L
@@ -384,7 +384,7 @@ class QueensPlayControllerTest {
         board.placeQueen(0)
         assertFalse("OFF places queens bare", board.hasAutoMarks())
 
-        state.replay()
+        state.playAgain()
         assertFalse(state.board!!.session.autoCross)
         state.board!!.placeQueen(0)
         assertFalse(state.board!!.hasAutoMarks())

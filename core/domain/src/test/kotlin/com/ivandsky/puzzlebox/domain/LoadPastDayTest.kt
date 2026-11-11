@@ -22,7 +22,7 @@ import org.junit.Test
  * puzzle — cached, or fetched for an archive source — dispatches to the NAMED game's own
  * plugin with THIS day's identity (ADR-0005 envelope), each failure keeps its cause, and
  * untrustable inputs never launch (A16). Per-game round-trips live with each game
- * (ZipPluginTest, TangoReplaySessionTest, QueensPluginTest).
+ * (ZipPluginTest, TangoPlayAgainSessionTest, QueensPluginTest).
  */
 class LoadPastDayTest {
 
@@ -51,7 +51,7 @@ class LoadPastDayTest {
 
         val ready = replay(daily)(alpha, day, puzzleNumber = null) as PastDayOutcome.Ready
 
-        assertArrayEquals(TestGames.replayBlob(alpha, fetched, PuzzleKey.Daily(day, 584)), ready.session)
+        assertArrayEquals(TestGames.playAgainBlob(alpha, fetched, PuzzleKey.Daily(day, 584)), ready.session)
         assertEquals(1, daily.dayCalls(alpha, day))
     }
 
@@ -82,7 +82,7 @@ class LoadPastDayTest {
 
         // The envelope NAMES the game (ADR-0005) — the play route dispatches on it.
         assertEquals(beta, SessionBlob.decode(ready.session)?.game)
-        assertArrayEquals(TestGames.replayBlob(beta, cached, PuzzleKey.Daily(day, 301)), ready.session)
+        assertArrayEquals(TestGames.playAgainBlob(beta, cached, PuzzleKey.Daily(day, 301)), ready.session)
     }
 
     @Test
@@ -92,7 +92,7 @@ class LoadPastDayTest {
 
         val ready = replay(daily)(alpha, day, puzzleNumber = null) as PastDayOutcome.Ready
 
-        assertArrayEquals(TestGames.replayBlob(alpha, cached, PuzzleKey.Daily(day, null)), ready.session)
+        assertArrayEquals(TestGames.playAgainBlob(alpha, cached, PuzzleKey.Daily(day, null)), ready.session)
     }
 
     @Test

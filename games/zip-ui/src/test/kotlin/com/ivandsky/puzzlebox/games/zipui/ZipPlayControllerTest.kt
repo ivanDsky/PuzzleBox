@@ -407,7 +407,7 @@ class ZipPlayControllerTest {
         c.hint()
         assertEquals(HintArrow(headIdx = 1, tailIdx = 0), c.hintArrow)
 
-        c.replay()
+        c.playAgain()
         assertNull(c.hintArrow)
         assertNull(c.hintCell)
     }
@@ -439,7 +439,7 @@ class ZipPlayControllerTest {
     fun `replay after a win emits again`() {
         val c = readyController()
         playSolution(c)
-        c.replay()
+        c.playAgain()
         assertNull(c.session?.completedAt)
         assertFalse(c.isComplete)
         assertEquals(ref, c.session?.ref)
@@ -565,7 +565,7 @@ class ZipPlayControllerTest {
         wall.ms += 2_000
         playSolution(c)
 
-        c.replay()
+        c.playAgain()
         assertEquals(0L, c.shown())
         wall.ms += 700
 

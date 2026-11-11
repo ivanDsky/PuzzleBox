@@ -39,7 +39,7 @@ import kotlinx.coroutines.launch
  * Every [load] adopts into a NEW controller; callbacks and async results of an older
  * controller are dropped (the generation guard), so a superseded session can never
  * save bytes or write a record. The record write is tracked apart from the controller
- * (the record token): only [load] and [replay] start a new record.
+ * (the record token): only [load] and [playAgain] start a new record.
  */
 class ActivePlay internal constructor(
     /** The (game, day) this is the one live play of. */
@@ -159,11 +159,11 @@ class ActivePlay internal constructor(
 
     /** Result's "Play again": a fresh session of the SAME puzzle, always a replay —
      *  the verdict resets until the new write lands; the best is re-read. The banner stays. */
-    fun replay() {
+    fun playAgain() {
         if (_board.value.status !is PlayBoardStatus.Ready) return
         resetRecord(ref)
         refreshBaseline(ref, replay = true)
-        controller.replay()
+        controller.playAgain()
     }
 
     /** Retry after a failed record write: a new emitter (the old one deduped this ref). */

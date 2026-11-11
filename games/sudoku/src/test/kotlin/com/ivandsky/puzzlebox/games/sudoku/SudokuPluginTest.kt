@@ -83,7 +83,7 @@ class SudokuPluginTest {
     fun `replay seeds a fresh session carrying the day's ref`() {
         val envelope = Puzzle(SudokuGames.MINI.id, SudokuVariants.MINI.id, SudokuCodec.VERSION, payload)
         val key = PuzzleKey.Daily(date, 450)
-        val blob = (plugin.replaySession(envelope, key) as DecodeResult.Ok).value
+        val blob = (plugin.playAgainSession(envelope, key) as DecodeResult.Ok).value
         val decoded = SessionBlob.decode(blob)!!
         assertEquals(SudokuGames.MINI.id, decoded.game)
         val session = (SudokuSessionCodec.deserialize(decoded.session) as DecodeResult.Ok).value
@@ -95,7 +95,7 @@ class SudokuPluginTest {
     fun `a custom key replays carrying the friend's puzzle identity`() {
         val envelope = Puzzle(SudokuGames.MINI.id, SudokuVariants.MINI.id, SudokuCodec.VERSION, payload)
         val custom = PuzzleKey.Custom("K7Q2MX")
-        val decoded = SessionBlob.decode((plugin.replaySession(envelope, custom) as DecodeResult.Ok).value)!!
+        val decoded = SessionBlob.decode((plugin.playAgainSession(envelope, custom) as DecodeResult.Ok).value)!!
         val session = (SudokuSessionCodec.deserialize(decoded.session) as DecodeResult.Ok).value
         assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, custom), session.ref)
         assertEquals(SudokuPuzzleRef(SudokuGames.MINI.id, custom), plugin.refOf(custom))

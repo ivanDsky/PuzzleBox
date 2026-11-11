@@ -151,12 +151,12 @@ abstract class FriendCardGoldenScreenshots(private val device: String) {
         )
 
         val SOLVED = card(
-            FriendCardAction.Replay,
+            FriendCardAction.PlayAgain,
             yours = BestScore(125_000L, 0),
             board = CustomBoardView.Ranked(TOP3, mine = null, author = PreviewBoardAuthor),
         )
         val TAKEN_DOWN = card(
-            FriendCardAction.Replay,
+            FriendCardAction.PlayAgain,
             yours = BestScore(125_000L, 0),
             board = CustomBoardView.Ranked(TOP3, mine = null, author = PreviewBoardAuthor),
             unpublished = true,

@@ -231,7 +231,7 @@ class ZipPlayUiScreenTest {
         solve(controller)
         playSolveMoment()
         check(solvedFacts != null) { "first solve did not hand off" }
-        composeRule.runOnIdle { controller.replay() }
+        composeRule.runOnIdle { controller.playAgain() }
         composeRule.waitForIdle()
         composeRule.runOnIdle {
             check(controller.session?.elapsedMs == 0L) { "replay kept the old time" }

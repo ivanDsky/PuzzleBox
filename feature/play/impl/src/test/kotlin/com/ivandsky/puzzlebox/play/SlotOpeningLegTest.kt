@@ -93,7 +93,7 @@ class SlotOpeningLegTest {
 
         val origin = opening.open(legSlot()) as SlotOpening.Origin.Restored
 
-        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, PuzzleKey.Daily(pastDay, 224)), origin.session)
+        assertArrayEquals(TestGames.playAgainBlob(alpha, puzzle, PuzzleKey.Daily(pastDay, 224)), origin.session)
         assertEquals("one match read", 1, matches.observes)
     }
 
@@ -105,7 +105,7 @@ class SlotOpeningLegTest {
 
         val origin = opening.open(legSlot()) as SlotOpening.Origin.Restored
 
-        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, PuzzleKey.Daily(today, 258)), origin.session)
+        assertArrayEquals(TestGames.playAgainBlob(alpha, puzzle, PuzzleKey.Daily(today, 258)), origin.session)
         assertEquals(1, daily.todayCalls(alpha))
     }
 
@@ -118,7 +118,7 @@ class SlotOpeningLegTest {
         val origin = opening.open(legSlot()) as SlotOpening.Origin.Restored
 
         val stored = Puzzle(alpha, TestGames.variant(alpha), 1, TestGames.puzzle(alpha, tag = 5).payload)
-        assertArrayEquals(TestGames.replayBlob(alpha, stored, PuzzleKey.Custom(friendCode.value)), origin.session)
+        assertArrayEquals(TestGames.playAgainBlob(alpha, stored, PuzzleKey.Custom(friendCode.value)), origin.session)
     }
 
     @Test
@@ -140,7 +140,7 @@ class SlotOpeningLegTest {
 
         val verified = TestGames.puzzle(alpha, tag = 8)
         assertArrayEquals("the verified puzzle is kept", verified.payload, received.get(friendCode)?.puzzleBytes)
-        assertArrayEquals(TestGames.replayBlob(alpha, verified, PuzzleKey.Custom(friendCode.value)), origin.session)
+        assertArrayEquals(TestGames.playAgainBlob(alpha, verified, PuzzleKey.Custom(friendCode.value)), origin.session)
     }
 
     @Test
@@ -183,9 +183,9 @@ class SlotOpeningLegTest {
         val dayLegOrigin = opening.open(legSlot(0)) as SlotOpening.Origin.Restored
         val friendLegOrigin = opening.open(legSlot(1)) as SlotOpening.Origin.Restored
 
-        assertArrayEquals(TestGames.replayBlob(alpha, puzzle, PuzzleKey.Daily(pastDay, 224)), dayLegOrigin.session)
+        assertArrayEquals(TestGames.playAgainBlob(alpha, puzzle, PuzzleKey.Daily(pastDay, 224)), dayLegOrigin.session)
         val stored = Puzzle(alpha, TestGames.variant(alpha), 1, TestGames.puzzle(alpha, tag = 7).payload)
-        assertArrayEquals(TestGames.replayBlob(alpha, stored, PuzzleKey.Custom(friendCode.value)), friendLegOrigin.session)
+        assertArrayEquals(TestGames.playAgainBlob(alpha, stored, PuzzleKey.Custom(friendCode.value)), friendLegOrigin.session)
         saved.save(legSlot(0), SessionBlob.encode(alpha, byteArrayOf(3)), elapsedMs = 30_000L)
         saved.save(legSlot(1), SessionBlob.encode(alpha, byteArrayOf(4)), elapsedMs = 40_000L)
         assertArrayEquals(dayBlob, (opening.open(daySlot) as SlotOpening.Origin.Restored).session)

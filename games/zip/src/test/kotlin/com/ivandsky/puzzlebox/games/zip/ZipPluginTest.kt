@@ -214,7 +214,7 @@ private val otherPlugin: GamePlugin<OtherGameState, OtherGameSession, OtherRende
         stateOf = { OtherGameState },
         initialSession = { DecodeResult.Err(DecodeError.Malformed("no payload")) },
         refOf = { _ -> error("no refs") },
-        replaySession = { _, _ -> DecodeResult.Err(DecodeError.Malformed("no payload")) },
+        playAgainSession = { _, _ -> DecodeResult.Err(DecodeError.Malformed("no payload")) },
         rendererModel = { _, _, _ -> OtherRendererModel },
     )
 

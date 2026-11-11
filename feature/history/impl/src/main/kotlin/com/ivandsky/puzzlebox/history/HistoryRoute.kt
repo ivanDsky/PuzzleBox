@@ -19,7 +19,7 @@ import org.koin.core.parameter.parametersOf
  * once at the app shell (ticket 07 policy) and passed in; UI below this point stays
  * repository-free.
  *
- * Replay (ticket 11): [onReplay] reports the replayed (game, day); the shell opens that
+ * Replay (ticket 11): [onPlayAgain] reports the replayed (game, day); the shell opens that
  * day's game slot, which the play store builds or resumes.
  */
 @Composable
@@ -27,7 +27,7 @@ fun HistoryRoute(
     key: HistoryKey,
     layout: HistoryLayout,
     onBack: (() -> Unit)?,
-    onReplay: (GameId, LocalDate) -> Unit,
+    onPlayAgain: (GameId, LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HistoryViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) }),
 ) {
@@ -41,7 +41,7 @@ fun HistoryRoute(
         state = uiState,
         onShowCalendar = viewModel::showCalendar,
         onSelectDay = viewModel::selectDay,
-        onReplay = onReplay,
+        onPlayAgain = onPlayAgain,
         modifier = modifier.testTag("route.history"),
     )
 }

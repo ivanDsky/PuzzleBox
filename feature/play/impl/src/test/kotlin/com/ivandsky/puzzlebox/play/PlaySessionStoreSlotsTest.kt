@@ -273,7 +273,7 @@ class PlaySessionStoreSlotsTest {
         assertTrue("opening never resets it", fakes[alpha].latest.isComplete)
         assertEquals(0, fakes[alpha].latest.replays)
 
-        store.replay(result)
+        store.playAgain(result)
 
         assertEquals(1, fakes[alpha].latest.replays)
         assertFalse(fakes[alpha].latest.isComplete)
@@ -287,7 +287,7 @@ class PlaySessionStoreSlotsTest {
         val store = store()
         val result = checkNotNull(store.completedResult(key))
 
-        store.replay(result)
+        store.playAgain(result)
         runCurrent()
 
         assertNotNull(store.peek(slot))
@@ -392,7 +392,7 @@ class PlaySessionStoreSlotsTest {
 
         override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt = Adopt.Adopted
         override fun adoptRestored(bytes: ByteArray): Restored? = null
-        override fun replay() = Unit
+        override fun playAgain() = Unit
         override fun tick() = Unit
         override fun onForeground() = Unit
         override fun displayedElapsedMs(): Long = 0L

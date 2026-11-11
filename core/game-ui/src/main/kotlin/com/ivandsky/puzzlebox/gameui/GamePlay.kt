@@ -104,7 +104,7 @@ interface GamePlayController {
     fun adoptRestored(bytes: ByteArray): Restored?
 
     /** A fresh session of the SAME puzzle (result's "Play again", A9). */
-    fun replay()
+    fun playAgain()
 }
 
 /** The outcome of [GamePlayController.adoptToday]. */

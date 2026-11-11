@@ -18,7 +18,7 @@ import org.junit.Test
  * codec with THIS day's identity (ADR-0005 envelope); an archive the A15 gate refuses
  * never launches (A16).
  */
-class TangoReplaySessionTest {
+class TangoPlayAgainSessionTest {
 
     private val day: LocalDate = LocalDate.of(2026, 10, 31)
 
@@ -40,7 +40,7 @@ class TangoReplaySessionTest {
     @Test
     fun `tango blob round-trips through its session codec`() {
         val original = TangoTestSupport.sample
-        val session = tangoPlugin.replaySession(envelope(original), PuzzleKey.Daily(day, 301)).session()
+        val session = tangoPlugin.playAgainSession(envelope(original), PuzzleKey.Daily(day, 301)).session()
 
         assertEquals(TangoPuzzleRef(PuzzleKey.Daily(day, 301)), session.ref)
         assertEquals(original, session.puzzle)
@@ -49,13 +49,13 @@ class TangoReplaySessionTest {
 
     @Test
     fun `missing puzzle number still yields a valid ref`() {
-        assertEquals(TangoPuzzleRef(PuzzleKey.Daily(day, null)), tangoPlugin.replaySession(envelope(), PuzzleKey.Daily(day, null)).session().ref)
+        assertEquals(TangoPuzzleRef(PuzzleKey.Daily(day, null)), tangoPlugin.playAgainSession(envelope(), PuzzleKey.Daily(day, null)).session().ref)
     }
 
     @Test
     fun `a custom key replays carrying the friend's puzzle identity`() {
         val custom = PuzzleKey.Custom("K7Q2MX")
-        assertEquals(TangoPuzzleRef(custom), tangoPlugin.replaySession(envelope(), custom).session().ref)
+        assertEquals(TangoPuzzleRef(custom), tangoPlugin.playAgainSession(envelope(), custom).session().ref)
     }
 
     @Test
@@ -64,7 +64,7 @@ class TangoReplaySessionTest {
 
         assertEquals(
             DecodeResult.Err(DecodeError.Malformed("archived puzzle is not uniquely solvable")),
-            tangoPlugin.replaySession(envelope(ambiguous), PuzzleKey.Daily(day, 301)),
+            tangoPlugin.playAgainSession(envelope(ambiguous), PuzzleKey.Daily(day, 301)),
         )
     }
 }

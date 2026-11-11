@@ -241,7 +241,7 @@ class ResultViewModelTest {
         val vm = vm().observed()
         assertEquals(RecordVerdict.FirstSolve, vm.state.value.verdict)
 
-        play.replay()
+        play.playAgain()
         dispatcher.scheduler.runCurrent()
         // The replay's in-flight state (no verdict yet) is not this result's.
         assertNull(play.record.value.verdict)

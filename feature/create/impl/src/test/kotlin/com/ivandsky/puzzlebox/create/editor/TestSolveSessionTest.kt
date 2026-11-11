@@ -386,7 +386,7 @@ class TestSolveSessionTest {
                 stateOf = base.stateOf,
                 initialSession = base.initialSession,
                 refOf = base.refOf,
-                replaySession = base.replaySession,
+                playAgainSession = base.playAgainSession,
                 rendererModel = base.rendererModel,
                 editor = editor,
             )
@@ -477,7 +477,7 @@ private class SandboxController(private val env: PlayEnvironment) : GamePlayCont
 
     override fun adoptRestored(bytes: ByteArray): Restored? = null
 
-    override fun replay() = Unit
+    override fun playAgain() = Unit
 
     fun win(timeMs: Long, hints: Int) {
         env.onWon(CompletionRecord(ref!!, time = timeMs, hints = hints, stats = RecordStats(1, "")))

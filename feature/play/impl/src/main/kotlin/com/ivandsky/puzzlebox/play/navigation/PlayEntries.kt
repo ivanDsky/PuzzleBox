@@ -113,7 +113,7 @@ fun EntryProviderScope<NavKey>.playEntry(
 
 /**
  * A slot's result: "Play again" starts a fresh attempt of the same day explicitly
- * ([PlaySessionStore.replay]) and replaces the result with its game; Next replaces it
+ * ([PlaySessionStore.playAgain]) and replaces the result with its game; Next replaces it
  * with another game's today (17); Up and Done pop. Today's board block is a
  * "Full board" row that hands back the result's game through [onOpenBoard].
  * [linkedIn] adds the day's LinkedIn connections to the rank row.
@@ -124,7 +124,7 @@ fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator, onOpenBoard: (G
         ResultRoute(
             key = key,
             onPlayAgain = {
-                store.replay(key)
+                store.playAgain(key)
                 navigator.replaceTop(GameKey(key.gameId, key.day))
             },
             onNext = { game -> navigator.replaceTop(GameKey(game.value)) },

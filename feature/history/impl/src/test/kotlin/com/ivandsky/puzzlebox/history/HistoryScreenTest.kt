@@ -106,7 +106,7 @@ class HistoryScreenTest {
                         key = key,
                         layout = layout,
                         onBack = onBack,
-                        onReplay = { game, replayed -> handedToShell = game to replayed },
+                        onPlayAgain = { game, replayed -> handedToShell = game to replayed },
                         viewModel = viewModel,
                     )
                 }
