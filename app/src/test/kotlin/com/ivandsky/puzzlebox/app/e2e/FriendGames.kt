@@ -89,7 +89,7 @@ object TangoSunMoon : FriendGame("Tango") {
 }
 
 /** A 6×6 Mini Sudoku with one solution the hint ladder finishes. */
-object MiniSudokuCorner : FriendGame("MiniSudoku", listOf(ReleaseFlag.SudokuEditor)) {
+object MiniSudokuCorner : FriendGame("MiniSudoku") {
     private val MINI = SudokuGames.MINI
 
     /** `0` is an empty cell. */
