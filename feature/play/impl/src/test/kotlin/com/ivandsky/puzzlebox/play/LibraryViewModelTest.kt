@@ -432,6 +432,39 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun withTodayNotPublishedTheViewAndTheSyncFollowTheLatestPublishedDay() {
+        val yesterday = day.minusDays(1)
+        daily.setArchiveRange(alpha, day.minusDays(9)..yesterday)
+        days.emit(alpha, day, data(inFlight = true))
+        days.emit(alpha, yesterday, data(lastSync = LinkedInSync.Offline))
+        val vm = observedVm(linkedIn = holder())
+        showDayCard(vm)
+        assertEquals(viewOf(alpha, yesterday), vm.linkedInView.value)
+
+        after(HOUR_MS)
+        assertEquals(listOf(alpha to yesterday), days.syncCalls.distinct())
+    }
+
+    @Test
+    fun aPickStillWinsAndBackToTodayReturnsToTheLatestPublishedDay() {
+        val yesterday = day.minusDays(1)
+        val past = day.minusDays(3)
+        daily.setArchiveRange(alpha, day.minusDays(9)..yesterday)
+        days.emit(alpha, past, data(inFlight = true))
+        days.emit(alpha, yesterday, data(lastSync = LinkedInSync.Offline))
+        val vm = observedVm(linkedIn = holder())
+        showDayCard(vm)
+
+        vm.pick(past)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(viewOf(alpha, past), vm.linkedInView.value)
+
+        vm.backToToday()
+        dispatcher.scheduler.runCurrent()
+        assertEquals(viewOf(alpha, yesterday), vm.linkedInView.value)
+    }
+
+    @Test
     fun selectingAnotherGameChangesTheView() {
         days.emit(alpha, day, data(inFlight = true))
         days.emit(beta, day, data(lastSync = LinkedInSync.Offline))
