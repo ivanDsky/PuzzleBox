@@ -111,6 +111,10 @@ object PuzzleIcons {
     val Erase: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ic_backspace)
 
+    /** Roll a new random value, e.g. a draft codename: a die showing five. */
+    val Dice: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_casino)
+
     /** Notes mode, off: the pencil outline. */
     val Notes: ImageVector = Icons.Outlined.Edit
 
