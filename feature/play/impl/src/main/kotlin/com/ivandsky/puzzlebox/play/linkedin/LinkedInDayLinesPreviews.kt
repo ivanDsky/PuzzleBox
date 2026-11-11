@@ -146,3 +146,12 @@ internal fun LinkedInTealAccentPreview() = PreviewCards(
     status(LinkedInDayStatus.Imported(52_000L), shown(yourRank = 2, total = 5, ghosts = PreviewGhosts)),
     accent = AccentSlot.Teal,
 )
+
+// Preview: the skeleton and a paused read with its Resume pill over a ranked summary on the Pink accent (Strands).
+@PuzzleBoxPreviews
+@Composable
+internal fun LinkedInPinkAccentPreview() = PreviewCards(
+    status(LinkedInDayStatus.Loading),
+    status(LinkedInDayStatus.Paused(Kind.Challenge), shown(yourRank = null, total = 4, ghosts = PreviewGhosts)),
+    accent = AccentSlot.Pink,
+)

@@ -2,9 +2,10 @@ package com.ivandsky.puzzlebox.play.linkedin
 
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView.Target
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.LibraryUiState
-import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState.Target
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -17,14 +18,14 @@ import kotlinx.coroutines.flow.flowOf
  * while today's puzzle is not out), else the calendar's today. A null receiver is the feature off: it shows nothing and reaches nothing. A game
  * whose today is not known yet has no target, so nothing is observed or synced for it.
  */
-internal fun LinkedInDayState?.libraryView(
+internal fun ObserveLinkedInDayView?.libraryView(
     game: Flow<GameId>,
     picked: Flow<LocalDate?>,
     library: Flow<LibraryUiState>,
     calendar: GameCalendar,
 ): Flow<LinkedInDayView?> {
     val holder = this ?: return flowOf(null)
-    return holder.view(
+    return holder(
         combine(game, picked, cardDay(game, library)) { selected, day, latest ->
             (day ?: latest ?: calendar.today(selected))?.let { Target(selected, it) }
         },

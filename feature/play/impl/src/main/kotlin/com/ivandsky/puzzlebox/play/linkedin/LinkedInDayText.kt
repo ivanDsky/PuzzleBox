@@ -1,5 +1,9 @@
 package com.ivandsky.puzzlebox.play.linkedin
 
+import androidx.compose.ui.graphics.Color
+import com.ivandsky.puzzlebox.designsystem.readableInk
+import com.ivandsky.puzzlebox.gameui.GameCardColors
+
 private const val MS_PER_MINUTE = 60_000L
 private const val MINUTES_PER_HOUR = 60L
 private const val HOURS_PER_DAY = 24L
@@ -30,3 +34,9 @@ internal fun updatedText(nowMs: Long, updatedAtMs: Long): String {
     }
     return "Updated $age"
 }
+
+/**
+ * The ink of every LinkedIn line on the day card: the card's own content colour where it reads on the fill, else dark
+ * ink. Full strength, so the small "Updated" line is as readable as the rank line; the rest of the card keeps its paint.
+ */
+internal fun linkedInInk(colors: GameCardColors): Color = readableInk(colors.fill, colors.fg)
