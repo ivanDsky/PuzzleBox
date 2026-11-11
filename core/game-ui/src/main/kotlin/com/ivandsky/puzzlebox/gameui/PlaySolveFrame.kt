@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.LocalDesignVariants
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -54,7 +54,6 @@ fun PlaySolveFrame(
 ) {
     val sweep = rememberSolveSweepState()
     val reducedMotion = rememberReducedMotion()
-    val sweepMs = LocalDesignVariants.current.sweepMs
     val handOff by rememberUpdatedState(onHandOff)
     // Seen unsolved in this composition: only a solve the player just made gets the moment.
     var seenOpen by remember { mutableStateOf(false) }
@@ -68,7 +67,7 @@ fun PlaySolveFrame(
         if (seenOpen) {
             sweep.play()
             if (!reducedMotion) {
-                delay(sweepMs.toLong())
+                delay(MotionTokens.SweepDuration.toLong())
                 stamped = true
             }
             delay(SOLVED_HOLD_MS)

@@ -23,10 +23,8 @@ import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
-import androidx.compose.ui.node.CompositionLocalConsumerModifierNode
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
-import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.node.invalidateDraw
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
@@ -35,7 +33,7 @@ import kotlin.math.hypot
 
 /**
  * A [SolveSweepState] tied to this composition. The sweep lasts
- * [LocalDesignVariants]' sweepMs. Reduced motion (and the preview inspector, which
+ * [MotionTokens.SweepDuration]. Reduced motion (and the preview inspector, which
  * never runs effects past the first frame) jumps straight to the end: the accent
  * outline with no band.
  */
@@ -43,14 +41,13 @@ import kotlin.math.hypot
 fun rememberSolveSweepState(): SolveSweepState {
     val state = remember { SolveSweepState() }
     val instant = rememberReducedMotion() || LocalInspectionMode.current
-    val sweepMs = LocalDesignVariants.current.sweepMs
     LaunchedEffect(state, state.plays) {
         if (state.plays == 0) return@LaunchedEffect
         if (instant) {
             state.clock.snapTo(1f)
         } else {
             state.clock.snapTo(0f)
-            state.clock.animateTo(1f, tween(sweepMs, easing = LinearEasing))
+            state.clock.animateTo(1f, tween(MotionTokens.SweepDuration, easing = LinearEasing))
         }
     }
     return state
@@ -80,20 +77,18 @@ private data class SolveSweepElement(
     }
 }
 
-// A node rather than drawWithContent so the draw can read the sweep length from
-// LocalDesignVariants (the outline's share of the sweep depends on it).
 private class SolveSweepNode(
     var state: SolveSweepState,
     var color: Color,
     var shape: Shape,
-) : Modifier.Node(), DrawModifierNode, CompositionLocalConsumerModifierNode {
+) : Modifier.Node(), DrawModifierNode {
     override fun ContentDrawScope.draw() {
         drawContent()
         if (state.plays == 0) return
-        drawSweep(state.clock.value, currentValueOf(LocalDesignVariants).sweepMs)
+        drawSweep(state.clock.value)
     }
 
-    private fun ContentDrawScope.drawSweep(t: Float, sweepMs: Int) {
+    private fun ContentDrawScope.drawSweep(t: Float) {
         val board = shape.createOutline(size, layoutDirection, this)
 
         val band = MotionTokens.EasingStandard.transform(t)
@@ -118,7 +113,7 @@ private class SolveSweepNode(
             clipPath(Path().apply { addOutline(board) }) { drawRect(brush) }
         }
 
-        val outlineProgress = (t * sweepMs / MotionTokens.SweepOutlineDuration).coerceAtMost(1f)
+        val outlineProgress = (t * MotionTokens.SweepDuration / MotionTokens.SweepOutlineDuration).coerceAtMost(1f)
         val stroke = MotionTokens.SweepOutlineWidth.toPx()
         // Inset by half the stroke so the outline stays inside the board bounds.
         val inset = shape.createOutline(Size(size.width - stroke, size.height - stroke), layoutDirection, this)
