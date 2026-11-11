@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.designsystem.MedalSilver
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -111,6 +112,7 @@ class GamePageBoardTest {
                     single<LinkedInLink> { FakeLinkedInLink() }
                     factory { ObserveLinkedInDay(get<FakeLinkedInDays>(), get()) }
                     factory { SyncLinkedInDay(get<FakeLinkedInDays>(), 500) }
+                    factory { ObserveLinkedInDayView(get(), get(), get()) }
                 },
                 playModule,
             )
