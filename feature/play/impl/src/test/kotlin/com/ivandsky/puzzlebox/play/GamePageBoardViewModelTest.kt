@@ -130,8 +130,8 @@ class GamePageBoardViewModelTest {
         )
     }
 
-    private fun ghost(name: String, timeMs: Long?, hintFree: Boolean = true) =
-        LinkedInGhost("ref-$name", name, timeMs, hintFree, flawless = false)
+    private fun ghost(name: String, timeMs: Long?, hintFree: Boolean = true, photoPath: String? = null) =
+        LinkedInGhost("ref-$name", name, timeMs, hintFree, flawless = false, photoPath = photoPath)
 
     /** A connected day whose connections board was read, [fetchedAtMs] null when it has not been. */
     private fun dayData(ghosts: List<LinkedInGhost>, inWindow: Boolean = true, fetchedAtMs: Long? = 1L) = LinkedInDayData(
@@ -211,6 +211,16 @@ class GamePageBoardViewModelTest {
             model.state.value.ghosts,
         )
         assertEquals(listOf(row("Today1")), rowsOf(model))
+    }
+
+    @Test
+    fun `a ghosts cached photo path reaches its board row`() {
+        days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L, photoPath = "/cache/ada.jpg"), ghost("Bo", null))))
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        settle()
+
+        assertEquals(listOf("/cache/ada.jpg", null), model.state.value.ghosts.map { it.photo })
     }
 
     @Test
