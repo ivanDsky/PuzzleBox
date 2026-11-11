@@ -84,4 +84,4 @@ fun gitHubReleaseTransport(baseUrl: String, json: Json): GitHubReleaseTransport 
 }
 
 /** Whole-call budget shared by every client (A18): a stalled fetch degrades to cache, never hangs. */
-private const val CALL_TIMEOUT_SECONDS = 10L
+internal const val CALL_TIMEOUT_SECONDS = 10L
