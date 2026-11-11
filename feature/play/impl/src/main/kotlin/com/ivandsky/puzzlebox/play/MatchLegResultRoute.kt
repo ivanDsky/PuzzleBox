@@ -154,7 +154,7 @@ private fun DuelCard(ready: MatchLegResultState.Ready, onNext: (LegNext) -> Unit
 
 internal fun nextLabel(next: LegNext): String = when (next) {
     is LegNext.Puzzle -> "Next puzzle: ${next.game}" + (next.number?.let { " #$it" } ?: "")
-    LegNext.Reveal -> "See the reveal"
+    LegNext.Reveal -> "See results"
 }
 
 /** The line under the card about the opponent's side, and, once both have a time, who took the puzzle. */

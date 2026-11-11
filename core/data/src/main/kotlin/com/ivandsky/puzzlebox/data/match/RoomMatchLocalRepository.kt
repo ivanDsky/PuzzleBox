@@ -35,8 +35,8 @@ internal class RoomMatchLocalRepository(
         dao.merge(code.value, role.name, opponentName)
     }
 
-    override suspend fun markRevealSeen(code: ShareCode, at: Instant) =
-        dao.markRevealSeen(code.value, at.toEpochMilli())
+    override suspend fun markRevealSeen(code: ShareCode, at: Instant, myScore: Int, theirScore: Int) =
+        dao.markRevealSeen(code.value, at.toEpochMilli(), myScore, theirScore)
 
     override suspend fun dismiss(code: ShareCode) = dao.dismiss(code.value)
 
@@ -54,5 +54,7 @@ private fun MatchLocalEntity.toLocalMatch(): LocalMatch? {
         openedAt = Instant.ofEpochMilli(openedAt),
         revealSeenAt = revealSeenAt?.let(Instant::ofEpochMilli),
         dismissed = dismissed,
+        myScore = revealMyScore,
+        theirScore = revealTheirScore,
     )
 }

@@ -210,7 +210,7 @@ private fun LegsFooter(content: LegsContent) {
             )
         }
         DuelFooter.RevealReady -> FooterCard(if (isClosed(content.closesAt, content.now)) "Closed" else "Both finished") {
-            PrimaryButton("See the reveal", onClick = content.actions.onReveal, modifier = Modifier.testTag("duel.legs.reveal"))
+            PrimaryButton("See results", onClick = content.actions.onReveal, modifier = Modifier.testTag("duel.legs.reveal"))
         }
     }
 }

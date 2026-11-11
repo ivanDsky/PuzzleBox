@@ -152,12 +152,14 @@ private fun TabbedList(
             modifier = Modifier.fillMaxWidth().weight(1f),
         ) { shown ->
             when (shown) {
+                // The scroll container clips at its top and bottom edges, so on the tablet it keeps [OutlineRoom] free
+                // above the first card and below the last one for the selected card's outline.
                 GamesTab.Dailies -> Column(
                     Modifier
                         .fillMaxSize()
                         .verticalScroll(scroll)
                         .then(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier)
-                        .padding(bottom = if (phone) Spacing.xl else 0.dp),
+                        .padding(top = if (phone) 0.dp else OutlineRoom, bottom = if (phone) Spacing.xl else OutlineRoom),
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 ) {
                     if (phone && state.offline) OfflinePill()

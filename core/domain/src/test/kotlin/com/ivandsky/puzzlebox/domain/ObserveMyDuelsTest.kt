@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.LegResult
 import com.ivandsky.puzzlebox.data.match.LocalRole
 import com.ivandsky.puzzlebox.data.match.MatchDraft
+import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.Player
@@ -24,6 +25,7 @@ import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -302,7 +304,7 @@ class ObserveMyDuelsTest {
     }
 
     @Test
-    fun aClosedMatchStaysOnlyUntilItsRevealIsSeen() = runTest {
+    fun aClosedMatchBecomesAFinishedRowOnceItsRevealIsSeen() = runTest {
         val c = code("K7Q2M1")
         val cancelled = code("K7Q2M2")
         val declined = code("K7Q2M3")
@@ -318,10 +320,80 @@ class ObserveMyDuelsTest {
             advanceTimeBy(closesAtMs)
             assertEquals(mapOf(c to DuelRowKind.RevealReady), latest(this@runTest).kinds())
             local.remember(c, LocalRole.Participant, "Bob")
-            local.markRevealSeen(c, Instant.ofEpochMilli(closesAtMs))
+            local.markRevealSeen(c, Instant.ofEpochMilli(closesAtMs), 2, 1)
+            val after = latest(this@runTest)
+            assertEquals(mapOf(c to DuelRowKind.Finished(2, 1)), after.kinds())
+            assertEquals(0, after.needYou)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun aFinishedRowSortsAfterEveryActiveRowNewestSeenFirstAndIsNotCounted() = runTest {
+        val seenFirst = code("K7Q2M1")
+        val seenLast = code("K7Q2M2")
+        val move = code("K7Q2M3")
+        val waiting = code("K7Q2M4")
+        duel(seenFirst, claimedBy = bob)
+        duel(seenLast, claimedBy = bob)
+        duel(move, claimedBy = bob, hours = 48)
+        duel(waiting, claimedBy = bob, hours = 48)
+        for (leg in 0..1) {
+            takes(ann, waiting, leg)
+            for (finished in listOf(seenFirst, seenLast)) { takes(ann, finished, leg); takes(bob, finished, leg) }
+        }
+        local.remember(seenFirst, LocalRole.Participant, "Bob")
+        local.remember(seenLast, LocalRole.Participant, "Bob")
+        local.markRevealSeen(seenFirst, Instant.ofEpochMilli(1_000), 2, 0)
+        local.markRevealSeen(seenLast, Instant.ofEpochMilli(2_000), 0, 2)
+        viewAs(ann)
+        observe().test {
+            val duels = latest(this@runTest)
+            assertEquals(listOf(move, waiting, seenLast, seenFirst), duels.rows.map { it.code })
+            assertEquals(DuelRowKind.Finished(0, 2), duels.rows[2].kind)
+            assertEquals(DuelRowKind.Finished(2, 0), duels.rows[3].kind)
+            assertEquals(1, duels.needYou)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun aFinishedRowLeavesSevenDaysAfterItsRevealWasFirstSeen() = runTest {
+        val c = code("K7Q2M1")
+        duel(c, claimedBy = bob)
+        for (leg in 0..1) { takes(ann, c, leg); takes(bob, c, leg) }
+        local.remember(c, LocalRole.Participant, "Bob")
+        val seenAtMs = 3_600_000L
+        local.markRevealSeen(c, Instant.ofEpochMilli(seenAtMs), 1, 1)
+        val sevenDaysMs = 7L * 24 * 3_600_000
+        viewAs(ann)
+        observe().test {
+            assertEquals(DuelRowKind.Finished(1, 1), latest(this@runTest).rows.single().kind)
+            advanceTimeBy(seenAtMs + sevenDaysMs - 1)
+            expectNoEvents()
+            advanceTimeBy(1)
             assertTrue(latest(this@runTest).rows.isEmpty())
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun aRevealSeenWithoutScoresIsAFinishedRowWithNone() = runTest {
+        val c = code("K7Q2M1")
+        duel(c, claimedBy = bob)
+        for (leg in 0..1) { takes(ann, c, leg); takes(bob, c, leg) }
+        // A row stamped before scores were kept: seen, but no score on it.
+        local.remember(c, LocalRole.Participant, "Bob")
+        local.markRevealSeen(c, Instant.ofEpochMilli(1_000), 0, 0)
+        val unscored = object : MatchLocalRepository by local {
+            override fun observeAll() = local.observeAll().map { rows -> rows.map { it.copy(myScore = null, theirScore = null) } }
+        }
+        viewAs(ann)
+        ObserveMyDuels(repo, outbox, unscored, identity) { Instant.ofEpochMilli(testScheduler.currentTime) }().test {
+            assertEquals(DuelRowKind.Finished(null, null), latest(this@runTest).rows.single().kind)
+            cancelAndIgnoreRemainingEvents()
+        }
+        assertEquals(0, sealedReads)
     }
 
     @Test
