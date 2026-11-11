@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.create
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
@@ -29,8 +27,6 @@ import java.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -77,11 +73,10 @@ class CreateViewModelTest {
     private fun TestScope.viewModel(
         games: GameRegistry = this@CreateViewModelTest.games,
         editors: GameEditorRegistry = this@CreateViewModelTest.editors,
-        flags: ReleaseFlags = FakeReleaseFlags(),
     ): CreateViewModel {
         val createDraft = CreateDraft(games, drafts, newId = { "new" }, clock = { NOW })
         val copyDraft = CreateDraftCopy(drafts, newId = { "copy" }, clock = { NOW })
-        val vm = CreateViewModel(games, editors, GamePlayRegistry(emptyList()), drafts, FakePublishedPuzzleRepository(), createDraft, copyDraft, lanes, sharedText = FakeSharedTextStore(), syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }), releaseFlags = flags, clock = { NOW })
+        val vm = CreateViewModel(games, editors, GamePlayRegistry(emptyList()), drafts, FakePublishedPuzzleRepository(), createDraft, copyDraft, lanes, sharedText = FakeSharedTextStore(), syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }), releaseFlags = FakeReleaseFlags(), clock = { NOW })
         backgroundScope.launch(mainRule.testDispatcher) { vm.uiState.collect {} }
         return vm
     }
@@ -156,27 +151,6 @@ class CreateViewModelTest {
 
         store("a", minutesAgo = 1)
         assertFalse(vm.uiState.value.isEmpty)
-    }
-
-    @Test
-    fun `a gated editor is offered only while its flag is on, a Queens stand-in always`() = runTest(mainRule.testDispatcher) {
-        val queens = FakeGameEditor(GameId("queens"))
-        val strands = FakeGameEditor(GameId("strands"))
-        val gatedGames = GameRegistry(listOf(withEditor(queens.gameId, queens), withEditor(strands.gameId, strands)))
-        val gatedEditors = GameEditorRegistry(listOf(FakeGameEditorUi(queens.gameId), FakeGameEditorUi(strands.gameId)))
-        val on = MutableStateFlow(emptySet<ReleaseFlag>())
-        val flags = object : ReleaseFlags {
-            override val enabled: StateFlow<Set<ReleaseFlag>> = on
-        }
-        val vm = viewModel(gatedGames, gatedEditors, flags)
-
-        assertEquals(listOf(queens.gameId), vm.uiState.value.games.map { it.id })
-
-        on.value = setOf(ReleaseFlag.StrandsEditor)
-        assertEquals(listOf(queens.gameId, strands.gameId), vm.uiState.value.games.map { it.id })
-
-        on.value = setOf(ReleaseFlag.TextImport)
-        assertEquals(listOf(queens.gameId), vm.uiState.value.games.map { it.id })
     }
 
     @Test
