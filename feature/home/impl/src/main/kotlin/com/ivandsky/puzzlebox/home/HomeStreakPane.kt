@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.paddingFrom
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -30,9 +30,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.LastBaseline
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,6 +49,7 @@ import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.gameui.WeekStrip
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
+import kotlin.math.roundToInt
 
 private val PaneVertical = 40.dp
 private val PaneHorizontal = 48.dp
@@ -161,6 +164,14 @@ private fun StatTiles(stats: GameStats) {
     val headline = MaterialTheme.typography.headlineLarge.tabular()
     // Playing since is a date, too long for Headline: Title size on the same 34 line keeps tiles level.
     val dateValue = MaterialTheme.typography.titleLarge.tabular().copy(lineHeight = 34.sp)
+    // The date keeps its smaller type but sits on the headline values' baseline inside a headline-tall box.
+    val measurer = rememberTextMeasurer()
+    val headlineRef = remember(measurer, headline) { measurer.measure("0", headline) }
+    val dateModifier = Modifier.layout { measurable, constraints ->
+        val placeable = measurable.measure(constraints)
+        val offset = headlineRef.firstBaseline.roundToInt() - placeable[LastBaseline]
+        layout(placeable.width, headlineRef.size.height) { placeable.placeRelative(0, offset) }
+    }
     Row(
         modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -180,12 +191,20 @@ private fun StatTiles(stats: GameStats) {
             dateValue,
             "home.stat_since",
             Modifier.weight(1f),
+            dateModifier,
         )
     }
 }
 
 @Composable
-private fun StatTile(label: String, value: String, valueStyle: TextStyle, tag: String, modifier: Modifier) {
+private fun StatTile(
+    label: String,
+    value: String,
+    valueStyle: TextStyle,
+    tag: String,
+    modifier: Modifier,
+    valueModifier: Modifier = Modifier,
+) {
     Column(
         modifier = modifier
             .fillMaxHeight()
@@ -198,7 +217,7 @@ private fun StatTile(label: String, value: String, valueStyle: TextStyle, tag: S
         Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(
             text = value,
-            modifier = Modifier.paddingFrom(LastBaseline, before = VALUE_BASELINE),
+            modifier = valueModifier,
             style = valueStyle,
             color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
@@ -208,9 +227,6 @@ private fun StatTile(label: String, value: String, valueStyle: TextStyle, tag: S
 }
 
 private fun grouped(value: Int): String = NumberFormat.getIntegerInstance().format(value)
-
-// Value text sits this far below its tile content top, so Headline numbers and the Title date share one baseline.
-private val VALUE_BASELINE = 32.dp
 
 private const val NO_VALUE = "–"
 private val SINCE_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
