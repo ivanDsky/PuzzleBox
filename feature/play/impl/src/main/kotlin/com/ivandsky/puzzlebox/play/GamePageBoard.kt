@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.designsystem.SegmentedToggle
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.board.DailyBoard
 import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
@@ -25,28 +24,30 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * [game]'s leaderboard, the one home it has: a Today / Yesterday toggle and the shared [DailyBoard] under
- * it, the player's own row pinned at its bottom when it is outside the top rows. A [picked] past calendar day
- * replaces the toggle: the board is that day's. Signed out, the board's slot offers Google sign-in, which signs in here and loads
- * the board in the same place. [linkedIn] adds the day's LinkedIn connections to the board and syncs the chosen day while it is shown.
+ * [game]'s leaderboard, the one home it has: the shared [DailyBoard] of the day the page's day card shows, the
+ * player's own row pinned at its bottom when it is outside the top rows. That is the [picked] calendar day, else
+ * the day card's own [cardDay] (null until it loads, when it is the game calendar's today). Signed out, the board's
+ * slot offers Google sign-in, which signs in here and loads the board in the same place. [linkedIn] adds that day's
+ * LinkedIn connections to the board, as far as the phone holds them.
  */
 @Composable
-internal fun GamePageBoard(game: GameId, linkedIn: Boolean = false, picked: LocalDate? = null, modifier: Modifier = Modifier) {
+internal fun GamePageBoard(
+    game: GameId,
+    linkedIn: Boolean = false,
+    picked: LocalDate? = null,
+    cardDay: LocalDate? = null,
+    modifier: Modifier = Modifier,
+) {
     val viewModel: GamePageBoardViewModel = koinViewModel(key = "board:${game.value}", parameters = { parametersOf(game, linkedIn) })
-    LaunchedEffect(picked) { viewModel.pick(picked) }
+    LaunchedEffect(picked, cardDay) { viewModel.show(picked, cardDay) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     val signIn by viewModel.signInStatus.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        val chosen = state.picked
-        if (chosen == null) SegmentedToggle(BoardDay.entries, state.day, viewModel::selectDay, { it.label }, { it.tag }, Modifier.fillMaxWidth())
+        val day = state.day
         DailyBoard(
-            title = when {
-                chosen != null -> "${viewModel.gameName} · ${PickedDate.format(chosen)}"
-                state.day == BoardDay.Today -> dailyBoardTitle(viewModel.gameName)
-                else -> "${viewModel.gameName} · yesterday"
-            },
+            title = if (day == null || state.isToday) dailyBoardTitle(viewModel.gameName) else "${viewModel.gameName} · ${PickedDate.format(day)}",
             order = viewModel.order,
             state = state.board,
             ghosts = state.ghosts,
@@ -66,6 +67,3 @@ internal fun GamePageBoard(game: GameId, linkedIn: Boolean = false, picked: Loca
 
 // The copy is English-only, so the date follows it rather than the device locale.
 private val PickedDate = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.US)
-
-private val BoardDay.label get() = if (this == BoardDay.Today) "Today" else "Yesterday"
-private val BoardDay.tag get() = if (this == BoardDay.Today) "leaderboard.today" else "leaderboard.yesterday"

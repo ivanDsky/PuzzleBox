@@ -122,7 +122,7 @@ class ShellSummariesE2ETest {
         tap(RANK_ROW)
 
         awaitTag(ZIP_PAGE)
-        awaitTag("leaderboard.today")
+        awaitTag("daily_board.title")
         assertState(tabAt(PlayKey))
         if (width == Width.Phone) {
             back()

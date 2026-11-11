@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import android.content.Context
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -18,6 +19,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.di.playModule
@@ -83,6 +85,7 @@ class GamePageBoardTest {
         repo: FakeLeaderboardRepository,
         google: GoogleIdTokenProvider = dismissedGoogleSignIn,
         picked: LocalDate? = null,
+        cardDay: LocalDate? = null,
     ) {
         stopKoin() // tests share the JVM-global Koin context
         startKoin {
@@ -98,7 +101,7 @@ class GamePageBoardTest {
                 playModule,
             )
         }
-        composeRule.setContent { PuzzleBoxTheme(darkTheme = false) { GamePageBoard(game, picked = picked) } }
+        composeRule.setContent { PuzzleBoxTheme(darkTheme = false) { GamePageBoard(game, picked = picked, cardDay = cardDay) } }
     }
 
     /** Whether a board row names [name]. */
@@ -143,30 +146,40 @@ class GamePageBoardTest {
     }
 
     @Test
-    fun `yesterday shows yesterday's entries and not today's`() {
+    fun `with no pick the board is the day card's day, titled as yesterday's`() {
         show(
             FakeIdentityService(me),
             repository(today to entries("Today", 3), yesterday to entries("Yest", 3, day = yesterday)),
+            cardDay = yesterday,
         )
-        composeRule.onNodeWithTag("leaderboard.yesterday").performClick()
         composeRule.waitForIdle()
 
+        composeRule.onNodeWithText("Alpha · Sun, Nov 8", substring = true).assertExists()
         assertTrue(shows("Yest1"))
         assertFalse(shows("Today1"))
     }
 
     @Test
-    fun `a picked day replaces the toggle and shows that day's board under its date`() {
+    fun `a day card on today's day titles the board as today's`() {
+        show(FakeIdentityService(me), repository(today to entries("Today", 3)), cardDay = today)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Alpha · Sun, Nov 8", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithTag("daily_board.title").assertTextEquals(dailyBoardTitle("Alpha"))
+        assertTrue(shows("Today1"))
+    }
+
+    @Test
+    fun `a picked day shows that day's board under its date, with no day switch`() {
         val picked = LocalDate.of(2026, 11, 6)
         show(
             FakeIdentityService(me),
             repository(today to entries("Today", 3), picked to entries("Old", 3, day = picked)),
             picked = picked,
+            cardDay = today,
         )
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag("leaderboard.today").assertDoesNotExist()
-        composeRule.onNodeWithTag("leaderboard.yesterday").assertDoesNotExist()
         composeRule.onNodeWithText("Alpha · Fri, Nov 6", substring = true).assertExists()
         assertTrue(shows("Old1"))
         assertFalse(shows("Today1"))

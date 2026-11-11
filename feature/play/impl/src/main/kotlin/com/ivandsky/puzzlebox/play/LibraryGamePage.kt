@@ -90,8 +90,8 @@ internal fun LibraryGamePage(
         offline = offline,
         hasLesson = hasLesson,
         scroll = scroll,
-        // Flag off draws today's board whatever the calendar picked.
-        board = { GamePageBoard(game, linkedIn = linkedIn != null, picked = past?.date.takeIf { linkedIn != null }) },
+        // The board shows the day the day card shows: the picked day, else the card's own latest day.
+        board = { GamePageBoard(game, linkedIn = linkedIn != null, picked = past?.date, cardDay = row.progress?.range?.endInclusive) },
         onOpenHistory = onOpenGameHistory,
     )
 }

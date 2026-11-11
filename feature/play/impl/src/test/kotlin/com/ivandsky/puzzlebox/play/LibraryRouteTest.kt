@@ -456,7 +456,7 @@ class LibraryRouteTest {
     fun `the tablet page shows the board, the history row and how to play under them`() {
         setBoardContent(PlayLayout.TwoPane)
         openAlphaPage(PlayLayout.TwoPane)
-        awaitTag("leaderboard.today")
+        awaitTag("daily_board.title")
         awaitTag("summary.history")
         val history = composeRule.onNodeWithTag("summary.history").getUnclippedBoundsInRoot()
         val howTo = composeRule.onNodeWithTag("library.howto").getUnclippedBoundsInRoot()
