@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.PillShape
@@ -54,12 +55,15 @@ private const val WEEK = 7
 private val ChipGap = 6.dp
 private val Swatch = 12.dp
 
+/** The disc for a phone's ([compact]) or a tablet's layout; [archiveCellFor] sets the row around it. */
+internal fun archiveDiscFor(compact: Boolean): Dp = if (compact) 42.dp else 46.dp
+
 /**
  * A game's month calendar (06-a §Month calendar): ‹ [month] › with the archive numbers in
  * it, the "#1" / year / "Today" jumps, Monday-first weekdays, six weeks of [ArchiveDayDisc]s
  * from [days] (the month's archive days) and the legend. ‹ › and the jumps call [onMonth]
  * inside [range] (#1 .. today); a disc calls [onPick]. The ring marks [picked], else today.
- * [compact] is the phone's smaller cell. A month change fades the grid in.
+ * [compact] is the phone's smaller disc and row. A month change fades the grid in.
  */
 @Composable
 internal fun ArchiveMonthCalendar(
@@ -99,8 +103,8 @@ internal fun ArchiveMonthCalendar(
             }
         }
         val byDate = remember(days) { days.associateBy { it.date } }
-        val cell = if (compact) 50.dp else 56.dp
-        val disc = if (compact) 42.dp else 46.dp
+        val disc = archiveDiscFor(compact)
+        val cell = archiveCellFor(disc)
         key(month) {
             EnterFade(0, reduced, bleed = SelectedRingRoom) {
                 Column {

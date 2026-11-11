@@ -47,8 +47,10 @@ private val SelectedGap = 3.dp
 /** How far the selected ring's outer edge reaches past its disc on every side. */
 internal val SelectedRingRoom = SelectedGap + SelectedRing
 private val TodayBarWidth = 16.dp
-private val TodayBarHeight = 3.dp
-private val TodayBarGap = 7.dp
+internal val TodayBarHeight = 3.dp
+
+/** Clear space kept between today's bar and the selected ring above it, and the next row's ring below. */
+private val TodayBarClearance = 3.dp
 
 /** A disc's look (06-a cell state table); [key] names it for tests (state, not pixels). */
 internal enum class DiscKind(val key: String) {
@@ -100,6 +102,18 @@ internal fun DrawScope.drawDisc(kind: DiscKind, accent: Color, neutral: Color, r
 }
 
 /**
+ * Where today's bar starts in a [cell] holding a [disc]: clear of the selected ring's outer edge
+ * under the disc, which is the nearest thing above it.
+ */
+internal fun todayBarTop(cell: Dp, disc: Dp): Dp = (cell + disc) / 2 + SelectedRingRoom + TodayBarClearance
+
+/**
+ * The row height for a [disc] that fits today's bar between its own ring and the next row's:
+ * a ring above and below the disc, a clearance each side of the bar, and the bar itself.
+ */
+internal fun archiveCellFor(disc: Dp): Dp = disc + (SelectedRingRoom + TodayBarClearance) * 2f + TodayBarHeight
+
+/**
  * One calendar cell (06-a §Month calendar): a [disc]-sized disc centred in [cell], the
  * day number over "#N" in the state's colours. [today] adds a bar under the disc and
  * [selected] a ring just outside it; offline a never-opened disc dims. An outside day
@@ -137,13 +151,10 @@ internal fun ArchiveDayDisc(
             .size(width = disc, height = cell)
             .then(clickable)
             .drawBehind {
-                val discBottom = (size.height + disc.toPx()) / 2
                 if (today) {
-                    // The bar sits in the gap to the next row's disc, so a phone's tighter cell lifts it.
-                    val gap = minOf(TodayBarGap, cell - disc - TodayBarHeight).toPx()
                     drawRoundRect(
                         color = mark,
-                        topLeft = Offset(center.x - TodayBarWidth.toPx() / 2, discBottom + gap),
+                        topLeft = Offset(center.x - TodayBarWidth.toPx() / 2, todayBarTop(cell, disc).toPx()),
                         size = Size(TodayBarWidth.toPx(), TodayBarHeight.toPx()),
                         cornerRadius = CornerRadius(TodayBarHeight.toPx() / 2),
                     )
