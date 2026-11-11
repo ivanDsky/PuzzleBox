@@ -23,7 +23,6 @@ import com.ivandsky.puzzlebox.designsystem.LinkedInBlue
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
 
-private val RankWidth = 28.dp
 private val FrameWidth = 1.dp
 
 /** Tall enough for a name over its second line, so a row with the line and one without are the same size. */
@@ -34,19 +33,20 @@ internal class BoardRowTags(val root: String, val part: String, val detail: Stri
 
 /**
  * The one row every board draws, so a PuzzleBox row and a connection row cannot drift apart: [photo] (or [name]'s
- * initial), [place], [name] with its small [detail] line when there is one, then [score]. Framed; [self] puts it on
+ * initial), [place] (null while it is hidden), [name] with its small [detail] line when there is one, then [score]. Framed; [self] puts it on
  * the secondary container and [connection] frames it in LinkedIn blue. [linkedIn] puts the LinkedIn dot on the photo.
- * [muted] greys the score, for a time that is hidden.
+ * [muted] greys the score, for a time that is hidden. [scoreTime] lets the score count to a new time where the board moves.
  */
 @Composable
 internal fun BoardRow(
     tags: BoardRowTags,
     name: String,
     photo: String?,
-    place: String,
+    place: Int?,
     detail: String?,
     score: String,
     modifier: Modifier = Modifier,
+    scoreTime: ScoreTime? = null,
     self: Boolean = false,
     connection: Boolean = false,
     linkedIn: Boolean = false,
@@ -74,14 +74,7 @@ internal fun BoardRow(
             ring = if (self) scheme.secondaryContainer else scheme.surface,
             linkedIn = linkedIn,
         )
-        Box(Modifier.width(RankWidth)) {
-            Text(
-                place,
-                style = MaterialTheme.typography.labelLarge.tabular(),
-                color = quiet,
-                modifier = Modifier.testTag("${tags.part}.rank"),
-            )
-        }
+        Box(Modifier.width(RankCellSize)) { RankPlace(place, quiet, "${tags.part}.rank") }
         Column(Modifier.weight(1f)) {
             Text(
                 name,
@@ -100,8 +93,9 @@ internal fun BoardRow(
                 )
             }
         }
-        Text(
+        BoardScoreText(
             score,
+            scoreTime,
             style = MaterialTheme.typography.titleMedium.tabular(),
             color = if (muted) quiet else content,
             modifier = Modifier.testTag("${tags.part}.score"),

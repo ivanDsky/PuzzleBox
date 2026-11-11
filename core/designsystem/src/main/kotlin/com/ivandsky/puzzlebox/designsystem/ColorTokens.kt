@@ -68,6 +68,16 @@ val LinkedInBluePressed = Color(0xFF004182)
 val LightLinkedInText = LinkedInBlue
 val DarkLinkedInText = Color(0xFF71B7FB)
 
+// The podium: places 1 to 3 on a board are a gold, a silver and a bronze disc, the place digit in the ink on it. Medals
+// are marks of rank, not theme colours, so light and dark share them; each ink holds >= 4.5:1 on its fill (8.1, 9.5 and
+// 6.3). The disc is decorative (the digit says the place), so it needs no 3:1 against the row.
+val MedalGold = Color(0xFFF5C518)
+val MedalGoldInk = Color(0xFF3D2E00)
+val MedalSilver = Color(0xFFC9CED6)
+val MedalSilverInk = Color(0xFF23272D)
+val MedalBronze = Color(0xFFD98A4E)
+val MedalBronzeInk = Color(0xFF2B1600)
+
 val LightColorScheme = lightColorScheme(
     primary = Color(0xFF58CC02),
     onPrimary = Color(0xFF1F3A0D),

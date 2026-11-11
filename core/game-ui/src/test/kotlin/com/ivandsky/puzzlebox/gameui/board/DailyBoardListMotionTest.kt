@@ -4,12 +4,19 @@ import android.content.Context
 import android.graphics.Color
 import android.provider.Settings
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.Color as ComposeColor
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -18,9 +25,14 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
+import com.ivandsky.puzzlebox.designsystem.MedalBronze
+import com.ivandsky.puzzlebox.designsystem.MedalGold
+import com.ivandsky.puzzlebox.designsystem.MedalSilver
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.RankOrder
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -33,7 +45,9 @@ import org.robolectric.annotation.GraphicsMode
  * What the list does when its lines change, on a paused clock: a row whose place changes slides there, a row that
  * arrives expands in, a row that leaves shrinks out and is then gone, the pinned row does the same, the own row slides
  * between the top list and the pinned place, and on another day's board the people on both days slide, the others
- * arrive and leave. With animation off, or with reduced motion, the change lands at once.
+ * arrive and leave. Rows move one after another, the place number rolls to its new place and a row that enters the
+ * podium gets its medal. With animation off the board has no medals; with reduced motion every change, the final place
+ * and the medal included, lands at once.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -48,6 +62,10 @@ class DailyBoardListMotionTest {
 
     private fun real(player: String, seconds: Int = 10, self: Boolean = false) =
         DailyBoardLine.Real(DailyBoardRowModel(1, player, seconds * 1000L, 0, self, playerId = player), 1)
+
+    // The players in order, each at the place its index says.
+    private fun ranked(vararg players: String) =
+        players.mapIndexed { index, player -> DailyBoardLine.Real(real(player).row, index + 1) }
 
     private fun show(initial: List<DailyBoardLine>, animated: Boolean = true, reducedMotion: Boolean = false) {
         if (reducedMotion) {
@@ -79,6 +97,26 @@ class DailyBoardListMotionTest {
 
     private fun count(player: String) = composeRule.onAllNodesWithText(player).fetchSemanticsNodes().size
 
+    private fun rank(player: String) = composeRule.onNode(
+        hasTestTag("daily_board.row.rank") and hasAnyAncestor(hasTestTag("daily_board.row") and hasAnyDescendant(hasText(player))),
+    )
+
+    // Whether the player's place cell shows a disc of this colour anywhere.
+    private fun showsMedal(player: String, medal: ComposeColor): Boolean {
+        val image = rank(player).captureToImage().asAndroidBitmap()
+        val want = medal.toArgb()
+        for (x in 0 until image.width) for (y in 0 until image.height) {
+            val pixel = image.getPixel(x, y)
+            if (abs(Color.red(pixel) - Color.red(want)) <= 2 &&
+                abs(Color.green(pixel) - Color.green(want)) <= 2 &&
+                abs(Color.blue(pixel) - Color.blue(want)) <= 2
+            ) return true
+        }
+        return false
+    }
+
+    private fun showsAnyMedal(player: String) = listOf(MedalGold, MedalSilver, MedalBronze).any { showsMedal(player, it) }
+
     @Test
     fun `a row whose place changes slides there instead of jumping`() {
         show(listOf(real("ada"), real("bo"), real("cy")))
@@ -100,7 +138,7 @@ class DailyBoardListMotionTest {
         val before = listHeight()
 
         change { lines = lines + real("cy") }
-        composeRule.mainClock.advanceTimeBy(EARLY_MS)
+        composeRule.mainClock.advanceTimeBy(ARRIVAL_MS + EARLY_MS)
 
         val during = listHeight()
         assertTrue("height $during grows from $before", during > before)
@@ -131,7 +169,7 @@ class DailyBoardListMotionTest {
         val bare = listHeight()
 
         change { pinned = real("me", self = true) }
-        composeRule.mainClock.advanceTimeBy(EARLY_MS)
+        composeRule.mainClock.advanceTimeBy(ARRIVAL_MS + EARLY_MS)
         val during = listHeight()
         assertTrue("height $during grows from $bare", during > bare)
         settle()
@@ -168,7 +206,8 @@ class DailyBoardListMotionTest {
         val inkBefore = ink("ada")
 
         switchDay()
-        composeRule.mainClock.advanceTimeBy(60)
+        // ada is the second row to move: it waits one stagger step before it starts.
+        composeRule.mainClock.advanceTimeBy(STAGGER_MS + 130)
 
         val during = top("ada")
         assertEquals("ada is one row on both days", 1, count("ada"))
@@ -179,15 +218,15 @@ class DailyBoardListMotionTest {
     }
 
     @Test
-    fun `switching day fades out a person only on the old day`() {
+    fun `switching day shrinks out a person only on the old day`() {
         show(listOf(real("ada"), real("bo"), real("cy")))
-        val inkBefore = ink("bo")
+        val full = listHeight()
 
         switchDay()
         composeRule.mainClock.advanceTimeBy(60)
 
         assertEquals("bo is still on its way out", 1, count("bo"))
-        assertTrue("ink ${ink("bo")} lighter than the whole $inkBefore", ink("bo") > inkBefore + 30)
+        assertTrue("height ${listHeight()} shrinks from $full", listHeight() < full)
         settle()
         assertEquals(0, count("bo"))
     }
@@ -197,7 +236,7 @@ class DailyBoardListMotionTest {
         show(listOf(real("ada"), real("bo"), real("cy")))
 
         switchDay()
-        composeRule.mainClock.advanceTimeBy(60)
+        composeRule.mainClock.advanceTimeBy(ARRIVAL_MS + EARLY_MS)
         val during = ink("di")
         settle()
 
@@ -264,8 +303,95 @@ class DailyBoardListMotionTest {
         composeRule.onAllNodesWithText("bo").assertCountEquals(1)
     }
 
+    @Test
+    fun `a row waits its turn before it slides, the first one moves at once`() {
+        show(listOf(real("ada"), real("bo"), real("cy")))
+        val adaFrom = top("ada")
+        val cyFrom = top("cy")
+
+        change { lines = listOf(real("cy"), real("ada"), real("bo")) }
+        composeRule.mainClock.advanceTimeBy(60)
+
+        assertTrue("cy is first in the new order and has set off", top("cy") < cyFrom)
+        assertEquals("ada is second and still waits at its old place", adaFrom, top("ada"))
+    }
+
+    @Test
+    fun `after a day switch a person on both days is at the new place with its number, and a leaver is gone`() {
+        show(ranked("ada", "bo", "cy"))
+
+        change { lines = ranked("cy", "ada", "di") }
+        settle()
+
+        rank("ada").assertTextEquals("2")
+        rank("cy").assertTextEquals("1")
+        rank("di").assertTextEquals("3")
+        assertEquals("bo is gone once the glide has settled", 0, count("bo"))
+        assertTrue("ada sits under cy", top("ada") > top("cy"))
+        assertTrue("and over di", top("ada") < top("di"))
+    }
+
+    @Test
+    fun `the place number is the final one while it rolls`() {
+        show(ranked("ada", "bo", "cy"))
+
+        change { lines = ranked("cy", "bo", "ada") }
+        composeRule.mainClock.advanceTimeBy(60)
+
+        rank("ada").assertTextEquals("3")
+        rank("cy").assertTextEquals("1")
+    }
+
+    @Test
+    fun `the podium places are medals once the board has moved, and the others are not`() {
+        show(ranked("ada", "bo", "cy", "di"))
+
+        change { lines = ranked("di", "ada", "bo", "cy") }
+        settle()
+
+        assertTrue("di entered the podium: gold", showsMedal("di", MedalGold))
+        assertTrue("ada is second: silver", showsMedal("ada", MedalSilver))
+        assertTrue("bo is third: bronze", showsMedal("bo", MedalBronze))
+        assertFalse("cy left the podium", showsAnyMedal("cy"))
+    }
+
+    @Test
+    fun `a row that arrives on the podium has its medal once it has settled`() {
+        show(ranked("ada", "bo"))
+
+        change { lines = ranked("ada", "bo", "cy") }
+        settle()
+
+        assertTrue(showsMedal("cy", MedalBronze))
+    }
+
+    @Test
+    fun `reduced motion lands the final place and the medal at once`() {
+        show(ranked("ada", "bo", "cy", "di"), reducedMotion = true)
+        assertTrue("the medals are there from the start", showsMedal("ada", MedalGold))
+
+        change { lines = ranked("di", "ada", "bo", "cy") }
+
+        rank("di").assertTextEquals("1")
+        assertTrue("di has its gold at once", showsMedal("di", MedalGold))
+        assertTrue(showsMedal("ada", MedalSilver))
+        assertFalse("cy has no medal at once", showsAnyMedal("cy"))
+    }
+
+    @Test
+    fun `a board without animation has no medals`() {
+        show(ranked("ada", "bo", "cy"), animated = false)
+
+        rank("ada").assertTextEquals("1")
+        assertFalse(showsAnyMedal("ada"))
+    }
+
     private companion object {
-        const val SETTLED_MS = 2_000L
+        // The slowest glide: the last staggered row, after the entrance delay, on a spring that settles in ~1.2 s.
+        const val SETTLED_MS = 4_000L
+
+        const val STAGGER_MS = 70L
+        const val ARRIVAL_MS = 200L
 
         // Long enough for the row to be under way, short enough that it has not arrived.
         const val EARLY_MS = 60L
