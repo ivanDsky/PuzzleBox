@@ -7,16 +7,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.paging.PagingData
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.flow.flowOf
 
 private val PreviewGame = GameId("zip")
 private val PreviewToday: LocalDate = LocalDate.of(2026, 11, 5)
@@ -75,5 +80,33 @@ private fun ArchivedDetailPreview() {
                 cardColor = MaterialTheme.colorScheme.surfaceContainerLow,
             )
         }
+    }
+}
+
+/** The tab root (NavV2): the list pane under a "History" bar with no back arrow. */
+@PuzzleBoxPreviews
+@Composable
+private fun HistoryRootPreview() {
+    val rows = listOf(LiveRow, previewRow(PreviewToday.minusDays(1), number = 593, archived = false), ArchivedRow)
+    val state = HistoryUiState(
+        rows = rows,
+        stats = GameStats(4, 9, 31, 22, 95_000L, PreviewToday, best = null, rankOrder = RankOrder.TimeThenHints),
+        calendarDay = PreviewToday,
+        earliestDay = ArchivedRow.day,
+        solvedByDay = solvedByDay(rows, listOf(PreviewGame)),
+        daysWithRows = rows.map { it.day }.toSet(),
+        gamesPerDay = 1,
+        today = PreviewToday,
+    )
+    PuzzleBoxTheme {
+        HistoryScreen(
+            layout = HistoryLayout.SinglePane,
+            onBack = null,
+            days = flowOf(PagingData.from(rows)).collectAsLazyPagingItems(),
+            state = state,
+            onShowCalendar = { _, _ -> },
+            onSelectDay = {},
+            onReplay = { _, _ -> },
+        )
     }
 }

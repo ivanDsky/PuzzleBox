@@ -1,11 +1,13 @@
 package com.ivandsky.puzzlebox.play
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -22,6 +24,10 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameCardModel
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.board.DailyBoard
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
+import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
@@ -157,6 +163,68 @@ internal fun GamePagePhonePreview() {
             )
         }
     }
+}
+
+// Preview: the NavV2 phone page: the game's leaderboard (the player pinned below the top five)
+// and the "Your history" row under the stats card.
+@Preview(name = "Light", widthDp = 360, heightDp = 1900, showBackground = true)
+@Preview(name = "Dark", widthDp = 360, heightDp = 1900, showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+internal fun GamePageNavV2PhonePreview() {
+    val row = previewState().rows[3]
+    PuzzleBoxTheme {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            GamePage(
+                row = row,
+                layout = PlayLayout.SinglePane,
+                dayCard = { PreviewDayCard(row) },
+                calendar = {},
+                onBack = {},
+                onOpenLesson = {},
+                board = { PreviewBoard(row.card.name) },
+                onOpenHistory = {},
+            )
+        }
+    }
+}
+
+// Preview: the NavV2 tablet page: the right column scrolls as one, board and history row before how to play.
+@Preview(name = "Tablet NavV2", widthDp = 1400, heightDp = 1200)
+@Composable
+internal fun GamePageNavV2TabletPreview() {
+    val row = previewState().rows[3]
+    PuzzleBoxTheme {
+        Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.padding(Spacing.lg)) {
+            GamePage(
+                row = row,
+                layout = PlayLayout.TwoPane,
+                dayCard = { PreviewDayCard(row) },
+                calendar = {},
+                onBack = null,
+                onOpenLesson = {},
+                board = { PreviewBoard(row.card.name) },
+                onOpenHistory = {},
+            )
+        }
+    }
+}
+
+@Composable
+private fun PreviewBoard(gameName: String) {
+    DailyBoard(
+        dailyBoardTitle(gameName),
+        RankOrder.HintsThenTime,
+        DailyBoardState.Ranked(
+            rows = listOf(
+                DailyBoardRowModel(1, "Maya", 90_000L, 0, isSelf = false),
+                DailyBoardRowModel(2, "Jonas", 120_000L, 0, isSelf = false),
+                DailyBoardRowModel(3, "Priya", 95_000L, 1, isSelf = false),
+                DailyBoardRowModel(4, "Sam", 140_000L, 1, isSelf = false),
+                DailyBoardRowModel(5, "Lee", 110_000L, 2, isSelf = false),
+            ),
+            pinned = DailyBoardRowModel(12, "You", 261_000L, 3, isSelf = true),
+        ),
+    )
 }
 
 // Preview: rows and day cards in every today state, then the empty stats card.
