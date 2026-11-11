@@ -4,6 +4,7 @@ import android.webkit.CookieManager
 import android.webkit.WebSettings
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.profile.linkedin.LinkedInLoginViewModel
@@ -27,6 +28,8 @@ val profileModule: Module = module {
             observeGameStats = get(),
             link = if (linkedIn) get() else null,
             observeAccount = if (linkedIn) get() else null,
+            // Bound only with the CloudSync switch on; unbound is today's Google row.
+            cloudSync = getOrNull<CloudSync>(),
         )
     }
     viewModel { SettingsViewModel(preferences = get(), games = get(), appBuild = get()) }

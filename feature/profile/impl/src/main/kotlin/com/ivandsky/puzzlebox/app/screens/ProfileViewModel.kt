@@ -5,6 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.data.cloud.CloudResult
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -33,12 +36,17 @@ private const val SIGN_IN_GOOGLE_UNAVAILABLE_MESSAGE =
     "Google sign-in isn't available right now. Try again, or try another account."
 private const val SIGN_IN_RETRY_MESSAGE = "Sign-in failed. Please try again."
 
+// Delete my cloud data needs a connection (ADR-0029): offline says so and changes nothing.
+private const val ERASE_OFFLINE_MESSAGE = "You're offline. Try again when you're connected."
+private const val ERASE_FAILED_MESSAGE = "Couldn't delete your cloud data. Try again later."
+
 /**
  * Profile's state holder (A20): the account read from [IdentityService.current], the sign-in
  * flow's own progress/outcome while signed out, and the player's overall `playingSince`
  * ([ObserveGameStats]). With a [link] and [observeAccount] (the LinkedIn switch is on) it also follows the LinkedIn
  * row and carries its Resume and Disconnect. The activity context the credential sheet needs (I2) is passed per
- * call and never stored.
+ * call and never stored. With a [cloudSync] (the CloudSync switch is on) it also carries the Google row's sync line,
+ * Sync now and Delete my cloud data.
  */
 class ProfileViewModel(
     private val identityService: IdentityService,
@@ -46,6 +54,7 @@ class ProfileViewModel(
     observeGameStats: ObserveGameStats,
     private val link: LinkedInLink? = null,
     observeAccount: ObserveLinkedInAccount? = null,
+    private val cloudSync: CloudSync? = null,
 ) : ViewModel() {
 
     private val signIn = MutableStateFlow(ProfileUiState.Account.SignedOut())
@@ -61,9 +70,19 @@ class ProfileViewModel(
             combine(link.state, observeAccount()) { state, summary -> state.toRow(summary) }
         }
 
+    private val erase = MutableStateFlow(Erase())
+
+    // Null while the feature is off: the Google row is exactly today's.
+    private val sync: Flow<ProfileUiState.GoogleSync?> =
+        if (cloudSync == null) {
+            flowOf(null)
+        } else {
+            combine(cloudSync.state, erase) { state, erase -> state.toSync(erase) }
+        }
+
     val uiState: StateFlow<ProfileUiState> =
-        combine(identityService.current, signIn, observeGameStats(), linkedIn) { identity, prompt, stats, row ->
-            ProfileUiState(account(identity, prompt), stats.playingSince, row)
+        combine(identityService.current, signIn, observeGameStats(), linkedIn, sync) { identity, prompt, stats, row, sync ->
+            ProfileUiState(account(identity, prompt), stats.playingSince, row, sync)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -104,6 +123,28 @@ class ProfileViewModel(
         viewModelScope.launch { link.disconnect() }
     }
 
+    /** Runs a sync pass now; the line follows the engine's state. */
+    fun onSyncNow() {
+        val cloudSync = cloudSync ?: return
+        erase.update { it.copy(message = null) }
+        viewModelScope.launch { cloudSync.syncNow() }
+    }
+
+    /** Wipes the account's cloud space (the engine then signs out); a refusal stays on the row as its message. */
+    fun onDeleteCloudData() {
+        val cloudSync = cloudSync ?: return
+        if (erase.value.running) return
+        erase.value = Erase(running = true)
+        viewModelScope.launch {
+            val message = when (cloudSync.eraseCloud()) {
+                is CloudResult.Ok -> null
+                CloudResult.Offline -> ERASE_OFFLINE_MESSAGE
+                CloudResult.Exhausted, CloudResult.Denied, CloudResult.WrongAccount -> ERASE_FAILED_MESSAGE
+            }
+            erase.value = Erase(message = message)
+        }
+    }
+
     private fun friendly(error: AuthError): String = when (error) {
         // Backend half: FirebaseNetworkException — the only branch allowed to blame
         // the connection (ticket 24).
@@ -126,6 +167,20 @@ class ProfileViewModel(
         GoogleIdToken.Unavailable.Reason.OTHER,
         -> SIGN_IN_RETRY_MESSAGE
     }
+}
+
+/** Progress and outcome of the last Delete my cloud data call. */
+private data class Erase(val running: Boolean = false, val message: String? = null)
+
+private fun CloudSyncState.toSync(erase: Erase): ProfileUiState.GoogleSync? {
+    val status = when (this) {
+        CloudSyncState.SignedOut -> return null
+        is CloudSyncState.Syncing -> ProfileUiState.GoogleSync.Status.Syncing
+        is CloudSyncState.Synced -> ProfileUiState.GoogleSync.Status.Synced(atMs)
+        is CloudSyncState.Offline -> ProfileUiState.GoogleSync.Status.Offline
+        is CloudSyncState.Paused -> ProfileUiState.GoogleSync.Status.Paused
+    }
+    return ProfileUiState.GoogleSync(status, erase.running, erase.message)
 }
 
 private fun LinkState.toRow(summary: LinkedInAccountView): LinkedInRowState = when (this) {
