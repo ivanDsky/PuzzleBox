@@ -52,7 +52,23 @@ The two failed post states: rejected because the match had closed, or rejected t
 A completion written from the player's own LinkedIn result, stored with `source = LinkedIn`; it follows first win like any solve.
 
 **Ghost**:
-A LinkedIn connection's row for a day, ranked with the PuzzleBox rows on one combined board when it has a time (hidden times stay unranked) and stored only on this phone.
+A LinkedIn connection's row for a day, ranked with the PuzzleBox rows on one combined board when it has a time (hidden times stay unranked); part of a saved board.
+
+**Saved board**:
+One LinkedIn connections' board for a game and day, kept on the phone for good and, when signed in, in the player's cloud space; Disconnect keeps it, Delete saved boards removes it.
+
+**Cloud space**:
+The signed-in account's own owner-only Firestore area holding its synced kinds; nobody else can read it.
+_Avoid_: backup, cloud save
+
+**Synced kind**:
+One kind of data cloud sync carries (completions, drafts, published, received, saved boards, replays), each with its own merge rule.
+
+**Owner**:
+The account a local synced row belongs to; a row made while signed out has none until the next sign-in adopts it.
+
+**Tombstone**:
+A synced marker that a draft or received puzzle was deleted, so the delete reaches every device.
 
 **Pause**:
 The persisted latch set by the first LinkedIn rejection; every account read waits until the player taps Resume, Reconnect or Disconnect.
