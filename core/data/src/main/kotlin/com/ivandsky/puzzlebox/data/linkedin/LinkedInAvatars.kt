@@ -35,7 +35,11 @@ internal class LinkedInAvatars(
     /** Bumped on every change to the directory, so [present] lists it again. */
     private val changes = MutableStateFlow(0)
 
-    /** Held while the directory is written or wiped, so a wipe cannot interleave with a write. */
+    /**
+     * Held while the directory is written or wiped, so a wipe cannot interleave with a write. Only ever taken
+     * inside a hop to [io]: a holder that releases on the caller's thread would make a wipe called from that
+     * thread wait for a thread it is itself blocking.
+     */
     private val lock = Mutex()
 
     /** Counts wipes: a download that began before one must not write after it. Read and written under [lock]. */
@@ -58,7 +62,7 @@ internal class LinkedInAvatars(
      * hold the sync for fifty round trips in a row.
      */
     suspend fun download(rows: List<LinkedInBoard.Row>) {
-        val started = lock.withLock { generation }
+        val started = withContext(io) { lock.withLock { generation } }
         val wanted = withContext(io) { rows.filter { it.pictureUrl != null && !File(dir, fileName(it.memberRef)).exists() } }
         coroutineScope {
             wanted.forEach { row ->
@@ -72,16 +76,18 @@ internal class LinkedInAvatars(
 
     /** Deletes every photo. A download still on the wire finds the wipe and drops its photo. */
     suspend fun clear() {
-        lock.withLock {
-            generation++
-            withContext(io) { dir.deleteRecursively() }
+        withContext(io) {
+            lock.withLock {
+                generation++
+                dir.deleteRecursively()
+            }
         }
         changes.update { it + 1 }
     }
 
     private suspend fun save(started: Int, memberRef: String, photo: ByteArray) {
-        val saved = lock.withLock {
-            started == generation && withContext(io) { writeAtomically(File(dir, fileName(memberRef)), photo) }
+        val saved = withContext(io) {
+            lock.withLock { started == generation && writeAtomically(File(dir, fileName(memberRef)), photo) }
         }
         if (saved) changes.update { it + 1 }
     }
