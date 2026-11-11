@@ -33,12 +33,17 @@ fun rankWithLinkedIn(
     val comparator = order.comparator
     val photo = you?.photo
     val shown = rows.mapIndexed { index, row ->
-        val shownRow = row.copy(timeMs = wins.rowScores[index].timeMs, hints = wins.rowScores[index].hints)
+        val score = wins.rowScores[index]
+        val shownRow = row.copy(
+            timeMs = score.timeMs,
+            hints = score.hints,
+            timeFromLinkedIn = score != BestScore(row.timeMs, row.hints) || (index == wins.youRow && you?.score != null),
+        )
         if (index == wins.youRow) shownRow.copy(isSelf = true, photo = photo ?: shownRow.photo) else shownRow
     }
     val added = listOfNotNull(
         if (wins.addOwnRow && you?.score != null && you.name != null) {
-            DailyBoardRowModel(rows.size + 1, you.name, you.score.timeMs, you.score.hints, isSelf = true, photo = photo, fromLinkedIn = true)
+            DailyBoardRowModel(rows.size + 1, you.name, you.score.timeMs, you.score.hints, isSelf = true, photo = photo, fromLinkedIn = true, timeFromLinkedIn = true)
         } else {
             null
         },

@@ -19,13 +19,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.DuelTone
+import com.ivandsky.puzzlebox.designsystem.LinkedInBlue
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 
 private val RankWidth = 28.dp
 private val FrameWidth = 1.dp
-private val AvatarSize = 32.dp
 
 /** Tall enough for a name over its second line, so a row with the line and one without are the same size. */
 internal val BoardRowMinHeight = 64.dp
@@ -36,7 +35,8 @@ internal class BoardRowTags(val root: String, val part: String, val detail: Stri
 /**
  * The one row every board draws, so a PuzzleBox row and a connection row cannot drift apart: [photo] (or [name]'s
  * initial), [place], [name] with its small [detail] line when there is one, then [score]. Framed; [self] puts it on
- * the secondary container. [muted] greys the score, for a time that is hidden.
+ * the secondary container and [connection] frames it in LinkedIn blue. [linkedIn] puts the LinkedIn dot on the photo.
+ * [muted] greys the score, for a time that is hidden.
  */
 @Composable
 internal fun BoardRow(
@@ -48,6 +48,8 @@ internal fun BoardRow(
     score: String,
     modifier: Modifier = Modifier,
     self: Boolean = false,
+    connection: Boolean = false,
+    linkedIn: Boolean = false,
     muted: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -58,18 +60,19 @@ internal fun BoardRow(
             .testTag(tags.root)
             .fillMaxWidth()
             .then(if (self) Modifier.background(scheme.secondaryContainer, MaterialTheme.shapes.small) else Modifier)
-            .border(FrameWidth, scheme.outlineVariant, MaterialTheme.shapes.small)
+            .border(FrameWidth, if (connection) LinkedInBlue else scheme.outlineVariant, MaterialTheme.shapes.small)
             .defaultMinSize(minHeight = BoardRowMinHeight)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        PlayerAvatar(
+        BoardAvatar(
             name,
-            photoUrl = photo,
-            modifier = Modifier.testTag("${tags.part}.photo"),
-            size = AvatarSize,
+            photo,
+            part = tags.part,
             tone = if (self) DuelTone.Me else DuelTone.Them,
+            ring = if (self) scheme.secondaryContainer else scheme.surface,
+            linkedIn = linkedIn,
         )
         Box(Modifier.width(RankWidth)) {
             Text(

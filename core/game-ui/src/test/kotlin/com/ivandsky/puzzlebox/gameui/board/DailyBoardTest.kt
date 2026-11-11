@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.gameui.board
 
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
@@ -250,11 +251,13 @@ class DailyBoardTest {
     }
 
     @Test
-    fun aGhostShowsItsOwnerAndThatItIsOnThisPhone() {
+    fun aGhostShowsItsOwnerAndTheLinkedInDotInsteadOfText() {
         show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()), listOf(ghost("Ada", 80)))
 
         composeRule.onNodeWithTag("daily_board.ghost.name").assertTextEquals("Ada")
-        composeRule.onNodeWithTag("daily_board.ghost.detail").assertTextEquals("LinkedIn · on this phone")
+        composeRule.onNodeWithTag("daily_board.ghost.detail").assertDoesNotExist()
+        composeRule.onNodeWithText("on this phone", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithTag("daily_board.ghost.linkedin_dot").assertContentDescriptionEquals("LinkedIn")
     }
 
     @Test
