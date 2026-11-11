@@ -180,6 +180,14 @@ internal fun DailyBoardPinnedGhostsPreview() = Padded {
     )
 }
 
+// One list for every board: PuzzleBox rows and a connection share one row design, the player's own row pinned under a divider.
+@PuzzleBoxPreviews
+@Composable
+internal fun DailyBoardListPreview() = Padded {
+    val lines = rankWithGhosts(Rows.take(1) + Rows.drop(2), Ghosts, RankOrder.TimeThenHints)
+    DailyBoardList(lines, RankOrder.TimeThenHints, pinned = DailyBoardLine.Real(Rows[1], place = 5))
+}
+
 @PuzzleBoxPreviews
 @Composable
 internal fun GhostRowPreview() = Padded {

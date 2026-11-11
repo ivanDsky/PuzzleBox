@@ -43,7 +43,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * [GamePageBoard]: one game's board for a chosen day, as Top or Near you, and the in-place
+ * [GamePageBoard]: one game's board for a chosen day, with its top rows and the player's own row pinned, and the in-place
  * sign-in when signed out. Rows are told apart by the player names seeded; assertions ride
  * the shared `daily_board.*` tags and the block's own `leaderboard.*` ones.
  */

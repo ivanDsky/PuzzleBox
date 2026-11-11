@@ -96,7 +96,7 @@ internal fun PlayStatsPanelNotPostedPreview() = PanelPreview(
     elapsedMs = 95_000L,
 )
 
-/** Solved, own time not on the board yet: Near you (interactive mode) reads "Posting your time…". */
+/** Solved, own time not on the board yet: the times card reads "Posting your time…". */
 @PuzzleBoxPreviews
 @Composable
 internal fun PlayStatsPanelPostingPreview() = PanelPreview(
@@ -144,7 +144,7 @@ internal fun PlayStatsPanelHintsFirstPreview() = PanelPreview(
     elapsedMs = 31_000L,
 )
 
-/** Per-game board on, own post deferred: Near you (interactive mode) reads the saved-offline note. */
+/** Per-game board on, own post deferred: the times card reads the saved-offline note. */
 @PuzzleBoxPreviews
 @Composable
 internal fun PlayStatsPanelDeferredPreview() = PanelPreview(
@@ -159,7 +159,7 @@ internal fun PlayStatsPanelDeferredPreview() = PanelPreview(
     elapsedMs = 95_000L,
 )
 
-/** Per-game board on, own post rejected: Near you (interactive mode) reads the failure note. */
+/** Per-game board on, own post rejected: the times card reads the failure note. */
 @PuzzleBoxPreviews
 @Composable
 internal fun PlayStatsPanelRejectedPreview() = PanelPreview(
