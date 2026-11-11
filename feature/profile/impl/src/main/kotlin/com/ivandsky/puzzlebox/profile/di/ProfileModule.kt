@@ -34,7 +34,14 @@ val profileModule: Module = module {
             savedStateHandle = get(),
         )
     }
-    viewModel { SettingsViewModel(preferences = get(), appBuild = get()) }
+    // The parameter says whether the LinkedIn block is on; off, no LinkedIn object is resolved at all.
+    viewModel { params ->
+        SettingsViewModel(
+            preferences = get(),
+            appBuild = get(),
+            link = if (params.getOrNull<Boolean>() == true) get() else null,
+        )
+    }
     // Both providers are lambdas, so resolving this neither starts the web view provider nor reads a cookie.
     single<LinkedInSessionCookies> { WebViewLinkedInSession({ CookieManager.getInstance() }, { WebSettings.getDefaultUserAgent(get()) }, get()) }
 }
