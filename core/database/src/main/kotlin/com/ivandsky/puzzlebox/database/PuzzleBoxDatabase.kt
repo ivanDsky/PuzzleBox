@@ -15,8 +15,9 @@ import androidx.room.RoomDatabase
         LegSavedPlayEntity::class,
         MatchLocalEntity::class,
         MatchResultEntity::class,
+        SyncTombstoneEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true,
 )
 abstract class PuzzleBoxDatabase : RoomDatabase() {
@@ -38,6 +39,8 @@ abstract class PuzzleBoxDatabase : RoomDatabase() {
 
     abstract fun matchLocalDao(): MatchLocalDao
     abstract fun matchResultDao(): MatchResultDao
+
+    abstract fun syncTombstoneDao(): SyncTombstoneDao
 
     companion object {
         const val NAME = "puzzlebox.db"
