@@ -102,7 +102,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `di/BuildTypeReleaseFlagsModule` (`src/debug` `DebugReleaseFlags` with local
   overrides, `src/release` `ShippedReleaseFlags`; ADR-0022), debug-only Showkase catalog route and flat Settings debug sections (`DebugSettingsSections`):
   browser (`CatalogDebugBinding`, `ShowkaseBrowserScreen`, `PreviewBackdrop`,
-  `BrowserRadioControls`; goldens in `app/snapshots/`), Design variants, Release flags
+  `BrowserRadioControls`; goldens in `app/snapshots/`), Release flags
   (`ReleaseFlagsPanel`). Tests:
   the app's `e2e` test package, the E2E robot (`shellRobot`/`ShellRobot`: gestures, back and
   predictive back, background/restore/relaunch, spec-notation row assertions; `E2eKoinGraph`:

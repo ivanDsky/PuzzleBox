@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +28,7 @@ import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.profile.AppearanceRow
 
 /**
- * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Games, About (the version name), and — in debug builds only — the [debugSections] slot (the app's flags, design and game tools) then, when [onOpenCatalog] is given, the Component catalog row.
+ * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Games, About (the version name), and — in debug builds only — a "Debug build only" block set off by a divider (only when [onOpenCatalog] is given): the [debugSections] slot (the app's flags and game tools), then the Component catalog row.
  */
 @Composable
 internal fun SettingsScreen(
@@ -92,18 +93,30 @@ internal fun SettingsScreen(
                     )
                 }
             }
-            debugSections()
             if (onOpenCatalog != null) {
+                // Everything below the divider exists only in debug builds.
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Column(
-                    modifier = Modifier.fillMaxWidth().testTag("settings.developer"),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    modifier = Modifier.fillMaxWidth().testTag("settings.debug"),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xl),
                 ) {
-                    SectionTitle("Component catalog")
-                    SecondaryButton(
-                        text = "Open component browser",
-                        onClick = onOpenCatalog,
-                        modifier = Modifier.fillMaxWidth().testTag("settings.catalog"),
+                    Text(
+                        text = "Debug build only",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.primary,
                     )
+                    debugSections()
+                    Column(
+                        modifier = Modifier.fillMaxWidth().testTag("settings.developer"),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        SectionTitle("Component catalog")
+                        SecondaryButton(
+                            text = "Open component browser",
+                            onClick = onOpenCatalog,
+                            modifier = Modifier.fillMaxWidth().testTag("settings.catalog"),
+                        )
+                    }
                 }
             }
         }
