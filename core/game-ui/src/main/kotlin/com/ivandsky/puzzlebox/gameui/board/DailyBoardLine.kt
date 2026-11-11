@@ -9,3 +9,10 @@ sealed interface DailyBoardLine {
 
     data class Ghost(val row: GhostRowModel, val place: Int?) : DailyBoardLine
 }
+
+/**
+ * True when a line's place may differ from the PuzzleBox rank its row keeps: a LinkedIn ghost is on the board, or a
+ * row shows another time than its PuzzleBox one and so sits elsewhere. Such a board names each row's PuzzleBox rank.
+ */
+fun List<DailyBoardLine>.placesDifferFromPuzzleBox(): Boolean =
+    any { it is DailyBoardLine.Ghost || (it is DailyBoardLine.Real && it.place != it.row.rank) }

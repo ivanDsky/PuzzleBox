@@ -14,6 +14,11 @@ import com.ivandsky.puzzlebox.game.linkedin.linkedInScore
  */
 fun rankWithGhosts(rows: List<DailyBoardRowModel>, ghosts: List<GhostRowModel>, order: RankOrder): List<DailyBoardLine> {
     if (ghosts.isEmpty()) return rows.map { DailyBoardLine.Real(it, it.rank) }
+    return mergeRanked(rows, ghosts, order)
+}
+
+/** [rankWithGhosts] without its shortcut: [rows] sorted by [order] are ranked together with [ghosts], even with none. */
+internal fun mergeRanked(rows: List<DailyBoardRowModel>, ghosts: List<GhostRowModel>, order: RankOrder): List<DailyBoardLine> {
     val comparator = order.comparator
     val (timed, hidden) = ghosts.partition { it.timeMs != null }
     val sorted = timed.sortedWith { a, b -> comparator.compare(a.score(), b.score()) }

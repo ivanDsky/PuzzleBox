@@ -6,7 +6,8 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 sealed interface LinkedInDayStatus {
     data object NotConnected : LinkedInDayStatus
     data object Loading : LinkedInDayStatus
-    data class Imported(val timeMs: Long) : LinkedInDayStatus
+    /** The player's own LinkedIn result: its [timeMs] and the [hints] it used (a hint-free solve has none). */
+    data class Imported(val timeMs: Long, val hints: Int = 0) : LinkedInDayStatus
     data object DidNotPlay : LinkedInDayStatus
     data object Offline : LinkedInDayStatus
     data object SessionExpired : LinkedInDayStatus

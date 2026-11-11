@@ -21,11 +21,11 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
-import com.ivandsky.puzzlebox.gameui.board.rankWithGhosts
+import com.ivandsky.puzzlebox.gameui.board.rankWithLinkedIn
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.board.BoardSignInHolder
-import com.ivandsky.puzzlebox.play.linkedin.toGhostRows
+import com.ivandsky.puzzlebox.play.linkedin.LinkedInBoardInput
+import com.ivandsky.puzzlebox.play.linkedin.toBoardInput
 import com.ivandsky.puzzlebox.model.PlaySlot
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -81,17 +81,17 @@ class PlayStatsViewModel(
     )
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    internal val state: StateFlow<PlayStatsState> = combine(observePlayStats(slot), ghosts(linkedIn), ::Pair)
-        .flatMapLatest { (stats, ghosts) -> post(stats.board).map { post -> toState(stats, post, ghosts) } }
+    internal val state: StateFlow<PlayStatsState> = combine(observePlayStats(slot), linkedInInput(linkedIn), ::Pair)
+        .flatMapLatest { (stats, input) -> post(stats.board).map { post -> toState(stats, post, input) } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), initial)
 
-    /** The slot day's connections; none off a daily slot or with LinkedIn off. */
-    private fun ghosts(linkedIn: ObserveLinkedInDay?): Flow<List<GhostRowModel>> {
+    /** The slot day's connections and the player's own import; none off a daily slot or with LinkedIn off. */
+    private fun linkedInInput(linkedIn: ObserveLinkedInDay?): Flow<LinkedInBoardInput> {
         val daily = slot as? PlaySlot.Daily
-        return if (daily == null || linkedIn == null) flowOf(emptyList()) else linkedIn(daily.gameId, daily.day).map { it.toGhostRows() }
+        return if (daily == null || linkedIn == null) flowOf(LinkedInBoardInput()) else linkedIn(daily.gameId, daily.day).map { it.toBoardInput() }
     }
 
-    private fun toState(stats: PlayStats, post: SubmitStatus?, ghosts: List<GhostRowModel>): PlayStatsState = initial.copy(
+    private fun toState(stats: PlayStats, post: SubmitStatus?, input: LinkedInBoardInput): PlayStatsState = initial.copy(
         solvedToday = stats.solvedToday,
         gamesToday = stats.gamesToday,
         streak = stats.stats.currentStreak,
@@ -99,7 +99,7 @@ class PlayStatsViewModel(
         best = stats.stats.best,
         rankOrder = stats.stats.rankOrder,
         averageMs = stats.stats.averageTimeMs,
-        times = times(stats.board, stats.solved, post, ghosts),
+        times = times(stats.board, stats.solved, post, input),
     )
 
     /** The signed-in player's post to the slot's daily board; null when none is observed. */
@@ -118,24 +118,24 @@ class PlayStatsViewModel(
         }
     }
 
-    private fun times(board: TodayLeaderboard?, solved: Boolean, post: SubmitStatus?, ghosts: List<GhostRowModel>): PlayTimes = when (board) {
+    private fun times(board: TodayLeaderboard?, solved: Boolean, post: SubmitStatus?, input: LinkedInBoardInput): PlayTimes = when (board) {
         null -> PlayTimes.Unavailable
         TodayLeaderboard.SignedOut -> PlayTimes.SignedOut
         is TodayLeaderboard.SignedIn -> when (val state = board.board) {
             TodayLeaderboard.Board.Loading -> PlayTimes.Loading
             TodayLeaderboard.Board.Unavailable -> PlayTimes.Unavailable
-            is TodayLeaderboard.Board.Loaded -> rows(state.snapshot, board.identity.uid, solved, post, ghosts)
+            is TodayLeaderboard.Board.Loaded -> rows(state.snapshot, board.identity.uid, solved, post, input)
         }
     }
 
-    private fun rows(snapshot: LeaderboardSnapshot, uid: String, solved: Boolean, post: SubmitStatus?, ghosts: List<GhostRowModel>): PlayTimes.Board {
+    private fun rows(snapshot: LeaderboardSnapshot, uid: String, solved: Boolean, post: SubmitStatus?, input: LinkedInBoardInput): PlayTimes.Board {
         val daily = slot as? PlaySlot.Daily
         val order = registry.rankOrderOf(slot.gameId)
         val board = snapshot.entries.mapIndexed { index, entry ->
             DailyBoardRowModel(rank = index + 1, name = entry.displayName, timeMs = entry.timeMs, hints = entry.hints, isSelf = entry.uid == uid)
         }
         return PlayTimes.Board(
-            rows = rankWithGhosts(board, ghosts, order).timed(),
+            rows = rankWithLinkedIn(board, input.ghosts, input.own, order).timed(),
             solved = solved,
             order = order,
             post = post,
