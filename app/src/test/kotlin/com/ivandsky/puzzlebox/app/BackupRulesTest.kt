@@ -14,8 +14,9 @@ import org.xmlpull.v1.XmlPullParser
 /**
  * What leaves the device in a cloud backup or a device transfer: the web view's data
  * directory (the LinkedIn session cookie lives there), the LinkedIn database with its
- * write-ahead-log side files, and the link-state file. Backup rules exclude whole files,
- * so each of the five is pinned by name; the rest of the app's data keeps backing up.
+ * write-ahead-log side files, the link-state file, the cloud-sync state file and the
+ * Firestore SDK's disk cache (it holds connections' names) with its side files. Backup rules exclude whole files,
+ * so each of the ten is pinned by name; the rest of the app's data keeps backing up.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application for DiGraphTest's reason: the real one would startKoin on its own.
@@ -25,18 +26,26 @@ class BackupRulesTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun `cloud backup excludes the web view, the LinkedIn database and the link state`() {
+    fun `cloud backup excludes the web view, the LinkedIn database, the link state, the sync state and the Firestore cache`() {
         assertEquals(EXPECTED, excludesIn(R.xml.data_extraction_rules, "cloud-backup"))
     }
 
     @Test
-    fun `device transfer excludes the web view, the LinkedIn database and the link state`() {
+    fun `device transfer excludes the web view, the LinkedIn database, the link state, the sync state and the Firestore cache`() {
         assertEquals(EXPECTED, excludesIn(R.xml.data_extraction_rules, "device-transfer"))
     }
 
     @Test
-    fun `full backup content on API 26 to 30 excludes the same five`() {
+    fun `full backup content on API 26 to 30 excludes the same ten`() {
         assertEquals(EXPECTED, excludesIn(R.xml.backup_rules, "full-backup-content"))
+    }
+
+    @Test
+    fun `the main database is never excluded`() {
+        for ((xml, section) in listOf(R.xml.backup_rules to "full-backup-content") +
+            listOf("cloud-backup", "device-transfer").map { R.xml.data_extraction_rules to it }) {
+            assertTrue(excludesIn(xml, section).none { it.startsWith("database/puzzlebox") })
+        }
     }
 
     @Test
@@ -71,12 +80,20 @@ class BackupRulesTest {
     }
 
     private companion object {
+        // SQLitePersistence.databaseName for the default app, google-services project and database.
+        const val FIRESTORE_CACHE = "firestore.%5BDEFAULT%5D.puzzlebox-f3356.%28default%29"
+
         val EXPECTED = listOf(
             "root/app_webview",
             "database/linkedin.db",
             "database/linkedin.db-wal",
             "database/linkedin.db-shm",
             "file/linkedin_link.preferences_pb",
+            "file/cloud_sync_state.preferences_pb",
+            "database/$FIRESTORE_CACHE",
+            "database/$FIRESTORE_CACHE-wal",
+            "database/$FIRESTORE_CACHE-shm",
+            "database/$FIRESTORE_CACHE-journal",
         )
     }
 }
