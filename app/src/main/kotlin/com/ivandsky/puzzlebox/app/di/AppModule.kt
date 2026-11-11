@@ -27,17 +27,20 @@ import com.ivandsky.puzzlebox.games.queensui.QueensSettings
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuHighlightSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
+import org.koin.dsl.onClose
 
 /** App-process wiring: the application scope and the platform seams. */
 val appModule = module {
     // Process-long scope for fire-and-forget work (leaderboard submissions, the
     // identity StateFlow): SupervisorJob so one failed child never kills the scope,
     // default dispatcher from the provider — same posture as the DataStore scope.
+    // Cancelled with the graph, so an eager collector never outlives Koin.
     single<CoroutineScope> {
         CoroutineScope(SupervisorJob() + get<DispatcherProvider>().default)
-    }
+    } onClose { it?.cancel() }
     // The watcher's per-post outcome: one instance, written by the watcher and read by
     // the Result board and the tablet panel.
     single { SubmitStatusTracker() }

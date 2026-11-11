@@ -13,10 +13,12 @@ import java.time.Instant
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.viewModel
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import org.koin.dsl.onClose
 
 private val DraftSaves = named("create.draftSaves")
 
@@ -30,7 +32,7 @@ private val DraftSaves = named("create.draftSaves")
  */
 val createModule: Module = module {
     // Process lifetime on main, like Play's slot writes: leaving the Studio never cancels its last save.
-    single(DraftSaves) { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().main) }
+    single(DraftSaves) { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().main) } onClose { it?.cancel() }
     viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), get(), get(), syncSolves = get(), releaseFlags = get(), sharedText = get(), clock = { Instant.now() }) }
     factory { SyncSolvesCounts(published = get(), boards = get(), clock = { Instant.now() }) }
     factory {

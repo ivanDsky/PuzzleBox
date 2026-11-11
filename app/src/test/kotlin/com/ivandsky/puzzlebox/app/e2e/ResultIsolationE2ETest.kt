@@ -56,6 +56,7 @@ class ResultIsolationE2ETest {
         awaitBadge()
 
         switchTab(PlayKey)
+        awaitActionable(PLAY_AGAIN)
         rule.onNodeWithTag(PLAY_AGAIN).performScrollTo().performClick()
         awaitTag(GAME)
         solveZip(takingMs = SLOWER_MS) // slower than the first, so a distinct solve and no record
