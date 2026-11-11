@@ -59,7 +59,7 @@ class DailyBoardTest {
     }
 
     private fun ghost(name: String, seconds: Int?, hintFree: Boolean = true) =
-        GhostRowModel(name, seconds?.let { it * 1000L }, hintFree)
+        GhostRowModel("ref-$name", name, seconds?.let { it * 1000L }, hintFree)
 
     private fun real(rank: Int, seconds: Int, isSelf: Boolean = false) =
         DailyBoardRowModel(rank, "r$seconds", seconds * 1000L, 0, isSelf)
@@ -201,11 +201,52 @@ class DailyBoardTest {
         lines[0].assert(hasTestTag("daily_board.row"))
         lines[1].assert(hasTestTag("daily_board.ghost"))
         lines[2].assert(hasTestTag("daily_board.row"))
-        composeRule.onAllNodesWithText("—").assertCountEquals(1)
+        composeRule.onAllNodesWithText("—").assertCountEquals(0)
+        composeRule.onNodeWithTag("daily_board.ghost.rank").assertTextEquals("2")
         val ranks = composeRule.onAllNodesWithTag("daily_board.row.rank")
         ranks.assertCountEquals(2)
         ranks[0].assertTextEquals("1")
-        ranks[1].assertTextEquals("2")
+        ranks[1].assertTextEquals("3")
+    }
+
+    @Test
+    fun aBoardWithGhostsTellsEachPuzzleBoxRankAndOneWithoutDoesNot() {
+        val rows = listOf(real(1, 60), real(2, 100))
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(rows), listOf(ghost("Ada", 80)))
+
+        val notes = composeRule.onAllNodesWithTag("daily_board.row.puzzlebox_rank")
+        notes.assertCountEquals(2)
+        notes[0].assertTextEquals("#1 on PuzzleBox")
+        notes[1].assertTextEquals("#2 on PuzzleBox")
+    }
+
+    @Test
+    fun aBoardWithoutGhostsDrawsTodaysRanksAndNoPuzzleBoxNote() {
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(listOf(real(1, 60), real(2, 100))))
+
+        composeRule.onAllNodesWithTag("daily_board.row.puzzlebox_rank").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("daily_board.row.rank")[1].assertTextEquals("2")
+    }
+
+    @Test
+    fun aHiddenGhostHasNoPlace() {
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(listOf(real(1, 60))), listOf(ghost("Hidden", null)))
+
+        composeRule.onNodeWithTag("daily_board.ghost.rank").assertTextEquals("—")
+    }
+
+    @Test
+    fun theCallersLinesAreDrawnAsGivenWithThePinnedPlace() {
+        val top = real(1, 60)
+        val me = real(7, 300, isSelf = true)
+        val lines = listOf(DailyBoardLine.Real(top, 1), DailyBoardLine.Ghost(ghost("Ada", 80), 2))
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(listOf(top), pinned = me, lines = lines, pinnedPlace = 9))
+
+        composeRule.onNodeWithTag("daily_board.ghost.rank").assertTextEquals("2")
+        val ranks = composeRule.onAllNodesWithTag("daily_board.row.rank")
+        ranks[ranks.fetchSemanticsNodes().size - 1].assertTextEquals("9")
+        composeRule.onNodeWithTag("leaderboard.you").assertIsDisplayed()
+        composeRule.onAllNodesWithTag("daily_board.row.puzzlebox_rank")[1].assertTextEquals("#7 on PuzzleBox")
     }
 
     @Test

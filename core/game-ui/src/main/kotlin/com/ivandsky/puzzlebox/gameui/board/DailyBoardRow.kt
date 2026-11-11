@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.gameui.board
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -23,9 +24,19 @@ import com.ivandsky.puzzlebox.gameui.bestScoreText
 
 private val RankWidth = 28.dp
 
-/** One ranked [row]; the signed-in player's own row stands out on the secondary container. */
+/**
+ * One ranked [row] at [place] in the board's one ranking; the signed-in player's own row stands out on the
+ * secondary container. [showPuzzleBoxRank] adds the row's own PuzzleBox rank under the name, which differs
+ * from [place] once LinkedIn connections take places among the rows.
+ */
 @Composable
-fun DailyBoardRow(row: DailyBoardRowModel, order: RankOrder, modifier: Modifier = Modifier) {
+fun DailyBoardRow(
+    row: DailyBoardRowModel,
+    order: RankOrder,
+    modifier: Modifier = Modifier,
+    place: Int = row.rank,
+    showPuzzleBoxRank: Boolean = false,
+) {
     val content = if (row.isSelf) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
     Row(
         modifier = modifier
@@ -38,20 +49,30 @@ fun DailyBoardRow(row: DailyBoardRowModel, order: RankOrder, modifier: Modifier 
     ) {
         Box(Modifier.width(RankWidth)) {
             Text(
-                "${row.rank}",
+                "$place",
                 style = MaterialTheme.typography.labelLarge.tabular(),
                 color = if (row.isSelf) content else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag("daily_board.row.rank"),
             )
         }
-        Text(
-            row.name.ifEmpty { "Player" },
-            style = MaterialTheme.typography.bodyLarge,
-            color = content,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f).testTag("daily_board.row.name"),
-        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                row.name.ifEmpty { "Player" },
+                style = MaterialTheme.typography.bodyLarge,
+                color = content,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag("daily_board.row.name"),
+            )
+            if (showPuzzleBoxRank) {
+                Text(
+                    "#${row.rank} on PuzzleBox",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (row.isSelf) content else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("daily_board.row.puzzlebox_rank"),
+                )
+            }
+        }
         Text(
             bestScoreText(BestScore(row.timeMs, row.hints), order),
             style = MaterialTheme.typography.titleMedium.tabular(),
