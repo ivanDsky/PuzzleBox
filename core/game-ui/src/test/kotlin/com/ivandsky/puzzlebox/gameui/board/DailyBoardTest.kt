@@ -1,11 +1,15 @@
 package com.ivandsky.puzzlebox.gameui.board
 
 import androidx.compose.material3.Text
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -18,6 +22,7 @@ import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,13 +50,21 @@ class DailyBoardTest {
         TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(LeaderboardRef("queens", LocalDate.of(2026, 11, 8)), entries.toList())),
     )
 
-    private fun show(order: RankOrder, state: DailyBoardState) {
+    private fun show(order: RankOrder, state: DailyBoardState, ghosts: List<GhostRowModel> = emptyList()) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                DailyBoard("Queens · today", order, state, signIn = { Text("sign-in slot") })
+                DailyBoard("Queens · today", order, state, ghosts = ghosts, signIn = { Text("sign-in slot") })
             }
         }
     }
+
+    private fun ghost(name: String, seconds: Int?, hintFree: Boolean = true) =
+        GhostRowModel(name, seconds?.let { it * 1000L }, hintFree)
+
+    private fun real(rank: Int, seconds: Int, isSelf: Boolean = false) =
+        DailyBoardRowModel(rank, "r$seconds", seconds * 1000L, 0, isSelf)
+
+    private val anyRow = hasTestTag("daily_board.row") or hasTestTag("daily_board.ghost")
 
     @Test
     fun `rank is position plus one and self is by uid`() {
@@ -176,5 +189,135 @@ class DailyBoardTest {
     fun `signed out renders the callers sign-in slot`() {
         show(RankOrder.TimeThenHints, DailyBoardState.SignedOut)
         composeRule.onNodeWithText("sign-in slot").assertIsDisplayed()
+    }
+
+    @Test
+    fun ghostsAreDrawnBetweenTheRealRowsInRankOrder() {
+        val rows = listOf(real(1, 60), real(2, 100))
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(rows), listOf(ghost("Ada", 80)))
+
+        val lines = composeRule.onAllNodes(anyRow)
+        lines.assertCountEquals(3)
+        lines[0].assert(hasTestTag("daily_board.row"))
+        lines[1].assert(hasTestTag("daily_board.ghost"))
+        lines[2].assert(hasTestTag("daily_board.row"))
+        composeRule.onAllNodesWithText("—").assertCountEquals(1)
+        val ranks = composeRule.onAllNodesWithTag("daily_board.row.rank")
+        ranks.assertCountEquals(2)
+        ranks[0].assertTextEquals("1")
+        ranks[1].assertTextEquals("2")
+    }
+
+    @Test
+    fun aGhostShowsItsOwnerAndThatItIsOnThisPhone() {
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()), listOf(ghost("Ada", 80)))
+
+        composeRule.onNodeWithTag("daily_board.ghost.name").assertTextEquals("Ada")
+        composeRule.onNodeWithTag("daily_board.ghost.detail").assertTextEquals("LinkedIn · on this phone")
+    }
+
+    @Test
+    fun aGhostWithoutANameIsAConnection() {
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()), listOf(ghost("", 80)))
+
+        composeRule.onNodeWithTag("daily_board.ghost.name").assertTextEquals("Connection")
+    }
+
+    @Test
+    fun aHiddenTimeSaysSoAndSortsLast() {
+        val rows = listOf(real(1, 60), real(2, 100))
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(rows), listOf(ghost("Hidden", null)))
+
+        composeRule.onNodeWithTag("daily_board.ghost.score").assertTextEquals("time hidden")
+        val lines = composeRule.onAllNodes(anyRow)
+        lines.assertCountEquals(3)
+        lines[2].assert(hasTestTag("daily_board.ghost"))
+    }
+
+    @Test
+    fun aHintFreeGhostReadsPerfectOnAHintsFirstBoard() {
+        show(RankOrder.HintsThenTime, DailyBoardState.Ranked(emptyList()), listOf(ghost("Ada", 48)))
+        composeRule.onNodeWithTag("daily_board.ghost.score").assertTextEquals("Perfect · 0:48")
+    }
+
+    @Test
+    fun aGhostThatUsedHintsShowsTheTimeAlone() {
+        show(RankOrder.HintsThenTime, DailyBoardState.Ranked(emptyList()), listOf(ghost("Ada", 48, hintFree = false)))
+        composeRule.onNodeWithTag("daily_board.ghost.score").assertTextEquals("0:48")
+    }
+
+    @Test
+    fun aGhostOnATimeFirstBoardShowsTheTime() {
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()), listOf(ghost("Ada", 48)))
+        composeRule.onNodeWithTag("daily_board.ghost.score").assertTextEquals("0:48")
+    }
+
+    @Test
+    fun ghostsReplaceTheEmptyLine() {
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()), listOf(ghost("Ada", 80)))
+        composeRule.onAllNodesWithTag("daily_board.empty").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(1)
+    }
+
+    @Test
+    fun withNoRowsAndNoGhostsTheEmptyLineShows() {
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()))
+        composeRule.onNodeWithTag("daily_board.empty").assertIsDisplayed()
+    }
+
+    @Test
+    fun signedOutListsGhostsAboveTheSignInSlot() {
+        show(RankOrder.TimeThenHints, DailyBoardState.SignedOut, listOf(ghost("Ada", 80), ghost("Bo", 90)))
+
+        composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(2)
+        val slotTop = composeRule.onNodeWithText("sign-in slot").getBoundsInRoot().top
+        val lastGhostBottom = composeRule.onAllNodesWithTag("daily_board.ghost")[1].getBoundsInRoot().bottom
+        assertTrue(lastGhostBottom <= slotTop)
+    }
+
+    @Test
+    fun signedOutWithoutGhostsStillShowsTheSlot() {
+        show(RankOrder.TimeThenHints, DailyBoardState.SignedOut)
+        composeRule.onNodeWithText("sign-in slot").assertIsDisplayed()
+        composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(0)
+    }
+
+    @Test
+    fun loadingAndUnavailableDrawNoGhosts() {
+        val ghosts = listOf(ghost("Ada", 80))
+        show(RankOrder.TimeThenHints, DailyBoardState.Loading, ghosts)
+        composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(0)
+    }
+
+    @Test
+    fun unavailableDrawsNoGhosts() {
+        show(RankOrder.TimeThenHints, DailyBoardState.Unavailable, listOf(ghost("Ada", 80)))
+        composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(0)
+        composeRule.onNodeWithTag("daily_board.unavailable").assertIsDisplayed()
+    }
+
+    @Test
+    fun thePinnedRowStaysBelowTheDivider() {
+        val state = DailyBoardState.Ranked(listOf(real(1, 60)), pinned = real(9, 300, isSelf = true))
+        show(RankOrder.TimeThenHints, state, listOf(ghost("Ada", 80), ghost("Bo", 90)))
+
+        val lines = composeRule.onAllNodes(anyRow or hasTestTag("leaderboard.you"))
+        lines.assertCountEquals(4)
+        lines[3].assert(hasTestTag("leaderboard.you"))
+    }
+
+    @Test
+    fun onlyTheFirstTwentyGhostsAreDrawn() {
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()), (1..30).map { ghost("g$it", it) })
+        composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(20)
+    }
+
+    @Test
+    fun theCapDropsHiddenTimesBeforeTimedOnes() {
+        val ghosts = (1..20).map { ghost("g$it", it) } + ghost("Hidden", null)
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()), ghosts)
+
+        composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(20)
+        composeRule.onAllNodesWithText("time hidden").assertCountEquals(0)
     }
 }

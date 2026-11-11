@@ -29,6 +29,11 @@ private val StrandsRows = listOf(
     DailyBoardRowModel(3, "Jonas", 90_000L, 4, isSelf = false),
 )
 
+private val Ghosts = listOf(
+    GhostRowModel("Ada Quill", 68_000L, hintFree = true),
+    GhostRowModel("Theo Marsh", null, hintFree = false),
+)
+
 @Composable
 private fun Padded(content: @Composable () -> Unit) {
     PuzzleBoxTheme { Box(Modifier.padding(Spacing.md)) { content() } }
@@ -130,6 +135,33 @@ internal fun DailyBoardUnavailablePreview() = Padded {
 @Composable
 internal fun DailyBoardSignedOutPreview() = Padded {
     DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.SignedOut, signIn = { SignInSlot() })
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun DailyBoardGhostsPreview() = Padded {
+    DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows), ghosts = Ghosts)
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun DailyBoardSignedOutGhostsPreview() = Padded {
+    DailyBoard(
+        dailyBoardTitle("Queens"),
+        RankOrder.TimeThenHints,
+        DailyBoardState.SignedOut,
+        ghosts = Ghosts,
+        signIn = { SignInSlot() },
+    )
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun GhostRowPreview() = Padded {
+    Column {
+        GhostRow(Ghosts[0], RankOrder.HintsThenTime)
+        GhostRow(Ghosts[1], RankOrder.HintsThenTime)
+    }
 }
 
 @Preview(name = "Tablet light", device = TabletSpec, showBackground = true)
