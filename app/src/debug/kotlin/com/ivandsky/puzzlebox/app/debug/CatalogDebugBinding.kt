@@ -6,14 +6,15 @@ import com.ivandsky.puzzlebox.app.debug.design.DesignVariantsPrefs
 import com.ivandsky.puzzlebox.designsystem.DesignVariantsStore
 
 /**
- * Debug→main bridge for the Catalog route (ticket showkase-v2-01): :app main must hold
+ * Debug→main bridge for the Catalog route and Settings' debug sections: :app main must hold
  * no compile-time reference to debug-only code (release compiles without this source
  * set), so main resolves THIS class by name and class initialization performs the
  * registration. Nothing else may reference it.
  */
 object CatalogDebugBinding {
     init {
-        DebugCatalogContent.browser = { openGame -> DesignCatalogHost(openGame) }
+        DebugCatalogContent.browser = { ShowkaseBrowserScreen() }
+        DebugCatalogContent.settingsSections = { openGame -> DebugSettingsSections(openGame) }
     }
 
     /**

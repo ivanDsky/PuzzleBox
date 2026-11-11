@@ -100,9 +100,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `GAME_ORDER`, unlisted set from `buildTypeUnlistedGames`; zip → tango → queens → strands → minisudoku → sudoku; `GamePlayRegistry(getAll())` over every game's
   `GamePlayUi`; `PreferencesQueensSettings` and `PreferencesSudokuHighlightSettings` adapt `GameSettingsRepository`),
   `di/BuildTypeReleaseFlagsModule` (`src/debug` `DebugReleaseFlags` with local
-  overrides, `src/release` `ShippedReleaseFlags`; ADR-0022), debug-only Catalog: Showkase
+  overrides, `src/release` `ShippedReleaseFlags`; ADR-0022), debug-only Showkase catalog route and flat Settings debug sections (`DebugSettingsSections`):
   browser (`CatalogDebugBinding`, `ShowkaseBrowserScreen`, `PreviewBackdrop`,
-  `BrowserRadioControls`; goldens in `app/snapshots/`), Design settings, Release flags
+  `BrowserRadioControls`; goldens in `app/snapshots/`), Design variants, Release flags
   (`ReleaseFlagsPanel`). Tests:
   the app's `e2e` test package, the E2E robot (`shellRobot`/`ShellRobot`: gestures, back and
   predictive back, background/restore/relaunch, spec-notation row assertions; `E2eKoinGraph`:
@@ -225,7 +225,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - `core/game/` (`:core:game`, pure JVM) — the orthogonal game contracts (ADR-0001):
   `GameDefinition`, `GameRules<P>`, `GameSession` + `GameSessionCodec`, `ScoreModel<S>` →
   `CompletionRecord?`, `PuzzleSource` (`fetch(date)` → `FetchResult`; `FetchError`), composed
-  per game as `GamePlugin<P, S, M>`; `GameRegistry` (the sole GameId → `GamePlugin` lookup; `get` resolves listed + unlisted, `all` = listed only and feeds every surface, `unlisted` = debug-only 9x9 opened from Catalog → Design settings);
+  per game as `GamePlugin<P, S, M>`; `GameRegistry` (the sole GameId → `GamePlugin` lookup; `get` resolves listed + unlisted, `all` = listed only and feeds every surface, `unlisted` = debug-only 9x9 opened from Settings → Debug games);
   `DailySource : PuzzleSource` (per-game feed adapter, `fetchDaily` → `DailyFetch`, optional
   `archiveSince`) over `FeedTransport`/`FeedRequest` (LinkedIn) or `NytTransport` (NYT);
   `LinkedInEdition` (ADR-0017: one LinkedIn game's day→number rule, games-by-id `FeedRequest`, `entityUrn` identity check);

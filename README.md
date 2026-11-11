@@ -158,4 +158,4 @@ diff), so run the `-Proborazzi.verify=true` command above before you push UI cha
 
 Unfinished features merge dark behind a `ReleaseFlag` and ship by a flip PR
 ([ADR-0022](docs/adr/0022-trunk-delivery-release-flags.md)). To force a flag on in a debug
-build, go to Profile → Design system catalog → Release flags.
+build, go to Profile → Settings → Release flags.

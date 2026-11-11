@@ -54,6 +54,6 @@ of `all`, which feeds every surface (hub, Home tiles and recent, the day ring, d
 next target, History, all-games stats, Profile, `SyncTodayPuzzles`). `get(id)` and
 `displayName(id)` resolve listed and unlisted games alike, so the play shell opens it by id
 and its Result names it. `ObserveGameHistory` drops records of games not in `all`. The only
-way in is Catalog → Design settings → "Play 9x9 Sudoku" (`debug.play.sudoku`). The unlisted
+way in is Settings → Debug games → "Play 9x9 Sudoku" (`debug.play.sudoku`). The unlisted
 set is per build type (`buildTypeUnlistedGames`: debug `{sudoku}`, release empty);
 `requireEveryGamePlayable` checks listed and unlisted games.

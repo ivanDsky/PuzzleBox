@@ -4,6 +4,7 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.app.CatalogScreen
+import com.ivandsky.puzzlebox.app.DebugSettingsSlot
 import com.ivandsky.puzzlebox.compete.navigation.competeEntry
 import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
@@ -38,7 +39,7 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  *
  * Loop wiring: Home's Today card selects the Play tab; its history teaser pushes History
  * on Home's stack, and the games hub's "Older puzzles" pushes it on Play's stack; history
- * rows push the day's game key; Settings' Developer row pushes [CatalogKey] on the current
+ * rows push the day's game key; Settings' Component catalog row pushes [CatalogKey] on the current
  * tab's stack.
  * The Create tab's New puzzle and its draft rows push that draft's
  * Studio on Create's stack, and its published rows that puzzle's page. Back pops the current tab's stack ([Navigator.pop]),
@@ -110,7 +111,8 @@ internal fun puzzleBoxEntryProvider(
         onBack = back,
         onOpenSettings = { navigator.pushOnce(SettingsKey) },
         onOpenLinkedInLogin = { navigator.pushOnce(LinkedInLoginKey) }.takeIf { linkedIn },
+        debugSections = { DebugSettingsSlot(openGame = { navigator.pushOnce(GameKey(it)) }) },
     )
     competeEntry(navigator, playLayout)
-    entry<CatalogKey> { CatalogScreen(openGame = { navigator.pushOnce(GameKey(it)) }) }
+    entry<CatalogKey> { CatalogScreen() }
 }
