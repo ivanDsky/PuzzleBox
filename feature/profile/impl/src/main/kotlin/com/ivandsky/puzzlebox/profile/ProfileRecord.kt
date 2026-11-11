@@ -14,7 +14,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
@@ -22,6 +24,7 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
+import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 import com.ivandsky.puzzlebox.gameui.bestScoreText
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.profile.board.GameRow
@@ -29,16 +32,26 @@ import com.ivandsky.puzzlebox.profile.board.PerGameBoard
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-/** The top of Profile (A20): the player's [name], then "Playing since" once they have a first solve. */
+/**
+ * The top of Profile (A20): the player's [name], then "Playing since" once they have a first solve.
+ * With an [avatar] (the slim form) the block is centred under it.
+ */
 @Composable
-internal fun ProfileHeader(name: String, playingSince: LocalDate?, modifier: Modifier = Modifier) {
+internal fun ProfileHeader(
+    name: String,
+    playingSince: LocalDate?,
+    modifier: Modifier = Modifier,
+    avatar: (@Composable () -> Unit)? = null,
+) {
     Column(
         modifier = modifier.fillMaxWidth().testTag("profile.header"),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        horizontalAlignment = if (avatar != null) Alignment.CenterHorizontally else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(if (avatar != null) Spacing.sm else Spacing.xs),
     ) {
+        avatar?.invoke()
         Text(
             text = name,
-            style = MaterialTheme.typography.headlineMedium,
+            style = if (avatar != null) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface,
         )
         if (playingSince != null) {
@@ -50,6 +63,20 @@ internal fun ProfileHeader(name: String, playingSince: LocalDate?, modifier: Mod
             )
         }
     }
+}
+
+/** The slim Profile's large avatar: the photo over the initial; signed out, a neutral placeholder. */
+@Composable
+internal fun ProfileAvatar(name: String, photoUrl: String?, signedIn: Boolean, modifier: Modifier = Modifier) {
+    val scheme = MaterialTheme.colorScheme
+    PlayerAvatar(
+        name = name,
+        photoUrl = photoUrl,
+        modifier = modifier.testTag("profile.avatar"),
+        size = 88.dp,
+        fill = if (signedIn) Color.Unspecified else scheme.surfaceContainerHighest,
+        onFill = if (signedIn) Color.Unspecified else scheme.onSurfaceVariant,
+    )
 }
 
 /** The lifetime numbers across every game (A20): solved, best streak, no hints, days played. */

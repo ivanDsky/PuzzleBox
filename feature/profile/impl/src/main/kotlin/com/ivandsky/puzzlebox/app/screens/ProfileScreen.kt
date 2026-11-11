@@ -41,6 +41,7 @@ import com.ivandsky.puzzlebox.profile.board.GameRow
 import com.ivandsky.puzzlebox.profile.board.PerGameBoard
 import com.ivandsky.puzzlebox.profile.GameRows
 import com.ivandsky.puzzlebox.profile.LifetimeGrid
+import com.ivandsky.puzzlebox.profile.ProfileAvatar
 import com.ivandsky.puzzlebox.profile.ProfileHeader
 import com.ivandsky.puzzlebox.profile.board.ProfileDailyBoard
 import java.time.LocalDate
@@ -82,13 +83,28 @@ internal fun ProfileContent(
                 .verticalScroll(rememberScrollState())
                 // Under the top bar the content starts where Settings' does.
                 .padding(horizontal = Spacing.xl, vertical = if (topBar) Spacing.lg else Spacing.xxl),
-            verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+            // Slim blocks sit as far apart as Settings'.
+            verticalArrangement = Arrangement.spacedBy(if (slim) Spacing.xl else Spacing.lg),
         ) {
             val name = when (account) {
                 is ProfileUiState.Account.SignedIn -> account.identity.displayName.ifEmpty { "Player" }
                 is ProfileUiState.Account.SignedOut -> "Guest player"
             }
-            ProfileHeader(name = name, playingSince = state.stats.playingSince)
+            ProfileHeader(
+                name = name,
+                playingSince = state.stats.playingSince,
+                avatar = if (slim) {
+                    {
+                        ProfileAvatar(
+                            name = name,
+                            photoUrl = (account as? ProfileUiState.Account.SignedIn)?.identity?.photoUrl,
+                            signedIn = account is ProfileUiState.Account.SignedIn,
+                        )
+                    }
+                } else {
+                    null
+                },
+            )
             if (!slim) {
                 LifetimeGrid(stats = state.stats, daysPlayed = state.daysPlayed)
                 if (state.games.isNotEmpty()) {
