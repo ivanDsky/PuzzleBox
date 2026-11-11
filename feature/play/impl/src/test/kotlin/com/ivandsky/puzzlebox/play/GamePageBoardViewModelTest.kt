@@ -13,7 +13,10 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
@@ -21,6 +24,7 @@ import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
@@ -113,13 +117,18 @@ class GamePageBoardViewModelTest {
         LinkedInGhost("ref-$name", name, timeMs, hintFree, flawless = false, photoPath = photoPath)
 
     /** A connected day whose connections board was read, [fetchedAtMs] null when it has not been. */
-    private fun dayData(ghosts: List<LinkedInGhost>, inWindow: Boolean = true, fetchedAtMs: Long? = 1L) = LinkedInDayData(
+    private fun dayData(
+        ghosts: List<LinkedInGhost>,
+        inWindow: Boolean = true,
+        fetchedAtMs: Long? = 1L,
+        own: LinkedInOwnState = LinkedInOwnState.Unknown,
+    ) = LinkedInDayData(
         link = LinkState.Connected("member-1"),
         delta = 0,
         boardInWindow = inWindow,
         inFlight = false,
         lastSync = null,
-        own = LinkedInOwnState.Unknown,
+        own = own,
         ghosts = ghosts,
         boardFetchedAtMs = fetchedAtMs,
     )
@@ -375,6 +384,36 @@ class GamePageBoardViewModelTest {
         assertEquals(7, board.pinned?.rank)
         assertEquals(9, board.pinnedPlace)
         assertEquals(listOf("a", "b", "c", "Near", "d", "e", "Far"), board.lines.orEmpty().map { it.name() })
+    }
+
+    private fun imported(timeMs: Long) = LinkedInOwnState.Imported(
+        CompletionRecord(TestGames.Ref(game, PuzzleKey.Daily(today, 1)), timeMs, 0, RecordStats(1, "{}"), source = CompletionSource.LinkedIn),
+    )
+
+    @Test
+    fun `the imported LinkedIn time replaces the player's own, so a pinned player moves into the top rows`() {
+        standings = listOf("a", "b", "c", "d", "e", "f", "me")
+        days.emit(game, today, dayData(emptyList(), own = imported(10_500L)))
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        settle()
+
+        val board = model.state.value.board as DailyBoardState.Ranked
+        assertEquals(listOf("a" to 1, "me" to 2, "b" to 3, "c" to 4, "d" to 5), board.lines.orEmpty().map { it.name() to it.place() })
+        assertEquals(null, board.pinned)
+        assertEquals(7, board.lines.orEmpty().filterIsInstance<DailyBoardLine.Real>().single { it.row.isSelf }.row.rank)
+    }
+
+    @Test
+    fun `a connection named like a player is that player at the LinkedIn time and is drawn once`() {
+        standings = listOf("a", "me", "Bea")
+        days.emit(game, today, dayData(listOf(ghost(" bea ", 5_000L), ghost("Cy", 10_500L))))
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        settle()
+
+        val board = model.state.value.board as DailyBoardState.Ranked
+        assertEquals(listOf("Bea" to 1, "a" to 2, "Cy" to 3, "me" to 4), board.lines.orEmpty().map { it.name() to it.place() })
     }
 
     @Test

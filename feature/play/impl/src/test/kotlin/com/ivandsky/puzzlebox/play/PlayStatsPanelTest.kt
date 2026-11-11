@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -38,6 +39,7 @@ import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.today
@@ -133,7 +135,7 @@ class PlayStatsPanelTest {
     }
 
     /** The slot day's connections board as read from LinkedIn and held on the phone. */
-    private fun cachedConnections(vararg ghosts: LinkedInGhost) = linkedInDays.emit(
+    private fun cachedConnections(vararg ghosts: LinkedInGhost, own: LinkedInOwnState = LinkedInOwnState.Unknown) = linkedInDays.emit(
         alpha,
         day,
         LinkedInDayData(
@@ -142,10 +144,14 @@ class PlayStatsPanelTest {
             boardInWindow = true,
             inFlight = false,
             lastSync = null,
-            own = LinkedInOwnState.Unknown,
+            own = own,
             ghosts = ghosts.toList(),
             boardFetchedAtMs = 1L,
         ),
+    )
+
+    private fun importedTime(seconds: Long) = LinkedInOwnState.Imported(
+        CompletionRecord(TestGames.Ref(alpha, PuzzleKey.Daily(day, 7)), seconds * 1_000L, 0, RecordStats(1, "{}"), source = CompletionSource.LinkedIn),
     )
 
     private fun ghost(name: String, seconds: Long?, hintFree: Boolean = true, photoPath: String? = null) =
@@ -347,6 +353,29 @@ class PlayStatsPanelTest {
         composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(2)
         composeRule.onNodeWithTag("daily_board.ghost.name").assertTextEquals("Cy Park")
         composeRule.onNodeWithText("Ada Lin").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the player's imported LinkedIn time replaces their PuzzleBox time and moves their place`() {
+        // The player's own 70s is 7th on PuzzleBox; 15s from LinkedIn is 2nd, so they join the top five and are not pinned.
+        cachedConnections(own = importedTime(15))
+        show(viewModel(linkedIn = true))
+
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(4)
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("2")
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.score")).assertTextEquals("Perfect · 0:15")
+        composeRule.onNodeWithText("Player 5").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a connection named like a player is that player at the LinkedIn time and is drawn once`() {
+        cachedConnections(ghost(" player  3 ", 5))
+        show(viewModel(linkedIn = true))
+
+        composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Player 3").assertCountEquals(1)
+        composeRule.onAllNodesWithTag("daily_board.row.name")[0].assertTextEquals("Player 3")
+        composeRule.onAllNodesWithTag("daily_board.row.rank")[0].assertTextEquals("1")
     }
 
     @Test

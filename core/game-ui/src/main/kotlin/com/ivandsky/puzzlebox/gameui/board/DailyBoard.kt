@@ -55,7 +55,8 @@ fun DailyBoard(
 private fun Ranked(state: DailyBoardState.Ranked, ghosts: List<GhostRowModel>, order: RankOrder) {
     val lines = remember(state, ghosts, order) { (state.lines ?: rankWithGhosts(state.rows, ghosts, order)).capGhosts() }
     if (lines.isEmpty()) Line("No one is on today's board yet.", "daily_board.empty")
-    val withGhosts = lines.any { it is DailyBoardLine.Ghost }
+    val pinnedMoved = state.pinned != null && state.pinnedPlace != null && state.pinnedPlace != state.pinned.rank
+    val withGhosts = lines.placesDifferFromPuzzleBox() || pinnedMoved
     Lines(lines, order)
     state.pinned?.let {
         HorizontalDivider()
@@ -66,7 +67,7 @@ private fun Ranked(state: DailyBoardState.Ranked, ghosts: List<GhostRowModel>, o
 
 @Composable
 private fun Lines(lines: List<DailyBoardLine>, order: RankOrder) {
-    val withGhosts = lines.any { it is DailyBoardLine.Ghost }
+    val withGhosts = lines.placesDifferFromPuzzleBox()
     lines.forEach {
         when (it) {
             is DailyBoardLine.Real -> DailyBoardRow(it.row, order, place = it.place, showPuzzleBoxRank = withGhosts)
