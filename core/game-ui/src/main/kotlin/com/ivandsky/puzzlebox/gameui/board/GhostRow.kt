@@ -16,15 +16,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.linkedin.linkedInScore
+import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 import com.ivandsky.puzzlebox.gameui.bestScoreText
 
 private val RankWidth = 28.dp
 private val GhostBorder = 1.dp
+private val AvatarSize = 32.dp
 
 /**
  * A LinkedIn connection's [row], drawn like a [DailyBoardRow] but outlined: its [place] in the board's one ranking, or
@@ -43,6 +46,7 @@ fun GhostRow(row: GhostRowModel, place: Int?, order: RankOrder, modifier: Modifi
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        PlayerAvatar(row.name.ifEmpty { "Connection" }, photoUrl = row.photo, size = AvatarSize, tone = DuelTone.Them)
         Box(Modifier.width(RankWidth)) {
             Text(
                 place?.toString() ?: "—",

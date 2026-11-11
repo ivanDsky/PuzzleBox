@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import java.io.File
 import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -58,7 +59,8 @@ fun PlayerAvatar(
             fontSize = (size.value * 0.42f).sp,
         )
         if (photoUrl != null) {
-            AsyncImage(model = photoUrl, contentDescription = null, modifier = Modifier.fillMaxSize())
+            // A cached photo is an absolute file path, which Coil would otherwise read as a relative URI.
+            AsyncImage(model = if (photoUrl.startsWith("/")) File(photoUrl) else photoUrl, contentDescription = null, modifier = Modifier.fillMaxSize())
         }
     }
 }

@@ -29,10 +29,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
+import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -44,6 +46,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.game.linkedin.linkedInScore
 import com.ivandsky.puzzlebox.gameui.GameCardColors
+import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 import com.ivandsky.puzzlebox.gameui.SkeletonLine
 import com.ivandsky.puzzlebox.gameui.bestScoreText
 import com.ivandsky.puzzlebox.play.SKELETON_ALPHA
@@ -54,6 +57,7 @@ private const val GHOST_STAGGER_CAP = 10
 private const val GHOST_BORDER_ALPHA = 0.4f
 private val GhostRowMinHeight = 44.dp
 private val GhostBorder = 1.dp
+private val GhostAvatarSize = 32.dp
 private val DashOn = 6.dp
 private val DashOff = 4.dp
 
@@ -242,6 +246,8 @@ private fun GhostRow(ghost: LinkedInGhost, order: RankOrder, colors: GameCardCol
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // The row reads as name and time; the initial would only be noise in its merged description.
+        PlayerAvatar(ghost.name, photoUrl = ghost.photoPath, modifier = Modifier.clearAndSetSemantics {}, size = GhostAvatarSize, tone = DuelTone.Them)
         Text(
             ghost.name,
             style = MaterialTheme.typography.bodyMedium,

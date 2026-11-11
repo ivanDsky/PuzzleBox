@@ -146,7 +146,7 @@ internal class GamePageBoardViewModel(
     }
 
     private fun ghostsOf(view: LinkedInDayView?): List<GhostRowModel> =
-        (view?.board as? LinkedInBoardView.Shown)?.ghosts.orEmpty().map { GhostRowModel(it.memberRef, it.name, it.timeMs, it.hintFree) }
+        (view?.board as? LinkedInBoardView.Shown)?.ghosts.orEmpty().map { GhostRowModel(it.memberRef, it.name, it.timeMs, it.hintFree, it.photoPath) }
 
     /**
      * The page's board: the first [TOP_ROWS] rows, with the player's own row pinned under them when it ranks lower.
