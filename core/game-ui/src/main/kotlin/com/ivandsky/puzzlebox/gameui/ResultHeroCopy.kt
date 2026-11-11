@@ -21,7 +21,7 @@ internal fun heroPill(verdict: RecordVerdict?): String? = when (verdict) {
     RecordVerdict.NewBest -> "New best"
     RecordVerdict.TiedBest -> "Tied your best!"
     RecordVerdict.FirstSolve -> "First solve"
-    RecordVerdict.NotBest, RecordVerdict.Replay, null -> null
+    RecordVerdict.NotBest, RecordVerdict.PlayAgain, null -> null
 }
 
 /** The seconds between two times as shown: "12s", or m:ss from 60 seconds ("1:05"). */
@@ -67,7 +67,7 @@ internal fun heroBestLine(
                     if (it.hints == 0) "Your best is Perfect" else "Your best is ${bestScoreText(it, order)}"
             }
         }
-        RecordVerdict.Replay -> best?.let { "Replay · Best ${bestScoreText(it, order)}" } ?: "Replay"
+        RecordVerdict.PlayAgain -> best?.let { "Replay · Best ${bestScoreText(it, order)}" } ?: "Replay"
         RecordVerdict.TiedBest, null -> null
     }
 }
@@ -127,7 +127,7 @@ internal fun heroSpreadCaption(scope: SpreadScope, first: Boolean, weekday: Stri
     return if (switchable) "$body $SWITCH_HINT" else body
 }
 
-private const val REPLAY_NOTE = " Dashed = this replay, not saved."
+private const val PLAY_AGAIN_NOTE = " Dashed = this replay, not saved."
 
 /**
  * The line under the chart: a first solve invites another; the best says so in bold; otherwise
@@ -139,16 +139,16 @@ internal fun heroSpreadVerdict(
     spread: TimeSpread,
     game: String,
     weekday: String,
-    replay: Boolean,
+    playAgain: Boolean,
 ): Emphasized {
-    val replayNote = if (replay) REPLAY_NOTE else ""
+    val playAgainNote = if (playAgain) PLAY_AGAIN_NOTE else ""
     val weekdayScope = scope == SpreadScope.Weekday
     if (spread.isFirstSolve) {
         if (!weekdayScope) {
-            return Emphasized("Your first $game time — solve again and the bars show how your times spread out.$replayNote", null)
+            return Emphasized("Your first $game time — solve again and the bars show how your times spread out.$playAgainNote", null)
         }
         val lead = "First $weekday"
-        return Emphasized("$lead — no earlier $weekday $game to compare with yet.$replayNote", lead.indices)
+        return Emphasized("$lead — no earlier $weekday $game to compare with yet.$playAgainNote", lead.indices)
     }
     val quality = if (order == RankOrder.TimeThenHints) "fastest" else "best"
     val lead = when {
@@ -161,7 +161,7 @@ internal fun heroSpreadVerdict(
         val label = if (weekdayScope) "$weekday average" else "Average"
         " $label ${formatDuration(it)}."
     }.orEmpty()
-    return Emphasized("$lead of your $of.$average$replayNote", lead.indices)
+    return Emphasized("$lead of your $of.$average$playAgainNote", lead.indices)
 }
 
 /** "Rank counts hints first…" for a hints-first game over several solves; else null. */

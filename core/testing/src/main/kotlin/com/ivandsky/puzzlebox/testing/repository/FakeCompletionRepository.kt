@@ -59,7 +59,7 @@ class FakeCompletionRepository(
         return rows.any { it.source == CompletionSource.LinkedIn && PuzzleRefKeys.encode(it.puzzleRef) == key }
     }
 
-    override fun observeReplays(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
+    override fun observePlayAgains(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
         all.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
 
     /** Rows carry no completedAt here, so newest first means latest stored first. */

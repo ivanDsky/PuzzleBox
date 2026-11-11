@@ -65,7 +65,7 @@ class BestRankContractTest {
             assertNull(case.name, repository.best(game))
             repository.onCompleted(completion(game, 1, case.previous))
             // A replay is a second play of the same puzzle; otherwise another puzzle's first solve.
-            repository.onCompleted(completion(game, if (case.replay) 1 else 2, case.play))
+            repository.onCompleted(completion(game, if (case.playAgain) 1 else 2, case.play))
             assertEquals(case.name, case.best, repository.best(game))
         }
     }

@@ -43,7 +43,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 internal const val YOU_LABEL = "You"
-internal const val REPLAY_LABEL = "Replay"
+internal const val PLAY_AGAIN_LABEL = "Replay"
 
 private val PlotHeight = 110.dp
 private val CountRoom = 16.dp
@@ -109,7 +109,7 @@ private class ChartMemory {
 /**
  * The time spread chart (spec: Results hero, side card): one slot per time range of the player's
  * solves, a count over each bar and this solve's bar in full under a "You" pill; the other bars
- * are [palette]'s accent at 40 percent and empty ranges draw nothing. A [replay] draws its bar as
+ * are [palette]'s accent at 40 percent and empty ranges draw nothing. A [playAgain] draws its bar as
  * a dashed outline under a "Replay" pill. Under the bars sit the time ranges when each fits its
  * slot, else the bin edges at every k-th place so they do not collide.
  *
@@ -119,7 +119,7 @@ private class ChartMemory {
  * one [HeroScopeView.description].
  */
 @Composable
-internal fun TimeSpreadChart(view: HeroScopeView, replay: Boolean, palette: GameAccent, modifier: Modifier = Modifier) {
+internal fun TimeSpreadChart(view: HeroScopeView, playAgain: Boolean, palette: GameAccent, modifier: Modifier = Modifier) {
     val memory = remember { ChartMemory() }
     BoxWithConstraints(
         modifier
@@ -148,7 +148,7 @@ internal fun TimeSpreadChart(view: HeroScopeView, replay: Boolean, palette: Game
                             start = starts?.get(index),
                             entrance = entrance,
                             you = index == view.youBin,
-                            replay = replay,
+                            playAgain = playAgain,
                             palette = palette,
                             slot = slot,
                         )
@@ -169,7 +169,7 @@ private fun BarColumn(
     start: BarStart?,
     entrance: Boolean,
     you: Boolean,
-    replay: Boolean,
+    playAgain: Boolean,
     palette: GameAccent,
     slot: Dp,
 ) {
@@ -214,7 +214,7 @@ private fun BarColumn(
     val outline = MaterialTheme.colorScheme.outline
     val shape = RoundedCornerShape(BarTopRadius, BarTopRadius, BarBottomRadius, BarBottomRadius)
     val look = when {
-        you && replay -> Modifier.background(surface, shape).drawBehind { drawDashedBarOutline(outline, DashStroke.toPx(), BarTopRadius.toPx()) }
+        you && playAgain -> Modifier.background(surface, shape).drawBehind { drawDashedBarOutline(outline, DashStroke.toPx(), BarTopRadius.toPx()) }
         you -> Modifier.background(palette.accent, shape)
         else -> Modifier.background(palette.accent.copy(alpha = DIM_ALPHA), shape)
     }
@@ -228,8 +228,8 @@ private fun BarColumn(
     ) {
         if (you) {
             Pill(
-                text = if (replay) REPLAY_LABEL else YOU_LABEL,
-                replay = replay,
+                text = if (playAgain) PLAY_AGAIN_LABEL else YOU_LABEL,
+                playAgain = playAgain,
                 palette = palette,
                 modifier = Modifier.graphicsLayer {
                     alpha = pillAlpha.value
