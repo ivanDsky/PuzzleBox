@@ -243,7 +243,7 @@ class TangoPlayController(
 
     /** Result's "Play again": a fresh session of the same puzzle, every transient reveal
      *  cleared and a fresh clock window open — the next win is a new transition and emits again. */
-    override fun replay() {
+    override fun playAgain() {
         val current = session ?: return
         lastRejection = null
         clock.start()

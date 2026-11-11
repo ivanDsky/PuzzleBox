@@ -82,7 +82,7 @@ internal sealed interface FriendCardAction {
     data class Resume(val elapsedMs: Long) : FriendCardAction
 
     /** Solved here, nothing saved: play it again. */
-    data object Replay : FriendCardAction
+    data object PlayAgain : FriendCardAction
 }
 
 /**
@@ -173,7 +173,7 @@ internal class FriendPuzzleViewModel(
                 size = editors[puzzle.gameId]?.sizeLabel(puzzle.variant) ?: puzzle.variant.value,
                 action = when {
                     elapsed != null -> FriendCardAction.Resume(elapsed)
-                    first != null -> FriendCardAction.Replay
+                    first != null -> FriendCardAction.PlayAgain
                     else -> FriendCardAction.Play
                 },
                 yours = first?.let { BestScore(it.time, it.hints) },

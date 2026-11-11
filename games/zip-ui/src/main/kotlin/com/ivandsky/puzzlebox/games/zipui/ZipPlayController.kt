@@ -233,7 +233,7 @@ class ZipPlayController(
 
     /** Result's "Play again": a fresh session of the same puzzle, every transient reveal
      *  and the hint log cleared (F9), clock running at once; the next win emits again. */
-    override fun replay() {
+    override fun playAgain() {
         val current = session ?: return
         hintCell = null
         hintArrow = null

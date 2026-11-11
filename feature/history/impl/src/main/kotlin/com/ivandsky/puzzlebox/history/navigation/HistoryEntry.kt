@@ -20,7 +20,7 @@ fun EntryProviderScope<NavKey>.historyEntry(
     navigator: Navigator,
     layout: HistoryLayout,
 ) {
-    val replay: (GameId, LocalDate) -> Unit = { game, day ->
+    val playAgain: (GameId, LocalDate) -> Unit = { game, day ->
         navigator.pushOnce(GameKey(game.value, day.toString()))
     }
     entry<HistoryKey> { key ->
@@ -28,7 +28,7 @@ fun EntryProviderScope<NavKey>.historyEntry(
             key = key,
             layout = layout,
             onBack = { navigator.pop() },
-            onReplay = replay,
+            onPlayAgain = playAgain,
         )
     }
     entry<HistoryRootKey> {
@@ -36,7 +36,7 @@ fun EntryProviderScope<NavKey>.historyEntry(
             key = HistoryKey(),
             layout = layout,
             onBack = null,
-            onReplay = replay,
+            onPlayAgain = playAgain,
         )
     }
 }

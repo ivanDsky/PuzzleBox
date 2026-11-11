@@ -12,7 +12,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** Queens' replay hand-off: the blob round-trips through its own session codec with the day's identity. */
-class QueensReplaySessionTest {
+class QueensPlayAgainSessionTest {
 
     private val day: LocalDate = LocalDate.of(2026, 11, 1)
 
@@ -22,7 +22,7 @@ class QueensReplaySessionTest {
         val cached = Puzzle(QueensDefinition.id, queensVariantId(4), QueensCodec.VERSION, QueensCodec.encode(original))
 
         val key = PuzzleKey.Daily(day, 916)
-        val blob = SessionBlob.decode((queensPlugin.replaySession(cached, key) as DecodeResult.Ok).value)
+        val blob = SessionBlob.decode((queensPlugin.playAgainSession(cached, key) as DecodeResult.Ok).value)
         assertEquals(QueensDefinition.id, blob?.game)
 
         val restored = QueensSessionCodec.deserialize(blob!!.session)
@@ -38,7 +38,7 @@ class QueensReplaySessionTest {
         val cached = Puzzle(QueensDefinition.id, queensVariantId(4), QueensCodec.VERSION, QueensCodec.encode(QueensTestSupport.n4Puzzle()))
         val custom = PuzzleKey.Custom("K7Q2MX")
 
-        val blob = SessionBlob.decode((queensPlugin.replaySession(cached, custom) as DecodeResult.Ok).value)
+        val blob = SessionBlob.decode((queensPlugin.playAgainSession(cached, custom) as DecodeResult.Ok).value)
         val session = (QueensSessionCodec.deserialize(blob!!.session) as DecodeResult.Ok).value
         assertEquals(QueensPuzzleRef(custom), session.ref)
     }

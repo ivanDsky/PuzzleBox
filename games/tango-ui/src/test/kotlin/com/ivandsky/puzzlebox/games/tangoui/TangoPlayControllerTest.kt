@@ -179,7 +179,7 @@ class TangoPlayControllerTest {
         playAll(s)
         assertEquals(1, won.size)
 
-        s.replay()
+        s.playAgain()
         assertFalse(s.isComplete)
         assertEquals(1, won.size)
         playAll(s)
@@ -326,7 +326,7 @@ class TangoPlayControllerTest {
         fakeNow = fakeNow.plusMillis(7_000)
         playAll(s)
 
-        s.replay()
+        s.playAgain()
         assertEquals(0L, s.shown())
         fakeNow = fakeNow.plusMillis(700)
 

@@ -11,7 +11,7 @@ import java.time.LocalDate
 /**
  * Opens a past day by date (ADR-0012): the cached day, else one fetch when the game's
  * source has an archive — so this may hit the network, and a fetched day opens offline
- * afterwards. The game's own plugin ([com.ivandsky.puzzlebox.game.GamePlugin.replaySession])
+ * afterwards. The game's own plugin ([com.ivandsky.puzzlebox.game.GamePlugin.playAgainSession])
  * decodes and wraps it with the day's puzzleNumber identity (ADR-0004), so the envelope
  * names the game without any nav-shape change (ADR-0005).
  */
@@ -31,7 +31,7 @@ class LoadPastDay(
             is DailyDay.Failed -> return PastDayOutcome.Failed(read.error)
         }
         val key = PuzzleKey.Daily(day, puzzleNumber ?: ready.puzzleNumber)
-        return when (val session = plugin.replaySession(ready.puzzle, key)) {
+        return when (val session = plugin.playAgainSession(ready.puzzle, key)) {
             is DecodeResult.Ok -> PastDayOutcome.Ready(session.value)
             is DecodeResult.Err -> PastDayOutcome.Unreadable(session.error)
         }

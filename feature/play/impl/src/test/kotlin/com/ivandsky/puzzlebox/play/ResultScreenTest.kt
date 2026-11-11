@@ -245,7 +245,7 @@ class ResultScreenTest {
             composeRule.onNodeWithTag("result.playAgain").performScrollTo().performClick()
             composeRule.runOnIdle {
                 assertTrue(replayed)
-                store.replay(ResultKey(game.value, day.toString(), FakeController.TIME_MS, 0))
+                store.playAgain(ResultKey(game.value, day.toString(), FakeController.TIME_MS, 0))
                 val controller = fakes[game].latest
                 assertEquals(1, controller.replays)
                 assertTrue(!controller.isComplete)

@@ -221,7 +221,7 @@ class ActivePlayTest {
         ui.latest.win()
         assertEquals(RecordVerdict.FirstSolve, play.record.value.verdict)
 
-        play.replay()
+        play.playAgain()
         assertEquals(1, ui.latest.replays)
         assertNull("the verdict resets until the new write lands", play.record.value.verdict)
         assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
@@ -236,7 +236,7 @@ class ActivePlayTest {
         val error = FetchError.Throttled()
         daily.setToday(game, DailyToday.Cached(TestGames.puzzle(game), error))
         val play = loaded()
-        play.replay()
+        play.playAgain()
         assertEquals(PlayBoardStatus.Ready(banner = degradeBannerMessage(error)), play.board.value.status)
     }
 

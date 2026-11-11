@@ -118,7 +118,7 @@ internal class CustomResultViewModel(
      * reopens — a board reopened on a complete play would hand the old solve off again.
      */
     fun playAgain() {
-        store.peek(slot)?.takeIf { it.controller.isComplete }?.replay()
+        store.peek(slot)?.takeIf { it.controller.isComplete }?.playAgain()
     }
 
     /** The board's Google button: [activityContext] hosts Google's account picker, and is not kept. */

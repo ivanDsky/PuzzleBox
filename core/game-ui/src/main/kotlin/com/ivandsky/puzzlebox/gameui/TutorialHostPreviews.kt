@@ -33,7 +33,7 @@ private object PreviewController : GamePlayController {
     override val isComplete = false
     override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt = Adopt.Adopted
     override fun adoptRestored(bytes: ByteArray): Restored? = null
-    override fun replay() = Unit
+    override fun playAgain() = Unit
 }
 
 private object PreviewGame : GamePlayUi {

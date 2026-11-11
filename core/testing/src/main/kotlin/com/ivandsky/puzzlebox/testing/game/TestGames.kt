@@ -72,9 +72,9 @@ object TestGames {
         stateOf = { },
         initialSession = { DecodeResult.Ok(Session) },
         refOf = { key -> Ref(game, key) },
-        replaySession = { cached, key ->
+        playAgainSession = { cached, key ->
             if (cached.payload.isNotEmpty() && cached.payload[0] == MAGIC) {
-                DecodeResult.Ok(replayBlob(game, cached, key))
+                DecodeResult.Ok(playAgainBlob(game, cached, key))
             } else {
                 DecodeResult.Err(DecodeError.Malformed("not a ${game.value} payload"))
             }
@@ -83,7 +83,7 @@ object TestGames {
     )
 
     /** The replay hand-off [plugin] builds: [game]'s envelope over the payload plus the puzzle's identity. */
-    fun replayBlob(game: GameId, cached: Puzzle, key: PuzzleKey): ByteArray =
+    fun playAgainBlob(game: GameId, cached: Puzzle, key: PuzzleKey): ByteArray =
         SessionBlob.encode(game, cached.payload + key.toString().toByteArray(Charsets.UTF_8))
 
     fun registry(games: List<GameId>): GameRegistry = GameRegistry(games.map(::plugin))

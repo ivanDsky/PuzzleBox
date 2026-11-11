@@ -37,7 +37,7 @@ import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.bestScoreText
 
-private val ReplayHeight = 56.dp
+private val PlayAgainHeight = 56.dp
 
 /** Expanded-width detail placeholder until a day is selected (home's DetailPane voice). */
 @Composable
@@ -78,14 +78,14 @@ internal fun DetailHint(
  * One game's day (history.md §3): the game, its number and day, the Time / Hints of the
  * solve, and that game's best ([gameBest], its best numbered solve under the game's ranking). The action
  * follows the state: "See result" once solved, "Keep going" while unfinished — both
- * report the (game, day) through [onReplay]; the play store resumes or rebuilds it.
+ * report the (game, day) through [onPlayAgain]; the play store resumes or rebuilds it.
  */
 @Composable
 internal fun DayDetailPane(
     row: HistoryDayRow,
     gameBest: HistoryDayRow?,
     onBackToDayList: (() -> Unit)?,
-    onReplay: () -> Unit,
+    onPlayAgain: () -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
 ) {
@@ -164,7 +164,7 @@ internal fun DayDetailPane(
                     )
                 }
             }
-            ReplayButton(row, onReplay)
+            PlayAgainButton(row, onPlayAgain)
         }
     }
 }
@@ -175,12 +175,12 @@ internal fun DayDetailPane(
  * the day is unfinished.
  */
 @Composable
-private fun ReplayButton(row: HistoryDayRow, onReplay: () -> Unit) {
+private fun PlayAgainButton(row: HistoryDayRow, onPlayAgain: () -> Unit) {
     val accent = row.brand.accent.colors()
-    val size = Modifier.fillMaxWidth().heightIn(min = ReplayHeight)
+    val size = Modifier.fillMaxWidth().heightIn(min = PlayAgainHeight)
     if (row.record != null) {
         FilledTonalButton(
-            onClick = onReplay,
+            onClick = onPlayAgain,
             shape = PillShape,
             colors = ButtonDefaults.filledTonalButtonColors(
                 containerColor = accent.container,
@@ -190,7 +190,7 @@ private fun ReplayButton(row: HistoryDayRow, onReplay: () -> Unit) {
         ) { Text(text = "See result", style = MaterialTheme.typography.labelLarge) }
     } else {
         Button(
-            onClick = onReplay,
+            onClick = onPlayAgain,
             shape = PillShape,
             colors = ButtonDefaults.buttonColors(containerColor = accent.accent, contentColor = accent.onAccent),
             modifier = size.testTag("history.keep_going"),

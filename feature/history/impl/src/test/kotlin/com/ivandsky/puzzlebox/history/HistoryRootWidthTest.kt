@@ -42,7 +42,7 @@ class HistoryRootWidthTest {
                     key = HistoryKey(),
                     layout = HistoryLayout.SinglePane,
                     onBack = null,
-                    onReplay = { _, _ -> },
+                    onPlayAgain = { _, _ -> },
                     viewModel = viewModel,
                 )
             }

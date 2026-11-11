@@ -295,7 +295,7 @@ class QueensStepwiseHintTest {
         c.state.onTap(FREE_CELL)
         c.requestHint()
 
-        c.replay()
+        c.playAgain()
         val fresh = c.state.session
         scheduler.advanceUntilIdle()
 

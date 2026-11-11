@@ -27,7 +27,7 @@ fun sudokuPlugin(definition: SudokuDefinition): GamePlugin<SudokuState, SudokuSe
             }
         },
         refOf = { key -> SudokuPuzzleRef(definition.id, key) },
-        replaySession = { cached, key ->
+        playAgainSession = { cached, key ->
             when (val decoded = definition.decodePuzzle(cached.payload)) {
                 is DecodeResult.Ok -> {
                     val session = SudokuSession(ref = SudokuPuzzleRef(definition.id, key), puzzle = decoded.value)

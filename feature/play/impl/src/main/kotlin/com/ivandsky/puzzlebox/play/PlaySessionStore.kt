@@ -31,7 +31,7 @@ import kotlinx.coroutines.launch
  * Owner of the play feature's live plays: one [ActivePlay] per [PlaySlot], so
  * every stack that shows a game's day shares its board. A play outlives its entry's
  * composition: the record write is fire-and-observe (a navigation must not cancel it),
- * the badge lands on the result screen, and [replay] (Result's "Play again") resets in place.
+ * the badge lands on the result screen, and [playAgain] (Result's "Play again") resets in place.
  * A Koin single is the process lifetime; [retain] releases what no back stack names (fold →
  * flush → cancel) and [flush] writes every pending save at app stop.
  *
@@ -80,7 +80,7 @@ class PlaySessionStore internal constructor(
      * (saved row → today's fetch → a past day's build). A null day resolves to the
      * game's today once and stays pinned while the key is retained. Never resets a complete
      * play: a finished day is shown by [completedResult] before this opens, and a fresh
-     * attempt is [replay]'s. Null when the game is unplayable.
+     * attempt is [playAgain]'s. Null when the game is unplayable.
      */
     fun open(key: GameKey): ActivePlay? {
         val game = GameId(key.gameId)
@@ -133,9 +133,9 @@ class PlaySessionStore internal constructor(
      * complete live play is reset in place; with none live the slot opens fresh (a solve
      * deleted its row). The play is live afterwards, so the board that follows opens it as is.
      */
-    fun replay(key: ResultKey) {
+    fun playAgain(key: ResultKey) {
         val live = open(PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))) ?: return
-        if (live.controller.isComplete) live.replay()
+        if (live.controller.isComplete) live.playAgain()
     }
 
     /** The live play of a duel leg, opened and kept as [open] keeps a friend's puzzle's; its

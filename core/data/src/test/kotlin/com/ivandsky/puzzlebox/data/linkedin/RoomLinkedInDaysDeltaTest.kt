@@ -118,7 +118,7 @@ class RoomLinkedInDaysDeltaTest {
             stateOf = base.stateOf,
             initialSession = base.initialSession,
             refOf = base.refOf,
-            replaySession = base.replaySession,
+            playAgainSession = base.playAgainSession,
             rendererModel = base.rendererModel,
         )
     }
