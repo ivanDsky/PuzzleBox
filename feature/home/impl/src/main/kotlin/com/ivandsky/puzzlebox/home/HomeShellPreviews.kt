@@ -22,7 +22,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import java.time.LocalDate
 
-// Previews of Today as the app builds it when NavV2 is on: summary rows under the streak,
+// Previews of Today as the app builds it: summary rows under the streak,
 // no account card, and (phone) the shell's avatar in the header through LocalShellActions.
 
 private val V2Day = LocalDate.of(2026, 11, 5)
@@ -69,7 +69,7 @@ private val V2State = HomeUiState(
 private val V2Summaries = HomeSummaries(onOpenRank = {}, onOpenDuels = {}, duelsNeedYou = { 2 })
 
 @Composable
-private fun HomeNavV2(layout: HomeLayout) {
+private fun HomeToday(layout: HomeLayout) {
     PuzzleBoxTheme {
         // The phone's header carries the shell avatar; the tablet's rail owns it.
         val avatar: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit =
@@ -96,9 +96,9 @@ private fun HomeNavV2(layout: HomeLayout) {
 @Preview(name = "Light", widthDp = 360, heightDp = 1200, showBackground = true)
 @Preview(name = "Dark", widthDp = 360, heightDp = 1200, showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-internal fun HomeNavV2PhonePreview() = HomeNavV2(HomeLayout.SinglePane)
+internal fun HomeTodayPhonePreview() = HomeToday(HomeLayout.SinglePane)
 
 @Preview(name = "Light", widthDp = 1280, heightDp = 800, showBackground = true)
 @Preview(name = "Dark", widthDp = 1280, heightDp = 800, showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-internal fun HomeNavV2TabletPreview() = HomeNavV2(HomeLayout.TwoPane)
+internal fun HomeTodayTabletPreview() = HomeToday(HomeLayout.TwoPane)

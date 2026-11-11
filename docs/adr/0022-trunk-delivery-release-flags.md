@@ -76,3 +76,4 @@ to merge without being reachable in a release build.
   Queens and Tango legacy hint paths were removed in 37a/37b and 38a/38b. Classic Sudoku keeps
   the legacy hint (A24).
 - NavV2 flipped to `releaseDefault = true` in 0.24.0 on 2026-11-10.
+- The NavV2 flag was removed, with every branch on it, on 2026-11-11.

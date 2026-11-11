@@ -3,7 +3,7 @@
 Date: 2026-11-04 · Status: accepted · Source: navigation-ux run (design-it-twice nav A/B/C and
 play A/B/C, stage-B review rulings) · Supersedes ADR-0010 (kept sessions)
 
-*(Amended 2026-11-09 by ADR-0027: where content lives is decided by one owner per content type, a placement table and chrome types; the tab set becomes Today · Games · History · Create behind `NavV2`. The reducer and its verbs are unchanged. Amended 2026-11-10 by ADR-0027's re-gate fixes: the placement table's chrome is `Bar` or `Immersive`, and the shell draws one avatar through a fourth entry decorator.)*
+*(Amended 2026-11-09 by ADR-0027: where content lives is decided by one owner per content type, a placement table and chrome types; the tab set becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag was removed). The reducer and its verbs are unchanged. Amended 2026-11-10 by ADR-0027's re-gate fixes: the placement table's chrome is `Bar` or `Immersive`, and the shell draws one avatar through a fourth entry decorator.)*
 
 ## Context
 Up to 0.8 the app kept one `NavBackStack<NavKey>`: picking a tab reset the stack to that tab's
@@ -39,7 +39,7 @@ its own stack, lets any stack show any game's board, and keeps in-progress plays
    registry (key, label, icon, test tag); `puzzleBoxNavigationState()` builds the fresh state
    from it, so Home is the start tab. `rememberTabEntries` is the only Navigation3 adapter: it
    decorates every tab's stack (saveable state, a per-entry `ViewModelStore`, the scene canvas,
-   and with `NavV2` a fourth, `shellChromeDecorator` in `ShellChrome.kt`, which supplies the
+   and a fourth, `shellChromeDecorator` in `ShellChrome.kt`, which supplies the
    one `ShellAvatar` and the shell-actions slot to Today's entry),
    namespaces content keys by tab, tags each entry with `OWNER_TAB` and `ENTRY_KEY` metadata,
    and returns `visibleKeys`' entries. `PuzzleBoxNavShell` hosts `NavDisplay` with `onBack` =

@@ -47,7 +47,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = android.app.Application::class)
-class NavV2SummariesE2ETest {
+class ShellSummariesE2ETest {
 
     @Test
     @Config(qualifiers = PHONE)
