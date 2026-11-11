@@ -38,6 +38,12 @@ val LocalOnFill = staticCompositionLocalOf { LightOnFill }
 val LocalWarning = staticCompositionLocalOf { LightWarning }
 
 /**
+ * LinkedIn blue as text and outline (ColorTokens.kt): the Resume label and border. Reads 4.5:1 on every surface in
+ * both modes (ColorTokensTest). Provided by [PuzzleBoxTheme] like [LocalWarning].
+ */
+val LocalLinkedInText = staticCompositionLocalOf { LightLinkedInText }
+
+/**
  * The neutral GameButton's lip (ColorTokens.kt). Provided by [PuzzleBoxTheme] like
  * [LocalOnFill].
  */
@@ -92,6 +98,7 @@ fun PuzzleBoxTheme(
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
         LocalOnFill provides if (darkTheme) DarkOnFill else LightOnFill,
         LocalWarning provides if (darkTheme) DarkWarning else LightWarning,
+        LocalLinkedInText provides if (darkTheme) DarkLinkedInText else LightLinkedInText,
         LocalNeutralLip provides if (darkTheme) DarkNeutralLip else LightNeutralLip,
         LocalMutedStatus provides if (darkTheme) DarkMutedStatus else LightMutedStatus,
         LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,

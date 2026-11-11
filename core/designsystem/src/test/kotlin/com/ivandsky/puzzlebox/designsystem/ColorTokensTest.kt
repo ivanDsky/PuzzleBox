@@ -80,6 +80,25 @@ class ColorTokensTest {
     }
 
     @Test
+    fun `linkedin text role clears 4_5 on every surface and the connect fill reads against its label and the card`() {
+        listOf(LightLinkedInText to LightColorScheme, DarkLinkedInText to DarkColorScheme).forEach { (text, scheme) ->
+            val surfaces = listOf(
+                scheme.background, scheme.surface, scheme.surfaceContainerLowest, scheme.surfaceContainerLow,
+                scheme.surfaceContainer, scheme.surfaceContainerHigh, scheme.surfaceContainerHighest,
+            )
+            for (surface in surfaces) {
+                val ratio = contrast(text, surface)
+                assertTrue("$text on $surface is $ratio:1, under 4.5:1", ratio >= 4.5f)
+            }
+            // The Connect button is a fill on the Accounts card: a non-text shape needs 3:1.
+            assertTrue(contrast(LinkedInBlue, scheme.surfaceContainerLow) >= 3f)
+        }
+        // The label is white on the brand blue, resting and pressed.
+        assertTrue(contrast(Color.White, LinkedInBlue) >= 4.5f)
+        assertTrue(contrast(Color.White, LinkedInBluePressed) >= 4.5f)
+    }
+
+    @Test
     fun `surface ramps carry no warm cast in both themes`() {
         // Ticket 11: the neutral family reads cool — every surface/outline value has
         // blue >= green >= red (the old light ramp was cream-green, green > blue).

@@ -12,16 +12,26 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.linkedin.LinkState
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInAccountData
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.linkedin.LinkedInAccountView
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.profile.accounts.LinkedInRowState
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccount
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -76,12 +86,16 @@ class ProfileViewModelTest {
         identity: FakeIdentityService = FakeIdentityService(initial = null),
         tokens: FakeTokenProvider = FakeTokenProvider(),
         completions: FakeCompletionRepository = FakeCompletionRepository(),
+        link: LinkedInLink? = null,
+        stored: FakeLinkedInAccount = FakeLinkedInAccount(),
     ): Deps {
         val history = ObserveGameHistory(registry, FakeDailyRepository(), completions)
         val vm = ProfileViewModel(
             identityService = identity,
             idTokenProvider = tokens,
             observeGameStats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
+            link = link,
+            observeAccount = link?.let { ObserveLinkedInAccount(stored, completions, GetPuzzleDay(registry, clock), registry) },
         )
         // The state is observed only while subscribed (the route's lifecycle collector).
         backgroundScope.launch { vm.uiState.collect {} }
@@ -286,5 +300,96 @@ class ProfileViewModelTest {
         // Signed out: no identity.
         assertTrue(deps.vm.uiState.value.account is ProfileUiState.Account.SignedOut)
         assertEquals(1, deps.identity.signOutCalls.size)
+    }
+
+    // ---- LinkedIn row: follows the link and the phone's stored account ------------
+
+    private val emptySummary = LinkedInAccountView(null, null, 0, 0, 0, emptyList(), null)
+
+    @Test
+    fun `with the flag off nothing LinkedIn is in the state`() = runTest(dispatcher) {
+        assertEquals(null, viewModel(link = null).vm.uiState.value.linkedIn)
+    }
+
+    @Test
+    fun `the row follows the link from not connected to connected and paused`() = runTest(dispatcher) {
+        val link = FakeLinkedInLink()
+        val deps = viewModel(link = link)
+        assertEquals(LinkedInRowState.NotConnected, deps.vm.uiState.value.linkedIn)
+
+        link.connect("me", consentAtMs = 1L)
+        advanceUntilIdle()
+        assertEquals(LinkedInRowState.Connected(emptySummary), deps.vm.uiState.value.linkedIn)
+
+        link.pause(Kind.Challenge)
+        advanceUntilIdle()
+        assertEquals(
+            LinkedInRowState.Paused(emptySummary, "LinkedIn asked for a check, so reading is paused.", needsReconnect = false),
+            deps.vm.uiState.value.linkedIn,
+        )
+
+        link.pause(Kind.RateLimited)
+        advanceUntilIdle()
+        assertEquals(
+            "LinkedIn is asking us to slow down, so reading is paused.",
+            (deps.vm.uiState.value.linkedIn as LinkedInRowState.Paused).reason,
+        )
+
+        link.pause(Kind.Unexpected)
+        advanceUntilIdle()
+        assertEquals(
+            "LinkedIn answered in a way we didn't expect, so reading is paused.",
+            (deps.vm.uiState.value.linkedIn as LinkedInRowState.Paused).reason,
+        )
+
+        link.pause(Kind.SessionExpired)
+        advanceUntilIdle()
+        assertEquals(
+            LinkedInRowState.Paused(emptySummary, "Your LinkedIn login expired. Reconnect to keep reading.", needsReconnect = true),
+            deps.vm.uiState.value.linkedIn,
+        )
+    }
+
+    @Test
+    fun `the summary is what the phone has stored and imported`() = runTest(dispatcher) {
+        val link = FakeLinkedInLink(LinkState.Connected("me"))
+        val stored = FakeLinkedInAccount()
+        val deps = viewModel(link = link, stored = stored)
+
+        stored.emit(LinkedInAccountData(LinkedInOwner("Ada Lovelace", "/p/ada.jpg"), connectionsSeen = 7, lastFetchedAtMs = 1_000L))
+        advanceUntilIdle()
+
+        assertEquals(
+            LinkedInRowState.Connected(LinkedInAccountView("Ada Lovelace", "/p/ada.jpg", 7, 0, 0, emptyList(), 1_000L)),
+            deps.vm.uiState.value.linkedIn,
+        )
+    }
+
+    @Test
+    fun `resume lifts the pause and disconnect clears the link`() = runTest(dispatcher) {
+        val link = FakeLinkedInLink()
+        val deps = viewModel(link = link)
+        link.connect("me", consentAtMs = 1L)
+        link.pause(Kind.RateLimited)
+        advanceUntilIdle()
+
+        deps.vm.onResumeLinkedIn()
+        advanceUntilIdle()
+        assertEquals(LinkedInRowState.Connected(emptySummary), deps.vm.uiState.value.linkedIn)
+
+        deps.vm.onDisconnectLinkedIn()
+        advanceUntilIdle()
+        assertEquals(LinkedInRowState.NotConnected, deps.vm.uiState.value.linkedIn)
+    }
+
+    @Test
+    fun `without a link the LinkedIn actions do nothing`() = runTest(dispatcher) {
+        val deps = viewModel(link = null)
+
+        deps.vm.onResumeLinkedIn()
+        deps.vm.onDisconnectLinkedIn()
+        advanceUntilIdle()
+
+        assertEquals(null, deps.vm.uiState.value.linkedIn)
     }
 }

@@ -8,21 +8,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
-import org.koin.core.parameter.parametersOf
 
 /**
  * Settings' DI-bound entry point. [onOpenCatalog] is offered only in debuggable builds
- * (the catalog is a debug tool). A non-null [onConnectLinkedIn]
- * (the shell's LinkedIn switch) opens the LinkedIn block and makes the view model resolve the link;
- * null resolves nothing LinkedIn.
+ * (the catalog is a debug tool).
  */
 @Composable
 internal fun SettingsRoute(
     onBack: () -> Unit,
     onOpenCatalog: (() -> Unit)?,
     modifier: Modifier = Modifier,
-    onConnectLinkedIn: (() -> Unit)? = null,
-    viewModel: SettingsViewModel = koinViewModel(parameters = { parametersOf(onConnectLinkedIn != null) }),
+    viewModel: SettingsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val debuggable = LocalContext.current.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
@@ -34,9 +30,6 @@ internal fun SettingsRoute(
         onSetSudokuSameDigitHighlight = viewModel::onSetSudokuSameDigitHighlight,
         onBack = onBack,
         onOpenCatalog = onOpenCatalog.takeIf { debuggable },
-        onConnectLinkedIn = onConnectLinkedIn,
-        onResumeLinkedIn = viewModel::onResumeLinkedIn,
-        onDisconnectLinkedIn = viewModel::onDisconnectLinkedIn,
         modifier = modifier.testTag("route.settings"),
     )
 }

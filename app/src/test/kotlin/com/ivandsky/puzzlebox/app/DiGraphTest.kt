@@ -36,6 +36,7 @@ import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.CreateLinkedInLink
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.game.DailySource
@@ -114,6 +115,21 @@ class DiGraphTest : KoinTest {
         }
         try {
             assertNotNull(koinApp.koin.get<LinkedInDays>())
+        } finally {
+            stopKoin()
+        }
+    }
+
+    /** Profile's LinkedIn row resolves off the real graph: the summary use case and the flag-on view model. */
+    @Test
+    fun `the LinkedIn account summary and the flag-on profile view model resolve`() {
+        val koinApp = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(PuzzleBoxApplication.appModules)
+        }
+        try {
+            assertNotNull(koinApp.koin.get<ObserveLinkedInAccount>())
+            assertNotNull(koinApp.koin.get<ProfileViewModel> { parametersOf(true) })
         } finally {
             stopKoin()
         }

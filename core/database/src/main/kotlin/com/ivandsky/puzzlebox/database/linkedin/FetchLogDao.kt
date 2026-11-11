@@ -13,6 +13,10 @@ interface FetchLogDao {
     @Query("SELECT * FROM fetch_log WHERE game = :game AND day = :day AND profileId = :profileId")
     fun observe(game: String, day: String, profileId: String): Flow<List<FetchLogEntity>>
 
+    /** When [profileId] last had anything read, across every game day; null when nothing was. */
+    @Query("SELECT MAX(fetchedAtMs) FROM fetch_log WHERE profileId = :profileId")
+    fun observeLastFetchedAt(profileId: String): Flow<Long?>
+
     /** The last successful read of one item, or null when it was never read. */
     @Query("SELECT * FROM fetch_log WHERE game = :game AND day = :day AND item = :item AND profileId = :profileId")
     suspend fun get(game: String, day: String, item: String, profileId: String): FetchLogEntity?

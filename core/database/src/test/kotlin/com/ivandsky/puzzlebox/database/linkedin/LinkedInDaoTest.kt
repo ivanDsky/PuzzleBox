@@ -238,4 +238,43 @@ class LinkedInDaoTest {
         assertEquals(listOf(friend), ghosts.observeWithNewest("queens", "2026-11-01", "me").first())
         assertEquals(emptyList<GhostEntity>(), ghosts.observeWithNewest("zip", "2026-11-09", "me").first())
     }
+
+    @Test
+    fun `the newest row of a member is the one the stand-in rule picks, whatever game or day it is on`() = runTest {
+        ghosts.replace("queens", "2026-11-01", listOf(ghost("me", fetchedAtMs = 1_000L)))
+        val newest = ghost("me", game = "zip", day = "2026-11-03", fetchedAtMs = 7_000L)
+        ghosts.replace("zip", "2026-11-03", listOf(newest))
+        ghosts.replace("tango", "2026-11-09", listOf(ghost("friend", game = "tango", day = "2026-11-09", fetchedAtMs = 9_000L)))
+
+        assertEquals(newest, ghosts.observeNewestOf("me").first())
+        assertEquals(listOf(newest), ghosts.observeWithNewest("sudoku", "2026-11-10", "me").first())
+    }
+
+    @Test
+    fun `a member never stored has no newest row`() = runTest {
+        ghosts.replace("queens", "2026-11-01", listOf(ghost("friend")))
+
+        assertNull(ghosts.observeNewestOf("me").first())
+    }
+
+    @Test
+    fun `the connection count is the distinct members other than the excluded one`() = runTest {
+        assertEquals(0, ghosts.observeConnectionCount("me").first())
+
+        ghosts.replace("queens", "2026-11-01", listOf(ghost("me"), ghost("a"), ghost("b")))
+        ghosts.replace("zip", "2026-11-02", listOf(ghost("me", game = "zip", day = "2026-11-02"), ghost("a", game = "zip", day = "2026-11-02"), ghost("c", game = "zip", day = "2026-11-02")))
+
+        assertEquals(3, ghosts.observeConnectionCount("me").first())
+    }
+
+    @Test
+    fun `the last fetch time is the newest entry of the profile and null with none`() = runTest {
+        assertNull(log.observeLastFetchedAt("me").first())
+
+        log.put(entry("Own", "Solved", fetchedAtMs = 2_000L))
+        log.put(entry("Board", "Board", fetchedAtMs = 5_000L, day = "2026-11-02"))
+        log.put(entry("Board", "Board", fetchedAtMs = 9_000L, profileId = "someone else"))
+
+        assertEquals(5_000L, log.observeLastFetchedAt("me").first())
+    }
 }
