@@ -31,7 +31,7 @@ import kotlinx.coroutines.delay
 /**
  * The left pane and the whole single-pane screen share one stacked column on the app
  * background (identity §2.8): the header, then Today, the streak
- * card, the recent days and the account card, each entering in turn. A non-null
+ * card and the recent days, each entering in turn. A non-null
  * [HomeUiState.updateUrl] puts the [UpdatePill] in the header's actions; a tap hands it to [onOpenUpdate].
  */
 @Composable
@@ -43,9 +43,7 @@ internal fun ListPane(
     selectable: Boolean,
     showStreak: Boolean,
     onOpenGame: (GameId) -> Unit,
-    onOpenProfile: () -> Unit,
-    hideOwnedElsewhere: Boolean,
-    summaries: HomeSummaries?,
+    summaries: HomeSummaries,
     title: String,
     modifier: Modifier = Modifier,
     onOpenUpdate: (String) -> Unit = {},
@@ -81,7 +79,7 @@ internal fun ListPane(
                 }
             }
             // The summaries sit under the streak, one line each, only when there is something to say.
-            if (summaries != null) HomeSummaryRows(state = state, summaries = summaries)
+            HomeSummaryRows(state = state, summaries = summaries)
             StaggeredItem(2) {
                 HomeRecentSection(
                     days = state.history,
@@ -90,12 +88,6 @@ internal fun ListPane(
                     onDayClick = onDayClick,
                     selectable = selectable,
                 )
-            }
-            // Profile owns identity once the nav is v2.
-            if (!hideOwnedElsewhere) {
-                StaggeredItem(3) {
-                    AccountCard(identity = state.identity, onOpenProfile = onOpenProfile)
-                }
             }
         }
     }
@@ -131,6 +123,3 @@ private fun StaggeredItem(
 }
 
 private val HEADER_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d")
-
-/** Today's header title when the app names none: the brand. NavV2 passes the tab's label. */
-internal const val HomeDefaultTitle = "PuzzleBox"

@@ -84,8 +84,7 @@ private fun HomeNavV2(layout: HomeLayout) {
                     layout = layout,
                     state = V2State,
                     onOpenGame = {},
-                    onOpenProfile = {},
-                    hideOwnedElsewhere = true,
+                    onOpenHistory = {},
                     title = "Today",
                     summaries = V2Summaries,
                 )

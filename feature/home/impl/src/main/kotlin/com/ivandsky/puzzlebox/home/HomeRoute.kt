@@ -23,18 +23,16 @@ import org.koin.androidx.compose.koinViewModel
 fun HomeRoute(
     layout: HomeLayout,
     onOpenGame: (GameId) -> Unit,
-    onOpenProfile: () -> Unit,
+    onOpenHistory: () -> Unit,
+    summaries: HomeSummaries,
+    title: String,
     modifier: Modifier = Modifier,
-    onOpenHistory: () -> Unit = {},
     viewModel: HomeViewModel = koinViewModel(),
-    hideOwnedElsewhere: Boolean = false,
-    summaries: HomeSummaries? = null,
-    title: String = HomeDefaultTitle,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
     // No reset on dispose: leaving Today and coming back must not drop the rank and pop the row in again.
-    SideEffect { viewModel.setSummariesShown(summaries != null) }
+    SideEffect { viewModel.setSummariesShown(true) }
     LifecycleResumeEffect(viewModel) {
         viewModel.syncToday()
         viewModel.checkForUpdate()
@@ -45,9 +43,7 @@ fun HomeRoute(
         layout = layout,
         state = uiState,
         onOpenGame = onOpenGame,
-        onOpenProfile = onOpenProfile,
         onOpenHistory = onOpenHistory,
-        hideOwnedElsewhere = hideOwnedElsewhere,
         summaries = summaries,
         title = title,
         onOpenUpdate = { url ->
