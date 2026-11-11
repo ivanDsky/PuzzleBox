@@ -85,8 +85,9 @@ internal class LinkedInDaySync(
             // A board read while its day is still running is partial; the outcome marks it for one more read.
             val outcome = if (request.delta == 0) LinkedInOutcome.BoardToday else LinkedInOutcome.Board
             log(request, LinkedInItem.Board, outcome, nowMs)
-            // After the ghosts and the log are stored, so a slow or failed photo never holds them back.
-            avatars.download(kept)
+            // After the ghosts and the log are stored, and not awaited: a slow or failed photo never holds them
+            // back. The wipe count is read here, under the store lock, so a disconnect cannot slip in before it.
+            avatars.downloadInBackground(kept, avatars.generation())
             null
         }
     }

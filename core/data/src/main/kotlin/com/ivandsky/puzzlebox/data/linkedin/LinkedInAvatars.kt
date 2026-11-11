@@ -6,6 +6,7 @@ import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,7 @@ internal class LinkedInAvatars(
     private val dir: File,
     private val source: LinkedInPhotoSource,
     private val io: CoroutineDispatcher,
+    private val scope: CoroutineScope,
 ) {
     /** Bumped on every change to the directory, so [present] lists it again. */
     private val changes = MutableStateFlow(0)
@@ -56,13 +58,28 @@ internal class LinkedInAvatars(
         return if (name in present) File(dir, name).absolutePath else null
     }
 
+    /** The wipe count now; a download started with it drops its photos if a wipe has happened since. */
+    suspend fun generation(): Int = withContext(io) { lock.withLock { generation } }
+
+    /**
+     * Downloads the photos of [rows] in this store's own scope and returns at once: they must not hold a
+     * sync back, and leaving the day that asked for them must not cancel them, since a past board is never
+     * read again and its photos would never arrive. [started] is the [generation] read before anything a
+     * wipe could have cleared was stored, so a wipe in between still drops these photos.
+     */
+    fun downloadInBackground(rows: List<LinkedInBoard.Row>, started: Int) {
+        scope.launch { download(rows, started) }
+    }
+
+    /** [download] of [rows] against the wipe count as it is now. */
+    suspend fun download(rows: List<LinkedInBoard.Row>) = download(rows, generation())
+
     /**
      * Downloads the photo of each of [rows] that offers one and has no file yet: one GET each, never
      * retried, a failure leaving the member without a photo. A few run at once, so a full board does not
-     * hold the sync for fifty round trips in a row.
+     * take fifty round trips in a row.
      */
-    suspend fun download(rows: List<LinkedInBoard.Row>) {
-        val started = withContext(io) { lock.withLock { generation } }
+    private suspend fun download(rows: List<LinkedInBoard.Row>, started: Int) {
         val wanted = withContext(io) { rows.filter { it.pictureUrl != null && !File(dir, fileName(it.memberRef)).exists() } }
         coroutineScope {
             wanted.forEach { row ->

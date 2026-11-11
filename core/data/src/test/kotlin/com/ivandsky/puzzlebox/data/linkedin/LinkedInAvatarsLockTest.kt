@@ -52,7 +52,7 @@ class LinkedInAvatarsLockTest {
                 return byteArrayOf(1)
             }
         }
-        val avatars = LinkedInAvatars(File(folder.root, "linkedin_avatars"), photos, io)
+        val avatars = LinkedInAvatars(File(folder.root, "linkedin_avatars"), photos, io, CoroutineScope(io + SupervisorJob()))
         val scope = CoroutineScope(main.asCoroutineDispatcher() + SupervisorJob())
 
         val download = scope.launch { avatars.download(listOf(row("a"))) }

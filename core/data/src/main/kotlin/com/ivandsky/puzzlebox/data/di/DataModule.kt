@@ -44,7 +44,14 @@ import com.ivandsky.puzzlebox.datastore.di.datastoreModule
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.network.di.networkModule
 import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import org.koin.dsl.onClose
+
+private val LinkedInPhotoScope = named("data.linkedin_photos.scope")
 
 /**
  * Game-agnostic data wiring. Games plug in through Koin, never through this module:
@@ -93,8 +100,12 @@ val dataModule = module {
     // The LinkedIn budget is one instance for the process, so every day shares the same per-minute window.
     single { LinkedInCallBudget(nowMs = System::currentTimeMillis) }
     // Photos live in noBackupFilesDir: Auto Backup and device transfer never carry a connection's face.
+    // Photos are downloaded after a board is stored and must outlive the day view that asked for them.
+    single(LinkedInPhotoScope) { CoroutineScope(get<DispatcherProvider>().io + SupervisorJob()) } onClose { it?.cancel() }
     single {
-        LinkedInAvatars(File(get<Context>().noBackupFilesDir, "linkedin_avatars"), get(), get<DispatcherProvider>().io)
+        LinkedInAvatars(
+            File(get<Context>().noBackupFilesDir, "linkedin_avatars"), get(), get<DispatcherProvider>().io, get(LinkedInPhotoScope),
+        )
     }
     // One lock for the process: a sync's stores and a disconnect's wipe are never interleaved.
     single { LinkedInStoreLock() }

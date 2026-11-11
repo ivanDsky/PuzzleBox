@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInPhotoSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.model.GameId
@@ -23,6 +24,7 @@ import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -73,6 +75,7 @@ class RoomLinkedInDaysAvatarTest {
     private fun newDays(
         source: LinkedInAccountSource = this.source,
         budget: LinkedInCallBudget = LinkedInCallBudget({ now }, limit = 100),
+        avatars: LinkedInAvatars = this.avatars,
     ) = RoomLinkedInDays(
         link, source, FakeCompletionRepository(), daily, FakeGameCalendar(today),
         TestGames.registry(listOf(zip)), db, budget, avatars, LinkedInStoreLock(),
@@ -190,6 +193,33 @@ class RoomLinkedInDaysAvatarTest {
         assertEquals(LinkedInSync.NotLinked, result.await())
         assertTrue(photos.calls.isEmpty())
         assertTrue(avatars.present.first().isEmpty())
+    }
+
+    @Test
+    fun `the sync returns once the board is stored and its photos still land after it is cancelled`() = runTest {
+        respond(ago(3), LinkedInRead.Ok(LinkedInBoard(listOf(row("a", url("a"))))))
+        val onTheWire = CompletableDeferred<Unit>()
+        val arrive = CompletableDeferred<Unit>()
+        val slow = testAvatars(
+            File(dir.parentFile, "slow_avatars"),
+            object : LinkedInPhotoSource {
+                override suspend fun fetch(url: String): ByteArray {
+                    onTheWire.complete(Unit)
+                    arrive.await()
+                    return byteArrayOf(1, 2, 3)
+                }
+            },
+        )
+
+        val sync = async { newDays(avatars = slow).sync(zip, ago(3)) }
+        onTheWire.await()
+        advanceUntilIdle()
+
+        assertTrue("a day is not held back by its photos", sync.isCompleted)
+        sync.cancel()
+        arrive.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(1, slow.present.first().size)
     }
 
     @Test

@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSession
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInPhotoSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.model.GameId
@@ -63,7 +64,18 @@ class RoomLinkedInDaysDisconnectRaceTest {
     private val day = today.minusDays(3)
     private val source = FakeLinkedInAccountSource()
     private val storeLock = LinkedInStoreLock()
-    private val avatars = testAvatars(createTempDirectory("avatars").toFile())
+    private val photosArrive = CompletableDeferred<Unit>()
+    private val photoOnTheWire = CompletableDeferred<Unit>()
+    private val avatars = testAvatars(
+        File(createTempDirectory("avatars").toFile(), "linkedin_avatars"),
+        object : LinkedInPhotoSource {
+            override suspend fun fetch(url: String): ByteArray {
+                photoOnTheWire.complete(Unit)
+                photosArrive.await()
+                return byteArrayOf(1, 2, 3)
+            }
+        },
+    )
     private val daily = FakeDailyRepository().apply {
         setPuzzleNumbers(zip) { number(it) }
         setLinkedInGameType(zip, 6)
@@ -160,6 +172,25 @@ class RoomLinkedInDaysDisconnectRaceTest {
         assertNothingLeftOfTheAccount(link)
     }
 
+    @Test
+    fun `a disconnect while the photos are downloading leaves none of them`() = runTest {
+        val link = link(object : LinkedInSessionCookies {
+            override suspend fun current(): LinkedInAccountSession? = null
+            override suspend fun clear() = Unit
+        })
+        source.respondBoard("me", 6, number(today), 3, LinkedInRead.Ok(LinkedInBoard(listOf(PHOTO_ROW))))
+        link.connect("me", 1_000L)
+
+        assertEquals(LinkedInSync.Done, days(link, FakeCompletionRepository()).sync(zip, day))
+        photoOnTheWire.await()
+        link.disconnect()
+        photosArrive.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(emptySet<String>(), avatars.present.first())
+        assertNothingLeftOfTheAccount(link)
+    }
+
     /** Parks the first import between the sync's last link check and its stores, until [release] completes. */
     private class HeldImports(
         private val delegate: CompletionRepository,
@@ -176,6 +207,7 @@ class RoomLinkedInDaysDisconnectRaceTest {
     private companion object {
         val EPOCH: LocalDate = LocalDate.of(2026, 1, 1)
         const val NOW = 1_800_000_000_000L
+        val PHOTO_ROW = LinkedInBoard.Row("friend", "Friend", 60, hintFree = true, flawless = false, pictureUrl = "https://media.licdn.com/p/friend")
         val BOARD_ROW = LinkedInBoard.Row("friend", "Friend", 60, hintFree = true, flawless = false, pictureUrl = null)
     }
 }
