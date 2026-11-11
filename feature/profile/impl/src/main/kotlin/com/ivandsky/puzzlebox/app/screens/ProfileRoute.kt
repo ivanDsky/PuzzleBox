@@ -40,5 +40,7 @@ fun ProfileRoute(
         onConnectLinkedIn = onConnectLinkedIn,
         onResumeLinkedIn = viewModel::onResumeLinkedIn,
         onDisconnectLinkedIn = viewModel::onDisconnectLinkedIn,
+        onSyncNow = viewModel::onSyncNow,
+        onDeleteCloudData = viewModel::onDeleteCloudData,
     )
 }

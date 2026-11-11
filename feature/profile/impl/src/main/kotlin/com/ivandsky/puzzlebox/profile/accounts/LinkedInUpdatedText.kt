@@ -10,8 +10,13 @@ private const val DAY_MS = 24 * HOUR_MS
  */
 internal fun linkedInUpdatedText(updatedAtMs: Long?, nowMs: Long): String {
     if (updatedAtMs == null) return "Updating…"
-    val age = nowMs - updatedAtMs
-    return "Updated " + when {
+    return "Updated " + relativeAgeText(updatedAtMs, nowMs)
+}
+
+/** "just now", "12 min ago", "3 hours ago", "1 day ago": the house age phrase, shared by the LinkedIn and Google rows. */
+internal fun relativeAgeText(atMs: Long, nowMs: Long): String {
+    val age = nowMs - atMs
+    return when {
         age < MINUTE_MS -> "just now"
         age < HOUR_MS -> "${age / MINUTE_MS} min ago"
         age < DAY_MS -> plural(age / HOUR_MS, "hour")
