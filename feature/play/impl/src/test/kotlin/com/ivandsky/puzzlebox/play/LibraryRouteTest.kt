@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -429,7 +431,7 @@ class LibraryRouteTest {
         val history = composeRule.onNodeWithTag("summary.history").getUnclippedBoundsInRoot()
         val howTo = composeRule.onNodeWithTag("library.howto").getUnclippedBoundsInRoot()
         assertTrue("how to play sits under the history row", howTo.top >= history.bottom)
-        assertTrue("history row is at least 48dp tall", (history.bottom - history.top).value >= 48f)
+        composeRule.onNodeWithTag("summary.history").assertHeightIsEqualTo(56.dp)
     }
 
     @Test
