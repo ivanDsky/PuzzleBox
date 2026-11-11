@@ -136,6 +136,7 @@ private fun RevealRunScreen(
             state = state,
             brands = brands,
             wide = wide,
+            onBack = machine::skip,
             onSkip = machine::skip,
             modifier = Modifier.pointerInput(machine) { detectTapGestures { machine.tap() } },
         )
