@@ -38,10 +38,13 @@ import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 
 private val SideAvatar = 24.dp
 private val SubHeight = 16.dp
+private val WideSubHeight = 20.dp
 private val BarHeight = 6.dp
+private val WideBarHeight = 10.dp
 private val PhoneBarMax = 140.dp
-private val WideBarMax = 200.dp
+private val WideBarMax = 360.dp
 private val MinFigure = 36.sp
+private val WideFigure = 168.sp
 
 /** What one side of a race card shows: the big [headline], the small [sub] line under it and the bar's [progress]. */
 internal class RaceFigure(val headline: String, val sub: String?, val progress: Float, val dimmed: Boolean = false)
@@ -63,7 +66,7 @@ internal fun RaceSide(
     wide: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val style = resultHeroTimeStyle(wide)
+    val style = resultHeroTimeStyle(wide).let { if (wide) it.copy(fontSize = WideFigure, lineHeight = WideFigure) else it }
     val figureHeight = with(LocalDensity.current) { style.lineHeight.toDp() }
     Column(
         modifier = modifier.semantics(mergeDescendants = true) {}.alpha(1f - dim * (1f - DimmedAlpha)),
@@ -92,18 +95,18 @@ internal fun RaceSide(
                 autoSize = TextAutoSize.StepBased(minFontSize = MinFigure, maxFontSize = style.fontSize),
             )
         }
-        Box(Modifier.height(SubHeight), contentAlignment = Alignment.Center) {
+        Box(Modifier.height(if (wide) WideSubHeight else SubHeight), contentAlignment = Alignment.Center) {
             figure.sub?.let {
                 Text(
                     text = it,
-                    style = MaterialTheme.typography.labelMedium,
+                    style = if (wide) MaterialTheme.typography.labelLarge else MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     softWrap = false,
                 )
             }
         }
-        ProgressBar(figure.progress, accent, if (wide) WideBarMax else PhoneBarMax, Modifier.padding(top = Spacing.xs))
+        ProgressBar(figure.progress, accent, if (wide) WideBarMax else PhoneBarMax, wide, Modifier.padding(top = if (wide) Spacing.sm else Spacing.xs))
     }
 }
 
@@ -111,12 +114,12 @@ private const val DimmedAlpha = 0.45f
 
 /** The thin bar: a quiet track with the accent filling from the start, at most [maxWidth] wide. */
 @Composable
-private fun ProgressBar(progress: Float, accent: Color, maxWidth: Dp, modifier: Modifier = Modifier) {
+private fun ProgressBar(progress: Float, accent: Color, maxWidth: Dp, wide: Boolean, modifier: Modifier = Modifier) {
     Box(
         modifier
             .widthIn(max = maxWidth)
             .fillMaxWidth()
-            .height(BarHeight)
+            .height(if (wide) WideBarHeight else BarHeight)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh, PillShape),
     ) {
         Box(Modifier.fillMaxHeight().fillMaxWidth(progress.coerceIn(0f, 1f)).background(accent, PillShape))

@@ -23,8 +23,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.compete.duel.Pill
 import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.GameAccent
@@ -53,7 +56,15 @@ private val PillIcon = 16.dp
  * The loser's half dims when it resolves. Only Strands, which ranks on hints, shows hints.
  */
 @Composable
-internal fun RaceCard(plan: RevealPlan, card: RevealCard, state: RevealState, position: Int, brand: GameBrand, wide: Boolean) {
+internal fun RaceCard(
+    plan: RevealPlan,
+    card: RevealCard,
+    state: RevealState,
+    position: Int,
+    brand: GameBrand,
+    wide: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val racing = state.phase is RevealPhase.Leg
     val resolved = !racing || state.locked != null || card.leg.tickersDone(state)
     val accent = brand.accent.colors()
@@ -68,12 +79,12 @@ internal fun RaceCard(plan: RevealPlan, card: RevealCard, state: RevealState, po
     val dimTarget = if (resolved) 1f else 0f
     val dim by animateFloatAsState(dimTarget, tween(if (rememberReducedMotion()) 0 else MotionTokens.DurationMedium), label = "loserDim")
     val basisAlpha by animateFloatAsState(dimTarget, tween(if (rememberReducedMotion()) 0 else MotionTokens.DurationMedium), label = "basis")
-    OutlinedCard(Modifier.fillMaxWidth().testTag("reveal.card"), border = BorderStroke(CardBorder, accent.accent)) {
+    OutlinedCard(modifier.fillMaxWidth().testTag("reveal.card"), border = BorderStroke(CardBorder, accent.accent)) {
         Column(
-            modifier = Modifier.padding(if (wide) Spacing.xl else Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            modifier = Modifier.padding(if (wide) Spacing.xxl else Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(if (wide) Spacing.lg else Spacing.md),
         ) {
-            CardHeader(card, position, plan.cards.size, brand, accent, showPill = resolved)
+            CardHeader(card, position, plan.cards.size, brand, accent, showPill = resolved, wide = wide)
             Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 RaceSide(
                     plan.me.name, plan.me.photoUrl, DuelTone.Me, mine, accent.accent,
@@ -87,29 +98,34 @@ internal fun RaceCard(plan: RevealPlan, card: RevealCard, state: RevealState, po
             }
             Text(
                 text = card.basis,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.alpha(basisAlpha),
+                style = if (wide) {
+                    MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold)
+                } else {
+                    MaterialTheme.typography.bodyMedium
+                },
+                color = if (wide) accent.onContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = if (wide) TextAlign.Center else TextAlign.Unspecified,
+                modifier = if (wide) Modifier.fillMaxWidth().alpha(basisAlpha) else Modifier.alpha(basisAlpha),
             )
         }
     }
 }
 
 @Composable
-private fun CardHeader(card: RevealCard, position: Int, count: Int, brand: GameBrand, accent: GameAccent, showPill: Boolean) {
+private fun CardHeader(card: RevealCard, position: Int, count: Int, brand: GameBrand, accent: GameAccent, showPill: Boolean, wide: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        GameGlyph(brand, GameGlyphSize.Tile)
+        GameGlyph(brand, if (wide) GameGlyphSize.Hero else GameGlyphSize.Tile)
         Column(Modifier.weight(1f)) {
             Text(
                 text = card.title,
-                style = MaterialTheme.typography.titleMedium,
+                style = if (wide) MaterialTheme.typography.headlineMedium.copy(fontSize = 32.sp, lineHeight = 38.sp, fontWeight = FontWeight.Bold) else MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = "Puzzle $position of $count",
-                style = MaterialTheme.typography.bodySmall,
+                style = if (wide) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -158,10 +174,10 @@ private fun figureOf(state: DuelSideState, rankOrder: RankOrder, tickMs: Long?, 
     DuelSideState.GaveUp -> RaceFigure("—", "Gave up", 0f, dimmed = true)
 }
 
-private fun hintsLabel(hints: Int) = if (hints == 1) "1 hint" else "$hints hints"
+internal fun hintsLabel(hints: Int) = if (hints == 1) "1 hint" else "$hints hints"
 
 /** True once every ticker of a puzzle nobody wins has reached its figure (a won puzzle resolves on the lock). */
-private fun LegReveal.tickersDone(state: RevealState): Boolean {
+internal fun LegReveal.tickersDone(state: RevealState): Boolean {
     if (verdict is LegVerdict.Win || verdict is LegVerdict.Loss) return false
     val mineDone = (mine as? DuelSideState.Time)?.let { state.myTickMs >= it.timeMs } ?: true
     val theirsDone = (theirs as? DuelSideState.Time)?.let { state.theirTickMs >= it.timeMs } ?: true

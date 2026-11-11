@@ -48,7 +48,8 @@ private const val SETTLE_MS = 2_000L
 
 /**
  * The whole reveal, phone and tablet, light and dark: the VS intro, a race mid-run, a Strands card, a no-result card,
- * a tie card, a long-name intro, the summary after a win, a loss, a draw and a best of 7, and the Rematch sheet.
+ * a tie card, a long-name intro, the summary after a win, a loss, a draw, a best of 7, long names and a gave-up
+ * puzzle, and the Rematch sheet.
  * Every frame is the machine advanced to a known instant. Goldens in `snapshots/reveal/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -96,6 +97,12 @@ abstract class RevealGoldenScreenshots(private val device: String, private val w
     @Test fun `summary best of 7 light`() = summary("summary-best-of-7", BEST_OF_7, dark = false)
     @Test fun `summary best of 7 dark`() = summary("summary-best-of-7", BEST_OF_7, dark = true)
 
+    @Test fun `summary long names light`() = summary("summary-long-names", LONG_NAMES_SUMMARY, dark = false)
+    @Test fun `summary long names dark`() = summary("summary-long-names", LONG_NAMES_SUMMARY, dark = true)
+
+    @Test fun `summary gave up light`() = summary("summary-gave-up", GAVE_UP_SUMMARY, dark = false)
+    @Test fun `summary gave up dark`() = summary("summary-gave-up", GAVE_UP_SUMMARY, dark = true)
+
     @Test fun `rematch sheet light`() = rematch(dark = false)
     @Test fun `rematch sheet dark`() = rematch(dark = true)
 
@@ -134,19 +141,20 @@ abstract class RevealGoldenScreenshots(private val device: String, private val w
         fun time(ms: Long, hints: Int = 0) = DuelSideState.Time(ms, hints)
 
         fun card(game: GameId, title: String, mine: DuelSideState, theirs: DuelSideState, verdict: LegVerdict, basis: String, pill: String) =
-            RevealCard(LegReveal(game, mine, theirs, verdict), title, RankOrder.TimeThenHints, basis, pill)
+            RevealCard(LegReveal(game, mine, theirs, verdict), title, "#" + title.substringAfter('#'), RankOrder.TimeThenHints, basis, pill)
 
         val ZIP_WIN = card(ZIP, "Zip #401", time(58_000), time(72_000), LegVerdict.Win(LegBasis.Time), "14 s faster", "Ivan wins")
         val QUEENS_LOSS = card(QUEENS, "Queens #88", time(95_000), time(80_000), LegVerdict.Loss(LegBasis.Time), "15 s faster", "Sam wins")
         val STRANDS_WIN = RevealCard(
             LegReveal(STRANDS, time(120_000, 0), time(100_000, 2), LegVerdict.Win(LegBasis.Hints)),
-            "Strands #12", RankOrder.HintsThenTime, "Fewer hints · 0 vs 2", "Ivan wins",
+            "Strands #12", "#12", RankOrder.HintsThenTime, "Fewer hints · 0 vs 2", "Ivan wins",
         )
         val NO_RESULT = card(
             QUEENS, "Queens #89", DuelSideState.NotPlayed, time(60_000), LegVerdict.Loss(LegBasis.Time),
             "You didn't play · Sam wins this puzzle", "Sam wins",
         )
         val TIE = card(ZIP, "Zip #402", time(61_000), time(61_400), LegVerdict.Draw, "Same whole second · no point", "Tie")
+        val GAVE_UP = card(ZIP, "Zip #403", DuelSideState.GaveUp, time(60_000), LegVerdict.Loss(LegBasis.Time), "You gave up · Sam wins this puzzle", "Sam wins")
 
         fun plan(me: String, them: String, vararg cards: RevealCard) =
             RevealPlan(Player("ivan", me, null), Player("sam", them, null), cards.toList())
@@ -192,6 +200,8 @@ abstract class RevealGoldenScreenshots(private val device: String, private val w
             plan("Ivan", "Sam", ZIP_WIN, QUEENS_LOSS, STRANDS_WIN, NO_RESULT, TIE, ZIP_WIN, STRANDS_WIN),
             MatchVerdict.Won,
         )
+        val LONG_NAMES_SUMMARY = summaryOf(LONG_NAMES, MatchVerdict.Drawn)
+        val GAVE_UP_SUMMARY = summaryOf(plan("Ivan", "Sam", ZIP_WIN, STRANDS_WIN, GAVE_UP), MatchVerdict.Won)
     }
 }
 

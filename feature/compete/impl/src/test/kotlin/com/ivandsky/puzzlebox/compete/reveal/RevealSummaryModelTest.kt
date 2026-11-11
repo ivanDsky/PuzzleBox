@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.domain.MatchVerdict
 import com.ivandsky.puzzlebox.domain.Outcome
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -156,6 +157,50 @@ class RevealSummaryModelTest {
     }
 
     @Test
+    fun aTimeDecidedRowsBarIsItsGapAgainstTheWidestGapWithAFloor() {
+        val cards = listOf(
+            card(leg(time(58_000), time(70_000), LegVerdict.Win(LegBasis.Time)), "Zip #1"),
+            card(leg(time(95_000), time(89_000), LegVerdict.Loss(LegBasis.Time)), "Zip #2"),
+            card(leg(time(60_000), time(60_999), LegVerdict.Win(LegBasis.Time)), "Zip #3"),
+        )
+
+        val margins = puzzleRows(cards).map { it.margin }
+
+        assertEquals(RowMargin(1f, "12 s"), margins[0])
+        assertEquals(RowMargin(0.5f, "6 s"), margins[1])
+        assertEquals(RowMargin(0.12f, "0 s"), margins[2])
+    }
+
+    @Test
+    fun aTieHasNoBarAndAPuzzleWithoutTwoTimesIsMarkedWithADash() {
+        val cards = listOf(
+            card(leg(time(61_000), time(61_400), LegVerdict.Draw), "Zip #1"),
+            card(leg(DuelSideState.NotPlayed, time(60_000), LegVerdict.Loss(LegBasis.Time)), "Zip #2"),
+            card(leg(DuelSideState.NotPlayed, DuelSideState.NotPlayed, LegVerdict.Void), "Zip #3"),
+        )
+
+        val margins = puzzleRows(cards).map { it.margin }
+
+        assertEquals(RowMargin(0f, "tie"), margins[0])
+        assertEquals(RowMargin(1f, "—"), margins[1])
+        assertEquals(RowMargin(0f, "—"), margins[2])
+    }
+
+    @Test
+    fun aHintsDecidedRowShowsTheHintGapAndOnlyAHintsGameCaptionsEachTime() {
+        val hinted = card(leg(time(70_000, hints = 0), time(60_000, hints = 2), LegVerdict.Win(LegBasis.Hints)), "Tango #1", RankOrder.HintsThenTime)
+        val timed = card(leg(time(58_000, hints = 1), time(72_000), LegVerdict.Win(LegBasis.Time)), "Zip #2")
+
+        val rows = puzzleRows(listOf(hinted, timed))
+
+        assertEquals(RowMargin(0.4f, "2 hints"), rows[0].margin)
+        assertEquals("0 hints", rows[0].myHints)
+        assertEquals("2 hints", rows[0].theirHints)
+        assertNull(rows[1].myHints)
+        assertNull(rows[1].theirHints)
+    }
+
+    @Test
     fun theSummaryCardNamesTheDayTheDuelWasCreatedNotItsDeadline() {
         val match = match(refs = listOf(zip), deadlineHours = 48, includeFriends = false)
         val plan = RevealPlan(match.challenger, match.opponent!!, listOf(card(leg(time(1_000), time(2_000), LegVerdict.Win(LegBasis.Time)), "Zip #1")))
@@ -166,8 +211,8 @@ class RevealSummaryModelTest {
         assertEquals("Best of 1 · Mon 9 Nov", summary.bestOf)
     }
 
-    private fun card(leg: LegReveal, title: String) =
-        RevealCard(leg, title, com.ivandsky.puzzlebox.game.RankOrder.TimeThenHints, basis = "", pill = "")
+    private fun card(leg: LegReveal, title: String, rankOrder: RankOrder = RankOrder.TimeThenHints) =
+        RevealCard(leg, title, chip = "", rankOrder = rankOrder, basis = "", pill = "")
 
     private fun match(refs: List<GameId>, deadlineHours: Int, includeFriends: Boolean) = Match(
         code = code,

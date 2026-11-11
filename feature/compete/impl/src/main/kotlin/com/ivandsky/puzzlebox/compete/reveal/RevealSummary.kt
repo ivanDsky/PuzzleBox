@@ -4,12 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -23,13 +21,12 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 
 private val PhoneMaxWidth = 560.dp
-private val PanesMaxWidth = 1040.dp
-private val CardPaneWidth = 400.dp
+private val StageMaxWidth = 1352.dp
 
 /**
- * The reveal's end: the final-score card (verdict, tiles, Rematch, Share / Watch again) and the puzzles list.
- * [wide] puts the card on the left and the list on the right, the two panes centred as a block, vertically too when
- * they fit and scrolling from the top when they don't; a phone has one column. Back arrow leaves through [onBack].
+ * The reveal's end. [wide] is the Stage page: a hero card over the full-width puzzles table, centred as a block,
+ * vertically too when it fits and scrolling from the top when it doesn't. A phone has one column: the score card, then
+ * the puzzles. Back arrow leaves through [onBack].
  */
 @Composable
 internal fun RevealSummary(
@@ -51,13 +48,16 @@ internal fun RevealSummary(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    Row(
-                        modifier = Modifier.widthIn(max = PanesMaxWidth).fillMaxWidth().padding(Spacing.lg),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xl),
-                    ) {
-                        SummaryCard(summary, onRematch, onWatchAgain, Modifier.width(CardPaneWidth))
-                        SummaryPuzzleList(summary, brands, Modifier.weight(1f))
-                    }
+                    StageSummary(
+                        summary = summary,
+                        brands = brands,
+                        onRematch = onRematch,
+                        onWatchAgain = onWatchAgain,
+                        modifier = Modifier
+                            .widthIn(max = StageMaxWidth)
+                            .fillMaxWidth()
+                            .padding(start = Spacing.xxl, top = Spacing.xs, end = Spacing.xxl, bottom = Spacing.xxl),
+                    )
                 }
             }
         } else {
@@ -67,7 +67,7 @@ internal fun RevealSummary(
                     verticalArrangement = Arrangement.spacedBy(Spacing.lg),
                 ) {
                     SummaryCard(summary, onRematch, onWatchAgain)
-                    SummaryPuzzleList(summary, brands)
+                    SummaryPuzzleList(summary, brands, wide = false)
                 }
             }
         }
