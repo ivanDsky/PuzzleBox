@@ -152,4 +152,35 @@ class RankWithLinkedInTest {
         assertEquals("/p/owner.jpg", youOf(lines).row.photo)
         assertEquals(false, lines.filterIsInstance<DailyBoardLine.Real>().single { it.row.name == "Owner" }.row.isSelf)
     }
+
+    private fun fromLinkedIn(lines: List<DailyBoardLine>) =
+        lines.filterIsInstance<DailyBoardLine.Real>().associate { it.row.name to it.row.timeFromLinkedIn }
+
+    @Test
+    fun `a row whose time the import replaced is marked as having a LinkedIn time, the others are not`() {
+        val lines = rankWithLinkedIn(rows, emptyList(), own(35), RankOrder.TimeThenHints)
+
+        assertEquals(mapOf("a" to false, "b" to false, "me" to true, "c" to false), fromLinkedIn(lines))
+    }
+
+    @Test
+    fun `the added own LinkedIn row has a LinkedIn time`() {
+        val lines = rankWithLinkedIn(rows.map { it.copy(isSelf = false) }, emptyList(), own(35, name = "Owner"), RankOrder.TimeThenHints)
+
+        assertEquals(true, youOf(lines).row.timeFromLinkedIn)
+    }
+
+    @Test
+    fun `a row that took a same-name connection's time has a LinkedIn time`() {
+        val lines = rankWithLinkedIn(rows, listOf(ghost("c", 20)), null, RankOrder.TimeThenHints)
+
+        assertEquals(mapOf("c" to true, "a" to false, "b" to false, "me" to false), fromLinkedIn(lines))
+    }
+
+    @Test
+    fun `without an import or ghosts no row has a LinkedIn time`() {
+        val lines = rankWithLinkedIn(rows, emptyList(), null, RankOrder.TimeThenHints)
+
+        assertEquals(false, fromLinkedIn(lines).values.any { it })
+    }
 }

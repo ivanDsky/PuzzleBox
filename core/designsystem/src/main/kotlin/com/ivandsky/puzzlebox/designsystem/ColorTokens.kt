@@ -56,6 +56,10 @@ val DarkNeutralLip = Color(0xFF07090B)
 val LightMutedStatus = MutedStatusColors(container = Color(0xFFDCE0E7), content = Color(0xFF4A505B))
 val DarkMutedStatus = MutedStatusColors(container = Color(0xFF303740), content = Color(0xFFB4BBC5))
 
+// LinkedIn's brand blue, for what comes from LinkedIn (a connection's row frame). A brand colour does not follow the
+// theme, so light and dark share it; the logo drawable in game-ui paints the same value.
+val LinkedInBlue = Color(0xFF0A66C2)
+
 val LightColorScheme = lightColorScheme(
     primary = Color(0xFF58CC02),
     onPrimary = Color(0xFF1F3A0D),
