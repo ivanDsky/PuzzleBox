@@ -32,7 +32,7 @@ class SettingsViewModelTest {
 
     /** The state is observed only while subscribed (the route's lifecycle collector). */
     private suspend fun TestScope.observed(link: LinkedInLink?): SettingsViewModel {
-        val vm = SettingsViewModel(FakeUserPreferencesRepository(), appBuild, link)
+        val vm = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, link)
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
         return vm
@@ -41,7 +41,7 @@ class SettingsViewModelTest {
     @Test
     fun `choosing dark persists the theme`() = runTest(dispatcher) {
         val preferences = FakeUserPreferencesRepository()
-        val vm = SettingsViewModel(preferences, appBuild, link = null)
+        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, link = null)
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
         assertEquals(SettingsUiState(ThemeMode.SYSTEM, "1.4.0"), vm.uiState.value)
@@ -51,6 +51,43 @@ class SettingsViewModelTest {
 
         assertEquals(ThemeMode.DARK, preferences.themeMode.first())
         assertEquals(SettingsUiState(ThemeMode.DARK, "1.4.0"), vm.uiState.value)
+    }
+
+    @Test
+    fun `each games switch writes its own stored value and leaves the others`() = runTest(dispatcher) {
+        val games = FakeGameOptions()
+        val vm = SettingsViewModel(FakeUserPreferencesRepository(), games, appBuild, link = null)
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        vm.onSetQueensAutoCross(false)
+        advanceUntilIdle()
+        assertEquals(false, games.queensAutoCross.value)
+        assertEquals(GamesSectionState(queensAutoCross = false), vm.uiState.value.games)
+
+        vm.onSetSudokuPeerHighlight(false)
+        advanceUntilIdle()
+        assertEquals(GamesSectionState(queensAutoCross = false, sudokuPeerHighlight = false), vm.uiState.value.games)
+
+        vm.onSetSudokuSameDigitHighlight(false)
+        advanceUntilIdle()
+        assertEquals(GamesSectionState(false, false, false), vm.uiState.value.games)
+    }
+
+    @Test
+    fun `the games state follows the store when it changes elsewhere`() = runTest(dispatcher) {
+        val games = FakeGameOptions()
+        val vm = SettingsViewModel(FakeUserPreferencesRepository(), games, appBuild, link = null)
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        games.sudokuSameDigitHighlight.value = false
+        advanceUntilIdle()
+        assertEquals(GamesSectionState(sudokuSameDigitHighlight = false), vm.uiState.value.games)
+
+        games.sudokuSameDigitHighlight.value = true
+        advanceUntilIdle()
+        assertEquals(GamesSectionState(), vm.uiState.value.games)
     }
 
     @Test
