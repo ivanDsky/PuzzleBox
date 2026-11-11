@@ -1,8 +1,12 @@
 package com.ivandsky.puzzlebox.profile.di
 
+import android.webkit.CookieManager
+import android.webkit.WebSettings
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
+import com.ivandsky.puzzlebox.profile.linkedin.WebViewLinkedInSession
 import com.ivandsky.puzzlebox.profile.settings.SettingsViewModel
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.module.Module
@@ -31,4 +35,6 @@ val profileModule: Module = module {
         )
     }
     viewModel { SettingsViewModel(preferences = get(), appBuild = get()) }
+    // Both providers are lambdas, so resolving this neither starts the web view provider nor reads a cookie.
+    single<LinkedInSessionCookies> { WebViewLinkedInSession({ CookieManager.getInstance() }, { WebSettings.getDefaultUserAgent(get()) }, get()) }
 }
