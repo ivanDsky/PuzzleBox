@@ -18,6 +18,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -28,7 +30,7 @@ import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.profile.AppearanceRow
 
 /**
- * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Games, About (the version name), and — in debug builds only — a "Debug build only" block set off by a divider (only when [onOpenCatalog] is given): the [debugSections] slot (the app's flags and game tools), then the Component catalog row.
+ * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Games, About (the version name), and — in debug builds only — a "Debug build only" block set off by a divider (shown when [debugSections] or [onOpenCatalog] is given): the [debugSections] slot (the app's flags and game tools), then the Component catalog row, each only when given.
  */
 @Composable
 internal fun SettingsScreen(
@@ -40,7 +42,7 @@ internal fun SettingsScreen(
     onBack: () -> Unit,
     onOpenCatalog: (() -> Unit)?,
     modifier: Modifier = Modifier,
-    debugSections: @Composable () -> Unit = {},
+    debugSections: (@Composable () -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CompactTopBar(
@@ -93,7 +95,7 @@ internal fun SettingsScreen(
                     )
                 }
             }
-            if (onOpenCatalog != null) {
+            if (onOpenCatalog != null || debugSections != null) {
                 // Everything below the divider exists only in debug builds.
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Column(
@@ -104,18 +106,21 @@ internal fun SettingsScreen(
                         text = "Debug build only",
                         style = MaterialTheme.typography.titleLarge,
                         color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.semantics { heading() },
                     )
-                    debugSections()
-                    Column(
-                        modifier = Modifier.fillMaxWidth().testTag("settings.developer"),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
-                        SectionTitle("Component catalog")
-                        SecondaryButton(
-                            text = "Open component browser",
-                            onClick = onOpenCatalog,
-                            modifier = Modifier.fillMaxWidth().testTag("settings.catalog"),
-                        )
+                    debugSections?.invoke()
+                    if (onOpenCatalog != null) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().testTag("settings.developer"),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        ) {
+                            SectionTitle("Component catalog")
+                            SecondaryButton(
+                                text = "Open component browser",
+                                onClick = onOpenCatalog,
+                                modifier = Modifier.fillMaxWidth().testTag("settings.catalog"),
+                            )
+                        }
                     }
                 }
             }

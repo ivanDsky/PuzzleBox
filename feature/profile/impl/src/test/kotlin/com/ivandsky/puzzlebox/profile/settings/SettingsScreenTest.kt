@@ -5,6 +5,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -42,7 +47,7 @@ class SettingsScreenTest {
     private fun setContent(
         state: SettingsUiState = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0"),
         showCatalog: Boolean = true,
-        debugSections: @Composable () -> Unit = {},
+        debugSections: (@Composable () -> Unit)? = null,
     ) {
         composeRule.setContent {
             PuzzleBoxTheme {
@@ -100,18 +105,41 @@ class SettingsScreenTest {
     }
 
     @Test
-    fun `debug sections render in the settings column`() {
+    fun `debug block shows its heading and the sections inside settings debug`() {
         setContent(debugSections = { Text("debug tools", modifier = Modifier.testTag("settings.debug.probe")) })
 
-        composeRule.onNodeWithTag("settings.debug.probe").performScrollTo().assertExists()
+        composeRule.onNodeWithTag("settings.debug").performScrollTo().assertExists()
+        composeRule.onNodeWithText("Debug build only").assertExists().assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        composeRule.onNode(hasTestTag("settings.debug.probe") and hasAnyAncestor(hasTestTag("settings.debug"))).assertExists()
+        composeRule.onNodeWithTag("settings.catalog").assertExists()
     }
 
     @Test
-    fun `release settings has no debug sections`() {
+    fun `release settings has no debug block`() {
         setContent(showCatalog = false)
 
+        composeRule.onNodeWithTag("settings.debug").assertDoesNotExist()
+        composeRule.onNodeWithText("Debug build only").assertDoesNotExist()
         composeRule.onNodeWithTag("settings.debug.probe").assertDoesNotExist()
         composeRule.onNodeWithTag("settings.developer").assertDoesNotExist()
+    }
+
+    @Test
+    fun `debug sections without a catalog callback still render, with no catalog row`() {
+        setContent(showCatalog = false, debugSections = { Text("debug tools", modifier = Modifier.testTag("settings.debug.probe")) })
+
+        composeRule.onNodeWithText("Debug build only").performScrollTo().assertExists()
+        composeRule.onNode(hasTestTag("settings.debug.probe") and hasAnyAncestor(hasTestTag("settings.debug"))).assertExists()
+        composeRule.onNodeWithTag("settings.developer").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a catalog callback without debug sections shows the block with only the catalog row`() {
+        setContent(showCatalog = true)
+
+        composeRule.onNodeWithText("Debug build only").performScrollTo().assertExists()
+        composeRule.onNodeWithTag("settings.catalog").assertExists()
+        composeRule.onNodeWithTag("settings.debug.probe").assertDoesNotExist()
     }
 
     @Test
