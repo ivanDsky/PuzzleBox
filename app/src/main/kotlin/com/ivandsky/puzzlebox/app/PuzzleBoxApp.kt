@@ -44,7 +44,6 @@ import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.Competitions
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
 import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -148,13 +147,9 @@ fun PuzzleBoxApp(
                     DuelsTab(onOpenDuel = navigator::pushOnce, onOpenReveal = navigator::pushOnce, listState = listState)
                 },
                 needYou = { rememberDuelsNeedYou() },
+                onOpenDuel = navigator::pushOnce,
             )
         }
-    } else {
-        null
-    }
-    val onOpenDuel: ((DuelKey) -> Unit)? = if (competitions) {
-        { navigator.pushOnce(it) }
     } else {
         null
     }
@@ -224,7 +219,6 @@ fun PuzzleBoxApp(
                     codeDraft = { codeDraft },
                     onCodeDraftTaken = { codeDraft = null },
                     duels = duels,
-                    onOpenDuel = onOpenDuel,
                     libraryRequests = libraryRequests,
                 )
             }
