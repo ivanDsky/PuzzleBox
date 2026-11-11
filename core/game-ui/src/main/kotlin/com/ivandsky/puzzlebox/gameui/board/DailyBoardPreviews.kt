@@ -193,7 +193,7 @@ internal fun DailyBoardListPreview() = Padded {
 @Composable
 internal fun DailyBoardAnimatedListPreview() = Padded {
     val lines = rankWithGhosts(Rows.take(1) + Rows.drop(2), Ghosts, RankOrder.TimeThenHints)
-    DailyBoardList(lines, RankOrder.TimeThenHints, pinned = DailyBoardLine.Real(Rows[1], place = 5), animated = true, day = "2026-11-11")
+    DailyBoardList(lines, RankOrder.TimeThenHints, pinned = DailyBoardLine.Real(Rows[1], place = 5), animated = true)
 }
 
 @PuzzleBoxPreviews
