@@ -40,6 +40,8 @@ class TangoSeedBackedSource(private val primary: LinkedInTangoDailySource) : Dai
 
     override fun puzzleNumber(day: LocalDate): Int? = primary.puzzleNumber(day)
 
+    override val linkedInGameTypeId: Int? = primary.linkedInGameTypeId
+
     override suspend fun fetchPast(date: LocalDate): FetchResult<DailyFetch> = primary.fetchPast(date)
 
     /** The seed's envelope carries no date, so any stored copy of it equals [seed] byte for byte. */
