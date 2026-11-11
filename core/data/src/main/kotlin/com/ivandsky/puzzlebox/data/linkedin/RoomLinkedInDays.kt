@@ -5,14 +5,23 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.database.linkedin.FetchLogEntity
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
+import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 /**
  * The only caller of the account's own-result and board reads, so every rule about asking LinkedIn
@@ -37,10 +46,77 @@ internal class RoomLinkedInDays(
     internal val syncState = LinkedInSyncState()
 
     private val fetchLog = db.fetchLogDao()
-    private val ghosts = LinkedInGhostWriter(db.ghostDao())
+    private val ghostDao = db.ghostDao()
+    private val ghosts = LinkedInGhostWriter(ghostDao)
 
     override suspend fun sync(game: GameId, day: LocalDate): LinkedInSync =
         syncState.shared(DayKey(game, day)) { syncDay(game, day) }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observe(game: GameId, day: LocalDate): Flow<LinkedInDayData> {
+        val key = DayKey(game, day)
+        return link.state.flatMapLatest { linked ->
+            // The one place that sees every link change: what a sync remembered under a link that is
+            // gone or paused must not show under the next one.
+            if (linked !is LinkState.Connected) syncState.clear()
+            val profileId = when (linked) {
+                LinkState.NotConnected -> null
+                is LinkState.Connected -> linked.profileId
+                is LinkState.Paused -> linked.profileId
+            }
+            combine(
+                imported(game, day),
+                stored(game, day, profileId),
+                fetches(game, day, profileId),
+                syncState.inFlight(key),
+                syncState.lastSync(key),
+            ) { import, board, fetches, inFlight, lastSync ->
+                // Read on every emission, never watched: a day held open across the game's midnight
+                // keeps its delta until its holder subscribes again.
+                val delta = deltaOf(game, day)
+                LinkedInDayData(
+                    link = linked,
+                    delta = delta,
+                    boardInWindow = inBoardWindow(delta),
+                    inFlight = inFlight,
+                    lastSync = lastSync,
+                    own = ownState(import, fetches),
+                    ghosts = board,
+                    boardFetchedAtMs = fetches.firstOrNull { it.item == LinkedInItem.Board.name }?.fetchedAtMs,
+                )
+            }
+            // Room emits again on any write to a table, so a sync of another day would repeat this one.
+        }.distinctUntilChanged()
+    }
+
+    /**
+     * The day's import, whatever the link: a disconnect keeps imports, and the day still shows the
+     * result as LinkedIn's. A record and a replay of one day are the same result, so the first will do.
+     */
+    private fun imported(game: GameId, day: LocalDate): Flow<CompletionRecord?> =
+        completions.observeImports().map { rows ->
+            rows.firstOrNull { it.puzzleRef.gameId == game && (it.puzzleRef.key as? PuzzleKey.Daily)?.date == day }
+        }
+
+    /** The day's board; nothing without a link, whatever a disconnect has not wiped yet. */
+    private fun stored(game: GameId, day: LocalDate, profileId: String?): Flow<List<LinkedInGhost>> =
+        if (profileId == null) {
+            flowOf(emptyList())
+        } else {
+            ghostDao.observe(game.value, day.toString()).map { rows ->
+                rows.map { LinkedInGhost(it.memberRef, it.name, it.timeMs, it.hintFree, it.flawless) }
+            }
+        }
+
+    private fun fetches(game: GameId, day: LocalDate, profileId: String?): Flow<List<FetchLogEntity>> =
+        if (profileId == null) flowOf(emptyList()) else fetchLog.observe(game.value, day.toString(), profileId)
+
+    private fun ownState(import: CompletionRecord?, fetches: List<FetchLogEntity>): LinkedInOwnState = when {
+        import != null -> LinkedInOwnState.Imported(import)
+        fetches.any { it.item == LinkedInItem.Own.name && it.outcome == LinkedInOutcome.NotPlayed.name } ->
+            LinkedInOwnState.NotPlayed
+        else -> LinkedInOwnState.Unknown
+    }
 
     private suspend fun syncDay(game: GameId, day: LocalDate): LinkedInSync {
         val profileId = when (val linked = link.state.first()) {
