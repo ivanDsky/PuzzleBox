@@ -48,6 +48,18 @@ internal fun wordMatch(text: String): WordMatch = when {
 }
 
 /**
+ * What a lookup that [answered] for [settled] text still tells of the [current] text while its own
+ * lookup is pending. Text that is not a dictionary word and not the start of one stays so when
+ * letters are added, so that verdict carries over and the warning does not blink on each
+ * keystroke. Anything else is not known yet, and is quiet.
+ */
+internal fun settledMatch(settled: String, answered: WordMatch, current: String): WordMatch = when {
+    settled == current -> answered
+    answered == WordMatch.Unknown && settled.isNotEmpty() && current.startsWith(settled) -> WordMatch.Unknown
+    else -> WordMatch.Empty
+}
+
+/**
  * What the word field shows under its border, when it shows anything: [NoPath] with no path to
  * type onto, or [Warn] for text outside the dictionary. A quiet field has no check at all.
  */
@@ -95,11 +107,11 @@ internal fun StrandsWordField(controller: StrandsEditorController, modifier: Mod
     val overflow = cells != null && word.length > cells
     val dispatchers = LocalEditorDispatchers.current
     // The first lookup loads the word set; it runs off the main thread. Its answer is kept with
-    // the text it is for, so a stale one never warns about newer text: quiet until it answers.
+    // the text it is for, and [settledMatch] says what it still tells of newer text.
     val lookup by produceState(Pair("", WordMatch.Empty), word) {
         value = word to withContext(dispatchers.default) { wordMatch(word) }
     }
-    val match = lookup.second.takeIf { lookup.first == word } ?: WordMatch.Empty
+    val match = settledMatch(lookup.first, lookup.second, word)
     val check = when {
         cells == null -> WordCheck.NoPath
         !overflow && warnsFor(match, word.length, cells) -> WordCheck.Warn
@@ -136,6 +148,7 @@ internal fun StrandsWordField(controller: StrandsEditorController, modifier: Mod
             focusedBorderColor = amber,
             unfocusedBorderColor = amber,
             focusedLabelColor = amber,
+            unfocusedLabelColor = amber,
         )
     } else {
         OutlinedTextFieldDefaults.colors(disabledPlaceholderColor = readable)

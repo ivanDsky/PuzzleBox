@@ -204,36 +204,106 @@ class StrandsEditorWordWarningTest {
     @Test
     fun `in the tablet pane a word longer than its path is an error with its fit line and no dictionary warning`() = overflows(::showPane)
 
+    /** Another letter typed onto a word outside the dictionary, its lookup held back. */
+    private fun keepsWarningWhileLookupPends(show: () -> Unit) {
+        tracePath()
+        show()
+        type("xq")
+        assertWarns("xq")
+        val before = rule.onNodeWithTag(FIELD).getUnclippedBoundsInRoot()
+
+        controller.typeWord("xqz")
+        rule.waitForIdle()
+
+        assertTrue("the lookup for the new letter should be pending", queue.pending > 0)
+        assertWarns("an unknown word with another letter and no answer yet")
+        assertEquals("the field must not change size", before, rule.onNodeWithTag(FIELD).getUnclippedBoundsInRoot())
+        answerLookups()
+        assertWarns("the same word once answered")
+    }
+
+    @Test
+    fun `on the phone another letter on an unknown word keeps the warning and the field size while the lookup pends`() =
+        keepsWarningWhileLookupPends(::showPhone)
+
+    @Test
+    fun `in the tablet pane another letter on an unknown word keeps the warning and the field size while the lookup pends`() =
+        keepsWarningWhileLookupPends(::showPane)
+
+    private fun dropsWarningWhenTextNoLongerExtendsIt(show: () -> Unit) {
+        tracePath()
+        show()
+        type("xq")
+        assertWarns("xq")
+
+        controller.typeWord("x")
+        rule.waitForIdle()
+
+        assertTrue(queue.pending > 0)
+        assertQuiet("shorter text whose lookup is pending")
+    }
+
+    @Test
+    fun `on the phone shorter text is quiet while its lookup pends`() = dropsWarningWhenTextNoLongerExtendsIt(::showPhone)
+
+    @Test
+    fun `in the tablet pane shorter text is quiet while its lookup pends`() = dropsWarningWhenTextNoLongerExtendsIt(::showPane)
+
     @Test
     fun `the warning border is amber, the error border stays red, a quiet field has neither`() {
         tracePath()
         showPhone()
-        val light = LightWarning
         type("star")
-        val quiet = rule.onNodeWithTag(FIELD).countPixels(light, LightColorScheme.error)
+        val quiet = rule.onNodeWithTag(FIELD).borderPixels(LightWarning, LightColorScheme.error)
         type("xqzv")
-        val warned = rule.onNodeWithTag(FIELD).countPixels(light, LightColorScheme.error)
+        val warned = rule.onNodeWithTag(FIELD).borderPixels(LightWarning, LightColorScheme.error)
         type("stars")
-        val overflown = rule.onNodeWithTag(FIELD).countPixels(light, LightColorScheme.error)
+        val overflown = rule.onNodeWithTag(FIELD).borderPixels(LightWarning, LightColorScheme.error)
 
-        assertEquals("quiet: amber and red pixels", 0 to 0, quiet)
+        assertEquals("quiet: amber and red border pixels", 0 to 0, quiet)
         assertTrue("warning shows no amber border: $warned", warned.first > 0)
         assertEquals("warning shows red", 0, warned.second)
         assertEquals("overflow shows amber", 0, overflown.first)
         assertTrue("overflow shows no red border: $overflown", overflown.second > 0)
     }
 
-    /** Pixels in this node's image that are exactly [a] and exactly [b]. */
-    private fun SemanticsNodeInteraction.countPixels(a: Color, b: Color): Pair<Int, Int> {
+    @Test
+    fun `in the tablet pane the label wears the warning colour while the field is not focused`() {
+        tracePath()
+        showPane()
+        type("star")
+        val quiet = rule.onNodeWithTag(LABEL, useUnmergedTree = true).pixelsOf(LightWarning)
+        type("xqzv")
+        val warned = rule.onNodeWithTag(LABEL, useUnmergedTree = true).pixelsOf(LightWarning)
+
+        assertEquals("a quiet label is not amber", 0, quiet)
+        assertTrue("the warned label is not amber", warned > 0)
+    }
+
+    /**
+     * Pixels of exactly [a] and exactly [b] in the top rows of this node's image, in its middle
+     * half: the box's top border and nothing else (no text, icon or rounded corner reaches it).
+     */
+    private fun SemanticsNodeInteraction.borderPixels(a: Color, b: Color): Pair<Int, Int> {
         val pixels = captureToImage().toPixelMap()
         var first = 0
         var second = 0
-        for (x in 0 until pixels.width) for (y in 0 until pixels.height) {
+        for (x in pixels.width / 4 until pixels.width * 3 / 4) for (y in 0 until BORDER_ROWS) {
             val p = pixels[x, y].copy(alpha = 1f)
             if (p == a.copy(alpha = 1f)) first++
             if (p == b.copy(alpha = 1f)) second++
         }
         return first to second
+    }
+
+    /** Pixels in this node's image that are exactly [color]. */
+    private fun SemanticsNodeInteraction.pixelsOf(color: Color): Int {
+        val pixels = captureToImage().toPixelMap()
+        var count = 0
+        for (x in 0 until pixels.width) for (y in 0 until pixels.height) {
+            if (pixels[x, y].copy(alpha = 1f) == color.copy(alpha = 1f)) count++
+        }
+        return count
     }
 
     private fun SemanticsNodeInteraction.text(): String =
@@ -243,9 +313,13 @@ class StrandsEditorWordWarningTest {
         const val FIELD = "strands.editor.word"
         const val CHECK = "strands.editor.word.check"
         const val FIT = "strands.editor.word.fit"
+        const val LABEL = "strands.editor.word.label"
         const val WARN = "Warn"
 
         /** The outlined box's 56dp floor with the theme's body line. */
         val ONE_BOX = 60.dp
+
+        /** The top rows that hold the box border at this density: the border is 1dp, or 3dp focused. */
+        const val BORDER_ROWS = 2
     }
 }
