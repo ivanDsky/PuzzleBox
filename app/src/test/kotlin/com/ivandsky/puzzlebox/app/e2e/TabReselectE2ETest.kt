@@ -1,9 +1,12 @@
 package com.ivandsky.puzzlebox.app.e2e
 
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasTextExactly
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
@@ -56,19 +59,23 @@ class TabReselectE2ETest {
     @Test
     fun `with the flag off reselecting Home at its root leaves the list scrolled`() = shellRobot {
         assertRoute(HOME)
-        scrollTodayDown()
+        scrollTodayDown("PuzzleBox")
 
         tapTab(HomeKey)
 
-        header().assertIsNotDisplayed()
+        header("PuzzleBox").assertIsNotDisplayed()
     }
 
-    private fun ShellRobot.scrollTodayDown() {
+    private fun ShellRobot.scrollTodayDown(title: String = "Today") {
         rule.onNodeWithTag("home.week").performScrollTo()
-        header().assertIsNotDisplayed()
+        header(title).assertIsNotDisplayed()
     }
 
-    private fun ShellRobot.header() = rule.onNodeWithText("PuzzleBox")
+    // Under NavV2 the header reads "Today", like the tab; the tab item is not the header.
+    private fun ShellRobot.header(title: String = "Today"): SemanticsNodeInteraction {
+        val tab = hasTestTag("nav.tab.home")
+        return rule.onNode(hasTextExactly(title) and !tab and !hasAnyAncestor(tab))
+    }
 
     private fun flagOnRobot(block: ShellRobot.() -> Unit) = shellRobot(
         state = puzzleBoxNavigationState(navV2 = true),

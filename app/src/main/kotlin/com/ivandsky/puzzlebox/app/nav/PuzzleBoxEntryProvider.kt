@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.history.navigation.historyEntry
 import com.ivandsky.puzzlebox.home.HomeLayout
+import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.HomeSummaries
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
 import com.ivandsky.puzzlebox.model.GameId
@@ -67,6 +68,7 @@ internal fun puzzleBoxEntryProvider(
         navigator,
         homeLayout,
         hideOwnedElsewhere = navV2,
+        title = topLevelDestinations(navV2).first { it.key == HomeKey }.label.takeIf { navV2 },
         summaries = HomeSummaries(
             onOpenRank = { libraryRequests.openGamePage(navigator, it.value) },
             onOpenDuels = { libraryRequests.openGamesSection(navigator, GamesTab.Duels) },

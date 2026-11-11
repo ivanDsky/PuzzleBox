@@ -70,6 +70,7 @@ class HomeScreenTest {
         hideOwnedElsewhere: Boolean = false,
         rank: TodayRank? = null,
         summaries: HomeSummaries? = null,
+        title: String? = null,
     ) {
         composeRule.setContent {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
@@ -81,6 +82,7 @@ class HomeScreenTest {
                         onOpenProfile = onOpenProfile,
                         modifier = Modifier,
                         hideOwnedElsewhere = hideOwnedElsewhere,
+                        title = title ?: HomeDefaultTitle,
                         summaries = summaries,
                     )
                 }
@@ -356,6 +358,14 @@ class HomeScreenTest {
         composeRule.runOnIdle { reselect.tryEmit(Unit) }
 
         composeRule.onNodeWithText("PuzzleBox").assertIsDisplayed()
+    }
+
+    @Test
+    fun `a title from the app replaces the default header title`() {
+        setContent(HomeLayout.SinglePane, title = "Heading from the app")
+
+        composeRule.onNodeWithText("Heading from the app").assertIsDisplayed()
+        composeRule.onNodeWithText(HomeDefaultTitle).assertDoesNotExist()
     }
 
     @Test

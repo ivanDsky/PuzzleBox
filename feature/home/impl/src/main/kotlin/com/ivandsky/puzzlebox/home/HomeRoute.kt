@@ -29,6 +29,7 @@ fun HomeRoute(
     viewModel: HomeViewModel = koinViewModel(),
     hideOwnedElsewhere: Boolean = false,
     summaries: HomeSummaries? = null,
+    title: String = HomeDefaultTitle,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
@@ -48,6 +49,7 @@ fun HomeRoute(
         onOpenHistory = onOpenHistory,
         hideOwnedElsewhere = hideOwnedElsewhere,
         summaries = summaries,
+        title = title,
         onOpenUpdate = { url ->
             // AndroidUriHandler throws this when no app can open the link; the tap then does nothing (A6).
             try {
