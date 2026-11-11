@@ -28,6 +28,8 @@ android {
         listOf("zip", "queens", "tango", "sudoku").forEach { game ->
             getByName("test").resources.srcDir("../games/$game/src/test/resources")
         }
+        // The LinkedIn account E2Es answer with core/network's sanitized account fixtures, read in place for the same reason.
+        getByName("test").resources.srcDir("../core/network/src/test/resources")
     }
 
     // The release key lives outside the repo (owner: ~/.gradle/gradle.properties, CI: -P from
