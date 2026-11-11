@@ -3,15 +3,18 @@ package com.ivandsky.puzzlebox.compete.reveal
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.DuelSettings
+import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.domain.MatchVerdict
 import com.ivandsky.puzzlebox.domain.Outcome
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.abs
 
 /** How the duel ended for the viewer. */
 internal enum class VerdictKind { Win, Loss, Draw }
@@ -20,8 +23,15 @@ internal enum class VerdictKind { Win, Loss, Draw }
 internal data class SummaryTiles(val puzzlesWon: Int, val puzzles: Int, val fastestMs: Long?, val totalMs: Long)
 
 /**
+ * How far apart a puzzle's two results were, for the margin bar: [ratio] (0..1) of the widest gap in the match (which
+ * side it leans to is the row's winner) and the short [label] at the bar's end ("14 s", "2 hints", "tie", "—").
+ */
+internal data class RowMargin(val ratio: Float, val label: String)
+
+/**
  * One line of the puzzles list: the card's title and basis, each side's time text ("Gave up" or "No result" without
- * one), the [winner] (null when nobody took the puzzle) and whether the puzzle was [tied].
+ * one), the [winner] (null when nobody took the puzzle), whether the puzzle was [tied], the [margin], and, in a game
+ * that ranks on hints, each side's hint count ([myHints], [theirHints]; null elsewhere).
  */
 internal data class PuzzleRow(
     val gameId: GameId,
@@ -31,6 +41,9 @@ internal data class PuzzleRow(
     val theirs: String,
     val winner: Side?,
     val tied: Boolean,
+    val margin: RowMargin,
+    val myHints: String? = null,
+    val theirHints: String? = null,
 )
 
 /** Everything the summary draws and shares, from the viewer's side. */
@@ -90,21 +103,61 @@ internal fun summaryTiles(legs: List<LegReveal>): SummaryTiles {
     )
 }
 
-internal fun puzzleRows(cards: List<RevealCard>): List<PuzzleRow> = cards.map { card ->
-    PuzzleRow(
-        gameId = card.leg.gameId,
-        title = card.title,
-        basis = card.basis,
-        mine = timeText(card.leg.mine),
-        theirs = timeText(card.leg.theirs),
-        winner = when (card.leg.verdict) {
-            is LegVerdict.Win -> Side.Mine
-            is LegVerdict.Loss -> Side.Theirs
-            else -> null
-        },
-        tied = card.leg.verdict == LegVerdict.Draw,
-    )
+internal fun puzzleRows(cards: List<RevealCard>): List<PuzzleRow> {
+    val widest = cards.maxOfOrNull { it.leg.timeGapSeconds() ?: 0L }?.coerceAtLeast(1L) ?: 1L
+    return cards.map { card ->
+        val hinted = card.rankOrder == RankOrder.HintsThenTime
+        PuzzleRow(
+            gameId = card.leg.gameId,
+            title = card.title,
+            basis = card.basis,
+            mine = timeText(card.leg.mine),
+            theirs = timeText(card.leg.theirs),
+            winner = when (card.leg.verdict) {
+                is LegVerdict.Win -> Side.Mine
+                is LegVerdict.Loss -> Side.Theirs
+                else -> null
+            },
+            tied = card.leg.verdict == LegVerdict.Draw,
+            margin = card.leg.marginAgainst(widest),
+            myHints = card.leg.mine.hintsCaption(hinted),
+            theirHints = card.leg.theirs.hintsCaption(hinted),
+        )
+    }
 }
+
+private fun DuelSideState.hintsCaption(hinted: Boolean): String? =
+    if (hinted && this is DuelSideState.Time) hintsLabel(hints) else null
+
+private fun LegVerdict.decidedBasis(): LegBasis? = when (this) {
+    is LegVerdict.Win -> basis
+    is LegVerdict.Loss -> basis
+    else -> null
+}
+
+/** The whole-second gap of a puzzle decided on time between two timed sides; null for any other puzzle. */
+private fun LegReveal.timeGapSeconds(): Long? {
+    val a = mine as? DuelSideState.Time ?: return null
+    val b = theirs as? DuelSideState.Time ?: return null
+    return if (verdict.decidedBasis() == LegBasis.Time) marginSeconds(a.timeMs, b.timeMs) else null
+}
+
+/** The bar of a puzzle: its time gap against the [widest] one (never under a sliver), a fixed stub for hints, empty for a tie. */
+private fun LegReveal.marginAgainst(widest: Long): RowMargin {
+    val a = mine as? DuelSideState.Time
+    val b = theirs as? DuelSideState.Time
+    val gap = timeGapSeconds()
+    return when {
+        gap != null -> RowMargin(maxOf(MinMarginRatio, gap.toFloat() / widest), "$gap s")
+        a != null && b != null && verdict.decidedBasis() == LegBasis.Hints -> RowMargin(HintsMarginRatio, hintsLabel(abs(a.hints - b.hints)))
+        a != null && b != null && verdict == LegVerdict.Draw -> RowMargin(0f, "tie")
+        verdict.decidedBasis() != null -> RowMargin(1f, "—")
+        else -> RowMargin(0f, "—")
+    }
+}
+
+private const val MinMarginRatio = 0.12f
+private const val HintsMarginRatio = 0.4f
 
 private fun timeText(side: DuelSideState): String = when (side) {
     is DuelSideState.Time -> formatDuration(side.timeMs)

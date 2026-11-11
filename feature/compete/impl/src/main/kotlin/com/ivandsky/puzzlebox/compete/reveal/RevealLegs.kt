@@ -15,12 +15,14 @@ import java.time.Instant
 import kotlin.math.abs
 
 /**
- * One puzzle of the race as the screen draws it: the machine's [leg], the card's [title], the game's [rankOrder]
- * (which figure `DuelCompare` leads with), the [basis] line under the sides and the [pill] naming who took it.
+ * One puzzle of the race as the screen draws it: the machine's [leg], the card's [title], the short [chip] the tablet
+ * strip shows beside the game glyph, the game's [rankOrder] (which figure `DuelCompare` leads with), the [basis] line
+ * under the sides and the [pill] naming who took it.
  */
 internal data class RevealCard(
     val leg: LegReveal,
     val title: String,
+    val chip: String,
     val rankOrder: RankOrder,
     val basis: String,
     val pill: String,
@@ -48,11 +50,16 @@ internal fun revealPlan(view: MatchView, nameOf: (GameId) -> String, rankOrderOf
         val order = rankOrderOf(gameId)
         val mySide = mySide(mine[index])
         val theirSide = theirSide(view.theirs.getOrNull(index))
+        val ref = leg.ref
         RevealCard(
             leg = LegReveal(gameId, mySide, theirSide, verdict),
-            title = when (val ref = leg.ref) {
+            title = when (ref) {
                 is LegRef.Daily -> "${nameOf(gameId)} #${ref.number}"
                 is LegRef.Custom -> "Friend's puzzle"
+            },
+            chip = when (ref) {
+                is LegRef.Daily -> "#${ref.number}"
+                is LegRef.Custom -> "Friend's"
             },
             rankOrder = order,
             basis = basisLine(verdict, mySide, theirSide, order, opponent.name),
@@ -115,7 +122,7 @@ private fun drawLine(mine: DuelSideState, theirs: DuelSideState, order: RankOrde
 }
 
 /** The gap in whole seconds, each time floored first: what the figures show and the outcome decides on (59.0 vs 60.9 is "1 s"). */
-private fun marginSeconds(aMs: Long, bMs: Long): Long = abs(aMs / MS_PER_SECOND - bMs / MS_PER_SECOND)
+internal fun marginSeconds(aMs: Long, bMs: Long): Long = abs(aMs / MS_PER_SECOND - bMs / MS_PER_SECOND)
 
 private const val MS_PER_SECOND = 1_000L
 
