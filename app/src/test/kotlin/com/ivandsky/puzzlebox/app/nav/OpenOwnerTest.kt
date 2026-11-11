@@ -14,7 +14,7 @@ import org.junit.Test
 
 /**
  * Go to owner: a tab-root key selects its owner tab and resets it to the root, pushing
- * nothing; every other key, and an owner tab missing from the live set, is a plain push.
+ * nothing; every other key is a plain push.
  */
 class OpenOwnerTest {
 
