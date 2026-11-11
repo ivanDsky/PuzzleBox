@@ -1,9 +1,6 @@
-package com.ivandsky.puzzlebox.play.linkedin
+package com.ivandsky.puzzlebox.domain.linkedin
 
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
-import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
-import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
-import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,12 +16,12 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * One screen's LinkedIn data for the (game, day) it shows. Plain class with no scope of its own: its owner
- * collects [view], and that collection is the only thing that runs a sync, so a day nobody looks at asks
- * LinkedIn nothing.
+ * One screen's LinkedIn data for the (game, day) it shows: observing it, syncing it once it has stayed, and the
+ * Retry and Resume the day card offers. Plain class with no scope of its own: its owner collects the flow [invoke] returns, and that
+ * collection is the only thing that runs a sync, so a day nobody looks at asks LinkedIn nothing.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-class LinkedInDayState(
+class ObserveLinkedInDayView(
     private val observe: ObserveLinkedInDay,
     private val sync: SyncLinkedInDay,
     private val link: LinkedInLink,
@@ -42,7 +39,7 @@ class LinkedInDayState(
      * (debounced by [SyncLinkedInDay]); [target] changing or the collector going away cancels both the
      * observation and a sync still waiting out its debounce. Nothing runs without a collector.
      */
-    fun view(target: Flow<Target?>): Flow<LinkedInDayView?> = channelFlow {
+    operator fun invoke(target: Flow<Target?>): Flow<LinkedInDayView?> = channelFlow {
         val shown = MutableStateFlow<Target?>(null)
         launch {
             resumes.collect {
@@ -69,7 +66,7 @@ class LinkedInDayState(
             .collect { send(it) }
     }
 
-    /** The view of [target]'s day as the phone holds it. Calls nothing: another collector's [view] syncs the day. */
+    /** The view of [target]'s day as the phone holds it. Calls nothing: another collector's [invoke] syncs the day. */
     fun observed(target: Target): Flow<LinkedInDayView> = observe(target.game, target.day)
 
     /** The user asked again (Retry): the same day, one more sync. Does nothing unless a collector is on a day. */

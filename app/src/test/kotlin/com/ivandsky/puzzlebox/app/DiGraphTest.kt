@@ -38,6 +38,7 @@ import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.CreateLinkedInLink
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -172,6 +173,7 @@ class DiGraphTest : KoinTest {
         try {
             assertNotNull(koinApp.koin.get<SyncLinkedInDay>())
             assertNotNull(koinApp.koin.get<ObserveLinkedInDay>())
+            assertNotNull(koinApp.koin.get<ObserveLinkedInDayView>())
             assertNotNull(koinApp.koin.get<CreateLinkedInLink>())
         } finally {
             stopKoin() // close() alone leaves the JVM-global context registered for later tests

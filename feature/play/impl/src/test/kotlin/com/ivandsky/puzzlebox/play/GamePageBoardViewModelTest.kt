@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
@@ -24,7 +25,6 @@ import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
-import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -120,7 +120,7 @@ class GamePageBoardViewModelTest {
     private val observeLinkedIn = ObserveLinkedInDay(phone, registry)
 
     /** A holder like the page's; the board only observes it. */
-    private fun holder() = LinkedInDayState(observeLinkedIn, syncLinkedIn, FakeLinkedInLink())
+    private fun holder() = ObserveLinkedInDayView(observeLinkedIn, syncLinkedIn, FakeLinkedInLink())
 
     /** A board with LinkedIn on. */
     private fun linkedInModel() = GamePageBoardViewModel(

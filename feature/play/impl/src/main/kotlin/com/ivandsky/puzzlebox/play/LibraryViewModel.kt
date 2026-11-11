@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
-import com.ivandsky.puzzlebox.domain.ArchiveDay
 import com.ivandsky.puzzlebox.domain.ArchiveProgress
 import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.FriendPuzzleRow
@@ -19,6 +18,7 @@ import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -27,7 +27,6 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.TutorialSession
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
-import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState
 import com.ivandsky.puzzlebox.play.linkedin.libraryView
 import java.time.LocalDate
 import java.time.YearMonth
@@ -73,17 +72,6 @@ internal data class LibraryRowModel(
     val cardDay: LocalDate? get() = progress?.range?.endInclusive
 }
 
-/**
- * The selected game's calendar (A26): the shown [month] and its archive [days], and the
- * [picked] past day the day card shows (null = today).
- */
-internal data class ArchivePageState(
-    val game: GameId,
-    val month: YearMonth,
-    val days: List<ArchiveDay>,
-    val picked: ArchiveDay?,
-)
-
 /** An open lesson: [game]'s tutorial running in [session]. */
 internal data class OpenLesson(val game: GameId, val session: TutorialSession)
 
@@ -91,24 +79,24 @@ internal data class OpenLesson(val game: GameId, val session: TutorialSession)
 internal data class FriendCardModel(val row: FriendPuzzleRow, val gameName: String, val brand: GameBrand)
 
 /**
- * The games library's state holder (A25–A29): the [PlaySessionStore]'s playable games,
- * each with its [ObserveTodaySet] status, today's puzzle number, its [ObserveArchiveProgress]
- * and its [ObserveGameStats]. Today's number is the captured history's, else the source's
+ * The games library's state holder: the [PlaySessionStore]'s playable games, each with its
+ * [ObserveTodaySet] status, today's puzzle number, its [ObserveArchiveProgress] and its
+ * [ObserveGameStats]. Today's number is the captured history's, else the source's
  * ([DailyRepository.puzzleNumber]), else the archive's count, which ends on today.
  *
  * The sources are collected only while the library is observed (plus a 5 s grace), so a
  * library left in a back stack across a deep sleep re-reads the day when it shows again.
- * Each start prefetches today's uncached puzzles ([syncToday], A12), so a game that can't
- * load reads Offline. The lesson lives here, so a rotation keeps its step. [friends] is
- * From friends ([ObserveFriendPuzzles]), each puzzle under its game's name and brand; a
+ * Each start prefetches today's uncached puzzles ([syncToday]), so a game that can't load
+ * reads Offline. The lesson lives here, so a rotation keeps its step. [friends] is From
+ * friends ([ObserveFriendPuzzles]), each puzzle under its game's name and brand; a
  * [removeFriend] hides the card at once and deletes it when its Undo window closes
  * ([FriendRemoval]), in [appScope] so the delete outlives this screen.
  *
  * The selected game's [page] is its calendar month ([ObserveArchiveMonth], today's until
  * [showMonth]) and the past day [pick]ed for the day card; a month change keeps the picked
- * day, and a game switch or [backToToday] returns both to today. [linkedIn] is the LinkedIn account
- * feature's holder, null while it is off; the day card collects [linkedInView] and calls the
- * holder's own retry and resume.
+ * day, and a game switch or [backToToday] returns both to today. [linkedIn] is the LinkedIn
+ * day watcher, null while the feature is off; the day card collects [linkedInView] and calls
+ * its retry and resume.
  */
 class LibraryViewModel(
     store: PlaySessionStore,
@@ -126,7 +114,7 @@ class LibraryViewModel(
     friendPuzzles: ObserveFriendPuzzles,
     deleteReceivedPuzzle: DeleteReceivedPuzzle,
     appScope: CoroutineScope,
-    internal val linkedIn: LinkedInDayState?,
+    internal val linkedIn: ObserveLinkedInDayView?,
 ) : ViewModel() {
 
     private val seed: List<LibraryRowModel> = store.playable.map { (game, name) ->
@@ -210,7 +198,7 @@ class LibraryViewModel(
     @OptIn(ExperimentalCoroutinesApi::class)
     internal val page: StateFlow<ArchivePageState?> =
         combine(selected, month, picked, ::Triple)
-            .flatMapLatest { (game, shown, day) -> pageOf(game, shown, day) }
+            .flatMapLatest { (game, shown, day) -> archiveMonth.page(game, shown, day, calendar) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     /** The day card's LinkedIn view; no stop grace, so a sync still in its debounce dies with the card. */
@@ -271,22 +259,9 @@ class LibraryViewModel(
         viewModelScope.launch { prefs.markTutorialSeen(open.game) }
     }
 
-    private fun pageOf(game: GameId, shown: YearMonth?, day: LocalDate?): Flow<ArchivePageState?> {
-        val target = shown ?: calendar.today(game)?.let(YearMonth::from) ?: return flowOf(null)
-        val days = archiveMonth(game, target)
-        if (day == null) return days.map { ArchivePageState(game, target, it, null) }
-        val dayMonth = YearMonth.from(day)
-        if (dayMonth == target) {
-            return days.map { list -> ArchivePageState(game, target, list, list.firstOrNull { it.date == day }) }
-        }
-        // The picked day sits in another month: its own query keeps its status live.
-        return combine(days, archiveMonth(game, dayMonth)) { list, other ->
-            ArchivePageState(game, target, list, other.firstOrNull { it.date == day })
-        }
-    }
-
     private fun todayNumber(game: GameId, archive: ArchiveProgress?): Int? =
         calendar.today(game)?.let { daily.puzzleNumber(game, it) } ?: archive?.total
+
     private fun <T> perGame(source: (GameId) -> Flow<T>): Flow<Map<GameId, T>> =
         if (seed.isEmpty()) {
             flowOf(emptyMap())
