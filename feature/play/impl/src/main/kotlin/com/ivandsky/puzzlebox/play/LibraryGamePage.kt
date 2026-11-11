@@ -91,7 +91,7 @@ internal fun LibraryGamePage(
         hasLesson = hasLesson,
         scroll = scroll,
         // The board shows the day the day card shows: the picked day, else the card's own latest day.
-        board = { GamePageBoard(game, linkedIn = linkedIn != null, picked = past?.date, cardDay = row.progress?.range?.endInclusive) },
+        board = { GamePageBoard(game, linkedIn = linkedIn != null, picked = past?.date, cardDay = row.cardDay) },
         onOpenHistory = onOpenGameHistory,
     )
 }
