@@ -107,7 +107,7 @@ class ProcessDeathE2ETest {
     fun `N20 a Result saved from Play renders after process death, and Play again reopens its day`() = shellRobot(playHub) {
         solveThenDie(todaySlot)
         awaitTag(RESULT_SCREEN)
-
+        awaitActionable(PLAY_AGAIN)
         rule.onNodeWithTag(PLAY_AGAIN).performScrollTo().performClick()
         rule.waitForIdle()
 
