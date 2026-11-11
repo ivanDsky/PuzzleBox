@@ -14,7 +14,7 @@ android {
         applicationId = "com.ivandsky.puzzlebox"
         // Agent builds pass -PagentVersionCode/-PagentVersionName (deliver build_identity.py); the fallback is the committed release value.
         versionCode = providers.gradleProperty("agentVersionCode").orNull?.toInt() ?: 100
-        versionName = providers.gradleProperty("agentVersionName").orNull ?: "0.26.0"
+        versionName = providers.gradleProperty("agentVersionName").orNull ?: "0.26.1"
         // Device tests run on a plain Application; each test starts its own E2eKoinGraph.
         testInstrumentationRunner = "com.ivandsky.puzzlebox.app.device.PuzzleBoxTestRunner"
     }
