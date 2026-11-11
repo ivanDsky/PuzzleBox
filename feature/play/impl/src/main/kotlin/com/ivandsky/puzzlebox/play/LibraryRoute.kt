@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.compete.api.DuelKey
+import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -252,9 +253,12 @@ internal fun LibraryScreen(
         }
     } else {
         BackHandler(enabled = pageOpen) { pageOpen = false }
+        val pageShown = pageOpen && selected != null
+        // The list isn't composed under the page, so the page takes the reselect: it closes first.
+        if (pageShown) OnTabReselect { pageOpen = false }
         val reduced = rememberReducedMotion()
         AnimatedContent(
-            targetState = pageOpen && selected != null,
+            targetState = pageShown,
             transitionSpec = { libraryPush(reduced) },
             label = "library-push",
             modifier = modifier.fillMaxSize(),
