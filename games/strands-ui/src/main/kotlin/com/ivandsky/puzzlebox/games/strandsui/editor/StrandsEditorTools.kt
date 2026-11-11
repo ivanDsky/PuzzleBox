@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -18,7 +17,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -29,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.designsystem.LocalWarning
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -37,15 +36,44 @@ import com.ivandsky.puzzlebox.games.strands.editor.StrandsDictionary
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import kotlinx.coroutines.withContext
 
-/** What the word field says of the text typed so far: the dictionary's verdict, or [NoPath] with no path to type onto. */
-internal enum class WordCheck { Empty, NoPath, Prefix, Word, Unknown }
+/** What the dictionary says of the text typed so far. */
+internal enum class WordMatch { Empty, Prefix, Word, Unknown }
 
 /** [text] is a dictionary word, the start of one, or neither. */
-internal fun wordCheck(text: String): WordCheck = when {
-    text.isEmpty() -> WordCheck.Empty
-    StrandsDictionary.contains(text) -> WordCheck.Word
-    StrandsDictionary.hasPrefix(text) -> WordCheck.Prefix
-    else -> WordCheck.Unknown
+internal fun wordMatch(text: String): WordMatch = when {
+    text.isEmpty() -> WordMatch.Empty
+    StrandsDictionary.contains(text) -> WordMatch.Word
+    StrandsDictionary.hasPrefix(text) -> WordMatch.Prefix
+    else -> WordMatch.Unknown
+}
+
+/**
+ * What a lookup that [answered] for [settled] text still tells of the [current] text while its own
+ * lookup is pending. Text that is not a dictionary word and not the start of one stays so when
+ * letters are added, so that verdict carries over and the warning does not blink on each
+ * keystroke. Anything else is not known yet, and is quiet.
+ */
+internal fun settledMatch(settled: String, answered: WordMatch, current: String): WordMatch = when {
+    settled == current -> answered
+    answered == WordMatch.Unknown && settled.isNotEmpty() && current.startsWith(settled) -> WordMatch.Unknown
+    else -> WordMatch.Empty
+}
+
+/**
+ * What the word field shows under its border, when it shows anything: [NoPath] with no path to
+ * type onto, or [Warn] for text outside the dictionary. A quiet field has no check at all.
+ */
+internal enum class WordCheck { NoPath, Warn }
+
+/**
+ * Whether text of [length] letters that is a [match] of the dictionary can't become a word on a
+ * path of [cells] cells: it is not a word and not the start of one, or it fills the path and is
+ * still only the start of one. A word, an empty field and a prefix with room left are quiet.
+ */
+internal fun warnsFor(match: WordMatch, length: Int, cells: Int): Boolean = when (match) {
+    WordMatch.Unknown -> true
+    WordMatch.Prefix -> length >= cells
+    WordMatch.Empty, WordMatch.Word -> false
 }
 
 /** The dispatchers the editor tools work on; tests swap in their own. */
@@ -55,17 +83,20 @@ internal val LocalEditorDispatchers = staticCompositionLocalOf<DispatcherProvide
 
 /**
  * The word field (`strands.editor.word`): letters only, checked against the dictionary as
- * they are typed; the verdict is on `strands.editor.word.check` as its state description.
+ * they are typed. It is quiet for a dictionary word, a word still being typed and an empty
+ * field. Only text that is not a dictionary word and can't become one ([warnsFor]) warns: an
+ * amber border ([LocalWarning], not the error red) and `strands.editor.word.check` ([WordCheck.Warn],
+ * [StrandsEditorCopy.NOT_IN_DICTIONARY]) under the field, which says it can still be used.
  * With no path selected the field is off and says so ([WordCheck.NoPath]): nothing waits for a
  * later trace. Text longer than the selected path stays in the field, and
  * `strands.editor.word.fit` ([StrandsEditorCopy.overflow], state `TooLong`) replaces the
- * dictionary line to say how much of it the path takes.
+ * dictionary line, so the field is an error and not a warning.
  *
  * [compact] (the phone board) keeps the field one 56dp box: the label rests as its placeholder
- * (the trace-first hint while off, kept at onSurfaceVariant to stay 4.5:1) and the verdict is a
- * trailing icon whose description reads it; once a word hides the placeholder, the field's
- * description still names it. Only the fit line still shows under the field, while the word is
- * too long: it says what to fix, so it is shown, not just announced.
+ * (the trace-first hint while off, kept at onSurfaceVariant to stay 4.5:1); once a word hides
+ * the placeholder, the field's description still names it. The warning line and the fit line
+ * show under the field only while they apply: each says what to know or fix, so it is shown,
+ * not just announced.
  */
 @Composable
 internal fun StrandsWordField(controller: StrandsEditorController, modifier: Modifier = Modifier, compact: Boolean = false) {
@@ -75,16 +106,30 @@ internal fun StrandsWordField(controller: StrandsEditorController, modifier: Mod
     val cells = selected?.let { (editorDraft.state.draft as StrandsDraft).paths.getOrNull(it)?.cells?.size }
     val overflow = cells != null && word.length > cells
     val dispatchers = LocalEditorDispatchers.current
-    // The first lookup loads the word set; it runs off the main thread, Empty until it answers.
-    val lookup by produceState(WordCheck.Empty, word) {
-        value = withContext(dispatchers.default) { wordCheck(word) }
+    // The first lookup loads the word set; it runs off the main thread. Its answer is kept with
+    // the text it is for, and [settledMatch] says what it still tells of newer text.
+    val lookup by produceState(Pair("", WordMatch.Empty), word) {
+        value = word to withContext(dispatchers.default) { wordMatch(word) }
     }
-    val check = if (cells == null) WordCheck.NoPath else lookup
+    val match = settledMatch(lookup.first, lookup.second, word)
+    val check = when {
+        cells == null -> WordCheck.NoPath
+        !overflow && warnsFor(match, word.length, cells) -> WordCheck.Warn
+        else -> null
+    }
     val label: @Composable () -> Unit = {
         WordLabel(if (compact && check == WordCheck.NoPath) StrandsEditorCopy.TRACE_FIRST else StrandsEditorCopy.WORD_FIELD)
     }
-    val verdictIcon: @Composable () -> Unit = { WordCheckIcon(check, overflow) }
-    val verdictLine: @Composable () -> Unit = { WordCheckLine(check) }
+    val trailing: (@Composable () -> Unit)? = when {
+        !compact -> null
+        overflow -> {
+            { Icon(PuzzleIcons.Close, contentDescription = null, modifier = Modifier.size(CheckIconSize)) }
+        }
+        check == WordCheck.NoPath -> {
+            { NoPathMark() }
+        }
+        else -> null
+    }
     val fit: @Composable () -> Unit = {
         Text(
             text = StrandsEditorCopy.overflow(word.length, cells ?: 0),
@@ -93,6 +138,21 @@ internal fun StrandsWordField(controller: StrandsEditorController, modifier: Mod
                 .semantics { stateDescription = "TooLong" },
         )
     }
+    val line: @Composable () -> Unit = { WordCheckLine(check) }
+    // The off field dims its placeholder below 4.5:1; the trace-first hint must stay readable.
+    val readable = MaterialTheme.colorScheme.onSurfaceVariant
+    val amber = LocalWarning.current
+    val colors = if (check == WordCheck.Warn) {
+        OutlinedTextFieldDefaults.colors(
+            disabledPlaceholderColor = readable,
+            focusedBorderColor = amber,
+            unfocusedBorderColor = amber,
+            focusedLabelColor = amber,
+            unfocusedLabelColor = amber,
+        )
+    } else {
+        OutlinedTextFieldDefaults.colors(disabledPlaceholderColor = readable)
+    }
     OutlinedTextField(
         value = word,
         onValueChange = controller::typeWord,
@@ -100,14 +160,19 @@ internal fun StrandsWordField(controller: StrandsEditorController, modifier: Mod
         singleLine = true,
         label = label.takeUnless { compact },
         placeholder = label.takeIf { compact },
-        trailingIcon = verdictIcon.takeIf { compact },
+        trailingIcon = trailing,
         // Only a word the path can't hold is an error: a word outside the dictionary is allowed.
         isError = overflow,
-        // Too long, the dictionary verdict is moot: only the fit line shows.
-        supportingText = if (overflow) fit else verdictLine.takeUnless { compact },
+        supportingText = when {
+            // Too long, the dictionary verdict is moot: only the fit line shows.
+            overflow -> fit
+            check == WordCheck.Warn -> line
+            // The phone's field is one box: its placeholder carries the hint, a quiet field no line.
+            compact -> null
+            else -> line
+        },
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
-        // The off field dims its placeholder below 4.5:1; the trace-first hint must stay readable.
-        colors = OutlinedTextFieldDefaults.colors(disabledPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant),
+        colors = colors,
         modifier = modifier
             .fillMaxWidth()
             .padding(top = Spacing.sm)
@@ -121,71 +186,43 @@ private fun WordLabel(text: String) {
     Text(text, Modifier.testTag("strands.editor.word.label"), maxLines = 1, overflow = TextOverflow.Ellipsis)
 }
 
-/** The dictionary verdict under the full field. */
+/**
+ * The line under the full field: the trace-first hint, the dictionary warning, or, for a quiet
+ * field, an unseen blank that keeps the line's height.
+ */
 @Composable
-private fun WordCheckLine(check: WordCheck) {
-    Text(
+private fun WordCheckLine(check: WordCheck?) {
+    if (check == null) {
         // A no-break space, not "": an empty paragraph measures shorter than a line, and the
-        // field, and the phone board sized round it, would shrink and grow with the verdict.
-        text = verdictOf(check) ?: "\u00A0",
+        // pane below would shrink and grow with the warning.
+        Text("\u00A0")
+        return
+    }
+    Text(
+        text = when (check) {
+            WordCheck.NoPath -> StrandsEditorCopy.TRACE_FIRST
+            WordCheck.Warn -> StrandsEditorCopy.NOT_IN_DICTIONARY
+        },
         // The off field dims its supporting text below 4.5:1; the hint must stay readable.
-        color = if (check == WordCheck.NoPath) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified,
+        color = when (check) {
+            WordCheck.NoPath -> MaterialTheme.colorScheme.onSurfaceVariant
+            WordCheck.Warn -> LocalWarning.current
+        },
         modifier = Modifier
             .testTag("strands.editor.word.check")
             .semantics { stateDescription = check.name },
     )
 }
 
-/**
- * The compact field's verdict: a tick for a word, a question mark for one outside the
- * dictionary (a caution, not a rejection), a pencil while it can still become a word, its
- * description the verdict; nothing while empty or off, where the placeholder speaks. Too long,
- * the cross is the fit line's and carries no verdict.
- */
+/** The compact off field's check: no mark, only the state; the placeholder speaks the hint. */
 @Composable
-private fun WordCheckIcon(check: WordCheck, overflow: Boolean) {
-    if (overflow) {
-        Icon(PuzzleIcons.Close, contentDescription = null, modifier = Modifier.size(CheckIconSize))
-        return
-    }
-    val verdict = verdictOf(check).takeUnless { check == WordCheck.NoPath }
+private fun NoPathMark() {
     Box(
         Modifier
             .size(CheckIconSize)
             .testTag("strands.editor.word.check")
-            .semantics {
-                stateDescription = check.name
-                if (verdict != null) contentDescription = verdict
-            },
-    ) {
-        val icon = when (check) {
-            WordCheck.Word -> PuzzleIcons.Check
-            WordCheck.Unknown -> PuzzleIcons.HowTo
-            WordCheck.Prefix -> PuzzleIcons.Create
-            WordCheck.Empty, WordCheck.NoPath -> null
-        }
-        if (icon != null) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = when (check) {
-                    WordCheck.Word -> MaterialTheme.colorScheme.primary
-                    // Neutral, never the error red: the word is allowed.
-                    WordCheck.Unknown -> MaterialTheme.colorScheme.onSurfaceVariant
-                    else -> LocalContentColor.current
-                },
-            )
-        }
-    }
-}
-
-/** What the dictionary says of the word, or null while nothing is typed. */
-private fun verdictOf(check: WordCheck): String? = when (check) {
-    WordCheck.Empty -> null
-    WordCheck.NoPath -> StrandsEditorCopy.TRACE_FIRST
-    WordCheck.Prefix -> "Keep typing"
-    WordCheck.Word -> "In the dictionary"
-    WordCheck.Unknown -> StrandsEditorCopy.NOT_IN_DICTIONARY
+            .semantics { stateDescription = WordCheck.NoPath.name },
+    )
 }
 
 private val CheckIconSize = 24.dp

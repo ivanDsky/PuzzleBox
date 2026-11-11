@@ -19,10 +19,11 @@ internal object StrandsEditorCopy {
     const val TRACE_FIRST = "Trace a word first"
 
     /**
-     * The word field's line and the compact icon's description for a word the dictionary doesn't
-     * have: a warning, not a rule. Theme words and the spangram may be any letters.
+     * The word field's warning line for text the dictionary doesn't have and can't grow into: it
+     * explains the amber border and says the text is still allowed, since theme words and the
+     * spangram may be any letters.
      */
-    const val NOT_IN_DICTIONARY = "Not in dictionary, still allowed"
+    const val NOT_IN_DICTIONARY = "Not in the dictionary, but you can still use it"
 
     /** Under the word field when [letters] outrun the selected path's [cells]: the extra ones are kept, not written. */
     fun overflow(letters: Int, cells: Int): String {

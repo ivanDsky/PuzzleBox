@@ -31,7 +31,6 @@ import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -88,53 +87,6 @@ class StrandsEditorWordTest {
     private fun SemanticsNodeInteraction.state(): String? =
         fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
 
-    private fun showPane() = rule.setContent {
-        PuzzleBoxTheme {
-            CompositionLocalProvider(LocalEditorDispatchers provides QueueDispatcherProvider(queue)) {
-                StrandsEditorUi.PaneTools(controller, Modifier)
-            }
-        }
-    }
-
-    private fun isError(tag: String): Boolean =
-        rule.onNodeWithTag(tag).fetchSemanticsNode().config.contains(SemanticsProperties.Error)
-
-    @Test
-    fun `a word outside the dictionary warns on the phone and is no error`() {
-        selectedPath()
-        controller.typeWord("xqzv")
-        answerLookups()
-
-        assertEquals(WordCheck.Unknown.name, rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).state())
-        assertFalse(isError("strands.editor.word"))
-        assertEquals("XQZV", board().paths.single().word)
-    }
-
-    @Test
-    fun `a word outside the dictionary warns in the tablet pane and is no error`() {
-        controller.traceTo(0)
-        controller.traceTo(1)
-        controller.traceTo(2)
-        controller.traceTo(3)
-        controller.endTrace()
-        controller.selectPath(0)
-        showPane()
-        controller.typeWord("xqzv")
-        answerLookups()
-
-        assertEquals(WordCheck.Unknown.name, rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).state())
-        assertFalse(isError("strands.editor.word"))
-    }
-
-    @Test
-    fun `a word longer than its path is still an error`() {
-        selectedPath()
-        controller.typeWord("stars")
-        answerLookups()
-
-        assertTrue(isError("strands.editor.word"))
-    }
-
     @Test
     fun `typing a word writes its letters onto the selected path and names it`() {
         selectedPath()
@@ -178,32 +130,6 @@ class StrandsEditorWordTest {
     }
 
     @Test
-    fun `the dictionary check waits for its dispatcher and never blocks typing`() {
-        selectedPath()
-        rule.onNodeWithTag("strands.editor.word").performTextInput("star")
-
-        assertEquals("STAR", board().paths.single().word)
-        assertEquals(WordCheck.Empty.name, rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).state())
-        assertTrue(queue.pending > 0)
-        answerLookups()
-        assertEquals(WordCheck.Word.name, rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).state())
-    }
-
-    @Test
-    fun `the dictionary check follows the text, an icon on the phone that describes itself`() {
-        selectedPath()
-        rule.onNodeWithTag("strands.editor.word").performTextInput("sta")
-        answerLookups()
-        assertDescribedCheck(WordCheck.Prefix)
-        controller.typeWord("star")
-        answerLookups()
-        assertDescribedCheck(WordCheck.Word)
-        controller.typeWord("xqzv")
-        answerLookups()
-        assertDescribedCheck(WordCheck.Unknown)
-    }
-
-    @Test
     fun `on the phone the field is one box, its overflow line under it only while too long`() {
         selectedPath()
         val field = rule.onNodeWithTag("strands.editor.word").getUnclippedBoundsInRoot()
@@ -239,14 +165,6 @@ class StrandsEditorWordTest {
         val luminances = (0 until pixels.width).flatMap { x -> (0 until pixels.height).map { y -> pixels[x, y].luminance() } }
         val contrast = (luminances.max() + 0.05f) / (luminances.min() + 0.05f)
         assertTrue("hint contrast $contrast under 4.5:1", contrast >= 4.5f)
-    }
-
-    /** The check node in [expected] state, with a description to read it by. */
-    private fun assertDescribedCheck(expected: WordCheck) {
-        val check = rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true)
-        assertEquals(expected.name, check.state())
-        val description = check.fetchSemanticsNode().config.getOrNull(SemanticsProperties.ContentDescription)
-        assertTrue("no description for $expected", !description.isNullOrEmpty())
     }
 
     @Test

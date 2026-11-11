@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.designsystem
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -58,6 +59,24 @@ class ColorTokensTest {
         for (surface in listOf(DarkColorScheme.surface, DarkColorScheme.surfaceContainerHigh)) {
             assertTrue(contrast(DarkPrimaryText, surface) >= 4.5f)
         }
+    }
+
+    @Test
+    fun `warning role clears text and border contrast on every surface and is not the error`() {
+        // Border >= 3:1 (non-text), line text >= 4.5:1. Light tertiary (#FF9600) is 2.18:1 on
+        // white, so light carries its own deeper step; dark reuses tertiary's amber.
+        listOf(LightWarning to LightColorScheme, DarkWarning to DarkColorScheme).forEach { (warning, scheme) ->
+            val surfaces = listOf(
+                scheme.background, scheme.surface, scheme.surfaceContainerLowest, scheme.surfaceContainerLow,
+                scheme.surfaceContainer, scheme.surfaceContainerHigh, scheme.surfaceContainerHighest,
+            )
+            for (surface in surfaces) {
+                val ratio = contrast(warning, surface)
+                assertTrue("$warning on $surface is $ratio:1, under 4.5:1", ratio >= 4.5f)
+            }
+            assertNotEquals(scheme.error, warning)
+        }
+        assertEquals(DarkColorScheme.tertiary, DarkWarning)
     }
 
     @Test

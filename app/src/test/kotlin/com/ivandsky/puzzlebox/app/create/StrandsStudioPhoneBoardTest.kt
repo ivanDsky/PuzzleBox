@@ -99,6 +99,21 @@ class StrandsStudioPhoneBoardTest {
     }
 
     @Test
+    fun `a word outside the dictionary keeps its warning line inside the board slot`() {
+        traceTheLastRow()
+        rule.runOnIdle { controller.typeWord("XQZV") }
+        // The dictionary answers off the main thread; the warning line is its answer.
+        rule.waitUntil(WARN_WAIT_MS) {
+            rule.mainClock.advanceTimeByFrame()
+            rule.onAllNodes(hasTestTag(WORD_CHECK), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        rule.mainClock.advanceTimeBy(SETTLE_MS)
+
+        rule.onNodeWithTag(WORD_CHECK, useUnmergedTree = true).assertExists()
+        assertWordFieldInTheSlot()
+    }
+
+    @Test
     fun `a word longer than the path keeps its fit line inside the board slot`() {
         traceTheLastRow()
         rule.runOnIdle { controller.typeWord(WORDS.last() + WORDS.last()) }
@@ -318,17 +333,19 @@ class StrandsStudioPhoneBoardTest {
 
     /**
      * The word field, which names a traced path, whole inside the board slot, its supporting line
-     * (the dictionary check or the fit) too: in reach and readable, not under the tools.
+     * (the dictionary warning or the fit, when either shows) too: in reach and readable, not under the tools.
      */
     private fun assertWordFieldInTheSlot() {
         val slot = slot()
         val tools = rule.onNodeWithTag(TOOL_SLOT).getUnclippedBoundsInRoot()
         // Placed: an unplaced node's bounds are unspecified, and those compare as in bounds.
         val field = rule.onNodeWithTag(WORD).assertIsDisplayed().getUnclippedBoundsInRoot()
-        val line = rule.onNode(hasTestTag(WORD_CHECK) or hasTestTag(WORD_FIT), useUnmergedTree = true).getUnclippedBoundsInRoot()
-        val bottom = maxOf(field.bottom, line.bottom)
+        // The line shows only for a warning or an overflow; a quiet field has none.
+        val lines = rule.onAllNodes(hasTestTag(WORD_CHECK) or hasTestTag(WORD_FIT), useUnmergedTree = true)
+        val bounds = lines.fetchSemanticsNodes().indices.map { lines[it].getUnclippedBoundsInRoot() }
+        val bottom = (bounds.map { it.bottom } + field.bottom).max()
         assertTrue("word field $field outside the slot $slot", field.top >= slot.top && bottom <= slot.bottom + 0.5.dp)
-        assertTrue("word field $field, its line $line, under the tools $tools", bottom <= tools.top + 0.5.dp)
+        assertTrue("word field $field, its lines $bounds, under the tools $tools", bottom <= tools.top + 0.5.dp)
     }
 
     private fun slot(): DpRect = rule.onNodeWithTag(BOARD_SLOT).getUnclippedBoundsInRoot()
@@ -447,6 +464,7 @@ class StrandsStudioPhoneBoardTest {
 
     private companion object {
         const val SETTLE_MS = 2_000L
+        const val WARN_WAIT_MS = 20_000L
 
         /** Frames of the swap watched: the slot's medium tween (240 ms) is about 15 of them. */
         const val SWAP_FRAMES = 40

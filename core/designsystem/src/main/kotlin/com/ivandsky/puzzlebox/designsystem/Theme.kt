@@ -30,6 +30,14 @@ val LocalTimerFill = staticCompositionLocalOf { LightTimerFill }
 val LocalOnFill = staticCompositionLocalOf { LightOnFill }
 
 /**
+ * Warning role (ColorTokens.kt): the border and text of something allowed but worth a second
+ * look, such as the Strands word field for a word outside the dictionary. Reads 3:1 as a
+ * border and 4.5:1 as text on every surface in both modes (ColorTokensTest). Provided by
+ * [PuzzleBoxTheme] like [LocalTimerFill].
+ */
+val LocalWarning = staticCompositionLocalOf { LightWarning }
+
+/**
  * The neutral GameButton's lip (ColorTokens.kt). Provided by [PuzzleBoxTheme] like
  * [LocalOnFill].
  */
@@ -83,6 +91,7 @@ fun PuzzleBoxTheme(
         LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText,
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
         LocalOnFill provides if (darkTheme) DarkOnFill else LightOnFill,
+        LocalWarning provides if (darkTheme) DarkWarning else LightWarning,
         LocalNeutralLip provides if (darkTheme) DarkNeutralLip else LightNeutralLip,
         LocalMutedStatus provides if (darkTheme) DarkMutedStatus else LightMutedStatus,
         LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,
