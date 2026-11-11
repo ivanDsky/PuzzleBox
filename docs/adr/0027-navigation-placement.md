@@ -1,6 +1,6 @@
 # ADR-0027 — Navigation placement: one owner per content type
 
-Date: 2026-11-09 · Status: accepted · Source: `.scratch/nav-ia/spec.md` (A1–A19) · Amended by ADR-0028 (§2 owner table gains the row "LinkedIn connection | Settings | —")
+Date: 2026-11-09 · Status: accepted · Source: `.scratch/nav-ia/spec.md` (A1–A19) · Amended by ADR-0028 (§2 owner table gains the row "LinkedIn connection | Settings | —") · Amended 2026-11-10 by the re-gate fixes F1–F8 (§2, §3, §4, §11, §12)
 
 ## Context
 The app grew screen by screen. Stats show on five screens, boards on four and the week strip on two, so no screen is
@@ -23,30 +23,41 @@ becomes Today · Games · History · Create behind `ReleaseFlag.NavV2` (ADR-0022
    | Streak + week strip | Today | — |
    | App update available | Today (the existing pill) | — |
    | Lifetime stats (solved, best streak, no-hint, days) | History (header) | — |
-   | History timeline (every past play) | History | Games › game page: "Your history" row |
+   | History timeline (every past play) | History | Games › game page: "Your history" row; Today: the recent days with "See all" to History's root, and on the tablet the picked day's detail |
    | Per-game stats (solved, hint-free, avg, best) | Games › game page | — |
    | Past-day archive (play a past day) | Games › game page | History detail: "Play this day" action |
-   | Daily leaderboards (Today/Yesterday, Top/Near you) | Games › game page | Today: "Today's rank: #12 on Zip"; Result: "You: #12 of 340" and "Full board" |
+   | Daily leaderboards (Today/Yesterday; the top five, with the player's own row pinned beneath when it ranks lower) | Games › game page | Today: "Today's rank: #12 on Zip"; Result: "You: #12 of 340" and "Full board" |
    | Duels | Games › Duels section | Today: "2 duels need you" |
    | Friends' puzzles (received, enter code) | Games › Friends section | — |
    | Drafts and published | Create | — |
    | Identity and sign in/out | Profile (opened by the avatar) | A signed-out prompt *in place* on identity-gated owners |
-   | Settings: Appearance, About (version), Developer (debug: Catalog) | Settings (opened by the gear) | — |
-   | LinkedIn connection (link state, Resume, Disconnect) | Settings (opened by the gear) | — |
+   | Settings: Appearance, About (version), Developer (debug: Catalog) | Settings (opened by Profile's top-right gear) | — |
+   | LinkedIn connection (link state, Resume, Disconnect) | Settings (opened by Profile's top-right gear) | — |
 
    A section inside a tab (the update pill) is a valid home. History (what I played) and Archive (play a past day) are
    two content types with two owners, cross-linked by one row each.
-3. **Chrome types.** Every `NavKey` has one of three:
-   - **Browse** shows the tab bar (rail on expanded width), the avatar and the gear. Tab roots and pushed lists or
-     details are Browse.
-   - **Tool** shows the bar but no avatar or gear: Profile, Settings, the Studio and editor, Catalog.
-   - **Immersive** hides the bar and shows neither: boards, results, the duel reveal.
+3. **Chrome types.** Every `NavKey` has one of two:
+   - **Bar** shows the tab bar (rail on expanded width). Tab roots, pushed lists and details, Profile, Settings, the
+     Studio and editor, and Catalog are `Bar`.
+   - **Immersive** hides the bar or rail: boards, results, a duel leg's board and result, the duel reveal.
+
+   The avatar is the shell's rule, not a chrome type. There is one avatar on a 48dp target (36dp on the rail, 28dp in
+   Today's header), and Profile is its
+   only target. On the tablet it sits at the rail's bottom on every non-immersive screen, Profile and Settings
+   included. On the phone it sits in Today's header only. Other phone screens show none, and the phone bar is
+   unchanged. The shell has no gear; the gear is Profile's own control (§4). The NavV2 rail is 96dp wide with the tabs
+   centred, a 56dp avatar slot, 28dp icons, `labelLarge` labels and 12dp gaps.
 4. **Movement rules.**
    - A summary tap switches to the owner's tab and resets it to its root. Back from that root returns to Today.
    - Every summary targets an owner's tab root. Routing to an owner that is pushed on a tab (not a root) lands with its
      first caller.
-   - The avatar opens Profile and the gear opens Settings, from every Browse screen. Both are pushed on the current
-     tab's stack, so back returns to where the user was. Settings is at most two taps from any tab root.
+   - The avatar opens Profile, pushed on the current tab's stack, so back returns to where the user was. Settings opens
+     from the gear at Profile's top right and is pushed on top of Profile, so Back from Settings returns to Profile.
+     Settings is avatar then gear: two taps on the tablet, three on the phone from a tab other than Today.
+   - Every summary row is one designsystem `SummaryLinkRow` card (56dp minimum height, extra-large corners, a raised
+     surface, a chevron): Today's rank and duels rows, the game page's "Your history" row and Result's "Full board"
+     row. The duels row opens Games at its top, on the Duels section.
+   - Profile's content starts at the same padding as Settings' (`Spacing.lg`) under the same top bar.
    - Link-ins land as before: friend link → Games, shared text → Create, update link → browser.
    - "Go to owner" composes existing reducer verbs (`selectTab` again at a non-root resets, then `push`), as shared text
      does. ADR-0011's `NavigationState` is unchanged.
@@ -72,15 +83,16 @@ becomes Today · Games · History · Create behind `ReleaseFlag.NavV2` (ADR-0022
     | You add | It goes |
     |---|---|
     | A new screen | A `NavKey`, a row in the placement table, an entry |
-    | A new Browse screen | Also: draw `LargeTopBar` or `CompactTopBar`, or draw `LocalShellActions.current` in its own header, so the avatar and gear show |
+    | A new screen's shell chrome | Nothing. The shell draws the avatar itself, and only the designsystem top bars (`LargeTopBar`, `CompactTopBar`) draw `LocalShellActions`, which the app provides to Today's entry on the phone alone. A screen never reads the slot |
     | A new tab | ADR-0011 "Adding a tab": a `Tab` value, a `TopLevelDestination` that carries it, and a `TabRoot` row |
     | A per-game play preference | The game's ⋮ menu (`GameSettingsRepository`) |
     | An app-wide preference | Settings |
     | A summary of another owner's content | One `summary.<type>` row that opens the owner |
 
 12. **The per-key table lives only in code.** `app/src/main/kotlin/com/ivandsky/puzzlebox/app/nav/Placement.kt` holds one
-    row per `NavKey`: its home (tab root of T, pushed on T, the shell, or debug-only) and its chrome. The bar-hiding
-    predicate and the avatar/gear rule derive from it. This ADR never copies it. A Konsist rule (P9, ADR-0009 conventions)
+    row per `NavKey`: its home (tab root of T, pushed on T, the shell, or debug-only) and its chrome (`Bar` or
+    `Immersive`). Only the bar-hiding predicate (`isImmersive`) derives from it; where the avatar sits is the shell's
+    rule (§3), not a table column. This ADR never copies the table. A Konsist rule (P9, ADR-0009 conventions)
     fails when a production `NavKey` has no row, and its failure text links this ADR.
 
 ## Rejected
