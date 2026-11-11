@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -113,6 +112,7 @@ internal fun ArchiveDayDiscPreview() {
     PuzzleBoxTheme {
         Row(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.lg)) {
             val day = LocalDate.parse("2026-10-14")
+            val disc = archiveDiscFor(compact = false)
             listOf(
                 PastDayStatus.Solved(41_000L),
                 PastDayStatus.InProgress(62_000L),
@@ -127,8 +127,8 @@ internal fun ArchiveDayDiscPreview() {
                     selected = index == 1,
                     offline = false,
                     accent = MaterialTheme.colorScheme.primary,
-                    cell = 56.dp,
-                    disc = 46.dp,
+                    cell = archiveCellFor(disc),
+                    disc = disc,
                     reduced = true,
                     onClick = {},
                 )
