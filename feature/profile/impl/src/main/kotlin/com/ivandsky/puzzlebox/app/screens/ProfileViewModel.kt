@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.cloud.CloudResult
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
+import com.ivandsky.puzzlebox.data.cloud.SavedBoardsCloud
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -25,6 +26,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -39,6 +41,7 @@ private const val SIGN_IN_RETRY_MESSAGE = "Sign-in failed. Please try again."
 // Delete my cloud data needs a connection (ADR-0029): offline says so and changes nothing.
 private const val ERASE_OFFLINE_MESSAGE = "You're offline. Try again when you're connected."
 private const val ERASE_FAILED_MESSAGE = "Couldn't delete your cloud data. Try again later."
+private const val DELETE_BOARDS_FAILED_MESSAGE = "Couldn't delete your saved boards. Try again later."
 
 /**
  * Profile's state holder (A20): the account read from [IdentityService.current], the sign-in
@@ -46,7 +49,8 @@ private const val ERASE_FAILED_MESSAGE = "Couldn't delete your cloud data. Try a
  * ([ObserveGameStats]). With a [link] and [observeAccount] (the LinkedIn switch is on) it also follows the LinkedIn
  * row and carries its Resume and Disconnect. The activity context the credential sheet needs (I2) is passed per
  * call and never stored. With a [cloudSync] (the CloudSync switch is on) it also carries the Google row's sync line,
- * Sync now and Delete my cloud data.
+ * Sync now and Delete my cloud data, and the LinkedIn row's saved-to-your-account copy; with a [savedBoardsCloud] it
+ * carries the LinkedIn row's Delete saved boards.
  */
 class ProfileViewModel(
     private val identityService: IdentityService,
@@ -55,6 +59,7 @@ class ProfileViewModel(
     private val link: LinkedInLink? = null,
     observeAccount: ObserveLinkedInAccount? = null,
     private val cloudSync: CloudSync? = null,
+    private val savedBoardsCloud: SavedBoardsCloud? = null,
 ) : ViewModel() {
 
     private val signIn = MutableStateFlow(ProfileUiState.Account.SignedOut())
@@ -70,7 +75,8 @@ class ProfileViewModel(
             combine(link.state, observeAccount()) { state, summary -> state.toRow(summary) }
         }
 
-    private val erase = MutableStateFlow(Erase())
+    private val erase = MutableStateFlow(Deletion())
+    private val boardsDelete = MutableStateFlow(Deletion())
 
     // Null while the feature is off: the Google row is exactly today's.
     private val sync: Flow<ProfileUiState.GoogleSync?> =
@@ -80,9 +86,18 @@ class ProfileViewModel(
             combine(cloudSync.state, erase) { state, erase -> state.toSync(erase) }
         }
 
+    // Null while neither switch is on: the LinkedIn row is exactly today's.
+    private val boards: Flow<ProfileUiState.LinkedInBoards?> =
+        if (cloudSync == null && savedBoardsCloud == null) {
+            flowOf(null)
+        } else {
+            boardsDelete.map { ProfileUiState.LinkedInBoards(cloudSync != null, savedBoardsCloud != null, it.running, it.message) }
+        }
+
     val uiState: StateFlow<ProfileUiState> =
-        combine(identityService.current, signIn, observeGameStats(), linkedIn, sync) { identity, prompt, stats, row, sync ->
-            ProfileUiState(account(identity, prompt), stats.playingSince, row, sync)
+        combine(identityService.current, signIn, observeGameStats(), linkedIn, combine(sync, boards, ::Pair)) {
+            identity, prompt, stats, row, (sync, boards) ->
+            ProfileUiState(account(identity, prompt), stats.playingSince, row, sync, boards)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -134,14 +149,29 @@ class ProfileViewModel(
     fun onDeleteCloudData() {
         val cloudSync = cloudSync ?: return
         if (erase.value.running) return
-        erase.value = Erase(running = true)
+        erase.value = Deletion(running = true)
         viewModelScope.launch {
             val message = when (cloudSync.eraseCloud()) {
                 is CloudResult.Ok -> null
                 CloudResult.Offline -> ERASE_OFFLINE_MESSAGE
                 CloudResult.Exhausted, CloudResult.Denied, CloudResult.WrongAccount -> ERASE_FAILED_MESSAGE
             }
-            erase.value = Erase(message = message)
+            erase.value = Deletion(message = message)
+        }
+    }
+
+    /** Deletes the saved boards here and in the account; a refusal stays on the LinkedIn row as its message. */
+    fun onDeleteSavedBoards() {
+        val savedBoardsCloud = savedBoardsCloud ?: return
+        if (boardsDelete.value.running) return
+        boardsDelete.value = Deletion(running = true)
+        viewModelScope.launch {
+            val message = when (savedBoardsCloud.deleteEverywhere()) {
+                is CloudResult.Ok -> null
+                CloudResult.Offline -> ERASE_OFFLINE_MESSAGE
+                CloudResult.Exhausted, CloudResult.Denied, CloudResult.WrongAccount -> DELETE_BOARDS_FAILED_MESSAGE
+            }
+            boardsDelete.value = Deletion(message = message)
         }
     }
 
@@ -169,10 +199,10 @@ class ProfileViewModel(
     }
 }
 
-/** Progress and outcome of the last Delete my cloud data call. */
-private data class Erase(val running: Boolean = false, val message: String? = null)
+/** Progress and outcome of the last Delete my cloud data or Delete saved boards call. */
+private data class Deletion(val running: Boolean = false, val message: String? = null)
 
-private fun CloudSyncState.toSync(erase: Erase): ProfileUiState.GoogleSync? {
+private fun CloudSyncState.toSync(erase: Deletion): ProfileUiState.GoogleSync? {
     val status = when (this) {
         CloudSyncState.SignedOut -> return null
         is CloudSyncState.Syncing -> ProfileUiState.GoogleSync.Status.Syncing
