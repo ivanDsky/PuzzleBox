@@ -1,8 +1,11 @@
 package com.ivandsky.puzzlebox.data.di
 
+import android.content.Context
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.CadenceGameCalendar
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.linkedin.DataStoreLinkedInLink
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInAvatars
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInCallBudget
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
@@ -37,6 +40,7 @@ import com.ivandsky.puzzlebox.database.di.databaseModule
 import com.ivandsky.puzzlebox.datastore.di.datastoreModule
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.network.di.networkModule
+import java.io.File
 import org.koin.dsl.module
 
 /**
@@ -85,11 +89,15 @@ val dataModule = module {
     single<SharedTextStore> { InMemorySharedTextStore() }
     // The LinkedIn budget is one instance for the process, so every day shares the same per-minute window.
     single { LinkedInCallBudget(nowMs = System::currentTimeMillis) }
-    single<LinkedInLink> { DataStoreLinkedInLink(get(), get(), get()) }
+    // Photos live in noBackupFilesDir: Auto Backup and device transfer never carry a connection's face.
+    single {
+        LinkedInAvatars(File(get<Context>().noBackupFilesDir, "linkedin_avatars"), get(), get<DispatcherProvider>().io)
+    }
+    single<LinkedInLink> { DataStoreLinkedInLink(get(), get(), get(), get()) }
     single<LinkedInDays> {
         RoomLinkedInDays(
             link = get(), source = get(), completions = get(), daily = get(), calendar = get(),
-            registry = get(), db = get(), budget = get(), clock = System::currentTimeMillis,
+            registry = get(), db = get(), budget = get(), avatars = get(), clock = System::currentTimeMillis,
         )
     }
 }

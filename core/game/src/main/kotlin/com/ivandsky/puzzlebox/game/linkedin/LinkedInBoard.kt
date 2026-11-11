@@ -9,5 +9,7 @@ data class LinkedInBoard(val rows: List<Row>) {
         val timeSeconds: Int?,
         val hintFree: Boolean,
         val flawless: Boolean,
+        /** The smallest profile photo LinkedIn offers, for the one-shot download; it expires, so it is never stored. */
+        val pictureUrl: String? = null,
     )
 }

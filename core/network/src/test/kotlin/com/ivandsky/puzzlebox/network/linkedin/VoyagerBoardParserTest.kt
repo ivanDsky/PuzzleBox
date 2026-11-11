@@ -18,8 +18,8 @@ class VoyagerBoardParserTest {
             listOf("ACoAAFAKE0001", "ACoAAFAKE0002", "ACoAAFAKE0003", "ACoAAFAKE0004", "ACoAAFAKE0009"),
             board.rows.map { it.memberRef },
         )
-        assertEquals(Row("ACoAAFAKE0001", "Pat Example", 14, true, false), board.rows[0])
-        assertEquals(Row("ACoAAFAKE0002", "Anna Sample", 21, false, false), board.rows[1])
+        assertEquals(Row("ACoAAFAKE0001", "Pat Example", 14, true, false, PAT_PHOTO), board.rows[0])
+        assertEquals(Row("ACoAAFAKE0002", "Anna Sample", 21, false, false, ANNA_PHOTO), board.rows[1])
         assertEquals(Row("ACoAAFAKE0003", "Lee( Q) Test", 28, true, true), board.rows[2])
         assertEquals(Row("ACoAAFAKE0009", "", 57, false, false), board.rows[4])
     }
@@ -40,6 +40,54 @@ class VoyagerBoardParserTest {
     @Test
     fun `a row without a profile record keeps its id with an empty name`() {
         assertEquals("", board.rows.single { it.memberRef == "ACoAAFAKE0009" }.name)
+    }
+
+    @Test
+    fun `the photo is the smallest artifact of the profile picture, root url plus path segment`() {
+        assertEquals(PAT_PHOTO, board.rows[0].pictureUrl)
+    }
+
+    @Test
+    fun `the framed reference is the fallback when there is no resolved one`() {
+        assertEquals(ANNA_PHOTO, board.rows[1].pictureUrl)
+    }
+
+    @Test
+    fun `no picture, a picture of an odd shape or a row without a profile record is a null photo`() {
+        assertNull(board.rows[2].pictureUrl)
+        assertNull(board.rows[3].pictureUrl)
+        assertNull(board.rows[4].pictureUrl)
+    }
+
+    @Test
+    fun `a picture without a usable artifact leaves the rest of the row alone`() {
+        val body = wrap(
+            row("ACoAAFAKE0001", ranking = "1", score = """{"timeElapsed":9}""", hintFree = "true"),
+            profiles = """{"entityUrn":"urn:li:fsd_profile:ACoAAFAKE0001","firstName":"Pat","lastName":"Example",""" +
+                """"profilePicture":{"displayImageReferenceResolutionResult":{"vectorImage":""" +
+                """{"rootUrl":"https://media.licdn.com/x_","artifacts":[{"width":"wide"},{"height":5},""" +
+                """{"width":100,"fileIdentifyingUrlPathSegment":7}]}}}}""",
+        )
+
+        val row = requireNotNull(VoyagerBoardParser.parse(body)).rows.single()
+
+        assertEquals(Row("ACoAAFAKE0001", "Pat Example", 9, true, false), row)
+    }
+
+    @Test
+    fun `an artifact list that is empty or a root url that is missing is a null photo`() {
+        val empty = """{"rootUrl":"https://media.licdn.com/x_","artifacts":[]}"""
+        val noRoot = """{"artifacts":[{"width":100,"fileIdentifyingUrlPathSegment":"a"}]}"""
+
+        listOf(empty, noRoot).forEach { vector ->
+            val body = wrap(
+                row("ACoAAFAKE0001", ranking = "1", score = """{"timeElapsed":9}""", hintFree = "true"),
+                profiles = """{"entityUrn":"urn:li:fsd_profile:ACoAAFAKE0001","firstName":"Pat",""" +
+                    """"profilePicture":{"displayImageReferenceResolutionResult":{"vectorImage":$vector}}}""",
+            )
+
+            assertNull(requireNotNull(VoyagerBoardParser.parse(body)).rows.single().pictureUrl)
+        }
     }
 
     @Test
@@ -85,13 +133,15 @@ class VoyagerBoardParserTest {
         """{"ranking":$ranking,"gameScore":$score,"completionAttributes":{"isHintFree":$hintFree},""" +
             """"isFlawless":false,"playerDetails":{"player":{"*profile":"urn:li:fsd_profile:$id"}}}"""
 
-    private fun wrap(vararg rows: String) =
-        """{"data":{"data":{"$ROOT":{"paging":{"total":${rows.size}},"elements":[${rows.joinToString(",")}]}}},"included":[]}"""
+    private fun wrap(vararg rows: String, profiles: String = "") =
+        """{"data":{"data":{"$ROOT":{"paging":{"total":${rows.size}},"elements":[${rows.joinToString(",")}]}}},"included":[$profiles]}"""
 
     private fun fixture(name: String): String =
         requireNotNull(javaClass.classLoader).getResource("fixtures/linkedin-account/$name")!!.readText()
 
     private companion object {
         const val ROOT = "identityDashGameConnectionsEntitiesByOptedInToLeaderboardAndPlayed"
+        const val PAT_PHOTO = "https://media.licdn.com/dms/image/v2/FAKE0001/profile-displayphoto-shrink_100_100/0/fake-100?e=1&t=a"
+        const val ANNA_PHOTO = "https://media.licdn.com/dms/image/v2/FAKE0002/framed-displayphoto-shrink_100_100/0/framed-100?e=1&t=b"
     }
 }

@@ -7,4 +7,6 @@ data class LinkedInGhost(
     val timeMs: Long?,
     val hintFree: Boolean,
     val flawless: Boolean,
+    /** The absolute path of the connection's cached photo; null while none has been downloaded. */
+    val photoPath: String? = null,
 )

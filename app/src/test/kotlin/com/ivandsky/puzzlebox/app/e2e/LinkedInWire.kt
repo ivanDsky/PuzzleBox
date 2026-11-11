@@ -12,6 +12,14 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.network.linkedin.linkedInAccountSource
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInPhotoSource
+import com.ivandsky.puzzlebox.network.linkedin.linkedInPhotoSource
+import okhttp3.Interceptor
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Protocol
+import okhttp3.Request
+import okhttp3.Response
+import okhttp3.ResponseBody.Companion.toResponseBody
 import java.time.Duration
 import java.time.LocalDate
 import java.util.concurrent.CopyOnWriteArrayList
@@ -65,6 +73,29 @@ internal class LinkedInWire : Dispatcher() {
 
     val requestCount: Int get() = seen.size
 
+    private val photos = CopyOnWriteArrayList<Request>()
+
+    /** Every photo request the app made, oldest first: they never reach the server, which holds only account calls. */
+    val photoRequests: List<Request> get() = photos.toList()
+
+    /**
+     * The app's real photo client over a scripted network: `media.licdn.com` is https, which a local server
+     * cannot stand in for, so every request it would send is kept and answered with a small JPEG.
+     */
+    fun photoSource(): LinkedInPhotoSource = linkedInPhotoSource(
+        Interceptor { chain ->
+            val request = chain.request()
+            photos += request
+            Response.Builder()
+                .request(request)
+                .protocol(Protocol.HTTP_1_1)
+                .code(HTTP_OK)
+                .message("OK")
+                .body(PHOTO_BYTES.toResponseBody("image/jpeg".toMediaType()))
+                .build()
+        },
+    )
+
     /** The base URL the account adapter is built over. */
     val url: String = server.url("/").toString()
 
@@ -116,6 +147,8 @@ internal class LinkedInWire : Dispatcher() {
         const val CONNECTIONS = "voyagerIdentityDashGameConnectionsEntities."
         const val FIXTURE_SOLVED_URN = "urn:li:fsd_game:($LINKEDIN_MEMBER,6,538)"
         const val HTTP_NOT_FOUND = 404
+        const val HTTP_OK = 200
+        val PHOTO_BYTES = byteArrayOf(0x4A, 0x50, 0x47)
         val GAME_URN = Regex("""urn:li:fsd_game:\([^)]*\)""")
         val GAME_TYPE = Regex("""gameTypeId:(\d+)""")
     }
@@ -131,6 +164,7 @@ internal fun linkedInGraph(wire: LinkedInWire, vararg also: ReleaseFlag, more: M
         overrides = module {
             single<LinkedInSessionCookies> { FakeLinkedInSessionCookies(sentinelSession) }
             single<LinkedInAccountSource> { linkedInAccountSource(wire.url, get()) }
+            single<LinkedInPhotoSource> { wire.photoSource() }
             more()
         },
     ).also { graph ->

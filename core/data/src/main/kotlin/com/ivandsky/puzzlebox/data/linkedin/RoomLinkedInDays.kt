@@ -27,7 +27,8 @@ import kotlinx.coroutines.flow.map
  * The only caller of the account's own-result and board reads, so every rule about asking LinkedIn
  * is kept in one place: nothing is sent while the link is paused or absent, an item is asked only
  * when its cache window says it is due and the call budget allows it, and the first rejection pauses
- * every later read. Takes no dispatcher: Room's suspend DAOs are main-safe and the source is a
+ * every later read. A connection's photo is fetched right after a board read, outside the budget and the
+ * pause latch. Takes no dispatcher: Room's suspend DAOs are main-safe and the source is a
  * suspending port.
  */
 internal class RoomLinkedInDays(
@@ -39,6 +40,7 @@ internal class RoomLinkedInDays(
     private val registry: GameRegistry,
     db: LinkedInDatabase,
     private val budget: LinkedInCallBudget,
+    private val avatars: LinkedInAvatars,
     private val clock: () -> Long,
 ) : LinkedInDays {
 
@@ -103,8 +105,10 @@ internal class RoomLinkedInDays(
         if (profileId == null) {
             flowOf(emptyList())
         } else {
-            ghostDao.observe(game.value, day.toString()).map { rows ->
-                rows.map { LinkedInGhost(it.memberRef, it.name, it.timeMs, it.hintFree, it.flawless) }
+            combine(ghostDao.observe(game.value, day.toString()), avatars.present) { rows, photos ->
+                rows.map {
+                    LinkedInGhost(it.memberRef, it.name, it.timeMs, it.hintFree, it.flawless, avatars.pathOf(it.memberRef, photos))
+                }
             }
         }
 
@@ -177,10 +181,12 @@ internal class RoomLinkedInDays(
         if (!budget.tryAcquire()) return LinkedInSync.OverBudget
         val read = source.board(request.profileId, request.typeId, todayNumber, request.delta)
         return settle(request, read) { board ->
-            ghosts.write(request.game, request.day, request.today, request.profileId, board, nowMs)
+            val kept = ghosts.write(request.game, request.day, request.today, request.profileId, board, nowMs)
             // A board read while its day is still running is partial; the outcome marks it for one more read.
             val outcome = if (request.delta == 0) LinkedInOutcome.BoardToday else LinkedInOutcome.Board
             log(request, LinkedInItem.Board, outcome, nowMs)
+            // After the ghosts and the log are stored, so a slow or failed photo never holds them back.
+            avatars.download(kept)
             null
         }
     }

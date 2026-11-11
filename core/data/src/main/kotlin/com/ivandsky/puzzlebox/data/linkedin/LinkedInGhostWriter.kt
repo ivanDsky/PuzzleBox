@@ -14,8 +14,8 @@ import java.time.LocalDate
 internal class LinkedInGhostWriter(private val dao: GhostDao) {
 
     /**
-     * Replaces the board of ([game], [day]) with [board]; other games and days are untouched.
-     * [today] is the game's cadence-zone date and [ownProfileId] the connected member.
+     * Replaces the board of ([game], [day]) with [board]; other games and days are untouched. Returns the
+     * rows it kept. [today] is the game's cadence-zone date and [ownProfileId] the connected member.
      */
     suspend fun write(
         game: GameId,
@@ -24,12 +24,13 @@ internal class LinkedInGhostWriter(private val dao: GhostDao) {
         ownProfileId: String,
         board: LinkedInBoard,
         fetchedAtMs: Long,
-    ) {
+    ): List<LinkedInBoard.Row> {
         // The player's own result is their import, shown as the "you" row, so it is never a ghost.
         // LinkedIn returns rows already ranked, so the cap keeps the best 50 non-own rows.
-        val rows = board.rows
+        val kept = board.rows
             .filter { it.memberRef != ownProfileId }
             .take(MAX_GHOSTS)
+        val rows = kept
             .map { row ->
                 GhostEntity(
                     game = game.value,
@@ -47,6 +48,7 @@ internal class LinkedInGhostWriter(private val dao: GhostDao) {
         // Days are ISO strings, so the DAO's string comparison is a date comparison. Pruning on every
         // write, even an empty one, keeps old boards from outliving the eight-day window.
         dao.pruneBefore(today.minusDays(KEEP_DAYS).toString())
+        return kept
     }
 
     private companion object {

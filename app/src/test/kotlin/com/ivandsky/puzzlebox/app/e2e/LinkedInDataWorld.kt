@@ -34,6 +34,8 @@ import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.koin.android.ext.koin.androidContext
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInPhotoSource
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInPhotoSource
 import org.koin.core.Koin
 import org.koin.core.KoinApplication
 import org.koin.core.qualifier.named
@@ -53,6 +55,8 @@ internal class LinkedInDataWorld(
     val cookies: FakeLinkedInSessionCookies = FakeLinkedInSessionCookies(
         LinkedInAccountSession("li_at=FAKE-SENTINEL-NOT-A-COOKIE", "ajax:fake-csrf", "FakeAgent/0"),
     ),
+    /** Answers every [GHOSTS] photo; any other address answers nothing, like a photo that could not be fetched. */
+    val photos: FakeLinkedInPhotoSource = FakeLinkedInPhotoSource(),
 ) : AutoCloseable {
 
     /** The nested data graph that owns Room; closed with the world. */
@@ -62,6 +66,7 @@ internal class LinkedInDataWorld(
         ReleaseFlag.LinkedInAccount,
         overrides = module {
             single<LinkedInAccountSource> { source }
+            single<LinkedInPhotoSource> { photos }
             single<LinkedInSessionCookies> { cookies }
             // Only ever asked for the completion store: the LinkedIn database and the link file
             // belong to the app graph, and a second DataStore on the same file would throw.
@@ -77,6 +82,7 @@ internal class LinkedInDataWorld(
     )
 
     init {
+        GHOSTS.forEach { photos.respond(checkNotNull(it.pictureUrl), PHOTO) }
         graph.daily.setLinkedInGameType(ZipDefinition.id, ZIP_TYPE)
         graph.daily.setPuzzleNumbers(ZipDefinition.id, ::zipNumber)
         graph.daily.setArchiveRange(ZipDefinition.id, E2E_TODAY.minusDays(ARCHIVE_DAYS)..E2E_TODAY)
@@ -108,10 +114,17 @@ internal class LinkedInDataWorld(
 
         /** Three connections whose names and member refs cannot be mistaken for anything else in a payload. */
         val GHOSTS = listOf(
-            LinkedInBoard.Row("urn:li:fsd_profile:GHOST-ADA", "Ghost Ada", 41, hintFree = true, flawless = true),
-            LinkedInBoard.Row("urn:li:fsd_profile:GHOST-BEA", "Ghost Bea", 77, hintFree = false, flawless = false),
-            LinkedInBoard.Row("urn:li:fsd_profile:GHOST-CYD", "Ghost Cyd", 103, hintFree = true, flawless = false),
+            ghost("ADA", "Ghost Ada", 41, hintFree = true, flawless = true),
+            ghost("BEA", "Ghost Bea", 77, hintFree = false, flawless = false),
+            ghost("CYD", "Ghost Cyd", 103, hintFree = true, flawless = false),
         )
+
+        private fun ghost(id: String, name: String, seconds: Int, hintFree: Boolean, flawless: Boolean) = LinkedInBoard.Row(
+            "urn:li:fsd_profile:GHOST-$id", name, seconds, hintFree, flawless,
+            pictureUrl = "https://media.licdn.com/dms/image/v2/GHOST-$id/photo",
+        )
+
+        private val PHOTO = byteArrayOf(0x4A, 0x50, 0x47)
 
         /** Real time allowed for a background write to land; never a wait on its own. */
         const val TIMEOUT_MS = 15_000L

@@ -44,9 +44,36 @@
     }
   },
   "included": [
-    {"entityUrn": "urn:li:fsd_profile:ACoAAFAKE0001", "firstName": "Pat", "lastName": "Example"},
-    {"entityUrn": "urn:li:fsd_profile:ACoAAFAKE0002", "firstName": "Anna", "lastName": "Sample"},
+    {
+      "entityUrn": "urn:li:fsd_profile:ACoAAFAKE0001", "firstName": "Pat", "lastName": "Example",
+      "profilePicture": {
+        "displayImageReferenceResolutionResult": {
+          "vectorImage": {
+            "rootUrl": "https://media.licdn.com/dms/image/v2/FAKE0001/profile-displayphoto-shrink_",
+            "artifacts": [
+              {"width": 400, "height": 400, "fileIdentifyingUrlPathSegment": "400_400/0/fake-400?e=1&t=a"},
+              {"width": 100, "height": 100, "fileIdentifyingUrlPathSegment": "100_100/0/fake-100?e=1&t=a"},
+              {"width": 200, "height": 200, "fileIdentifyingUrlPathSegment": "200_200/0/fake-200?e=1&t=a"}
+            ]
+          }
+        }
+      }
+    },
+    {
+      "entityUrn": "urn:li:fsd_profile:ACoAAFAKE0002", "firstName": "Anna", "lastName": "Sample",
+      "profilePicture": {
+        "displayImageWithFrameReference": {
+          "vectorImage": {
+            "rootUrl": "https://media.licdn.com/dms/image/v2/FAKE0002/framed-displayphoto-shrink_",
+            "artifacts": [
+              {"width": 200, "height": 200, "fileIdentifyingUrlPathSegment": "200_200/0/framed-200?e=1&t=b"},
+              {"width": 100, "height": 100, "fileIdentifyingUrlPathSegment": "100_100/0/framed-100?e=1&t=b"}
+            ]
+          }
+        }
+      }
+    },
     {"entityUrn": "urn:li:fsd_profile:ACoAAFAKE0003", "firstName": "Lee( Q)", "lastName": "Test"},
-    {"entityUrn": "urn:li:fsd_profile:ACoAAFAKE0004", "firstName": "Hidden", "lastName": "Person"}
+    {"entityUrn": "urn:li:fsd_profile:ACoAAFAKE0004", "firstName": "Hidden", "lastName": "Person", "profilePicture": "gone"}
   ]
 }
