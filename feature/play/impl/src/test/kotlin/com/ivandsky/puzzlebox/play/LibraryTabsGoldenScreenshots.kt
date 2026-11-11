@@ -96,7 +96,7 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
                 onRetry = {},
                 onOpenLesson = {},
                 calendar = CalendarActions(),
-                onOpenGameHistory = {},
+                onOpenGameHistory = { _, _ -> },
                 friends = FriendPreviewCards,
                 onEnterCode = {},
                 duels = DUELS,

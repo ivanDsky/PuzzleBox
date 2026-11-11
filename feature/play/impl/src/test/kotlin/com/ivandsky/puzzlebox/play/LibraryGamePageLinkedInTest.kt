@@ -102,7 +102,7 @@ class LibraryGamePageLinkedInTest {
                         onBack = null,
                         offline = false,
                         hasLesson = false,
-                        onOpenGameHistory = {},
+                        onOpenGameHistory = { _, _ -> },
                         linkedIn = card,
                     )
                 }

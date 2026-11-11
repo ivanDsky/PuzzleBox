@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
+import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PuzzleKey
@@ -67,11 +68,11 @@ class ShellSummariesE2ETest {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `on a phone the game page's history row opens the History root, back to Today`() = history()
+    fun `on a phone the game page's history row opens History on its day, back to the game page`() = history()
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `on a tablet the game page's history row opens the History root, back to Today`() = history()
+    fun `on a tablet the game page's history row opens History on its day, back to the game page`() = history()
 
     @Test
     @Config(qualifiers = PHONE)
@@ -156,11 +157,12 @@ class ShellSummariesE2ETest {
         tap("summary.history")
 
         assertRoute(HISTORY)
-        assertState(tabAt(HistoryRootKey))
-        assertFalse("the History root has no back icon", shows("history.back"))
+        assertState(tabAt(PlayKey, HistoryKey(ZIP)))
+        assertTrue("the pushed History has a back icon", shows("history.back"))
         back()
-        assertRoute(HOME)
-        assertState(tabAt(HomeKey))
+        assertRoute(LIBRARY)
+        awaitTag(ZIP_PAGE)
+        assertState(tabAt(PlayKey))
     }
 
     // Signed out: the row needs only today's official solve, which the record store holds.

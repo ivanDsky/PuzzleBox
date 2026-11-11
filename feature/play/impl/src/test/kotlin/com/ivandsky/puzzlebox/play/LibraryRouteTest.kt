@@ -165,7 +165,7 @@ class LibraryRouteTest {
         composeRule.setContent {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
                 PuzzleBoxTheme(darkTheme = false) {
-                    LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) }, onOpenCode = {}, onOpenGameHistory = {})
+                    LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) }, onOpenCode = {}, onOpenGameHistory = { _, _ -> })
                 }
             }
         }
@@ -372,7 +372,7 @@ class LibraryRouteTest {
                     onRetry = {},
                     onOpenLesson = {},
                     calendar = CalendarActions(),
-                    onOpenGameHistory = {},
+                    onOpenGameHistory = { _, _ -> },
                 )
             }
         }
@@ -429,7 +429,7 @@ class LibraryRouteTest {
         assertEquals(listOf(zip to yesterday), played)
     }
 
-    private fun setBoardContent(layout: PlayLayout, onOpenGameHistory: () -> Unit = {}) {
+    private fun setBoardContent(layout: PlayLayout, onOpenGameHistory: (GameId, LocalDate?) -> Unit = { _, _ -> }) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 LibraryRoute(
@@ -465,12 +465,12 @@ class LibraryRouteTest {
     }
 
     @Test
-    fun `tapping the history row calls the callback once`() {
-        var opened = 0
-        setBoardContent(PlayLayout.SinglePane, onOpenGameHistory = { opened++ })
+    fun `tapping the history row opens the page's game with no picked day once`() {
+        val opened = mutableListOf<Pair<GameId, LocalDate?>>()
+        setBoardContent(PlayLayout.SinglePane, onOpenGameHistory = { game, day -> opened += game to day })
         openAlphaPage(PlayLayout.SinglePane)
         composeRule.onNodeWithTag("summary.history").performScrollTo()
         tap("summary.history")
-        assertEquals(1, opened)
+        assertEquals(listOf<Pair<GameId, LocalDate?>>(alpha to null), opened)
     }
 }

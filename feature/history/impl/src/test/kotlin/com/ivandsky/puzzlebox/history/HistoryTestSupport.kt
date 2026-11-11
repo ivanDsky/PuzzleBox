@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -68,6 +69,7 @@ object HistoryTestSupport {
         daily: DailyRepository,
         completions: CompletionRepository,
         hintsRanked: Set<GameId> = emptySet(),
+        opening: HistoryKey = HistoryKey(),
     ): HistoryViewModel {
         val registry = registry(hintsRanked)
         val observeGameHistory = ObserveGameHistory(registry, daily, completions)
@@ -83,6 +85,7 @@ object HistoryTestSupport {
             // No play UIs: every game reads GameBrand.Neutral.
             playRegistry = GamePlayRegistry(emptyList()),
             puzzleDay = puzzleDay,
+            opening = opening,
         )
     }
 
