@@ -16,7 +16,6 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
-import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.play.libraryCardColors
@@ -31,8 +30,8 @@ private val PreviewGhosts = listOf(
     LinkedInGhost("m-4", "Omar Haddad", null, hintFree = false, flawless = false),
 )
 
-private fun shown(yourRank: Int?, total: Int, ghosts: List<LinkedInGhost>, listGhosts: Boolean = true) =
-    LinkedInBoardView.Shown(ghosts, yourRank, total, PREVIEW_NOW_MS - FIVE_MINUTES_MS, listGhosts)
+private fun shown(yourRank: Int?, total: Int, ghosts: List<LinkedInGhost>) =
+    LinkedInBoardView.Shown(ghosts, yourRank, total, PREVIEW_NOW_MS - FIVE_MINUTES_MS)
 
 private fun status(status: LinkedInDayStatus, board: LinkedInBoardView = LinkedInBoardView.Hidden) = LinkedInDayView(status, board)
 
@@ -45,7 +44,6 @@ private fun PreviewCards(vararg views: LinkedInDayView, accent: AccentSlot = Acc
             views.forEach { view ->
                 LinkedInDayLines(
                     view = view,
-                    order = RankOrder.TimeThenHints,
                     colors = colors,
                     nowMs = PREVIEW_NOW_MS,
                     onResume = {},
@@ -63,23 +61,17 @@ private fun PreviewCards(vararg views: LinkedInDayView, accent: AccentSlot = Acc
 @Composable
 internal fun LinkedInLoadingPreview() = PreviewCards(status(LinkedInDayStatus.Loading))
 
-// Preview: the player's own result is imported, ranked among connections with a ghost list.
+// Preview: the player's own result is imported, ranked among connections.
 @PuzzleBoxPreviews
 @Composable
 internal fun LinkedInImportedRankedPreview() =
     PreviewCards(status(LinkedInDayStatus.Imported(52_000L), shown(yourRank = 2, total = 5, ghosts = PreviewGhosts)))
 
-// Preview: not imported, so the summary says how many connections played, with a hidden-time row.
+// Preview: not imported, so the summary says how many connections played,.
 @PuzzleBoxPreviews
 @Composable
 internal fun LinkedInUnrankedListPreview() =
     PreviewCards(status(LinkedInDayStatus.DidNotPlay, shown(yourRank = null, total = 4, ghosts = PreviewGhosts)))
-
-// Preview: a day that shows the summary but not the list.
-@PuzzleBoxPreviews
-@Composable
-internal fun LinkedInSummaryOnlyPreview() =
-    PreviewCards(status(LinkedInDayStatus.Imported(52_000L), shown(yourRank = 3, total = 12, ghosts = PreviewGhosts, listGhosts = false)))
 
 // Preview: connected, and nobody on the board.
 @PuzzleBoxPreviews

@@ -15,7 +15,6 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
-import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.play.GOLDEN_PHONE
@@ -60,7 +59,6 @@ class LinkedInDayLinesGoldenScreenshots {
             Box(Modifier.fillMaxWidth().background(colors.fill).padding(Spacing.lg), contentAlignment = Alignment.TopStart) {
                 LinkedInDayLines(
                     view = view,
-                    order = RankOrder.TimeThenHints,
                     colors = colors,
                     nowMs = NOW,
                     onResume = {},
@@ -85,7 +83,7 @@ class LinkedInDayLinesGoldenScreenshots {
 
         val IMPORTED = LinkedInDayView(
             LinkedInDayStatus.Imported(52_000L),
-            LinkedInBoardView.Shown(GHOSTS, yourRank = 2, total = 5, updatedAtMs = NOW - FIVE_MINUTES_MS, listGhosts = true),
+            LinkedInBoardView.Shown(GHOSTS, yourRank = 2, total = 5, updatedAtMs = NOW - FIVE_MINUTES_MS),
         )
         val PAUSED = LinkedInDayView(LinkedInDayStatus.Paused(Kind.Challenge), LinkedInBoardView.Hidden)
         val EXPIRED = LinkedInDayView(LinkedInDayStatus.SessionExpired, LinkedInBoardView.Hidden)

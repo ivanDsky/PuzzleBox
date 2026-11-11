@@ -44,6 +44,7 @@ class LinkedInGhostIsolationE2ETest {
         world.graph.identity.currentIdentity = Identity("uid-me", "Me Myself", photoUrl = null)
         // An empty ranked board rather than an unavailable one: only a board that loaded lists ghosts.
         world.graph.leaderboard.setEntries(LeaderboardRef(ZIP, today), emptyList())
+        world.graph.leaderboard.setEntries(LeaderboardRef(ZIP, older), emptyList())
         shellRobot(graph = world.graph) {
             runBlocking { world.connect() }
             val names = GHOSTS.map { it.name }.toSet()
@@ -54,7 +55,7 @@ class LinkedInGhostIsolationE2ETest {
             awaitLooper { textsUnder("daily_board.ghost.name").toSet() == names }
             pickDay(older)
             awaitSynced(older)
-            awaitLooper { textsUnder("linkedin.ghost").containsAll(names) }
+            awaitLooper { textsUnder("daily_board.ghost.name").toSet() == names }
 
             graph.koin.get<LeaderboardSubmitWatcher>().start()
             rule.waitUntil(LinkedInDataWorld.TIMEOUT_MS) { graph.leaderboard.submitted.isNotEmpty() }

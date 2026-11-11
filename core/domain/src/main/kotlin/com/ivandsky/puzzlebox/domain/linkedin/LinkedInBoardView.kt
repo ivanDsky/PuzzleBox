@@ -13,14 +13,11 @@ sealed interface LinkedInBoardView {
     /**
      * [ghosts] are sorted by the game's rank order, hidden times last. [yourRank] is null unless
      * the player's own result is imported, and [total] counts the player only then.
-     * [listGhosts] is false on the days that show the summary alone; the day card and the board
-     * read it, so nothing recomputes which days those are.
      */
     data class Shown(
         val ghosts: List<LinkedInGhost>,
         val yourRank: Int?,
         val total: Int,
         val updatedAtMs: Long,
-        val listGhosts: Boolean,
     ) : LinkedInBoardView
 }
