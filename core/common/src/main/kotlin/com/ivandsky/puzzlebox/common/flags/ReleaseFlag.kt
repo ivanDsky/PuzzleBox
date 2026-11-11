@@ -10,8 +10,8 @@ package com.ivandsky.puzzlebox.common.flags
  * @property releaseDefault the value every release build uses; debug builds start from it too.
  */
 enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
-    /** The Strands puzzle editor. */
-    StrandsEditor(label = "Strands editor", releaseDefault = false),
+    /** The Strands puzzle editor. Live since 0.25.0. */
+    StrandsEditor(label = "Strands editor", releaseDefault = true),
 
     /** Import from text: the Create header pill, empty-state button, New-puzzle row and Studio overflow item. */
     TextImport(label = "Import from text", releaseDefault = false),
