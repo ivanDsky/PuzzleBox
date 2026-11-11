@@ -189,6 +189,27 @@ class RoomLinkedInDaysObserveTest {
     }
 
     @Test
+    fun `the player's own board row is the owner, never a ghost, and goes on disconnect`() = runTest {
+        val day = ago(2)
+        val rows = listOf("friend", "me", "rival").map { LinkedInBoard.Row(it, if (it == "me") "Me Myself" else it, 60, hintFree = true, flawless = false) }
+        respondOwn(day)
+        respondBoard(day, LinkedInBoard(rows))
+
+        days.observe(zip, day).test {
+            assertNull(awaitItem().owner)
+
+            assertEquals(LinkedInSync.Done, days.sync(zip, day))
+            val synced = awaitWhere { it.owner != null }
+            assertEquals(LinkedInOwner("Me Myself", photoPath = null), synced.owner)
+            assertEquals(setOf("friend", "rival"), synced.ghosts.map { it.memberRef }.toSet())
+
+            link.disconnect()
+            assertNull(awaitWhere { it.link == LinkState.NotConnected }.owner)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
     fun `inFlight is true while a sync runs`() = runTest {
         val day = ago(3)
         val held = GatedLinkedInAccountSource(source, number(day))

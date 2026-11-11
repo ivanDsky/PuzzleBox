@@ -251,7 +251,7 @@ class RoomLinkedInDaysSyncTest {
     }
 
     @Test
-    fun `a board is stored as ghosts without the player's own row`() = runTest {
+    fun `a board is stored with the player's own row beside the connections`() = runTest {
         val day = ago(3)
         val rows = listOf("friend", "me", "rival").map { LinkedInBoard.Row(it, it, 60, hintFree = true, flawless = false) }
         respondOwn(day)
@@ -259,7 +259,7 @@ class RoomLinkedInDaysSyncTest {
 
         assertEquals(LinkedInSync.Done, days.sync(zip, day))
 
-        assertEquals(setOf("friend", "rival"), ghosts(day).map { it.memberRef }.toSet())
+        assertEquals(setOf("friend", "me", "rival"), ghosts(day).map { it.memberRef }.toSet())
         assertEquals(now, ghosts(day).first().fetchedAtMs)
         assertEquals(LinkedInOutcome.Board.name, logged(day, LinkedInItem.Board))
     }
