@@ -42,7 +42,7 @@ internal sealed interface PlayTimes {
      * its key and the label names the rule); null keeps the time-only rows. [post] is how
      * the player's own post stands while its row is missing, read only with the per-game
      * board on; null keeps the plain Posting line. [pastDay] says the slot's day is
-     * outside the submit window (A7), so its solve can never post — Near you then says
+     * outside the submit window (A7), so its solve can never post — the card then says
      * so instead of any post status (RG10).
      */
     data class Board(
@@ -55,25 +55,21 @@ internal sealed interface PlayTimes {
 
         private val you: Int = rows.indexOfFirst { it is DailyBoardLine.Real && it.row.isSelf }
 
+        /** Whether the player's own row is on the board. */
+        val hasOwnRow: Boolean
+            get() = you >= 0
+
         /** The first [TOP] rows; never the player's own row appended below them. */
         val head: List<DailyBoardLine>
             get() = rows.take(TOP)
 
-        /** The [head] rows, with the player's own row pinned below when it ranks lower. */
-        val top: List<DailyBoardLine>
-            get() = head + listOfNotNull(pinned)
+        /** The player's own row when it ranks below the [head] rows; null when it is inside them or absent. */
+        val pinned: DailyBoardLine.Real?
+            get() = if (you < TOP) null else rows[you] as DailyBoardLine.Real
 
-        /** The player's own row when it ranks below the [top] rows' first [TOP]; null when it is inside them or absent. */
-        val pinned: DailyBoardLine?
-            get() = if (you < TOP) null else rows[you]
-
-        /** The player's row with [NEAR] ranks either side; null until the player has posted. */
-        val nearYou: List<DailyBoardLine>?
-            get() = if (you < 0) null else rows.subList((you - NEAR).coerceAtLeast(0), (you + NEAR + 1).coerceAtMost(rows.size))
-
-        private companion object {
+        companion object {
+            /** How many rows lead the card before the player's own is pinned under them. */
             const val TOP = 5
-            const val NEAR = 2
         }
     }
 }

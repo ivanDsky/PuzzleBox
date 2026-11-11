@@ -1,0 +1,52 @@
+package com.ivandsky.puzzlebox.gameui.board
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.game.RankOrder
+
+private val DividerHeight = 1.dp
+
+/**
+ * [lines] as the board's rows, [Spacing.sm] apart, with the player's own [pinned] row set apart under them by a
+ * divider when it is outside them. One list for every board, so the game page and the play screen's times card draw
+ * the same rows. A list whose places differ from the PuzzleBox ranks (connections among the rows, or a row at a
+ * LinkedIn time) names each row's PuzzleBox rank.
+ */
+@Composable
+fun DailyBoardList(
+    lines: List<DailyBoardLine>,
+    order: RankOrder,
+    modifier: Modifier = Modifier,
+    pinned: DailyBoardLine.Real? = null,
+) {
+    if (lines.isEmpty() && pinned == null) return
+    val withPuzzleBoxRank = (lines + listOfNotNull(pinned)).placesDifferFromPuzzleBox()
+    Column(modifier.fillMaxWidth().testTag("daily_board.list"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        lines.forEach {
+            when (it) {
+                is DailyBoardLine.Real -> DailyBoardRow(it.row, order, place = it.place, showPuzzleBoxRank = withPuzzleBoxRank)
+                is DailyBoardLine.Ghost -> GhostRow(it.row, it.place, order)
+            }
+        }
+        pinned?.let {
+            HorizontalDivider()
+            Box(Modifier.testTag("leaderboard.you")) { DailyBoardRow(it.row, order, place = it.place, showPuzzleBoxRank = withPuzzleBoxRank) }
+        }
+    }
+}
+
+/** The height of [rows] lines of [DailyBoardList], plus a divider and a [pinned] row under them: what a caller reserves. */
+fun dailyBoardListHeight(rows: Int, pinned: Boolean): Dp {
+    val drawn = rows + if (pinned) 1 else 0
+    val gaps = (drawn - 1).coerceAtLeast(0) + if (pinned) 1 else 0
+    return BoardRowMinHeight * drawn + Spacing.sm * gaps + if (pinned) DividerHeight else 0.dp
+}

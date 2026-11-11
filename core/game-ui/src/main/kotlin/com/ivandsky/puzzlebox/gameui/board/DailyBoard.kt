@@ -1,10 +1,8 @@
 package com.ivandsky.puzzlebox.gameui.board
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,7 +41,7 @@ fun DailyBoard(
             DailyBoardState.Loading -> Line("Loading…", "daily_board.loading")
             DailyBoardState.Unavailable -> Line("Leaderboard unavailable right now.", "daily_board.unavailable")
             DailyBoardState.SignedOut -> {
-                Lines(rankWithGhosts(emptyList(), ghosts, order), order)
+                DailyBoardList(rankWithGhosts(emptyList(), ghosts, order), order)
                 signIn?.invoke()
             }
             is DailyBoardState.Ranked -> Ranked(state, ghosts, order)
@@ -55,25 +53,8 @@ fun DailyBoard(
 private fun Ranked(state: DailyBoardState.Ranked, ghosts: List<GhostRowModel>, order: RankOrder) {
     val lines = remember(state, ghosts, order) { (state.lines ?: rankWithGhosts(state.rows, ghosts, order)).capGhosts() }
     if (lines.isEmpty()) Line("No one is on today's board yet.", "daily_board.empty")
-    val pinnedMoved = state.pinned != null && state.pinnedPlace != null && state.pinnedPlace != state.pinned.rank
-    val withGhosts = lines.placesDifferFromPuzzleBox() || pinnedMoved
-    Lines(lines, order)
-    state.pinned?.let {
-        HorizontalDivider()
-        Box(Modifier.testTag("leaderboard.you")) { DailyBoardRow(it, order, place = state.pinnedPlace ?: it.rank, showPuzzleBoxRank = withGhosts) }
-    }
+    DailyBoardList(lines, order, pinned = state.pinned?.let { DailyBoardLine.Real(it, state.pinnedPlace ?: it.rank) })
     state.note?.let { Line(it.text, "daily_board.note") }
-}
-
-@Composable
-private fun Lines(lines: List<DailyBoardLine>, order: RankOrder) {
-    val withGhosts = lines.placesDifferFromPuzzleBox()
-    lines.forEach {
-        when (it) {
-            is DailyBoardLine.Real -> DailyBoardRow(it.row, order, place = it.place, showPuzzleBoxRank = withGhosts)
-            is DailyBoardLine.Ghost -> GhostRow(it.row, it.place, order)
-        }
-    }
 }
 
 // Cut by merge order so the fastest ghosts stay and hidden times go first; real rows are never dropped.
