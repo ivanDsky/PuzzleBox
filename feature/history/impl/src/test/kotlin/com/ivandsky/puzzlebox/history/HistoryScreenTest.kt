@@ -95,7 +95,7 @@ class HistoryScreenTest {
             setHistory(TANGO, tangos)
             cached.forEach { (slot, puzzle) -> setCached(slot.first, slot.second, puzzle) }
         }
-        val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository(records), hintsRanked)
+        val viewModel = HistoryTestSupport.viewModel(daily, FakeCompletionRepository(records), hintsRanked, opening = key)
         composeRule.setContent {
             // Stand-in for the shell's NavDisplay pop: registered first, so History's own
             // handler (registered later) wins while it is enabled.
@@ -356,7 +356,7 @@ class HistoryScreenTest {
     }
 
     @Test
-    fun `a game's key opens the All timeline with every game and no tabs`() {
+    fun `a game's key opens on its day with every game's rows and no tabs`() {
         setContent(
             zips = listOf(HistoryTestSupport.entry(day)),
             tangos = listOf(HistoryTestSupport.tangoEntry(day)),
@@ -368,6 +368,31 @@ class HistoryScreenTest {
         awaitTag("history.stats")
         assertNoTag("history.tab.all")
         assertNoTag("history.tab.${TANGO.value}")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w800dp-h1000dp")
+    fun `two-pane opens the linked game's row in the detail pane`() {
+        setContent(
+            zips = listOf(HistoryTestSupport.entry(day)),
+            tangos = listOf(HistoryTestSupport.tangoEntry(day)),
+            layout = HistoryLayout.TwoPane,
+            key = HistoryKey(TANGO.value, day.toString()),
+        )
+
+        awaitTag("history.detail.${TANGO.value}.$day")
+        assertNoTag("history.detail_hint")
+    }
+
+    @Test
+    fun `single-pane keeps the linked day's list without opening a detail`() {
+        setContent(
+            zips = listOf(HistoryTestSupport.entry(day)),
+            key = HistoryKey(ZIP.value, day.toString()),
+        )
+
+        awaitRow(ZIP)
+        assertNoTag("history.detail.${ZIP.value}.$day")
     }
 
     @Test

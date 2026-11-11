@@ -22,6 +22,7 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.friend.CustomResultRoute
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
+import java.time.LocalDate
 import org.koin.compose.koinInject
 
 /**
@@ -47,7 +48,7 @@ import org.koin.compose.koinInject
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
     layout: PlayLayout,
-    onOpenGameHistory: () -> Unit,
+    onOpenGameHistory: (GameId, LocalDate?) -> Unit,
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,

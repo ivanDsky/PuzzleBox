@@ -13,7 +13,8 @@ import java.time.LocalDate
 
 /**
  * History's routes: the pushed [HistoryKey] with a back arrow, and the tab root
- * [HistoryRootKey] without one. A replayed day pushes [GameKey] for that (game, day) once.
+ * [HistoryRootKey] without one (a game's link carries its game and day in the key). A replayed
+ * day pushes [GameKey] for that (game, day) once.
  */
 fun EntryProviderScope<NavKey>.historyEntry(
     navigator: Navigator,

@@ -182,7 +182,7 @@ class LibraryRequestTest {
                 layout = layout,
                 onPlay = { _, _ -> },
                 onOpenCode = {},
-                onOpenGameHistory = {},
+                onOpenGameHistory = { _, _ -> },
                 duels = duels,
                 request = request,
                 onRequestTaken = { taken++ },

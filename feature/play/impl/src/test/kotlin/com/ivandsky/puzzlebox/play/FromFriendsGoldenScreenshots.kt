@@ -89,7 +89,7 @@ abstract class FromFriendsGoldenScreenshots(private val layout: PlayLayout, priv
                     onRetry = {},
                     onOpenLesson = {},
                     calendar = CalendarActions(),
-                    onOpenGameHistory = {},
+                    onOpenGameHistory = { _, _ -> },
                     friends = FriendPreviewCards,
                     // The goldens show the shipped-on header: Enter code beside the title.
                     onEnterCode = {},

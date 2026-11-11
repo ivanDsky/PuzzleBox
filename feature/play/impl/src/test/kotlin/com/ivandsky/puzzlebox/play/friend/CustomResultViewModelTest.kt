@@ -356,7 +356,7 @@ class CustomResultViewModelTest {
                 NavDisplay(
                     backStack = navigator.state.currentStack,
                     onBack = { navigator.pop() },
-                    entryProvider = entryProvider { playEntry(navigator, PlayLayout.SinglePane, onOpenGameHistory = {}) },
+                    entryProvider = entryProvider { playEntry(navigator, PlayLayout.SinglePane, onOpenGameHistory = { _, _ -> }) },
                 )
             }
         }

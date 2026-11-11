@@ -144,7 +144,7 @@ class QueensPlayWiringTest {
                     backStack = navigator.state.currentStack,
                     onBack = { navigator.pop() },
                     entryProvider = entryProvider {
-                        playEntry(navigator, PlayLayout.SinglePane, onOpenGameHistory = {})
+                        playEntry(navigator, PlayLayout.SinglePane, onOpenGameHistory = { _, _ -> })
                         entry<ResultKey> { Text("result") }
                     },
                 )

@@ -19,7 +19,8 @@ import kotlinx.coroutines.launch
  * [row]'s page in the library: its day card and its month calendar. [page] is the selected
  * game's calendar (another game's is ignored) and [month] the one it asked for (null = today's);
  * on the phone a picked day scrolls the page up to the day card. [onBack] is the phone's back row.
- * The page carries the game's leaderboard and a "Your history" row calling [onOpenGameHistory].
+ * The page carries the game's leaderboard and a "Your history" row calling [onOpenGameHistory]
+ * with the game and its picked day (null: today).
  * A non-null [linkedIn] puts the LinkedIn lines on the day card, which collects them while it is shown.
  */
 @Composable
@@ -35,7 +36,7 @@ internal fun LibraryGamePage(
     onBack: (() -> Unit)?,
     offline: Boolean,
     hasLesson: Boolean,
-    onOpenGameHistory: () -> Unit,
+    onOpenGameHistory: (GameId, LocalDate?) -> Unit,
     linkedIn: LinkedInCardState? = null,
 ) {
     val game = row.card.game
@@ -92,6 +93,6 @@ internal fun LibraryGamePage(
         scroll = scroll,
         // The board shows the day the day card shows: the picked day, else the card's own latest day.
         board = { GamePageBoard(game, linkedIn = linkedIn != null, picked = past?.date, cardDay = row.cardDay) },
-        onOpenHistory = onOpenGameHistory,
+        onOpenHistory = { onOpenGameHistory(game, past?.date) },
     )
 }

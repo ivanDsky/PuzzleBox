@@ -147,7 +147,7 @@ class LibraryTabsTest {
 
     private fun content(duels: DuelsSlot?): @Composable () -> Unit = {
         PuzzleBoxTheme(darkTheme = false) {
-            LibraryRoute(layout = PlayLayout.SinglePane, onPlay = { _, _ -> }, onOpenCode = {}, onOpenGameHistory = {}, duels = duels)
+            LibraryRoute(layout = PlayLayout.SinglePane, onPlay = { _, _ -> }, onOpenCode = {}, onOpenGameHistory = { _, _ -> }, duels = duels)
         }
     }
 
