@@ -41,8 +41,7 @@ import kotlinx.coroutines.launch
  * The Create root: lists the stored drafts and starts new ones. The New puzzle sheet and the
  * empty state offer every game with an editor UI ([GameEditorRegistry.ids], registration
  * order) whose plugin carries the editor, each at exactly its editor's variants (spec A1, A5)
- * with the middle one as its default size, under its [GamePlayRegistry] brand, while its
- * [EditorReleaseFlags] flag (if any) is on.
+ * with the middle one as its default size, under its [GamePlayRegistry] brand.
  *
  * Each row's verdict chip (spec A7 on the root) is `analyze(draft, Budget.within(1_500…))` on
  * [DispatcherProvider.default], cached by (id, updatedAt): a draft is analysed again only after
@@ -94,9 +93,6 @@ class CreateViewModel(
         )
     }
 
-    private fun offered(flags: Set<ReleaseFlag>) =
-        editorGames.filter { EditorReleaseFlags.flagFor(it.id)?.let(flags::contains) ?: true }
-
     private val query = MutableStateFlow("")
     private val filter = MutableStateFlow<GameId?>(null)
     private val tab = MutableStateFlow(CreateUiState.Tab.Drafts)
@@ -115,11 +111,10 @@ class CreateViewModel(
             analysis.verdicts,
             combine(query, filter, tab.onEach(::syncWhenPublished), ::View),
             deleted,
-            releaseFlags.enabled.map(::offered),
-        ) { listed, settled, view, removed, newGames ->
-            stateOf(listed, settled, view, removed, newGames, clock(), games, editors, plays)
+        ) { listed, settled, view, removed ->
+            stateOf(listed, settled, view, removed, editorGames, clock(), games, editors, plays)
         }.stateIn(
-            viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CreateUiState(games = offered(releaseFlags.enabled.value)),
+            viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CreateUiState(games = editorGames),
         )
 
     fun onQuery(text: String) {
