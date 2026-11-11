@@ -37,7 +37,8 @@ interface MatchLocalRepository {
 
     /**
      * Sets the reveal-seen time and the two scores the reveal showed, once together: the first call wins, and later
-     * calls and unknown codes change nothing.
+     * calls change nothing. A duel this device has no row for (claimed before a reinstall, or seated by the server)
+     * is remembered as a [LocalRole.Participant] opened at [at], since only a seated player reaches the reveal.
      */
     suspend fun markRevealSeen(code: ShareCode, at: Instant, myScore: Int, theirScore: Int)
 
