@@ -10,8 +10,8 @@ package com.ivandsky.puzzlebox.common.flags
  * @property releaseDefault the value every release build uses; debug builds start from it too.
  */
 enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
-    /** The Mini Sudoku editor, and the debug-only 9×9 one. */
-    SudokuEditor(label = "Sudoku editor", releaseDefault = false),
+    /** The Mini Sudoku editor, and the debug-only 9×9 one. Live since 0.23.0. */
+    SudokuEditor(label = "Sudoku editor", releaseDefault = true),
 
     /** The Strands puzzle editor. */
     StrandsEditor(label = "Strands editor", releaseDefault = false),

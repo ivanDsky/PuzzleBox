@@ -1,8 +1,10 @@
 package com.ivandsky.puzzlebox.app
 
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.ShippedReleaseFlags
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
@@ -28,5 +30,10 @@ class ReleaseFlagsBindingTest {
         } finally {
             stopKoin()
         }
+    }
+
+    @Test
+    fun `release ships the Sudoku editor`() {
+        assertTrue(ReleaseFlag.SudokuEditor in ShippedReleaseFlags.enabled.value)
     }
 }
