@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -36,28 +37,25 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
-/** Which relative day's board the game page shows while no calendar day is picked; Today is first. */
-internal enum class BoardDay { Today, Yesterday }
-
 /**
- * What [GamePageBoard] draws: the [day] chosen, or the past calendar day [picked] over it, and the [board]
- * to draw for it, the top rows with the player's own row pinned under them when it ranks lower. While the
- * chosen day's board has not arrived, [board] is Loading. [ghosts] are the LinkedIn connections of that day, none until they are read.
+ * What [GamePageBoard] draws: the [day] shown (null until the first read is chosen), whether it [isToday] on the
+ * game's calendar, and the [board] to draw for it, the top rows with the player's own row pinned under them when
+ * it ranks lower. While that day's board has not arrived, [board] is Loading. [ghosts] are the LinkedIn
+ * connections of that day, none until they are read.
  */
 internal data class GamePageBoardState(
-    val day: BoardDay = BoardDay.Today,
-    val picked: LocalDate? = null,
+    val day: LocalDate? = null,
+    val isToday: Boolean = true,
     val board: DailyBoardState = DailyBoardState.Loading,
     val ghosts: List<GhostRowModel> = emptyList(),
 )
 
 /**
- * One game's board on its page: today's, yesterday's or a picked past day's, read through [leaderboard] so every
+ * One game's board on its page: the day the page's day card shows, read through [leaderboard] so every
  * identity change restarts it, and cut to the top rows with the player's own row pinned under them.
  * Sign-in goes through one [BoardSignInHolder], so the page's board signs in without leaving.
- * A non-null [linkedIn] adds the day's LinkedIn ghosts; its collection on Today or Yesterday is the only thing that
- * syncs that day, so the board asks LinkedIn nothing for a day nobody picked, and null touches nothing of LinkedIn.
- * A picked past day only reads what the phone holds, since the day card's own collection already syncs it.
+ * A non-null [linkedIn] adds that day's LinkedIn ghosts, only ever read from what the phone holds: the day card's
+ * own collection already syncs the day it shows, so the board never asks LinkedIn anything. Null touches nothing of LinkedIn.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class GamePageBoardViewModel(
@@ -70,7 +68,7 @@ internal class GamePageBoardViewModel(
     private val linkedIn: LinkedInDayState?,
 ) : ViewModel() {
 
-    private val choice = MutableStateFlow(Choice(BoardDay.Today, null))
+    private val choice = MutableStateFlow(Choice(picked = null, cardDay = null))
     private val signInHolder = BoardSignInHolder(identity, idTokens)
 
     /** The game's display name, for the board's title. */
@@ -79,70 +77,42 @@ internal class GamePageBoardViewModel(
     /** The game's own rank rule. */
     val order: RankOrder = registry.rankOrderOf(game)
 
-    val state: StateFlow<GamePageBoardState> =
-        combine(choice, boards(), ghosts()) { chosen, (drawnChoice, board), (ghostChoice, ghosts) ->
-            // The chosen day is shown at once; another day's rows or ghosts never stay under it while its data loads.
-            if (drawnChoice == chosen) {
-                val shown = if (ghostChoice == chosen) ghosts else emptyList()
-                stateOf(chosen, board, shown).copy(ghosts = shown)
-            } else {
-                GamePageBoardState(day = chosen.day, picked = chosen.picked)
-            }
+    val state: StateFlow<GamePageBoardState> = shown()
+        .flatMapLatest { shown ->
+            // The shown day is named at once; another day's rows or ghosts never stay under it while its data loads.
+            combine(leaderboard(game, shown.day), ghosts(shown.day)) { board, ghosts -> stateOf(shown, board, ghosts) }
+                .onStart { emit(GamePageBoardState(day = shown.day, isToday = shown.isToday)) }
         }
-            // With LinkedIn on, no grace: a short visit must not leave a debounced sync running after the board is gone.
-            .stateIn(
-                viewModelScope,
-                SharingStarted.WhileSubscribed(if (linkedIn != null) 0 else STOP_TIMEOUT_MS),
-                GamePageBoardState(),
-            )
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GamePageBoardState())
 
     /** How this block's last sign-in went. */
     val signInStatus: StateFlow<BoardSignIn> = signInHolder.status
 
-    fun selectDay(day: BoardDay) {
-        choice.update { it.copy(day = day) }
-    }
-
-    /** The calendar's picked past [date], or null for none; a pick starts from Today, so unpicking returns to it. */
-    fun pick(date: LocalDate?) {
-        choice.update { if (date != null) Choice(BoardDay.Today, date) else it.copy(picked = null) }
+    /**
+     * The page's days: the calendar's [picked] past day, or null for none, over the day card's own [cardDay]
+     * (null while it loads), so unpicking returns to the day card's day.
+     */
+    fun show(picked: LocalDate?, cardDay: LocalDate?) {
+        choice.update { Choice(picked, cardDay) }
     }
 
     /** The board's Google button: [activityContext] hosts Google's account picker, and is not kept. */
     suspend fun signIn(activityContext: Context) = signInHolder.signIn(activityContext)
 
-    /** The chosen day's board, read again at each of the game's midnights; each emission names its choice. */
-    private fun boards(): Flow<Pair<Choice, TodayLeaderboard>> = choice.flatMapLatest { chosen ->
-        val picked = chosen.picked
-        val read = if (picked != null) {
-            leaderboard(game, picked)
-        } else {
-            calendar.observeToday(game)
-                .flatMapLatest { today -> leaderboard(game, if (chosen.day == BoardDay.Today) today else today.minusDays(1)) }
-        }
-        read.map { chosen to it }
-    }
+    /** The day to show, read again at each of the game's midnights: the pick, else the day card's day, else today. */
+    private fun shown(): Flow<Shown> =
+        combine(choice, calendar.observeToday(game)) { chosen, today ->
+            val day = chosen.picked ?: chosen.cardDay ?: today
+            Shown(day, isToday = day == today)
+        }.distinctUntilChanged()
 
     /**
-     * The chosen day's LinkedIn ghosts; each emission names its choice. Starts empty so the board is not held back
+     * [day]'s LinkedIn ghosts as the phone holds them. Starts empty so the board is not held back
      * by a read that arrives later than the leaderboard's. Without LinkedIn it is empty and touches nothing.
      */
-    private fun ghosts(): Flow<Pair<Choice, List<GhostRowModel>>> {
-        val holder = linkedIn ?: return flowOf(choice.value to emptyList())
-        return choice.flatMapLatest { chosen ->
-            val picked = chosen.picked
-            val view = if (picked != null) {
-                holder.observed(Target(game, picked))
-            } else {
-                holder.view(
-                    calendar.observeToday(game)
-                        .map { today -> Target(game, if (chosen.day == BoardDay.Today) today else today.minusDays(1)) },
-                )
-            }
-            view
-                .map { chosen to ghostsOf(it) }
-                .onStart { emit(chosen to emptyList()) }
-        }
+    private fun ghosts(day: LocalDate): Flow<List<GhostRowModel>> {
+        val holder = linkedIn ?: return flowOf(emptyList())
+        return holder.observed(Target(game, day)).map(::ghostsOf).onStart { emit(emptyList()) }
     }
 
     private fun ghostsOf(view: LinkedInDayView?): List<GhostRowModel> =
@@ -153,15 +123,16 @@ internal class GamePageBoardViewModel(
      * With [ghosts] the rows and the ghosts are ranked together over the whole board before the cut, so a place
      * (the pinned row's too) counts every connection ahead of it, not only those among the rows drawn.
      */
-    private fun stateOf(chosen: Choice, board: TodayLeaderboard, ghosts: List<GhostRowModel>): GamePageBoardState {
+    private fun stateOf(shown: Shown, board: TodayLeaderboard, ghosts: List<GhostRowModel>): GamePageBoardState {
         val drawn = board.toDailyBoardState()
-        if (drawn !is DailyBoardState.Ranked) return GamePageBoardState(day = chosen.day, picked = chosen.picked, board = drawn)
+        if (drawn !is DailyBoardState.Ranked) return GamePageBoardState(day = shown.day, isToday = shown.isToday, board = drawn, ghosts = ghosts)
         val own = drawn.rows.indexOfFirst { it.isSelf }
         val pinned = if (own < TOP_ROWS) null else drawn.rows[own]
         val ranked = if (ghosts.isEmpty()) null else rankWithGhosts(drawn.rows, ghosts, order)
         return GamePageBoardState(
-            day = chosen.day,
-            picked = chosen.picked,
+            day = shown.day,
+            isToday = shown.isToday,
+            ghosts = ghosts,
             board = drawn.copy(
                 rows = drawn.rows.take(TOP_ROWS),
                 pinned = pinned,
@@ -177,8 +148,11 @@ internal class GamePageBoardViewModel(
         return filter { it !is DailyBoardLine.Real || ++reals <= TOP_ROWS }
     }
 
-    /** What the page asks for: the relative [day], or the calendar's [picked] past day over it. */
-    private data class Choice(val day: BoardDay, val picked: LocalDate?)
+    /** What the page asks for: the calendar's [picked] past day over the day card's own [cardDay]. */
+    private data class Choice(val picked: LocalDate?, val cardDay: LocalDate?)
+
+    /** A day on the board and whether it is the game calendar's today, which only the title tells apart. */
+    private data class Shown(val day: LocalDate, val isToday: Boolean)
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
