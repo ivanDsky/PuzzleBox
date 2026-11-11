@@ -54,6 +54,14 @@ class QueensEditorDiagnosticsTest {
     }
 
     @Test
+    fun `two clashing crowns both wear the clash fill whatever the verdict says, a clear crown does not`() {
+        // 0 and 1 share a row and region 0; 15 attacks neither.
+        show(WHOLE, Verdict.Checking, crowns = setOf(0, 1, 15))
+
+        assertEquals(setOf(0, 1), tagged("clash"))
+    }
+
+    @Test
     fun `no verdict finding, no ring and no fill`() {
         show(WHOLE, Verdict.Checking)
 
@@ -135,15 +143,15 @@ class QueensEditorDiagnosticsTest {
     }
 
     @Test
-    fun `a tap on a ghost cell in Crown mode crowns it, and a crossed ghost refuses as without the ghost`() {
+    fun `a tap on a ghost cell in Crown mode crowns it, and a crossed ghost crowns as without the ghost and clashes`() {
         val controller = controllerOf(QueensDraft(SIZE, WHOLE, CROWNS)).apply { setMode(QueensEditorMode.Crown) }
         rule.setContent { PuzzleBoxTheme { QueensEditorBoard(controller, MULTIPLE, Modifier.fillMaxWidth()) } }
 
         rule.onNodeWithTag("queens.editor.cell.$CROSSED_GHOST", useUnmergedTree = true).performClick()
-        assertEquals(CROWNS, crownsOf(controller))
+        assertEquals(CROWNS + CROSSED_GHOST, crownsOf(controller))
 
         rule.onNodeWithTag("queens.editor.cell.$OPEN_GHOST", useUnmergedTree = true).performClick()
-        assertEquals(CROWNS + OPEN_GHOST, crownsOf(controller))
+        assertEquals(CROWNS + CROSSED_GHOST + OPEN_GHOST, crownsOf(controller))
     }
 
     private fun show(regions: List<Int>, verdict: Verdict, crowns: Set<Int> = emptySet()) {

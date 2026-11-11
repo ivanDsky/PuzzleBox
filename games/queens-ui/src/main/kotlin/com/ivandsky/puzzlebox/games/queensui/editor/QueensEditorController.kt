@@ -9,20 +9,19 @@ import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.games.queens.editor.paint
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
  * The Queens editor screen's live draft, [mode] and selection. In [QueensEditorMode.Crown] a
- * tap places or removes an answer crown ([QueensCrowns.toggle]) as one undoable step, and a
- * refused tap (a crossed cell) is announced on [rejected] instead. In [QueensEditorMode.Paint]
- * (select, then colour) a tap toggles a cell in the [selection] ([QueensSelection]);
- * [selectAllOf] and [selectArea] grow it; a ring [pick] paints every selected cell as one
- * undoable step and clears the selection. In either mode a [stroke] (a drag out from a
+ * tap places or removes an answer crown ([QueensCrowns.toggle]) as one undoable step; a crown
+ * that clashes with another is still placed ([QueensCrowns.conflicts] marks both). In
+ * [QueensEditorMode.Paint] (select, then colour) a tap toggles a cell in the [selection]
+ * ([QueensSelection]); [selectAllOf] and [selectArea] grow it; a ring [pick] paints every
+ * selected cell as one undoable step and clears the selection. A selection holding exactly one
+ * crown on a painted cell and cells of another colour needs no pick: a selecting drag's end, [selectArea] and [selectAllOf]
+ * [settle] it at once, and while tapping a Fill chip does ([queensFillRegion]). In either mode a [stroke] (a drag out from a
  * coloured cell) paints that cell's colour along the drag. Every edit goes out through
  * [onEdit]; the VM hands replacement drafts back through [adopt]. The verdict card's witness
  * choice arrives through [adoptOverlay] and the board draws it from [overlay].
@@ -35,7 +34,6 @@ class QueensEditorController(
     private val current = MutableStateFlow(typed(initial))
     private val selected = MutableStateFlow<Set<Int>>(emptySet())
     private val currentMode = MutableStateFlow(openingMode(current.value.state.draft))
-    private val refused = MutableSharedFlow<Int>(extraBufferCapacity = 1)
     private val shownOverlay = MutableStateFlow(EditorOverlay())
 
     override val draft: StateFlow<EditorDraft<*>> = current.asStateFlow()
@@ -45,9 +43,6 @@ class QueensEditorController(
 
     /** What a [tap] does; not persisted. */
     val mode: StateFlow<QueensEditorMode> = currentMode.asStateFlow()
-
-    /** The cell of each refused crown tap; the board plays the Reject jolt on it. */
-    val rejected: SharedFlow<Int> = refused.asSharedFlow()
 
     override val overlay: StateFlow<EditorOverlay> = shownOverlay.asStateFlow()
 
@@ -91,22 +86,34 @@ class QueensEditorController(
         selected.value = selected.value + cells
     }
 
-    /** Crown: toggles an answer crown on [cell] (an edit) or emits it on [rejected]. Paint: toggles [cell] in the selection. */
+    /** Crown: toggles an answer crown on [cell] (an edit). Paint: toggles [cell] in the selection (never fills: taps accumulate until the ring or Fill commits). */
     fun tap(cell: Int) {
         when (currentMode.value) {
             QueensEditorMode.Crown -> crown(cell)
-            QueensEditorMode.Paint -> selected.value = QueensSelection(selected.value).tap(cell).cells
+            QueensEditorMode.Paint -> {
+                selected.value = QueensSelection(selected.value).tap(cell).cells
+            }
         }
     }
 
     /** Grows the selection by every cell painted [region] (`QueensDraft.UNPAINTED` too). Not an edit. */
     fun selectAllOf(region: Int) {
         selected.value = QueensSelection(selected.value).allOf(current.value.state.draft, region).cells
+        settle()
     }
 
     /** Grows the selection by the rectangle with corners [from] and [to]. Not an edit. */
     fun selectArea(from: Int, to: Int) {
         selected.value = QueensSelection(selected.value).area(current.value.state.draft.size, from, to).cells
+        settle()
+    }
+
+    /**
+     * Paints the selection with its [queensFillRegion] as one step, as if the pick had started on
+     * the crown; no-op when there is none. Called when a selecting gesture ends, not mid-drag or per tap.
+     */
+    internal fun settle() {
+        queensFillRegion(current.value.state.draft, selected.value)?.let(::pick)
     }
 
     /**
@@ -146,12 +153,7 @@ class QueensEditorController(
     }
 
     private fun crown(cell: Int) {
-        val command = QueensCrowns.toggle(current.value.state.draft, cell)
-        if (command == null) {
-            refused.tryEmit(cell)
-            return
-        }
-        val next = current.value.apply(command)
+        val next = current.value.apply(QueensCrowns.toggle(current.value.state.draft, cell))
         current.value = next
         onEdit(next)
     }
@@ -170,4 +172,14 @@ class QueensEditorController(
             return if (painted) QueensEditorMode.Paint else QueensEditorMode.Crown
         }
     }
+}
+
+/**
+ * The region a selection fills with and needs no colour pick for: the one crown's region when
+ * [selection] holds exactly one crown, that crown is painted, and some selected cell has another
+ * colour. Null otherwise (no crown, several, an unpainted crown, nothing to recolour).
+ */
+internal fun queensFillRegion(board: QueensDraft, selection: Set<Int>): Int? {
+    val region = selection.filter { it in board.crowns }.singleOrNull()?.let { board.regions[it] } ?: return null
+    return region.takeIf { it != QueensDraft.UNPAINTED && selection.any { cell -> board.regions[cell] != region } }
 }

@@ -117,7 +117,7 @@ class QueensCrownLayerTest {
                                 .background(MaterialTheme.colorScheme.surface)
                                 .testTag("probe.$idx"),
                         ) {
-                            QueensCrownLayer(idx, region = 0, crowned = false, crossed = true, ghosted = ghosted, clash = false, rejection = null, reducedMotion = true)
+                            QueensCrownLayer(idx, region = 0, crowned = false, crossed = true, ghosted = ghosted, clash = false)
                         }
                     }
                 }

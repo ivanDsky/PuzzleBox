@@ -94,6 +94,7 @@ internal fun Modifier.queensBoardGestures(controller: QueensEditorController, n:
             onDragEnd = {
                 val from = touch.strokeFrom
                 if (from != null) controller.stroke(from, touch.strokeCells)
+                if (selecting) controller.settle()
                 touch.stop()
                 touch.lift = last
             },
