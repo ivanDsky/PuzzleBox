@@ -20,17 +20,16 @@ fun GhostRow(row: GhostRowModel, place: Int?, order: RankOrder, modifier: Modifi
         tags = Tags,
         name = row.name.ifEmpty { "Connection" },
         photo = row.photo,
-        place = place?.toString() ?: "—",
+        place = place,
         detail = null,
-        score = scoreText(row, order),
+        score = row.timeMs?.let { scoreAt(row, order, it) } ?: "time hidden",
         modifier = modifier,
+        scoreTime = row.timeMs?.let { time -> ScoreTime(time) { ms -> scoreAt(row, order, ms) } },
         connection = true,
         linkedIn = true,
         muted = row.timeMs == null,
     )
 }
 
-private fun scoreText(row: GhostRowModel, order: RankOrder): String {
-    val timeMs = row.timeMs ?: return "time hidden"
-    return if (row.hintFree) bestScoreText(linkedInScore(timeMs, true), order) else formatDuration(timeMs)
-}
+private fun scoreAt(row: GhostRowModel, order: RankOrder, timeMs: Long): String =
+    if (row.hintFree) bestScoreText(linkedInScore(timeMs, true), order) else formatDuration(timeMs)

@@ -1,12 +1,11 @@
 package com.ivandsky.puzzlebox.gameui.board
 
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
@@ -18,27 +17,16 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.RankOrder
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-// Rows move, open and close on the app's default spring, which does not overshoot: a leaderboard does not bounce. One
-// spring for all three, so the rows around an opening or closing row keep pace with it.
-internal object BoardMotion {
-    // A slide is in pixels, an opening is a fraction of the row's height: each settles at a distance nobody sees.
-    val slide = spring<Float>(MotionTokens.SpringDampingDefault, MotionTokens.SpringStiffnessDefault, visibilityThreshold = 0.5f)
-    val open = spring<Float>(MotionTokens.SpringDampingDefault, MotionTokens.SpringStiffnessDefault, visibilityThreshold = 0.002f)
-
-    // A row fades in as it opens, and out quicker than it closes, so it is gone before the rows meet.
-    val fadeIn = tween<Float>(MotionTokens.EnterDuration, easing = MotionTokens.EasingEmphasizedDecelerate)
-    val fadeOut = tween<Float>(MotionTokens.DurationShort, easing = MotionTokens.EasingStandard)
-}
-
 /**
- * [DailyBoardList]'s rows with motion: a row that changes its place in the list slides to it, an arriving row fades
- * and opens in, a leaving one fades and closes out. A row is the same row by its key (see [boardKeys]), on another
+ * [DailyBoardList]'s rows with motion (see [BoardMotion]): a row that changes its place in the list glides to it, its
+ * place number rolling and its time counting on the way, an arriving row fades and opens in, a leaving one fades and
+ * closes out. A row is the same row by its key (see [boardKeys]), on another
  * day too, so people on two days' boards slide and update in place while the others arrive and leave. The [pinned]
  * own row sits under a divider that is an item of its own.
  *
@@ -91,6 +79,7 @@ private fun BoardItemSlot(
     // An item starts closed and invisible and opens on the first frame, so its arrival is an opening and not a first sight.
     LaunchedEffect(present) {
         val target = if (present) 1f else 0f
+        if (present) delay(item.delayMs.toLong())
         launch { item.alpha.animateTo(target, if (present) BoardMotion.fadeIn else BoardMotion.fadeOut) }
         item.open.animateTo(target, BoardMotion.open)
         if (!present) rows.drop(item)
@@ -107,10 +96,12 @@ private fun BoardItemSlot(
         // The gap sits above the item and is part of it, so it opens and closes with the item instead of
         // snapping when the item is dropped.
         Box(Modifier.padding(top = Spacing.sm)) {
-            when {
-                line == null -> HorizontalDivider()
-                pinned -> Box(Modifier.testTag("leaderboard.you")) { BoardLine(line, order, withPuzzleBoxRank) }
-                else -> BoardLine(line, order, withPuzzleBoxRank)
+            CompositionLocalProvider(LocalPlaceMotion provides item) {
+                when {
+                    line == null -> HorizontalDivider()
+                    pinned -> Box(Modifier.testTag("leaderboard.you")) { BoardLine(line, order, withPuzzleBoxRank) }
+                    else -> BoardLine(line, order, withPuzzleBoxRank)
+                }
             }
         }
     }
