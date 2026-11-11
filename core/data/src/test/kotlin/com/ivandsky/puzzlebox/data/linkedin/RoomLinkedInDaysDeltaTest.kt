@@ -23,6 +23,7 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -74,6 +75,18 @@ class RoomLinkedInDaysDeltaTest {
 
         assertEquals(LinkedInSync.NotLinkedInGame, row.sync(queens, LocalDate.of(2026, 11, 5)))
         assertTrue(row.source.calls.isEmpty())
+        row.close()
+    }
+
+    @Test
+    fun `only a LinkedIn game's day up to today is one the sync can read`() = runTest {
+        val today = LocalDate.of(2026, 11, 5)
+        val row = Row(pt(2026, 11, 5, 12, 0))
+
+        assertTrue(row.willRead(zip, today))
+        assertTrue(row.willRead(zip, today.minusDays(30)))
+        assertFalse(row.willRead(zip, today.plusDays(1)))
+        assertFalse(row.willRead(queens, today))
         row.close()
     }
 
@@ -160,6 +173,8 @@ class RoomLinkedInDaysDeltaTest {
         )
 
         suspend fun sync(game: GameId, day: LocalDate): LinkedInSync = days.sync(game, day)
+
+        fun willRead(game: GameId, day: LocalDate): Boolean = days.willRead(game, day)
 
         fun close() = db.close()
     }

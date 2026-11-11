@@ -159,7 +159,7 @@ class LibraryViewModelTest {
 
     private val days = FakeLinkedInDays()
 
-    private fun holder() = ObserveLinkedInDayView(ObserveLinkedInDay(days, fakes.games), SyncLinkedInDay(days, 500), FakeLinkedInLink())
+    private fun holder() = ObserveLinkedInDayView(ObserveLinkedInDay(days, fakes.games), SyncLinkedInDay(days, 500), FakeLinkedInLink(), days)
 
     /**
      * A linked day whose own result is [own]: while it is not known, [inFlight] and [lastSync] decide what it shows;

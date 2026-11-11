@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain.linkedin
 
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
@@ -25,6 +26,7 @@ class ObserveLinkedInDayView(
     private val observe: ObserveLinkedInDay,
     private val sync: SyncLinkedInDay,
     private val link: LinkedInLink,
+    private val days: LinkedInDays,
 ) {
     data class Target(val game: GameId, val day: LocalDate)
 
@@ -60,8 +62,9 @@ class ObserveLinkedInDayView(
                 previous = day
                 if (day != null) {
                     // Until its sync has answered, an unsettled day is one that is about to be read. The store
-                    // alone cannot say so: it reports the sync only once the debounce is over.
-                    val awaitingSync = MutableStateFlow(true)
+                    // alone cannot say so: it reports the sync only once the debounce is over. A day the sync
+                    // will not read (not a LinkedIn game, a future day, no puzzle number) is settled from the start.
+                    val awaitingSync = MutableStateFlow(days.willRead(day.game, day.day))
                     coroutineScope {
                         // Its answer is not read: the observed day already carries how its last sync ended.
                         launch {

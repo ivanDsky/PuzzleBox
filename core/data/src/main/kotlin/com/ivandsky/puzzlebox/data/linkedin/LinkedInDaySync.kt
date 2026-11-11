@@ -39,19 +39,31 @@ internal class LinkedInDaySync(
             is LinkState.Connected -> linked.profileId
             else -> return unlinked(linked)
         }
-        val typeId = daily.linkedInGameTypeId(game) ?: return LinkedInSync.NotLinkedInGame
-        // A day in the future has nothing to read.
-        val delta = window.deltaOf(game, day)?.takeIf { it >= 0 } ?: return LinkedInSync.NotLinkedInGame
-        val ownNumber = daily.puzzleNumber(game, day) ?: return LinkedInSync.NotLinkedInGame
-        val request = Request(game, day, delta, profileId, typeId)
+        val readable = readable(game, day) ?: return LinkedInSync.NotLinkedInGame
+        val request = Request(game, day, readable.delta, profileId, readable.typeId)
 
-        syncOwn(request, ownNumber)?.let { return it }
-        if (window.inBoardWindow(delta)) {
+        syncOwn(request, readable.ownNumber)?.let { return it }
+        if (window.inBoardWindow(request.delta)) {
             // Without a number for today the board cannot be addressed; the own result already read stands.
             val todayNumber = daily.puzzleNumber(game, request.today)
             if (todayNumber != null) syncBoard(request, todayNumber)?.let { return it }
         }
         return LinkedInSync.Done
+    }
+
+    /**
+     * Whether [sync] can send a read for the day at all, link and cache windows aside: the game is a LinkedIn
+     * one, the day is today or earlier and has a puzzle number. The day view asks this to tell a day that
+     * will settle on its stored state from one a sync is about to read.
+     */
+    fun willRead(game: GameId, day: LocalDate): Boolean = readable(game, day) != null
+
+    private fun readable(game: GameId, day: LocalDate): Readable? {
+        val typeId = daily.linkedInGameTypeId(game) ?: return null
+        // A day in the future has nothing to read.
+        val delta = window.deltaOf(game, day)?.takeIf { it >= 0 } ?: return null
+        val ownNumber = daily.puzzleNumber(game, day) ?: return null
+        return Readable(typeId, delta, ownNumber)
     }
 
     /** Null when the own result is done (read, or not due) and the sync goes on; else the result that ends it. */
@@ -175,3 +187,6 @@ internal class LinkedInDaySync(
         val today: LocalDate get() = day.plusDays(delta.toLong())
     }
 }
+
+/** What a read of one day needs besides the link: the game's LinkedIn type, the day's age and its puzzle number. */
+private class Readable(val typeId: Int, val delta: Int, val ownNumber: Int)

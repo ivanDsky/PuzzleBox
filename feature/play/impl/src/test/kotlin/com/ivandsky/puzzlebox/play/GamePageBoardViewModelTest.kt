@@ -120,7 +120,7 @@ class GamePageBoardViewModelTest {
     private val observeLinkedIn = ObserveLinkedInDay(phone, registry)
 
     /** A holder like the page's; the board only observes it. */
-    private fun holder() = ObserveLinkedInDayView(observeLinkedIn, syncLinkedIn, FakeLinkedInLink())
+    private fun holder() = ObserveLinkedInDayView(observeLinkedIn, syncLinkedIn, FakeLinkedInLink(), phone)
 
     /** A board with LinkedIn on. */
     private fun linkedInModel() = GamePageBoardViewModel(

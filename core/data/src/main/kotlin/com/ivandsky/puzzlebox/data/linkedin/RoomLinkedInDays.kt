@@ -55,6 +55,8 @@ internal class RoomLinkedInDays(
     override suspend fun sync(game: GameId, day: LocalDate): LinkedInSync =
         syncState.shared(DayKey(game, day)) { daySync.sync(game, day) }
 
+    override fun willRead(game: GameId, day: LocalDate): Boolean = daySync.willRead(game, day)
+
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun observe(game: GameId, day: LocalDate): Flow<LinkedInDayData> {
         val key = DayKey(game, day)

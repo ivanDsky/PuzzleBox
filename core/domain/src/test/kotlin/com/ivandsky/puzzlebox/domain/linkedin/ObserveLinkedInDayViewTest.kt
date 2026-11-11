@@ -12,8 +12,10 @@ import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -44,7 +46,7 @@ class ObserveLinkedInDayViewTest {
     /** Stands in for the screen: the (game, day) it shows, null while it shows none. */
     private val target = MutableStateFlow<Target?>(null)
 
-    private fun holder(link: LinkedInLink = FakeLinkedInLink()) = ObserveLinkedInDayView(observe, SyncLinkedInDay(days, 500), link)
+    private fun holder(link: LinkedInLink = FakeLinkedInLink()) = ObserveLinkedInDayView(observe, SyncLinkedInDay(days, 500), link, days)
 
     /** A linked day whose own result is not known yet, so [inFlight] and [lastSync] decide what it shows. */
     private fun data(
@@ -184,6 +186,71 @@ class ObserveLinkedInDayViewTest {
         after(HOUR_MS)
 
         assertEquals(listOf(LinkedInDayStatus.Loading, null, LinkedInDayStatus.DidNotPlay), views.map { it?.status })
+    }
+
+    @Test
+    fun aDayThatIsNeverReadShowsItsSettledStateFromTheFirstViewAtOnce() = runTest(main.testDispatcher) {
+        days.setWillRead(game, dayA, false)
+        days.setWillRead(game, dayB, false)
+        days.emit(game, dayA, data(lastSync = LinkedInSync.Done))
+        days.emit(game, dayB, data(lastSync = LinkedInSync.Done))
+        target.value = Target(game, dayA)
+        val views = shownBy(holder())
+
+        target.value = Target(game, dayB)
+        runCurrent()
+        after(HOUR_MS)
+
+        assertEquals(listOf(LinkedInDayStatus.Idle, null, LinkedInDayStatus.Idle), views.map { it?.status })
+    }
+
+    @Test
+    fun aFutureDayShowsItsSettledStateFromTheFirstViewAtOnce() = runTest(main.testDispatcher) {
+        days.setWillRead(game, dayB, false)
+        days.emit(game, dayA, data(lastSync = LinkedInSync.Done))
+        days.emit(game, dayB, data(lastSync = LinkedInSync.Done))
+        target.value = Target(game, dayA)
+        val views = shownBy(holder())
+
+        target.value = Target(game, dayB)
+        runCurrent()
+        after(HOUR_MS)
+
+        assertEquals(listOf(LinkedInDayStatus.Loading, null, LinkedInDayStatus.Idle), views.map { it?.status })
+    }
+
+    @Test
+    fun aSyncThatIsCancelledClearsSyncingInsteadOfLeavingItUp() = runTest(main.testDispatcher) {
+        days.emit(game, dayA, data(lastSync = LinkedInSync.Done))
+        val gate = CompletableDeferred<Unit>()
+        days.syncGate = gate
+        target.value = Target(game, dayA)
+        val views = shownBy(holder())
+        after(500)
+        assertEquals(LinkedInDayStatus.Loading, views.last()?.status)
+
+        gate.cancel()
+        runCurrent()
+
+        assertEquals(LinkedInDayStatus.Idle, views.last()?.status)
+    }
+
+    @Test
+    fun aSyncThatThrowsEndsTheViewWithItsFailureAndNeverLeavesSyncingUp() = runTest(main.testDispatcher) {
+        days.emit(game, dayA, data(lastSync = LinkedInSync.Done))
+        val gate = CompletableDeferred<Unit>()
+        days.syncGate = gate
+        target.value = Target(game, dayA)
+        val failures = mutableListOf<Throwable>()
+        val views = mutableListOf<LinkedInDayView?>()
+        holder()(target).onEach { views += it }.catch { failures += it }.launchIn(backgroundScope)
+        after(500)
+        assertEquals(LinkedInDayStatus.Loading, views.last()?.status)
+
+        gate.completeExceptionally(IllegalStateException("boom"))
+        runCurrent()
+
+        assertEquals(listOf("boom"), failures.map { it.message })
     }
 
     @Test
