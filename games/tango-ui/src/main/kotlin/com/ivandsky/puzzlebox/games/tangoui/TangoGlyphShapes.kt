@@ -24,8 +24,8 @@ internal fun DrawScope.drawSun(fill: Color, n: Int, rim: Float = 0f) {
     val rayLength = glyph * TangoBoardSpec.sunRayLengthFraction
     val rayWidth = glyph * TangoBoardSpec.sunRayWidthFraction + rim * 2
     drawCircle(fill, radius = discRadius + rim, center = center)
-    for (i in 0 until 8) {
-        val angle = Math.toRadians((i * 45.0))
+    for (i in 0 until TangoBoardSpec.sunRayCount) {
+        val angle = Math.toRadians(i * 360.0 / TangoBoardSpec.sunRayCount)
         val dir = Offset(cos(angle).toFloat(), sin(angle).toFloat())
         drawLine(
             fill,
@@ -56,7 +56,7 @@ internal class MoonPaths {
 internal fun DrawScope.drawMoon(fill: Color, n: Int, paths: MoonPaths, rim: Float = 0f) {
     val glyph = size.minDimension * TangoBoardSpec.glyphSizeFraction(n)
     val center = Offset(size.width / 2f, size.height / 2f)
-    val radius = glyph * TangoBoardSpec.sunDiscFraction / 2f
+    val radius = glyph * TangoBoardSpec.moonDiscFraction / 2f
     val punch = glyph * TangoBoardSpec.moonPunchDiameterFraction / 2f
     val punchOffset = glyph * TangoBoardSpec.moonPunchOffsetFraction
     val punchCenter = center + Offset(punchOffset, -punchOffset) // toward upper-right; one orientation, never mirrored (§2)

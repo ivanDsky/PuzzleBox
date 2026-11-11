@@ -44,7 +44,7 @@ class TangoBoardSpecTest {
         assertEquals(32.8f, pitchN10.value, 0.05f)
     }
 
-    /** The smallest solid glyph ink, the sun disc, clears the floor at every size (n10: 0.66 × 32.8 × 0.64 = 13.9 dp). */
+    /** The smallest solid glyph ink, the sun disc, clears the floor at every size (n10: 0.66 × 32.8 × 0.48 = 10.4 dp). */
     @Test
     fun `glyph ink clears the legibility floor at every size`() {
         for (n in TangoDraft.SIZES) {
@@ -52,7 +52,14 @@ class TangoBoardSpecTest {
             assertTrue("n=$n sun disc was $disc", disc >= TangoBoardSpec.glyphInkFloor)
         }
         assertEquals(21.6f, TangoBoardSpec.glyphSize(pitchN10, 10).value, 0.05f)
-        assertEquals(13.9f, (TangoBoardSpec.glyphSize(pitchN10, 10) * TangoBoardSpec.sunDiscFraction).value, 0.05f)
+        assertEquals(10.4f, (TangoBoardSpec.glyphSize(pitchN10, 10) * TangoBoardSpec.sunDiscFraction).value, 0.05f)
+        assertEquals(13.9f, (TangoBoardSpec.glyphSize(pitchN10, 10) * TangoBoardSpec.moonDiscFraction).value, 0.05f)
+    }
+
+    /** The airy-8 sun's farthest ray edge stays inside the glyph box: disc/2 + gap + length + width/2 ≤ 0.5. */
+    @Test
+    fun `sun rays stay inside the glyph box`() {
+        assertTrue("sun extent was ${TangoBoardSpec.sunExtentFraction}", TangoBoardSpec.sunExtentFraction <= 0.5f)
     }
 
     /** §10.5 arithmetic: violation border rides colorScheme.error (6.46/9.84) — pinned in designsystem; here the dash geometry stays pitch-derived. */

@@ -10,7 +10,7 @@ import androidx.compose.ui.unit.dp
  *
  * Computed glyph floor at the content worst case, n10 on a 360 dp phone (328 dp board, pitch
  * 32.8 dp): glyph box 0.66 × 32.8 = 21.6 dp, its smallest solid ink, the sun disc,
- * 0.64 × 21.6 = 13.9 dp ≥ [glyphInkFloor]. Marks: see [markTextFraction].
+ * 0.48 × 21.6 = 10.4 dp ≥ [glyphInkFloor]. The moon disc is 0.64 × 21.6 = 13.9 dp. Marks: see [markTextFraction].
  */
 object TangoBoardSpec {
 
@@ -23,15 +23,25 @@ object TangoBoardSpec {
     /** Sun/moon glyph box, fraction of cell pitch (D5 parity: n≥8 rescue step). */
     fun glyphSizeFraction(n: Int): Float = if (n >= 8) 0.66f else 0.60f
 
-    /** Sun disc diameter, fraction of the glyph box. */
-    const val sunDiscFraction: Float = 0.64f
+    /** Sun disc diameter, fraction of the glyph box: keeps the disc above [glyphInkFloor] at n10 on a 360 dp phone. */
+    const val sunDiscFraction: Float = 0.48f
+
+    /** Sun ray count: round-capped rays evenly spaced around the disc. */
+    const val sunRayCount: Int = 8
 
     /** Sun ray length/width, fractions of the glyph box. */
-    const val sunRayLengthFraction: Float = 0.18f
-    const val sunRayWidthFraction: Float = 0.08f
+    const val sunRayLengthFraction: Float = 0.12f
+    const val sunRayWidthFraction: Float = 0.07f
 
     /** Disc→ray gap, fraction of the glyph box. */
-    const val sunRayGapFraction: Float = 0.03f
+    const val sunRayGapFraction: Float = 0.07f
+
+    /** Sun disc radius plus gap, length and half-width: the farthest ray edge from centre. Stays inside the glyph box at 0.5. */
+    const val sunExtentFraction: Float =
+        sunDiscFraction / 2f + sunRayGapFraction + sunRayLengthFraction + sunRayWidthFraction / 2f
+
+    /** Moon disc diameter, fraction of the glyph box (unchanged by the sun's airy retune). */
+    const val moonDiscFraction: Float = 0.64f
 
     /** Moon crescent punch: offset / diameter, fractions of the glyph box (§2). */
     const val moonPunchOffsetFraction: Float = 0.28f
