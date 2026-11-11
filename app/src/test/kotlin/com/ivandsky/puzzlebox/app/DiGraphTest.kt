@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
@@ -99,6 +100,20 @@ class DiGraphTest : KoinTest {
         }
         try {
             assertNotNull(koinApp.koin.get<IdentityService>())
+        } finally {
+            stopKoin()
+        }
+    }
+
+    /** Flag-on resolves LinkedInDays off the real graph; no cookies override, so the real binding must exist. */
+    @Test
+    fun `LinkedInDays resolves off the real graph with no cookies override`() {
+        val koinApp = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(PuzzleBoxApplication.appModules)
+        }
+        try {
+            assertNotNull(koinApp.koin.get<LinkedInDays>())
         } finally {
             stopKoin()
         }

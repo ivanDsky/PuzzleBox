@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.play.navigation.resultEntry
+import com.ivandsky.puzzlebox.profile.api.LinkedInLoginKey
 import com.ivandsky.puzzlebox.profile.api.SettingsKey
 import com.ivandsky.puzzlebox.profile.navigation.profileEntry
 
@@ -49,6 +50,9 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  * Games section through [libraryRequests], History's tab root through [openOwner]); Today
  * hides what is owned elsewhere, the game page draws its board, the tablet times card signs
  * in in place, and Profile has its own back and a gear to Settings.
+ *
+ * [linkedIn] turns on the LinkedIn entry points (the game page's reconnect and Settings'
+ * connect), both opening [LinkedInLoginKey]; off, those entries stay hidden.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -60,6 +64,7 @@ internal fun puzzleBoxEntryProvider(
     duels: DuelsSlot? = null,
     onOpenDuel: ((DuelKey) -> Unit)? = null,
     libraryRequests: LibraryRequests = LibraryRequests(),
+    linkedIn: Boolean = false,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(
         navigator,
@@ -86,6 +91,7 @@ internal fun puzzleBoxEntryProvider(
         showGameBoard = true,
         onOpenGameHistory = { navigator.openOwner(HistoryRootKey) },
         signInInPlace = true,
+        onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) }.takeIf { linkedIn },
     )
     resultEntry(
         navigator,
@@ -104,6 +110,7 @@ internal fun puzzleBoxEntryProvider(
         onBack = back,
         onProfileBack = back,
         onOpenSettings = { navigator.pushOnce(SettingsKey) },
+        onOpenLinkedInLogin = { navigator.pushOnce(LinkedInLoginKey) }.takeIf { linkedIn },
     )
     competeEntry(navigator, playLayout)
     entry<CatalogKey> { CatalogScreen(openGame = { navigator.pushOnce(GameKey(it)) }) }

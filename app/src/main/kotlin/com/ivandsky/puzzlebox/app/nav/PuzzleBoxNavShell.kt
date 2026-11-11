@@ -49,6 +49,7 @@ import org.koin.compose.koinInject
  * let Enter code open a duel. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
+ * [linkedIn] is read once per launch through [rememberLinkedIn] and gates the LinkedIn entries.
  * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
  */
 @Composable
@@ -63,6 +64,7 @@ internal fun PuzzleBoxNavShell(
     duels: DuelsSlot? = null,
     onOpenDuel: ((DuelKey) -> Unit)? = null,
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
+    linkedIn: Boolean = rememberLinkedIn(),
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
 ) {
@@ -88,6 +90,7 @@ internal fun PuzzleBoxNavShell(
             duels = duels,
             onOpenDuel = onOpenDuel,
             libraryRequests = libraryRequests,
+            linkedIn = linkedIn,
         ).withHintCooldown(),
         shellChrome = shellChrome,
     )
