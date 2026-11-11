@@ -1,7 +1,8 @@
 package com.ivandsky.puzzlebox.home
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -12,27 +13,20 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalInspectionMode
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.format.DateTimeFormatter
-import kotlinx.coroutines.delay
 
 /**
  * The left pane and the whole single-pane screen share one stacked column on the app
  * background (identity §2.8): the header, then Today, the streak
- * card and the recent days, each entering in turn. A non-null
- * [HomeUiState.updateUrl] puts the [UpdatePill] in the header's actions; a tap hands it to [onOpenUpdate].
+ * card, the summary rows and the recent days, each entering in turn. A non-null
+ * [HomeUiState.updateUrl] shows the [UpdatePill]: in the header's actions, or on its own line under
+ * the header when [pillBelowHeader] (the phone header also holds the shell's avatar and the title
+ * would wrap at 360dp); a tap hands the URL to [onOpenUpdate].
  */
 @Composable
 internal fun ListPane(
@@ -42,6 +36,7 @@ internal fun ListPane(
     onDayClick: (String) -> Unit,
     selectable: Boolean,
     showStreak: Boolean,
+    pillBelowHeader: Boolean,
     onOpenGame: (GameId) -> Unit,
     summaries: HomeSummaries,
     title: String,
@@ -62,9 +57,21 @@ internal fun ListPane(
             title = title,
             subtitle = state.puzzleDay.format(HEADER_DATE),
             actions = {
-                state.updateUrl?.let { url -> UpdatePill(onClick = { onOpenUpdate(url) }) }
+                if (!pillBelowHeader) state.updateUrl?.let { url -> UpdatePill(onClick = { onOpenUpdate(url) }) }
             },
         )
+        // Phone: the avatar already shares the header row, so the pill gets a line of its own. The check
+        // can land after the first frame; the line grows in so Today glides down instead of jumping.
+        if (pillBelowHeader) {
+            AnimatedVisibility(
+                visible = state.updateUrl != null,
+                enter = expandVertically() + fadeIn(),
+            ) {
+                Box(Modifier.padding(start = Spacing.lg, bottom = Spacing.lg)) {
+                    UpdatePill(onClick = { state.updateUrl?.let(onOpenUpdate) })
+                }
+            }
+        }
         Column(
             modifier = Modifier.padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xxl),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
@@ -79,8 +86,8 @@ internal fun ListPane(
                 }
             }
             // The summaries sit under the streak, one line each, only when there is something to say.
-            HomeSummaryRows(state = state, summaries = summaries)
-            StaggeredItem(2) {
+            HomeSummaryRows(state = state, summaries = summaries, index = 2)
+            StaggeredItem(3) {
                 HomeRecentSection(
                     days = state.history,
                     onSeeAll = onOpenHistory,
@@ -91,35 +98,6 @@ internal fun ListPane(
             }
         }
     }
-}
-
-/**
- * First-composition entrance (handoff 05-b): a fade-only stagger, [MotionTokens.EnterStagger]
- * apart up to the cap. Reduced motion: one plain fade, no stagger.
- */
-@Composable
-private fun StaggeredItem(
-    index: Int,
-    content: @Composable () -> Unit,
-) {
-    val reducedMotion = rememberReducedMotion()
-    // A preview has no first frame to animate: it draws every item settled.
-    val settled = LocalInspectionMode.current
-    var appeared by rememberSaveable { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        if (!reducedMotion) delay(MotionTokens.EnterStagger.toLong() * index.coerceAtMost(MotionTokens.EnterStaggerCap))
-        appeared = true
-    }
-    val progress by animateFloatAsState(
-        targetValue = if (appeared || settled) 1f else 0f,
-        animationSpec = if (reducedMotion) {
-            tween(MotionTokens.ReducedFadeDuration)
-        } else {
-            tween(MotionTokens.EnterDuration, easing = MotionTokens.EasingEmphasizedDecelerate)
-        },
-        label = "home-entrance-$index",
-    )
-    Box(Modifier.graphicsLayer { alpha = progress }) { content() }
 }
 
 private val HEADER_DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("EEEE, MMMM d")

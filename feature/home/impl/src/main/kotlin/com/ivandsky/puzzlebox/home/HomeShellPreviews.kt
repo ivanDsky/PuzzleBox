@@ -66,7 +66,7 @@ private val V2State = HomeUiState(
     rank = TodayRank(GameId("zip"), "Zip", 3),
 )
 
-private val V2Summaries = HomeSummaries(onOpenRank = {}, onOpenDuels = {}, duelsNeedYou = { 2 })
+private val V2Summaries = HomeSummaries(onOpenRank = {}, duels = HomeDuelsSummary(onOpen = {}, needYou = { 2 }))
 
 @Composable
 private fun HomeToday(layout: HomeLayout) {
@@ -85,6 +85,7 @@ private fun HomeToday(layout: HomeLayout) {
                     state = V2State,
                     onOpenGame = {},
                     onOpenHistory = {},
+                    onSelectDay = {},
                     title = "Today",
                     summaries = V2Summaries,
                 )

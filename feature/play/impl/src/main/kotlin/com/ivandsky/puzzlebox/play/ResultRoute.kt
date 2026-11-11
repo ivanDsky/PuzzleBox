@@ -133,7 +133,7 @@ private fun ColumnScope.HeroPage(
             )
         },
         board = if (!viewModel.replay && state.puzzleNumber != null) {
-            { SummaryLinkRow("Full board", "summary.leaderboard", { onOpenBoard(GameId(key.gameId)) }) }
+            { SummaryLinkRow("Full board", { onOpenBoard(GameId(key.gameId)) }, Modifier.testTag("summary.leaderboard")) }
         } else {
             null
         },

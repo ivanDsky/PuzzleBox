@@ -346,7 +346,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane` stacking
   `HomeTodaySection` (`HomeTodaySummary` card with `TodayBadge`s + one CTA / rollover countdown)/`HomeStreakSection`/
   `HomeRecentSection`, `HomeLayout` + `homeLayoutFor` pure pane policy. Home is the Today
-  tab: `HomeSummaries` adds the rank and duels `SummaryLinkRow`s, and its recent days link
+  tab: `HomeSummaries` (rank callback + `HomeDuelsSummary`) adds the rank and duels `SummaryLinkRow`s, and its recent days link
   "See all" to the History tab root (`onOpenHistory`).
 - `feature/play/impl/` (`:feature:play:impl`) — the one game-agnostic play surface (ADR-0006,
   ADR-0007; no `games:*` dependency): `PlaySessionStore` (Koin single: one `ActivePlay` per
@@ -655,7 +655,7 @@ when any source, build script or allowlist changes).
 - `:core:data:testDebugUnitTest` — 261
 - `:core:database:testDebugUnitTest` — 33 (DAOs + migrations through 8→9; the LinkedIn database)
 - `:core:datastore:testDebugUnitTest` — 12
-- `:core:designsystem:testDebugUnitTest` — 137
+- `:core:designsystem:testDebugUnitTest` — 139
 - `:core:domain:testDebugUnitTest` — 352
 - `:core:game:test` — 87
 - `:core:game-ui:testDebugUnitTest` — 306
@@ -663,9 +663,9 @@ when any source, build script or allowlist changes).
 - `:core:network:test` — 54
 - `:core:model:test` — 10
 - `:core:testing`, `:feature:*:api` — 0
-- `:feature:home:impl:testDebugUnitTest` — 79
+- `:feature:home:impl:testDebugUnitTest` — 80
 - `:feature:history:impl:testDebugUnitTest` — 53
-- `:feature:play:impl:testDebugUnitTest` — 445
+- `:feature:play:impl:testDebugUnitTest` — 553
 - `:feature:profile:impl:testDebugUnitTest` — 53
 - `:feature:create:impl:testDebugUnitTest` — 395
 - `:feature:compete:impl:testDebugUnitTest` — 184

@@ -5,10 +5,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
@@ -28,7 +24,8 @@ internal data class HistoryDay(val isoDay: String, val headline: String, val gam
  * where the streak moves out of the list into the streak & stats pane.
  * Destinations are hoisted to the app shell (ticket 17): [onOpenGame] opens a game (a
  * tile, or the CTA's [HomeUiState.playTarget]; the play restores its save), and
- * [onOpenHistory] opens the full history. Game titles render from [state]'s rows, never from a
+ * [onOpenHistory] opens the full history; [onSelectDay] picks a recent day for the detail pane
+ * ([HomeUiState.selectedDay], two-pane only). Game titles render from [state]'s rows, never from a
  * hardcoded id; the header's date is the puzzle roll-over day (A9), never the phone's.
  * A non-null [HomeUiState.updateUrl] shows the Update available pill in the header (spec A7);
  * its tap calls [onOpenUpdate] with that URL. [summaries] adds the rank and duels rows.
@@ -39,23 +36,23 @@ internal fun HomeScreen(
     state: HomeUiState,
     onOpenGame: (GameId) -> Unit,
     onOpenHistory: () -> Unit,
+    onSelectDay: (String) -> Unit,
     summaries: HomeSummaries,
     title: String,
     modifier: Modifier = Modifier,
     onOpenUpdate: (String) -> Unit = {},
 ) {
-    var selectedDay by rememberSaveable { mutableStateOf<String?>(null) }
-
     Box(modifier.fillMaxSize()) {
         if (layout == HomeLayout.TwoPane) {
             Row(Modifier.fillMaxSize()) {
                 ListPane(
                     state = state,
                     onOpenHistory = onOpenHistory,
-                    selectedDay = selectedDay,
-                    onDayClick = { selectedDay = it },
+                    selectedDay = state.selectedDay,
+                    onDayClick = onSelectDay,
                     selectable = true,
                     showStreak = false,
+                    pillBelowHeader = false,
                     onOpenGame = onOpenGame,
                     summaries = summaries,
                     title = title,
@@ -65,7 +62,7 @@ internal fun HomeScreen(
                     onOpenUpdate = onOpenUpdate,
                 )
                 DetailPane(
-                    selected = selectedDay?.let { iso -> state.history.firstOrNull { it.isoDay == iso } },
+                    selected = state.selectedDay?.let { iso -> state.history.firstOrNull { it.isoDay == iso } },
                     state = state,
                     modifier = Modifier
                         .weight(0.58f)
@@ -80,6 +77,7 @@ internal fun HomeScreen(
                 onDayClick = {},
                 selectable = false,
                 showStreak = true,
+                pillBelowHeader = true,
                 onOpenGame = onOpenGame,
                 summaries = summaries,
                 title = title,
