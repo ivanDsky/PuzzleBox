@@ -50,16 +50,31 @@ class ObserveLinkedInDayView(
                 }
             }
         }
+        var previous: Target? = null
         combine(target.distinctUntilChanged(), again) { day, _ -> day }
             .transformLatest { day ->
                 shown.value = day
-                if (day == null) {
-                    emit(null)
-                } else {
+                // The old day's view is dropped at once: the store answers the new day a moment later, and until
+                // then the card would show the last day's state as this day's. A retry keeps its day on screen.
+                if (day == null || (previous != null && day != previous)) emit(null)
+                previous = day
+                if (day != null) {
+                    // Until its sync has answered, an unsettled day is one that is about to be read. The store
+                    // alone cannot say so: it reports the sync only once the debounce is over.
+                    val awaitingSync = MutableStateFlow(true)
                     coroutineScope {
                         // Its answer is not read: the observed day already carries how its last sync ended.
-                        launch { sync(day.game, day.day) }
-                        observe(day.game, day.day).collect { emit(it) }
+                        launch {
+                            try {
+                                sync(day.game, day.day)
+                            } finally {
+                                awaitingSync.value = false
+                            }
+                        }
+                        observe(day.game, day.day)
+                            .combine(awaitingSync) { view, waiting -> if (waiting) view.syncing() else view }
+                            .distinctUntilChanged()
+                            .collect { emit(it) }
                     }
                 }
             }
@@ -78,4 +93,13 @@ class ObserveLinkedInDayView(
     fun resume() {
         resumes.tryEmit(Unit)
     }
+}
+
+/**
+ * A day with nothing to say yet (Idle) or whose last read failed (Offline) is read again by the sync that is
+ * about to run, so it says so. Every other state is already the day's answer and is kept.
+ */
+private fun LinkedInDayView.syncing(): LinkedInDayView = when (status) {
+    LinkedInDayStatus.Idle, LinkedInDayStatus.Offline -> copy(status = LinkedInDayStatus.Loading)
+    else -> this
 }
