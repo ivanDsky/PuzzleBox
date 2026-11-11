@@ -68,8 +68,8 @@ class LinkedInGhostIsolationE2ETest {
             assertTrue("the page read today's daily board: $boards", LeaderboardRef(ZIP, today) in boards)
             assertTrue("the board followed the picked day: $boards", LeaderboardRef(ZIP, older) in boards)
             boards.forEach { board ->
-                // Today, yesterday, or the day picked on the calendar: a daily board is only ever read, never anything of a connection's.
-                assertTrue("a daily board of a day the page showed: $board", board.day in setOf(today, today.minusDays(1), older))
+                // The day card's day, or the day picked on the calendar: a daily board is only ever read, never anything of a connection's.
+                assertTrue("a daily board of a day the page showed: $board", board.day in setOf(today, older))
                 assertNamesNoGhost(board.toString())
             }
             assertTrue("no duel was made: ${graph.matches.matches}", graph.matches.matches.isEmpty())
