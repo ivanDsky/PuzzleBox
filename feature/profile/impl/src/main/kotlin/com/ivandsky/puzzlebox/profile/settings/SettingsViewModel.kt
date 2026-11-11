@@ -12,27 +12,38 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * Settings state: the stored theme mode, [AppBuild.versionName] and, when [link] is given, the LinkedIn block
- * following the link live; a pick is saved through [preferences]. A null [link] (the feature is off) leaves
+ * Settings state: the stored theme mode, the Games switches (live from [games]), [AppBuild.versionName] and, when
+ * [link] is given, the LinkedIn block following the link live; a pick is saved through [preferences] and a switch
+ * through [games]. A null [link] (the feature is off) leaves
  * the LinkedIn block out of the state entirely and makes the LinkedIn actions no-ops.
  */
 internal class SettingsViewModel(
     private val preferences: UserPreferencesRepository,
+    private val games: GameOptions,
     appBuild: AppBuild,
     private val link: LinkedInLink?,
 ) : ViewModel() {
 
+    private val gamesSection: Flow<GamesSectionState> =
+        combine(games.queensAutoCross, games.sudokuPeerHighlight, games.sudokuSameDigitHighlight, ::GamesSectionState)
+
     private val states: Flow<SettingsUiState> =
         if (link == null) {
-            preferences.themeMode.map { SettingsUiState(themeMode = it, versionName = appBuild.versionName) }
+            combine(preferences.themeMode, gamesSection) { mode, gamesState ->
+                SettingsUiState(themeMode = mode, versionName = appBuild.versionName, games = gamesState)
+            }
         } else {
-            combine(preferences.themeMode, link.state) { mode, linkState ->
-                SettingsUiState(themeMode = mode, versionName = appBuild.versionName, linkedIn = linkState.toSection())
+            combine(preferences.themeMode, gamesSection, link.state) { mode, gamesState, linkState ->
+                SettingsUiState(
+                    themeMode = mode,
+                    versionName = appBuild.versionName,
+                    games = gamesState,
+                    linkedIn = linkState.toSection(),
+                )
             }
         }
 
@@ -46,6 +57,19 @@ internal class SettingsViewModel(
     /** Appearance: persisted; the app root re-themes from the stored mode. */
     fun onSetThemeMode(mode: ThemeMode) {
         viewModelScope.launch { preferences.setThemeMode(mode) }
+    }
+
+    /** Games: written to the store the in-game overflow toggle reads, so the board shows it next time it opens. */
+    fun onSetQueensAutoCross(enabled: Boolean) {
+        viewModelScope.launch { games.setQueensAutoCross(enabled) }
+    }
+
+    fun onSetSudokuPeerHighlight(enabled: Boolean) {
+        viewModelScope.launch { games.setSudokuPeerHighlight(enabled) }
+    }
+
+    fun onSetSudokuSameDigitHighlight(enabled: Boolean) {
+        viewModelScope.launch { games.setSudokuSameDigitHighlight(enabled) }
     }
 
     /** Lifts the pause only; the latch is the link's. */

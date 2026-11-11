@@ -203,6 +203,9 @@ class ProfileScreenTest {
                         SettingsScreen(
                             state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0"),
                             onSetThemeMode = {},
+                            onSetQueensAutoCross = {},
+                            onSetSudokuPeerHighlight = {},
+                            onSetSudokuSameDigitHighlight = {},
                             onBack = {},
                             onOpenCatalog = null,
                         )
