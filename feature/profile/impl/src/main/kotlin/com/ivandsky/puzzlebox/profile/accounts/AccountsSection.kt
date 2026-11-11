@@ -16,7 +16,8 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
  * Profile's Accounts: Google first, then LinkedIn in one card. The LinkedIn row is drawn only when the feature is
- * on ([onConnectLinkedIn] given) and the link has reported a [linkedIn] state; the two accounts are independent.
+ * on ([onConnectLinkedIn] given) and the link has reported a [linkedIn] state; the two accounts are independent. The
+ * Google row carries cloud sync ([sync], Sync now, Delete my cloud data) only when [sync] is given.
  */
 @Composable
 internal fun AccountsSection(
@@ -29,6 +30,9 @@ internal fun AccountsSection(
     onResumeLinkedIn: () -> Unit,
     onDisconnectLinkedIn: () -> Unit,
     modifier: Modifier = Modifier,
+    sync: ProfileUiState.GoogleSync? = null,
+    onSyncNow: () -> Unit = {},
+    onDeleteCloudData: () -> Unit = {},
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(text = "Accounts", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
@@ -39,7 +43,7 @@ internal fun AccountsSection(
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Column {
-                GoogleRow(account, onSignIn, onSignOut)
+                GoogleRow(account, onSignIn, onSignOut, sync = sync, nowMs = nowMs, onSyncNow = onSyncNow, onDeleteCloudData = onDeleteCloudData)
                 if (linkedIn != null && onConnectLinkedIn != null) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     LinkedInRow(linkedIn, nowMs, onConnectLinkedIn, onResumeLinkedIn, onDisconnectLinkedIn)

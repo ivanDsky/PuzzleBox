@@ -24,7 +24,7 @@ import com.ivandsky.puzzlebox.profile.accounts.AccountsSection
 /**
  * Profile (A20): the top bar (back icon at the left, [onOpenSettings] gear at the right),
  * then the header (avatar, name and "Playing since") and the Accounts card: the Google row, and the
- * LinkedIn row when [onConnectLinkedIn] is given (the feature is on). [nowMs] phrases the LinkedIn update time.
+ * LinkedIn row when [onConnectLinkedIn] is given (the feature is on). [nowMs] phrases the LinkedIn and sync update times.
  */
 @Composable
 internal fun ProfileContent(
@@ -38,6 +38,8 @@ internal fun ProfileContent(
     onConnectLinkedIn: (() -> Unit)? = null,
     onResumeLinkedIn: () -> Unit = {},
     onDisconnectLinkedIn: () -> Unit = {},
+    onSyncNow: () -> Unit = {},
+    onDeleteCloudData: () -> Unit = {},
 ) {
     val account = state.account
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -76,6 +78,9 @@ internal fun ProfileContent(
                 onConnectLinkedIn = onConnectLinkedIn,
                 onResumeLinkedIn = onResumeLinkedIn,
                 onDisconnectLinkedIn = onDisconnectLinkedIn,
+                sync = state.sync,
+                onSyncNow = onSyncNow,
+                onDeleteCloudData = onDeleteCloudData,
             )
         }
     }
