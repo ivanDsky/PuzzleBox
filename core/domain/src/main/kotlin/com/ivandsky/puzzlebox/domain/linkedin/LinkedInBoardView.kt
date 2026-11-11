@@ -12,7 +12,8 @@ sealed interface LinkedInBoardView {
 
     /**
      * [ghosts] are sorted by the game's rank order, hidden times last. [yourRank] is null unless
-     * the player's own result is imported, and [total] counts the player only then.
+     * the player's own result is imported. With a rank, [total] is the "of N": the player and the connections with a time;
+     * without one it is the connections that played, a hidden time included.
      */
     data class Shown(
         val ghosts: List<LinkedInGhost>,

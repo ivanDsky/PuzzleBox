@@ -9,6 +9,8 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.linkedInScore
+import com.ivandsky.puzzlebox.game.linkedin.rankCombined
+import com.ivandsky.puzzlebox.game.linkedin.rankedCount
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -68,15 +70,20 @@ private fun LinkedInDayData.shown(
     order: Comparator<BestScore>,
     fetchedAtMs: Long,
 ): LinkedInBoardView.Shown {
-    val timed = ghosts.mapNotNull { ghost -> ghost.timeMs?.let { ghost to linkedInScore(it, ghost.hintFree) } }
     val yours = (own as? LinkedInOwnState.Imported)?.record?.let { BestScore(it.time, it.hints) }
-    // Only a strictly better ghost is ahead, so equal scores share a rank.
-    val yourRank = yours?.let { mine -> 1 + timed.count { (_, score) -> order.compare(score, mine) < 0 } }
+    val slots = rankCombined(
+        rows = listOfNotNull(yours),
+        ghosts = ghosts.map { ghost -> ghost.timeMs?.let { linkedInScore(it, ghost.hintFree) } },
+        order = order,
+    )
+    val yourRank = slots.firstOrNull { !it.ghost }?.place
     return LinkedInBoardView.Shown(
-        // The sort is stable, so equal scores keep board order; a hidden time has no score and takes no rank.
-        ghosts = timed.sortedWith(compareBy(order) { it.second }).map { it.first } + ghosts.filter { it.timeMs == null },
+        // Equal scores keep board order; a hidden time has no score and takes no rank.
+        ghosts = slots.filter { it.ghost }.map { ghosts[it.index] },
         yourRank = yourRank,
-        total = ghosts.size + if (yourRank != null) 1 else 0,
+        // The rank's "of N" counts the player and the connections with a time. Without a rank the line only says how
+        // many connections played, and one with a hidden time did play.
+        total = if (yourRank != null) slots.rankedCount() else ghosts.size,
         updatedAtMs = fetchedAtMs,
     )
 }

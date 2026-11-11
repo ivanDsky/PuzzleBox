@@ -51,10 +51,10 @@ class DailyBoardTest {
         TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(LeaderboardRef("queens", LocalDate.of(2026, 11, 8)), entries.toList())),
     )
 
-    private fun show(order: RankOrder, state: DailyBoardState, ghosts: List<GhostRowModel> = emptyList()) {
+    private fun show(order: RankOrder, state: DailyBoardState, ghosts: List<GhostRowModel> = emptyList(), isToday: Boolean = true) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                DailyBoard("Queens · today", order, state, ghosts = ghosts, signIn = { Text("sign-in slot") })
+                DailyBoard("Queens · today", order, state, ghosts = ghosts, signIn = { Text("sign-in slot") }, isToday = isToday)
             }
         }
     }
@@ -126,6 +126,13 @@ class DailyBoardTest {
     fun `empty ranked says nobody is on the board`() {
         show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()))
         composeRule.onNodeWithText("No one is on today's board yet.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `an empty board of another day says so, not that today's is empty`() {
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()), isToday = false)
+
+        composeRule.onNodeWithTag("daily_board.empty").assertTextEquals("No one is on this day's board yet.")
     }
 
     @Test

@@ -45,13 +45,15 @@ internal fun GamePageBoard(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        val day = state.day
+        // Null while today's board is shown, the other day's date otherwise.
+        val otherDay = state.day?.takeUnless { state.isToday }
         DailyBoard(
-            title = if (day == null || state.isToday) dailyBoardTitle(viewModel.gameName) else "${viewModel.gameName} · ${PickedDate.format(day)}",
+            title = if (otherDay == null) dailyBoardTitle(viewModel.gameName) else "${viewModel.gameName} · ${PickedDate.format(otherDay)}",
             order = viewModel.order,
             state = state.board,
             ghosts = state.ghosts,
             animated = linkedIn,
+            isToday = otherDay == null,
             signIn = {
                 Column(Modifier.testTag("leaderboard.signIn")) {
                     SignInPrompt(
