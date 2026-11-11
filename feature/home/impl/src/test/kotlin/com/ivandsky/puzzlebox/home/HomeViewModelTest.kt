@@ -97,6 +97,7 @@ class HomeViewModelTest {
         release: AppRelease? = null,
         releases: AppReleaseRepository = FakeAppReleaseRepository(release),
         boards: Map<LeaderboardRef, List<LeaderboardEntry>> = emptyMap(),
+        summariesShown: Boolean = false,
     ): Deps {
         val registry = GameRegistry(
             listOf(zip, tango).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
@@ -127,6 +128,7 @@ class HomeViewModelTest {
                 ObserveLeaderboard(identity, FakeLeaderboardRepository(boards), registry, calendar),
             ),
         )
+        vm.setSummariesShown(summariesShown)
         if (collect) backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return Deps(vm, daily, completions, saved, identity)
     }
@@ -464,7 +466,7 @@ class HomeViewModelTest {
 
     @Test
     fun `a signed-in player ranked on the latest solved game gets that rank`() = runTest {
-        val deps = viewModel(identity = FakeIdentityService(initial = me), boards = mapOf(twelfth(zip)))
+        val deps = viewModel(identity = FakeIdentityService(initial = me), boards = mapOf(twelfth(zip)), summariesShown = true)
         deps.solve(zip, "2026-11-04T08:00:00Z")
 
         assertEquals(TodayRank(zip, "Zip", 12), deps.vm.uiState.value.rank)
@@ -472,7 +474,7 @@ class HomeViewModelTest {
 
     @Test
     fun `a signed-out player has no rank`() = runTest {
-        val deps = viewModel(boards = mapOf(twelfth(zip)))
+        val deps = viewModel(boards = mapOf(twelfth(zip)), summariesShown = true)
         deps.solve(zip, "2026-11-04T08:00:00Z")
 
         assertNull(deps.vm.uiState.value.rank)
@@ -480,7 +482,7 @@ class HomeViewModelTest {
 
     @Test
     fun `a hidden rank gives none`() = runTest {
-        val deps = viewModel(identity = FakeIdentityService(initial = me))
+        val deps = viewModel(identity = FakeIdentityService(initial = me), summariesShown = true)
         deps.solve(zip, "2026-11-04T08:00:00Z")
 
         assertNull(deps.vm.uiState.value.rank)
@@ -488,20 +490,37 @@ class HomeViewModelTest {
 
     @Test
     fun `no solve today gives no rank`() = runTest {
-        val deps = viewModel(identity = FakeIdentityService(initial = me), boards = mapOf(twelfth(zip)))
+        val deps = viewModel(identity = FakeIdentityService(initial = me), boards = mapOf(twelfth(zip)), summariesShown = true)
 
         assertNull(deps.vm.uiState.value.rank)
     }
 
     @Test
     fun `a new latest solve of another game moves the rank to it`() = runTest {
-        val deps = viewModel(identity = FakeIdentityService(initial = me), boards = mapOf(twelfth(zip), twelfth(tango)))
+        val deps = viewModel(
+            identity = FakeIdentityService(initial = me),
+            boards = mapOf(twelfth(zip), twelfth(tango)),
+            summariesShown = true,
+        )
         deps.solve(zip, "2026-11-04T08:00:00Z")
         assertEquals(TodayRank(zip, "Zip", 12), deps.vm.uiState.value.rank)
 
         deps.solve(tango, "2026-11-04T09:00:00Z")
 
         assertEquals(TodayRank(tango, "Tango", 12), deps.vm.uiState.value.rank)
+    }
+
+    @Test
+    fun `a ranked player has no rank while Today shows no summaries, and gets it once it does`() = runTest {
+        val deps = viewModel(identity = FakeIdentityService(initial = me), boards = mapOf(twelfth(zip)))
+        deps.solve(zip, "2026-11-04T08:00:00Z")
+        assertNull(deps.vm.uiState.value.rank)
+
+        deps.vm.setSummariesShown(true)
+        assertEquals(TodayRank(zip, "Zip", 12), deps.vm.uiState.value.rank)
+
+        deps.vm.setSummariesShown(false)
+        assertNull(deps.vm.uiState.value.rank)
     }
 
     /** A release check stuck on the network: it never answers. */

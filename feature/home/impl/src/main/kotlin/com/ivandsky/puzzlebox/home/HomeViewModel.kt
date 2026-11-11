@@ -147,13 +147,27 @@ class HomeViewModel(
     // Seeded (null) so the recent days never wait on today's set (it reads Room and DataStore).
     private val today: Flow<List<TodayEntry>?> = todaySet().onStart<List<TodayEntry>?> { emit(null) }
 
+    // Off until Today draws the summary rows, so a Home without them never reads the leaderboard.
+    private val summariesShown = MutableStateFlow(false)
+
+    /** Set by the route while Today shows summaries; the rank stream runs only then. */
+    fun setSummariesShown(shown: Boolean) {
+        summariesShown.value = shown
+    }
+
     // A new latest solve cancels the old game's rank stream; no rank until a ranked result lands.
-    private val rank: Flow<TodayRank?> = observeLatestSolvedToday().flatMapLatest { game ->
-        if (game == null) {
+    private val rank: Flow<TodayRank?> = summariesShown.flatMapLatest { shown ->
+        if (!shown) {
             flowOf(null)
         } else {
-            observeResultRank(game, puzzleDay()).map { result ->
-                (result as? ResultRank.Ranked)?.let { TodayRank(game, registry.displayName(game), it.position) }
+            observeLatestSolvedToday().flatMapLatest { game ->
+                if (game == null) {
+                    flowOf(null)
+                } else {
+                    observeResultRank(game, puzzleDay()).map { result ->
+                        (result as? ResultRank.Ranked)?.let { TodayRank(game, registry.displayName(game), it.position) }
+                    }
+                }
             }
         }
     }.distinctUntilChanged().onStart { emit(null) }
