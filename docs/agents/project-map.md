@@ -345,9 +345,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   week, `GetNextRollover`, identity, cache-only history teaser via `ObserveGameHistory`;
   `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane` stacking
   `HomeTodaySection` (`HomeTodaySummary` card with `TodayBadge`s + one CTA / rollover countdown)/`HomeStreakSection`/
-  `HomeRecentSection`/`HomeCards`, `HomeLayout` + `homeLayoutFor` pure pane policy. Today
-  (NavV2) is the same screen: `HomeSummaries` adds the rank and duels `SummaryLinkRow`s, the entry's
-  `hideOwnedElsewhere` drops the blocks other tabs own, and its recent days link "See all" to History.
+  `HomeRecentSection`, `HomeLayout` + `homeLayoutFor` pure pane policy. Home is the Today
+  tab: `HomeSummaries` adds the rank and duels `SummaryLinkRow`s, and its recent days link
+  "See all" to the History tab root (`onOpenHistory`).
 - `feature/play/impl/` (`:feature:play:impl`) — the one game-agnostic play surface (ADR-0006,
   ADR-0007; no `games:*` dependency): `PlaySessionStore` (Koin single: one `ActivePlay` per
   `PlaySlot`, `open(GameKey)`/`peek(slot)`/`retain(keys)`/`flush()`, `playable` games, pins a

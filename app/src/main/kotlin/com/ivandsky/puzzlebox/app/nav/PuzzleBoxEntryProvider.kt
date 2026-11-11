@@ -64,7 +64,6 @@ internal fun puzzleBoxEntryProvider(
     homeEntry(
         navigator,
         homeLayout,
-        hideOwnedElsewhere = true,
         title = topLevelDestinations.first { it.key == HomeKey }.label,
         summaries = HomeSummaries(
             onOpenRank = { libraryRequests.openGamePage(navigator, it.value) },

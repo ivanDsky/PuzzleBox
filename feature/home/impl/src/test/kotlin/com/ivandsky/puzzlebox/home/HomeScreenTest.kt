@@ -19,7 +19,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.performScrollTo
-import com.ivandsky.puzzlebox.data.identity.Identity
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
@@ -63,26 +62,22 @@ class HomeScreenTest {
         history: List<HistoryDay> = emptyList(),
         today: MutableState<List<HomeUiState.TodayRow>> = mutableStateOf(TODAY),
         playTarget: GameId? = GameId("tango"),
-        identity: Identity? = null,
         onOpenGame: (GameId) -> Unit = {},
-        onOpenProfile: () -> Unit = {},
         reselect: SharedFlow<Unit> = MutableSharedFlow(),
-        hideOwnedElsewhere: Boolean = false,
         rank: TodayRank? = null,
-        summaries: HomeSummaries? = null,
-        title: String? = null,
+        summaries: HomeSummaries = HomeSummaries(onOpenRank = null, onOpenDuels = null, duelsNeedYou = null),
+        title: String = "PuzzleBox",
     ) {
         composeRule.setContent {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
                 PuzzleBoxTheme {
                     HomeScreen(
                         layout = layout,
-                        state = state(today.value, history, playTarget, identity).copy(rank = rank),
+                        state = state(today.value, history, playTarget).copy(rank = rank),
                         onOpenGame = onOpenGame,
-                        onOpenProfile = onOpenProfile,
+                        onOpenHistory = {},
                         modifier = Modifier,
-                        hideOwnedElsewhere = hideOwnedElsewhere,
-                        title = title ?: HomeDefaultTitle,
+                        title = title,
                         summaries = summaries,
                     )
                 }
@@ -110,7 +105,6 @@ class HomeScreenTest {
         listOf("solved", "hint_free", "average", "since").forEach {
             composeRule.onNodeWithTag("home.stat_$it", useUnmergedTree = true).assertExists()
         }
-        TODAY.forEach { composeRule.onNodeWithTag("home.best.${it.game.value}", useUnmergedTree = true).assertExists() }
         composeRule.onNodeWithTag("home.day_detail").assertDoesNotExist()
     }
 
@@ -307,20 +301,6 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `sign in fires the profile destination`() {
-        // Ticket 17 regression: the account card opens Profile (the real account
-        // surface) instead of showing placeholder copy.
-        var opened = false
-        setContent(HomeLayout.SinglePane, onOpenProfile = { opened = true })
-
-        composeRule
-            .onNodeWithText("Sign in")
-            .performScrollTo()
-            .performClick()
-        composeRule.runOnIdle { check(opened) { "expected onOpenProfile" } }
-    }
-
-    @Test
     fun `home has no theme control - N4`() {
         setContent(HomeLayout.SinglePane)
 
@@ -329,30 +309,11 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `account card reflects signed-out identity as guest`() {
-        setContent(HomeLayout.SinglePane)
-
-        composeRule.onNodeWithText("Guest player").assertExists()
-        composeRule.onNodeWithText("Sign in").assertExists()
-    }
-
-    @Test
-    fun `account card reflects a signed-in identity`() {
-        setContent(
-            HomeLayout.SinglePane,
-            identity = Identity(uid = "u1", displayName = "Ivan D.", photoUrl = null),
-        )
-
-        composeRule.onNodeWithText("Ivan D.").assertExists()
-        composeRule.onNodeWithText("Competing on leaderboards.").assertExists()
-        composeRule.onNodeWithText("Profile").assertExists()
-    }
-
-    @Test
     fun `a tab reselect scrolls the list back to its header`() {
         val reselect = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-        setContent(HomeLayout.SinglePane, reselect = reselect)
-        composeRule.onNodeWithText("Guest player").performScrollTo()
+        val days = (1..6).map { HistoryDay("2026-10-0$it", "October $it", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42"))) }
+        setContent(HomeLayout.SinglePane, history = days, reselect = reselect)
+        composeRule.onNodeWithTag("home.history_row_2026-10-06").performScrollTo()
         composeRule.onNodeWithText("PuzzleBox").assertIsNotDisplayed()
 
         composeRule.runOnIdle { reselect.tryEmit(Unit) }
@@ -361,31 +322,21 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `a title from the app replaces the default header title`() {
-        setContent(HomeLayout.SinglePane, title = "Heading from the app")
-
-        composeRule.onNodeWithText("Heading from the app").assertIsDisplayed()
-        composeRule.onNodeWithText(HomeDefaultTitle).assertDoesNotExist()
-    }
-
-    @Test
-    fun `phone with owned-elsewhere hidden keeps recent days and drops the account card`() {
+    fun `phone keeps recent days beside today and the streak`() {
         val day = HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))
-        setContent(HomeLayout.SinglePane, history = listOf(day), hideOwnedElsewhere = true)
+        setContent(HomeLayout.SinglePane, history = listOf(day))
 
         composeRule.onNodeWithTag("home.history_row_2026-11-03").assertExists()
-        composeRule.onNodeWithText("Sign in").assertDoesNotExist()
         composeRule.onNodeWithTag("home.today").assertExists()
         composeRule.onNodeWithTag("home.streak").assertExists()
     }
 
     @Test
-    fun `tablet with owned-elsewhere hidden shows a tapped day's detail and hides the bests`() {
+    fun `tablet shows a tapped day's detail`() {
         val day = HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))
-        setContent(HomeLayout.TwoPane, history = listOf(day), hideOwnedElsewhere = true)
+        setContent(HomeLayout.TwoPane, history = listOf(day))
 
         composeRule.onNodeWithTag("home.streak_pane").assertExists()
-        TODAY.forEach { composeRule.onNodeWithTag("home.best.${it.game.value}", useUnmergedTree = true).assertDoesNotExist() }
         composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
         composeRule.onNodeWithTag("home.day_detail").assertExists()
     }
@@ -460,14 +411,6 @@ class HomeScreenTest {
         composeRule.onNodeWithTag("summary.duels").assertDoesNotExist()
     }
 
-    @Test
-    fun `no summaries object means no summary rows`() {
-        setContent(HomeLayout.SinglePane, rank = zipRank, summaries = null)
-
-        composeRule.onNodeWithTag("summary.leaderboard").assertDoesNotExist()
-        composeRule.onNodeWithTag("summary.duels").assertDoesNotExist()
-    }
-
     private companion object {
         val DAY: LocalDate = LocalDate.of(2026, 11, 4)
 
@@ -486,10 +429,9 @@ class HomeScreenTest {
             today: List<HomeUiState.TodayRow>,
             history: List<HistoryDay>,
             playTarget: GameId?,
-            identity: Identity?,
         ) = HomeUiState(
             today = today,
-            identity = identity,
+            identity = null,
             history = history,
             puzzleDay = DAY,
             playTarget = playTarget,

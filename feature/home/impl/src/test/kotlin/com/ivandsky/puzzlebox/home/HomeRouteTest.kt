@@ -106,7 +106,9 @@ class HomeRouteTest {
                 HomeRoute(
                     layout = HomeLayout.SinglePane,
                     onOpenGame = onOpenGame,
-                    onOpenProfile = {},
+                    onOpenHistory = {},
+                    summaries = HomeSummaries(onOpenRank = null, onOpenDuels = null, duelsNeedYou = null),
+                    title = "Today",
                 )
             }
         }
@@ -196,7 +198,13 @@ class HomeRouteTest {
         startGraph(FakeDailyRepository(), FakeCompletionRepository())
         val navigator = Navigator(navigationState(HomeKey, PlayKey))
         val provider = entryProvider {
-            homeEntry(navigator, HomeLayout.SinglePane)
+            homeEntry(
+                navigator,
+                HomeLayout.SinglePane,
+                summaries = HomeSummaries(onOpenRank = null, onOpenDuels = null, duelsNeedYou = null),
+                onOpenHistory = {},
+                title = "Today",
+            )
         }
         composeRule.setContent {
             PuzzleBoxTheme { provider(HomeKey).Content() }
@@ -296,7 +304,13 @@ class HomeRouteTest {
         composeRule.setContent {
             CompositionLocalProvider(LocalUriHandler provides uriHandler) {
                 PuzzleBoxTheme {
-                    HomeRoute(layout = HomeLayout.SinglePane, onOpenGame = {}, onOpenProfile = {})
+                    HomeRoute(
+                        layout = HomeLayout.SinglePane,
+                        onOpenGame = {},
+                        onOpenHistory = {},
+                        summaries = HomeSummaries(onOpenRank = null, onOpenDuels = null, duelsNeedYou = null),
+                        title = "Today",
+                    )
                 }
             }
         }
@@ -324,7 +338,13 @@ class HomeRouteTest {
         composeRule.setContent {
             CompositionLocalProvider(LocalUriHandler provides uriHandler) {
                 PuzzleBoxTheme {
-                    HomeRoute(layout = HomeLayout.SinglePane, onOpenGame = {}, onOpenProfile = {})
+                    HomeRoute(
+                        layout = HomeLayout.SinglePane,
+                        onOpenGame = {},
+                        onOpenHistory = {},
+                        summaries = HomeSummaries(onOpenRank = null, onOpenDuels = null, duelsNeedYou = null),
+                        title = "Today",
+                    )
                 }
             }
         }

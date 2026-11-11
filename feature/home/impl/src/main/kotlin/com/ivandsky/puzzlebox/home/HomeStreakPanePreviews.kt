@@ -84,14 +84,3 @@ internal fun HomeStreakPaneEmptyPreview() {
         }
     }
 }
-
-// Preview: the bests card alone, both rank orders and an unsolved game.
-@PuzzleBoxPreviews
-@Composable
-internal fun HomeBestsListPreview() {
-    PuzzleBoxTheme {
-        Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.lg)) {
-            HomeBestsList(rows = PaneRows, modifier = Modifier.width(480.dp))
-        }
-    }
-}
