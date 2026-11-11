@@ -29,6 +29,7 @@ val profileModule: Module = module {
     viewModel { params ->
         SettingsViewModel(
             preferences = get(),
+            games = get(),
             appBuild = get(),
             link = if (params.getOrNull<Boolean>() == true) get() else null,
         )

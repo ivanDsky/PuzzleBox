@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.profile.settings
 
 import android.app.Application
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -27,6 +29,9 @@ class SettingsScreenTest {
     val composeRule = createComposeRule()
 
     private val themes = mutableListOf<ThemeMode>()
+    private val queensAutoCross = mutableListOf<Boolean>()
+    private val sudokuPeer = mutableListOf<Boolean>()
+    private val sudokuSameDigit = mutableListOf<Boolean>()
     private var backClicks = 0
     private var catalogClicks = 0
 
@@ -39,11 +44,33 @@ class SettingsScreenTest {
                 SettingsScreen(
                     state = state,
                     onSetThemeMode = { themes += it },
+                    onSetQueensAutoCross = { queensAutoCross += it },
+                    onSetSudokuPeerHighlight = { sudokuPeer += it },
+                    onSetSudokuSameDigitHighlight = { sudokuSameDigit += it },
                     onBack = { backClicks++ },
                     onOpenCatalog = if (showCatalog) ({ catalogClicks++ }) else null,
                 )
             }
         }
+    }
+
+    @Test
+    fun `each games row shows its stored value and a tap reports the flipped one`() {
+        setContent(
+            state = SettingsUiState(
+                themeMode = ThemeMode.LIGHT,
+                versionName = "1.4.0",
+                games = GamesSectionState(queensAutoCross = false, sudokuPeerHighlight = true, sudokuSameDigitHighlight = false),
+            ),
+        )
+
+        composeRule.onNodeWithTag("settings.games.queens.autocross").performScrollTo().assertIsOff().performClick()
+        composeRule.onNodeWithTag("settings.games.sudoku.peer").performScrollTo().assertIsOn().performClick()
+        composeRule.onNodeWithTag("settings.games.sudoku.samedigit").performScrollTo().assertIsOff().performClick()
+
+        assertEquals(listOf(true), queensAutoCross)
+        assertEquals(listOf(false), sudokuPeer)
+        assertEquals(listOf(true), sudokuSameDigit)
     }
 
     @Test

@@ -29,6 +29,9 @@ internal fun SettingsRoute(
     SettingsScreen(
         state = state,
         onSetThemeMode = viewModel::onSetThemeMode,
+        onSetQueensAutoCross = viewModel::onSetQueensAutoCross,
+        onSetSudokuPeerHighlight = viewModel::onSetSudokuPeerHighlight,
+        onSetSudokuSameDigitHighlight = viewModel::onSetSudokuSameDigitHighlight,
         onBack = onBack,
         onOpenCatalog = onOpenCatalog.takeIf { debuggable },
         onConnectLinkedIn = onConnectLinkedIn,

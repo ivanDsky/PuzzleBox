@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.games.queensui.QueensSettings
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuHighlightSettings
+import com.ivandsky.puzzlebox.profile.settings.GameOptions
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -93,6 +94,8 @@ val appModule = module {
     single<SudokuHighlightSettings> { PreferencesSudokuHighlightSettings(get<GameSettingsRepository>()) }
     // Queens' Auto-cross lives in the persisted game settings; its UI module only sees this seam.
     single<QueensSettings> { PreferencesQueensSettings(get<GameSettingsRepository>(), get<CoroutineScope>()) }
+    // Settings' Games switches share those stored values, so a flip there shows in the board's ⋮ menu and back.
+    single<GameOptions> { PreferencesGameOptions(get<GameSettingsRepository>()) }
 }
 
 /** ADR-0008 "Adding a game": a plugin bound without its GamePlayUi is a wiring bug —
