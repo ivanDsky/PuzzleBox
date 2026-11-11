@@ -16,6 +16,9 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
 import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import java.time.LocalDate
@@ -30,6 +33,12 @@ private fun previewWeek(solvedBack: Set<Long>): List<WeekDay> = (6L downTo 0L).m
     WeekDay(PreviewToday.minusDays(back), if (back in solvedBack) listOf(PreviewBrand) else emptyList(), isToday = back == 0L)
 }
 
+private fun real(place: Int, name: String, timeMs: Long, hints: Int = 0, you: Boolean = false, rank: Int = place) =
+    DailyBoardLine.Real(DailyBoardRowModel(rank, name, timeMs, hints, isSelf = you), place)
+
+private fun ghost(place: Int, name: String, timeMs: Long, hintFree: Boolean = true) =
+    DailyBoardLine.Ghost(GhostRowModel("ref-$name", name, timeMs, hintFree), place)
+
 private val Loaded = PlayStatsState(
     gameName = "Zip",
     solvedToday = 2,
@@ -41,7 +50,7 @@ private val Loaded = PlayStatsState(
     averageMs = 58_000L,
     times = PlayTimes.Board(
         listOf("Mia", "Jonas", "Priya", "Alexandria-Charlotte Whitfield", "Tom", "Sam", "Ivan", "Lee")
-            .mapIndexed { index, name -> PlayTimeRow(index + 1, name, 30_000L + index * 9_000L, hints = 0, you = name == "Ivan") },
+            .mapIndexed { index, name -> real(index + 1, name, 30_000L + index * 9_000L, you = name == "Ivan") },
         solved = true,
     ),
 )
@@ -76,7 +85,9 @@ internal fun PlayStatsPanelLoadingPreview() = PanelPreview(Loading, elapsedMs = 
 @Composable
 internal fun PlayStatsPanelSignedOutPreview() = PanelPreview(Loaded.copy(streak = 0, times = PlayTimes.SignedOut), elapsedMs = 31_000L)
 
-private val OthersOnly = (Loaded.times as PlayTimes.Board).rows.map { it.copy(you = false) }
+private val OthersOnly = (Loaded.times as PlayTimes.Board).rows.map { line ->
+    if (line is DailyBoardLine.Real) line.copy(row = line.row.copy(isSelf = false)) else line
+}
 
 @PuzzleBoxPreviews
 @Composable
@@ -105,11 +116,11 @@ internal fun PlayStatsPanelConnectionsPreview() = PanelPreview(
     Loaded.copy(
         times = PlayTimes.Board(
             listOf(
-                PlayTimeRow(1, "Mia", 30_000L, hints = 0, you = false),
-                PlayTimeRow(2, "Ada Lin", 35_000L, hints = 0, you = false, ghost = true),
-                PlayTimeRow(3, "Jonas", 39_000L, hints = 0, you = false),
-                PlayTimeRow(4, "Cy Park", 44_000L, hints = 1, you = false, ghost = true),
-                PlayTimeRow(5, "Ivan", 48_000L, hints = 0, you = true),
+                real(1, "Mia", 30_000L),
+                ghost(2, "Ada Lin", 35_000L),
+                real(3, "Jonas", 39_000L, rank = 2),
+                ghost(4, "Cy Park", 44_000L, hintFree = false),
+                real(5, "Ivan", 48_000L, you = true, rank = 3),
             ),
             solved = true,
         ),
@@ -125,7 +136,7 @@ internal fun PlayStatsPanelHintsFirstPreview() = PanelPreview(
         rankOrder = RankOrder.HintsThenTime,
         times = (Loaded.times as PlayTimes.Board).let { board ->
             board.copy(
-                rows = board.rows.mapIndexed { index, row -> row.copy(hints = index / 2) },
+                rows = board.rows.mapIndexed { index, line -> if (line is DailyBoardLine.Real) line.copy(row = line.row.copy(hints = index / 2)) else line },
                 order = RankOrder.HintsThenTime,
             )
         },

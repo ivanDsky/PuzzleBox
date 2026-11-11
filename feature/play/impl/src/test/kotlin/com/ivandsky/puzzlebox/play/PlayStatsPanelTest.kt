@@ -13,6 +13,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
@@ -39,6 +41,8 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.today
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
@@ -52,6 +56,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -143,8 +148,11 @@ class PlayStatsPanelTest {
         ),
     )
 
-    private fun ghost(name: String, seconds: Long?, hintFree: Boolean = true) =
-        LinkedInGhost("ref-$name", name, seconds?.let { it * 1_000L }, hintFree, flawless = false)
+    private fun ghost(name: String, seconds: Long?, hintFree: Boolean = true, photoPath: String? = null) =
+        LinkedInGhost("ref-$name", name, seconds?.let { it * 1_000L }, hintFree, flawless = false, photoPath = photoPath)
+
+    /** The [part] inside the row tagged [row], whatever else on the card shares its tag. */
+    private fun inRow(row: String, part: String) = hasTestTag(part) and hasAnyAncestor(hasTestTag(row))
 
     private fun show(vm: PlayStatsViewModel, elapsedMs: Long? = 83_000L) {
         composeRule.setContent {
@@ -266,7 +274,7 @@ class PlayStatsPanelTest {
                 rankOrder = RankOrder.TimeThenHints,
                 averageMs = null,
                 times = PlayTimes.Board(
-                    (1..3).map { PlayTimeRow(it, "Player $it", it * 10_000L, hints = 0, you = false) },
+                    (1..3).map { DailyBoardLine.Real(DailyBoardRowModel(it, "Player $it", it * 10_000L, hints = 0, isSelf = false), it) },
                     solved = true,
                     order = RankOrder.TimeThenHints,
                     post = post,
@@ -301,22 +309,22 @@ class PlayStatsPanelTest {
         show(viewModel())
 
         // Top: ranks 1-5, then the player's 7th place pinned under them.
-        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(5)
-        composeRule.onNodeWithTag("play.stats.row.you").assertTextContains("7", substring = true)
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(5)
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("7")
         composeRule.onNodeWithText("Player 1").assertExists()
 
         composeRule.onNodeWithTag("play.stats.tab.near").performClick()
         composeRule.waitForIdle()
 
         // Near you: ranks 5-8 (the board ends one below the player).
-        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(3)
-        composeRule.onNodeWithTag("play.stats.row.you").assertTextContains("You", substring = true)
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(3)
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.name")).assertTextEquals("You")
         composeRule.onNodeWithText("Player 5").assertExists()
         composeRule.onNodeWithText("Player 1").assertDoesNotExist()
 
         composeRule.onNodeWithTag("play.stats.tab.top").performClick()
         composeRule.waitForIdle()
-        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(5)
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(5)
     }
 
     @Test
@@ -325,18 +333,19 @@ class PlayStatsPanelTest {
         show(viewModel(linkedIn = true))
 
         // Top: Player 1, 2, Ada (3rd), Player 3, 4, then the player's 9th place pinned under them.
-        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(4)
-        composeRule.onAllNodesWithTag("play.stats.row.ghost").assertCountEquals(1)
-        composeRule.onNodeWithTag("play.stats.row.ghost").assertTextContains("Ada Lin", substring = true).assertTextContains("3", substring = true)
-        composeRule.onNodeWithTag("play.stats.row.ghost").assertTextContains("LinkedIn", substring = true)
-        composeRule.onNodeWithTag("play.stats.row.you").assertTextContains("9", substring = true)
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(4)
+        composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(1)
+        composeRule.onNodeWithTag("daily_board.ghost.name").assertTextEquals("Ada Lin")
+        composeRule.onNodeWithTag("daily_board.ghost.rank").assertTextEquals("3")
+        composeRule.onNodeWithTag("daily_board.ghost.detail").assertTextContains("LinkedIn", substring = true)
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("9")
 
         composeRule.onNodeWithTag("play.stats.tab.near").performClick()
         composeRule.waitForIdle()
 
         // Near you: Player 6, Cy (7th), the player, Player 8.
-        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(2)
-        composeRule.onNodeWithTag("play.stats.row.ghost").assertTextContains("Cy Park", substring = true)
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(2)
+        composeRule.onNodeWithTag("daily_board.ghost.name").assertTextEquals("Cy Park")
         composeRule.onNodeWithText("Ada Lin").assertDoesNotExist()
     }
 
@@ -348,8 +357,8 @@ class PlayStatsPanelTest {
         composeRule.waitForIdle()
 
         // Player 8 is last of the hint-free times, so the hinted 0:05 comes after it.
-        composeRule.onNodeWithTag("play.stats.row.ghost").assertTextContains("0:05", substring = true)
-        composeRule.onNodeWithTag("play.stats.row.ghost").assertTextContains("9", substring = true)
+        composeRule.onNodeWithTag("daily_board.ghost.score").assertTextEquals("0:05")
+        composeRule.onNodeWithTag("daily_board.ghost.rank").assertTextEquals("9")
     }
 
     @Test
@@ -357,8 +366,8 @@ class PlayStatsPanelTest {
         cachedConnections(ghost("Ada Lin", null))
         show(viewModel(linkedIn = true))
 
-        composeRule.onAllNodesWithTag("play.stats.row.ghost").assertCountEquals(0)
-        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(5)
+        composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(5)
     }
 
     @Test
@@ -366,25 +375,35 @@ class PlayStatsPanelTest {
         cachedConnections(ghost("Ada Lin", 25))
         show(viewModel(linkedIn = false))
 
-        composeRule.onAllNodesWithTag("play.stats.row.ghost").assertCountEquals(0)
-        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(5)
-        composeRule.onNodeWithTag("play.stats.row.you").assertTextContains("7", substring = true)
+        composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(5)
+        composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("7")
     }
 
     @Test
     fun `a day with no connections draws the board alone and never asks LinkedIn for any`() {
         show(viewModel(linkedIn = true))
 
-        composeRule.onAllNodesWithTag("play.stats.row.ghost").assertCountEquals(0)
-        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(5)
+        composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(5)
         assertTrue(linkedInDays.syncCalls.isEmpty())
+    }
+
+    @Test
+    fun `a connection's cached photo reaches its row`() {
+        cachedConnections(ghost("Ada Lin", 25, photoPath = "/cache/ada-lin.jpg"), ghost("Cy Park", 65))
+        val vm = viewModel(linkedIn = true)
+        show(vm)
+
+        val ghosts = (vm.state.value.times as PlayTimes.Board).rows.filterIsInstance<DailyBoardLine.Ghost>()
+        assertEquals(mapOf("Ada Lin" to "/cache/ada-lin.jpg", "Cy Park" to null), ghosts.associate { it.row.name to it.row.photo })
     }
 
     @Test
     fun `signed out the board asks for sign-in instead of rows`() {
         show(viewModel(identity = null))
 
-        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(0)
         composeRule.onNodeWithTag("custom_board.sign_in").assertExists()
     }
 
@@ -478,7 +497,7 @@ class PlayStatsPanelTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag("custom_board.sign_in").assertDoesNotExist()
-        composeRule.onAllNodesWithTag("play.stats.row").assertCountEquals(5)
+        composeRule.onAllNodesWithTag("daily_board.row").assertCountEquals(5)
     }
 
     @Test
