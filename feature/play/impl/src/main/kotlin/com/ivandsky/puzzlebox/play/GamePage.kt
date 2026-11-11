@@ -119,7 +119,7 @@ private fun PageTail(
 ) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(spacing)) {
         board()
-        SummaryLinkRow("Your history", "summary.history", onOpenHistory)
+        SummaryLinkRow("Your history", onOpenHistory, Modifier.testTag("summary.history"))
         HowToPlayCard(row, hasLesson, onOpenLesson)
     }
 }

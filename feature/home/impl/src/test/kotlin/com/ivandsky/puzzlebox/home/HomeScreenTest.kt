@@ -1,7 +1,10 @@
 package com.ivandsky.puzzlebox.home
 
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertHeightIsEqualTo
@@ -65,17 +68,20 @@ class HomeScreenTest {
         onOpenGame: (GameId) -> Unit = {},
         reselect: SharedFlow<Unit> = MutableSharedFlow(),
         rank: TodayRank? = null,
-        summaries: HomeSummaries = HomeSummaries(onOpenRank = null, onOpenDuels = null, duelsNeedYou = null),
+        summaries: HomeSummaries = HomeSummaries(onOpenRank = null, duels = null),
         title: String = "PuzzleBox",
+        updateUrl: String? = null,
     ) {
         composeRule.setContent {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
                 PuzzleBoxTheme {
+                    var picked by remember { mutableStateOf<String?>(null) }
                     HomeScreen(
                         layout = layout,
-                        state = state(today.value, history, playTarget).copy(rank = rank),
+                        state = state(today.value, history, playTarget).copy(rank = rank, selectedDay = picked, updateUrl = updateUrl),
                         onOpenGame = onOpenGame,
                         onOpenHistory = {},
+                        onSelectDay = { picked = it },
                         modifier = Modifier,
                         title = title,
                         summaries = summaries,
@@ -344,12 +350,30 @@ class HomeScreenTest {
     private val zipRank = TodayRank(GameId("zip"), "Zip", 12)
 
     @Test
+    fun `phone puts the update pill under the header, where the avatar shares the title row`() {
+        setContent(HomeLayout.SinglePane, updateUrl = "https://example.test/release")
+
+        val title = composeRule.onNodeWithText("PuzzleBox").getUnclippedBoundsInRoot()
+        val pill = composeRule.onNodeWithTag("home.update_pill").getUnclippedBoundsInRoot()
+        assertTrue("pill top ${pill.top} is not below the title's bottom ${title.bottom}", pill.top >= title.bottom)
+    }
+
+    @Test
+    fun `two pane keeps the update pill in the header row`() {
+        setContent(HomeLayout.TwoPane, updateUrl = "https://example.test/release")
+
+        val title = composeRule.onNodeWithText("PuzzleBox").getUnclippedBoundsInRoot()
+        val pill = composeRule.onNodeWithTag("home.update_pill").getUnclippedBoundsInRoot()
+        assertTrue("pill top ${pill.top} is below the title's bottom ${title.bottom}", pill.top < title.bottom)
+    }
+
+    @Test
     fun `rank row shows the rank and reports its game`() {
         var opened: GameId? = null
         setContent(
             HomeLayout.SinglePane,
             rank = zipRank,
-            summaries = HomeSummaries(onOpenRank = { opened = it }, onOpenDuels = null, duelsNeedYou = null),
+            summaries = HomeSummaries(onOpenRank = { opened = it }, duels = null),
         )
 
         composeRule.onNodeWithTag("summary.leaderboard").performScrollTo().assert(hasText("Today's rank: #12 on Zip"))
@@ -360,13 +384,13 @@ class HomeScreenTest {
 
     @Test
     fun `rank row is absent without a callback`() {
-        setContent(HomeLayout.SinglePane, rank = zipRank, summaries = HomeSummaries(null, {}, { 1 }))
+        setContent(HomeLayout.SinglePane, rank = zipRank, summaries = HomeSummaries(null, HomeDuelsSummary({}, { 1 })))
         composeRule.onNodeWithTag("summary.leaderboard").assertDoesNotExist()
     }
 
     @Test
     fun `rank row is absent when the state has no rank`() {
-        setContent(HomeLayout.SinglePane, rank = null, summaries = HomeSummaries({}, {}, { 1 }))
+        setContent(HomeLayout.SinglePane, rank = null, summaries = HomeSummaries({}, HomeDuelsSummary({}, { 1 })))
         composeRule.onNodeWithTag("summary.leaderboard").assertDoesNotExist()
     }
 
@@ -375,7 +399,7 @@ class HomeScreenTest {
         var taps = 0
         setContent(
             HomeLayout.SinglePane,
-            summaries = HomeSummaries(onOpenRank = null, onOpenDuels = { taps++ }, duelsNeedYou = { 2 }),
+            summaries = HomeSummaries(onOpenRank = null, duels = HomeDuelsSummary(onOpen = { taps++ }, needYou = { 2 })),
         )
 
         composeRule.onNodeWithTag("summary.duels").performScrollTo().assert(hasText("2 duels need you"))
@@ -386,14 +410,14 @@ class HomeScreenTest {
 
     @Test
     fun `duels row reads singular for one`() {
-        setContent(HomeLayout.SinglePane, summaries = HomeSummaries(null, {}, { 1 }))
+        setContent(HomeLayout.SinglePane, summaries = HomeSummaries(null, HomeDuelsSummary({}, { 1 })))
 
         composeRule.onNodeWithTag("summary.duels").performScrollTo().assert(hasText("1 duel needs you"))
     }
 
     @Test
     fun `rank and duels rows are 56dp tall`() {
-        setContent(HomeLayout.SinglePane, rank = zipRank, summaries = HomeSummaries({}, {}, { 2 }))
+        setContent(HomeLayout.SinglePane, rank = zipRank, summaries = HomeSummaries({}, HomeDuelsSummary({}, { 2 })))
 
         composeRule.onNodeWithTag("summary.leaderboard").performScrollTo().assertHeightIsEqualTo(56.dp)
         composeRule.onNodeWithTag("summary.duels").performScrollTo().assertHeightIsEqualTo(56.dp)
@@ -401,13 +425,13 @@ class HomeScreenTest {
 
     @Test
     fun `duels row is absent for zero`() {
-        setContent(HomeLayout.SinglePane, summaries = HomeSummaries(null, {}, { 0 }))
+        setContent(HomeLayout.SinglePane, summaries = HomeSummaries(null, HomeDuelsSummary({}, { 0 })))
         composeRule.onNodeWithTag("summary.duels").assertDoesNotExist()
     }
 
     @Test
     fun `duels row is absent when no count is offered`() {
-        setContent(HomeLayout.SinglePane, summaries = HomeSummaries(null, {}, null))
+        setContent(HomeLayout.SinglePane, summaries = HomeSummaries(null, null))
         composeRule.onNodeWithTag("summary.duels").assertDoesNotExist()
     }
 

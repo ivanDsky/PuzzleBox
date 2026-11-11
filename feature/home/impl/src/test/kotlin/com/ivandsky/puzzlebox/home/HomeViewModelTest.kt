@@ -50,10 +50,12 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import androidx.lifecycle.SavedStateHandle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -98,6 +100,7 @@ class HomeViewModelTest {
         releases: AppReleaseRepository = FakeAppReleaseRepository(release),
         boards: Map<LeaderboardRef, List<LeaderboardEntry>> = emptyMap(),
         summariesShown: Boolean = false,
+        savedState: SavedStateHandle = SavedStateHandle(),
     ): Deps {
         val registry = GameRegistry(
             listOf(zip, tango).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
@@ -127,6 +130,7 @@ class HomeViewModelTest {
             observeResultRank = ObserveResultRank(
                 ObserveLeaderboard(identity, FakeLeaderboardRepository(boards), registry, calendar),
             ),
+            savedState = savedState,
         )
         vm.setSummariesShown(summariesShown)
         if (collect) backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
@@ -422,6 +426,32 @@ class HomeViewModelTest {
         releases.release = null
         deps.vm.checkForUpdate()
         assertNull(deps.vm.uiState.value.updateUrl)
+    }
+
+    @Test
+    fun `a picked day stays selected while history lists it and clears once history drops it`() = runTest {
+        val deps = viewModel()
+        deps.completions.setRecords(listOf(record(zip, day.minusDays(1), 40_000L), record(zip, day.minusDays(2), 40_000L)))
+
+        deps.vm.selectDay("2026-11-02")
+        assertEquals("2026-11-02", deps.vm.uiState.value.selectedDay)
+
+        deps.completions.setRecords(listOf(record(zip, day.minusDays(1), 40_000L)))
+        assertEquals(listOf("2026-11-03"), deps.vm.uiState.value.history.map { it.isoDay })
+        assertNull(deps.vm.uiState.value.selectedDay)
+
+        // Gone for good: the day listed again does not bring the pick back.
+        deps.completions.setRecords(listOf(record(zip, day.minusDays(1), 40_000L), record(zip, day.minusDays(2), 40_000L)))
+        assertNull(deps.vm.uiState.value.selectedDay)
+    }
+
+    @Test
+    fun `a pick restored after process death starts selected once history lists it`() = runTest {
+        val handle = SavedStateHandle(mapOf(SELECTED_DAY_KEY to "2026-11-02"))
+        val deps = viewModel(savedState = handle, collect = false)
+        deps.completions.setRecords(listOf(record(zip, day.minusDays(2), 40_000L)))
+
+        assertEquals("2026-11-02", deps.vm.uiState.first { it.history.isNotEmpty() }.selectedDay)
     }
 
     @Test

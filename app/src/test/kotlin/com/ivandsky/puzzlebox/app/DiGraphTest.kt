@@ -202,7 +202,7 @@ class DiGraphTest : KoinTest {
             // without it the first Profile composition throws NoDefinitionFound.
             assertNotNull(koin.get<ProfileViewModel> { parametersOf(SavedStateHandle()) })
             // Home/History routes' koinViewModel() and their domain use cases.
-            assertNotNull(koin.get<HomeViewModel>())
+            assertNotNull(koin.get<HomeViewModel> { parametersOf(SavedStateHandle()) })
             assertNotNull(koin.get<HistoryViewModel> { parametersOf(HistoryKey()) })
             assertNotNull(koin.get<ObserveGameHistory>())
             assertNotNull(koin.get<ComputeStreak>())

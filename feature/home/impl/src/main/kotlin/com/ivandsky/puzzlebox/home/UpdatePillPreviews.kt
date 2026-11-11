@@ -4,12 +4,18 @@ import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
+import com.ivandsky.puzzlebox.designsystem.LocalShellActions
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -63,7 +69,8 @@ private fun HomeWithUpdate(layout: HomeLayout) {
             state = PillState,
             onOpenGame = {},
             onOpenHistory = {},
-            summaries = HomeSummaries(onOpenRank = null, onOpenDuels = null, duelsNeedYou = null),
+            onSelectDay = {},
+            summaries = HomeSummaries(onOpenRank = null, duels = null),
             title = "PuzzleBox",
         )
     }
@@ -80,11 +87,16 @@ internal fun UpdatePillPreview() {
     }
 }
 
-// Preview: the single-pane header at the 360 dp phone floor — title and pill share one row.
+// Preview: the single-pane header at the 360 dp phone floor — the avatar shares the title row, the pill sits under it.
 @Preview(name = "Light", widthDp = 360, heightDp = 640, showBackground = true)
 @Preview(name = "Dark", widthDp = 360, heightDp = 640, showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
-internal fun HomeUpdatePhonePreview() = HomeWithUpdate(HomeLayout.SinglePane)
+internal fun HomeUpdatePhonePreview() {
+    // The shell's header avatar (a 48 dp target) shares the title row on a phone.
+    CompositionLocalProvider(LocalShellActions provides { Box(Modifier.size(48.dp).background(Color.Gray, CircleShape)) }) {
+        HomeWithUpdate(HomeLayout.SinglePane)
+    }
+}
 
 // Preview: the tablet landscape TwoPane — the pill in the 42% list pane's header.
 @Preview(name = "Light", widthDp = 1280, heightDp = 800, showBackground = true)
