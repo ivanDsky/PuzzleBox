@@ -45,7 +45,8 @@ import org.koin.compose.koinInject
  * acts once on [libraryRequest]'s game page or section and hands it back through [onLibraryRequestTaken].
  * The game page shows its leaderboard with [showGameBoard] and a "Your history" row calling [onOpenGameHistory];
  * [signInInPlace] puts Google sign-in on a signed-out game's side-panel times card (off = Profile's note).
- * the defaults are the page without either.
+ * A non-null [onReconnectLinkedIn] turns the LinkedIn lines on the game page's day card on and is what its Reconnect opens.
+ * The defaults are the page without any of these.
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -60,6 +61,7 @@ fun EntryProviderScope<NavKey>.playEntry(
     showGameBoard: Boolean = false,
     onOpenGameHistory: (() -> Unit)? = null,
     signInInPlace: Boolean = false,
+    onReconnectLinkedIn: (() -> Unit)? = null,
 ) {
     entry<PlayKey> {
         LibraryRoute(
@@ -74,6 +76,8 @@ fun EntryProviderScope<NavKey>.playEntry(
             onRequestTaken = onLibraryRequestTaken,
             showGameBoard = showGameBoard,
             onOpenGameHistory = onOpenGameHistory,
+            linkedIn = onReconnectLinkedIn != null,
+            onReconnectLinkedIn = onReconnectLinkedIn,
         )
     }
     entry<FriendPuzzleKey> { key ->
