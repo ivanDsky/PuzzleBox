@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.gameui
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.ResultInsights
 import com.ivandsky.puzzlebox.domain.ResultRank
-import com.ivandsky.puzzlebox.domain.SpreadBin
+import com.ivandsky.puzzlebox.domain.SpreadScope
 import java.util.Locale
 
 /** One dot of the week: [label] is the weekday's initial; [solved] fills it, [today] marks the last. */
@@ -12,21 +12,34 @@ internal data class HeroWeekDot(val label: String, val solved: Boolean, val toda
 /** The streak block: [days] counts up on screen; [title] and [sub] are its sentences. */
 internal data class HeroStreak(val days: Int, val title: String, val sub: String, val week: List<HeroWeekDot>)
 
+/** One bar of the histogram: its solve [count], relative [height] (0 for an empty bin) and its time [range] label. */
+internal data class HeroBar(val count: Int, val height: Float, val range: String)
+
 /**
- * The histogram block. [bins] is empty on a first solve, where [firstTimeLine] stands in and
- * the axis reads [axisLow]/[axisHigh] ("faster"/"slower"); otherwise [youBin] is the bin
- * holding this solve. [caption] is the sentence under the bars; [description] reads the chart
- * aloud.
+ * One scope's chart and words. [bars] are contiguous time ranges (empty ones keep their slot);
+ * [edges] are the round times between them, one more than [bars]; [youBin] holds this solve.
+ * [description] reads the chart aloud.
+ */
+internal data class HeroScopeView(
+    val heading: HeroHeading,
+    val caption: String,
+    val verdict: Emphasized,
+    val notes: List<Emphasized>,
+    val bars: List<HeroBar>,
+    val edges: List<String>,
+    val youBin: Int,
+    val description: String,
+)
+
+/**
+ * The histogram block: one [HeroScopeView] per scope, opening on [defaultScope]; [replay] draws this solve's bar dashed.
+ * [switchable]: the scopes hold a different number of solves, so the heading carries a chip that swaps them.
  */
 internal data class HeroSpread(
-    val heading: String,
-    val bins: List<SpreadBin>,
-    val youBin: Int?,
-    val axisLow: String,
-    val axisHigh: String,
-    val firstTimeLine: String?,
-    val caption: Emphasized?,
-    val description: String,
+    val views: Map<SpreadScope, HeroScopeView>,
+    val defaultScope: SpreadScope,
+    val replay: Boolean,
+    val switchable: Boolean,
 )
 
 /**
@@ -95,7 +108,7 @@ internal fun resultHeroModel(
         bestImproved = counts && verdict == RecordVerdict.NewBest,
         chips = chips(facts, insights, chip),
         streak = insights?.takeIf { counts }?.let { streak(it, locale) },
-        spread = insights?.let { spread(facts, it) },
+        spread = insights?.let { spread(facts, it, locale) },
         rank = if (counts) rank(facts.rank) else null,
         celebrate = counts && (verdict == RecordVerdict.NewBest || verdict == RecordVerdict.FirstSolve),
         burst = counts && verdict == RecordVerdict.NewBest,
@@ -126,32 +139,28 @@ private fun streak(insights: ResultInsights, locale: Locale) = HeroStreak(
     week = insights.week.map { HeroWeekDot(weekdayInitial(it.date, locale), it.solved, it.today) },
 )
 
-private fun spread(facts: ResultHeroFacts, insights: ResultInsights): HeroSpread {
-    val spread = insights.spread
-    val heading = heroSpreadHeading(facts.game)
-    if (spread.isFirstSolve) {
-        return HeroSpread(
+private fun spread(facts: ResultHeroFacts, insights: ResultInsights, locale: Locale): HeroSpread {
+    val weekday = heroWeekdayName(insights.weekday.day, locale)
+    val switchable = insights.spread.solves != insights.weekday.spread.solves
+    val views = SpreadScope.entries.associateWith { scope ->
+        val spread = if (scope == SpreadScope.Weekday) insights.weekday.spread else insights.spread
+        val heading = heroSpreadHeading(scope, spread.solves, facts.game, weekday, switchable)
+        HeroScopeView(
             heading = heading,
-            bins = emptyList(),
-            youBin = null,
-            axisLow = "faster",
-            axisHigh = "slower",
-            firstTimeLine = HERO_FIRST_TIME_LINE,
-            caption = null,
-            description = HERO_FIRST_TIME_LINE,
+            caption = heroSpreadCaption(scope, spread.isFirstSolve, weekday, switchable),
+            verdict = heroSpreadVerdict(scope, facts.rankOrder, spread, facts.game, weekday, facts.replay),
+            notes = listOfNotNull(
+                heroRankNote(facts.rankOrder, spread),
+                heroWeekdayNote(insights.spread, insights.weekday.spread, weekday, insights.weekday.fastest),
+            ),
+            bars = spread.bins.map { HeroBar(it.count, it.height, heroBinRange(it.fromMs, it.toMs)) },
+            edges = spread.bins.map { formatDuration(it.fromMs) } + formatDuration(spread.bins.last().toMs),
+            youBin = spread.youBin,
+            description = heroChartDescription(heading.text, spread.bins.size, facts.timeMs),
         )
     }
-    val caption = heroSpreadCaption(facts.rankOrder, spread.best, spread.beaten, spread.solves, insights.averageMs)
-    return HeroSpread(
-        heading = heading,
-        bins = spread.bins,
-        youBin = spread.youBin,
-        axisLow = formatDuration(spread.loMs),
-        axisHigh = formatDuration(spread.hiMs),
-        firstTimeLine = null,
-        caption = caption,
-        description = "$heading. ${caption.text}",
-    )
+    val defaultScope = if (switchable) insights.defaultScope else SpreadScope.All
+    return HeroSpread(views = views, defaultScope = defaultScope, replay = facts.replay, switchable = switchable)
 }
 
 private fun rank(rank: ResultRank): HeroRank? = when (rank) {

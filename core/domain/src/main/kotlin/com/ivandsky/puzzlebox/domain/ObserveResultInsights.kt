@@ -37,9 +37,8 @@ class ObserveResultInsights(
             if (own != null && own.puzzleNumber == null) return@map null
 
             val rest = days.filterNot { it === own }
-            val earlier = rest
-                .filter { it.gameId == game && it.isSolvedDaily() }
-                .mapNotNull { row -> row.record?.let { BestScore(it.time, it.hints) } }
+            val earlierRows = rest.filter { it.gameId == game && it.isSolvedDaily() }
+            val earlier = earlierRows.mapNotNull { row -> row.record?.let { row.day to BestScore(it.time, it.hints) } }
             val streakDays = rest.filter { it.isStreakDay() }.mapTo(mutableSetOf()) { it.day }
             if (counted) streakDays += day else own?.takeIf { it.isStreakDay() }?.let { streakDays += it.day }
 
@@ -50,8 +49,18 @@ class ObserveResultInsights(
                     val date = today.minusDays(ago.toLong())
                     ResultDay(date, solved = date in streakDays, today = date == today)
                 },
-                spread = timeSpread(earlier, solve, order),
+                spread = timeSpread(earlier.map { it.second }, solve, order),
+                weekday = weekdaySpread(earlier, day, solve, order),
             )
         }.distinctUntilChanged()
     }
+}
+
+private fun weekdaySpread(earlier: List<Pair<LocalDate, BestScore>>, day: LocalDate, solve: BestScore, order: RankOrder): WeekdaySpread {
+    val byWeekday = earlier.groupBy({ it.first.dayOfWeek }, { it.second })
+    val mine = byWeekday[day.dayOfWeek].orEmpty()
+    val averages = byWeekday.filterValues { it.size >= WEEKDAY_MIN_EARLIER }.mapValues { (_, times) -> times.sumOf { it.timeMs } / times.size }
+    val own = averages[day.dayOfWeek]
+    val fastest = own != null && averages.size > 1 && averages.all { (weekday, average) -> weekday == day.dayOfWeek || average > own }
+    return WeekdaySpread(day.dayOfWeek, timeSpread(mine, solve, order), fastest)
 }

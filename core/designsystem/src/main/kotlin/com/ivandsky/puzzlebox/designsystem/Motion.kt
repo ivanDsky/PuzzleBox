@@ -109,6 +109,12 @@ object MotionTokens {
     const val EnterStaggerCap = 5
     val EnterRise: Dp = 8.dp
 
+    // ChartMorph: a Results histogram bar travels and rescales (bottom-centre origin) from its
+    // nearest old bar over ChartMorphDuration on EasingStandard; bars without a partner scale in.
+    // Counts and range labels fade over ChartLabelFade. Reduced: one ReducedFadeDuration fade.
+    const val ChartMorphDuration = 300
+    const val ChartLabelFade = 160
+
     // The one fade every reduced-motion fallback uses instead of travel.
     const val ReducedFadeDuration = 120
 

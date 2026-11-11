@@ -7,13 +7,14 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ResultRank
+import com.ivandsky.puzzlebox.domain.SpreadScope
 import com.ivandsky.puzzlebox.game.BestScore
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -24,14 +25,15 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The side card's states: the streak title, which week dots are solved, the "You" label on the
- * bin that holds the solve, the ghost bars of a first solve, the sign-in button of a signed-out
- * player, and no rank row while it is hidden. Assertions ride tags and the model's own
- * strings; the chart's parts sit under its one description, so they are read unmerged.
+ * The side card's states: the streak title, which week dots are solved, the "You" pill on the
+ * bin that holds the solve, the counts, range and edge labels, the scope chip's swap, a first
+ * solve's one bar, a replay's pill, the sign-in button of a signed-out player, and no rank row
+ * while it is hidden. Assertions ride tags and the model's own strings; the chart's parts sit
+ * under its one description, so they are read unmerged.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34])
+@Config(sdk = [34], qualifiers = "w360dp-h1200dp")
 class ResultSideCardTest {
 
     @get:Rule
@@ -80,19 +82,31 @@ class ResultSideCardTest {
         assertEquals(listOf(false, false, false, false, true, true, true), week.map { it.solved })
     }
 
+    private fun view(model: ResultHeroModel, scope: SpreadScope = model.spread!!.defaultScope) = model.spread!!.views.getValue(scope)
+
     @Test
-    fun `the You label and the full bar sit on the bin that holds the solve`() {
+    fun `the You pill and the full bar sit on the bin that holds the solve`() {
         val model = heroSampleModel(timeMs = 100_000L)
         setContent(model)
 
-        val spread = model.spread!!
-        val you = spread.youBin!!
+        val shown = view(model)
         composeRule.onNodeWithTag("result.side.you", useUnmergedTree = true).assertTextEquals("You")
         composeRule.onNodeWithTag("result.side.bar.you", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onAllNodesWithText("You", useUnmergedTree = true).assertCountEquals(1)
-        spread.bins.forEachIndexed { index, bin ->
+        shown.bars.forEachIndexed { index, bar ->
             val dim = composeRule.onNodeWithTag("result.side.bar.$index", useUnmergedTree = true)
-            if (bin.count == 0 || index == you) dim.assertDoesNotExist() else dim.assertIsDisplayed()
+            if (bar.count == 0 || index == shown.youBin) dim.assertDoesNotExist() else dim.assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun `every bar shows its count`() {
+        val model = heroSampleModel(timeMs = 100_000L)
+        setContent(model)
+
+        view(model).bars.forEachIndexed { index, bar ->
+            val count = composeRule.onNodeWithTag("result.side.count.$index", useUnmergedTree = true)
+            if (bar.count == 0) count.assertDoesNotExist() else count.assertTextEquals(bar.count.toString())
         }
     }
 
@@ -102,23 +116,48 @@ class ResultSideCardTest {
         setContent(model)
 
         composeRule.onNodeWithTag("result.side.chart")
-            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf(model.spread!!.description)))
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf(view(model).description)))
     }
 
     @Test
-    fun `the caption and the axis read from the model`() {
+    fun `the heading, caption and verdict read from the model`() {
         val model = heroSampleModel(timeMs = 100_000L)
         setContent(model)
 
-        val spread = model.spread!!
-        composeRule.onNodeWithTag("result.side.caption").assertTextEquals(spread.caption!!.text)
-        composeRule.onNodeWithTag("result.side.axis.low", useUnmergedTree = true).assertTextEquals(spread.axisLow)
-        composeRule.onNodeWithTag("result.side.axis.high", useUnmergedTree = true).assertTextEquals(spread.axisHigh)
-        composeRule.onNodeWithTag("result.side.heading").assertTextEquals(spread.heading)
+        val shown = view(model)
+        composeRule.onNodeWithTag("result.side.heading.prefix", useUnmergedTree = true).assertTextEquals(shown.heading.prefix.trimEnd())
+        composeRule.onNodeWithTag("result.side.chip").assertTextEquals("${shown.heading.chip} ⇄")
+        composeRule.onNodeWithTag("result.side.heading.suffix", useUnmergedTree = true).assertTextEquals(shown.heading.suffix.trimStart())
+        composeRule.onNodeWithTag("result.side.caption").assertTextEquals(shown.caption)
+        composeRule.onNodeWithTag("result.side.verdict").assertTextEquals(shown.verdict.text)
     }
 
     @Test
-    fun `a first solve draws ghost bars, the faster and slower axis and the first time line`() {
+    fun `one tap on the chip swaps the heading, the chart and the verdict, and another swaps back`() {
+        val model = heroSampleModel(weekdayEarlier = listOf(BestScore(95_000L, 0)))
+        setContent(model)
+        val all = view(model, SpreadScope.All)
+        val weekday = view(model, SpreadScope.Weekday)
+
+        composeRule.onNodeWithTag("result.side.chip").assertTextEquals("any day ⇄").performClick()
+        composeRule.onNodeWithTag("result.side.chip").assertTextEquals("Saturday ⇄")
+        composeRule.onNodeWithTag("result.side.verdict").assertTextEquals(weekday.verdict.text)
+        composeRule.onNodeWithTag("result.side.chart")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf(weekday.description)))
+
+        composeRule.onNodeWithTag("result.side.chip").performClick()
+        composeRule.onNodeWithTag("result.side.verdict").assertTextEquals(all.verdict.text)
+    }
+
+    @Test
+    fun `a weekday with enough earlier solves opens on the weekday`() {
+        setContent(heroSampleModel(weekdayEarlier = listOf(BestScore(95_000L, 0), BestScore(99_000L, 0))))
+
+        composeRule.onNodeWithTag("result.side.chip").assertTextEquals("Saturday ⇄")
+    }
+
+    @Test
+    fun `a first solve draws one bar with its count and no other bars`() {
         val model = heroSampleModel(
             verdict = RecordVerdict.FirstSolve,
             previous = null,
@@ -127,20 +166,44 @@ class ResultSideCardTest {
         )
         setContent(model)
 
-        composeRule.onNodeWithTag("result.side.bar.ghost.0", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithTag("result.side.bar.ghost.9", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithTag("result.side.axis.low", useUnmergedTree = true).assertTextEquals("faster")
-        composeRule.onNodeWithTag("result.side.axis.high", useUnmergedTree = true).assertTextEquals("slower")
-        composeRule.onNodeWithTag("result.side.first").assertTextEquals(HERO_FIRST_TIME_LINE)
-        composeRule.onNodeWithTag("result.side.you", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("result.side.bar.you", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag("result.side.count.0", useUnmergedTree = true).assertTextEquals("1")
+        composeRule.onNodeWithTag("result.side.you", useUnmergedTree = true).assertTextEquals("You")
+        composeRule.onNodeWithTag("result.side.bar.1", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithTag("result.side.verdict").assertTextEquals(view(model).verdict.text)
+        composeRule.onNodeWithTag("result.side.chip").assertDoesNotExist()
+        composeRule.onNodeWithTag("result.side.heading.prefix", useUnmergedTree = true).assertTextEquals("Your first Queens time")
+        composeRule.onNodeWithTag("result.side.caption").assertTextEquals(view(model).caption)
     }
 
     @Test
-    fun `a played solve draws no ghost bars`() {
-        setContent(heroSampleModel())
+    fun `a wide chart labels each bin with its time range`() {
+        val model = heroSampleModel(earlier = listOf(BestScore(112_000L, 0)))
+        setContent(model)
 
-        composeRule.onNodeWithTag("result.side.bar.ghost.0", useUnmergedTree = true).assertDoesNotExist()
-        composeRule.onNodeWithTag("result.side.first").assertDoesNotExist()
+        view(model).bars.forEachIndexed { index, bar ->
+            composeRule.onNodeWithTag("result.side.range.$index", useUnmergedTree = true).assertTextEquals(bar.range)
+        }
+        composeRule.onNodeWithTag("result.side.edge.0", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun `many narrow bins label only the bin edges`() {
+        val model = heroSampleModel(earlier = List(59) { BestScore(70_000L + (it * 37 % 90) * 1000L, 0) })
+        setContent(model)
+
+        composeRule.onNodeWithTag("result.side.range.0", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithTag("result.side.edge.0", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithTag("result.side.edge.${view(model).edges.lastIndex}", useUnmergedTree = true).assertDoesNotExist()
+        composeRule.onNodeWithTag("result.side.edge.2", useUnmergedTree = true).assertTextEquals(view(model).edges[2])
+    }
+
+    @Test
+    fun `a replay shows its pill as Replay and the dashed bar`() {
+        setContent(heroSampleModel(verdict = RecordVerdict.Replay, replay = true))
+
+        composeRule.onNodeWithTag("result.side.you", useUnmergedTree = true).assertTextEquals("Replay")
+        composeRule.onNodeWithTag("result.side.bar.you", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test
