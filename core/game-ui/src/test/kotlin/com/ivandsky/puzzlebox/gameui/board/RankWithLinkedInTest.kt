@@ -183,4 +183,25 @@ class RankWithLinkedInTest {
 
         assertEquals(false, fromLinkedIn(lines).values.any { it })
     }
+
+    @Test
+    fun `with an import and no owner name the you row is added as You, highlighted, with no photo, at the imported time`() {
+        val lines = rankWithLinkedIn(rows.map { it.copy(isSelf = false) }, listOf(ghost("g", 45)), own(35), RankOrder.TimeThenHints)
+
+        assertEquals(
+            listOf("Real(a)=1@30", "Real(You)=2@35", "Real(b)=3@40", "Ghost(g)=4@45", "Real(me)=5@50", "Real(c)=6@60"),
+            labels(lines),
+        )
+        val you = youOf(lines)
+        assertEquals(null, you.row.photo)
+        assertEquals(true, you.row.fromLinkedIn)
+        assertEquals(true, you.row.timeFromLinkedIn)
+    }
+
+    @Test
+    fun `a blank owner name reads as You too`() {
+        val lines = rankWithLinkedIn(listOf(real(1, "a", 30)), emptyList(), own(40, name = "  "), RankOrder.TimeThenHints)
+
+        assertEquals(listOf("Real(a)=1@30", "Real(You)=2@40"), labels(lines))
+    }
 }

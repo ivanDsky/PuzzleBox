@@ -5,11 +5,13 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.linkedin.linkedInScore
 import com.ivandsky.puzzlebox.game.linkedin.linkedInTimeWins
 
+private const val UNNAMED_YOU = "You"
+
 /**
  * [rankWithGhosts] once a LinkedIn time wins over the PuzzleBox one (see [linkedInTimeWins]): the player's row, which
  * is this profile's own row, else the row named like their LinkedIn name, else their LinkedIn row added at the end of
- * [rows] (ranked by its time, with no PuzzleBox rank), is the highlighted you row with the [you] photo and imported
- * time; a ghost named like another PuzzleBox row is that row at the ghost's time. The rows are then in the order of the
+ * [rows] (ranked by its time, with no PuzzleBox rank, named "You" while no LinkedIn name is known), is the highlighted
+ * you row with the [you] photo and imported time; a ghost named like another PuzzleBox row is that row at the ghost's time. The rows are then in the order of the
  * times they show, each keeping its own PuzzleBox rank. With no [you] and no [ghosts] this is exactly [rankWithGhosts].
  * [rows] must be the whole board, as there.
  */
@@ -42,8 +44,9 @@ fun rankWithLinkedIn(
         if (index == wins.youRow) shownRow.copy(isSelf = true, photo = photo ?: shownRow.photo) else shownRow
     }
     val added = listOfNotNull(
-        if (wins.addOwnRow && you?.score != null && you.name != null) {
-            DailyBoardRowModel(rows.size + 1, you.name, you.score.timeMs, you.score.hints, isSelf = true, photo = photo, fromLinkedIn = true, timeFromLinkedIn = true)
+        if (wins.addOwnRow && you?.score != null) {
+            val name = you.name?.takeIf { it.isNotBlank() } ?: UNNAMED_YOU
+            DailyBoardRowModel(rows.size + 1, name, you.score.timeMs, you.score.hints, isSelf = true, photo = photo, fromLinkedIn = true, timeFromLinkedIn = true)
         } else {
             null
         },

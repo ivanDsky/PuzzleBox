@@ -17,6 +17,20 @@ interface GhostDao {
     @Query("SELECT * FROM ghosts WHERE game = :game AND day = :day")
     fun observe(game: String, day: String): Flow<List<GhostEntity>>
 
+    /**
+     * The board of one game day plus, when the day's board has no row of [memberRef], the last row read for
+     * that member on any game or day. A member's name and photo belong to the member, not to a day, so the
+     * player's own row of another day stands in for a day that never named them. One query, so a reader never
+     * sees the stand-in alone while the day's rows are mid-write.
+     */
+    @Query(
+        "SELECT * FROM ghosts WHERE (game = :game AND day = :day) OR (" +
+            "NOT EXISTS (SELECT 1 FROM ghosts WHERE game = :game AND day = :day AND memberRef = :memberRef) " +
+            "AND rowid = (SELECT rowid FROM ghosts WHERE memberRef = :memberRef " +
+            "ORDER BY fetchedAtMs DESC, day DESC, game LIMIT 1))",
+    )
+    fun observeWithNewest(game: String, day: String, memberRef: String): Flow<List<GhostEntity>>
+
     /** Swaps the board of one game day for [rows], atomically; an empty list clears it. */
     @Transaction
     suspend fun replace(game: String, day: String, rows: List<GhostEntity>) {
