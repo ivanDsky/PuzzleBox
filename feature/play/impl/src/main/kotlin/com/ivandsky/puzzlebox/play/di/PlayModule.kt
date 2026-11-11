@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import org.koin.androidx.viewmodel.dsl.viewModel
@@ -72,7 +73,14 @@ val playModule = module {
     }
     factory { ObserveFriendPuzzles(received = get(), saved = get(), completions = get(), registry = get()) }
     factory { DeleteReceivedPuzzle(received = get(), saved = get()) }
-    viewModel { LibraryViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { LinkedInDayState(get(), get(), get()) }
+    // The flag arrives as the parameter, so a graph without LinkedIn bindings builds the library with it off.
+    viewModel { params ->
+        LibraryViewModel(
+            get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
+            linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
+        )
+    }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
     viewModel { (game: GameId) -> GamePageBoardViewModel(game, get(), get(), get(), get(), get()) }
     viewModel { (slot: PlaySlot) -> PlayStatsViewModel(slot, get(), get(), get(), get(), get(), get(), get()) }

@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -26,6 +27,8 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.TutorialSession
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState
+import com.ivandsky.puzzlebox.play.linkedin.libraryView
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.CoroutineScope
@@ -100,7 +103,9 @@ internal data class FriendCardModel(val row: FriendPuzzleRow, val gameName: Stri
  *
  * The selected game's [page] is its calendar month ([ObserveArchiveMonth], today's until
  * [showMonth]) and the past day [pick]ed for the day card; a month change keeps the picked
- * day, and a game switch or [backToToday] returns both to today.
+ * day, and a game switch or [backToToday] returns both to today. [linkedIn] is the LinkedIn account
+ * feature's holder, null while it is off; the day card collects [linkedInView] and calls the
+ * holder's own retry and resume.
  */
 class LibraryViewModel(
     store: PlaySessionStore,
@@ -118,6 +123,7 @@ class LibraryViewModel(
     friendPuzzles: ObserveFriendPuzzles,
     deleteReceivedPuzzle: DeleteReceivedPuzzle,
     appScope: CoroutineScope,
+    internal val linkedIn: LinkedInDayState?,
 ) : ViewModel() {
 
     private val seed: List<LibraryRowModel> = store.playable.map { (game, name) ->
@@ -203,6 +209,11 @@ class LibraryViewModel(
         combine(selected, month, picked, ::Triple)
             .flatMapLatest { (game, shown, day) -> pageOf(game, shown, day) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
+    /** The day card's LinkedIn view; no stop grace, so a sync still in its debounce dies with the card. */
+    internal val linkedInView: StateFlow<LinkedInDayView?> = linkedIn
+        .libraryView(selected, picked, calendar)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), null)
 
     /** Fetches today's uncached puzzles; a failure shows as that game's Offline row. */
     internal fun syncToday() {
