@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSpace
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.match.MatchRepository
@@ -43,6 +44,13 @@ val firebaseBackendModule = module {
     single<MatchStore> { FirestoreMatchStore() }
     single<MatchRepository> {
         FirestoreMatchRepository(
+            store = get(),
+            currentUid = { get<IdentityService>().current.value?.uid },
+        )
+    }
+    single<CloudSpaceStore> { FirestoreCloudSpaceStore() }
+    single<CloudSpace> {
+        FirestoreCloudSpace(
             store = get(),
             currentUid = { get<IdentityService>().current.value?.uid },
         )
