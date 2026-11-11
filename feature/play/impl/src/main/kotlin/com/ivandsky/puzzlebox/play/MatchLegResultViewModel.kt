@@ -144,7 +144,7 @@ internal class MatchLegResultViewModel(
         game = games.displayName(ref.gameId),
         puzzleNumber = (ref as? LegRef.Daily)?.number,
         practice = false,
-        replay = false,
+        playAgain = false,
         dateLine = (ref as? LegRef.Daily)?.let { resultDateLine(it.day, today = false) } ?: SHARED_PUZZLE,
         doneToday = null,
         total = null,

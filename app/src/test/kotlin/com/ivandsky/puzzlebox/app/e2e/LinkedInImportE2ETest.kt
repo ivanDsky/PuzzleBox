@@ -86,7 +86,7 @@ class LinkedInImportE2ETest {
             pickDay(yesterday)
             awaitSynced(yesterday)
 
-            val replays = runBlocking { completions().observeReplays(zipRef(yesterday)).first() }
+            val replays = runBlocking { completions().observePlayAgains(zipRef(yesterday)).first() }
             assertEquals("LinkedIn's result is kept as one replay", listOf(CompletionSource.LinkedIn to 47_000L), replays.map { it.source to it.time })
             assertEquals("the play made in the app is still the record, untouched", record, recordOf(yesterday))
             assertEquals(90_000L, record.time)
@@ -147,6 +147,6 @@ class LinkedInImportE2ETest {
 
     /** How many rows the store holds in all, records and [day]'s replays together. */
     private fun ShellRobot.storedRows(day: LocalDate): Int = runBlocking {
-        completions().observeRecords().first().size + completions().observeReplays(zipRef(day)).first().size
+        completions().observeRecords().first().size + completions().observePlayAgains(zipRef(day)).first().size
     }
 }

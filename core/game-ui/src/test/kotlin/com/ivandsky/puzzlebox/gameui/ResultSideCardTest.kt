@@ -200,7 +200,7 @@ class ResultSideCardTest {
 
     @Test
     fun `a replay shows its pill as Replay and the dashed bar`() {
-        setContent(heroSampleModel(verdict = RecordVerdict.Replay, replay = true))
+        setContent(heroSampleModel(verdict = RecordVerdict.PlayAgain, playAgain = true))
 
         composeRule.onNodeWithTag("result.side.you", useUnmergedTree = true).assertTextEquals("Replay")
         composeRule.onNodeWithTag("result.side.bar.you", useUnmergedTree = true).assertIsDisplayed()
@@ -258,7 +258,7 @@ class ResultSideCardTest {
 
     @Test
     fun `a replay shows the spread but no streak and no rank row`() {
-        setContent(heroSampleModel(verdict = RecordVerdict.Replay, replay = true))
+        setContent(heroSampleModel(verdict = RecordVerdict.PlayAgain, playAgain = true))
 
         composeRule.onNodeWithTag("result.side.chart").assertIsDisplayed()
         composeRule.onNodeWithTag("result.side.streak").assertDoesNotExist()

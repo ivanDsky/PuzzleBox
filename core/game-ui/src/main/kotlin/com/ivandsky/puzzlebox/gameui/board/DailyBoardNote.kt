@@ -12,5 +12,5 @@ enum class DailyBoardNote(val text: String) {
 
     /** RG9: the "100" is the backend board cap; its constant lives outside game-ui's reach, so the number rides this copy alone. */
     PostedOutsideTop("Your time is posted — outside the top 100."),
-    ReplayFirstTimeStands("Replay — your first time stands"),
+    PlayAgainFirstTimeStands("Replay — your first time stands"),
 }

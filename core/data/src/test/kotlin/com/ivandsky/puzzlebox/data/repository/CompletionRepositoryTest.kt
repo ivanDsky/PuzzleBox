@@ -93,7 +93,7 @@ class CompletionRepositoryTest {
         assertTrue(record.isRecord)
         assertEquals(Instant.ofEpochMilli(7_000L), record.firstCompletedAt)
 
-        val replays = repository.observeReplays(ref).first()
+        val replays = repository.observePlayAgains(ref).first()
         assertEquals(1, replays.size)
         val replay = replays.single()
         assertEquals(ref, replay.puzzleRef)
@@ -117,15 +117,15 @@ class CompletionRepositoryTest {
         assertEquals(2, records.size)
         assertEquals(listOf(593, 592), records.map { (it.puzzleRef.key as PuzzleKey.Daily).puzzleNumber })
 
-        assertEquals(1, repository.observeReplays(Ref(alpha, PuzzleKey.Daily(day, 592))).first().size)
-        assertEquals(0, repository.observeReplays(Ref(alpha, PuzzleKey.Daily(day, 593))).first().size)
+        assertEquals(1, repository.observePlayAgains(Ref(alpha, PuzzleKey.Daily(day, 592))).first().size)
+        assertEquals(0, repository.observePlayAgains(Ref(alpha, PuzzleKey.Daily(day, 593))).first().size)
     }
 
     @Test
     fun `empty stores observe empty before any completion`() = runTest {
         val day = LocalDate.of(2026, 10, 31)
         assertTrue(repository.observeRecords().first().isEmpty())
-        assertTrue(repository.observeReplays(Ref(alpha, PuzzleKey.Daily(day, 592))).first().isEmpty())
+        assertTrue(repository.observePlayAgains(Ref(alpha, PuzzleKey.Daily(day, 592))).first().isEmpty())
     }
 
     @Test
@@ -164,7 +164,7 @@ class CompletionRepositoryTest {
         repository.onCompleted(completion(day, 592, timeMs = 71_000, hints = 0, matchCode = "XYZ789"))
 
         assertNull(repository.observeRecords().first().single().matchCode)
-        assertEquals("XYZ789", repository.observeReplays(ref).first().single().matchCode)
+        assertEquals("XYZ789", repository.observePlayAgains(ref).first().single().matchCode)
     }
 
     @Test
@@ -187,7 +187,7 @@ class CompletionRepositoryTest {
         repository.onCompleted(completion(day, 592, timeMs = 71_000, hints = 0, source = CompletionSource.LinkedIn))
 
         assertEquals(CompletionSource.App, repository.observeRecords().first().single().source)
-        assertEquals(CompletionSource.LinkedIn, repository.observeReplays(ref).first().single().source)
+        assertEquals(CompletionSource.LinkedIn, repository.observePlayAgains(ref).first().single().source)
     }
 
     @Test
@@ -250,7 +250,7 @@ class CompletionRepositoryTest {
         val record = repository.observeRecords().first().single()
         assertTrue(record.isRecord)
         assertEquals(CompletionSource.LinkedIn, record.source)
-        assertEquals(CompletionSource.App, repository.observeReplays(ref).first().single().source)
+        assertEquals(CompletionSource.App, repository.observePlayAgains(ref).first().single().source)
     }
 
     @Test

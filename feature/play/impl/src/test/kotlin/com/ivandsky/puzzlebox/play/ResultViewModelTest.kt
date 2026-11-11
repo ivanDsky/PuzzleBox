@@ -326,8 +326,8 @@ class ResultViewModelTest {
 
     @Test
     fun `a replay is a past day's result`() {
-        assertFalse(vm().replay)
-        assertTrue(vm(key.copy(day = day.minusDays(1).toString())).replay)
+        assertFalse(vm().playAgain)
+        assertTrue(vm(key.copy(day = day.minusDays(1).toString())).playAgain)
     }
 
     @Test
@@ -338,8 +338,8 @@ class ResultViewModelTest {
 
     @Test
     fun `a past day's insights do not count the solve`() {
-        val replay = key.copy(day = day.minusDays(1).toString())
-        assertEquals(0, vm(replay).heroObserved().heroInsights.value?.streak)
+        val playAgain = key.copy(day = day.minusDays(1).toString())
+        assertEquals(0, vm(playAgain).heroObserved().heroInsights.value?.streak)
     }
 
     @Test
@@ -443,9 +443,9 @@ class ResultViewModelTest {
     @Test
     fun `a replay shows no rank even with cached connections`() {
         cachedConnections(ghost("Ada", 20))
-        val replay = key.copy(day = day.minusDays(1).toString())
+        val playAgain = key.copy(day = day.minusDays(1).toString())
 
-        assertEquals(ResultRank.Hidden, vm(replay, identity = ME, linkedIn = true).heroObserved().heroRank.value)
+        assertEquals(ResultRank.Hidden, vm(playAgain, identity = ME, linkedIn = true).heroObserved().heroRank.value)
     }
 
     @Test
@@ -455,8 +455,8 @@ class ResultViewModelTest {
 
     @Test
     fun `a replay reads no board and shows no rank`() {
-        val replay = key.copy(day = day.minusDays(1).toString())
-        val vm = vm(replay, identity = ME).heroObserved()
+        val playAgain = key.copy(day = day.minusDays(1).toString())
+        val vm = vm(playAgain, identity = ME).heroObserved()
         assertEquals(ResultRank.Hidden, vm.heroRank.value)
         assertTrue(leaderboard.observedBoards.isEmpty())
     }

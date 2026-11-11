@@ -82,7 +82,7 @@ data class ResultUiState(
  * result (a replay) offers Done from the first frame. The read flows run only while the
  * screen is observed (plus a 5 s grace), so a day change is re-read.
  *
- * [heroInsights], [heroRank] and [replay] feed the hero page.
+ * [heroInsights], [heroRank] and [playAgain] feed the hero page.
  */
 class ResultViewModel internal constructor(
     key: ResultKey,
@@ -147,7 +147,7 @@ class ResultViewModel internal constructor(
         }
 
     /** True for a past day's result: a replay counts nothing. */
-    val replay: Boolean = !today
+    val playAgain: Boolean = !today
 
     /**
      * The hero page's streak, week and time spread; null until read, and for a practice puzzle.

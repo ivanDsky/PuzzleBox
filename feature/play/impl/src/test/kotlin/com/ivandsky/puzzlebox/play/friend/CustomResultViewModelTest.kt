@@ -204,7 +204,7 @@ class CustomResultViewModelTest {
 
         val state = observed(key(130_000L, hints = 1)).state.value
 
-        assertEquals(CustomStanding.Replay(BestScore(118_000L, 0)), state.standing)
+        assertEquals(CustomStanding.PlayAgain(BestScore(118_000L, 0)), state.standing)
         assertEquals(130_000L, state.timeMs)
         assertEquals(1, state.hintsUsed)
     }
@@ -292,7 +292,7 @@ class CustomResultViewModelTest {
         node("result.record_badge").assertExists()
         assertEquals(0, count("result.previous_best"))
 
-        composeRule.runOnIdle { standing = CustomStanding.Replay(BestScore(118_000L, 0)) }
+        composeRule.runOnIdle { standing = CustomStanding.PlayAgain(BestScore(118_000L, 0)) }
         composeRule.waitForIdle()
 
         node("result.previous_best").assertExists()

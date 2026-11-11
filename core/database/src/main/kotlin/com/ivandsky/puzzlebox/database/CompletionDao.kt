@@ -33,7 +33,7 @@ interface CompletionDao {
         "SELECT * FROM completions " +
             "WHERE puzzleRef = :puzzleRef AND isRecord = 0 ORDER BY completedAtMs ASC",
     )
-    fun observeReplays(puzzleRef: String): Flow<List<CompletionEntity>>
+    fun observePlayAgains(puzzleRef: String): Flow<List<CompletionEntity>>
 
     /** Record and replay rows of one ref, newest first. */
     @Query("SELECT * FROM completions WHERE puzzleRef = :refKey ORDER BY completedAtMs DESC")

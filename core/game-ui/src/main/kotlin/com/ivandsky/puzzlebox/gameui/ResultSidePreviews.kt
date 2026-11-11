@@ -100,8 +100,8 @@ internal fun ResultSideNoRankPreview() {
 
 @PuzzleBoxPreviews
 @Composable
-internal fun ResultSideReplayPreview() {
-    SidePreview(heroSampleModel(verdict = RecordVerdict.Replay, replay = true))
+internal fun ResultSidePlayAgainPreview() {
+    SidePreview(heroSampleModel(verdict = RecordVerdict.PlayAgain, playAgain = true))
 }
 
 @PuzzleBoxPreviews
@@ -216,6 +216,6 @@ internal fun ResultSideFastestWeekdayPreview() {
 
 @PuzzleBoxPreviews
 @Composable
-internal fun ResultSideReplayWeekdayPreview() {
-    SidePreview(heroSampleModel(verdict = RecordVerdict.Replay, replay = true, weekdayEarlier = earlierTimes(3)))
+internal fun ResultSidePlayAgainWeekdayPreview() {
+    SidePreview(heroSampleModel(verdict = RecordVerdict.PlayAgain, playAgain = true, weekdayEarlier = earlierTimes(3)))
 }

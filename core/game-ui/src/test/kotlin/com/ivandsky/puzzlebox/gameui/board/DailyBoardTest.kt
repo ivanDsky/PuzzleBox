@@ -91,8 +91,8 @@ class DailyBoardTest {
 
     @Test
     fun `the note rides only on a loaded board`() {
-        val state = loaded().toDailyBoardState(DailyBoardNote.ReplayFirstTimeStands)
-        assertEquals(DailyBoardState.Ranked(emptyList(), DailyBoardNote.ReplayFirstTimeStands), state)
+        val state = loaded().toDailyBoardState(DailyBoardNote.PlayAgainFirstTimeStands)
+        assertEquals(DailyBoardState.Ranked(emptyList(), DailyBoardNote.PlayAgainFirstTimeStands), state)
     }
 
     @Test
@@ -150,7 +150,7 @@ class DailyBoardTest {
 
     @Test
     fun `replay note reads its copy`() {
-        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList(), DailyBoardNote.ReplayFirstTimeStands))
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList(), DailyBoardNote.PlayAgainFirstTimeStands))
         composeRule.onNodeWithTag("daily_board.note").assertTextEquals("Replay — your first time stands")
     }
 

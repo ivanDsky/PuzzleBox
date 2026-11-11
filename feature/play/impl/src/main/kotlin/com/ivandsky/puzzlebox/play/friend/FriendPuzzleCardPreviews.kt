@@ -76,7 +76,7 @@ internal fun FriendPuzzleCardResumePreview() {
 // Preview: solved here and signed in, Replay beside your time over the board's top three.
 @PuzzleBoxPreviews
 @Composable
-internal fun FriendPuzzleCardReplayPreview() {
+internal fun FriendPuzzleCardPlayAgainPreview() {
     val top = listOf(previewBoardRow(1, "Maja", 74_000L), previewBoardRow(2, "Me", 125_000L, isMe = true), previewBoardRow(3, "Lea", 131_000L, hints = 1))
     PreviewCard(previewCard(FriendCardAction.PlayAgain, yours = BestScore(125_000L, 0), board = CustomBoardView.Ranked(top, mine = null, author = PreviewBoardAuthor)))
 }

@@ -14,7 +14,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 object RankOrderCases {
 
     /** The verdict a [Case] expects, free of core:game-ui's RecordVerdict type. */
-    enum class Outcome { NewBest, TiedBest, NotBest, Replay }
+    enum class Outcome { NewBest, TiedBest, NotBest, PlayAgain }
 
     data class Case(
         val name: String,
@@ -24,7 +24,7 @@ object RankOrderCases {
         val outcome: Outcome,
         val bestIsPlay: Boolean,
     ) {
-        val replay: Boolean get() = outcome == Outcome.Replay
+        val playAgain: Boolean get() = outcome == Outcome.PlayAgain
         val best: BestScore get() = if (bestIsPlay) play else previous
     }
 
@@ -36,12 +36,12 @@ object RankOrderCases {
         Case("time-first: same time ties, fewer hints stays best", time, BestScore(95_000, 0), BestScore(95_000, 2), Outcome.TiedBest, bestIsPlay = false),
         Case("time-first: ms faster in the same second ties", time, BestScore(3_862, 0), BestScore(3_826, 0), Outcome.TiedBest, bestIsPlay = true),
         Case("time-first: slower is not a best", time, BestScore(95_000, 2), BestScore(120_000, 0), Outcome.NotBest, bestIsPlay = false),
-        Case("time-first: a faster replay never ranks", time, BestScore(95_000, 0), BestScore(3_000, 0), Outcome.Replay, bestIsPlay = false),
+        Case("time-first: a faster replay never ranks", time, BestScore(95_000, 0), BestScore(3_000, 0), Outcome.PlayAgain, bestIsPlay = false),
         Case("hints-first: fewer hints wins though slower", hints, BestScore(60_000, 2), BestScore(90_000, 0), Outcome.NewBest, bestIsPlay = true),
         Case("hints-first: more hints loses though faster", hints, BestScore(90_000, 0), BestScore(60_000, 1), Outcome.NotBest, bestIsPlay = false),
         Case("hints-first: equal hints, faster wins", hints, BestScore(95_000, 1), BestScore(94_000, 1), Outcome.NewBest, bestIsPlay = true),
         Case("hints-first: equal hints, same second ties", hints, BestScore(3_862, 1), BestScore(3_826, 1), Outcome.TiedBest, bestIsPlay = true),
         Case("hints-first: equal hints, slower is not a best", hints, BestScore(95_000, 1), BestScore(120_000, 1), Outcome.NotBest, bestIsPlay = false),
-        Case("hints-first: a fewer-hints replay never ranks", hints, BestScore(95_000, 2), BestScore(10_000, 0), Outcome.Replay, bestIsPlay = false),
+        Case("hints-first: a fewer-hints replay never ranks", hints, BestScore(95_000, 2), BestScore(10_000, 0), Outcome.PlayAgain, bestIsPlay = false),
     )
 }

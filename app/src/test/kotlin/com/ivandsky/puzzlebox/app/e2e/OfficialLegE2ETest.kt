@@ -197,8 +197,8 @@ class OfficialLegE2ETest {
         awaitTag(RESULT_ROUTE)
 
         val completions = graph.koin.get<CompletionRepository>()
-        rule.waitUntil(TIMEOUT_MS) { runBlocking { completions.observeReplays(todayRef).first() }.isNotEmpty() }
-        val replays = runBlocking { completions.observeReplays(todayRef).first() }
+        rule.waitUntil(TIMEOUT_MS) { runBlocking { completions.observePlayAgains(todayRef).first() }.isNotEmpty() }
+        val replays = runBlocking { completions.observePlayAgains(todayRef).first() }
         assertEquals("the solo solve is one replay of its own", listOf(null), replays.map { it.matchCode })
         assertEquals("the leg's record stands", listOf(record), records())
         assertEquals("history is unchanged", history, reads().history)

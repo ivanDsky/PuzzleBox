@@ -17,7 +17,7 @@ internal class FirstWinPolicy {
         data class Record(val completedAtMs: Long) : Decision
 
         /** Insert as a replay row; the existing record stays untouched. */
-        data class Replay(val completedAtMs: Long) : Decision
+        data class PlayAgain(val completedAtMs: Long) : Decision
     }
 
     /**
@@ -25,7 +25,7 @@ internal class FirstWinPolicy {
      * @param nowMs wall clock of this completion (injected by the caller; never re-read).
      */
     fun decide(hasRecord: Boolean, nowMs: Long): Decision =
-        if (hasRecord) Decision.Replay(nowMs) else Decision.Record(nowMs)
+        if (hasRecord) Decision.PlayAgain(nowMs) else Decision.Record(nowMs)
 
     /**
      * The row to insert for an emitted record under [decision]: the score inputs pass
@@ -35,7 +35,7 @@ internal class FirstWinPolicy {
     fun stamp(record: CompletionRecord, refKey: String, decision: Decision): CompletionEntity {
         val (completedAtMs, isRecord) = when (decision) {
             is Decision.Record -> decision.completedAtMs to true
-            is Decision.Replay -> decision.completedAtMs to false
+            is Decision.PlayAgain -> decision.completedAtMs to false
         }
         return CompletionEntity(
             puzzleRef = refKey,

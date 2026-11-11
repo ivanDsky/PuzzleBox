@@ -177,7 +177,7 @@ class LeaderboardEntriesTest {
 
     @Test
     fun `the entry comparator puts each rank-order case's best first`() {
-        RankOrderCases.all.filterNot { it.replay }.forEach { case ->
+        RankOrderCases.all.filterNot { it.playAgain }.forEach { case ->
             val entries = listOf(
                 LeaderboardEntry("prev", "P", refKey, case.previous.timeMs, case.previous.hints, completedAtMs = 1),
                 LeaderboardEntry("play", "Q", refKey, case.play.timeMs, case.play.hints, completedAtMs = 2),

@@ -31,7 +31,7 @@ internal fun ResultScreenNewBestPreview() {
 
 @PuzzleBoxPreviews
 @Composable
-internal fun ResultScreenReplayPreview() {
+internal fun ResultScreenPlayAgainPreview() {
     PuzzleBoxTheme {
         ResultScreen(
             timeMs = 95_000,
@@ -41,7 +41,7 @@ internal fun ResultScreenReplayPreview() {
             onPlayAgain = {},
             brand = PreviewBrand,
             game = "Queens",
-            verdict = RecordVerdict.Replay,
+            verdict = RecordVerdict.PlayAgain,
             previousBest = BestScore(88_000, hints = 0),
         )
     }

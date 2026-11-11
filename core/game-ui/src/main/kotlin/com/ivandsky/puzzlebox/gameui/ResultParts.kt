@@ -88,7 +88,7 @@ internal fun RecordTag(verdict: RecordVerdict?, brand: GameBrand, modifier: Modi
         RecordVerdict.NewBest -> "New best"
         RecordVerdict.TiedBest -> "Tied your best!"
         RecordVerdict.FirstSolve -> "First solve"
-        RecordVerdict.NotBest, RecordVerdict.Replay, null -> return
+        RecordVerdict.NotBest, RecordVerdict.PlayAgain, null -> return
     }
     val accent = brand.accent.colors()
     Surface(
@@ -117,7 +117,7 @@ internal fun RecordTag(verdict: RecordVerdict?, brand: GameBrand, modifier: Modi
  * the best the replay left standing, in the way [bestScoreText] shows it for [rankOrder].
  */
 @Composable
-internal fun ReplayLine(previousBest: BestScore?, rankOrder: RankOrder) {
+internal fun PlayAgainLine(previousBest: BestScore?, rankOrder: RankOrder) {
     val best = previousBest?.let { bestScoreText(it, rankOrder) }
     Text(
         text = best?.let { "Replay · Best $it" } ?: "Replay",

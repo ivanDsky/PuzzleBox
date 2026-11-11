@@ -57,7 +57,7 @@ internal sealed interface CustomStanding {
     data object Record : CustomStanding
 
     /** A later solve that left [record] standing. */
-    data class Replay(val record: BestScore) : CustomStanding
+    data class PlayAgain(val record: BestScore) : CustomStanding
 }
 
 /**
@@ -138,7 +138,7 @@ internal class CustomResultViewModel(
         return if (stands.time == key.timeMs && stands.hints == key.hintsUsed) {
             CustomStanding.Record
         } else {
-            CustomStanding.Replay(record = BestScore(stands.time, stands.hints))
+            CustomStanding.PlayAgain(record = BestScore(stands.time, stands.hints))
         }
     }
 

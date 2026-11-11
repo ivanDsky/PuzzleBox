@@ -29,9 +29,9 @@ private val PillRadius = 8.dp
 
 /** The "You" pill over this solve's bar: accent fill; a "Replay" pill is outlined on surface. */
 @Composable
-internal fun Pill(text: String, replay: Boolean, palette: GameAccent, modifier: Modifier) {
+internal fun Pill(text: String, playAgain: Boolean, palette: GameAccent, modifier: Modifier) {
     val shape = RoundedCornerShape(PillRadius)
-    val base = if (replay) {
+    val base = if (playAgain) {
         Modifier.background(MaterialTheme.colorScheme.surface, shape).border(1.dp, MaterialTheme.colorScheme.outline, shape)
     } else {
         Modifier.background(palette.accent, shape)
@@ -39,7 +39,7 @@ internal fun Pill(text: String, replay: Boolean, palette: GameAccent, modifier: 
     Text(
         text = text,
         style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.ExtraBold),
-        color = if (replay) palette.accent else palette.onAccent,
+        color = if (playAgain) palette.accent else palette.onAccent,
         maxLines = 1,
         softWrap = false,
         modifier = modifier

@@ -77,8 +77,8 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
     @Test fun `strands light`() = capture("strands", STRANDS, dark = false, brand = STRANDS_BRAND)
     @Test fun `strands dark`() = capture("strands", STRANDS, dark = true, brand = STRANDS_BRAND)
 
-    @Test fun `replay light`() = capture("replay", REPLAY, dark = false)
-    @Test fun `replay dark`() = capture("replay", REPLAY, dark = true)
+    @Test fun `replay light`() = capture("replay", PLAY_AGAIN, dark = false)
+    @Test fun `replay dark`() = capture("replay", PLAY_AGAIN, dark = true)
 
     @Test fun `weekday light`() = capture("weekday", WEEKDAY, dark = false)
     @Test fun `weekday dark`() = capture("weekday", WEEKDAY, dark = true)
@@ -146,7 +146,7 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             earlier: List<BestScore> = EARLIER,
             order: RankOrder = RankOrder.TimeThenHints,
             game: String = "Queens",
-            replay: Boolean = false,
+            playAgain: Boolean = false,
             streak: Int = 3,
             rank: ResultRank = ResultRank.Ranked(position = 14, count = 212, topPercent = 7),
             doneToday: Int = 2,
@@ -161,7 +161,7 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             game = game,
             puzzleNumber = 918,
             practice = false,
-            replay = replay,
+            playAgain = playAgain,
             dateLine = "Today · Sat 7 Nov",
             doneToday = doneToday,
             total = 3,
@@ -188,9 +188,9 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             timeMs = 142_000L, hints = 0, previous = BestScore(150_000L, 2),
             earlier = listOf(BestScore(150_000L, 2), BestScore(131_000L, 1), BestScore(170_000L, 3)),
         )
-        val REPLAY = facts(
-            verdict = RecordVerdict.Replay, timeMs = 131_000L, hints = 2, previous = BestScore(118_000L, 0),
-            replay = true, rank = ResultRank.Hidden, primary = ResultPrimaryAction.Done,
+        val PLAY_AGAIN = facts(
+            verdict = RecordVerdict.PlayAgain, timeMs = 131_000L, hints = 2, previous = BestScore(118_000L, 0),
+            playAgain = true, rank = ResultRank.Hidden, primary = ResultPrimaryAction.Done,
         )
 
         /** The weekday scope opens: three earlier Saturdays among twelve solves. */

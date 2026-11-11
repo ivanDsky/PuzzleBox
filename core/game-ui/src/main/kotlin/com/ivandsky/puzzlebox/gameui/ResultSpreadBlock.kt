@@ -87,7 +87,7 @@ internal fun SpreadBlock(spread: HeroSpread, palette: GameAccent, initialScope: 
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(top = Spacing.xs).riseOnChange(scope).testTag("result.side.caption"),
     )
-    TimeSpreadChart(view, spread.replay, palette, Modifier.padding(top = Spacing.sm))
+    TimeSpreadChart(view, spread.playAgain, palette, Modifier.padding(top = Spacing.sm))
     Text(
         text = view.verdict.annotated(),
         style = MaterialTheme.typography.bodyMedium,

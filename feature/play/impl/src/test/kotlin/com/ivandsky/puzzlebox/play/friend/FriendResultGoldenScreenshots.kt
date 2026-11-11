@@ -48,8 +48,8 @@ abstract class FriendResultGoldenScreenshots(private val device: String) {
     @Test fun `record ranked light`() = capture("result-record", RECORD, dark = false)
     @Test fun `record ranked dark`() = capture("result-record", RECORD, dark = true)
 
-    @Test fun `replay signed out light`() = capture("result-replay-signed-out", REPLAY, dark = false)
-    @Test fun `replay signed out dark`() = capture("result-replay-signed-out", REPLAY, dark = true)
+    @Test fun `replay signed out light`() = capture("result-replay-signed-out", PLAY_AGAIN, dark = false)
+    @Test fun `replay signed out dark`() = capture("result-replay-signed-out", PLAY_AGAIN, dark = true)
 
     @Test fun `pending light`() = capture("result-pending", PENDING, dark = false)
     @Test fun `pending dark`() = capture("result-pending", PENDING, dark = true)
@@ -120,8 +120,8 @@ abstract class FriendResultGoldenScreenshots(private val device: String) {
         )
 
         val RECORD = state(CustomStanding.Record)
-        val REPLAY = state(
-            CustomStanding.Replay(BestScore(118_000L, 0)),
+        val PLAY_AGAIN = state(
+            CustomStanding.PlayAgain(BestScore(118_000L, 0)),
             timeMs = 131_000L,
             hints = 2,
             board = CustomBoardView.SignedOut(PreviewBoardAuthor),

@@ -36,7 +36,7 @@ class FirstWinPolicyTest {
     @Test
     fun `later completion of the same ref decides replay`() {
         val decision = policy.decide(hasRecord = true, nowMs = 67_000L)
-        assertEquals(FirstWinPolicy.Decision.Replay(67_000L), decision)
+        assertEquals(FirstWinPolicy.Decision.PlayAgain(67_000L), decision)
     }
 
     @Test
@@ -55,7 +55,7 @@ class FirstWinPolicyTest {
 
     @Test
     fun `replay stamp never claims the record`() {
-        val row = policy.stamp(emitted(timeMs = 71_000L, hints = 0), refKey, FirstWinPolicy.Decision.Replay(67_000L))
+        val row = policy.stamp(emitted(timeMs = 71_000L, hints = 0), refKey, FirstWinPolicy.Decision.PlayAgain(67_000L))
 
         assertFalse(row.isRecord)
         assertNull(row.firstCompletedAtMs)
@@ -71,7 +71,7 @@ class FirstWinPolicyTest {
 
     @Test
     fun `replay stamp carries the match code`() {
-        val row = policy.stamp(emitted(71_000L, 0, matchCode = "XYZ789"), refKey, FirstWinPolicy.Decision.Replay(67_000L))
+        val row = policy.stamp(emitted(71_000L, 0, matchCode = "XYZ789"), refKey, FirstWinPolicy.Decision.PlayAgain(67_000L))
         assertEquals("XYZ789", row.matchCode)
     }
 

@@ -23,19 +23,19 @@ sealed interface RecordVerdict {
     data object NotBest : RecordVerdict
 
     /** This puzzle was already solved before the session started. */
-    data object Replay : RecordVerdict
+    data object PlayAgain : RecordVerdict
 
     companion object {
         /**
-         * [previous] null = the game had no first solve before this one; [replay] wins
+         * [previous] null = the game had no first solve before this one; [playAgain] wins
          * over every comparison. [order] is the game's rank order (ADR-0013): time-first
          * ignores hints, as its shown best does; hints-first ranks fewer hints first and
          * falls to time only on equal hints. Times compare in whole seconds, as
          * [formatDuration] shows them: a win by milliseconds that reads as the same time is a
          * tie, not a new best (the badge would contradict the best shown beside it).
          */
-        fun of(previous: BestScore?, timeMs: Long, hints: Int, replay: Boolean, order: RankOrder): RecordVerdict = when {
-            replay -> Replay
+        fun of(previous: BestScore?, timeMs: Long, hints: Int, playAgain: Boolean, order: RankOrder): RecordVerdict = when {
+            playAgain -> PlayAgain
             previous == null -> FirstSolve
             order == RankOrder.HintsThenTime && hints < previous.hints -> NewBest
             order == RankOrder.HintsThenTime && hints > previous.hints -> NotBest
