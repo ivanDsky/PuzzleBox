@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -19,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.testTag
@@ -82,10 +84,9 @@ fun DuelsTab(
 
 /**
  * The stateless tab: [rows], [signedIn], and the Invited rows' [inFlight] and [notes] in, taps out; [now] is read only by
- * the time-left text. The rows sit in their sections ([sectionRows]). With [wide] the challenge card spans the width
- * and the sections go in two columns, the ones that need me (invites, my move, results ready) on the left and
- * Waiting and Finished on the right; one column when either side has no section, so the screen never shows an empty
- * half. Both columns scroll together as one list on [listState].
+ * the time-left text. The rows sit in their sections ([sectionRows]). With [wide] there are always two columns, each at
+ * most 560 dp, 20 dp apart and centred as a pair; the challenge card spans the pair, and the sections are dealt to the
+ * shorter column ([dealColumns]). Both columns scroll together as one list on [listState].
  */
 @Composable
 internal fun DuelsTabContent(
@@ -105,7 +106,6 @@ internal fun DuelsTabContent(
     onDecline: (ShareCode) -> Unit = {},
 ) {
     val sections = remember(rows) { sectionRows(rows) }
-    val (needsYou, rest) = remember(sections) { sections.partition { it.section.needsYou } }
     val section: @Composable (SectionRows) -> Unit = { group ->
         DuelSectionCard(group) { row ->
             val open = { onOpenDuel(DuelKey(row.code.value)) }
@@ -133,13 +133,17 @@ internal fun DuelsTabContent(
         modifier = modifier.fillMaxSize().testTag("duels.tab"),
         contentPadding = PaddingValues(vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+        horizontalAlignment = if (wide) Alignment.CenterHorizontally else Alignment.Start,
     ) {
-        item(key = "challenge") { DuelChallengeCard(signedIn = signedIn, onClick = onNewDuel) }
-        if (wide && needsYou.isNotEmpty() && rest.isNotEmpty()) {
+        val pair = if (wide) Modifier.widthIn(max = PairWidth).fillMaxWidth() else Modifier
+        item(key = "challenge") { DuelChallengeCard(signedIn = signedIn, onClick = onNewDuel, modifier = pair) }
+        if (wide) {
             item(key = "columns") {
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(ColumnGap)) {
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) { needsYou.forEach { section(it) } }
-                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) { rest.forEach { section(it) } }
+                val columns = remember(sections) { dealColumns(sections) }
+                Row(pair, horizontalArrangement = Arrangement.spacedBy(ColumnGap)) {
+                    for (column in listOf(columns.left, columns.right)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) { column.forEach { section(it) } }
+                    }
                 }
             }
         } else {
@@ -149,5 +153,10 @@ internal fun DuelsTabContent(
     }
 }
 
-/** The gap between the two columns of the wide tab. */
+/** The gap between the two columns of the wide tab, and the widest one column. */
 private val ColumnGap = 20.dp
+private val ColumnMaxWidth = 560.dp
+
+/** The wide tab's pair of columns, and the challenge card above them. */
+private val PairWidth = ColumnMaxWidth * 2 + ColumnGap
+

@@ -37,16 +37,15 @@ import com.ivandsky.puzzlebox.domain.DuelRow
 import com.ivandsky.puzzlebox.domain.DuelRowKind
 
 /**
- * The Duels list's sections, in display order. Each is one card with a coloured header; the first three are the ones
- * that need me ([needsYou]), the last two are not. [Waiting] holds both a match waiting on them and an open invite
- * nobody has accepted.
+ * The Duels list's sections, in display order. Each is one card with a coloured header. [Waiting] holds both a match
+ * waiting on them and an open invite nobody has accepted.
  */
-internal enum class DuelSection(val label: String, val tag: String, val needsYou: Boolean) {
-    Invites("Invites", "duels.section.invites", needsYou = true),
-    YourMove("Your move", "duels.section.yourMove", needsYou = true),
-    ResultsReady("Results ready", "duels.section.resultsReady", needsYou = true),
-    Waiting("Waiting", "duels.section.waiting", needsYou = false),
-    Finished("Finished", "duels.section.finished", needsYou = false),
+internal enum class DuelSection(val label: String, val tag: String) {
+    Invites("Invites", "duels.section.invites"),
+    YourMove("Your move", "duels.section.yourMove"),
+    ResultsReady("Results ready", "duels.section.resultsReady"),
+    Waiting("Waiting", "duels.section.waiting"),
+    Finished("Finished", "duels.section.finished"),
 }
 
 internal fun DuelRowKind.section(): DuelSection = when (this) {
@@ -65,6 +64,39 @@ internal fun sectionRows(rows: List<DuelRow>): List<SectionRows> =
     DuelSection.entries.mapNotNull { section ->
         rows.filter { it.kind.section() == section }.takeIf { it.isNotEmpty() }?.let { SectionRows(section, it) }
     }
+
+/** The two columns of the wide Duels tab: [left] and [right] hold whole sections, each in display order. */
+internal class DuelColumns(val left: List<SectionRows>, val right: List<SectionRows>)
+
+private const val HeaderEstimate = 48
+private const val RowEstimate = 64
+private const val InviteRowEstimate = 116
+private const val SectionGapEstimate = 16
+
+private fun SectionRows.estimatedHeight(): Int =
+    HeaderEstimate + rows.sumOf { if (it.kind == DuelRowKind.Invited) InviteRowEstimate else RowEstimate }
+
+/**
+ * Deals [sections], in order, to the shorter of two columns by estimated height (a header 48 dp, a row 64, an invite
+ * row 116, 16 dp between the sections of a column); a tie goes left. With one section the right column stays empty.
+ */
+internal fun dealColumns(sections: List<SectionRows>): DuelColumns {
+    val left = mutableListOf<SectionRows>()
+    val right = mutableListOf<SectionRows>()
+    var leftHeight = 0
+    var rightHeight = 0
+    for (section in sections) {
+        val height = section.estimatedHeight()
+        if (leftHeight <= rightHeight) {
+            leftHeight += (if (left.isEmpty()) 0 else SectionGapEstimate) + height
+            left += section
+        } else {
+            rightHeight += (if (right.isEmpty()) 0 else SectionGapEstimate) + height
+            right += section
+        }
+    }
+    return DuelColumns(left, right)
+}
 
 /** How a finished duel ended for me. */
 internal enum class DuelOutcome { Won, Lost, Drawn }
@@ -230,19 +262,23 @@ private fun TallyChips(tally: DuelTally) {
 
 @Composable
 private fun TallyChip(outcome: DuelOutcome, count: Int) {
+    val scheme = MaterialTheme.colorScheme
     val paint = outcome.paint()
+    // The header is the muted colour, so a draw chip in that colour would vanish: it takes a raised surface instead.
+    val fill = if (outcome == DuelOutcome.Drawn) scheme.surfaceContainerHigh else paint.fill
+    val onFill = if (outcome == DuelOutcome.Drawn) scheme.onSurface else paint.onFill
     Row(
         modifier = Modifier
             .heightIn(min = TallyHeight)
-            .background(paint.fill, PillShape)
+            .background(fill, PillShape)
             .padding(start = TallyStart, end = TallyEnd),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(TallyChipGap),
     ) {
-        Icon(paint.icon, contentDescription = null, modifier = Modifier.size(TallyIconSize), tint = paint.onFill)
+        Icon(paint.icon, contentDescription = null, modifier = Modifier.size(TallyIconSize), tint = onFill)
         Text(
             text = count.toString(),
-            color = paint.onFill,
+            color = onFill,
             style = MaterialTheme.typography.labelLarge.tabular().copy(fontSize = 14.sp, fontWeight = FontWeight.Bold),
         )
     }

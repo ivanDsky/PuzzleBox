@@ -68,6 +68,9 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
     @Test fun `tab empty light`() = tab("tab-empty", EMPTY, dark = false)
     @Test fun `tab empty dark`() = tab("tab-empty", EMPTY, dark = true)
 
+    @Test fun `tab waiting and finished light`() = tab("tab-waiting-finished", WAITING_FINISHED, dark = false)
+    @Test fun `tab waiting and finished dark`() = tab("tab-waiting-finished", WAITING_FINISHED, dark = true)
+
     @Test fun `tab signed out light`() = tab("tab-signed-out", EMPTY.copy(signedIn = false), dark = false)
     @Test fun `tab signed out dark`() = tab("tab-signed-out", EMPTY.copy(signedIn = false), dark = true)
 
@@ -128,6 +131,18 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
                 row("RIO777", DuelRowKind.Finished(2, 1), "Rio", 3, 3, Duration.ofHours(30)),
                 row("LEO888", DuelRowKind.Finished(0, 2), "Leo", 2, 2, Duration.ofHours(40)),
                 row("OLD999", DuelRowKind.Finished(null, null), "Nia", 3, 3, Duration.ofHours(50)),
+            ),
+        )
+
+        // Nothing needs me: one open invite waiting, five finished with a draw among them.
+        val WAITING_FINISHED = EMPTY.copy(
+            rows = listOf(
+                row("D5CW81", DuelRowKind.Unclaimed, null, 0, 7, Duration.ofHours(29) + Duration.ofMinutes(38)),
+                row("TB1001", DuelRowKind.Finished(1, 0), "Test Bot", 1, 1, Duration.ofHours(30)),
+                row("TB2002", DuelRowKind.Finished(0, 2), "Test Bot", 3, 3, Duration.ofHours(40)),
+                row("TB3003", DuelRowKind.Finished(3, 0), "Test Bot", 3, 3, Duration.ofHours(50)),
+                row("TB4004", DuelRowKind.Finished(2, 1), "Test Bot", 3, 3, Duration.ofHours(60)),
+                row("TB5005", DuelRowKind.Finished(1, 1), "Test Bot", 2, 2, Duration.ofHours(70)),
             ),
         )
 
