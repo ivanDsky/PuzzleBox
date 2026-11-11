@@ -7,10 +7,11 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -40,7 +41,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The game page draws the LinkedIn lines on its day card only when handed a card state, and collects them only while it is composed. */
+/** The game page draws the LinkedIn sync chip on its day card only when handed a card state, and collects them only while it is composed. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w400dp-h800dp")
@@ -144,28 +145,35 @@ class LibraryGamePageLinkedInTest {
     }
 
     @Test
-    fun anImportedDayShowsFromLinkedIn() {
-        view.value = status(LinkedInDayStatus.Imported(95_000L))
+    fun anImportedDayShowsTheSyncedChipAndNoRankOrStreakLine() {
+        val ghost = LinkedInGhost("member-ana", "Ana", 41_000L, hintFree = true, flawless = false)
+        view.value = LinkedInDayView(LinkedInDayStatus.Imported(95_000L), LinkedInBoardView.Shown(listOf(ghost)))
         show(card())
-        // The card is one click target, which merges its text into a single node.
-        composeRule.onNodeWithTag("linkedin.status", useUnmergedTree = true).assertTextEquals("From LinkedIn · counts toward your streak")
+        composeRule.onNodeWithTag("linkedin.sync", useUnmergedTree = true).assertContentDescriptionEquals("Synced with LinkedIn")
+        val words = listOf("From LinkedIn", "with connections", "Updated", "connections played")
+        composeRule.onAllNodes(
+            SemanticsMatcher("a rank, source or age line") { node ->
+                node.config.getOrNull(SemanticsProperties.Text).orEmpty().any { text -> words.any { it in text.text } }
+            },
+            useUnmergedTree = true,
+        ).assertCountEquals(0)
     }
 
     @Test
     fun resumeReconnectAndRetryReachTheirCallbacks() {
         view.value = status(LinkedInDayStatus.Paused(Kind.Challenge))
         show(card())
-        composeRule.onNodeWithTag("linkedin.resume").performClick()
+        composeRule.onNodeWithTag("linkedin.sync").performClick()
         assertEquals(1, resumes)
 
         view.value = status(LinkedInDayStatus.SessionExpired)
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("linkedin.reconnect").performClick()
+        composeRule.onNodeWithTag("linkedin.sync").performClick()
         assertEquals(1, reconnects)
 
         view.value = status(LinkedInDayStatus.Offline)
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("linkedin.retry").performClick()
+        composeRule.onNodeWithTag("linkedin.sync").performClick()
         assertEquals(1, retries)
     }
 }

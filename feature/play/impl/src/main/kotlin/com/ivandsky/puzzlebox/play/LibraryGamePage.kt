@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
  * on the phone a picked day scrolls the page up to the day card. [onBack] is the phone's back row.
  * The page carries the game's leaderboard and a "Your history" row calling [onOpenGameHistory]
  * with the game and its picked day (null: today).
- * A non-null [linkedIn] puts the LinkedIn lines on the day card, which collects them while it is shown.
+ * A non-null [linkedIn] puts the LinkedIn sync chip on the day card, which collects its state while it is shown.
  */
 @Composable
 internal fun LibraryGamePage(
@@ -59,7 +59,7 @@ internal fun LibraryGamePage(
                 onPlay = { onPlay(game, past?.date) },
                 onRetry = onRetry,
                 onBackToToday = calendar.onBackToToday,
-                linkedIn = linkedIn?.let { card -> { LinkedInCardSlot(card, row) } },
+                linkedIn = linkedIn?.let { card -> { LinkedInCardSlot(card) } },
             )
         },
         calendar = {

@@ -98,7 +98,7 @@ class LinkedInSentinelE2ETest {
             awaitLinkedIn { wire.photoRequests.isNotEmpty() }
             assertPhotosCarryNothing()
             shown.addAll(shownEverywhere())
-            assertTrue("the day's board is on screen", "#linkedin.rank" in shown)
+            assertTrue("the day's sync chip is on screen", "#linkedin.sync" in shown)
 
             said.addAll(beRefused())
             awaitLinkedIn { SESSION_ENDED in shownEverywhere() }
@@ -125,7 +125,7 @@ class LinkedInSentinelE2ETest {
         val source = graph.koin.get<LinkedInAccountSource>()
         openLinkedInGamePage()
         val day = offMain { days.observe(LINKEDIN_GAME, E2E_TODAY).first { !it.inFlight && it.boardFetchedAtMs != null } }
-        awaitTag("linkedin.rank")
+        awaitTag("linkedin.sync")
         val sync = offMain { days.sync(LINKEDIN_GAME, E2E_TODAY) }
         val reads = offMain {
             listOf(
@@ -243,7 +243,7 @@ class LinkedInSentinelE2ETest {
 
     private companion object {
         const val HTTP_FORBIDDEN = 403
-        const val SESSION_ENDED = "Your LinkedIn session ended"
+        const val SESSION_ENDED = "LinkedIn session ended. Sign in again"
 
         /** A connection in the board fixture. */
         const val CONNECTION = "Anna"

@@ -10,14 +10,13 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.linkedInScore
 import com.ivandsky.puzzlebox.game.linkedin.rankCombined
-import com.ivandsky.puzzlebox.game.linkedin.rankedCount
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 /**
- * One game day's LinkedIn data as the day card shows it. Every decision about what to show is
+ * One game day's LinkedIn data as the day card and the boards show it. Every decision about what to show is
  * made here, so the screens only render it. Reads what the phone already holds: observing
  * never sends a call.
  */
@@ -54,36 +53,22 @@ private fun LinkedInDayData.status(): LinkedInDayStatus = when (val linked = lin
     }
 }
 
-private fun LinkedInDayData.board(order: Comparator<BestScore>): LinkedInBoardView {
-    val fetchedAtMs = boardFetchedAtMs
-    return when {
-        link is LinkState.NotConnected -> LinkedInBoardView.Hidden
-        // Only a board that was read is drawn, so an empty one that was read still shows.
-        fetchedAtMs == null -> LinkedInBoardView.Hidden
-        !boardInWindow -> LinkedInBoardView.OutsideWindow
-        // A paused link lands here too: the ghosts read before the pause are still on the phone.
-        else -> shown(order, fetchedAtMs)
-    }
+private fun LinkedInDayData.board(order: Comparator<BestScore>): LinkedInBoardView = when {
+    link is LinkState.NotConnected -> LinkedInBoardView.Hidden
+    // Only a board that was read is drawn, so an empty one that was read still shows.
+    boardFetchedAtMs == null -> LinkedInBoardView.Hidden
+    !boardInWindow -> LinkedInBoardView.Hidden
+    // A paused link lands here too: the ghosts read before the pause are still on the phone.
+    else -> shown(order)
 }
 
-private fun LinkedInDayData.shown(
-    order: Comparator<BestScore>,
-    fetchedAtMs: Long,
-): LinkedInBoardView.Shown {
-    val yours = (own as? LinkedInOwnState.Imported)?.record?.let { BestScore(it.time, it.hints) }
+private fun LinkedInDayData.shown(order: Comparator<BestScore>): LinkedInBoardView.Shown {
+    // Equal scores keep board order; a hidden time has no score and takes no rank, so it goes last. The player's own
+    // row does not move a connection relative to another, so only the connections are ordered here.
     val slots = rankCombined(
-        rows = listOfNotNull(yours),
+        rows = emptyList(),
         ghosts = ghosts.map { ghost -> ghost.timeMs?.let { linkedInScore(it, ghost.hintFree) } },
         order = order,
     )
-    val yourRank = slots.firstOrNull { !it.ghost }?.place
-    return LinkedInBoardView.Shown(
-        // Equal scores keep board order; a hidden time has no score and takes no rank.
-        ghosts = slots.filter { it.ghost }.map { ghosts[it.index] },
-        yourRank = yourRank,
-        // The rank's "of N" counts the player and the connections with a time. Without a rank the line only says how
-        // many connections played, and one with a hidden time did play.
-        total = if (yourRank != null) slots.rankedCount() else ghosts.size,
-        updatedAtMs = fetchedAtMs,
-    )
+    return LinkedInBoardView.Shown(ghosts = slots.map { ghosts[it.index] })
 }
