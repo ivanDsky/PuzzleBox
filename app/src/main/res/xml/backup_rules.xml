@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API 26-30 counterpart of data_extraction_rules.xml: the same five excludes. -->
+<full-backup-content>
+    <exclude domain="root" path="app_webview" />
+    <exclude domain="database" path="linkedin.db" />
+    <exclude domain="database" path="linkedin.db-wal" />
+    <exclude domain="database" path="linkedin.db-shm" />
+    <exclude domain="file" path="linkedin_link.preferences_pb" />
+</full-backup-content>
