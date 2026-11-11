@@ -27,12 +27,12 @@ private val RankWidth = 28.dp
 private val GhostBorder = 1.dp
 
 /**
- * A LinkedIn connection's [row], drawn like a [DailyBoardRow] but outlined and unranked: the detail line says whose
- * result it is and that it stays on this phone. A hint-free time reads in [order]'s voice; a hinted one shows the
- * time alone, because a ghost's real hint count is unknown.
+ * A LinkedIn connection's [row], drawn like a [DailyBoardRow] but outlined: its [place] in the board's one ranking, or
+ * "—" while its time is hidden; the detail line says whose result it is and that it stays on this phone. A hint-free
+ * time reads in [order]'s voice; a hinted one shows the time alone, because a ghost's real hint count is unknown.
  */
 @Composable
-fun GhostRow(row: GhostRowModel, order: RankOrder, modifier: Modifier = Modifier) {
+fun GhostRow(row: GhostRowModel, place: Int?, order: RankOrder, modifier: Modifier = Modifier) {
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     Row(
         modifier = modifier
@@ -44,7 +44,12 @@ fun GhostRow(row: GhostRowModel, order: RankOrder, modifier: Modifier = Modifier
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.width(RankWidth)) {
-            Text("—", style = MaterialTheme.typography.labelLarge.tabular(), color = muted)
+            Text(
+                place?.toString() ?: "—",
+                style = MaterialTheme.typography.labelLarge.tabular(),
+                color = muted,
+                modifier = Modifier.testTag("daily_board.ghost.rank"),
+            )
         }
         Column(Modifier.weight(1f)) {
             Text(

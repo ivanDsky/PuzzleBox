@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
@@ -60,8 +61,8 @@ class GamePageBoardViewModelTest {
     private val yesterday = today.minusDays(1)
     private val past = today.minusDays(4)
 
-    private fun entry(name: String) =
-        LeaderboardEntry(uid = name, displayName = name, puzzleRef = "alpha/$today/1", timeMs = 10_000L, hints = 0, completedAtMs = 0L)
+    private fun entry(name: String, timeMs: Long) =
+        LeaderboardEntry(uid = name, displayName = name, puzzleRef = "alpha/$today/1", timeMs = timeMs, hints = 0, completedAtMs = 0L)
 
     /** Today's board as these names in order, instead of the one row of the day's own name. */
     private var standings: List<String>? = null
@@ -80,7 +81,8 @@ class GamePageBoardViewModelTest {
                     else -> "Today1"
                 },
             )
-            emit(LeaderboardSnapshot(board, names.map { entry(it) }))
+            // One second apart in order, so a ghost can be placed between two rows.
+            emit(LeaderboardSnapshot(board, names.mapIndexed { i, name -> entry(name, 10_000L + i * 1_000L) }))
         }
 
         override suspend fun submit(entry: LeaderboardEntry): SubmitResult = error("never submitted")
@@ -204,8 +206,11 @@ class GamePageBoardViewModelTest {
         settle()
 
         assertEquals(BoardDay.Today, model.state.value.day)
-        assertEquals(listOf(GhostRowModel("Ada", 61_000L, true), GhostRowModel("Bo", null, false)), model.state.value.ghosts)
-        assertEquals(DailyBoardState.Ranked(listOf(row("Today1"))), model.state.value.board)
+        assertEquals(
+            listOf(GhostRowModel("ref-Ada", "Ada", 61_000L, true), GhostRowModel("ref-Bo", "Bo", null, false)),
+            model.state.value.ghosts,
+        )
+        assertEquals(listOf(row("Today1")), rowsOf(model))
     }
 
     @Test
@@ -222,7 +227,7 @@ class GamePageBoardViewModelTest {
 
         days.emit(game, yesterday, dayData(listOf(ghost("Cy", 70_000L, hintFree = false))))
         settle()
-        assertEquals(listOf(GhostRowModel("Cy", 70_000L, false)), model.state.value.ghosts)
+        assertEquals(listOf(GhostRowModel("ref-Cy", "Cy", 70_000L, false)), model.state.value.ghosts)
     }
 
     @Test
@@ -285,15 +290,15 @@ class GamePageBoardViewModelTest {
         model.pick(past)
         settle()
         assertEquals(past, model.state.value.picked)
-        assertEquals(DailyBoardState.Ranked(listOf(row("Past1"))), model.state.value.board)
-        assertEquals(listOf(GhostRowModel("Cy", 70_000L, false)), model.state.value.ghosts)
+        assertEquals(listOf(row("Past1")), rowsOf(model))
+        assertEquals(listOf(GhostRowModel("ref-Cy", "Cy", 70_000L, false)), model.state.value.ghosts)
 
         model.pick(null)
         settle()
         assertEquals(null, model.state.value.picked)
         assertEquals(BoardDay.Today, model.state.value.day)
-        assertEquals(DailyBoardState.Ranked(listOf(row("Today1"))), model.state.value.board)
-        assertEquals(listOf(GhostRowModel("Ada", 61_000L, true)), model.state.value.ghosts)
+        assertEquals(listOf(row("Today1")), rowsOf(model))
+        assertEquals(listOf(GhostRowModel("ref-Ada", "Ada", 61_000L, true)), model.state.value.ghosts)
     }
 
     @Test
@@ -317,7 +322,7 @@ class GamePageBoardViewModelTest {
         val model = linkedInModel()
         model.state.launchIn(screen)
         settle()
-        assertEquals(DailyBoardState.Ranked(listOf(row("Today1"))), model.state.value.board)
+        assertEquals(listOf(row("Today1")), rowsOf(model))
 
         model.pick(past)
         settle()
@@ -328,7 +333,7 @@ class GamePageBoardViewModelTest {
         days.emit(game, past, dayData(listOf(ghost("Cy", 70_000L))))
         pastBoardReady.tryEmit(Unit)
         settle()
-        assertEquals(DailyBoardState.Ranked(listOf(row("Past1"))), model.state.value.board)
+        assertEquals(listOf(row("Past1")), rowsOf(model))
         assertEquals(listOf("Cy"), model.state.value.ghosts.map { it.name })
     }
 
@@ -362,6 +367,58 @@ class GamePageBoardViewModelTest {
         assertEquals(listOf("Ada"), shown.ghosts.map { it.name })
         assertTrue(model.state.value.ghosts.isNotEmpty())
     }
+
+    @Test
+    fun `two faster connections put the player third`() {
+        standings = listOf("me")
+        days.emit(game, today, dayData(listOf(ghost("Ada", 5_000L), ghost("Bo", 4_000L))))
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        settle()
+
+        val board = model.state.value.board as DailyBoardState.Ranked
+        assertEquals(listOf("Bo" to 1, "Ada" to 2, "me" to 3), board.lines.orEmpty().map { it.name() to it.place() })
+        assertEquals(1, board.rows.single().rank)
+    }
+
+    @Test
+    fun `a pinned players place counts connections beyond the top rows`() {
+        standings = listOf("a", "b", "c", "d", "e", "f", "me")
+        // 12.5s sits among the top five; 15.5s only ahead of the pinned row, outside the rows drawn.
+        days.emit(game, today, dayData(listOf(ghost("Near", 12_500L), ghost("Far", 15_500L))))
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        settle()
+
+        val board = model.state.value.board as DailyBoardState.Ranked
+        assertEquals(7, board.pinned?.rank)
+        assertEquals(9, board.pinnedPlace)
+        assertEquals(listOf("a", "b", "c", "Near", "d", "e", "Far"), board.lines.orEmpty().map { it.name() })
+    }
+
+    @Test
+    fun `without connections the board is today's rows alone`() {
+        standings = listOf("a", "me")
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+        settle()
+
+        val board = model.state.value.board as DailyBoardState.Ranked
+        assertEquals(null, board.lines)
+        assertEquals(null, board.pinnedPlace)
+    }
+
+    private fun DailyBoardLine.name() = when (this) {
+        is DailyBoardLine.Real -> row.name
+        is DailyBoardLine.Ghost -> row.name
+    }
+
+    private fun DailyBoardLine.place() = when (this) {
+        is DailyBoardLine.Real -> place
+        is DailyBoardLine.Ghost -> place
+    }
+
+    private fun rowsOf(model: GamePageBoardViewModel) = (model.state.value.board as DailyBoardState.Ranked).rows
 
     private fun settle() = main.testDispatcher.scheduler.runCurrent()
 
