@@ -27,10 +27,11 @@ fun DailyBoardRow(
         tags = if (row.isSelf) SelfTags else Tags,
         name = row.name.ifEmpty { "Player" },
         photo = row.photo,
-        place = "$place",
+        place = place,
         detail = if (showPuzzleBoxRank && !row.fromLinkedIn) "#${row.rank} on PuzzleBox" else null,
         score = bestScoreText(BestScore(row.timeMs, row.hints), order),
         modifier = modifier,
+        scoreTime = ScoreTime(row.timeMs) { ms -> bestScoreText(BestScore(ms, row.hints), order) },
         self = row.isSelf,
         linkedIn = row.timeFromLinkedIn,
     )

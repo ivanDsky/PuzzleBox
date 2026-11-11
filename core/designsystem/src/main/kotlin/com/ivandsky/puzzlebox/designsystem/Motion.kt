@@ -17,12 +17,15 @@ import androidx.compose.ui.unit.dp
 // interactions. Transitions consume these tokens
 // so every screen moves on the same physics.
 //
-// Leaderboard rows (move, arrive, leave) reuse these tokens rather than adding their own: moves settle on the default
-// spring (as do the rows that open and close around them), an arriving row fades in over EnterDuration and a leaving
-// one fades out over DurationShort. Under reduced motion every change lands without movement.
+// Leaderboard rows (move, arrive, leave) reuse these tokens rather than adding their own: an arriving row fades in over
+// EnterDuration and a leaving one fades out over DurationExit, while only position is slow (the board's own glide
+// spring). Under reduced motion every change lands without movement.
 object MotionTokens {
     // Feedback stays under ~160ms; only full-screen patterns go longer.
     val DurationShort = 120
+
+    // A leaving element's fade: a step over feedback, still well under the enter.
+    val DurationExit = 150
     val DurationMedium = 240
     val DurationLong = 300
     val DurationExpressive = 400

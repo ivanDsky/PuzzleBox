@@ -1,15 +1,20 @@
 package com.ivandsky.puzzlebox.gameui.board
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.rankRuleText
 
@@ -54,7 +59,10 @@ fun DailyBoard(
 @Composable
 private fun Ranked(state: DailyBoardState.Ranked, ghosts: List<GhostRowModel>, order: RankOrder, animated: Boolean) {
     val lines = remember(state, ghosts, order) { (state.lines ?: rankWithGhosts(state.rows, ghosts, order)).capGhosts() }
-    if (lines.isEmpty()) Line("No one is on today's board yet.", "daily_board.empty")
+    if (lines.isEmpty()) {
+        val message = "No one is on today's board yet."
+        if (animated) FadingLine(message, "daily_board.empty") else Line(message, "daily_board.empty")
+    }
     DailyBoardList(
         lines,
         order,
@@ -71,11 +79,20 @@ private fun List<DailyBoardLine>.capGhosts(): List<DailyBoardLine> {
 }
 
 @Composable
-private fun Line(text: String, tag: String) {
+private fun Line(text: String, tag: String, modifier: Modifier = Modifier) {
     Text(
         text,
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.testTag(tag),
+        modifier = modifier.testTag(tag),
     )
+}
+
+// The message of an emptied board fades in once the rows that left are gone; reduced motion shows it at once.
+@Composable
+private fun FadingLine(text: String, tag: String) {
+    val instant = rememberReducedMotion() || LocalInspectionMode.current
+    val alpha = remember { Animatable(if (instant) 1f else 0f) }
+    LaunchedEffect(instant) { if (!instant) alpha.animateTo(1f, BoardMotion.messageIn) }
+    Line(text, tag, Modifier.graphicsLayer { this.alpha = alpha.value })
 }

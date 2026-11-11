@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
@@ -23,8 +24,9 @@ private val DividerHeight = 1.dp
  * the same rows. A list whose places differ from the PuzzleBox ranks (connections among the rows, or a row at a
  * LinkedIn time) names each row's PuzzleBox rank.
  *
- * With [animated] a row whose place changes slides to it, an arriving row fades and expands in and a leaving one fades
- * and shrinks out, the pinned row and its divider too; under reduced motion every change lands at once. Rows are the
+ * With [animated] the top three places are medals, and a row whose place changes glides to it while its place number
+ * rolls, one after another, an arriving row fades and expands in and a leaving one fades and shrinks out, the pinned
+ * row and its divider too; under reduced motion every change lands at once, the final place and its medal included. Rows are the
  * same rows by their player or connection, never by place or day: on another day's board the people on both days
  * slide to their new places and update in place, the others arrive and leave. Without [animated] the list is drawn plainly.
  */
@@ -42,11 +44,14 @@ fun DailyBoardList(
         return
     }
     if (lines.isEmpty() && pinned == null) return
-    Column(modifier.fillMaxWidth().testTag("daily_board.list"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        lines.forEach { BoardLine(it, order, withPuzzleBoxRank) }
-        pinned?.let {
-            HorizontalDivider()
-            Box(Modifier.testTag("leaderboard.you")) { BoardLine(it, order, withPuzzleBoxRank) }
+    // The podium's medals belong to the LinkedIn account's board; here they are drawn at once, with no roll or flip.
+    CompositionLocalProvider(LocalPlaceMotion provides if (animated) StillPlaces else null) {
+        Column(modifier.fillMaxWidth().testTag("daily_board.list"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            lines.forEach { BoardLine(it, order, withPuzzleBoxRank) }
+            pinned?.let {
+                HorizontalDivider()
+                Box(Modifier.testTag("leaderboard.you")) { BoardLine(it, order, withPuzzleBoxRank) }
+            }
         }
     }
 }

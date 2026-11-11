@@ -19,7 +19,8 @@ class MotionTokensTest {
 
     @Test
     fun `duration scale is ordered`() {
-        assertTrue(MotionTokens.DurationShort < MotionTokens.DurationMedium)
+        assertTrue(MotionTokens.DurationShort < MotionTokens.DurationExit)
+        assertTrue(MotionTokens.DurationExit < MotionTokens.DurationMedium)
         assertTrue(MotionTokens.DurationMedium < MotionTokens.DurationLong)
         assertTrue(MotionTokens.DurationLong < MotionTokens.DurationExpressive)
     }

@@ -99,6 +99,16 @@ class ColorTokensTest {
     }
 
     @Test
+    fun `each medal ink reads on its fill at 4_5 and the three medals are told apart`() {
+        val medals = listOf(MedalGold to MedalGoldInk, MedalSilver to MedalSilverInk, MedalBronze to MedalBronzeInk)
+        for ((fill, ink) in medals) {
+            val ratio = contrast(ink, fill)
+            assertTrue("$ink on $fill is $ratio:1, under 4.5:1", ratio >= 4.5f)
+        }
+        assertEquals(3, medals.map { it.first }.toSet().size)
+    }
+
+    @Test
     fun `surface ramps carry no warm cast in both themes`() {
         // Ticket 11: the neutral family reads cool — every surface/outline value has
         // blue >= green >= red (the old light ramp was cream-green, green > blue).
