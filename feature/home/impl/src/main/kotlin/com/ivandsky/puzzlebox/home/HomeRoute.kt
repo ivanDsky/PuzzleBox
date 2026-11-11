@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.home
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -31,6 +32,8 @@ fun HomeRoute(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
+    // No reset on dispose: leaving Today and coming back must not drop the rank and pop the row in again.
+    SideEffect { viewModel.setSummariesShown(summaries != null) }
     LifecycleResumeEffect(viewModel) {
         viewModel.syncToday()
         viewModel.checkForUpdate()
