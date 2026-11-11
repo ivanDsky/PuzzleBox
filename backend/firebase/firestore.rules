@@ -37,6 +37,9 @@ rules_version = '2';
 //   participant once the match closes.
 // Layout: matchQuota/{uid} = {day, count, last} — match creates on one UTC day, capped at 20;
 //   `last` names the code the bump is for, so one bump covers one create.
+// Layout (ADR-0029): users/{uid}/{kind}/{docId} — the account's own cloud space, owner-only (read, list,
+//   write and delete) on the closed kinds completions, drafts, published, received, boards and replays.
+//   Every write stamps updatedAt = request.time and carries only that kind's keys, with size caps.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -408,6 +411,92 @@ service cloud.firestore {
         && isMatchQuotaBump(resource.data, request.resource.data);
 
       allow delete: if false;
+    }
+
+    match /users/{uid}/{kind}/{docId} {
+      // The account's own cloud space (ADR-0029): its owner reads, lists, writes and deletes, on the
+      // closed list of kinds below, and nobody else touches it. Reads cover the owner's own collection
+      // queries (`updatedAt >= cursor`); a query across accounts or kinds matches no rule.
+      allow read, delete: if request.auth != null
+        && request.auth.uid == uid
+        && isSpaceKind();
+
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && validSpaceDoc();
+
+      function isSpaceKind() {
+        return kind in ['completions', 'drafts', 'published', 'received', 'boards', 'replays'];
+      }
+
+      // Writes are merge-sets, so a tombstone written over a live doc leaves both shapes' keys; each
+      // kind therefore lists the union of its live and tombstone keys once. Replays have no key list
+      // yet, so they take no writes until their kind lands.
+      function validSpaceDoc() {
+        let d = request.resource.data;
+        return d.updatedAt == request.time
+          && d.formatVersion == 1
+          && ((kind == 'completions' && validCompletionsDoc(d))
+            || (kind == 'drafts' && validDraftDoc(d))
+            || (kind == 'published' && validPublishedDoc(d))
+            || (kind == 'received' && validReceivedDoc(d))
+            || (kind == 'boards' && validBoardDoc(d)));
+      }
+
+      // One document per month, `yyyy-MM`, or `yyyy-MM-n` once the month overflows.
+      function validCompletionsDoc(d) {
+        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'records'])
+          && d.keys().hasAll(['records'])
+          && docId.matches('^[0-9]{4}-(0[1-9]|1[0-2])(-[0-9]+)?$')
+          && d.records is map
+          && d.records.size() <= 1000;
+      }
+
+      function validDraftDoc(d) {
+        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'gameId', 'name', 'blob', 'editedAtMs',
+            'deleted', 'deletedAtMs'])
+          && (d.keys().hasAll(['gameId', 'name', 'blob', 'editedAtMs']) || isTombstone(d))
+          && isSpaceName(d.get('name', ''))
+          && (!('blob' in d) || (d.blob is bytes && d.blob.size() <= 65536));
+      }
+
+      function validPublishedDoc(d) {
+        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'gameId', 'name', 'publishedAtMs', 'unpublished'])
+          && d.keys().hasAll(['gameId', 'name', 'publishedAtMs', 'unpublished'])
+          && isShareCode(docId)
+          && isSpaceName(d.get('name', ''))
+          && d.unpublished is bool;
+      }
+
+      function validReceivedDoc(d) {
+        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'gameId', 'name', 'senderName', 'receivedAtMs',
+            'bytes', 'postState', 'deleted', 'deletedAtMs'])
+          && (d.keys().hasAll(['gameId', 'name', 'senderName', 'receivedAtMs', 'bytes', 'postState'])
+            || isTombstone(d))
+          && isShareCode(docId)
+          && isSpaceName(d.get('name', ''))
+          && isSpaceName(d.get('senderName', ''))
+          && (!('bytes' in d) || (d.bytes is bytes && d.bytes.size() <= 8192));
+      }
+
+      // One document per game, day and hashed LinkedIn profile; the rows are the board's connections.
+      function validBoardDoc(d) {
+        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'game', 'day', 'profileKey', 'readAtMs',
+            'complete', 'rows'])
+          && d.keys().hasAll(['game', 'day', 'profileKey', 'readAtMs', 'complete', 'rows'])
+          && d.complete is bool
+          && d.rows is list
+          && d.rows.size() <= 51;
+      }
+
+      function isTombstone(d) {
+        return d.get('deleted', false) == true && d.deletedAtMs is int;
+      }
+
+      function isSpaceName(s) {
+        return s is string
+          && s.size() <= 64;
+      }
     }
 
     function matchDeadline(m) {
