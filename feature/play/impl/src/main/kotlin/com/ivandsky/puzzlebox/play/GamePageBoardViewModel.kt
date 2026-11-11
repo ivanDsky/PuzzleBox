@@ -8,20 +8,20 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
-import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
-import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
-import com.ivandsky.puzzlebox.gameui.board.rankWithGhosts
+import com.ivandsky.puzzlebox.gameui.board.rankWithLinkedIn
 import com.ivandsky.puzzlebox.gameui.board.toDailyBoardState
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.board.BoardSignInHolder
+import com.ivandsky.puzzlebox.play.linkedin.LinkedInBoardInput
 import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState
 import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState.Target
+import com.ivandsky.puzzlebox.play.linkedin.toBoardInput
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -80,7 +80,7 @@ internal class GamePageBoardViewModel(
     val state: StateFlow<GamePageBoardState> = shown()
         .flatMapLatest { shown ->
             // The shown day is named at once; another day's rows or ghosts never stay under it while its data loads.
-            combine(leaderboard(game, shown.day), ghosts(shown.day)) { board, ghosts -> stateOf(shown, board, ghosts) }
+            combine(leaderboard(game, shown.day), linkedInInput(shown.day)) { board, input -> stateOf(shown, board, input) }
                 .onStart { emit(GamePageBoardState(day = shown.day, isToday = shown.isToday)) }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GamePageBoardState())
@@ -107,37 +107,38 @@ internal class GamePageBoardViewModel(
         }.distinctUntilChanged()
 
     /**
-     * [day]'s LinkedIn ghosts as the phone holds them. Starts empty so the board is not held back
-     * by a read that arrives later than the leaderboard's. Without LinkedIn it is empty and touches nothing.
+     * [day]'s LinkedIn ghosts and the player's own import as the phone holds them. Starts empty so the board is not
+     * held back by a read that arrives later than the leaderboard's. Without LinkedIn it is empty and touches nothing.
      */
-    private fun ghosts(day: LocalDate): Flow<List<GhostRowModel>> {
-        val holder = linkedIn ?: return flowOf(emptyList())
-        return holder.observed(Target(game, day)).map(::ghostsOf).onStart { emit(emptyList()) }
+    private fun linkedInInput(day: LocalDate): Flow<LinkedInBoardInput> {
+        val holder = linkedIn ?: return flowOf(LinkedInBoardInput())
+        return holder.observed(Target(game, day)).map { it.toBoardInput() }.onStart { emit(LinkedInBoardInput()) }
     }
-
-    private fun ghostsOf(view: LinkedInDayView?): List<GhostRowModel> =
-        (view?.board as? LinkedInBoardView.Shown)?.ghosts.orEmpty().map { GhostRowModel(it.memberRef, it.name, it.timeMs, it.hintFree, it.photoPath) }
 
     /**
      * The page's board: the first [TOP_ROWS] rows, with the player's own row pinned under them when it ranks lower.
-     * With [ghosts] the rows and the ghosts are ranked together over the whole board before the cut, so a place
-     * (the pinned row's too) counts every connection ahead of it, not only those among the rows drawn.
+     * With LinkedIn [input] the rows and the ghosts are ranked together over the whole board before the cut, so a
+     * place (the pinned row's too) counts every connection ahead of it, not only those among the rows drawn. The
+     * player's own imported time and a same-name connection's time replace the PuzzleBox ones, and the rows follow
+     * the times they show, each keeping its PuzzleBox rank.
      */
-    private fun stateOf(shown: Shown, board: TodayLeaderboard, ghosts: List<GhostRowModel>): GamePageBoardState {
+    private fun stateOf(shown: Shown, board: TodayLeaderboard, input: LinkedInBoardInput): GamePageBoardState {
         val drawn = board.toDailyBoardState()
-        if (drawn !is DailyBoardState.Ranked) return GamePageBoardState(day = shown.day, isToday = shown.isToday, board = drawn, ghosts = ghosts)
-        val own = drawn.rows.indexOfFirst { it.isSelf }
-        val pinned = if (own < TOP_ROWS) null else drawn.rows[own]
-        val ranked = if (ghosts.isEmpty()) null else rankWithGhosts(drawn.rows, ghosts, order)
+        if (drawn !is DailyBoardState.Ranked) return GamePageBoardState(day = shown.day, isToday = shown.isToday, board = drawn, ghosts = input.ghosts)
+        val ranked = if (input.ghosts.isEmpty() && input.own == null) null else rankWithLinkedIn(drawn.rows, input.ghosts, input.own, order)
+        val reals = ranked?.filterIsInstance<DailyBoardLine.Real>()
+        val rows = reals?.map { it.row } ?: drawn.rows
+        val own = rows.indexOfFirst { it.isSelf }
+        val pinned = if (own < TOP_ROWS) null else rows[own]
         return GamePageBoardState(
             day = shown.day,
             isToday = shown.isToday,
-            ghosts = ghosts,
+            ghosts = input.ghosts,
             board = drawn.copy(
-                rows = drawn.rows.take(TOP_ROWS),
+                rows = rows.take(TOP_ROWS),
                 pinned = pinned,
                 lines = ranked?.cutToTopRows(),
-                pinnedPlace = if (pinned == null) null else ranked?.filterIsInstance<DailyBoardLine.Real>()?.first { it.row.isSelf }?.place,
+                pinnedPlace = if (pinned == null) null else reals?.first { it.row.isSelf }?.place,
             ),
         )
     }

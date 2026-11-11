@@ -37,7 +37,7 @@ private fun LinkedInDayData.status(): LinkedInDayStatus = when (val linked = lin
         else -> LinkedInDayStatus.Paused(linked.kind)
     }
     is LinkState.Connected -> when (val result = own) {
-        is LinkedInOwnState.Imported -> LinkedInDayStatus.Imported(result.record.time)
+        is LinkedInOwnState.Imported -> LinkedInDayStatus.Imported(result.record.time, result.record.hints)
         LinkedInOwnState.NotPlayed -> LinkedInDayStatus.DidNotPlay
         LinkedInOwnState.Unknown -> when {
             inFlight -> LinkedInDayStatus.Loading

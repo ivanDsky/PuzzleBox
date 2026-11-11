@@ -10,7 +10,11 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.CompletionSource
+import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
@@ -45,8 +49,18 @@ class ObserveResultRankTest {
     private fun ghost(i: Int, seconds: Int?, hintFree: Boolean = true) =
         LinkedInGhost("member-$i", "Member $i", seconds?.let { it * 1_000L }, hintFree, flawless = false)
 
+    private fun imported(seconds: Int, hints: Int = 0) = LinkedInOwnState.Imported(
+        CompletionRecord(
+            puzzleRef = TestGames.Ref(tango, PuzzleKey.Daily(day, 12)),
+            time = seconds * 1_000L,
+            hints = hints,
+            stats = RecordStats(schemaVersion = 1, blob = "{}"),
+            source = CompletionSource.LinkedIn,
+        ),
+    )
+
     /** A connected day whose connections board was read. */
-    private fun connections(vararg ghosts: LinkedInGhost) = days.emit(
+    private fun connections(vararg ghosts: LinkedInGhost, own: LinkedInOwnState = LinkedInOwnState.Unknown) = days.emit(
         tango,
         day,
         LinkedInDayData(
@@ -55,7 +69,7 @@ class ObserveResultRankTest {
             boardInWindow = true,
             inFlight = false,
             lastSync = null,
-            own = LinkedInOwnState.Unknown,
+            own = own,
             ghosts = ghosts.toList(),
             boardFetchedAtMs = 1L,
         ),
@@ -152,6 +166,38 @@ class ObserveResultRankTest {
         connections(ghost(1, null), ghost(2, 10))
         rank(me, fourPlayers, withConnections = true).test {
             assertEquals(ResultRank.WithConnections(position = 4, count = 5), nextRanked().withConnections)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `an imported LinkedIn time replaces the player's own time in the combined place, not in the PuzzleBox one`() = runTest {
+        // 35s moves the player from behind b (40s) to ahead of it, with no connection on the board at all.
+        connections(own = imported(35))
+        rank(me, fourPlayers, withConnections = true).test {
+            assertEquals(
+                ResultRank.Ranked(position = 3, count = 4, topPercent = 75, withConnections = ResultRank.WithConnections(position = 2, count = 4)),
+                nextRanked(),
+            )
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a connection named like a PuzzleBox player is that player with the LinkedIn time, counted once`() = runTest {
+        // Entry "c" (60s) is the connection "C " (20s): one person at 20s, so it is ahead of the player, and no one joins.
+        connections(LinkedInGhost("member-1", "C ", 20_000L, hintFree = true, flawless = false), ghost(2, 70))
+        rank(me, fourPlayers, withConnections = true).test {
+            assertEquals(ResultRank.WithConnections(position = 4, count = 5), nextRanked().withConnections)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun `a same-name connection with a hidden time changes nothing`() = runTest {
+        connections(LinkedInGhost("member-1", "c", null, hintFree = true, flawless = false))
+        rank(me, fourPlayers, withConnections = true).test {
+            assertEquals(ResultRank.Ranked(position = 3, count = 4, topPercent = 75), nextRanked())
             cancelAndIgnoreRemainingEvents()
         }
     }

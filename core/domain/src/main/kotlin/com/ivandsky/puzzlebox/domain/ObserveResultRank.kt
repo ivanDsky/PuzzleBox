@@ -1,12 +1,12 @@
 package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
-import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.linkedin.linkedInScore
+import com.ivandsky.puzzlebox.game.linkedin.linkedInTimeWins
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -28,12 +28,8 @@ class ObserveResultRank(private val leaderboard: ObserveLeaderboard, private val
         val order = registry.rankOrderOf(game).comparator
         val boards = leaderboard(game, day)
         // Without connections the board alone drives the rank, so its loading state shows as it always did.
-        val read = if (connections == null) {
-            boards.map { it to emptyList<LinkedInGhost>() }
-        } else {
-            combine(boards, connections.map { view -> (view.board as? LinkedInBoardView.Shown)?.ghosts.orEmpty() }, ::Pair)
-        }
-        return read.map { (board, ghosts) ->
+        val read: Flow<Pair<TodayLeaderboard, LinkedInDayView?>> = if (connections == null) boards.map { it to null } else combine(boards, connections, ::Pair)
+        return read.map { (board, view) ->
             when (board) {
                 TodayLeaderboard.SignedOut -> ResultRank.SignedOut
                 is TodayLeaderboard.SignedIn -> when (val state = board.board) {
@@ -41,7 +37,7 @@ class ObserveResultRank(private val leaderboard: ObserveLeaderboard, private val
                     is TodayLeaderboard.Board.Loaded -> {
                         val entries = state.snapshot.entries
                         val index = entries.indexOfFirst { it.uid == board.identity.uid }
-                        if (index < 0) ResultRank.Hidden else ranked(index + 1, entries.size, withConnections(entries, index, ghosts, order))
+                        if (index < 0) ResultRank.Hidden else ranked(index + 1, entries.size, withConnections(entries, index, view, order))
                     }
                 }
             }
@@ -55,17 +51,32 @@ class ObserveResultRank(private val leaderboard: ObserveLeaderboard, private val
         withConnections = withConnections,
     )
 
-    // A connection with a hidden time has no score, so it takes no place and is not counted.
+    // A connection with a hidden time has no score, so it takes no place and is not counted. A LinkedIn time wins:
+    // the player's own import stands in for their PuzzleBox time, and a connection named like an entry is that
+    // entry at the connection's time.
     private fun withConnections(
         entries: List<LeaderboardEntry>,
         own: Int,
-        ghosts: List<LinkedInGhost>,
+        view: LinkedInDayView?,
         order: Comparator<BestScore>,
     ): ResultRank.WithConnections? {
-        val scores = ghosts.mapNotNull { ghost -> ghost.timeMs?.let { linkedInScore(it, ghost.hintFree) } }
-        if (scores.isEmpty()) return null
-        val mine = entries[own].score()
-        val ahead = entries.count { order.compare(it.score(), mine) < 0 } + scores.count { order.compare(it, mine) < 0 }
+        if (view == null) return null
+        val ghosts = (view.board as? LinkedInBoardView.Shown)?.ghosts.orEmpty()
+        val entryScores = entries.map { it.score() }
+        val wins = linkedInTimeWins(
+            rowNames = entries.map { it.displayName },
+            rowScores = entryScores,
+            selfRow = own,
+            ghostNames = ghosts.map { it.name },
+            ghostScores = ghosts.map { ghost -> ghost.timeMs?.let { linkedInScore(it, ghost.hintFree) } },
+            own = view.ownScore,
+        )
+        val scores = ghosts.filterIndexed { index, _ -> wins.ghostKept[index] }
+            .mapNotNull { ghost -> ghost.timeMs?.let { linkedInScore(it, ghost.hintFree) } }
+        // Nothing from LinkedIn touches the board: the row is exactly the PuzzleBox rank alone.
+        if (scores.isEmpty() && wins.rowScores == entryScores) return null
+        val mine = wins.rowScores[own]
+        val ahead = wins.rowScores.count { order.compare(it, mine) < 0 } + scores.count { order.compare(it, mine) < 0 }
         return ResultRank.WithConnections(position = ahead + 1, count = entries.size + scores.size)
     }
 
