@@ -114,7 +114,7 @@ internal class RevealViewModel(
 
     private fun open(code: ShareCode, plan: RevealPlan, view: MatchView, replay: Int): Race {
         val start = RevealStart.of(reducedMotion, view.local?.revealSeenAt)
-        if (start.markSeen) viewModelScope.launch { recordSeen(code) }
+        if (start.markSeen) viewModelScope.launch { recordSeen(code, view.outcome.myWins, view.outcome.theirWins) }
         return Race(plan, start, replay)
     }
 }

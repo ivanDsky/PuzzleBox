@@ -38,8 +38,14 @@ class FakeMatchLocalRepository(private val clock: () -> Instant = Instant::now) 
         }
     }
 
-    override suspend fun markRevealSeen(code: ShareCode, at: Instant) {
-        edit(code) { if (it.revealSeenAt == null) it.copy(revealSeenAt = at.truncatedTo(ChronoUnit.MILLIS)) else it }
+    override suspend fun markRevealSeen(code: ShareCode, at: Instant, myScore: Int, theirScore: Int) {
+        edit(code) {
+            if (it.revealSeenAt == null) {
+                it.copy(revealSeenAt = at.truncatedTo(ChronoUnit.MILLIS), myScore = myScore, theirScore = theirScore)
+            } else {
+                it
+            }
+        }
     }
 
     override suspend fun dismiss(code: ShareCode) {

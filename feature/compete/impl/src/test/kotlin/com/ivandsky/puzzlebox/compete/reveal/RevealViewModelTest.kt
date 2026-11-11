@@ -29,6 +29,7 @@ import java.util.Locale
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -77,9 +78,9 @@ class RevealViewModelTest {
     private val local = FakeMatchLocalRepository()
     private var marks = 0
     private val counted = object : MatchLocalRepository by local {
-        override suspend fun markRevealSeen(code: ShareCode, at: Instant) {
+        override suspend fun markRevealSeen(code: ShareCode, at: Instant, myScore: Int, theirScore: Int) {
             marks++
-            local.markRevealSeen(code, at)
+            local.markRevealSeen(code, at, myScore, theirScore)
         }
     }
 
@@ -158,6 +159,7 @@ class RevealViewModelTest {
 
     @Test
     fun anEmptyFirstRunBecomesTheRaceOnceTheResultsArrive() = runTest {
+        local.remember(code, LocalRole.Participant, "Bob")
         val vm = started(viewModel())
         matches.value = loaded(revealed = emptySet())
         assertEquals("nothing settled yet", RevealUiState.Unsettled, vm.state.value)
@@ -169,6 +171,9 @@ class RevealViewModelTest {
         assertEquals("the race holds both puzzles", 2, now.race.cards.size)
         assertFalse("the race plays from the start", now.start.startAtEnd)
         assertEquals("the reveal that ran is recorded as seen", 1, marks)
+        val stored = local.observeAll().first().single()
+        assertEquals("the stamp carries my score", 2, stored.myScore)
+        assertEquals("the stamp carries their score", 0, stored.theirScore)
     }
 
     @Test

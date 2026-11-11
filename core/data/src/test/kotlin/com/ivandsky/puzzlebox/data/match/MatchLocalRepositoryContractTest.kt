@@ -98,17 +98,21 @@ class MatchLocalRepositoryContractTest(private val adapter: String) {
     }
 
     @Test
-    fun `markRevealSeen sets the time once`() = runTest {
+    fun `markRevealSeen sets the time and the scores once`() = runTest {
         repository.remember(A, LocalRole.Participant, null)
-        repository.markRevealSeen(A, Instant.ofEpochMilli(5_000L))
-        repository.markRevealSeen(A, Instant.ofEpochMilli(7_000L))
+        assertNull(only().myScore)
+        assertNull(only().theirScore)
+        repository.markRevealSeen(A, Instant.ofEpochMilli(5_000L), 2, 1)
+        repository.markRevealSeen(A, Instant.ofEpochMilli(7_000L), 0, 3)
 
         assertEquals(Instant.ofEpochMilli(5_000L), only().revealSeenAt)
+        assertEquals(2, only().myScore)
+        assertEquals(1, only().theirScore)
     }
 
     @Test
     fun `markRevealSeen is a no-op for an unknown code`() = runTest {
-        repository.markRevealSeen(A, Instant.ofEpochMilli(5_000L))
+        repository.markRevealSeen(A, Instant.ofEpochMilli(5_000L), 2, 1)
 
         assertTrue(repository.observeAll().first().isEmpty())
     }

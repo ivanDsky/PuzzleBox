@@ -114,7 +114,7 @@ class DuelUserCheckE2ETest {
         assertFalse("the countdown pill is gone", shows(TIME_LEFT))
         assertFalse("the hidden-score pill is gone", textShown(HIDDEN_SCORE))
         assertTrue("the footer reads Both finished", textShown("Both finished"))
-        assertTrue("the footer offers the reveal", textShown("See the reveal"))
+        assertTrue("the footer offers the reveal", textShown("See results"))
     }
 
     /** Runs [block] on the Play tab, signed in as me, with today's Zip in place and the result poster running. */

@@ -603,8 +603,8 @@ class PuzzleBoxDatabaseMigrationTest {
     }
 
     @Test
-    fun `fresh v9 database is created by the normal builder path`() {
-        val dbName = "puzzlebox-fresh-v9.db"
+    fun `fresh v10 database is created by the normal builder path`() {
+        val dbName = "puzzlebox-fresh-v10.db"
         val context = RuntimeEnvironment.getApplication()
         context.deleteDatabase(dbName)
         val database = Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, dbName)
@@ -612,7 +612,7 @@ class PuzzleBoxDatabaseMigrationTest {
             .build()
         try {
             val db = database.openHelper.writableDatabase
-            assertEquals(9, db.version)
+            assertEquals(10, db.version)
 
             // source is omitted: the column default ('app') fills it.
             db.execSQL(
@@ -639,5 +639,58 @@ class PuzzleBoxDatabaseMigrationTest {
             database.close()
             context.deleteDatabase(dbName)
         }
+    }
+
+    @Test
+    fun `migrate 9 to 10 keeps matches_local rows and adds empty score columns`() {
+        val dbName = "puzzlebox-migration-test.db"
+        val v9 = helper.createDatabase(dbName, 9)
+        v9.execSQL(
+            "INSERT INTO matches_local (code, role, opponentName, openedAt, revealSeenAt, dismissed) " +
+                "VALUES ('K7Q2MX', 'Participant', 'Sam', 9000, 9500, 0)",
+        )
+        v9.execSQL(
+            "INSERT INTO matches_local (code, role, opponentName, openedAt, revealSeenAt, dismissed) " +
+                "VALUES ('QQ77AA', 'Invite', NULL, 8000, NULL, 1)",
+        )
+        v9.close()
+
+        // Validates against the committed 10.json.
+        val db = helper.runMigrationsAndValidate(dbName, 10, true, Migrations.MIGRATION_9_10)
+
+        db.query(
+            "SELECT code, role, opponentName, openedAt, revealSeenAt, dismissed, revealMyScore, revealTheirScore " +
+                "FROM matches_local ORDER BY code",
+        ).use { cursor ->
+            assertEquals(2, cursor.count)
+            // The seen duel keeps its stamp and has no scores: the list shows it as "Finished".
+            assertTrue(cursor.moveToFirst())
+            assertEquals("K7Q2MX", cursor.getString(0))
+            assertEquals("Participant", cursor.getString(1))
+            assertEquals("Sam", cursor.getString(2))
+            assertEquals(9000L, cursor.getLong(3))
+            assertEquals(9500L, cursor.getLong(4))
+            assertEquals(0, cursor.getInt(5))
+            assertTrue(cursor.isNull(6))
+            assertTrue(cursor.isNull(7))
+            // The dismissed invite is untouched.
+            assertTrue(cursor.moveToNext())
+            assertEquals("QQ77AA", cursor.getString(0))
+            assertEquals("Invite", cursor.getString(1))
+            assertTrue(cursor.isNull(2))
+            assertEquals(8000L, cursor.getLong(3))
+            assertTrue(cursor.isNull(4))
+            assertEquals(1, cursor.getInt(5))
+            assertTrue(cursor.isNull(6))
+            assertTrue(cursor.isNull(7))
+        }
+        // The new columns take values.
+        db.execSQL("UPDATE matches_local SET revealMyScore = 2, revealTheirScore = 1 WHERE code = 'K7Q2MX'")
+        db.query("SELECT revealMyScore, revealTheirScore FROM matches_local WHERE code = 'K7Q2MX'").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(2, cursor.getInt(0))
+            assertEquals(1, cursor.getInt(1))
+        }
+        db.close()
     }
 }

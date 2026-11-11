@@ -181,14 +181,15 @@ class DuelFlowE2ETest {
         advanceUntilShown(SUMMARY, never = STAGE)
         rule.mainClock.autoAdvance = true
 
-        // The seen duel needs nothing more: no row, no count, no dot, even after the app restarts.
+        // The seen duel needs nothing more: a finished row with its score, no count, no dot, even after the app restarts.
         tap(REVEAL_BACK)
         tap(DUEL_BACK)
         awaitTag(DUELS_LIST)
-        assertTrue("the seen duel left the list", duels().rows.none { it.code == code })
+        assertFinishedWithScore("the seen duel is a finished row", code)
         assertFalse("the Duels pill counts nothing", shows(DUELS_COUNT))
         relaunch()
-        assertTrue("the seen duel stays off the list after a restart", duels().rows.none { it.code == code })
+        assertFinishedWithScore("the seen duel stays a finished row after a restart", code)
+        assertEquals("the finished row needs nothing", 0, duels().needYou)
         tapTab(HomeKey)
         assertFalse("Play carries no dot", shows(PLAY_BADGE))
     }
@@ -251,6 +252,13 @@ class DuelFlowE2ETest {
         } finally {
             graph.matches.signedInUid = ME
         }
+    }
+
+    private fun ShellRobot.assertFinishedWithScore(message: String, code: ShareCode) {
+        val kind = row(code).kind
+        assertTrue("$message, not $kind", kind is DuelRowKind.Finished)
+        assertNotNull("$message with my score", (kind as DuelRowKind.Finished).myScore)
+        assertNotNull("$message with their score", kind.theirScore)
     }
 
     private fun ShellRobot.row(code: ShareCode) = duels().rows.single { it.code == code }

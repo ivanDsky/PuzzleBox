@@ -35,7 +35,7 @@ import org.koin.androidx.compose.koinViewModel
  * The body under the Games screen's Duels pill: the challenge card, then my duels, then a one-line note when
  * there are none. It scrolls as one list on [listState], which the Games host holds so it can send the list to its
  * top; the host owns the side inset. [onOpenDuel] opens the duel screen and [onOpenReveal] the reveal of a duel
- * whose reveal is ready.
+ * whose reveal is ready or already seen.
  */
 @Composable
 fun DuelsTab(
@@ -111,7 +111,7 @@ internal fun DuelsTabContent(
                         onClick = open,
                     )
                     DuelRowKind.Unclaimed -> UnclaimedRow(row, inviter, onClick = open)
-                    DuelRowKind.RevealReady ->
+                    DuelRowKind.RevealReady, is DuelRowKind.Finished ->
                         DuelCard(row, now, onClick = { onOpenReveal(DuelRevealKey(row.code.value)) })
                     DuelRowKind.YourMove, DuelRowKind.Waiting -> DuelCard(row, now, onClick = open)
                 }

@@ -5,8 +5,8 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 
 /**
- * One row of the Duels list. [legsDone] counts the puzzles I have taken (an outbox row each); no score or verdict
- * is ever here. [opponent] is null while nobody has claimed the seat.
+ * One row of the Duels list. [legsDone] counts the puzzles I have taken (an outbox row each); a score appears only
+ * in a [DuelRowKind.Finished] kind, from what this device revealed. [opponent] is null while nobody has claimed the seat.
  */
 data class DuelRow(
     val code: ShareCode,
