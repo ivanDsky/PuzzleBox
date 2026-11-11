@@ -26,6 +26,7 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.itemKey
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.EmptyState
+import com.ivandsky.puzzlebox.designsystem.LargeTopBar
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -67,13 +68,13 @@ internal fun ListPane(
         contentPadding = PaddingValues(bottom = Spacing.xl),
     ) {
         item(key = "top") {
-            CompactTopBar(
-                title = "History",
-                // A tab root has nothing to go back to: no arrow.
-                navigationIcon = if (onBack == null) {
-                    null
-                } else {
-                    {
+            if (onBack == null) {
+                // The tab root (NavV2 only): Create's and Today's large editorial header.
+                LargeTopBar(title = "History")
+            } else {
+                CompactTopBar(
+                    title = "History",
+                    navigationIcon = {
                         IconButton(onClick = onBack, modifier = Modifier.testTag("history.back")) {
                             Icon(
                                 imageVector = PuzzleIcons.Back,
@@ -81,9 +82,9 @@ internal fun ListPane(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
-                    }
-                },
-            )
+                    },
+                )
+            }
         }
         if (empty) {
             emptyItem(cardColor)
