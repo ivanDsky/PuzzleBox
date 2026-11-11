@@ -3,9 +3,13 @@ package com.ivandsky.puzzlebox.gameui
 import com.ivandsky.puzzlebox.domain.ResultDay
 import com.ivandsky.puzzlebox.domain.ResultInsights
 import com.ivandsky.puzzlebox.domain.ResultRank
+import com.ivandsky.puzzlebox.domain.SpreadScope
+import com.ivandsky.puzzlebox.domain.TimeSpread
+import com.ivandsky.puzzlebox.domain.WeekdaySpread
 import com.ivandsky.puzzlebox.domain.timeSpread
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.util.Locale
 import org.junit.Assert.assertEquals
@@ -142,38 +146,191 @@ class ResultHeroCopyTest {
 
     // --- spread ----------------------------------------------------------------------------
 
+    private val all = SpreadScope.All
+    private val weekday = SpreadScope.Weekday
+
+    private fun spreadOf(earlier: List<BestScore>, current: BestScore = BestScore(100_000L, 0), order: RankOrder = time) =
+        timeSpread(earlier, current, order)
+
+    private fun verdict(
+        scope: SpreadScope,
+        spread: TimeSpread,
+        order: RankOrder = time,
+        replay: Boolean = false,
+    ) = heroSpreadVerdict(scope, order, spread, "Zip", "Monday", replay)
+
     @Test
-    fun `the spread heading and first-time line`() {
-        assertEquals("Your times · Zip", heroSpreadHeading("Zip"))
-        assertEquals("This is your first time — solve again to see how you spread out.", HERO_FIRST_TIME_LINE)
+    fun `the heading names the count, the scope word as the chip and the game`() {
+        assertEquals(HeroHeading("Your 12 ", "any day", " Zip times"), heroSpreadHeading(all, 12, "Zip", "Monday", switchable = true))
+        assertEquals(HeroHeading("Your 5 ", "Monday", " Zip times"), heroSpreadHeading(weekday, 5, "Zip", "Monday", switchable = true))
+        assertEquals("Your 5 Monday Zip times", heroSpreadHeading(weekday, 5, "Zip", "Monday", switchable = true).text)
     }
 
     @Test
-    fun `a faster solve says how many it beat and the average, the number in bold`() {
-        val caption = heroSpreadCaption(time, best = false, beaten = 4, solves = 9, averageMs = 95_000L)
-
-        assertEquals("Faster than 4 of your 9 solves. Average 1:35.", caption.text)
-        assertEquals("4", caption.text.substring(caption.bold!!))
+    fun `scopes holding the same solves have no chip and no switch hint`() {
+        assertEquals(HeroHeading("Your first Zip time", null, ""), heroSpreadHeading(all, 1, "Zip", "Monday", switchable = false))
+        assertEquals("Your 4 Zip times", heroSpreadHeading(all, 4, "Zip", "Monday", switchable = false).text)
+        assertFalse(heroSpreadCaption(all, first = true, weekday = "Monday", switchable = false).contains("Tap the highlighted"))
+        assertFalse(heroSpreadCaption(all, first = false, weekday = "Monday", switchable = false).contains("switch"))
     }
 
     @Test
-    fun `the fastest says so, in bold`() {
-        val caption = heroSpreadCaption(time, best = true, beaten = 8, solves = 9, averageMs = 95_000L)
+    fun `the chip shows only when the scopes differ in solve count`() {
+        val same = model(facts(insights = insights(earlier = listOf(BestScore(90_000L, 0)), weekdayEarlier = listOf(BestScore(90_000L, 0)))))
+        val differ = model(facts(insights = insights(earlier = listOf(BestScore(90_000L, 0), BestScore(95_000L, 0)), weekdayEarlier = listOf(BestScore(90_000L, 0)))))
 
-        assertEquals("Your fastest ever of your 9 solves.", caption.text)
-        assertEquals("Your fastest ever", caption.text.substring(caption.bold!!))
+        assertFalse(same.spread!!.switchable)
+        assertNull(same.spread!!.views.getValue(all).heading.chip)
+        assertTrue(differ.spread!!.switchable)
+        assertEquals("any day", differ.spread!!.views.getValue(all).heading.chip)
+        assertEquals("Saturday", differ.spread!!.views.getValue(weekday).heading.chip)
     }
 
     @Test
-    fun `a hints-first game says best yet and better than`() {
+    fun `a first solve in scope is Your first time`() {
+        assertEquals("Your first Monday Zip time", heroSpreadHeading(weekday, 1, "Zip", "Monday", switchable = true).text)
+        assertEquals("Your first any day Zip time", heroSpreadHeading(all, 1, "Zip", "Monday", switchable = true).text)
+    }
+
+    @Test
+    fun `the caption explains what a bar counts, per scope, and how to switch`() {
         assertEquals(
-            "Your best yet of your 9 solves.",
-            heroSpreadCaption(hints, best = true, beaten = 8, solves = 9, averageMs = 95_000L).text,
+            "Each bar counts how many of your solves landed in that time range, across every day of the week. " +
+                "Taller means more solves. Tap the highlighted word to switch.",
+            heroSpreadCaption(all, first = false, weekday = "Monday", switchable = true),
         )
         assertEquals(
-            "Better than 4 of your 9 solves. Average 1:35.",
-            heroSpreadCaption(hints, best = false, beaten = 4, solves = 9, averageMs = 95_000L).text,
+            "The one bar is today's solve. Each bar counts solves in a time range — your own solves only, " +
+                "no other players. Tap the highlighted word to switch.",
+            heroSpreadCaption(all, first = true, weekday = "Monday", switchable = true),
         )
+        assertEquals(
+            "Same chart, Mondays only. Daily puzzles get easier or harder through the week, so a Monday is " +
+                "compared with your other Mondays. Tap the highlighted word to switch.",
+            heroSpreadCaption(weekday, first = false, weekday = "Monday", switchable = true),
+        )
+        assertEquals(
+            "The one bar is today's Monday. Play more Mondays and the bars show how your Monday times spread out. " +
+                "Tap the highlighted word to switch.",
+            heroSpreadCaption(weekday, first = true, weekday = "Monday", switchable = true),
+        )
+    }
+
+    @Test
+    fun `a first solve in all days invites another and has nothing bold`() {
+        val line = verdict(all, spreadOf(emptyList()))
+
+        assertEquals("Your first Zip time — solve again and the bars show how your times spread out.", line.text)
+        assertNull(line.bold)
+    }
+
+    @Test
+    fun `a first solve on a weekday says nothing to compare yet, the first in bold`() {
+        val line = verdict(weekday, spreadOf(emptyList()))
+
+        assertEquals("First Monday — no earlier Monday Zip to compare with yet.", line.text)
+        assertEquals("First Monday", line.text.substring(line.bold!!))
+    }
+
+    @Test
+    fun `the fastest says so with the average of the earlier solves`() {
+        val spread = spreadOf(listOf(BestScore(112_000L, 0), BestScore(90_000L, 0)), BestScore(80_000L, 0))
+
+        val line = verdict(all, spread)
+
+        assertEquals("Fastest ever of your 3 Zip. Average 1:41.", line.text)
+        assertEquals("Fastest ever", line.text.substring(line.bold!!))
+        assertEquals("Fastest Monday of your 3 Monday Zip. Monday average 1:41.", verdict(weekday, spread).text)
+    }
+
+    @Test
+    fun `a middle solve is its rank, in bold, of the solves in scope`() {
+        val spread = spreadOf(listOf(BestScore(112_000L, 0), BestScore(90_000L, 0), BestScore(121_000L, 0)))
+
+        val line = verdict(all, spread)
+
+        assertEquals("2nd fastest of your 4 Zip. Average 1:47.", line.text)
+        assertEquals("2nd fastest", line.text.substring(line.bold!!))
+        assertEquals("2nd fastest of your 4 Monday Zip. Monday average 1:47.", verdict(weekday, spread).text)
+    }
+
+    @Test
+    fun `ordinals take their suffix`() {
+        val earlier = List(10) { BestScore(10_000L * (it + 1), 0) }
+
+        assertEquals("11th fastest of your 11 Zip. Average 0:55.", verdict(all, spreadOf(earlier, BestScore(200_000L, 0))).text)
+        assertEquals("3rd fastest", verdict(all, spreadOf(earlier, BestScore(25_000L, 0))).text.substringBefore(" of"))
+    }
+
+    @Test
+    fun `a replay appends that its bar is dashed and not saved`() {
+        val spread = spreadOf(listOf(BestScore(112_000L, 0), BestScore(90_000L, 0)))
+
+        assertEquals("2nd fastest of your 3 Zip. Average 1:41. Dashed = this replay, not saved.", verdict(all, spread, replay = true).text)
+        assertEquals("Your first Zip time — solve again and the bars show how your times spread out. Dashed = this replay, not saved.",
+            verdict(all, spreadOf(emptyList()), replay = true).text)
+    }
+
+    @Test
+    fun `a hints-first game says best and ranks by hints`() {
+        val spread = spreadOf(listOf(BestScore(100_000L, 0), BestScore(90_000L, 3)), BestScore(100_000L, 2), hints)
+        val best = spreadOf(listOf(BestScore(100_000L, 2)), BestScore(100_000L, 0), hints)
+
+        assertEquals("2nd best of your 3 Zip. Average 1:35.", verdict(all, spread, hints).text)
+        assertEquals("Best ever of your 2 Zip. Average 1:40.", verdict(all, best, hints).text)
+        assertEquals("Best Monday of your 2 Monday Zip. Monday average 1:40.", verdict(weekday, best, hints).text)
+    }
+
+    @Test
+    fun `a hints-first game with several solves says rank counts hints first`() {
+        val several = spreadOf(listOf(BestScore(100_000L, 0)), order = hints)
+
+        assertEquals(
+            "Rank counts hints first, then time — the bars show time only.",
+            heroRankNote(hints, several)!!.text,
+        )
+    }
+
+    @Test
+    fun `no rank note for a first solve or a time-first game`() {
+        assertNull(heroRankNote(hints, spreadOf(emptyList(), order = hints)))
+        assertNull(heroRankNote(time, spreadOf(listOf(BestScore(100_000L, 0)))))
+    }
+
+    @Test
+    fun `weekday and all days compare their averages once both have two earlier solves`() {
+        val everyday = spreadOf(listOf(BestScore(100_000L, 0), BestScore(100_000L, 0), BestScore(140_000L, 0)))
+        val mondays = spreadOf(listOf(BestScore(80_000L, 0), BestScore(100_000L, 0)))
+
+        assertEquals(
+            "Mondays run faster for you — average 1:30 vs 1:53 across all days.",
+            heroWeekdayNote(everyday, mondays, "Monday", fastest = false)!!.text,
+        )
+        assertEquals(
+            "Mondays run slower for you — average 1:53 vs 1:30 across all days.",
+            heroWeekdayNote(mondays, everyday, "Monday", fastest = false)!!.text,
+        )
+    }
+
+    @Test
+    fun `the fastest weekday is named in bold`() {
+        val everyday = spreadOf(listOf(BestScore(100_000L, 0), BestScore(100_000L, 0), BestScore(140_000L, 0)))
+        val mondays = spreadOf(listOf(BestScore(80_000L, 0), BestScore(100_000L, 0)))
+
+        val line = heroWeekdayNote(everyday, mondays, "Monday", fastest = true)!!
+
+        assertEquals("Mondays are your fastest day — average 1:30 vs 1:53 across all days.", line.text)
+        assertEquals("Mondays are your fastest day", line.text.substring(line.bold!!))
+    }
+
+    @Test
+    fun `no weekday line until both scopes have two earlier solves or when the averages match`() {
+        val everyday = spreadOf(listOf(BestScore(100_000L, 0), BestScore(100_000L, 0), BestScore(140_000L, 0)))
+        val oneMonday = spreadOf(listOf(BestScore(80_000L, 0)))
+        val level = spreadOf(listOf(BestScore(100_000L, 0), BestScore(100_000L, 0)))
+
+        assertNull(heroWeekdayNote(everyday, oneMonday, "Monday", fastest = false))
+        assertNull(heroWeekdayNote(level, level, "Monday", fastest = false))
     }
 
     // --- rank, actions ---------------------------------------------------------------------
@@ -193,11 +350,13 @@ class ResultHeroCopyTest {
         earlier: List<BestScore> = listOf(BestScore(112_000L, 0), BestScore(90_000L, 0)),
         current: BestScore = BestScore(100_000L, 0),
         order: RankOrder = time,
+        weekdayEarlier: List<BestScore> = emptyList(),
         streak: Int = 3,
     ) = ResultInsights(
         streak = streak,
         week = (6 downTo 0).map { ResultDay(saturday.minusDays(it.toLong()), solved = it < 3, today = it == 0) },
         spread = timeSpread(earlier, current, order),
+        weekday = WeekdaySpread(DayOfWeek.SATURDAY, timeSpread(weekdayEarlier, current, order), fastest = false),
     )
 
     private fun facts(
@@ -244,8 +403,19 @@ class ResultHeroCopyTest {
         assertEquals("3 day streak", model.streak!!.title)
         assertEquals(listOf(false, false, false, false, true, true, true), model.streak!!.week.map { it.solved })
         assertTrue(model.streak!!.week.last().today)
-        assertEquals("Your times · Zip", model.spread!!.heading)
-        assertEquals("Faster than 1 of your 3 solves. Average 1:41.", model.spread!!.caption!!.text)
+        val spread = model.spread!!
+        assertEquals(SpreadScope.All, spread.defaultScope)
+        assertFalse(spread.replay)
+        val view = spread.views.getValue(all)
+        assertEquals("Your 3 any day Zip times", view.heading.text)
+        assertEquals("2nd fastest of your 3 Zip. Average 1:41.", view.verdict.text)
+        assertEquals(listOf("1:30–1:40", "1:40–1:50", "1:50–2:00"), view.bars.map { it.range })
+        assertEquals(listOf("1:30", "1:40", "1:50", "2:00"), view.edges)
+        assertEquals(1, view.youBin)
+        assertEquals("Your 3 any day Zip times. 3 time ranges, counts per range. Today 1:40.", view.description)
+        val day = spread.views.getValue(weekday)
+        assertEquals("Your first Saturday Zip time", day.heading.text)
+        assertEquals(1, day.bars.size)
         assertEquals(HeroRank.Place("Top 7%", "of players today"), model.rank)
         assertFalse(model.celebrate)
         assertFalse(model.burst)
@@ -259,7 +429,7 @@ class ResultHeroCopyTest {
     }
 
     @Test
-    fun `a first solve has the pill, the ghost spread, day one and no average chip`() {
+    fun `a first solve has the pill, one bar, day one and no average chip`() {
         val first = insights(earlier = emptyList(), streak = 1)
 
         val model = model(facts(verdict = RecordVerdict.FirstSolve, previous = null, insights = first))
@@ -268,11 +438,14 @@ class ResultHeroCopyTest {
         assertEquals("First solve — this is your time to beat", model.bestLine)
         assertEquals(listOf("Hints", "Today"), model.chips.map { it.label })
         assertEquals("Day one. Come back tomorrow to keep it alive.", model.streak!!.sub)
-        assertTrue(model.spread!!.bins.isEmpty())
-        assertEquals("faster", model.spread!!.axisLow)
-        assertEquals("slower", model.spread!!.axisHigh)
-        assertEquals(HERO_FIRST_TIME_LINE, model.spread!!.firstTimeLine)
-        assertNull(model.spread!!.caption)
+        val view = model.spread!!.views.getValue(all)
+        assertEquals(1, view.bars.size)
+        assertEquals("Your first Zip time", view.heading.text)
+        assertNull(view.heading.chip)
+        assertFalse(model.spread!!.switchable)
+        assertEquals(all, model.spread!!.defaultScope)
+        assertFalse(view.caption.contains("Tap the highlighted word"))
+        assertEquals(1, view.bars.single().count)
         assertTrue(model.celebrate)
         assertFalse(model.burst)
     }
@@ -289,8 +462,7 @@ class ResultHeroCopyTest {
         assertTrue(model.bestImproved)
         assertTrue(model.celebrate)
         assertTrue(model.burst)
-        assertEquals("Your fastest ever of your 3 solves.", model.spread!!.caption!!.text)
-        assertEquals("1:17", model.spread!!.axisLow)
+        assertEquals("Fastest ever of your 3 Zip. Average 1:41.", model.spread!!.views.getValue(all).verdict.text)
     }
 
     @Test
@@ -327,7 +499,9 @@ class ResultHeroCopyTest {
         val model = model(strands)
 
         assertEquals("Your best is Perfect", model.bestLine)
-        assertEquals("Better than 1 of your 3 solves. Average 1:35.", model.spread!!.caption!!.text)
+        val view = model.spread!!.views.getValue(all)
+        assertEquals("2nd best of your 3 Strands. Average 1:35.", view.verdict.text)
+        assertEquals(listOf("Rank counts hints first, then time — the bars show time only."), view.notes.map { it.text })
     }
 
     @Test
@@ -417,6 +591,6 @@ class ResultHeroCopyTest {
         assertEquals("365 day streak", model.streak!!.title)
         assertEquals("Solve any puzzle tomorrow to make it 366.", model.streak!!.sub)
         assertEquals("A very long game name · #918", model.title)
-        assertEquals("Your times · A very long game name", model.spread!!.heading)
+        assertEquals("Your 3 any day A very long game name times", model.spread!!.views.getValue(all).heading.text)
     }
 }

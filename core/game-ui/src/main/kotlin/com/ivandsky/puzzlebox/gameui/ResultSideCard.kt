@@ -42,6 +42,7 @@ import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberCountUp
 import com.ivandsky.puzzlebox.designsystem.resultBeat
 import com.ivandsky.puzzlebox.designsystem.tabular
+import com.ivandsky.puzzlebox.domain.SpreadScope
 
 internal const val SIGN_IN_LABEL = "Sign in"
 internal const val WEEK_SOLVED = "Solved"
@@ -62,6 +63,7 @@ private const val SOLVED_ALPHA = 0.5f
  * else; a block whose model part is null is left out, and a model with none of them draws
  * no card at all (a practice puzzle). [onSignIn] is the rank row's Sign in button for a
  * signed-out player; the route supplies the real action, and without one the row has no button.
+ * The chart opens on [initialScope], else on the model's default scope.
  *
  * The streak, week and heading come in on the blocks beat (the streak counts up as it does);
  * the chart's bars grow on their own stagger, and the rank row rises in last.
@@ -73,16 +75,17 @@ internal fun ResultSideCard(
     onSignIn: (() -> Unit)?,
     modifier: Modifier = Modifier,
     wide: Boolean = false,
+    initialScope: SpreadScope? = null,
 ) {
     val streak = model.streak
     val spread = model.spread
     val rank = model.rank
     if (streak == null && spread == null && rank == null) return
-    val accent = brand.accent.colors().accent
+    val palette = brand.accent.colors()
     OutlinedCard(modifier = modifier.fillMaxWidth(), shape = MaterialTheme.shapes.large) {
         Column(Modifier.padding(if (wide) Spacing.xl else Spacing.lg)) {
             if (streak != null) {
-                StreakBlock(streak, accent)
+                StreakBlock(streak, palette.accent)
                 if (spread != null) {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = Spacing.lg),
@@ -91,15 +94,7 @@ internal fun ResultSideCard(
                 }
             }
             if (spread != null) {
-                Text(
-                    text = spread.heading,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.resultBeat(ResultBeats.Blocks, 2).testTag("result.side.heading"),
-                )
-                TimeSpreadChart(spread, accent, Modifier.padding(top = Spacing.sm))
+                SpreadBlock(spread, palette, initialScope)
             }
             if (rank != null) {
                 RankRow(rank, onSignIn, Modifier.padding(top = Spacing.lg).resultBeat(ResultBeats.Blocks, 3))
