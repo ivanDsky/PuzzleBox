@@ -13,8 +13,6 @@ dependencies {
     implementation(projects.feature.home.api)
     // Home's affordances push other features' keys (api edges only, never their impls).
     implementation(projects.feature.play.api)
-    implementation(projects.feature.history.api)
-    implementation(projects.feature.profile.api)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
     implementation(libs.androidx.lifecycle.runtime.compose)

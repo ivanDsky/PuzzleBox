@@ -53,14 +53,13 @@ private val EntranceSlide = 24.dp
 
 /**
  * The tablet detail pane with no day selected (handoff 05-b "Streak & stats pane"): the
- * streak eyebrow and big number, the week strip enlarged, four stat tiles and each
- * game's best. Everything comes from [state]; nothing new is loaded.
+ * streak eyebrow and big number, the week strip enlarged and four stat tiles.
+ * Everything comes from [state]; nothing new is loaded.
  */
 @Composable
 internal fun HomeStreakPane(
     state: HomeUiState,
     modifier: Modifier = Modifier,
-    showBests: Boolean = true,
 ) {
     val scheme = MaterialTheme.colorScheme
     // The pane sits one step off the app background: lifted in dark, paper-white in light.
@@ -94,12 +93,6 @@ internal fun HomeStreakPane(
             modifier = Modifier.testTag("home.pane_week"),
         )
         StatTiles(state.stats)
-        if (showBests) {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Eyebrow("YOUR BESTS")
-                HomeBestsList(rows = state.today)
-            }
-        }
     }
 }
 

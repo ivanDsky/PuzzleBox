@@ -29,7 +29,6 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 internal fun DetailPane(
     selected: HistoryDay?,
     state: HomeUiState,
-    hideOwnedElsewhere: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val risePx = with(LocalDensity.current) { MotionTokens.MixTabRise.roundToPx() }
@@ -53,7 +52,6 @@ internal fun DetailPane(
             HomeStreakPane(
                 state = state,
                 modifier = Modifier.fillMaxSize().padding(Spacing.sm),
-                showBests = !hideOwnedElsewhere,
             )
         } else {
             // Opaque like the streak pane, so the pane beneath never shows through as it rises.

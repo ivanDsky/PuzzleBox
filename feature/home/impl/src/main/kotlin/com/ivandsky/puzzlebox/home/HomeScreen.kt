@@ -24,28 +24,25 @@ internal data class HistoryDay(val isoDay: String, val headline: String, val gam
 
 /**
  * The real Home screen (A10–A12, A15): Today tiles and the one CTA, the streak card, the
- * recent days, the account card. Single-pane on compact widths; list-detail on expanded,
+ * recent days. Single-pane on compact widths; list-detail on expanded,
  * where the streak moves out of the list into the streak & stats pane.
  * Destinations are hoisted to the app shell (ticket 17): [onOpenGame] opens a game (a
- * tile, or the CTA's [HomeUiState.playTarget]; the play restores its save), plus the full
- * history and the account surface. Game titles render from [state]'s rows, never from a
+ * tile, or the CTA's [HomeUiState.playTarget]; the play restores its save), and
+ * [onOpenHistory] opens the full history. Game titles render from [state]'s rows, never from a
  * hardcoded id; the header's date is the puzzle roll-over day (A9), never the phone's.
  * A non-null [HomeUiState.updateUrl] shows the Update available pill in the header (spec A7);
- * its tap calls [onOpenUpdate] with that URL. [hideOwnedElsewhere] leaves out the account card
- * and the bests list, which Profile and the game page own; false is the full screen.
+ * its tap calls [onOpenUpdate] with that URL. [summaries] adds the rank and duels rows.
  */
 @Composable
 internal fun HomeScreen(
     layout: HomeLayout,
     state: HomeUiState,
     onOpenGame: (GameId) -> Unit,
-    onOpenProfile: () -> Unit,
+    onOpenHistory: () -> Unit,
+    summaries: HomeSummaries,
+    title: String,
     modifier: Modifier = Modifier,
-    onOpenHistory: () -> Unit = {},
     onOpenUpdate: (String) -> Unit = {},
-    hideOwnedElsewhere: Boolean = false,
-    summaries: HomeSummaries? = null,
-    title: String = HomeDefaultTitle,
 ) {
     var selectedDay by rememberSaveable { mutableStateOf<String?>(null) }
 
@@ -60,8 +57,6 @@ internal fun HomeScreen(
                     selectable = true,
                     showStreak = false,
                     onOpenGame = onOpenGame,
-                    onOpenProfile = onOpenProfile,
-                    hideOwnedElsewhere = hideOwnedElsewhere,
                     summaries = summaries,
                     title = title,
                     modifier = Modifier
@@ -72,7 +67,6 @@ internal fun HomeScreen(
                 DetailPane(
                     selected = selectedDay?.let { iso -> state.history.firstOrNull { it.isoDay == iso } },
                     state = state,
-                    hideOwnedElsewhere = hideOwnedElsewhere,
                     modifier = Modifier
                         .weight(0.58f)
                         .fillMaxHeight(),
@@ -87,8 +81,6 @@ internal fun HomeScreen(
                 selectable = false,
                 showStreak = true,
                 onOpenGame = onOpenGame,
-                onOpenProfile = onOpenProfile,
-                hideOwnedElsewhere = hideOwnedElsewhere,
                 summaries = summaries,
                 title = title,
                 modifier = Modifier.fillMaxSize(),
