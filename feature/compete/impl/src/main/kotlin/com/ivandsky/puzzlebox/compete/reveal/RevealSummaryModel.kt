@@ -44,6 +44,8 @@ internal data class DuelSummary(
     val tiles: SummaryTiles,
     val rows: List<PuzzleRow>,
     val shareText: String,
+    val myPhotoUrl: String? = null,
+    val theirPhotoUrl: String? = null,
 ) {
     val pill: String get() = pillText(kind, opponent)
     val verdict: String get() = verdictText(kind, opponent, myScore, theirScore)
@@ -148,4 +150,6 @@ internal fun duelSummary(match: Match, plan: RevealPlan, outcome: Outcome, zone:
     shareText = shareText(
         plan.me.name, plan.opponent.name, outcome.myWins, outcome.theirWins, plan.legs.map { it.verdict }, match.code.matchLink,
     ),
+    myPhotoUrl = plan.me.photoUrl,
+    theirPhotoUrl = plan.opponent.photoUrl,
 )

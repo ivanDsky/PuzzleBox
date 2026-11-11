@@ -11,13 +11,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +34,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.disabled
 import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.unit.dp
@@ -143,14 +147,16 @@ private fun Modifier.narrowedToCircle(progress: () -> Float): Modifier = layout 
 
 private val SpinnerSize: Dp = 24.dp
 private val SpinnerStroke: Dp = 2.5.dp
+private val SecondaryIconSize: Dp = 18.dp
 
-/** The quiet counterpart: a tonal pill — the well fill with ink text, no border. */
+/** The quiet counterpart: a tonal pill — the well fill with ink text, no border; an optional [icon] leads the label. */
 @Composable
 fun SecondaryButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    icon: ImageVector? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     FilledTonalButton(
@@ -164,6 +170,10 @@ fun SecondaryButton(
             contentColor = MaterialTheme.colorScheme.onSurface,
         ),
     ) {
+        if (icon != null) {
+            Icon(icon, contentDescription = null, modifier = Modifier.size(SecondaryIconSize))
+            Spacer(Modifier.width(Spacing.sm))
+        }
         Text(text)
     }
 }

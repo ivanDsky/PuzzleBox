@@ -103,14 +103,14 @@ abstract class RevealGoldenScreenshots(private val device: String, private val w
         val machine = RevealMachine(plan.legs, reduced = false).apply { advance(at) }
         val state = machine.state.value
         rule.showGolden(dark) {
-            RevealStage(plan, state, GamePlayRegistry(emptyList()), wide, onSkip = {})
+            RevealStage(plan, state, goldenBrands(), wide, onBack = {}, onSkip = {})
         }
         rule.settleAndCapture(name, device, dark)
     }
 
     private fun summary(name: String, summary: DuelSummary, dark: Boolean) {
         rule.showGolden(dark) {
-            RevealSummary(summary, GamePlayRegistry(emptyList()), wide, onBack = {}, onRematch = {}, onWatchAgain = {})
+            RevealSummary(summary, goldenBrands(), wide, onBack = {}, onRematch = {}, onWatchAgain = {})
         }
         rule.settleAndCapture(name, device, dark)
     }
