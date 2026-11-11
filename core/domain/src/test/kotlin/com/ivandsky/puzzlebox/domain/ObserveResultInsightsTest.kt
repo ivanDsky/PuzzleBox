@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import java.time.Clock
+import java.time.DayOfWeek
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -167,6 +168,97 @@ class ObserveResultInsightsTest {
         assertEquals(3, result.spread.solves)
         assertEquals(1, result.spread.beaten)
         assertEquals(72_500L, result.averageMs)
+    }
+
+    @Test
+    fun `the weekday spread holds only solves of the same weekday`() = runTest {
+        // Today is a Tuesday: 7 and 14 days ago are Tuesdays, 1 and 3 days ago are not.
+        completions.setRecords(
+            listOf(record(alpha, 7, 40_000L), record(alpha, 14, 100_000L), record(alpha, 1, 10_000L), record(alpha, 3, 20_000L)),
+        )
+
+        val result = insights(alpha, 0, now, counted = true).first()!!
+
+        assertEquals(DayOfWeek.TUESDAY, result.weekday.day)
+        assertEquals(3, result.weekday.spread.solves)
+        assertEquals(70_000L, result.weekday.spread.averageEarlierMs)
+        assertEquals(1, result.weekday.spread.beaten)
+        assertEquals(2, result.weekday.spread.rank)
+        // All days still sees every solve.
+        assertEquals(5, result.spread.solves)
+        assertEquals(4, result.spread.rank)
+    }
+
+    @Test
+    fun `the default scope is all days until two earlier solves share the weekday`() = runTest {
+        assertEquals(SpreadScope.All, insights(alpha, 0, now, counted = true).first()!!.defaultScope)
+
+        completions.setRecords(listOf(record(alpha, 7, 40_000L)))
+        val one = insights(alpha, 0, now, counted = true).first()!!
+        assertEquals(2, one.weekday.spread.solves)
+        assertEquals(SpreadScope.All, one.defaultScope)
+
+        completions.setRecords(listOf(record(alpha, 7, 40_000L), record(alpha, 14, 50_000L)))
+        val two = insights(alpha, 0, now, counted = true).first()!!
+        assertEquals(SpreadScope.Weekday, two.defaultScope)
+    }
+
+    @Test
+    fun `a first solve has a one-solve weekday spread`() = runTest {
+        val result = insights(alpha, 0, now, counted = true).first()!!
+
+        assertTrue(result.weekday.spread.isFirstSolve)
+        assertFalse(result.weekday.fastest)
+    }
+
+    @Test
+    fun `a replay of another weekday uses that weekday`() = runTest {
+        // Monday: 1, 8 and 15 days ago.
+        completions.setRecords(
+            listOf(record(alpha, 8, 60_000L), record(alpha, 15, 90_000L), record(alpha, 7, 10_000L), record(alpha, 0, 45_000L)),
+        )
+
+        val result = insights(alpha, 1, now, counted = false).first()!!
+
+        assertEquals(DayOfWeek.MONDAY, result.weekday.day)
+        assertEquals(3, result.weekday.spread.solves)
+        assertEquals(2, result.weekday.spread.beaten)
+    }
+
+    @Test
+    fun `today is the fastest weekday when its earlier average is the lowest among weekdays with two solves`() = runTest {
+        // Tuesdays 40 s, Mondays 80 s.
+        completions.setRecords(
+            listOf(record(alpha, 7, 40_000L), record(alpha, 14, 40_000L), record(alpha, 1, 80_000L), record(alpha, 8, 80_000L)),
+        )
+
+        assertTrue(insights(alpha, 0, now, counted = true).first()!!.weekday.fastest)
+    }
+
+    @Test
+    fun `today is not the fastest weekday when another weekday averages lower`() = runTest {
+        completions.setRecords(
+            listOf(record(alpha, 7, 90_000L), record(alpha, 14, 90_000L), record(alpha, 1, 30_000L), record(alpha, 8, 30_000L)),
+        )
+
+        assertFalse(insights(alpha, 0, now, counted = true).first()!!.weekday.fastest)
+    }
+
+    @Test
+    fun `a weekday with one solve does not compete for fastest`() = runTest {
+        // Tuesdays 40 s and Mondays 80 s, plus a lone, quicker Saturday.
+        completions.setRecords(
+            listOf(record(alpha, 7, 40_000L), record(alpha, 14, 40_000L), record(alpha, 1, 80_000L), record(alpha, 8, 80_000L), record(alpha, 3, 10_000L)),
+        )
+
+        assertTrue(insights(alpha, 0, now, counted = true).first()!!.weekday.fastest)
+    }
+
+    @Test
+    fun `a weekday with one earlier solve is not the fastest`() = runTest {
+        completions.setRecords(listOf(record(alpha, 7, 20_000L), record(alpha, 1, 80_000L), record(alpha, 8, 80_000L)))
+
+        assertFalse(insights(alpha, 0, now, counted = true).first()!!.weekday.fastest)
     }
 
     @Test

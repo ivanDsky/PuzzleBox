@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ResultDay
 import com.ivandsky.puzzlebox.domain.ResultInsights
 import com.ivandsky.puzzlebox.domain.ResultRank
+import com.ivandsky.puzzlebox.domain.WeekdaySpread
 import com.ivandsky.puzzlebox.domain.timeSpread
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -37,16 +38,22 @@ private val StrandsBrand = GameBrand(AccentSlot.Teal, GameGlyphs.Queens)
 private val SampleToday: LocalDate = LocalDate.of(2026, 11, 7)
 private val SampleEarlier = listOf(112_000L, 90_000L, 104_000L, 98_000L, 121_000L).map { BestScore(it, 0) }
 
-/** The insights of one sample solve: a week ending Saturday 7 Nov with the last three days solved. */
+/**
+ * The insights of one sample solve: a week ending Saturday 7 Nov with the last three days solved.
+ * The weekday scope is that Saturday's own [weekdayEarlier] solves (the first of [earlier] by default).
+ */
 internal fun heroSampleInsights(
     current: BestScore,
     earlier: List<BestScore> = SampleEarlier,
     order: RankOrder = RankOrder.TimeThenHints,
     streak: Int = 3,
+    weekdayEarlier: List<BestScore> = earlier.take(1),
+    fastestWeekday: Boolean = false,
 ) = ResultInsights(
     streak = streak,
     week = (6 downTo 0).map { ResultDay(SampleToday.minusDays(it.toLong()), solved = it < streak.coerceAtMost(7), today = it == 0) },
     spread = timeSpread(earlier, current, order),
+    weekday = WeekdaySpread(SampleToday.dayOfWeek, timeSpread(weekdayEarlier, current, order), fastestWeekday),
 )
 
 /** The facts of one sample Results page; every argument is one knob of a preview or a test. */
@@ -66,6 +73,8 @@ internal fun heroSampleFacts(
     doneToday: Int? = 2,
     total: Int? = 3,
     primary: ResultPrimaryAction? = ResultPrimaryAction.Next(GameId("tango"), "Tango"),
+    weekdayEarlier: List<BestScore> = earlier.take(1),
+    fastestWeekday: Boolean = false,
 ) = ResultHeroFacts(
     timeMs = timeMs,
     hintsUsed = hintsUsed,
@@ -79,7 +88,7 @@ internal fun heroSampleFacts(
     dateLine = "Today · Sat 7 Nov",
     doneToday = doneToday,
     total = total,
-    insights = heroSampleInsights(BestScore(timeMs, hintsUsed), earlier, order, streak),
+    insights = heroSampleInsights(BestScore(timeMs, hintsUsed), earlier, order, streak, weekdayEarlier, fastestWeekday),
     rank = rank,
     primary = primary,
 )
@@ -101,10 +110,12 @@ internal fun heroSampleModel(
     doneToday: Int? = 2,
     total: Int? = 3,
     primary: ResultPrimaryAction? = ResultPrimaryAction.Next(GameId("tango"), "Tango"),
+    weekdayEarlier: List<BestScore> = earlier.take(1),
+    fastestWeekday: Boolean = false,
 ): ResultHeroModel = resultHeroModel(
     heroSampleFacts(
         verdict, timeMs, previous, earlier, order, hintsUsed, game, number, practice, replay,
-        streak, rank, doneToday, total, primary,
+        streak, rank, doneToday, total, primary, weekdayEarlier, fastestWeekday,
     ),
     Locale.US,
 )

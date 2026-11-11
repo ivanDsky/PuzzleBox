@@ -1,221 +1,267 @@
 package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.lerp
+import com.ivandsky.puzzlebox.designsystem.GameAccent
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.ResultBeats
-import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.beatDelayMs
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
+import kotlin.math.abs
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 internal const val YOU_LABEL = "You"
+internal const val REPLAY_LABEL = "Replay"
 
-private val ChartHeight = 132.dp
-private val YouLabelRoom = 22.dp
+private val PlotHeight = 110.dp
+private val CountRoom = 16.dp
+private val PillRoom = 22.dp
+private val ChartHeight = PlotHeight + CountRoom + PillRoom
 private val BarGap = 6.dp
 private val BarMinHeight = 6.dp
 private val BarTopRadius = 6.dp
 private val BarBottomRadius = 2.dp
-private val GhostStroke = 1.5.dp
+private val DashStroke = 1.5.dp
 private const val DIM_ALPHA = 0.4f
 private const val GROW_FROM = 0.05f
 private const val GROW_STAGGER_MS = 20
 private const val GROW_STAGGER_CAP = 10
 
-/** The first-solve placeholder: ten dashed bars of a made-up spread; the fifth, in full, is this solve. */
-private val GhostHeights = listOf(0.27f, 0.45f, 0.72f, 0.54f, 0.81f, 0.45f, 0.27f, 0.18f, 0.09f, 0.36f)
-private const val GHOST_YOU_BIN = 4
-private const val GHOST_YOU_HEIGHT = 0.25f
+/** The widest a bar draws: wide for a few bins, narrower as they multiply; the slots share the width. */
+private fun maxBarWidth(bins: Int): Dp = when {
+    bins <= 3 -> 96.dp
+    bins <= 5 -> 72.dp
+    else -> 64.dp
+}
+
+/** A bar's resting place in dp: centre across the chart, width and height. */
+private class BarGeo(val cx: Float, val width: Float, val height: Float)
+
+/** Where a bar starts a morph, relative to its resting place: a shift in dp and a scale per axis. */
+private class BarStart(val dx: Float, val sx: Float, val sy: Float)
+
+/** The geometry of [view]'s bars over [total] width; null for an empty bin, which draws nothing. */
+private fun geometry(view: HeroScopeView, total: Dp): List<BarGeo?> {
+    val slot = total.value / view.bars.size
+    val width = minOf(maxBarWidth(view.bars.size).value, slot - BarGap.value).coerceAtLeast(2f)
+    return view.bars.mapIndexed { index, bar ->
+        if (bar.count == 0) {
+            null
+        } else {
+            val height = maxOf(BarMinHeight.value, PlotHeight.value * bar.height.coerceIn(0f, 1f))
+            BarGeo(slot * (index + 0.5f), width, height)
+        }
+    }
+}
+
+/** Each new bar starts at the nearest old bar not yet used; one with no partner scales in from [GROW_FROM]. */
+private fun morphStarts(old: List<BarGeo?>, new: List<BarGeo?>): List<BarStart?> {
+    val free = old.filterNotNull().toMutableList()
+    return new.map { geo ->
+        if (geo == null) return@map null
+        val partner = free.minByOrNull { abs(it.cx - geo.cx) }
+        if (partner == null) {
+            BarStart(0f, 1f, GROW_FROM)
+        } else {
+            free.remove(partner)
+            BarStart(partner.cx - geo.cx, partner.width / geo.width, partner.height / geo.height)
+        }
+    }
+}
+
+/** The geometry the chart last drew, so the next scope's bars can start from it. */
+private class ChartMemory {
+    var last: List<BarGeo?>? = null
+}
 
 /**
- * The time spread chart (spec: Results hero, side card): ten bins of the player's solves, bars
- * in [accent] at 40 percent with this solve's bin in full under a "You" label; empty bins are
- * not drawn. A first solve ([HeroSpread.bins] empty) draws dashed ghost bars and the
- * first-time line. The axis and the caption sit underneath. Bars grow from 5 percent with a
- * 20 ms stagger capped at ten bars, from the blocks beat; reduced motion shows them at once.
- * The bars read aloud as one [HeroSpread.description]; the caption is read as itself.
+ * The time spread chart (spec: Results hero, side card): one slot per time range of the player's
+ * solves, a count over each bar and this solve's bar in full under a "You" pill; the other bars
+ * are [palette]'s accent at 40 percent and empty ranges draw nothing. A [replay] draws its bar as
+ * a dashed outline under a "Replay" pill. Under the bars sit the time ranges when each fits its
+ * slot, else the bin edges at every k-th place so they do not collide.
+ *
+ * Entrance: the bars grow from the blocks beat on a 20 ms stagger capped at ten bars, the counts
+ * fade in after them and the pill lands last. When [view] changes the bars morph from the nearest
+ * old bar; the counts and labels fade. Reduced motion is one short fade. The chart reads aloud as
+ * one [HeroScopeView.description].
  */
 @Composable
-internal fun TimeSpreadChart(spread: HeroSpread, accent: Color, modifier: Modifier = Modifier) {
-    val ghost = spread.bins.isEmpty()
-    Column(modifier) {
-        Column(Modifier.testTag("result.side.chart").clearAndSetSemantics { contentDescription = spread.description }) {
-            Row(
-                modifier = Modifier.fillMaxWidth().height(ChartHeight).padding(top = YouLabelRoom),
-                horizontalArrangement = Arrangement.spacedBy(BarGap),
-                verticalAlignment = Alignment.Bottom,
-            ) {
-                if (ghost) {
-                    GhostHeights.forEachIndexed { index, height ->
-                        val you = index == GHOST_YOU_BIN
-                        Slot(index, if (you) GHOST_YOU_HEIGHT else height, you, ghost = !you, accent, Modifier.weight(1f))
-                    }
-                } else {
-                    spread.bins.forEachIndexed { index, bin ->
-                        if (bin.count == 0) {
-                            Box(Modifier.weight(1f))
-                        } else {
-                            Slot(index, bin.height, index == spread.youBin, ghost = false, accent, Modifier.weight(1f))
-                        }
+internal fun TimeSpreadChart(view: HeroScopeView, replay: Boolean, palette: GameAccent, modifier: Modifier = Modifier) {
+    val memory = remember { ChartMemory() }
+    BoxWithConstraints(
+        modifier
+            .fillMaxWidth()
+            .testTag("result.side.chart")
+            .clearAndSetSemantics { contentDescription = view.description },
+    ) {
+        val total = maxWidth
+        val geo = geometry(view, total)
+        val starts = remember(view) {
+            val previous = memory.last
+            memory.last = geo
+            previous?.let { morphStarts(it, geo) }
+        }
+        val entrance = starts == null
+        val slot = maxWidth / view.bars.size
+        key(view) {
+            Column {
+                Box(Modifier.fillMaxWidth().height(ChartHeight)) {
+                    view.bars.forEachIndexed { index, bar ->
+                        val bars = geo[index] ?: return@forEachIndexed
+                        BarColumn(
+                            index = index,
+                            bar = bar,
+                            geo = bars,
+                            start = starts?.get(index),
+                            entrance = entrance,
+                            you = index == view.youBin,
+                            replay = replay,
+                            palette = palette,
+                            slot = slot,
+                        )
                     }
                 }
+                RangeLabels(view, entrance, total)
             }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 6.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(spread.axisLow, style = AxisStyle(), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("result.side.axis.low"))
-                Text(spread.axisHigh, style = AxisStyle(), color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.testTag("result.side.axis.high"))
-            }
-        }
-        val line = spread.firstTimeLine
-        if (line != null) {
-            Text(
-                text = line,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.sm).testTag("result.side.first"),
-            )
-        }
-        val caption = spread.caption
-        if (caption != null) {
-            Text(
-                text = caption.annotated(),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.sm).testTag("result.side.caption"),
-            )
         }
     }
 }
 
+/** One bin's column: the pill when [you], the count and the bar, bottom-aligned in its [slot]. */
 @Composable
-private fun AxisStyle() = MaterialTheme.typography.labelMedium.tabular()
-
-/** One bin's column: the bar of [fraction] of the plot, the "You" label above it when [you], dashed when [ghost]. */
-@Composable
-private fun Slot(index: Int, fraction: Float, you: Boolean, ghost: Boolean, accent: Color, modifier: Modifier) {
-    val grow = rememberGrow(index)
-    val outline = MaterialTheme.colorScheme.outline
-    val plot = ChartHeight - YouLabelRoom
-    val barHeight: Dp = maxOf(BarMinHeight, plot * fraction.coerceIn(0f, 1f))
-    Column(modifier.fillMaxHeight(), verticalArrangement = Arrangement.Bottom) {
-        if (you) {
-            Text(
-                text = YOU_LABEL,
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, fontWeight = FontWeight.ExtraBold),
-                color = accent,
-                maxLines = 1,
-                softWrap = false,
-                modifier = Modifier
-                    .wrapContentWidth(unbounded = true)
-                    .align(Alignment.CenterHorizontally)
-                    .graphicsLayer { alpha = grow.value }
-                    .testTag("result.side.you"),
-            )
-        }
-        val bar = Modifier
-            .fillMaxWidth()
-            .height(barHeight)
-            .graphicsLayer {
-                scaleY = grow.value
-                transformOrigin = TransformOrigin(0.5f, 1f)
-            }
-        if (ghost) {
-            Box(bar.drawBehind { drawGhostOutline(outline, GhostStroke.toPx(), BarTopRadius.toPx()) }.testTag("result.side.bar.ghost.$index"))
-        } else {
-            val shape = RoundedCornerShape(BarTopRadius, BarTopRadius, BarBottomRadius, BarBottomRadius)
-            Box(bar.background(if (you) accent else accent.copy(alpha = DIM_ALPHA), shape).testTag(if (you) "result.side.bar.you" else "result.side.bar.$index"))
-        }
-    }
-}
-
-/** The grow progress of bar [index]: 5 percent to 1 after the blocks beat, a stagger of 20 ms per bar up to ten; settled in a preview and under reduced motion. */
-@Composable
-private fun rememberGrow(index: Int): Animatable<Float, *> {
+private fun BarColumn(
+    index: Int,
+    bar: HeroBar,
+    geo: BarGeo,
+    start: BarStart?,
+    entrance: Boolean,
+    you: Boolean,
+    replay: Boolean,
+    palette: GameAccent,
+    slot: Dp,
+) {
     val settled = LocalInspectionMode.current
     val reduced = rememberReducedMotion()
-    val grow = remember { Animatable(if (settled || reduced) 1f else GROW_FROM) }
-    LaunchedEffect(grow, reduced) {
+    val from = start ?: BarStart(0f, 1f, GROW_FROM)
+    val progress = remember { Animatable(if (settled || reduced) 1f else 0f) }
+    val barAlpha = remember { Animatable(if (settled || !reduced) 1f else 0f) }
+    val countAlpha = remember { Animatable(if (settled) 1f else 0f) }
+    val pillAlpha = remember { Animatable(if (settled) 1f else 0f) }
+    val stamp = remember { Animatable(if (settled || reduced) 1f else MotionTokens.StampFromScale) }
+    LaunchedEffect(Unit) {
+        if (settled) return@LaunchedEffect
         if (reduced) {
-            grow.snapTo(1f)
+            val fade = tween<Float>(MotionTokens.ReducedFadeDuration)
+            launch { barAlpha.animateTo(1f, fade) }
+            launch { countAlpha.animateTo(1f, fade) }
+            launch { pillAlpha.animateTo(1f, fade) }
+            return@LaunchedEffect
+        }
+        val barDelay = if (entrance) beatDelayMs(ResultBeats.Blocks) + index.coerceIn(0, GROW_STAGGER_CAP - 1) * GROW_STAGGER_MS else 0
+        val barDuration = if (entrance) MotionTokens.EnterDuration else MotionTokens.ChartMorphDuration
+        val barEasing = if (entrance) MotionTokens.EasingEmphasizedDecelerate else MotionTokens.EasingStandard
+        val barEnd = barDelay + barDuration
+        val countDelay = if (entrance) barEnd else barEnd - MotionTokens.ChartLabelFade
+        val pillDelay = if (entrance) {
+            beatDelayMs(ResultBeats.Blocks) + (GROW_STAGGER_CAP - 1) * GROW_STAGGER_MS + MotionTokens.EnterDuration
         } else {
-            val stagger = index.coerceIn(0, GROW_STAGGER_CAP - 1) * GROW_STAGGER_MS
-            grow.animateTo(
-                1f,
-                tween(
-                    durationMillis = MotionTokens.EnterDuration,
-                    delayMillis = beatDelayMs(ResultBeats.Blocks) + stagger,
-                    easing = MotionTokens.EasingEmphasizedDecelerate,
-                ),
-            )
+            MotionTokens.ChartMorphDuration
+        }
+        launch { progress.animateTo(1f, tween(barDuration, barDelay, barEasing)) }
+        launch { countAlpha.animateTo(1f, tween(MotionTokens.ChartLabelFade, countDelay)) }
+        launch { pillAlpha.animateTo(1f, tween(MotionTokens.StampFadeDuration, pillDelay)) }
+        launch {
+            delay(pillDelay.toLong())
+            stamp.animateTo(1f, spring(MotionTokens.StampSpringDamping, MotionTokens.StampSpringStiffness))
         }
     }
-    return grow
-}
-
-/** A dashed outline of a bar open at the bottom: up the left edge, over the rounded top, down the right edge. */
-private fun DrawScope.drawGhostOutline(color: Color, strokeWidth: Float, radius: Float) {
-    val r = radius.coerceAtMost(size.width / 2f)
-    val path = Path().apply {
-        moveTo(0f, size.height)
-        lineTo(0f, r)
-        arcTo(Rect(0f, 0f, 2 * r, 2 * r), 180f, 90f, false)
-        lineTo(size.width - r, 0f)
-        arcTo(Rect(size.width - 2 * r, 0f, size.width, 2 * r), 270f, 90f, false)
-        lineTo(size.width, size.height)
+    val density = LocalDensity.current
+    val shift = with(density) { from.dx.dp.toPx() }
+    val surface = MaterialTheme.colorScheme.surface
+    val outline = MaterialTheme.colorScheme.outline
+    val shape = RoundedCornerShape(BarTopRadius, BarTopRadius, BarBottomRadius, BarBottomRadius)
+    val look = when {
+        you && replay -> Modifier.background(surface, shape).drawBehind { drawDashedBarOutline(outline, DashStroke.toPx(), BarTopRadius.toPx()) }
+        you -> Modifier.background(palette.accent, shape)
+        else -> Modifier.background(palette.accent.copy(alpha = DIM_ALPHA), shape)
     }
-    drawPath(path, color, style = Stroke(width = strokeWidth, pathEffect = PathEffect.dashPathEffect(floatArrayOf(strokeWidth * 3, strokeWidth * 2))))
-}
-
-/** The caption with its [Emphasized.bold] stretch in bold. */
-private fun Emphasized.annotated(): AnnotatedString = buildAnnotatedString {
-    val range = bold
-    if (range == null) {
-        append(text)
-    } else {
-        append(text.substring(0, range.first))
-        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(text.substring(range.first, range.last + 1)) }
-        append(text.substring(range.last + 1))
+    Column(
+        modifier = Modifier
+            .offset(x = (geo.cx - slot.value / 2f).dp)
+            .width(slot)
+            .height(ChartHeight),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Bottom,
+    ) {
+        if (you) {
+            Pill(
+                text = if (replay) REPLAY_LABEL else YOU_LABEL,
+                replay = replay,
+                palette = palette,
+                modifier = Modifier.graphicsLayer {
+                    alpha = pillAlpha.value
+                    scaleX = stamp.value
+                    scaleY = stamp.value
+                },
+            )
+        }
+        Text(
+            text = bar.count.toString(),
+            style = MaterialTheme.typography.labelMedium.tabular(),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            modifier = Modifier
+                .height(CountRoom)
+                .graphicsLayer { alpha = countAlpha.value }
+                .testTag("result.side.count.$index"),
+        )
+        Box(
+            Modifier
+                .width(geo.width.dp)
+                .height(geo.height.dp)
+                .graphicsLayer {
+                    val p = progress.value
+                    translationX = (1f - p) * shift
+                    scaleX = lerp(from.sx, 1f, p)
+                    scaleY = lerp(from.sy, 1f, p)
+                    transformOrigin = TransformOrigin(0.5f, 1f)
+                    alpha = barAlpha.value
+                }
+                .then(look)
+                .testTag(if (you) "result.side.bar.you" else "result.side.bar.$index"),
+        )
     }
 }

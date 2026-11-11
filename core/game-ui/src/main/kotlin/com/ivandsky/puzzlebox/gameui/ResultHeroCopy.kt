@@ -1,8 +1,13 @@
 package com.ivandsky.puzzlebox.gameui
 
 import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.domain.SpreadScope
+import com.ivandsky.puzzlebox.domain.TimeSpread
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
+import java.time.DayOfWeek
+import java.time.format.TextStyle
+import java.util.Locale
 import kotlin.math.abs
 
 /**
@@ -74,36 +79,130 @@ internal fun heroStreakTitle(days: Int): String = "$days day streak"
 internal fun heroStreakSub(days: Int): String =
     if (days <= 1) "Day one. Come back tomorrow to keep it alive." else "Solve any puzzle tomorrow to make it ${days + 1}."
 
-/** The histogram's heading: "Your times · Zip". */
-internal fun heroSpreadHeading(game: String): String = "Your times · $game"
-
-/** What the histogram says when there is nothing to spread yet. */
-internal const val HERO_FIRST_TIME_LINE = "This is your first time — solve again to see how you spread out."
-
 /** A sentence with one stretch to draw bold. */
 internal data class Emphasized(val text: String, val bold: IntRange?)
 
 /**
- * The histogram caption over [solves] solves (this one included): the fastest or best yet
- * ("Your fastest ever of your M solves." / "Your best yet of your M solves." for a
- * hints-first game) when [best]; else "Faster than **N** of your M solves. Average m:ss."
- * ("Better than" for a hints-first game). [averageMs] is the earlier solves' average.
+ * The histogram heading in three runs: the chip, the scope word, sits between [prefix] and [suffix].
+ * Without a chip (the scopes hold the same solves) the whole heading is [prefix].
  */
-internal fun heroSpreadCaption(
-    order: RankOrder,
-    best: Boolean,
-    beaten: Int,
-    solves: Int,
-    averageMs: Long?,
-): Emphasized {
-    if (best) {
-        val lead = if (order == RankOrder.TimeThenHints) "Your fastest ever" else "Your best yet"
-        return Emphasized("$lead of your $solves solves.", 0 until lead.length)
+internal data class HeroHeading(val prefix: String, val chip: String?, val suffix: String) {
+    val text: String get() = prefix + chip.orEmpty() + suffix
+}
+
+/**
+ * The heading over [solves] solves in [scope]: "Your 5 [Monday ⇄] Zip times", or "Your first
+ * [Monday ⇄] Zip time". The chip word is the weekday name, or "any day" for every day. With no
+ * chip ([switchable] false) it reads "Your 5 Zip times".
+ */
+internal fun heroSpreadHeading(scope: SpreadScope, solves: Int, game: String, weekday: String, switchable: Boolean): HeroHeading {
+    val count = if (solves <= 1) "first" else "$solves"
+    val noun = if (solves <= 1) "time" else "times"
+    if (!switchable) return HeroHeading("Your $count $game $noun", null, "")
+    val word = if (scope == SpreadScope.Weekday) weekday else "any day"
+    return HeroHeading("Your $count ", word, " $game $noun")
+}
+
+private const val SWITCH_HINT = "Tap the highlighted word to switch."
+
+/**
+ * The sentence under the heading: what a bar counts in [scope], and how to switch ([switchable]
+ * false: no chip, so no hint). [first] is a first solve in scope.
+ */
+internal fun heroSpreadCaption(scope: SpreadScope, first: Boolean, weekday: String, switchable: Boolean): String {
+    val body = when {
+        scope == SpreadScope.All && !first ->
+            "Each bar counts how many of your solves landed in that time range, across every day of the week. " +
+                "Taller means more solves."
+        scope == SpreadScope.All ->
+            "The one bar is today's solve. Each bar counts solves in a time range — your own solves only, " +
+                "no other players."
+        !first ->
+            "Same chart, ${weekday}s only. Daily puzzles get easier or harder through the week, so a $weekday " +
+                "is compared with your other ${weekday}s."
+        else ->
+            "The one bar is today's $weekday. Play more ${weekday}s and the bars show how your $weekday times " +
+                "spread out."
     }
-    val lead = if (order == RankOrder.TimeThenHints) "Faster than " else "Better than "
-    val count = beaten.toString()
-    val average = averageMs?.let { " Average ${formatDuration(it)}." }.orEmpty()
-    return Emphasized("$lead$count of your $solves solves.$average", lead.length until lead.length + count.length)
+    return if (switchable) "$body $SWITCH_HINT" else body
+}
+
+private const val REPLAY_NOTE = " Dashed = this replay, not saved."
+
+/**
+ * The line under the chart: a first solve invites another; the best says so in bold; otherwise
+ * the rank in bold. Then the average of the earlier solves. A hints-first game says "best" for "fastest".
+ */
+internal fun heroSpreadVerdict(
+    scope: SpreadScope,
+    order: RankOrder,
+    spread: TimeSpread,
+    game: String,
+    weekday: String,
+    replay: Boolean,
+): Emphasized {
+    val replayNote = if (replay) REPLAY_NOTE else ""
+    val weekdayScope = scope == SpreadScope.Weekday
+    if (spread.isFirstSolve) {
+        if (!weekdayScope) {
+            return Emphasized("Your first $game time — solve again and the bars show how your times spread out.$replayNote", null)
+        }
+        val lead = "First $weekday"
+        return Emphasized("$lead — no earlier $weekday $game to compare with yet.$replayNote", lead.indices)
+    }
+    val quality = if (order == RankOrder.TimeThenHints) "fastest" else "best"
+    val lead = when {
+        spread.best && weekdayScope -> "${quality.replaceFirstChar { it.uppercase() }} $weekday"
+        spread.best -> "${quality.replaceFirstChar { it.uppercase() }} ever"
+        else -> "${ordinal(spread.rank)} $quality"
+    }
+    val of = if (weekdayScope) "${spread.solves} $weekday $game" else "${spread.solves} $game"
+    val average = spread.averageEarlierMs?.let {
+        val label = if (weekdayScope) "$weekday average" else "Average"
+        " $label ${formatDuration(it)}."
+    }.orEmpty()
+    return Emphasized("$lead of your $of.$average$replayNote", lead.indices)
+}
+
+/** "Rank counts hints first…" for a hints-first game over several solves; else null. */
+internal fun heroRankNote(order: RankOrder, spread: TimeSpread): Emphasized? =
+    if (order == RankOrder.HintsThenTime && !spread.isFirstSolve) {
+        Emphasized("Rank counts hints first, then time — the bars show time only.", null)
+    } else {
+        null
+    }
+
+private const val COMPARE_MIN_EARLIER = 2
+
+/**
+ * "Mondays run faster for you — average 1:30 vs 1:53 across all days." once both scopes have two
+ * earlier solves and the averages differ; the fastest weekday says so in bold instead. Else null.
+ */
+internal fun heroWeekdayNote(all: TimeSpread, weekday: TimeSpread, name: String, fastest: Boolean): Emphasized? {
+    val allAverage = all.averageEarlierMs
+    val dayAverage = weekday.averageEarlierMs
+    if (allAverage == null || dayAverage == null) return null
+    if (all.solves - 1 < COMPARE_MIN_EARLIER || weekday.solves - 1 < COMPARE_MIN_EARLIER) return null
+    if (dayAverage == allAverage) return null
+    val tail = "average ${formatDuration(dayAverage)} vs ${formatDuration(allAverage)} across all days."
+    if (fastest) {
+        val lead = "${name}s are your fastest day"
+        return Emphasized("$lead — $tail", lead.indices)
+    }
+    val direction = if (dayAverage < allAverage) "faster" else "slower"
+    return Emphasized("${name}s run $direction for you — $tail", null)
+}
+
+/** The weekday's name in [locale]. */
+internal fun heroWeekdayName(day: DayOfWeek, locale: Locale): String = day.getDisplayName(TextStyle.FULL, locale)
+
+/** "1:00–1:30": one bin's time range, en dash. */
+internal fun heroBinRange(fromMs: Long, toMs: Long): String = "${formatDuration(fromMs)}–${formatDuration(toMs)}"
+
+/** The chart's spoken description: "{heading}. {n} time ranges, counts per range. Today m:ss." */
+internal fun heroChartDescription(heading: String, bins: Int, timeMs: Long): String {
+    val ranges = if (bins == 1) "1 time range" else "$bins time ranges"
+    return "$heading. $ranges, counts per range. Today ${formatDuration(timeMs)}."
 }
 
 /** The rank row for a signed-out player. */

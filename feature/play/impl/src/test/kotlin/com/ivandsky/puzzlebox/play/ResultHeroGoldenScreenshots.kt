@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.domain.ResultDay
 import com.ivandsky.puzzlebox.domain.ResultInsights
 import com.ivandsky.puzzlebox.domain.ResultRank
+import com.ivandsky.puzzlebox.domain.WeekdaySpread
 import com.ivandsky.puzzlebox.domain.timeSpread
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -33,8 +34,8 @@ import org.robolectric.annotation.GraphicsMode
  * The Results hero page under its Up bar, phone and tablet, light and dark, after the entrance
  * has settled (animations on, so the count-up and the beats have run): a plain solve, a first
  * solve, hints used, a new best, a signed-out player, an hour-plus time with twelve hints, an
- * all-done day, a Strands (hints-first) solve and a replay. One more frame takes the new best
- * with animations off (reduced motion). The all-done frame leaves the rollover unread, so its
+ * all-done day, a Strands (hints-first) solve, a replay, the weekday scope and sixty solves.
+ * One more frame takes the new best with animations off (reduced motion). The all-done frame leaves the rollover unread, so its
  * countdown line, which follows the wall clock, never moves a pixel. Goldens in `snapshots/results-hero/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -79,6 +80,12 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
     @Test fun `replay light`() = capture("replay", REPLAY, dark = false)
     @Test fun `replay dark`() = capture("replay", REPLAY, dark = true)
 
+    @Test fun `weekday light`() = capture("weekday", WEEKDAY, dark = false)
+    @Test fun `weekday dark`() = capture("weekday", WEEKDAY, dark = true)
+
+    @Test fun `sixty solves light`() = capture("sixty-solves", SIXTY, dark = false)
+    @Test fun `sixty solves dark`() = capture("sixty-solves", SIXTY, dark = true)
+
     @Test fun `new best reduced motion light`() = capture("new-best-reduced", NEW_BEST, dark = false, animated = false)
     @Test fun `new best reduced motion dark`() = capture("new-best-reduced", NEW_BEST, dark = true, animated = false)
 
@@ -115,16 +122,20 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
 
         val EARLIER = listOf(112_000L, 90_000L, 104_000L, 98_000L, 121_000L).map { BestScore(it, 0) }
         val EARLIER_LONG = listOf(3_000_000L, 3_400_000L, 3_650_000L, 3_100_000L).map { BestScore(it, 3) }
+        val SPREAD_12 = List(11) { BestScore(70_000L + (it * 37 % 90) * 1000L, 0) }
+        val SPREAD_60 = List(59) { BestScore(70_000L + (it * 37 % 90) * 1000L, 0) }
 
         fun insights(
             current: BestScore,
             earlier: List<BestScore> = EARLIER,
             order: RankOrder = RankOrder.TimeThenHints,
             streak: Int = 3,
+            weekdayEarlier: List<BestScore> = earlier.take(1),
         ) = ResultInsights(
             streak = streak,
             week = (6 downTo 0).map { ResultDay(TODAY.minusDays(it.toLong()), solved = it < streak.coerceAtMost(7), today = it == 0) },
             spread = timeSpread(earlier, current, order),
+            weekday = WeekdaySpread(TODAY.dayOfWeek, timeSpread(weekdayEarlier, current, order), fastest = false),
         )
 
         fun facts(
@@ -140,6 +151,7 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             rank: ResultRank = ResultRank.Ranked(position = 14, count = 212, topPercent = 7),
             doneToday: Int = 2,
             primary: ResultPrimaryAction = ResultPrimaryAction.Next(GameId("tango"), "Tango"),
+            weekdayEarlier: List<BestScore> = earlier.take(1),
         ) = ResultHeroFacts(
             timeMs = timeMs,
             hintsUsed = hints,
@@ -153,7 +165,7 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             dateLine = "Today · Sat 7 Nov",
             doneToday = doneToday,
             total = 3,
-            insights = insights(BestScore(timeMs, hints), earlier, order, streak),
+            insights = insights(BestScore(timeMs, hints), earlier, order, streak, weekdayEarlier),
             rank = rank,
             primary = primary,
         )
@@ -180,5 +192,11 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             verdict = RecordVerdict.Replay, timeMs = 131_000L, hints = 2, previous = BestScore(118_000L, 0),
             replay = true, rank = ResultRank.Hidden, primary = ResultPrimaryAction.Done,
         )
+
+        /** The weekday scope opens: three earlier Saturdays among twelve solves. */
+        val WEEKDAY = facts(
+            timeMs = 84_000L, earlier = SPREAD_12, weekdayEarlier = listOf(BestScore(90_000L, 0), BestScore(98_000L, 0), BestScore(104_000L, 0)),
+        )
+        val SIXTY = facts(timeMs = 100_000L, earlier = SPREAD_60, weekdayEarlier = emptyList())
     }
 }
