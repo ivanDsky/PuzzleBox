@@ -27,4 +27,8 @@ class DraftEntity(
     /** M3 publish details; "" until the author sets them. */
     @ColumnInfo(defaultValue = "") val authorName: String,
     @ColumnInfo(defaultValue = "") val note: String,
+    /** Schema v11 (cloud sync): the signed-in account that owns this row in the cloud; null until claimed. */
+    val ownerUid: String? = null,
+    /** Schema v11: fingerprint of the last version uploaded to the cloud; null when never uploaded. */
+    val uploadedFingerprint: String? = null,
 )

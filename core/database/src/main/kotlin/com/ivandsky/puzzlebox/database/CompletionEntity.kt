@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import java.util.UUID
 
 /**
  * The completions store (schema v3): every in-app completion of a puzzleRef is
@@ -16,7 +17,7 @@ import androidx.room.PrimaryKey
  */
 @Entity(
     tableName = "completions",
-    indices = [Index("puzzleRef")],
+    indices = [Index("puzzleRef"), Index("syncId", unique = true)],
 )
 data class CompletionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
@@ -35,4 +36,10 @@ data class CompletionEntity(
     val matchCode: String? = null,
     /** Schema v9: where the completion came from — 'app' when earned in the app, 'linkedin' for an import. */
     @ColumnInfo(defaultValue = "app") val source: String = "app",
+    /** Schema v11 (cloud sync): the signed-in account that owns this completion in the cloud; null until claimed. */
+    val ownerUid: String? = null,
+    /** Schema v11: the cloud document id, a random UUID without dashes assigned at insert; unique. */
+    val syncId: String = UUID.randomUUID().toString().replace("-", ""),
+    /** Schema v11: whether this completion has been uploaded to [ownerUid]'s cloud space. */
+    @ColumnInfo(defaultValue = "0") val uploaded: Boolean = false,
 )

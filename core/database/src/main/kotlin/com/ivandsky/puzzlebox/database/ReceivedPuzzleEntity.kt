@@ -28,4 +28,8 @@ class ReceivedPuzzleEntity(
     val postAttempts: Int,
     /** Difficulty from this device's re-verify of the payload; null when the solver gave none. */
     val difficulty: String?,
+    /** Schema v11 (cloud sync): the signed-in account that owns this row in the cloud; null until claimed. */
+    val ownerUid: String? = null,
+    /** Schema v11: fingerprint of the last version uploaded to the cloud; null when never uploaded. */
+    val uploadedFingerprint: String? = null,
 )
