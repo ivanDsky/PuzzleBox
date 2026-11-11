@@ -18,6 +18,12 @@ internal object StrandsEditorCopy {
     /** Under the off word field: typing needs a selected path, so there is nothing to wait for. */
     const val TRACE_FIRST = "Trace a word first"
 
+    /**
+     * The word field's line and the compact icon's description for a word the dictionary doesn't
+     * have: a warning, not a rule. Theme words and the spangram may be any letters.
+     */
+    const val NOT_IN_DICTIONARY = "Not in dictionary, still allowed"
+
     /** Under the word field when [letters] outrun the selected path's [cells]: the extra ones are kept, not written. */
     fun overflow(letters: Int, cells: Int): String {
         val extra = letters - cells

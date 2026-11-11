@@ -31,6 +31,7 @@ import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -86,6 +87,53 @@ class StrandsEditorWordTest {
 
     private fun SemanticsNodeInteraction.state(): String? =
         fetchSemanticsNode().config.getOrNull(SemanticsProperties.StateDescription)
+
+    private fun showPane() = rule.setContent {
+        PuzzleBoxTheme {
+            CompositionLocalProvider(LocalEditorDispatchers provides QueueDispatcherProvider(queue)) {
+                StrandsEditorUi.PaneTools(controller, Modifier)
+            }
+        }
+    }
+
+    private fun isError(tag: String): Boolean =
+        rule.onNodeWithTag(tag).fetchSemanticsNode().config.contains(SemanticsProperties.Error)
+
+    @Test
+    fun `a word outside the dictionary warns on the phone and is no error`() {
+        selectedPath()
+        controller.typeWord("xqzv")
+        answerLookups()
+
+        assertEquals(WordCheck.Unknown.name, rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).state())
+        assertFalse(isError("strands.editor.word"))
+        assertEquals("XQZV", board().paths.single().word)
+    }
+
+    @Test
+    fun `a word outside the dictionary warns in the tablet pane and is no error`() {
+        controller.traceTo(0)
+        controller.traceTo(1)
+        controller.traceTo(2)
+        controller.traceTo(3)
+        controller.endTrace()
+        controller.selectPath(0)
+        showPane()
+        controller.typeWord("xqzv")
+        answerLookups()
+
+        assertEquals(WordCheck.Unknown.name, rule.onNodeWithTag("strands.editor.word.check", useUnmergedTree = true).state())
+        assertFalse(isError("strands.editor.word"))
+    }
+
+    @Test
+    fun `a word longer than its path is still an error`() {
+        selectedPath()
+        controller.typeWord("stars")
+        answerLookups()
+
+        assertTrue(isError("strands.editor.word"))
+    }
 
     @Test
     fun `typing a word writes its letters onto the selected path and names it`() {

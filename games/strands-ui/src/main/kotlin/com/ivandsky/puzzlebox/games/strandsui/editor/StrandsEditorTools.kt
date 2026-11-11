@@ -101,7 +101,8 @@ internal fun StrandsWordField(controller: StrandsEditorController, modifier: Mod
         label = label.takeUnless { compact },
         placeholder = label.takeIf { compact },
         trailingIcon = verdictIcon.takeIf { compact },
-        isError = check == WordCheck.Unknown || overflow,
+        // Only a word the path can't hold is an error: a word outside the dictionary is allowed.
+        isError = overflow,
         // Too long, the dictionary verdict is moot: only the fit line shows.
         supportingText = if (overflow) fit else verdictLine.takeUnless { compact },
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters),
@@ -136,9 +137,10 @@ private fun WordCheckLine(check: WordCheck) {
 }
 
 /**
- * The compact field's verdict: a tick for a word, a cross for none, a pencil while it can still
- * become one, its description the verdict; nothing while empty or off, where the placeholder
- * speaks. Too long, the cross is the fit line's and carries no verdict.
+ * The compact field's verdict: a tick for a word, a question mark for one outside the
+ * dictionary (a caution, not a rejection), a pencil while it can still become a word, its
+ * description the verdict; nothing while empty or off, where the placeholder speaks. Too long,
+ * the cross is the fit line's and carries no verdict.
  */
 @Composable
 private fun WordCheckIcon(check: WordCheck, overflow: Boolean) {
@@ -158,7 +160,7 @@ private fun WordCheckIcon(check: WordCheck, overflow: Boolean) {
     ) {
         val icon = when (check) {
             WordCheck.Word -> PuzzleIcons.Check
-            WordCheck.Unknown -> PuzzleIcons.Close
+            WordCheck.Unknown -> PuzzleIcons.HowTo
             WordCheck.Prefix -> PuzzleIcons.Create
             WordCheck.Empty, WordCheck.NoPath -> null
         }
@@ -166,7 +168,12 @@ private fun WordCheckIcon(check: WordCheck, overflow: Boolean) {
             Icon(
                 icon,
                 contentDescription = null,
-                tint = if (check == WordCheck.Word) MaterialTheme.colorScheme.primary else LocalContentColor.current,
+                tint = when (check) {
+                    WordCheck.Word -> MaterialTheme.colorScheme.primary
+                    // Neutral, never the error red: the word is allowed.
+                    WordCheck.Unknown -> MaterialTheme.colorScheme.onSurfaceVariant
+                    else -> LocalContentColor.current
+                },
             )
         }
     }
@@ -178,7 +185,7 @@ private fun verdictOf(check: WordCheck): String? = when (check) {
     WordCheck.NoPath -> StrandsEditorCopy.TRACE_FIRST
     WordCheck.Prefix -> "Keep typing"
     WordCheck.Word -> "In the dictionary"
-    WordCheck.Unknown -> "Not in the dictionary"
+    WordCheck.Unknown -> StrandsEditorCopy.NOT_IN_DICTIONARY
 }
 
 private val CheckIconSize = 24.dp
