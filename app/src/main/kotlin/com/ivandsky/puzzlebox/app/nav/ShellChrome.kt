@@ -32,6 +32,9 @@ import kotlinx.coroutines.flow.StateFlow
  * otherwise the rail carries it at its bottom and no header does.
  * Settings is reached from Profile's own gear. Everything else passes through unchanged.
  *
+ * On the tablet it is still installed, as a pass-through: the decorator list, and with it every
+ * entry's composition, stays stable when the layout switches between phone and tablet.
+ *
  * [LocalShellActions] is static: a new value would recompose every Browse subtree. The one
  * actions lambda is built here, once per decorator, and [ShellAvatar] collects the identity
  * inside its own body, so a sign-in or a photo load recomposes only the slot.
@@ -63,7 +66,19 @@ internal fun ShellAvatar(
     modifier: Modifier = Modifier,
 ) {
     val current by identity.collectAsStateWithLifecycle()
-    AvatarButton(current, { navigator.pushOnce(ProfileKey) }, size, modifier)
+    AvatarButton(current, navigator::openProfile, size, modifier)
+}
+
+/**
+ * Goes to Profile on the current tab: pushes it, or, when this stack already holds one (the
+ * rail's avatar stays visible over Settings), pops back to it. One stack never holds two.
+ */
+internal fun Navigator.openProfile() {
+    if (ProfileKey in state.currentStack) {
+        while (state.currentStack.last() != ProfileKey) pop()
+    } else {
+        push(ProfileKey)
+    }
 }
 
 /** Where the avatar sits: the header's is a touch larger than the 24dp icons beside it; the rail's matches its larger tabs. */
