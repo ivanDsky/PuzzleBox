@@ -157,7 +157,7 @@ class RoomLinkedInDaysDisconnectRaceTest {
         })
         val storing = CompletableDeferred<Unit>()
         val finishStore = CompletableDeferred<Unit>()
-        val completions = HeldImports(FakeCompletionRepository(), storing, finishStore)
+        val completions = HeldImportsCompletionRepository(FakeCompletionRepository(), storing, finishStore)
         link.connect("me", 1_000L)
         val sync = async { days(link, completions).sync(zip, day) }
         storing.await()
@@ -192,7 +192,7 @@ class RoomLinkedInDaysDisconnectRaceTest {
     }
 
     /** Parks the first import between the sync's last link check and its stores, until [release] completes. */
-    private class HeldImports(
+    private class HeldImportsCompletionRepository(
         private val delegate: CompletionRepository,
         private val entered: CompletableDeferred<Unit>,
         private val release: CompletableDeferred<Unit>,
