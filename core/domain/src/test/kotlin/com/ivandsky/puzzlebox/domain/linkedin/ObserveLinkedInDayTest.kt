@@ -21,10 +21,9 @@ import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** What the day card shows for each state of a day's LinkedIn data: the status line and the connections board. */
+/** What the day card and the boards show for each state of a day's LinkedIn data: the sync status and the connections board. */
 class ObserveLinkedInDayTest {
 
     private val zip = GameId("zip")
@@ -98,7 +97,7 @@ class ObserveLinkedInDayTest {
             assertEquals(expected, view.status)
             // What was read before the pause is still on the phone, so it stays on screen.
             assertEquals(
-                LinkedInBoardView.Shown(listOf(ghost(1, 50_000)), yourRank = 2, total = 2, updatedAtMs = fetchedAtMs),
+                LinkedInBoardView.Shown(listOf(ghost(1, 50_000))),
                 view.board,
             )
         }
@@ -155,7 +154,7 @@ class ObserveLinkedInDayTest {
     }
 
     @Test
-    fun `3rd of 12`() = observing {
+    fun `the board is ordered by the game, not as it was read`() = observing {
         // Board order is not rank order: the two faster ghosts sit in the middle.
         val slower = (1..9).map { ghost(it, 60_000L + it * 1_000) }
         val faster = listOf(ghost(10, 55_000), ghost(11, 50_000))
@@ -163,10 +162,7 @@ class ObserveLinkedInDayTest {
 
         val shown = shownOf(data(own = imported(60_000), ghosts = board))
 
-        assertEquals(3, shown.yourRank)
-        assertEquals(12, shown.total)
         assertEquals(listOf(ghost(11, 50_000), ghost(10, 55_000)) + slower, shown.ghosts)
-        assertEquals(fetchedAtMs, shown.updatedAtMs)
     }
 
     @Test
@@ -179,65 +175,30 @@ class ObserveLinkedInDayTest {
         assertEquals(60_000L, view.ownScore?.timeMs)
         val shown = view.board as LinkedInBoardView.Shown
         assertEquals(listOf(ghost(1, 50_000)), shown.ghosts)
-        assertEquals(2, shown.total)
     }
 
     @Test
-    fun `a tie shares the rank`() = observing {
-        val tied = shownOf(data(own = imported(60_000), ghosts = listOf(ghost(1, 60_000), ghost(2, 70_000))))
-        assertEquals(1, tied.yourRank)
-        assertEquals(3, tied.total)
-
-        val behindOne = shownOf(data(own = imported(60_000), ghosts = listOf(ghost(1, 60_000), ghost(2, 59_000))))
-        assertEquals(2, behindOne.yourRank)
-        // Equal scores keep the order the board came in.
+    fun `a tie keeps the order the board came in`() = observing {
         val equals = listOf(ghost(3, 60_000), ghost(1, 60_000), ghost(2, 60_000))
         assertEquals(equals, shownOf(data(ghosts = equals)).ghosts)
     }
 
     @Test
-    fun `hidden times go last and never rank`() = observing {
+    fun `hidden times go last`() = observing {
         val board = listOf(ghost(1, null), ghost(2, 70_000), ghost(3, null), ghost(4, 50_000))
 
         val shown = shownOf(data(own = imported(80_000), ghosts = board))
 
         assertEquals(listOf(ghost(4, 50_000), ghost(2, 70_000), ghost(1, null), ghost(3, null)), shown.ghosts)
-        assertEquals(3, shown.yourRank)
-        // The player and the two connections with a time: a hidden time is not counted.
-        assertEquals(3, shown.total)
     }
 
     @Test
-    fun `connections that all hid their time still count as played when there is no rank`() = observing {
-        val shown = shownOf(data(ghosts = listOf(ghost(1, null), ghost(2, null))))
-
-        assertNull(shown.yourRank)
-        assertEquals(2, shown.total)
-    }
-
-    @Test
-    fun `no import means no rank`() = observing {
-        val board = listOf(ghost(1, 70_000), ghost(2, null), ghost(3, 50_000))
-
-        for (own in listOf(LinkedInOwnState.Unknown, LinkedInOwnState.NotPlayed)) {
-            val shown = shownOf(data(own = own, ghosts = board))
-
-            assertNull(shown.yourRank)
-            // Every connection on the board played, a hidden time included.
-            assertEquals(board.size, shown.total)
-        }
-    }
-
-    @Test
-    fun `a board outside the data window is OutsideWindow`() = observing {
+    fun `a board outside the data window is Hidden`() = observing {
         val board = listOf(ghost(1, 50_000))
 
-        assertEquals(LinkedInBoardView.OutsideWindow, viewOf(data(boardInWindow = false, ghosts = board)).board)
-        assertEquals(LinkedInBoardView.OutsideWindow, viewOf(data(delta = null, boardInWindow = false, ghosts = board)).board)
-        assertEquals(
-            LinkedInBoardView.Shown(board, yourRank = null, total = 1, updatedAtMs = fetchedAtMs),
-            viewOf(data(boardInWindow = true, ghosts = board)).board,
-        )
+        assertEquals(LinkedInBoardView.Hidden, viewOf(data(boardInWindow = false, ghosts = board)).board)
+        assertEquals(LinkedInBoardView.Hidden, viewOf(data(delta = null, boardInWindow = false, ghosts = board)).board)
+        assertEquals(LinkedInBoardView.Shown(board), viewOf(data(boardInWindow = true, ghosts = board)).board)
     }
 
     @Test
@@ -249,13 +210,10 @@ class ObserveLinkedInDayTest {
     @Test
     fun `an empty fetched board is Shown with no ghosts`() = observing {
         assertEquals(
-            LinkedInBoardView.Shown(emptyList(), yourRank = null, total = 0, updatedAtMs = fetchedAtMs),
+            LinkedInBoardView.Shown(emptyList()),
             viewOf(data()).board,
         )
-        assertEquals(
-            LinkedInBoardView.Shown(emptyList(), yourRank = 1, total = 1, updatedAtMs = fetchedAtMs),
-            viewOf(data(own = imported(60_000))).board,
-        )
+        assertEquals(LinkedInBoardView.Shown(emptyList()), viewOf(data(own = imported(60_000))).board)
     }
 
     @Test
@@ -269,7 +227,5 @@ class ObserveLinkedInDayTest {
         val shown = shownOf(data(own = imported(60_000, hints = 1), ghosts = listOf(hinted, clean)))
 
         assertEquals(if (cleanIsBetter) listOf(clean, hinted) else listOf(hinted, clean), shown.ghosts)
-        assertEquals(if (cleanIsBetter) 2 else 1, shown.yourRank)
-        assertEquals(3, shown.total)
     }
 }
