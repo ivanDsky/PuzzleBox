@@ -68,7 +68,10 @@ internal data class LibraryRowModel(
     val progress: ArchiveProgress?,
     val stats: GameStats,
     val rules: List<String>,
-)
+) {
+    /** The day the card shows with nothing picked: the latest published day, null until the archive loads. */
+    val cardDay: LocalDate? get() = progress?.range?.endInclusive
+}
 
 /**
  * The selected game's calendar (A26): the shown [month] and its archive [days], and the
@@ -212,7 +215,7 @@ class LibraryViewModel(
 
     /** The day card's LinkedIn view; no stop grace, so a sync still in its debounce dies with the card. */
     internal val linkedInView: StateFlow<LinkedInDayView?> = linkedIn
-        .libraryView(selected, picked, calendar)
+        .libraryView(selected, picked, uiState, calendar)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), null)
 
     /** Fetches today's uncached puzzles; a failure shows as that game's Offline row. */
@@ -284,7 +287,6 @@ class LibraryViewModel(
 
     private fun todayNumber(game: GameId, archive: ArchiveProgress?): Int? =
         calendar.today(game)?.let { daily.puzzleNumber(game, it) } ?: archive?.total
-
     private fun <T> perGame(source: (GameId) -> Flow<T>): Flow<Map<GameId, T>> =
         if (seed.isEmpty()) {
             flowOf(emptyMap())
