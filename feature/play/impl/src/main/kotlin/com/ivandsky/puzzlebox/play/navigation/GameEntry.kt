@@ -23,7 +23,7 @@ import org.koin.compose.koinInject
  * reset by being opened; replaying is Result's "Play again".
  */
 @Composable
-internal fun GameEntry(key: GameKey, layout: PlayLayout, navigator: Navigator, signInInPlace: Boolean = false) {
+internal fun GameEntry(key: GameKey, layout: PlayLayout, navigator: Navigator) {
     val store = koinInject<PlaySessionStore>()
     // Frame 0 decides from what the store holds; only a solved day with no live play, or a
     // cold snapshot, waits on a read, and shows the loading frame meanwhile.
@@ -38,7 +38,6 @@ internal fun GameEntry(key: GameKey, layout: PlayLayout, navigator: Navigator, s
             key = key,
             layout = layout,
             onBack = { navigator.pop() },
-            signInInPlace = signInInPlace,
             onSolved = { slot, timeMs, hintsUsed ->
                 val day = (slot as? PlaySlot.Daily)?.day ?: return@GameRoute
                 navigator.replaceTop(ResultKey(slot.gameId.value, day.toString(), timeMs, hintsUsed))

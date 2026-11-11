@@ -23,9 +23,12 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.LocalDate
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.core.KoinApplication
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
@@ -50,6 +53,19 @@ abstract class FromFriendsGoldenScreenshots(private val layout: PlayLayout, priv
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
+    private var koin: KoinApplication? = null
+
+    /** The tablet's first game page carries the game's board, which a view model builds. */
+    @Before
+    fun startGraph() {
+        koin = startGamePageBoardKoin(STATE.rows.map { it.card.game })
+    }
+
+    @After
+    fun stopGraph() {
+        koin?.close()
+    }
+
     @Test fun `section light`() = capture("library-section", dark = false)
     @Test fun `section dark`() = capture("library-section", dark = true)
 
@@ -73,6 +89,7 @@ abstract class FromFriendsGoldenScreenshots(private val layout: PlayLayout, priv
                     onRetry = {},
                     onOpenLesson = {},
                     calendar = CalendarActions(),
+                    onOpenGameHistory = {},
                     friends = FriendPreviewCards,
                     // The goldens show the shipped-on header: Enter code beside the title.
                     onEnterCode = {},

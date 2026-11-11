@@ -203,7 +203,7 @@ class PlayBoardPositionTest {
                         backStack = navigator.state.currentStack,
                         onBack = { navigator.pop() },
                         entryProvider = entryProvider {
-                            playEntry(navigator, layout, onOpenHistory = {})
+                            playEntry(navigator, layout, onOpenGameHistory = {})
                             entry<ResultKey> { Text("result") }
                         },
                     )

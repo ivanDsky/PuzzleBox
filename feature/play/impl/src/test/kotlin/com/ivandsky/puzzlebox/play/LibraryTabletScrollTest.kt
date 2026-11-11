@@ -6,9 +6,12 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
@@ -28,6 +31,7 @@ import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -36,11 +40,13 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.di.playModule
+import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
@@ -113,6 +119,10 @@ class LibraryTabletScrollTest {
                     factory { ObserveGameStats(get(), get(), ComputeStreak(GetPuzzleDay(get()))) }
                     factory { ObserveArchiveProgress(get(), get(), get()) }
                     factory { ObserveArchiveMonth(get(), get(), get(), get()) }
+                    single<IdentityService> { FakeIdentityService() }
+                    single<LeaderboardRepository> { FakeLeaderboardRepository(emptyMap()) }
+                    single<GoogleIdTokenProvider> { dismissedGoogleSignIn }
+                    factory { ObserveLeaderboard(get(), get(), get(), get()) }
                 },
                 playModule,
             )
@@ -132,7 +142,7 @@ class LibraryTabletScrollTest {
         }
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                LibraryRoute(layout = PlayLayout.TwoPane, onPlay = { _, _ -> }, onOpenCode = {})
+                LibraryRoute(layout = PlayLayout.TwoPane, onPlay = { _, _ -> }, onOpenCode = {}, onOpenGameHistory = {})
             }
         }
         awaitTag("library.friends.row.${A.value}")
