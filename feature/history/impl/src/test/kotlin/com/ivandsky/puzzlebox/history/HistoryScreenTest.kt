@@ -422,6 +422,44 @@ class HistoryScreenTest {
         composeRule.onNodeWithTag("history.stats", useUnmergedTree = true).assertIsDisplayed()
     }
 
+    @Test
+    fun `a tab reselect on the phone's open day closes it without scrolling, the next one scrolls the list`() {
+        val reselect = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        val days = (0L..9L).map { day.minusDays(it) }
+        setContent(days.map { HistoryTestSupport.entry(it) }, reselect = reselect)
+        openRow(ZIP, days.last())
+        awaitTag("history.keep_going")
+
+        composeRule.runOnIdle { reselect.tryEmit(Unit) }
+        composeRule.waitForIdle()
+
+        awaitRow(ZIP, days.last())
+        assertNoTag("history.keep_going")
+        composeRule.onNodeWithTag("history.stats", useUnmergedTree = true).assertIsNotDisplayed()
+        assertEquals(0, shellBacks)
+
+        composeRule.runOnIdle { reselect.tryEmit(Unit) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("history.stats", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun `a tab reselect beside the tablet's open day scrolls the list to its top and keeps the day`() {
+        val reselect = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        val days = (0L..9L).map { day.minusDays(it) }
+        setContent(days.map { HistoryTestSupport.entry(it) }, layout = HistoryLayout.TwoPane, reselect = reselect)
+        openRow(ZIP, days.last())
+        awaitTag("history.keep_going")
+        composeRule.onNodeWithTag("history.stats", useUnmergedTree = true).assertIsNotDisplayed()
+
+        composeRule.runOnIdle { reselect.tryEmit(Unit) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("history.stats", useUnmergedTree = true).assertIsDisplayed()
+        awaitTag("history.keep_going")
+    }
+
     private companion object {
         const val LIST = "history.list"
     }

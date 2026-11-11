@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.testTag
 import androidx.paging.compose.LazyPagingItems
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
@@ -117,6 +118,8 @@ fun HistoryScreen(
                 }
             }
         } else {
+            // The list isn't composed under a day, so the day takes the reselect: it closes first.
+            if (selectedRow != null) OnTabReselect { selectedKey = null }
             AnimatedContent(
                 targetState = selectedRow,
                 modifier = Modifier.fillMaxSize(),

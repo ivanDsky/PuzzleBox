@@ -12,10 +12,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
-import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
+import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.format.DateTimeFormatter
@@ -44,10 +43,7 @@ internal fun ListPane(
     onOpenUpdate: (String) -> Unit = {},
 ) {
     val scroll = rememberScrollState()
-    val reselect = LocalTabReselect.current
-    LaunchedEffect(reselect, scroll) {
-        reselect.collect { scroll.animateScrollTo(0) }
-    }
+    OnTabReselect { scroll.animateScrollTo(0) }
     Column(
         modifier = modifier
             .background(MaterialTheme.colorScheme.background)

@@ -21,7 +21,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -32,8 +31,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.offset
-import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
@@ -72,13 +71,10 @@ internal fun LibraryList(
     duelsScroll: LazyListState = rememberLazyListState(),
 ) {
     val phone = layout == PlayLayout.SinglePane
-    val reselect = LocalTabReselect.current
     // Only the list on screen glides: a tab change already snaps the other one back to its top.
     val duelsShown by rememberUpdatedState(duels != null && tab == GamesTab.Duels)
-    LaunchedEffect(reselect, scroll, duelsScroll) {
-        reselect.collect {
-            if (duelsShown) duelsScroll.animateScrollToItem(0) else scroll.animateScrollTo(0)
-        }
+    OnTabReselect {
+        if (duelsShown) duelsScroll.animateScrollToItem(0) else scroll.animateScrollTo(0)
     }
     if (duels != null) {
         TabbedList(state, phone, scroll, duelsScroll, onRow, modifier, headerAction, duels, tab, onTab, friendsTab, friendCount)

@@ -10,8 +10,12 @@ import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import androidx.activity.ComponentActivity
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -30,6 +34,7 @@ import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ArchiveProgress
 import com.ivandsky.puzzlebox.domain.ComputeStreak
@@ -69,6 +74,8 @@ import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -154,10 +161,12 @@ class LibraryRouteTest {
         koin?.close()
     }
 
-    private fun setContent(layout: PlayLayout) {
+    private fun setContent(layout: PlayLayout, reselect: SharedFlow<Unit> = MutableSharedFlow()) {
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) {
-                LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) }, onOpenCode = {}, onOpenGameHistory = {})
+            CompositionLocalProvider(LocalTabReselect provides reselect) {
+                PuzzleBoxTheme(darkTheme = false) {
+                    LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) }, onOpenCode = {}, onOpenGameHistory = {})
+                }
             }
         }
     }
@@ -227,6 +236,48 @@ class LibraryRouteTest {
         awaitTag("library.page.zip")
         composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
         awaitTag("library.list")
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w400dp-h200dp")
+    fun `a tab reselect on the phone's open game page closes it without scrolling, the next one scrolls the list`() {
+        val reselect = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        setContent(PlayLayout.SinglePane, reselect)
+        awaitTag("library.row.alpha")
+        composeRule.onNodeWithTag("library.row.alpha").performScrollTo()
+        composeRule.onNodeWithText("Games").assertIsNotDisplayed()
+        tap("library.row.alpha")
+        awaitTag("library.page.alpha")
+
+        composeRule.runOnIdle { reselect.tryEmit(Unit) }
+
+        awaitTag("library.list")
+        composeRule.onNodeWithTag("library.page.alpha").assertDoesNotExist()
+        composeRule.onNodeWithText("Games").assertIsNotDisplayed()
+
+        composeRule.runOnIdle { reselect.tryEmit(Unit) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Games").assertIsDisplayed()
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w900dp-h200dp")
+    fun `a tab reselect beside the tablet's page scrolls the list to its top and keeps the page`() {
+        val reselect = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        setContent(PlayLayout.TwoPane, reselect)
+        awaitTag("library.row.alpha")
+        composeRule.onNodeWithTag("library.row.alpha").performScrollTo()
+        tap("library.row.alpha")
+        awaitTag("library.page.alpha")
+        composeRule.onNodeWithText("Games").assertIsNotDisplayed()
+
+        composeRule.runOnIdle { reselect.tryEmit(Unit) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Games").assertIsDisplayed()
+        composeRule.onNodeWithTag("library.page.alpha").assertExists()
+        composeRule.onNodeWithTag("library.row.alpha").assertIsSelected()
     }
 
     @Test

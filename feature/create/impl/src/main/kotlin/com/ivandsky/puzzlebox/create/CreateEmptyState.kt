@@ -14,7 +14,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -23,7 +22,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
-import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
+import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -53,8 +52,7 @@ fun CreateEmptyState(
     onImport: (() -> Unit)? = null,
 ) {
     val scroll = rememberScrollState()
-    val reselect = LocalTabReselect.current
-    LaunchedEffect(reselect, scroll) { reselect.collect { scroll.animateScrollTo(0) } }
+    OnTabReselect { scroll.animateScrollTo(0) }
     Column(
         modifier = modifier
             .maxContentWidth()
