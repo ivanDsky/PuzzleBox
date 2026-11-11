@@ -1,19 +1,15 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.common.result.AppResult
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.game.BestScore
-import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.gameui.Adopt
-import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
-import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.model.GameId
@@ -24,8 +20,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
@@ -81,28 +75,23 @@ class ActivePlay internal constructor(
 
     private var generation = 0
 
-    /** The record write's identity: bumped by [resetRecord] only (a load, its adopt or
-     *  resume, and replay) — never by a controller swap. */
-    private var recordToken = 0
+    private val persistence = PlayPersistence(slot, writer)
+    private val winRecording = WinRecording(plugin, completions, scope, recordScope)
 
     private val _board = MutableStateFlow(Board(newController(), PlayBoardStatus.Loading))
     val board: StateFlow<Board> = _board.asStateFlow()
 
-    private val _record = MutableStateFlow(blankRecord(labelFor(null)))
-    val record: StateFlow<Record> = _record.asStateFlow()
+    val record: StateFlow<Record> get() = winRecording.record
 
     val controller: GamePlayController get() = _board.value.controller
 
     private var ref: PuzzleRef? = null
 
-    /** The game's best BEFORE this session and whether this puzzle was already
-     *  solved (a replay), read at session start: the verdict is derived from this
-     *  baseline, never from the stored rows after the write. [baselineKnown] false = the
-     *  read has not landed (the verdict stays null). */
-    private var baselineKnown = false
-    private var baselineBest: BestScore? = null
-    private var baselinePlayAgain = false
-    private var lastWon: CompletionRecord? = null
+    /** A new record starts: a load, its adopt or resume, and play again. */
+    private fun resetRecord(ref: PuzzleRef?) {
+        this.ref = ref
+        winRecording.reset(ref)
+    }
 
     /** Opening → board: a restored session resumes; a Fresh fetch plays; a
      *  Cached one plays with a degrade banner; Unavailable is the error state; an envelope
@@ -139,7 +128,7 @@ class ActivePlay internal constructor(
             is Adopt.Rejected -> PlayBoardStatus.Unavailable(adopted.message)
             Adopt.Adopted -> {
                 resetRecord(resolved)
-                refreshBaseline(resolved)
+                winRecording.refreshBaseline(resolved)
                 PlayBoardStatus.Ready(fetched.banner)
             }
         }
@@ -153,7 +142,7 @@ class ActivePlay internal constructor(
         val restored = SessionBlob.decode(envelope)?.session?.let(controller::adoptRestored)
             ?: return PlayBoardStatus.Unavailable(UNREADABLE)
         resetRecord(restored.ref)
-        if (!controller.isComplete) refreshBaseline(restored.ref)
+        if (!controller.isComplete) winRecording.refreshBaseline(restored.ref)
         return PlayBoardStatus.Ready(banner = null)
     }
 
@@ -162,37 +151,25 @@ class ActivePlay internal constructor(
     fun playAgain() {
         if (_board.value.status !is PlayBoardStatus.Ready) return
         resetRecord(ref)
-        refreshBaseline(ref, playAgain = true)
+        winRecording.refreshBaseline(ref, playAgain = true)
         controller.playAgain()
     }
 
     /** Retry after a failed record write: a new emitter (the old one deduped this ref). */
-    fun retryRecordWrite() {
-        emit(lastWon ?: return)
-    }
-
-    /** Banks the running clock window so the next save carries it. */
-    internal fun fold() {
-        (controller as? PlayClock)?.onBackground()
-    }
+    fun retryRecordWrite() = winRecording.retry()
 
     /** App stop: folds the clock and waits until the slot's pending save is written. */
-    internal suspend fun save() {
-        fold()
-        writer.flush()
-    }
+    internal suspend fun save() = persistence.save(controller)
 
     /** Release: the final save is written, then the play's own work stops; [save] false
      *  drops it instead (pending save cancelled). The record write on [recordScope] outlives it. */
     internal suspend fun close(save: Boolean = true) {
-        if (save) save() else writer.discard()
+        if (save) save() else persistence.discard()
         scope.cancel()
     }
 
     /** The slot's newest session change its writer still holds (not yet queued for disk). */
-    internal val unsavedSession: ByteArray? get() = writer.unsaved
-
-    //region internals
+    internal val unsavedSession: ByteArray? get() = persistence.unsaved
 
     private fun newController(): GamePlayController {
         val gen = ++generation
@@ -200,101 +177,19 @@ class ActivePlay internal constructor(
         created = ui.createController(
             PlayEnvironment(
                 scope = scope,
-                onSessionChanged = { bytes ->
+                onSessionChanged = { bytes -> if (gen == generation) persistence.offer(created, bytes) },
+                onWon = { record ->
                     if (gen == generation) {
-                        // A finished session never saves: the solve deleted the row.
-                        if (!created.isComplete) {
-                            val elapsedMs = (created as? PlayClock)?.displayedElapsedMs() ?: 0L
-                            writer.offer(SessionBlob.encode(slot.gameId, bytes), elapsedMs)
-                        }
+                        persistence.discard()
+                        winRecording.onWon(record)
                     }
                 },
-                onWon = { record -> if (gen == generation) onWon(record) },
             ),
         )
         return created
     }
 
-    private fun onWon(record: CompletionRecord) {
-        writer.discard()
-        lastWon = record
-        _record.update { it.copy(solve = Solve(record.time, record.hints)) }
-        emit(record)
-    }
-
-    private fun emit(record: CompletionRecord) {
-        val token = recordToken
-        _record.update { it.copy(verdict = null, previousBest = null, writeFailed = false) }
-        CompletionRecordEmitter(recordScope) { r ->
-            completions.onCompleted(r)
-            AppResult.Ok(Unit)
-        }.emit(record) { result ->
-            if (token != recordToken) return@emit
-            when (result) {
-                // Verdict for THIS play against the session-start best; an unknown
-                // baseline (the write raced the baseline read) stays null. A practice
-                // puzzle (no edition number) never ranks: its verdict stays null.
-                is AppResult.Ok -> _record.update {
-                    if (!baselineKnown || record.puzzleRef.edition == null) {
-                        it
-                    } else {
-                        it.copy(
-                            verdict = RecordVerdict.of(baselineBest, record.time, record.hints, baselinePlayAgain, rankOrder),
-                            previousBest = baselineBest,
-                        )
-                    }
-                }
-                is AppResult.Err -> _record.update { it.copy(writeFailed = true) }
-            }
-        }
-    }
-
-    private fun resetRecord(ref: PuzzleRef?) {
-        recordToken++
-        this.ref = ref
-        baselineKnown = false
-        baselineBest = null
-        baselinePlayAgain = false
-        lastWon = null
-        _record.value = blankRecord(labelFor(ref))
-    }
-
-    /** [playAgain] true = known without a read (Play again: the solve's write may still be in
-     *  flight). Otherwise a record row with this ref's identity (ADR-0004) makes it one. */
-    private fun refreshBaseline(ref: PuzzleRef?, playAgain: Boolean = false) {
-        if (ref == null) return
-        val token = recordToken
-        scope.launch {
-            val best = completions.best(ref.gameId)
-            val solved = playAgain || completions.observeRecords().first().any { it.puzzleRef.sameIdentity(ref) }
-            if (token == recordToken) {
-                baselineBest = best
-                baselinePlayAgain = solved
-                baselineKnown = true
-            }
-        }
-    }
-
-    private fun PuzzleRef.sameIdentity(other: PuzzleRef) = gameId == other.gameId && key == other.key
-
-    /** The daily's edition number; null for an unnumbered daily or a custom puzzle. */
-    private val PuzzleRef.edition: Int? get() = (key as? PuzzleKey.Daily)?.puzzleNumber
-
-    private fun blankRecord(label: String) =
-        Record(verdict = null, previousBest = null, writeFailed = false, label = label, rankOrder = rankOrder)
-
-    private val rankOrder: RankOrder get() = plugin.score.rankOrder
-
-    /** "Zip · #598" for a daily, "Tango · Practice" for a puzzle with no edition number. */
-    private fun labelFor(ref: PuzzleRef?): String {
-        val name = plugin.definition.displayName
-        if (ref == null) return name
-        return ref.edition?.let { "$name · #$it" } ?: "$name · Practice"
-    }
-
     private companion object {
         const val UNREADABLE = "This saved game couldn't be read."
     }
-
-    //endregion
 }
