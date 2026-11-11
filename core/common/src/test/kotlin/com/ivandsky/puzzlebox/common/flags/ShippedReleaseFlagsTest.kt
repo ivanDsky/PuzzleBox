@@ -1,13 +1,14 @@
 package com.ivandsky.puzzlebox.common.flags
 
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ShippedReleaseFlagsTest {
 
     @Test
-    fun `shipped flags exclude Competitions until its flip ticket`() {
-        assertFalse(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.Competitions))
+    fun `shipped flags include Competitions since its flip`() {
+        assertTrue(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.Competitions))
     }
 
     @Test
