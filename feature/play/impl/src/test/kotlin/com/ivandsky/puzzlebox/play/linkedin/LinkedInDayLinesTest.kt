@@ -150,7 +150,7 @@ class LinkedInDayLinesTest {
     @Test
     fun rankLineReadsYoureThirdOfTwelve() {
         show(status(LinkedInDayStatus.Imported(52_000L), shown(yourRank = 3, total = 12)))
-        tag("linkedin.rank").assertTextEquals("You're 3rd of 12 connections")
+        tag("linkedin.rank").assertTextEquals("You're 3rd of 12 with connections")
     }
 
     @Test
@@ -200,7 +200,7 @@ class LinkedInDayLinesTest {
     fun cardKeepsTheSummaryAndNeverListsConnections() {
         val ghosts = listOf(ghost("Ana", 41_000L), ghost("Jonas", 63_000L), ghost("Omar", null))
         show(status(LinkedInDayStatus.Imported(52_000L), shown(yourRank = 2, total = 4, ghosts = ghosts)))
-        tag("linkedin.rank").assertTextEquals("You're 2nd of 4 connections")
+        tag("linkedin.rank").assertTextEquals("You're 2nd of 4 with connections")
         tag("linkedin.updated").assertExists()
         tag("linkedin.ghost").assertDoesNotExist()
         composeRule.onAllNodesWithText("Ana", substring = true).assertCountEquals(0)

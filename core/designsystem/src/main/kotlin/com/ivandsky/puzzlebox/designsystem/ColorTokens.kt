@@ -45,6 +45,10 @@ val DarkWarning = Color(0xFFFFC800)
 val LightOnFill = Color(0xFFFFFFFF)
 val DarkOnFill = Color(0xFF101418)
 
+// Small text on an accent fill where [LightOnFill] white does not read: white holds only 2.1:1 to 3.2:1 on the five light
+// accents. The dark surface step is the ink dark mode already takes on those fills, 5.7:1 or better on every accent.
+val OnBrightFill = DarkOnFill
+
 // The lip under a neutral GameButton, whose face is `surfaceContainerHigh`: the face's
 // hue at OKLCH L −0.13 in light; dark takes the prototype's near-black (07 C), as −0.20
 // clips to black.

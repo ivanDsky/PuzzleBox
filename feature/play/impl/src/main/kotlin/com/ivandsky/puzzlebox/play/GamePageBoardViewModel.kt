@@ -7,6 +7,8 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView.Target
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
@@ -18,8 +20,6 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.board.BoardSignInHolder
 import com.ivandsky.puzzlebox.play.linkedin.LinkedInBoardInput
-import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState
-import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState.Target
 import com.ivandsky.puzzlebox.play.linkedin.toBoardInput
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -74,7 +74,7 @@ internal class GamePageBoardViewModel(
     registry: GameRegistry,
     identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
-    private val linkedIn: LinkedInDayState?,
+    private val linkedIn: ObserveLinkedInDayView?,
 ) : ViewModel() {
 
     private val choice = MutableStateFlow(Choice(picked = null, cardDay = null))

@@ -1,15 +1,12 @@
-package com.ivandsky.puzzlebox.play.linkedin
+package com.ivandsky.puzzlebox.domain.linkedin
 
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInSync
-import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
-import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
-import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView.Target
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
-import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState.Target
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
@@ -30,7 +27,7 @@ import org.junit.Test
 
 /** A day asks LinkedIn for its data only while a screen shows it, once, and only after it has stayed there. */
 @OptIn(ExperimentalCoroutinesApi::class)
-class LinkedInDayStateTest {
+class ObserveLinkedInDayViewTest {
 
     @get:Rule
     val main = MainDispatcherRule()
@@ -47,7 +44,7 @@ class LinkedInDayStateTest {
     /** Stands in for the screen: the (game, day) it shows, null while it shows none. */
     private val target = MutableStateFlow<Target?>(null)
 
-    private fun holder(link: LinkedInLink = FakeLinkedInLink()) = LinkedInDayState(observe, SyncLinkedInDay(days, 500), link)
+    private fun holder(link: LinkedInLink = FakeLinkedInLink()) = ObserveLinkedInDayView(observe, SyncLinkedInDay(days, 500), link)
 
     /** A linked day whose own result is not known yet, so [inFlight] and [lastSync] decide what it shows. */
     private fun data(inFlight: Boolean = false, lastSync: LinkedInSync? = null) = LinkedInDayData(
@@ -62,9 +59,9 @@ class LinkedInDayStateTest {
     )
 
     /** A screen that stays on [holder]'s view until the test ends, with everything it was shown. */
-    private fun TestScope.shownBy(holder: LinkedInDayState): List<LinkedInDayView?> {
+    private fun TestScope.shownBy(holder: ObserveLinkedInDayView): List<LinkedInDayView?> {
         val views = mutableListOf<LinkedInDayView?>()
-        holder.view(target).onEach { views += it }.launchIn(backgroundScope)
+        holder(target).onEach { views += it }.launchIn(backgroundScope)
         return views
     }
 
@@ -76,7 +73,7 @@ class LinkedInDayStateTest {
 
     @Test
     fun noCollectorMeansNoCall() = runTest(main.testDispatcher) {
-        holder().view(target)
+        holder()(target)
         target.value = Target(game, dayA)
 
         after(HOUR_MS)
@@ -118,7 +115,7 @@ class LinkedInDayStateTest {
     @Test
     fun leavingBeforeTheDebounceCancelsTheSync() = runTest(main.testDispatcher) {
         target.value = Target(game, dayA)
-        val screen = holder().view(target).launchIn(this)
+        val screen = holder()(target).launchIn(this)
 
         after(300)
         screen.cancel()
@@ -175,7 +172,7 @@ class LinkedInDayStateTest {
         val link = FakeLinkedInLink(paused)
         val holder = holder(link)
         target.value = Target(game, dayA)
-        holder.view(target)
+        holder(target)
 
         holder.retry()
         holder.resume()

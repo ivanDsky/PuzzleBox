@@ -29,9 +29,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The day card's LinkedIn lines on an accent card, light and dark: an imported result with a
- * ranked ghost list, the loading skeleton, a paused read and an ended session.
- * Goldens in `snapshots/linkedin/`.
+ * The day card's LinkedIn lines on an accent card, light and dark: an imported result with its rank and age, the
+ * loading skeleton, a paused read and an ended session, all on the Blue card; and a paused read with a rank on the
+ * Teal card, the brightest fill, where white text reads worst. Goldens in `snapshots/linkedin/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -53,9 +53,12 @@ class LinkedInDayLinesGoldenScreenshots {
     @Test fun `session expired light`() = capture("day-lines-expired", dark = false, EXPIRED)
     @Test fun `session expired dark`() = capture("day-lines-expired", dark = true, EXPIRED)
 
-    private fun capture(name: String, dark: Boolean, view: LinkedInDayView) {
+    @Test fun `paused with rank on teal light`() = capture("day-lines-teal", dark = false, TEAL_PAUSED, AccentSlot.Teal)
+    @Test fun `paused with rank on teal dark`() = capture("day-lines-teal", dark = true, TEAL_PAUSED, AccentSlot.Teal)
+
+    private fun capture(name: String, dark: Boolean, view: LinkedInDayView, accent: AccentSlot = AccentSlot.Blue) {
         rule.showGolden(dark) {
-            val colors = libraryCardColors(GameBrand(AccentSlot.Blue, GameGlyphs.Zip))
+            val colors = libraryCardColors(GameBrand(accent, GameGlyphs.Zip))
             Box(Modifier.fillMaxWidth().background(colors.fill).padding(Spacing.lg), contentAlignment = Alignment.TopStart) {
                 LinkedInDayLines(
                     view = view,
@@ -84,6 +87,10 @@ class LinkedInDayLinesGoldenScreenshots {
         val IMPORTED = LinkedInDayView(
             LinkedInDayStatus.Imported(52_000L),
             LinkedInBoardView.Shown(GHOSTS, yourRank = 2, total = 5, updatedAtMs = NOW - FIVE_MINUTES_MS),
+        )
+        val TEAL_PAUSED = LinkedInDayView(
+            LinkedInDayStatus.Paused(Kind.Challenge),
+            LinkedInBoardView.Shown(GHOSTS, yourRank = null, total = 4, updatedAtMs = NOW - FIVE_MINUTES_MS),
         )
         val PAUSED = LinkedInDayView(LinkedInDayStatus.Paused(Kind.Challenge), LinkedInBoardView.Hidden)
         val EXPIRED = LinkedInDayView(LinkedInDayStatus.SessionExpired, LinkedInBoardView.Hidden)

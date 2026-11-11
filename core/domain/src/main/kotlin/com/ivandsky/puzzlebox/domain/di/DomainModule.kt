@@ -33,6 +33,7 @@ import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.domain.linkedin.CreateLinkedInLink
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import java.time.Instant
 import java.util.UUID
@@ -136,6 +137,7 @@ val domainModule = module {
     }
     factory { SyncLinkedInDay(days = get()) }
     factory { ObserveLinkedInDay(days = get(), registry = get()) }
+    factory { ObserveLinkedInDayView(observe = get(), sync = get(), link = get()) }
     factory { ObserveLinkedInAccount(account = get(), completions = get(), puzzleDay = get(), registry = get()) }
     factory { CreateLinkedInLink(source = get(), link = get(), daily = get(), registry = get(), clock = System::currentTimeMillis) }
 }

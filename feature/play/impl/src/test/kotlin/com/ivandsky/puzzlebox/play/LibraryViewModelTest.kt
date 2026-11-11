@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
@@ -34,7 +35,6 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
-import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
@@ -127,7 +127,7 @@ class LibraryViewModelTest {
 
     private fun observedVm(
         delete: DeleteReceivedPuzzle = DeleteReceivedPuzzle(received, saved),
-        linkedIn: LinkedInDayState? = null,
+        linkedIn: ObserveLinkedInDayView? = null,
     ): LibraryViewModel {
         val history = ObserveGameHistory(fakes.games, daily, completions)
         return LibraryViewModel(
@@ -159,7 +159,7 @@ class LibraryViewModelTest {
 
     private val days = FakeLinkedInDays()
 
-    private fun holder() = LinkedInDayState(ObserveLinkedInDay(days, fakes.games), SyncLinkedInDay(days, 500), FakeLinkedInLink())
+    private fun holder() = ObserveLinkedInDayView(ObserveLinkedInDay(days, fakes.games), SyncLinkedInDay(days, 500), FakeLinkedInLink())
 
     /** A linked day whose own result is not known yet, so [inFlight] and [lastSync] decide what it shows. */
     private fun data(inFlight: Boolean = false, lastSync: LinkedInSync? = null) = LinkedInDayData(
