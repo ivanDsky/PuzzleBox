@@ -8,17 +8,15 @@ android {
 
 dependencies {
     implementation(projects.feature.profile.api)
-    // Identity + leaderboard contracts (IdentityService, LeaderboardEntry) in the VM/screen.
+    // IdentityService in the VM/screen.
     implementation(projects.core.data)
-    // ObserveLeaderboard.today (the featured game's board) and ObserveGameStats/ObserveGameHistory (the record).
+    // ObserveGameStats (the header's "Playing since").
     implementation(projects.core.domain)
-    // Per-game brands (GamePlayRegistry) and GameGlyph for the game rows.
+    // PlayerAvatar for the header.
     implementation(projects.core.gameUi)
-    // A game row opens History (api edge only).
-    implementation(projects.feature.history.api)
     // GoogleIdTokenProvider: the sign-in seam the VM asks for a token.
     implementation(projects.core.auth)
-    // ReleaseFlags: the PerGameLeaderboards gate the VM collects (ADR-0022).
+    // DispatcherProvider for the LinkedIn session.
     implementation(projects.core.common)
 
     implementation(libs.androidx.lifecycle.runtime.compose)

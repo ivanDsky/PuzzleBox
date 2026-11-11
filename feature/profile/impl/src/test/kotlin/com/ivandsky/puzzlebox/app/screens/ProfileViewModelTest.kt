@@ -1,10 +1,6 @@
 package com.ivandsky.puzzlebox.app.screens
 
 import android.content.Context
-import androidx.lifecycle.SavedStateHandle
-import com.ivandsky.puzzlebox.domain.ObserveLatestSolvedToday
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
-
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdToken.Unavailable.Reason.CANCELLED
 import com.ivandsky.puzzlebox.auth.GoogleIdToken.Unavailable.Reason.MALFORMED
@@ -16,68 +12,46 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.Identity
-import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
-import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
-import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
-import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
-import com.ivandsky.puzzlebox.domain.TodayLeaderboard
-import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
-import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
-import com.ivandsky.puzzlebox.game.ScoreModel
-import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.profile.board.PerGameBoard
 import com.ivandsky.puzzlebox.model.PuzzleKey
-import com.ivandsky.puzzlebox.model.ThemeMode
-import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
-import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** Profile ViewModel states (brief §4, A20, N4): the record, signed-out/in, sign-in results, board gating, theme. */
+/** Profile ViewModel states (brief §4, A20): signed-out/in, sign-in results, "Playing since". */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProfileViewModelTest {
 
     private val day = LocalDate.of(2026, 10, 31)
-    private val boardRef = LeaderboardRef("zip", day)
     private val dispatcher = StandardTestDispatcher()
 
     private val zip = GameId("zip")
     private val tango = GameId("tango")
 
-    // Today's board is the featured game's: the registry's first, "zip". Tango ranks hints first.
-    private val registry = GameRegistry(listOf(TestGames.plugin(zip), hintsFirst(TestGames.plugin(tango))))
-    private val featured = GetFeaturedGame(registry)
-    private val calendar = FakeGameCalendar(day)
+    private val registry = GameRegistry(listOf(TestGames.plugin(zip), TestGames.plugin(tango)))
     private val clock = Clock.fixed(Instant.parse("2026-10-31T12:00:00Z"), ZoneOffset.UTC)
 
     @get:Rule
@@ -95,40 +69,24 @@ class ProfileViewModelTest {
     private data class Deps(
         val vm: ProfileViewModel,
         val identity: FakeIdentityService,
-        val leaderboard: FakeLeaderboardRepository,
         val tokens: FakeTokenProvider,
-        val preferences: FakeUserPreferencesRepository,
     )
 
     private fun TestScope.viewModel(
         identity: FakeIdentityService = FakeIdentityService(initial = null),
         tokens: FakeTokenProvider = FakeTokenProvider(),
-        leaderboard: FakeLeaderboardRepository = FakeLeaderboardRepository(),
         completions: FakeCompletionRepository = FakeCompletionRepository(),
-        preferences: FakeUserPreferencesRepository = FakeUserPreferencesRepository(),
-        savedState: SavedStateHandle = SavedStateHandle(),
-        settle: Boolean = true,
     ): Deps {
         val history = ObserveGameHistory(registry, FakeDailyRepository(), completions)
         val vm = ProfileViewModel(
             identityService = identity,
             idTokenProvider = tokens,
-            observeLeaderboard = ObserveLeaderboard(identity, leaderboard, registry, calendar),
-            getFeaturedGame = featured,
             observeGameStats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
-            observeGameHistory = history,
-            registry = registry,
-            brands = GamePlayRegistry(emptyList()),
-            preferences = preferences,
-            observeLatestSolvedToday = ObserveLatestSolvedToday(completions, calendar, registry),
-            savedStateHandle = savedState,
         )
         // The state is observed only while subscribed (the route's lifecycle collector).
-        if (settle) {
-            backgroundScope.launch { vm.uiState.collect {} }
-            advanceUntilIdle()
-        }
-        return Deps(vm, identity, leaderboard, tokens, preferences)
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        return Deps(vm, identity, tokens)
     }
 
     private val Deps.signedOut: ProfileUiState.Account.SignedOut
@@ -141,16 +99,15 @@ class ProfileViewModelTest {
     private val appContext: Context = org.mockito.Mockito.mock(Context::class.java)
 
     @Test
-    fun `signed out is the initial state, board not observed (A7-A15)`() = runTest(dispatcher) {
+    fun `signed out is the initial state (A7-A15)`() = runTest(dispatcher) {
         val deps = viewModel()
 
-        // Signed out carries no board (nothing loading) and no sign-in progress.
+        // Signed out carries no sign-in progress.
         assertEquals(ProfileUiState.Account.SignedOut(), deps.vm.uiState.value.account)
-        assertTrue(deps.leaderboard.observedBoards.isEmpty())
     }
 
     @Test
-    fun `successful sign-in sets the identity and starts the today board`() = runTest(dispatcher) {
+    fun `signing in through the credential flow signs in and signing out returns to signed out`() = runTest(dispatcher) {
         val deps = viewModel()
 
         deps.vm.onSignIn(appContext)
@@ -161,17 +118,20 @@ class ProfileViewModelTest {
             Identity(uid = "fake-uid", displayName = "Fake Player", photoUrl = null),
             deps.signedIn.identity,
         )
-        assertEquals(listOf(boardRef), deps.leaderboard.observedBoards)
         assertEquals(deps.identity.currentIdentity, deps.signedIn.identity)
+
+        deps.vm.onSignOut()
+        advanceUntilIdle()
+
+        assertEquals(ProfileUiState.Account.SignedOut(), deps.vm.uiState.value.account)
     }
 
     @Test
-    fun `the record carries lifetime stats, days played and one row per game - A20`() = runTest(dispatcher) {
+    fun `playing since is the first solve's day, practice never counts - A20`() = runTest(dispatcher) {
         val completions = FakeCompletionRepository(
             listOf(
                 record(zip, day, timeMs = 95_000, hints = 2),
                 record(zip, day.minusDays(1), timeMs = 80_000, hints = 0),
-                record(tango, day, timeMs = 61_000, hints = 0),
                 // Practice (no edition number) never counts.
                 record(tango, day.minusDays(5), timeMs = 10_000, hints = 0, puzzleNumber = null),
             ),
@@ -179,62 +139,7 @@ class ProfileViewModelTest {
 
         val state = viewModel(completions = completions).vm.uiState.value
 
-        assertEquals(3, state.stats.solved)
-        assertEquals(2, state.stats.hintFree)
-        assertEquals(2, state.stats.bestStreak)
-        assertEquals(day.minusDays(1), state.stats.playingSince)
-        assertEquals(2, state.daysPlayed)
-        assertEquals(listOf(zip, tango), state.games.map { it.gameId })
-        assertEquals(listOf(2, 1), state.games.map { it.solved })
-        assertEquals(listOf(BestScore(80_000, 0), BestScore(61_000, 0)), state.games.map { it.best })
-    }
-
-    @Test
-    fun `a hints-ranked game's best is its fewest-hints solve - A10`() = runTest(dispatcher) {
-        val completions = FakeCompletionRepository(
-            listOf(
-                record(zip, day, timeMs = 30_000, hints = 2),
-                record(zip, day.minusDays(1), timeMs = 70_000, hints = 0),
-                record(tango, day, timeMs = 30_000, hints = 2),
-                record(tango, day.minusDays(1), timeMs = 70_000, hints = 0),
-            ),
-        )
-
-        val games = viewModel(completions = completions).vm.uiState.value.games.associateBy { it.gameId }
-
-        assertEquals(RankOrder.HintsThenTime, games.getValue(tango).rankOrder)
-        assertEquals(BestScore(70_000, 0), games.getValue(tango).best)
-        assertEquals(RankOrder.TimeThenHints, games.getValue(zip).rankOrder)
-        assertEquals(BestScore(30_000, 2), games.getValue(zip).best)
-    }
-
-    private fun <P> hintsFirst(
-        plugin: GamePlugin<P, TestGames.Session, TestGames.Model>,
-    ): GamePlugin<P, TestGames.Session, TestGames.Model> = GamePlugin(
-        definition = plugin.definition,
-        rules = plugin.rules,
-        session = plugin.session,
-        score = object : ScoreModel<TestGames.Session> {
-            override fun completion(session: TestGames.Session) = plugin.score.completion(session)
-            override val rankOrder = RankOrder.HintsThenTime
-        },
-        stateOf = plugin.stateOf,
-        initialSession = plugin.initialSession,
-        refOf = plugin.refOf,
-        replaySession = plugin.replaySession,
-        rendererModel = plugin.rendererModel,
-    )
-
-    @Test
-    fun `choosing dark persists the theme - N4`() = runTest(dispatcher) {
-        val deps = viewModel()
-        assertEquals(ThemeMode.SYSTEM, deps.vm.uiState.value.themeMode)
-
-        deps.vm.onSetThemeMode(ThemeMode.DARK)
-        advanceUntilIdle()
-
-        assertEquals(ThemeMode.DARK, deps.preferences.themeMode.first())
-        assertEquals(ThemeMode.DARK, deps.vm.uiState.value.themeMode)
+        assertEquals(day.minusDays(1), state.playingSince)
     }
 
     private fun record(game: GameId, on: LocalDate, timeMs: Long, hints: Int, puzzleNumber: Int? = 592) =
@@ -282,7 +187,6 @@ class ProfileViewModelTest {
             )
             // Still signed out: no identity (A7).
             assertTrue(deps.vm.uiState.value.account is ProfileUiState.Account.SignedOut)
-            assertTrue(deps.leaderboard.observedBoards.isEmpty())
         }
 
     @Test
@@ -371,7 +275,7 @@ class ProfileViewModelTest {
     }
 
     @Test
-    fun `sign-out clears identity and drops the board`() = runTest(dispatcher) {
+    fun `sign-out clears identity`() = runTest(dispatcher) {
         val deps = viewModel(identity = FakeIdentityService(initial = Identity("u1", "Ann", null)))
         advanceUntilIdle()
         assertTrue(deps.vm.uiState.value.account is ProfileUiState.Account.SignedIn)
@@ -379,99 +283,8 @@ class ProfileViewModelTest {
         deps.vm.onSignOut()
         advanceUntilIdle()
 
-        // Signed out: no identity and no board.
+        // Signed out: no identity.
         assertTrue(deps.vm.uiState.value.account is ProfileUiState.Account.SignedOut)
         assertEquals(1, deps.identity.signOutCalls.size)
-    }
-
-
-    // ---- Per-game board (ticket 10): selection, SavedStateHandle ------------
-
-    private val solvedTango = FakeCompletionRepository(
-        listOf(record(zip, day, 90_000, 0), record(tango, day, 60_000, 0)).mapIndexed { i, r ->
-            r.copy(firstCompletedAt = Instant.parse("2026-10-31T0${i + 8}:00:00Z"))
-        },
-    )
-    private val signedInIdentity get() = FakeIdentityService(initial = Identity("u1", "Ann", null))
-
-    private val Deps.board: PerGameBoard
-        get() = vm.uiState.value.perGameBoard
-
-
-    @Test
-    fun `default is the latest solved today and the board follows it`() = runTest(dispatcher) {
-        val deps = viewModel(identity = signedInIdentity, completions = solvedTango)
-
-        assertEquals(tango, deps.board.selected)
-        assertEquals(RankOrder.HintsThenTime, deps.board.order)
-        assertTrue(LeaderboardRef("tango", day) in deps.leaderboard.observedBoards)
-    }
-
-    @Test
-    fun `default falls back to the first game when nothing was solved today`() = runTest(dispatcher) {
-        val deps = viewModel(identity = signedInIdentity)
-
-        assertEquals(zip, deps.board.selected)
-    }
-
-    @Test
-    fun `the board is Loading, not the first game, before completions first emit`() = runTest(dispatcher) {
-        val deps = viewModel(identity = signedInIdentity, completions = solvedTango, settle = false)
-
-        // Initial value: the default is undecided, so no game is selected and the board loads.
-        assertNull(deps.board.selected)
-        assertEquals(DailyBoardState.Loading, deps.board.state)
-    }
-
-    @Test
-    fun `an explicit pick wins over the default and over a later one`() = runTest(dispatcher) {
-        val completions = FakeCompletionRepository()
-        val deps = viewModel(identity = signedInIdentity, completions = completions)
-        assertEquals(zip, deps.board.selected)
-
-        deps.vm.onSelectGame(tango)
-        advanceUntilIdle()
-        assertEquals(tango, deps.board.selected)
-
-        // A later solve of zip changes the default, not the pick.
-        completions.setRecords(listOf(record(zip, day, 50_000, 0).copy(firstCompletedAt = Instant.parse("2026-10-31T09:00:00Z"))))
-        advanceUntilIdle()
-        assertEquals(tango, deps.board.selected)
-    }
-
-    @Test
-    fun `the pick is restored from the SavedStateHandle`() = runTest(dispatcher) {
-        val handle = SavedStateHandle(mapOf("selectedGame" to "tango"))
-        val deps = viewModel(identity = signedInIdentity, savedState = handle)
-
-        assertEquals(tango, deps.board.selected)
-
-        deps.vm.onSelectGame(zip)
-        advanceUntilIdle()
-        assertEquals("zip", handle.get<String>("selectedGame"))
-        assertEquals(zip, deps.board.selected)
-    }
-
-    @Test
-    fun `signed out has a SignedOut board and observes nothing`() = runTest(dispatcher) {
-        val deps = viewModel()
-
-        assertEquals(DailyBoardState.SignedOut, deps.board.state)
-        assertTrue(deps.leaderboard.observedBoards.isEmpty())
-    }
-
-    @Test
-    fun `the selected game's entries reach the board state`() = runTest(dispatcher) {
-        val deps = viewModel(identity = signedInIdentity)
-        deps.vm.onSelectGame(tango)
-        deps.leaderboard.setEntries(
-            LeaderboardRef("tango", day),
-            listOf(LeaderboardEntry("u1", "Ann", "tango/2026-10-31/592", 95_000, 2, 1_700_000_000_000)),
-        )
-        advanceUntilIdle()
-
-        val state = deps.board.state as DailyBoardState.Ranked
-        assertEquals(listOf("Ann"), state.rows.map { it.name })
-        assertTrue(state.rows.single().isSelf)
     }
 }

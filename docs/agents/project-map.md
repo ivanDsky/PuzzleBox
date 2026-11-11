@@ -378,18 +378,16 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   streak and stats, week/month calendar, every game's rows; any history key opens it); a
   history row pushes that day's `GameKey` on the current stack, which resumes or replays the slot.
 - `feature/profile/impl/` (`:feature:profile:impl`) — packages kept from the app:
-  `app/screens/` (`ProfileRoute`, `ProfileScreen`, `ProfileViewModel`
-  over `ObserveLeaderboard.today` + `ObserveGameStats`/`ObserveGameHistory` (the record) +
-  `UserPreferencesRepository` (Appearance), `ProfileUiState`), `profile/ProfileRecord`
-  (header, lifetime grid, per-game rows opening `HistoryKey(game)`), `profile/AppearanceRow`,
-  `profile/board/` (`ProfileBoardState` `GameRow`/`PerGameBoard`, `ProfileBoardSelection`
-  `selectedBoardGame`/`LatestSolved`, `ProfileDailyBoard` + previews: the chip switcher over
-  the shared `DailyBoard`), `profile/settings/` (`SettingsRoute`, `SettingsScreen`,
+  `app/screens/` (`ProfileRoute`, `ProfileScreen`, `ProfileViewModel(identityService,
+  idTokenProvider, observeGameStats)`: the account from `IdentityService.current` and the
+  player's overall `playingSince`; `ProfileUiState` is `account` + `playingSince`),
+  `profile/ProfileRecord` (header with avatar, name and "Playing since"), `profile/AppearanceRow`
+  (drawn by Settings), `profile/settings/` (`SettingsRoute`, `SettingsScreen`,
   `SettingsViewModel`, `SettingsUiState`: Appearance, About with `AppBuild.versionName`, and a
   Developer link to the catalog in debug builds), `profile/di/ProfileModule` (`profileModule`),
-  `profile/navigation/ProfileEntry` (`profileEntry` and the Settings entry; `slim` draws
-  identity and sign-in only, `onProfileBack` draws the back icon, `onOpenSettings` the gear,
-  each on its own). The Google ID-token provider moved to `:core:auth`.
+  `profile/navigation/ProfileEntry` (`profileEntry` and the Settings entry; `onProfileBack` draws
+  the back icon and `onOpenSettings` the gear, both required). The Google ID-token provider moved
+  to `:core:auth`.
 - `feature/create/impl/` (`:feature:create:impl`, ADR-0019; no `games:*` dependency; `published/` hosts `PublishedPuzzleRoute`) —
   `navigation/CreateEntries` (`CreateKey`, `EditorKey`, `PublishedPuzzleKey`), `CreateRoute`/`CreateScreen` +
   `CreateViewModel` (draft list over `DraftRepository`, `NewPuzzleSheet`, `DraftActionsSheet`),
