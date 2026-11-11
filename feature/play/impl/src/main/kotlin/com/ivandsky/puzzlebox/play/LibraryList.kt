@@ -113,6 +113,9 @@ private fun TabbedList(
     val scope = rememberCoroutineScope()
     // The pills and the Friends body pad their own sides; the tablet's list has none, so they step out of it.
     val sides = if (phone) Modifier else Modifier.widenBy(Spacing.lg)
+    // The tab switch fades the body in through an alpha layer cut to the body's bounds, which would shear the
+    // selected card's outline at the pane's edges; so the tablet's body is [OutlineRoom] wider on each side and its content stays inset by it.
+    val bodyRoom = if (phone) 0.dp else OutlineRoom
     val select: (GamesTab) -> Unit = { next ->
         if (next != tab) {
             scope.launch { scroll.scrollTo(0) }
@@ -149,28 +152,30 @@ private fun TabbedList(
             targetState = tab,
             transitionSpec = { fadeIn(tween(MotionTokens.ReducedFadeDuration)) togetherWith fadeOut(snap()) },
             label = "games-tab",
-            modifier = Modifier.fillMaxWidth().weight(1f),
+            modifier = Modifier.weight(1f).fillMaxWidth().widenBy(bodyRoom),
         ) { shown ->
             when (shown) {
                 // The scroll container clips at its top and bottom edges, so on the tablet it keeps [OutlineRoom] free
-                // above the first card and below the last one for the selected card's outline.
+                // above the first card and below the last one for the selected card's outline; the sides are the body's own room.
                 GamesTab.Dailies -> Column(
                     Modifier
                         .fillMaxSize()
                         .verticalScroll(scroll)
-                        .then(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier)
+                        .padding(horizontal = if (phone) Spacing.lg else OutlineRoom)
                         .padding(top = if (phone) 0.dp else OutlineRoom, bottom = if (phone) Spacing.xl else OutlineRoom),
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 ) {
                     if (phone && state.offline) OfflinePill()
                     DailyRows(state, phone, onRow)
                 }
-                GamesTab.Friends -> Column(Modifier.fillMaxSize().verticalScroll(scroll).padding(bottom = if (phone) Spacing.xl else 0.dp)) {
+                GamesTab.Friends -> Column(
+                    Modifier.fillMaxSize().verticalScroll(scroll).padding(horizontal = bodyRoom).padding(bottom = if (phone) Spacing.xl else 0.dp),
+                ) {
                     Box(sides) { friendsTab() }
                 }
                 // Like Dailies: inset on the phone, flush with the pane on the tablet; the tab pads no sides itself.
                 GamesTab.Duels -> Box(
-                    Modifier.fillMaxSize().then(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier),
+                    Modifier.fillMaxSize().padding(horizontal = if (phone) Spacing.lg else OutlineRoom),
                 ) { duels.content(duelsScroll) }
             }
         }
