@@ -27,8 +27,8 @@ import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.profile.AppearanceRow
 
 /**
- * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, About
- * (the version name), and — only when [onOpenCatalog] is given (debug builds) — Developer.
+ * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, LinkedIn (only when
+ * [onConnectLinkedIn] is given), About (the version name), and — only when [onOpenCatalog] is given (debug builds) — Developer.
  */
 @Composable
 internal fun SettingsScreen(
@@ -37,6 +37,9 @@ internal fun SettingsScreen(
     onBack: () -> Unit,
     onOpenCatalog: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    onConnectLinkedIn: (() -> Unit)? = null,
+    onResumeLinkedIn: () -> Unit = {},
+    onDisconnectLinkedIn: () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CompactTopBar(
@@ -60,6 +63,16 @@ internal fun SettingsScreen(
         ) {
             Column(Modifier.testTag("settings.appearance")) {
                 AppearanceRow(current = state.themeMode, onSelect = onSetThemeMode)
+            }
+            if (onConnectLinkedIn != null) {
+                Column(Modifier.testTag("settings.linkedin.section")) {
+                    LinkedInSection(
+                        state = state.linkedIn,
+                        onConnect = onConnectLinkedIn,
+                        onResume = onResumeLinkedIn,
+                        onDisconnect = onDisconnectLinkedIn,
+                    )
+                }
             }
             Column(
                 modifier = Modifier.fillMaxWidth().testTag("settings.about"),
@@ -114,6 +127,7 @@ internal fun SettingsScreenPreview() {
             onSetThemeMode = {},
             onBack = {},
             onOpenCatalog = {},
+            onConnectLinkedIn = {},
         )
     }
 }
