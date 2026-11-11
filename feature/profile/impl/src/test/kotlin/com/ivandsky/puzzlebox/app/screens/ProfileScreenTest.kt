@@ -5,7 +5,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -46,6 +52,7 @@ class ProfileScreenTest {
 
     private var signInClicks = 0
     private var signOutClicks = 0
+    private lateinit var scheme: ColorScheme
 
     private fun setContent(account: ProfileUiState.Account) = setContent(ProfileUiState(account = account))
 
@@ -58,6 +65,7 @@ class ProfileScreenTest {
         signOutClicks = 0
         composeRule.setContent {
             PuzzleBoxTheme {
+                scheme = MaterialTheme.colorScheme
                 ProfileContent(
                     state = state,
                     onSignIn = { signInClicks++ },
@@ -159,16 +167,22 @@ class ProfileScreenTest {
         composeRule.runOnIdle { assertEquals(1, opened) }
     }
 
-    @Test
-    fun `the profile shows an avatar when signed in`() {
-        setContent(signedIn)
-        composeRule.onNodeWithTag("profile.avatar").assertExists()
+    /** The avatar disc's fill, read at its left edge: inside the circle, clear of the initial. */
+    private fun avatarFill(): Color {
+        val pixels = composeRule.onNodeWithTag("profile.avatar").captureToImage().toPixelMap()
+        return pixels[pixels.width * 15 / 100, pixels.height / 2]
     }
 
     @Test
-    fun `the profile shows a placeholder avatar when signed out`() {
+    fun `signed in the avatar sits on the player's own tone`() {
+        setContent(signedIn)
+        assertEquals(scheme.primaryContainer.toArgb(), avatarFill().toArgb())
+    }
+
+    @Test
+    fun `signed out the avatar is the neutral placeholder`() {
         setContent(ProfileUiState.Account.SignedOut())
-        composeRule.onNodeWithTag("profile.avatar").assertExists()
+        assertEquals(scheme.surfaceContainerHighest.toArgb(), avatarFill().toArgb())
     }
 
     @Test

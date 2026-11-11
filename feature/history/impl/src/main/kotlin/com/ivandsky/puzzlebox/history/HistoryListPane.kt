@@ -30,6 +30,7 @@ import com.ivandsky.puzzlebox.designsystem.LargeTopBar
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -63,6 +64,7 @@ internal fun ListPane(
         state = listState,
         modifier = modifier
             .fillMaxSize()
+            .maxContentWidth()
             .testTag("history.list"),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         contentPadding = PaddingValues(bottom = Spacing.xl),
@@ -70,7 +72,7 @@ internal fun ListPane(
         item(key = "top") {
             if (onBack == null) {
                 // The tab root: Create's and Today's large editorial header.
-                LargeTopBar(title = "History")
+                LargeTopBar(title = "History", modifier = Modifier.testTag("history.header"))
             } else {
                 CompactTopBar(
                     title = "History",
