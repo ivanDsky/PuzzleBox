@@ -27,7 +27,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -72,7 +71,6 @@ internal fun LibraryRoute(
     codeDraft: String? = null,
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
-    onOpenDuel: ((DuelKey) -> Unit)? = null,
     request: LibraryRequest? = null,
     onRequestTaken: () -> Unit = {},
     linkedIn: Boolean = false,
@@ -138,7 +136,7 @@ internal fun LibraryRoute(
                 },
                 onDismiss = { enteringCode = false },
                 initialText = codePrefill,
-                onOpenDuel = onOpenDuel?.let { openDuel ->
+                onOpenDuel = duels?.onOpenDuel?.let { openDuel ->
                     { key ->
                         enteringCode = false
                         openDuel(key)
