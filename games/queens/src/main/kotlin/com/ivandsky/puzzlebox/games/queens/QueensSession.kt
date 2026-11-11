@@ -117,6 +117,20 @@ data class QueensSession(
     }
 
     /**
+     * Erase-swipe step: remove the MANUAL cross on [cell]. The first step of a swipe records an
+     * [QueensCommand.EraseCrosses]; with [extendRun] the following steps widen that same command, so
+     * one undo restores the whole swipe. No-op off a manual cross.
+     */
+    fun withCrossErased(cell: Cell, extendRun: Boolean, now: Instant): QueensSession {
+        if (completedAt != null || cell in occupied || marks[cell]?.kind != MarkKind.MANUAL) return this
+        val run = history.done.lastOrNull() as? QueensCommand.EraseCrosses
+        if (!extendRun || run == null) return commit(QueensCommand.EraseCrosses(setOf(cell)), now)
+        val widened = QueensCommand.EraseCrosses(run.cells + cell)
+        return withBoard(QueensCommand.EraseCrosses(setOf(cell)).apply(board))
+            .copy(history = history.replaceLast(widened))
+    }
+
+    /**
      * Clear (round-6 ruling 2026-11-02): wipe EVERYTHING — queens, AUTO marks AND
      * MANUAL marks — as ONE undo unit; the command keeps the wiped queens + manual marks
      * so one undo restores exactly the pre-clear board. No-op on an already-empty board

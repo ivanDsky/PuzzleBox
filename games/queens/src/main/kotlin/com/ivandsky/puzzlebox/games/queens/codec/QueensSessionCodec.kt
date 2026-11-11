@@ -68,6 +68,7 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
     private const val CMD_REMOVE = 1
     private const val CMD_TOGGLE = 2
     private const val CMD_CLEAR = 3
+    private const val CMD_ERASE = 4
 
     /** The first format whose ref carries a [PuzzleKeyTag]; older refs are untagged dailies. */
     private const val V_KEY_TAG: Int = 4
@@ -301,6 +302,11 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
                     out.write(if (command.wasMarked) 1 else 0)
                 }
 
+                is QueensCommand.EraseCrosses -> {
+                    out.write(CMD_ERASE)
+                    writeCells(out, command.cells)
+                }
+
                 is QueensCommand.Clear -> {
                     require(command.queens.size <= 0xFF) { "v3 layout carries u8 queen count" }
                     out.write(CMD_CLEAR)
@@ -340,6 +346,8 @@ object QueensSessionCodec : GameSessionCodec<QueensSession> {
                     repeat(queensLen) { queens.add(cell(cursor, cellRange) ?: return null) }
                     QueensCommand.Clear(queens, readCells(cursor, cellRange) ?: return null)
                 }
+
+                CMD_ERASE -> QueensCommand.EraseCrosses(readCells(cursor, cellRange) ?: return null)
 
                 else -> return null
             }

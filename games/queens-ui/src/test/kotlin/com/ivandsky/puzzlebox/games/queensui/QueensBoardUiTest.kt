@@ -120,12 +120,17 @@ class QueensBoardUiTest {
         val marksBefore = state.session.marks.size
         composeRule.onNodeWithTag(BoardTag).performTouchInput {
             val y = height * 0.5f / n
-            down(Offset(width * 0.5f / n, y))
+            down(Offset(width * 3.5f / n, y)) // an empty start keeps the swipe in paint mode
+            moveTo(Offset(width * 2.5f / n, y))
             moveTo(Offset(width * 1.5f / n, y))
             up()
         }
         composeRule.waitForIdle()
-        assertEquals("drag over an already-X cell changes nothing", marksBefore, state.session.marks.size)
+        assertEquals("drag over already-X cells adds only the start cell", marksBefore + 1, state.session.marks.size)
+        assertEquals(MarkKind.MANUAL, state.session.markAt(Cell(3))?.kind)
+        for (col in 0..2) {
+            assertEquals("cell $col stays X", MarkKind.MANUAL, state.session.markAt(Cell(col))?.kind)
+        }
     }
 
     /** Strict closure (fix round 5): tapping a placed queen removes it AND its stored
@@ -155,6 +160,61 @@ class QueensBoardUiTest {
         state.onTap(10) // ordinary tap: X on a cell outside the queen's auto-fill
         assertNull(state.lastPlacedQueen)
         assertNull(state.lastRemovedQueen)
+    }
+
+    /** Row 0 = [cross, empty, cross, queen], auto-cross OFF so only the two manual crosses are marks. */
+    private fun crossEmptyCrossQueenSession(): QueensSession =
+        QueensUiFixtures.session().withAutoCross(false)
+            .withCrossToggled(Cell(0), QueensUiFixtures.T0)
+            .withCrossToggled(Cell(2), QueensUiFixtures.T0)
+            .withQueenPlaced(Cell(3), QueensUiFixtures.T0)
+
+    private fun swipeRow0() {
+        composeRule.onNodeWithTag(BoardTag).performTouchInput {
+            val y = height * 0.5f / n
+            down(Offset(width * 0.5f / n, y))
+            for (col in 1 until n) moveTo(Offset(width * (col + 0.5f) / n, y))
+            up()
+        }
+        composeRule.waitForIdle()
+    }
+
+    @Test
+    fun `a swipe starting on a cross erases the crosses it passes and nothing else`() {
+        val state = setContent(crossEmptyCrossQueenSession())
+        swipeRow0()
+        assertNull(state.session.markAt(Cell(0)))
+        assertNull(state.session.markAt(Cell(2)))
+        assertNull("the empty cell stays empty", state.session.markAt(Cell(1)))
+        assertEquals("the queen stays", listOf(Cell(3)), state.session.queens)
+    }
+
+    @Test
+    fun `a swipe starting on an empty cell keeps putting crosses`() {
+        val state = setContent(crossEmptyCrossQueenSession())
+        composeRule.onNodeWithTag(BoardTag).performTouchInput {
+            val y = height * 1.5f / n
+            down(Offset(width * 0.5f / n, y))
+            moveTo(Offset(width * 1.5f / n, y))
+            up()
+        }
+        composeRule.waitForIdle()
+        assertEquals(MarkKind.MANUAL, state.session.markAt(Cell(n))?.kind)
+        assertEquals(MarkKind.MANUAL, state.session.markAt(Cell(n + 1))?.kind)
+        assertEquals("row 0 crosses untouched", MarkKind.MANUAL, state.session.markAt(Cell(0))?.kind)
+    }
+
+    @Test
+    fun `one undo restores every cross an erase swipe removed`() {
+        val state = setContent(crossEmptyCrossQueenSession())
+        swipeRow0()
+        state.undo()
+        assertEquals(MarkKind.MANUAL, state.session.markAt(Cell(0))?.kind)
+        assertEquals(MarkKind.MANUAL, state.session.markAt(Cell(2))?.kind)
+        assertEquals(listOf(Cell(3)), state.session.queens)
+        state.redo()
+        assertNull(state.session.markAt(Cell(0)))
+        assertNull(state.session.markAt(Cell(2)))
     }
 
     @Test
