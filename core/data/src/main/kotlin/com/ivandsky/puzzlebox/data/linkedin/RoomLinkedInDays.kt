@@ -104,12 +104,14 @@ internal class RoomLinkedInDays(
     /**
      * The day's board; nothing without a link, whatever a disconnect has not wiped yet. The player's own row sits
      * in the same table, so it is split out by the profile it was read for and never reaches the connections.
+     * A day whose board holds no row of the player (a past board is never read again) shows the player as the
+     * newest row stored for the profile, from any game and day: their name and photo belong to the account.
      */
     private fun stored(game: GameId, day: LocalDate, profileId: String?): Flow<StoredBoard> =
         if (profileId == null) {
             flowOf(StoredBoard(emptyList(), null))
         } else {
-            combine(ghostDao.observe(game.value, day.toString()), avatars.present) { rows, photos ->
+            combine(ghostDao.observeWithNewest(game.value, day.toString(), profileId), avatars.present) { rows, photos ->
                 val (own, others) = rows.partition { it.memberRef == profileId }
                 StoredBoard(
                     ghosts = others.map {

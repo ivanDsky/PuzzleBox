@@ -28,7 +28,7 @@ private fun linkKey(name: String): String? =
  *  - the player's row is the self row ([selfRow], null when this profile is not on the board); else the first row named
  *    like the owner's LinkedIn name ([ownName], the same loose match as for ghosts), which is the player's account under
  *    another profile; else, when the player has an imported [own] score, their own LinkedIn row is to be added
- *    ([LinkedInTimeWins.addOwnRow]). The player's row takes the [own] score, when there is one;
+ *    ([LinkedInTimeWins.addOwnRow]), whether or not a LinkedIn name is known. The player's row takes the [own] score, when there is one;
  *  - a ghost whose name matches a PuzzleBox row that is not the player's row is that same person: the row takes the
  *    ghost's score (a hidden-time ghost leaves the row's own) and the ghost is dropped, so the person is drawn once.
  * Display only: nothing here is posted, and the rows' PuzzleBox ranks are the caller's to keep.
@@ -59,5 +59,5 @@ fun linkedInTimeWins(
         if (score != null) rows.filter(takenFrom::add).forEach { scores[it] = score }
         false
     }
-    return LinkedInTimeWins(scores, kept, youRow, addOwnRow = youRow == null && own != null && ownKey != null)
+    return LinkedInTimeWins(scores, kept, youRow, addOwnRow = youRow == null && own != null)
 }

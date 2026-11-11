@@ -208,4 +208,34 @@ class LinkedInDaoTest {
         assertNull(stored.getValue("hidden").timeMs)
         assertEquals(rows.toSet(), stored.values.toSet())
     }
+
+    @Test
+    fun `a day without a row of the member gets the member's newest row from any game or day`() = runTest {
+        ghosts.replace("queens", "2026-11-01", listOf(ghost("me", fetchedAtMs = 5_000L), ghost("friend", fetchedAtMs = 9_000L)))
+        val newest = ghost("me", game = "zip", day = "2026-11-03", fetchedAtMs = 7_000L)
+        ghosts.replace("zip", "2026-11-03", listOf(newest))
+        ghosts.replace("zip", "2026-11-02", listOf(ghost("me", game = "zip", day = "2026-11-02", fetchedAtMs = 3_000L)))
+        val friend = ghost("friend", game = "zip", day = "2026-11-09")
+        ghosts.replace("zip", "2026-11-09", listOf(friend))
+
+        assertEquals(setOf(friend, newest), ghosts.observeWithNewest("zip", "2026-11-09", "me").first().toSet())
+    }
+
+    @Test
+    fun `a day that has the member's row is not joined by a newer row of another day`() = runTest {
+        val own = ghost("me", fetchedAtMs = 1_000L)
+        ghosts.replace("queens", "2026-11-01", listOf(own))
+        ghosts.replace("zip", "2026-11-03", listOf(ghost("me", game = "zip", day = "2026-11-03", fetchedAtMs = 7_000L)))
+
+        assertEquals(listOf(own), ghosts.observeWithNewest("queens", "2026-11-01", "me").first())
+    }
+
+    @Test
+    fun `a member with no stored row adds nothing`() = runTest {
+        val friend = ghost("friend")
+        ghosts.replace("queens", "2026-11-01", listOf(friend))
+
+        assertEquals(listOf(friend), ghosts.observeWithNewest("queens", "2026-11-01", "me").first())
+        assertEquals(emptyList<GhostEntity>(), ghosts.observeWithNewest("zip", "2026-11-09", "me").first())
+    }
 }

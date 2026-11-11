@@ -133,13 +133,21 @@ class LinkedInTimeWinsTest {
     }
 
     @Test
-    fun `nothing is added without an import or without the owner's name`() {
+    fun `nothing is added without an import`() {
         val noImport = linkedInTimeWins(listOf("Ada"), listOf(score(30)), selfRow = null, ghostNames = emptyList(), ghostScores = emptyList(), own = null, ownName = "Me")
-        val noName = linkedInTimeWins(listOf("Ada"), listOf(score(30)), selfRow = null, ghostNames = emptyList(), ghostScores = emptyList(), own = score(35), ownName = " ")
 
         assertEquals(false, noImport.addOwnRow)
-        assertEquals(false, noName.addOwnRow)
-        assertEquals(null, noName.youRow)
+    }
+
+    @Test
+    fun `an import with no usable owner name still adds the owner's row, and matches no row by name`() {
+        val unnamed = linkedInTimeWins(listOf("Ada"), listOf(score(30)), selfRow = null, ghostNames = emptyList(), ghostScores = emptyList(), own = score(35))
+        val blank = linkedInTimeWins(listOf(" "), listOf(score(30)), selfRow = null, ghostNames = emptyList(), ghostScores = emptyList(), own = score(35), ownName = " ")
+
+        assertEquals(true, unnamed.addOwnRow)
+        assertEquals(true, blank.addOwnRow)
+        assertEquals(null, blank.youRow)
+        assertEquals(listOf(score(30)), blank.rowScores)
     }
 
     @Test
