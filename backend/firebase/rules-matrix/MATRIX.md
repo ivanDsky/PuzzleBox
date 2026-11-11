@@ -277,12 +277,15 @@ match closed at `2026-11-07T06:00:00Z`.
 | deny | delete | `matches/D7K2QX/results/1_bob` | bob | owner deletes a result |
 
 `replay` is optional bytes of at most 12 288. The Rules Test API takes request data as JSON and cannot send a
-bytes value, so these rows are checked on the Firestore emulator instead (2026-11-11, seven fields plus
-`replay`, one commit with the progress write, bob):
+bytes value: a probe rule `request.resource.data.replay is bytes` answered FAILURE for each of these eight
+encodings of `replay`: `"QUJD"`, `{"bytesValue":"QUJD"}`, `{"__bytes":"QUJD"}`, `{"$bytes":"QUJD"}`,
+`{"type":"bytes","value":"QUJD"}`, `{"@type":"type.googleapis.com/google.protobuf.BytesValue","value":"QUJD"}`,
+`{"bytes":"QUJD"}`, `{"blob":"QUJD"}`. So the bytes rows are checked on the Firestore emulator instead
+(2026-11-11, seven fields plus `replay`, one commit with the progress write, bob; the seven-field allow is the
+existing `results (create)` row):
 
 | Expect | Case |
 |---|---|
-| allow | the old seven fields, no `replay` |
 | allow | `replay` of 12 288 bytes |
 | allow | `replay` of 0 bytes |
 | deny | `replay` of 12 289 bytes |
