@@ -21,4 +21,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
 
     /** LinkedIn account: imports the player's own results and shows connections as ghost rows (ADR-0028). */
     LinkedInAccount(label = "LinkedIn: account results + connections", releaseDefault = false),
+
+    /** Solve replay: every solve keeps its move log so the player can watch it again. */
+    FullReplay(label = "Full replay", releaseDefault = false),
 }
