@@ -385,6 +385,24 @@ class ProfileScreenTest {
     }
 
     @Test
+    fun `the slim form shows an avatar when signed in`() {
+        setContent(stateOf(signedIn), slim = true)
+        composeRule.onNodeWithTag("profile.avatar").assertExists()
+    }
+
+    @Test
+    fun `the slim form shows a placeholder avatar when signed out`() {
+        setContent(stateOf(ProfileUiState.Account.SignedOut()), slim = true)
+        composeRule.onNodeWithTag("profile.avatar").assertExists()
+    }
+
+    @Test
+    fun `the full profile has no avatar`() {
+        setContent(stateOf(signedIn))
+        composeRule.onNodeWithTag("profile.avatar").assertDoesNotExist()
+    }
+
+    @Test
     fun `under its top bar profile's content starts where settings' does`() {
         composeRule.setContent {
             PuzzleBoxTheme {
