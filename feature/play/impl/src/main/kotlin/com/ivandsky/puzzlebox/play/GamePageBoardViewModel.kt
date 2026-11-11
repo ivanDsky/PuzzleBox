@@ -12,8 +12,10 @@ import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
+import com.ivandsky.puzzlebox.gameui.board.rankWithGhosts
 import com.ivandsky.puzzlebox.gameui.board.toDailyBoardState
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
@@ -81,7 +83,8 @@ internal class GamePageBoardViewModel(
         combine(choice, boards(), ghosts()) { chosen, (drawnChoice, board), (ghostChoice, ghosts) ->
             // The chosen day is shown at once; another day's rows or ghosts never stay under it while its data loads.
             if (drawnChoice == chosen) {
-                stateOf(chosen, board).copy(ghosts = if (ghostChoice == chosen) ghosts else emptyList())
+                val shown = if (ghostChoice == chosen) ghosts else emptyList()
+                stateOf(chosen, board, shown).copy(ghosts = shown)
             } else {
                 GamePageBoardState(day = chosen.day, picked = chosen.picked)
             }
@@ -143,18 +146,35 @@ internal class GamePageBoardViewModel(
     }
 
     private fun ghostsOf(view: LinkedInDayView?): List<GhostRowModel> =
-        (view?.board as? LinkedInBoardView.Shown)?.ghosts.orEmpty().map { GhostRowModel(it.name, it.timeMs, it.hintFree) }
+        (view?.board as? LinkedInBoardView.Shown)?.ghosts.orEmpty().map { GhostRowModel(it.memberRef, it.name, it.timeMs, it.hintFree) }
 
-    /** The page's board: the first [TOP_ROWS] rows, with the player's own row pinned under them when it ranks lower. */
-    private fun stateOf(chosen: Choice, board: TodayLeaderboard): GamePageBoardState {
+    /**
+     * The page's board: the first [TOP_ROWS] rows, with the player's own row pinned under them when it ranks lower.
+     * With [ghosts] the rows and the ghosts are ranked together over the whole board before the cut, so a place
+     * (the pinned row's too) counts every connection ahead of it, not only those among the rows drawn.
+     */
+    private fun stateOf(chosen: Choice, board: TodayLeaderboard, ghosts: List<GhostRowModel>): GamePageBoardState {
         val drawn = board.toDailyBoardState()
         if (drawn !is DailyBoardState.Ranked) return GamePageBoardState(day = chosen.day, picked = chosen.picked, board = drawn)
         val own = drawn.rows.indexOfFirst { it.isSelf }
+        val pinned = if (own < TOP_ROWS) null else drawn.rows[own]
+        val ranked = if (ghosts.isEmpty()) null else rankWithGhosts(drawn.rows, ghosts, order)
         return GamePageBoardState(
             day = chosen.day,
             picked = chosen.picked,
-            board = drawn.copy(rows = drawn.rows.take(TOP_ROWS), pinned = if (own < TOP_ROWS) null else drawn.rows[own]),
+            board = drawn.copy(
+                rows = drawn.rows.take(TOP_ROWS),
+                pinned = pinned,
+                lines = ranked?.cutToTopRows(),
+                pinnedPlace = if (pinned == null) null else ranked?.filterIsInstance<DailyBoardLine.Real>()?.first { it.row.isSelf }?.place,
+            ),
         )
+    }
+
+    // Ghosts keep their places while the rows beyond the top are cut: the board draws the top and pins the player.
+    private fun List<DailyBoardLine>.cutToTopRows(): List<DailyBoardLine> {
+        var reals = 0
+        return filter { it !is DailyBoardLine.Real || ++reals <= TOP_ROWS }
     }
 
     /** What the page asks for: the relative [day], or the calendar's [picked] past day over it. */

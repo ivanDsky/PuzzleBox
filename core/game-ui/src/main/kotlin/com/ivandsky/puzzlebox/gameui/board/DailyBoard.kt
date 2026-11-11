@@ -19,7 +19,8 @@ private const val MaxGhosts = 20
 
 /**
  * The board body: [title] ("<Game> · today"), the [order]'s rule caption, and the one [state] drawn.
- * [ghosts] are LinkedIn connections drawn unranked among the rows (or above [signIn] when signed out); [signIn] fills the signed-out state.
+ * [ghosts] are LinkedIn connections drawn among the rows (or above [signIn] when signed out), each with its place in
+ * one combined rank; a board with ghosts also tells each PuzzleBox row's own rank. [signIn] fills the signed-out state.
  */
 @Composable
 fun DailyBoard(
@@ -42,7 +43,7 @@ fun DailyBoard(
             DailyBoardState.Loading -> Line("Loading…", "daily_board.loading")
             DailyBoardState.Unavailable -> Line("Leaderboard unavailable right now.", "daily_board.unavailable")
             DailyBoardState.SignedOut -> {
-                Lines(emptyList(), ghosts, order)
+                Lines(rankWithGhosts(emptyList(), ghosts, order), order)
                 signIn?.invoke()
             }
             is DailyBoardState.Ranked -> Ranked(state, ghosts, order)
@@ -52,22 +53,24 @@ fun DailyBoard(
 
 @Composable
 private fun Ranked(state: DailyBoardState.Ranked, ghosts: List<GhostRowModel>, order: RankOrder) {
-    if (state.rows.isEmpty() && ghosts.isEmpty()) Line("No one is on today's board yet.", "daily_board.empty")
-    Lines(state.rows, ghosts, order)
+    val lines = remember(state, ghosts, order) { (state.lines ?: rankWithGhosts(state.rows, ghosts, order)).capGhosts() }
+    if (lines.isEmpty()) Line("No one is on today's board yet.", "daily_board.empty")
+    val withGhosts = lines.any { it is DailyBoardLine.Ghost }
+    Lines(lines, order)
     state.pinned?.let {
         HorizontalDivider()
-        Box(Modifier.testTag("leaderboard.you")) { DailyBoardRow(it, order) }
+        Box(Modifier.testTag("leaderboard.you")) { DailyBoardRow(it, order, place = state.pinnedPlace ?: it.rank, showPuzzleBoxRank = withGhosts) }
     }
     state.note?.let { Line(it.text, "daily_board.note") }
 }
 
 @Composable
-private fun Lines(rows: List<DailyBoardRowModel>, ghosts: List<GhostRowModel>, order: RankOrder) {
-    val lines = remember(rows, ghosts, order) { mergeGhosts(rows, ghosts, order).capGhosts() }
+private fun Lines(lines: List<DailyBoardLine>, order: RankOrder) {
+    val withGhosts = lines.any { it is DailyBoardLine.Ghost }
     lines.forEach {
         when (it) {
-            is DailyBoardLine.Real -> DailyBoardRow(it.row, order)
-            is DailyBoardLine.Ghost -> GhostRow(it.row, order)
+            is DailyBoardLine.Real -> DailyBoardRow(it.row, order, place = it.place, showPuzzleBoxRank = withGhosts)
+            is DailyBoardLine.Ghost -> GhostRow(it.row, it.place, order)
         }
     }
 }

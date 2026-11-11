@@ -30,8 +30,8 @@ private val StrandsRows = listOf(
 )
 
 private val Ghosts = listOf(
-    GhostRowModel("Ada Quill", 68_000L, hintFree = true),
-    GhostRowModel("Theo Marsh", null, hintFree = false),
+    GhostRowModel("ref-ada", "Ada Quill", 68_000L, hintFree = true),
+    GhostRowModel("ref-theo", "Theo Marsh", null, hintFree = false),
 )
 
 @Composable
@@ -155,12 +155,37 @@ internal fun DailyBoardSignedOutGhostsPreview() = Padded {
     )
 }
 
+// Preview: the player is pinned below the top rows, and their place counts the connections ahead of them.
+@PuzzleBoxPreviews
+@Composable
+internal fun DailyBoardPinnedGhostsPreview() = Padded {
+    val rows = listOf(
+        DailyBoardRowModel(1, "Maya", 62_000L, 0, isSelf = false),
+        DailyBoardRowModel(2, "Jonas", 70_000L, 0, isSelf = false),
+        DailyBoardRowModel(3, "Priya", 81_000L, 1, isSelf = false),
+        DailyBoardRowModel(4, "Sam", 94_000L, 1, isSelf = false),
+        DailyBoardRowModel(5, "Lee", 103_000L, 2, isSelf = false),
+    )
+    val pinned = DailyBoardRowModel(6, "You", 188_000L, 3, isSelf = true)
+    val ghosts = listOf(Ghosts[0], GhostRowModel("ref-noor", "Noor Vale", 150_000L, hintFree = true))
+    DailyBoard(
+        dailyBoardTitle("Queens"),
+        RankOrder.TimeThenHints,
+        DailyBoardState.Ranked(
+            rows = rows,
+            pinned = pinned,
+            lines = rankWithGhosts(rows + pinned, ghosts, RankOrder.TimeThenHints).take(6),
+            pinnedPlace = 8,
+        ),
+    )
+}
+
 @PuzzleBoxPreviews
 @Composable
 internal fun GhostRowPreview() = Padded {
     Column {
-        GhostRow(Ghosts[0], RankOrder.HintsThenTime)
-        GhostRow(Ghosts[1], RankOrder.HintsThenTime)
+        GhostRow(Ghosts[0], 3, RankOrder.HintsThenTime)
+        GhostRow(Ghosts[1], null, RankOrder.HintsThenTime)
     }
 }
 
