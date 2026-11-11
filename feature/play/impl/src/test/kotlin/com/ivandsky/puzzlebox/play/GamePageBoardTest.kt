@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -17,8 +18,15 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
+import com.ivandsky.puzzlebox.designsystem.MedalBronze
+import com.ivandsky.puzzlebox.designsystem.MedalGold
+import com.ivandsky.puzzlebox.designsystem.MedalSilver
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
+import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
@@ -26,6 +34,8 @@ import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import java.time.LocalDate
@@ -86,6 +96,7 @@ class GamePageBoardTest {
         google: GoogleIdTokenProvider = dismissedGoogleSignIn,
         picked: LocalDate? = null,
         cardDay: LocalDate? = null,
+        linkedIn: Boolean = false,
     ) {
         stopKoin() // tests share the JVM-global Koin context
         startKoin {
@@ -97,11 +108,16 @@ class GamePageBoardTest {
                     single<LeaderboardRepository> { repo }
                     single { google }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
+                    single { FakeLinkedInDays() }
+                    single<LinkedInLink> { FakeLinkedInLink() }
+                    factory { ObserveLinkedInDay(get<FakeLinkedInDays>(), get()) }
+                    factory { SyncLinkedInDay(get<FakeLinkedInDays>(), 500) }
+                    factory { ObserveLinkedInDayView(get(), get(), get()) }
                 },
                 playModule,
             )
         }
-        composeRule.setContent { PuzzleBoxTheme(darkTheme = false) { GamePageBoard(game, picked = picked, cardDay = cardDay) } }
+        composeRule.setContent { PuzzleBoxTheme(darkTheme = false) { GamePageBoard(game, linkedIn = linkedIn, picked = picked, cardDay = cardDay) } }
     }
 
     /** Whether a board row names [name]. */
@@ -191,6 +207,46 @@ class GamePageBoardTest {
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag("daily_board.empty").assertExists()
+    }
+
+    @Test
+    fun `an empty board of another day is worded for that day`() {
+        val picked = LocalDate.of(2026, 11, 6)
+        show(FakeIdentityService(me), repository(today to entries("Today", 3), picked to emptyList()), picked = picked, cardDay = today)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("daily_board.empty").assertTextEquals("No one is on this day's board yet.")
+    }
+
+    @Test
+    fun `an empty board of today keeps the today wording`() {
+        show(FakeIdentityService(me), repository(today to emptyList()), cardDay = today)
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("daily_board.empty").assertTextEquals("No one is on today's board yet.")
+    }
+
+    private fun placeCell(row: Int) = composeRule.onAllNodesWithTag("daily_board.row.rank")[row]
+
+    @Test
+    fun `with LinkedIn on the podium places are medals`() {
+        show(FakeIdentityService(me), repository(today to entries("P", 4)), linkedIn = true)
+        composeRule.waitForIdle()
+
+        assertTrue(placeCell(0).showsMedal(MedalGold))
+        assertTrue(placeCell(1).showsMedal(MedalSilver))
+        assertTrue(placeCell(2).showsMedal(MedalBronze))
+    }
+
+    @Test
+    fun `with LinkedIn off no row draws a medal`() {
+        show(FakeIdentityService(me), repository(today to entries("P", 4)), linkedIn = false)
+        composeRule.waitForIdle()
+
+        placeCell(0).assertTextEquals("1")
+        listOf(MedalGold, MedalSilver, MedalBronze).forEach { medal ->
+            (0..2).forEach { row -> assertFalse("row $row has a $medal medal", placeCell(row).showsMedal(medal)) }
+        }
     }
 
     @Test

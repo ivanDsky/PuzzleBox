@@ -11,7 +11,7 @@ sealed interface DailyBoardState {
     data object SignedOut : DailyBoardState
 
     /**
-     * Empty [rows] = "No one is on today's board yet". [pinned] is the player's own row, drawn set apart
+     * Empty [rows] = "No one is on the board yet", worded for today's or another day's board. [pinned] is the player's own row, drawn set apart
      * under [rows] when it is outside them. [lines] are [rows] and the ghosts already ranked together over the
      * whole board before the caller cut [rows], and [pinnedPlace] the pinned row's place in that ranking; null
      * lines mean the board ranks [rows] with the ghosts it was given, and a null place means the row's own rank.

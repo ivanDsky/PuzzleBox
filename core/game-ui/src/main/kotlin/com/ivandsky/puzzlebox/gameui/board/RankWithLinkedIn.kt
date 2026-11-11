@@ -35,7 +35,6 @@ fun rankWithLinkedIn(
         ownName = you?.name,
     )
     if (ghosts.isEmpty() && wins.youRow == null && !wins.addOwnRow) return rankWithGhosts(rows, ghosts, order)
-    val comparator = order.comparator
     val photo = you?.photo
     val shown = rows.mapIndexed { index, row ->
         val score = wins.rowScores[index]
@@ -54,7 +53,6 @@ fun rankWithLinkedIn(
             null
         },
     )
-    // The sort is stable, so rows with equal scores keep the board's order, the added row after them.
-    val sorted = (shown + added).sortedWith { a, b -> comparator.compare(BestScore(a.timeMs, a.hints), BestScore(b.timeMs, b.hints)) }
-    return mergeRanked(sorted, ghosts.filterIndexed { index, _ -> wins.ghostKept[index] }, order)
+    // The ranker orders the rows by their shown times; equal ones keep the board's order, the added row after them.
+    return mergeRanked(shown + added, ghosts.filterIndexed { index, _ -> wins.ghostKept[index] }, order)
 }

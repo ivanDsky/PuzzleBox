@@ -29,6 +29,9 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
+import com.ivandsky.puzzlebox.designsystem.MedalBronze
+import com.ivandsky.puzzlebox.designsystem.MedalGold
+import com.ivandsky.puzzlebox.designsystem.MedalSilver
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
@@ -60,12 +63,14 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 import java.time.LocalDate
 
 /**
@@ -74,6 +79,7 @@ import java.time.LocalDate
  * player's own row pinned under them.
  */
 @RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w1280dp-h1600dp")
 class PlayStatsPanelTest {
 
@@ -362,6 +368,28 @@ class PlayStatsPanelTest {
         composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("9")
         composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.puzzlebox_rank")).assertTextEquals("#7 on PuzzleBox")
         composeRule.onNodeWithText("Cy Park").assertDoesNotExist()
+    }
+
+    private fun placeCell(row: Int) = composeRule.onAllNodesWithTag("daily_board.row.rank")[row]
+
+    @Test
+    fun `with LinkedIn on the podium places are medals`() {
+        cachedConnections()
+        show(viewModel(linkedIn = true))
+
+        assertTrue(placeCell(0).showsMedal(MedalGold))
+        assertTrue(placeCell(1).showsMedal(MedalSilver))
+        assertTrue(placeCell(2).showsMedal(MedalBronze))
+    }
+
+    @Test
+    fun `with LinkedIn off no row draws a medal`() {
+        show(viewModel(linkedIn = false))
+
+        placeCell(0).assertTextEquals("1")
+        listOf(MedalGold, MedalSilver, MedalBronze).forEach { medal ->
+            (0..2).forEach { row -> assertFalse("row $row has a $medal medal", placeCell(row).showsMedal(medal)) }
+        }
     }
 
     @Test

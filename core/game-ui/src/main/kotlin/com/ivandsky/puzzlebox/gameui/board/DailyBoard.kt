@@ -25,6 +25,7 @@ private const val MaxGhosts = 20
  * [ghosts] are LinkedIn connections drawn among the rows (or above [signIn] when signed out), each with its place in
  * one combined rank; a board with ghosts also tells each PuzzleBox row's own rank. [signIn] fills the signed-out state.
  * With [animated] the rows move, arrive and leave with motion (see [DailyBoardList]), on a change of day too.
+ * [isToday] says whether the board is today's, so an empty one names the day it shows.
  */
 @Composable
 fun DailyBoard(
@@ -35,6 +36,7 @@ fun DailyBoard(
     ghosts: List<GhostRowModel> = emptyList(),
     signIn: (@Composable () -> Unit)? = null,
     animated: Boolean = false,
+    isToday: Boolean = true,
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("daily_board.title"))
@@ -51,16 +53,16 @@ fun DailyBoard(
                 DailyBoardList(rankWithGhosts(emptyList(), ghosts, order), order, animated = animated)
                 signIn?.invoke()
             }
-            is DailyBoardState.Ranked -> Ranked(state, ghosts, order, animated)
+            is DailyBoardState.Ranked -> Ranked(state, ghosts, order, animated, isToday)
         }
     }
 }
 
 @Composable
-private fun Ranked(state: DailyBoardState.Ranked, ghosts: List<GhostRowModel>, order: RankOrder, animated: Boolean) {
+private fun Ranked(state: DailyBoardState.Ranked, ghosts: List<GhostRowModel>, order: RankOrder, animated: Boolean, isToday: Boolean) {
     val lines = remember(state, ghosts, order) { (state.lines ?: rankWithGhosts(state.rows, ghosts, order)).capGhosts() }
     if (lines.isEmpty()) {
-        val message = "No one is on today's board yet."
+        val message = if (isToday) "No one is on today's board yet." else "No one is on this day's board yet."
         if (animated) FadingLine(message, "daily_board.empty") else Line(message, "daily_board.empty")
     }
     DailyBoardList(
