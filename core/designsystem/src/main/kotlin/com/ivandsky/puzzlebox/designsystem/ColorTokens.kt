@@ -45,9 +45,12 @@ val DarkWarning = Color(0xFFFFC800)
 val LightOnFill = Color(0xFFFFFFFF)
 val DarkOnFill = Color(0xFF101418)
 
-// Small text on an accent fill where [LightOnFill] white does not read: white holds only 2.1:1 to 3.2:1 on the five light
-// accents. The dark surface step is the ink dark mode already takes on those fills, 5.7:1 or better on every accent.
-val OnBrightFill = DarkOnFill
+// The strip behind the LinkedIn lines on a day card. Light mode's content is white, which holds only 2.1:1 to 3.2:1 on the
+// five bright accents, so the lines sit on black over the fill. Dark mode's content is already dark ink at 7.4:1 or better
+// on every accent, and a darker strip would only cost it contrast, so dark has none.
+// 0.34 is the lowest alpha, in steps of 0.01, where white reaches 4.5:1 on all of them: 4.57:1 on the teal, the brightest.
+val LightLinkedInStrip = Color.Black.copy(alpha = 0.34f)
+val DarkLinkedInStrip = Color.Transparent
 
 // The lip under a neutral GameButton, whose face is `surfaceContainerHigh`: the face's
 // hue at OKLCH L −0.13 in light; dark takes the prototype's near-black (07 C), as −0.20

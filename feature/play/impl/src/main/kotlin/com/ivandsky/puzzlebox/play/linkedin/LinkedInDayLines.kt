@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play.linkedin
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +25,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalLinkedInStrip
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
@@ -62,9 +64,16 @@ internal fun LinkedInDayLines(
     val line = statusLine(status, onResume, onReconnect, onRetry)
     val loading = status == LinkedInDayStatus.Loading
     if (line == null && !loading && view.board == LinkedInBoardView.Hidden) return
-    // The card's white fails on the bright accents, so these lines take their own ink and keep it at full strength.
-    val ink = linkedInInk(colors)
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    // The card's content colour, at full strength: on a bright accent it only reads over the strip, so the strip
+    // goes behind every line, the action included, and the text keeps the card's colour beside the title.
+    val ink = colors.fg
+    val strip = LocalLinkedInStrip.current
+    // Without a strip (dark mode) the lines sit flush with the title instead of inset in a box that is not there.
+    val inset = if (strip.alpha > 0f) PaddingValues(horizontal = Spacing.md, vertical = Spacing.sm) else PaddingValues()
+    Column(
+        modifier.fillMaxWidth().background(strip, MaterialTheme.shapes.small).padding(inset),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
         if (loading) LoadingSkeleton(ink)
         line?.let { StatusRow(it, ink) }
         BoardLines(view.board, ink, nowMs)
