@@ -91,7 +91,7 @@ internal fun LibraryGamePage(
         offline = offline,
         hasLesson = hasLesson,
         scroll = scroll,
-        board = if (showGameBoard) ({ GamePageBoard(game) }) else null,
+        board = if (showGameBoard) ({ GamePageBoard(game, linkedIn = linkedIn != null) }) else null,
         onOpenHistory = onOpenGameHistory,
     )
 }

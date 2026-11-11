@@ -82,7 +82,13 @@ val playModule = module {
         )
     }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
-    viewModel { (game: GameId) -> GamePageBoardViewModel(game, get(), get(), get(), get(), get()) }
+    // Same flag-as-parameter rule as the library: a graph without LinkedIn bindings builds the board with it off.
+    viewModel { params ->
+        GamePageBoardViewModel(
+            params.get<GameId>(), get(), get(), get(), get(), get(),
+            linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
+        )
+    }
     viewModel { (slot: PlaySlot) -> PlayStatsViewModel(slot, get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: ResultKey) ->
         ResultViewModel(
