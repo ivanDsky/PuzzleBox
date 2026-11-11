@@ -75,3 +75,4 @@ to merge without being reachable in a release build.
 - The HintParity flag was removed on 2026-11-10, with the app's `HintModeSource` binding. The
   Queens and Tango legacy hint paths were removed in 37a/37b and 38a/38b. Classic Sudoku keeps
   the legacy hint (A24).
+- NavV2 flipped to `releaseDefault = true` in 0.24.0 on 2026-11-10.
