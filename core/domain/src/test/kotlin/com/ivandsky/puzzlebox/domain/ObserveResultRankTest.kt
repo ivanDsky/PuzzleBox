@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
-import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
@@ -23,7 +22,6 @@ import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import java.time.LocalDate
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -179,18 +177,14 @@ class ObserveResultRankTest {
     }
 
     @Test
-    fun `the day card and the result line place the player alike and count the same people`() = runTest {
+    fun `a hidden connection time is not counted beside an imported time`() = runTest {
         // The player and the two connections with a time are counted; the hidden time is not.
         connections(ghost(1, null), ghost(2, 20), ghost(3, 80), own = imported(50))
         val repo = FakeLeaderboardRepository(mapOf(board to listOf(entry("me", 50))))
-
-        val card = (ObserveLinkedInDay(days, registry)(tango, day).first().board as LinkedInBoardView.Shown)
         rank(me, repo, withConnections = true).test {
             assertEquals(ResultRank.WithConnections(position = 2, count = 3), nextRanked().withConnections)
             cancelAndIgnoreRemainingEvents()
         }
-        assertEquals(2, card.yourRank)
-        assertEquals(3, card.total)
     }
 
     @Test

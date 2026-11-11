@@ -5,9 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
-import com.ivandsky.puzzlebox.play.LibraryRowModel
 import com.ivandsky.puzzlebox.play.LibraryViewModel
-import com.ivandsky.puzzlebox.play.libraryCardColors
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -22,20 +20,16 @@ internal class LinkedInCardState(
 )
 
 /**
- * The day card's LinkedIn lines for [row]. The view is collected here, not higher up, so only a
- * composed day card reads or syncs anything: the games list never does, and a card that leaves
- * the screen cancels its sync. A null view draws nothing.
+ * The day card's LinkedIn sync chip. The view is collected here, not higher up, so only a composed day card reads or
+ * syncs anything: the games list never does, and a card that leaves the screen cancels its sync. A null view draws
+ * nothing.
  */
 @Composable
-internal fun LinkedInCardSlot(card: LinkedInCardState, row: LibraryRowModel) {
+internal fun LinkedInCardSlot(card: LinkedInCardState) {
     val view by card.view.collectAsStateWithLifecycle()
     val shown = view ?: return
-    // Read once per view so the "Updated" age does not tick while the card stays open.
-    val nowMs = remember(shown) { System.currentTimeMillis() }
-    LinkedInDayLines(
-        view = shown,
-        colors = libraryCardColors(row.card.brand),
-        nowMs = nowMs,
+    LinkedInSyncChip(
+        status = shown.status,
         onResume = card.onResume,
         onReconnect = card.onReconnect,
         onRetry = card.onRetry,

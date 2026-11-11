@@ -44,12 +44,6 @@ val LocalWarning = staticCompositionLocalOf { LightWarning }
 val LocalLinkedInText = staticCompositionLocalOf { LightLinkedInText }
 
 /**
- * The strip under the LinkedIn lines on a day card (ColorTokens.kt): a scrim over the accent fill that keeps the card's
- * content colour readable there. Provided by [PuzzleBoxTheme] like [LocalOnFill].
- */
-val LocalLinkedInStrip = staticCompositionLocalOf { LightLinkedInStrip }
-
-/**
  * The neutral GameButton's lip (ColorTokens.kt). Provided by [PuzzleBoxTheme] like
  * [LocalOnFill].
  */
@@ -100,7 +94,6 @@ fun PuzzleBoxTheme(
         LocalOnFill provides if (darkTheme) DarkOnFill else LightOnFill,
         LocalWarning provides if (darkTheme) DarkWarning else LightWarning,
         LocalLinkedInText provides if (darkTheme) DarkLinkedInText else LightLinkedInText,
-        LocalLinkedInStrip provides if (darkTheme) DarkLinkedInStrip else LightLinkedInStrip,
         LocalNeutralLip provides if (darkTheme) DarkNeutralLip else LightNeutralLip,
         LocalMutedStatus provides if (darkTheme) DarkMutedStatus else LightMutedStatus,
         LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,

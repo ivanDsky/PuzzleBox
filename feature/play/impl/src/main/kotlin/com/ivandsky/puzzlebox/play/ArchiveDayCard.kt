@@ -53,6 +53,7 @@ private val PastEyebrowDate = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", Lo
 // "Try again" reads unavailable while offline, yet stays a tap target: its tap is the retry.
 private const val UNAVAILABLE_ALPHA = 0.5f
 private const val TAG_WELL_ALPHA = 0.22f
+private val ChipRowHeight = 48.dp
 
 /** The status slot's value: today's status (null while loading) or a past day's. */
 private sealed interface DayLine {
@@ -68,7 +69,8 @@ private sealed interface DayLine {
  * "Back to today" ([onBackToToday]). [onPlay] opens the shown day's board. A day that
  * can't load — today offline, or a never-opened past day while [offline] — offers
  * "Try again", whose tap is [onRetry]. Each slot cross-fades on a day change. A non-null
- * [linkedIn] draws between the note and the action row, and only while the card is composed.
+ * [linkedIn] draws the LinkedIn sync chip in the top-end corner, beside the eyebrow, and only while the
+ * card is composed.
  */
 @Composable
 internal fun ArchiveDayCard(
@@ -100,9 +102,21 @@ internal fun ArchiveDayCard(
             GameMotif(card.brand, 300.dp, 1.4f, Alignment.BottomEnd, DpOffset(46.dp, 80.dp), colors.motif, colors.motifAlpha)
         },
     ) {
-        Column(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 20.dp)) {
-            CardSlot(past, 24.dp) { shown -> TopRow(shown, today, colors) }
-            Spacer(Modifier.weight(1f, fill = false).heightIn(min = 12.dp))
+        // The chip's tap target is as tall as the first row, so with it the row takes the 12dp the card would have
+        // left above and below the eyebrow, and the title stays where it is without one.
+        val top = if (linkedIn == null) 20.dp else 8.dp
+        Column(Modifier.fillMaxWidth().padding(start = 24.dp, end = 24.dp, top = top, bottom = 20.dp)) {
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = if (linkedIn == null) 0.dp else ChipRowHeight),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f)) { CardSlot(past, 24.dp) { shown -> TopRow(shown, today, colors) } }
+                linkedIn?.let { slot ->
+                    Spacer(Modifier.width(8.dp))
+                    slot()
+                }
+            }
+            Spacer(Modifier.weight(1f, fill = false).heightIn(min = if (linkedIn == null) 12.dp else 0.dp))
             CardSlot(past?.number ?: row.today, 34.dp) { number ->
                 Text(
                     card.name + number?.let { " #${count(it)}" }.orEmpty(),
@@ -114,10 +128,6 @@ internal fun ArchiveDayCard(
             CardSlot(line, 24.dp) { shown -> StatusRow(shown, colors) }
             CardSlot(note(past), 20.dp) { shown ->
                 Text(shown, style = MaterialTheme.typography.labelLarge, color = colors.fg2, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            linkedIn?.let { slot ->
-                Spacer(Modifier.height(6.dp))
-                slot()
             }
             Spacer(Modifier.height(10.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -160,11 +170,19 @@ private fun TopRow(past: ArchiveDay?, today: LocalDate?, colors: GameCardColors)
         } else {
             past.date.format(PastEyebrowDate)
         }
-        Text(eyebrow.uppercase(Locale.US), style = MaterialTheme.typography.labelSmall, color = colors.fg2)
+        Text(
+            eyebrow.uppercase(Locale.US),
+            style = MaterialTheme.typography.labelSmall,
+            color = colors.fg2,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
         if (past != null) {
             Spacer(Modifier.width(10.dp))
             Box(
+                // Gives way to the LinkedIn chip beside the row when the width runs out.
                 modifier = Modifier
+                    .weight(1f, fill = false)
                     .height(24.dp)
                     .clip(PillShape)
                     .background(colors.fg.copy(alpha = TAG_WELL_ALPHA))
@@ -175,6 +193,8 @@ private fun TopRow(past: ArchiveDay?, today: LocalDate?, colors: GameCardColors)
                 Text(
                     if (past.archived) "From the archive" else "Past puzzle",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }
