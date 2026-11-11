@@ -31,9 +31,12 @@ import com.ivandsky.puzzlebox.gameui.GameCardModel
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.core.KoinApplication
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
@@ -58,6 +61,19 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
+    private var koin: KoinApplication? = null
+
+    /** The tablet's first game page carries the game's board, which a view model builds. */
+    @Before
+    fun startGraph() {
+        koin = startGamePageBoardKoin(STATE.rows.map { it.card.game })
+    }
+
+    @After
+    fun stopGraph() {
+        koin?.close()
+    }
+
     @Test fun `dailies light`() = capture("tabs-dailies", GamesTab.Dailies, dark = false)
     @Test fun `dailies dark`() = capture("tabs-dailies", GamesTab.Dailies, dark = true)
 
@@ -80,6 +96,7 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
                 onRetry = {},
                 onOpenLesson = {},
                 calendar = CalendarActions(),
+                onOpenGameHistory = {},
                 friends = FriendPreviewCards,
                 onEnterCode = {},
                 duels = DUELS,

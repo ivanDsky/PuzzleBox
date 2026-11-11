@@ -223,6 +223,7 @@ class ResultScreenTest {
                         onPlayAgain = { replayed = true },
                         onNext = {},
                         onDone = { done++ },
+                        onOpenBoard = {},
                     )
                 }
             }
@@ -265,6 +266,7 @@ class ResultScreenTest {
                         onPlayAgain = {},
                         onNext = {},
                         onDone = {},
+                        onOpenBoard = {},
                     )
                 }
             }
@@ -289,6 +291,7 @@ class ResultScreenTest {
                         onPlayAgain = {},
                         onNext = { next = it },
                         onDone = { done++ },
+                        onOpenBoard = {},
                     )
                 }
             }
@@ -323,6 +326,7 @@ class ResultScreenTest {
                         onPlayAgain = {},
                         onNext = { next = it },
                         onDone = {},
+                        onOpenBoard = {},
                     )
                 }
             }
@@ -334,21 +338,13 @@ class ResultScreenTest {
     }
 
     @Test
-    fun `with onOpenBoard today's official result swaps the board for one row that reports the game`() {
+    fun `today's official result draws one row that reports the game`() {
         var opened = mutableListOf<GameId>()
         withResult(day, onOpenBoard = { opened += it }) {
             composeRule.onNodeWithTag("summary.leaderboard").assertExists()
             composeRule.onNodeWithTag("daily_board.title").assertDoesNotExist()
             composeRule.onNodeWithTag("summary.leaderboard").performScrollTo().performClick()
             composeRule.runOnIdle { assertEquals(listOf(game), opened) }
-        }
-    }
-
-    @Test
-    fun `without onOpenBoard today's official result draws the shared board and no row`() {
-        withResult(day, onOpenBoard = null) {
-            composeRule.onNodeWithTag("daily_board.title").assertExists()
-            composeRule.onNodeWithTag("summary.leaderboard").assertDoesNotExist()
         }
     }
 
@@ -369,7 +365,7 @@ class ResultScreenTest {
     }
 
     /** Renders [ResultRoute] for [resultDay] on an official puzzle (history seeded for today and yesterday), then runs [check]. */
-    private fun withResult(resultDay: LocalDate, onOpenBoard: ((GameId) -> Unit)?, check: () -> Unit) {
+    private fun withResult(resultDay: LocalDate, onOpenBoard: (GameId) -> Unit, check: () -> Unit) {
         val daily = FakeDailyRepository().apply {
             setToday(game, DailyToday.Fresh(TestGames.puzzle(game)))
             setHistory(

@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.app.play
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import android.content.Context
@@ -119,6 +118,7 @@ class RealGamesResultRouteTest {
                         onPlayAgain = { replayed = true },
                         onNext = {},
                         onDone = {},
+                        onOpenBoard = {},
                     )
                 }
             }
@@ -142,12 +142,6 @@ class RealGamesResultRouteTest {
     }
 
     @Test
-    fun `the daily board shows on today's result`() {
-        assertBoard(shown = true)
-    }
-
-
-    @Test
     fun `signed out on the hero page the rank row is the one sign-in action`() {
         val today = ZipDefinition.cadence.today()
         val daily = freshDailyForAllGames().apply {
@@ -162,42 +156,14 @@ class RealGamesResultRouteTest {
                         onPlayAgain = {},
                         onNext = {},
                         onDone = {},
+                        onOpenBoard = {},
                     )
                 }
             }
             composeRule.waitForIdle()
-            // The board shows (signed out) and says text only; the rank row keeps the action.
-            composeRule.onNodeWithTag("daily_board.title").assertExists()
-            composeRule.onNodeWithText("Sign in to see today's board").assertExists()
+            // Signed out, the rank row keeps the one sign-in action.
             composeRule.onNodeWithTag("result.side.rank.signin").assertExists()
             composeRule.onNodeWithTag("custom_board.sign_in").assertDoesNotExist()
-        } finally {
-            stopKoin()
-        }
-    }
-
-    /** Today's numbered Zip result: the board shows. */
-    private fun assertBoard(shown: Boolean) {
-        val today = ZipDefinition.cadence.today()
-        val daily = freshDailyForAllGames().apply {
-            setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(today)))
-        }
-        startGraph(daily, today)
-        try {
-            composeRule.setContent {
-                PuzzleBoxTheme(darkTheme = false) {
-                    ResultRoute(
-                        key = ResultKey(ZipDefinition.id.value, today.toString(), 95_000L, 0),
-                        onPlayAgain = {},
-                        onNext = {},
-                        onDone = {},
-                    )
-                }
-            }
-            composeRule.waitForIdle()
-            composeRule.onNodeWithTag("result.hero.screen").assertExists()
-            val board = composeRule.onNodeWithTag("daily_board.title")
-            if (shown) board.assertExists() else board.assertDoesNotExist()
         } finally {
             stopKoin()
         }

@@ -4,19 +4,14 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
-import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
-import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
-import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.ResultInsights
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.TodayEntry
-import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.nextUnsolved
 import com.ivandsky.puzzlebox.game.BestScore
@@ -26,25 +21,17 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardNote
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
-import com.ivandsky.puzzlebox.gameui.board.toBoardNote
-import com.ivandsky.puzzlebox.gameui.board.toDailyBoardState
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.ResultKey
-import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleBoard
 import java.time.Instant
 import java.time.LocalDate
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
@@ -95,14 +82,6 @@ data class ResultUiState(
  * screen is observed (plus a 5 s grace), so a day change is re-read.
  *
  * [heroInsights], [heroRank] and [replay] feed the hero page.
- *
- * [dailyBoard] is
- * today's board of this game for an official daily whose day is the game's today, null
- * otherwise (a past day, a practice play). Until the player's own
- * entry lands its note tells how the post stands in [posts] (Posting, Deferred, Rejected;
- * none once Posted); a landed row clears it, the board being the truth. A replay keeps the
- * first-time-stands note. Sign-in goes through [board]'s holder, so one screen has one
- * sign-in flow ([signInStatus]).
  */
 class ResultViewModel internal constructor(
     key: ResultKey,
@@ -115,8 +94,6 @@ class ResultViewModel internal constructor(
     games: GameRegistry,
     insights: ObserveResultInsights,
     rank: ObserveResultRank,
-    leaderboard: ObserveLeaderboard,
-    posts: SubmitStatusTracker,
     private val board: FriendPuzzleBoard,
 ) : ViewModel() {
 
@@ -183,44 +160,9 @@ class ResultViewModel internal constructor(
         (if (today) rank(slot.gameId, slot.day) else flowOf(ResultRank.Hidden))
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ResultRank.Hidden)
 
-    /** The rank order [dailyBoard] is ranked by. */
-    val boardOrder: RankOrder = games.rankOrderOf(slot.gameId)
-
-    /** How the last Google sign-in went, for the board's sign-in prompt. */
-    internal val signInStatus: StateFlow<BoardSignIn> = board.signInStatus
-
-    /** The daily board for this result; null when none shows (a past day or a practice play). */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val dailyBoard: StateFlow<DailyBoardState?> =
-        if (today) {
-            val official = state.map { it.puzzleNumber != null }.distinctUntilChanged()
-            val replayed = state.map { it.verdict == RecordVerdict.Replay }.distinctUntilChanged()
-            val boards = official.flatMapLatest { yes -> if (yes) leaderboard(slot.gameId, slot.day) else flowOf(null) }
-            val ref = LeaderboardRef(slot.gameId.value, slot.day)
-            boards.flatMapLatest { board ->
-                val uid = (board as? TodayLeaderboard.SignedIn)?.identity?.uid
-                val post = if (uid == null) flowOf(null) else posts.observe(uid, ref)
-                combine(post, replayed) { status, replay -> board?.toDailyBoardState(boardNote(board, replay, status)) }
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
-        } else {
-            MutableStateFlow<DailyBoardState?>(null)
-        }
-
     /** The rank row's Google button: [activityContext] hosts Google's account picker, and is not kept. */
     fun signIn(activityContext: Context) {
         viewModelScope.launch { board.signIn(activityContext) }
-    }
-
-    /**
-     * A12: the replay note on a replay; while the player's own entry has not landed, the line
-     * for its [post] status; else none.
-     */
-    private fun boardNote(today: TodayLeaderboard, replay: Boolean, post: SubmitStatus?): DailyBoardNote? {
-        if (replay) return DailyBoardNote.ReplayFirstTimeStands
-        val signedIn = today as? TodayLeaderboard.SignedIn ?: return null
-        val loaded = signedIn.board as? TodayLeaderboard.Board.Loaded ?: return null
-        if (loaded.snapshot.entries.any { it.uid == signedIn.identity.uid }) return null
-        return post?.toBoardNote()
     }
 
     fun retryRecordWrite() {

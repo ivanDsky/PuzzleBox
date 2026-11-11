@@ -50,7 +50,7 @@ private const val SIDE_WEIGHT = 1f
  * [actions] is the hero's action row (the daily result passes [ResultHeroActions]); null draws none.
  * [chip] replaces the Today chip. A non-null [onRetryWrite] shows a failed-record-write notice above
  * the cards that retries through it. [onSignIn] is the rank row's sign-in when the player is signed out.
- * [board], when given, is a board block drawn below the cards (the daily board, behind its own flag).
+ * [board], when given, is a block drawn below the cards (the Result "Full board" row).
  */
 @Composable
 fun ResultHeroScreen(

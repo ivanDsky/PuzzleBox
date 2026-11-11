@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.WeekDay
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import java.time.LocalDate
 
 private val PreviewToday = LocalDate.parse("2026-11-06")
@@ -58,7 +59,7 @@ private val Loading = Loaded.copy(
 private fun PanelPreview(state: PlayStatsState, elapsedMs: Long?) {
     PuzzleBoxTheme {
         Column(Modifier.width(PreviewPaneWidth).background(MaterialTheme.colorScheme.surface).padding(Spacing.lg)) {
-            PlayStatsPanel(state, elapsedMs = { elapsedMs })
+            PlayStatsPanel(state, elapsedMs = { elapsedMs }, signIn = BoardSignIn.Idle, onSignIn = {})
         }
     }
 }

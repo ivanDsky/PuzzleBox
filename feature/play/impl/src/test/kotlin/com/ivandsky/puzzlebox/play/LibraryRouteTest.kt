@@ -157,7 +157,7 @@ class LibraryRouteTest {
     private fun setContent(layout: PlayLayout) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) }, onOpenCode = {})
+                LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) }, onOpenCode = {}, onOpenGameHistory = {})
             }
         }
     }
@@ -253,6 +253,8 @@ class LibraryRouteTest {
         setContent(PlayLayout.TwoPane)
         awaitTag("library.howto.lesson")
 
+        // The tablet's right column scrolls as one under the board, so the lesson button may sit below the fold.
+        composeRule.onNodeWithTag("library.howto.lesson").performScrollTo()
         tap("library.howto.lesson")
         awaitTag("tutorial.host")
         composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
@@ -319,6 +321,7 @@ class LibraryRouteTest {
                     onRetry = {},
                     onOpenLesson = {},
                     calendar = CalendarActions(),
+                    onOpenGameHistory = {},
                 )
             }
         }
@@ -375,18 +378,13 @@ class LibraryRouteTest {
         assertEquals(listOf(zip to yesterday), played)
     }
 
-    private fun setBoardContent(
-        layout: PlayLayout,
-        showGameBoard: Boolean = false,
-        onOpenGameHistory: (() -> Unit)? = null,
-    ) {
+    private fun setBoardContent(layout: PlayLayout, onOpenGameHistory: () -> Unit = {}) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 LibraryRoute(
                     layout = layout,
                     onPlay = { _, _ -> },
                     onOpenCode = {},
-                    showGameBoard = showGameBoard,
                     onOpenGameHistory = onOpenGameHistory,
                 )
             }
@@ -403,28 +401,9 @@ class LibraryRouteTest {
         awaitTag("library.page.alpha")
     }
 
-    private fun exists(tag: String) =
-        composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
-
     @Test
-    fun `showGameBoard alone puts the board on the phone page and no history row`() {
-        setBoardContent(PlayLayout.SinglePane, showGameBoard = true)
-        openAlphaPage(PlayLayout.SinglePane)
-        awaitTag("leaderboard.today")
-        assertTrue(!exists("summary.history"))
-    }
-
-    @Test
-    fun `onOpenGameHistory alone puts the history row on the phone page and no board`() {
-        setBoardContent(PlayLayout.SinglePane, onOpenGameHistory = {})
-        openAlphaPage(PlayLayout.SinglePane)
-        awaitTag("summary.history")
-        assertTrue(!exists("leaderboard.today") && !exists("leaderboard.yesterday"))
-    }
-
-    @Test
-    fun `both set on the tablet show the board, the history row and how to play under them`() {
-        setBoardContent(PlayLayout.TwoPane, showGameBoard = true, onOpenGameHistory = {})
+    fun `the tablet page shows the board, the history row and how to play under them`() {
+        setBoardContent(PlayLayout.TwoPane)
         openAlphaPage(PlayLayout.TwoPane)
         awaitTag("leaderboard.today")
         awaitTag("summary.history")
@@ -442,19 +421,5 @@ class LibraryRouteTest {
         composeRule.onNodeWithTag("summary.history").performScrollTo()
         tap("summary.history")
         assertEquals(1, opened)
-    }
-
-    @Test
-    fun `neither set leaves the phone page without a board or a history row`() {
-        setBoardContent(PlayLayout.SinglePane)
-        openAlphaPage(PlayLayout.SinglePane)
-        assertTrue(!exists("leaderboard.today") && !exists("summary.history"))
-    }
-
-    @Test
-    fun `neither set leaves the tablet page without a board or a history row`() {
-        setBoardContent(PlayLayout.TwoPane)
-        openAlphaPage(PlayLayout.TwoPane)
-        assertTrue(!exists("leaderboard.today") && !exists("summary.history"))
     }
 }

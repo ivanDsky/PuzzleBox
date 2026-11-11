@@ -81,16 +81,13 @@ internal fun puzzleBoxEntryProvider(
     playEntry(
         navigator,
         playLayout,
-        onOpenHistory = { navigator.pushOnce(HistoryKey()) },
         codeDraft = codeDraft,
         libraryRequest = { libraryRequests.pending },
         onLibraryRequestTaken = libraryRequests::take,
         onCodeDraftTaken = onCodeDraftTaken,
         duels = duels,
         onOpenDuel = onOpenDuel,
-        showGameBoard = true,
         onOpenGameHistory = { navigator.openOwner(HistoryRootKey) },
-        signInInPlace = true,
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) }.takeIf { linkedIn },
     )
     resultEntry(

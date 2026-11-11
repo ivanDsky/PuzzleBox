@@ -108,6 +108,15 @@ class QueensRotationRestoreTest {
             listOf(
                 module {
                     single<DailyRepository> { repo }
+                    // The game page's board reads the leaderboard and signs in through these; Firebase is not started here.
+                    single<com.ivandsky.puzzlebox.data.identity.IdentityService> { com.ivandsky.puzzlebox.testing.repository.FakeIdentityService() }
+                    single<com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository> { com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository(emptyMap()) }
+                    single<com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider> {
+                        object : com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider {
+                            override suspend fun idToken(activityContext: android.content.Context) =
+                                com.ivandsky.puzzlebox.auth.GoogleIdToken.Unavailable(com.ivandsky.puzzlebox.auth.GoogleIdToken.Unavailable.Reason.CANCELLED)
+                        }
+                    }
                     single<com.ivandsky.puzzlebox.data.repository.GameSettingsRepository> { com.ivandsky.puzzlebox.testing.repository.FakeGameSettingsRepository() }
                     // Every tutorial seen: this path is about the board; the lessons have their own tests.
                     single<com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository> {
@@ -137,7 +146,7 @@ class QueensRotationRestoreTest {
                 NavDisplay(
                     backStack = navigator.state.currentStack,
                     onBack = { navigator.pop() },
-                    entryProvider = entryProvider { playEntry(navigator, PlayLayout.SinglePane, onOpenHistory = {}) },
+                    entryProvider = entryProvider { playEntry(navigator, PlayLayout.SinglePane, onOpenGameHistory = {}) },
                 )
             }
         }

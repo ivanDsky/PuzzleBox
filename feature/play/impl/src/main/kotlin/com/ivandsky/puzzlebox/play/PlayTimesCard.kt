@@ -64,9 +64,9 @@ private const val LIST_ROWS = 6
 @Composable
 internal fun PlayTimesCard(
     times: PlayTimes,
+    signIn: BoardSignIn,
+    onSignIn: () -> Unit,
     modifier: Modifier = Modifier,
-    signIn: BoardSignIn = BoardSignIn.Idle,
-    onSignIn: (() -> Unit)? = null,
 ) {
     var tab by rememberSaveable { mutableStateOf(TimesTab.Top) }
     val board = times as? PlayTimes.Board
@@ -83,7 +83,7 @@ internal fun PlayTimesCard(
                 ) { Text(entry.label) }
             }
         }
-        if (times == PlayTimes.SignedOut && onSignIn != null) {
+        if (times == PlayTimes.SignedOut) {
             Box(Modifier.fillMaxWidth().padding(top = Spacing.sm)) {
                 SignInPrompt(title = "Sign in to see today's times", yourTimeMs = null, signIn = signIn, onSignIn = onSignIn)
             }
@@ -109,18 +109,16 @@ internal fun PlayTimesCard(
 
 private fun noteFor(times: PlayTimes, rows: List<PlayTimeRow>?): String? = when (times) {
     PlayTimes.Loading -> "Loading today's times…"
-    PlayTimes.SignedOut -> "Sign in on Profile to see today's times"
+    PlayTimes.SignedOut -> null // the sign-in prompt replaces the list
     PlayTimes.Unavailable -> "Today's times aren't available right now"
     is PlayTimes.Board -> when {
         times.rows.isEmpty() -> "No times posted yet today"
         rows == null -> when {
             !times.solved -> "Finish to see who's near you"
-            // Flag off (order null, no per-game board): the plain Posting line, as before.
-            times.order == null -> DailyBoardNote.Posting.text
             // A7 (RG10): a day older than the game's yesterday can never post, so it is not posting.
             times.pastDay -> "Past days aren't ranked."
             else -> when (times.post) {
-                // Flag on, no post read (unreachable today): the post-note path says Posting.
+                // No post status read yet: the line says Posting.
                 null -> DailyBoardNote.Posting.text
                 else -> times.post.toBoardNote()?.text
             }

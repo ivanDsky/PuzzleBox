@@ -51,8 +51,8 @@ private const val NONE = "—"
 internal fun ColumnScope.PlayStatsPanel(
     state: PlayStatsState,
     elapsedMs: () -> Long?,
-    signIn: BoardSignIn = BoardSignIn.Idle,
-    onSignIn: (() -> Unit)? = null,
+    signIn: BoardSignIn,
+    onSignIn: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()).testTag("play.stats"),

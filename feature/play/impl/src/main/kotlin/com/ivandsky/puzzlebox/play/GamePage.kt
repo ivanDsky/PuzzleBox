@@ -37,10 +37,10 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
  * calendar; right: stats over how to play). [PlayLayout.SinglePane] stacks them in one
  * scrolling column under a back button ([onBack]; null hides it). [offline] adds the
  * offline pill; [hasLesson] false hides "Open the lesson" ([onOpenLesson]). [scroll] is
- * the phone column's, so picking a day can bring the day card back into view. A [board]
- * (the game's leaderboard) goes under the stats card and an [onOpenHistory] adds a "Your history"
- * row under it, before how to play; null draws neither. With either, the tablet's right column
- * scrolls as one so how to play keeps its place under them.
+ * the phone column's, so picking a day can bring the day card back into view. The [board]
+ * (the game's leaderboard) goes under the stats card and a "Your history" row ([onOpenHistory])
+ * under it, before how to play. The tablet's right column scrolls as one so how to play keeps
+ * its place under them.
  */
 @Composable
 internal fun GamePage(
@@ -50,12 +50,12 @@ internal fun GamePage(
     calendar: @Composable () -> Unit,
     onBack: (() -> Unit)?,
     onOpenLesson: () -> Unit,
+    board: @Composable () -> Unit,
+    onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier,
     offline: Boolean = false,
     hasLesson: Boolean = true,
     scroll: ScrollState = rememberScrollState(),
-    board: (@Composable () -> Unit)? = null,
-    onOpenHistory: (() -> Unit)? = null,
 ) {
     val reduced = rememberReducedMotion()
     val tag = "library.page.${row.card.game.value}"
@@ -70,22 +70,15 @@ internal fun GamePage(
                     EnterFade(0, reduced) { dayCard() }
                     EnterFade(1, reduced, Modifier.weight(1f).fillMaxWidth()) { calendar() }
                 }
-                val extras = board != null || onOpenHistory != null
                 Column(
-                    Modifier.weight(1f).fillMaxHeight().then(if (extras) Modifier.verticalScroll(rememberScrollState()) else Modifier),
+                    Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(Spacing.lg),
                 ) {
                     EnterFade(2, reduced) { GameStatsCard(row) }
-                    if (extras) {
-                        // The right column scrolls as one: stats, board, history, then how to play at its own height.
-                        board?.let { EnterFade(3, reduced) { it() } }
-                        onOpenHistory?.let { EnterFade(3, reduced) { SummaryLinkRow("Your history", "summary.history", it) } }
-                        EnterFade(3, reduced) { HowToPlayCard(row, hasLesson, onOpenLesson) }
-                    } else {
-                        EnterFade(3, reduced, Modifier.weight(1f).fillMaxWidth()) {
-                            HowToPlayCard(row, hasLesson, onOpenLesson, Modifier.fillMaxHeight(), fill = true)
-                        }
-                    }
+                    // The right column scrolls as one: stats, board, history, then how to play at its own height.
+                    EnterFade(3, reduced) { board() }
+                    EnterFade(3, reduced) { SummaryLinkRow("Your history", "summary.history", onOpenHistory) }
+                    EnterFade(3, reduced) { HowToPlayCard(row, hasLesson, onOpenLesson) }
                 }
             }
         }
@@ -110,8 +103,8 @@ internal fun GamePage(
             EnterFade(0, reduced) { dayCard() }
             EnterFade(1, reduced) { calendar() }
             EnterFade(2, reduced) { GameStatsCard(row) }
-            board?.let { EnterFade(3, reduced) { it() } }
-            onOpenHistory?.let { EnterFade(3, reduced) { SummaryLinkRow("Your history", "summary.history", it) } }
+            EnterFade(3, reduced) { board() }
+            EnterFade(3, reduced) { SummaryLinkRow("Your history", "summary.history", onOpenHistory) }
             EnterFade(3, reduced) { HowToPlayCard(row, hasLesson, onOpenLesson) }
         }
     }

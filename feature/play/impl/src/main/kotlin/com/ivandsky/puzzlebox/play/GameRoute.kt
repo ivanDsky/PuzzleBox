@@ -61,7 +61,6 @@ internal fun GameRoute(
     onBack: () -> Unit,
     onSolved: (slot: PlaySlot, timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
-    signInInPlace: Boolean = false,
 ) {
     val viewModel: GameViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val pastDay by viewModel.pastDay.collectAsStateWithLifecycle()
@@ -77,7 +76,6 @@ internal fun GameRoute(
         onSolved = onSolved,
         overflow = emptyList(),
         modifier = modifier,
-        signInInPlace = signInInPlace,
     )
 }
 
@@ -124,7 +122,6 @@ internal fun GameBoard(
     onSolved: (slot: PlaySlot, timeMs: Long, hintsUsed: Int) -> Unit,
     overflow: List<PlayOverflowItem>,
     modifier: Modifier,
-    signInInPlace: Boolean = false,
 ) {
     Column(modifier = modifier.testTag("route.game")) {
         if (play == null) {
@@ -178,7 +175,7 @@ internal fun GameBoard(
                     null
                 }
                 val clock = (board.controller as? PlayClock)?.takeIf { board.status is PlayBoardStatus.Ready }
-                val activityContext = if (signInInPlace) LocalContext.current else null
+                val activityContext = LocalContext.current
                 val sidePanel = remember(stats, clock, activityContext) { stats?.let { statsPanel(it, clock, activityContext) } }
                 play.ui.Screen(
                     controller = board.controller,
@@ -198,14 +195,14 @@ internal fun GameBoard(
  * The tablet side panel's content: [PlayStatsPanel] over [stats], under the game's
  * chrome, timing it off [clock] (null while the board isn't ready).
  */
-private fun statsPanel(stats: PlayStatsViewModel, clock: PlayClock?, activityContext: Context?): @Composable ColumnScope.() -> Unit = {
+private fun statsPanel(stats: PlayStatsViewModel, clock: PlayClock?, activityContext: Context): @Composable ColumnScope.() -> Unit = {
     val state by stats.state.collectAsStateWithLifecycle()
     val signIn by stats.signIn.collectAsStateWithLifecycle()
     PlayStatsPanel(
         state,
         elapsedMs = { clock?.displayedElapsedMs() },
         signIn = signIn,
-        onSignIn = activityContext?.let { context -> { stats.signIn(context) } },
+        onSignIn = { stats.signIn(activityContext) },
     )
 }
 

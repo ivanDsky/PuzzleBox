@@ -58,7 +58,7 @@ import org.koin.core.parameter.parametersOf
  * Open is [onOpenCode]. A From friends card's Remove shows "Removed <code>" with Undo. A
  * [codeDraft] opens the sheet with that text already in the field, then is taken
  * ([onCodeDraftTaken]); a [request] opens a game's page or a tab, then is taken ([onRequestTaken]).
- * The game page's leaderboard shows with [showGameBoard] and its "Your history" row with [onOpenGameHistory].
+ * The game page shows its leaderboard and a "Your history" row calling [onOpenGameHistory].
  * With [linkedIn] the day card shows the LinkedIn lines, and [onReconnectLinkedIn] opens its login.
  */
 @Composable
@@ -66,6 +66,7 @@ internal fun LibraryRoute(
     layout: PlayLayout,
     onPlay: (GameId, LocalDate?) -> Unit,
     onOpenCode: (ShareCode) -> Unit,
+    onOpenGameHistory: () -> Unit,
     modifier: Modifier = Modifier,
     codeDraft: String? = null,
     onCodeDraftTaken: () -> Unit = {},
@@ -73,8 +74,6 @@ internal fun LibraryRoute(
     onOpenDuel: ((DuelKey) -> Unit)? = null,
     request: LibraryRequest? = null,
     onRequestTaken: () -> Unit = {},
-    showGameBoard: Boolean = false,
-    onOpenGameHistory: (() -> Unit)? = null,
     linkedIn: Boolean = false,
     onReconnectLinkedIn: (() -> Unit)? = null,
 ) {
@@ -126,7 +125,6 @@ internal fun LibraryRoute(
             duels = duels,
             request = request,
             onRequestTaken = onRequestTaken,
-            showGameBoard = showGameBoard,
             onOpenGameHistory = onOpenGameHistory,
             linkedIn = linkedInCard,
         )
@@ -170,7 +168,7 @@ internal fun LibraryRoute(
  * the list into the Dailies, Friends and Duels tabs (the tab is saved here, so it survives a
  * page push). A [request] acts once
  * ([ConsumeLibraryRequest]; a section needs [duels]) and is reported taken ([onRequestTaken]). The game page
- * shows its leaderboard with [showGameBoard] and a "Your history" row with [onOpenGameHistory].
+ * shows its leaderboard and a "Your history" row calling [onOpenGameHistory].
  * A non-null [linkedIn] puts the LinkedIn lines on the page's day card.
  */
 @Composable
@@ -185,6 +183,7 @@ internal fun LibraryScreen(
     onRetry: () -> Unit,
     onOpenLesson: (GameId) -> Unit,
     calendar: CalendarActions,
+    onOpenGameHistory: () -> Unit,
     modifier: Modifier = Modifier,
     onEnterCode: (() -> Unit)? = null,
     friends: List<FriendCardModel> = emptyList(),
@@ -193,8 +192,6 @@ internal fun LibraryScreen(
     duels: DuelsSlot? = null,
     request: LibraryRequest? = null,
     onRequestTaken: () -> Unit = {},
-    showGameBoard: Boolean = false,
-    onOpenGameHistory: (() -> Unit)? = null,
     linkedIn: LinkedInCardState? = null,
 ) {
     val listScroll = rememberScrollState()
@@ -213,7 +210,7 @@ internal fun LibraryScreen(
     fun Page(row: LibraryRowModel, onBack: (() -> Unit)?) = LibraryGamePage(
         row, page, month, layout, calendar, onPlay, onRetry, onOpenLesson, onBack,
         offline = state.offline, hasLesson = hasLesson(row.card.game),
-        showGameBoard = showGameBoard, onOpenGameHistory = onOpenGameHistory, linkedIn = linkedIn,
+        onOpenGameHistory = onOpenGameHistory, linkedIn = linkedIn,
     )
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()
     var tab by rememberSaveable { mutableStateOf(GamesTab.Dailies) }
