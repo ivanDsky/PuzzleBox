@@ -1,17 +1,10 @@
 package com.ivandsky.puzzlebox.play
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,20 +15,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.SegmentedToggle
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.formatDuration
-import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.bestScoreText
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardNote
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardRow
+import com.ivandsky.puzzlebox.gameui.board.GhostRow
 import com.ivandsky.puzzlebox.gameui.board.toBoardNote
 import com.ivandsky.puzzlebox.gameui.rankRuleText
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
@@ -46,9 +34,9 @@ private enum class TimesTab(val label: String, val tag: String) {
     NearYou("Near you", "play.stats.tab.near"),
 }
 
-private val RowHeight = 44.dp
-private val AvatarSize = 28.dp
-private val RankWidth = 24.dp
+// The leaderboard's rows at their natural height: a name line, and under a connection's name a detail line too.
+private val RowHeight = 40.dp
+private val GhostRowHeight = 56.dp
 
 // Top is five rows plus the player's pinned one, the tallest list either tab draws; the
 // list area always reserves it, so loading, notes and either tab share one height.
@@ -57,8 +45,9 @@ private const val LIST_ROWS = 6
 /**
  * Today's times on this game's board (A15): Top (the first five, the player's own row
  * pinned under them when it ranks lower) or Near you (two ranks either side of the
- * player). There is no friend graph yet, so neither tab claims to be friends. Signed
- * out, loading, unavailable and empty boards show a note in the same reserved area.
+ * player). The rows are the leaderboard's own, connections included. There is no friend
+ * graph yet, so neither tab claims to be friends. Signed out, loading, unavailable and
+ * empty boards show a note in the same reserved area.
  */
 @Composable
 internal fun PlayTimesCard(
@@ -86,7 +75,8 @@ internal fun PlayTimesCard(
             }
             return@StatsCard
         }
-        Box(Modifier.fillMaxWidth().padding(top = Spacing.sm).height(RowHeight * LIST_ROWS)) {
+        val rowHeight = if (board?.rows?.any { it is DailyBoardLine.Ghost } == true) GhostRowHeight else RowHeight
+        Box(Modifier.fillMaxWidth().padding(top = Spacing.sm).heightIn(min = rowHeight * LIST_ROWS)) {
             val rows = board?.let { if (tab == TimesTab.Top) it.top else it.nearYou }
             val note = noteFor(times, rows)
             if (note != null) {
@@ -98,13 +88,14 @@ internal fun PlayTimesCard(
                     modifier = Modifier.align(Alignment.Center).padding(horizontal = Spacing.lg).testTag("play.stats.times.note"),
                 )
             } else if (rows != null) {
-                Column { rows.forEach { TimeRow(it, board?.order) } }
+                // A board with no rank rule reads as time-first rows.
+                TimeLines(rows, board.order ?: RankOrder.TimeThenHints)
             }
         }
     }
 }
 
-private fun noteFor(times: PlayTimes, rows: List<PlayTimeRow>?): String? = when (times) {
+private fun noteFor(times: PlayTimes, rows: List<DailyBoardLine>?): String? = when (times) {
     PlayTimes.Loading -> "Loading today's times…"
     PlayTimes.SignedOut -> null // the sign-in prompt replaces the list
     PlayTimes.Unavailable -> "Today's times aren't available right now"
@@ -125,52 +116,18 @@ private fun noteFor(times: PlayTimes, rows: List<PlayTimeRow>?): String? = when 
 }
 
 @Composable
-private fun TimeRow(row: PlayTimeRow, order: RankOrder?) {
-    val colors = MaterialTheme.colorScheme
-    val ink = if (row.you) colors.onPrimaryContainer else colors.onSurface
-    val name = if (row.you) "You" else row.name
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(RowHeight)
-            .then(if (row.you) Modifier.background(colors.primaryContainer, AppShapes.small) else Modifier)
-            // A connection's row is outlined rather than filled, so it never reads as the player's own.
-            .then(if (row.ghost) Modifier.border(1.dp, colors.outlineVariant, AppShapes.small) else Modifier)
-            .padding(horizontal = Spacing.sm)
-            .semantics(mergeDescendants = true) {}
-            .testTag(if (row.you) "play.stats.row.you" else if (row.ghost) "play.stats.row.ghost" else "play.stats.row"),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        Text(
-            row.rank.toString(),
-            style = MaterialTheme.typography.labelLarge.tabular(),
-            color = if (row.you) ink else colors.onSurfaceVariant,
-            modifier = Modifier.width(RankWidth),
-        )
-        Box(Modifier.size(AvatarSize).background(colors.surfaceContainerHighest, CircleShape), contentAlignment = Alignment.Center) {
-            Text(name.take(1).uppercase(), style = MaterialTheme.typography.labelMedium, color = colors.onSurface)
-        }
-        Column(Modifier.weight(1f)) {
-            Text(
-                name,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = ink,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (row.ghost) {
-                Text("LinkedIn", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant, maxLines = 1)
+private fun TimeLines(lines: List<DailyBoardLine>, order: RankOrder) {
+    Column {
+        lines.forEach { line ->
+            when (line) {
+                // The player's own row keeps reading "You" here, as it always has.
+                is DailyBoardLine.Real -> DailyBoardRow(
+                    if (line.row.isSelf) line.row.copy(name = "You") else line.row,
+                    order,
+                    place = line.place,
+                )
+                is DailyBoardLine.Ghost -> GhostRow(line.row, line.place, order)
             }
         }
-        Text(
-            // A hinted connection has no hint count to show, so its time stands alone.
-            if (row.ghost && row.hints > 0) formatDuration(row.timeMs)
-            else order?.let { bestScoreText(BestScore(row.timeMs, row.hints), it) } ?: formatDuration(row.timeMs),
-            style = MaterialTheme.typography.titleSmall.tabular(),
-            fontWeight = FontWeight.Bold,
-            color = ink,
-        )
     }
 }

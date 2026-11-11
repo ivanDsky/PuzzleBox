@@ -135,7 +135,7 @@ class PlayStatsViewModel(
             DailyBoardRowModel(rank = index + 1, name = entry.displayName, timeMs = entry.timeMs, hints = entry.hints, isSelf = entry.uid == uid)
         }
         return PlayTimes.Board(
-            rows = rankWithGhosts(board, ghosts, order).mapNotNull(::timeRow),
+            rows = rankWithGhosts(board, ghosts, order).timed(),
             solved = solved,
             order = order,
             post = post,
@@ -143,17 +143,10 @@ class PlayStatsViewModel(
         )
     }
 
-    private fun timeRow(line: DailyBoardLine): PlayTimeRow? = when (line) {
-        is DailyBoardLine.Real -> PlayTimeRow(line.place, line.row.name, line.row.timeMs, line.row.hints, you = line.row.isSelf)
-        // A time list has no place for a connection whose time is hidden.
-        is DailyBoardLine.Ghost -> line.place?.let { place ->
-            val timeMs = line.row.timeMs ?: return null
-            PlayTimeRow(place, line.row.name.ifEmpty { CONNECTION }, timeMs, hints = if (line.row.hintFree) 0 else 1, you = false, ghost = true)
-        }
-    }
+    // A time list has no place for a connection whose time is hidden.
+    private fun List<DailyBoardLine>.timed(): List<DailyBoardLine> = filterNot { it is DailyBoardLine.Ghost && it.place == null }
 
     private companion object {
-        const val CONNECTION = "Connection"
         const val STOP_TIMEOUT_MS = 5_000L
         const val WEEK_DAYS = 7L
     }
