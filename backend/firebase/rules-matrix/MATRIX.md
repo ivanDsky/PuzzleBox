@@ -324,6 +324,75 @@ existing `results (create)` row):
 | deny | get | `matchQuota/alice` | bob | another user reads the quota |
 | deny | delete | `matchQuota/alice` | alice | owner deletes the quota |
 
+## account space
+
+`users/{uid}/{kind}/{docId}` (ADR-0029): owner-only, closed over six kinds, `updatedAt` must be the server time,
+per-kind key lists and size caps. Request time is `2026-11-07T12:00:00Z`; no other document is read, so no mocks.
+Drafts and received puzzles carry bytes (`blob`, `bytes`), which the Rules Test API's JSON cannot express, so their
+live shapes are covered only on the deny side (a string where bytes belong); their allow side, the 64 KiB and
+8 KiB bounds and a merge-set tombstone over a live doc were checked on the local Firestore emulator instead.
+Tombstones (`deleted`, `deletedAtMs`) stand for the draft and received kinds in the allow and name-cap cases.
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | create | `users/alice/completions/2026-11` | alice | owner creates a completions month doc |
+| allow | update | `users/alice/completions/2026-11` | alice | owner overwrites a completions month doc |
+| allow | create | `users/alice/completions/2026-11-2` | alice | owner creates an overflow completions doc |
+| allow | create | `users/alice/published/K7Q2MX` | alice | owner creates a published doc |
+| allow | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | owner creates a board doc |
+| allow | create | `users/alice/drafts/d1` | alice | owner writes a draft tombstone |
+| allow | create | `users/alice/received/K7Q2MX` | alice | owner writes a received tombstone |
+| allow | get | `users/alice/published/K7Q2MX` | alice | owner gets own doc |
+| allow | list | `users/alice/published/K7Q2MX` | alice | owner lists own collection |
+| allow | get | `users/alice/replays/sync-1` | alice | owner gets a replays doc |
+| deny | create | `users/alice/published/K7Q2MX` | bob | other uid creates in the space |
+| deny | update | `users/alice/completions/2026-11` | bob | other uid overwrites in the space |
+| deny | get | `users/alice/published/K7Q2MX` | bob | other uid gets a doc |
+| deny | list | `users/alice/published/K7Q2MX` | bob | other uid lists the space |
+| deny | create | `users/alice/published/K7Q2MX` | — | signed-out create |
+| deny | get | `users/alice/published/K7Q2MX` | — | signed-out get |
+| deny | list | `users/alice/published/K7Q2MX` | — | signed-out list |
+| deny | list | `users/alice/drafts/d1` | bob | list of another account's draft collection |
+| deny | create | `users/alice/secrets/s1` | alice | create under an unknown kind |
+| deny | get | `users/alice/secrets/s1` | alice | get under an unknown kind |
+| deny | list | `users/alice/secrets/s1` | alice | list under an unknown kind |
+| deny | delete | `users/alice/secrets/s1` | alice | delete under an unknown kind |
+| deny | create | `users/alice/replays/sync-1` | alice | replays take no writes before their key list |
+| deny | create | `users/alice/published/K7Q2MX` | alice | updatedAt other than the server time |
+| deny | create | `users/alice/published/K7Q2MX` | alice | updatedAt missing |
+| deny | create | `users/alice/published/K7Q2MX` | alice | formatVersion 2 |
+| deny | create | `users/alice/completions/2026-11` | alice | completions doc with an extra key |
+| deny | create | `users/alice/published/K7Q2MX` | alice | published doc with an extra key |
+| deny | create | `users/alice/drafts/d1` | alice | draft tombstone with an extra key |
+| deny | create | `users/alice/received/K7Q2MX` | alice | received tombstone with an extra key |
+| deny | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | board doc with a session key |
+| deny | create | `users/alice/completions/2026-11` | alice | completions doc without records |
+| deny | create | `users/alice/published/K7Q2MX` | alice | published doc missing a key |
+| deny | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | board doc without rows |
+| deny | create | `users/alice/drafts/d1` | alice | draft doc with neither shape |
+| deny | create | `users/alice/drafts/d1` | alice | draft tombstone with a text deletedAtMs |
+| deny | create | `users/alice/drafts/d1` | alice | draft doc whose blob is a string |
+| deny | create | `users/alice/received/K7Q2MX` | alice | received doc whose bytes are a string |
+| deny | create | `users/alice/published/K7Q2MX` | alice | published doc with a text unpublished |
+| deny | create | `users/alice/completions/2026-13` | alice | completions doc id outside the month shape |
+| deny | create | `users/alice/published/k7q2mx` | alice | published doc id outside the share alphabet |
+| allow | create | `users/alice/published/K7Q2MX` | alice | 64-char published name |
+| deny | create | `users/alice/published/K7Q2MX` | alice | 65-char published name |
+| allow | create | `users/alice/drafts/d1` | alice | 64-char draft name |
+| deny | create | `users/alice/drafts/d1` | alice | 65-char draft name |
+| allow | create | `users/alice/received/K7Q2MX` | alice | 64-char received sender name |
+| deny | create | `users/alice/received/K7Q2MX` | alice | 65-char received sender name |
+| allow | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | 51 board rows |
+| deny | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | 52 board rows |
+| allow | create | `users/alice/completions/2026-11` | alice | 1000 completion records |
+| deny | create | `users/alice/completions/2026-11` | alice | 1001 completion records |
+| allow | delete | `users/alice/drafts/d1` | alice | owner deletes a draft |
+| allow | delete | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | owner deletes a board |
+| allow | delete | `users/alice/replays/sync-1` | alice | owner deletes a replays doc |
+| deny | delete | `users/alice/drafts/d1` | bob | other uid deletes a draft |
+| deny | delete | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | bob | other uid deletes a board |
+| deny | delete | `users/alice/drafts/d1` | — | signed-out delete |
+
 ## deny-all
 
 | Expect | Method | Path | Auth | Case |
@@ -336,6 +405,12 @@ existing `results (create)` row):
 
 2026-11-11, local `firestore.rules` with the optional result `replay` (not deployed;
 the run uses the local source on the Rules Test API): **213 cases, 213/213 passed**, exit 0.
+
+The `account space` group (57 cases) was added after that run and has not run on the Rules Test API: run
+`run.sh` before the rules deploy. On the local Firestore emulator (REST, unsigned tokens, no network) all 57 gave
+their expected verdict, and so did the byte cases above (draft blob 65,536 bytes allowed, 65,537 denied; received
+bytes 8,192 allowed, 8,193 denied; a merge-set tombstone over a live draft allowed). A collection-group query over a kind (a list across all accounts)
+was denied there too; the Test API cannot express one.
 
 ```
 PASS  ALLOW  [puzzles] anonymous get of a puzzle
