@@ -1,6 +1,10 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.data.linkedin.LinkState
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInSync
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.DailyToday
@@ -19,6 +23,9 @@ import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -27,8 +34,11 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.play.linkedin.LinkedInDayState
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -52,6 +62,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -114,7 +125,10 @@ class LibraryViewModelTest {
         screen.cancel()
     }
 
-    private fun observedVm(delete: DeleteReceivedPuzzle = DeleteReceivedPuzzle(received, saved)): LibraryViewModel {
+    private fun observedVm(
+        delete: DeleteReceivedPuzzle = DeleteReceivedPuzzle(received, saved),
+        linkedIn: LinkedInDayState? = null,
+    ): LibraryViewModel {
         val history = ObserveGameHistory(fakes.games, daily, completions)
         return LibraryViewModel(
             store = store,
@@ -132,6 +146,7 @@ class LibraryViewModelTest {
             friendPuzzles = ObserveFriendPuzzles(received, saved, completions, fakes.games),
             deleteReceivedPuzzle = delete,
             appScope = CoroutineScope(dispatcher + Job()),
+            linkedIn = linkedIn,
         ).also { vm ->
             screen.launch { vm.uiState.collect {} }
             screen.launch { vm.page.collect {} }
@@ -141,6 +156,38 @@ class LibraryViewModelTest {
     }
 
     private fun LibraryViewModel.row(game: GameId) = uiState.value.rows.first { it.card.game == game }
+
+    private val days = FakeLinkedInDays()
+
+    private fun holder() = LinkedInDayState(ObserveLinkedInDay(days, fakes.games), SyncLinkedInDay(days, 500), FakeLinkedInLink())
+
+    /** A linked day whose own result is not known yet, so [inFlight] and [lastSync] decide what it shows. */
+    private fun data(inFlight: Boolean = false, lastSync: LinkedInSync? = null) = LinkedInDayData(
+        link = LinkState.Connected("member-1"),
+        delta = 3,
+        boardInWindow = true,
+        inFlight = inFlight,
+        lastSync = lastSync,
+        own = LinkedInOwnState.Unknown,
+        ghosts = emptyList(),
+        boardFetchedAtMs = null,
+    )
+
+    private fun viewOf(game: GameId, on: LocalDate): LinkedInDayView? =
+        runBlocking { ObserveLinkedInDay(days, fakes.games)(game, on).first() }
+
+    /** The day card's slot: the only collector of [LibraryViewModel.linkedInView]. */
+    private fun showDayCard(vm: LibraryViewModel): Job {
+        val card = screen.launch { vm.linkedInView.collect {} }
+        dispatcher.scheduler.runCurrent()
+        return card
+    }
+
+    /** Moves the clock to exactly [ms] later, work due at that instant included. */
+    private fun after(ms: Long) {
+        dispatcher.scheduler.advanceTimeBy(ms)
+        dispatcher.scheduler.runCurrent()
+    }
 
     @Test
     fun `rows follow the registry and the first game is selected`() {
@@ -344,6 +391,93 @@ class LibraryViewModelTest {
         assertTrue(vm.friends.value.isEmpty())
     }
 
+    @Test
+    fun withoutLinkedInTheViewIsNullAndNothingIsCalled() {
+        val vm = observedVm()
+        showDayCard(vm)
+
+        after(HOUR_MS)
+
+        assertNull(vm.linkedIn)
+        assertNull(vm.linkedInView.value)
+        assertEquals(emptyList<Any>(), days.syncCalls)
+    }
+
+    @Test
+    fun theListMakesNoLinkedInCall() {
+        observedVm(linkedIn = holder())
+
+        after(HOUR_MS)
+
+        assertEquals(emptyList<Any>(), days.syncCalls)
+    }
+
+    @Test
+    fun theViewFollowsTodayThenThePickedDay() {
+        val past = day.minusDays(2)
+        days.emit(alpha, day, data(inFlight = true))
+        days.emit(alpha, past, data(lastSync = LinkedInSync.Offline))
+        val vm = observedVm(linkedIn = holder())
+        showDayCard(vm)
+        assertEquals(viewOf(alpha, day), vm.linkedInView.value)
+
+        vm.pick(past)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(viewOf(alpha, past), vm.linkedInView.value)
+        assertNotEquals(viewOf(alpha, day), vm.linkedInView.value)
+
+        vm.backToToday()
+        dispatcher.scheduler.runCurrent()
+        assertEquals(viewOf(alpha, day), vm.linkedInView.value)
+    }
+
+    @Test
+    fun selectingAnotherGameChangesTheView() {
+        days.emit(alpha, day, data(inFlight = true))
+        days.emit(beta, day, data(lastSync = LinkedInSync.OverBudget))
+        val vm = observedVm(linkedIn = holder())
+        showDayCard(vm)
+        assertEquals(viewOf(alpha, day), vm.linkedInView.value)
+
+        vm.select(beta)
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(viewOf(beta, day), vm.linkedInView.value)
+        assertNotEquals(viewOf(alpha, day), vm.linkedInView.value)
+    }
+
+    @Test
+    fun pickingFiveDaysFastSyncsOnlyTheLastOnce() {
+        val vm = observedVm(linkedIn = holder())
+        showDayCard(vm)
+
+        repeat(5) { step ->
+            vm.pick(day.minusDays(step + 1L))
+            after(100)
+        }
+        // The fifth day came on screen at 400 ms, so its wait ends at 900 ms.
+        after(399)
+        assertEquals(emptyList<Any>(), days.syncCalls)
+
+        after(1)
+        assertEquals(listOf(alpha to day.minusDays(5)), days.syncCalls)
+
+        after(HOUR_MS)
+        assertEquals(listOf(alpha to day.minusDays(5)), days.syncCalls)
+    }
+
+    @Test
+    fun leavingTheCardCancelsTheSync() {
+        val vm = observedVm(linkedIn = holder())
+        val card = showDayCard(vm)
+
+        after(300)
+        card.cancel()
+        after(HOUR_MS)
+
+        assertEquals(emptyList<Any>(), days.syncCalls)
+    }
+
     private fun friendPuzzle(code: ShareCode) = ReceivedPuzzle(
         code = code,
         gameId = alpha,
@@ -364,6 +498,7 @@ class LibraryViewModelTest {
     )
 
     private companion object {
+        const val HOUR_MS = 3_600_000L
         val A = checkNotNull(ShareCode.parse("K7Q2MX"))
         val B = checkNotNull(ShareCode.parse("B4R9TZ"))
     }
