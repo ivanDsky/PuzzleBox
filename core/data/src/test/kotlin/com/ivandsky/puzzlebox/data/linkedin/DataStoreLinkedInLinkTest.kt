@@ -13,10 +13,13 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInPhotoSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -223,6 +226,33 @@ class DataStoreLinkedInLinkTest {
 
         assertTrue(avatars.present.first().isEmpty())
         assertFalse(File(folder.root, "avatars").exists())
+    }
+
+    @Test
+    fun `a disconnect whose caller is cancelled after the cookies still wipes everything`() = runTest {
+        var caller: Job? = null
+        cookies = object : LinkedInSessionCookies {
+            override suspend fun current(): LinkedInAccountSession? = null
+            override suspend fun clear() {
+                // The player leaves the screen that started the disconnect, with the session already gone.
+                caller?.cancel()
+            }
+        }
+        val photo = "https://media.licdn.com/p/friend"
+        avatars = testAvatars(File(folder.root, "avatars"), FakeLinkedInPhotoSource().apply { respond(photo, byteArrayOf(1)) })
+        val link = start()
+        link.connect("profile-1", 1_000L)
+        db.ghostDao().insertAll(listOf(ghost))
+        db.fetchLogDao().put(fetch)
+        avatars.download(listOf(LinkedInBoard.Row("friend", "Friend", 60, hintFree = true, flawless = false, pictureUrl = photo)))
+
+        caller = launch(start = CoroutineStart.LAZY) { link.disconnect() }
+        caller.join()
+
+        assertEquals(emptyList<GhostEntity>(), ghosts())
+        assertNull(fetchLog())
+        assertTrue(avatars.present.first().isEmpty())
+        assertEquals(LinkState.NotConnected, link.state.first())
     }
 
     @Test

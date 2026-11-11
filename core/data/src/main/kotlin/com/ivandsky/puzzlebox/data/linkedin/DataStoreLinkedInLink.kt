@@ -5,9 +5,11 @@ import com.ivandsky.puzzlebox.datastore.LinkedInLinkDataSource
 import com.ivandsky.puzzlebox.datastore.LinkedInLinkPrefs
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 /**
  * The link over its own DataStore file, so the pause latch survives process death. It
@@ -39,14 +41,18 @@ internal class DataStoreLinkedInLink(
      * The link state goes last on purpose: if the process dies halfway the link still reads
      * as linked and the player can press Disconnect again, rather than being left not
      * connected over a half-wiped store. Completions are not touched, so imported days stay. The photos go
-     * with the rows they belong to: a disconnect leaves no connection's face on the phone.
+     * with the rows they belong to: a disconnect leaves no connection's face on the phone. It is not
+     * cancellable: the screen that asked may be left while the wipe runs, and stopping after the cookies
+     * would leave a half-wiped account behind a link that still reads as connected.
      */
     override suspend fun disconnect() {
-        cookies.clear()
-        db.ghostDao().clear()
-        db.fetchLogDao().clear()
-        avatars.clear()
-        source.clear()
+        withContext(NonCancellable) {
+            cookies.clear()
+            db.ghostDao().clear()
+            db.fetchLogDao().clear()
+            avatars.clear()
+            source.clear()
+        }
     }
 }
 
