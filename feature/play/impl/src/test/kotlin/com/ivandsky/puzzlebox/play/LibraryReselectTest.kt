@@ -7,6 +7,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
@@ -14,6 +18,7 @@ import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.unit.dp
@@ -77,6 +82,34 @@ class LibraryReselectTest {
         composeRule.onNodeWithText("duel 0").assertIsDisplayed()
     }
 
+    @Test
+    fun `a tab reselect glides the Duels list up like the Dailies list`() {
+        val reselect = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+        setContent(reselect, tabbed = true, tab = GamesTab.Duels)
+        composeRule.onNodeWithTag("duels.list").performScrollToIndex(DUEL_COUNT - 1)
+        composeRule.mainClock.autoAdvance = false
+
+        composeRule.runOnIdle { reselect.tryEmit(Unit) }
+        repeat(3) { composeRule.mainClock.advanceTimeByFrame() }
+        composeRule.onNodeWithText("duel 0").assertIsNotDisplayed()
+
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("duel 0").assertIsDisplayed()
+    }
+
+    @Test
+    fun `leaving a scrolled Duels tab and coming back finds its list at the top`() {
+        setContent(MutableSharedFlow(), tabbed = true, tab = GamesTab.Duels)
+        composeRule.onNodeWithTag("duels.list").performScrollToIndex(DUEL_COUNT - 1)
+        composeRule.onNodeWithText("duel 0").assertIsNotDisplayed()
+
+        composeRule.onNodeWithTag("library.tab.dailies").performClick()
+        composeRule.onNodeWithTag("library.tab.duels").performClick()
+
+        composeRule.onNodeWithText("duel 0").assertIsDisplayed()
+    }
+
     private fun setContent(reselect: SharedFlow<Unit>, tabbed: Boolean, tab: GamesTab = GamesTab.Dailies) {
         composeRule.setContent {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
@@ -103,8 +136,9 @@ private val scrollingDuels = DuelsSlot(
 )
 
 @Composable
-private fun ListHost(tabbed: Boolean, tab: GamesTab) {
+private fun ListHost(tabbed: Boolean, initialTab: GamesTab) {
     val scroll = rememberScrollState()
+    var tab by remember { mutableStateOf(initialTab) }
     LibraryList(
         state = previewState(),
         layout = PlayLayout.SinglePane,
@@ -113,5 +147,6 @@ private fun ListHost(tabbed: Boolean, tab: GamesTab) {
         modifier = Modifier,
         duels = if (tabbed) scrollingDuels else null,
         tab = tab,
+        onTab = { tab = it },
     )
 }

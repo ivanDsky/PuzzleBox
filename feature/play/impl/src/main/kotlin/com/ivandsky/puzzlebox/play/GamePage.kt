@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -76,9 +77,7 @@ internal fun GamePage(
                 ) {
                     EnterFade(2, reduced) { GameStatsCard(row) }
                     // The right column scrolls as one: stats, board, history, then how to play at its own height.
-                    EnterFade(3, reduced) { board() }
-                    EnterFade(3, reduced) { SummaryLinkRow("Your history", "summary.history", onOpenHistory) }
-                    EnterFade(3, reduced) { HowToPlayCard(row, hasLesson, onOpenLesson) }
+                    EnterFade(3, reduced) { PageTail(Spacing.lg, board, onOpenHistory, row, hasLesson, onOpenLesson) }
                 }
             }
         }
@@ -103,10 +102,25 @@ internal fun GamePage(
             EnterFade(0, reduced) { dayCard() }
             EnterFade(1, reduced) { calendar() }
             EnterFade(2, reduced) { GameStatsCard(row) }
-            EnterFade(3, reduced) { board() }
-            EnterFade(3, reduced) { SummaryLinkRow("Your history", "summary.history", onOpenHistory) }
-            EnterFade(3, reduced) { HowToPlayCard(row, hasLesson, onOpenLesson) }
+            EnterFade(3, reduced) { PageTail(Spacing.md, board, onOpenHistory, row, hasLesson, onOpenLesson) }
         }
+    }
+}
+
+/** The board, the history row and how to play, which enter as one beat. */
+@Composable
+private fun PageTail(
+    spacing: Dp,
+    board: @Composable () -> Unit,
+    onOpenHistory: () -> Unit,
+    row: LibraryRowModel,
+    hasLesson: Boolean,
+    onOpenLesson: () -> Unit,
+) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(spacing)) {
+        board()
+        SummaryLinkRow("Your history", "summary.history", onOpenHistory)
+        HowToPlayCard(row, hasLesson, onOpenLesson)
     }
 }
 

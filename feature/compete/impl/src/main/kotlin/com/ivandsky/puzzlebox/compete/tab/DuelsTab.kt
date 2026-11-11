@@ -33,8 +33,9 @@ import org.koin.androidx.compose.koinViewModel
 
 /**
  * The body under the Games screen's Duels pill: the challenge card, then my duels, then a one-line note when
- * there are none. Owns its own scrolling; the Games host owns the side inset. [onOpenDuel] opens the duel
- * screen and [onOpenReveal] the reveal of a duel whose reveal is ready.
+ * there are none. It scrolls as one list on [listState], which the Games host holds so it can send the list to its
+ * top; the host owns the side inset. [onOpenDuel] opens the duel screen and [onOpenReveal] the reveal of a duel
+ * whose reveal is ready.
  */
 @Composable
 fun DuelsTab(

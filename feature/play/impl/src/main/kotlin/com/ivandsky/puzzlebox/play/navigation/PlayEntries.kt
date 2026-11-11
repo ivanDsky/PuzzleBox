@@ -37,8 +37,8 @@ import org.koin.compose.koinInject
  * whose Play again replaces it with the board again. The library opens its code sheet on
  * [codeDraft]'s text and hands it back through [onCodeDraftTaken]. A [duels] slot turns the
  * library into the Dailies, Friends and Duels tabs; without one it is the single games list.
- * [onOpenDuel] is the flag's signal for Enter code (null = off, matches are never tried); it
- * is only carried here. A duel puzzle's [MatchLegKey] draws its leg's board; Up pops, and a
+ * [onOpenDuel] is what the code sheet calls when an entered code names a duel (null: duels are off, the sheet never
+ * tries a code as one). A duel puzzle's [MatchLegKey] draws its leg's board; Up pops, and a
  * solve, a give up or a puzzle already taken replaces it with its [MatchLegResultKey]. The library
  * acts once on [libraryRequest]'s game page or section and hands it back through [onLibraryRequestTaken].
  * The game page shows its leaderboard and a "Your history" row calling [onOpenGameHistory]; a signed-out
