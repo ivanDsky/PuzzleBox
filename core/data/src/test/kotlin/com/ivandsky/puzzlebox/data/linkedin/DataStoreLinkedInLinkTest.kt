@@ -8,7 +8,9 @@ import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import com.ivandsky.puzzlebox.datastore.LinkedInLinkDataSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSession
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInPhotoSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -19,6 +21,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.After
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -50,6 +53,7 @@ class DataStoreLinkedInLinkTest {
     private lateinit var db: LinkedInDatabase
     private lateinit var source: LinkedInLinkDataSource
     private var cookies: LinkedInSessionCookies = FakeLinkedInSessionCookies(session = null)
+    private lateinit var avatars: LinkedInAvatars
     private var process: CoroutineScope? = null
 
     private val ghost = GhostEntity(
@@ -76,6 +80,7 @@ class DataStoreLinkedInLinkTest {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), LinkedInDatabase::class.java)
             .allowMainThreadQueries()
             .build()
+        avatars = testAvatars(File(folder.root, "avatars"))
     }
 
     @After
@@ -94,7 +99,7 @@ class DataStoreLinkedInLinkTest {
         process = scope
         val file = File(folder.root, "linkedin_link.preferences_pb")
         source = LinkedInLinkDataSource(PreferenceDataStoreFactory.create(scope = scope) { file })
-        return DataStoreLinkedInLink(source, db, cookies)
+        return DataStoreLinkedInLink(source, db, cookies, avatars)
     }
 
     private suspend fun ghosts(): List<GhostEntity> = db.ghostDao().observe(ghost.game, ghost.day).first()
@@ -202,6 +207,22 @@ class DataStoreLinkedInLinkTest {
         assertNull(fetchLog())
         assertEquals(LinkState.NotConnected, link.state.first())
         assertEquals(LinkState.NotConnected, start().state.first())
+    }
+
+    @Test
+    fun `disconnect wipes the cached photos`() = runTest {
+        val photo = "https://media.licdn.com/p/friend"
+        val photos = FakeLinkedInPhotoSource().apply { respond(photo, byteArrayOf(1, 2, 3)) }
+        avatars = testAvatars(File(folder.root, "avatars"), photos)
+        val link = start()
+        link.connect("profile-1", 1_000L)
+        avatars.download(listOf(LinkedInBoard.Row("friend", "Friend", 60, hintFree = true, flawless = false, pictureUrl = photo)))
+        assertEquals(1, avatars.present.first().size)
+
+        link.disconnect()
+
+        assertTrue(avatars.present.first().isEmpty())
+        assertFalse(File(folder.root, "avatars").exists())
     }
 
     @Test

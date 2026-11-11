@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import android.os.Looper
+import java.io.File
 import com.ivandsky.puzzlebox.app.e2e.LinkedInDataWorld.Companion.GHOSTS
 import com.ivandsky.puzzlebox.app.e2e.LinkedInDataWorld.Companion.PROFILE_ID
 import com.ivandsky.puzzlebox.app.e2e.LinkedInDataWorld.Companion.ZIP
@@ -55,6 +56,9 @@ class LinkedInDisconnectE2ETest {
             awaitSynced(today)
             assertEquals("the connections' rows were stored", GHOSTS.size, storedGhosts())
             assertTrue("the link is on disk", linkFileNames(PROFILE_ID))
+            // Photos come after the log entry, so the day can be read before the last of them is on disk.
+            awaitLooper { avatarFiles().size == GHOSTS.size }
+            assertTrue("no photo file is named after a member", avatarFiles().none { "GHOST" in it.name })
 
             runBlocking { link().disconnect() }
 
@@ -63,10 +67,12 @@ class LinkedInDisconnectE2ETest {
             assertEquals("the read log is empty", 0, runBlocking { linkedInDb().fetchLogDao().observe(ZIP, today.toString(), PROFILE_ID).first() }.size)
             assertEquals(LinkState.NotConnected, runBlocking { link().state.first() })
             assertFalse("the link file no longer names the profile", linkFileNames(PROFILE_ID))
+            assertTrue("no connection's photo is left", avatarFiles().isEmpty())
             val kept = runBlocking { completions().observeRecords().first() }
             assertEquals("the imported result stays", listOf(zipRef(today) to CompletionSource.LinkedIn), kept.map { it.puzzleRef to it.source })
 
             // The same day again, then another: each look waits out the day view's hold-back.
+            val photosAsked = world.photos.calls
             val calls = world.source.calls
             reopenZipPage()
             settle()
@@ -76,6 +82,8 @@ class LinkedInDisconnectE2ETest {
             assertEquals(LinkedInSync.NotLinked, runBlocking { graph.koin.get<LinkedInDays>().sync(ZipDefinition.id, yesterday) })
             assertEquals("no call after the disconnect", calls, world.source.calls)
             assertEquals("and so nothing new imported", kept, runBlocking { completions().observeRecords().first() })
+            assertEquals("no photo asked for after the disconnect", photosAsked, world.photos.calls)
+            assertTrue("and none stored", avatarFiles().isEmpty())
         }
     }
 
@@ -87,6 +95,10 @@ class LinkedInDisconnectE2ETest {
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(2))
         rule.waitForIdle()
     }
+
+    /** The cached photos' directory; its files are all the connections' faces the phone holds. */
+    private fun avatarFiles(): List<File> =
+        File(RuntimeEnvironment.getApplication().noBackupFilesDir, "linkedin_avatars").listFiles().orEmpty().toList()
 
     /** Whether the link's preferences file exists and holds [text]. */
     private fun linkFileNames(text: String): Boolean {

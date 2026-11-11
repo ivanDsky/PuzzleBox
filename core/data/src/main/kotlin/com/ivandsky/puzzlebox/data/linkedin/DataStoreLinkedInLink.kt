@@ -18,6 +18,7 @@ internal class DataStoreLinkedInLink(
     private val source: LinkedInLinkDataSource,
     private val db: LinkedInDatabase,
     private val cookies: LinkedInSessionCookies,
+    private val avatars: LinkedInAvatars,
 ) : LinkedInLink {
 
     override val state: Flow<LinkState> = source.link.map { it.toLinkState() }.distinctUntilChanged()
@@ -37,12 +38,14 @@ internal class DataStoreLinkedInLink(
     /**
      * The link state goes last on purpose: if the process dies halfway the link still reads
      * as linked and the player can press Disconnect again, rather than being left not
-     * connected over a half-wiped store. Completions are not touched, so imported days stay.
+     * connected over a half-wiped store. Completions are not touched, so imported days stay. The photos go
+     * with the rows they belong to: a disconnect leaves no connection's face on the phone.
      */
     override suspend fun disconnect() {
         cookies.clear()
         db.ghostDao().clear()
         db.fetchLogDao().clear()
+        avatars.clear()
         source.clear()
     }
 }

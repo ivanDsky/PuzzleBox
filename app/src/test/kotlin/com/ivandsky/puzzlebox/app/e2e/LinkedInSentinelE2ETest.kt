@@ -95,6 +95,8 @@ class LinkedInSentinelE2ETest {
             val shown = mutableListOf<String>()
 
             said.addAll(readADay())
+            awaitLinkedIn { wire.photoRequests.isNotEmpty() }
+            assertPhotosCarryNothing()
             shown.addAll(shownEverywhere())
             assertTrue("the day's board is on screen", "#linkedin.rank" in shown)
 
@@ -171,6 +173,21 @@ class LinkedInSentinelE2ETest {
         }
     }
 
+    /** A photo is a public file: nothing of the account, and nothing but its own address, goes with the request. */
+    private fun assertPhotosCarryNothing() {
+        val photos = wire.photoRequests
+        assertTrue("the connections' photos were asked for", photos.isNotEmpty())
+        photos.forEach { request ->
+            assertEquals("GET", request.method)
+            assertEquals("https", request.url.scheme)
+            assertEquals("media.licdn.com", request.url.host)
+            listOf("Cookie", "Authorization", "csrf-token").forEach {
+                assertEquals("$it on the photo request ${request.url}", null, request.header(it))
+            }
+            assertSentinelFree("the photo request ${request.url}", "${request.url}\n${request.headers}")
+        }
+    }
+
     /** Everything written to the Android log and to the process's own output during the run. */
     private fun logged(): String {
         val log = ShadowLog.getLogs().joinToString("\n") { "${it.tag} ${it.msg} ${it.throwable?.stackTraceToString().orEmpty()}" }
@@ -187,7 +204,9 @@ class LinkedInSentinelE2ETest {
         assertTrue("$link is written", link.length() > 0)
         assertTrue("$database is written", database.length() > 0)
         val journals = listOf("-wal", "-shm", "-journal").map { File(database.path + it) }.filter(File::exists)
-        val files = context.filesDir.walkTopDown().filter(File::isFile).toList() + database + journals
+        val avatars = File(context.noBackupFilesDir, "linkedin_avatars").listFiles().orEmpty().toList()
+        assertTrue("the connections' photos are on disk", avatars.isNotEmpty())
+        val files = context.filesDir.walkTopDown().filter(File::isFile).toList() + database + journals + avatars
         // One char per byte, so a text search sees whatever encoding the file holds its strings in.
         val bytes = files.joinToString("\n") { it.readBytes().toString(Charsets.ISO_8859_1) }
         assertTrue("the link's member is on disk", LINKEDIN_MEMBER in bytes)

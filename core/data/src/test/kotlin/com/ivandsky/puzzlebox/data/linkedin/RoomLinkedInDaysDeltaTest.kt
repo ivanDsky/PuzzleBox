@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import java.time.LocalDate
+import kotlin.io.path.createTempDirectory
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
@@ -145,6 +146,7 @@ class RoomLinkedInDaysDeltaTest {
             }
         }
         private val days = RoomLinkedInDays(
+            avatars = testAvatars(createTempDirectory("avatars").toFile()),
             link = FakeLinkedInLink(LinkState.Connected("me")),
             source = source,
             completions = FakeCompletionRepository(),
