@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -74,7 +74,7 @@ returns these findings:
   fixtures are protected files: a worker does not edit them to make a test pass.
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1.
-S0, S6, S7, P3, P4, P7, P8 and P9 have none.
+S0, S6, S7, P3, P4, P7, P8, P9 and P10 have none.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -86,7 +86,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, S6, S7, P1, P4–P9) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, S7, P1, P4–P10) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -358,6 +358,30 @@ Every navigation key has a row in the placement table (ADR-0027).
 - **How to fix:** add a `PlacementRow(<Name>::class, Placement(home, chrome))` entry to
   `placementRows` in the placement file, in the same change that adds the key. The homes and
   chromes are ADR-0027's.
+
+## P10
+The LinkedIn account path is GET-only, with no logging interceptor and no cookie jar (ADR-0028).
+
+- **Scope:** production files of module `:core:network` whose package is
+  `com.ivandsky.puzzlebox.network.linkedin`, where every account class lives. Test source sets are
+  not scanned. No allowlist: the real tree is clean.
+- **Detection:** matched against the file's code (comments and string contents removed), so a
+  comment saying "no cookie jar" is not a hit. One violation per file, with the hints joined by `; `.
+  - A non-GET HTTP annotation (`@POST`, `@PUT`, `@PATCH`, `@DELETE`, `@HEAD`, `@OPTIONS`, `@HTTP`) or
+    the matching `retrofit2.http.` import.
+  - `HttpLoggingInterceptor`, `okhttp3.logging`, `.cookieJar(` or `CookieJar`. This also matches a
+    harmless `.cookieJar(CookieJar.NO_COOKIES)`: the account client states the absence by not
+    mentioning a jar at all. The anonymous client in `Network.kt` uses both and is in another
+    package, so it is not judged.
+- **Accepted misses:** an account client built outside the `network.linkedin` package is not
+  judged. A non-GET request made without Retrofit annotations (a hand-built OkHttp `Request` with
+  `.post(…)`) is not caught. Logging added through a class other than `HttpLoggingInterceptor` is
+  not caught. An import of `LinkedInAccountSession` outside core/network, core/data, core/testing
+  and feature/profile/impl is a review rule, not checked, so the cookie-carrying type does not
+  spread. The runtime tests of the account adapter (request count, method assertions) are the
+  other half of the GET-only guarantee.
+- **How to fix:** keep the account interface to `@GET` and build the account client without a
+  logger or a jar. A write to LinkedIn is out of scope for the feature (ADR-0028 §1).
 
 ## Consequences
 - A structure regression fails `./gradlew :konsist:test` with the rule, the file, a fix hint and
