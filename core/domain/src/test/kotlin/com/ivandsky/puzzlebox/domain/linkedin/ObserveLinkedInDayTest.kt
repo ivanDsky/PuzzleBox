@@ -95,7 +95,7 @@ class ObserveLinkedInDayTest {
             assertEquals(expected, view.status)
             // What was read before the pause is still on the phone, so it stays on screen.
             assertEquals(
-                LinkedInBoardView.Shown(listOf(ghost(1, 50_000)), yourRank = 2, total = 2, updatedAtMs = fetchedAtMs, listGhosts = true),
+                LinkedInBoardView.Shown(listOf(ghost(1, 50_000)), yourRank = 2, total = 2, updatedAtMs = fetchedAtMs),
                 view.board,
             )
         }
@@ -190,7 +190,7 @@ class ObserveLinkedInDayTest {
         assertEquals(LinkedInBoardView.OutsideWindow, viewOf(data(boardInWindow = false, ghosts = board)).board)
         assertEquals(LinkedInBoardView.OutsideWindow, viewOf(data(delta = null, boardInWindow = false, ghosts = board)).board)
         assertEquals(
-            LinkedInBoardView.Shown(board, yourRank = null, total = 1, updatedAtMs = fetchedAtMs, listGhosts = true),
+            LinkedInBoardView.Shown(board, yourRank = null, total = 1, updatedAtMs = fetchedAtMs),
             viewOf(data(boardInWindow = true, ghosts = board)).board,
         )
     }
@@ -204,22 +204,13 @@ class ObserveLinkedInDayTest {
     @Test
     fun `an empty fetched board is Shown with no ghosts`() = observing {
         assertEquals(
-            LinkedInBoardView.Shown(emptyList(), yourRank = null, total = 0, updatedAtMs = fetchedAtMs, listGhosts = true),
+            LinkedInBoardView.Shown(emptyList(), yourRank = null, total = 0, updatedAtMs = fetchedAtMs),
             viewOf(data()).board,
         )
         assertEquals(
-            LinkedInBoardView.Shown(emptyList(), yourRank = 1, total = 1, updatedAtMs = fetchedAtMs, listGhosts = true),
+            LinkedInBoardView.Shown(emptyList(), yourRank = 1, total = 1, updatedAtMs = fetchedAtMs),
             viewOf(data(own = imported(60_000))).board,
         )
-    }
-
-    @Test
-    fun `the ghost list shows from day 2`() = observing {
-        val listed = listOf(0, 1, 2, 7).associateWith { delta ->
-            shownOf(data(delta = delta, boardInWindow = true, ghosts = listOf(ghost(1, 50_000)))).listGhosts
-        }
-
-        assertEquals(mapOf(0 to false, 1 to false, 2 to true, 7 to true), listed)
     }
 
     @Test
