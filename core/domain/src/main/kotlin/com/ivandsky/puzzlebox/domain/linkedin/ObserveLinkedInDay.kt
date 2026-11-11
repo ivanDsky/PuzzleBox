@@ -25,9 +25,6 @@ class ObserveLinkedInDay(private val days: LinkedInDays, private val registry: G
         days.observe(game, day).map { it.toView(game, registry) }
 }
 
-// Today and yesterday show the summary alone; older days also list the connections.
-private const val LIST_FROM_DELTA = 2
-
 private fun LinkedInDayData.toView(game: GameId, registry: GameRegistry): LinkedInDayView =
     LinkedInDayView(status(), board(registry.rankOrderOf(game).comparator))
 
@@ -53,21 +50,19 @@ private fun LinkedInDayData.status(): LinkedInDayStatus = when (val linked = lin
 
 private fun LinkedInDayData.board(order: Comparator<BestScore>): LinkedInBoardView {
     val fetchedAtMs = boardFetchedAtMs
-    val daysAgo = delta
     return when {
         link is LinkState.NotConnected -> LinkedInBoardView.Hidden
         // Only a board that was read is drawn, so an empty one that was read still shows.
         fetchedAtMs == null -> LinkedInBoardView.Hidden
         !boardInWindow -> LinkedInBoardView.OutsideWindow
         // A paused link lands here too: the ghosts read before the pause are still on the phone.
-        else -> shown(order, fetchedAtMs, listGhosts = daysAgo != null && daysAgo >= LIST_FROM_DELTA)
+        else -> shown(order, fetchedAtMs)
     }
 }
 
 private fun LinkedInDayData.shown(
     order: Comparator<BestScore>,
     fetchedAtMs: Long,
-    listGhosts: Boolean,
 ): LinkedInBoardView.Shown {
     val timed = ghosts.mapNotNull { ghost -> ghost.timeMs?.let { ghost to linkedInScore(it, ghost.hintFree) } }
     val yours = (own as? LinkedInOwnState.Imported)?.record?.let { BestScore(it.time, it.hints) }
@@ -79,6 +74,5 @@ private fun LinkedInDayData.shown(
         yourRank = yourRank,
         total = ghosts.size + if (yourRank != null) 1 else 0,
         updatedAtMs = fetchedAtMs,
-        listGhosts = listGhosts,
     )
 }

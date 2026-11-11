@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.play.linkedin
 
-import android.content.Context
-import android.provider.Settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -13,9 +11,9 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
@@ -23,12 +21,10 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
-import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.play.libraryCardColors
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,13 +46,12 @@ class LinkedInDayLinesTest {
     private var retries = 0
     private var current by mutableStateOf(LinkedInDayView(LinkedInDayStatus.Idle, LinkedInBoardView.Hidden))
 
-    private fun show(view: LinkedInDayView, order: RankOrder = RankOrder.TimeThenHints, reconnect: Boolean = true) {
+    private fun show(view: LinkedInDayView, reconnect: Boolean = true) {
         current = view
         composeRule.setContent {
             PuzzleBoxTheme {
                 LinkedInDayLines(
                     view = current,
-                    order = order,
                     colors = libraryCardColors(GameBrand(AccentSlot.Blue, GameGlyphs.Zip)),
                     nowMs = NOW,
                     onResume = { resumes++ },
@@ -73,9 +68,8 @@ class LinkedInDayLinesTest {
         yourRank: Int? = null,
         total: Int = 12,
         ghosts: List<LinkedInGhost> = emptyList(),
-        listGhosts: Boolean = true,
         updatedAtMs: Long = NOW - FIVE_MINUTES_MS,
-    ) = LinkedInBoardView.Shown(ghosts, yourRank, total, updatedAtMs, listGhosts)
+    ) = LinkedInBoardView.Shown(ghosts, yourRank, total, updatedAtMs)
 
     private fun ghost(name: String, timeMs: Long?, hintFree: Boolean = true) =
         LinkedInGhost("member-$name", name, timeMs, hintFree, flawless = false)
@@ -211,35 +205,14 @@ class LinkedInDayLinesTest {
     }
 
     @Test
-    fun ghostListShowsOnlyWhenTheViewSaysSo() {
+    fun cardKeepsTheSummaryAndNeverListsConnections() {
         val ghosts = listOf(ghost("Ana", 41_000L), ghost("Jonas", 63_000L), ghost("Omar", null))
-        show(status(LinkedInDayStatus.Imported(52_000L), shown(yourRank = 2, total = 4, ghosts = ghosts, listGhosts = false)))
-        tag("linkedin.ghost").assertDoesNotExist()
-        tag("linkedin.rank").assertExists()
+        show(status(LinkedInDayStatus.Imported(52_000L), shown(yourRank = 2, total = 4, ghosts = ghosts)))
+        tag("linkedin.rank").assertTextEquals("You're 2nd of 4 connections")
         tag("linkedin.updated").assertExists()
-    }
-
-    @Test
-    fun ghostListDrawsEachGhostInTheOrderGiven() {
-        val ghosts = listOf(ghost("Jonas", 63_000L), ghost("Ana", 41_000L), ghost("Omar", null))
-        show(status(LinkedInDayStatus.DidNotPlay, shown(total = 3, ghosts = ghosts)))
-        val rows = composeRule.onAllNodesWithTag("linkedin.ghost")
-        rows.assertCountEquals(3)
-        assertEquals(listOf("Jonas", "Ana", "Omar"), (0..2).map { texts(rows[it]).first() })
-        val times = composeRule.onAllNodesWithTag("linkedin.ghost.time", useUnmergedTree = true)
-        assertEquals(listOf("1:03", "0:41", "time hidden"), (0..2).map { texts(times[it]).single() })
-        composeRule.onAllNodesWithTag("linkedin.ghost.time", useUnmergedTree = true).assertCountEquals(3)
-        assertNotEquals("0:00", texts(times[2]).single())
-    }
-
-    @Test
-    fun aHintFreeGhostReadsAsPerfectUnderHintsFirst() {
-        show(
-            status(LinkedInDayStatus.DidNotPlay, shown(total = 1, ghosts = listOf(ghost("Ana", 252_000L)))),
-            order = RankOrder.HintsThenTime,
-        )
-        val time = composeRule.onAllNodesWithTag("linkedin.ghost.time", useUnmergedTree = true)
-        assertEquals("Perfect · 4:12", texts(time[0]).single())
+        tag("linkedin.ghost").assertDoesNotExist()
+        composeRule.onAllNodesWithText("Ana", substring = true).assertCountEquals(0)
+        composeRule.onAllNodesWithText("Jonas", substring = true).assertCountEquals(0)
     }
 
     @Test
@@ -259,16 +232,6 @@ class LinkedInDayLinesTest {
         assertEquals("Updated 2 h ago", updatedText(NOW, NOW - 2 * 60 * 60_000L))
         assertEquals("Updated 3 d ago", updatedText(NOW, NOW - 3 * 24 * 60 * 60_000L))
         assertEquals("Updated just now", updatedText(NOW, NOW + 60_000L))
-    }
-
-    @Test
-    fun ghostRowsAppearAtOnceUnderReducedMotion() {
-        val context = ApplicationProvider.getApplicationContext<Context>()
-        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
-        val ghosts = (1..15).map { ghost("Friend $it", it * 10_000L) }
-        composeRule.mainClock.autoAdvance = false
-        show(status(LinkedInDayStatus.DidNotPlay, shown(total = 15, ghosts = ghosts)))
-        composeRule.onAllNodesWithTag("linkedin.ghost").assertCountEquals(15)
     }
 
     private companion object {

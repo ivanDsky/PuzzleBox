@@ -34,7 +34,6 @@ internal fun LinkedInCardSlot(card: LinkedInCardState, row: LibraryRowModel) {
     val nowMs = remember(shown) { System.currentTimeMillis() }
     LinkedInDayLines(
         view = shown,
-        order = row.card.rankOrder,
         colors = libraryCardColors(row.card.brand),
         nowMs = nowMs,
         onResume = card.onResume,
