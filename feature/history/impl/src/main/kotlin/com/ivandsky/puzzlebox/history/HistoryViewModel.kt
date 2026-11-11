@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,7 +37,8 @@ import kotlinx.coroutines.flow.stateIn
  * oldest row) and [today]. [solvedByDay] holds each day's numbered solves as brands,
  * [gamesPerDay] ring segments a day (every registered game) and [daysWithRows] the days
  * with any row (solved or not). [selectedDay] filters the list to one day. [today] is
- * the puzzle day the list's "Today" / "Yesterday" count from.
+ * the puzzle day the list's "Today" / "Yesterday" count from. [openingRowKey] is the row a
+ * game's archive link asked for, null when the key names no game or that day has no such row.
  */
 data class HistoryUiState(
     val rows: List<HistoryDayRow> = emptyList(),
@@ -49,6 +51,7 @@ data class HistoryUiState(
     val daysWithRows: Set<LocalDate> = emptySet(),
     val gamesPerDay: Int = 0,
     val today: LocalDate? = null,
+    val openingRowKey: String? = null,
 ) {
     /** Whether the calendar's [date] taps: a day with rows, never after today. */
     fun canSelect(date: LocalDate): Boolean = today != null && date <= today && date in daysWithRows
@@ -72,6 +75,10 @@ data class HistoryUiState(
  * filter. Both live here, so a rotation keeps the calendar, the filter and the rows
  * they are clamped to together.
  *
+ * Opening: a [HistoryKey] with a game starts filtered to its day (today when it has none) with
+ * the calendar there; [HistoryUiState.openingRowKey] names that game's row for the day, for
+ * layouts that open a detail pane.
+ *
  * Replay is navigation only (ticket 11): the route reports the (game, day) and the play
  * store opens that day's slot — History never builds a session blob.
  */
@@ -82,11 +89,16 @@ class HistoryViewModel(
     private val registry: GameRegistry,
     private val playRegistry: GamePlayRegistry,
     private val puzzleDay: GetPuzzleDay,
+    opening: HistoryKey = HistoryKey(),
 ) : ViewModel() {
 
     private val order: List<GameId> = registry.all.map { it.definition.id }
-    private val calendar = MutableStateFlow(CalendarView(puzzleDay(), expanded = false))
-    private val day = MutableStateFlow<LocalDate?>(null)
+    private val openingGame: GameId? = opening.gameId?.let { GameId(it) }
+    private val openingDay: LocalDate? = openingGame?.let {
+        (opening.day?.let(LocalDate::parse) ?: puzzleDay()).coerceAtMost(puzzleDay())
+    }
+    private val calendar = MutableStateFlow(CalendarView(openingDay ?: puzzleDay(), expanded = false))
+    private val day = MutableStateFlow(openingDay)
 
     private val rows: Flow<List<HistoryDayRow>> = observeGameHistory().map { merged ->
         // An archive day from another year spells its year out (A23).
@@ -115,6 +127,9 @@ class HistoryViewModel(
             daysWithRows = rows.mapTo(HashSet()) { it.day },
             gamesPerDay = order.size,
             today = today,
+            openingRowKey = openingGame?.let { game ->
+                rows.firstOrNull { it.gameId == game && it.day == openingDay }?.key
+            },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HistoryUiState())
 

@@ -89,7 +89,7 @@ internal fun puzzleBoxEntryProvider(
         onLibraryRequestTaken = libraryRequests::take,
         onCodeDraftTaken = onCodeDraftTaken,
         duels = duels,
-        onOpenGameHistory = { navigator.openOwner(HistoryRootKey) },
+        onOpenGameHistory = { game, day -> navigator.pushOnce(HistoryKey(game.value, day?.toString())) },
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) }.takeIf { linkedIn },
     )
     resultEntry(

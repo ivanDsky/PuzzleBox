@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -56,6 +57,16 @@ fun HistoryScreen(
 ) {
     var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
     val selectedRow = selectedKey?.let { key -> state.rows.firstOrNull { it.key == key } }
+
+    // Two panes show a detail beside the list, so the linked row opens once; a phone stays on the day list.
+    var openingTaken by rememberSaveable { mutableStateOf(false) }
+    val opening = state.openingRowKey
+    if (layout == HistoryLayout.TwoPane && opening != null && !openingTaken) {
+        LaunchedEffect(opening) {
+            selectedKey = opening
+            openingTaken = true
+        }
+    }
 
     // Single-pane (A16, N17): back from a day's detail returns to the day list first;
     // only enabled while a day shows, so the next back leaves History. Predictive, so

@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
+import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -332,6 +333,47 @@ class HistoryViewModelTest {
         assertEquals(weekTitle(LocalDate.of(2026, 11, 2)), weekTitle(LocalDate.of(2026, 11, 9)))
         assertTrue("a week across two years names both", weekTitle(LocalDate.of(2026, 12, 28)).contains("2027"))
         assertTrue(weekTitle(LocalDate.of(2026, 12, 28)).contains("2026"))
+    }
+
+    private fun openedAt(key: HistoryKey, vararg days: LocalDate): HistoryViewModel {
+        val daily = FakeDailyRepository().apply {
+            setHistory(ZIP, days.map { HistoryTestSupport.entry(it) })
+        }
+        return HistoryTestSupport.viewModel(daily, FakeCompletionRepository(), opening = key)
+    }
+
+    @Test
+    fun `a game's key opens on its day with that game's row named`() = runTest {
+        val day = HistoryTestSupport.TODAY.minusDays(2)
+        val state = openedAt(HistoryKey(ZIP.value, day.toString()), day, HistoryTestSupport.TODAY)
+            .uiState.first { it.rows.isNotEmpty() }
+        assertEquals(day, state.selectedDay)
+        assertEquals(day, state.calendarDay)
+        assertEquals("${ZIP.value}/$day", state.openingRowKey)
+    }
+
+    @Test
+    fun `a game's key without a day opens on today`() = runTest {
+        val today = HistoryTestSupport.TODAY
+        val state = openedAt(HistoryKey(ZIP.value), today).uiState.first { it.rows.isNotEmpty() }
+        assertEquals(today, state.selectedDay)
+        assertEquals("${ZIP.value}/$today", state.openingRowKey)
+    }
+
+    @Test
+    fun `a game's key for a day with no row filters to it but names no row`() = runTest {
+        val day = HistoryTestSupport.TODAY.minusDays(3)
+        val state = openedAt(HistoryKey(ZIP.value, day.toString()), HistoryTestSupport.TODAY)
+            .uiState.first { it.rows.isNotEmpty() }
+        assertEquals(day, state.selectedDay)
+        assertNull(state.openingRowKey)
+    }
+
+    @Test
+    fun `a key without a game opens unfiltered`() = runTest {
+        val state = openedAt(HistoryKey(), HistoryTestSupport.TODAY).uiState.first { it.rows.isNotEmpty() }
+        assertNull(state.selectedDay)
+        assertNull(state.openingRowKey)
     }
 
     @Test
