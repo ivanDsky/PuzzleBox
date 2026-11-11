@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.domain
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -245,5 +246,109 @@ class ObserveGameHistoryTest {
         ).first()
 
         assertEquals(emptyList<GameHistoryDay>(), rows)
+    }
+
+    @Test
+    fun `an import that is the record flags its captured day`() = runTest {
+        val day = LocalDate.of(2024, 3, 4)
+        val import = record(alpha, day).copy(isRecord = true, source = CompletionSource.LinkedIn)
+        val rows = gameHistoryDays(
+            daily = daily(entry(alpha, day, fetchedAtMs = 5L).copy(archived = true)),
+            games = games,
+            completions = FakeCompletionRepository(listOf(import)),
+        ).first()
+
+        assertEquals(
+            listOf(
+                GameHistoryDay(alpha, day, 592, import, fetchedAtMs = 5L, archived = true, fromLinkedIn = true),
+            ),
+            rows,
+        )
+    }
+
+    @Test
+    fun `an import that is the record flags its record-only day`() = runTest {
+        val day = LocalDate.of(2024, 3, 4)
+        val import = record(alpha, day).copy(isRecord = true, source = CompletionSource.LinkedIn)
+        val rows = gameHistoryDays(
+            daily = daily(),
+            games = games,
+            completions = FakeCompletionRepository(listOf(import)),
+        ).first()
+
+        assertEquals(listOf(GameHistoryDay(alpha, day, 916, import, fromLinkedIn = true)), rows)
+    }
+
+    @Test
+    fun `an import replay beside an app record flags the day and keeps the app record`() = runTest {
+        val day = LocalDate.of(2024, 3, 4)
+        val replay = record(alpha, day).copy(time = 9_000L, hints = 0, source = CompletionSource.LinkedIn)
+        val rows = gameHistoryDays(
+            daily = daily(entry(alpha, day, fetchedAtMs = 5L).copy(archived = true)),
+            games = games,
+            completions = FakeCompletionRepository(listOf(record(alpha, day), replay)),
+        ).first()
+
+        assertEquals(
+            listOf(
+                GameHistoryDay(
+                    alpha, day, 592, record(alpha, day), fetchedAtMs = 5L, archived = true, fromLinkedIn = true,
+                ),
+            ),
+            rows,
+        )
+    }
+
+    @Test
+    fun `a day with no import is not flagged, beside one that is`() = runTest {
+        val importedDay = LocalDate.of(2024, 3, 4)
+        val appDay = LocalDate.of(2024, 3, 5)
+        val import = record(alpha, importedDay).copy(isRecord = true, source = CompletionSource.LinkedIn)
+        val rows = gameHistoryDays(
+            daily = daily(entry(alpha, appDay), entry(beta, importedDay)),
+            games = games,
+            completions = FakeCompletionRepository(listOf(import, record(alpha, appDay))),
+        ).first()
+
+        assertEquals(
+            listOf(
+                GameHistoryDay(alpha, appDay, 592, record(alpha, appDay)),
+                GameHistoryDay(alpha, importedDay, 916, import, fromLinkedIn = true),
+                // The same day in another game has no import of its own.
+                GameHistoryDay(beta, importedDay, 592, record = null),
+            ),
+            rows,
+        )
+    }
+
+    @Test
+    fun `an unlisted game's import adds no row and flags nothing`() = runTest {
+        val day = LocalDate.of(2026, 11, 1)
+        val registry = GameRegistry(listOf(TestGames.plugin(alpha), TestGames.plugin(beta)), unlisted = setOf(beta))
+        val import = record(beta, day).copy(isRecord = true, source = CompletionSource.LinkedIn)
+        val rows = ObserveGameHistory(
+            registry,
+            daily(entry(beta, day)),
+            FakeCompletionRepository(listOf(import, record(alpha, day))),
+        )().first()
+
+        assertEquals(listOf(GameHistoryDay(alpha, day, 916, record(alpha, day))), rows)
+    }
+
+    @Test
+    fun `a custom puzzle's import adds no row and flags nothing`() = runTest {
+        val day = LocalDate.of(2026, 11, 1)
+        val custom = record(alpha, day).copy(
+            puzzleRef = CustomRef(alpha, PuzzleKey.Custom("ABC123")),
+            isRecord = true,
+            source = CompletionSource.LinkedIn,
+        )
+        val rows = gameHistoryDays(
+            daily = daily(),
+            games = games,
+            completions = FakeCompletionRepository(listOf(custom, record(alpha, day))),
+        ).first()
+
+        assertEquals(listOf(GameHistoryDay(alpha, day, 916, record(alpha, day))), rows)
     }
 }

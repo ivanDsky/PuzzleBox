@@ -33,6 +33,9 @@ data class GameHistoryDay(
     val archived: Boolean = false,
     /** Set when the day's record was solved in a duel; null for every other day. */
     val duel: DuelOrigin? = null,
+    /** Set when a LinkedIn import covers this (game, day), whether the import is the record
+     *  or only a replay beside an app record; false otherwise. */
+    val fromLinkedIn: Boolean = false,
 )
 
 /**
@@ -61,7 +64,19 @@ class ObserveGameHistory(
         val captured: Flow<List<DailyEntry>> =
             if (games.isEmpty()) flowOf(emptyList())
             else combine(games.map { daily.observeHistory(it) }) { perGame -> perGame.flatMap { it } }
-        return combine(captured, completions.observeRecords(), duelOpponents) { entries, records, opponents ->
+        return combine(
+            captured,
+            completions.observeRecords(),
+            completions.observeImports(),
+            duelOpponents,
+        ) { entries, records, imports, opponents ->
+            // An import covers its day whether it became the record or sits beside an app record
+            // as a replay, so the days are read off every import rather than off the record rows.
+            val imported: Set<Pair<GameId, LocalDate>> = imports.mapNotNullTo(HashSet()) { import ->
+                val ref = import.puzzleRef
+                val key = ref.key
+                if (ref.gameId in listed && key is PuzzleKey.Daily) ref.gameId to key.date else null
+            }
             val rows = LinkedHashMap<Pair<GameId, LocalDate>, GameHistoryDay>()
 
             // Every game's solved daily — typed identity straight off the ref's key; custom puzzles have no day.
@@ -75,6 +90,7 @@ class ObserveGameHistory(
                     puzzleNumber = key.puzzleNumber,
                     record = record,
                     duel = record.matchCode?.let { DuelOrigin(it, opponents[it]) },
+                    fromLinkedIn = (ref.gameId to key.date) in imported,
                 )
             }
 
@@ -91,6 +107,7 @@ class ObserveGameHistory(
                     fetchedAtMs = entry.fetchedAtMs,
                     archived = entry.archived,
                     duel = solved?.duel,
+                    fromLinkedIn = key in imported,
                 )
             }
 
