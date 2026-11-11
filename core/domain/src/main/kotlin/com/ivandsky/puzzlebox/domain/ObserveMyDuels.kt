@@ -39,7 +39,8 @@ import kotlinx.coroutines.coroutineScope
  * needing me. The list re-emits at each future time boundary (`closesAt`, `deadline`, and the end of a finished
  * row's stay) with no upstream change. Past `deadline` a match has no move left to ask for (a started puzzle is
  * resumed from the duel screen) and an unaccepted invite is dropped, so neither needs me.
- * Signed out, or an `observeMine` of null, is empty. Writes nothing.
+ * Each row carries how many puzzles the opponent has played ([DuelRow.theirDone], from the public progress), never a
+ * time. Signed out, or an `observeMine` of null, is empty. Writes nothing.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveMyDuels(
@@ -151,14 +152,18 @@ class ObserveMyDuels(
             else -> DuelRowKind.Waiting
         } ?: return null
         val other = if (kind == DuelRowKind.Invited) match.challenger else match.opponentOf(me)
-        return DuelRow(match.code, other, kind, taken.size, match.legs.size, match.deadline)
+        val theirDone = if (kind == DuelRowKind.Invited || other == null) 0 else match.playedBy(other.uid)
+        return DuelRow(match.code, other, kind, taken.size, theirDone, match.legs.size, match.deadline)
     }
+
+    /** How many of the match's puzzles [uid] has played, from the public progress; indices outside the match's legs do not count. */
+    private fun Match.playedBy(uid: String): Int = progress[uid].orEmpty().count { it in legs.indices }
 
     /** An open, unclaimed match of someone else, known only from a cached link; the challenger is who invited me. */
     private fun linkInvite(match: Match, me: String, now: Instant): DuelRow? {
         val open = !match.cancelled && !match.declined && match.opponent == null && now < match.deadline
         if (!open || match.challenger.uid == me) return null
-        return DuelRow(match.code, match.challenger, DuelRowKind.Invited, 0, match.legs.size, match.deadline)
+        return DuelRow(match.code, match.challenger, DuelRowKind.Invited, 0, 0, match.legs.size, match.deadline)
     }
 
     /** The finished row of a reveal seen here and still inside its stay at [now]; null once it is seen no longer or not seen. */

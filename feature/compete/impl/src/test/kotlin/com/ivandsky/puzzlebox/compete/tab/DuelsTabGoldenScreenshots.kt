@@ -7,7 +7,6 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -40,12 +39,13 @@ private const val GOLDEN_PHONE = "w411dp-h891dp-420dpi"
 private const val GOLDEN_TABLET = "w1280dp-h800dp-land-mdpi"
 private const val SETTLE_MS = 2_000L
 
-/** The tablet hosts the tab in the Games screen's 400 dp list pane, not across the whole screen. */
-private val TABLET_PANE = 400.dp
+/** The tablet hosts the Duels tab across the Games screen: past the 80 dp rail, inset like the two-pane layout. */
+private val TABLET_RAIL = 80.dp
 
 /**
- * The Duels tab body, phone and tablet, light and dark: every row kind with the challenge card, the empty
- * note, the signed-out card, and a long opponent name. Goldens in `snapshots/tab/`.
+ * The Duels tab body, phone and tablet, light and dark: every row kind in its section with the challenge card, the empty
+ * note, the signed-out card, and a long opponent name. The tablet is the wide layout, two columns. Goldens in
+ * `snapshots/tab/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -74,10 +74,12 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
     @Test fun `tab long name light`() = tab("tab-long-name", LONG_NAME, dark = false)
     @Test fun `tab long name dark`() = tab("tab-long-name", LONG_NAME, dark = true)
 
+    private val tablet = device == "tablet"
+
     private fun tab(name: String, state: DuelsTabState, dark: Boolean) {
         rule.showGolden(dark) {
             // Surface forces its child to full size; the inner Box stands in for the Games host, which insets the
-            // phone by Spacing.lg and gives the tablet a flush pane of its own width.
+            // phone by Spacing.lg and gives the tablet the whole width past the rail.
             Box(Modifier.fillMaxSize()) {
                 DuelsTabContent(
                     rows = state.rows,
@@ -87,7 +89,12 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
                     onNewDuel = {},
                     onOpenDuel = {},
                     onOpenReveal = {},
-                    modifier = if (device == "tablet") Modifier.width(TABLET_PANE) else Modifier.padding(horizontal = Spacing.lg),
+                    modifier = if (tablet) {
+                        Modifier.padding(start = TABLET_RAIL + Spacing.xl, end = Spacing.xxl)
+                    } else {
+                        Modifier.padding(horizontal = Spacing.lg)
+                    },
+                    wide = tablet,
                 )
             }
         }
@@ -99,11 +106,12 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
 
         fun code(text: String) = checkNotNull(ShareCode.parse(text))
 
-        fun row(code: String, kind: DuelRowKind, name: String?, done: Int, legs: Int, left: Duration) = DuelRow(
+        fun row(code: String, kind: DuelRowKind, name: String?, done: Int, legs: Int, left: Duration, theirDone: Int = 0) = DuelRow(
             code = code(code),
             opponent = name?.let { Player(uid = "uid-$it", name = it, photoUrl = null) },
             kind = kind,
             legsDone = done,
+            theirDone = theirDone,
             legs = legs,
             deadline = NOW + left,
         )
@@ -113,9 +121,9 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
         val POPULATED = EMPTY.copy(
             rows = listOf(
                 row("DANA55", DuelRowKind.RevealReady, "Dana", 5, 5, Duration.ofHours(3)),
-                row("SAM222", DuelRowKind.YourMove, "Sam", 1, 3, Duration.ofMinutes(5 * 60 + 12L)),
+                row("SAM222", DuelRowKind.YourMove, "Sam", 1, 3, Duration.ofMinutes(5 * 60 + 12L), theirDone = 2),
                 row("JON333", DuelRowKind.Invited, "Jonas", 0, 3, Duration.ofHours(23)),
-                row("MAYA44", DuelRowKind.Waiting, "Maya", 3, 3, Duration.ofMinutes(12 * 60 + 5L)),
+                row("MAYA44", DuelRowKind.Waiting, "Maya", 3, 3, Duration.ofMinutes(12 * 60 + 5L), theirDone = 1),
                 row("K7Q2MX", DuelRowKind.Unclaimed, null, 0, 3, Duration.ofHours(24)),
                 row("RIO777", DuelRowKind.Finished(2, 1), "Rio", 3, 3, Duration.ofHours(30)),
                 row("LEO888", DuelRowKind.Finished(0, 2), "Leo", 2, 2, Duration.ofHours(40)),
@@ -125,7 +133,7 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
 
         val LONG_NAME = EMPTY.copy(
             rows = listOf(
-                row("ALEX11", DuelRowKind.YourMove, "Alexandrina Konstantinopolska", 1, 3, Duration.ofMinutes(21 * 60 + 40L)),
+                row("ALEX11", DuelRowKind.YourMove, "Alexandrina Konstantinopolska", 1, 3, Duration.ofMinutes(21 * 60 + 40L), theirDone = 2),
                 row("ALEX22", DuelRowKind.RevealReady, "Alexandrina Konstantinopolska", 3, 3, Duration.ofHours(2)),
                 row("ALEX33", DuelRowKind.Invited, "Alexandrina Konstantinopolska", 0, 3, Duration.ofHours(23)),
                 row("ALEX44", DuelRowKind.Finished(1, 1), "Alexandrina Konstantinopolska", 2, 2, Duration.ofHours(40)),

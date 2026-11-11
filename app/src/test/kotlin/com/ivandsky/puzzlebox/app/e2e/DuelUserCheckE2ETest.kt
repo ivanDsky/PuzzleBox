@@ -83,7 +83,7 @@ class DuelUserCheckE2ETest {
         assertEquals(DuelRowKind.Unclaimed, waiting.rows.single { it.code == code }.kind)
         assertEquals("a duel nobody accepted is not in the Duels badge", 0, waiting.needYou)
         assertFalse("the Duels pill counts nothing", shows(DUELS_COUNT))
-        assertTrue("the row waits on a friend", textShown("Waiting on a friend", substring = true))
+        assertTrue("the row waits on a friend", textShown("Waiting for a friend"))
         assertTrue("the row offers Share again", textShown("Share again"))
 
         // Opened by its challenger, the invite reads as their own duel, waiting, with Cancel.
