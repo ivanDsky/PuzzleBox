@@ -9,7 +9,6 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -26,7 +25,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The Duels tab's layout on a tablet-sized window: which sections stand where, and when it falls back to one column. */
+/** The Duels tab's layout on a tablet-sized window: the two columns' widths and place, and the phone's one column. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w1280dp-h800dp-land-mdpi")
@@ -68,28 +67,30 @@ class DuelsTabLayoutTest {
 
     private fun left(tag: String): Float = rule.onNodeWithTag(tag).getUnclippedBoundsInRoot().left.value
 
-    @Test
-    fun `wide puts the sections that need me left of the others`() {
-        show(listOf(move, waiting, finished), wide = true)
-
-        assertTrue(left("duels.section.yourMove") < left("duels.section.waiting"))
-        assertEquals(left("duels.section.waiting"), left("duels.section.finished"), 0.5f)
-    }
+    private fun bounds(tag: String) = rule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
 
     @Test
-    fun `wide keeps one column when only the sections that need me exist`() {
-        show(listOf(move), wide = true)
-
-        rule.onNodeWithTag("duels.section.yourMove").assertIsDisplayed()
-        assertTrue("the section spans the window", rule.onNodeWithTag("duels.section.yourMove").getUnclippedBoundsInRoot().width > 1000.dp)
-    }
-
-    @Test
-    fun `wide keeps one column when only the other sections exist`() {
+    fun `wide sets two columns of at most 560 dp, 20 dp apart, centred, under a card as wide as the pair`() {
         show(listOf(waiting, finished), wide = true)
 
-        assertTrue("the section spans the window", rule.onNodeWithTag("duels.section.waiting").getUnclippedBoundsInRoot().width > 1000.dp)
-        assertEquals(left("duels.section.waiting"), left("duels.section.finished"), 0.5f)
+        val leftColumn = bounds("duels.section.waiting")
+        val rightColumn = bounds("duels.section.finished")
+        val card = bounds("duels.challenge")
+        assertEquals(560f, leftColumn.width.value, 0.5f)
+        assertEquals(560f, rightColumn.width.value, 0.5f)
+        assertEquals(20f, rightColumn.left.value - leftColumn.right.value, 0.5f)
+        assertEquals(leftColumn.left.value, card.left.value, 0.5f)
+        assertEquals(rightColumn.right.value, card.right.value, 0.5f)
+        assertEquals("centred", leftColumn.left.value, 1280f - rightColumn.right.value, 0.5f)
+    }
+
+    @Test
+    fun `wide with one section leaves the right column empty`() {
+        show(listOf(move), wide = true)
+
+        val section = bounds("duels.section.yourMove")
+        assertEquals(560f, section.width.value, 0.5f)
+        assertEquals("the left column stays where it was", (1280f - 1140f) / 2, section.left.value, 0.5f)
     }
 
     @Test
