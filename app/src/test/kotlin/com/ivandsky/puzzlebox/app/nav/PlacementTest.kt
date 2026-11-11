@@ -91,6 +91,11 @@ class PlacementTest {
     }
 
     @Test
+    fun `the tab set fits a bar of at most five tabs`() {
+        assertTrue("tabs: ${topLevelDestinations.map { it.label }}", topLevelDestinations.size <= 5)
+    }
+
+    @Test
     fun `tab roots are exactly the tab set, one row per tab`() {
         val roots = placementRows.mapNotNull { row -> (row.placement.home as? Home.TabRoot)?.let { it.tab to row.key } }
         val tabs = roots.map { it.first }
