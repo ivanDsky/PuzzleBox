@@ -13,7 +13,7 @@ import com.ivandsky.puzzlebox.game.BestScore
  */
 fun rankCombined(rows: List<BestScore>, ghosts: List<BestScore?>, order: Comparator<BestScore>): List<RankedSlot> {
     val rowOrder = rows.indices.sortedWith { a, b -> order.compare(rows[a], rows[b]) }
-    val ghostOrder = ghosts.indices.filter { ghosts[it] != null }.sortedWith { a, b -> order.compare(ghosts[a]!!, ghosts[b]!!) }
+    val timed = ghosts.mapIndexedNotNull { index, score -> score?.let { index to it } }.sortedWith { a, b -> order.compare(a.second, b.second) }
     val slots = ArrayList<RankedSlot>(rows.size + ghosts.size)
     var placed = 0
     var place = 0
@@ -25,19 +25,19 @@ fun rankCombined(rows: List<BestScore>, ghosts: List<BestScore?>, order: Compara
         previous = score
         return place
     }
-    var nextGhost = 0
+    var next = 0
     for (row in rowOrder) {
         val score = rows[row]
         // Strictly better only: on a tie the row stays first.
-        while (nextGhost < ghostOrder.size && order.compare(ghosts[ghostOrder[nextGhost]]!!, score) < 0) {
-            val ghost = ghostOrder[nextGhost++]
-            slots += RankedSlot(ghost = true, index = ghost, place = placeOf(ghosts[ghost]!!))
+        while (next < timed.size && order.compare(timed[next].second, score) < 0) {
+            val (ghost, ghostScore) = timed[next++]
+            slots += RankedSlot(ghost = true, index = ghost, place = placeOf(ghostScore))
         }
         slots += RankedSlot(ghost = false, index = row, place = placeOf(score))
     }
-    while (nextGhost < ghostOrder.size) {
-        val ghost = ghostOrder[nextGhost++]
-        slots += RankedSlot(ghost = true, index = ghost, place = placeOf(ghosts[ghost]!!))
+    while (next < timed.size) {
+        val (ghost, ghostScore) = timed[next++]
+        slots += RankedSlot(ghost = true, index = ghost, place = placeOf(ghostScore))
     }
     ghosts.indices.filter { ghosts[it] == null }.mapTo(slots) { RankedSlot(ghost = true, index = it, place = null) }
     return slots

@@ -76,11 +76,14 @@ private fun LinkedInDayData.shown(
         ghosts = ghosts.map { ghost -> ghost.timeMs?.let { linkedInScore(it, ghost.hintFree) } },
         order = order,
     )
+    val yourRank = slots.firstOrNull { !it.ghost }?.place
     return LinkedInBoardView.Shown(
         // Equal scores keep board order; a hidden time has no score and takes no rank.
         ghosts = slots.filter { it.ghost }.map { ghosts[it.index] },
-        yourRank = slots.firstOrNull { !it.ghost }?.place,
-        total = slots.rankedCount(),
+        yourRank = yourRank,
+        // The rank's "of N" counts the player and the connections with a time. Without a rank the line only says how
+        // many connections played, and one with a hidden time did play.
+        total = if (yourRank != null) slots.rankedCount() else ghosts.size,
         updatedAtMs = fetchedAtMs,
     )
 }

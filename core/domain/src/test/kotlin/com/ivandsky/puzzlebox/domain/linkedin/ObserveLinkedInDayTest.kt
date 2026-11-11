@@ -208,6 +208,14 @@ class ObserveLinkedInDayTest {
     }
 
     @Test
+    fun `connections that all hid their time still count as played when there is no rank`() = observing {
+        val shown = shownOf(data(ghosts = listOf(ghost(1, null), ghost(2, null))))
+
+        assertNull(shown.yourRank)
+        assertEquals(2, shown.total)
+    }
+
+    @Test
     fun `no import means no rank`() = observing {
         val board = listOf(ghost(1, 70_000), ghost(2, null), ghost(3, 50_000))
 
@@ -215,7 +223,8 @@ class ObserveLinkedInDayTest {
             val shown = shownOf(data(own = own, ghosts = board))
 
             assertNull(shown.yourRank)
-            assertEquals(2, shown.total)
+            // Every connection on the board played, a hidden time included.
+            assertEquals(board.size, shown.total)
         }
     }
 
