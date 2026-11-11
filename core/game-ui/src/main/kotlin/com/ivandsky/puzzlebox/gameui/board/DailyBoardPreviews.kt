@@ -43,6 +43,26 @@ internal fun DailyBoardRankedPreview() = Padded {
     DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows))
 }
 
+// The player is outside the top rows: a divider, then their own row pinned underneath.
+@PuzzleBoxPreviews
+@Composable
+internal fun DailyBoardPinnedPreview() = Padded {
+    DailyBoard(
+        dailyBoardTitle("Queens"),
+        RankOrder.TimeThenHints,
+        DailyBoardState.Ranked(
+            rows = listOf(
+                DailyBoardRowModel(1, "Maya", 62_000L, 0, isSelf = false),
+                DailyBoardRowModel(2, "Jonas", 70_000L, 0, isSelf = false),
+                DailyBoardRowModel(3, "Priya", 81_000L, 1, isSelf = false),
+                DailyBoardRowModel(4, "Sam", 94_000L, 1, isSelf = false),
+                DailyBoardRowModel(5, "Lee", 103_000L, 2, isSelf = false),
+            ),
+            pinned = DailyBoardRowModel(12, "You", 188_000L, 3, isSelf = true),
+        ),
+    )
+}
+
 @PuzzleBoxPreviews
 @Composable
 internal fun DailyBoardRowPreview() = Padded {
