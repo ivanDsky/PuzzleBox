@@ -22,6 +22,7 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GamesTab
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.play.navigation.resultEntry
 import com.ivandsky.puzzlebox.profile.api.SettingsKey
@@ -88,7 +89,14 @@ internal fun puzzleBoxEntryProvider(
         onOpenGameHistory = { navigator.openOwner(HistoryRootKey) }.takeIf { navV2 },
         signInInPlace = navV2,
     )
-    resultEntry(navigator, onOpenBoard = { game: GameId -> libraryRequests.openGamePage(navigator, game.value) }.takeIf { navV2 })
+    resultEntry(
+        navigator,
+        onOpenBoard = { game: GameId ->
+            // Leave no Result behind: openOwner resets only a reselected tab, so a Result on Today's stack would outlive it.
+            if (navigator.state.currentStack.last() is ResultKey) navigator.pop()
+            libraryRequests.openGamePage(navigator, game.value)
+        }.takeIf { navV2 },
+    )
     createEntry(navigator)
     editorEntry(navigator, playLayout)
     publishedPuzzleEntry(navigator, playLayout)
