@@ -20,13 +20,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.EmptyState
-import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -79,8 +78,7 @@ internal fun CreateTabContent(
 private fun PublishedList(state: CreateUiState, onOpen: (code: String) -> Unit) {
     val reducedMotion = rememberReducedMotion()
     val listState = rememberLazyListState()
-    val reselect = LocalTabReselect.current
-    LaunchedEffect(reselect, listState) { reselect.collect { listState.animateScrollToItem(0) } }
+    OnTabReselect { listState.animateScrollToItem(0) }
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize().maxContentWidth().testTag("create.published.list"),
@@ -102,8 +100,7 @@ private fun DraftList(
 ) {
     val reducedMotion = rememberReducedMotion()
     val listState = rememberLazyListState()
-    val reselect = LocalTabReselect.current
-    LaunchedEffect(reselect, listState) { reselect.collect { listState.animateScrollToItem(0) } }
+    OnTabReselect { listState.animateScrollToItem(0) }
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize().maxContentWidth().testTag("create.list"),

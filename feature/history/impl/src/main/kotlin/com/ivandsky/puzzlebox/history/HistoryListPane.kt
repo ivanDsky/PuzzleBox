@@ -16,7 +16,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -27,7 +26,7 @@ import androidx.paging.compose.itemKey
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.LargeTopBar
-import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
+import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.maxContentWidth
@@ -56,10 +55,7 @@ internal fun ListPane(
 ) {
     val empty = days.loadState.refresh is LoadState.NotLoading && days.itemCount == 0
     val listState = rememberLazyListState()
-    val reselect = LocalTabReselect.current
-    LaunchedEffect(reselect, listState) {
-        reselect.collect { listState.animateScrollToItem(0) }
-    }
+    OnTabReselect { listState.animateScrollToItem(0) }
     LazyColumn(
         state = listState,
         modifier = modifier
