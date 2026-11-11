@@ -26,11 +26,11 @@ import org.koin.core.parameter.parametersOf
 /**
  * [game]'s leaderboard, the one home it has: a Today / Yesterday toggle and the shared [DailyBoard] under
  * it, the player's own row pinned at its bottom when it is outside the top rows. Signed out, the board's slot offers Google sign-in, which signs in here and loads
- * the board in the same place.
+ * the board in the same place. [linkedIn] adds the day's LinkedIn connections to the board and syncs the chosen day while it is shown.
  */
 @Composable
-internal fun GamePageBoard(game: GameId, modifier: Modifier = Modifier) {
-    val viewModel: GamePageBoardViewModel = koinViewModel(key = "board:${game.value}", parameters = { parametersOf(game) })
+internal fun GamePageBoard(game: GameId, linkedIn: Boolean = false, modifier: Modifier = Modifier) {
+    val viewModel: GamePageBoardViewModel = koinViewModel(key = "board:${game.value}", parameters = { parametersOf(game, linkedIn) })
     val state by viewModel.state.collectAsStateWithLifecycle()
     val signIn by viewModel.signInStatus.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -41,6 +41,7 @@ internal fun GamePageBoard(game: GameId, modifier: Modifier = Modifier) {
             title = if (state.day == BoardDay.Today) dailyBoardTitle(viewModel.gameName) else "${viewModel.gameName} · yesterday",
             order = viewModel.order,
             state = state.board,
+            ghosts = state.ghosts,
             signIn = {
                 Column(Modifier.testTag("leaderboard.signIn")) {
                     SignInPrompt(
