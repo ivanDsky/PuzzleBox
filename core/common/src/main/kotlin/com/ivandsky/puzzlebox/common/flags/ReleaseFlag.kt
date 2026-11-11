@@ -22,9 +22,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     /** Competitions: async 1v1 duels between friends. */
     Competitions(label = "Competitions: 1v1 duels", releaseDefault = false),
 
-    /** Navigation v2: the Today · Games · History · Create tab set, Profile and Settings off the shell (ADR-0027). */
-    NavV2(label = "Navigation v2: Today · Games · History · Create", releaseDefault = true),
-
     /** LinkedIn account: imports the player's own results and shows connections as ghost rows (ADR-0028). */
     LinkedInAccount(label = "LinkedIn: account results + connections", releaseDefault = false),
 }
