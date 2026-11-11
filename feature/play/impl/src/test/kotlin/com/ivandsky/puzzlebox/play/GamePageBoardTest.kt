@@ -6,6 +6,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
@@ -81,6 +82,7 @@ class GamePageBoardTest {
         identity: FakeIdentityService,
         repo: FakeLeaderboardRepository,
         google: GoogleIdTokenProvider = dismissedGoogleSignIn,
+        picked: LocalDate? = null,
     ) {
         stopKoin() // tests share the JVM-global Koin context
         startKoin {
@@ -96,7 +98,7 @@ class GamePageBoardTest {
                 playModule,
             )
         }
-        composeRule.setContent { PuzzleBoxTheme(darkTheme = false) { GamePageBoard(game) } }
+        composeRule.setContent { PuzzleBoxTheme(darkTheme = false) { GamePageBoard(game, picked = picked) } }
     }
 
     /** Whether a board row names [name]. */
@@ -150,6 +152,23 @@ class GamePageBoardTest {
         composeRule.waitForIdle()
 
         assertTrue(shows("Yest1"))
+        assertFalse(shows("Today1"))
+    }
+
+    @Test
+    fun `a picked day replaces the toggle and shows that day's board under its date`() {
+        val picked = LocalDate.of(2026, 11, 6)
+        show(
+            FakeIdentityService(me),
+            repository(today to entries("Today", 3), picked to entries("Old", 3, day = picked)),
+            picked = picked,
+        )
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("leaderboard.today").assertDoesNotExist()
+        composeRule.onNodeWithTag("leaderboard.yesterday").assertDoesNotExist()
+        composeRule.onNodeWithText("Alpha · Fri, Nov 6", substring = true).assertExists()
+        assertTrue(shows("Old1"))
         assertFalse(shows("Today1"))
     }
 

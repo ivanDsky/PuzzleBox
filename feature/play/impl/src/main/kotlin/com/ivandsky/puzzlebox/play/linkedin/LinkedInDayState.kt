@@ -69,6 +69,9 @@ class LinkedInDayState(
             .collect { send(it) }
     }
 
+    /** The view of [target]'s day as the phone holds it. Calls nothing: another collector's [view] syncs the day. */
+    fun observed(target: Target): Flow<LinkedInDayView> = observe(target.game, target.day)
+
     /** The user asked again (Retry): the same day, one more sync. Does nothing unless a collector is on a day. */
     fun retry() {
         again.update { it + 1 }
