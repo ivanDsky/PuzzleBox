@@ -37,8 +37,8 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  *
  * Loop wiring: Home's Today card selects the Play tab; its history teaser pushes History
  * on Home's stack, and the games hub's "Older puzzles" pushes it on Play's stack; history
- * rows push the day's game key; a Profile game row pushes that game's [HistoryKey] and
- * Profile's (debug-only) catalog link pushes [CatalogKey], both on the current tab's stack.
+ * rows push the day's game key; Settings' Developer row pushes [CatalogKey] on the current
+ * tab's stack.
  * The Create tab's New puzzle and its draft rows push that draft's
  * Studio on Create's stack, and its published rows that puzzle's page. Back pops the current tab's stack ([Navigator.pop]),
  * including after process-death restore. A [codeDraft] (a tapped link's text that isn't a
@@ -48,7 +48,7 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  * page's "Your history" row and Result's "Full board" row open their owner (a game page or
  * Games section through [libraryRequests], History's tab root through [openOwner]); Today
  * hides what is owned elsewhere, the game page draws its board, the tablet times card signs
- * in in place, and Profile is slim with its own back and a gear to Settings.
+ * in in place, and Profile has its own back and a gear to Settings.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -101,10 +101,8 @@ internal fun puzzleBoxEntryProvider(
     publishedPuzzleEntry(navigator, playLayout)
     val back: () -> Unit = { navigator.pop() }
     profileEntry(
-        onOpenHistory = { game -> navigator.pushOnce(HistoryKey(game.value)) },
         onOpenCatalog = { navigator.push(CatalogKey) },
         onBack = back,
-        slim = true,
         onProfileBack = back,
         onOpenSettings = { navigator.pushOnce(SettingsKey) },
     )
