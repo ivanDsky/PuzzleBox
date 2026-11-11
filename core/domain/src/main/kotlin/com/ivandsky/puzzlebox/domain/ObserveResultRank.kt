@@ -7,6 +7,8 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.linkedin.linkedInScore
 import com.ivandsky.puzzlebox.game.linkedin.linkedInTimeWins
+import com.ivandsky.puzzlebox.game.linkedin.rankCombined
+import com.ivandsky.puzzlebox.game.linkedin.rankedCount
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -71,13 +73,13 @@ class ObserveResultRank(private val leaderboard: ObserveLeaderboard, private val
             ghostScores = ghosts.map { ghost -> ghost.timeMs?.let { linkedInScore(it, ghost.hintFree) } },
             own = view.ownScore,
         )
-        val scores = ghosts.filterIndexed { index, _ -> wins.ghostKept[index] }
-            .mapNotNull { ghost -> ghost.timeMs?.let { linkedInScore(it, ghost.hintFree) } }
+        val kept = ghosts.filterIndexed { index, _ -> wins.ghostKept[index] }
+        val keptScores = kept.map { ghost -> ghost.timeMs?.let { linkedInScore(it, ghost.hintFree) } }
         // Nothing from LinkedIn touches the board: the row is exactly the PuzzleBox rank alone.
-        if (scores.isEmpty() && wins.rowScores == entryScores) return null
-        val mine = wins.rowScores[own]
-        val ahead = wins.rowScores.count { order.compare(it, mine) < 0 } + scores.count { order.compare(it, mine) < 0 }
-        return ResultRank.WithConnections(position = ahead + 1, count = entries.size + scores.size)
+        if (keptScores.all { it == null } && wins.rowScores == entryScores) return null
+        val slots = rankCombined(wins.rowScores, keptScores, order)
+        val mine = slots.single { !it.ghost && it.index == own }
+        return ResultRank.WithConnections(position = checkNotNull(mine.place), count = slots.rankedCount())
     }
 
     private fun LeaderboardEntry.score() = BestScore(timeMs, hints)

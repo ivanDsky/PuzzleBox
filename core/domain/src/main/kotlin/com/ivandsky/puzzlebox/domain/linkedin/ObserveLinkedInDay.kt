@@ -9,6 +9,8 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.linkedInScore
+import com.ivandsky.puzzlebox.game.linkedin.rankCombined
+import com.ivandsky.puzzlebox.game.linkedin.rankedCount
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -68,15 +70,17 @@ private fun LinkedInDayData.shown(
     order: Comparator<BestScore>,
     fetchedAtMs: Long,
 ): LinkedInBoardView.Shown {
-    val timed = ghosts.mapNotNull { ghost -> ghost.timeMs?.let { ghost to linkedInScore(it, ghost.hintFree) } }
     val yours = (own as? LinkedInOwnState.Imported)?.record?.let { BestScore(it.time, it.hints) }
-    // Only a strictly better ghost is ahead, so equal scores share a rank.
-    val yourRank = yours?.let { mine -> 1 + timed.count { (_, score) -> order.compare(score, mine) < 0 } }
+    val slots = rankCombined(
+        rows = listOfNotNull(yours),
+        ghosts = ghosts.map { ghost -> ghost.timeMs?.let { linkedInScore(it, ghost.hintFree) } },
+        order = order,
+    )
     return LinkedInBoardView.Shown(
-        // The sort is stable, so equal scores keep board order; a hidden time has no score and takes no rank.
-        ghosts = timed.sortedWith(compareBy(order) { it.second }).map { it.first } + ghosts.filter { it.timeMs == null },
-        yourRank = yourRank,
-        total = ghosts.size + if (yourRank != null) 1 else 0,
+        // Equal scores keep board order; a hidden time has no score and takes no rank.
+        ghosts = slots.filter { it.ghost }.map { ghosts[it.index] },
+        yourRank = slots.firstOrNull { !it.ghost }?.place,
+        total = slots.rankedCount(),
         updatedAtMs = fetchedAtMs,
     )
 }

@@ -203,7 +203,8 @@ class ObserveLinkedInDayTest {
 
         assertEquals(listOf(ghost(4, 50_000), ghost(2, 70_000), ghost(1, null), ghost(3, null)), shown.ghosts)
         assertEquals(3, shown.yourRank)
-        assertEquals(5, shown.total)
+        // The player and the two connections with a time: a hidden time is not counted.
+        assertEquals(3, shown.total)
     }
 
     @Test
@@ -214,7 +215,7 @@ class ObserveLinkedInDayTest {
             val shown = shownOf(data(own = own, ghosts = board))
 
             assertNull(shown.yourRank)
-            assertEquals(board.size, shown.total)
+            assertEquals(2, shown.total)
         }
     }
 

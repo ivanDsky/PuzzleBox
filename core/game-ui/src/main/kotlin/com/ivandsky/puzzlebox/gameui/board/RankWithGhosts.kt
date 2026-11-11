@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.gameui.board
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.linkedin.linkedInScore
+import com.ivandsky.puzzlebox.game.linkedin.rankCombined
 
 /**
  * [rows] and [ghosts] as one board, ranked together by [order]: equal scores share a place and the next one skips
@@ -19,36 +20,12 @@ fun rankWithGhosts(rows: List<DailyBoardRowModel>, ghosts: List<GhostRowModel>, 
 
 /** [rankWithGhosts] without its shortcut: [rows] sorted by [order] are ranked together with [ghosts], even with none. */
 internal fun mergeRanked(rows: List<DailyBoardRowModel>, ghosts: List<GhostRowModel>, order: RankOrder): List<DailyBoardLine> {
-    val comparator = order.comparator
-    val (timed, hidden) = ghosts.partition { it.timeMs != null }
-    val sorted = timed.sortedWith { a, b -> comparator.compare(a.score(), b.score()) }
-    val lines = ArrayList<DailyBoardLine>(rows.size + ghosts.size)
-    var placed = 0
-    var place = 0
-    var previous: BestScore? = null
-    fun placeOf(score: BestScore): Int {
-        placed++
-        val before = previous
-        if (before == null || comparator.compare(score, before) != 0) place = placed
-        previous = score
-        return place
+    val slots = rankCombined(
+        rows = rows.map { BestScore(it.timeMs, it.hints) },
+        ghosts = ghosts.map { ghost -> ghost.timeMs?.let { linkedInScore(it, ghost.hintFree) } },
+        order = order.comparator,
+    )
+    return slots.map { slot ->
+        if (slot.ghost) DailyBoardLine.Ghost(ghosts[slot.index], slot.place) else DailyBoardLine.Real(rows[slot.index], checkNotNull(slot.place))
     }
-    var next = 0
-    for (row in rows) {
-        val real = BestScore(row.timeMs, row.hints)
-        // Strictly better only: on a tie the real row stays first.
-        while (next < sorted.size && comparator.compare(sorted[next].score(), real) < 0) {
-            val ghost = sorted[next++]
-            lines += DailyBoardLine.Ghost(ghost, placeOf(ghost.score()))
-        }
-        lines += DailyBoardLine.Real(row, placeOf(real))
-    }
-    while (next < sorted.size) {
-        val ghost = sorted[next++]
-        lines += DailyBoardLine.Ghost(ghost, placeOf(ghost.score()))
-    }
-    hidden.mapTo(lines) { DailyBoardLine.Ghost(it, null) }
-    return lines
 }
-
-private fun GhostRowModel.score(): BestScore = linkedInScore(checkNotNull(timeMs), hintFree)
