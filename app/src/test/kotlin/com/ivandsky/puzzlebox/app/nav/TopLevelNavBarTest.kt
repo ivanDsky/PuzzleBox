@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.getValue
@@ -151,6 +152,33 @@ class TopLevelNavBarTest {
         }
 
         composeRule.onNodeWithTag("test.rail").assertWidthIsEqualTo(96.dp)
+    }
+
+    @Test
+    fun `flag-on rail draws 28dp tab icons`() {
+        val flagOn = topLevelDestinations(navV2 = true)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                Box(Modifier.height(900.dp)) {
+                    TopLevelNavRail(selected = HomeKey, onSelect = {}, destinations = flagOn, bottomActions = { Box(Modifier.size(48.dp)) })
+                }
+            }
+        }
+
+        flagOn.forEach { destination ->
+            composeRule.onNodeWithTag(iconTag(destination), useUnmergedTree = true).assertWidthIsEqualTo(28.dp).assertHeightIsEqualTo(28.dp)
+        }
+    }
+
+    @Test
+    fun `flag-off rail keeps 24dp tab icons`() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) { TopLevelNavRail(selected = HomeKey, onSelect = {}) }
+        }
+
+        topLevelDestinations.forEach { destination ->
+            composeRule.onNodeWithTag(iconTag(destination), useUnmergedTree = true).assertWidthIsEqualTo(24.dp).assertHeightIsEqualTo(24.dp)
+        }
     }
 
     /** The bar or rail shows exactly [destinations]' items, and no flag-off Profile item. */
