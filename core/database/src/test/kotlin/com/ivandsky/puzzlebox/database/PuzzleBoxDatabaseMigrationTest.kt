@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.database
 
-import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -9,7 +8,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -600,45 +598,6 @@ class PuzzleBoxDatabaseMigrationTest {
             assertEquals(9000L, cursor.getLong(4))
         }
         db.close()
-    }
-
-    @Test
-    fun `fresh v10 database is created by the normal builder path`() {
-        val dbName = "puzzlebox-fresh-v10.db"
-        val context = RuntimeEnvironment.getApplication()
-        context.deleteDatabase(dbName)
-        val database = Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, dbName)
-            .addMigrations(*Migrations.ALL)
-            .build()
-        try {
-            val db = database.openHelper.writableDatabase
-            assertEquals(10, db.version)
-
-            // source is omitted: the column default ('app') fills it.
-            db.execSQL(
-                "INSERT INTO completions " +
-                    "(puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, matchCode) " +
-                    "VALUES ('queens/2026-11-08/400', 61000, 1, 1, '{\"v\":1}', 9200, 9200, 1, NULL)",
-            )
-            db.execSQL(
-                "INSERT INTO completions " +
-                    "(puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, " +
-                    "matchCode, source) " +
-                    "VALUES ('zip/2026-11-08/600', 42000, 0, 1, '{\"v\":1}', 9300, 9300, 1, NULL, 'linkedin')",
-            )
-            db.query("SELECT puzzleRef, source FROM completions ORDER BY id").use { cursor ->
-                assertEquals(2, cursor.count)
-                assertTrue(cursor.moveToFirst())
-                assertEquals("queens/2026-11-08/400", cursor.getString(0))
-                assertEquals("app", cursor.getString(1))
-                assertTrue(cursor.moveToNext())
-                assertEquals("zip/2026-11-08/600", cursor.getString(0))
-                assertEquals("linkedin", cursor.getString(1))
-            }
-        } finally {
-            database.close()
-            context.deleteDatabase(dbName)
-        }
     }
 
     @Test

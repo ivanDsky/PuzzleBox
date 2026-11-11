@@ -21,4 +21,8 @@ class PublishedPuzzleEntity(
     val solvesCountAt: Long?,
     /** Hints the author used in the test solve behind [authorTimeMs] (M3). */
     val authorHints: Int,
+    /** Schema v11 (cloud sync): the signed-in account that owns this row in the cloud; null until claimed. */
+    val ownerUid: String? = null,
+    /** Schema v11: fingerprint of the last version uploaded to the cloud; null when never uploaded. */
+    val uploadedFingerprint: String? = null,
 )
