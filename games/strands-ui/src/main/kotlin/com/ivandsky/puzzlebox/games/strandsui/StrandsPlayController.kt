@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.playTimeMs
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.BROKEN_PUZZLE_MESSAGE
 import com.ivandsky.puzzlebox.gameui.GamePlayController
@@ -30,7 +31,6 @@ import com.ivandsky.puzzlebox.games.strands.strandsPlugin
 import com.ivandsky.puzzlebox.games.strands.withHint
 import com.ivandsky.puzzlebox.games.strands.withSubmit
 import com.ivandsky.puzzlebox.model.PuzzleKey
-import java.time.Duration
 import java.time.Instant
 
 /**
@@ -242,8 +242,7 @@ class StrandsPlayController(
     /** Banked time plus the running window. Never negative. */
     override fun displayedElapsedMs(): Long {
         val current = session ?: return 0L
-        val window = runningSince?.let { Duration.between(it, Instant.ofEpochMilli(nowMs)).toMillis() } ?: 0L
-        return (current.elapsedMs + window).coerceAtLeast(0L)
+        return playTimeMs(current.elapsedMs, runningSince, Instant.ofEpochMilli(nowMs))
     }
 
     /** Opens the running window now, unless one is already open. */
@@ -257,7 +256,7 @@ class StrandsPlayController(
     private fun foldRunning(target: StrandsSession): StrandsSession {
         val since = runningSince ?: return target
         runningSince = null
-        return target.copy(elapsedMs = target.elapsedMs + Duration.between(since, now()).toMillis())
+        return target.copy(elapsedMs = playTimeMs(target.elapsedMs, since, now()))
     }
 
     //endregion
