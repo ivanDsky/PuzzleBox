@@ -7,18 +7,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.dp
 
-internal const val ACTIVITY_BUCKETS = 48
-
-/** Moves per equal slice of the replay: one series of the activity bars. A second side feeds its own ticks. */
-internal fun activityBuckets(ticksMs: LongArray, durationMs: Long): IntArray {
-    val counts = IntArray(ACTIVITY_BUCKETS)
-    if (durationMs <= 0) return counts
-    for (tickMs in ticksMs) {
-        counts[(tickMs.toFloat() / durationMs * ACTIVITY_BUCKETS).toInt().coerceIn(0, ACTIVITY_BUCKETS - 1)]++
-    }
-    return counts
-}
-
 /**
  * Draws one series across the full width. Bars grow from [axisY] up, or down when [up] is false, to at most
  * [room]; an empty slice keeps a hairline so the timeline never has a hole. Slices up to [fraction] are [played].

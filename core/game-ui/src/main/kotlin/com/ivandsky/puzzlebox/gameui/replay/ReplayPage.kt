@@ -21,7 +21,7 @@ fun ReplayPage(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxSize().padding(horizontal = Spacing.lg)) {
-        ReplayTopBar(ReplayCopy.TITLE, "$context · ${ReplayCopy.moves(timeline.moveTimesMs.size)}", onBack)
+        ReplayTopBar(ReplayCopy.TITLE, ReplayCopy.subtitle(context, timeline.moveTimesMs.size), onBack)
         ReplayPlayer(timeline, board, Modifier.weight(1f).fillMaxSize().padding(bottom = Spacing.lg))
     }
 }

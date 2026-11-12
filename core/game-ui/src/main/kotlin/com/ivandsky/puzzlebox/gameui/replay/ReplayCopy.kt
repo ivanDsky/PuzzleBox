@@ -18,4 +18,7 @@ object ReplayCopy {
     fun speedDescription(x: Int): String = "Speed $x×"
 
     fun moves(count: Int): String = if (count == 1) "1 move" else "$count moves"
+
+    /** The page's second line: where the game came from, then how long the replay is in moves. */
+    fun subtitle(context: String, moves: Int): String = "$context · ${moves(moves)}"
 }

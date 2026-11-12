@@ -53,13 +53,13 @@ fun ReplaySeekBar(
             }
             .pointerInput(durationMs) {
                 if (durationMs <= 0) return@pointerInput
-                detectTapGestures { seek(msAt(it.x, size.width, durationMs)) }
+                detectTapGestures { seek(msAt(it.x, size.width, KnobRadius.toPx(), durationMs)) }
             }
             .pointerInput(durationMs) {
                 if (durationMs <= 0) return@pointerInput
-                detectHorizontalDragGestures(onDragStart = { seek(msAt(it.x, size.width, durationMs)) }) { change, _ ->
+                detectHorizontalDragGestures(onDragStart = { seek(msAt(it.x, size.width, KnobRadius.toPx(), durationMs)) }) { change, _ ->
                     change.consume()
-                    seek(msAt(change.position.x, size.width, durationMs))
+                    seek(msAt(change.position.x, size.width, KnobRadius.toPx(), durationMs))
                 }
             },
     ) {
@@ -73,7 +73,8 @@ fun ReplaySeekBar(
             played = colors.primary,
             unplayed = colors.onSurfaceVariant.copy(alpha = UNPLAYED_ALPHA),
         )
-        val x = size.width * fraction
+        // The playhead rides a track inset by the knob radius so the knob stays whole at both ends.
+        val x = KnobRadius.toPx() + (size.width - 2 * KnobRadius.toPx()) * fraction
         drawRoundRect(
             color = colors.onSurface,
             topLeft = Offset(x - PlayheadWidth.toPx() / 2, 0f),
@@ -84,4 +85,5 @@ fun ReplaySeekBar(
     }
 }
 
-private fun msAt(x: Float, width: Int, durationMs: Long): Long = (x / width * durationMs).toLong().coerceIn(0, durationMs)
+private fun msAt(x: Float, width: Int, inset: Float, durationMs: Long): Long =
+    ((x - inset) / (width - 2 * inset) * durationMs).toLong().coerceIn(0, durationMs)
