@@ -59,6 +59,16 @@ class FakeLinkedInDays : LinkedInDays {
         days.update { it + ((game to day) to data) }
     }
 
+    private val savedDays = MutableStateFlow<Map<GameId, Set<LocalDate>>>(emptyMap())
+
+    /** A game never set through [emitSavedDays] has no saved board. */
+    override fun observeSavedDays(game: GameId): Flow<Set<LocalDate>> =
+        savedDays.map { it[game].orEmpty() }.distinctUntilChanged()
+
+    fun emitSavedDays(game: GameId, days: Set<LocalDate>) {
+        savedDays.update { it + (game to days) }
+    }
+
     private companion object {
         val UNKNOWN = LinkedInDayData(
             link = LinkState.NotConnected,

@@ -75,6 +75,19 @@ class SavedBoardDaoTest {
     }
 
     @Test
+    fun `observeVisibleDays lists the ownerless and the visible owner's days, all while no owner is visible`() = runTest {
+        dao.upsert(board(day = "2026-11-01", ownerUid = "u1"))
+        dao.upsert(board(day = "2026-11-02", ownerUid = "u2"))
+        dao.upsert(board(day = "2026-11-03", ownerUid = null))
+        dao.upsert(board(game = "zip", day = "2026-11-04", ownerUid = "u1"))
+
+        assertEquals(listOf("2026-11-01", "2026-11-03"), dao.observeVisibleDays("queens", "u1").first())
+        assertEquals(listOf("2026-11-02", "2026-11-03"), dao.observeVisibleDays("queens", "u2").first())
+        assertEquals(listOf("2026-11-01", "2026-11-02", "2026-11-03"), dao.observeVisibleDays("queens", null).first())
+        assertEquals(listOf("2026-11-04"), dao.observeVisibleDays("zip", "u1").first())
+    }
+
+    @Test
     fun `delete removes one board and leaves its ghosts and other boards`() = runTest {
         db.ghostDao().replace(
             "queens",
