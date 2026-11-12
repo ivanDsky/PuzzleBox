@@ -9,12 +9,14 @@ import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 /**
  * One item of the animated list: the [line] it last showed (null for the divider), whether it is the [pinned] own row,
  * and whether it is still [present] on the board or only closing before it is dropped. The three animated values are
  * read only where they are drawn or laid out, so moving them never recomposes the row: [open] is how much of the item's
- * height is there (0 to 1), [alpha] how visible it is, [slide] the distance in pixels it still has to travel to its place.
+ * height is there (0 to 1), [alpha] how visible it is, [slide] how much of the way from where it was drawn to its place
+ * it still has to travel (1 to 0, see [offsetAt]).
  * [arrived] says it joined a board that was already showing rows, and [delayMs] is how long it waits to start to move,
  * which its place and time cells wait too (see [PlaceMotion]).
  */
@@ -32,34 +34,56 @@ internal class BoardItem(
     val alpha = Animatable(0f)
     val slide = Animatable(0f)
 
-    // Where the item was last placed and how far it was then drawn from there, for the next move to start from.
+    // Where the item was last placed, and where it was drawn when its last move began, for the next move to start from.
     private var placedY = 0
     private var placed = false
-    private var drawnSlide = 0f
+    private var startY = 0f
+    private var left = 0f
+
+    // How far the move in hand travels, so that of rows moving at once the one that jumps furthest is drawn over the rest.
+    var travel = 0f
+        private set
     private var sliding: Job? = null
 
     // Set when the item's order among the items that stay has changed: its next placement is a jump to slide out of.
     var reordered = false
 
-    /** Places the item at [y] in the list; if it was reordered, slides it there from where it was drawn, after its [delayMs]. */
+    /**
+     * Places the item at [y] in the list; if it was reordered, glides it there from where it was drawn, after its
+     * [delayMs]. The glide is a fraction of the way from that drawn place to wherever the item is placed then, not a
+     * distance fixed when it began: rows open and close around the item while it waits and glides, and a fixed
+     * distance would carry it with them, up past the top of the list when the rows above its place close.
+     */
     fun placeAt(y: Int, scope: CoroutineScope) {
         if (reordered && placed) {
-            val from = placedY + drawnSlide - y
-            drawnSlide = from
-            if (from != 0f) {
+            val from = placedY + (startY - placedY) * left
+            startY = from
+            if (from != y.toFloat()) {
                 // Unconfined, so the row is drawn at its old place from the first frame, where it waits for its turn.
                 sliding?.cancel()
+                left = 1f
+                travel = abs(from - y)
                 sliding = scope.launch(start = CoroutineStart.UNDISPATCHED) {
-                    slide.snapTo(from)
+                    slide.snapTo(1f)
                     delay(delayMs.toLong())
-                    slide.animateTo(0f, BoardMotion.slide) { drawnSlide = value }
+                    slide.animateTo(0f, BoardMotion.slide) { left = value }
                 }
+            } else {
+                sliding?.cancel()
+                left = 0f
+                travel = 0f
             }
         }
         reordered = false
         placedY = y
         placed = true
     }
+
+    /** Whether the item is on its way to a new place, which is drawn over the items it passes. */
+    val moving: Boolean get() = left > 0f
+
+    /** How far from [y], where the item is placed now, it is drawn: [slide] of the way back to where its move began. */
+    fun offsetAt(y: Int): Float = (startY - y) * slide.value
 }
 
 /**

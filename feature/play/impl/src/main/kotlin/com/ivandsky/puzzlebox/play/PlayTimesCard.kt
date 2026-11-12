@@ -67,6 +67,7 @@ internal fun PlayTimesCard(
                         board.order ?: RankOrder.TimeThenHints,
                         pinned = board.pinned?.asYou(),
                         animated = animated,
+                        backdrop = MaterialTheme.colorScheme.surfaceContainerLow,
                     )
                     ownRowNote(board)?.let {
                         Text(
