@@ -49,7 +49,7 @@ class CompletionRepositoryTest {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        repository = RoomCompletionRepository(db, db.completionDao(), TestGames.registry(listOf(alpha)), clock = { nowMs })
+        repository = RoomCompletionRepository(db, db.completionDao(), db.completionReplayDao(), TestGames.registry(listOf(alpha)), clock = { nowMs })
     }
 
     @After
