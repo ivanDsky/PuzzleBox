@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -211,6 +212,26 @@ class WinSealsReplayTest {
         assertEquals(listOf(10_000L, 20_000L), first.timeline().moveTimesMs.toList())
     }
 
+    @Test
+    fun `a duel leg's win reaches the inner store with its replay`() {
+        val legSlot = PlaySlot.Leg(game, LEG_CODE, legIndex = 0)
+        val log = MoveLog.fresh(game).also { it.play(ReplayFixtures.replay, ReplayFixtures.initial(total = 2), PLACE, atMs = 5_000) }
+        runBlocking {
+            saved.save(legSlot, SessionBlob.encode(game, FakeController.encode(moves = 1, complete = false, ref = ref), log.snapshot()), elapsedMs = 0L)
+        }
+        session = ReplayFixtures.initial(total = 2).copy(placed = 1)
+        val completions = FakeCompletionRepository()
+
+        val play = store(on, completions).open(MatchLegKey(LEG_CODE, 0, game.value))!!
+        play.place(10_000)
+        (play.controller as FakeController).win()
+
+        val replay = checkNotNull(completions.latest())
+        assertEquals(listOf(5_000L, 10_000L), replay.timeline().moveTimesMs.toList())
+        assertEquals(FakeController.TIME_MS, replay.timeline().endMs)
+        assertEquals(LEG_CODE, completions.records().single().matchCode)
+    }
+
     /** [inner] with the log each controller was created with kept, so a test can read it. */
     private class LogCapturingUi(private val inner: FakePlayUi) : GamePlayUi by inner {
         private val logs = IdentityHashMap<GamePlayController, MoveLog>()
@@ -238,6 +259,7 @@ class WinSealsReplayTest {
     }
 
     private companion object {
+        const val LEG_CODE = "M8T3VQ"
         val PLACE = ReplayMove(kind = 0, args = IntArray(0))
         val PLUGIN_REPLAY = object : GameReplay<TestGames.Session> {
             override fun step(session: TestGames.Session, move: ReplayMove, atMs: Long): TestGames.Session = session
