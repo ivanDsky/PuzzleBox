@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.CoroutineScope
 
@@ -57,6 +58,12 @@ interface GamePlayUi {
      * composition so a toggle shows its current state. Empty hides the menu.
      */
     fun overflowFor(controller: GamePlayController): List<PlayOverflowItem> = emptyList()
+
+    /**
+     * The game's read-only replay board. Null = this game draws no replay; every replay
+     * surface hides (as [editor], ADR-0019).
+     */
+    val replayBoard: GameReplayBoard? get() = null
 
     /**
      * The game's play screen under the route's top bar: the board, its caption and the
