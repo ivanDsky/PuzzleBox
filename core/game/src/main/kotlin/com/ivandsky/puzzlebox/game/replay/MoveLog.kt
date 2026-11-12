@@ -1,0 +1,91 @@
+package com.ivandsky.puzzlebox.game.replay
+
+import com.ivandsky.puzzlebox.game.GameSession
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.SolveReplay
+
+/**
+ * Journal of one play. Main-thread confined.
+ *
+ * A void log (off, nothing readable to restore, a move not understood, a cap passed) still steps,
+ * records nothing and stays void for the rest of the solve, so a replay is complete or absent and
+ * never truncated (A1, A12).
+ */
+class MoveLog private constructor(private var journal: Journal?) {
+
+    /** Applies [move] through [replay]. Records it only when the session changed. Returns the session to store. */
+    fun <S : GameSession> play(replay: GameReplay<S>, session: S, move: ReplayMove, atMs: Long): S =
+        step(replay, session, move, atMs, recordsUnchanged = false)
+
+    /** Same, but always records, so a replay knows the setting from its first frame. For settings at adopt and at flip. */
+    fun <S : GameSession> setting(replay: GameReplay<S>, session: S, move: ReplayMove, atMs: Long): S =
+        step(replay, session, move, atMs, recordsUnchanged = true)
+
+    /** In-progress bytes for the saved play; null = nothing to save. */
+    fun snapshot(): ByteArray? {
+        val current = journal ?: return null
+        return ReplayCodec.encode(ReplayRecord(current.game, ReplayOutcome.Open, endMs = 0, current.moves)) ?: voided()
+    }
+
+    /** The sealed replay; null = no replay for this solve. [outcome] is Solved or GaveUp: Open seals nothing. */
+    fun seal(outcome: ReplayOutcome, endMs: Long): SolveReplay? {
+        val current = journal ?: return null
+        if (outcome == ReplayOutcome.Open) return null
+        // Stamps never decrease, so the last one within the end time means all of them are.
+        val moves = if (current.lastMs <= endMs) {
+            current.moves
+        } else {
+            current.moves.map { if (it.atMs > endMs) StampedMove(endMs, it.move) else it }
+        }
+        return ReplayCodec.encode(ReplayRecord(current.game, outcome, endMs, moves))?.let(SolveReplay::of) ?: voided()
+    }
+
+    private fun <S : GameSession> step(
+        replay: GameReplay<S>,
+        session: S,
+        move: ReplayMove,
+        atMs: Long,
+        recordsUnchanged: Boolean,
+    ): S {
+        val current = journal
+        // The game steps with the stamp that is recorded, so a re-fold sees the time live play saw.
+        val stampMs = if (current == null) atMs else maxOf(atMs, current.lastMs)
+        val next = replay.step(session, move, stampMs)
+        if (next == null) {
+            journal = null
+            return session
+        }
+        if (current == null || (next === session && !recordsUnchanged)) return next
+        // Voided here, not at the next snapshot, so the journal never grows past the cap.
+        if (current.moves.size == ReplayCodec.MAX_MOVES) {
+            journal = null
+        } else {
+            current.moves += StampedMove(stampMs, move)
+        }
+        return next
+    }
+
+    private fun voided(): Nothing? {
+        journal = null
+        return null
+    }
+
+    private class Journal(val game: GameId, val moves: ArrayList<StampedMove>) {
+        val lastMs: Long get() = if (moves.isEmpty()) 0 else moves.last().atMs
+    }
+
+    companion object {
+        /** The void state from the start: steps only, snapshot and seal are always null. Flag off, tutorials. */
+        fun off(): MoveLog = MoveLog(journal = null)
+
+        /** Records from move zero. */
+        fun fresh(game: GameId): MoveLog = MoveLog(Journal(game, ArrayList()))
+
+        /** Continues a saved log. A null, unreadable, sealed or wrong-game snapshot gives a void log. */
+        fun restored(game: GameId, snapshot: ByteArray?): MoveLog {
+            val record = snapshot?.let(ReplayCodec::decode)?.getOrNull()
+            if (record == null || record.outcome != ReplayOutcome.Open || record.game != game) return off()
+            return MoveLog(Journal(game, ArrayList(record.moves)))
+        }
+    }
+}
