@@ -30,7 +30,7 @@ private val CountdownMinHeight = 52.dp
 /**
  * The one primary step [ResultScreen] offers (spec A7, A16, SC10). Today's result offers
  * [Next] (the next unsolved daily, named) or, when every daily is solved, [AllDone]: the
- * countdown to the next puzzles stands in for the button. A replay's result offers [Done].
+ * countdown to the next puzzles stands in for the button. A play-again's result offers [Done].
  */
 sealed interface ResultPrimaryAction {
 
@@ -40,7 +40,7 @@ sealed interface ResultPrimaryAction {
     /** Every daily of today is solved: "All done for today" over the countdown, no button. */
     data object AllDone : ResultPrimaryAction
 
-    /** A replay's result: Done returns to the origin. */
+    /** A play-again's result: Done returns to the origin. */
     data object Done : ResultPrimaryAction
 }
 

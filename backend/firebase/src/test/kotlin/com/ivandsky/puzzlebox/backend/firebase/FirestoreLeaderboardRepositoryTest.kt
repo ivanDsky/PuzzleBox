@@ -228,7 +228,7 @@ class FirestoreLeaderboardRepositoryTest {
         val faster = repository.submit(entry(timeMs = 10_000))
 
         assertEquals(SubmitResult.Deduped(existing = null), faster)
-        // Only the first write survived — a faster replay can never overwrite the record.
+        // Only the first write survived — a faster play-again can never overwrite the record.
         assertEquals(95_000L, store.docs.value[board.boardId]!!.single()["timeMs"])
     }
 

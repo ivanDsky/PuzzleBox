@@ -45,7 +45,7 @@ class FakeCompletionRepository(
         all.update { rows -> if (record.isDuplicateImport(rows)) rows else rows + record }
     }
 
-    /** Room returns only record rows, so an import replay stored beside an app record stays out. */
+    /** Room returns only record rows, so an import play-again stored beside an app record stays out. */
     override fun observeRecords(): Flow<List<CompletionRecord>> =
         all.map { rows -> rows.filter { it.source == CompletionSource.App || it.isRecord } }
 

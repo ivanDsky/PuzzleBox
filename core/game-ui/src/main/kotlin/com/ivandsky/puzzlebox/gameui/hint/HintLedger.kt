@@ -20,7 +20,7 @@ class HintLedger<K : Any> {
     /** The play's hint count after pressing [key], given the count [used] before it. */
     fun press(key: K, used: Int): Int = if (counted.add(key)) minOf(used + 1, MAX_HINTS_USED) else used
 
-    /** A replay or a fresh session: forget every counted key. */
+    /** A play-again or a fresh session: forget every counted key. */
     fun reset() {
         counted.clear()
     }

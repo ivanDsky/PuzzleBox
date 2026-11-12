@@ -35,7 +35,7 @@ import org.robolectric.annotation.Config
 
 /**
  * A7/A8 degrade contract for every registered game: fetch-today → cache under the game's
- * id; any fetch failure → today's cache plus the sealed error; history and replay are
+ * id; any fetch failure → today's cache plus the sealed error; history and play-again are
  * cache-only. By-date reads (ADR-0012) fetch a missed past day only for a source that
  * declares an archive. Network never enters this test — fake sources stand in.
  */

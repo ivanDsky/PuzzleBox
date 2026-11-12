@@ -6,7 +6,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 /**
  * The result's honest-best verdict (spec A10, A26, user ruling 2026-11-04): what THIS
  * solve means against the game's previous best — the top first solve by the game's rank
- * order, read at session start. A replay (a puzzle already solved before this session)
+ * order, read at session start. A play-again (a puzzle already solved before this session)
  * is practice on a known board: it never earns a best, and its score never becomes one.
  */
 sealed interface RecordVerdict {

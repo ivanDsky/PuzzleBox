@@ -79,7 +79,7 @@ internal fun ResultHeader(brand: GameBrand, title: String, verdict: RecordVerdic
 
 /**
  * The honest-best pill (tag `result.record_badge`): "New best", "Tied your best!" or
- * "First solve"; nothing for a slower solve, a replay or an unknown verdict. A tag, not a
+ * "First solve"; nothing for a slower solve, a play-again or an unknown verdict. A tag, not a
  * button — 28 dp, pill-shaped, in the game's accent container, with a leading trophy.
  */
 @Composable
@@ -113,8 +113,8 @@ internal fun RecordTag(verdict: RecordVerdict?, brand: GameBrand, modifier: Modi
 }
 
 /**
- * A replay's line (tag `result.previous_best`): "Replay", or "Replay · Best <score>" naming
- * the best the replay left standing, in the way [bestScoreText] shows it for [rankOrder].
+ * A play-again's line (tag `result.previous_best`): "Replay", or "Replay · Best <score>" naming
+ * the best the play-again left standing, in the way [bestScoreText] shows it for [rankOrder].
  */
 @Composable
 internal fun PlayAgainLine(previousBest: BestScore?, rankOrder: RankOrder) {
@@ -130,7 +130,7 @@ internal fun PlayAgainLine(previousBest: BestScore?, rankOrder: RankOrder) {
 /**
  * The result's actions: the primary, then Share (tag `result.share`) and "Play again"
  * (`result.playAgain`, null hides it) side by side as tonal pills. The primary is
- * "Next: <game>" (`result.next`) or a replay's Done (`result.done`); once every daily is
+ * "Next: <game>" (`result.next`) or a play-again's Done (`result.done`); once every daily is
  * solved the [ResultCountdown] to [rolloverAt] stands in its place.
  */
 @Composable

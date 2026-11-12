@@ -25,9 +25,9 @@ interface RendererModel
  * last move's verdict onto the drawable model. [refOf] rebuilds the game's typed
  * [PuzzleRef] from its persisted [PuzzleKey] (a day's daily or a friend's custom puzzle,
  * ADR-0018), so storage round-trips refs without knowing any game. [playAgainSession] turns a
- * cached [Puzzle] into the play route's replay hand-off: the [SessionBlob]-encoded bytes of
- * a fresh session carrying that key, or the typed reason it can't be replayed (A16) —
- * History replays any game, and a friend's puzzle replays, without naming one.
+ * cached [Puzzle] into the play route's relaunch hand-off: the [SessionBlob]-encoded bytes of
+ * a fresh session carrying that key, or the typed reason it can't be reopened (A16) —
+ * History reopens any game, and a friend's puzzle reopens, without naming one.
  *
  * [editor] is the game's pure puzzle editor (ADR-0019, spec A1/A28): a game has an editor
  * iff its plugin carries one and its UI module binds the matching `GameEditorUi`.

@@ -280,13 +280,13 @@ class ObserveGameHistoryTest {
     }
 
     @Test
-    fun `an import replay beside an app record flags the day and keeps the app record`() = runTest {
+    fun `an import play-again beside an app record flags the day and keeps the app record`() = runTest {
         val day = LocalDate.of(2024, 3, 4)
-        val replay = record(alpha, day).copy(time = 9_000L, hints = 0, source = CompletionSource.LinkedIn)
+        val playAgain = record(alpha, day).copy(time = 9_000L, hints = 0, source = CompletionSource.LinkedIn)
         val rows = gameHistoryDays(
             daily = daily(entry(alpha, day, fetchedAtMs = 5L).copy(archived = true)),
             games = games,
-            completions = FakeCompletionRepository(listOf(record(alpha, day), replay)),
+            completions = FakeCompletionRepository(listOf(record(alpha, day), playAgain)),
         ).first()
 
         assertEquals(

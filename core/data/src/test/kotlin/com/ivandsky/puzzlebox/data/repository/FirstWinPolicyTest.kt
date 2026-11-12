@@ -12,7 +12,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Pure first-win decision: first win is the record; replays never become it. */
+/** Pure first-win decision: first win is the record; play-agains never become it. */
 class FirstWinPolicyTest {
 
     private val policy = FirstWinPolicy()
@@ -34,7 +34,7 @@ class FirstWinPolicyTest {
     }
 
     @Test
-    fun `later completion of the same ref decides replay`() {
+    fun `later completion of the same ref decides play-again`() {
         val decision = policy.decide(hasRecord = true, nowMs = 67_000L)
         assertEquals(FirstWinPolicy.Decision.PlayAgain(67_000L), decision)
     }
@@ -54,7 +54,7 @@ class FirstWinPolicyTest {
     }
 
     @Test
-    fun `replay stamp never claims the record`() {
+    fun `play-again stamp never claims the record`() {
         val row = policy.stamp(emitted(timeMs = 71_000L, hints = 0), refKey, FirstWinPolicy.Decision.PlayAgain(67_000L))
 
         assertFalse(row.isRecord)
@@ -70,7 +70,7 @@ class FirstWinPolicyTest {
     }
 
     @Test
-    fun `replay stamp carries the match code`() {
+    fun `play-again stamp carries the match code`() {
         val row = policy.stamp(emitted(71_000L, 0, matchCode = "XYZ789"), refKey, FirstWinPolicy.Decision.PlayAgain(67_000L))
         assertEquals("XYZ789", row.matchCode)
     }
