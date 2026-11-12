@@ -127,6 +127,7 @@ fun CreateScreen(
                     games = state.games,
                     onStart = onNew,
                     onImport = onImportOpen.takeIf { importEnabled },
+                    restoring = state.restoring,
                 )
                 else -> {
                     CreateTabs(state, onTab)
