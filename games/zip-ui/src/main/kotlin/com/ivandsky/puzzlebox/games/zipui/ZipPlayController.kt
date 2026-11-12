@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
+import com.ivandsky.puzzlebox.games.zip.ZipReplayMove
 import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.games.zip.codec.ZipCodec
 import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
@@ -70,6 +71,8 @@ class ZipPlayController(
 
     private val rules = zipPlugin.rules as ZipRules // the plugin's rules ARE ZipRules
 
+    private val log = ZipMoveLog(env.moveLog, now)
+
     //region input (F2 §7: candidate moves in, authoritative validation here)
 
     fun onDragEvent(event: DragEvent) {
@@ -81,14 +84,14 @@ class ZipPlayController(
             is DragEvent.Extend -> {
                 val move = ZipMove.Extend(cellOf(event.cell, board.n))
                 when (val verdict = rules.validateMove(move, ZipState(current.puzzle, current.path))) {
-                    is ZipValidation.Valid -> commit(current.withMove(move, now()))
+                    is ZipValidation.Valid -> commit(log.record(current, ZipReplayMove.Extend(move.to)))
                     is ZipValidation.Invalid -> reject(current, cellOf(event.cell, board.n), verdict.reason)
                 }
             }
 
             is DragEvent.Retract -> {
                 val target = current.path.getOrNull(event.index) ?: return
-                commit(current.withMove(ZipMove.RetractTo(target), now()))
+                commit(log.record(current, ZipReplayMove.RetractTo(target)))
             }
 
             // R1 tap on the first traced cell: the trace empties to the start state.
@@ -102,7 +105,7 @@ class ZipPlayController(
 
     /** The trace edits: each step drops the hint arrow (ticket 28: any input does) and
      *  persists through [commit] like any move. */
-    internal val edits = ZipTraceEdits({ session }, now) { hintArrow = null; commit(it) }
+    internal val edits = ZipTraceEdits({ session }, log) { hintArrow = null; commit(it) }
 
     override val canUndo: Boolean get() = edits.canUndo
 
@@ -158,26 +161,27 @@ class ZipPlayController(
         var kept: List<Cell>? = null // the trimmed prefix, when the hint fixed a dead trace
         var resolved = rules.hint(ZipState(puzzle, next.path))
         if (resolved is ZipHint.Backtrack) {
-            next = next.withMove(
-                if (resolved.trimTo < 0) ZipMove.Reset else ZipMove.RetractTo(next.path[resolved.trimTo]),
-                now(),
+            next = log.record(
+                next,
+                if (resolved.trimTo < 0) ZipReplayMove.Reset else ZipReplayMove.RetractTo(next.path[resolved.trimTo]),
             )
             kept = next.path
             resolved = rules.hint(ZipState(puzzle, next.path))
         }
+        // Counted before the step: a hint that places the last cell wins, and a won session takes no count.
+        next = log.record(next, ZipReplayMove.Hint)
         val step = resolved as? ZipHint.Step
         var placedIdx: Int? = null
         if (step != null) {
             val move = ZipMove.Extend(step.cell)
             if (rules.validateMove(move, ZipState(puzzle, next.path)) is ZipValidation.Valid) {
-                next = next.withMove(move, now())
+                next = log.record(next, ZipReplayMove.Extend(step.cell))
                 placedIdx = step.cell.idx
                 next.path.getOrNull(next.path.size - 2)?.let { tail ->
                     hintArrow = HintArrow(headIdx = step.cell.idx, tailIdx = tail.idx)
                 }
             }
         }
-        next = next.withHintApplied()
         commit(next)
         kept?.let { feedback.trimmed(puzzle.board, it) }
         hintCell = (resolved as? ZipHint.Step)?.cell?.idx
