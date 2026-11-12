@@ -45,3 +45,5 @@ compute an outcome, enforce a deadline by job, or hide data except through rules
 - UI-only sealing: data would be on the wire (A27).
 - Storing an absolute deadline written by the client: unverifiable without functions.
 - A server-written outcome: impossible on Spark.
+
+*(Amended 2026-11-12, ADR-0030: the result document gains an optional `replay` bytes field of at most 12 288 bytes, `formatVersion` unchanged, and a leg's outbox row carries it in `match_results.replay`. A rejected post that carried a replay is retried at once without it and the retry does not count toward the attempt limit. A replay is advisory: it never changes time, hints or outcome.)*
