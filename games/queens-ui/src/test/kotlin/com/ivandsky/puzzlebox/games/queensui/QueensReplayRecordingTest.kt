@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.games.queens.QueensReplayMove.Redo
 import com.ivandsky.puzzlebox.games.queens.QueensReplayMove.Remove
 import com.ivandsky.puzzlebox.games.queens.QueensReplayMove.Undo
 import com.ivandsky.puzzlebox.games.queens.QueensSession
+import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import com.ivandsky.puzzlebox.games.queens.queensPlugin
 import com.ivandsky.puzzlebox.model.SolveReplay
 import java.time.Instant
@@ -267,13 +268,9 @@ class QueensReplayRecordingTest {
         assertReplays(live, play.sealed())
     }
 
-    /**
-     * S3. The restore always records the setting again (the saved session does not carry it and
-     * Settings can change it while the play is closed), so the restored replay is the uninterrupted
-     * one plus that single move at the cut. It changes no frame: both replays show the same boards.
-     */
+    /** S3. The restore states the setting again; the log already ends on that value, so it adds nothing. */
     @Test
-    fun `S3 save, kill, restore, win seals the uninterrupted replay plus the restore's setting move`() {
+    fun `S3 save, kill, restore, win seals the bytes of the uninterrupted replay`() {
         val whole = fresh(MoveLog.fresh(QueensDefinition.id))
         whole.run(menuScript)
 
@@ -283,24 +280,32 @@ class QueensReplayRecordingTest {
         val back = restored(MoveLog.restored(QueensDefinition.id, killed.log.snapshot()), killed.saved.last(), autoCross = true)
         val live = back.liveAfterEach(closingHalf, fromMs = 4_500L)
 
-        val uninterrupted = recordOf(autoCross = true, menuScript)
-        // The adopt's setting and the opening half's eleven moves come before the cut.
-        val withRestore = uninterrupted.take(12) + StampedMove(4_500L, AutoCross(true).toReplayMove()) + uninterrupted.drop(12)
-        assertArrayEquals(encoded(8_000L, uninterrupted), whole.sealed().toByteArray())
-        assertArrayEquals(encoded(8_000L, withRestore), back.sealed().toByteArray())
+        assertArrayEquals(encoded(8_000L, recordOf(autoCross = true, menuScript)), whole.sealed().toByteArray())
+        assertArrayEquals(whole.sealed().toByteArray(), back.sealed().toByteArray())
         assertEquals(8_000L, back.won.single().time)
         assertEquals(1, back.won.single().hints)
-
-        val wholeReplay = timelineOf(whole.sealed())
-        val backReplay = timelineOf(back.sealed())
-        assertArrayEquals(wholeReplay.moveTimesMs, backReplay.moveTimesMs)
-        for (atMs in wholeReplay.moveTimesMs) {
-            assertEquals("frame at $atMs ms", wholeReplay.sessionAt(atMs), backReplay.sessionAt(atMs))
-        }
         assertReplays(live, back.sealed())
     }
 
-    /** Why the restore cannot skip its setting move: the saved session comes back under the default (on). */
+    /** The saved session comes back under the default (on), so the restore has to apply the setting even when it records nothing. */
+    @Test
+    fun `S3 a play saved and restored with Auto-cross off seals the bytes of the uninterrupted replay`() {
+        val opening = listOf(cross(500L, 0), queen(600L, 0))
+        val finish = queens(1_100L, 12, 23, 29, 34, 46, 49) + listOf(cross(2_300L, 59), winningQueen(2_400L, 59))
+        val whole = fresh(MoveLog.fresh(QueensDefinition.id), autoCross = false)
+        whole.run(opening + finish)
+
+        val killed = fresh(MoveLog.fresh(QueensDefinition.id), autoCross = false)
+        killed.run(opening + background(1_000L))
+        val back = restored(MoveLog.restored(QueensDefinition.id, killed.log.snapshot()), killed.saved.last(), autoCross = false)
+        val live = back.liveAfterEach(finish, fromMs = 1_000L)
+
+        assertTrue("the restored board stays bare", live.getValue(1_000L).marks.values.none { it.kind == MarkKind.AUTO })
+        assertArrayEquals(whole.sealed().toByteArray(), back.sealed().toByteArray())
+        assertReplays(live, back.sealed())
+    }
+
+    /** Settings can change while the play is closed: the restore then records the setting it applies, at the banked time. */
     @Test
     fun `a play restored under a setting changed while it was closed replays the marks the player saw`() {
         val killed = fresh(MoveLog.fresh(QueensDefinition.id), autoCross = false)
@@ -318,6 +323,35 @@ class QueensReplayRecordingTest {
             back.recorded().take(4),
         )
         assertReplays(live, back.sealed())
+    }
+
+    /** A recording play again: the play feature adopts the puzzle on a new controller over a new log, then asks for it. */
+    @Test
+    fun `play again starts its log with the setting at 0 and stamps the new solve from its own clock`() {
+        val again = fresh(MoveLog.fresh(QueensDefinition.id), autoCross = false)
+        fakeNow = fakeNow.plusSeconds(2L) // the first adopt's clock window: never the new solve's time
+        again.controller.playAgain()
+        val live = again.liveAfterEach(settingsScript)
+
+        assertEquals(recordOf(autoCross = false, settingsScript), again.recorded())
+        assertEquals(2_800L, again.won.single().time)
+        assertReplays(live, again.sealed())
+    }
+
+    @Test
+    fun `a won play restored stays as it was won, with no second win, no new move and the same wall-clock moment`() {
+        val done = fresh(MoveLog.fresh(QueensDefinition.id))
+        done.run(menuScript)
+        fakeNow = fakeNow.plusSeconds(3_600L)
+
+        val back = restored(MoveLog.restored(QueensDefinition.id, done.log.snapshot()), done.saved.last(), autoCross = true)
+        back.board.onTap(5)
+
+        assertTrue(back.controller.isComplete)
+        assertEquals(Instant.parse("2026-11-02T00:01:08Z"), back.session.completedAt)
+        assertArrayEquals(done.saved.last(), QueensSessionCodec.serialize(back.session))
+        assertEquals(emptyList<CompletionRecord>(), back.won)
+        assertEquals(done.recorded(), back.recorded())
     }
 
     @Test

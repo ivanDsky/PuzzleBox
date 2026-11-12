@@ -98,8 +98,8 @@ class QueensPlayController(
     /** The open running window's start: null = clock stopped (not started, backgrounded, or won). */
     private var runningSince: Instant? by mutableStateOf(null)
 
-    /** The one way a session changes, here and in the board: each move stamped with play time and recorded in the play's log. */
-    private val moves = QueensMoveLog(env.moveLog, now) { runningSince }
+    /** The one way a session changes, here and in the board: stamped with play time, recorded in the play's log. */
+    private val recorder = QueensMoveLog(env.moveLog, now) { runningSince }
 
     /** Last [tick]; the window's displayed length is measured against it so the timer recomposes. */
     var nowMs by mutableStateOf(0L)
@@ -144,7 +144,7 @@ class QueensPlayController(
             initialSession = session,
             score = queensPlugin.score,
             onWinRecord = { env.onWon(it) },
-            moves = moves,
+            recorder = recorder,
             onSessionChanged = ::publish,
             settle = this::settle,
             mode = hintMode,
@@ -177,7 +177,7 @@ class QueensPlayController(
      * The clock is stopped at every call, so the stamp is the session's banked time.
      */
     private fun underSetting(session: QueensSession): QueensSession =
-        moves.apply(session, QueensReplayMove.AutoCross(autoCross))
+        recorder.record(session, QueensReplayMove.AutoCross(autoCross))
 
     /** Spec A12: the adopted board shows its answer and no rule caption (tutorial only). */
     override fun guide() {

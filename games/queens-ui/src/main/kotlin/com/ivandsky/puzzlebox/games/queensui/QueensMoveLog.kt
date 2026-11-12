@@ -22,7 +22,7 @@ class QueensMoveLog(
 ) {
 
     /** The session to store. The same instance back: nothing happened and nothing was recorded. */
-    fun apply(session: QueensSession, move: QueensReplayMove): QueensSession {
+    fun record(session: QueensSession, move: QueensReplayMove): QueensSession {
         val at = now()
         // Never the displayed time: that one lags by a tick.
         val atMs = playTimeMs(session.elapsedMs, runningSince(), at)
@@ -34,6 +34,7 @@ class QueensMoveLog(
         }
         // The step stamps a win with its play time, all a replay has. A live win keeps the
         // wall-clock moment, in the session codec's millisecond precision.
-        return if (next.isComplete && !session.isComplete) next.copy(completedAt = Instant.ofEpochMilli(at.toEpochMilli())) else next
+        val wonNow = next.isComplete && !session.isComplete
+        return if (wonNow) next.copy(completedAt = Instant.ofEpochMilli(at.toEpochMilli())) else next
     }
 }

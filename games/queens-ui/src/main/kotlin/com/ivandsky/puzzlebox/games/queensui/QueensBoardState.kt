@@ -36,7 +36,7 @@ import kotlinx.coroutines.CoroutineScope
  *   MANUAL marks — and one undo restores the queens + manual marks it removed.
  * - MANUAL marks are cleared only by their own cell's cycle closing (or by Clear).
  *
- * Record equals apply: every session change is a [QueensReplayMove] applied through [moves],
+ * Record equals apply: every session change is a [QueensReplayMove] applied through [recorder],
  * which records it, so no input reaches a session reducer any other way. Only [bankElapsed]
  * writes the session directly: banked time is the clock, not a move.
  *
@@ -64,7 +64,7 @@ class QueensBoardState(
     initialSession: QueensSession,
     private val score: ScoreModel<QueensSession>? = null,
     private val onWinRecord: (CompletionRecord) -> Unit = {},
-    private val moves: QueensMoveLog = QueensMoveLog(),
+    private val recorder: QueensMoveLog = QueensMoveLog(),
     private val onSessionChanged: (QueensSession) -> Unit = {},
     private val settle: (QueensSession) -> QueensSession = { it },
     mode: HintMode.Stepwise,
@@ -220,10 +220,10 @@ class QueensBoardState(
         stepHints.inputMade()
     }
 
-    /** Applies [move] through the log, then the clock hook, the store and the win. False = a no-op: nothing recorded, stored or saved. */
+    /** Applies [move] through the log, then the clock hook, the store and the win. False = a no-op: nothing stored. */
     private fun commit(move: QueensReplayMove): Boolean {
         val previous = session
-        val next = moves.apply(previous, move)
+        val next = recorder.record(previous, move)
         if (next === previous) return false
         val settled = settle(next)
         store(settled)
