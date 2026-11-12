@@ -12,5 +12,5 @@ import org.koin.dsl.module
  * the optional [com.ivandsky.puzzlebox.data.cloud.CloudSync] is resolved with getOrNull (unbound = no restoring state).
  */
 val historyModule = module {
-    viewModel { (key: HistoryKey) -> HistoryViewModel(get(), get(), get(), get(), get(), getOrNull(), key) }
+    viewModel { (key: HistoryKey) -> HistoryViewModel(get(), get(), get(), get(), get(), get(), getOrNull(), key) }
 }

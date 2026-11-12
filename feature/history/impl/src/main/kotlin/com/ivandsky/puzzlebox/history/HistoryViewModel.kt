@@ -8,8 +8,10 @@ import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.SolveReplayRef
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -18,6 +20,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,7 +31,9 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 /**
  * Everything History renders besides the paged list: every game's full [rows]
@@ -85,6 +90,10 @@ data class HistoryUiState(
  * the calendar there; [HistoryUiState.openingRowKey] names that game's row for the day, for
  * layouts that open a detail pane.
  *
+ * Replays: the list never loads them. [openReplays] loads the open day's record and latest
+ * solves into [replays] ([HistoryReplays.Hidden] when neither has one); closing the detail
+ * drops them.
+ *
  * Play again is navigation only (ticket 11): the route reports the (game, day) and the play
  * store opens that day's slot — History never builds a session blob.
  */
@@ -95,6 +104,7 @@ class HistoryViewModel(
     private val registry: GameRegistry,
     private val playRegistry: GamePlayRegistry,
     private val puzzleDay: GetPuzzleDay,
+    private val loadReplay: LoadSolveReplay,
     cloudSync: CloudSync? = null,
     opening: HistoryKey = HistoryKey(),
 ) : ViewModel() {
@@ -150,6 +160,27 @@ class HistoryViewModel(
 
     // Rows only: a stats-only emission must not start a new paging generation.
     val pagedDays: Flow<PagingData<HistoryDayRow>> = rows.flatMapLatest { historyPager(it) }.cachedIn(viewModelScope)
+
+    private val replaysState = MutableStateFlow<HistoryReplays>(HistoryReplays.Hidden)
+    private var loadingReplays: Job? = null
+
+    /** The replays of the open day. */
+    val replays: StateFlow<HistoryReplays> = replaysState.asStateFlow()
+
+    /**
+     * Loads the replays of [row]'s solve; null (the detail closed), or a row without a solve, drops
+     * them. A load still running for the previous day is cancelled.
+     */
+    fun openReplays(row: HistoryDayRow?) {
+        loadingReplays?.cancel()
+        replaysState.value = HistoryReplays.Hidden
+        val puzzle = row?.record?.puzzleRef ?: return
+        loadingReplays = viewModelScope.launch {
+            val record = loadReplay(SolveReplayRef.Record(puzzle))
+            val latest = loadReplay(SolveReplayRef.Latest(puzzle))
+            replaysState.value = historyReplays(record, latest, loadReplay.latestIsRecord(puzzle))
+        }
+    }
 
     /**
      * Shows the week holding [day] — the month holding it when [expanded]; the state
