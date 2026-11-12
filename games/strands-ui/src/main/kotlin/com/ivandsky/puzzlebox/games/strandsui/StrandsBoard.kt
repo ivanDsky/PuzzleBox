@@ -84,7 +84,8 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
  * editor's empty tiles), so the live line is never covered. [onFinger] gets the dragging
  * finger in cell units after each move's steps, and null at the lift, before the lift's step.
  * [dim] fades the letters and connectors it names (the editor's unselected paths); the live
- * trace is never faded. [floor] is the least cell pitch ([strandsCellSizeFor]).
+ * trace is never faded. [floor] is the least cell pitch ([strandsCellSizeFor]). [readOnly] drops the
+ * gesture layer, so the board takes no drag (the replay board).
  */
 @Composable
 internal fun StrandsBoardContent(
@@ -98,6 +99,7 @@ internal fun StrandsBoardContent(
     onFinger: (Offset?) -> Unit = {},
     dim: StrandsDim = StrandsDim.None,
     floor: Dp = StrandsBoardSpec.TouchFloor,
+    readOnly: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalBoardColors.current
@@ -148,18 +150,20 @@ internal fun StrandsBoardContent(
                     )
                 },
             )
-            StrandsGestureLayer(
-                rows = model.rows,
-                cols = model.cols,
-                boardSize = boardSize,
-                trace = trace,
-                onTrace = onTrace,
-                onTouch = { touchSeq.intValue++ },
-                onFinger = {
-                    finger.value = it
-                    onFinger(it)
-                },
-            )
+            if (!readOnly) {
+                StrandsGestureLayer(
+                    rows = model.rows,
+                    cols = model.cols,
+                    boardSize = boardSize,
+                    trace = trace,
+                    onTrace = onTrace,
+                    onTouch = { touchSeq.intValue++ },
+                    onFinger = {
+                        finger.value = it
+                        onFinger(it)
+                    },
+                )
+            }
         }
     }
 }
