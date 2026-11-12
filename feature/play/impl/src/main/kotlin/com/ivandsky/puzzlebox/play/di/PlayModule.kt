@@ -68,6 +68,7 @@ val playModule = module {
             finishLeg = get(),
             calendar = get(),
             dispatchers = dispatchers,
+            flags = get(),
         )
     }
     factory { ObserveFriendPuzzles(received = get(), saved = get(), completions = get(), registry = get()) }

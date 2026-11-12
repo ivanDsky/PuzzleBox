@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.SessionBlob
+import com.ivandsky.puzzlebox.game.replay.MoveLog
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -48,6 +49,8 @@ class ActivePlay internal constructor(
     private val completions: CompletionRepository,
     private val scope: CoroutineScope,
     private val recordScope: CoroutineScope,
+    /** Read at each open: a debug override applies to the next play, never mid-play. */
+    private val recordsReplay: () -> Boolean,
 ) {
     /** What the play screen draws: the live controller and the shared fetch state. */
     data class Board(val controller: GamePlayController, val status: PlayBoardStatus)
@@ -87,6 +90,9 @@ class ActivePlay internal constructor(
 
     private var ref: PuzzleRef? = null
 
+    /** Reopens the adopted puzzle in another controller; null before the first adopt. Play again of a recording play needs it. */
+    private var reopen: ((GamePlayController) -> Boolean)? = null
+
     /** A new record starts: a load, its adopt or resume, and play again. */
     private fun resetRecord(ref: PuzzleRef?) {
         this.ref = ref
@@ -104,14 +110,23 @@ class ActivePlay internal constructor(
     private fun load(controller: GamePlayController) {
         val gen = generation
         resetRecord(ref = null)
+        reopen = null
         _board.value = Board(controller, PlayBoardStatus.Loading)
         scope.launch {
-            val status = when (val opened = opening.open(slot)) {
-                is SlotOpening.Origin.Fetched -> adopt(controller, opened)
-                is SlotOpening.Origin.Restored -> resume(controller, opened.session)
+            val opened = opening.open(slot)
+            if (gen != generation) return@launch // superseded; its result is never shown
+            val live = when (opened) {
+                is SlotOpening.Origin.Unavailable -> controller
+                is SlotOpening.Origin.Restored -> withLog(controller, fresh = false)
+                is SlotOpening.Origin.Fetched, is SlotOpening.Origin.Built -> withLog(controller, fresh = true)
+            }
+            val status = when (opened) {
+                is SlotOpening.Origin.Fetched -> adopt(live, opened)
+                is SlotOpening.Origin.Restored -> resume(live, opened.session)
+                is SlotOpening.Origin.Built -> resume(live, opened.session)
                 is SlotOpening.Origin.Unavailable -> PlayBoardStatus.Unavailable(opened.message, opened.retryable)
             }
-            if (gen == generation) _board.value = Board(controller, status)
+            _board.value = Board(live, status)
         }
     }
 
@@ -121,12 +136,13 @@ class ActivePlay internal constructor(
         val resolved = when (val slot = slot) {
             is PlaySlot.Daily -> plugin.refOf(PuzzleKey.Daily(slot.day, fetched.puzzleNumber))
             is PlaySlot.Custom -> plugin.refOf(PuzzleKey.Custom(slot.puzzleId))
-            is PlaySlot.Leg -> error("legs open Restored")
+            is PlaySlot.Leg -> error("legs open Built")
         }
         if (controller !== this.controller) return PlayBoardStatus.Loading // superseded; never shown
         return when (val adopted = controller.adoptToday(fetched.puzzle, resolved)) {
             is Adopt.Rejected -> PlayBoardStatus.Unavailable(adopted.message)
             Adopt.Adopted -> {
+                reopen = { it.adoptToday(fetched.puzzle, resolved) == Adopt.Adopted }
                 resetRecord(resolved)
                 winRecording.refreshBaseline(resolved)
                 PlayBoardStatus.Ready(fetched.banner)
@@ -134,25 +150,32 @@ class ActivePlay internal constructor(
         }
     }
 
-    /** A saved play or a past day's play-again build: the [SessionBlob] envelope the opening
+    /** A saved play or a built session (past day, duel leg): the [SessionBlob] envelope the opening
      *  checked. Bytes the controller still cannot read are unavailable, never a loop. A
      *  restored COMPLETED session shows its win without re-emitting and reads no baseline. */
     private fun resume(controller: GamePlayController, envelope: ByteArray): PlayBoardStatus {
         if (controller !== this.controller) return PlayBoardStatus.Loading // superseded; never shown
-        val restored = SessionBlob.decode(envelope)?.session?.let(controller::adoptRestored)
-            ?: return PlayBoardStatus.Unavailable(UNREADABLE)
+        val session = SessionBlob.decode(envelope)?.session ?: return PlayBoardStatus.Unavailable(UNREADABLE)
+        val restored = controller.adoptRestored(session) ?: return PlayBoardStatus.Unavailable(UNREADABLE)
+        reopen = { it.adoptRestored(session) != null }
         resetRecord(restored.ref)
         if (!controller.isComplete) winRecording.refreshBaseline(restored.ref)
         return PlayBoardStatus.Ready(banner = null)
     }
 
     /** Result's "Play again": a fresh session of the SAME puzzle, always a play-again —
-     *  the verdict resets until the new write lands; the best is re-read. The banner stays. */
+     *  the verdict resets until the new write lands; the best is re-read. The banner stays.
+     *  A recording play starts a new log, so it moves to a new controller over the same puzzle. */
     fun playAgain() {
         if (_board.value.status !is PlayBoardStatus.Ready) return
         resetRecord(ref)
         winRecording.refreshBaseline(ref, playAgain = true)
-        controller.playAgain()
+        val reopen = reopen
+        if (reopen == null || !recording) return controller.playAgain()
+        val next = newController(MoveLog.fresh(gameId))
+        check(reopen(next)) { "play again could not reopen the puzzle this play adopted" }
+        _board.value = _board.value.copy(controller = next)
+        next.playAgain()
     }
 
     /** Retry after a failed record write: a new emitter (the old one deduped this ref). */
@@ -171,7 +194,7 @@ class ActivePlay internal constructor(
     /** The slot's newest session change its writer still holds (not yet queued for disk). */
     internal val unsavedSession: ByteArray? get() = persistence.unsaved
 
-    private fun newController(): GamePlayController {
+    private fun newController(moveLog: MoveLog = MoveLog.off()): GamePlayController {
         val gen = ++generation
         lateinit var created: GamePlayController
         created = ui.createController(
@@ -184,9 +207,25 @@ class ActivePlay internal constructor(
                         winRecording.onWon(record)
                     }
                 },
+                moveLog = moveLog,
             ),
         )
         return created
+    }
+
+    /** Whether this play records a replay: the flag is on and the game ships a replay member. */
+    private val recording: Boolean get() = plugin.replay != null && recordsReplay()
+
+    /**
+     * The controller to adopt into once the origin is known: [current] while nothing records, else a new
+     * one whose environment carries the log the origin calls for — a built or fetched board starts
+     * [MoveLog.fresh], a saved play continues through [MoveLog.restored]. A log lives as long as its
+     * controller, so the board shows the new one. A superseded [current] is returned untouched.
+     */
+    private fun withLog(current: GamePlayController, fresh: Boolean): GamePlayController {
+        if (current !== controller || !recording) return current
+        val log = if (fresh) MoveLog.fresh(gameId) else MoveLog.restored(gameId, snapshot = null)
+        return newController(log).also { _board.value = Board(it, PlayBoardStatus.Loading) }
     }
 
     private companion object {
