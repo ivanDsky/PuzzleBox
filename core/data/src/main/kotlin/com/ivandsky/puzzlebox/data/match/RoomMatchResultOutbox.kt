@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.data.match
 import com.ivandsky.puzzlebox.database.MatchResultDao
 import com.ivandsky.puzzlebox.database.MatchResultEntity
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.model.SolveReplay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -24,6 +25,7 @@ internal class RoomMatchResultOutbox(private val dao: MatchResultDao) : MatchRes
             gaveUp = result.gaveUp,
             postState = ResultPostState.Pending.name,
             postAttempts = 0,
+            replay = result.replay?.toByteArray(),
         ),
     )
 
@@ -49,7 +51,7 @@ private fun MatchResultEntity.toOutboxResult(): OutboxResult? {
     val code = ShareCode.parse(matchCode) ?: return null
     return OutboxResult(
         code = code,
-        result = LegResult(uid, legIndex, timeMs, hints, completedAtMs, gaveUp),
+        result = LegResult(uid, legIndex, timeMs, hints, completedAtMs, gaveUp, replay?.let(SolveReplay::of)),
         state = ResultPostState.entries.firstOrNull { it.name == postState } ?: ResultPostState.Pending,
         attempts = postAttempts,
     )
