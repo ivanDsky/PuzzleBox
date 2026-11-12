@@ -47,7 +47,7 @@ import org.robolectric.Shadows.shadowOf
 /**
  * One LinkedIn data scenario over the real app graph: the account is the scripted [source] and
  * [cookies], Zip is the linked game, and completions go through Room. Room, not the in-memory fake,
- * because only Room decides record versus replay and refuses a second import of one puzzle, which
+ * because only Room decides record versus play-again and refuses a second import of one puzzle, which
  * is what these scenarios are about.
  */
 internal class LinkedInDataWorld(

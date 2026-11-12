@@ -69,7 +69,7 @@ class DuelLinkE2ETest {
     }
 
     /**
-     * Runs [block] over [MainActivity] relaunched from Recents on Home (so the start link is not replayed), with
+     * Runs [block] over [MainActivity] relaunched from Recents on Home (so the start link is not re-applied), with
      * [flags] and the friend's open duel on the server.
      */
     private fun runningWith(flags: FakeReleaseFlags, block: () -> Unit) {

@@ -153,7 +153,7 @@ class RevealViewModelTest {
         val now = running(vm)
         assertSame("the race is the one that opened", opened.race, now.race)
         assertEquals("the opening still plays from the start", opened.start, now.start)
-        assertEquals("no replay was asked for", opened.replay, now.replay)
+        assertEquals("no replay was asked for", opened.rerun, now.rerun)
         assertEquals("the marker is written once", 1, marks)
     }
 
@@ -186,7 +186,7 @@ class RevealViewModelTest {
 
         val again = running(vm)
         assertEquals("the new race holds both puzzles", 2, again.race.cards.size)
-        assertEquals("it is the first replay", 1, again.replay)
+        assertEquals("it is the first replay", 1, again.rerun)
         assertEquals("a replay records nothing new", 1, marks)
     }
 }

@@ -128,17 +128,17 @@ class MainActivity : ComponentActivity(), KoinComponent {
 private const val PENDING_LINK_KEY = "puzzlebox.pendingLink"
 private const val PENDING_SHARE_KEY = "puzzlebox.pendingShare"
 
-// A task relaunched from Recents replays the intent that started it: its link or share was
+// A task relaunched from Recents re-delivers the intent that started it: its link or share was
 // handled then.
-private val Intent.isReplayed: Boolean
+private val Intent.isRelaunchedFromHistory: Boolean
     get() = flags and Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY != 0
 
 private fun Intent.friendLinkUri(): String? = dataString?.takeIf { uri ->
-    action == Intent.ACTION_VIEW && !isReplayed && FriendLink.of(uri) != null
+    action == Intent.ACTION_VIEW && !isRelaunchedFromHistory && FriendLink.of(uri) != null
 }
 
 private fun Intent.sharedText(): String? =
-    SharedText.of(action, type, getCharSequenceExtra(Intent.EXTRA_TEXT)).takeUnless { isReplayed }
+    SharedText.of(action, type, getCharSequenceExtra(Intent.EXTRA_TEXT)).takeUnless { isRelaunchedFromHistory }
 
 private fun ThemeMode.isDarkTheme(systemDark: Boolean): Boolean = when (this) {
     ThemeMode.SYSTEM -> systemDark

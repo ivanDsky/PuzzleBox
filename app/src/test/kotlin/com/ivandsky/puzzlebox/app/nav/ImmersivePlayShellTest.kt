@@ -119,14 +119,14 @@ class ImmersivePlayShellTest {
         listOf(
             step(true) {}, // Home
             step(true) { push(HistoryKey()) },
-            step(false) { push(GameKey(ZIP)) }, // a History replay on Home's stack
+            step(false) { push(GameKey(ZIP)) }, // a History play-again on Home's stack
             step(true) { selectTab(PlayKey) }, // the hub
             step(false) { push(GameKey(ZIP)) },
             step(false) { replaceTop(RESULT) },
             step(true) { pop() }, // back on the hub
             step(true) { selectTab(HistoryRootKey) },
             step(true) { push(CatalogKey) },
-            step(false) { selectTab(HomeKey) }, // Home's top is still the replay
+            step(false) { selectTab(HomeKey) }, // Home's top is still the play-again
         ).forEach { (move, shown) ->
             composeRule.runOnIdle { navigator.move() }
             composeRule.waitForIdle()

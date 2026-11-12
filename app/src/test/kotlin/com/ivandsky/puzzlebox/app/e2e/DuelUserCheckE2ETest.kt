@@ -52,7 +52,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The user-check's second round, replayed over the real shell and the match fakes: create a Daily duel and press
+ * The user-check's second round, re-run over the real shell and the match fakes: create a Daily duel and press
  * Done (the row waits on a friend); open it as its challenger; the Created sheet's share text lists the
  * drawn puzzles' games and carries the code and Share; a friend claims and the countdown and the
  * header's "ends" time share the deadline; both finish and the header pills give way to the reveal.

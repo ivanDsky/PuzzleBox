@@ -50,7 +50,7 @@ import org.robolectric.annotation.Config
  * routes `ACTION_SEND text/plain` to [MainActivity]; a cold start and a warm new intent (from
  * the Play tab) both end on the Studio of an imported draft with the verdict the same board
  * pasted would show (Unique), back returns to the Create root, and recreating the activity
- * afterwards creates no second draft. A task relaunched from Recents does not replay its
+ * afterwards creates no second draft. A task relaunched from Recents does not re-apply its
  * share, and with the flag off a share opens the app on its start tab and creates nothing.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -100,7 +100,7 @@ class ShareTargetE2ETest {
     @Test
     fun `a share while the app runs on Play opens the Studio and back returns to Create`() {
         startGraph(ReleaseFlag.ShareTarget)
-        // Relaunched from Recents, the share that first started the task is not replayed.
+        // Relaunched from Recents, the share that first started the task is not re-applied.
         launching(fromRecents(send(UNIQUE))) {
             assertRoute(HOME)
             tap("nav.tab.play")
@@ -172,7 +172,7 @@ class ShareTargetE2ETest {
     }
 
     @Test
-    fun `a share replayed from Recents is not imported`() {
+    fun `a share re-delivered from Recents is not imported`() {
         startGraph(ReleaseFlag.ShareTarget)
         launching(fromRecents(send(UNIQUE))) {
             idle()
