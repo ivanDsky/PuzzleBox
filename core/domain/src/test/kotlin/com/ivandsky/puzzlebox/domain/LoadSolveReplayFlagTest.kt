@@ -32,7 +32,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Read-side flag gate (D6): flag off the entry answers "no replay" for every reference; flag on with the inert resolvers still does. */
+/** Read-side flag gate (D6): flag off the entry answers "no replay" for every reference; flag on with no replay stored still does. */
 class LoadSolveReplayFlagTest {
 
     private val game = TestGames.alpha
@@ -53,7 +53,7 @@ class LoadSolveReplayFlagTest {
     }
 
     @Test
-    fun `flag on with the inert resolvers gives null for every reference kind`() = runTest {
+    fun `flag on with no replay stored gives null for every reference kind`() = runTest {
         val load = entry(FakeReleaseFlags(ReleaseFlag.FullReplay))
 
         refs.forEach { assertNull(load(it)) }
