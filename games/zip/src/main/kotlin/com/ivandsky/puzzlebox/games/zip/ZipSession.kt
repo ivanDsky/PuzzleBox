@@ -2,10 +2,10 @@ package com.ivandsky.puzzlebox.games.zip
 
 import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.GameSession
+import com.ivandsky.puzzlebox.game.playTimeMs
 import com.ivandsky.puzzlebox.games.zip.engine.ZipMove
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 import com.ivandsky.puzzlebox.games.zip.engine.ZipState
-import java.time.Duration
 import java.time.Instant
 
 /**
@@ -74,7 +74,7 @@ data class ZipSession(
 
     /** What timer UI shows right now: banked time plus the running window. */
     fun displayedElapsedMs(now: Instant): Long =
-        elapsedMs + (runningSince?.let { Duration.between(it, now).toMillis() } ?: 0L)
+        playTimeMs(elapsedMs, runningSince, now)
 
     /**
      * Applies an ALREADY-VALIDATED move (the caller runs [ZipRules.validateMove] first).
@@ -108,9 +108,8 @@ data class ZipSession(
         }
         next = next.copy(history = history.record(command).capped())
         if (isWinningPath(next)) {
-            val banked = next.elapsedMs + (next.runningSince?.let { Duration.between(it, now).toMillis() } ?: 0L)
             next = next.copy(
-                elapsedMs = banked,
+                elapsedMs = playTimeMs(next.elapsedMs, next.runningSince, now),
                 runningSince = null,
                 completedAt = now,
             )
@@ -145,7 +144,7 @@ data class ZipSession(
     fun onBackground(now: Instant): ZipSession {
         val anchor = runningSince ?: return this
         return copy(
-            elapsedMs = elapsedMs + Duration.between(anchor, now).toMillis(),
+            elapsedMs = playTimeMs(elapsedMs, anchor, now),
             runningSince = null,
         )
     }
