@@ -78,7 +78,7 @@ internal fun DetailHint(
 /**
  * One game's day (history.md §3): the game, its number and day, the Time / Hints of the
  * solve, and that game's best ([gameBest], its best numbered solve under the game's ranking), then the day's
- * [replays] ([HistoryReplaySection]; [onOpenReplay] opens one). The action
+ * [replays] ([HistoryReplaySection]; [onOpenReplay] opens one, [onCompareReplays] both). The action
  * follows the state: "See result" once solved, "Keep going" while unfinished — both
  * report the (game, day) through [onPlayAgain]; the play store resumes or rebuilds it.
  */
@@ -90,6 +90,7 @@ internal fun DayDetailPane(
     replays: HistoryReplays,
     replayUi: GamePlayUi?,
     onOpenReplay: (ReplaySolve) -> Unit,
+    onCompareReplays: () -> Unit,
     onPlayAgain: () -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
@@ -169,7 +170,7 @@ internal fun DayDetailPane(
                     )
                 }
             }
-            HistoryReplaySection(replays, replayUi, onOpenReplay)
+            HistoryReplaySection(replays, replayUi, onOpenReplay, onCompareReplays)
             PlayAgainButton(row, onPlayAgain)
         }
     }

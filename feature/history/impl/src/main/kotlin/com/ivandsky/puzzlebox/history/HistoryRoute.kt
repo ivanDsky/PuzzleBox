@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavKey
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
@@ -22,7 +23,7 @@ import org.koin.core.parameter.parametersOf
  *
  * Play again (ticket 11): [onPlayAgain] reports the (game, day) played again; the shell opens that
  * day's game slot, which the play store builds or resumes.
- * [onOpenReplay] reports the replay page of one solve of the open day.
+ * [onOpenReplay] reports the replay page of one solve of the open day, or the compare page of its first and latest.
  */
 @Composable
 fun HistoryRoute(
@@ -30,7 +31,7 @@ fun HistoryRoute(
     layout: HistoryLayout,
     onBack: (() -> Unit)?,
     onPlayAgain: (GameId, LocalDate) -> Unit,
-    onOpenReplay: (ReplayKey) -> Unit,
+    onOpenReplay: (NavKey) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HistoryViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) }),
 ) {
@@ -47,6 +48,7 @@ fun HistoryRoute(
                 ReplayKey.daily(row.gameId.value, row.day.toString(), row.puzzleNumber, latest = solve == ReplaySolve.Latest),
             )
         },
+        onCompare = { row -> onOpenReplay(historyCompareKey(row)) },
     )
 
     HistoryScreen(

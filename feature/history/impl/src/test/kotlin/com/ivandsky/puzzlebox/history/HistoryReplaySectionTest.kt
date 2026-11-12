@@ -21,6 +21,8 @@ import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
+import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -42,12 +44,14 @@ class HistoryReplaySectionTest {
     private val short = ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES)
     private val long = ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES, stepMs = 2_000)
     private val opened = mutableListOf<ReplaySolve>()
+    private var compares = 0
 
     private fun show(replays: HistoryReplays, ui: GamePlayUi? = ReplayUi(withBoard = true)) {
         opened.clear()
+        compares = 0
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                HistoryReplaySection(replays, ui, onOpen = { opened += it })
+                HistoryReplaySection(replays, ui, onOpen = { opened += it }, onCompare = { compares++ })
             }
         }
     }
@@ -110,6 +114,58 @@ class HistoryReplaySectionTest {
         rows()[1].performClick()
 
         assertEquals(listOf(ReplaySolve.Record, ReplaySolve.Latest), opened)
+    }
+
+    @Test
+    fun `two different replays offer Compare and it reports a tap`() {
+        show(HistoryReplays.FirstAndLatest(short, long))
+
+        composeRule.onNodeWithText("Compare").performClick()
+
+        assertEquals(1, compares)
+    }
+
+    @Test
+    fun `one replay offers no Compare`() {
+        show(HistoryReplays.One(short, solve = ReplaySolve.Record))
+
+        composeRule.onNodeWithText("Compare").assertDoesNotExist()
+    }
+
+    @Test
+    fun `no replay offers no Compare`() {
+        show(HistoryReplays.Hidden)
+
+        composeRule.onNodeWithText("Compare").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a game without a replay board offers no Compare`() {
+        show(HistoryReplays.FirstAndLatest(short, long), ui = ReplayUi(withBoard = false))
+
+        composeRule.onNodeWithText("Compare").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the compare key sets the latest solve against the first and names both`() {
+        val row = HistoryDayRow(
+            day = java.time.LocalDate.of(2026, 11, 4),
+            puzzleNumber = 7,
+            gameId = GameId("queens"),
+            gameName = "Queens",
+            record = null,
+            currentYear = 2026,
+        )
+
+        assertEquals(
+            ReplayCompareKey.of(
+                mine = ReplayKey.daily("queens", "2026-11-04", 7, latest = true),
+                theirs = ReplayKey.daily("queens", "2026-11-04", 7, latest = false),
+                myName = "Latest",
+                theirName = "First solve",
+            ),
+            historyCompareKey(row),
+        )
     }
 
     @Test

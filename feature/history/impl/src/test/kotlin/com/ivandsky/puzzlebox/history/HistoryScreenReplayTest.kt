@@ -67,6 +67,7 @@ class HistoryScreenReplayTest {
                         playUi = { null },
                         onOpenDay = { reported += it },
                         onOpen = { _, _ -> },
+                        onCompare = {},
                     ),
                 )
             }
