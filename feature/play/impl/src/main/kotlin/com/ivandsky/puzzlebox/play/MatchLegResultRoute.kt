@@ -35,15 +35,18 @@ import com.ivandsky.puzzlebox.gameui.DuelCompare
 import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.gameui.ResultHeroChip
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
+import com.ivandsky.puzzlebox.gameui.replay.ReplaySection
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
+import com.ivandsky.puzzlebox.play.api.ReplayKey
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
  * The page after a duel puzzle ends, for [key]: my solve as the hero with the duel's count in the chip (or,
  * after a give up, just the card), the opponent's side in its true state, the posting state of my result, and
- * one button, the next unplayed puzzle or, with none left, the reveal. Read-only: it only navigates.
+ * one button, the next unplayed puzzle or, with none left, the reveal. My own replay of the leg, never the opponent's,
+ * is a Watch replay row below, which opens the replay page. Read-only: it only navigates.
  * "Back to duel" returns to the duel screen already on the stack, or opens it.
  */
 @Composable
@@ -77,6 +80,7 @@ internal fun MatchLegResultRoute(key: MatchLegResultKey, navigator: Navigator, m
                     }
                 },
                 onBackToDuel = { navigator.backToDuel(key.code) },
+                onOpenReplay = navigator::push,
             )
         }
     }
@@ -104,8 +108,16 @@ private fun Unavailable(reason: MatchState, modifier: Modifier) {
 }
 
 @Composable
-private fun Ready(ready: MatchLegResultState.Ready, onNext: (LegNext) -> Unit, onBackToDuel: () -> Unit) {
+private fun Ready(
+    ready: MatchLegResultState.Ready,
+    onNext: (LegNext) -> Unit,
+    onBackToDuel: () -> Unit,
+    onOpenReplay: (ReplayKey) -> Unit,
+) {
     val card: @Composable () -> Unit = { DuelCard(ready, onNext, onBackToDuel) }
+    val replay: (@Composable () -> Unit)? = ready.playUi?.let { ui ->
+        { ReplaySection(ready.replay, ui, onOpen = { onOpenReplay(ready.replayKey) }) }
+    }
     val hero = ready.hero
     if (hero == null) {
         Column(
@@ -113,13 +125,18 @@ private fun Ready(ready: MatchLegResultState.Ready, onNext: (LegNext) -> Unit, o
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(Spacing.lg),
-        ) { card() }
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            card()
+            replay?.invoke()
+        }
     } else {
         ResultHeroScreen(
             facts = hero,
             brand = ready.brand,
             chip = ResultHeroChip(tag = "result.hero.chip.duel", value = "${ready.number} of ${ready.count}", label = "In this duel"),
             board = card,
+            replay = replay,
         )
     }
 }
