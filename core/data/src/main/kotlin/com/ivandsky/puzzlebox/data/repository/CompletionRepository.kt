@@ -14,8 +14,9 @@ import kotlinx.coroutines.flow.Flow
  */
 interface CompletionRepository {
     /** First completion inserts with isRecord=true; every later play of the same
-     *  puzzleRef stores a play-again row and NEVER mutates the record (A4). */
-    suspend fun onCompleted(record: CompletionRecord)
+     *  puzzleRef stores a play-again row and NEVER mutates the record (A4).
+     *  [replay]: the solve's sealed replay, stored beside the completion in the same transaction. Null = none. */
+    suspend fun onCompleted(record: CompletionRecord, replay: SolveReplay? = null)
 
     fun observeRecords(): Flow<List<CompletionRecord>> // record rows only
 

@@ -44,10 +44,21 @@ class FakeCompletionRepository(
         all.value = records
     }
 
-    override suspend fun onCompleted(record: CompletionRecord) {
+    override suspend fun onCompleted(record: CompletionRecord, replay: SolveReplay?) {
         writeGate?.await()
         if (fail) throw IllegalStateException("disk full")
-        all.update { rows -> if (record.isDuplicateImport(rows)) rows else rows + record }
+        var stored = false
+        var first = false
+        all.update { rows ->
+            stored = !record.isDuplicateImport(rows)
+            first = rows.none { it.puzzleRef == record.puzzleRef }
+            if (stored) rows + record else rows
+        }
+        if (!stored) return
+        // Room's record row is the ref's first stored row, its latest row the newest; a row without a replay reads null.
+        val key = PuzzleRefKeys.encode(record.puzzleRef)
+        if (first) recordReplays.setOrRemove(key, replay)
+        latestReplays.setOrRemove(key, replay)
     }
 
     /** Room returns only record rows, so an import play-again stored beside an app record stays out. */
@@ -98,4 +109,8 @@ class FakeCompletionRepository(
         val rows = all.value.filter { it.puzzleRef == puzzleRef }
         return rows.size < 2
     }
+}
+
+private fun MutableMap<String, SolveReplay>.setOrRemove(key: String, replay: SolveReplay?) {
+    if (replay == null) remove(key) else put(key, replay)
 }

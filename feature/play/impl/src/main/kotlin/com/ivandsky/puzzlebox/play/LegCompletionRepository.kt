@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.domain.LegFinish
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.model.SolveReplay
 
 /**
  * A duel leg's completions: a leg solve is a normal completion, tagged with its
@@ -22,9 +23,9 @@ internal class LegCompletionRepository(
     private val finishLeg: FinishLeg,
 ) : CompletionRepository by inner {
 
-    override suspend fun onCompleted(record: CompletionRecord) {
+    override suspend fun onCompleted(record: CompletionRecord, replay: SolveReplay?) {
         finishLeg(code, legIndex, LegFinish.Solved(record.time, record.hints))
-        inner.onCompleted(record.copy(matchCode = code.value))
+        inner.onCompleted(record.copy(matchCode = code.value), replay)
     }
 }
 
