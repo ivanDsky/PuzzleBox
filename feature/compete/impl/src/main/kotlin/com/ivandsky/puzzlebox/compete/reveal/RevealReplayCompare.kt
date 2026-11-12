@@ -12,6 +12,9 @@ import com.ivandsky.puzzlebox.play.api.ReplayKey
 /** The summary row's action that opens a leg's two replays side by side. */
 internal const val CompareAction = "Compare"
 
+/** What a screen reader says for leg [leg]'s [CompareAction]: the bare word would be the same on every row. */
+internal fun compareDescription(leg: Int): String = "Compare leg ${leg + 1}"
+
 private const val MyName = "You"
 
 /**

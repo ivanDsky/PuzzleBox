@@ -131,6 +131,19 @@ class ReplayCompareViewModelTest {
     }
 
     @Test
+    fun `every lead of the game reaches the page as itself and an unknown one as none`() {
+        val keyLeads = mapOf(
+            Lead.Mine to ReplayCompareKey.LEAD_MINE,
+            Lead.Theirs to ReplayCompareKey.LEAD_THEIRS,
+            Lead.Level to ReplayCompareKey.LEAD_LEVEL,
+        )
+
+        assertEquals("a new Lead needs its key string", Lead.entries.toSet(), keyLeads.keys)
+        keyLeads.forEach { (lead, text) -> assertEquals(lead, vm(pair(today, 7, text)).finalLead) }
+        assertNull(vm(pair(today, 7, "someday")).finalLead)
+    }
+
+    @Test
     fun `the context names the game and where the first side came from`() {
         assertEquals("Fixture · #7 · Today · Wed 4 Nov", vm(pair(today, 7)).context)
     }

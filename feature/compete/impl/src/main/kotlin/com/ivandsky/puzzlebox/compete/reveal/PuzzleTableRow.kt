@@ -14,6 +14,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -119,7 +121,14 @@ private fun PuzzleName(row: PuzzleRow, brand: GameBrand, wide: Boolean, modifier
             maxLines = if (wide) 1 else 2,
             overflow = TextOverflow.Ellipsis,
         )
-        if (onCompare != null) AppTextButton(CompareAction, onCompare, Modifier.testTag("reveal.compare.${row.legIndex}"))
+        if (onCompare != null) {
+            val description = compareDescription(row.legIndex)
+            AppTextButton(
+                CompareAction,
+                onCompare,
+                Modifier.testTag("reveal.compare.${row.legIndex}").semantics { contentDescription = description },
+            )
+        }
     }
 }
 

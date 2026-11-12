@@ -54,7 +54,7 @@ internal class ReplayCompareViewModel(
         ReplayCompareKey.LEAD_MINE -> Lead.Mine
         ReplayCompareKey.LEAD_THEIRS -> Lead.Theirs
         ReplayCompareKey.LEAD_LEVEL -> Lead.Level
-        else -> null
+        else -> null // a lead this build does not know (a newer key): no verdict to end on, never a wrong one
     }
 
     /** The page's "Game · where it came from" line. */

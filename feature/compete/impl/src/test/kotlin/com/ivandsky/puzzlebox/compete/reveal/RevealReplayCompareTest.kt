@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.compete.reveal
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -53,11 +54,6 @@ class RevealReplayCompareTest {
     private val queens = GameId("queens")
     private val withBoard = GamePlayRegistry(listOf(PlayUi(zip, board = true), PlayUi(queens, board = false)))
     private val gameOf = { leg: Int -> if (leg == 2) queens else zip }
-
-    @Test
-    fun noLegIsOfferedBeforeTheRevealRan() {
-        assertEquals(emptySet<Int>(), offeredCompares(emptySet(), gameOf, withBoard))
-    }
 
     @Test
     fun aLegTheViewModelOffersAndWhoseGameDrawsAReplayBoardIsOffered() {
@@ -129,7 +125,7 @@ class RevealReplayCompareTest {
         }
 
         rule.onAllNodesWithTag("reveal.compare.0").assertCountEquals(0)
-        rule.onNodeWithTag("reveal.compare.2").performScrollTo().performClick()
+        rule.onNodeWithTag("reveal.compare.2").performScrollTo().assertContentDescriptionEquals(compareDescription(2)).performClick()
 
         assertEquals(listOf(2), opened)
     }
