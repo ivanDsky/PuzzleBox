@@ -135,6 +135,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - `feature/{home,play,history,profile,create,compete}/api/` (`:feature:*:api`, plugin
   `puzzlebox.android.feature.api`) — each feature's `@Serializable` NavKeys (`HomeKey`;
   `PlayKey` (games library), `GameKey(gameId, day?)`, `ResultKey(gameId, day, timeMs, hintsUsed)`,
+  `ReplayKey(gameId, kind, day, puzzleNumber, puzzleId, code, legIndex)` (the replay page; `kind` is record, latest, myLeg or theirLeg; build it with `ReplayKey.daily`/`custom`/`leg`),
   `FriendPuzzleKey`, `CustomGameKey`, `CustomResultKey`, `MatchLegKey`, `MatchLegResultKey`;
   `HistoryKey` and `HistoryRootKey` (the History tab root); `ProfileKey` and `SettingsKey`;
   `CreateKey` (Create tab root), `EditorKey(draftId)`, `PublishedPuzzleKey`; compete's `DuelKey`
@@ -448,6 +449,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   test-solving), PublishedPuzzleKey → `PublishedPuzzleRoute`, HistoryKey →
   `HistoryRoute`, GameKey(game, day?) → `GameRoute` (from the library's day card or a history row),
   ResultKey → `ResultRoute` (replaces the game on solve; distinct enter transition),
+  ReplayKey → `ReplayRoute` (opened from the result's Watch replay row),
   FriendPuzzleKey, CustomGameKey and CustomResultKey (a friend's puzzle), DuelKey →
   `DuelRoute`, MatchLegKey → `MatchLegRoute`, MatchLegResultKey → `MatchLegResultRoute`,
   DuelRevealKey → `RevealRoute`, CatalogKey → the debug-only Showkase browser (`CatalogDebugBinding`, FLAG_DEBUGGABLE-gated;

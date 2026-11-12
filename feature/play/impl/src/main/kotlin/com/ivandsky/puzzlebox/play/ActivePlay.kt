@@ -64,6 +64,7 @@ class ActivePlay internal constructor(
      * before this session by [rankOrder] (null with no completion, or until [verdict] lands);
      * [label] is the result screen's game line ("Zip · #123"); [solve] is the win this
      * record belongs to, null until this session wins (a load or play again clears it).
+     * [stored] is true once the completion write has returned Ok: the solve and its replay are then readable.
      */
     data class Record(
         val verdict: RecordVerdict?,
@@ -72,6 +73,7 @@ class ActivePlay internal constructor(
         val label: String,
         val rankOrder: RankOrder,
         val solve: Solve? = null,
+        val stored: Boolean = false,
     )
 
     /** A win's frozen facts, as the result key carries them. */

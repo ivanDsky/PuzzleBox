@@ -24,6 +24,11 @@ import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
+import com.ivandsky.puzzlebox.domain.LoadLegReplay
+import com.ivandsky.puzzlebox.domain.LoadCustomReplay
+import com.ivandsky.puzzlebox.domain.LoadDailyReplay
+import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
@@ -119,6 +124,7 @@ class RealGamesResultRouteTest {
                         onNext = {},
                         onDone = {},
                         onOpenBoard = {},
+                        onOpenReplay = {},
                     )
                 }
             }
@@ -157,6 +163,7 @@ class RealGamesResultRouteTest {
                         onNext = {},
                         onDone = {},
                         onOpenBoard = {},
+                        onOpenReplay = {},
                     )
                 }
             }
@@ -198,6 +205,18 @@ class RealGamesResultRouteTest {
                     factory { ComputeStreak(get()) }
                     factory { ObserveGameStats(get(), get(), get()) }
                     factory { GetNextRollover(get()) }
+                    // The replay stays off in this graph (no flag): the loader only has to exist.
+                    factory {
+                        LoadSolveReplay(
+                            flags = FakeReleaseFlags(),
+                            games = get(),
+                            daily = LoadDailyReplay(get(), get()),
+                            custom = LoadCustomReplay(get(), get(), get()),
+                            leg = LoadLegReplay(get(), FakeMatchResultOutbox(), get(), get(), get(), get()),
+                            completions = get(),
+                            dispatchers = get(),
+                        )
+                    }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
                     single { SubmitStatusTracker() }

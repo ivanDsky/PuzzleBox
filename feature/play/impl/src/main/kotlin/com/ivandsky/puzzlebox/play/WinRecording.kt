@@ -88,7 +88,7 @@ internal class WinRecording(
 
     private fun emit(record: CompletionRecord, sealed: SolveReplay?) {
         val token = recordToken
-        _record.update { it.copy(verdict = null, previousBest = null, writeFailed = false) }
+        _record.update { it.copy(verdict = null, previousBest = null, writeFailed = false, stored = false) }
         CompletionRecordEmitter(recordScope) { r ->
             completions.onCompleted(r, sealed)
             AppResult.Ok(Unit)
@@ -100,9 +100,10 @@ internal class WinRecording(
                 // puzzle (no edition number) never ranks: its verdict stays null.
                 is AppResult.Ok -> _record.update {
                     if (!baselineKnown || record.puzzleRef.edition == null) {
-                        it
+                        it.copy(stored = true)
                     } else {
                         it.copy(
+                            stored = true,
                             verdict = RecordVerdict.of(baselineBest, record.time, record.hints, baselinePlayAgain, rankOrder),
                             previousBest = baselineBest,
                         )
