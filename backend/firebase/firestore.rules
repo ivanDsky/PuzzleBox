@@ -453,9 +453,10 @@ service cloud.firestore {
       }
 
       function validDraftDoc(d) {
-        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'gameId', 'name', 'blob', 'editedAtMs',
-            'deleted', 'deletedAtMs'])
-          && (d.keys().hasAll(['gameId', 'name', 'blob', 'editedAtMs']) || isTombstone(d))
+        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'gameId', 'variant', 'draftFormatVersion', 'name',
+            'blob', 'editedAtMs', 'deleted', 'deletedAtMs'])
+          && (d.keys().hasAll(['gameId', 'variant', 'draftFormatVersion', 'name', 'blob', 'editedAtMs'])
+            || isTombstone(d))
           && isSpaceName(d.get('name', ''))
           && (!('blob' in d) || (d.blob is bytes && d.blob.size() <= 65536));
       }

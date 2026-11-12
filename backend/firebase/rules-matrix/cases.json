@@ -5777,6 +5777,8 @@
         "formatVersion": 1,
         "updatedAt": "2026-11-07T12:00:00Z",
         "gameId": "queens",
+        "variant": "queens/n8",
+        "draftFormatVersion": 1,
         "name": "Draft",
         "blob": "AQID",
         "editedAtMs": 1794052800000
