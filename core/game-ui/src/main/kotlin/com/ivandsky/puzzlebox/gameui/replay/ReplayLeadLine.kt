@@ -9,6 +9,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.game.replay.Lead
@@ -31,10 +32,12 @@ fun leadLineText(
     pieces: String,
 ): String? {
     val lead = state.lead ?: return null
-    val mine = state.mineFrame?.facts ?: return null
-    val theirs = state.theirsFrame?.facts ?: return null
-    val mineEnded = state.positionMs >= mineEndMs
-    val theirsEnded = state.positionMs >= theirsEndMs
+    val mineFrame = state.mineFrame ?: return null
+    val theirsFrame = state.theirsFrame ?: return null
+    val mine = mineFrame.facts
+    val theirs = theirsFrame.facts
+    val mineEnded = mineFrame.ended
+    val theirsEnded = theirsFrame.ended
     val mineGaveUp = mineEnded && mineOutcome == ReplayOutcome.GaveUp
     val theirsGaveUp = theirsEnded && theirsOutcome == ReplayOutcome.GaveUp
     val mineGaveUpLine = ReplayCopy.gaveUp(names.mine, formatDuration(mineEndMs))
@@ -70,7 +73,7 @@ fun leadLineText(
     return aheadLine(lead, mine.hints, theirs.hints, mine.correct, theirs.correct, names, pieces) ?: ReplayCopy.LEVEL
 }
 
-/** The "ahead" line, or null when the facts do not tell the sides apart. Hints decide first, as in the lead rule. */
+/** The "ahead" line, or null when the facts do not tell the sides apart. Mirrors ticket 24's hints-then-pieces rule; the leader itself comes from `state.lead`. */
 private fun aheadLine(
     lead: Lead,
     mineHints: Int,
@@ -95,7 +98,7 @@ private fun aheadLine(
 /** What a screen reader hears: the line up to its first figure, so a count ticking up is not read out. */
 internal fun leadAnnouncement(text: String): String = text.substringBefore(SEPARATOR)
 
-/** The lead line as plain text; a live region that changes only when the leader or the state does. */
+/** The lead line as plain text, centred; pass `Modifier.fillMaxWidth()`. A live region that changes only when the leader or the state does. */
 @Composable
 fun ReplayLeadLine(
     state: ReplayPlaybackState,
@@ -113,8 +116,9 @@ fun ReplayLeadLine(
             liveRegion = LiveRegionMode.Polite
             contentDescription = announcement
         },
-        style = MaterialTheme.typography.labelLarge,
+        style = MaterialTheme.typography.bodyLarge,
         color = MaterialTheme.colorScheme.onSurface,
+        textAlign = TextAlign.Center,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
     )

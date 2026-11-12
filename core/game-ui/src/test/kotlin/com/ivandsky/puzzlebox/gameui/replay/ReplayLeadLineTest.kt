@@ -18,6 +18,9 @@ class ReplayLeadLineTest {
     private fun frame(hints: Int, correct: Int, solved: Boolean = false) =
         ReplayFrame(session, null, ReplayFacts(hints, correct, total = 8, solved = solved), atMs = 0, sinceMoveMs = 0, ended = false)
 
+    private fun atPosition(frame: ReplayFrame, positionMs: Long, endMs: Long) =
+        ReplayFrame(frame.session, null, frame.facts, positionMs, 0, ended = positionMs >= endMs)
+
     private fun text(
         positionMs: Long,
         lead: Lead?,
@@ -35,8 +38,8 @@ class ReplayLeadLineTest {
             speed = 1,
             skipIdle = false,
             ticksMs = LongArray(0),
-            mineFrame = mine,
-            theirsFrame = theirs,
+            mineFrame = mine?.let { atPosition(it, positionMs, mineEndMs) },
+            theirsFrame = theirs?.let { atPosition(it, positionMs, theirsEndMs) },
             lead = lead,
         )
         return leadLineText(state, mineOutcome, theirsOutcome, mineEndMs, theirsEndMs, names, "queens")
