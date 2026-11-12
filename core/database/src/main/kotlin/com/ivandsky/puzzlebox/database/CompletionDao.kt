@@ -2,7 +2,9 @@ package com.ivandsky.puzzlebox.database
 
 import androidx.room.Dao
 import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -68,4 +70,51 @@ interface CompletionDao {
             "ORDER BY hints, timeMs LIMIT 1",
     )
     suspend fun bestByHints(prefix: String, owner: String?): CompletionEntity?
+
+    // Cloud sync (ADR-0029). The queries below are keyed by account or sync id, not by what a screen sees.
+
+    /** Inserts [completion] unless its sync id is taken; returns the new row id, or -1 when it was ignored. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIgnore(completion: CompletionEntity): Long
+
+    /** Which of [syncIds] already name a row, whoever owns it. */
+    @Query("SELECT syncId FROM completions WHERE syncId IN (:syncIds)")
+    suspend fun existingSyncIds(syncIds: List<String>): List<String>
+
+    /** [uid]'s rows the cloud has not acknowledged, oldest finish first. */
+    @Query("SELECT * FROM completions WHERE ownerUid = :uid AND uploaded = 0 ORDER BY completedAtMs, syncId")
+    suspend fun pending(uid: String): List<CompletionEntity>
+
+    /** As [pending], re-emitting when the table changes. */
+    @Query("SELECT * FROM completions WHERE ownerUid = :uid AND uploaded = 0 ORDER BY completedAtMs, syncId")
+    fun observePending(uid: String): Flow<List<CompletionEntity>>
+
+    /** The sync ids of every row [uid] holds with a finish in `[fromMs, toMs)`, in (completedAtMs, syncId) order. */
+    @Query(
+        "SELECT syncId FROM completions " +
+            "WHERE ownerUid = :uid AND completedAtMs >= :fromMs AND completedAtMs < :toMs ORDER BY completedAtMs, syncId",
+    )
+    suspend fun syncIdsBetween(uid: String, fromMs: Long, toMs: Long): List<String>
+
+    @Query("UPDATE completions SET uploaded = 1 WHERE ownerUid = :uid AND syncId IN (:syncIds)")
+    suspend fun markUploaded(uid: String, syncIds: List<String>)
+
+    /** Makes every row of [uid] pending again, for a re-upload after the cloud space was reset. */
+    @Query("UPDATE completions SET uploaded = 0 WHERE ownerUid = :uid")
+    suspend fun clearUploaded(uid: String)
+
+    /** The puzzle refs of the rows nobody owns yet. */
+    @Query("SELECT DISTINCT puzzleRef FROM completions WHERE ownerUid IS NULL")
+    suspend fun ownerlessRefs(): List<String>
+
+    /** Gives every ownerless row to [uid]. */
+    @Query("UPDATE completions SET ownerUid = :uid WHERE ownerUid IS NULL")
+    suspend fun claimOwnerless(uid: String)
+
+    /** Every row of [refs] that [owner] sees, for the record recompute. */
+    @Query("SELECT * FROM completions WHERE puzzleRef IN (:refs) AND $VISIBLE")
+    suspend fun rowsOfRefs(refs: List<String>, owner: String?): List<CompletionEntity>
+
+    @Update
+    suspend fun update(rows: List<CompletionEntity>)
 }
