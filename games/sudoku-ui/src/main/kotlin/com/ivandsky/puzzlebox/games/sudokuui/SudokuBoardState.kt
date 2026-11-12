@@ -6,11 +6,11 @@ import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.ScoreModel
+import com.ivandsky.puzzlebox.game.replay.MoveLog
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.StepHints
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
-import com.ivandsky.puzzlebox.games.sudoku.SudokuCommand
-import com.ivandsky.puzzlebox.games.sudoku.SudokuMoves
+import com.ivandsky.puzzlebox.games.sudoku.SudokuReplayMove
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHint
 import com.ivandsky.puzzlebox.games.sudoku.engine.hints.SudokuHints
@@ -30,6 +30,10 @@ import kotlinx.coroutines.CoroutineScope
  * [SudokuSession.hintsUsed] the first time it is presented; a repeat request on a Place or
  * Reveal target is stage 2 and commits the digit as an undoable HintReveal.
  *
+ * Record equals apply: every session change is a [SudokuReplayMove] applied through [SudokuMoveLog],
+ * stamped with the play time of the input and appended before the session is stored and published.
+ * Selection and the Notes toggle are not moves.
+ *
  * Clock: [settle] is the owner's hook on every committed command or counted hint, applied
  * before the session is stored and the win record built, so the record carries the real time.
  * Selection and the Notes toggle never reach it.
@@ -44,7 +48,9 @@ class SudokuBoardState(
     private val hints: SudokuHints = SudokuHints(),
     private val score: ScoreModel<SudokuSession>? = null,
     private val onWinRecord: (CompletionRecord) -> Unit = {},
-    private val now: () -> Instant = Instant::now,
+    now: () -> Instant = Instant::now,
+    log: MoveLog = MoveLog.off(),
+    runningSince: () -> Instant? = { null },
     private val onSessionChanged: (SudokuSession) -> Unit = {},
     private val settle: (SudokuSession) -> SudokuSession = { it },
     hintMode: HintMode = HintMode.Legacy,
@@ -72,6 +78,8 @@ class SudokuBoardState(
     var rejection by mutableStateOf<String?>(null)
         private set
 
+    private val recorder = SudokuMoveLog(log, now, runningSince)
+
     private var winEmitted = false
 
     // Survives the hint being cleared, so looking away and asking again does not count twice.
@@ -81,7 +89,7 @@ class SudokuBoardState(
         (hintMode as? HintMode.Stepwise)?.let { mode ->
             scope?.let {
                 val game = SudokuStepGame(session = { session })
-                StepHints(mode, it, game, used = { session.hintsUsed }, onCount = ::storeHintsUsed)
+                StepHints(mode, it, game, used = { session.hintsUsed }, onCount = { countHint() })
             }
         }
 
@@ -141,9 +149,7 @@ class SudokuBoardState(
         clearFeedback()
         val idx = selected ?: return
         if (rejectsGiven(idx)) return
-        val board = session.board
-        val command = if (session.notesMode) SudokuMoves.toggleNote(board, idx, digit) else SudokuMoves.place(board, idx, digit)
-        command?.let(::record)
+        commit(if (session.notesMode) SudokuReplayMove.ToggleNote(idx, digit) else SudokuReplayMove.Place(idx, digit))
     }
 
     /** Removes the selected cell's value if it has one, otherwise its notes. */
@@ -151,22 +157,22 @@ class SudokuBoardState(
         clearFeedback()
         val idx = selected ?: return
         if (rejectsGiven(idx)) return
-        SudokuMoves.erase(session.board, idx)?.let(::record)
+        commit(SudokuReplayMove.Erase(idx))
     }
 
     fun clear() {
         clearFeedback()
-        SudokuMoves.clear(session.board)?.let(::record)
+        commit(SudokuReplayMove.Clear)
     }
 
     fun undo() {
         clearFeedback()
-        commit(session.withUndo())
+        commit(SudokuReplayMove.Undo)
     }
 
     fun redo() {
         clearFeedback()
-        commit(session.withRedo())
+        commit(SudokuReplayMove.Redo)
     }
 
     /** A setting, not a move: no undo unit and no clock. */
@@ -198,7 +204,7 @@ class SudokuBoardState(
         }
         hint = next
         hintRevealed = false
-        if (countedTargets.add(targetOf(next))) store(settle(session.withHintUsed()))
+        if (countedTargets.add(targetOf(next))) countHint()
     }
 
     private fun reveal(active: SudokuHint) {
@@ -207,14 +213,16 @@ class SudokuBoardState(
             is SudokuHint.Reveal -> active.cell to active.digit
             else -> return
         }
-        val command = SudokuMoves.reveal(session.board, cell, digit) ?: return
-        record(command)
+        val before = session
+        commit(SudokuReplayMove.HintReveal(cell, digit))
+        // A cell that already holds the digit changes nothing: the hint stays unrevealed.
+        if (session === before) return
         hintRevealed = true
     }
 
-    /** A newly counted Stepwise hint: through [settle] like the legacy count, never [commit], so the Spotlight stays. */
-    private fun storeHintsUsed(used: Int) {
-        store(settle(session.copy(hintsUsed = used)))
+    /** One counted hint: through [settle], never [commit], so the Stepwise Spotlight stays. */
+    private fun countHint() {
+        store(settle(recorder.record(session, SudokuReplayMove.Hint)))
     }
 
     private fun targetOf(hint: SudokuHint): Pair<Class<out SudokuHint>, List<Int>> {
@@ -249,12 +257,11 @@ class SudokuBoardState(
         stepHints?.inputMade()
     }
 
-    private fun record(command: SudokuCommand) = commit(session.withCommand(command, now()))
-
-    private fun commit(next: SudokuSession) {
-        // A no-op (finished game, empty undo stack) records nothing and leaves the clock alone.
-        if (next == session) return
+    private fun commit(move: SudokuReplayMove) {
         val previous = session
+        val next = recorder.record(previous, move)
+        // A no-op (finished game, empty undo stack) records nothing and leaves the clock alone.
+        if (next == previous) return
         val settled = settle(next)
         store(settled)
         if (!previous.isComplete && settled.isComplete) {
