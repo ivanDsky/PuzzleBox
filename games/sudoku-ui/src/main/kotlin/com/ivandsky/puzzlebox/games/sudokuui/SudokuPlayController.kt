@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.playTimeMs
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.BROKEN_PUZZLE_MESSAGE
 import com.ivandsky.puzzlebox.gameui.GamePlayController
@@ -22,7 +23,6 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.SudokuScoreModel
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuSessionCodec
-import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.launch
 
@@ -164,7 +164,7 @@ class SudokuPlayController(
     private fun foldRunning(target: SudokuSession): SudokuSession {
         val rs = runningSince ?: return target
         runningSince = null
-        return target.copy(elapsedMs = target.elapsedMs + Duration.between(rs, now()).toMillis())
+        return target.copy(elapsedMs = playTimeMs(target.elapsedMs, rs, now()))
     }
 
     override fun tick() {
@@ -174,7 +174,7 @@ class SudokuPlayController(
     override fun onBackground() {
         val rs = runningSince ?: return
         runningSince = null
-        board?.bankElapsed(Duration.between(rs, now()).toMillis())
+        board?.bankElapsed(playTimeMs(0L, rs, now()))
     }
 
     override fun onForeground() {
@@ -186,8 +186,7 @@ class SudokuPlayController(
 
     override fun displayedElapsedMs(): Long {
         val banked = session?.elapsedMs ?: return 0L
-        val window = runningSince?.let { Duration.between(it, Instant.ofEpochMilli(nowMs)).toMillis() } ?: 0L
-        return (banked + window).coerceAtLeast(0L)
+        return playTimeMs(banked, runningSince, Instant.ofEpochMilli(nowMs))
     }
 
     //endregion
