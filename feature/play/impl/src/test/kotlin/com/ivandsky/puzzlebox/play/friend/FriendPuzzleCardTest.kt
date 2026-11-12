@@ -50,7 +50,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The friend puzzle card over its ViewModel, with every source a fake: the stored puzzle's
  * facts, the one primary action per state (Play fresh, Resume with the saved play's
- * elapsed, Replay once a solve is recorded), the difficulty chip only when the local
+ * elapsed, Play again once a solve is recorded), the difficulty chip only when the local
  * re-verify graded the board, and Copy putting the code on the clipboard, its glyph giving
  * way to a check for a moment.
  */
@@ -179,7 +179,7 @@ class FriendPuzzleCardTest {
     }
 
     @Test
-    fun `a recorded solve offers Replay and shows your time and hints`() {
+    fun `a recorded solve offers a play again and shows your time and hints`() {
         val ref = checkNotNull(fakes.games[game]).refOf(PuzzleKey.Custom(code.value))
         completions.setRecords(listOf(CompletionRecord(ref, 125_000L, 2, RecordStats(1, "{}"))))
         show()

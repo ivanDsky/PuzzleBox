@@ -97,7 +97,7 @@ class PlaySessionStore internal constructor(
     /**
      * What opening [key] shows, without a read: a live play is its own answer (complete →
      * its solve's result, else its board); with none live, a day the snapshot does not hold
-     * is a board, and a solved one is a [OpenDecision.Check] (a saved replay row would still
+     * is a board, and a solved one is a [OpenDecision.Check] (a saved play-again row would still
      * win). [OpenDecision.Cold] until the first records read lands.
      */
     internal fun decide(key: GameKey): OpenDecision {
@@ -116,7 +116,7 @@ class PlaySessionStore internal constructor(
 
     /**
      * The result a [GameKey]'s day already has, or null when its board should open: [decide]
-     * after the snapshot has loaded, with a solved day's saved replay row read. The one place
+     * after the snapshot has loaded, with a solved day's saved play-again row read. The one place
      * "open a finished day" is decided; custom games never ask.
      */
     suspend fun completedResult(key: GameKey): ResultKey? {

@@ -100,7 +100,7 @@ class PlaySessionStoreLegTest {
 
         assertSame(play, store.open(legKey))
         assertTrue(fakes[alpha].latest.isComplete)
-        assertEquals(0, fakes[alpha].latest.replays)
+        assertEquals(0, fakes[alpha].latest.playAgains)
     }
 
     /** A leg with a saved board, so it opens without the match document. */

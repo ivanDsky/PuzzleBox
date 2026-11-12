@@ -160,7 +160,7 @@ class SlotOpeningCustomTest {
 
         assertSame(play, reopened)
         assertTrue("the solve waits for its hand-off", fakes[alpha].latest.isComplete)
-        assertEquals("never reset in place", 0, fakes[alpha].latest.replays)
+        assertEquals("never reset in place", 0, fakes[alpha].latest.playAgains)
     }
 
     private fun store(): PlaySessionStore {

@@ -90,9 +90,9 @@ import org.robolectric.annotation.Config
 
 /**
  * A friend's puzzle result over its ViewModel and the play routes, every source a fake: the
- * first solve here reads Record with its time, a slower replay reads Replay with the record
+ * first solve here reads Record with its time, a slower play again reads a play-again standing with the record
  * that stands, and the screen shows no streak. Solving the board lands on the result, Done
- * returns to the card, Play again replays the finished play, and the key survives saved state.
+ * returns to the card, Play again plays the finished play again, and the key survives saved state.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -199,7 +199,7 @@ class CustomResultViewModelTest {
     }
 
     @Test
-    fun `a slower replay reads Replay with the record that stands`() {
+    fun `a slower play again reads a play-again standing with the record that stands`() {
         completions.setRecords(listOf(row(118_000L, isRecord = true), row(130_000L, hints = 1)))
 
         val state = observed(key(130_000L, hints = 1)).state.value
@@ -263,7 +263,7 @@ class CustomResultViewModelTest {
     }
 
     @Test
-    fun `the screen stamps the record pill on a first win and names the standing record on a replay`() {
+    fun `the screen stamps the record pill on a first win and names the standing record on a play again`() {
         var standing: CustomStanding by mutableStateOf(CustomStanding.Record)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -316,7 +316,7 @@ class CustomResultViewModelTest {
     }
 
     @Test
-    fun `Play again replays the finished play instead of bouncing back to the result`() {
+    fun `Play again plays the finished play again instead of bouncing back to the result`() {
         val navigator = showBoard()
         solve()
         val play = fakes[alpha].latest
@@ -325,7 +325,7 @@ class CustomResultViewModelTest {
         composeRule.waitForIdle()
 
         assertEquals(CustomGameKey(alpha.value, code.value), navigator.top)
-        assertEquals(1, play.replays)
+        assertEquals(1, play.playAgains)
         assertFalse(play.isComplete)
         node("fake.board").assertExists()
     }

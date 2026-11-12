@@ -75,7 +75,7 @@ import org.junit.Test
 /**
  * The result VM for a [ResultKey]'s slot: live (the slot's play in the store, holding
  * this solve) it shows the play's verdict, previous best and write retry; once the
- * live play replays or re-solves it keeps the verdict it saw and hides retry; cold (after
+ * live play plays again or re-solves it keeps the verdict it saw and hides retry; cold (after
  * process death) the verdict is unknown — the session-start baseline died with the play.
  * The read facts hold either way: the edition number (none = practice), today's progress
  * and the rollover. The primary action is Next (the next unsolved
@@ -236,14 +236,14 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `a replay of the live play keeps this result's own verdict`() {
+    fun `a play again of the live play keeps this result's own verdict`() {
         val play = solveLive()
         val vm = vm().observed()
         assertEquals(RecordVerdict.FirstSolve, vm.state.value.verdict)
 
         play.playAgain()
         dispatcher.scheduler.runCurrent()
-        // The replay's in-flight state (no verdict yet) is not this result's.
+        // The play again's in-flight state (no verdict yet) is not this result's.
         assertNull(play.record.value.verdict)
         assertEquals(RecordVerdict.FirstSolve, vm.state.value.verdict)
         assertFalse(vm.state.value.writeFailed)
@@ -325,7 +325,7 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `a replay is a past day's result`() {
+    fun `a play again is a past day's result`() {
         assertFalse(vm().playAgain)
         assertTrue(vm(key.copy(day = day.minusDays(1).toString())).playAgain)
     }
@@ -441,7 +441,7 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `a replay shows no rank even with cached connections`() {
+    fun `a play again shows no rank even with cached connections`() {
         cachedConnections(ghost("Ada", 20))
         val playAgain = key.copy(day = day.minusDays(1).toString())
 
@@ -454,7 +454,7 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `a replay reads no board and shows no rank`() {
+    fun `a play again reads no board and shows no rank`() {
         val playAgain = key.copy(day = day.minusDays(1).toString())
         val vm = vm(playAgain, identity = ME).heroObserved()
         assertEquals(ResultRank.Hidden, vm.heroRank.value)

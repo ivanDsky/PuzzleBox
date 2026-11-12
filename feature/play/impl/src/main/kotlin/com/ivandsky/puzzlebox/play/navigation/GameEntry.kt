@@ -20,7 +20,7 @@ import org.koin.compose.koinInject
  * place (back lands on the game's origin, as after a solve), otherwise its board. The
  * store decides ([PlaySessionStore.decide], then [PlaySessionStore.completedResult] for a
  * solved day with no live play) before anything opens the board, so a finished day is never
- * reset by being opened; replaying is Result's "Play again".
+ * reset by being opened; playing again is Result's "Play again".
  */
 @Composable
 internal fun GameEntry(key: GameKey, layout: PlayLayout, navigator: Navigator, linkedIn: Boolean = false) {
