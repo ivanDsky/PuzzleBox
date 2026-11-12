@@ -23,6 +23,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.designsystem.MedalBronze
@@ -262,7 +263,8 @@ class DailyBoardListMotionTest {
         show(listOf(real("ada"), real("bo"), real("cy")))
 
         switchDay()
-        composeRule.mainClock.advanceTimeBy(ARRIVAL_MS + EARLY_MS)
+        // The board clips the row until it opens, so its name is there to sample from its first visible frame on.
+        while (composeRule.onNodeWithText("di").getBoundsInRoot().height == 0.dp) composeRule.mainClock.advanceTimeByFrame()
         val during = ink("di")
         settle()
 

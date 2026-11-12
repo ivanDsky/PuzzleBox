@@ -5,9 +5,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
@@ -28,7 +30,8 @@ private val DividerHeight = 1.dp
  * rolls, one after another, an arriving row fades and expands in and a leaving one fades and shrinks out, the pinned
  * row and its divider too; under reduced motion every change lands at once, the final place and its medal included. Rows are the
  * same rows by their player or connection, never by place or day: on another day's board the people on both days
- * slide to their new places and update in place, the others arrive and leave. Without [animated] the list is drawn plainly.
+ * slide to their new places and update in place, the others arrive and leave. Animated rows are opaque, on [backdrop],
+ * the colour the list sits on. Without [animated] the list is drawn plainly.
  */
 @Composable
 fun DailyBoardList(
@@ -37,10 +40,11 @@ fun DailyBoardList(
     modifier: Modifier = Modifier,
     pinned: DailyBoardLine.Real? = null,
     animated: Boolean = false,
+    backdrop: Color = MaterialTheme.colorScheme.background,
 ) {
     val withPuzzleBoxRank = (lines + listOfNotNull(pinned)).placesDifferFromPuzzleBox()
     if (animated && !(rememberReducedMotion() || LocalInspectionMode.current)) {
-        AnimatedBoardList(lines, pinned, order, withPuzzleBoxRank, modifier)
+        AnimatedBoardList(lines, pinned, order, withPuzzleBoxRank, backdrop, modifier)
         return
     }
     if (lines.isEmpty() && pinned == null) return
