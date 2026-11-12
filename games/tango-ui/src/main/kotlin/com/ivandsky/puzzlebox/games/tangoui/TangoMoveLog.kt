@@ -27,8 +27,8 @@ internal class TangoMoveLog(
         // Never the displayed time: that one lags by a tick.
         val atMs = playTimeMs(session.elapsedMs, runningSince(), at)
         val next = log.play(TangoReplay, session, move.toReplayMove(), atMs)
-        // The step stamps a win with its play time, all a replay has. A live win keeps the wall-clock moment.
+        // The step stamps a win with its play time, all a replay has. A live win keeps the wall-clock moment, in the session codec's millisecond precision.
         val wonNow = next.isComplete && !session.isComplete
-        return if (wonNow) next.copy(completedAt = at) else next
+        return if (wonNow) next.copy(completedAt = Instant.ofEpochMilli(at.toEpochMilli())) else next
     }
 }

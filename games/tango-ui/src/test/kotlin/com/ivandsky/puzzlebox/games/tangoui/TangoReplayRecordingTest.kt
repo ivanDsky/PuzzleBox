@@ -97,7 +97,10 @@ class TangoReplayRecordingTest {
         return live
     }
 
-    /** What a replay reproduces of a live session: board, undo history and counters. Not the record identity, the banked clock or the wall-clock win. */
+    /**
+     * What a replay reproduces of a live session: board, undo history and counters. Not the record identity,
+     * the banked clock or the wall-clock win.
+     */
     private fun TangoSession.clockFree(): TangoSession =
         copy(ref = null, elapsedMs = 0L, completedAt = completedAt?.let { Instant.EPOCH })
 
@@ -108,7 +111,9 @@ class TangoReplayRecordingTest {
         checkNotNull(log.snapshot()?.let(ReplayCodec::decode)?.getOrNull()) { "the play has no readable log" }.moves
 
     private fun timelineOf(sealed: SolveReplay): Timeline =
-        checkNotNull(tangoPlugin.openTimeline(TangoPlayFixture.envelope(), sealed)) { "the sealed replay does not open" }
+        checkNotNull(tangoPlugin.openTimeline(TangoPlayFixture.envelope(), sealed)) {
+            "the sealed replay does not open"
+        }
 
     private fun Timeline.sessionAt(atMs: Long): TangoSession = at(atMs).session as TangoSession
 
@@ -156,7 +161,10 @@ class TangoReplayRecordingTest {
     private fun foreground(atMs: Long, awayMs: Long) =
         Input(atMs, moves = emptyList(), awayMs = awayMs) { controller.onForeground() }
 
-    /** Every kind of input, a counted hint and a free one, then the inputs nothing records. Ends with the clock banked at 3.6 s. */
+    /**
+     * Every kind of input, a counted hint and a free one, then the inputs nothing records.
+     * Ends with the clock banked at 3.6 s.
+     */
     private val openingHalf: List<Input> = listOf(
         place(1_000L, 2, TangoCell.SUN, rejected = true), // three suns in a row: lands, counts a mistake
         Input(1_500L, listOf(Undo), today = { withUndo() }) { controller.undo() },
