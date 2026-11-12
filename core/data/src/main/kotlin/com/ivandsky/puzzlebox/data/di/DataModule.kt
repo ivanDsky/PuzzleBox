@@ -84,7 +84,7 @@ val dataModule = module {
     // Saved in-progress plays; the slot cap is private to the Room adapter.
     single<SavedPlayRepository> { RoomSavedPlayRepository(get(), get(), get()) }
     // Editor drafts: features read and write through the port, never Room.
-    single<DraftRepository> { RoomDraftRepository(get()) }
+    single<DraftRepository> { RoomDraftRepository(get(), get(), get(), get()) }
     // The author's published listing; the board stays on the kept, read-only draft.
     single<PublishedPuzzleRepository> { RoomPublishedPuzzleRepository(get(), get()) }
     // Friends' puzzles opened here; they keep playing offline after their author unpublishes.
