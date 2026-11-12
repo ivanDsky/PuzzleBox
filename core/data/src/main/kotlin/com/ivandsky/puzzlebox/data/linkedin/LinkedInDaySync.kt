@@ -34,11 +34,8 @@ internal class LinkedInDaySync(
     private val clock: () -> Long,
 ) {
 
-    suspend fun sync(game: GameId, day: LocalDate): LinkedInSync {
-        val profileId = when (val linked = link.state.first()) {
-            is LinkState.Connected -> linked.profileId
-            else -> return unlinked(linked)
-        }
+    /** Syncs the day as [profileId], the connected profile the caller read once; every later link read checks it still is. */
+    suspend fun sync(game: GameId, day: LocalDate, profileId: String): LinkedInSync {
         val readable = readable(game, day) ?: return LinkedInSync.NotLinkedInGame
         val request = Request(game, day, readable.delta, profileId, readable.typeId)
 
@@ -157,7 +154,7 @@ internal class LinkedInDaySync(
     }
 
     /** The result for a link that is not (or no longer) the connected member a sync needs. */
-    private fun unlinked(state: LinkState): LinkedInSync {
+    fun unlinked(state: LinkState): LinkedInSync {
         syncState.clear()
         return if (state is LinkState.Paused) LinkedInSync.Paused(state.kind) else LinkedInSync.NotLinked
     }

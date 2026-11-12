@@ -16,6 +16,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -54,18 +55,21 @@ internal class RoomLinkedInDays(
         link, source, completions, daily, window, registry, fetchLog, ghosts, budget, avatars, storeLock, syncState, clock,
     )
 
-    override suspend fun sync(game: GameId, day: LocalDate): LinkedInSync =
-        syncState.shared(DayKey(game, day)) { daySync.sync(game, day) }
+    override suspend fun sync(game: GameId, day: LocalDate): LinkedInSync {
+        // Read once: the profile that keys the claim is the one the sync then asks as.
+        val linked = link.state.first()
+        if (linked !is LinkState.Connected) return daySync.unlinked(linked)
+        val profileId = linked.profileId
+        return syncState.shared(DayKey(profileId, game, day)) { daySync.sync(game, day, profileId) }
+    }
 
     override fun willRead(game: GameId, day: LocalDate): Boolean = daySync.willRead(game, day)
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun observe(game: GameId, day: LocalDate): Flow<LinkedInDayData> {
-        val key = DayKey(game, day)
         return link.state.flatMapLatest { linked ->
-            // The one place that sees every link change, even when no sync runs between a disconnect and
-            // the next connect: what a sync remembered under a link that is gone or paused must not show
-            // under the next one.
+            // Memory hygiene only: results are keyed by profile, so none can show under another account
+            // whether or not this ever saw the link go away.
             if (linked !is LinkState.Connected) syncState.clear()
             val profileId = when (linked) {
                 LinkState.NotConnected -> null
@@ -76,8 +80,8 @@ internal class RoomLinkedInDays(
                 imported(game, day),
                 savedBoards.observe(game, day, profileId),
                 fetches(game, day, profileId),
-                syncState.inFlight(key),
-                syncState.lastSync(key),
+                inFlight(game, day, profileId),
+                lastSync(game, day, profileId),
             ) { import, board, fetches, inFlight, lastSync ->
                 // Read on every emission, never watched: a day held open across the game's midnight
                 // keeps its delta until its holder subscribes again.
@@ -107,6 +111,12 @@ internal class RoomLinkedInDays(
         completions.observeImports().map { rows ->
             rows.firstOrNull { it.puzzleRef.gameId == game && (it.puzzleRef.key as? PuzzleKey.Daily)?.date == day }
         }
+
+    private fun inFlight(game: GameId, day: LocalDate, profileId: String?): Flow<Boolean> =
+        if (profileId == null) flowOf(false) else syncState.inFlight(DayKey(profileId, game, day))
+
+    private fun lastSync(game: GameId, day: LocalDate, profileId: String?): Flow<LinkedInSync?> =
+        if (profileId == null) flowOf(null) else syncState.lastSync(DayKey(profileId, game, day))
 
     private fun fetches(game: GameId, day: LocalDate, profileId: String?): Flow<List<FetchLogEntity>> =
         if (profileId == null) flowOf(emptyList()) else fetchLog.observe(game.value, day.toString(), profileId)

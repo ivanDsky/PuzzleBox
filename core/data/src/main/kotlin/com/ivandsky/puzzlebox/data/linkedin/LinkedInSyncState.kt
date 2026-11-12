@@ -13,8 +13,11 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 
-/** One game day: the unit a sync covers and is deduplicated by. */
-internal data class DayKey(val game: GameId, val day: LocalDate)
+/**
+ * One game day of one linked profile: the unit a sync covers and is deduplicated by. The profile is part
+ * of the key so that what one account's sync left behind can never be read, awaited or shared by another.
+ */
+internal data class DayKey(val profileId: String, val game: GameId, val day: LocalDate)
 
 /**
  * What the day syncs remember for the life of the process and never write to disk: which days are
@@ -52,7 +55,10 @@ internal class LinkedInSyncState {
         }
     }
 
-    /** Forgets everything. Nothing from a previous account or a disconnected session may outlive the link. */
+    /**
+     * Forgets everything, so a disconnected session does not hold memory for the rest of the process.
+     * Not what keeps one account's results from another: the keys carry the profile for that.
+     */
     fun clear() {
         claims.value = emptyMap()
         results.value = emptyMap()
