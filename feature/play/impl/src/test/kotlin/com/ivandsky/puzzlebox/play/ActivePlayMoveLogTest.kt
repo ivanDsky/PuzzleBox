@@ -19,11 +19,13 @@ import com.ivandsky.puzzlebox.game.replay.GameReplay
 import com.ivandsky.puzzlebox.game.replay.MoveLog
 import com.ivandsky.puzzlebox.game.replay.ReplayFacts
 import com.ivandsky.puzzlebox.game.replay.ReplayMove
+import com.ivandsky.puzzlebox.game.replay.Timeline
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -32,6 +34,7 @@ import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -75,6 +78,7 @@ class ActivePlayMoveLogTest {
         setHistory(game, listOf(DailyEntry(game, day, 7, "alpha/v1", 0L)))
     }
     private val saved = FakeSavedPlayRepository()
+    private val completions = FakeCompletionRepository()
     private val matches = FakeMatchRepository().apply { signedInUid = CHALLENGER.uid }
     private val dispatcher = UnconfinedTestDispatcher()
     private val calendar = FakeGameCalendar(day)
@@ -90,7 +94,7 @@ class ActivePlayMoveLogTest {
             testDispatchers(dispatcher),
         ),
         writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
-        completions = FakeCompletionRepository(),
+        completions = completions,
         finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH },
         calendar = calendar,
         dispatchers = testDispatchers(dispatcher),
@@ -212,14 +216,48 @@ class ActivePlayMoveLogTest {
         assertTrue(play.board.value.status is PlayBoardStatus.Unavailable)
     }
 
-    /** [inner] with the log each controller was created with kept, so a test can read it. */
+    @Test
+    fun `play again after a restored play starts its log and its replay at zero`() {
+        val ref = TestGames.Ref(game, PuzzleKey.Daily(day, 7))
+        runBlocking {
+            saved.save(PlaySlot.Daily(game, day), SessionBlob.encode(game, FakeController.encode(2, true, ref, elapsedMs = BANKED_MS)), elapsedMs = BANKED_MS)
+        }
+        ui.settingOnRestore = SETTING
+        val play = store(on).open(key)!!
+
+        play.playAgain()
+        val log = ui.logOf(play.controller)
+        var session = ReplayFixtures.initial(total = 2)
+        session = log.play(ReplayFixtures.replay, session, TAP, atMs = 500)
+        log.play(ReplayFixtures.replay, session, TAP, atMs = 600)
+        fakes[game].latest.win()
+
+        val sealed = checkNotNull(runBlocking { completions.latestReplay(ref) })
+        val timeline = checkNotNull(Timeline.open(game, ReplayFixtures.replay, ReplayFixtures.initial(total = 2), sealed))
+        assertEquals(listOf(500L, 600L), timeline.moveTimesMs.toList())
+    }
+
+    /**
+     * [inner] with the log each controller was created with kept, so a test can read it. With [settingOnRestore] set,
+     * a restored adopt states that setting at the banked time, as a game with a setting does (Queens' AutoCross).
+     */
     private class LogCapturingUi(private val inner: FakePlayUi) : GamePlayUi by inner {
         private val logs = IdentityHashMap<GamePlayController, MoveLog>()
+        var settingOnRestore: ReplayMove? = null
 
         fun logOf(controller: GamePlayController): MoveLog = logs.getValue(controller)
 
-        override fun createController(env: PlayEnvironment): GamePlayController =
-            inner.createController(env).also { logs[it] = env.moveLog }
+        override fun createController(env: PlayEnvironment): GamePlayController {
+            val created = inner.createController(env)
+            val setting = settingOnRestore
+            if (setting == null) return created.also { logs[it] = env.moveLog }
+            created as FakeController
+            return object : GamePlayController by created {
+                override fun adoptRestored(bytes: ByteArray): Restored? = created.adoptRestored(bytes)?.also {
+                    env.moveLog.setting(ReplayFixtures.replay, ReplayFixtures.initial(total = 2), setting, created.bankedMs)
+                }
+            }.also { logs[it] = env.moveLog }
+        }
     }
 
     private fun replayPlugin(): GamePlugin<Unit, TestGames.Session, TestGames.Model> {
@@ -241,6 +279,11 @@ class ActivePlayMoveLogTest {
     private companion object {
         val CHALLENGER = Player("challenger", "Ivan", photoUrl = null)
         val MOVE = ReplayMove(kind = 0, args = IntArray(0))
+        const val BANKED_MS = 4_500L
+
+        /** The fixture game's place move, and its hint move standing in for a setting a restored adopt states. */
+        val TAP = ReplayMove(kind = 0, args = IntArray(0))
+        val SETTING = ReplayMove(kind = 1, args = IntArray(0))
 
         /** A game whose every move is understood and changes nothing. */
         val REPLAY = object : GameReplay<TestGames.Session> {

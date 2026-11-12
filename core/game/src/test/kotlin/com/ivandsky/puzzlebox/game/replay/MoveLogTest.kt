@@ -188,6 +188,44 @@ class MoveLogTest {
     }
 
     @Test
+    fun `restart empties the journal and keeps recording the same game`() {
+        val log = MoveLog.fresh(game)
+        val session = log.setting(replay, start, assist(true), atMs = 4_500)
+        log.play(replay, session, add(1), atMs = 4_600)
+
+        log.restart()
+
+        assertEquals(ReplayRecord(game, ReplayOutcome.Open, endMs = 0, moves = emptyList()), recorded(log))
+        log.play(replay, start, add(1), atMs = 500)
+        assertEquals(listOf(StampedMove(500, add(1))), recorded(log).moves)
+    }
+
+    @Test
+    fun `a setting equal to the last move before the restart is recorded again`() {
+        val log = MoveLog.fresh(game)
+        log.setting(replay, start, assist(true), atMs = 4_500)
+
+        log.restart()
+        log.setting(replay, start, assist(true), atMs = 0)
+
+        assertEquals(listOf(StampedMove(0, assist(true))), recorded(log).moves)
+    }
+
+    @Test
+    fun `restart leaves an off log and a void log as they were`() {
+        val inert = listOf(
+            MoveLog.off(),
+            MoveLog.restored(game, null),
+            MoveLog.fresh(game).also { it.play(replay, start, unknown(), atMs = 0) },
+        )
+        for (log in inert) {
+            log.restart()
+
+            assertVoid(log)
+        }
+    }
+
+    @Test
     fun `a fresh log with no moves snapshots an empty open record`() {
         assertEquals(ReplayRecord(game, ReplayOutcome.Open, endMs = 0, moves = emptyList()), recorded(MoveLog.fresh(game)))
     }
