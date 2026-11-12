@@ -25,6 +25,10 @@ interface FetchLogDao {
     @Upsert
     suspend fun put(entry: FetchLogEntity)
 
+    /** Forgets that the board of one game day was read, for every profile, so the day can be read again. */
+    @Query("DELETE FROM fetch_log WHERE game = :game AND day = :day AND item = 'Board'")
+    suspend fun deleteBoardEntries(game: String, day: String)
+
     @Query("DELETE FROM fetch_log")
     suspend fun clear()
 }
