@@ -49,6 +49,8 @@ internal fun StageSummary(
     onRematch: () -> Unit,
     onWatchAgain: () -> Unit,
     modifier: Modifier = Modifier,
+    compares: Set<Int> = emptySet(),
+    onCompare: (Int) -> Unit = {},
 ) {
     val win = summary.kind == VerdictKind.Win
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
@@ -63,7 +65,7 @@ internal fun StageSummary(
                 Actions(summary, onRematch, onWatchAgain, Modifier.weight(ActionsWeight))
             }
         }
-        SummaryPuzzleList(summary, brands, wide = true)
+        SummaryPuzzleList(summary, brands, wide = true, compares = compares, onCompare = onCompare)
     }
 }
 

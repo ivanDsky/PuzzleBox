@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
+import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import kotlin.reflect.KClass
@@ -79,13 +80,13 @@ class PlacementTest {
     }
 
     @Test
-    fun `the immersive set is exactly today's seven plus the replay`() {
+    fun `the immersive set is exactly today's seven plus the replay and its compare`() {
         val immersive = placementRows.filter { it.placement.chrome == Chrome.Immersive }.map { it.key }.toSet()
 
         assertEquals(
             setOf(
                 GameKey::class, CustomGameKey::class, ResultKey::class, CustomResultKey::class,
-                MatchLegKey::class, MatchLegResultKey::class, DuelRevealKey::class, ReplayKey::class,
+                MatchLegKey::class, MatchLegResultKey::class, DuelRevealKey::class, ReplayKey::class, ReplayCompareKey::class,
             ),
             immersive,
         )

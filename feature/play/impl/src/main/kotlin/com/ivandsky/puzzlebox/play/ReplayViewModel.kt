@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.ReplayKey
-import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -45,25 +44,13 @@ internal class ReplayViewModel(
     val board: GameReplayBoard? = ui[gameId]?.replayBoard
 
     /** The page's "Game · where it came from" line; the page appends the move count. */
-    val context: String get() = "${games.displayName(gameId)} · ${origin()}"
+    val context: String get() = "${games.displayName(gameId)} · ${key.origin(calendar)}"
 
     init {
         viewModelScope.launch {
             val ref = key.toSolveReplayRef(games)
             val timeline = ref?.let { loadReplay(it) }
             _state.value = if (timeline == null) ReplayState.None else ReplayState.Ready(timeline)
-        }
-    }
-
-    private fun origin(): String = when {
-        key.code != null -> "Duel"
-        key.puzzleId != null -> "Friend's puzzle"
-        else -> {
-            val day = key.day?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-            listOfNotNull(
-                key.puzzleNumber?.let { "#$it" },
-                day?.let { resultDateLine(it, today = calendar.today(gameId) == it) },
-            ).joinToString(" · ")
         }
     }
 }

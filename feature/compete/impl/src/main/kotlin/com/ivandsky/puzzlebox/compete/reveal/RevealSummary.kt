@@ -26,7 +26,7 @@ private val StageMaxWidth = 1352.dp
 /**
  * The reveal's end. [wide] is the Stage page: a hero card over the full-width puzzles table, centred as a block,
  * vertically too when it fits and scrolling from the top when it doesn't. A phone has one column: the score card, then
- * the puzzles. Back arrow leaves through [onBack].
+ * the puzzles. Back arrow leaves through [onBack]. [compares] are the legs offering a compare, opened through [onCompare].
  */
 @Composable
 internal fun RevealSummary(
@@ -37,6 +37,8 @@ internal fun RevealSummary(
     onRematch: () -> Unit,
     onWatchAgain: () -> Unit,
     modifier: Modifier = Modifier,
+    compares: Set<Int> = emptySet(),
+    onCompare: (Int) -> Unit = {},
 ) {
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow).testTag("reveal.summary")) {
         RevealTopBar(summary.me, summary.opponent, summary.rows.size, onBack)
@@ -53,6 +55,8 @@ internal fun RevealSummary(
                         brands = brands,
                         onRematch = onRematch,
                         onWatchAgain = onWatchAgain,
+                        compares = compares,
+                        onCompare = onCompare,
                         modifier = Modifier
                             .widthIn(max = StageMaxWidth)
                             .fillMaxWidth()
@@ -67,7 +71,7 @@ internal fun RevealSummary(
                     verticalArrangement = Arrangement.spacedBy(Spacing.lg),
                 ) {
                     SummaryCard(summary, onRematch, onWatchAgain)
-                    SummaryPuzzleList(summary, brands, wide = false)
+                    SummaryPuzzleList(summary, brands, wide = false, compares = compares, onCompare = onCompare)
                 }
             }
         }

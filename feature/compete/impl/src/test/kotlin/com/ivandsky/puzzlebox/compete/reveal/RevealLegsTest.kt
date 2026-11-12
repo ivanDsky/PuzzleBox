@@ -207,6 +207,7 @@ class RevealLegsTest {
         val cards = plan(view).cards
 
         assertEquals(listOf("Zip #400", "Zip #402"), cards.map { it.title })
+        assertEquals("a card keeps its place in the match, not in the race", listOf(0, 2), cards.map { it.legIndex })
         assertTrue(cards.none { it.leg.verdict == LegVerdict.Pending })
     }
 
