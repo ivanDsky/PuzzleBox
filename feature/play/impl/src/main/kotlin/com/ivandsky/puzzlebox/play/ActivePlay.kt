@@ -12,11 +12,13 @@ import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
+import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.model.SolveReplay
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -80,6 +82,9 @@ class ActivePlay internal constructor(
     private var generation = 0
 
     private val persistence = PlayPersistence(slot, writer)
+
+    /** The log of the newest controller: [sealGaveUp] seals it. Declared before [_board], whose initializer sets it. */
+    private var moveLog: MoveLog = MoveLog.off()
     private val winRecording = WinRecording(plugin, completions, scope, recordScope)
 
     private val _board = MutableStateFlow(Board(newController(), PlayBoardStatus.Loading))
@@ -186,6 +191,16 @@ class ActivePlay internal constructor(
         next.playAgain()
     }
 
+    /**
+     * The play's log sealed "gave up" at the play time of this moment, for a leg given up while it is open.
+     * Null when the play never opened a board, kept no log, or its log went void: that leg has no replay (A10, A13).
+     */
+    fun sealGaveUp(): SolveReplay? {
+        if (_board.value.status !is PlayBoardStatus.Ready) return null
+        val endMs = (controller as? PlayClock)?.displayedElapsedMs() ?: 0L
+        return moveLog.seal(ReplayOutcome.GaveUp, endMs)
+    }
+
     /** Retry after a failed record write: a new emitter (the old one deduped this ref). */
     fun retryRecordWrite() = winRecording.retry()
 
@@ -203,6 +218,7 @@ class ActivePlay internal constructor(
     internal val unsavedSession: ByteArray? get() = persistence.unsaved
 
     private fun newController(moveLog: MoveLog = MoveLog.off()): GamePlayController {
+        this.moveLog = moveLog
         val gen = ++generation
         lateinit var created: GamePlayController
         created = ui.createController(
