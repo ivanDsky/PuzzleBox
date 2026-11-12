@@ -52,7 +52,7 @@ class ObserveCustomRecordsTest {
     @Test
     fun `room observeCustom emits only that puzzle's rows`() = runTest {
         val registry = TestGames.registry(listOf(queens, tango))
-        val repository = RoomCompletionRepository(db, db.completionDao(), registry, clock = { nowMs })
+        val repository = RoomCompletionRepository(db, db.completionDao(), db.completionReplayDao(), registry, clock = { nowMs })
         val rows = assertContract(repository)
         val record = rows.last()
         assertTrue(record.isRecord)

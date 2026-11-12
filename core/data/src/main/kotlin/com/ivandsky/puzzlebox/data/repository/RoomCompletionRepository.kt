@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
 import com.ivandsky.puzzlebox.data.model.toModel
 import com.ivandsky.puzzlebox.database.CompletionDao
+import com.ivandsky.puzzlebox.database.CompletionReplayDao
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -16,6 +17,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import com.ivandsky.puzzlebox.model.SolveReplay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -31,6 +33,7 @@ import kotlinx.coroutines.flow.map
 internal class RoomCompletionRepository(
     private val db: PuzzleBoxDatabase,
     private val dao: CompletionDao,
+    private val replayDao: CompletionReplayDao,
     private val registry: GameRegistry,
     private val owner: OwnerScope = NoOwnerScope,
     private val policy: FirstWinPolicy = FirstWinPolicy(),
@@ -85,4 +88,14 @@ internal class RoomCompletionRepository(
         }
         return row?.let { BestScore(it.timeMs, it.hints) }
     }
+
+    // An unreadable size (empty or over the cap) reads as no replay.
+    override suspend fun recordReplay(puzzleRef: PuzzleRef): SolveReplay? =
+        replayDao.recordReplay(PuzzleRefKeys.encode(puzzleRef))?.let(SolveReplay::of)
+
+    override suspend fun latestReplay(puzzleRef: PuzzleRef): SolveReplay? =
+        replayDao.latestReplay(PuzzleRefKeys.encode(puzzleRef))?.let(SolveReplay::of)
+
+    override suspend fun latestIsRecord(puzzleRef: PuzzleRef): Boolean =
+        replayDao.latestIsRecord(PuzzleRefKeys.encode(puzzleRef))
 }

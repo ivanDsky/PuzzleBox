@@ -52,7 +52,7 @@ class BestRankContractTest {
     @Test
     fun `room best follows each game's rank order`() = runTest {
         val registry = GameRegistry(orders.map { (game, order) -> plugin(game, order) })
-        assertContract(RoomCompletionRepository(db, db.completionDao(), registry))
+        assertContract(RoomCompletionRepository(db, db.completionDao(), db.completionReplayDao(), registry))
     }
 
     @Test
@@ -80,7 +80,7 @@ class BestRankContractTest {
     @Test
     fun `room best never counts a custom completion`() = runTest {
         val registry = GameRegistry(listOf(TestGames.plugin(queens)))
-        assertCustomExcluded(RoomCompletionRepository(db, db.completionDao(), registry))
+        assertCustomExcluded(RoomCompletionRepository(db, db.completionDao(), db.completionReplayDao(), registry))
     }
 
     @Test

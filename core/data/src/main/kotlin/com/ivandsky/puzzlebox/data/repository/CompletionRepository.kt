@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.SolveReplay
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -29,4 +30,13 @@ interface CompletionRepository {
     /** The game's best (spec A10, A25): the top record row (first solves) of [game] by the
      *  game's own rank order (ADR-0013) — play-agains never rank; null = no completion yet. */
     suspend fun best(game: GameId): BestScore?
+
+    /** Replay of the puzzle's record solve (the first win); null when it has none. */
+    suspend fun recordReplay(puzzleRef: PuzzleRef): SolveReplay?
+
+    /** Replay of the puzzle's newest solve; null when it has none. */
+    suspend fun latestReplay(puzzleRef: PuzzleRef): SolveReplay?
+
+    /** True when the puzzle's newest solve is its record solve, or it has no solve. */
+    suspend fun latestIsRecord(puzzleRef: PuzzleRef): Boolean
 }

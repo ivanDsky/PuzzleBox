@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.model.SolveReplay
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,6 +34,10 @@ class FakeCompletionRepository(
     var writeGate: CompletableDeferred<Unit>? = null
 
     private val all = MutableStateFlow(records)
+
+    /** Replays by ref key: the record solve's and the newest solve's. Empty until a writer fills them. */
+    private val recordReplays = mutableMapOf<String, SolveReplay>()
+    private val latestReplays = mutableMapOf<String, SolveReplay>()
 
     /** Replaces every stored row; observers see one new emission. */
     fun setRecords(records: List<CompletionRecord>) {
@@ -80,5 +85,17 @@ class FakeCompletionRepository(
             .values
             .map { rows -> rows.first().let { BestScore(it.time, it.hints) } }
             .minWithOrNull(ranking)
+    }
+
+    override suspend fun recordReplay(puzzleRef: PuzzleRef): SolveReplay? =
+        recordReplays[PuzzleRefKeys.encode(puzzleRef)]
+
+    override suspend fun latestReplay(puzzleRef: PuzzleRef): SolveReplay? =
+        latestReplays[PuzzleRefKeys.encode(puzzleRef)]
+
+    /** Rows carry no completedAt here, so the newest is the last stored row of the ref; the record is the first. */
+    override suspend fun latestIsRecord(puzzleRef: PuzzleRef): Boolean {
+        val rows = all.value.filter { it.puzzleRef == puzzleRef }
+        return rows.size < 2
     }
 }
