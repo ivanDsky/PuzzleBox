@@ -45,8 +45,8 @@ internal class RoomLinkedInDays(
     internal val syncState = LinkedInSyncState()
 
     private val fetchLog = db.fetchLogDao()
-    private val ghostDao = db.ghostDao()
     private val ghosts = LinkedInGhostWriter(db, ownerScope)
+    private val savedBoards = SavedBoardDays(db, avatars, ownerScope)
 
     private val window = LinkedInDayWindow(calendar)
 
@@ -74,7 +74,7 @@ internal class RoomLinkedInDays(
             }
             combine(
                 imported(game, day),
-                stored(game, day, profileId),
+                savedBoards.observe(game, day, profileId),
                 fetches(game, day, profileId),
                 syncState.inFlight(key),
                 syncState.lastSync(key),
@@ -90,8 +90,9 @@ internal class RoomLinkedInDays(
                     lastSync = lastSync,
                     own = ownState(import, fetches),
                     ghosts = board.ghosts,
-                    boardFetchedAtMs = fetches.firstOrNull { it.item == LinkedInItem.Board.name }?.fetchedAtMs,
+                    boardFetchedAtMs = board.readAtMs,
                     owner = board.owner,
+                    boardComplete = board.complete,
                 )
             }
             // Room emits again on any write to a table, so a sync of another day would repeat this one.
@@ -107,27 +108,6 @@ internal class RoomLinkedInDays(
             rows.firstOrNull { it.puzzleRef.gameId == game && (it.puzzleRef.key as? PuzzleKey.Daily)?.date == day }
         }
 
-    /**
-     * The day's board; nothing without a link, whatever a disconnect has not wiped yet. The player's own row sits
-     * in the same table, so it is split out by the profile it was read for and never reaches the connections.
-     * A day whose board holds no row of the player (a past board is never read again) shows the player as the
-     * newest row stored for the profile, from any game and day: their name and photo belong to the account.
-     */
-    private fun stored(game: GameId, day: LocalDate, profileId: String?): Flow<StoredBoard> =
-        if (profileId == null) {
-            flowOf(StoredBoard(emptyList(), null))
-        } else {
-            combine(ghostDao.observeWithNewest(game.value, day.toString(), profileId), avatars.present) { rows, photos ->
-                val (own, others) = rows.partition { it.memberRef == profileId }
-                StoredBoard(
-                    ghosts = others.map {
-                        LinkedInGhost(it.memberRef, it.name, it.timeMs, it.hintFree, it.flawless, avatars.pathOf(it.memberRef, photos))
-                    },
-                    owner = own.firstOrNull()?.let { LinkedInOwner(it.name, avatars.pathOf(it.memberRef, photos)) },
-                )
-            }
-        }
-
     private fun fetches(game: GameId, day: LocalDate, profileId: String?): Flow<List<FetchLogEntity>> =
         if (profileId == null) flowOf(emptyList()) else fetchLog.observe(game.value, day.toString(), profileId)
 
@@ -137,7 +117,4 @@ internal class RoomLinkedInDays(
             LinkedInOwnState.NotPlayed
         else -> LinkedInOwnState.Unknown
     }
-
-    /** A day's stored board as observers see it: the connections and, apart, the player. */
-    private class StoredBoard(val ghosts: List<LinkedInGhost>, val owner: LinkedInOwner?)
 }

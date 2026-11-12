@@ -283,7 +283,7 @@ class GamePageBoardViewModelTest {
     }
 
     @Test
-    fun `a hidden or out of window board has no ghosts`() {
+    fun `a hidden board has no ghosts and a saved one shows past the window`() {
         val model = linkedInModel()
         model.state.launchIn(screen)
 
@@ -291,9 +291,10 @@ class GamePageBoardViewModelTest {
         settle()
         assertEquals(emptyList<GhostRowModel>(), model.state.value.ghosts)
 
+        // A saved board needs no recent day (A24): the window only says whether a read can still make one.
         days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L)), inWindow = false))
         settle()
-        assertEquals(emptyList<GhostRowModel>(), model.state.value.ghosts)
+        assertEquals(listOf("Ada"), model.state.value.ghosts.map { it.name })
     }
 
     @Test

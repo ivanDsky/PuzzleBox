@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.database.linkedin.FetchLogEntity
 import com.ivandsky.puzzlebox.database.linkedin.GhostEntity
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import java.io.File
 import kotlin.io.path.createTempDirectory
@@ -37,7 +38,7 @@ class RoomLinkedInAccountTest {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), LinkedInDatabase::class.java)
             .allowMainThreadQueries()
             .build()
-        account = RoomLinkedInAccount(link, db, avatars)
+        account = RoomLinkedInAccount(link, db, avatars, FakeOwnerScope())
     }
 
     @After

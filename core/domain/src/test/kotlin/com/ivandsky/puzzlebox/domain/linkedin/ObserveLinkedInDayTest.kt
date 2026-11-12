@@ -45,7 +45,8 @@ class ObserveLinkedInDayTest {
         ghosts: List<LinkedInGhost> = emptyList(),
         boardFetchedAtMs: Long? = fetchedAtMs,
         owner: LinkedInOwner? = null,
-    ) = LinkedInDayData(link, delta, boardInWindow, inFlight, lastSync, own, ghosts, boardFetchedAtMs, owner)
+        boardComplete: Boolean = false,
+    ) = LinkedInDayData(link, delta, boardInWindow, inFlight, lastSync, own, ghosts, boardFetchedAtMs, owner, boardComplete)
 
     private fun ghost(i: Int, timeMs: Long?, hintFree: Boolean = true) =
         LinkedInGhost("member-$i", "Member $i", timeMs, hintFree, flawless = false)
@@ -60,10 +61,13 @@ class ObserveLinkedInDayTest {
         ),
     )
 
+    /** What a day nothing is known of shows: no link, no board, and a day the data does not serve a board for. */
+    private val unknown = LinkedInDayView(LinkedInDayStatus.NotConnected, LinkedInBoardView.Hidden, saved = SavedBoardState.NeverSaved)
+
     /** Runs [block] against the observed day, past the unlinked view every day starts with. */
     private fun observing(block: suspend ReceiveTurbine<LinkedInDayView>.() -> Unit) = runTest {
         observeLinkedInDay(zip, day).test {
-            assertEquals(LinkedInDayView(LinkedInDayStatus.NotConnected, LinkedInBoardView.Hidden), awaitItem())
+            assertEquals(unknown, awaitItem())
             block()
             cancelAndIgnoreRemainingEvents()
         }
@@ -78,12 +82,27 @@ class ObserveLinkedInDayTest {
         viewOf(data).board as LinkedInBoardView.Shown
 
     @Test
-    fun `not connected shows NotConnected and hides the board`() = observing {
+    fun `not connected shows NotConnected and the board that was saved before the disconnect`() = observing {
         val view = viewOf(
             data(link = LinkState.NotConnected, own = imported(60_000), ghosts = listOf(ghost(1, 50_000))),
         )
 
-        assertEquals(LinkedInDayView(LinkedInDayStatus.NotConnected, LinkedInBoardView.Hidden), view)
+        assertEquals(
+            LinkedInDayView(
+                LinkedInDayStatus.NotConnected,
+                LinkedInBoardView.Shown(listOf(ghost(1, 50_000))),
+                saved = SavedBoardState.Saved(fetchedAtMs, final = false),
+            ),
+            view,
+        )
+    }
+
+    @Test
+    fun `not connected with nothing saved hides the board`() = observing {
+        assertEquals(
+            LinkedInDayView(LinkedInDayStatus.NotConnected, LinkedInBoardView.Hidden, saved = SavedBoardState.NotYetRead),
+            viewOf(data(link = LinkState.NotConnected, boardFetchedAtMs = null)),
+        )
     }
 
     @Test
@@ -193,12 +212,37 @@ class ObserveLinkedInDayTest {
     }
 
     @Test
-    fun `a board outside the data window is Hidden`() = observing {
+    fun `a saved board shows whatever the window says, and no board is Hidden`() = observing {
         val board = listOf(ghost(1, 50_000))
 
-        assertEquals(LinkedInBoardView.Hidden, viewOf(data(boardInWindow = false, ghosts = board)).board)
-        assertEquals(LinkedInBoardView.Hidden, viewOf(data(delta = null, boardInWindow = false, ghosts = board)).board)
+        assertEquals(LinkedInBoardView.Shown(board), viewOf(data(boardInWindow = false, delta = 30, ghosts = board)).board)
+        assertEquals(LinkedInBoardView.Shown(board), viewOf(data(delta = null, boardInWindow = false, ghosts = board)).board)
         assertEquals(LinkedInBoardView.Shown(board), viewOf(data(boardInWindow = true, ghosts = board)).board)
+        assertEquals(LinkedInBoardView.Hidden, viewOf(data(boardInWindow = false, delta = 30, boardFetchedAtMs = null)).board)
+    }
+
+    @Test
+    fun `a board read after the day's end is Saved as final, one read on the day as partial`() = observing {
+        assertEquals(SavedBoardState.Saved(fetchedAtMs, final = true), viewOf(data(boardComplete = true)).saved)
+        assertEquals(SavedBoardState.Saved(fetchedAtMs, final = false), viewOf(data(boardComplete = false)).saved)
+        // A day past the window with a board is the same: the window only decides about a day with no board.
+        assertEquals(
+            SavedBoardState.Saved(fetchedAtMs + 1, final = true),
+            viewOf(data(delta = 30, boardInWindow = false, boardFetchedAtMs = fetchedAtMs + 1, boardComplete = true)).saved,
+        )
+    }
+
+    @Test
+    fun `a day past the window with no board was never saved`() = observing {
+        assertEquals(SavedBoardState.NeverSaved, viewOf(data(delta = 30, boardInWindow = false, boardFetchedAtMs = null)).saved)
+        assertEquals(SavedBoardState.NeverSaved, viewOf(data(delta = null, boardInWindow = false, boardFetchedAtMs = null)).saved)
+    }
+
+    @Test
+    fun `a day inside the window with no board is not yet read, linked or not`() = observing {
+        assertEquals(SavedBoardState.NotYetRead, viewOf(data(boardFetchedAtMs = null)).saved)
+        assertEquals(SavedBoardState.NotYetRead, viewOf(data(link = LinkState.Paused("me", Kind.SessionExpired), boardFetchedAtMs = null)).saved)
+        assertEquals(SavedBoardState.NotYetRead, viewOf(data(link = LinkState.NotConnected, delta = 0, boardFetchedAtMs = null)).saved)
     }
 
     @Test
