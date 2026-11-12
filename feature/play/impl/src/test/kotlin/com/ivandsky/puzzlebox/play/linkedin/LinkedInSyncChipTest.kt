@@ -77,9 +77,14 @@ class LinkedInSyncChipTest {
     }
 
     @Test
-    fun loadingSaysSyncingAndIsNotTappable() {
+    fun loadingShowsARingNotWordsAndIsNotTappable() {
+        // The ring spins forever, so the clock cannot settle; step it by hand.
+        composeRule.mainClock.autoAdvance = false
         show(LinkedInDayStatus.Loading)
-        chip().assertTextEquals("Syncing…").assertContentDescriptionEquals("Syncing with LinkedIn").assertHasNoClickAction()
+        composeRule.mainClock.advanceTimeBy(500L)
+        chip().assertContentDescriptionEquals("Syncing with LinkedIn").assertHasNoClickAction()
+        assertNull(chip().fetchSemanticsNode().config.getOrNull(SemanticsProperties.Text))
+        composeRule.onNodeWithTag("linkedin.sync.ring", useUnmergedTree = true).assertExists()
     }
 
     @Test

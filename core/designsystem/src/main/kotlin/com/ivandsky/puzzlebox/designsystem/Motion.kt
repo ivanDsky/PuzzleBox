@@ -83,6 +83,21 @@ object MotionTokens {
     val EasingEmphasizedAccelerate = CubicBezierEasing(0.3f, 0f, 0.8f, 0.15f)
     val EasingLinear = LinearEasing
 
+    // CSS `ease`: the day morph's curve. It starts gentler than EasingStandard, which front-loads a swap into a blink.
+    val EasingEase = CubicBezierEasing(0.25f, 0.1f, 0.25f, 1f)
+
+    // DayMorph: text that differs between two days crossfades in place. The old layer leaves over DayMorphOut while it
+    // blurs up to DayMorphBlur; the new one arrives over the longer DayMorphIn, DayMorphDelay late, un-blurring. The
+    // slower, delayed arrival keeps both from reading as two words overlapping. No travel and no clip, so glyphs are
+    // never cut. Blur needs API 31; below it the morph is a plain crossfade. Reduced: an instant swap.
+    const val DayMorphOut = 180
+    const val DayMorphIn = 280
+    const val DayMorphDelay = 30
+    val DayMorphBlur: Dp = 4.dp
+
+    // The LinkedIn chip changes width as its text morphs, on the standard curve every resize here uses.
+    const val DayMorphResize = 260
+
     // Critically damped by default (no overshoot); the underdamped variant is reserved
     // for gestures that carry momentum (flick, drag release). Stiffness ~380 matches an
     // Apple-style response of ~0.32s: quick without feeling twitchy.
