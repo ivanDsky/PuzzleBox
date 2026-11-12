@@ -28,6 +28,7 @@ import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
+import kotlin.math.roundToInt
 
 /**
  * Below this pane height (a landscape phone, split screen, a 470 dp window under the
@@ -141,12 +142,12 @@ private fun CardWithTail(centred: Boolean, gap: Dp, tail: (@Composable () -> Uni
         val cardPlaceable = measurables[0].measure(loose)
         val tailPlaceable = measurables.getOrNull(1)?.measure(loose)
         val paneHeight = constraints.minHeight
-        val cardTop = if (centred) ((paneHeight - cardPlaceable.height) / 2).coerceAtLeast(0) else 0
+        val cardTop = if (centred) ((paneHeight - cardPlaceable.height) / 2f).roundToInt().coerceAtLeast(0) else 0
         val tailTop = cardTop + cardPlaceable.height + gap.roundToPx()
         val height = maxOf(paneHeight, tailPlaceable?.let { tailTop + it.height } ?: 0)
         layout(constraints.maxWidth, height) {
-            cardPlaceable.place((constraints.maxWidth - cardPlaceable.width) / 2, cardTop)
-            tailPlaceable?.place((constraints.maxWidth - tailPlaceable.width) / 2, tailTop)
+            cardPlaceable.place(((constraints.maxWidth - cardPlaceable.width) / 2f).roundToInt(), cardTop)
+            tailPlaceable?.place(((constraints.maxWidth - tailPlaceable.width) / 2f).roundToInt(), tailTop)
         }
     }
 }
