@@ -15,11 +15,15 @@ class MoveLog private constructor(private var journal: Journal?) {
 
     /** Applies [move] through [replay]. Records it only when the session changed. Returns the session to store. */
     fun <S : GameSession> play(replay: GameReplay<S>, session: S, move: ReplayMove, atMs: Long): S =
-        step(replay, session, move, atMs, recordsUnchanged = false)
+        step(replay, session, move, atMs, isSetting = false)
 
-    /** Same, but always records, so a replay knows the setting from its first frame. For settings at adopt and at flip. */
+    /**
+     * Same for a setting, at adopt and at flip. Recorded even when the session did not change, so a replay knows the
+     * setting from its first frame. Not recorded when it repeats the journal's latest move of its kind: a restored
+     * play states its setting again, and its record has to equal the uninterrupted one.
+     */
     fun <S : GameSession> setting(replay: GameReplay<S>, session: S, move: ReplayMove, atMs: Long): S =
-        step(replay, session, move, atMs, recordsUnchanged = true)
+        step(replay, session, move, atMs, isSetting = true)
 
     /** In-progress bytes for the saved play; null = nothing to save. */
     fun snapshot(): ByteArray? {
@@ -45,7 +49,7 @@ class MoveLog private constructor(private var journal: Journal?) {
         session: S,
         move: ReplayMove,
         atMs: Long,
-        recordsUnchanged: Boolean,
+        isSetting: Boolean,
     ): S {
         val current = journal
         // The game steps with the stamp that is recorded, so a re-fold sees the time live play saw.
@@ -55,7 +59,9 @@ class MoveLog private constructor(private var journal: Journal?) {
             journal = null
             return session
         }
-        if (current == null || (next === session && !recordsUnchanged)) return next
+        if (current == null) return next
+        val changed = if (isSetting) current.latestOfKind(move.kind) != move else next !== session
+        if (!changed) return next
         // Voided here, not at the next snapshot, so the journal never grows past the cap.
         if (current.moves.size == ReplayCodec.MAX_MOVES) {
             journal = null
@@ -72,6 +78,8 @@ class MoveLog private constructor(private var journal: Journal?) {
 
     private class Journal(val game: GameId, val moves: ArrayList<StampedMove>) {
         val lastMs: Long get() = if (moves.isEmpty()) 0 else moves.last().atMs
+
+        fun latestOfKind(kind: Int): ReplayMove? = moves.lastOrNull { it.move.kind == kind }?.move
     }
 
     companion object {
