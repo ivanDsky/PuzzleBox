@@ -53,6 +53,8 @@ private const val NanosPerMilli = 1_000_000L
  * frame time and taps. Skip and system Back jump to the end, where the summary takes over: Rematch, Share and Watch
  * again (a new machine from the intro); its back arrow (and Back) leaves. Reduced motion or a reveal already seen
  * starts at the end. The zone and locale of the summary's date are read once, when the view model is made.
+ * Once the summary shows, a puzzle with a replay (and a game that draws one) offers Compare, which pushes the
+ * duel's compare destination for that leg.
  */
 @Composable
 internal fun RevealRoute(code: String, navigator: Navigator, layout: PlayLayout) {
@@ -61,7 +63,26 @@ internal fun RevealRoute(code: String, navigator: Navigator, layout: PlayLayout)
     val vm: RevealViewModel = koinViewModel(key = code, parameters = { parametersOf(code, reduced, time.zone, time.locale) })
     val state by vm.state.collectAsStateWithLifecycle()
     when (val current = state) {
-        is RevealUiState.Running -> RevealRunScreen(current, layout == PlayLayout.TwoPane, vm.brands, navigator, vm::gameName, vm::watchAgain)
+        is RevealUiState.Running -> {
+            val compare by vm.compare.collectAsStateWithLifecycle()
+            OpenCompareEffect(
+                compare = compare,
+                code = code,
+                gameOf = { leg -> current.match.legs.getOrNull(leg)?.ref?.gameId },
+                navigator = navigator,
+                onOpened = vm::closeCompare,
+            )
+            RevealRunScreen(
+                run = current,
+                wide = layout == PlayLayout.TwoPane,
+                brands = vm.brands,
+                navigator = navigator,
+                nameOf = vm::gameName,
+                onWatchAgain = vm::watchAgain,
+                onRevealEnded = vm::revealEnded,
+                onCompare = vm::openCompare,
+            )
+        }
         RevealUiState.Unsettled -> RevealMessage(navigator) {
             EmptyState("Nothing to reveal yet", "The puzzles haven't been settled. Check back once both players have played.")
         }
@@ -94,6 +115,8 @@ private fun RevealRunScreen(
     navigator: Navigator,
     nameOf: (GameId) -> String,
     onWatchAgain: () -> Unit,
+    onRevealEnded: () -> Unit,
+    onCompare: (Int) -> Unit,
 ) {
     val reduced = rememberReducedMotion()
     // The last run this screen showed; a screen recreated mid-run (rotation, process death) opens at the summary.
@@ -116,6 +139,7 @@ private fun RevealRunScreen(
             last = now
         }
     }
+    LaunchedEffect(machine, state.phase == RevealPhase.End) { if (state.phase == RevealPhase.End) onRevealEnded() }
     BackHandler(enabled = state.phase != RevealPhase.End) { machine.skip() }
     if (state.phase == RevealPhase.End) {
         RevealSummary(
@@ -129,6 +153,8 @@ private fun RevealRunScreen(
                 invite = null
                 onWatchAgain()
             },
+            compares = offeredCompares(run.compareLegs, { leg -> run.match.legs.getOrNull(leg)?.ref?.gameId }, brands),
+            onCompare = onCompare,
         )
     } else {
         RevealStage(
