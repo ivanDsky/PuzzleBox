@@ -38,8 +38,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The day card's LinkedIn sync chip on the Blue accent card in each state, light, and once in dark; and the whole
- * day card of an archive day, whose "From the archive" pill is the widest thing beside the chip. Goldens in
- * `snapshots/linkedin/`.
+ * day card of an archive day, whose "From the archive" pill is the widest thing beside the chip, on the golden phone
+ * and on the narrowest one. Goldens in `snapshots/linkedin/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -59,6 +59,12 @@ class LinkedInSyncChipGoldenScreenshots {
     @Test fun `archive day card with the chip light`() = dayCard("sync-chip-day-card", dark = false)
     @Test fun `archive day card with the chip dark`() = dayCard("sync-chip-day-card", dark = true)
 
+    @Config(sdk = [34], qualifiers = NARROWEST_PHONE)
+    @Test fun `archive day card with the chip on the narrowest phone light`() = dayCard("sync-chip-day-card", dark = false, device = "narrow-phone")
+
+    @Config(sdk = [34], qualifiers = NARROWEST_PHONE)
+    @Test fun `archive day card with the chip on the narrowest phone dark`() = dayCard("sync-chip-day-card", dark = true, device = "narrow-phone")
+
     private fun chip(name: String, dark: Boolean, status: LinkedInDayStatus) {
         rule.showGolden(dark) {
             val colors = libraryCardColors(GameBrand(AccentSlot.Blue, GameGlyphs.Zip))
@@ -69,7 +75,7 @@ class LinkedInSyncChipGoldenScreenshots {
         rule.settleAndCapture("linkedin", name, "phone", dark)
     }
 
-    private fun dayCard(name: String, dark: Boolean) {
+    private fun dayCard(name: String, dark: Boolean, device: String = "phone") {
         val today = LocalDate.parse("2026-11-05")
         val row = LibraryRowModel(
             card = GameCardModel(
@@ -95,6 +101,9 @@ class LinkedInSyncChipGoldenScreenshots {
                 )
             }
         }
-        rule.settleAndCapture("linkedin", name, "phone", dark)
+        rule.settleAndCapture("linkedin", name, device, dark)
     }
 }
+
+/** The narrowest width the app supports, where the pill and the chip compete hardest for the day card's top row. */
+private const val NARROWEST_PHONE = "w360dp-h891dp-420dpi"
