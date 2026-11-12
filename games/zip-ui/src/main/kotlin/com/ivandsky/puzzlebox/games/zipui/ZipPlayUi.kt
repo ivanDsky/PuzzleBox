@@ -41,6 +41,7 @@ import com.ivandsky.puzzlebox.gameui.PlayClear
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
@@ -54,6 +55,8 @@ class ZipPlayUi : GamePlayUi {
     override fun createController(env: PlayEnvironment): GamePlayController = ZipPlayController(env)
 
     override val tutorial: List<TutorialStep> get() = ZipTutorial.steps
+
+    override val replayBoard: GameReplayBoard get() = ZipReplayBoard
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
