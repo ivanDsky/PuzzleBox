@@ -27,10 +27,23 @@ private fun PreviewChips(vararg states: LinkedInDayStatus) {
     }
 }
 
-// Preview: a read is on its way; the chip says so and takes no tap.
+// Preview: the first read, with nothing settled to show yet: the logo and a ring, and no tap.
 @PuzzleBoxPreviews
 @Composable
 internal fun LinkedInSyncChipLoadingPreview() = PreviewChips(LinkedInDayStatus.Loading)
+
+// Preview: a read that outlasted its first second over a settled day: the ring in the check's place, same chip size.
+@PuzzleBoxPreviews
+@Composable
+internal fun LinkedInSyncChipReadingPreview() {
+    PuzzleBoxTheme {
+        val colors = libraryCardColors(GameBrand(AccentSlot.Blue, GameGlyphs.Zip))
+        Column(Modifier.background(colors.fill).padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            LinkedInSyncChip(LinkedInDayStatus.Imported(52_000L, 0), onResume = {}, onReconnect = {}, onRetry = {})
+            LinkedInSyncChip(LinkedInDayStatus.Imported(52_000L, 0), reading = true, onResume = {}, onReconnect = {}, onRetry = {})
+        }
+    }
+}
 
 // Preview: the day is in sync (imported, not played on LinkedIn, or idle): the logo and a check.
 @PuzzleBoxPreviews

@@ -4,11 +4,18 @@ import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayStatus
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 
 /**
- * What the sync chip shows. A null [label] is the synced state, which draws a check instead of words; a null [onClick]
- * is a chip with nothing to offer. [description] is the whole state for a screen reader, since the label alone ("Retry")
- * does not say what it retries.
+ * What the sync chip shows. A null [label] is the synced state, which draws a check instead of words, or a progress
+ * ring while [busy] (a read with nothing settled to show yet); a null [onClick] is a chip with nothing to offer.
+ * [description] is the whole state for a screen reader, since the label alone ("Retry") does not say what it retries.
  */
-internal class SyncChipModel(val label: String?, val description: String, val onClick: (() -> Unit)?)
+internal class SyncChipModel(
+    val label: String?,
+    val description: String,
+    val onClick: (() -> Unit)?,
+    val busy: Boolean = false,
+)
+
+internal const val SYNCING = "Syncing with LinkedIn"
 
 /**
  * The chip for [status], or null when there is nothing to say (LinkedIn is not connected). A paused sync offers Resume
@@ -25,7 +32,7 @@ internal fun syncChipOf(
     else SyncChipModel("Session ended", "LinkedIn session ended", null)
     return when (status) {
         LinkedInDayStatus.NotConnected -> null
-        LinkedInDayStatus.Loading -> SyncChipModel("Syncing…", "Syncing with LinkedIn", null)
+        LinkedInDayStatus.Loading -> SyncChipModel(null, SYNCING, null, busy = true)
         is LinkedInDayStatus.Imported, LinkedInDayStatus.DidNotPlay, LinkedInDayStatus.Idle ->
             SyncChipModel(null, "Synced with LinkedIn", null)
         LinkedInDayStatus.Offline -> SyncChipModel("Retry", "Can't reach LinkedIn. Retry", onRetry)
