@@ -202,7 +202,7 @@ class ResultSideCardTest {
     fun `a play-again shows its pill as Play again and the dashed bar`() {
         setContent(heroSampleModel(verdict = RecordVerdict.PlayAgain, playAgain = true))
 
-        composeRule.onNodeWithTag("result.side.you", useUnmergedTree = true).assertTextEquals("Replay")
+        composeRule.onNodeWithTag("result.side.you", useUnmergedTree = true).assertTextEquals("Practice")
         composeRule.onNodeWithTag("result.side.bar.you", useUnmergedTree = true).assertIsDisplayed()
     }
 
