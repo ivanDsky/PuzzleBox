@@ -4,8 +4,6 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSpace
 import com.ivandsky.puzzlebox.testing.cloud.FakeSyncStateStore
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -16,19 +14,6 @@ import org.junit.Test
 
 /** SC13, engine half: the erase steps and what they leave alone, over [FakeCloudSpace] and [FakeSyncStateStore]. */
 class CloudEraseTest {
-
-    private class RecordingKind(override val kind: String, val rows: List<String>) : SyncedKind {
-        val forgotten = mutableListOf<String>()
-
-        override fun pendingIds(uid: String): Flow<Set<String>> = emptyFlow()
-        override suspend fun adopt(uid: String) = Unit
-        override suspend fun pending(uid: String): List<CloudDoc> = emptyList()
-        override suspend fun apply(uid: String, docs: List<CloudDoc>): Int = 0
-        override suspend fun acknowledge(uid: String, uploaded: List<CloudDoc>) = Unit
-        override suspend fun forget(uid: String) {
-            forgotten += uid
-        }
-    }
 
     private val identity = FakeIdentityService(Identity(uid = ANN, displayName = "Ann", photoUrl = null))
     private val space = FakeCloudSpace(identity)
