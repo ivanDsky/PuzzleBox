@@ -131,6 +131,8 @@ class SudokuPlayController(
             score = score,
             onWinRecord = env.onWon,
             now = now,
+            log = env.moveLog,
+            runningSince = { runningSince },
             onSessionChanged = ::publish,
             settle = ::settle,
             hintMode = hintMode,
