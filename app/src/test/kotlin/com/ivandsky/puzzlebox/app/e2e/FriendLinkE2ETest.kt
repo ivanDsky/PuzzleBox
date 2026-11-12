@@ -107,7 +107,7 @@ class FriendLinkE2ETest {
 
     @Test
     fun `a link while the app runs on Create opens the card in Play`() = launching(fromRecents(view(LINK))) {
-        // Relaunched from Recents, the link that first started the task is not replayed.
+        // Relaunched from Recents, the link that first started the task is not re-applied.
         assertRoute("route.home")
         tap("nav.tab.create")
         assertRoute("route.create")

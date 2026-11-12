@@ -36,8 +36,8 @@ import org.robolectric.annotation.Config
 
 /**
  * History rows of the transition table (spec §2.6) over the real shell: N10 (a double-tapped
- * replay pushes `GameKey(zip, 30 Oct)` once), N11 (solve → Result → back to History), N17
- * (compact: back closes the day's detail before it leaves History) and N18 / SC8 (a replay
+ * play-again pushes `GameKey(zip, 30 Oct)` once), N11 (solve → Result → back to History), N17
+ * (compact: back closes the day's detail before it leaves History) and N18 / SC8 (a play-again
  * never resumes as today). Compact width: History is single-pane.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -46,23 +46,23 @@ import org.robolectric.annotation.Config
 class HistoryE2ETest {
 
     @Test
-    fun `N10 a double-tapped replay pushes the day's game once`() = shellRobot(history, graph = playAgainGraph()) {
+    fun `N10 a double-tapped play-again pushes the day's game once`() = shellRobot(history, graph = playAgainGraph()) {
         openDay()
 
         // Both taps land in one frame, before the push recomposes the stack away.
-        val replay = rule.onNodeWithTag(REPLAY).fetchSemanticsNode()
-        rule.runOnUiThread { repeat(2) { replay.config[SemanticsActions.OnClick].action?.invoke() } }
+        val playAgain = rule.onNodeWithTag(PLAY_AGAIN_TAG).fetchSemanticsNode()
+        rule.runOnUiThread { repeat(2) { playAgain.config[SemanticsActions.OnClick].action?.invoke() } }
         rule.waitForIdle()
 
-        assertState(replaying)
+        assertState(playingAgain)
         assertRoute(GAME)
     }
 
     @Test
-    fun `N11 solving a replay shows its result, and back returns to History`() =
+    fun `N11 solving a play-again shows its result, and back returns to History`() =
         shellRobot(history, graph = playAgainGraph()) {
             openDay()
-            tap(REPLAY)
+            tap(PLAY_AGAIN_TAG)
             assertRoute(GAME)
             awaitZip(PLAY_AGAIN_DAY)
 
@@ -92,7 +92,7 @@ class HistoryE2ETest {
                 ),
             )
         }
-        shellRobot(replaying, graph = graph) {
+        shellRobot(playingAgain, graph = graph) {
             awaitTag(RESULT)
 
             val result = ResultKey(ZIP, "$PLAY_AGAIN_DAY", 61_000, 2)
@@ -120,16 +120,16 @@ class HistoryE2ETest {
     }
 
     @Test
-    fun `N18 a replay mid-game never resumes as today's Zip`() = shellRobot(history, graph = playAgainGraph()) {
+    fun `N18 a play-again mid-game never resumes as today's Zip`() = shellRobot(history, graph = playAgainGraph()) {
         openDay()
-        tap(REPLAY)
+        tap(PLAY_AGAIN_TAG)
         awaitZip(PLAY_AGAIN_DAY)
         rule.runOnIdle { MID_GAME.forEach { zip(PLAY_AGAIN_DAY).extend(it) } }
 
         switchTab(PlayKey)
         openGame(ZIP)
 
-        assertState(stacks(tab = PlayKey, home = replaying.stacks.first(), play = listOf(PlayKey, GameKey(ZIP))))
+        assertState(stacks(tab = PlayKey, home = playingAgain.stacks.first(), play = listOf(PlayKey, GameKey(ZIP))))
         assertRoute(GAME)
         val today = awaitZip(E2E_TODAY)
         assertEquals("today's board is a fresh session of today", E2E_TODAY, (today.ref?.key as? PuzzleKey.Daily)?.date)
@@ -137,7 +137,7 @@ class HistoryE2ETest {
         assertEquals("the replay keeps its own trace", MID_GAME, rule.runOnIdle { zip(PLAY_AGAIN_DAY).session?.path })
     }
 
-    /** Opens the replayed day's detail from History's list. */
+    /** Opens the played-again day's detail from History's list. */
     private fun ShellRobot.openDay() {
         assertRoute(HISTORY)
         scrollToRow()
@@ -165,7 +165,7 @@ class HistoryE2ETest {
 
     private fun ZipPlayController.extend(cell: Cell) = onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
 
-    /** Today's Zip is fresh; [PLAY_AGAIN_DAY] is a captured, cached day History can replay. */
+    /** Today's Zip is fresh; [PLAY_AGAIN_DAY] is a captured, cached day History can play again. */
     private fun playAgainGraph() = E2eKoinGraph(E2E_TODAY).apply {
         daily.setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(E2E_TODAY), ZipPlayFixture.entry(PLAY_AGAIN_DAY)))
         daily.setCached(ZipDefinition.id, PLAY_AGAIN_DAY, ZipPlayFixture.envelope())
@@ -180,7 +180,7 @@ class HistoryE2ETest {
     ) = NavigationState(tab = tab, stacks = listOf(home, play, history, create))
 
     private val history = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey()))
-    private val replaying = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey(), GameKey(ZIP, "$PLAY_AGAIN_DAY")))
+    private val playingAgain = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey(), GameKey(ZIP, "$PLAY_AGAIN_DAY")))
 
     private companion object {
         const val HOME = "route.home"
@@ -188,7 +188,7 @@ class HistoryE2ETest {
         const val GAME = "route.game"
         const val RESULT = "route.result"
         // PLAY_AGAIN_DAY is unfinished, so its detail offers "Keep going".
-        const val REPLAY = "history.keep_going"
+        const val PLAY_AGAIN_TAG = "history.keep_going"
         const val LIST = "history.list"
         const val ZIP = "zip"
         const val TIMEOUT_MS = 5_000L

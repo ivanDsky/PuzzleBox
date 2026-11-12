@@ -143,7 +143,7 @@ internal data class NavMotion(
  * - Another owner tab: phone fade-through; tablet rise-over.
  * - Phone, same tab: the full-screen slide, result included.
  * - Tablet, into or out of a game: lift from its card, or the phone slide without one
- *   (deep link, history replay). Game ⇄ result and every other move: full-width shared axis.
+ *   (deep link, history play-again). Game ⇄ result and every other move: full-width shared axis.
  */
 internal fun navMotion(
     from: Map<String, Any>,

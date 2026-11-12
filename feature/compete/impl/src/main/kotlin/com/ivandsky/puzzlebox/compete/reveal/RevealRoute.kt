@@ -97,12 +97,12 @@ private fun RevealRunScreen(
 ) {
     val reduced = rememberReducedMotion()
     // The last run this screen showed; a screen recreated mid-run (rotation, process death) opens at the summary.
-    var shownReplay by rememberSaveable { mutableIntStateOf(-1) }
-    val machine = remember(run.race, run.replay) {
-        val atEnd = run.replay <= shownReplay || if (run.replay == 0) run.start.startAtEnd else reduced
+    var shownRerun by rememberSaveable { mutableIntStateOf(-1) }
+    val machine = remember(run.race, run.rerun) {
+        val atEnd = run.rerun <= shownRerun || if (run.rerun == 0) run.start.startAtEnd else reduced
         RevealMachine(run.race.legs, reduced = atEnd)
     }
-    SideEffect { shownReplay = run.replay }
+    SideEffect { shownRerun = run.rerun }
     val state by machine.state.collectAsStateWithLifecycle()
     var rematch by remember { mutableStateOf(false) }
     val time = rememberCompeteTime()

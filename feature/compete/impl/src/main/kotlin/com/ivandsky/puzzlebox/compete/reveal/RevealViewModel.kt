@@ -39,14 +39,14 @@ internal sealed interface RevealUiState {
 
     /**
      * The reveal of [match]. The [race] the machine plays and how its first run [start]s are fixed when the race
-     * opens; [replay] counts the Watch agains, each racing what is settled at that moment. The [summary] follows
+     * opens; [rerun] counts the Watch agains, each racing what is settled at that moment. The [summary] follows
      * the latest load.
      */
     data class Running(
         val match: Match,
         val race: RevealPlan,
         val start: RevealStart,
-        val replay: Int,
+        val rerun: Int,
         val summary: DuelSummary,
     ) : RevealUiState
 }
@@ -71,27 +71,27 @@ internal class RevealViewModel(
 ) : ViewModel() {
 
     /** The race the machine plays for one run, and how the first run started. */
-    private class Race(val plan: RevealPlan, val start: RevealStart, val replay: Int)
+    private class Race(val plan: RevealPlan, val start: RevealStart, val rerun: Int)
 
     private val shareCode: ShareCode? = ShareCode.parse(code)
-    private val replays = MutableStateFlow(0)
+    private val reruns = MutableStateFlow(0)
     private var race: Race? = null
     private var latest: MatchView? = null
 
     val state: StateFlow<RevealUiState> = if (shareCode == null) {
         MutableStateFlow<RevealUiState>(RevealUiState.NotFound).asStateFlow()
     } else {
-        combine(observeMatch(shareCode), replays) { match, replay -> build(shareCode, match, replay) }
+        combine(observeMatch(shareCode), reruns) { match, rerun -> build(shareCode, match, rerun) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), RevealUiState.Loading)
     }
 
     /** Races again from the intro, over every puzzle settled by now. */
-    fun watchAgain() = replays.update { it + 1 }
+    fun watchAgain() = reruns.update { it + 1 }
 
     fun gameName(id: GameId): String = registry.displayName(id)
 
     /** A failure after a load keeps that load: the reveal never falls back to a message once it has a match. */
-    private fun build(code: ShareCode, state: MatchState, replay: Int): RevealUiState {
+    private fun build(code: ShareCode, state: MatchState, rerun: Int): RevealUiState {
         val view = when (state) {
             is MatchState.Loaded -> state.view.also { latest = it }
             MatchState.NotFound -> latest ?: return RevealUiState.NotFound
@@ -103,18 +103,18 @@ internal class RevealViewModel(
         val current = race
         val next = when {
             current == null && plan.cards.isEmpty() -> return RevealUiState.Unsettled
-            current == null -> open(code, plan, view, replay)
-            current.replay != replay -> Race(plan, current.start, replay)
+            current == null -> open(code, plan, view, rerun)
+            current.rerun != rerun -> Race(plan, current.start, rerun)
             else -> current
         }
         race = next
         val summary = duelSummary(view.match, plan, view.outcome, zone, locale)
-        return RevealUiState.Running(view.match, next.plan, next.start, next.replay, summary)
+        return RevealUiState.Running(view.match, next.plan, next.start, next.rerun, summary)
     }
 
-    private fun open(code: ShareCode, plan: RevealPlan, view: MatchView, replay: Int): Race {
+    private fun open(code: ShareCode, plan: RevealPlan, view: MatchView, rerun: Int): Race {
         val start = RevealStart.of(reducedMotion, view.local?.revealSeenAt)
         if (start.markSeen) viewModelScope.launch { recordSeen(code, view.outcome.myWins, view.outcome.theirWins) }
-        return Race(plan, start, replay)
+        return Race(plan, start, rerun)
     }
 }

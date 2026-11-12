@@ -116,7 +116,7 @@ class ProcessDeathE2ETest {
     }
 
     @Test
-    fun `N20 a History replay's Result saved before process death returns to its origin on Done`() =
+    fun `N20 a History play-again's Result saved before process death returns to its origin on Done`() =
         shellRobot(pastGame, graph = playAgainGraph()) {
             solveThenDie(pastSlot)
 
@@ -252,7 +252,7 @@ class ProcessDeathE2ETest {
 
     private fun ZipPlayController.extend(cell: Cell) = onDragEvent(DragEvent.Extend(GridCell(cell.idx / 5, cell.idx % 5)))
 
-    /** [PAST_DAY] is a captured, cached day, so its History replay has a board to open. */
+    /** [PAST_DAY] is a captured, cached day, so its History play-again has a board to open. */
     private fun playAgainGraph() = E2eKoinGraph(E2E_TODAY).apply {
         daily.setHistory(ZipDefinition.id, listOf(ZipPlayFixture.entry(E2E_TODAY), ZipPlayFixture.entry(PAST_DAY)))
         daily.setCached(ZipDefinition.id, PAST_DAY, ZipPlayFixture.envelope())
@@ -268,7 +268,7 @@ class ProcessDeathE2ETest {
 
     private val playHub = stacks(tab = PlayKey)
 
-    /** A History replay of [PAST_DAY], open on Home's stack. */
+    /** A History play-again of [PAST_DAY], open on Home's stack. */
     private val pastGame = stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey(), GameKey(ZIP, "$PAST_DAY")))
 
     private val todaySlot = PlaySlot.Daily(ZipDefinition.id, E2E_TODAY)

@@ -31,8 +31,8 @@ import org.robolectric.annotation.Config
 /**
  * A Result keeps its own solve's verdict (A9, F2): today's Zip solved from Home leaves a
  * Result on Home's stack; the same slot opened on Play shows that Result, whose Play again
- * replays the shared live play and solves it again, slower. Home's Result still shows its
- * first solve's First solve badge — neither the replay's in-flight state nor the second
+ * plays again the shared live play and solves it again, slower. Home's Result still shows its
+ * first solve's First solve badge — neither the play-again's in-flight state nor the second
  * solve's verdict leaks into it.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -41,7 +41,7 @@ import org.robolectric.annotation.Config
 class ResultIsolationE2ETest {
 
     @Test
-    fun `a Result on Home keeps its badge while Play replays and re-solves the same slot`() = shellRobot(graph = numberedGraph()) {
+    fun `a Result on Home keeps its badge while Play starts again and re-solves the same slot`() = shellRobot(graph = numberedGraph()) {
         tap(HOME_PLAY)
         solveZip()
         val first = state.currentStack.last()
@@ -76,7 +76,7 @@ class ResultIsolationE2ETest {
     }
 
     /**
-     * Waits for a fresh board on today's live Zip (a replay starts empty), then solves it with
+     * Waits for a fresh board on today's live Zip (a play-again starts empty), then solves it with
      * at least [takingMs] on Zip's wall clock between the board opening (which starts it) and the last move.
      */
     private fun ShellRobot.solveZip(takingMs: Long = 0L) {

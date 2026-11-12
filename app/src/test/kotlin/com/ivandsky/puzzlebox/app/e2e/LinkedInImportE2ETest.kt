@@ -68,7 +68,7 @@ class LinkedInImportE2ETest {
     }
 
     @Test
-    fun anImportOnAPlayedDayAddsAReplayAndLeavesTheRecord() {
+    fun anImportOnAPlayedDayAddsAPlayAgainAndLeavesTheRecord() {
         world.scriptDay(today, LinkedInOwnResult.NotPlayed)
         world.scriptDay(yesterday, LinkedInOwnResult.Solved(timeSeconds = 47, hintFree = false))
         // Played from the archive: such a day counts for the streak only once an import covers it.
@@ -86,8 +86,8 @@ class LinkedInImportE2ETest {
             pickDay(yesterday)
             awaitSynced(yesterday)
 
-            val replays = runBlocking { completions().observePlayAgains(zipRef(yesterday)).first() }
-            assertEquals("LinkedIn's result is kept as one replay", listOf(CompletionSource.LinkedIn to 47_000L), replays.map { it.source to it.time })
+            val playAgains = runBlocking { completions().observePlayAgains(zipRef(yesterday)).first() }
+            assertEquals("LinkedIn's result is kept as one replay", listOf(CompletionSource.LinkedIn to 47_000L), playAgains.map { it.source to it.time })
             assertEquals("the play made in the app is still the record, untouched", record, recordOf(yesterday))
             assertEquals(90_000L, record.time)
             assertEquals("the imported day now counts", 1, zipStats().currentStreak)
@@ -145,7 +145,7 @@ class LinkedInImportE2ETest {
     private fun ShellRobot.recordOf(day: LocalDate): CompletionRecord =
         runBlocking { completions().observeRecords().first() }.single { it.puzzleRef == zipRef(day) }
 
-    /** How many rows the store holds in all, records and [day]'s replays together. */
+    /** How many rows the store holds in all, records and [day]'s play-agains together. */
     private fun ShellRobot.storedRows(day: LocalDate): Int = runBlocking {
         completions().observeRecords().first().size + completions().observePlayAgains(zipRef(day)).first().size
     }

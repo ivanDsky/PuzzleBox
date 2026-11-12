@@ -127,7 +127,7 @@ internal fun marginSeconds(aMs: Long, bMs: Long): Long = abs(aMs / MS_PER_SECOND
 private const val MS_PER_SECOND = 1_000L
 
 /**
- * How the reveal opens: [startAtEnd] skips the replay (reduced motion, or the viewer has seen it), and [markSeen]
+ * How the reveal opens: [startAtEnd] skips the animation (reduced motion, or the viewer has seen it), and [markSeen]
  * is true until the seen marker is written, so only the first opening writes it.
  */
 internal data class RevealStart(val startAtEnd: Boolean, val markSeen: Boolean) {
