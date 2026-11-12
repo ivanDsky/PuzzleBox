@@ -10,8 +10,11 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.GameSessionCodec
 import com.ivandsky.puzzlebox.game.Puzzle
+import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
 import com.ivandsky.puzzlebox.model.GameId
@@ -31,11 +34,11 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -110,20 +113,28 @@ class LoadDailyReplayTest {
     @Test
     fun `a custom reference gives null without a read`() = runTest {
         val custom = TestGames.Ref(game, PuzzleKey.Custom("abc"))
-        val completions = ThrowingCompletionRepository()
-        val resolver = LoadDailyReplay(completions, FakeDailyRepository())
+        val completions = ThrowingCompletionRepository(IllegalStateException("store down"))
+        val load = entry(completions = completions)
 
-        assertNull(resolver(Record(custom)))
-        assertNull(resolver(Latest(custom)))
+        assertNull(load(Record(custom)))
+        assertNull(load(Latest(custom)))
         assertEquals(0, completions.reads)
     }
 
     @Test
     fun `a failing read gives null`() = runTest {
-        val resolver = LoadDailyReplay(ThrowingCompletionRepository(), FakeDailyRepository())
+        val load = entry(completions = ThrowingCompletionRepository(IllegalStateException("store down")))
 
-        assertNull(resolver(Record(puzzle)))
-        assertNull(resolver(Latest(puzzle)))
+        assertNull(load(Record(puzzle)))
+        assertNull(load(Latest(puzzle)))
+    }
+
+    @Test
+    fun `cancellation propagates instead of becoming null`() = runTest {
+        val load = entry(completions = ThrowingCompletionRepository(CancellationException("cancelled")))
+
+        assertTrue(runCatching { load(Record(puzzle)) }.exceptionOrNull() is CancellationException)
+        assertTrue(runCatching { load(Latest(puzzle)) }.exceptionOrNull() is CancellationException)
     }
 
     @Test
@@ -157,7 +168,7 @@ class LoadDailyReplayTest {
         val source = checkNotNull(LoadDailyReplay(completions, daily)(Latest(puzzle)))
 
         assertEquals(cachedPuzzle, source.puzzle)
-        assertNotNull(source.bytes)
+        assertEquals(longReplay, source.bytes)
     }
 
     private suspend fun twoSolves(first: SolveReplay?, second: SolveReplay?): FakeCompletionRepository {
@@ -228,25 +239,25 @@ class LoadDailyReplayTest {
         )
     }
 
-    private val fixtureCodec = object : com.ivandsky.puzzlebox.game.GameSessionCodec<FixtureSession> {
+    private val fixtureCodec = object : GameSessionCodec<FixtureSession> {
         override fun serialize(session: FixtureSession): ByteArray = ByteArray(0)
         override fun deserialize(bytes: ByteArray): DecodeResult<FixtureSession> =
             DecodeResult.Ok(ReplayFixtures.initial(ReplayFixtures.SHORT_MOVES))
     }
 
-    private val fixtureScore = object : com.ivandsky.puzzlebox.game.ScoreModel<FixtureSession> {
+    private val fixtureScore = object : ScoreModel<FixtureSession> {
         override fun completion(session: FixtureSession): CompletionRecord? = null
     }
 
-    private class ThrowingCompletionRepository : CompletionRepository by FakeCompletionRepository() {
+    private class ThrowingCompletionRepository(private val failure: Throwable) : CompletionRepository by FakeCompletionRepository() {
         var reads = 0
-        override suspend fun recordReplay(puzzleRef: com.ivandsky.puzzlebox.game.PuzzleRef): SolveReplay? {
+        override suspend fun recordReplay(puzzleRef: PuzzleRef): SolveReplay? {
             reads++
-            error("store down")
+            throw failure
         }
-        override suspend fun latestReplay(puzzleRef: com.ivandsky.puzzlebox.game.PuzzleRef): SolveReplay? {
+        override suspend fun latestReplay(puzzleRef: PuzzleRef): SolveReplay? {
             reads++
-            error("store down")
+            throw failure
         }
     }
 
