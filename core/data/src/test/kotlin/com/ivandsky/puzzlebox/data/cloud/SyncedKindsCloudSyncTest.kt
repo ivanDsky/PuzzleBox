@@ -349,7 +349,7 @@ class SyncedKindsCloudSyncTest {
     }
 
     @Test
-    fun `any other failure stops the run and keeps the previous state`() = runTest {
+    fun `a failure stops the run at once and shows its state with the last success time`() = runTest {
         val completions = kind("completions")
         val drafts = kind("drafts")
         val engine = engine(listOf(completions, drafts))
@@ -361,7 +361,7 @@ class SyncedKindsCloudSyncTest {
 
         engine.syncNow()
 
-        assertEquals(CloudSyncState.Synced(10_000L), engine.state.value)
+        assertEquals(CloudSyncState.Offline(10_000L), engine.state.value)
         assertEquals(listOf("adopt completions ann", "adopt drafts ann", "changedSince completions ann null"), log)
     }
 
