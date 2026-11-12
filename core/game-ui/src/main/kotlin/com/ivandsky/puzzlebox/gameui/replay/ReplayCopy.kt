@@ -28,6 +28,9 @@ object ReplayCopy {
 
     fun hints(count: Int): String = if (count == 1) "1 hint" else "$count hints"
 
+    /** The flash on a hidden side's tab when its hint count rises by [count]. */
+    fun hintGain(count: Int): String = if (count == 1) "+1 hint" else "+$count hints"
+
     fun piecesVs(leader: Int, other: Int, pieces: String): String = "$leader vs $other $pieces"
 
     fun hintsVs(leader: Int, other: Int): String = "${hints(leader)} vs ${hints(other)}"
