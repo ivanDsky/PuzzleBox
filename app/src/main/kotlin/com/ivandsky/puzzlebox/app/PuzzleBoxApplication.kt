@@ -9,9 +9,15 @@ import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.backend.firebase.firebaseBackendModule
 import com.ivandsky.puzzlebox.auth.di.authModule
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.compete.di.competeModule
 import com.ivandsky.puzzlebox.create.di.createModule
+import com.ivandsky.puzzlebox.data.cloud.CloudSyncRunner
+import com.ivandsky.puzzlebox.data.di.cloudSyncModule
 import com.ivandsky.puzzlebox.data.di.dataModule
+import com.ivandsky.puzzlebox.data.di.linkedInCloudSyncModule
 import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.games.queens.queensModule
 import com.ivandsky.puzzlebox.games.queensui.queensUiModule
@@ -28,6 +34,7 @@ import com.ivandsky.puzzlebox.home.di.homeModule
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.profile.di.profileModule
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.Koin
 import org.koin.core.context.startKoin
 
 class PuzzleBoxApplication : Application() {
@@ -38,6 +45,9 @@ class PuzzleBoxApplication : Application() {
             androidContext(this@PuzzleBoxApplication)
             modules(appModules)
         }.koin
+        // The sync graph exists only with CloudSync on, decided once here; it loads before any starter so the owner
+        // scope is the signed-in one from the first row any of them reads.
+        val cloudSync = loadCloudSync(koin)
         // The submit hook: record writes are the only leaderboard source; async,
         // eventual, and silent when signed out or offline.
         koin.get<LeaderboardSubmitWatcher>().start()
@@ -45,9 +55,25 @@ class PuzzleBoxApplication : Application() {
         koin.get<CustomBoardSubmitter>().start()
         // Duel results: pending posts retry on every app start; idle while the outbox is empty.
         koin.get<MatchResultPoster>().start()
+        // Cloud sync: the one place that starts runs besides "Sync now"; absent with the flag off.
+        if (cloudSync) koin.get<CloudSyncRunner>().start()
     }
 
     companion object {
+        /**
+         * Loads the cloud sync graph into the running [koin] when [ReleaseFlag.CloudSync] is on (plus the LinkedIn boards
+         * kind when [ReleaseFlag.LinkedInAccount] is on too) and returns whether it did. Overrides are allowed because
+         * the graph replaces the no-op owner scope; its eager owner scope is created here. A debug flag change applies
+         * on the next launch, because nothing reads the flags again. Off: nothing is loaded and nothing is bound.
+         */
+        fun loadCloudSync(koin: Koin): Boolean {
+            val flags = koin.get<ReleaseFlags>()
+            if (!flags.isEnabled(ReleaseFlag.CloudSync)) return false
+            val modules = if (flags.isEnabled(ReleaseFlag.LinkedInAccount)) listOf(cloudSyncModule, linkedInCloudSyncModule) else listOf(cloudSyncModule)
+            koin.loadModules(modules, allowOverride = true, createEagerInstances = true)
+            return true
+        }
+
         val appModules =
             listOf(commonModule, dataModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, createModule, authModule(R.string.default_web_client_id), profileModule, competeModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule, buildTypeReleaseFlagsModule) + buildTypeGameModules
     }
