@@ -108,7 +108,7 @@ private fun Unavailable(reason: MatchState, modifier: Modifier) {
 }
 
 @Composable
-private fun Ready(
+internal fun Ready(
     ready: MatchLegResultState.Ready,
     onNext: (LegNext) -> Unit,
     onBackToDuel: () -> Unit,
