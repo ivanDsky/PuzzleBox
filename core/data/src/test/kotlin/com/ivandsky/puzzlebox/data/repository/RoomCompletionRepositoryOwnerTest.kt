@@ -49,6 +49,7 @@ class RoomCompletionRepositoryOwnerTest {
         repository = RoomCompletionRepository(
             db,
             db.completionDao(),
+            db.completionReplayDao(),
             TestGames.registry(listOf(alpha)),
             scope,
             clock = { nowMs },

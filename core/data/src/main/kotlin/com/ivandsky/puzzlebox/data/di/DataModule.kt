@@ -78,7 +78,7 @@ val dataModule = module {
     }
     // Records/play-agains store (ADR-0004): the first-win record is enforced here, and
     // feature modules consume the interface only, so the rule cannot be bypassed.
-    single<CompletionRepository> { RoomCompletionRepository(get(), get(), get(), get()) }
+    single<CompletionRepository> { RoomCompletionRepository(get(), get(), get(), get(), get()) }
     single<UserPreferencesRepository> { OfflineUserPreferencesRepository(get()) }
     single<GameSettingsRepository> { OfflineGameSettingsRepository(get()) }
     // Saved in-progress plays; the slot cap is private to the Room adapter.
