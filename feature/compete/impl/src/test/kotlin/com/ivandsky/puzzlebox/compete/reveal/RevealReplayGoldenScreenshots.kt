@@ -11,10 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -58,8 +59,8 @@ private const val SETTLE_MS = 2_000L
 /**
  * The duel's compare page and the reveal summary's per-leg Compare actions, phone and tablet, light and dark. The compare
  * has five cases (both sides, mine only, theirs only, a gave-up side frozen, both ended with the final line), each short
- * (12 moves) and long (64 moves over about an hour), captured at the finished state. The short both-sides compare is also
- * captured mid-play. Twin on the tablet, FlipPeek on the phone. The summary offers Compare on one leg of three. Goldens in
+ * (12 moves) and long (64 moves over about an hour), captured at the finished state. The both-sides compare is paused mid-play
+ * (about 45% of the longer timeline) instead. Twin on the tablet, FlipPeek on the phone. The summary offers Compare on one leg of three. Goldens in
  * `snapshots/reveal-replay/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -79,12 +80,10 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
 
     private val layout = if (wide) CompareLayout.Twin else CompareLayout.FlipPeek
 
-    @Test fun `compare both short light`() = compare("compare-both-short", both(SHORT), dark = false)
-    @Test fun `compare both short dark`() = compare("compare-both-short", both(SHORT), dark = true)
-    @Test fun `compare both long light`() = compare("compare-both-long", both(LONG), dark = false)
-    @Test fun `compare both long dark`() = compare("compare-both-long", both(LONG), dark = true)
-    @Test fun `compare both playing short light`() = playing("compare-both-playing-short", both(SHORT), dark = false)
-    @Test fun `compare both playing short dark`() = playing("compare-both-playing-short", both(SHORT), dark = true)
+    @Test fun `compare both short light`() = compare("compare-both-short", both(SHORT), dark = false, seekMs = SHORT_MID_MS)
+    @Test fun `compare both short dark`() = compare("compare-both-short", both(SHORT), dark = true, seekMs = SHORT_MID_MS)
+    @Test fun `compare both long light`() = compare("compare-both-long", both(LONG), dark = false, seekMs = LONG_MID_MS)
+    @Test fun `compare both long dark`() = compare("compare-both-long", both(LONG), dark = true, seekMs = LONG_MID_MS)
 
     @Test fun `compare mine only short light`() = compare("compare-mine-only-short", mineOnly(SHORT), dark = false)
     @Test fun `compare mine only short dark`() = compare("compare-mine-only-short", mineOnly(SHORT), dark = true)
@@ -109,7 +108,7 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
     @Test fun `summary compare light`() = summary("summary-compare", dark = false)
     @Test fun `summary compare dark`() = summary("summary-compare", dark = true)
 
-    private fun compare(name: String, case: Case, dark: Boolean, playMs: Long = 0) {
+    private fun compare(name: String, case: Case, dark: Boolean, seekMs: Long = 0) {
         rule.showGolden(dark) {
             ReplayComparePage(
                 mine = case.mine,
@@ -122,15 +121,9 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
                 finalLead = case.finalLead,
             )
         }
-        if (playMs > 0) {
-            rule.onNodeWithTag(ReplayTags.PLAY).performClick()
-            rule.mainClock.advanceTimeBy(playMs)
-        }
+        if (seekMs > 0) rule.onNodeWithTag(ReplayTags.SEEK).performSemanticsAction(SemanticsActions.SetProgress) { it(seekMs.toFloat()) }
         rule.settleAndCapture(name, device, dark)
     }
-
-    /** The compare a few seconds into the replay, both boards mid-play, before the frame is captured. */
-    private fun playing(name: String, case: Case, dark: Boolean) = compare(name, case, dark, playMs = PLAY_MS)
 
     private fun summary(name: String, dark: Boolean) {
         rule.showGolden(dark) {
@@ -149,7 +142,8 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
     }
 
     private companion object {
-        const val PLAY_MS = 5_000L
+                const val SHORT_MID_MS = 6_000L
+        const val LONG_MID_MS = 2_070_000L
         const val LONG_MOVES = 64
         const val LONG_STEP_MS = 64_000L
         const val LONG_PARTIAL = 48
@@ -162,8 +156,11 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
 
         /** One side's replay lengths: [full] the finished solve, [partial] a shorter solve, [quit] a side that gave up. */
         class Lengths(val full: Int, val partial: Int, val quit: Int, val stepMs: Long) {
-            fun solved(moves: Int): Timeline = ReplayFixtures.timeline(moves, stepMs = stepMs)
-            fun gaveUp(moves: Int): Timeline = ReplayFixtures.timeline(moves, stepMs = stepMs, outcome = ReplayOutcome.GaveUp)
+            /** The other side plays at two thirds of my pace, so a mid-play frame has me ahead with both boards part built. */
+            private val theirStepMs = stepMs * 3 / 2
+            fun mine(): Timeline = ReplayFixtures.timeline(full, stepMs = stepMs)
+            fun theirs(): Timeline = ReplayFixtures.timeline(partial, stepMs = theirStepMs)
+            fun theirsGaveUp(): Timeline = ReplayFixtures.timeline(quit, stepMs = theirStepMs, outcome = ReplayOutcome.GaveUp)
         }
 
         val SHORT = Lengths(ReplayFixtures.SHORT_MOVES, SHORT_PARTIAL, SHORT_QUIT, stepMs = 1_000)
@@ -172,11 +169,11 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
         /** What the compare page is given: a side may be missing, and [finalLead] overrides the computed final line. */
         class Case(val mine: Timeline?, val theirs: Timeline?, val finalLead: Lead? = null)
 
-        fun both(l: Lengths) = Case(l.solved(l.full), l.solved(l.partial))
-        fun mineOnly(l: Lengths) = Case(l.solved(l.full), null)
-        fun theirsOnly(l: Lengths) = Case(null, l.solved(l.partial))
-        fun gaveUp(l: Lengths) = Case(l.solved(l.full), l.gaveUp(l.quit))
-        fun finalLine(l: Lengths) = Case(l.solved(l.full), l.solved(l.partial), finalLead = Lead.Mine)
+        fun both(l: Lengths) = Case(l.mine(), l.theirs())
+        fun mineOnly(l: Lengths) = Case(l.mine(), null)
+        fun theirsOnly(l: Lengths) = Case(null, l.theirs())
+        fun gaveUp(l: Lengths) = Case(l.mine(), l.theirsGaveUp())
+        fun finalLine(l: Lengths) = Case(l.mine(), l.theirs(), finalLead = Lead.Mine)
 
         val CODE = checkNotNull(ShareCode.parse("K7Q2MX"))
         val CREATED_AT: Instant = Instant.parse("2026-11-09T10:00:00Z")
