@@ -57,7 +57,13 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.navigation.navKeySavedStateConfiguration
+import com.ivandsky.puzzlebox.play.ActivePlay
 import com.ivandsky.puzzlebox.play.FakeController
+import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.SlotOpening
+import com.ivandsky.puzzlebox.play.SlotWriter
+import com.ivandsky.puzzlebox.play.WriteLane
+import com.ivandsky.puzzlebox.play.testDispatchers
 import com.ivandsky.puzzlebox.play.FakePlayUi
 import com.ivandsky.puzzlebox.play.FakeGames
 import com.ivandsky.puzzlebox.play.loadSolveReplay
@@ -213,6 +219,7 @@ class CustomResultViewModelTest {
 
     private val fixture = ReplayFixtures.GAME
     private val fixtureGames = replayCapableGames()
+    private val fixtureUi = FakePlayUi(fixture)
     private val fixtureRef = TestGames.Ref(fixture, PuzzleKey.Custom(code.value))
     private val replay: SolveReplay = ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES)
 
@@ -238,17 +245,61 @@ class CustomResultViewModelTest {
         timeMs: Long = FIXTURE_TIME_MS,
         flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
         board: GameReplayBoard? = ReplayBoard,
+        store: PlaySessionStore = checkNotNull(koin).koin.get(),
     ): CustomResultViewModel {
-        runBlocking { received.upsert(puzzle().copy(gameId = fixture, variant = TestGames.variant(fixture))) }
+        storeFixturePuzzle()
+        fixtureUi.replayBoard = board
         val koin = checkNotNull(koin).koin
         val viewModel = CustomResultViewModel(
             CustomResultKey(fixture.value, code.value, timeMs, 0), completions, received, fixtureGames,
-            GamePlayRegistry(listOf(FakePlayUi(fixture).apply { replayBoard = board })),
-            koin.get(), koin.get(), koin.get(), loadReplay(fixtureGames, flags),
+            GamePlayRegistry(listOf(fixtureUi)),
+            koin.get(), store, koin.get(), loadReplay(fixtureGames, flags),
         )
         screen.launch { viewModel.state.collect {} }
         main.testDispatcher.scheduler.runCurrent()
         return viewModel
+    }
+
+    private fun storeFixturePuzzle() {
+        runBlocking { received.upsert(puzzle().copy(gameId = fixture, variant = TestGames.variant(fixture))) }
+    }
+
+    /** A real store over the fixture game: its play's record write seals [replay], as a recording play's would. */
+    private fun liveStore(): PlaySessionStore {
+        val dispatcher = main.testDispatcher
+        val lane = WriteLane()
+        val saved = FakeSavedPlayRepository()
+        val calendar = FakeGameCalendar(LocalDate.parse("2026-11-04"))
+        val sealing = object : CompletionRepository by completions {
+            override suspend fun onCompleted(record: CompletionRecord, replay: SolveReplay?) =
+                completions.onCompleted(record, replay ?: this@CustomResultViewModelTest.replay)
+        }
+        return PlaySessionStore(
+            games = fixtureGames,
+            ui = GamePlayRegistry(listOf(fixtureUi)),
+            opening = SlotOpening(
+                FakeDailyRepository(), LoadPastDay(FakeDailyRepository(), fixtureGames), saved, calendar, fixtureGames, lane, received,
+                FakeMatchRepository(),
+                LoadSharedPuzzle(fixtureGames, FakeSharedPuzzleRepository(), received, { Budget.Unlimited }, { Instant.EPOCH }),
+                testDispatchers(dispatcher),
+            ),
+            writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
+            completions = sealing,
+            finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH },
+            calendar = calendar,
+            dispatchers = testDispatchers(dispatcher),
+        )
+    }
+
+    /** The friend puzzle's live play, won as the board leaves it before the result opens. */
+    private fun solveLive(store: PlaySessionStore): ActivePlay {
+        storeFixturePuzzle()
+        fixtureUi.replayBoard = ReplayBoard
+        val play = checkNotNull(store.open(CustomGameKey(fixture.value, code.value)))
+        main.testDispatcher.scheduler.runCurrent()
+        fixtureUi.latest.win()
+        main.testDispatcher.scheduler.runCurrent()
+        return play
     }
 
     private suspend fun writeFixtureSolve(timeMs: Long, replay: SolveReplay?) =
@@ -264,6 +315,41 @@ class CustomResultViewModelTest {
         val ready = observedReplay().state.value.replay as ReplaySectionState.Ready
 
         assertEquals(ReplayFixtures.SHORT_MOVES, ready.timeline.moveTimesMs.size)
+    }
+
+    @Test
+    fun `a live solve stays hidden until its own write returns, whatever an older row with the same time and hints says`() {
+        solvedFixture()
+        val gate = CompletableDeferred<Unit>()
+        completions.writeGate = gate
+        val store = liveStore()
+        val play = solveLive(store)
+
+        val viewModel = observedReplay(store = store)
+
+        assertFalse(play.record.value.stored)
+        assertEquals(ReplaySectionState.Hidden, viewModel.state.value.replay)
+
+        gate.complete(Unit)
+        main.testDispatcher.scheduler.runCurrent()
+
+        assertTrue(play.record.value.stored)
+        assertTrue(viewModel.state.value.replay is ReplaySectionState.Ready)
+    }
+
+    @Test
+    fun `a live solve whose write fails stays hidden, whatever an older row says`() {
+        solvedFixture()
+        completions.fail = true
+        val store = liveStore()
+        val play = solveLive(store)
+
+        val viewModel = observedReplay(store = store)
+        main.testDispatcher.scheduler.runCurrent()
+
+        assertFalse(play.record.value.stored)
+        assertTrue(play.record.value.writeFailed)
+        assertEquals(ReplaySectionState.Hidden, viewModel.state.value.replay)
     }
 
     @Test

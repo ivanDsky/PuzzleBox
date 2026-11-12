@@ -116,6 +116,7 @@ internal class CustomResultViewModel(
 
     private val live: ActivePlay? = store.peek(slot)
 
+    // Read once: the play's win sets its solve (WinRecording.onWon) before the board hands off to this result's key.
     private val liveHoldsSolve = live != null && live.record.value.solve == solved
 
     /** The game's play UI, which owns its replay board; null for a game this build does not ship. */
