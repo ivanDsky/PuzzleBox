@@ -47,7 +47,7 @@ import com.ivandsky.puzzlebox.games.sudokuui.hint.withDigitStyle
  * cell still selects it. Null composes nothing.
  */
 @Composable
-fun SudokuGrid(model: SudokuBoardModel, onSelect: (Int) -> Unit, modifier: Modifier = Modifier, spotlight: Spotlight? = null) {
+fun SudokuGrid(model: SudokuBoardModel, onSelect: ((Int) -> Unit)?, modifier: Modifier = Modifier, spotlight: Spotlight? = null) {
     val strokes = gridStrokes(model.size)
     val colors = MaterialTheme.colorScheme
     val cellLine = LocalBoardColors.current.boardGridLine
