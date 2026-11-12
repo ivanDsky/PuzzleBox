@@ -31,13 +31,13 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Switching the day on the card changes its lines and its action in place: no frame without
- * content, both days drawn halfway through, and reduced motion swaps at once.
+ * Switching the day on the card fades the old day out, then the new one in: no frame draws both
+ * days, and reduced motion swaps at once.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w400dp-h800dp")
-class ArchiveDayCardCrossfadeTest {
+class ArchiveDayCardFadeTest {
 
     @get:Rule
     val composeRule = createComposeRule()
@@ -54,7 +54,7 @@ class ArchiveDayCardCrossfadeTest {
     @After
     fun resetScale() = setAnimatorScale(1f)
 
-    /** Shows day A, then returns the switch to day B; the clock is paused from the switch on. */
+    /** Shows day A and returns the switch to day B; the clock is paused from the switch on. */
     private fun cardOnDayA(): () -> Unit {
         val row = LibraryRowModel(
             card = GameCardModel(
@@ -91,36 +91,32 @@ class ArchiveDayCardCrossfadeTest {
     private fun eyebrows(day: LocalDate) = drawn("library.day_card.day.$day")
 
     @Test
-    fun `no frame of a day switch is without its lines and its action`() {
+    fun `no frame of a day switch draws both days`() {
         val switchDay = cardOnDayA()
         switchDay()
-        repeat(20) { frame ->
-            composeRule.mainClock.advanceTimeByFrame()
-            val eyebrow = eyebrows(dayA) + eyebrows(dayB)
-            assertEquals("eyebrow at frame $frame", true, eyebrow >= 1)
-            assertEquals("play at frame $frame", true, drawn("library.play") >= 1)
-            assertEquals("back at frame $frame", true, drawn("library.day_card.back") >= 1)
+        // Every frame over the whole switch (150 ms out, 300 ms in) and a little past it.
+        repeat(40) { frame ->
+            composeRule.mainClock.advanceTimeBy(16L)
+            assertEquals("days drawn at frame $frame", 1, eyebrows(dayA) + eyebrows(dayB))
+            assertEquals("actions drawn at frame $frame", 1, drawn("library.play"))
+            assertEquals("back buttons drawn at frame $frame", 1, drawn("library.day_card.back"))
         }
     }
 
     @Test
-    fun `halfway through a day switch both days are drawn`() {
+    fun `the old day is still there halfway through its exit and the new one is not`() {
         val switchDay = cardOnDayA()
         switchDay()
-        composeRule.mainClock.advanceTimeByFrame()
-        // 300 ms in: past the old 240 ms fade, still inside the card's 400 ms one.
-        composeRule.mainClock.advanceTimeBy(300L)
+        composeRule.mainClock.advanceTimeBy(75L)
         assertEquals(1, eyebrows(dayA))
-        assertEquals(1, eyebrows(dayB))
-        assertEquals("both actions", 2, drawn("library.play"))
-        assertEquals("both back buttons", 2, drawn("library.day_card.back"))
+        assertEquals(0, eyebrows(dayB))
     }
 
     @Test
     fun `a day switch settles on the new day only`() {
         val switchDay = cardOnDayA()
         switchDay()
-        composeRule.mainClock.advanceTimeBy(450L)
+        composeRule.mainClock.advanceTimeBy(600L)
         assertEquals(0, eyebrows(dayA))
         assertEquals(1, eyebrows(dayB))
         assertEquals(1, drawn("library.play"))
