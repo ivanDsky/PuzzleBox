@@ -8,6 +8,8 @@ import com.ivandsky.puzzlebox.domain.SolveReplayRef.Latest
 import com.ivandsky.puzzlebox.domain.SolveReplayRef.MyLeg
 import com.ivandsky.puzzlebox.domain.SolveReplayRef.Record
 import com.ivandsky.puzzlebox.domain.SolveReplayRef.TheirLeg
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -25,6 +27,7 @@ import java.time.LocalDate
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -45,8 +48,8 @@ class LoadSolveReplayFlagTest {
     }
 
     @Test
-    fun `flag off says the newest solve is the record`() = runTest {
-        assertTrue(entry(FakeReleaseFlags()).latestIsRecord(puzzle))
+    fun `flag off says the newest solve is the record even when a later solve exists`() = runTest {
+        assertTrue(entry(FakeReleaseFlags(), twoSolves()).latestIsRecord(puzzle))
     }
 
     @Test
@@ -58,8 +61,20 @@ class LoadSolveReplayFlagTest {
 
     @Test
     fun `flag on forwards latestIsRecord to the repository`() = runTest {
-        assertTrue(entry(FakeReleaseFlags(ReleaseFlag.FullReplay)).latestIsRecord(puzzle))
+        assertFalse(entry(FakeReleaseFlags(ReleaseFlag.FullReplay), twoSolves()).latestIsRecord(puzzle))
     }
+
+    private fun twoSolves() = FakeCompletionRepository(
+        listOf(solve(isRecord = true), solve(isRecord = false)),
+    )
+
+    private fun solve(isRecord: Boolean) = CompletionRecord(
+        puzzleRef = puzzle,
+        time = 1_000,
+        hints = 0,
+        stats = RecordStats(schemaVersion = 1, blob = "{}"),
+        isRecord = isRecord,
+    )
 
     private fun entry(flags: ReleaseFlags, completions: CompletionRepository = FakeCompletionRepository()): LoadSolveReplay {
         val daily = FakeDailyRepository()
