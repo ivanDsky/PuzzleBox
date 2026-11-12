@@ -40,6 +40,7 @@ internal fun ProfileContent(
     onDisconnectLinkedIn: () -> Unit = {},
     onSyncNow: () -> Unit = {},
     onDeleteCloudData: () -> Unit = {},
+    onDeleteSavedBoards: () -> Unit = {},
 ) {
     val account = state.account
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -81,6 +82,8 @@ internal fun ProfileContent(
                 sync = state.sync,
                 onSyncNow = onSyncNow,
                 onDeleteCloudData = onDeleteCloudData,
+                boards = state.linkedInBoards,
+                onDeleteSavedBoards = onDeleteSavedBoards,
             )
         }
     }

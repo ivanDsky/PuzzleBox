@@ -26,6 +26,7 @@ internal fun LinkedInLoginRoute(
     LaunchedEffect(connected) { if (connected) done() }
     LinkedInLoginScreen(
         step = step,
+        savedToAccount = viewModel.savedToAccount,
         onAccept = viewModel::onAccept,
         onPageFinished = viewModel::onPageFinished,
         onRetry = viewModel::onRetry,
