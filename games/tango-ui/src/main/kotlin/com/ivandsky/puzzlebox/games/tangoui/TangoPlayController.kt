@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
+import com.ivandsky.puzzlebox.games.tango.engine.TangoBoundedSolution
 import com.ivandsky.puzzlebox.games.tango.engine.TangoMove
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
@@ -31,7 +32,6 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
-import com.ivandsky.puzzlebox.games.tangoui.hint.TangoStepGame
 import com.ivandsky.puzzlebox.games.tangoui.hint.tangoStepHints
 import java.time.Instant
 
@@ -59,7 +59,7 @@ class TangoPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
     internal val hintMode: HintMode.Stepwise,
-    solve: (TangoPuzzle) -> List<TangoCell>? = { TangoStepGame.boundedSolution(it) },
+    solve: (TangoPuzzle) -> List<TangoCell>? = { TangoBoundedSolution.of(it) },
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     var session by mutableStateOf<TangoSession?>(null)
