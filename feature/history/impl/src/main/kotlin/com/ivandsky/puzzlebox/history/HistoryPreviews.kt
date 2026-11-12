@@ -80,6 +80,7 @@ private fun ArchivedDetailPreview() {
                 replays = HistoryReplays.Hidden,
                 replayUi = null,
                 onOpenReplay = {},
+                onCompareReplays = {},
                 onPlayAgain = {},
                 cardColor = MaterialTheme.colorScheme.surfaceContainerLow,
             )

@@ -44,6 +44,7 @@ class HistoryRootWidthTest {
                     onBack = null,
                     onPlayAgain = { _, _ -> },
                     onOpenReplay = {},
+                    onOpenCompare = {},
                     viewModel = viewModel,
                 )
             }

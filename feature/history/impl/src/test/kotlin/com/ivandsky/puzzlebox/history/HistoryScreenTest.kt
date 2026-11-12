@@ -108,6 +108,7 @@ class HistoryScreenTest {
                         onBack = onBack,
                         onPlayAgain = { game, playedAgain -> handedToShell = game to playedAgain },
                         onOpenReplay = {},
+                        onOpenCompare = {},
                         viewModel = viewModel,
                     )
                 }
