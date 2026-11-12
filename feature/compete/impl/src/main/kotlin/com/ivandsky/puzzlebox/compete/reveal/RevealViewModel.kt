@@ -108,16 +108,20 @@ internal class RevealViewModel(
     val state: StateFlow<RevealUiState> = if (shareCode == null) {
         MutableStateFlow<RevealUiState>(RevealUiState.NotFound).asStateFlow()
     } else {
-        combine(observeMatch(shareCode), reruns, ran, withoutReplay) { match, rerun, ran, none ->
-            build(shareCode, match, rerun, if (ran) none else null)
+        combine(observeMatch(shareCode), reruns, ran, withoutReplay) { match, rerun, ended, none ->
+            build(shareCode, match, rerun, if (ended) none else null)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), RevealUiState.Loading)
     }
 
     /** The compare open on one leg, or null. */
     val compare: StateFlow<LegCompare?> = _compare.asStateFlow()
 
-    /** Races again from the intro, over every puzzle settled by now. */
-    fun watchAgain() = reruns.update { it + 1 }
+    /** Races again from the intro, over every puzzle settled by now. The compare is a spoiler again until it ends. */
+    fun watchAgain() {
+        closeCompare()
+        ran.value = false
+        reruns.update { it + 1 }
+    }
 
     /** The screen calls this once the race has reached its summary; until then no leg offers a compare. */
     fun revealEnded() {
@@ -134,7 +138,7 @@ internal class RevealViewModel(
         val lead = view.outcome.legs.getOrNull(leg)?.let(::finalLead)
         val code = shareCode
         if (!ran.value || lead == null || code == null || leg in withoutReplay.value) return
-        opening?.cancel()
+        closeCompare()
         opening = viewModelScope.launch {
             val (mine, theirs) = coroutineScope {
                 val mine = async { loadReplay(SolveReplayRef.MyLeg(code, leg)) }

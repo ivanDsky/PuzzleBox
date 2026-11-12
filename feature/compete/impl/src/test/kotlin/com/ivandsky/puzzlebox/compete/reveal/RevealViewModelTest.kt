@@ -64,6 +64,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.Locale
 import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -101,11 +102,14 @@ class RevealViewModelTest {
     )
     private val server = FakeMatchRepository()
     private var theirsOnline = true
+    private val gates = HashMap<Int, CompletableDeferred<Unit>>()
 
     /** The match store as the leg resolver sees it: my side rides the cache, their read needs the network. */
     private val matchStore = object : MatchRepository by server {
-        override suspend fun readResult(code: ShareCode, legIndex: Int, uid: String) =
-            if (theirsOnline) server.readResult(code, legIndex, uid) else ResultRead.Offline
+        override suspend fun readResult(code: ShareCode, legIndex: Int, uid: String): ResultRead {
+            gates[legIndex]?.await()
+            return if (theirsOnline) server.readResult(code, legIndex, uid) else ResultRead.Offline
+        }
     }
     private val outbox = FakeMatchResultOutbox()
     private val identity = FakeIdentityService()
@@ -441,6 +445,70 @@ class RevealViewModelTest {
         vm.openCompare(0)
 
         vm.closeCompare()
+
+        assertNull(vm.compare.value)
+    }
+
+    @Test
+    fun aRewatchHidesTheCompareAgainUntilItEnds() = runTest {
+        duel()
+        play(0, solved, solved)
+        val vm = compared()
+        vm.revealEnded()
+        vm.openCompare(0)
+        assertEquals(setOf(0, 1), running(vm).compareLegs)
+
+        vm.watchAgain()
+
+        assertEquals("no spoiler while the rewatch runs", emptySet<Int>(), running(vm).compareLegs)
+        assertNull("an open compare is dropped", vm.compare.value)
+        vm.openCompare(0)
+        assertNull(vm.compare.value)
+        vm.revealEnded()
+        assertEquals(setOf(0, 1), running(vm).compareLegs)
+    }
+
+    @Test
+    fun openingAnotherLegNeverLeavesTheFirstOnShow() = runTest {
+        duel()
+        play(0, solved, solved)
+        play(1, null, null)
+        val vm = compared()
+        vm.revealEnded()
+        vm.openCompare(0)
+
+        vm.openCompare(1)
+
+        assertNull("leg 1 has no replay and leg 0's compare is gone", vm.compare.value)
+    }
+
+    @Test
+    fun theLastOpenedLegWinsOverASlowerEarlierOne() = runTest {
+        duel()
+        play(0, solved, solved)
+        play(1, gaveUp, gaveUp)
+        val vm = compared()
+        vm.revealEnded()
+        val slow = CompletableDeferred<Unit>().also { gates[0] = it }
+
+        vm.openCompare(0)
+        vm.openCompare(1)
+        slow.complete(Unit)
+
+        assertEquals(1, vm.compare.value!!.leg)
+    }
+
+    @Test
+    fun closingWhileLoadingLeavesNoCompare() = runTest {
+        duel()
+        play(0, solved, solved)
+        val vm = compared()
+        vm.revealEnded()
+        val slow = CompletableDeferred<Unit>().also { gates[0] = it }
+
+        vm.openCompare(0)
+        vm.closeCompare()
+        slow.complete(Unit)
 
         assertNull(vm.compare.value)
     }
