@@ -120,7 +120,7 @@ class RoomLinkedInDaysSlotTest {
         // Both slots were spent at 0, so both free together at 60 s.
         assertEquals(listOf("own@60000", "board@60000"), stamped.sent)
         assertEquals(LinkedInOutcome.Board.name, db.fetchLogDao().get(zip.value, day.toString(), LinkedInItem.Board.name, "me")?.outcome)
-        assertEquals(LinkedInSync.Done, days.syncState.lastSync(DayKey(zip, day)).first())
+        assertEquals(LinkedInSync.Done, days.syncState.lastSync(DayKey("me", zip, day)).first())
     }
 
     @Test
@@ -134,7 +134,7 @@ class RoomLinkedInDaysSlotTest {
         spent.waiting.await()
         advanceTimeBy(59_999)
 
-        assertTrue(days.syncState.inFlight(DayKey(zip, day)).first())
+        assertTrue(days.syncState.inFlight(DayKey("me", zip, day)).first())
         assertEquals(emptyList<String>(), stamped.sent)
         sync.await()
     }
@@ -155,7 +155,7 @@ class RoomLinkedInDaysSlotTest {
         runCurrent()
 
         assertEquals(emptyList<String>(), stamped.sent)
-        assertFalse(days.syncState.inFlight(DayKey(zip, day)).first())
+        assertFalse(days.syncState.inFlight(DayKey("me", zip, day)).first())
         assertNull(db.fetchLogDao().get(zip.value, day.toString(), LinkedInItem.Board.name, "me"))
     }
 
