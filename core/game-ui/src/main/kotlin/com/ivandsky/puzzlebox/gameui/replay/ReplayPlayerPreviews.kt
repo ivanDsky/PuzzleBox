@@ -85,3 +85,15 @@ internal fun ReplayPagePreview() {
 internal fun WatchReplayRowPreview() {
     PuzzleBoxTheme { WatchReplayRow(moves = PREVIEW_MOVES, durationMs = PREVIEW_MOVES * 1_000L, onClick = {}) }
 }
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ReplayLeadLinePreview() {
+    PuzzleBoxTheme {
+        val mine = previewTimeline()
+        val theirs = previewTimeline()
+        val playback = rememberReplayPlayback(mine, theirs)
+        val state by playback.state.collectAsState()
+        ReplayLeadLine(state, mine, theirs, CompareNames(mine = "You", theirs = "Maya"), PreviewBoard.pieces)
+    }
+}
