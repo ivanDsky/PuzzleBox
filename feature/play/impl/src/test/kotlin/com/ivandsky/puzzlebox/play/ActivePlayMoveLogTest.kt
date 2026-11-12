@@ -2,6 +2,10 @@ package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.data.match.LegRef
+import com.ivandsky.puzzlebox.data.match.MatchDraft
+import com.ivandsky.puzzlebox.data.match.MatchLeg
+import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.FinishLeg
@@ -18,10 +22,13 @@ import com.ivandsky.puzzlebox.game.replay.ReplayMove
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -68,6 +75,7 @@ class ActivePlayMoveLogTest {
         setHistory(game, listOf(DailyEntry(game, day, 7, "alpha/v1", 0L)))
     }
     private val saved = FakeSavedPlayRepository()
+    private val matches = FakeMatchRepository().apply { signedInUid = CHALLENGER.uid }
     private val dispatcher = UnconfinedTestDispatcher()
     private val calendar = FakeGameCalendar(day)
     private val lane = WriteLane()
@@ -77,7 +85,7 @@ class ActivePlayMoveLogTest {
         ui = registry,
         opening = SlotOpening(
             daily, LoadPastDay(daily, games), saved, calendar, games, lane, FakeReceivedPuzzleRepository(),
-            FakeMatchRepository(),
+            matches,
             LoadSharedPuzzle(games, FakeSharedPuzzleRepository(), FakeReceivedPuzzleRepository(), { Budget.Unlimited }, { Instant.EPOCH }),
             testDispatchers(dispatcher),
         ),
@@ -170,6 +178,40 @@ class ActivePlayMoveLogTest {
         assertNull(snapshotOf(play))
     }
 
+    @Test
+    fun `flag on starts a fresh log on a duel leg's build`() {
+        val code = checkNotNull(ShareCode.parse("M8T3VQ"))
+        daily.setCached(game, yesterday, TestGames.puzzle(game))
+        runBlocking {
+            matches.create(
+                MatchDraft(
+                    code = code,
+                    deadlineHours = 24,
+                    challenger = CHALLENGER,
+                    invitedUid = null,
+                    legs = listOf(MatchLeg(LegRef.Daily(game, yesterday, 6), authorUid = null)),
+                    includeFriends = false,
+                    rematchOf = null,
+                ),
+            )
+        }
+
+        val play = store(on).open(MatchLegKey(code.value, 0, game.value))!!
+
+        assertNotNull(snapshotOf(play))
+    }
+
+    @Test
+    fun `play again whose puzzle the game now rejects ends unavailable`() {
+        val play = store(on).open(key)!!
+        (play.controller as FakeController).win()
+        fakes[game].rejectWith = "untrusted"
+
+        play.playAgain()
+
+        assertTrue(play.board.value.status is PlayBoardStatus.Unavailable)
+    }
+
     /** [inner] with the log each controller was created with kept, so a test can read it. */
     private class LogCapturingUi(private val inner: FakePlayUi) : GamePlayUi by inner {
         private val logs = IdentityHashMap<GamePlayController, MoveLog>()
@@ -197,6 +239,7 @@ class ActivePlayMoveLogTest {
     }
 
     private companion object {
+        val CHALLENGER = Player("challenger", "Ivan", photoUrl = null)
         val MOVE = ReplayMove(kind = 0, args = IntArray(0))
 
         /** A game whose every move is understood and changes nothing. */

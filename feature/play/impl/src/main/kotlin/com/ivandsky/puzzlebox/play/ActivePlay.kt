@@ -173,7 +173,10 @@ class ActivePlay internal constructor(
         val reopen = reopen
         if (reopen == null || !recording) return controller.playAgain()
         val next = newController(MoveLog.fresh(gameId))
-        check(reopen(next)) { "play again could not reopen the puzzle this play adopted" }
+        if (!reopen(next)) {
+            _board.value = Board(next, PlayBoardStatus.Unavailable(UNREADABLE))
+            return
+        }
         _board.value = _board.value.copy(controller = next)
         next.playAgain()
     }
