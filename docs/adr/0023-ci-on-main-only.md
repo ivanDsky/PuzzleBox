@@ -34,6 +34,24 @@ user, the PR is a place to read the change, not a test gate.
    nine runs and never merged, because main moved every 5 minutes. `merge-local.sh` does this.
 4. **A red main stops merges.** The next PR is either a `git revert` of the culprit squash
    commit or a one-line obvious fix forward. Other merges wait until main is green again.
+   *Amendment 2026-11-11:* nobody waits for main's run.
+   - **Workers.** A worker merges and moves on to its next ticket. It never runs
+     `gh run watch` or `gh run view` on main.
+   - **Watcher.** Each orchestrator runs one background watcher
+     (`ship-to-trunk/scripts/main_health.py watch`). The watcher records each finished Main run
+     in the shared ledger `.git/agent-builds/main-health.jsonl`, which is never committed.
+   - **Before merging.** Right before `gh pr merge`, an agent runs `main_health.py status`.
+     - Exit 3 means main is red: the PR stays open and is recorded as held.
+     - Every merge except the claimed fix waits.
+   - **Fixing red main.**
+     - The orchestrator whose merge in the red range touches the failing module claims the
+       incident (`main_health.py claim`).
+     - It reverts that merge, or fixes it forward in one line.
+     - A claim older than 30 minutes with no merged fix can be taken over.
+   - **Back to green.** Held PRs merge under §3's rerun rule.
+   - **Why.** Main runs take 17–32 minutes, and 2 of the last 100 failed. Agents had been
+     polling main CI after every merge (more than 100 watch calls in one day) and sat idle while
+     waiting for an almost-certain green.
 
 ## Consequences
 - PRs merge minutes after review instead of after about 9 minutes of CI and rebase churn.
