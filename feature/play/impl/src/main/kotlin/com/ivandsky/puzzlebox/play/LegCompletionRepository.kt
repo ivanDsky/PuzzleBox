@@ -24,7 +24,7 @@ internal class LegCompletionRepository(
 ) : CompletionRepository by inner {
 
     override suspend fun onCompleted(record: CompletionRecord, replay: SolveReplay?) {
-        finishLeg(code, legIndex, LegFinish.Solved(record.time, record.hints))
+        finishLeg(code, legIndex, LegFinish.Solved(record.time, record.hints, replay))
         inner.onCompleted(record.copy(matchCode = code.value), replay)
     }
 }
