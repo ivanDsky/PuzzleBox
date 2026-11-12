@@ -113,14 +113,15 @@ internal fun RecordTag(verdict: RecordVerdict?, brand: GameBrand, modifier: Modi
 }
 
 /**
- * A play-again's line (tag `result.previous_best`): "Replay", or "Replay · Best <score>" naming
- * the best the play-again left standing, in the way [bestScoreText] shows it for [rankOrder].
+ * The play-again line (tag `result.previous_best`): the [PlayAgainCopy.LABEL] word, then the best
+ * the play-again left standing, in the way [bestScoreText] shows it for [rankOrder]. No best, the
+ * label alone.
  */
 @Composable
 internal fun PlayAgainLine(previousBest: BestScore?, rankOrder: RankOrder) {
     val best = previousBest?.let { bestScoreText(it, rankOrder) }
     Text(
-        text = best?.let { "Replay · Best $it" } ?: "Replay",
+        text = best?.let { "${PlayAgainCopy.LABEL} · Best $it" } ?: PlayAgainCopy.LABEL,
         style = MaterialTheme.typography.bodyLarge.tabular(),
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.testTag("result.previous_best"),
