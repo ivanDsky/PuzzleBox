@@ -14,6 +14,13 @@ interface LinkedInDays {
     suspend fun sync(game: GameId, day: LocalDate): LinkedInSync
 
     /**
+     * Whether [sync] can read this day from LinkedIn at all, whatever the link and the cache say: the game is a
+     * LinkedIn one, the day is not in the future and it has a puzzle number. False means the day is settled
+     * on what the phone holds and no sync will change it. Reads local state only.
+     */
+    fun willRead(game: GameId, day: LocalDate): Boolean
+
+    /**
      * Everything this phone knows about one game day from LinkedIn, emitted again when any of it
      * changes. Reads local state only and never asks LinkedIn, so collecting it is always safe.
      */
