@@ -1,36 +1,23 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
-import androidx.compose.ui.text.style.TextAlign
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
-import com.ivandsky.puzzlebox.designsystem.PrimaryButton
-import com.ivandsky.puzzlebox.designsystem.SecondaryButton
-import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.replay.Timeline
-import com.ivandsky.puzzlebox.gameui.DuelCompare
+import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.gameui.DuelSide
 import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -41,7 +28,6 @@ import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultHeroActions
-import com.ivandsky.puzzlebox.gameui.ResultHeroChip
 import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
@@ -52,6 +38,8 @@ import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
 import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.play.api.MatchLegKey
+import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.friend.CustomResultScreen
 import com.ivandsky.puzzlebox.play.friend.CustomResultState
 import com.ivandsky.puzzlebox.play.friend.CustomStanding
@@ -70,8 +58,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The result surfaces that carry a Watch replay row, under their Up bar, phone and tablet, light and dark, with a short
  * (12 moves) and a long (64 pieces, about an hour) replay over the replay fixtures: my own result (row in the hero), a friend's
- * puzzle (row below the board), and a duel leg, solved (row in the hero) and gave up (row below the card). The phone
- * captures are not scrolled, so they pin the first screen. Goldens in `snapshots/replay-results/`.
+ * puzzle (row below the card), and a duel leg, solved (row in the hero) and gave up (row below the card). The phone
+ * captures show the first screen, except the custom result, whose long board scrolls to its replay row. Goldens in `snapshots/replay-results/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -108,10 +96,10 @@ abstract class ResultReplayGoldenScreenshots(private val device: String) {
     @Test fun `leg gave up long light`() = capture("leg-gave-up-long", dark = false) { LegResult(LONG, gaveUp = true) }
     @Test fun `leg gave up long dark`() = capture("leg-gave-up-long", dark = true) { LegResult(LONG, gaveUp = true) }
 
-    /** [scrollToReplay]: the tablet's scrolling surfaces fold the replay row away, so it is brought into view there; the phone shows the first screen. */
+    /** [scrollToReplay]: a surface whose content outgrows the screen (the custom board, a tablet's leg result) folds the replay row away, so it is brought into view; the others show the first screen. */
     private fun capture(name: String, dark: Boolean, scrollToReplay: Boolean = false, page: @Composable ColumnScope.() -> Unit) {
         rule.showGolden(dark) { UnderUpBar(page) }
-        if (scrollToReplay && device == "tablet") {
+        if (scrollToReplay) {
             // The scroll waits for the app to idle, which a frozen clock never reaches.
             rule.mainClock.autoAdvance = true
             rule.onNodeWithTag(ReplayTags.WATCH_ROW).performScrollTo()
@@ -161,51 +149,29 @@ abstract class ResultReplayGoldenScreenshots(private val device: String) {
         )
     }
 
-    /** The leg result's two layouts as `MatchLegResultRoute` composes them: the hero with the card as its board, or, after a give up, the card alone. */
     @Composable
     private fun ColumnScope.LegResult(timeline: Timeline, gaveUp: Boolean) {
-        val replay: @Composable () -> Unit = { ReplaySection(ReplaySectionState.Ready(timeline), GoldenReplayUi, onOpen = {}) }
-        val card: @Composable () -> Unit = { DuelCard(gaveUp) }
-        if (gaveUp) {
-            Column(
-                Modifier.weight(1f).fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.lg),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
-            ) {
-                card()
-                replay()
-            }
-        } else {
-            ResultHeroScreen(
-                facts = LEG_HERO,
-                modifier = Modifier.weight(1f),
+        Ready(
+            ready = MatchLegResultState.Ready(
+                number = 2,
+                count = 3,
+                opponent = "Sam",
+                you = DuelSide("Ann", null, if (gaveUp) DuelSideState.GaveUp else DuelSideState.Time(100_000L, 0)),
+                them = DuelSide("Sam", null, DuelSideState.Sealed),
+                verdict = LegVerdict.Pending,
+                rankOrder = RankOrder.TimeThenHints,
+                posting = null,
+                hero = if (gaveUp) null else LEG_HERO,
                 brand = BRAND,
-                chip = ResultHeroChip(tag = "result.hero.chip.duel", value = "2 of 3", label = "In this duel"),
-                board = card,
-                replay = replay,
-            )
-        }
-    }
-
-    @Composable
-    private fun DuelCard(gaveUp: Boolean) {
-        val you = if (gaveUp) DuelSideState.GaveUp else DuelSideState.Time(100_000L, 0)
-        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            Text(
-                text = "Duel vs Sam · Puzzle 2 of 3",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
-            DuelCompare(DuelSide("Ann", null, you), DuelSide("Sam", null, DuelSideState.Sealed), RankOrder.TimeThenHints)
-            Text(
-                text = if (gaveUp) "Gave up · counts as a loss" else "Sam played · sealed until both finish",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            PrimaryButton(text = "Next puzzle: Tango #412", onClick = {}, modifier = Modifier.fillMaxWidth())
-            SecondaryButton(text = "Back to duel", onClick = {}, modifier = Modifier.fillMaxWidth())
-        }
+                next = LegNext.Puzzle(MatchLegKey("K7Q2MX", 2, "tango"), "Tango", 412),
+                replay = ReplaySectionState.Ready(timeline),
+                playUi = GoldenReplayUi,
+                replayKey = ReplayKey.leg("queens", "K7Q2MX", 1),
+            ),
+            onNext = {},
+            onBackToDuel = {},
+            onOpenReplay = {},
+        )
     }
 
     private companion object {

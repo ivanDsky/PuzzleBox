@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,7 +19,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
@@ -44,7 +47,8 @@ private val CardMaxWidth = 420.dp
  *
  * The pill renders from the in-memory [verdict] whenever it lands, so this screen never
  * waits on a record write; null means the verdict is unknown. [details] is the result's own
- * block under the tile (a friend's puzzle names its author and their time there).
+ * block under the tile (a friend's puzzle names its author and their time there). [below]
+ * draws under the card, in the same column and width, so it never pushes the actions.
  *
  * Height (s11): a pane under [CompactHeight] top-aligns with tighter gaps; anything taller
  * centres. Either way the column scrolls rather than squeezing the actions to nothing.
@@ -63,11 +67,12 @@ fun ResultScreen(
     previousBest: BestScore? = null,
     rankOrder: RankOrder = RankOrder.TimeThenHints,
     details: (@Composable () -> Unit)? = null,
+    below: (@Composable () -> Unit)? = null,
 ) {
     BoxWithConstraints(modifier.fillMaxSize()) {
         val compact = maxHeight < CompactHeight
         val gap = if (compact) Spacing.sm else Spacing.lg
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 // fillMaxSize first: short content still fills the pane, so a tall pane
@@ -81,39 +86,67 @@ fun ResultScreen(
                         PaddingValues(Spacing.lg)
                     },
                 ),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = if (compact) Arrangement.Top else Arrangement.Center,
+            propagateMinConstraints = true,
         ) {
-            OutlinedCard(
-                modifier = Modifier.widthIn(max = CardMaxWidth).fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-            ) {
-                Column(
-                    modifier = Modifier.padding(if (compact) Spacing.md else Spacing.xl),
-                    verticalArrangement = Arrangement.spacedBy(gap),
+            CardWithTail(centred = !compact, gap = gap, tail = below) {
+                OutlinedCard(
+                    modifier = Modifier.widthIn(max = CardMaxWidth).fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
                 ) {
-                    ResultHeader(brand, game, verdict)
-                    Column {
-                        // The hero metric: time first, at Display, tabular.
-                        Text(
-                            text = formatDuration(timeMs),
-                            style = MaterialTheme.typography.displayLarge.tabular(),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.testTag("result.time"),
+                    Column(
+                        modifier = Modifier.padding(if (compact) Spacing.md else Spacing.xl),
+                        verticalArrangement = Arrangement.spacedBy(gap),
+                    ) {
+                        ResultHeader(brand, game, verdict)
+                        Column {
+                            // The hero metric: time first, at Display, tabular.
+                            Text(
+                                text = formatDuration(timeMs),
+                                style = MaterialTheme.typography.displayLarge.tabular(),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.testTag("result.time"),
+                            )
+                            if (verdict == RecordVerdict.PlayAgain) PlayAgainLine(previousBest, rankOrder)
+                        }
+                        ResultStatTiles(hintsUsed)
+                        details?.invoke()
+                        ResultActions(
+                            primary = ResultPrimaryAction.Done,
+                            onPrimary = onDone,
+                            onShare = onShare,
+                            onPlayAgain = onPlayAgain,
+                            rolloverAt = null,
                         )
-                        if (verdict == RecordVerdict.PlayAgain) PlayAgainLine(previousBest, rankOrder)
                     }
-                    ResultStatTiles(hintsUsed)
-                    details?.invoke()
-                    ResultActions(
-                        primary = ResultPrimaryAction.Done,
-                        onPrimary = onDone,
-                        onShare = onShare,
-                        onPlayAgain = onPlayAgain,
-                        rolloverAt = null,
-                    )
                 }
             }
+        }
+    }
+}
+
+/**
+ * The card, centred in the pane when [centred] (else at the top), and [tail] one [gap] under it in the same
+ * [CardMaxWidth] column. The tail never takes part in the centring, so it can come and go without moving the
+ * card; the pane scrolls when card and tail together outgrow it.
+ */
+@Composable
+private fun CardWithTail(centred: Boolean, gap: Dp, tail: (@Composable () -> Unit)?, card: @Composable () -> Unit) {
+    Layout(
+        content = {
+            Box(contentAlignment = Alignment.TopCenter) { card() }
+            if (tail != null) Box(Modifier.widthIn(max = CardMaxWidth).fillMaxWidth()) { tail() }
+        },
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val cardPlaceable = measurables[0].measure(loose)
+        val tailPlaceable = measurables.getOrNull(1)?.measure(loose)
+        val paneHeight = constraints.minHeight
+        val cardTop = if (centred) ((paneHeight - cardPlaceable.height) / 2).coerceAtLeast(0) else 0
+        val tailTop = cardTop + cardPlaceable.height + gap.roundToPx()
+        val height = maxOf(paneHeight, tailPlaceable?.let { tailTop + it.height } ?: 0)
+        layout(constraints.maxWidth, height) {
+            cardPlaceable.place((constraints.maxWidth - cardPlaceable.width) / 2, cardTop)
+            tailPlaceable?.place((constraints.maxWidth - tailPlaceable.width) / 2, tailTop)
         }
     }
 }
