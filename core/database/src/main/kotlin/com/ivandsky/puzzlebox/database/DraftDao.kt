@@ -36,4 +36,31 @@ interface DraftDao {
 
     @Query("DELETE FROM drafts WHERE id = :id")
     suspend fun delete(id: String)
+
+    /** The rows [owner] owns, for the sync kind's upload pass. */
+    @Query("SELECT * FROM drafts WHERE ownerUid = :owner")
+    suspend fun ownedBy(owner: String): List<DraftEntity>
+
+    /** [ownedBy] as a flow: the trigger source of the sync kind. */
+    @Query("SELECT * FROM drafts WHERE ownerUid = :owner")
+    fun observeOwnedBy(owner: String): Flow<List<DraftEntity>>
+
+    /**
+     * Ids of [owner]'s draft tombstones not yet uploaded, due or not. A change here, like a change to `drafts`,
+     * wakes the sync kind; it never reads the rows' content.
+     */
+    @Query("SELECT docId FROM sync_tombstones WHERE kind = 'drafts' AND ownerUid = :owner AND uploaded = 0")
+    fun observeUnsentTombstoneIds(owner: String): Flow<List<String>>
+
+    /** Claims every ownerless draft for [owner]. */
+    @Query("UPDATE drafts SET ownerUid = :owner WHERE ownerUid IS NULL")
+    suspend fun adopt(owner: String)
+
+    /** Records the version of [id] the cloud holds; null makes it pending again. */
+    @Query("UPDATE drafts SET uploadedFingerprint = :fingerprint WHERE id = :id")
+    suspend fun setUploadedFingerprint(id: String, fingerprint: String?)
+
+    /** Makes every draft of [owner] pending again, for a re-upload after the cloud space was reset. */
+    @Query("UPDATE drafts SET uploadedFingerprint = NULL WHERE ownerUid = :owner")
+    suspend fun clearUploadedFingerprints(owner: String)
 }
