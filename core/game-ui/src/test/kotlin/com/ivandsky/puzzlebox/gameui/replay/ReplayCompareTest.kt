@@ -178,16 +178,16 @@ class ReplayCompareTest {
     }
 
     @Test
-    fun `flip and peek falls back to my board with the shared transport`() {
+    fun `flip and peek pages both boards under the one shared transport`() {
         show(mine, theirs, CompareLayout.FlipPeek)
 
-        assertEquals(listOf("facts 6"), boards())
+        assertEquals(listOf("facts 6", "facts 12"), boards())
         composeRule.onAllNodesWithTag(ReplayTags.PLAY).assertCountEquals(1)
 
         seekTo(0)
         tap(ReplayTags.PLAY)
         playFor(2_000)
-        assertEquals(listOf("facts 2"), boards())
+        assertEquals(listOf("facts 2", "facts 2"), boards())
     }
 
     @Test

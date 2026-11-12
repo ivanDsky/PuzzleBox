@@ -15,7 +15,7 @@ import com.ivandsky.puzzlebox.game.replay.Timeline
  * Two-sided replay section. Draws nothing when both timelines are null. Both sides play from time 0 on one
  * shared transport; a side that has ended stays on its last board. The lead line shows only when both sides
  * have a replay, and its noun is [board].pieces. Needs a bounded height, like [ReplayPlayer].
- * [CompareLayout.FlipPeek] shows one board (mine, or the only present side) until it is replaced by ticket 65.
+ * [CompareLayout.FlipPeek] shows one board at a time with a peek of the other.
  */
 @Composable
 fun ReplayCompare(
@@ -37,13 +37,7 @@ fun ReplayCompare(
         val stage = Modifier.weight(1f).fillMaxWidth()
         when (layout) {
             CompareLayout.Twin -> ReplayTwin(state, playback, mine, theirs, board, names, stage)
-            CompareLayout.FlipPeek -> ReplayStage(
-                boardCount = 1,
-                modifier = stage,
-                controlsHeight = CompareTransportHeight,
-                controls = { ReplayCompareTransport(state, playback, mine, theirs, names) },
-                board = { _, size -> ReplayBoardSlot(state.mineFrame ?: state.theirsFrame, board, size) },
-            )
+            CompareLayout.FlipPeek -> ReplayFlipPeek(state, playback, mine, theirs, board, names, stage)
         }
     }
 }
