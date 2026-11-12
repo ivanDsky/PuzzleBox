@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layout
@@ -30,9 +31,12 @@ import kotlin.math.roundToInt
  * day too, so people on two days' boards slide and update in place while the others arrive and leave. The [pinned]
  * own row sits under a divider that is an item of its own.
  *
- * The list is laid out in its final places at once, so nothing but a slide or an opening re-lays it out: a slide only
- * moves the drawn row by a layer offset, a fade only changes its layer alpha, and the rows' content is not recomposed
- * by either.
+ * Every row is drawn opaque, on [backdrop], so rows that overlap on the way never show through each other: a row on its
+ * way is drawn over the others and a leaving row fades under them.
+ *
+ * The list is laid out in its final places at once, so nothing but an opening re-lays it out: a slide only moves the
+ * drawn row by a layer offset towards the place it is laid out at, a fade only changes its layer alpha, and the rows'
+ * content is not recomposed by either.
  */
 @Composable
 internal fun AnimatedBoardList(
@@ -40,6 +44,7 @@ internal fun AnimatedBoardList(
     pinned: DailyBoardLine.Real?,
     order: RankOrder,
     withPuzzleBoxRank: Boolean,
+    backdrop: Color,
     modifier: Modifier = Modifier,
 ) {
     val rows = remember { BoardRows() }
@@ -49,17 +54,26 @@ internal fun AnimatedBoardList(
     Layout(
         content = {
             for (item in items) {
-                key(item.key) { BoardItemSlot(item, item.line, item.pinned, item.present, rows, order, withPuzzleBoxRank) }
+                key(item.key) {
+                    CompositionLocalProvider(LocalBoardBackdrop provides backdrop) {
+                        BoardItemSlot(item, item.line, item.pinned, item.present, rows, order, withPuzzleBoxRank)
+                    }
+                }
             }
         },
-        modifier = modifier.fillMaxWidth().testTag("daily_board.list").withoutLeadingGap(Spacing.sm),
+        // Clipped to the board, so a row on its way never draws over what sits above or below the list.
+        modifier = modifier.fillMaxWidth().testTag("daily_board.list").clipToBounds().withoutLeadingGap(Spacing.sm),
     ) { measurables, constraints ->
         val placeables = measurables.map { it.measure(constraints.copy(minHeight = 0)) }
         layout(constraints.maxWidth, placeables.sumOf { it.height }) {
             var y = 0
             placeables.forEachIndexed { index, placeable ->
-                items[index].placeAt(y, scope)
-                placeable.place(0, y)
+                val item = items[index]
+                item.placeAt(y, scope)
+                val placedAt = y
+                // A row on its way is drawn over the rows it passes, a leaving one under all the others.
+                val depth = if (!item.present) -1f else if (item.moving) 1f + item.travel else 0f
+                placeable.placeWithLayer(0, placedAt, depth) { translationY = item.offsetAt(placedAt) }
                 y += placeable.height
             }
         }
@@ -88,7 +102,6 @@ private fun BoardItemSlot(
         Modifier
             .graphicsLayer {
                 alpha = item.alpha.value
-                translationY = item.slide.value
             }
             .heightOpenedBy { item.open.value }
             .clipToBounds(),

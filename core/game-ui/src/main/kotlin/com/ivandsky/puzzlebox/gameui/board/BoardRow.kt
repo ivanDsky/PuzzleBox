@@ -55,11 +55,12 @@ internal fun BoardRow(
     val scheme = MaterialTheme.colorScheme
     val content = if (self) scheme.onSecondaryContainer else scheme.onSurface
     val quiet = if (self) scheme.onSecondaryContainer else scheme.onSurfaceVariant
+    val fill = if (self) scheme.secondaryContainer else LocalBoardBackdrop.current
     Row(
         modifier = modifier
             .testTag(tags.root)
             .fillMaxWidth()
-            .then(if (self) Modifier.background(scheme.secondaryContainer, MaterialTheme.shapes.small) else Modifier)
+            .then(if (fill != null) Modifier.background(fill, MaterialTheme.shapes.small) else Modifier)
             .border(FrameWidth, if (connection) LinkedInBlue else scheme.outlineVariant, MaterialTheme.shapes.small)
             .defaultMinSize(minHeight = BoardRowMinHeight)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm),

@@ -25,8 +25,8 @@ internal object BoardMotion {
     /** A medal flips in once the roll is nearly there: 0.4 of the glide after the row starts to move. */
     const val MedalLeadMillis = 480
 
-    // A slide is in pixels, an opening is a fraction of the row's height, a roll is in cells: each settles at a distance nobody sees.
-    val slide = spring<Float>(MotionTokens.SpringDampingDefault, GlideStiffness, visibilityThreshold = 0.5f)
+    // A slide and an opening are fractions (of the way to the place, of the row's height), a roll is in cells: each settles at a distance nobody sees.
+    val slide = spring<Float>(MotionTokens.SpringDampingDefault, GlideStiffness, visibilityThreshold = 0.002f)
     val open = spring<Float>(MotionTokens.SpringDampingDefault, GlideStiffness, visibilityThreshold = 0.002f)
     val roll = open
 
