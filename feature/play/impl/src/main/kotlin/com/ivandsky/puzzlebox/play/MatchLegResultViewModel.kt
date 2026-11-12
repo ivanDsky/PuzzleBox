@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -101,16 +102,25 @@ internal class MatchLegResultViewModel(
 
     private val code = ShareCode.parse(key.code)
 
-    private val replay: Flow<ReplaySectionState> = code?.let { code ->
-        observeMatch(code)
-            .map(::queuedGame)
+    /** One read of the match feeds the page and the replay. */
+    private val match: Flow<MatchState>? = code?.let {
+        observeMatch(it).shareIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), replay = 1)
+    }
+
+    /**
+     * One read once my result is queued: the outbox row is enqueued with its replay already attached (tickets 73, 74), so
+     * a later read would find nothing new.
+     */
+    private val replay: Flow<ReplaySectionState> = if (code == null || match == null) {
+        flowOf(ReplaySectionState.Hidden)
+    } else {
+        match.map(::queuedGame)
             .distinctUntilChanged()
             .mapLatest { game -> game?.let { replayOf(code, it) } ?: ReplaySectionState.Hidden }
-    } ?: flowOf(ReplaySectionState.Hidden)
+    }
 
     val state: StateFlow<MatchLegResultState> = combine(
-        code?.let { code -> observeMatch(code).flatMapLatest(::stateOf) }
-            ?: flowOf(MatchLegResultState.Unavailable(MatchState.NotFound)),
+        match?.flatMapLatest(::stateOf) ?: flowOf(MatchLegResultState.Unavailable(MatchState.NotFound)),
         replay,
     ) { shown, replay -> if (shown is MatchLegResultState.Ready) shown.copy(replay = replay) else shown }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), MatchLegResultState.Loading)

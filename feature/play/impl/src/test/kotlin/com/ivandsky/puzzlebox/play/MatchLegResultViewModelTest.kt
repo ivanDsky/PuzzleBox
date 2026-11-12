@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.LegResult
 import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchLeg
+import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.data.match.Player
@@ -49,6 +50,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -81,7 +83,13 @@ class MatchLegResultViewModelTest {
     private val fixture = ReplayFixtures.GAME
     private val server = FakeMatchRepository()
     private val theirReads = mutableListOf<String>()
+    private var replayLookups = 0
     private val matches = object : MatchRepository by server {
+        override fun observe(code: ShareCode): Flow<MatchFetch> {
+            replayLookups++
+            return server.observe(code)
+        }
+
         override suspend fun readResult(code: ShareCode, legIndex: Int, uid: String): ResultRead {
             theirReads += "$code/$legIndex/$uid"
             return server.readResult(code, legIndex, uid)
@@ -346,11 +354,13 @@ class MatchLegResultViewModelTest {
     fun theReplayWaitsForMyResultToBeQueued() {
         duel()
         val vm = page(leg = 2)
-        assertTrue(vm.state.value is MatchLegResultState.Unavailable || vm.ready().replay == ReplaySectionState.Hidden)
+        assertEquals(ReplaySectionState.Hidden, vm.ready().replay)
+        assertEquals(0, replayLookups)
 
         myRow(2, replay = ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES))
         dispatcher.scheduler.runCurrent()
         assertTrue(vm.ready().replay is ReplaySectionState.Ready)
+        assertEquals(1, replayLookups)
     }
 
     @Test
