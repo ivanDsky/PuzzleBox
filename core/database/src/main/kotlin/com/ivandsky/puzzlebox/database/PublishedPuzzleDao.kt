@@ -33,4 +33,28 @@ interface PublishedPuzzleDao {
 
     @Query("UPDATE published_puzzles SET solvesCount = :count, solvesCountAt = :at WHERE code = :code")
     suspend fun updateSolves(code: String, count: Int, at: Long)
+
+    /** The stored row for [code] whatever its owner, or null; the sync merge reads it. */
+    @Query("SELECT * FROM published_puzzles WHERE code = :code")
+    suspend fun find(code: String): PublishedPuzzleEntity?
+
+    /** Every row owned by [uid], for the sync upload. */
+    @Query("SELECT * FROM published_puzzles WHERE ownerUid = :uid ORDER BY createdAt, code")
+    suspend fun owned(uid: String): List<PublishedPuzzleEntity>
+
+    /** The rows owned by [uid], re-emitted on every write to the table; sync derives its pending ids from it. */
+    @Query("SELECT * FROM published_puzzles WHERE ownerUid = :uid")
+    fun observeOwned(uid: String): Flow<List<PublishedPuzzleEntity>>
+
+    /** Gives the ownerless rows to [uid]. */
+    @Query("UPDATE published_puzzles SET ownerUid = :uid WHERE ownerUid IS NULL")
+    suspend fun adopt(uid: String)
+
+    /** Records [fingerprint] as the last uploaded version of [uid]'s row [code]. */
+    @Query("UPDATE published_puzzles SET uploadedFingerprint = :fingerprint WHERE code = :code AND ownerUid = :uid")
+    suspend fun setFingerprint(code: String, uid: String, fingerprint: String)
+
+    /** Clears the upload marker of every row [uid] owns, so all of them upload again. */
+    @Query("UPDATE published_puzzles SET uploadedFingerprint = NULL WHERE ownerUid = :uid")
+    suspend fun clearFingerprints(uid: String)
 }
