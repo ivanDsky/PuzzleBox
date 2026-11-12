@@ -1,7 +1,13 @@
 package com.ivandsky.puzzlebox.history
 
 import androidx.paging.testing.asSnapshot
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.model.SolveReplay
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
+import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
@@ -24,6 +30,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -449,5 +456,125 @@ class HistoryViewModelTest {
         val rows = viewModel(daily).uiState.first { it.rows.isNotEmpty() }.rows
 
         assertEquals(listOf("Sunday, November 1", "Monday, March 4, 2024"), rows.map { it.headline })
+    }
+
+    private val replayDay: LocalDate = LocalDate.of(2026, 11, 1)
+    private val replayPuzzle = TestGames.Ref(ReplayFixtures.GAME, PuzzleKey.Daily(replayDay, 1))
+    private val firstReplay = ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES)
+    private val newerReplay = ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES, stepMs = 2_000)
+
+    private val replayRow = HistoryDayRow(
+        day = replayDay,
+        puzzleNumber = 1,
+        gameId = ReplayFixtures.GAME,
+        gameName = "Fixture",
+        record = solve(isRecord = true),
+    )
+
+    private fun solve(isRecord: Boolean) = CompletionRecord(
+        puzzleRef = replayPuzzle,
+        time = 1_000,
+        hints = 0,
+        stats = RecordStats(schemaVersion = 1, blob = "{}"),
+        isRecord = isRecord,
+    )
+
+    /** One solve per entry, oldest first; the first is the record solve. */
+    private suspend fun replayViewModel(
+        vararg solves: SolveReplay?,
+        flags: FakeReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
+    ): HistoryViewModel {
+        val completions = FakeCompletionRepository()
+        solves.forEachIndexed { index, replay -> completions.onCompleted(solve(isRecord = index == 0), replay) }
+        val daily = FakeDailyRepository().apply { setCached(ReplayFixtures.GAME, replayDay, TestGames.puzzle(ReplayFixtures.GAME)) }
+        return HistoryTestSupport.viewModel(daily, completions, flags = flags, games = HistoryTestSupport.replayRegistry)
+    }
+
+    @Test
+    fun `no replay on either solve hides the replays`() = runTest {
+        val viewModel = replayViewModel(null, null)
+
+        viewModel.openReplays(replayRow)
+
+        assertEquals(HistoryReplays.Hidden, viewModel.replays.value)
+    }
+
+    @Test
+    fun `a day without a solve hides the replays`() = runTest {
+        val viewModel = replayViewModel(firstReplay)
+
+        viewModel.openReplays(replayRow.copy(record = null))
+
+        assertEquals(HistoryReplays.Hidden, viewModel.replays.value)
+    }
+
+    @Test
+    fun `only the record solve having a replay gives one`() = runTest {
+        val viewModel = replayViewModel(firstReplay, null)
+
+        viewModel.openReplays(replayRow)
+
+        val one = viewModel.replays.value as HistoryReplays.One
+        assertEquals(ReplayFixtures.SHORT_MOVES * 1_000L, one.timeline.endMs)
+    }
+
+    @Test
+    fun `only the latest solve having a replay gives one`() = runTest {
+        val viewModel = replayViewModel(null, newerReplay)
+
+        viewModel.openReplays(replayRow)
+
+        val one = viewModel.replays.value as HistoryReplays.One
+        assertEquals(ReplayFixtures.SHORT_MOVES * 2_000L, one.timeline.endMs)
+    }
+
+    @Test
+    fun `a latest solve that is the record solve gives one`() = runTest {
+        val viewModel = replayViewModel(firstReplay)
+
+        viewModel.openReplays(replayRow)
+
+        val one = viewModel.replays.value as HistoryReplays.One
+        assertEquals(ReplayFixtures.SHORT_MOVES * 1_000L, one.timeline.endMs)
+    }
+
+    @Test
+    fun `two different solves with replays give first and latest`() = runTest {
+        val viewModel = replayViewModel(firstReplay, newerReplay)
+
+        viewModel.openReplays(replayRow)
+
+        val both = viewModel.replays.value as HistoryReplays.FirstAndLatest
+        assertEquals(ReplayFixtures.SHORT_MOVES * 1_000L, both.first.endMs)
+        assertEquals(ReplayFixtures.SHORT_MOVES * 2_000L, both.latest.endMs)
+    }
+
+    @Test
+    fun `flag off hides the replays of two stored solves`() = runTest {
+        val viewModel = replayViewModel(firstReplay, newerReplay, flags = FakeReleaseFlags())
+
+        viewModel.openReplays(replayRow)
+
+        assertEquals(HistoryReplays.Hidden, viewModel.replays.value)
+    }
+
+    @Test
+    fun `closing the detail drops the timelines`() = runTest {
+        val viewModel = replayViewModel(firstReplay, newerReplay)
+        viewModel.openReplays(replayRow)
+        assertTrue(viewModel.replays.value is HistoryReplays.FirstAndLatest)
+
+        viewModel.openReplays(null)
+
+        assertSame(HistoryReplays.Hidden, viewModel.replays.value)
+    }
+
+    @Test
+    fun `a fresh view model has no replays and the list never loads them`() = runTest {
+        val viewModel = replayViewModel(firstReplay, newerReplay)
+
+        viewModel.pagedDays.asSnapshot()
+
+        assertSame(HistoryReplays.Hidden, viewModel.replays.value)
     }
 }
