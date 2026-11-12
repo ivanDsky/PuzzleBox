@@ -85,7 +85,8 @@ class FirestoreRulesCloudSpaceTest {
                     "formatVersion", "updatedAt", "gameId", "name", "publishedAtMs", "unpublished",
                 ),
                 "validReceivedDoc" to setOf(
-                    "formatVersion", "updatedAt", "gameId", "name", "senderName", "receivedAtMs", "bytes",
+                    "formatVersion", "updatedAt", "gameId", "variant", "sharedFormatVersion", "name", "senderName",
+                    "authorUid", "note", "authorTimeMs", "authorHints", "difficulty", "receivedAtMs", "bytes",
                     "postState", "deleted", "deletedAtMs",
                 ),
                 "validBoardDoc" to setOf(
@@ -132,6 +133,11 @@ class FirestoreRulesCloudSpaceTest {
             assertTrue("$function caps name", functionBody(block, function).contains("isSpaceName(d.get('name', ''))"))
         }
         assertTrue(functionBody(block, "validReceivedDoc").contains("isSpaceName(d.get('senderName', ''))"))
+        for (capped in listOf("isSpaceName(d.get('variant', ''))", "isSpaceName(d.get('difficulty', ''))")) {
+            assertTrue(capped, functionBody(block, "validReceivedDoc").contains(capped))
+        }
+        assertTrue(functionBody(block, "validReceivedDoc").contains("d.authorUid.size() <= 128"))
+        assertTrue(functionBody(block, "validReceivedDoc").contains("d.note.size() <= 140"))
     }
 
     @Test
