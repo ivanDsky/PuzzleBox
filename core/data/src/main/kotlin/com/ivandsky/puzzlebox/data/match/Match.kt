@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.match
 
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.model.SolveReplay
 import java.time.Instant
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.toJavaDuration
@@ -62,4 +63,6 @@ data class LegResult(
     val hints: Int,
     val completedAtMs: Long,
     val gaveUp: Boolean,
+    /** Advisory only: no verdict reads it. */
+    val replay: SolveReplay? = null,
 )
