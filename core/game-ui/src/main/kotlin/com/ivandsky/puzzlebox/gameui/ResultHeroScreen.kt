@@ -51,6 +51,7 @@ private const val SIDE_WEIGHT = 1f
  * [chip] replaces the Today chip. A non-null [onRetryWrite] shows a failed-record-write notice above
  * the cards that retries through it. [onSignIn] is the rank row's sign-in when the player is signed out.
  * [board], when given, is a block drawn below the cards (the Result "Full board" row).
+ * [replay], when given, is drawn last, below every other block in both layouts, so the actions stay on the first screen.
  */
 @Composable
 fun ResultHeroScreen(
@@ -62,6 +63,7 @@ fun ResultHeroScreen(
     actions: (@Composable () -> Unit)? = null,
     chip: ResultHeroChip? = null,
     board: (@Composable () -> Unit)? = null,
+    replay: (@Composable () -> Unit)? = null,
 ) {
     val model = remember(facts, chip) { resultHeroModel(facts, chip = chip) }
     val hasSide = model.streak != null || model.spread != null || model.rank != null
@@ -99,6 +101,7 @@ fun ResultHeroScreen(
                     ResultSideCard(model, brand, onSignIn, Modifier, wide)
                 }
                 board?.invoke()
+                replay?.invoke()
             }
         }
     }

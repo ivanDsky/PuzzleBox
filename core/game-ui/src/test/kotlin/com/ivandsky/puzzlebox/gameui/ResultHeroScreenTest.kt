@@ -1,7 +1,11 @@
 package com.ivandsky.puzzlebox.gameui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -80,5 +84,53 @@ class ResultHeroScreenTest {
         setContent(300, 460)
         composeRule.onNodeWithTag("result.hero.screen").assertIsDisplayed()
         composeRule.onNodeWithTag("result.write_failed").assertDoesNotExist()
+    }
+
+    private fun setContentWithReplay(widthDp: Int, heightDp: Int) {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                val facts = heroSampleFacts()
+                ResultHeroScreen(
+                    facts = facts,
+                    onSignIn = {},
+                    modifier = Modifier.requiredSize(widthDp.dp, heightDp.dp),
+                    brand = brand,
+                    actions = { ResultHeroActions(facts.primary, onPrimary = {}, onShare = {}, onPlayAgain = {}) },
+                    replay = { Box(Modifier.fillMaxWidth().height(400.dp).testTag("result.replay.slot")) },
+                )
+            }
+        }
+    }
+
+    @Test
+    fun phone_shows_the_actions_without_scrolling_with_the_replay_slot_filled() {
+        setContentWithReplay(411, 891)
+        composeRule.onNodeWithTag("result.share").assertIsDisplayed()
+        composeRule.onNodeWithTag("result.playAgain").assertIsDisplayed()
+        val slot = composeRule.onNodeWithTag("result.replay.slot").assertExists().getUnclippedBoundsInRoot()
+        assertTrue("slot bottom ${slot.bottom} must lie past the 891 dp viewport", slot.bottom > 891.dp)
+    }
+
+    @Test
+    fun phone_draws_the_replay_slot_below_the_side_card() {
+        setContentWithReplay(411, 891)
+        val side = composeRule.onNodeWithTag("result.side.streak").getUnclippedBoundsInRoot()
+        val slot = composeRule.onNodeWithTag("result.replay.slot").getUnclippedBoundsInRoot()
+        assertTrue("slot ${slot.top} must sit below side ${side.bottom}", slot.top >= side.bottom)
+    }
+
+    @Test
+    fun tablet_draws_the_replay_slot_below_both_columns() {
+        setContentWithReplay(1280, 800)
+        val side = composeRule.onNodeWithTag("result.side.streak").getUnclippedBoundsInRoot()
+        val share = composeRule.onNodeWithTag("result.share").getUnclippedBoundsInRoot()
+        val slot = composeRule.onNodeWithTag("result.replay.slot").getUnclippedBoundsInRoot()
+        assertTrue("slot ${slot.top} must sit below side ${side.bottom} and share ${share.bottom}", slot.top >= maxOf(side.bottom, share.bottom))
+    }
+
+    @Test
+    fun a_null_slot_composes_no_replay_node() {
+        setContent(411, 891)
+        composeRule.onNodeWithTag("result.replay.slot").assertDoesNotExist()
     }
 }
