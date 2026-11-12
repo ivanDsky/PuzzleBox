@@ -104,6 +104,7 @@ val zipPlugin: GamePlugin<ZipState, ZipSession, ZipRendererModel> =
             )
         },
         editor = ZipEditor,
+        replay = ZipReplay,
     )
 
 /**
