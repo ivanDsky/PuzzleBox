@@ -174,11 +174,14 @@ class ActivePlay internal constructor(
         winRecording.refreshBaseline(ref, playAgain = true)
         val reopen = reopen
         if (reopen == null || !recording) return controller.playAgain()
-        val next = newController(MoveLog.fresh(gameId))
+        val log = MoveLog.fresh(gameId)
+        val next = newController(log)
         if (!reopen(next)) {
             _board.value = Board(next, PlayBoardStatus.Unavailable(UNREADABLE))
             return
         }
+        // A restored adopt stated its setting at the saved time; the new solve starts from 0.
+        log.restart()
         _board.value = _board.value.copy(controller = next)
         next.playAgain()
     }
