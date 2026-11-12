@@ -43,7 +43,7 @@ import org.koin.core.parameter.parametersOf
  * before [onPlayAgain] reopens its board, so the board never re-hands off the old solve.
  * Share hands the system share sheet the puzzle's link, so the friend's friends can try it;
  * the board's sign-in hosts Google's account picker on this screen. A stored solve with a replay adds the Watch replay
- * row below the board, which hands [onOpenReplay] the key of this puzzle's newest solve.
+ * row below the card, after the actions, which hands [onOpenReplay] the key of this puzzle's newest solve.
  */
 @Composable
 internal fun CustomResultRoute(
@@ -86,7 +86,7 @@ internal fun CustomResultRoute(
  * "New best" pill once the solve is recorded as the record, or the score a play again leaves
  * standing; the Hints tile, then the puzzle's board with its author pinned. A friend's puzzle
  * never moves a streak, so there is no Streak tile, and the primary step is always Done. The replay section ([replayUi]
- * is the game's play UI, null for a game this build does not ship) follows the board and draws nothing until the state is Ready.
+ * is the game's play UI, null for a game this build does not ship) follows the card and draws nothing until the state is Ready.
  */
 @Composable
 internal fun CustomResultScreen(
@@ -126,8 +126,8 @@ internal fun CustomResultScreen(
                 onSignIn = onSignIn,
                 closed = state.boardClosed,
             )
-            if (replayUi != null) ReplaySection(state.replay, replayUi, onOpen = onOpenReplay)
         },
+        below = replayUi?.let { ui -> { ReplaySection(state.replay, ui, onOpen = onOpenReplay) } },
     )
 }
 

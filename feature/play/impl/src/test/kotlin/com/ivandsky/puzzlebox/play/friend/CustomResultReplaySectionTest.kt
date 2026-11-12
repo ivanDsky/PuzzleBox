@@ -1,8 +1,10 @@
 package com.ivandsky.puzzlebox.play.friend
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -24,6 +26,7 @@ import com.ivandsky.puzzlebox.play.FakePlayUi
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import java.time.Instant
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -32,7 +35,7 @@ import org.robolectric.annotation.Config
 
 /**
  * When the custom result screen shows the replay section: the Watch replay row appears once the state is Ready and the
- * game has a replay board, opens the replay on a tap, and never pushes the primary actions off a phone screen.
+ * game has a replay board, opens the replay on a tap, and never moves the primary actions.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
@@ -50,6 +53,13 @@ class CustomResultReplaySectionTest {
         replayUi: FakePlayUi? = ui,
         board: CustomBoardView? = null,
         onOpenReplay: () -> Unit = {},
+    ) = showWith(board, replayUi, onOpenReplay) { replay }
+
+    private fun showWith(
+        board: CustomBoardView?,
+        replayUi: FakePlayUi? = ui,
+        onOpenReplay: () -> Unit = {},
+        replay: () -> ReplaySectionState,
     ) {
         val puzzle = puzzle()
         composeRule.setContent {
@@ -64,7 +74,7 @@ class CustomResultReplaySectionTest {
                         puzzle = puzzle,
                         standing = CustomStanding.Record,
                         board = board ?: CustomBoardView.SignedOut(puzzle.authorPin()),
-                        replay = replay,
+                        replay = replay(),
                     ),
                     onDone = {},
                     onShare = {},
@@ -109,13 +119,26 @@ class CustomResultReplaySectionTest {
     }
 
     @Test
-    fun `the actions stay displayed without scrolling at phone size with the section present`() {
+    fun `the section never moves the actions`() {
+        var replay by mutableStateOf<ReplaySectionState>(ReplaySectionState.Hidden)
+        showWith(RankedBoard) { replay }
+
+        val without = node("result.done").fetchSemanticsNode().boundsInRoot.top
+        replay = ready
+        composeRule.waitForIdle()
+        val with = node("result.done").fetchSemanticsNode().boundsInRoot.top
+
+        node(ReplayTags.WATCH_ROW).assertExists()
+        assertEquals(without, with, 0f)
+    }
+
+    @Test
+    fun `the section follows the actions`() {
         show(ready, board = RankedBoard)
 
-        node(ReplayTags.WATCH_ROW).assertIsDisplayed()
-        node("result.done").assertIsDisplayed()
-        node("result.share").assertIsDisplayed()
-        node("result.playAgain").assertIsDisplayed()
+        val done = node("result.done").fetchSemanticsNode().boundsInRoot
+        val row = node(ReplayTags.WATCH_ROW).fetchSemanticsNode().boundsInRoot
+        assertTrue(row.top >= done.bottom)
     }
 
     /** The board's tallest read: five friends ahead and this solve ranked below the cut. */
