@@ -33,7 +33,6 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.ArchiveDay
 import com.ivandsky.puzzlebox.domain.PastDayStatus
 import com.ivandsky.puzzlebox.domain.TodayStatus
-import com.ivandsky.puzzlebox.gameui.CardSlot
 import com.ivandsky.puzzlebox.gameui.GameCardColors
 import com.ivandsky.puzzlebox.gameui.GameCardSurface
 import com.ivandsky.puzzlebox.gameui.GameMotif
@@ -55,6 +54,9 @@ private const val UNAVAILABLE_ALPHA = 0.5f
 private const val TAG_WELL_ALPHA = 0.22f
 private val ChipRowHeight = 48.dp
 
+/** What the card's slots draw for one day; a change of it is what cross-fades. */
+private data class DayFace(val past: ArchiveDay?, val number: Int?, val line: DayLine, val unavailable: Boolean)
+
 /** The status slot's value: today's status (null while loading) or a past day's. */
 private sealed interface DayLine {
     data class Today(val status: TodayStatus?) : DayLine
@@ -68,7 +70,8 @@ private sealed interface DayLine {
  * with one it shows that day, tagged "From the archive" or "Past puzzle", plus
  * "Back to today" ([onBackToToday]). [onPlay] opens the shown day's board. A day that
  * can't load — today offline, or a never-opened past day while [offline] — offers
- * "Try again", whose tap is [onRetry]. Each slot cross-fades on a day change. A non-null
+ * "Try again", whose tap is [onRetry]. A day change cross-fades every line and the action
+ * together in place ([DayFade]); the card's frame and size stay put. A non-null
  * [linkedIn] draws the LinkedIn sync chip in the top-end corner, beside the eyebrow, and only while the
  * card is composed.
  */
@@ -92,6 +95,7 @@ internal fun ArchiveDayCard(
         is DayLine.Past -> offline && line.status == PastDayStatus.NeedsConnection
     }
     val action = if (unavailable) onRetry else onPlay
+    val fade = rememberDayFade(DayFace(past, past?.number ?: row.today, line, unavailable))
     GameCardSurface(
         colors = colors,
         onClick = action,
@@ -110,48 +114,54 @@ internal fun ArchiveDayCard(
                 Modifier.fillMaxWidth().heightIn(min = if (linkedIn == null) 0.dp else ChipRowHeight),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(Modifier.weight(1f)) { CardSlot(past, 24.dp) { shown -> TopRow(shown, today, colors) } }
+                Box(Modifier.weight(1f)) { fade.Slot(24.dp) { TopRow(it.past, today, colors) } }
                 linkedIn?.let { slot ->
                     Spacer(Modifier.width(8.dp))
                     slot()
                 }
             }
             Spacer(Modifier.weight(1f, fill = false).heightIn(min = if (linkedIn == null) 12.dp else 0.dp))
-            CardSlot(past?.number ?: row.today, 34.dp) { number ->
+            fade.Slot(34.dp) { face ->
                 Text(
-                    card.name + number?.let { " #${count(it)}" }.orEmpty(),
+                    card.name + face.number?.let { " #${count(it)}" }.orEmpty(),
                     style = MaterialTheme.typography.headlineLarge.tabular(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            CardSlot(line, 24.dp) { shown -> StatusRow(shown, colors) }
-            CardSlot(note(past), 20.dp) { shown ->
-                Text(shown, style = MaterialTheme.typography.labelLarge, color = colors.fg2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            fade.Slot(24.dp) { StatusRow(it.line, colors) }
+            fade.Slot(20.dp) { face ->
+                Text(note(face.past), style = MaterialTheme.typography.labelLarge, color = colors.fg2, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Spacer(Modifier.height(10.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Button(
-                    onClick = action,
-                    enabled = line != DayLine.Today(null),
-                    shape = PillShape,
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.fg, contentColor = colors.fill),
-                    modifier = Modifier
-                        .height(48.dp)
-                        .alpha(if (unavailable) UNAVAILABLE_ALPHA else 1f)
-                        .testTag("library.play"),
-                ) {
-                    Text(if (unavailable) "Try again" else actionLabel(line), style = MaterialTheme.typography.labelLarge)
-                }
-                if (past != null) {
-                    TextButton(
-                        onClick = onBackToToday,
-                        colors = ButtonDefaults.textButtonColors(contentColor = colors.fg),
-                        modifier = Modifier.height(48.dp).testTag("library.day_card.back"),
-                    ) {
-                        Text("Back to today", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
+            fade.Slot(48.dp) { face -> Actions(face, colors, action, onBackToToday) }
+        }
+    }
+}
+
+/** The primary action, and "Back to today" while a past day is shown. */
+@Composable
+private fun Actions(face: DayFace, colors: GameCardColors, action: () -> Unit, onBackToToday: () -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Button(
+            onClick = action,
+            enabled = face.line != DayLine.Today(null),
+            shape = PillShape,
+            colors = ButtonDefaults.buttonColors(containerColor = colors.fg, contentColor = colors.fill),
+            modifier = Modifier
+                .height(48.dp)
+                .alpha(if (face.unavailable) UNAVAILABLE_ALPHA else 1f)
+                .testTag("library.play"),
+        ) {
+            Text(if (face.unavailable) "Try again" else actionLabel(face.line), style = MaterialTheme.typography.labelLarge)
+        }
+        if (face.past != null) {
+            TextButton(
+                onClick = onBackToToday,
+                colors = ButtonDefaults.textButtonColors(contentColor = colors.fg),
+                modifier = Modifier.height(48.dp).testTag("library.day_card.back"),
+            ) {
+                Text("Back to today", style = MaterialTheme.typography.labelLarge)
             }
         }
     }
