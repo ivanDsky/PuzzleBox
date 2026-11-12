@@ -67,7 +67,7 @@ internal fun heroBestLine(
                     if (it.hints == 0) "Your best is Perfect" else "Your best is ${bestScoreText(it, order)}"
             }
         }
-        RecordVerdict.PlayAgain -> best?.let { "Replay · Best ${bestScoreText(it, order)}" } ?: "Replay"
+        RecordVerdict.PlayAgain -> best?.let { "${PlayAgainCopy.LABEL} · Best ${bestScoreText(it, order)}" } ?: PlayAgainCopy.LABEL
         RecordVerdict.TiedBest, null -> null
     }
 }
@@ -127,8 +127,6 @@ internal fun heroSpreadCaption(scope: SpreadScope, first: Boolean, weekday: Stri
     return if (switchable) "$body $SWITCH_HINT" else body
 }
 
-private const val PLAY_AGAIN_NOTE = " Dashed = this replay, not saved."
-
 /**
  * The line under the chart: a first solve invites another; the best says so in bold; otherwise
  * the rank in bold. Then the average of the earlier solves. A hints-first game says "best" for "fastest".
@@ -141,7 +139,7 @@ internal fun heroSpreadVerdict(
     weekday: String,
     playAgain: Boolean,
 ): Emphasized {
-    val playAgainNote = if (playAgain) PLAY_AGAIN_NOTE else ""
+    val playAgainNote = if (playAgain) PlayAgainCopy.RUN_NOTE else ""
     val weekdayScope = scope == SpreadScope.Weekday
     if (spread.isFirstSolve) {
         if (!weekdayScope) {
