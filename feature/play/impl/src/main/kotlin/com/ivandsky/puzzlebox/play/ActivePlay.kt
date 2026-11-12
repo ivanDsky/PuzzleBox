@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.replay.MoveLog
+import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -208,7 +209,8 @@ class ActivePlay internal constructor(
                 onWon = { record ->
                     if (gen == generation) {
                         persistence.discard()
-                        winRecording.onWon(record)
+                        // The replay ends on the record's time, so no stamp is ever past it (S4).
+                        winRecording.onWon(record, moveLog.seal(ReplayOutcome.Solved, endMs = record.time))
                     }
                 },
                 moveLog = moveLog,

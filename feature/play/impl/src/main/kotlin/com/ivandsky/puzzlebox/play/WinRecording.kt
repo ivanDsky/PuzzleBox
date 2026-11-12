@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.CompletionRecordEmitter
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.model.SolveReplay
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,7 +36,7 @@ internal class WinRecording(
     val record: StateFlow<ActivePlay.Record> = _record.asStateFlow()
 
     /** The game's best BEFORE this session and whether this puzzle was already
-     *  solved (a replay), read at session start: the verdict is derived from this
+     *  solved (a play-again solve), read at session start: the verdict is derived from this
      *  baseline, never from the stored rows after the write. [baselineKnown] false = the
      *  read has not landed (the verdict stays null). */
     private var baselineKnown = false
@@ -43,12 +44,16 @@ internal class WinRecording(
     private var baselinePlayAgain = false
     private var lastWon: CompletionRecord? = null
 
+    /** The replay sealed with [lastWon]: a retried write stores this one, never a re-seal. */
+    private var lastSealed: SolveReplay? = null
+
     fun reset(ref: PuzzleRef?) {
         recordToken++
         baselineKnown = false
         baselineBest = null
         baselinePlayAgain = false
         lastWon = null
+        lastSealed = null
         _record.value = blankRecord(labelFor(ref))
     }
 
@@ -68,22 +73,24 @@ internal class WinRecording(
         }
     }
 
-    fun onWon(record: CompletionRecord) {
+    /** [sealed] travels beside [record], never inside it; null = this solve has no replay. */
+    fun onWon(record: CompletionRecord, sealed: SolveReplay?) {
         lastWon = record
+        lastSealed = sealed
         _record.update { it.copy(solve = ActivePlay.Solve(record.time, record.hints)) }
-        emit(record)
+        emit(record, sealed)
     }
 
     /** Retry after a failed record write: a new emitter (the old one deduped this ref). */
     fun retry() {
-        emit(lastWon ?: return)
+        emit(lastWon ?: return, lastSealed)
     }
 
-    private fun emit(record: CompletionRecord) {
+    private fun emit(record: CompletionRecord, sealed: SolveReplay?) {
         val token = recordToken
         _record.update { it.copy(verdict = null, previousBest = null, writeFailed = false) }
         CompletionRecordEmitter(recordScope) { r ->
-            completions.onCompleted(r)
+            completions.onCompleted(r, sealed)
             AppResult.Ok(Unit)
         }.emit(record) { result ->
             if (token != recordToken) return@emit
