@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.importtext.ImportTextState
 import com.ivandsky.puzzlebox.data.model.Draft
+import com.ivandsky.puzzlebox.data.repository.DRAFT_UNDO_WINDOW_MS
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SharedTextStore
@@ -48,7 +49,7 @@ import kotlinx.coroutines.launch
  * an edit. The search and game filter apply only past [SEARCH_THRESHOLD] drafts.
  *
  * A row's actions (01 handoff "Draft actions sheet"): [duplicate] stores a copy without the
- * test solve; [delete] removes the draft at once and offers [undoDelete] for [UNDO_WINDOW_MS],
+ * test solve; [delete] removes the draft at once and offers [undoDelete] for [DRAFT_UNDO_WINDOW_MS],
  * which stores the very same draft again, so it returns to its place in the list.
  *
  * The [CreateUiState.Tab.Published] tab lists [published]'s rows, newest first; a draft kept
@@ -188,7 +189,7 @@ class CreateViewModel(
     }
 
     /**
-     * Removes [draftId] now; [undoDelete] puts it back until [UNDO_WINDOW_MS] pass. An id with no
+     * Removes [draftId] now; [undoDelete] puts it back until [DRAFT_UNDO_WINDOW_MS] pass. An id with no
      * stored draft (a repeat tap) leaves the open Undo window and its timer as they are.
      */
     fun delete(draftId: String) {
@@ -198,7 +199,7 @@ class CreateViewModel(
             drafts.delete(draftId)
             deleted.value = draft
             undoWindow = viewModelScope.launch {
-                delay(UNDO_WINDOW_MS)
+                delay(DRAFT_UNDO_WINDOW_MS)
                 deleted.value = null
             }
         }
@@ -246,6 +247,5 @@ class CreateViewModel(
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
-        const val UNDO_WINDOW_MS = 5_000L
     }
 }
