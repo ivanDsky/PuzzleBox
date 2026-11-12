@@ -45,6 +45,7 @@ val strandsPlugin: GamePlugin<StrandsState, StrandsSession, StrandsRendererModel
         },
         rendererModel = { state, _, _ -> StrandsRendererModel.of(state) },
         editor = StrandsEditor,
+        replay = StrandsReplay,
     )
 
 /**
