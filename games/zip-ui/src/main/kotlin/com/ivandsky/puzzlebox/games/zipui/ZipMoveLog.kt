@@ -24,8 +24,8 @@ internal class ZipMoveLog(
         val atMs = playTimeMs(session.elapsedMs, session.runningSince, at)
         val next = log.play(ZipReplay, session, move.toReplayMove(), atMs)
         // The step folds the clock at its play-time stamp, all a replay has. A live win keeps the
-        // wall-clock moment and the play time the window ran to.
+        // wall-clock moment, in the session codec's millisecond precision, and the play time the window ran to.
         val wonNow = next.isComplete && !session.isComplete
-        return if (wonNow) next.copy(elapsedMs = atMs, completedAt = at) else next
+        return if (wonNow) next.copy(elapsedMs = atMs, completedAt = Instant.ofEpochMilli(at.toEpochMilli())) else next
     }
 }

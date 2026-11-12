@@ -5,7 +5,7 @@ import com.ivandsky.puzzlebox.game.replay.ReplayMove
 /**
  * One recorded Zip action: what happened on the trace, not what was pressed, so a replay
  * needs no drag gesture, hint engine or solver to apply it. A drag is one [Extend] or
- * [RetractTo] per cell; a hint is its resolved trim and step followed by [Hint]; a refused drop is [Rejection].
+ * [RetractTo] per cell; a hint is its resolved trim, [Hint], then its step; a refused drop is [Rejection].
  */
 sealed interface ZipReplayMove {
     data class Extend(val cell: Cell) : ZipReplayMove

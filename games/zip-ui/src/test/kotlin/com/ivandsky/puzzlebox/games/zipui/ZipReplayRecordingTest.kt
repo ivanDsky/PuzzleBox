@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.zipui
 
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.replay.MoveLog
 import com.ivandsky.puzzlebox.game.replay.ReplayCodec
@@ -22,6 +23,7 @@ import com.ivandsky.puzzlebox.games.zip.ZipReplayMove.Reset
 import com.ivandsky.puzzlebox.games.zip.ZipReplayMove.RetractTo
 import com.ivandsky.puzzlebox.games.zip.ZipReplayMove.Undo
 import com.ivandsky.puzzlebox.games.zip.ZipSession
+import com.ivandsky.puzzlebox.games.zip.codec.ZipSessionCodec
 import com.ivandsky.puzzlebox.games.zip.engine.ZipMove
 import com.ivandsky.puzzlebox.games.zip.zipPlugin
 import com.ivandsky.puzzlebox.model.SolveReplay
@@ -296,6 +298,17 @@ class ZipReplayRecordingTest {
             assertEquals(null, off.log.snapshot())
             assertTrue(on.recorded().isNotEmpty())
         }
+    }
+
+    /** The codec keeps milliseconds: a win stamped finer than that would differ from its own restored copy. */
+    @Test
+    fun `a won session equals itself after a codec round trip under a clock finer than a millisecond`() {
+        val play = fresh(MoveLog.fresh(ZipDefinition.id))
+        fakeNow = fakeNow.plusNanos(123_456L)
+        play.run(solveScript)
+
+        val decoded = ZipSessionCodec.deserialize(play.saved.last()) as DecodeResult.Ok
+        assertEquals(play.session, decoded.value)
     }
 
     private companion object {
