@@ -338,7 +338,7 @@ class ProfileViewModelTest {
         link.pause(Kind.Unexpected)
         advanceUntilIdle()
         assertEquals(
-            "LinkedIn answered in a way we didn't expect, so reading is paused.",
+            "Something unexpected stopped the LinkedIn read, so reading is paused.",
             (deps.vm.uiState.value.linkedIn as LinkedInRowState.Paused).reason,
         )
 
