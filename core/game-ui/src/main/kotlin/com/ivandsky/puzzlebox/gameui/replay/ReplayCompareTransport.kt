@@ -21,7 +21,7 @@ internal val CompareTransportHeight = replayControlsHeight(MirroredSeekBarHeight
 
 /**
  * One transport for both sides of a compare: the readout with a name legend, the mirrored seek strip, then the
- * same buttons as the single board. A side without a replay ([mine] or [theirs] null) draws no bars.
+ * same buttons as the single board. A side without a replay ([mine] or [theirs] null) draws no bars and has no legend entry.
  */
 @Composable
 internal fun ReplayCompareTransport(
@@ -40,8 +40,8 @@ internal fun ReplayCompareTransport(
         modifier = modifier,
         legend = {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                LegendEntry(names.mine, colors.primary)
-                LegendEntry(names.theirs, colors.tertiary)
+                if (mine != null) LegendEntry(names.mine, colors.primary)
+                if (theirs != null) LegendEntry(names.theirs, colors.tertiary)
             }
         },
     ) {

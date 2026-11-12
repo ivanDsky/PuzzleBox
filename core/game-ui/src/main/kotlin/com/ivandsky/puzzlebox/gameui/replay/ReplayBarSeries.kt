@@ -7,6 +7,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.dp
 
+/** How faint the slices past the playhead are, in every replay seek bar. */
+internal const val UNPLAYED_ALPHA = 0.28f
+
 /**
  * Draws one series across the full width. Bars grow from [axisY] up, or down when [up] is false, to at most
  * [room]; an empty slice keeps a hairline so the timeline never has a hole. Slices up to [fraction] are [played].

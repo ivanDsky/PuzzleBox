@@ -7,7 +7,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 internal val MirroredSeekBarHeight = 96.dp
-private const val UNPLAYED_ALPHA = 0.3f
 
 /**
  * The compare's seek strip: my activity above the axis in the primary colour, the other side's below it in
