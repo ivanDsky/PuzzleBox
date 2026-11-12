@@ -43,7 +43,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 internal const val YOU_LABEL = "You"
-internal const val PLAY_AGAIN_LABEL = "Replay"
 
 private val PlotHeight = 110.dp
 private val CountRoom = 16.dp
@@ -110,7 +109,7 @@ private class ChartMemory {
  * The time spread chart (spec: Results hero, side card): one slot per time range of the player's
  * solves, a count over each bar and this solve's bar in full under a "You" pill; the other bars
  * are [palette]'s accent at 40 percent and empty ranges draw nothing. A [playAgain] draws its bar as
- * a dashed outline under a "Replay" pill. Under the bars sit the time ranges when each fits its
+ * a dashed outline under the play-again pill. Under the bars sit the time ranges when each fits its
  * slot, else the bin edges at every k-th place so they do not collide.
  *
  * Entrance: the bars grow from the blocks beat on a 20 ms stagger capped at ten bars, the counts
@@ -228,7 +227,7 @@ private fun BarColumn(
     ) {
         if (you) {
             Pill(
-                text = if (playAgain) PLAY_AGAIN_LABEL else YOU_LABEL,
+                text = if (playAgain) PlayAgainCopy.LABEL else YOU_LABEL,
                 playAgain = playAgain,
                 palette = palette,
                 modifier = Modifier.graphicsLayer {
