@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.model.GameId
 
@@ -45,6 +46,8 @@ class TangoPlayUi(private val hintMode: HintMode.Stepwise) : GamePlayUi {
     override fun clearFor(controller: GamePlayController): PlayClear = tangoClear(controller as TangoPlayController)
 
     override val tutorial: List<TutorialStep> get() = TangoTutorial.steps
+
+    override val replayBoard: GameReplayBoard get() = TangoReplayBoard
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
