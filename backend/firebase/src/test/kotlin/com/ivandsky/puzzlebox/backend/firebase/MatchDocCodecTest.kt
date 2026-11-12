@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.FieldValue
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.LegResult
@@ -11,6 +12,7 @@ import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.model.SolveReplay
 import java.time.Instant
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -141,6 +143,49 @@ class MatchDocCodecTest {
         val (path, value) = MatchDocCodec.progressUpdate("u-ann", 1)
         assertEquals("progress.u-ann", path)
         assertTrue(value is FieldValue)
+    }
+
+    private val plainResult = LegResult("u-ann", 1, 83_000, 2, 1_700_000_000_000, gaveUp = false)
+    private val replayBytes = byteArrayOf(1, 2, 3, 4)
+
+    @Test
+    fun `a result without a replay keeps the seven-field document`() {
+        assertEquals(
+            setOf("formatVersion", "uid", "legIndex", "timeMs", "hints", "completedAtMs", "gaveUp"),
+            MatchDocCodec.encodeResult(plainResult).keys,
+        )
+    }
+
+    @Test
+    fun `a result with a replay writes it as a bytes value and round-trips`() {
+        val withReplay = plainResult.copy(replay = SolveReplay.of(replayBytes))
+        val doc = MatchDocCodec.encodeResult(withReplay)
+
+        assertEquals(Blob.fromBytes(replayBytes), doc[MatchDocCodec.FIELD_REPLAY])
+        assertEquals(1, doc[MatchDocCodec.FIELD_FORMAT_VERSION])
+        assertEquals(withReplay, MatchDocCodec.decodeResult(doc))
+    }
+
+    @Test
+    fun `a malformed replay value still decodes the result without it`() {
+        val base = MatchDocCodec.encodeResult(plainResult)
+        val malformed = listOf(
+            "text",
+            7L,
+            Blob.fromBytes(ByteArray(0)),
+            Blob.fromBytes(ByteArray(SolveReplay.MAX_BYTES + 1)),
+        )
+        for (value in malformed) {
+            assertEquals(plainResult, MatchDocCodec.decodeResult(base + (MatchDocCodec.FIELD_REPLAY to value)))
+        }
+        assertEquals(plainResult, MatchDocCodec.decodeResult(base + (MatchDocCodec.FIELD_REPLAY to null)))
+    }
+
+    @Test
+    fun `a replay of the maximum size is kept`() {
+        val max = SolveReplay.of(ByteArray(SolveReplay.MAX_BYTES) { 9 })!!
+        val doc = MatchDocCodec.encodeResult(plainResult.copy(replay = max))
+        assertEquals(max, MatchDocCodec.decodeResult(doc)?.replay)
     }
 
     @Test

@@ -4,8 +4,10 @@ import com.ivandsky.puzzlebox.data.match.LegResult
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.PostResult
 import com.ivandsky.puzzlebox.data.match.ResultRead
+import com.ivandsky.puzzlebox.model.SolveReplay
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -28,6 +30,23 @@ abstract class MatchResultsContract : MatchRepositoryContract() {
 
         assertMatch(match(opponent = BOB).copy(progress = mapOf(BOB.uid to setOf(0))))
         assertEquals(ResultRead.Found(mine), read(BOB))
+    }
+
+    @Test
+    fun resultPostedWithAReplayReadsBackWithIt() = runTest {
+        claimed()
+        val mine = result(BOB.uid).copy(replay = SolveReplay.of(byteArrayOf(1, 2, 3)))
+        assertEquals(PostResult.Posted, by(BOB) { post(code(), mine) })
+
+        assertEquals(ResultRead.Found(mine), read(BOB))
+    }
+
+    @Test
+    fun resultPostedWithoutAReplayReadsBackWithoutOne() = runTest {
+        claimed()
+        posted(BOB)
+
+        assertNull((read(BOB) as ResultRead.Found).result.replay)
     }
 
     @Test

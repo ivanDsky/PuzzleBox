@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
 import com.google.firebase.Timestamp
+import com.google.firebase.firestore.Blob
 import com.google.firebase.firestore.FieldValue
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.LegResult
@@ -10,6 +11,7 @@ import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.model.SolveReplay
 
 /**
  * The field names and value shapes of a duel's Firestore documents (ADR-0026):
@@ -52,6 +54,9 @@ internal object MatchDocCodec {
     const val FIELD_COMPLETED_AT = "completedAtMs"
     const val FIELD_GAVE_UP = "gaveUp"
 
+    /** Advisory bytes; a wrong type, empty or oversized value reads as absent, never fails the result. */
+    const val FIELD_REPLAY = "replay"
+
     fun encodeCreate(draft: MatchDraft): Map<String, Any?> = mapOf(
         FIELD_FORMAT_VERSION to FORMAT_VERSION,
         FIELD_CREATED_AT to FieldValue.serverTimestamp(),
@@ -82,15 +87,20 @@ internal object MatchDocCodec {
         FIELD_CLAIMED_AT to FieldValue.serverTimestamp(),
     )
 
-    fun encodeResult(result: LegResult): Map<String, Any?> = mapOf(
-        FIELD_FORMAT_VERSION to FORMAT_VERSION,
-        FIELD_UID to result.uid,
-        FIELD_LEG_INDEX to result.legIndex,
-        FIELD_TIME to result.timeMs,
-        FIELD_HINTS to result.hints,
-        FIELD_COMPLETED_AT to result.completedAtMs,
-        FIELD_GAVE_UP to result.gaveUp,
-    )
+    /** The `replay` key exists only when the result carries one, so a replay-less document is the seven-field shape. */
+    fun encodeResult(result: LegResult): Map<String, Any?> {
+        val fields = mapOf(
+            FIELD_FORMAT_VERSION to FORMAT_VERSION,
+            FIELD_UID to result.uid,
+            FIELD_LEG_INDEX to result.legIndex,
+            FIELD_TIME to result.timeMs,
+            FIELD_HINTS to result.hints,
+            FIELD_COMPLETED_AT to result.completedAtMs,
+            FIELD_GAVE_UP to result.gaveUp,
+        )
+        val replay = result.replay ?: return fields
+        return fields + (FIELD_REPLAY to Blob.fromBytes(replay.toByteArray()))
+    }
 
     fun resultId(legIndex: Int, uid: String): String = "${legIndex}_$uid"
 
@@ -120,6 +130,7 @@ internal object MatchDocCodec {
             hints = (data[FIELD_HINTS] as? Number)?.toInt() ?: return null,
             completedAtMs = (data[FIELD_COMPLETED_AT] as? Number)?.toLong() ?: return null,
             gaveUp = data[FIELD_GAVE_UP] as? Boolean ?: return null,
+            replay = (data[FIELD_REPLAY] as? Blob)?.let { SolveReplay.of(it.toBytes()) },
         )
     }
 
