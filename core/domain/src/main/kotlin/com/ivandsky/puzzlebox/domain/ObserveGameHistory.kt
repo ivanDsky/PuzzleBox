@@ -34,13 +34,13 @@ data class GameHistoryDay(
     /** Set when the day's record was solved in a duel; null for every other day. */
     val duel: DuelOrigin? = null,
     /** Set when a LinkedIn import covers this (game, day), whether the import is the record
-     *  or only a replay beside an app record; false otherwise. */
+     *  or only a play-again beside an app record; false otherwise. */
     val fromLinkedIn: Boolean = false,
 )
 
 /**
  * The merged, newest-first history across games: every listed game's record rows
- * UNION the captured days of every game in [GameRegistry.all] (replayable through the daily cache; a solved day merges into its captured
+ * UNION the captured days of every game in [GameRegistry.all] (re-openable through the daily cache; a solved day merges into its captured
  * row instead of duplicating it). Rows whose key no registered game can decode are
  * dropped upstream by the repository's preserve-or-drop read, so every record here
  * is decodable. A custom (friend-puzzle) record has no day and adds no row. An
@@ -71,7 +71,7 @@ class ObserveGameHistory(
             duelOpponents,
         ) { entries, records, imports, opponents ->
             // An import covers its day whether it became the record or sits beside an app record
-            // as a replay, so the days are read off every import rather than off the record rows.
+            // as a play-again, so the days are read off every import rather than off the record rows.
             val imported: Set<Pair<GameId, LocalDate>> = imports.mapNotNullTo(HashSet()) { import ->
                 val ref = import.puzzleRef
                 val key = ref.key
@@ -94,7 +94,7 @@ class ObserveGameHistory(
                 )
             }
 
-            // Captured days keep their richer identity (edition number, replayable cache);
+            // Captured days keep their richer identity (edition number, re-openable cache);
             // a solved day merges into its captured row.
             for (entry in entries) {
                 val key = entry.gameId to entry.day

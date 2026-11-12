@@ -18,7 +18,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 
 // Previews of ResultSideCard and TimeSpreadChart — internal, light + dark inside PuzzleBoxTheme,
 // one per state: a plain solve, a first solve, 2/3/4/10/60 solves, a new best, the slowest,
-// hints-first (Strands), one hour plus, a replay, the weekday scope with 0/1/3/8 earlier solves,
+// hints-first (Strands), one hour plus, a play-again, the weekday scope with 0/1/3/8 earlier solves,
 // the fastest weekday, signed out, no rank row yet, and the long case (a 365-day streak, long
 // names, a thin column). The sample builders are the hero card's. A chart with no weekday does not
 // exist here: practice puzzles, the only ones without one, draw no spread.

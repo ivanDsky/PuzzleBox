@@ -6,7 +6,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** The self-describing replay carrier (ADR-0005): encode/decode round-trips, corrupt payloads decode to null — never guessed through. */
+/** The self-describing relaunch carrier (ADR-0005): encode/decode round-trips, corrupt payloads decode to null — never guessed through. */
 class SessionBlobTest {
 
     @Test

@@ -34,7 +34,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The overlay over time: where marks land, when the sequence settles, reduced motion, clearing and replaying. */
+/** The overlay over time: where marks land, when the sequence settles, reduced motion, clearing and restarting. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -191,7 +191,7 @@ class SpotlightOverlayTest {
     }
 
     @Test
-    fun `a new playId replays the sequence from the start and the same playId does not`() {
+    fun `a new playId restarts the sequence from the start and the same playId does not`() {
         val step = spotlight(mapOf(5 to SpotlightRole.EVIDENCE, 6 to SpotlightRole.TARGET))
         show(step)
         composeRule.mainClock.advanceTimeBy(SpotlightTokens.TOTAL_MS.toLong() * 2)

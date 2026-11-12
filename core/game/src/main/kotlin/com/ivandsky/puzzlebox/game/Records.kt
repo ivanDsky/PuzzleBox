@@ -43,7 +43,7 @@ class RecordStats(
 /**
  * Normalized completion emitted by a game (ADR-0004). Indexed semantics: [time] + [hints],
  * lower is better — mistakes are never recorded there, only in [stats] as analytics.
- * Games emit EVERY completion, replays included; [firstCompletedAt]/[isRecord] are stamped
+ * Games emit EVERY completion, play-agains included; [firstCompletedAt]/[isRecord] are stamped
  * by core/data and are null/false as emitted.
  */
 data class CompletionRecord(

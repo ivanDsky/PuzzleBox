@@ -30,7 +30,7 @@ import org.junit.Test
 
 /**
  * The account client's safety rules against MockWebServer, built through the public factory so the client
- * under test is the one the app runs: one GET per call, no retry, no redirect, no cookie replay, no logging.
+ * under test is the one the app runs: one GET per call, no retry, no redirect, no cookie re-sending, no logging.
  */
 class LinkedInAccountSourceTest {
 
@@ -148,7 +148,7 @@ class LinkedInAccountSourceTest {
     }
 
     @Test
-    fun `a Set-Cookie from LinkedIn is never replayed`() = runBlocking {
+    fun `a Set-Cookie from LinkedIn is never re-sent`() = runBlocking {
         val server = server(json(TODAY).addHeader("Set-Cookie", "JSESSIONID=ROTATED; Path=/"), json(TODAY))
         val source = server.source()
 

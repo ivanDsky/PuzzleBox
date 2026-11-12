@@ -15,7 +15,7 @@ object CustomBoardEntries {
      * accept (timeMs > 0, hints >= 0, a positive first-win stamp).
      */
     fun fromRecord(record: CompletionRecord, uid: String, displayName: String): LeaderboardEntry? {
-        if (!record.isRecord) return null // replays never reach a board
+        if (!record.isRecord) return null // play-agains never reach a board
         if (record.puzzleRef.key !is PuzzleKey.Custom) return null
         if (record.time <= 0 || record.hints < 0) return null
         val completedAtMs = record.firstCompletedAt?.toEpochMilli()?.takeIf { it > 0 } ?: return null

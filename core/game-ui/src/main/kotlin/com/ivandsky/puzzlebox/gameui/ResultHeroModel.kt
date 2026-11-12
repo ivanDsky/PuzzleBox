@@ -75,7 +75,7 @@ internal data class ResultHeroModel(
 
 /**
  * The model for [facts]. A practice puzzle counts nothing: no
- * pill, streak, spread or rank. A replay counts nothing either but shows the spread: no
+ * pill, streak, spread or rank. A play-again counts nothing either but shows the spread: no
  * pill, streak or rank. The streak, spread and rank wait for their data, so none shows a
  * placeholder; the Average chip hides on a first solve.
  * A non-null [chip] replaces the Today chip with the caller's own.

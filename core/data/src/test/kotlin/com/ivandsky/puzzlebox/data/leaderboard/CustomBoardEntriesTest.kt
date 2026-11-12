@@ -57,7 +57,7 @@ class CustomBoardEntriesTest {
     }
 
     @Test
-    fun `a replay never maps`() {
+    fun `a play-again never maps`() {
         assertNull(CustomBoardEntries.fromRecord(record(isRecord = false), uid = "u1", displayName = "Ann"))
     }
 

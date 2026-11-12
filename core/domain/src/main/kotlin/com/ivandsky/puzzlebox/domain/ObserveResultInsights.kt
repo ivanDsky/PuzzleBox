@@ -27,7 +27,7 @@ class ObserveResultInsights(
 
     /**
      * [solve] is the player's time and hints for [game]'s [day]. [counted] is true for today's
-     * numbered daily and false for a replay: a replay keeps the streak and week as the history
+     * numbered daily and false for a play-again: a play-again keeps the streak and week as the history
      * stands. A practice puzzle (its history row has no edition number) emits null.
      */
     operator fun invoke(game: GameId, day: LocalDate, solve: BestScore, counted: Boolean): Flow<ResultInsights?> {

@@ -152,7 +152,7 @@ class ResultHeroCardTest {
     }
 
     @Test
-    fun `a replay offers done, and play again hides when not given`() {
+    fun `a play-again offers done, and play again hides when not given`() {
         setContent(heroSampleModel(verdict = RecordVerdict.PlayAgain, primary = ResultPrimaryAction.Done), playAgain = false)
 
         composeRule.onNodeWithTag("result.done").assertIsDisplayed()

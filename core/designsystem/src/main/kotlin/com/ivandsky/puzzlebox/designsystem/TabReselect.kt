@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.SharedFlow
  * Fires once when the user taps the selected tab while it sits at its root. A tab root
  * listens ([OnTabReselect]) and scrolls its list to the top; an
  * in-route detail that hides its list listens instead and closes back to it. The event is fire and
- * forget: no replay, dropped when nothing listens, so a root that composes later never
+ * forget: no re-delivery, dropped when nothing listens, so a root that composes later never
  * scrolls for an old tap. The app provides the live flow; the default never fires.
  */
 val LocalTabReselect = staticCompositionLocalOf<SharedFlow<Unit>> { MutableSharedFlow() }

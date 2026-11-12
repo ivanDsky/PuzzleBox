@@ -6,7 +6,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 
 /**
  * Pure A3/A5 derivation from the records store to a leaderboard entry (brief §1):
- * records only (A5 — replay rows are never eligible), official-daily shape only, and
+ * records only (A5 — play-again rows are never eligible), official-daily shape only, and
  * the same sanity envelope the Firestore rules enforce (timeMs > 0, hints >= 0,
  * displayName 1..64). Android-free so the rule stays provable without Room or
  * Robolectric.
@@ -24,7 +24,7 @@ object LeaderboardEntries {
 
     /** From the Room row. Null when this row may never appear on a board. */
     internal fun fromEntity(entity: CompletionEntity, uid: String, displayName: String): LeaderboardEntry? {
-        if (!entity.isRecord) return null // A5: replays are never leaderboard-eligible
+        if (!entity.isRecord) return null // A5: play-agains are never leaderboard-eligible
         if (LeaderboardRef.fromPuzzleRefKey(entity.puzzleRef) == null) return null
         if (entity.timeMs <= 0 || entity.hints < 0) return null // rules sanity envelope
         return LeaderboardEntry(
@@ -40,10 +40,10 @@ object LeaderboardEntries {
     /**
      * From the model [com.ivandsky.puzzlebox.data.repository.CompletionRepository]
      * emits (the submit-watcher path). Null when this completion may never appear on
-     * a board (not official-daily-shaped, a replay, or outside the rules envelope).
+     * a board (not official-daily-shaped, a play-again, or outside the rules envelope).
      */
     fun fromRecord(record: CompletionRecord, uid: String, displayName: String): LeaderboardEntry? {
-        if (!record.isRecord) return null // A5: replays are never leaderboard-eligible
+        if (!record.isRecord) return null // A5: play-agains are never leaderboard-eligible
         val refKey = PuzzleRefKeys.encode(record.puzzleRef)
         if (LeaderboardRef.fromPuzzleRefKey(refKey) == null) return null
         if (record.time <= 0 || record.hints < 0) return null // rules sanity envelope

@@ -5,7 +5,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 
 /**
  * Pure first-win decision core (JVM-tested): the FIRST in-app completion of a puzzleRef
- * is the player's record; every later play of the same ref is a replay — stored, but it
+ * is the player's record; every later play of the same ref is a play-again — stored, but it
  * NEVER mutates the record (only records are leaderboard-eligible). Android-free so
  * the first-win rule stays provable without Room or Robolectric. Which rows count as "the ref's record" is the
  * caller's visible-owner query, so a puzzle A finished does not make B's first finish a replay.
@@ -17,7 +17,7 @@ internal class FirstWinPolicy {
         /** Insert as the ref's record row — the only isRecord row the ref will ever get. */
         data class Record(val completedAtMs: Long) : Decision
 
-        /** Insert as a replay row; the existing record stays untouched. */
+        /** Insert as a play-again row; the existing record stays untouched. */
         data class PlayAgain(val completedAtMs: Long) : Decision
     }
 

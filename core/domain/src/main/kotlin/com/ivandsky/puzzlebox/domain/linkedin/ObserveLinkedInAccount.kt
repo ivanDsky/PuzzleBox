@@ -22,7 +22,7 @@ class ObserveLinkedInAccount(
 
     operator fun invoke(): Flow<LinkedInAccountView> =
         combine(account.observe(), completions.observeImports()) { stored, imports ->
-            // A day is one game on one date; a replay of the same day, or a re-import, is still one day.
+            // A day is one game on one date; a play-again of the same day, or a re-import, is still one day.
             val days = imports.mapNotNull { record ->
                 val key = record.puzzleRef.key as? PuzzleKey.Daily ?: return@mapNotNull null
                 if (registry[record.puzzleRef.gameId] == null) null else record.puzzleRef.gameId to key.date

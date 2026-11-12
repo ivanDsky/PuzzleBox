@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 private const val VISIBLE = "(:owner IS NULL OR ownerUid IS NULL OR ownerUid = :owner)"
 
 /**
- * Records + replays store (A4/A5): one isRecord row per puzzleRef; replays never purge it. Every read takes the
+ * Records + play-agains store (A4/A5): one isRecord row per puzzleRef; play-agains never purge it. Every read takes the
  * visible owner and sees only that owner's rows plus ownerless ones.
  */
 @Dao
@@ -22,11 +22,11 @@ interface CompletionDao {
     @Query("SELECT * FROM completions WHERE puzzleRef = :puzzleRef AND isRecord = 1 AND $VISIBLE LIMIT 1")
     suspend fun record(puzzleRef: String, owner: String?): CompletionEntity?
 
-    /** Whether any row (record or replay) of the ref came from [source]; backs import idempotence. */
+    /** Whether any row (record or play-again) of the ref came from [source]; backs import idempotence. */
     @Query("SELECT EXISTS(SELECT 1 FROM completions WHERE puzzleRef = :puzzleRef AND source = :source AND $VISIBLE)")
     suspend fun hasSource(puzzleRef: String, source: String, owner: String?): Boolean
 
-    /** Every row stored with [source], records and replays alike, newest first. */
+    /** Every row stored with [source], records and play-agains alike, newest first. */
     @Query("SELECT * FROM completions WHERE source = :source AND $VISIBLE ORDER BY completedAtMs DESC")
     fun observeBySource(source: String, owner: String?): Flow<List<CompletionEntity>>
 
@@ -37,19 +37,19 @@ interface CompletionDao {
     @Query("SELECT * FROM completions WHERE isRecord = 1 AND $VISIBLE ORDER BY firstCompletedAtMs DESC")
     fun observeRecords(owner: String?): Flow<List<CompletionEntity>>
 
-    /** Replay rows of one ref, oldest first (stats only; never leaderboard-eligible, A5). */
+    /** Play-again rows of one ref, oldest first (stats only; never leaderboard-eligible, A5). */
     @Query(
         "SELECT * FROM completions " +
             "WHERE puzzleRef = :puzzleRef AND isRecord = 0 AND $VISIBLE ORDER BY completedAtMs ASC",
     )
     fun observePlayAgains(puzzleRef: String, owner: String?): Flow<List<CompletionEntity>>
 
-    /** Record and replay rows of one ref, newest first. */
+    /** Record and play-again rows of one ref, newest first. */
     @Query("SELECT * FROM completions WHERE puzzleRef = :refKey AND $VISIBLE ORDER BY completedAtMs DESC")
     fun observeByRef(refKey: String, owner: String?): Flow<List<CompletionEntity>>
 
     /**
-     * The best record row (first solves; replays never rank, A10) whose key starts with
+     * The best record row (first solves; play-agains never rank, A10) whose key starts with
      * [prefix] — a game's rows by `"$gameId/"` — time first, hints breaking ties; null when
      * none. `substr`, not LIKE: a `_` in a game id would be a wildcard, and the trailing
      * slash keeps `zip`/`zip2` apart.

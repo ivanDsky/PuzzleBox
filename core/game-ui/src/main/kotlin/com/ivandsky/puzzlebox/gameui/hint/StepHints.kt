@@ -69,7 +69,7 @@ class StepHints<S : Any, K : Any>(
         game.inputMade()
     }
 
-    /** A replay or a fresh session: like [inputMade], and counted keys are forgotten too. */
+    /** A play-again or a fresh session: like [inputMade], and counted keys are forgotten too. */
     fun reset() {
         ledger.reset()
         search.invalidate()

@@ -259,7 +259,7 @@ class ObserveGameStatsTest {
             listOf(
                 solve(alpha, daysAgo = 0, time = 40_000L),
                 solve(alpha, daysAgo = 1, time = 20_000L, hints = 1),
-                // The player had already solved the day in the app: the import is a replay.
+                // The player had already solved the day in the app: the import is a play-again.
                 imported(alpha, daysAgo = 1, time = 5_000L, hints = 0).copy(isRecord = false),
             ),
         )

@@ -17,7 +17,7 @@ object P10LinkedInAccountGetOnly : Rule {
     // Both the annotation and its import are matched, so a fully qualified use without an import is caught too.
     private val nonGet = Regex("""(?:@|retrofit2\.http\.)(?:POST|PUT|PATCH|DELETE|HEAD|OPTIONS|HTTP)\b""")
 
-    // The account client carries a session cookie; a logger or a jar would write or replay it.
+    // The account client carries a session cookie; a logger or a jar would write or re-send it.
     private val clientLeaks = listOf(
         Regex("""\bHttpLoggingInterceptor\b"""),
         Regex("""\bokhttp3\.logging\b"""),

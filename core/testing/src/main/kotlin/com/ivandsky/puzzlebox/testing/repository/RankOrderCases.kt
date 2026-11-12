@@ -5,7 +5,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 
 /**
  * The one rank-order contract table (ADR-0013; spec A25, A26): a game's [Case.previous]
- * first solve, then a [Case.play] — a replay of that puzzle, or a first solve of another.
+ * first solve, then a [Case.play] — a play-again of that puzzle, or a first solve of another.
  * Each row states the play's verdict and the score the store's best returns once both are
  * written, so the Room query, [FakeCompletionRepository] and the Result verdict are checked
  * against the same rows and cannot drift apart. The verdict rounds to whole seconds; the

@@ -38,7 +38,7 @@ private val CardMaxWidth = 420.dp
 /**
  * A friend puzzle's result (spec A16): one opaque card in place of the board. In order:
  * the header — [brand]'s glyph (stamped on entry), the puzzle's name ([game]) and the
- * record pill; the time as the hero number; a replay's line naming the best it left
+ * record pill; the time as the hero number; a play-again's line naming the best it left
  * standing ([previousBest], ranked by [rankOrder]); the Hints tile; [details]; then
  * the Done step ([onDone]), Share ([onShare]) and "Play again" ([onPlayAgain], null hides it).
  *

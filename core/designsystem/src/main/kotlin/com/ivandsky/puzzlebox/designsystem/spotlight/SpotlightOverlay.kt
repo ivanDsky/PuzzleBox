@@ -38,7 +38,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
  * [Spotlight.glyphs]; this composable never sees a hint or a game.
  *
  * Its bounds are the cell grid's bounds (it matches the parent's size and adds no padding): mount it inside any
- * frame padding. A new [Spotlight.playId] replays the ≤400 ms sequence; null clears everything in the same frame.
+ * frame padding. A new [Spotlight.playId] runs again the ≤400 ms sequence; null clears everything in the same frame.
  */
 @Composable
 fun BoxScope.SpotlightOverlay(spotlight: Spotlight?, modifier: Modifier = Modifier) {

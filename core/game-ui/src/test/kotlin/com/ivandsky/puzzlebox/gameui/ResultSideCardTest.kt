@@ -27,7 +27,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The side card's states: the streak title, which week dots are solved, the "You" pill on the
  * bin that holds the solve, the counts, range and edge labels, the scope chip's swap, a first
- * solve's one bar, a replay's pill, the sign-in button of a signed-out player, and no rank row
+ * solve's one bar, a play-again's pill, the sign-in button of a signed-out player, and no rank row
  * while it is hidden. Assertions ride tags and the model's own strings; the chart's parts sit
  * under its one description, so they are read unmerged.
  */
@@ -199,7 +199,7 @@ class ResultSideCardTest {
     }
 
     @Test
-    fun `a replay shows its pill as Replay and the dashed bar`() {
+    fun `a play-again shows its pill as Play again and the dashed bar`() {
         setContent(heroSampleModel(verdict = RecordVerdict.PlayAgain, playAgain = true))
 
         composeRule.onNodeWithTag("result.side.you", useUnmergedTree = true).assertTextEquals("Replay")
@@ -257,7 +257,7 @@ class ResultSideCardTest {
     }
 
     @Test
-    fun `a replay shows the spread but no streak and no rank row`() {
+    fun `a play-again shows the spread but no streak and no rank row`() {
         setContent(heroSampleModel(verdict = RecordVerdict.PlayAgain, playAgain = true))
 
         composeRule.onNodeWithTag("result.side.chart").assertIsDisplayed()

@@ -107,7 +107,7 @@ interface GamePlayController {
     /** Adopt today's fetched envelope under the resolved record identity [ref]. */
     fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt
 
-    /** Adopt a saved/replayed session blob through the game's own codec; null = unreadable. */
+    /** Adopt a saved/relaunched session blob through the game's own codec; null = unreadable. */
     fun adoptRestored(bytes: ByteArray): Restored?
 
     /** A fresh session of the SAME puzzle (result's "Play again", A9). */
