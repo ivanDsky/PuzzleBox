@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.data.repository
 
+import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.database.ReceivedPuzzleDao
@@ -11,27 +12,39 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
 /**
  * Room adapter of [ReceivedPuzzleRepository] over `received_puzzles` ([dao]). Codes are stored in
  * canonical form, instants as epoch ms, [PostState] and [Difficulty.Level] by name; an unknown
  * name reads as [PostState.Pending] or no difficulty. A row whose code no longer parses is skipped.
+ * Readers show the rows of [owners]' visible owner plus ownerless ones; [upsert] stamps
+ * [OwnerScope.writer]; deleting an owned row also writes its tombstone, due at [clock]'s now.
  */
-internal class RoomReceivedPuzzleRepository(private val dao: ReceivedPuzzleDao) : ReceivedPuzzleRepository {
+internal class RoomReceivedPuzzleRepository(
+    private val dao: ReceivedPuzzleDao,
+    private val owners: OwnerScope,
+    private val clock: () -> Long = System::currentTimeMillis,
+) : ReceivedPuzzleRepository {
 
     // Room re-runs both queries on every `received_puzzles` write, including other rows'.
-    override fun observeAll(): Flow<List<ReceivedPuzzle>> =
-        dao.observeAll().map { rows -> rows.mapNotNull { it.toReceivedPuzzle() } }.distinctUntilChanged()
+    override fun observeAll(): Flow<List<ReceivedPuzzle>> = owners.visible
+        .flatMapLatest { owner -> dao.observeAll(owner) }
+        .map { rows -> rows.mapNotNull { it.toReceivedPuzzle() } }
+        .distinctUntilChanged()
 
-    override fun observe(code: ShareCode): Flow<ReceivedPuzzle?> =
-        dao.observe(code.value).map { it?.toReceivedPuzzle() }.distinctUntilChanged()
+    override fun observe(code: ShareCode): Flow<ReceivedPuzzle?> = owners.visible
+        .flatMapLatest { owner -> dao.observe(code.value, owner) }
+        .map { it?.toReceivedPuzzle() }
+        .distinctUntilChanged()
 
-    override suspend fun get(code: ShareCode): ReceivedPuzzle? = dao.get(code.value)?.toReceivedPuzzle()
+    override suspend fun get(code: ShareCode): ReceivedPuzzle? =
+        dao.get(code.value, owners.visible.value)?.toReceivedPuzzle()
 
-    override suspend fun upsert(puzzle: ReceivedPuzzle) = dao.upsert(puzzle.toEntity())
+    override suspend fun upsert(puzzle: ReceivedPuzzle) = dao.upsert(puzzle.toEntity(owners.writer()))
 
-    override suspend fun delete(code: ShareCode) = dao.delete(code.value)
+    override suspend fun delete(code: ShareCode) = dao.deleteWithTombstone(code.value, clock())
 
     override suspend fun updatePost(code: ShareCode, state: PostState, attempts: Int) =
         dao.updatePost(code.value, state.name, attempts)
@@ -39,7 +52,7 @@ internal class RoomReceivedPuzzleRepository(private val dao: ReceivedPuzzleDao) 
     override suspend fun markUnpublished(code: ShareCode) = dao.markUnpublished(code.value)
 }
 
-private fun ReceivedPuzzle.toEntity() = ReceivedPuzzleEntity(
+private fun ReceivedPuzzle.toEntity(ownerUid: String?) = ReceivedPuzzleEntity(
     code = code.value,
     gameId = gameId.value,
     variant = variant.value,
@@ -56,6 +69,7 @@ private fun ReceivedPuzzle.toEntity() = ReceivedPuzzleEntity(
     postState = postState.name,
     postAttempts = postAttempts,
     difficulty = difficulty?.name,
+    ownerUid = ownerUid,
 )
 
 private fun ReceivedPuzzleEntity.toReceivedPuzzle(): ReceivedPuzzle? {
