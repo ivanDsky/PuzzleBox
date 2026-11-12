@@ -21,17 +21,21 @@ private val MinControlsWidth = 340.dp
 /**
  * The replay page's body: [boardCount] boards side by side at the largest square size that still leaves room for
  * the [controls] below, the pair centred. The controls are as wide as the boards, one shared block for all of them.
+ * [controlsHeight] is the height the controls take. [boardHeaderHeight] is a header the caller draws over each
+ * board inside [board]; the board's square [size] leaves room for it.
  */
 @Composable
 internal fun ReplayStage(
     boardCount: Int,
     modifier: Modifier = Modifier,
+    controlsHeight: Dp = ReplayTransportHeight,
+    boardHeaderHeight: Dp = 0.dp,
     controls: @Composable () -> Unit,
     board: @Composable (index: Int, size: Dp) -> Unit,
 ) {
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         val gaps = BoardGap * (boardCount - 1)
-        val size = minOf((maxWidth - gaps) / boardCount, maxHeight - ReplayTransportHeight - ControlsGap).coerceAtLeast(0.dp)
+        val size = minOf((maxWidth - gaps) / boardCount, maxHeight - boardHeaderHeight - controlsHeight - ControlsGap).coerceAtLeast(0.dp)
         val boardsWidth = size * boardCount + gaps
         Column(Modifier.width(maxOf(boardsWidth, minOf(maxWidth, MinControlsWidth))), verticalArrangement = Arrangement.spacedBy(ControlsGap)) {
             Row(Modifier.width(boardsWidth).align(Alignment.CenterHorizontally), horizontalArrangement = Arrangement.spacedBy(BoardGap)) {
