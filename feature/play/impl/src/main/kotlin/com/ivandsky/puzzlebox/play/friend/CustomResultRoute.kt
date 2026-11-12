@@ -76,7 +76,7 @@ internal fun CustomResultRoute(
 
 /**
  * The daily's [ResultScreen] over a friend's puzzle: its title, the time as the hero, a
- * "New best" pill once the solve is recorded as the record, or the score a replay leaves
+ * "New best" pill once the solve is recorded as the record, or the score a play again leaves
  * standing; the Hints tile, then the puzzle's board with its author pinned. A friend's puzzle
  * never moves a streak, so there is no Streak tile, and the primary step is always Done.
  */
@@ -120,7 +120,7 @@ internal fun CustomResultScreen(
     )
 }
 
-/** This device's best on the puzzle: this solve until a replay names the record that stands. */
+/** This device's best on the puzzle: this solve until a play again names the record that stands. */
 private fun yoursOf(state: CustomResultState): BestScore = when (val standing = state.standing) {
     is CustomStanding.PlayAgain -> standing.record
     CustomStanding.Record, null -> BestScore(state.timeMs, state.hintsUsed)
@@ -197,7 +197,7 @@ internal fun CustomResultRecordPreview() {
     PreviewScreen(previewState(CustomStanding.Record))
 }
 
-// Preview: a slower replay with two hints, signed out; the board offers sign-in.
+// Preview: a slower re-solve with two hints, signed out; the board offers sign-in.
 @PuzzleBoxPreviews
 @Composable
 internal fun CustomResultPlayAgainPreview() {

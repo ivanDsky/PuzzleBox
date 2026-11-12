@@ -57,7 +57,7 @@ class ActivePlay internal constructor(
      * the write is in flight or the baseline is unknown; [previousBest] is the game's best
      * before this session by [rankOrder] (null with no completion, or until [verdict] lands);
      * [label] is the result screen's game line ("Zip · #123"); [solve] is the win this
-     * record belongs to, null until this session wins (a load or replay clears it).
+     * record belongs to, null until this session wins (a load or play again clears it).
      */
     data class Record(
         val verdict: RecordVerdict?,
@@ -134,7 +134,7 @@ class ActivePlay internal constructor(
         }
     }
 
-    /** A saved play or a past day's replay build: the [SessionBlob] envelope the opening
+    /** A saved play or a past day's play-again build: the [SessionBlob] envelope the opening
      *  checked. Bytes the controller still cannot read are unavailable, never a loop. A
      *  restored COMPLETED session shows its win without re-emitting and reads no baseline. */
     private fun resume(controller: GamePlayController, envelope: ByteArray): PlayBoardStatus {
@@ -146,7 +146,7 @@ class ActivePlay internal constructor(
         return PlayBoardStatus.Ready(banner = null)
     }
 
-    /** Result's "Play again": a fresh session of the SAME puzzle, always a replay —
+    /** Result's "Play again": a fresh session of the SAME puzzle, always a play-again —
      *  the verdict resets until the new write lands; the best is re-read. The banner stays. */
     fun playAgain() {
         if (_board.value.status !is PlayBoardStatus.Ready) return

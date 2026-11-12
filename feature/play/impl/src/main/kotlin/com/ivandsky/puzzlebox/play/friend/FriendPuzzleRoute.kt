@@ -29,7 +29,7 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * A friend's puzzle on the Play stack: a spinner while the code opens, then the scrolling
- * [FriendPuzzleCard], whose Play, Resume or Replay opens the puzzle's board ([onPlay]) and
+ * [FriendPuzzleCard], whose Play, Resume or Play again opens the puzzle's board ([onPlay]) and
  * whose board preview signs in with Google in place, or [FriendOpenError] saying why the code
  * did not open, with Try again or the store listing when either helps. Up is [onBack], the navigator's pop.
  */

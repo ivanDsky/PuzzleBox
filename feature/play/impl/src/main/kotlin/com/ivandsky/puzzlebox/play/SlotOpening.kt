@@ -41,7 +41,7 @@ import kotlinx.coroutines.withContext
  *    carrying the day's puzzleNumber from the cache so the record identity (ADR-0004)
  *    survives keys that name only game and day;
  * 4. a friend's puzzle ([PlaySlot.Custom]) from the [received] puzzles stored when it opened;
- * 5. a duel puzzle ([PlaySlot.Leg]) named by its match's leg, built as a replay under the leg
+ * 5. a duel puzzle ([PlaySlot.Leg]) named by its match's leg, built as a play again under the leg
  *    puzzle's own identity: a day through the same past-day path (today's falls back to the
  *    daily fetch before the day is captured), a friend's puzzle through [loadShared], whose
  *    check runs on [DispatcherProvider.default];
@@ -61,7 +61,7 @@ internal class SlotOpening(
 ) {
     /** Where a slot's board comes from (patterns-9). */
     sealed interface Origin {
-        /** A [SessionBlob] envelope to adopt: a saved play or a past day's replay build. */
+        /** A [SessionBlob] envelope to adopt: a saved play or a past day's play-again build. */
         class Restored(val session: ByteArray) : Origin
 
         /** A fresh board: today's daily, or a friend's stored puzzle; [banner] is the degrade copy when
@@ -135,7 +135,7 @@ internal class SlotOpening(
         is PastDayOutcome.Unreadable -> Origin.Unavailable(DAY_UNREADABLE)
     }
 
-    /** The leg's puzzle, read from its match: a leg always opens as a replay, never a fresh board. */
+    /** The leg's puzzle, read from its match: a leg always opens as a play again, never a fresh board. */
     private suspend fun leg(slot: PlaySlot.Leg, plugin: GamePlugin<*, *, *>): Origin {
         val code = ShareCode.parse(slot.matchCode) ?: return Origin.Unavailable(DUEL_PUZZLE_MISSING, retryable = false)
         val match = when (val fetched = matches.observe(code).first()) {

@@ -34,7 +34,7 @@ import org.robolectric.annotation.GraphicsMode
  * The Results hero page under its Up bar, phone and tablet, light and dark, after the entrance
  * has settled (animations on, so the count-up and the beats have run): a plain solve, a first
  * solve, hints used, a new best, a signed-out player, an hour-plus time with twelve hints, an
- * all-done day, a Strands (hints-first) solve, a replay, the weekday scope and sixty solves.
+ * all-done day, a Strands (hints-first) solve, a play again, the weekday scope and sixty solves.
  * One more frame takes the new best with animations off (reduced motion). The all-done frame leaves the rollover unread, so its
  * countdown line, which follows the wall clock, never moves a pixel. Goldens in `snapshots/results-hero/`.
  */
@@ -77,8 +77,8 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
     @Test fun `strands light`() = capture("strands", STRANDS, dark = false, brand = STRANDS_BRAND)
     @Test fun `strands dark`() = capture("strands", STRANDS, dark = true, brand = STRANDS_BRAND)
 
-    @Test fun `replay light`() = capture("replay", PLAY_AGAIN, dark = false)
-    @Test fun `replay dark`() = capture("replay", PLAY_AGAIN, dark = true)
+    @Test fun `play again light`() = capture("play-again", PLAY_AGAIN, dark = false)
+    @Test fun `play again dark`() = capture("play-again", PLAY_AGAIN, dark = true)
 
     @Test fun `weekday light`() = capture("weekday", WEEKDAY, dark = false)
     @Test fun `weekday dark`() = capture("weekday", WEEKDAY, dark = true)

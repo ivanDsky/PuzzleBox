@@ -90,7 +90,7 @@ internal sealed interface FriendCardAction {
  * on this device opens without the network, then [SyncReceivedStatus] rechecks its doc, so a
  * puzzle its author took down reads taken down; offline it keeps its last known state), then
  * follows the stored row, the puzzle's saved play and its completions, so the primary action
- * reads Resume while a play is saved and Replay once a solve is recorded. The card previews the puzzle's board through [FriendPuzzleBoard]: its top
+ * reads Resume while a play is saved and Play again once a solve is recorded. The card previews the puzzle's board through [FriendPuzzleBoard]: its top
  * rows when signed in, and signing in from the card ([signIn]) fills them in place. The game's
  * name, brand, size label and rank order come from the registries; the feature names no game.
  */

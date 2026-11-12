@@ -77,7 +77,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The win-moment coverage. [ResultScreen] (a friend puzzle's result): the header, the time
  * and the Hints tile; the pill rides the in-memory verdict, absent while the write is in
- * flight; a replay names the best it left standing; Done, Share and "Play again" hand back.
+ * flight; a play again names the best it left standing; Done, Share and "Play again" hand back.
  * Then the daily [ResultRoute] on the hero page: its slot's live play, the key's facts alone,
  * and Next for the next unsolved game. Assertions ride tags, never copy.
  */
@@ -128,7 +128,7 @@ class ResultScreenTest {
     }
 
     @Test
-    fun `a record shows the pill and no replay line`() {
+    fun `a record shows the pill and no play-again line`() {
         setContent(verdict = RecordVerdict.NewBest)
         composeRule.onNodeWithTag("result.record_badge").assertExists()
         composeRule.onNodeWithTag("result.previous_best").assertDoesNotExist()
@@ -142,14 +142,14 @@ class ResultScreenTest {
     }
 
     @Test
-    fun `a replay claims no pill and says it was a replay`() {
+    fun `a play again claims no pill and says it was a play again`() {
         setContent(verdict = RecordVerdict.PlayAgain, previousBestMs = 80_000)
         composeRule.onNodeWithTag("result.record_badge").assertDoesNotExist()
         composeRule.onNodeWithTag("result.previous_best").assertExists()
     }
 
     @Test
-    fun `a hints-first replay leads its best line with the hints`() {
+    fun `a hints-first play again leads its best line with the hints`() {
         setContent(verdict = RecordVerdict.PlayAgain, previousBestMs = 102_000, rankOrder = RankOrder.HintsThenTime)
         composeRule.onNodeWithText("Replay · Best Perfect · 1:42").assertExists()
     }
@@ -162,10 +162,10 @@ class ResultScreenTest {
 
     @Test
     fun `play again hands back to navigation`() {
-        var replayed = 0
-        setContent(onPlayAgain = { replayed++ })
+        var playedAgain = 0
+        setContent(onPlayAgain = { playedAgain++ })
         composeRule.onNodeWithTag("result.playAgain").performClick()
-        composeRule.runOnIdle { assertEquals(1, replayed) }
+        composeRule.runOnIdle { assertEquals(1, playedAgain) }
     }
 
     @Test
@@ -197,7 +197,7 @@ class ResultScreenTest {
      * The route wiring end-to-end on the store: the slot's solved live play stamps the
      * pill (the write is fire-and-observe — the surface never waits for it), Up hands back
      * to navigation, the only game solved shows the countdown, and "Play again" hands back
-     * so the store's explicit replay resets the SAME puzzle to a fresh session.
+     * so the store's explicit play again resets the SAME puzzle to a fresh session.
      */
     @Test
     fun `result route reads its slot's live play`() {
@@ -214,13 +214,13 @@ class ResultScreenTest {
             composeRule.waitForIdle()
             composeRule.runOnIdle { fakes[game].latest.win() }
             composeRule.waitForIdle()
-            var replayed = false
+            var playedAgain = false
             var done = 0
             composeRule.setContent {
                 PuzzleBoxTheme(darkTheme = false) {
                     ResultRoute(
                         key = ResultKey(game.value, day.toString(), FakeController.TIME_MS, 0),
-                        onPlayAgain = { replayed = true },
+                        onPlayAgain = { playedAgain = true },
                         onNext = {},
                         onDone = { done++ },
                         onOpenBoard = {},
@@ -244,10 +244,10 @@ class ResultScreenTest {
             // The hero page scrolls: bring the button on screen before the tap.
             composeRule.onNodeWithTag("result.playAgain").performScrollTo().performClick()
             composeRule.runOnIdle {
-                assertTrue(replayed)
+                assertTrue(playedAgain)
                 store.playAgain(ResultKey(game.value, day.toString(), FakeController.TIME_MS, 0))
                 val controller = fakes[game].latest
-                assertEquals(1, controller.replays)
+                assertEquals(1, controller.playAgains)
                 assertTrue(!controller.isComplete)
             }
         } finally {
@@ -349,7 +349,7 @@ class ResultScreenTest {
     }
 
     @Test
-    fun `a past day's replay draws neither the row nor the board`() {
+    fun `a past day's play again draws neither the row nor the board`() {
         withResult(day.minusDays(1), onOpenBoard = {}) {
             composeRule.onNodeWithTag("summary.leaderboard").assertDoesNotExist()
             composeRule.onNodeWithTag("daily_board.title").assertDoesNotExist()

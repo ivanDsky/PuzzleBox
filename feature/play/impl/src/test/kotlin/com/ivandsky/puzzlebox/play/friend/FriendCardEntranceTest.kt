@@ -56,7 +56,7 @@ class FriendCardEntranceTest {
     }
 
     @Test
-    fun `coming back from the board does not replay it`() {
+    fun `coming back from the board does not run the entrance again`() {
         var onCard by mutableStateOf(true)
         var entrance: CardEntrance? = null
         composeRule.setContent {
@@ -73,7 +73,7 @@ class FriendCardEntranceTest {
     }
 
     @Test
-    fun `a restored card does not replay it`() {
+    fun `a restored card does not run the entrance again`() {
         val restoration = StateRestorationTester(composeRule)
         var entrance: CardEntrance? = null
         restoration.setContent { entrance = rememberCardEntrance(first) }

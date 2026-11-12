@@ -64,7 +64,7 @@ internal sealed interface CustomStanding {
  * One [CustomResultKey]'s result: the solve's own facts ride the key, so the page draws at
  * once and after process death; the stored puzzle and this device's completions of it follow.
  * The solve is the Record when it is the row that stands on the board — the record row, else
- * the oldest — and a Replay otherwise, naming that row's score. The game's name, size, brand
+ * the oldest — and a play-again standing otherwise, naming that row's score. The game's name, size, brand
  * and rank order come from the registries; the feature names no game.
  *
  * The puzzle's board comes from [FriendPuzzleBoard], so signing in from the page ([signIn])

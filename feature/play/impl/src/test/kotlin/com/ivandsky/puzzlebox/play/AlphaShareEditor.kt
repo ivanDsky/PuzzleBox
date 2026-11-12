@@ -17,7 +17,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 
 /**
  * A share codec for [TestGames.alpha]: one cell, shared as `[MAGIC, cell]`. Every cell has one
- * solution, and the verified board exports as `TestGames.puzzle(alpha, cell)`, which alpha replays.
+ * solution, and the verified board exports as `TestGames.puzzle(alpha, cell)`, which alpha plays again.
  */
 internal object AlphaShareEditor : GameEditor<Byte>, EditorShareCodec<Byte>, DraftExport<Byte> {
     const val SHARE_VERSION = 1

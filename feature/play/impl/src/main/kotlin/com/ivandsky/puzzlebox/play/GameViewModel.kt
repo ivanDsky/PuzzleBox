@@ -42,7 +42,7 @@ class GameViewModel(
     /**
      * True while a today key's pinned board is no longer the game's today (A9): the board
      * was kept across its cadence-zone midnight, so the bar labels it as yesterday's. A
-     * key with an explicit day is a replay and never is.
+     * key with an explicit day is a play again and never is.
      */
     val pastDay: StateFlow<Boolean> = (play?.takeIf { key.day == null }?.slot as? PlaySlot.Daily)?.let { slot ->
         calendar.observeToday(slot.gameId)

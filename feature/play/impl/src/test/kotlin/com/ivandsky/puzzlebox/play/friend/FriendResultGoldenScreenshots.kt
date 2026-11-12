@@ -26,7 +26,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * A friend's puzzle's result under its Up bar, phone and tablet, light and dark: a first solve
- * ranked below the board's cut, a slower replay signed out, the solve and board both in flight,
+ * ranked below the board's cut, a slower play again signed out, the solve and board both in flight,
  * the board unavailable, a result that will never post, and a puzzle taken down.
  * Goldens in `snapshots/friend/`.
  */
@@ -48,8 +48,8 @@ abstract class FriendResultGoldenScreenshots(private val device: String) {
     @Test fun `record ranked light`() = capture("result-record", RECORD, dark = false)
     @Test fun `record ranked dark`() = capture("result-record", RECORD, dark = true)
 
-    @Test fun `replay signed out light`() = capture("result-replay-signed-out", PLAY_AGAIN, dark = false)
-    @Test fun `replay signed out dark`() = capture("result-replay-signed-out", PLAY_AGAIN, dark = true)
+    @Test fun `play again signed out light`() = capture("result-play-again-signed-out", PLAY_AGAIN, dark = false)
+    @Test fun `play again signed out dark`() = capture("result-play-again-signed-out", PLAY_AGAIN, dark = true)
 
     @Test fun `pending light`() = capture("result-pending", PENDING, dark = false)
     @Test fun `pending dark`() = capture("result-pending", PENDING, dark = true)

@@ -251,7 +251,7 @@ class PlaySessionStoreSlotsTest {
     }
 
     @Test
-    fun `a replay saved mid-way opens its board though the day has a record`() = runTest {
+    fun `a play again saved mid-way opens its board though the day has a record`() = runTest {
         completions.setRecords(listOf(solved(time = 61_000L, hints = 2)))
         saved.save(slot, blob(alpha, byteArrayOf(1)), elapsedMs = 0L)
 
@@ -271,11 +271,11 @@ class PlaySessionStoreSlotsTest {
         val live = store.peek(slot)
         assertSame("opening hands back the same play", live, store.open(key))
         assertTrue("opening never resets it", fakes[alpha].latest.isComplete)
-        assertEquals(0, fakes[alpha].latest.replays)
+        assertEquals(0, fakes[alpha].latest.playAgains)
 
         store.playAgain(result)
 
-        assertEquals(1, fakes[alpha].latest.replays)
+        assertEquals(1, fakes[alpha].latest.playAgains)
         assertFalse(fakes[alpha].latest.isComplete)
         assertNull("the fresh attempt opens as a board", store.completedResult(key))
         assertSame(store.peek(slot), store.open(key))
@@ -292,7 +292,7 @@ class PlaySessionStoreSlotsTest {
 
         assertNotNull(store.peek(slot))
         assertFalse(fakes[alpha].latest.isComplete)
-        assertNull("the replay is live, so its board opens", store.completedResult(key))
+        assertNull("the play again is live, so its board opens", store.completedResult(key))
     }
 
     @Test
