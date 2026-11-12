@@ -127,9 +127,9 @@ fun HistoryScreen(
                             row = selected,
                             gameBest = state.bestOf(selected),
                             onBackToDayList = null,
-                            replays = replayHost.replays,
+                            replays = replayHost.replays.of(selected),
                             replayUi = replayHost.playUi(selected.gameId),
-                            onOpenReplay = { latest -> replayHost.onOpen(selected, latest) },
+                            onOpenReplay = { solve -> replayHost.onOpen(selected, solve) },
                             onPlayAgain = { onPlayAgain(selected.gameId, selected.day) },
                             cardColor = cardColor,
                             modifier = Modifier.fillMaxSize(),
@@ -164,9 +164,9 @@ fun HistoryScreen(
                         row = selected,
                         gameBest = state.bestOf(selected),
                         onBackToDayList = { selectedKey = null },
-                        replays = replayHost.replays,
+                        replays = replayHost.replays.of(selected),
                         replayUi = replayHost.playUi(selected.gameId),
-                        onOpenReplay = { latest -> replayHost.onOpen(selected, latest) },
+                        onOpenReplay = { solve -> replayHost.onOpen(selected, solve) },
                         onPlayAgain = { onPlayAgain(selected.gameId, selected.day) },
                         cardColor = cardColor,
                         modifier = Modifier.fillMaxSize(),
@@ -176,6 +176,9 @@ fun HistoryScreen(
         }
     }
 }
+
+/** These replays when they are [row]'s, else none: the load of a day just switched to has not started. */
+private fun DayReplays.of(row: HistoryDayRow): HistoryReplays = if (key == row.key) replays else HistoryReplays.Hidden
 
 /** [row]'s game's best row, if it has a numbered solve. */
 private fun HistoryUiState.bestOf(row: HistoryDayRow): HistoryDayRow? =

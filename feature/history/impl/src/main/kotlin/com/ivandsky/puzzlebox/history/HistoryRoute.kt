@@ -42,8 +42,10 @@ fun HistoryRoute(
         replays = replays,
         playUi = viewModel::playUiOf,
         onOpenDay = viewModel::openReplays,
-        onOpen = { row, latest ->
-            onOpenReplay(ReplayKey.daily(row.gameId.value, row.day.toString(), row.puzzleNumber, latest))
+        onOpen = { row, solve ->
+            onOpenReplay(
+                ReplayKey.daily(row.gameId.value, row.day.toString(), row.puzzleNumber, latest = solve == ReplaySolve.Latest),
+            )
         },
     )
 

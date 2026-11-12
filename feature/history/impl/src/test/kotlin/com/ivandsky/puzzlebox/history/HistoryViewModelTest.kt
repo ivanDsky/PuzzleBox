@@ -499,7 +499,7 @@ class HistoryViewModelTest {
 
         viewModel.openReplays(replayRow)
 
-        assertEquals(HistoryReplays.Hidden, viewModel.replays.value)
+        assertEquals(HistoryReplays.Hidden, viewModel.replays.value.replays)
     }
 
     @Test
@@ -508,7 +508,7 @@ class HistoryViewModelTest {
 
         viewModel.openReplays(replayRow.copy(record = null))
 
-        assertEquals(HistoryReplays.Hidden, viewModel.replays.value)
+        assertEquals(HistoryReplays.Hidden, viewModel.replays.value.replays)
     }
 
     @Test
@@ -517,9 +517,9 @@ class HistoryViewModelTest {
 
         viewModel.openReplays(replayRow)
 
-        val one = viewModel.replays.value as HistoryReplays.One
+        val one = viewModel.replays.value.replays as HistoryReplays.One
         assertEquals(ReplayFixtures.SHORT_MOVES * 1_000L, one.timeline.endMs)
-        assertFalse(one.latest)
+        assertEquals(ReplaySolve.Record, one.solve)
     }
 
     @Test
@@ -528,9 +528,9 @@ class HistoryViewModelTest {
 
         viewModel.openReplays(replayRow)
 
-        val one = viewModel.replays.value as HistoryReplays.One
+        val one = viewModel.replays.value.replays as HistoryReplays.One
         assertEquals(ReplayFixtures.SHORT_MOVES * 2_000L, one.timeline.endMs)
-        assertTrue(one.latest)
+        assertEquals(ReplaySolve.Latest, one.solve)
     }
 
     @Test
@@ -539,7 +539,7 @@ class HistoryViewModelTest {
 
         viewModel.openReplays(replayRow)
 
-        val one = viewModel.replays.value as HistoryReplays.One
+        val one = viewModel.replays.value.replays as HistoryReplays.One
         assertEquals(ReplayFixtures.SHORT_MOVES * 1_000L, one.timeline.endMs)
     }
 
@@ -549,7 +549,7 @@ class HistoryViewModelTest {
 
         viewModel.openReplays(replayRow)
 
-        val both = viewModel.replays.value as HistoryReplays.FirstAndLatest
+        val both = viewModel.replays.value.replays as HistoryReplays.FirstAndLatest
         assertEquals(ReplayFixtures.SHORT_MOVES * 1_000L, both.first.endMs)
         assertEquals(ReplayFixtures.SHORT_MOVES * 2_000L, both.latest.endMs)
     }
@@ -560,18 +560,18 @@ class HistoryViewModelTest {
 
         viewModel.openReplays(replayRow)
 
-        assertEquals(HistoryReplays.Hidden, viewModel.replays.value)
+        assertEquals(HistoryReplays.Hidden, viewModel.replays.value.replays)
     }
 
     @Test
     fun `closing the detail drops the timelines`() = runTest {
         val viewModel = replayViewModel(firstReplay, newerReplay)
         viewModel.openReplays(replayRow)
-        assertTrue(viewModel.replays.value is HistoryReplays.FirstAndLatest)
+        assertTrue(viewModel.replays.value.replays is HistoryReplays.FirstAndLatest)
 
         viewModel.openReplays(null)
 
-        assertSame(HistoryReplays.Hidden, viewModel.replays.value)
+        assertSame(HistoryReplays.Hidden, viewModel.replays.value.replays)
     }
 
     @Test
@@ -589,7 +589,7 @@ class HistoryViewModelTest {
         viewModel.uiState.first { it.rows.isNotEmpty() }
 
         assertEquals(0, completions.replayReads)
-        assertSame(HistoryReplays.Hidden, viewModel.replays.value)
+        assertSame(HistoryReplays.Hidden, viewModel.replays.value.replays)
     }
 
     @Test
@@ -615,7 +615,7 @@ class HistoryViewModelTest {
         viewModel.openReplays(replayRow.copy(day = otherDay, record = solve(isRecord = true).copy(puzzleRef = otherPuzzle)))
         gate.complete(Unit)
 
-        val one = viewModel.replays.value as HistoryReplays.One
+        val one = viewModel.replays.value.replays as HistoryReplays.One
         assertEquals(ReplayFixtures.SHORT_MOVES * 2_000L, one.timeline.endMs)
     }
 

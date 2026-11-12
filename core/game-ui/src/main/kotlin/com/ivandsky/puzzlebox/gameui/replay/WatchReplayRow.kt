@@ -24,9 +24,12 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 
-/** The result's way into the replay: a hairline, then play, "Watch replay" over the move count, and the play time. */
+/**
+ * The result's way into the replay: a hairline, then play, "Watch replay" over the move count, and the play time.
+ * A [label] sits as a small overline above "Watch replay".
+ */
 @Composable
-fun WatchReplayRow(moves: Int, durationMs: Long, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun WatchReplayRow(moves: Int, durationMs: Long, onClick: () -> Unit, modifier: Modifier = Modifier, label: String? = null) {
     val colors = MaterialTheme.colorScheme
     Column(modifier.fillMaxWidth()) {
         HorizontalDivider(color = colors.outlineVariant)
@@ -42,6 +45,7 @@ fun WatchReplayRow(moves: Int, durationMs: Long, onClick: () -> Unit, modifier: 
                 Icon(PuzzleIcons.Play, contentDescription = null, tint = colors.onPrimary, modifier = Modifier.size(24.dp))
             }
             Column(Modifier.weight(1f)) {
+                label?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant) }
                 Text(ReplayCopy.WATCH, style = MaterialTheme.typography.titleSmall, color = colors.onSurface)
                 Text(ReplayCopy.moves(moves), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }

@@ -89,7 +89,7 @@ internal fun DayDetailPane(
     onBackToDayList: (() -> Unit)?,
     replays: HistoryReplays,
     replayUi: GamePlayUi?,
-    onOpenReplay: (latest: Boolean) -> Unit,
+    onOpenReplay: (ReplaySolve) -> Unit,
     onPlayAgain: () -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,

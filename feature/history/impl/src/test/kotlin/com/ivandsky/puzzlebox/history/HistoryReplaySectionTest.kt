@@ -41,7 +41,7 @@ class HistoryReplaySectionTest {
 
     private val short = ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES)
     private val long = ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES, stepMs = 2_000)
-    private val opened = mutableListOf<Boolean>()
+    private val opened = mutableListOf<ReplaySolve>()
 
     private fun show(replays: HistoryReplays, ui: GamePlayUi? = ReplayUi(withBoard = true)) {
         opened.clear()
@@ -59,36 +59,36 @@ class HistoryReplaySectionTest {
         show(HistoryReplays.Hidden)
 
         rows().assertCountEquals(0)
-        composeRule.onNodeWithTag(HistoryReplayTags.FIRST_LABEL).assertDoesNotExist()
+        composeRule.onNodeWithText("First solve").assertDoesNotExist()
     }
 
     @Test
     fun `one draws one row and no labels`() {
-        show(HistoryReplays.One(short, latest = true))
+        show(HistoryReplays.One(short, solve = ReplaySolve.Latest))
 
         rows().assertCountEquals(1)
         composeRule.onNodeWithText("12 moves").assertExists()
         composeRule.onNodeWithText("0:12").assertExists()
-        composeRule.onNodeWithTag(HistoryReplayTags.FIRST_LABEL).assertDoesNotExist()
-        composeRule.onNodeWithTag(HistoryReplayTags.LATEST_LABEL).assertDoesNotExist()
+        composeRule.onNodeWithText("First solve").assertDoesNotExist()
+        composeRule.onNodeWithText("Latest").assertDoesNotExist()
     }
 
     @Test
     fun `one holding the record solve opens the record`() {
-        show(HistoryReplays.One(short, latest = false))
+        show(HistoryReplays.One(short, solve = ReplaySolve.Record))
 
         rows()[0].performClick()
 
-        assertEquals(listOf(false), opened)
+        assertEquals(listOf(ReplaySolve.Record), opened)
     }
 
     @Test
     fun `one holding the latest solve opens the latest`() {
-        show(HistoryReplays.One(short, latest = true))
+        show(HistoryReplays.One(short, solve = ReplaySolve.Latest))
 
         rows()[0].performClick()
 
-        assertEquals(listOf(true), opened)
+        assertEquals(listOf(ReplaySolve.Latest), opened)
     }
 
     @Test
@@ -109,7 +109,7 @@ class HistoryReplaySectionTest {
         rows()[0].performClick()
         rows()[1].performClick()
 
-        assertEquals(listOf(false, true), opened)
+        assertEquals(listOf(ReplaySolve.Record, ReplaySolve.Latest), opened)
     }
 
     @Test
@@ -117,13 +117,13 @@ class HistoryReplaySectionTest {
         show(HistoryReplays.FirstAndLatest(short, long), ui = ReplayUi(withBoard = false))
 
         rows().assertCountEquals(0)
-        composeRule.onNodeWithTag(HistoryReplayTags.FIRST_LABEL).assertDoesNotExist()
-        composeRule.onNodeWithTag(HistoryReplayTags.LATEST_LABEL).assertDoesNotExist()
+        composeRule.onNodeWithText("First solve").assertDoesNotExist()
+        composeRule.onNodeWithText("Latest").assertDoesNotExist()
     }
 
     @Test
     fun `a game with no play UI shows nothing`() {
-        show(HistoryReplays.One(short, latest = true), ui = null)
+        show(HistoryReplays.One(short, solve = ReplaySolve.Latest), ui = null)
 
         rows().assertCountEquals(0)
     }

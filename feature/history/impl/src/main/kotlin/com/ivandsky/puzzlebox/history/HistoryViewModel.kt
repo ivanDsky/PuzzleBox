@@ -162,14 +162,14 @@ class HistoryViewModel(
     // Rows only: a stats-only emission must not start a new paging generation.
     val pagedDays: Flow<PagingData<HistoryDayRow>> = rows.flatMapLatest { historyPager(it) }.cachedIn(viewModelScope)
 
-    private val replaysState = MutableStateFlow<HistoryReplays>(HistoryReplays.Hidden)
+    private val replaysState = MutableStateFlow(DayReplays(null, HistoryReplays.Hidden))
     private var loadingReplays: Job? = null
 
     /** [game]'s play UI, which owns its replay board; null for a game this build has no play UI for. */
     fun playUiOf(game: GameId): GamePlayUi? = playRegistry[game]
 
     /** The replays of the open day. */
-    val replays: StateFlow<HistoryReplays> = replaysState.asStateFlow()
+    val replays: StateFlow<DayReplays> = replaysState.asStateFlow()
 
     /**
      * Loads the replays of [row]'s solve; null (the detail closed), or a row without a solve, drops
@@ -177,12 +177,12 @@ class HistoryViewModel(
      */
     fun openReplays(row: HistoryDayRow?) {
         loadingReplays?.cancel()
-        replaysState.value = HistoryReplays.Hidden
+        replaysState.value = DayReplays(row?.key, HistoryReplays.Hidden)
         val puzzle = row?.record?.puzzleRef ?: return
         loadingReplays = viewModelScope.launch {
             val record = loadReplay(SolveReplayRef.Record(puzzle))
             val latest = loadReplay(SolveReplayRef.Latest(puzzle))
-            replaysState.value = historyReplays(record, latest, loadReplay.latestIsRecord(puzzle))
+            replaysState.value = DayReplays(row.key, historyReplays(record, latest, loadReplay.latestIsRecord(puzzle)))
         }
     }
 
