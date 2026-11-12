@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
@@ -33,6 +35,7 @@ import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.gameui.replay.CompareLayout
 import com.ivandsky.puzzlebox.gameui.replay.CompareNames
 import com.ivandsky.puzzlebox.gameui.replay.ReplayComparePage
+import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
@@ -55,8 +58,9 @@ private const val SETTLE_MS = 2_000L
 /**
  * The duel's compare page and the reveal summary's per-leg Compare actions, phone and tablet, light and dark. The compare
  * has five cases (both sides, mine only, theirs only, a gave-up side frozen, both ended with the final line), each short
- * (12 moves) and long (64 moves over about an hour), captured at the finished state. Twin on the tablet, FlipPeek on the
- * phone. The summary offers Compare on one leg of three. Goldens in `snapshots/reveal-replay/`.
+ * (12 moves) and long (64 moves over about an hour), captured at the finished state. The short both-sides compare is also
+ * captured mid-play. Twin on the tablet, FlipPeek on the phone. The summary offers Compare on one leg of three. Goldens in
+ * `snapshots/reveal-replay/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -79,6 +83,8 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
     @Test fun `compare both short dark`() = compare("compare-both-short", both(SHORT), dark = true)
     @Test fun `compare both long light`() = compare("compare-both-long", both(LONG), dark = false)
     @Test fun `compare both long dark`() = compare("compare-both-long", both(LONG), dark = true)
+    @Test fun `compare both playing short light`() = playing("compare-both-playing-short", both(SHORT), dark = false)
+    @Test fun `compare both playing short dark`() = playing("compare-both-playing-short", both(SHORT), dark = true)
 
     @Test fun `compare mine only short light`() = compare("compare-mine-only-short", mineOnly(SHORT), dark = false)
     @Test fun `compare mine only short dark`() = compare("compare-mine-only-short", mineOnly(SHORT), dark = true)
@@ -103,7 +109,7 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
     @Test fun `summary compare light`() = summary("summary-compare", dark = false)
     @Test fun `summary compare dark`() = summary("summary-compare", dark = true)
 
-    private fun compare(name: String, case: Case, dark: Boolean) {
+    private fun compare(name: String, case: Case, dark: Boolean, playMs: Long = 0) {
         rule.showGolden(dark) {
             ReplayComparePage(
                 mine = case.mine,
@@ -116,8 +122,15 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
                 finalLead = case.finalLead,
             )
         }
+        if (playMs > 0) {
+            rule.onNodeWithTag(ReplayTags.PLAY).performClick()
+            rule.mainClock.advanceTimeBy(playMs)
+        }
         rule.settleAndCapture(name, device, dark)
     }
+
+    /** The compare a few seconds into the replay, both boards mid-play, before the frame is captured. */
+    private fun playing(name: String, case: Case, dark: Boolean) = compare(name, case, dark, playMs = PLAY_MS)
 
     private fun summary(name: String, dark: Boolean) {
         rule.showGolden(dark) {
@@ -136,6 +149,7 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
     }
 
     private companion object {
+        const val PLAY_MS = 5_000L
         const val LONG_MOVES = 64
         const val LONG_STEP_MS = 64_000L
         const val LONG_PARTIAL = 48
