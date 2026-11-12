@@ -99,11 +99,11 @@ object HistoryTestSupport {
         return HistoryViewModel(
             observeGameHistory = observeGameHistory,
             observeGameStats = ObserveGameStats(
-                games = games,
+                registry = games,
                 observeGameHistory = observeGameHistory,
                 computeStreak = ComputeStreak(puzzleDay = puzzleDay),
             ),
-            games = games,
+            registry = games,
             // No play UIs: every game reads GameBrand.Neutral.
             playRegistry = GamePlayRegistry(emptyList()),
             puzzleDay = puzzleDay,
