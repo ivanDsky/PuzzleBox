@@ -113,12 +113,12 @@ class LinkedInSyncChipTest {
     @Test
     fun sessionExpiredAsksToSignInAgain() {
         show(LinkedInDayStatus.SessionExpired)
-        chip().assertTextEquals("Sign in again").performClick()
+        chip().assertTextEquals("Sign in").assertContentDescriptionEquals("LinkedIn session ended. Sign in again").performClick()
         assertEquals(1, reconnects)
 
         current = LinkedInDayStatus.Paused(Kind.SessionExpired)
         composeRule.waitForIdle()
-        chip().assertTextEquals("Sign in again").performClick()
+        chip().assertTextEquals("Sign in").assertContentDescriptionEquals("LinkedIn session ended. Sign in again").performClick()
         assertEquals(2, reconnects)
         assertEquals(0, resumes + retries)
     }

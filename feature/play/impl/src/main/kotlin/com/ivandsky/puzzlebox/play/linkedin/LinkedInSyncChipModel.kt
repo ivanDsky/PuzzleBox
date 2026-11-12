@@ -28,7 +28,7 @@ internal fun syncChipOf(
     onReconnect: (() -> Unit)?,
     onRetry: () -> Unit,
 ): SyncChipModel? {
-    val signIn = if (onReconnect != null) SyncChipModel("Sign in again", "LinkedIn session ended. Sign in again", onReconnect)
+    val signIn = if (onReconnect != null) SyncChipModel("Sign in", "LinkedIn session ended. Sign in again", onReconnect)
     else SyncChipModel("Session ended", "LinkedIn session ended", null)
     return when (status) {
         LinkedInDayStatus.NotConnected -> null
