@@ -96,6 +96,7 @@ val tangoPlugin: GamePlugin<TangoState, TangoSession, TangoRendererModel> =
         },
         rendererModel = { state, _, verdict -> TangoRendererModel.of(state, verdict) },
         editor = TangoEditor,
+        replay = TangoReplay,
     )
 
 /**
