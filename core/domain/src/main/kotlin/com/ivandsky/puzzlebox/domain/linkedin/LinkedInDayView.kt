@@ -6,12 +6,13 @@ import com.ivandsky.puzzlebox.game.BestScore
 /**
  * What the day card and the boards show of one game day's LinkedIn data: its sync status and the connections board. [owner] is the
  * player's own LinkedIn row (name and photo) from the board the phone read, never one of the connections; null while
- * no board that names them was read.
+ * no board that names them was read. [saved] says whether the day's board is saved, so it needs no link.
  */
 data class LinkedInDayView(
     val status: LinkedInDayStatus,
     val board: LinkedInBoardView,
     val owner: LinkedInOwner? = null,
+    val saved: SavedBoardState = SavedBoardState.NotYetRead,
 ) {
 
     /**

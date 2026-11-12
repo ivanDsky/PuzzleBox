@@ -13,7 +13,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
-/** The ghosts and fetch_log stores over real in-memory Room: board replace, prune, clear, upsert. */
+/** The ghosts and fetch_log stores over real in-memory Room: board replace, owner-filtered reads, clear, upsert. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class LinkedInDaoTest {
@@ -110,23 +110,6 @@ class LinkedInDaoTest {
     }
 
     @Test
-    fun `pruning drops ghosts of older days and keeps the boundary day`() = runTest {
-        val boundary = listOf(ghost("a", day = "2026-11-01"))
-        val newer = listOf(ghost("a", day = "2026-11-02"))
-        ghosts.replace("queens", "2026-10-31", listOf(ghost("a", day = "2026-10-31")))
-        ghosts.replace("zip", "2026-09-30", listOf(ghost("a", game = "zip", day = "2026-09-30")))
-        ghosts.replace("queens", "2026-11-01", boundary)
-        ghosts.replace("queens", "2026-11-02", newer)
-
-        ghosts.pruneBefore("2026-11-01")
-
-        assertEquals(emptySet<GhostEntity>(), board("queens", "2026-10-31"))
-        assertEquals(emptySet<GhostEntity>(), board("zip", "2026-09-30"))
-        assertEquals(boundary.toSet(), board("queens", "2026-11-01"))
-        assertEquals(newer.toSet(), board("queens", "2026-11-02"))
-    }
-
-    @Test
     fun `clearing both stores leaves both tables empty`() = runTest {
         ghosts.replace("queens", "2026-11-01", listOf(ghost("a")))
         ghosts.replace("zip", "2026-11-02", listOf(ghost("b", game = "zip", day = "2026-11-02")))
@@ -210,61 +193,71 @@ class LinkedInDaoTest {
     }
 
     @Test
-    fun `a day without a row of the member gets the member's newest row from any game or day`() = runTest {
-        ghosts.replace("queens", "2026-11-01", listOf(ghost("me", fetchedAtMs = 5_000L), ghost("friend", fetchedAtMs = 9_000L)))
-        val newest = ghost("me", game = "zip", day = "2026-11-03", fetchedAtMs = 7_000L)
-        ghosts.replace("zip", "2026-11-03", listOf(newest))
-        ghosts.replace("zip", "2026-11-02", listOf(ghost("me", game = "zip", day = "2026-11-02", fetchedAtMs = 3_000L)))
-        val friend = ghost("friend", game = "zip", day = "2026-11-09")
-        ghosts.replace("zip", "2026-11-09", listOf(friend))
-
-        assertEquals(setOf(friend, newest), ghosts.observeWithNewest("zip", "2026-11-09", "me").first().toSet())
-    }
-
-    @Test
-    fun `a day that has the member's row is not joined by a newer row of another day`() = runTest {
-        val own = ghost("me", fetchedAtMs = 1_000L)
-        ghosts.replace("queens", "2026-11-01", listOf(own))
-        ghosts.replace("zip", "2026-11-03", listOf(ghost("me", game = "zip", day = "2026-11-03", fetchedAtMs = 7_000L)))
-
-        assertEquals(listOf(own), ghosts.observeWithNewest("queens", "2026-11-01", "me").first())
-    }
-
-    @Test
-    fun `a member with no stored row adds nothing`() = runTest {
-        val friend = ghost("friend")
-        ghosts.replace("queens", "2026-11-01", listOf(friend))
-
-        assertEquals(listOf(friend), ghosts.observeWithNewest("queens", "2026-11-01", "me").first())
-        assertEquals(emptyList<GhostEntity>(), ghosts.observeWithNewest("zip", "2026-11-09", "me").first())
-    }
-
-    @Test
-    fun `the newest row of a member is the one the stand-in rule picks, whatever game or day it is on`() = runTest {
+    fun `the newest row of a member is read from any game or day`() = runTest {
         ghosts.replace("queens", "2026-11-01", listOf(ghost("me", fetchedAtMs = 1_000L)))
         val newest = ghost("me", game = "zip", day = "2026-11-03", fetchedAtMs = 7_000L)
         ghosts.replace("zip", "2026-11-03", listOf(newest))
         ghosts.replace("tango", "2026-11-09", listOf(ghost("friend", game = "tango", day = "2026-11-09", fetchedAtMs = 9_000L)))
 
-        assertEquals(newest, ghosts.observeNewestOf("me").first())
-        assertEquals(listOf(newest), ghosts.observeWithNewest("sudoku", "2026-11-10", "me").first())
+        assertEquals(newest, ghosts.observeNewestOf("me", owner = null).first())
+    }
+
+    @Test
+    fun `the one-shot reads see what the observed ones do`() = runTest {
+        val own = ghost("me", fetchedAtMs = 5_000L)
+        savedFor("alice", "queens", "2026-11-01", listOf(own, ghost("a")))
+        savedFor("bob", "queens", "2026-11-02", listOf(ghost("me", day = "2026-11-02", fetchedAtMs = 9_000L)))
+
+        assertEquals(ghosts.observe("queens", "2026-11-01").first().toSet(), ghosts.board("queens", "2026-11-01").toSet())
+        assertEquals(own, ghosts.newestOf("me", owner = "alice"))
+        assertEquals(ghosts.observeNewestOf("me", owner = "bob").first(), ghosts.newestOf("me", owner = "bob"))
+        assertNull(ghosts.newestOf("nobody", owner = null))
     }
 
     @Test
     fun `a member never stored has no newest row`() = runTest {
         ghosts.replace("queens", "2026-11-01", listOf(ghost("friend")))
 
-        assertNull(ghosts.observeNewestOf("me").first())
+        assertNull(ghosts.observeNewestOf("me", owner = null).first())
     }
 
     @Test
     fun `the connection count is the distinct members other than the excluded one`() = runTest {
-        assertEquals(0, ghosts.observeConnectionCount("me").first())
+        assertEquals(0, ghosts.observeConnectionCount("me", owner = null).first())
 
         ghosts.replace("queens", "2026-11-01", listOf(ghost("me"), ghost("a"), ghost("b")))
         ghosts.replace("zip", "2026-11-02", listOf(ghost("me", game = "zip", day = "2026-11-02"), ghost("a", game = "zip", day = "2026-11-02"), ghost("c", game = "zip", day = "2026-11-02")))
 
-        assertEquals(3, ghosts.observeConnectionCount("me").first())
+        assertEquals(3, ghosts.observeConnectionCount("me", owner = null).first())
+    }
+
+    /** Saves the board of ([game], [day]) for [owner] and stores [rows] as its ghosts. */
+    private suspend fun savedFor(owner: String?, game: String, day: String, rows: List<GhostEntity>) {
+        db.savedBoardDao().upsert(SavedBoardEntity(game, day, "me", owner, 1_000L, complete = true, uploadedFingerprint = null))
+        ghosts.replace(game, day, rows)
+    }
+
+    @Test
+    fun `an owner sees the ghosts of their own and of ownerless boards, never another account's`() = runTest {
+        savedFor("alice", "queens", "2026-11-01", listOf(ghost("me", fetchedAtMs = 1_000L), ghost("a")))
+        savedFor(null, "queens", "2026-11-02", listOf(ghost("me", day = "2026-11-02", fetchedAtMs = 2_000L), ghost("b", day = "2026-11-02")))
+        savedFor("bob", "queens", "2026-11-03", listOf(ghost("me", day = "2026-11-03", fetchedAtMs = 3_000L), ghost("c", day = "2026-11-03")))
+
+        assertEquals(2, ghosts.observeConnectionCount("me", owner = "alice").first())
+        assertEquals(2, ghosts.observeConnectionCount("me", owner = "bob").first())
+        assertEquals(3, ghosts.observeConnectionCount("me", owner = null).first())
+        assertEquals("2026-11-02", ghosts.observeNewestOf("me", owner = "alice").first()?.day)
+        assertEquals("2026-11-03", ghosts.observeNewestOf("me", owner = "bob").first()?.day)
+        assertEquals("2026-11-03", ghosts.observeNewestOf("me", owner = null).first()?.day)
+    }
+
+    @Test
+    fun `a ghost without a saved board is hidden from an owner and shown with no filter`() = runTest {
+        ghosts.replace("queens", "2026-11-01", listOf(ghost("me"), ghost("a")))
+
+        assertEquals(0, ghosts.observeConnectionCount("me", owner = "alice").first())
+        assertNull(ghosts.observeNewestOf("me", owner = "alice").first())
+        assertEquals(1, ghosts.observeConnectionCount("me", owner = null).first())
     }
 
     @Test

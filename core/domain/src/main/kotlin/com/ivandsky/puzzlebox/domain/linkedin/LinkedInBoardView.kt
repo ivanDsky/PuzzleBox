@@ -4,7 +4,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 
 /** The connections board of one game day, as the boards draw it. */
 sealed interface LinkedInBoardView {
-    /** Not connected, the board has not been read yet, or the day is outside the days LinkedIn keeps a board for. */
+    /** No board is saved for the day: it was never read, or not yet. */
     data object Hidden : LinkedInBoardView
 
     /** [ghosts] are sorted by the game's rank order, hidden times last. */
