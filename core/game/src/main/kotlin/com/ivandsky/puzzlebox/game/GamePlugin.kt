@@ -2,7 +2,9 @@ package com.ivandsky.puzzlebox.game
 
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.replay.GameReplay
+import com.ivandsky.puzzlebox.game.replay.Timeline
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.model.SolveReplay
 
 /** Marker for a game's pure drawable model. :core:game-ui maps it to Compose by [com.ivandsky.puzzlebox.model.GameId];
  *  no Compose ever appears in core or in the game module (finding F2-1). */
@@ -48,4 +50,14 @@ class GamePlugin<P, S : GameSession, M : RendererModel>(
     val rendererModel: (state: P, hint: Hint?, lastVerdict: MoveVerdict?) -> M,
     val editor: GameEditor<*>? = null,
     val replay: GameReplay<S>? = null,
-)
+) {
+    /**
+     * Type-erased replay entry: [S] is in scope here, so no caller casts. Null = no [replay] member, a puzzle
+     * this game rejects ([initialSession] is not Ok), or bytes [Timeline.open] refuses. Never throws.
+     */
+    fun openTimeline(puzzle: Puzzle, bytes: SolveReplay): Timeline? {
+        val replay = replay ?: return null
+        val initial = initialSession(puzzle).getOrNull() ?: return null
+        return Timeline.open(definition.id, replay, initial, bytes)
+    }
+}
