@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.data.match.LegResult
 import com.ivandsky.puzzlebox.data.match.OutboxResult
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import java.time.Instant
@@ -23,6 +24,7 @@ class FinishLegTest {
     private val outbox = FakeMatchResultOutbox()
     private val identity = FakeIdentityService(Identity("me", "Me", null))
     private val finishLeg = FinishLeg(outbox, identity) { now }
+    private val replay = SolveReplay.of(byteArrayOf(1, 2, 3))!!
 
     private suspend fun rows(c: ShareCode = code): List<OutboxResult> = outbox.observe(c).first()
 
@@ -38,8 +40,19 @@ class FinishLegTest {
     }
 
     @Test
+    fun aSolveWithAReplayQueuesTheReplayWithTheResult() = runTest {
+        val answer = finishLeg(code, 1, LegFinish.Solved(timeMs = 83_456, hints = 2, replay = replay))
+
+        assertEquals(FinishResult.Queued, answer)
+        assertEquals(
+            listOf(LegResult("me", 1, 83_456, 2, now.toEpochMilli(), gaveUp = false, replay = replay)),
+            rows().map { it.result },
+        )
+    }
+
+    @Test
     fun aGiveUpQueuesALossWithZeroTimeAndNoHints() = runTest {
-        val answer = finishLeg(code, 0, LegFinish.GaveUp)
+        val answer = finishLeg(code, 0, LegFinish.GaveUp())
 
         assertEquals(FinishResult.Queued, answer)
         assertEquals(
@@ -49,15 +62,26 @@ class FinishLegTest {
     }
 
     @Test
+    fun aGiveUpWithAReplayQueuesTheReplayWithTheLoss() = runTest {
+        val answer = finishLeg(code, 0, LegFinish.GaveUp(replay))
+
+        assertEquals(FinishResult.Queued, answer)
+        assertEquals(
+            listOf(LegResult("me", 0, 0, 0, now.toEpochMilli(), gaveUp = true, replay = replay)),
+            rows().map { it.result },
+        )
+    }
+
+    @Test
     fun aSecondFinishForTheSameLegIsAlreadyRecordedAndKeepsTheFirst() = runTest {
-        finishLeg(code, 0, LegFinish.GaveUp)
+        finishLeg(code, 0, LegFinish.GaveUp())
         val first = rows()
 
         val answer = finishLeg(code, 0, LegFinish.Solved(timeMs = 5_000, hints = 0))
 
         assertEquals(FinishResult.AlreadyRecorded, answer)
         assertEquals(first, rows())
-        assertEquals(FinishResult.AlreadyRecorded, finishLeg(code, 0, LegFinish.GaveUp))
+        assertEquals(FinishResult.AlreadyRecorded, finishLeg(code, 0, LegFinish.GaveUp()))
     }
 
     @Test

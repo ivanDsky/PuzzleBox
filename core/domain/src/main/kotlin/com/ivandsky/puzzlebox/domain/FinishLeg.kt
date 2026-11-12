@@ -25,8 +25,10 @@ class FinishLeg(
         if (recorded) return FinishResult.AlreadyRecorded
         val completedAtMs = clock().toEpochMilli()
         val result = when (finish) {
-            is LegFinish.Solved -> LegResult(uid, legIndex, finish.timeMs, finish.hints, completedAtMs, gaveUp = false)
-            LegFinish.GaveUp -> LegResult(uid, legIndex, timeMs = 0, hints = 0, completedAtMs = completedAtMs, gaveUp = true)
+            is LegFinish.Solved ->
+                LegResult(uid, legIndex, finish.timeMs, finish.hints, completedAtMs, gaveUp = false, replay = finish.replay)
+            is LegFinish.GaveUp ->
+                LegResult(uid, legIndex, timeMs = 0, hints = 0, completedAtMs = completedAtMs, gaveUp = true, replay = finish.replay)
         }
         outbox.enqueue(code, result)
         return FinishResult.Queued
