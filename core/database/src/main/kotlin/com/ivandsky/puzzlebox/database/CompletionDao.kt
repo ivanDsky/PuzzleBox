@@ -5,39 +5,48 @@ import androidx.room.Insert
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
-/** Records + replays store (A4/A5): one isRecord row per puzzleRef; replays never purge it. */
+/**
+ * The rows a reader sees for owner `:owner` (ADR-0029): its own plus ownerless ones; a null owner means no filter, so
+ * every query returns what it did before accounts.
+ */
+private const val VISIBLE = "(:owner IS NULL OR ownerUid IS NULL OR ownerUid = :owner)"
+
+/**
+ * Records + replays store (A4/A5): one isRecord row per puzzleRef; replays never purge it. Every read takes the
+ * visible owner and sees only that owner's rows plus ownerless ones.
+ */
 @Dao
 interface CompletionDao {
 
-    /** The ref's record row, or null before the first in-app completion. */
-    @Query("SELECT * FROM completions WHERE puzzleRef = :puzzleRef AND isRecord = 1 LIMIT 1")
-    suspend fun record(puzzleRef: String): CompletionEntity?
+    /** The ref's record row among the rows [owner] sees, or null before their first in-app completion. */
+    @Query("SELECT * FROM completions WHERE puzzleRef = :puzzleRef AND isRecord = 1 AND $VISIBLE LIMIT 1")
+    suspend fun record(puzzleRef: String, owner: String?): CompletionEntity?
 
     /** Whether any row (record or replay) of the ref came from [source]; backs import idempotence. */
-    @Query("SELECT EXISTS(SELECT 1 FROM completions WHERE puzzleRef = :puzzleRef AND source = :source)")
-    suspend fun hasSource(puzzleRef: String, source: String): Boolean
+    @Query("SELECT EXISTS(SELECT 1 FROM completions WHERE puzzleRef = :puzzleRef AND source = :source AND $VISIBLE)")
+    suspend fun hasSource(puzzleRef: String, source: String, owner: String?): Boolean
 
     /** Every row stored with [source], records and replays alike, newest first. */
-    @Query("SELECT * FROM completions WHERE source = :source ORDER BY completedAtMs DESC")
-    fun observeBySource(source: String): Flow<List<CompletionEntity>>
+    @Query("SELECT * FROM completions WHERE source = :source AND $VISIBLE ORDER BY completedAtMs DESC")
+    fun observeBySource(source: String, owner: String?): Flow<List<CompletionEntity>>
 
     @Insert
     suspend fun insert(completion: CompletionEntity): Long
 
     /** Record rows only (pinned contract: observeRecords) — newest first. */
-    @Query("SELECT * FROM completions WHERE isRecord = 1 ORDER BY firstCompletedAtMs DESC")
-    fun observeRecords(): Flow<List<CompletionEntity>>
+    @Query("SELECT * FROM completions WHERE isRecord = 1 AND $VISIBLE ORDER BY firstCompletedAtMs DESC")
+    fun observeRecords(owner: String?): Flow<List<CompletionEntity>>
 
     /** Replay rows of one ref, oldest first (stats only; never leaderboard-eligible, A5). */
     @Query(
         "SELECT * FROM completions " +
-            "WHERE puzzleRef = :puzzleRef AND isRecord = 0 ORDER BY completedAtMs ASC",
+            "WHERE puzzleRef = :puzzleRef AND isRecord = 0 AND $VISIBLE ORDER BY completedAtMs ASC",
     )
-    fun observePlayAgains(puzzleRef: String): Flow<List<CompletionEntity>>
+    fun observePlayAgains(puzzleRef: String, owner: String?): Flow<List<CompletionEntity>>
 
     /** Record and replay rows of one ref, newest first. */
-    @Query("SELECT * FROM completions WHERE puzzleRef = :refKey ORDER BY completedAtMs DESC")
-    fun observeByRef(refKey: String): Flow<List<CompletionEntity>>
+    @Query("SELECT * FROM completions WHERE puzzleRef = :refKey AND $VISIBLE ORDER BY completedAtMs DESC")
+    fun observeByRef(refKey: String, owner: String?): Flow<List<CompletionEntity>>
 
     /**
      * The best record row (first solves; replays never rank, A10) whose key starts with
@@ -47,16 +56,16 @@ interface CompletionDao {
      */
     @Query(
         "SELECT * FROM completions " +
-            "WHERE isRecord = 1 AND substr(puzzleRef, 1, length(:prefix)) = :prefix " +
+            "WHERE isRecord = 1 AND substr(puzzleRef, 1, length(:prefix)) = :prefix AND $VISIBLE " +
             "ORDER BY timeMs, hints LIMIT 1",
     )
-    suspend fun bestByTime(prefix: String): CompletionEntity?
+    suspend fun bestByTime(prefix: String, owner: String?): CompletionEntity?
 
     /** As [bestByTime], fewest hints first, time breaking ties (ADR-0013). */
     @Query(
         "SELECT * FROM completions " +
-            "WHERE isRecord = 1 AND substr(puzzleRef, 1, length(:prefix)) = :prefix " +
+            "WHERE isRecord = 1 AND substr(puzzleRef, 1, length(:prefix)) = :prefix AND $VISIBLE " +
             "ORDER BY hints, timeMs LIMIT 1",
     )
-    suspend fun bestByHints(prefix: String): CompletionEntity?
+    suspend fun bestByHints(prefix: String, owner: String?): CompletionEntity?
 }
