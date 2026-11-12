@@ -2,9 +2,16 @@ package com.ivandsky.puzzlebox.games.queensui
 
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.replay.MoveLog
+import com.ivandsky.puzzlebox.game.replay.ReplayCodec
+import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
+import com.ivandsky.puzzlebox.game.replay.ReplayRecord
+import com.ivandsky.puzzlebox.game.replay.StampedMove
+import com.ivandsky.puzzlebox.game.replay.Timeline
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.games.queens.Cell
+import com.ivandsky.puzzlebox.games.queens.MarkKind
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.QueensReplayMove
 import com.ivandsky.puzzlebox.games.queens.QueensReplayMove.AutoCross
@@ -17,10 +24,15 @@ import com.ivandsky.puzzlebox.games.queens.QueensReplayMove.Redo
 import com.ivandsky.puzzlebox.games.queens.QueensReplayMove.Remove
 import com.ivandsky.puzzlebox.games.queens.QueensReplayMove.Undo
 import com.ivandsky.puzzlebox.games.queens.QueensSession
+import com.ivandsky.puzzlebox.games.queens.queensPlugin
+import com.ivandsky.puzzlebox.model.SolveReplay
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -76,6 +88,58 @@ class QueensReplayRecordingTest {
         assertEquals(Adopt.Adopted, play.controller.adoptToday(QueensPlayFixtures.envelope(), QueensPlayFixtures.ref()))
         return play
     }
+
+    /** A killed play comes back: a new controller over the saved [log] snapshot and the saved session [bytes]. */
+    private fun restored(log: MoveLog, bytes: ByteArray, autoCross: Boolean): Play {
+        val play = Play(log, autoCross)
+        assertEquals(Restored(QueensPlayFixtures.ref()), play.controller.adoptRestored(bytes))
+        return play
+    }
+
+    /** The live session by play time: at [fromMs], then after the last input that landed at each time. */
+    private fun Play.liveAfterEach(script: List<Input>, fromMs: Long = 0L): Map<Long, QueensSession> {
+        val live = linkedMapOf(fromMs to session)
+        run(script, fromMs) { live[it.atMs] = session }
+        return live
+    }
+
+    /**
+     * What a replay reproduces of a live session: queens, marks, undo history, hint count and the
+     * setting. Not the record identity, the banked clock or the wall-clock moment of the win.
+     */
+    private fun QueensSession.clockFree(): QueensSession =
+        copy(ref = null, elapsedMs = 0L, completedAt = completedAt?.let { Instant.EPOCH })
+
+    private fun Play.sealed(): SolveReplay =
+        checkNotNull(log.seal(ReplayOutcome.Solved, won.single().time)) { "the play sealed no replay" }
+
+    private fun Play.recorded(): List<StampedMove> =
+        checkNotNull(log.snapshot()?.let(ReplayCodec::decode)?.getOrNull()) { "the play has no readable log" }.moves
+
+    private fun timelineOf(sealed: SolveReplay): Timeline =
+        checkNotNull(queensPlugin.openTimeline(QueensPlayFixtures.envelope(), sealed)) { "the sealed replay does not open" }
+
+    private fun Timeline.sessionAt(atMs: Long): QueensSession = at(atMs).session as QueensSession
+
+    /** S2 for one play: every live session is the replay's frame at its play time, and the replay ends solved. */
+    private fun assertReplays(live: Map<Long, QueensSession>, sealed: SolveReplay) {
+        val timeline = timelineOf(sealed)
+        for ((atMs, session) in live) {
+            assertEquals("frame at $atMs ms", session.clockFree(), timeline.sessionAt(atMs).clockFree())
+        }
+        val end = timeline.at(timeline.endMs)
+        assertTrue(end.ended)
+        assertTrue(end.facts.solved)
+        assertEquals(QueensPlayFixtures.solution.toSet(), (end.session as QueensSession).queens.toSet())
+    }
+
+    /** The log a script must leave: the adopt's setting move at 0, then every input that names a move. */
+    private fun recordOf(autoCross: Boolean, script: List<Input>): List<StampedMove> =
+        listOf(StampedMove(0L, AutoCross(autoCross).toReplayMove())) +
+            script.mapNotNull { input -> input.move?.let { StampedMove(input.atMs, it.toReplayMove()) } }
+
+    private fun encoded(endMs: Long, moves: List<StampedMove>): ByteArray? =
+        ReplayCodec.encode(ReplayRecord(QueensDefinition.id, ReplayOutcome.Solved, endMs, moves))
 
     //region scripts
 
@@ -182,6 +246,132 @@ class QueensReplayRecordingTest {
                 assertEquals(if (autoCross) 8_000L else 2_800L, play.won.single().time)
                 assertEquals(if (autoCross) 1 else 0, play.won.single().hints)
             }
+        }
+    }
+
+    @Test
+    fun `S2 the replay shows the live session after every input and ends on the solved board`() {
+        val play = fresh(MoveLog.fresh(QueensDefinition.id))
+        val live = play.liveAfterEach(menuScript)
+
+        assertReplays(live, play.sealed())
+    }
+
+    /** Without the adopt's setting move the replay would derive AUTO marks the player never saw. */
+    @Test
+    fun `S2 a play begun with Auto-cross off replays without system marks from its first frame`() {
+        val play = fresh(MoveLog.fresh(QueensDefinition.id), autoCross = false)
+        val live = play.liveAfterEach(settingsScript)
+
+        assertTrue("the live queen at 0.6 s stands bare", live.getValue(600L).marks.values.none { it.kind == MarkKind.AUTO })
+        assertReplays(live, play.sealed())
+    }
+
+    /**
+     * S3. The restore always records the setting again (the saved session does not carry it and
+     * Settings can change it while the play is closed), so the restored replay is the uninterrupted
+     * one plus that single move at the cut. It changes no frame: both replays show the same boards.
+     */
+    @Test
+    fun `S3 save, kill, restore, win seals the uninterrupted replay plus the restore's setting move`() {
+        val whole = fresh(MoveLog.fresh(QueensDefinition.id))
+        whole.run(menuScript)
+
+        val killed = fresh(MoveLog.fresh(QueensDefinition.id))
+        killed.run(openingHalf + background(4_500L))
+        fakeNow = fakeNow.plusSeconds(3_600L) // an hour dead: never play time
+        val back = restored(MoveLog.restored(QueensDefinition.id, killed.log.snapshot()), killed.saved.last(), autoCross = true)
+        val live = back.liveAfterEach(closingHalf, fromMs = 4_500L)
+
+        val uninterrupted = recordOf(autoCross = true, menuScript)
+        // The adopt's setting and the opening half's eleven moves come before the cut.
+        val withRestore = uninterrupted.take(12) + StampedMove(4_500L, AutoCross(true).toReplayMove()) + uninterrupted.drop(12)
+        assertArrayEquals(encoded(8_000L, uninterrupted), whole.sealed().toByteArray())
+        assertArrayEquals(encoded(8_000L, withRestore), back.sealed().toByteArray())
+        assertEquals(8_000L, back.won.single().time)
+        assertEquals(1, back.won.single().hints)
+
+        val wholeReplay = timelineOf(whole.sealed())
+        val backReplay = timelineOf(back.sealed())
+        assertArrayEquals(wholeReplay.moveTimesMs, backReplay.moveTimesMs)
+        for (atMs in wholeReplay.moveTimesMs) {
+            assertEquals("frame at $atMs ms", wholeReplay.sessionAt(atMs), backReplay.sessionAt(atMs))
+        }
+        assertReplays(live, back.sealed())
+    }
+
+    /** Why the restore cannot skip its setting move: the saved session comes back under the default (on). */
+    @Test
+    fun `a play restored under a setting changed while it was closed replays the marks the player saw`() {
+        val killed = fresh(MoveLog.fresh(QueensDefinition.id), autoCross = false)
+        killed.run(listOf(cross(500L, 0), queen(600L, 0), background(1_000L)))
+        assertTrue(killed.session.marks.values.none { it.kind == MarkKind.AUTO })
+
+        val back = restored(MoveLog.restored(QueensDefinition.id, killed.log.snapshot()), killed.saved.last(), autoCross = true)
+        val finish = queens(1_100L, 12, 23, 29, 34, 46, 49) + listOf(cross(2_300L, 59), winningQueen(2_400L, 59))
+        val live = back.liveAfterEach(finish, fromMs = 1_000L)
+
+        assertTrue("the restored board derives under ON", live.getValue(1_000L).marks.values.any { it.kind == MarkKind.AUTO })
+        assertEquals(
+            listOf(0L to AutoCross(false), 500L to Cross(Cell(0)), 600L to Place(Cell(0)), 1_000L to AutoCross(true))
+                .map { (atMs, move) -> StampedMove(atMs, move.toReplayMove()) },
+            back.recorded().take(4),
+        )
+        assertReplays(live, back.sealed())
+    }
+
+    @Test
+    fun `S4 every stamp is the play time its input landed at, never decreasing, the last within the recorded time`() {
+        val menu = fresh(MoveLog.fresh(QueensDefinition.id))
+        menu.run(menuScript)
+        val menuMoves = menu.recorded()
+        assertEquals(
+            listOf(
+                0L, 1_000L, 1_500L, 1_900L, 2_400L, 3_000L, 3_010L, 3_020L, 3_500L, 3_510L, 4_000L, 4_200L,
+                5_000L, 5_500L, 5_600L, 6_000L, 6_500L, 6_600L,
+                6_700L, 6_800L, 6_900L, 7_000L, 7_100L, 7_200L, 7_300L, 7_400L, 7_500L, 7_600L, 7_700L, 7_800L, 7_900L, 8_000L,
+            ),
+            menuMoves.map { it.atMs },
+        )
+        assertEquals(recordOf(autoCross = true, menuScript), menuMoves)
+        assertEquals(8_000L, menu.won.single().time)
+        assertNeverBackAndWithin(menuMoves, menu.won.single().time)
+
+        // The flip at 1 s arrives half a minute of wall time into the solve, while the app is away.
+        val settings = fresh(MoveLog.fresh(QueensDefinition.id), autoCross = false)
+        settings.run(settingsScript)
+        val settingsMoves = settings.recorded()
+        assertEquals(
+            listOf(
+                0L, 500L, 600L, 1_000L, 1_200L,
+                1_300L, 1_400L, 1_500L, 1_600L, 1_700L, 1_800L, 1_900L, 2_000L, 2_100L, 2_200L, 2_300L, 2_400L, 2_500L, 2_600L,
+                2_700L, 2_800L,
+            ),
+            settingsMoves.map { it.atMs },
+        )
+        assertEquals(recordOf(autoCross = false, settingsScript), settingsMoves)
+        assertEquals(2_800L, settings.won.single().time)
+        assertNeverBackAndWithin(settingsMoves, settings.won.single().time)
+    }
+
+    private fun assertNeverBackAndWithin(moves: List<StampedMove>, recordedMs: Long) {
+        assertTrue(moves.zipWithNext().all { (earlier, later) -> earlier.atMs <= later.atMs })
+        assertTrue(moves.last().atMs <= recordedMs)
+    }
+
+    @Test
+    fun `S5 recording changes neither the completion record nor one saved session`() {
+        for ((autoCross, script) in listOf(true to menuScript, false to settingsScript)) {
+            val off = fresh(MoveLog.off(), autoCross)
+            off.run(script)
+            val on = fresh(MoveLog.fresh(QueensDefinition.id), autoCross)
+            on.run(script)
+
+            assertNull(off.log.snapshot())
+            assertEquals(recordOf(autoCross, script).size, on.recorded().size)
+            assertEquals(off.won, on.won)
+            assertEquals(off.saved.size, on.saved.size)
+            off.saved.zip(on.saved).forEachIndexed { i, (a, b) -> assertArrayEquals("save $i", a, b) }
         }
     }
 

@@ -18,7 +18,9 @@ import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
+import com.ivandsky.puzzlebox.games.queens.QueensReplayMove
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.codec.QueensCodec
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
@@ -44,6 +46,11 @@ import kotlinx.coroutines.launch
  * Session persistence (R-4): every committed session reaches
  * [PlayEnvironment.onSessionChanged] as codec bytes, including the initial session of a
  * fresh adopt/replay so a process death before the first move still restores.
+ * The move is in [PlayEnvironment.moveLog] before those bytes leave, so a saved session and a
+ * saved log agree.
+ *
+ * Replay record: every session change is a move applied through [QueensMoveLog]. A saved session
+ * does not carry Auto-cross, so it is recorded as a setting move at every adopt and at every flip.
  *
  * Guided lesson (spec A12): [guide] marks the adopted board's answer with faint crowns
  * and holds back the rule caption ([violation]) until the lesson is done.
@@ -91,6 +98,9 @@ class QueensPlayController(
     /** The open running window's start: null = clock stopped (not started, backgrounded, or won). */
     private var runningSince: Instant? by mutableStateOf(null)
 
+    /** The one way a session changes, here and in the board: each move stamped with play time and recorded in the play's log. */
+    private val moves = QueensMoveLog(env.moveLog, now) { runningSince }
+
     /** Last [tick]; the window's displayed length is measured against it so the timer recomposes. */
     var nowMs by mutableStateOf(0L)
         private set
@@ -103,10 +113,7 @@ class QueensPlayController(
             is DecodeResult.Ok -> decoded.value
             is DecodeResult.Err -> return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
         }
-        val fresh = QueensSession(ref = ref as QueensPuzzleRef, puzzle = queens, autoCross = autoCross)
-        board = boardFor(fresh)
-        publish(fresh)
-        openWindow() // the clock runs from the moment the puzzle opens
+        start(ref as QueensPuzzleRef, queens) // the clock runs from the moment the puzzle opens
         return Adopt.Adopted
     }
 
@@ -116,8 +123,8 @@ class QueensPlayController(
     override fun adoptRestored(bytes: ByteArray): Restored? =
         when (val restored = QueensSessionCodec.deserialize(bytes)) {
             is DecodeResult.Ok -> {
-                val s = restored.value.withAutoCross(autoCross) // the saved board re-derives under the setting
                 runningSince = null
+                val s = underSetting(restored.value) // the saved board re-derives under the setting
                 board = boardFor(s)
                 // The running clock is process-local (runningSince is not session state):
                 // a restored in-progress session restarts its window now, or the timer
@@ -137,7 +144,7 @@ class QueensPlayController(
             initialSession = session,
             score = queensPlugin.score,
             onWinRecord = { env.onWon(it) },
-            now = now,
+            moves = moves,
             onSessionChanged = ::publish,
             settle = this::settle,
             mode = hintMode,
@@ -153,12 +160,24 @@ class QueensPlayController(
      *  a fresh clock window open — the next win is a new transition and emits again (A4). */
     override fun playAgain() {
         val current = board?.session ?: return
+        start(current.ref, current.puzzle)
+    }
+
+    private fun start(ref: QueensPuzzleRef?, puzzle: QueensPuzzle) {
         runningSince = null
-        val fresh = QueensSession(ref = current.ref, puzzle = current.puzzle, autoCross = autoCross)
+        val fresh = underSetting(QueensSession(ref = ref, puzzle = puzzle))
         board = boardFor(fresh)
         publish(fresh)
         openWindow()
     }
+
+    /**
+     * [session] under the player's Auto-cross, as a recorded setting move made before the board
+     * exists: a replay folds from the default, so the setting has to precede the first board move.
+     * The clock is stopped at every call, so the stamp is the session's banked time.
+     */
+    private fun underSetting(session: QueensSession): QueensSession =
+        moves.apply(session, QueensReplayMove.AutoCross(autoCross))
 
     /** Spec A12: the adopted board shows its answer and no rule caption (tutorial only). */
     override fun guide() {

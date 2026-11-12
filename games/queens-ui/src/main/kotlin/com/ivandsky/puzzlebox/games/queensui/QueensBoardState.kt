@@ -9,12 +9,12 @@ import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.StepHints
 import com.ivandsky.puzzlebox.games.queens.Cell
+import com.ivandsky.puzzlebox.games.queens.QueensReplayMove
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 import com.ivandsky.puzzlebox.games.queens.engine.solve.QueensSolver
 import com.ivandsky.puzzlebox.games.queensui.hint.QueensSpotlightMapper
 import com.ivandsky.puzzlebox.games.queensui.hint.QueensStepGame
-import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 
 /**
@@ -23,10 +23,9 @@ import kotlinx.coroutines.CoroutineScope
  * toggle, Spotlight hint) and the interaction set of A10–A12/A14.
  *
  * Interaction semantics (spec A11 ruling reversed 2026-11-02 + direction doc):
- * - STRICT tap cycle on EVERY cell: empty → MANUAL X (withCrossToggled), X → queen
- *   (withQueenPlaced, A10 auto-fill when Auto-cross is ON), queen → EMPTY
- *   (withQueenRemoved — the removal takes the queen AND its stored mark, so the cycle
- *   closes; fix round 5). §5.2 haptics are fired by the board.
+ * - STRICT tap cycle on EVERY cell: empty → MANUAL X, X → queen (A10 auto-fill when
+ *   Auto-cross is ON), queen → EMPTY (the removal takes the queen AND its stored mark,
+ *   so the cycle closes; fix round 5). §5.2 haptics are fired by the board.
  * - Drag (drag-start + each newly entered cell): a swipe starting on an empty or queen cell
  *   paints MANUAL X on markless queen-free cells only — idempotent, no flicker over an
  *   already-X cell (§5.1); one painted cell = one command. A swipe starting on a cross
@@ -37,9 +36,13 @@ import kotlinx.coroutines.CoroutineScope
  *   MANUAL marks — and one undo restores the queens + manual marks it removed.
  * - MANUAL marks are cleared only by their own cell's cycle closing (or by Clear).
  *
+ * Record equals apply: every session change is a [QueensReplayMove] applied through [moves],
+ * which records it, so no input reaches a session reducer any other way. Only [bankElapsed]
+ * writes the session directly: banked time is the clock, not a move.
+ *
  * Hint: a press shows a [spotlight] through [StepHints] and never places (A1), a culprit is only marked and a second
  * press re-shows it for free (A4), every input clears it in the same call (A10). A newly shown step counts into the
- * session's result facts ([QueensSession.hintsUsed]).
+ * session's result facts ([QueensSession.hintsUsed]) as a recorded move; the free re-show records nothing.
  *
  * Clock: the owner (the play state) holds the running window; [settle] is its hook on
  * every committed session — start the window, or fold it into the session's banked
@@ -61,7 +64,7 @@ class QueensBoardState(
     initialSession: QueensSession,
     private val score: ScoreModel<QueensSession>? = null,
     private val onWinRecord: (CompletionRecord) -> Unit = {},
-    private val now: () -> Instant = Instant::now,
+    private val moves: QueensMoveLog = QueensMoveLog(),
     private val onSessionChanged: (QueensSession) -> Unit = {},
     private val settle: (QueensSession) -> QueensSession = { it },
     mode: HintMode.Stepwise,
@@ -91,7 +94,8 @@ class QueensBoardState(
         private set
 
     internal val stepHints: StepHints<QueensStep, QueensSpotlightMapper.Key> =
-        StepHints(mode, scope, QueensStepGame({ session }), { session.hintsUsed }, ::storeHintsUsed)
+        // A newly counted hint: no clearHint on the way, so the Spotlight stays.
+        StepHints(mode, scope, QueensStepGame({ session }), { session.hintsUsed }, { commit(QueensReplayMove.Hint) })
 
     private var erasing = false
     private var eraseRunOpen = false
@@ -119,15 +123,15 @@ class QueensBoardState(
         if (cell in current.queens.toSet()) {
             // The cycle's third state on a queen cell: remove (queen → empty).
             lastRemovedQueen = idx
-            commit(current.withQueenRemoved(cell, now()))
+            commit(QueensReplayMove.Remove(cell))
             return
         }
 
         if (current.markAt(cell) == null) {
-            commit(current.withCrossToggled(cell, now())) // MANUAL X
+            commit(QueensReplayMove.Cross(cell)) // MANUAL X
         } else {
             lastPlacedQueen = idx
-            commit(current.withQueenPlaced(cell, now())) // X → queen
+            commit(QueensReplayMove.Place(cell)) // X → queen
         }
     }
 
@@ -150,7 +154,7 @@ class QueensBoardState(
         if (current.isComplete || idx !in 0 until current.puzzle.cellCount) return
         val cell = Cell(idx)
         if (erasing) {
-            eraseCross(current, cell)
+            eraseCross(cell)
             return
         }
         // §5.1 idempotence: no change over a queen or any existing mark (no flicker). A10: the
@@ -160,30 +164,24 @@ class QueensBoardState(
             return
         }
         clearHint()
-        commit(current.withCrossToggled(cell, now()))
+        commit(QueensReplayMove.Cross(cell))
     }
 
-    private fun eraseCross(current: QueensSession, cell: Cell) {
-        val next = current.withCrossErased(cell, eraseRunOpen, now())
-        if (next == current) {
-            stepHints.inputMade()
-            return
-        }
+    private fun eraseCross(cell: Cell) {
         clearHint()
-        eraseRunOpen = true
-        commit(next)
+        if (commit(QueensReplayMove.Erase(cell, extend = eraseRunOpen))) eraseRunOpen = true
     }
 
     /** A12: one command reverted; its auto-fill side effects revert with it. */
     fun undo() {
         clearHint()
-        commit(session.withUndo())
+        commit(QueensReplayMove.Undo)
     }
 
     /** Re-apply the most recently undone command. */
     fun redo() {
         clearHint()
-        commit(session.withRedo())
+        commit(QueensReplayMove.Redo)
     }
 
     val canUndo: Boolean get() = session.canUndo
@@ -202,12 +200,12 @@ class QueensBoardState(
 
     /** Applies the player's Auto-cross setting (the controller feeds it): ON auto-fills exclusion
      *  marks (A10); OFF places queens bare. Not a board action — no undo unit; the session
-     *  re-derives its system marks. An unchanged value touches nothing (no hint clear, no save). */
+     *  re-derives its system marks. An unchanged value touches nothing (no hint clear, no save,
+     *  no record: the settings flow echoes every flip made here). */
     fun setAutoCross(enabled: Boolean) {
-        val next = session.withAutoCross(enabled)
-        if (next == session) return
+        if (enabled == session.autoCross) return
         clearHint()
-        store(next)
+        commit(QueensReplayMove.AutoCross(enabled))
     }
 
     /** Clear (fix round 6): wipe queens + AUTO + MANUAL marks as ONE undo unit. */
@@ -215,27 +213,25 @@ class QueensBoardState(
         clearHint()
         lastRemovedQueen = null
         lastPlacedQueen = null
-        commit(session.withCleared(now()))
+        commit(QueensReplayMove.Clear)
     }
 
     private fun clearHint() {
         stepHints.inputMade()
     }
 
-    /** A newly counted hint: through [settle], never [commit], so the Spotlight stays. */
-    private fun storeHintsUsed(used: Int) {
-        store(settle(session.copy(hintsUsed = used)))
-    }
-
-    private fun commit(next: QueensSession) {
-        if (next == session) return // a no-op action: no history, no clock, no persist churn
+    /** Applies [move] through the log, then the clock hook, the store and the win. False = a no-op: nothing recorded, stored or saved. */
+    private fun commit(move: QueensReplayMove): Boolean {
         val previous = session
+        val next = moves.apply(previous, move)
+        if (next === previous) return false
         val settled = settle(next)
         store(settled)
         if (!previous.isComplete && settled.isComplete && !winEmitted) {
             winEmitted = true
             score?.completion(settled)?.let(onWinRecord)
         }
+        return true
     }
 
     private fun store(next: QueensSession) {
