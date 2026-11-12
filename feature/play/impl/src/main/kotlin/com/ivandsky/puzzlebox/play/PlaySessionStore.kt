@@ -189,6 +189,7 @@ class PlaySessionStore internal constructor(
         try {
             val controller = gameUi.createController(PlayEnvironment(reader, onSessionChanged = {}, onWon = {}, moveLog = log))
             if (controller.adoptRestored(decoded.session) == null) return null
+            // Banked time only: this controller has never ticked, so its restored window clamps to 0.
             return log.seal(ReplayOutcome.GaveUp, (controller as? PlayClock)?.displayedElapsedMs() ?: 0L)
         } finally {
             reader.cancel()
