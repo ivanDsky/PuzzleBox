@@ -25,10 +25,10 @@ import com.ivandsky.puzzlebox.games.strands.engine.StrandsHints
 import com.ivandsky.puzzlebox.games.strands.engine.StrandsMove
 import com.ivandsky.puzzlebox.games.strands.engine.StrandsRules
 import com.ivandsky.puzzlebox.games.strands.engine.StrandsVerdict
-import com.ivandsky.puzzlebox.games.strands.engine.accept
-import com.ivandsky.puzzlebox.games.strands.engine.spend
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strands.strandsPlugin
+import com.ivandsky.puzzlebox.games.strands.withHint
+import com.ivandsky.puzzlebox.games.strands.withSubmit
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Duration
 import java.time.Instant
@@ -147,8 +147,8 @@ class StrandsPlayController(
             is StrandsVerdict.Spangram -> lastFound = FoundEvent(verdict.word.cells, spangram = true, seq = ++foundSeq)
             else -> Unit
         }
-        val next = current.state.accept(verdict)
-        if (next != current.state) commit(current.copy(state = next))
+        val next = current.withSubmit(path)
+        if (next !== current) commit(next)
     }
 
     fun pressHint() {
@@ -156,7 +156,7 @@ class StrandsPlayController(
         if (current.state.isComplete) return
         when (val hint = StrandsRules.hint(current.state) as StrandsHint) {
             is StrandsHint.Reveal -> {
-                commit(current.copy(state = current.state.spend(hint)))
+                commit(current.withHint(hint))
             }
 
             StrandsHint.OnBoard -> hintDialog = HintDialog.OnBoard
