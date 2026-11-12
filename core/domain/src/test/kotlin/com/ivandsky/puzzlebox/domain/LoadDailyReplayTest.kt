@@ -114,7 +114,7 @@ class LoadDailyReplayTest {
     fun `a custom reference gives null without a read`() = runTest {
         val custom = TestGames.Ref(game, PuzzleKey.Custom("abc"))
         val completions = ThrowingCompletionRepository(IllegalStateException("store down"))
-        val load = entry(completions = completions)
+        val load = LoadDailyReplay(completions, FakeDailyRepository())
 
         assertNull(load(Record(custom)))
         assertNull(load(Latest(custom)))
