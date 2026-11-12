@@ -1,5 +1,7 @@
 plugins {
     alias(libs.plugins.puzzlebox.android.feature.impl)
+    // 83's History replay section goldens.
+    alias(libs.plugins.puzzlebox.android.roborazzi)
 }
 
 android {
