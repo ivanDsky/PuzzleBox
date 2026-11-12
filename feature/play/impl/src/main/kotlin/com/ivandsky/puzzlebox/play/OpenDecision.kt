@@ -10,7 +10,7 @@ internal sealed interface OpenDecision {
     /** The day's result. */
     data class Finished(val result: ResultKey) : OpenDecision
 
-    /** A solved day with no live play: [result] holds unless a saved replay row exists (a read). */
+    /** A solved day with no live play: [result] holds unless a saved play-again row exists (a read). */
     data class Check(val result: ResultKey) : OpenDecision
 
     /** The solved-day snapshot has not loaded yet. */

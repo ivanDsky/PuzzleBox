@@ -166,7 +166,7 @@ class FriendPuzzleViewModelTest {
     }
 
     @Test
-    fun `a solve with nothing saved is Replay, carrying the solve that stands`() = runTest {
+    fun `a solve with nothing saved is a play again, carrying the solve that stands`() = runTest {
         received.upsert(stored())
         completions.setRecords(listOf(solve(timeMs = 90_000L, hints = 1, isRecord = true)))
 
@@ -177,7 +177,7 @@ class FriendPuzzleViewModelTest {
     }
 
     @Test
-    fun `a saved play after a solve is Resume, not Replay`() = runTest {
+    fun `a saved play after a solve is Resume, not a play again`() = runTest {
         received.upsert(stored())
         completions.setRecords(listOf(solve(timeMs = 90_000L, hints = 0, isRecord = true)))
         saved.save(slot(), byteArrayOf(1), elapsedMs = 5_000L)

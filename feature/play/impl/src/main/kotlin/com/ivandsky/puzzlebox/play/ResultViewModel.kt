@@ -67,7 +67,7 @@ data class ResultUiState(
  * The result route's state holder for [key]'s slot. The slot's live play
  * ([PlaySessionStore.peek]) speaks for this result only while it holds THIS solve — won,
  * with the key's time and hints: then the verdict, previous best and record-write retry
- * come from it. Once another stack replays or re-solves the slot, this entry keeps the
+ * come from it. Once another stack plays again or re-solves the slot, this entry keeps the
  * verdict it already saw and hides retry (A9, F2). Without a live play holding the solve
  * at entry (process death) the verdict is unknown (A15, N20): the session-start baseline
  * the verdict needs died with the play.
@@ -79,7 +79,7 @@ data class ResultUiState(
  * [primary] (A7, SC10): on today's slot it is Next — [todaySet]'s next unsolved game after
  * this one that the [store] can play — or AllDone when none is left, and null until the set
  * first lands, so the screen never shows a Done that turns into Next. Any other day's
- * result (a replay) offers Done from the first frame. The read flows run only while the
+ * result (a play again) offers Done from the first frame. The read flows run only while the
  * screen is observed (plus a 5 s grace), so a day change is re-read.
  *
  * [heroInsights], [heroRank] and [playAgain] feed the hero page.
@@ -107,7 +107,7 @@ class ResultViewModel internal constructor(
 
     val brand: GameBrand = ui.brandOf(slot.gameId)
 
-    /** This solve's record facts, folded eagerly so a later replay never erases them. */
+    /** This solve's record facts, folded eagerly so a later play again never erases them. */
     private val record: StateFlow<ResultUiState> = ResultUiState(game = games.displayName(slot.gameId)).let { blank ->
         if (live != null) {
             val first = resultOf(blank, live.record.value)
@@ -146,19 +146,19 @@ class ResultViewModel internal constructor(
             MutableStateFlow(ResultPrimaryAction.Done)
         }
 
-    /** True for a past day's result: a replay counts nothing. */
+    /** True for a past day's result: a play again counts nothing. */
     val playAgain: Boolean = !today
 
     /**
      * The hero page's streak, week and time spread; null until read, and for a practice puzzle.
-     * Today's solve counts, a replay's does not.
+     * Today's solve counts, a play again's does not.
      */
     val heroInsights: StateFlow<ResultInsights?> =
         insights(slot.gameId, slot.day, BestScore(key.timeMs, key.hintsUsed), counted = today)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     /**
-     * The hero page's rank on today's board; hidden for a replay, which has no board to read. With [linkedIn] on, the
+     * The hero page's rank on today's board; hidden for a play again, which has no board to read. With [linkedIn] on, the
      * day's connections already on the phone fold into it; the day is only observed here, never fetched.
      */
     val heroRank: StateFlow<ResultRank> =
@@ -174,7 +174,7 @@ class ResultViewModel internal constructor(
         live?.takeIf { it.record.value.solve == solve }?.retryRecordWrite()
     }
 
-    /** This solve's facts while the play holds it; after a replay or another solve, the
+    /** This solve's facts while the play holds it; after a play again or another solve, the
      *  verdict this entry already saw stays (it was this solve's), and retry hides. */
     private fun resultOf(last: ResultUiState, record: ActivePlay.Record) =
         if (record.solve == solve) {

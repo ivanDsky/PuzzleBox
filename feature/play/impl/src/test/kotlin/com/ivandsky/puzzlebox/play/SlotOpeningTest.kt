@@ -108,7 +108,7 @@ class SlotOpeningTest {
     }
 
     @Test
-    fun `a past day is restored from a replay built with the day's puzzleNumber`() = runTest {
+    fun `a past day is restored from a play again built with the day's puzzleNumber`() = runTest {
         val puzzle = TestGames.puzzle(alpha, tag = 3)
         daily.setCached(alpha, yesterday, puzzle)
         daily.setHistory(

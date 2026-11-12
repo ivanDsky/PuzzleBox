@@ -73,7 +73,7 @@ internal fun FriendPuzzleCardResumePreview() {
     PreviewCard(previewCard(FriendCardAction.Resume(elapsedMs = 42_000L)))
 }
 
-// Preview: solved here and signed in, Replay beside your time over the board's top three.
+// Preview: solved here and signed in, a play-again button beside your time over the board's top three.
 @PuzzleBoxPreviews
 @Composable
 internal fun FriendPuzzleCardPlayAgainPreview() {

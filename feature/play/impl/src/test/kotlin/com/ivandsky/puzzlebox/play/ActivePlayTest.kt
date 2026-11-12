@@ -174,19 +174,19 @@ class ActivePlayTest {
     }
 
     @Test
-    fun `a win on an already-solved puzzle is a replay beside the record's best`() {
+    fun `a win on an already-solved puzzle is a play again beside the record's best`() {
         completions.setRecords(listOf(FakeController.record(ref)))
         val play = loaded()
         ui.latest.win()
         assertEquals(RecordVerdict.PlayAgain, play.record.value.verdict)
-        assertEquals("a replay shows the best it plays against", FakeController.TIME_MS, play.record.value.previousBest?.timeMs)
+        assertEquals("a play again shows the best it plays against", FakeController.TIME_MS, play.record.value.previousBest?.timeMs)
         assertEquals(2, records().size)
     }
 
     @Test
-    fun `a replay faster than the record is still a replay and never ranks`() {
+    fun `a play again faster than the record is still a play again and never ranks`() {
         // The game's best is a slower record of this very puzzle (FirstWinPolicy keeps it
-        // the record); the replay beats it on a known board, so it earns no best.
+        // the record); the play again beats it on a known board, so it earns no best.
         val slower = FakeController.TIME_MS + 10_000
         completions.setRecords(listOf(FakeController.record(ref).copy(time = slower, isRecord = true)))
         val play = loaded()
@@ -216,13 +216,13 @@ class ActivePlayTest {
     }
 
     @Test
-    fun `replay after a win emits again and is a replay`() {
+    fun `play again after a win emits again and is a play again`() {
         val play = loaded()
         ui.latest.win()
         assertEquals(RecordVerdict.FirstSolve, play.record.value.verdict)
 
         play.playAgain()
-        assertEquals(1, ui.latest.replays)
+        assertEquals(1, ui.latest.playAgains)
         assertNull("the verdict resets until the new write lands", play.record.value.verdict)
         assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
 
@@ -232,7 +232,7 @@ class ActivePlayTest {
     }
 
     @Test
-    fun `replay keeps the degrade banner`() {
+    fun `play again keeps the degrade banner`() {
         val error = FetchError.Throttled()
         daily.setToday(game, DailyToday.Cached(TestGames.puzzle(game), error))
         val play = loaded()

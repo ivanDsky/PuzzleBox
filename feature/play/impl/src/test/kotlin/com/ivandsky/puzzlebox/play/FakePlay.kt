@@ -95,7 +95,7 @@ class FakePlayUi(override val gameId: GameId) : GamePlayUi {
                 // Keyed like the real games' handoff: on the completion VALUE, so re-adopting
                 // the same completed bytes (a fresh controller) never hands off twice.
                 val completed = fake.isComplete
-                LaunchedEffect(completed, fake.ref, fake.replays) { if (completed) onSolved(FakeController.TIME_MS, 0) }
+                LaunchedEffect(completed, fake.ref, fake.playAgains) { if (completed) onSolved(FakeController.TIME_MS, 0) }
             } else {
                 PlayBoardFallback(status, onRetry, "play")
             }
@@ -122,7 +122,7 @@ class FakeController(
         private set
     override var isComplete by mutableStateOf(false)
         private set
-    var replays by mutableIntStateOf(0)
+    var playAgains by mutableIntStateOf(0)
         private set
 
     /** Banked clock time (in the session bytes) and the open running window, if any. */
@@ -185,7 +185,7 @@ class FakeController(
     }
 
     override fun playAgain() {
-        replays++
+        playAgains++
         moves = 0
         isComplete = false
         bankedMs = 0L

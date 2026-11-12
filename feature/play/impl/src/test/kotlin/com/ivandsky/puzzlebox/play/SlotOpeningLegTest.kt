@@ -42,7 +42,7 @@ import org.junit.Test
 /**
  * A duel's puzzle ([PlaySlot.Leg]) opens from its own saved row, else from the match's
  * reference for that leg, read once: a day through the by-date daily read, a friend's
- * puzzle through the stored row or its re-checked fetch. Either way the board is a replay
+ * puzzle through the stored row or its re-checked fetch. Either way the board is a play again
  * under the puzzle's own identity, so the leg's solve is the daily's or the friend
  * puzzle's, and no leg save stands in for a daily or friend save or theirs for it.
  */
