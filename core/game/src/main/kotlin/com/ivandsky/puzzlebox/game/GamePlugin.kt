@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.game
 
 import com.ivandsky.puzzlebox.game.editor.GameEditor
+import com.ivandsky.puzzlebox.game.replay.GameReplay
 import com.ivandsky.puzzlebox.model.PuzzleKey
 
 /** Marker for a game's pure drawable model. :core:game-ui maps it to Compose by [com.ivandsky.puzzlebox.model.GameId];
@@ -29,6 +30,8 @@ interface RendererModel
  * [editor] is the game's pure puzzle editor (ADR-0019, spec A1/A28): a game has an editor
  * iff its plugin carries one and its UI module binds the matching `GameEditorUi`.
  *
+ * [replay] is the game's optional solve-replay adapter (ADR-0008); null hides every replay surface.
+ *
  * @param P the game's rules state (input to [rules] and [rendererModel])
  * @param S the game's persisted session type
  * @param M the game's pure renderer model
@@ -44,4 +47,5 @@ class GamePlugin<P, S : GameSession, M : RendererModel>(
     val playAgainSession: (cached: Puzzle, key: PuzzleKey) -> DecodeResult<ByteArray>,
     val rendererModel: (state: P, hint: Hint?, lastVerdict: MoveVerdict?) -> M,
     val editor: GameEditor<*>? = null,
+    val replay: GameReplay<S>? = null,
 )
