@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.gameui.replay
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.GamePlayController
@@ -15,19 +16,20 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * The replay section of a result-like screen. The one place that reads ui.replayBoard:
- * Hidden, or a game with no replay board, draws nothing. Ready draws ReplayPlayer.
+ * Hidden, or a game with no replay board, draws nothing. Ready draws the Watch replay row;
+ * [onOpen] opens the replay page, where the player lives.
  */
 @Composable
-fun ReplaySection(state: ReplaySectionState, ui: GamePlayUi, modifier: Modifier = Modifier) {
+fun ReplaySection(state: ReplaySectionState, ui: GamePlayUi, onOpen: () -> Unit, modifier: Modifier = Modifier) {
     if (state !is ReplaySectionState.Ready) return
-    val board = ui.replayBoard ?: return
-    ReplayPlayer(state.timeline, board, modifier)
+    if (ui.replayBoard == null) return
+    WatchReplayRow(state.timeline.moveTimesMs.size, state.timeline.endMs, onOpen, modifier.testTag(ReplayTags.WATCH_ROW))
 }
 
 @PuzzleBoxPreviews
 @Composable
 internal fun ReplaySectionPreview() {
-    PuzzleBoxTheme { ReplaySection(ReplaySectionState.Hidden, PreviewGame) }
+    PuzzleBoxTheme { ReplaySection(ReplaySectionState.Hidden, PreviewGame, onOpen = {}) }
 }
 
 private object PreviewGame : GamePlayUi {

@@ -224,6 +224,7 @@ class ResultScreenTest {
                         onNext = {},
                         onDone = { done++ },
                         onOpenBoard = {},
+                        onOpenReplay = {},
                     )
                 }
             }
@@ -267,6 +268,7 @@ class ResultScreenTest {
                         onNext = {},
                         onDone = {},
                         onOpenBoard = {},
+                        onOpenReplay = {},
                     )
                 }
             }
@@ -292,6 +294,7 @@ class ResultScreenTest {
                         onNext = { next = it },
                         onDone = { done++ },
                         onOpenBoard = {},
+                        onOpenReplay = {},
                     )
                 }
             }
@@ -327,6 +330,7 @@ class ResultScreenTest {
                         onNext = { next = it },
                         onDone = {},
                         onOpenBoard = {},
+                        onOpenReplay = {},
                     )
                 }
             }
@@ -383,6 +387,7 @@ class ResultScreenTest {
                         onNext = {},
                         onDone = {},
                         onOpenBoard = onOpenBoard,
+                        onOpenReplay = {},
                     )
                 }
             }
@@ -418,6 +423,7 @@ class ResultScreenTest {
                     factory { ObserveGameStats(get(), get(), get()) }
                     factory { GetNextRollover(get()) }
                     single<ReleaseFlags> { FakeReleaseFlags() }
+                    factory { loadSolveReplay(get(), get(), get()) }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
                     single { SubmitStatusTracker() }

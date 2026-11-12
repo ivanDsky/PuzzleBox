@@ -101,6 +101,8 @@ class ResultViewModelSignInTest {
             rank = ObserveResultRank(ObserveLeaderboard(identity, FakeLeaderboardRepository(), fakes.games, calendar), fakes.games),
             linkedIn = null,
             board = FriendPuzzleBoard(FakeCustomBoardRepository(), identity, oneGoogleAccount("token"), ComputeCustomBoard()),
+            completions = completions,
+            loadReplay = loadSolveReplay(fakes.games, daily, completions),
         )
 
         viewModel.signIn(ApplicationProvider.getApplicationContext())
