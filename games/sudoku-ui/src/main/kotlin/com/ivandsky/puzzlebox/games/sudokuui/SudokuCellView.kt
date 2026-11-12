@@ -48,7 +48,7 @@ internal fun SudokuCellView(
     model: SudokuBoardModel,
     digitStyle: TextStyle,
     noteStyle: TextStyle,
-    onSelect: (Int) -> Unit,
+    onSelect: ((Int) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -63,14 +63,17 @@ internal fun SudokuCellView(
             .background(cellTint(cell, colors, board))
             .waveTint(motion, cell.idx, colors.primary)
             .selectionTile(cell.selected, board)
-            // The selection tint is the tap feedback; a ripple would animate a highlight.
-            .clickable(interactionSource = null, indication = null) { onSelect(cell.idx) }
+            // The selection tint is the tap feedback; a ripple would animate a highlight. No handler = read-only: no tap, no action.
+            .then(
+                if (onSelect == null) Modifier
+                else Modifier.clickable(interactionSource = null, indication = null) { onSelect(cell.idx) },
+            )
             .clearAndSetSemantics {
                 testTag = "sudoku.cell.${cell.idx}"
                 contentDescription = label
                 collectionItemInfo = CollectionItemInfo(cell.idx / model.size, 1, cell.idx % model.size, 1)
                 selected = cell.selected
-                onClick(label = SELECT_ACTION) {
+                if (onSelect != null) onClick(label = SELECT_ACTION) {
                     onSelect(cell.idx)
                     true
                 }

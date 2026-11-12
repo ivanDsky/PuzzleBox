@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.gameui.PlayOverflowItem
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
+import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.games.sudoku.SudokuDefinition
 import com.ivandsky.puzzlebox.model.GameId
 
@@ -33,6 +34,8 @@ class SudokuPlayUi(
         SudokuPlayController(definition, env, highlights, hintMode = hintMode.current())
 
     override val tutorial: List<TutorialStep> by lazy { sudokuTutorial(definition) }
+
+    override val replayBoard: GameReplayBoard get() = SudokuReplayBoard
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
