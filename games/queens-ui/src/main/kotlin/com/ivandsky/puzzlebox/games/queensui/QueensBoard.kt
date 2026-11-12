@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.games.queensui
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
@@ -26,7 +25,6 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightOverlay
 import com.ivandsky.puzzlebox.games.queens.QueensSession
-import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.GridGeometry
 
 /** True when system animations are off — every board entrance/exit collapses to an
@@ -145,26 +143,11 @@ private fun QueensPlayBoardContent(
                 )
             },
     ) {
-        BoardGrid(
-            rows = model.n,
-            cols = model.n,
+        QueensBoardFace(
+            model = model,
             modifier = Modifier.matchParentSize(),
-            cellContent = { row, col ->
-                QueensCell(
-                    model = model,
-                    idx = row * model.n + col,
-                    staggerFrom = state.lastPlacedQueen,
-                )
-            },
+            staggerFrom = state.lastPlacedQueen,
         )
-        // §3.1 cell-edge layer (F-1): the region fills are opaque and sit ABOVE
-        // BoardGrid's under-strokes, so cell boundaries must be drawn over the fills —
-        // a hairline lattice on every cell edge and heavier ink on region boundaries.
-        // Glyphs never reach cell edges, so the marks stay visually above this layer.
-        val edgeInk = MaterialTheme.colorScheme.onSurface
-        Canvas(Modifier.matchParentSize()) {
-            drawCellEdges(model, edgeInk)
-        }
         // §3.1: instant pressed-cell highlight — touch-down feedback precedes commit.
         val pressHighlight = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
         pressedCell?.let { (row, col) ->
