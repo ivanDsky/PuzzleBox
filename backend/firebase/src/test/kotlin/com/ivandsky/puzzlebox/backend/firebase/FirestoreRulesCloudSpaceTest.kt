@@ -79,7 +79,8 @@ class FirestoreRulesCloudSpaceTest {
                 "validCompletionsDoc" to setOf("formatVersion", "updatedAt", "records"),
                 // Live and tombstone shapes in one list: a merge-set tombstone over a live doc carries both.
                 "validDraftDoc" to setOf(
-                    "formatVersion", "updatedAt", "gameId", "name", "blob", "editedAtMs", "deleted", "deletedAtMs",
+                    "formatVersion", "updatedAt", "gameId", "variant", "draftFormatVersion", "name", "blob",
+                    "editedAtMs", "deleted", "deletedAtMs",
                 ),
                 "validPublishedDoc" to setOf(
                     "formatVersion", "updatedAt", "gameId", "name", "publishedAtMs", "unpublished",
@@ -102,7 +103,7 @@ class FirestoreRulesCloudSpaceTest {
         val block = spaceBlock()
         assertEquals(
             mapOf(
-                "validDraftDoc" to setOf("gameId", "name", "blob", "editedAtMs"),
+                "validDraftDoc" to setOf("gameId", "variant", "draftFormatVersion", "name", "blob", "editedAtMs"),
                 "validReceivedDoc" to setOf("gameId", "name", "senderName", "receivedAtMs", "bytes", "postState"),
             ),
             TOMBSTONE_FUNCTIONS.associateWith { listIn(functionBody(block, it), "hasAll") },
