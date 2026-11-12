@@ -227,5 +227,5 @@ private fun LinkedInRead.Rejected.Kind.reason(): String = when (this) {
     LinkedInRead.Rejected.Kind.SessionExpired -> "Your LinkedIn login expired. Reconnect to keep reading."
     LinkedInRead.Rejected.Kind.Challenge -> "LinkedIn asked for a check, so reading is paused."
     LinkedInRead.Rejected.Kind.RateLimited -> "LinkedIn is asking us to slow down, so reading is paused."
-    LinkedInRead.Rejected.Kind.Unexpected -> "LinkedIn answered in a way we didn't expect, so reading is paused."
+    LinkedInRead.Rejected.Kind.Unexpected -> "Something unexpected stopped the LinkedIn read, so reading is paused."
 }
