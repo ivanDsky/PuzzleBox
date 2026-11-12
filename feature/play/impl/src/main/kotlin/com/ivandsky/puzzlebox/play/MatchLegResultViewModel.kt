@@ -6,24 +6,34 @@ import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.domain.LegSeen
 import com.ivandsky.puzzlebox.domain.LegVerdict
+import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.MatchState
 import com.ivandsky.puzzlebox.domain.MatchView
 import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.ResultRank
+import com.ivandsky.puzzlebox.domain.SolveReplayRef
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.DuelSide
 import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
+import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
+import com.ivandsky.puzzlebox.play.api.ReplayKey
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -43,6 +53,7 @@ internal sealed interface MatchLegResultState {
      * The puzzle [number] of [count] against [opponent] (null while the seat is open): both sides of the
      * card, the leg's [verdict] and [rankOrder] for its caption, the [posting] state of my result (null once
      * Posted), the [hero] facts (null after a give up, which has no hero) and the one [next] action.
+     * [replay] is my own replay of this leg, drawn through [playUi] and opened with [replayKey]; never the opponent's.
      */
     data class Ready(
         val number: Int,
@@ -56,6 +67,9 @@ internal sealed interface MatchLegResultState {
         val hero: ResultHeroFacts?,
         val brand: GameBrand,
         val next: LegNext,
+        val replay: ReplaySectionState,
+        val playUi: GamePlayUi?,
+        val replayKey: ReplayKey,
     ) : MatchLegResultState
 }
 
@@ -71,7 +85,8 @@ internal sealed interface LegNext {
 /**
  * The state holder of a duel puzzle's result page for [key]. Everything on the page comes from
  * [ObserveMatch]: my side from the key (it rides there, so the page renders after process death), the
- * opponent's from the match's view, the posting state from my outbox row. The leg's live play
+ * opponent's from the match's view, the posting state from my outbox row. My replay is read once the row exists, as [SolveReplayRef.MyLeg]; the opponent's is
+ * never asked for here, so a leg result stays spoiler-free until the reveal. The leg's live play
  * ([PlaySessionStore.peek]) only adds the hero's verdict and previous best while it still holds this solve; after a
  * cold start they are absent. Read-only: it never writes the outbox or the match.
  */
@@ -82,12 +97,45 @@ internal class MatchLegResultViewModel(
     observeMatch: ObserveMatch,
     private val games: GameRegistry,
     private val ui: GamePlayRegistry,
+    private val loadReplay: LoadSolveReplay,
 ) : ViewModel() {
 
-    val state: StateFlow<MatchLegResultState> = (
-        ShareCode.parse(key.code)?.let { code -> observeMatch(code).flatMapLatest(::stateOf) }
-            ?: flowOf(MatchLegResultState.Unavailable(MatchState.NotFound))
-        ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), MatchLegResultState.Loading)
+    private val code = ShareCode.parse(key.code)
+
+    /** One read of the match feeds the page and the replay. */
+    private val match: Flow<MatchState>? = code?.let {
+        observeMatch(it).shareIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), replay = 1)
+    }
+
+    /**
+     * One read once my result is queued: the outbox row is enqueued with its replay already attached (tickets 73, 74), so
+     * a later read would find nothing new.
+     */
+    private val replay: Flow<ReplaySectionState> = if (code == null || match == null) {
+        flowOf(ReplaySectionState.Hidden)
+    } else {
+        match.map(::queuedGame)
+            .distinctUntilChanged()
+            .mapLatest { game -> game?.let { replayOf(code, it) } ?: ReplaySectionState.Hidden }
+    }
+
+    val state: StateFlow<MatchLegResultState> = combine(
+        match?.flatMapLatest(::stateOf) ?: flowOf(MatchLegResultState.Unavailable(MatchState.NotFound)),
+        replay,
+    ) { shown, replay -> if (shown is MatchLegResultState.Ready) shown.copy(replay = replay) else shown }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), MatchLegResultState.Loading)
+
+    /** The leg's game once my result of it is queued (the outbox row, a give up's too); null before. */
+    private fun queuedGame(match: MatchState): GameId? {
+        val view = (match as? MatchState.Loaded)?.view ?: return null
+        if (view.mine.none { it.result.legIndex == key.legIndex }) return null
+        return view.match.legs.getOrNull(key.legIndex)?.ref?.gameId
+    }
+
+    private suspend fun replayOf(code: ShareCode, game: GameId): ReplaySectionState {
+        if (ui[game]?.replayBoard == null) return ReplaySectionState.Hidden
+        return loadReplay(SolveReplayRef.MyLeg(code, key.legIndex))?.let(ReplaySectionState::Ready) ?: ReplaySectionState.Hidden
+    }
 
     private fun stateOf(match: MatchState): Flow<MatchLegResultState> {
         if (match !is MatchState.Loaded) return flowOf(MatchLegResultState.Unavailable(match))
@@ -124,6 +172,9 @@ internal class MatchLegResultViewModel(
             hero = if (gaveUp) null else heroFacts(ref, order, timeMs, hints, own),
             brand = ui.brandOf(ref.gameId),
             next = nextOf(view),
+            replay = ReplaySectionState.Hidden,
+            playUi = ui[ref.gameId],
+            replayKey = ReplayKey.leg(ref.gameId.value, key.code, key.legIndex),
         )
     }
 

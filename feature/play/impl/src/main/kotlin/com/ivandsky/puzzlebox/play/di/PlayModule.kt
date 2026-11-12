@@ -119,7 +119,14 @@ val playModule = module {
     }
     viewModel { (key: ReplayKey) -> ReplayViewModel(key, get(), get(), get(), get()) }
     viewModel { (key: MatchLegResultKey) ->
-        MatchLegResultViewModel(key = key, store = get(), observeMatch = get(), games = get(), ui = get())
+        MatchLegResultViewModel(
+            key = key,
+            store = get(),
+            observeMatch = get(),
+            games = get(),
+            ui = get(),
+            loadReplay = get(),
+        )
     }
     viewModel { (key: MatchLegKey) ->
         MatchLegViewModel(key = key, store = get(), matches = get(), outbox = get(), identity = get())
