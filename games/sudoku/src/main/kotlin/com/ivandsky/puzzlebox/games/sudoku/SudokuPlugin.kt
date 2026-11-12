@@ -38,4 +38,5 @@ fun sudokuPlugin(definition: SudokuDefinition): GamePlugin<SudokuState, SudokuSe
         },
         rendererModel = { state, hint, _ -> SudokuRendererModel.of(state, hint) },
         editor = SudokuEditor(definition),
+        replay = SudokuReplay,
     )
