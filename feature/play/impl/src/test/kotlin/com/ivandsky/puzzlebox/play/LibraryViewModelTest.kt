@@ -270,6 +270,47 @@ class LibraryViewModelTest {
     }
 
     @Test
+    fun `the page carries the selected game's saved-board days and follows them`() {
+        daily.setArchiveRange(alpha, day.minusDays(60)..day)
+        daily.setArchiveRange(beta, day.minusDays(60)..day)
+        val saved = day.minusDays(3)
+        days.emitSavedDays(alpha, setOf(saved))
+        days.emitSavedDays(beta, setOf(day.minusDays(5)))
+        val vm = observedVm(linkedIn = holder())
+        assertEquals(setOf(saved), vm.page.value?.saved)
+
+        days.emitSavedDays(alpha, setOf(saved, day.minusDays(1)))
+        dispatcher.scheduler.runCurrent()
+        assertEquals(setOf(saved, day.minusDays(1)), vm.page.value?.saved)
+
+        vm.select(beta)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(setOf(day.minusDays(5)), vm.page.value?.saved)
+    }
+
+    @Test
+    fun `a picked day in another month keeps the saved-board days`() {
+        daily.setArchiveRange(alpha, day.minusDays(60)..day)
+        val saved = day.minusDays(2)
+        days.emitSavedDays(alpha, setOf(saved))
+        val vm = observedVm(linkedIn = holder())
+        vm.pick(saved)
+        vm.showMonth(YearMonth.from(day).minusMonths(1))
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(setOf(saved), vm.page.value?.saved)
+    }
+
+    @Test
+    fun `without LinkedIn the page has no saved-board days`() {
+        daily.setArchiveRange(alpha, day.minusDays(60)..day)
+        days.emitSavedDays(alpha, setOf(day.minusDays(3)))
+        val vm = observedVm()
+
+        assertEquals(emptySet<LocalDate>(), vm.page.value?.saved)
+    }
+
+    @Test
     fun `a picked day survives a month change until back to today`() {
         daily.setArchiveRange(alpha, day.minusDays(60)..day)
         val vm = observedVm()
