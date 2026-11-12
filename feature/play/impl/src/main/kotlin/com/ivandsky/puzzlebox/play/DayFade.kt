@@ -18,7 +18,7 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
  * One clock for every fixed-height [Slot] of a card, so a change of [shown] fades all of them
- * together over [MotionTokens.DurationMedium]. Slots that each ran their own short fade, with the
+ * together over [MotionTokens.DurationExpressive]. Slots that each ran their own short fade, with the
  * action row left out, read as the card flickering; one transition keeps the lines and the
  * action changing as one beat, and the frame never moves. Reduced motion has no transition, so
  * a slot draws [shown] at once.
@@ -35,7 +35,7 @@ internal class DayFade<T>(private val transition: Transition<T>?, private val sh
             } else {
                 transition.Crossfade(
                     modifier = Modifier.fillMaxSize(),
-                    animationSpec = tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard),
+                    animationSpec = tween(MotionTokens.DurationExpressive, easing = MotionTokens.EasingStandard),
                 ) { face ->
                     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.CenterStart) { content(face) }
                 }
