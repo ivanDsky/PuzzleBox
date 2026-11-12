@@ -171,7 +171,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `MatchResultOutbox` → `RoomMatchResultOutbox`, `MatchResultPoster` + `MatchResultSync`,
   `LegRef`, `PuzzleCodeCheck`); `network/NetworkStatus` (the port the poster waits on);
   `repository/GameSettingsRepository` → `OfflineGameSettingsRepository` (per-game boolean settings).
-- `core/database/` (`:core:database`) — Room v9 `PuzzleBoxDatabase`: `PuzzleDailyDao`/
+- `core/database/` (`:core:database`) — Room v12 `PuzzleBoxDatabase`: `PuzzleDailyDao`/
   `PuzzleDailyEntity` (`puzzle_dailies`, keyed gameId+day), `CompletionDao`/`CompletionEntity`
   (`completions`, keyed on the encoded puzzle-ref string), `SavedPlayDao`/`SavedPlayEntity`
   (`saved_plays`, keyed gameId+day, `blob` + `updatedAt`, `saveAndPrune`), v7 additions
@@ -180,8 +180,10 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   (`published_puzzles`), `ReceivedPuzzleEntity` (`received_puzzles`), v8 duel storage
   `LegSavedPlayDao`/`LegSavedPlayEntity` (`leg_saved_plays`), `MatchLocalDao`/`MatchLocalEntity` (`matches_local`),
   `MatchResultDao`/`MatchResultEntity` (`match_results`) and nullable `completions.matchCode`, v9
-  `completions.source`; schemas 1–9
-  exported under `core/database/schemas/`, `Migrations.ALL` = 1→…→9; `linkedin/`
+  `completions.source`; schemas 1–12
+  exported under `core/database/schemas/`, `Migrations.ALL` = 1→…→12; v12 `CompletionReplayDao`/
+  `CompletionReplayEntity` (`completion_replays`, one sealed replay per record or latest completion,
+  cascade-deleted with it) and nullable `match_results.replay`; `linkedin/`
   `LinkedInDatabase` (a separate Room file, v1: `GhostEntity`/`GhostDao`, `FetchLogEntity`/`FetchLogDao`); Koin `databaseModule`.
 - `core/network/` (`:core:network`, pure JVM) — the one LinkedIn client: internal
   `LinkedInGamesApi` (Retrofit), `LinkedInSessionCookieJar` + `LinkedInCsrfInterceptor`
@@ -223,6 +225,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   imported row → `ImportResult`). Duel use cases (ADR-0026): `CreateMatch`, `ObserveMyDuels`,
   `ObserveDuel`/`ObserveMatch`, `ComputeMatchLegs`/`ComputeMatchOutcome`, `FinishLeg`,
   `UpdateMatchSeat` (claim, cancel, decline), `RecordRevealSeen`, `RevealReady`. Android library.
+  Replay use cases (ADR-0030): `LoadSolveReplay` over `SolveReplayRef` (`Record`/`Latest`/`MyLeg`/`TheirLeg`), which asks
+  `LoadDailyReplay`, `LoadCustomReplay` and `LoadLegReplay` in turn and opens the source through the game's plugin.
 - `core/game/` (`:core:game`, pure JVM) — the orthogonal game contracts (ADR-0001):
   `GameDefinition`, `GameRules<P>`, `GameSession` + `GameSessionCodec`, `ScoreModel<S>` →
   `CompletionRecord?`, `PuzzleSource` (`fetch(date)` → `FetchResult`; `FetchError`), composed
@@ -244,6 +248,10 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   EditorNotation` → version → parse → `NotationParse`), shared by `ImportDraftFromText` and
   the CLI. `CompletionSource` (`App` or `LinkedIn`) tags where a completion came from; `linkedin/`
   (ADR-0028) holds the account ports `LinkedInAccountSource` and `LinkedInSessionCookies` and their value types.
+  `replay/` (ADR-0030, the solve replay): `ReplayMove` + `GameReplay<S>` (a game's pure `step` and `facts`),
+  `MoveLog` (the journal of one play), `ReplayCodec` (envelope and caps), `ReplayRecord`, `Timeline` +
+  `ReplayFrame` (`Timeline.at(t)`, re-folded), `Lead`, `ReplayFacts`, `ReplayOutcome`; `playTimeMs` in
+  `PlayTime.kt`; `GamePlugin.replay` (optional) and `GamePlugin.openTimeline`. `SolveReplay` (the sealed bytes) is in `:core:model`.
 - `core/game-ui/` (`:core:game-ui`) — the Compose mapping layer keyed by `GameId` (no Compose in
   `:core:game`): play contracts (ADR-0007) `GamePlayUi` (`createController(PlayEnvironment)`,
   `Screen`), `GamePlayController` (+ `PlayClock`/`PlayHints`/`PlayUndo`), `GamePlayRegistry`
@@ -263,6 +271,10 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   Duel kit: `DuelCompare`/`DuelSide`/`DuelSideState`, `PlayerAvatar` (the signed-in photo or the
   profile icon; the shell avatar uses it), `LocalRouteCaption` (a game's own caption wins),
   `PlayBoardPane`, and `ResultHeroActions`/`ResultHeroChip` (the result hero takes action and chip slots).
+  `replay/` (ADR-0030): `ReplayPlayback` (the headless state machine: advance by frame time, speed, skip idle,
+  seek, step), `ReplayPlayer`/`ReplayPage`, `ReplayCompare`/`ReplayComparePage` with `CompareLayout`
+  (`compareLayoutFor(width)`: `Twin` at Expanded, `FlipPeek` otherwise), `WatchReplayRow` (the result's entry),
+  `ReplayLeadLine`, and the per-game `GameReplayBoard` contract.
 - `core/testing/` (`:core:testing`) — test doubles and contract tests, test configurations only (package
   `com.ivandsky.puzzlebox.testing`): `repository/` (`FakeDailyRepository`,
   `FakeCompletionRepository`, `FakeIdentityService`, `FakeLeaderboardRepository`,
@@ -529,6 +541,11 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   shell row by row in spec notation.
 - **`GamePlayRegistry`** (`core:game-ui`) — the game → UI seam; `:feature:play:impl` drives any
   game through `GamePlayController`, so adding a game never touches Play.
+- **Solve replay** (ADR-0030) — `GamePlugin.replay` (`GameReplay`, `core:game`) and `GamePlayUi.replayBoard`
+  (`GameReplayBoard`, `core:game-ui`) are the two optional per-game seams. `LoadSolveReplay(SolveReplayRef)`
+  (`core:domain`) is the one read entry; `ReplayKey` and `ReplayCompareKey` (`feature:play:api`) are the one
+  replay and the one compare destination, ids only. `ReleaseFlag.FullReplay` gates recording (`PlaySessionStore`)
+  and reading (`LoadSolveReplay`).
 - **Hint seams** (ADR-0025) — `HintModeSource` (`core:game-ui`) hands each controller
   `HintMode.Legacy` or
   `Stepwise`: Queens, Tango and Mini Sudoku pass `Stepwise` at registration, Classic Sudoku keeps `Legacy`, and
@@ -598,12 +615,13 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `FakeSavedPlayRepository`, `FakeUserPreferencesRepository`, `FakeGameCalendar`, `TestGames`,
   the match fakes, `FakeNetworkStatus`, `FakeGameSettingsRepository` and the `FakeLinkedIn*` set.
 - **Pure layout policies** — `homeLayoutFor`, `playLayoutFor`, `historyLayoutFor`.
-- **`Migrations.ALL`** (`core:database`) — every schema change bumps the Room version (now 9),
+- **`Migrations.ALL`** (`core:database`) — every schema change bumps the Room version (now 12),
   commits the schema JSON, and registers a migration (1→2 puzzle_dailies, 2→3 completions,
   3→4 daily_puzzles rebuild, 4→5 drops the legacy daily_puzzles, 5→6 adds saved_plays, 6→7
   adds drafts, custom_saved_plays, published_puzzles, received_puzzles, 7→8 (MIGRATION_7_8)
   adds leg_saved_plays, matches_local, match_results and completions.matchCode, 8→9
-  (MIGRATION_8_9) adds completions.source); no destructive fallback. `LinkedInDatabase` is a
+  (MIGRATION_8_9) adds completions.source, 11→12 (MIGRATION_11_12, ADR-0030) adds the side table
+  `completion_replays` and nullable `match_results.replay`); no destructive fallback. `LinkedInDatabase` is a
   separate Room file at version 1 with its own schema under
   `core/database/schemas/com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase/`, so backup
   can leave it out; it holds no cookie or token column.

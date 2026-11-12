@@ -51,3 +51,5 @@ chrome. The Play tab opened Queens directly, skipping the game picker.
 - Zip undo is per drag step, not per gesture (no coalescing); revisit if it feels fine-grained.
 - The solve moment delays the hand-off to Result by the sweep plus a short hold
   (about 0.8 s at default motion); a restored, already-solved board still hands off at once.
+
+*(Amended 2026-11-12, ADR-0030: undo, redo and clear are recorded moves of the replay log, with Place, Remove and counted hints. `CommandHistory` stays the undo mechanism and is not the replay journal: it drops the redo branch, rewrites the newest command and caps Zip.)*
