@@ -73,3 +73,15 @@ internal fun ReplaySeekBarPreview() {
         ReplaySeekBar(positionMs = 5_000, durationMs = 12_000, ticksMs = longArrayOf(2_000, 5_000, 9_000), onSeek = {})
     }
 }
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ReplayPagePreview() {
+    PuzzleBoxTheme { ReplayPage(previewTimeline(), PreviewBoard, context = "Preview · #1 · Today", onBack = {}) }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun WatchReplayRowPreview() {
+    PuzzleBoxTheme { WatchReplayRow(moves = PREVIEW_MOVES, durationMs = PREVIEW_MOVES * 1_000L, onClick = {}) }
+}
