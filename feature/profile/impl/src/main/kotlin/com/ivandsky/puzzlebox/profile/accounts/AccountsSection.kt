@@ -46,7 +46,16 @@ internal fun AccountsSection(
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         ) {
             Column {
-                GoogleRow(account, onSignIn, onSignOut, sync = sync, nowMs = nowMs, onSyncNow = onSyncNow, onDeleteCloudData = onDeleteCloudData)
+                GoogleRow(
+                    account,
+                    onSignIn,
+                    onSignOut,
+                    sync = sync,
+                    syncCopy = sync != null || boards?.savedToAccount == true,
+                    nowMs = nowMs,
+                    onSyncNow = onSyncNow,
+                    onDeleteCloudData = onDeleteCloudData,
+                )
                 if (linkedIn != null && onConnectLinkedIn != null) {
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     LinkedInRow(

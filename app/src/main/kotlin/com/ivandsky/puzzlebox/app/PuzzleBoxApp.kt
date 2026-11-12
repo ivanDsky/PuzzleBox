@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -46,6 +47,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.Competitions
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
 import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -60,6 +62,7 @@ import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.map
+import org.koin.compose.getKoin
 import org.koin.compose.koinInject
 
 /**
@@ -133,6 +136,9 @@ fun PuzzleBoxApp(
     )
     val expanded = layout == HomeLayout.TwoPane
     val identityService = koinInject<IdentityService>()
+    // Null while cloud sync is not bound (its flag is off): the shell then shows no restore message.
+    val koin = getKoin()
+    val cloudSync = remember(koin) { koin.getOrNull<CloudSync>() }
     val destinations = topLevelDestinations
     val selected = navigator.state.tab
     val top = navigator.state.currentStack.last()
@@ -206,8 +212,9 @@ fun PuzzleBoxApp(
                         .onSizeChanged { railWidth = with(density) { it.width.toDp() } },
                 )
             }
+            val contentPadding = chromePadding(expanded, barHeight, railWidth)
             CompositionLocalProvider(
-                LocalChromePadding provides chromePadding(expanded, barHeight, railWidth),
+                LocalChromePadding provides contentPadding,
                 LocalTabReselect provides tabReselect,
             ) {
                 PuzzleBoxNavShell(
@@ -222,6 +229,11 @@ fun PuzzleBoxApp(
                     libraryRequests = libraryRequests,
                 )
             }
+            // The one-time "Welcome back" after an account's first restore (A33), above the chrome.
+            RestoreWelcome(
+                restored = cloudSync?.restored,
+                modifier = Modifier.align(Alignment.BottomCenter).padding(contentPadding),
+            )
         }
     }
 }

@@ -45,11 +45,18 @@ private val MarkSize = 22.dp
 private val MenuMinWidth = 180.dp
 private val MenuItemHeight = 48.dp
 
+private const val SIGN_IN_COPY = "Sign in with Google to put your times on the leaderboards."
+private const val SIGN_IN_SYNC_COPY = "Sign in with Google to put your times on the leaderboards and keep your history on every device."
+private const val SIGN_OUT_COPY = "Signing out keeps your history on this phone and in your account."
+private const val UNFINISHED_COPY = "Unfinished games stay on this device."
+
 /**
  * The Google account row: signed in it says so with Sign out beside it; signed out it explains the sign-in and
  * carries the button in its extra line, with a failure message right under it. With cloud sync on ([sync] given)
- * the signed-in row adds the sync line, and an overflow holding Delete my cloud data behind its confirm; without
- * it the row is exactly the plain one. [nowMs] only phrases the sync age.
+ * the signed-in row adds the sync line, what stays after Sign out and that unfinished games stay on this device (A35),
+ * and an overflow holding Delete my cloud data behind its confirm; without it the row is exactly the plain one.
+ * [syncCopy] (cloud sync is bound; [sync] is null while signed out) makes the signed-out explanation name keeping the
+ * history on every device. [nowMs] only phrases the sync age.
  */
 @Composable
 internal fun GoogleRow(
@@ -58,6 +65,7 @@ internal fun GoogleRow(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
     sync: ProfileUiState.GoogleSync? = null,
+    syncCopy: Boolean = sync != null,
     nowMs: Long = 0L,
     onSyncNow: () -> Unit = {},
     onDeleteCloudData: () -> Unit = {},
@@ -78,12 +86,12 @@ internal fun GoogleRow(
                     }
                 }
             },
-            extra = sync?.let { { GoogleSyncLine(it, nowMs, onSyncNow) } },
+            extra = sync?.let { { GoogleSyncExtra(it, nowMs, onSyncNow) } },
         )
         is ProfileUiState.Account.SignedOut -> AccountRow(
             lead = { GoogleMark() },
             title = "Google",
-            sub = "Sign in with Google to put your times on the leaderboards.",
+            sub = if (syncCopy) SIGN_IN_SYNC_COPY else SIGN_IN_COPY,
             modifier = modifier.testTag("profile-signed-out"),
             extra = {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -99,6 +107,16 @@ internal fun GoogleRow(
                 }
             },
         )
+    }
+}
+
+/** The signed-in row's extra with cloud sync on: the sync line, then what stays after Sign out and on this device. */
+@Composable
+private fun GoogleSyncExtra(sync: ProfileUiState.GoogleSync, nowMs: Long, onSyncNow: () -> Unit) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        GoogleSyncLine(sync, nowMs, onSyncNow)
+        Text(text = SIGN_OUT_COPY, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = UNFINISHED_COPY, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
