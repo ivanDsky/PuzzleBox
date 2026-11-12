@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccountSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
@@ -61,6 +62,7 @@ class RoomLinkedInDaysOwnerAnyDayTest {
             LinkedInCallBudget({ NOW }, limit = 100),
             avatars,
             LinkedInStoreLock(),
+            FakeOwnerScope(),
         ) { NOW }
     }
 

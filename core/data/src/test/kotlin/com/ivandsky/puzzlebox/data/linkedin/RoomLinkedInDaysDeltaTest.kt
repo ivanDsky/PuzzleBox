@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccountSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
@@ -161,6 +162,7 @@ class RoomLinkedInDaysDeltaTest {
         private val days = RoomLinkedInDays(
             avatars = testAvatars(createTempDirectory("avatars").toFile()),
             storeLock = LinkedInStoreLock(),
+            ownerScope = FakeOwnerScope(),
             link = FakeLinkedInLink(LinkState.Connected("me")),
             source = source,
             completions = FakeCompletionRepository(),

@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccountSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
@@ -78,7 +79,7 @@ class RoomLinkedInDaysAvatarTest {
         avatars: LinkedInAvatars = this.avatars,
     ) = RoomLinkedInDays(
         link, source, FakeCompletionRepository(), daily, FakeGameCalendar(today),
-        TestGames.registry(listOf(zip)), db, budget, avatars, LinkedInStoreLock(),
+        TestGames.registry(listOf(zip)), db, budget, avatars, LinkedInStoreLock(), FakeOwnerScope(),
     ) { now }
 
     private fun number(day: LocalDate): Int = 700 + ChronoUnit.DAYS.between(EPOCH, day).toInt()

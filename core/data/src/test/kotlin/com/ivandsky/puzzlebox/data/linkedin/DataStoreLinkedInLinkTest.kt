@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.ivandsky.puzzlebox.database.linkedin.FetchLogEntity
 import com.ivandsky.puzzlebox.database.linkedin.GhostEntity
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
+import com.ivandsky.puzzlebox.database.linkedin.SavedBoardEntity
 import com.ivandsky.puzzlebox.datastore.LinkedInLinkDataSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSession
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
@@ -69,6 +70,15 @@ class DataStoreLinkedInLinkTest {
         hintFree = true,
         flawless = false,
         fetchedAtMs = 1_000L,
+    )
+    private val savedBoard = SavedBoardEntity(
+        game = "queens",
+        day = "2026-11-01",
+        profileId = "profile-1",
+        ownerUid = "uid-1",
+        readAtMs = 1_000L,
+        complete = true,
+        uploadedFingerprint = "fp",
     )
     private val fetch = FetchLogEntity(
         game = "queens",
@@ -193,12 +203,13 @@ class DataStoreLinkedInLinkTest {
     }
 
     @Test
-    fun `disconnect wipes cookies, ghosts, fetch log and link state`() = runTest {
+    fun `disconnect clears cookies, fetch log and link state but keeps ghosts and saved boards`() = runTest {
         val session = FakeLinkedInSessionCookies(LinkedInAccountSession("li_at=a; JSESSIONID=b", "b", "agent"))
         cookies = session
         val link = start()
         link.connect("profile-1", 1_000L)
         db.ghostDao().insertAll(listOf(ghost))
+        db.savedBoardDao().upsert(savedBoard)
         db.fetchLogDao().put(fetch)
         link.pause(Kind.Challenge)
         assertEquals(listOf(ghost), ghosts())
@@ -207,7 +218,8 @@ class DataStoreLinkedInLinkTest {
         link.disconnect()
 
         assertTrue(session.cleared)
-        assertEquals(emptyList<GhostEntity>(), ghosts())
+        assertEquals(listOf(ghost), ghosts())
+        assertEquals(savedBoard, db.savedBoardDao().get(savedBoard.game, savedBoard.day))
         assertNull(fetchLog())
         assertEquals(LinkState.NotConnected, link.state.first())
         assertEquals(LinkState.NotConnected, start().state.first())
@@ -230,7 +242,7 @@ class DataStoreLinkedInLinkTest {
     }
 
     @Test
-    fun `a disconnect whose caller is cancelled after the cookies still wipes everything`() = runTest {
+    fun `a disconnect whose caller is cancelled after the cookies still clears the rest of the account`() = runTest {
         var caller: Job? = null
         cookies = object : LinkedInSessionCookies {
             override suspend fun current(): LinkedInAccountSession? = null
@@ -250,7 +262,7 @@ class DataStoreLinkedInLinkTest {
         caller = launch(start = CoroutineStart.LAZY) { link.disconnect() }
         caller.join()
 
-        assertEquals(emptyList<GhostEntity>(), ghosts())
+        assertEquals(listOf(ghost), ghosts())
         assertNull(fetchLog())
         assertTrue(avatars.present.first().isEmpty())
         assertEquals(LinkState.NotConnected, link.state.first())

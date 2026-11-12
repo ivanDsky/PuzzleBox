@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccountSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
@@ -102,7 +103,7 @@ class RoomLinkedInDaysSlotTest {
         spent.all = true
         val days = RoomLinkedInDays(
             link, stamped, completions, daily, FakeGameCalendar(today), TestGames.registry(listOf(zip)), db, budget,
-            testAvatars(createTempDirectory("avatars").toFile()), LinkedInStoreLock(),
+            testAvatars(createTempDirectory("avatars").toFile()), LinkedInStoreLock(), FakeOwnerScope(),
         ) { FETCHED_AT_MS + testScheduler.currentTime }
         return days to spent
     }

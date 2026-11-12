@@ -117,7 +117,8 @@ val dataModule = module {
     single<LinkedInDays> {
         RoomLinkedInDays(
             link = get(), source = get(), completions = get(), daily = get(), calendar = get(),
-            registry = get(), db = get(), budget = get(), avatars = get(), storeLock = get(), clock = System::currentTimeMillis,
+            registry = get(), db = get(), budget = get(), avatars = get(), storeLock = get(), ownerScope = get(),
+            clock = System::currentTimeMillis,
         )
     }
     single<LinkedInAccount> { RoomLinkedInAccount(link = get(), db = get(), avatars = get()) }

@@ -4,8 +4,11 @@ import androidx.room.Room
 import com.ivandsky.puzzlebox.database.linkedin.GhostDao
 import com.ivandsky.puzzlebox.database.linkedin.GhostEntity
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
+import com.ivandsky.puzzlebox.database.linkedin.SavedBoardDao
+import com.ivandsky.puzzlebox.database.linkedin.SavedBoardEntity
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -26,7 +29,9 @@ class LinkedInGhostWriterTest {
 
     private lateinit var db: LinkedInDatabase
     private lateinit var dao: GhostDao
+    private lateinit var savedBoards: SavedBoardDao
     private lateinit var writer: LinkedInGhostWriter
+    private val owner = FakeOwnerScope()
 
     private val game = GameId("queens")
     private val otherGame = GameId("zip")
@@ -39,7 +44,8 @@ class LinkedInGhostWriterTest {
             .allowMainThreadQueries()
             .build()
         dao = db.ghostDao()
-        writer = LinkedInGhostWriter(dao)
+        savedBoards = db.savedBoardDao()
+        writer = LinkedInGhostWriter(db, owner)
     }
 
     @After
@@ -146,20 +152,76 @@ class LinkedInGhostWriterTest {
     }
 
     @Test
-    fun `every write prunes days older than today minus 8`() = runTest {
+    fun `boards older than eight days are kept by a later write`() = runTest {
+        val old = today.minusDays(30)
         val nine = today.minusDays(9)
-        val eight = today.minusDays(8)
-        dao.insertAll(listOf(ghost(nine, "old"), ghost(eight, "edge")))
+        dao.insertAll(listOf(ghost(old, "old"), ghost(nine, "nine")))
+        savedBoards.upsert(SavedBoardEntity(game.value, old.toString(), ownProfileId, null, 1L, true, "fp"))
+
+        write(LinkedInBoard(listOf(row(1))))
+        write(LinkedInBoard(emptyList()), day = today.minusDays(1))
+
+        assertEquals(listOf("old"), stored(old).map { it.memberRef })
+        assertEquals(listOf("nine"), stored(nine).map { it.memberRef })
+        assertEquals("fp", savedBoards.get(game.value, old.toString())?.uploadedFingerprint)
+    }
+
+    @Test
+    fun `a board read after its day saves a complete board with the profile, owner and read time`() = runTest {
+        val day = today.minusDays(2)
+        owner.writerUid = "uid-1"
+
+        write(LinkedInBoard(listOf(row(1))), day = day, fetchedAtMs = 777L)
+
+        assertEquals(
+            SavedBoardEntity(game.value, day.toString(), ownProfileId, "uid-1", 777L, complete = true, uploadedFingerprint = null),
+            savedBoards.get(game.value, day.toString()),
+        )
+    }
+
+    @Test
+    fun `a board read while its day runs is saved incomplete, and a signed-out read has no owner`() = runTest {
+        write(LinkedInBoard(listOf(row(1))))
+
+        val saved = savedBoards.get(game.value, today.toString())
+        assertEquals(false, saved?.complete)
+        assertNull(saved?.ownerUid)
+    }
+
+    @Test
+    fun `a board with no rows is still a saved board`() = runTest {
+        write(LinkedInBoard(emptyList()))
+
+        assertEquals(today.toString(), savedBoards.get(game.value, today.toString())?.day)
+        assertTrue(stored(today).isEmpty())
+    }
+
+    @Test
+    fun `reading a board again updates its row and clears the uploaded fingerprint`() = runTest {
+        val day = today.minusDays(1)
+        owner.writerUid = "uid-1"
+        write(LinkedInBoard(listOf(row(1))), day = day, fetchedAtMs = 10L)
+        savedBoards.setFingerprint(game.value, day.toString(), "fp")
+
+        owner.writerUid = "uid-2"
+        write(LinkedInBoard(listOf(row(1), row(2))), day = day, fetchedAtMs = 20L)
+
+        assertEquals(
+            SavedBoardEntity(game.value, day.toString(), ownProfileId, "uid-2", 20L, complete = true, uploadedFingerprint = null),
+            savedBoards.get(game.value, day.toString()),
+        )
+        assertEquals(setOf("m1", "m2"), stored(day).map { it.memberRef }.toSet())
+    }
+
+    @Test
+    fun `other games and days keep their saved boards`() = runTest {
+        val otherDay = today.minusDays(1)
+        savedBoards.upsert(SavedBoardEntity(otherGame.value, today.toString(), ownProfileId, null, 1L, false, null))
+        savedBoards.upsert(SavedBoardEntity(game.value, otherDay.toString(), ownProfileId, null, 1L, true, "fp"))
 
         write(LinkedInBoard(listOf(row(1))))
 
-        assertTrue(stored(nine).isEmpty())
-        assertEquals(listOf("edge"), stored(eight).map { it.memberRef })
-
-        dao.insertAll(listOf(ghost(nine, "old")))
-        write(LinkedInBoard(emptyList()))
-
-        assertTrue(stored(nine).isEmpty())
-        assertEquals(listOf("edge"), stored(eight).map { it.memberRef })
+        assertEquals(1L, savedBoards.get(otherGame.value, today.toString())?.readAtMs)
+        assertEquals("fp", savedBoards.get(game.value, otherDay.toString())?.uploadedFingerprint)
     }
 }
