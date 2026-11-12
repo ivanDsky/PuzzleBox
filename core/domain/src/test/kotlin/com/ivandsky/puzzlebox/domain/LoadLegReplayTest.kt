@@ -51,7 +51,11 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -70,7 +74,7 @@ class LoadLegReplayTest {
     private val gaveUpDay = LocalDate.of(2026, 11, 10)
 
     private val server = FakeMatchRepository()
-    private val matches = CountingMatchRepository(server)
+    private val matches = CachingMatchRepository(server)
     private val outbox = FakeMatchResultOutbox()
     private val identity = FakeIdentityService()
     private val daily = FakeDailyRepository()
@@ -222,6 +226,41 @@ class LoadLegReplayTest {
     }
 
     @Test
+    fun `my leg opens offline from a match this device has seen`() = runTest {
+        duel()
+        outbox.enqueue(code, result(ann.uid, 0, solved))
+        matches.observe(code).first()
+        server.online = false
+
+        assertEquals(solved, load(MyLeg(code, 0))?.bytes)
+    }
+
+    @Test
+    fun `their gave-up replay opens unsolved`() = runTest {
+        duel()
+        post(bob, result(bob.uid, 1, gaveUp, gaveUp = true))
+        post(ann, result(ann.uid, 1, replay = null))
+
+        assertEquals(ReplayOutcome.GaveUp, entryTimeline(TheirLeg(code, 1))?.outcome)
+    }
+
+    @Test
+    fun `cancellation propagates`() = runTest {
+        duel()
+        outbox.enqueue(code, result(ann.uid, 0, solved))
+        matches.failure = CancellationException("cancelled")
+
+        val thrown = try {
+            load(MyLeg(code, 0))
+            null
+        } catch (e: CancellationException) {
+            e
+        }
+
+        assertNotNull(thrown)
+    }
+
+    @Test
     fun `a gave-up replay opens unsolved`() = runTest {
         duel()
         outbox.enqueue(code, result(ann.uid, 1, gaveUp, gaveUp = true))
@@ -351,11 +390,26 @@ class LoadLegReplayTest {
         replay = ReplayFixtures.replay,
     )
 
-    /** Counts every read of the match store, so "no read" is observable. */
-    private class CountingMatchRepository(private val inner: MatchRepository) : MatchRepository by inner {
+    /**
+     * Counts every read of the match store, and serves the last match it saw while the store reads Offline, as the
+     * Firestore adapter does from its cache (FirestoreMatchStore.toMatchSnapshot). [failure] is thrown by the next read.
+     */
+    private class CachingMatchRepository(private val inner: MatchRepository) : MatchRepository by inner {
         var reads = 0
+        var failure: Throwable? = null
+        private val seen = HashMap<ShareCode, MatchFetch.Found>()
 
-        override fun observe(code: ShareCode) = inner.observe(code).also { reads++ }
+        override fun observe(code: ShareCode): Flow<MatchFetch> {
+            reads++
+            failure?.let { throw it }
+            return inner.observe(code).map { fetch ->
+                when {
+                    fetch is MatchFetch.Found -> fetch.also { seen[code] = it }
+                    fetch == MatchFetch.Offline -> seen[code] ?: fetch
+                    else -> fetch
+                }
+            }
+        }
 
         override suspend fun readResult(code: ShareCode, legIndex: Int, uid: String): ResultRead {
             reads++

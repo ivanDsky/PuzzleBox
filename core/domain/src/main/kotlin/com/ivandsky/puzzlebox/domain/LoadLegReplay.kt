@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.LegRef
+import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
@@ -35,11 +36,12 @@ class LoadLegReplay(
         }
         return try {
             val me = identity.current.value?.uid ?: return null
+            val match = (matches.observe(code).first() as? MatchFetch.Found)?.match ?: return null
             val bytes = when (ref) {
-                is SolveReplayRef.TheirLeg -> theirs(code, legIndex, me)
+                is SolveReplayRef.TheirLeg -> theirs(match, legIndex, me)
                 else -> mine(code, legIndex, me)
             } ?: return null
-            val puzzle = puzzleOf(code, legIndex) ?: return null
+            val puzzle = puzzleOf(match, legIndex) ?: return null
             ReplaySource(puzzle, bytes)
         } catch (e: CancellationException) {
             throw e
@@ -51,15 +53,13 @@ class LoadLegReplay(
     private suspend fun mine(code: ShareCode, legIndex: Int, me: String): SolveReplay? =
         outbox.observe(code).first().firstOrNull { it.result.legIndex == legIndex && it.result.uid == me }?.result?.replay
 
-    private suspend fun theirs(code: ShareCode, legIndex: Int, me: String): SolveReplay? {
-        val opponent = foundMatch(code)?.opponentOf(me) ?: return null
-        return (matches.readResult(code, legIndex, opponent.uid) as? ResultRead.Found)?.result?.replay
+    private suspend fun theirs(match: Match, legIndex: Int, me: String): SolveReplay? {
+        val opponent = match.opponentOf(me) ?: return null
+        return (matches.readResult(match.code, legIndex, opponent.uid) as? ResultRead.Found)?.result?.replay
     }
 
-    private suspend fun foundMatch(code: ShareCode) = (matches.observe(code).first() as? MatchFetch.Found)?.match
-
-    private suspend fun puzzleOf(code: ShareCode, legIndex: Int): Puzzle? {
-        val leg = foundMatch(code)?.legs?.getOrNull(legIndex)?.ref ?: return null
+    private suspend fun puzzleOf(match: Match, legIndex: Int): Puzzle? {
+        val leg = match.legs.getOrNull(legIndex)?.ref ?: return null
         return when (leg) {
             is LegRef.Daily -> daily.cachedPuzzle(leg.gameId, leg.day)
             is LegRef.Custom -> {
