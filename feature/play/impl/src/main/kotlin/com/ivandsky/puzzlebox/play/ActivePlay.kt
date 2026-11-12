@@ -117,8 +117,9 @@ class ActivePlay internal constructor(
             if (gen != generation) return@launch // superseded; its result is never shown
             val live = when (opened) {
                 is SlotOpening.Origin.Unavailable -> controller
-                is SlotOpening.Origin.Restored -> withLog(controller, fresh = false)
-                is SlotOpening.Origin.Fetched, is SlotOpening.Origin.Built -> withLog(controller, fresh = true)
+                is SlotOpening.Origin.Restored ->
+                    withLog(controller) { MoveLog.restored(gameId, SessionBlob.decode(opened.session)?.log) }
+                is SlotOpening.Origin.Fetched, is SlotOpening.Origin.Built -> withLog(controller) { MoveLog.fresh(gameId) }
             }
             val status = when (opened) {
                 is SlotOpening.Origin.Fetched -> adopt(live, opened)
@@ -203,7 +204,7 @@ class ActivePlay internal constructor(
         created = ui.createController(
             PlayEnvironment(
                 scope = scope,
-                onSessionChanged = { bytes -> if (gen == generation) persistence.offer(created, bytes) },
+                onSessionChanged = { bytes -> if (gen == generation) persistence.offer(created, bytes, moveLog) },
                 onWon = { record ->
                     if (gen == generation) {
                         persistence.discard()
@@ -221,14 +222,14 @@ class ActivePlay internal constructor(
 
     /**
      * The controller to adopt into once the origin is known: [current] while nothing records, else a new
-     * one whose environment carries the log the origin calls for — a built or fetched board starts
-     * [MoveLog.fresh], a saved play continues through [MoveLog.restored]. A log lives as long as its
+     * one whose environment carries the log [logOf] makes for the origin — a built or fetched board starts
+     * [MoveLog.fresh], a saved play continues the log its envelope carried through [MoveLog.restored]
+     * (none, from a version 1 save, gives a void log: that solve has no replay). A log lives as long as its
      * controller, so the board shows the new one. A superseded [current] is returned untouched.
      */
-    private fun withLog(current: GamePlayController, fresh: Boolean): GamePlayController {
+    private fun withLog(current: GamePlayController, logOf: () -> MoveLog): GamePlayController {
         if (current !== controller || !recording) return current
-        val log = if (fresh) MoveLog.fresh(gameId) else MoveLog.restored(gameId, snapshot = null)
-        return newController(log).also { _board.value = Board(it, PlayBoardStatus.Loading) }
+        return newController(logOf()).also { _board.value = Board(it, PlayBoardStatus.Loading) }
     }
 
     private companion object {

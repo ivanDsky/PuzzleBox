@@ -133,7 +133,7 @@ class ActivePlayMoveLogTest {
     @Test
     fun `flag on resumes a saved play with a void log`() {
         runBlocking {
-            saved.save(PlaySlot.Daily(game, day), SessionBlob.encode(game, FakeController.encode(2, false, null)), elapsedMs = 0L)
+            saved.save(PlaySlot.Daily(game, day), SessionBlob.encode(game, FakeController.encode(2, false, TestGames.Ref(game, PuzzleKey.Daily(day, 7)))), elapsedMs = 0L)
         }
 
         val play = store(on).open(key)!!
