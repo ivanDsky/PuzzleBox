@@ -64,8 +64,7 @@ fun ReplayTransport(state: ReplayPlaybackState, playback: ReplayPlayback, modifi
                 label = { Text("Skip idle") },
                 modifier = Modifier
                     .heightIn(min = 48.dp)
-                    .testTag(ReplayTags.SKIP_IDLE)
-                    .semantics { contentDescription = "Skip idle" },
+                    .testTag(ReplayTags.SKIP_IDLE),
             )
         }
     }

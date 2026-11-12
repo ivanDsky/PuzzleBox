@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 private val TickHeight = 8.dp
 private val TickWidth = 2.dp
 
-// Material 3's slider insets its track by half the thumb width on each side.
+// Assumes Material 3's thumb width: a restyled slider must update this inset or the ticks drift (ticket 49).
 private val TrackInset = 10.dp
 
 /** Stock slider over the replay's play time, with a quiet tick at every move stamp in [ticksMs]. */
