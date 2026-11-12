@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.gameui.hint.StepHints
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.TangoSession
+import com.ivandsky.puzzlebox.games.tango.engine.TangoBoundedSolution
 import com.ivandsky.puzzlebox.games.tango.engine.TangoMove
 import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStep
 import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepper
@@ -120,23 +121,8 @@ class TangoStepGameTest {
     }
 
     @Test
-    fun `the default search finds the published solution`() {
-        assertEquals(solution, TangoStepGame.boundedSolution(puzzle))
-    }
-
-    @Test
-    fun `an ambiguous board has no solution`() {
-        assertNull(TangoStepGame.boundedSolution(TangoPlayFixture.ambiguous))
-    }
-
-    @Test
-    fun `an over-budget search gives no solution the same way every run`() {
-        repeat(3) { assertNull(TangoStepGame.boundedSolution(puzzle, pollLimit = 0)) }
-    }
-
-    @Test
     fun `without a solution a merely off-solution entry is not accused and nothing is revealed`() {
-        val overBudget: (TangoPuzzle) -> List<TangoCell>? = { TangoStepGame.boundedSolution(it, pollLimit = 0) }
+        val overBudget: (TangoPuzzle) -> List<TangoCell>? = { TangoBoundedSolution.of(it, pollLimit = 0) }
         val play = Play(solve = overBudget)
         val cell = offSolutionCellBreakingNoRule()
         play.place(cell, opposite(solution[cell]))

@@ -27,7 +27,7 @@ import com.ivandsky.puzzlebox.gameui.playCaption
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
-import com.ivandsky.puzzlebox.games.tangoui.hint.TangoStepGame
+import com.ivandsky.puzzlebox.games.tango.engine.TangoBoundedSolution
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineDispatcher
@@ -348,7 +348,7 @@ class TangoStepwiseHintTest {
             env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), onSessionChanged = {}, onWon = {}),
             now = { Instant.parse("2026-10-31T00:00:00Z") },
             hintMode = HintMode.Stepwise(Dispatchers.Unconfined),
-            solve = { solves++; TangoStepGame.boundedSolution(it) },
+            solve = { solves++; TangoBoundedSolution.of(it) },
         )
         s.adoptToday(TangoPlayFixture.envelope(), TangoPlayFixture.ref(today))
         s.requestHint()
