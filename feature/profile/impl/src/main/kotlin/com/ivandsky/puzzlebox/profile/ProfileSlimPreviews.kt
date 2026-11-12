@@ -28,10 +28,14 @@ private val KnownSummary = LinkedInAccountView(
 private val UnknownSummary = LinkedInAccountView(null, null, 0, 0, 0, emptyList(), null)
 
 @Composable
-private fun SlimProfile(account: ProfileUiState.Account, linkedIn: LinkedInRowState? = null) {
+private fun SlimProfile(
+    account: ProfileUiState.Account,
+    linkedIn: LinkedInRowState? = null,
+    boards: ProfileUiState.LinkedInBoards? = null,
+) {
     PuzzleBoxTheme {
         ProfileContent(
-            state = ProfileUiState(account = account, playingSince = LocalDate.of(2026, 3, 1), linkedIn = linkedIn),
+            state = ProfileUiState(account = account, playingSince = LocalDate.of(2026, 3, 1), linkedIn = linkedIn, linkedInBoards = boards),
             onSignIn = {},
             onSignOut = {},
             onBack = {},
@@ -76,4 +80,32 @@ internal fun ProfileLinkedInPausedPreview() = SlimProfile(
 internal fun ProfileLinkedInReconnectPreview() = SlimProfile(
     SignedIn,
     LinkedInRowState.Paused(KnownSummary, "Your LinkedIn login expired. Reconnect to keep reading.", needsReconnect = true),
+)
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ProfileLinkedInSavedToAccountPreview() = SlimProfile(
+    SignedIn,
+    LinkedInRowState.NotConnected,
+    ProfileUiState.LinkedInBoards(savedToAccount = true, canDelete = true),
+)
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ProfileLinkedInSignInHintPreview() = SlimProfile(
+    ProfileUiState.Account.SignedOut(),
+    LinkedInRowState.Connected(KnownSummary),
+    ProfileUiState.LinkedInBoards(savedToAccount = true, canDelete = true),
+)
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ProfileLinkedInDeleteBoardsOfflinePreview() = SlimProfile(
+    SignedIn,
+    LinkedInRowState.Connected(KnownSummary),
+    ProfileUiState.LinkedInBoards(
+        savedToAccount = true,
+        canDelete = true,
+        deleteMessage = "You're offline. Try again when you're connected.",
+    ),
 )

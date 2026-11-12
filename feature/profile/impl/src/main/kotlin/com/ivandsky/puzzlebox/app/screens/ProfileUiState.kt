@@ -9,14 +9,28 @@ import java.time.LocalDate
  * (their first solve; null before it). Signed out is a first-class, clearly-prompted state
  * (A7/A15) — nothing else in the app is gated on identity. [linkedIn] is the LinkedIn row; null while the
  * feature is off or before the link has reported. [sync] is the Google row's cloud-sync line; null while cloud sync
- * is off or nobody is signed in.
+ * is off or nobody is signed in. [linkedInBoards] is the LinkedIn row's cloud-boards side; null while neither cloud
+ * sync nor cloud boards are on.
  */
 data class ProfileUiState(
     val account: Account = Account.SignedOut(),
     val playingSince: LocalDate? = null,
     val linkedIn: LinkedInRowState? = null,
     val sync: GoogleSync? = null,
+    val linkedInBoards: LinkedInBoards? = null,
 ) {
+    /**
+     * What the LinkedIn row says about saved boards: whether they are [savedToAccount] (cloud sync is on), whether
+     * Delete saved boards is offered ([canDelete]), whether one is running ([deleting]), and why the last one did not
+     * finish ([deleteMessage]).
+     */
+    data class LinkedInBoards(
+        val savedToAccount: Boolean,
+        val canDelete: Boolean,
+        val deleting: Boolean = false,
+        val deleteMessage: String? = null,
+    )
+
     /**
      * What the signed-in Google row says about cloud sync: the [status] line, whether a Delete my cloud data call is
      * running ([erasing]), and why the last one did not finish ([eraseMessage]).

@@ -5,6 +5,7 @@ import android.webkit.WebSettings
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.data.cloud.SavedBoardsCloud
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.profile.linkedin.LinkedInLoginViewModel
@@ -30,10 +31,12 @@ val profileModule: Module = module {
             observeAccount = if (linkedIn) get() else null,
             // Bound only with the CloudSync switch on; unbound is today's Google row.
             cloudSync = getOrNull<CloudSync>(),
+            savedBoardsCloud = getOrNull<SavedBoardsCloud>(),
         )
     }
     viewModel { SettingsViewModel(preferences = get(), games = get(), appBuild = get()) }
-    viewModel { LinkedInLoginViewModel(createLink = get(), cookies = get()) }
+    // Bound only with the CloudSync switch on; it makes the risk warning say the boards are saved to the account.
+    viewModel { LinkedInLoginViewModel(createLink = get(), cookies = get(), savedToAccount = getOrNull<CloudSync>() != null) }
     // Both providers are lambdas, so resolving this neither starts the web view provider nor reads a cookie.
     single<LinkedInSessionCookies> { WebViewLinkedInSession({ CookieManager.getInstance() }, { WebSettings.getDefaultUserAgent(get()) }, get()) }
 }

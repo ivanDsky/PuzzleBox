@@ -4,6 +4,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
@@ -18,6 +19,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.app.screens.ProfileUiState
 import com.ivandsky.puzzlebox.designsystem.LinkedInBlue
 import com.ivandsky.puzzlebox.designsystem.LinkedInConnectButton
 import com.ivandsky.puzzlebox.designsystem.LinkedInResumeButton
@@ -32,12 +34,19 @@ private val PhotoSize = 44.dp
 private val GlyphSize = 26.dp
 private const val NOT_CONNECTED_SUB =
     "Import your own LinkedIn game results and see your connections' times on this phone."
+private const val NOT_CONNECTED_SYNC_SUB =
+    "Import your own LinkedIn game results and see your connections' times. " +
+        "The boards you read are saved to your own PuzzleBox account, readable only by you, and kept after Disconnect."
+private const val SIGN_IN_HINT = "Sign in with Google to keep these boards on every device"
 private const val NO_NAME = "LinkedIn account"
 
 /**
  * The LinkedIn account row. Stateless: it draws [state] and reports taps. Connect and Reconnect share [onConnect]
  * (the risk warning and login are the caller's); a paused link that needs a reconnect offers Reconnect, not
- * Resume, since resuming a rejected session would only pause again. [nowMs] only phrases the update time.
+ * Resume, since resuming a rejected session would only pause again. [nowMs] only phrases the update time. With cloud
+ * boards on ([boards] given) the copy says the boards are saved to the account, a connected row whose Google account
+ * is signed out ([googleSignedIn] false) asks to sign in, and the overflow may offer Delete saved boards
+ * ([onDeleteSavedBoards]); without it the row is exactly the plain one.
  */
 @Composable
 internal fun LinkedInRow(
@@ -47,13 +56,23 @@ internal fun LinkedInRow(
     onResume: () -> Unit,
     onDisconnect: () -> Unit,
     modifier: Modifier = Modifier,
+    boards: ProfileUiState.LinkedInBoards? = null,
+    googleSignedIn: Boolean = true,
+    onDeleteSavedBoards: () -> Unit = {},
 ) {
     val row = modifier.testTag("profile.linkedin")
+    val overflow: @Composable () -> Unit = {
+        LinkedInOverflow(
+            onDisconnect = onDisconnect,
+            onDeleteSavedBoards = if (boards?.canDelete == true) onDeleteSavedBoards else null,
+            deleteEnabled = boards?.deleting != true,
+        )
+    }
     when (state) {
         LinkedInRowState.NotConnected -> AccountRow(
             lead = { Image(painterResource(R.drawable.ic_linkedin_dot), contentDescription = null, modifier = Modifier.size(TileSize)) },
             title = "LinkedIn",
-            sub = NOT_CONNECTED_SUB,
+            sub = if (boards?.savedToAccount == true) NOT_CONNECTED_SYNC_SUB else NOT_CONNECTED_SUB,
             modifier = row,
             extra = { LinkedInConnectButton("Connect LinkedIn", onConnect, Modifier.fillMaxWidth().testTag("profile.linkedin.connect")) },
         )
@@ -62,8 +81,8 @@ internal fun LinkedInRow(
             title = state.summary.name ?: NO_NAME,
             sub = connectedSub(state.summary),
             modifier = row,
-            trailing = { LinkedInOverflow(onDisconnect) },
-            extra = { StatsLine(state.summary, nowMs) },
+            trailing = overflow,
+            extra = { StatsAndBoards(state.summary, nowMs, boards, googleSignedIn) },
         )
         is LinkedInRowState.Paused -> AccountRow(
             lead = { LinkedInLead(state.summary) },
@@ -77,14 +96,49 @@ internal fun LinkedInRow(
                     if (!state.needsReconnect) {
                         LinkedInResumeButton("Resume", onResume, Modifier.testTag("profile.linkedin.resume"))
                     }
-                    LinkedInOverflow(onDisconnect)
+                    overflow()
                 }
             },
-            extra = if (state.needsReconnect) {
-                { LinkedInConnectButton("Reconnect", onConnect, Modifier.fillMaxWidth().testTag("profile.linkedin.connect")) }
-            } else {
-                { StatsLine(state.summary, nowMs) }
+            extra = {
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    if (state.needsReconnect) {
+                        LinkedInConnectButton("Reconnect", onConnect, Modifier.fillMaxWidth().testTag("profile.linkedin.connect"))
+                    } else {
+                        StatsLine(state.summary, nowMs)
+                    }
+                    BoardsLines(boards, googleSignedIn)
+                }
             },
+        )
+    }
+}
+
+@Composable
+private fun StatsAndBoards(summary: LinkedInAccountView, nowMs: Long, boards: ProfileUiState.LinkedInBoards?, googleSignedIn: Boolean) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        StatsLine(summary, nowMs)
+        BoardsLines(boards, googleSignedIn)
+    }
+}
+
+/** Under the stats: the sign-in hint while boards are meant for the account but nobody is signed in, and why a Delete saved boards did not finish. */
+@Composable
+private fun BoardsLines(boards: ProfileUiState.LinkedInBoards?, googleSignedIn: Boolean) {
+    if (boards == null) return
+    if (boards.savedToAccount && !googleSignedIn) {
+        Text(
+            text = SIGN_IN_HINT,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag("profile.linkedin.sign-in-hint"),
+        )
+    }
+    boards.deleteMessage?.let { message ->
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.testTag("profile.linkedin.delete-boards-message"),
         )
     }
 }
