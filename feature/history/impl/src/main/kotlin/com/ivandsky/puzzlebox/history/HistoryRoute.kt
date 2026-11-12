@@ -8,6 +8,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.paging.compose.collectAsLazyPagingItems
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.play.api.ReplayKey
 import java.time.LocalDate
 import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
@@ -21,6 +22,7 @@ import org.koin.core.parameter.parametersOf
  *
  * Play again (ticket 11): [onPlayAgain] reports the (game, day) played again; the shell opens that
  * day's game slot, which the play store builds or resumes.
+ * [onOpenReplay] reports the replay page of one solve of the open day.
  */
 @Composable
 fun HistoryRoute(
@@ -28,11 +30,24 @@ fun HistoryRoute(
     layout: HistoryLayout,
     onBack: (() -> Unit)?,
     onPlayAgain: (GameId, LocalDate) -> Unit,
+    onOpenReplay: (ReplayKey) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HistoryViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) }),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val lazyDays = viewModel.pagedDays.collectAsLazyPagingItems()
+
+    val replays by viewModel.replays.collectAsStateWithLifecycle()
+    val replayHost = HistoryReplayHost(
+        replays = replays,
+        playUi = viewModel::playUiOf,
+        onOpenDay = viewModel::openReplays,
+        onOpen = { row, solve ->
+            onOpenReplay(
+                ReplayKey.daily(row.gameId.value, row.day.toString(), row.puzzleNumber, latest = solve == ReplaySolve.Latest),
+            )
+        },
+    )
 
     HistoryScreen(
         layout = layout,
@@ -42,6 +57,7 @@ fun HistoryRoute(
         onShowCalendar = viewModel::showCalendar,
         onSelectDay = viewModel::selectDay,
         onPlayAgain = onPlayAgain,
+        replayHost = replayHost,
         modifier = modifier.testTag("route.history"),
     )
 }

@@ -54,6 +54,7 @@ class HistoryCalendarTest {
                     layout = HistoryLayout.SinglePane,
                     onBack = {},
                     onPlayAgain = { _, _ -> },
+                    onOpenReplay = {},
                     viewModel = viewModel,
                 )
             }

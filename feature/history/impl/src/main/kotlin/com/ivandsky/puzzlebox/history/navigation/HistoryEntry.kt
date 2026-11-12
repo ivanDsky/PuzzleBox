@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.api.ReplayKey
 import java.time.LocalDate
 
 /**
@@ -23,12 +24,14 @@ fun EntryProviderScope<NavKey>.historyEntry(
     val playAgain: (GameId, LocalDate) -> Unit = { game, day ->
         navigator.pushOnce(GameKey(game.value, day.toString()))
     }
+    val openReplay: (ReplayKey) -> Unit = { navigator.pushOnce(it) }
     entry<HistoryKey> { key ->
         HistoryRoute(
             key = key,
             layout = layout,
             onBack = { navigator.pop() },
             onPlayAgain = playAgain,
+            onOpenReplay = openReplay,
         )
     }
     entry<HistoryRootKey> {
@@ -37,6 +40,7 @@ fun EntryProviderScope<NavKey>.historyEntry(
             layout = layout,
             onBack = null,
             onPlayAgain = playAgain,
+            onOpenReplay = openReplay,
         )
     }
 }

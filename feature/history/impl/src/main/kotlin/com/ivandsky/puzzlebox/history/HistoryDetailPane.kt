@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
+import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.bestScoreText
 
 private val PlayAgainHeight = 56.dp
@@ -76,7 +77,8 @@ internal fun DetailHint(
 
 /**
  * One game's day (history.md §3): the game, its number and day, the Time / Hints of the
- * solve, and that game's best ([gameBest], its best numbered solve under the game's ranking). The action
+ * solve, and that game's best ([gameBest], its best numbered solve under the game's ranking), then the day's
+ * [replays] ([HistoryReplaySection]; [onOpenReplay] opens one). The action
  * follows the state: "See result" once solved, "Keep going" while unfinished — both
  * report the (game, day) through [onPlayAgain]; the play store resumes or rebuilds it.
  */
@@ -85,6 +87,9 @@ internal fun DayDetailPane(
     row: HistoryDayRow,
     gameBest: HistoryDayRow?,
     onBackToDayList: (() -> Unit)?,
+    replays: HistoryReplays,
+    replayUi: GamePlayUi?,
+    onOpenReplay: (ReplaySolve) -> Unit,
     onPlayAgain: () -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
@@ -164,6 +169,7 @@ internal fun DayDetailPane(
                     )
                 }
             }
+            HistoryReplaySection(replays, replayUi, onOpenReplay)
             PlayAgainButton(row, onPlayAgain)
         }
     }
