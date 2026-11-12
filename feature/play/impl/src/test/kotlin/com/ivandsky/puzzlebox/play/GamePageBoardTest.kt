@@ -112,7 +112,7 @@ class GamePageBoardTest {
                     single<LinkedInLink> { FakeLinkedInLink() }
                     factory { ObserveLinkedInDay(get<FakeLinkedInDays>(), get()) }
                     factory { SyncLinkedInDay(get<FakeLinkedInDays>(), 500) }
-                    factory { ObserveLinkedInDayView(get(), get(), get()) }
+                    factory { ObserveLinkedInDayView(get(), get(), get(), get<FakeLinkedInDays>()) }
                 },
                 playModule,
             )

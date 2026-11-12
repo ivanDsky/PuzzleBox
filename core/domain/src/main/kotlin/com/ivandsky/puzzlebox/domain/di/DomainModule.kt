@@ -137,7 +137,7 @@ val domainModule = module {
     }
     factory { SyncLinkedInDay(days = get()) }
     factory { ObserveLinkedInDay(days = get(), registry = get()) }
-    factory { ObserveLinkedInDayView(observe = get(), sync = get(), link = get()) }
+    factory { ObserveLinkedInDayView(observe = get(), sync = get(), link = get(), days = get()) }
     factory { ObserveLinkedInAccount(account = get(), completions = get(), puzzleDay = get(), registry = get()) }
     factory { CreateLinkedInLink(source = get(), link = get(), daily = get(), registry = get(), clock = System::currentTimeMillis) }
 }

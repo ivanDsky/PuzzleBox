@@ -159,16 +159,23 @@ class LibraryViewModelTest {
 
     private val days = FakeLinkedInDays()
 
-    private fun holder() = ObserveLinkedInDayView(ObserveLinkedInDay(days, fakes.games), SyncLinkedInDay(days, 500), FakeLinkedInLink())
+    private fun holder() = ObserveLinkedInDayView(ObserveLinkedInDay(days, fakes.games), SyncLinkedInDay(days, 500), FakeLinkedInLink(), days)
 
-    /** A linked day whose own result is not known yet, so [inFlight] and [lastSync] decide what it shows. */
-    private fun data(inFlight: Boolean = false, lastSync: LinkedInSync? = null) = LinkedInDayData(
+    /**
+     * A linked day whose own result is [own]: while it is not known, [inFlight] and [lastSync] decide what it shows;
+     * a settled one shows the same before and after the day's sync answers.
+     */
+    private fun data(
+        inFlight: Boolean = false,
+        lastSync: LinkedInSync? = null,
+        own: LinkedInOwnState = LinkedInOwnState.Unknown,
+    ) = LinkedInDayData(
         link = LinkState.Connected("member-1"),
         delta = 3,
         boardInWindow = true,
         inFlight = inFlight,
         lastSync = lastSync,
-        own = LinkedInOwnState.Unknown,
+        own = own,
         ghosts = emptyList(),
         boardFetchedAtMs = null,
     )
@@ -416,7 +423,7 @@ class LibraryViewModelTest {
     fun theViewFollowsTodayThenThePickedDay() {
         val past = day.minusDays(2)
         days.emit(alpha, day, data(inFlight = true))
-        days.emit(alpha, past, data(lastSync = LinkedInSync.Offline))
+        days.emit(alpha, past, data(own = LinkedInOwnState.NotPlayed))
         val vm = observedVm(linkedIn = holder())
         showDayCard(vm)
         assertEquals(viewOf(alpha, day), vm.linkedInView.value)
@@ -436,7 +443,7 @@ class LibraryViewModelTest {
         val yesterday = day.minusDays(1)
         daily.setArchiveRange(alpha, day.minusDays(9)..yesterday)
         days.emit(alpha, day, data(inFlight = true))
-        days.emit(alpha, yesterday, data(lastSync = LinkedInSync.Offline))
+        days.emit(alpha, yesterday, data(own = LinkedInOwnState.NotPlayed))
         val vm = observedVm(linkedIn = holder())
         showDayCard(vm)
         assertEquals(viewOf(alpha, yesterday), vm.linkedInView.value)
@@ -451,7 +458,7 @@ class LibraryViewModelTest {
         val past = day.minusDays(3)
         daily.setArchiveRange(alpha, day.minusDays(9)..yesterday)
         days.emit(alpha, past, data(inFlight = true))
-        days.emit(alpha, yesterday, data(lastSync = LinkedInSync.Offline))
+        days.emit(alpha, yesterday, data(own = LinkedInOwnState.NotPlayed))
         val vm = observedVm(linkedIn = holder())
         showDayCard(vm)
 
@@ -467,7 +474,7 @@ class LibraryViewModelTest {
     @Test
     fun selectingAnotherGameChangesTheView() {
         days.emit(alpha, day, data(inFlight = true))
-        days.emit(beta, day, data(lastSync = LinkedInSync.Offline))
+        days.emit(beta, day, data(own = LinkedInOwnState.NotPlayed))
         val vm = observedVm(linkedIn = holder())
         showDayCard(vm)
         assertEquals(viewOf(alpha, day), vm.linkedInView.value)

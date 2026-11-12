@@ -42,6 +42,15 @@ class FakeLinkedInDays : LinkedInDays {
         return syncResult
     }
 
+    private val unread = CopyOnWriteArrayList<Pair<GameId, LocalDate>>()
+
+    /** Every day reads (true) until a test says a day is not read: not a LinkedIn game, a future day. */
+    fun setWillRead(game: GameId, day: LocalDate, reads: Boolean) {
+        if (reads) unread -= game to day else unread += game to day
+    }
+
+    override fun willRead(game: GameId, day: LocalDate): Boolean = (game to day) !in unread
+
     /** A day never set through [emit] reports an unlinked install that knows nothing. */
     override fun observe(game: GameId, day: LocalDate): Flow<LinkedInDayData> =
         days.map { it[game to day] ?: UNKNOWN }.distinctUntilChanged()
