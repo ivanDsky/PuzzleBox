@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInPhotoSource
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
@@ -49,6 +50,12 @@ internal class LinkedInAvatars(
 
     private val permits = Semaphore(PARALLEL_DOWNLOADS)
 
+    /**
+     * The photos being fetched, as the wipe count they began under and the file name. Keyed by the count
+     * too, so a wipe does not leave the member unfetchable behind a download that will drop its photo.
+     */
+    private val inFlight: MutableSet<Pair<Int, String>> = ConcurrentHashMap.newKeySet()
+
     /** The file names in the directory; collecting it lists the directory off the caller's thread. */
     val present: Flow<Set<String>> = changes.map { names() }.flowOn(io).distinctUntilChanged()
 
@@ -77,17 +84,35 @@ internal class LinkedInAvatars(
     /**
      * Downloads the photo of each of [rows] that offers one and has no file yet: one GET each, never
      * retried, a failure leaving the member without a photo. A few run at once, so a full board does not
-     * take fifty round trips in a row.
+     * take fifty round trips in a row. A member another download is already fetching is left to it, so
+     * two boards read close together do not both ask for the same photo.
      */
     private suspend fun download(rows: List<LinkedInBoard.Row>, started: Int) {
-        val wanted = withContext(io) { rows.filter { it.pictureUrl != null && !File(dir, fileName(it.memberRef)).exists() } }
         coroutineScope {
-            wanted.forEach { row ->
-                launch {
-                    val photo = permits.withPermit { source.fetch(checkNotNull(row.pictureUrl)) }
-                    if (photo != null && photo.isNotEmpty()) save(started, row.memberRef, photo)
-                }
+            rows.forEach { row ->
+                val url = row.pictureUrl ?: return@forEach
+                launch { fetchOnce(started, row.memberRef, url) }
             }
+        }
+    }
+
+    /**
+     * Fetches and stores one photo unless its file exists or another download of the same member, begun
+     * after the same wipe, holds it. The claim is dropped on success, failure and cancellation alike, so a
+     * member that failed is asked for again; the file is written before the claim is dropped, so a download
+     * that comes right after sees it. A download begun after a wipe never yields to one the wipe made stale,
+     * which drops its photo.
+     */
+    private suspend fun fetchOnce(started: Int, memberRef: String, url: String) {
+        val name = fileName(memberRef)
+        val claim = started to name
+        if (!inFlight.add(claim)) return
+        try {
+            if (withContext(io) { File(dir, name).exists() }) return
+            val photo = permits.withPermit { source.fetch(url) }
+            if (photo != null && photo.isNotEmpty()) save(started, name, photo)
+        } finally {
+            inFlight.remove(claim)
         }
     }
 
@@ -102,9 +127,9 @@ internal class LinkedInAvatars(
         changes.update { it + 1 }
     }
 
-    private suspend fun save(started: Int, memberRef: String, photo: ByteArray) {
+    private suspend fun save(started: Int, name: String, photo: ByteArray) {
         val saved = withContext(io) {
-            lock.withLock { started == generation && writeAtomically(File(dir, fileName(memberRef)), photo) }
+            lock.withLock { started == generation && writeAtomically(File(dir, name), photo) }
         }
         if (saved) changes.update { it + 1 }
     }
