@@ -86,9 +86,9 @@ val dataModule = module {
     // Editor drafts: features read and write through the port, never Room.
     single<DraftRepository> { RoomDraftRepository(get()) }
     // The author's published listing; the board stays on the kept, read-only draft.
-    single<PublishedPuzzleRepository> { RoomPublishedPuzzleRepository(get()) }
+    single<PublishedPuzzleRepository> { RoomPublishedPuzzleRepository(get(), get()) }
     // Friends' puzzles opened here; they keep playing offline after their author unpublishes.
-    single<ReceivedPuzzleRepository> { RoomReceivedPuzzleRepository(get()) }
+    single<ReceivedPuzzleRepository> { RoomReceivedPuzzleRepository(get(), get()) }
     // This device's memory of duels (invite opened, reveal seen, dismissed).
     single<MatchLocalRepository> { RoomMatchLocalRepository(get()) }
     single<MatchResultOutbox> { RoomMatchResultOutbox(get()) }

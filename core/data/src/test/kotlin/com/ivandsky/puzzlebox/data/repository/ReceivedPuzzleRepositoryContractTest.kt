@@ -4,6 +4,7 @@ import androidx.room.Room
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.database.ReceivedPuzzleEntity
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -30,7 +31,7 @@ class ReceivedPuzzleRepositoryContractTest(private val adapter: String) : Receiv
 
     override val repository: ReceivedPuzzleRepository by lazy {
         when (adapter) {
-            ROOM -> RoomReceivedPuzzleRepository(database().receivedPuzzleDao())
+            ROOM -> RoomReceivedPuzzleRepository(database().receivedPuzzleDao(), FakeOwnerScope())
             else -> FakeReceivedPuzzleRepository()
         }
     }
