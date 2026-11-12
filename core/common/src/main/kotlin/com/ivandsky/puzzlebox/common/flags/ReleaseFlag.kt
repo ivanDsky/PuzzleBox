@@ -19,8 +19,8 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     /** Competitions: async 1v1 duels between friends; live since 0.26.0. */
     Competitions(label = "Competitions: 1v1 duels", releaseDefault = true),
 
-    /** LinkedIn account: imports the player's own results and shows connections as ghost rows (ADR-0028). */
-    LinkedInAccount(label = "LinkedIn: account results + connections", releaseDefault = false),
+    /** LinkedIn account: imports the player's own results and shows connections as ghost rows (ADR-0028). Live. */
+    LinkedInAccount(label = "LinkedIn: account results + connections", releaseDefault = true),
 
     /** Solve replay: every solve keeps its move log so the player can watch it again. */
     FullReplay(label = "Full replay", releaseDefault = false),
