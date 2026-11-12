@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.gameui.replay
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,6 +31,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -55,7 +57,8 @@ object ReplayFlipTags {
 private val PeekWidth = 36.dp
 private val PageGap = Spacing.md
 private val UnderlineHeight = 3.dp
-private val TabsHeight = SideHeaderHeight + UnderlineHeight
+private val TabHeight = 48.dp
+private val TabsHeight = TabHeight + UnderlineHeight
 private val ControlsGap = Spacing.lg
 private val NudgeDistance = 28.dp
 
@@ -85,8 +88,12 @@ internal fun ReplayFlipPeek(
     val nudgePx = with(LocalDensity.current) { NudgeDistance.toPx() }
     val inspecting = LocalInspectionMode.current
 
+    var nudged by remember { mutableStateOf(false) }
     LaunchedEffect(sides.size, reduced) {
-        if (sides.size > 1 && !reduced && !inspecting) pager.nudge(nudgePx)
+        if (!nudged && sides.size > 1 && !reduced && !inspecting) {
+            nudged = true
+            pager.nudge(nudgePx)
+        }
     }
 
     fun flipTo(side: Side) {
@@ -96,7 +103,7 @@ internal fun ReplayFlipPeek(
     }
 
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
-        val pageWidth = (maxWidth - PeekWidth - PageGap).coerceAtLeast(0.dp)
+        val pageWidth = (if (sides.size > 1) maxWidth - PeekWidth - PageGap else maxWidth).coerceAtLeast(0.dp)
         val boardSize = minOf(pageWidth, maxHeight - TabsHeight - CompareTransportHeight - ControlsGap * 2).coerceAtLeast(0.dp)
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(ControlsGap)) {
             Row(Modifier.fillMaxWidth()) {
@@ -112,6 +119,7 @@ internal fun ReplayFlipPeek(
                         selected = page >= 0 && pager.targetPage == page,
                         hidden = page >= 0 && pager.targetPage != page,
                         reduced = reduced,
+                        playing = state.playing,
                         onClick = { flipTo(side) },
                         modifier = Modifier.weight(1f).testTag(if (isMine) ReplayFlipTags.TAB_MINE else ReplayFlipTags.TAB_THEIRS),
                     )
@@ -148,9 +156,19 @@ private val EdgeSnap = object : SnapPosition {
         if (itemIndex == itemCount - 1 && itemCount > 1) layoutSize - afterContentPadding - itemSize else beforeContentPadding
 }
 
+/** Out and back in one scroll, so a drag or a tab tap anywhere in it cancels both legs and the pager stays where the user left it. */
 private suspend fun PagerState.nudge(distancePx: Float) {
-    animateScrollBy(distancePx, tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard))
-    animateScrollBy(-distancePx, tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard))
+    scroll {
+        var last = 0f
+        suspend fun travel(from: Float, to: Float) {
+            animate(from, to, animationSpec = tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard)) { value, _ ->
+                scrollBy(value - last)
+                last = value
+            }
+        }
+        travel(0f, distancePx)
+        travel(distancePx, 0f)
+    }
 }
 
 @Composable
@@ -162,6 +180,7 @@ private fun SideTab(
     selected: Boolean,
     hidden: Boolean,
     reduced: Boolean,
+    playing: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -170,7 +189,7 @@ private fun SideTab(
     Column(
         modifier.selectable(selected = selected, enabled = frame != null, role = Role.Tab, onClick = onClick),
     ) {
-        Box(Modifier.fillMaxWidth().height(SideHeaderHeight)) {
+        Box(Modifier.fillMaxWidth().height(TabHeight)) {
             if (frame == null) {
                 Text(
                     ReplayCopy.NO_REPLAY,
@@ -187,29 +206,32 @@ private fun SideTab(
                     onTint = if (isMine) colors.onPrimary else colors.onTertiary,
                     modifier = Modifier.align(Alignment.CenterStart),
                 )
-                HintFlash(frame.facts.hints, hidden && !reduced, Modifier.align(Alignment.TopEnd))
+                HintFlash(frame.facts.hints, hidden && playing && !reduced, Modifier.align(Alignment.TopEnd))
             }
         }
         Box(Modifier.fillMaxWidth().height(UnderlineHeight).background(if (selected) tint else colors.surface.copy(alpha = 0f)))
     }
 }
 
-/** "+1 hint" over a hidden side's tab for a moment after its hint count rises; nothing while [armed] is false. */
+/**
+ * "+1 hint" over a hidden side's tab for a moment after its hint count rises while the replay plays. [armed] false
+ * (a seek, a drag, reduced motion, the side showing) updates the count silently.
+ */
 @Composable
 private fun HintFlash(hints: Int, armed: Boolean, modifier: Modifier = Modifier) {
     var previous by remember { mutableIntStateOf(hints) }
     var gain by remember { mutableIntStateOf(0) }
+    var shown by remember { mutableIntStateOf(1) }
     LaunchedEffect(hints) {
         val delta = hints - previous
         previous = hints
         if (delta > 0 && armed) {
+            shown = delta
             gain = delta
             delay(MotionTokens.FlashDuration.toLong())
         }
         gain = 0
     }
-    var shown by remember { mutableIntStateOf(1) }
-    if (gain > 0) shown = gain
     AnimatedVisibility(
         visible = gain > 0,
         modifier = modifier.padding(end = Spacing.xs),

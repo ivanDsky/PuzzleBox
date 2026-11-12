@@ -11,6 +11,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
@@ -30,6 +31,7 @@ import com.ivandsky.puzzlebox.game.replay.Timeline
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import androidx.compose.ui.unit.dp
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -189,6 +191,26 @@ class ReplayFlipPeekTest {
         composeRule.mainClock.advanceTimeBy(2_000 + FIRST_FRAME_SLACK_MS)
 
         composeRule.onAllNodesWithText(ReplayCopy.hintGain(1)).assertCountEquals(0)
+    }
+
+    @Test
+    fun `a seek past a hint on the hidden side does not flash but the count updates`() {
+        show()
+        settle()
+
+        seekTo(3_000)
+        composeRule.mainClock.advanceTimeBy(300)
+
+        composeRule.onAllNodesWithText(ReplayCopy.hintGain(1)).assertCountEquals(0)
+        assertEquals("facts 3 hints 1", boardTexts()[1])
+    }
+
+    @Test
+    fun `the tabs are at least a touch target tall`() {
+        show()
+
+        composeRule.onNodeWithTag(ReplayFlipTags.TAB_MINE).assertHeightIsAtLeast(48.dp)
+        composeRule.onNodeWithTag(ReplayFlipTags.TAB_THEIRS).assertHeightIsAtLeast(48.dp)
     }
 
     @Test
