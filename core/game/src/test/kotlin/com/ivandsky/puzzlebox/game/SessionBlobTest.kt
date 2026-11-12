@@ -81,4 +81,63 @@ class SessionBlobTest {
     fun `version 2 with an empty log decodes to null`() {
         assertNull(SessionBlob.decode(v2("tango", 3, byteArrayOf(1, 2, 3), ByteArray(0))))
     }
+
+    // Captured from the version 1 encoder before the log parameter existed; never regenerate from SessionBlob.
+    private val v1TangoFixture = byteArrayOf(
+        1, 5, 0x74, 0x61, 0x6E, 0x67, 0x6F, // version, "tango"
+        1, 2, 3, 0x7F, // session
+    )
+
+    @Test
+    fun `encode without a log is byte-identical to the version 1 fixture`() {
+        val session = byteArrayOf(1, 2, 3, 0x7F)
+
+        assertArrayEquals(v1TangoFixture, SessionBlob.encode(GameId("tango"), session))
+        assertArrayEquals(v1TangoFixture, SessionBlob.encode(GameId("tango"), session, null))
+    }
+
+    @Test
+    fun `an empty log is treated as no log and stays version 1`() {
+        val session = byteArrayOf(1, 2, 3, 0x7F)
+
+        assertArrayEquals(v1TangoFixture, SessionBlob.encode(GameId("tango"), session, ByteArray(0)))
+    }
+
+    @Test
+    fun `encode with a log writes the version 2 fixture`() {
+        val fixture = byteArrayOf(
+            2, 5, 0x74, 0x61, 0x6E, 0x67, 0x6F, // version, "tango"
+            0, 0, 0, 4, // sessionLen, big-endian
+            1, 2, 3, 0x7F, // session
+            5, 6, // log
+        )
+
+        assertArrayEquals(fixture, SessionBlob.encode(GameId("tango"), byteArrayOf(1, 2, 3, 0x7F), byteArrayOf(5, 6)))
+    }
+
+    @Test
+    fun `version 2 round-trips session and log through decode`() {
+        val session = byteArrayOf(1, 2, 3, 0x7F)
+        val log = byteArrayOf(5, 6, 0, 0xFF.toByte())
+
+        val decoded = SessionBlob.decode(SessionBlob.encode(GameId("tango"), session, log))
+
+        assertEquals(GameId("tango"), decoded?.game)
+        assertArrayEquals(session, decoded?.session)
+        assertArrayEquals(log, decoded?.log)
+    }
+
+    @Test
+    fun `version 2 round-trips an empty session with a one byte log`() {
+        val decoded = SessionBlob.decode(SessionBlob.encode(GameId("zip"), ByteArray(0), byteArrayOf(1)))
+
+        assertEquals(GameId("zip"), decoded?.game)
+        assertEquals(0, decoded?.session?.size)
+        assertArrayEquals(byteArrayOf(1), decoded?.log)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `version 2 still rejects an empty game id`() {
+        SessionBlob.encode(GameId(""), byteArrayOf(1), byteArrayOf(1))
+    }
 }
