@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.game.replay.MoveLog
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.CoroutineScope
@@ -92,11 +93,13 @@ interface GamePlayUi {
  * outlives the play entry's composition across the result route), [onSessionChanged]
  * receives the game's session-codec bytes on every committed change, and [onWon] the
  * one completion record of a win transition.
+ * [moveLog] records the play for its replay; off for plays that are never replayed (tutorial, test solve).
  */
 class PlayEnvironment(
     val scope: CoroutineScope,
     val onSessionChanged: (ByteArray) -> Unit,
     val onWon: (CompletionRecord) -> Unit,
+    val moveLog: MoveLog = MoveLog.off(),
 )
 
 /** A game's live session holder, as the game-agnostic play feature sees it. */
