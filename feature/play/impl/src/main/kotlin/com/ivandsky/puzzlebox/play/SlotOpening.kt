@@ -61,8 +61,11 @@ internal class SlotOpening(
 ) {
     /** Where a slot's board comes from (patterns-9). */
     sealed interface Origin {
-        /** A [SessionBlob] envelope to adopt: a saved play or a past day's play-again build. */
+        /** A saved play to continue. Its log continues too. */
         class Restored(val session: ByteArray) : Origin
+
+        /** A session built from a puzzle: past day, duel leg, play again. Never a saved play. Starts a fresh log. */
+        class Built(val session: ByteArray) : Origin
 
         /** A fresh board: today's daily, or a friend's stored puzzle; [banner] is the degrade copy when
          *  it is a cached fallback; [puzzleNumber] is the day's number from the cache's history (ADR-0004), if any. */
@@ -125,7 +128,7 @@ internal class SlotOpening(
         pastDay(slot.day, pastDays(slot.gameId, slot.day, puzzleNumberOf(slot)))
 
     private fun pastDay(day: LocalDate, opened: PastDayOutcome): Origin = when (opened) {
-        is PastDayOutcome.Ready -> Origin.Restored(opened.session)
+        is PastDayOutcome.Ready -> Origin.Built(opened.session)
         PastDayOutcome.Missing -> Origin.Unavailable(DAY_MISSING)
         PastDayOutcome.OutOfRange -> Origin.Unavailable(PAST_DAY_OUT_OF_RANGE, retryable = false)
         is PastDayOutcome.Failed -> Origin.Unavailable(
@@ -179,7 +182,7 @@ internal class SlotOpening(
 
     private fun playAgainBuild(plugin: GamePlugin<*, *, *>, puzzle: Puzzle, key: PuzzleKey): Origin =
         when (val session = plugin.playAgainSession(puzzle, key)) {
-            is DecodeResult.Ok -> Origin.Restored(session.value)
+            is DecodeResult.Ok -> Origin.Built(session.value)
             is DecodeResult.Err -> Origin.Unavailable(PUZZLE_UNREADABLE, retryable = false)
         }
 

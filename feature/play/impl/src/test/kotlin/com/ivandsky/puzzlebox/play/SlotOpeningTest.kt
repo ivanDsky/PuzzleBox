@@ -119,7 +119,7 @@ class SlotOpeningTest {
             ),
         )
 
-        val origin = opening.open(PlaySlot.Daily(alpha, yesterday)) as SlotOpening.Origin.Restored
+        val origin = opening.open(PlaySlot.Daily(alpha, yesterday)) as SlotOpening.Origin.Built
 
         assertArrayEquals(TestGames.playAgainBlob(alpha, puzzle, PuzzleKey.Daily(yesterday, 412)), origin.session)
         assertEquals(0, daily.todayCalls(alpha))
@@ -150,7 +150,7 @@ class SlotOpeningTest {
         val puzzle = TestGames.puzzle(alpha, tag = 5)
         daily.setDay(alpha, yesterday, DailyDay.Ready(puzzle, 412))
 
-        val origin = opening.open(PlaySlot.Daily(alpha, yesterday)) as SlotOpening.Origin.Restored
+        val origin = opening.open(PlaySlot.Daily(alpha, yesterday)) as SlotOpening.Origin.Built
 
         assertArrayEquals(TestGames.playAgainBlob(alpha, puzzle, PuzzleKey.Daily(yesterday, 412)), origin.session)
         assertEquals(1, daily.dayCalls(alpha, yesterday))
