@@ -4,6 +4,7 @@ import android.app.Application
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.testing.network.FakeNetworkStatus
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
@@ -344,6 +345,58 @@ class MatchResultPosterTest {
         assertEquals(3, row(match = unknownMatch).attempts)
     }
 
+    private fun withReplay(result: LegResult) = result.copy(replay = SolveReplay.of(byteArrayOf(1, 2, 3)))
+
+    @Test
+    fun aRejectedResultWithAReplayIsPostedAgainWithoutItAndSettlesPosted() = runTest {
+        givenAClaimedMatch()
+        matches.rejectsReplays = true
+        outbox.enqueue(code, withReplay(result()))
+
+        appStart()
+
+        assertEquals(2, matches.posts)
+        assertEquals(listOf(true, false), matches.sent.map { it.replay != null })
+        assertEquals(ResultPostState.Posted, row().state)
+        assertEquals(0, row().attempts)
+        assertEquals(setOf(0), server.matches.getValue(code).progress[ann.uid])
+    }
+
+    @Test
+    fun aResultRejectedWithAndWithoutTheReplayFollowsTheRejectionPath() = runTest {
+        outbox.enqueue(unknownMatch, withReplay(result()))
+
+        appStart()
+
+        assertEquals(2, matches.posts)
+        assertEquals(ResultPostState.Pending, row(match = unknownMatch).state)
+        assertEquals(1, row(match = unknownMatch).attempts)
+    }
+
+    @Test
+    fun aRejectedResultWithoutAReplayIsPostedOnce() = runTest {
+        matches.rejectsReplays = true
+        outbox.enqueue(unknownMatch, result())
+
+        appStart()
+
+        assertEquals(1, matches.posts)
+        assertEquals(1, row(match = unknownMatch).attempts)
+    }
+
+    @Test
+    fun anUnavailablePostKeepsTheReplayForTheNextAttempt() = runTest {
+        givenAClaimedMatch()
+        server.online = false
+        outbox.enqueue(code, withReplay(result()))
+
+        appStart()
+
+        assertEquals(1, matches.posts)
+        assertEquals(withReplay(result()), matches.sent.single())
+        assertEquals(withReplay(result()), row().result)
+    }
+
     private fun Identity.asPlayer() = Player(uid, displayName, photoUrl)
 }
 
@@ -352,6 +405,8 @@ private class ScriptedMatchRepository(private val server: FakeMatchRepository) :
     var posts = 0
         private set
     private var failure: Throwable? = null
+    val sent = mutableListOf<LegResult>()
+    var rejectsReplays = false
     private var gate: CompletableDeferred<Unit>? = null
 
     fun failNextPost(error: Throwable) {
@@ -370,11 +425,13 @@ private class ScriptedMatchRepository(private val server: FakeMatchRepository) :
 
     override suspend fun post(code: ShareCode, result: LegResult): PostResult {
         posts++
+        sent += result
         failure?.let {
             failure = null
             throw it
         }
         gate?.await()
+        if (rejectsReplays && result.replay != null) return PostResult.Rejected("replay refused")
         return server.post(code, result)
     }
 }
