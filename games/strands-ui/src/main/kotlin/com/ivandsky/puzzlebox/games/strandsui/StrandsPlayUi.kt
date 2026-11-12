@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.model.GameId
 
@@ -22,6 +23,8 @@ class StrandsPlayUi : GamePlayUi {
     override val brand: GameBrand get() = StrandsBrand
 
     override val tutorial: List<TutorialStep> get() = StrandsTutorial.steps
+
+    override val replayBoard: GameReplayBoard get() = StrandsReplayBoard
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
