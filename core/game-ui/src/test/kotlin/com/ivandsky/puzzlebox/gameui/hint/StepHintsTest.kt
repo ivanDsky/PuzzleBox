@@ -56,7 +56,7 @@ class StepHintsTest {
     }
 
     @Test
-    fun `a repeat is free and replays with a bumped playId`() {
+    fun `a repeat is free and restarts with a bumped playId`() {
         game.step = "a"
         press()
         press()

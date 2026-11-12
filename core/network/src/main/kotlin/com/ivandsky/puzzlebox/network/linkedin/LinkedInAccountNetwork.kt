@@ -23,7 +23,7 @@ fun linkedInAccountSource(baseUrl: String, session: LinkedInSessionCookies): Lin
 
 /**
  * The session is a login, so this client does nothing on its own account. No cookie jar: a rotated cookie
- * in a response is dropped, never replayed. No interceptor, so nothing can log a header or a body. A
+ * in a response is dropped, never re-sent. No interceptor, so nothing can log a header or a body. A
  * redirect is an answer, not a hop to follow. A failed connection is not retried, so one call is one GET.
  */
 private fun linkedInAccountClient(): OkHttpClient =

@@ -32,7 +32,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The pinned CompletionRepository contract over real Room: the play-twice test —
- * first win is the record and stays immutable after faster replays; replay rows are kept
+ * first win is the record and stays immutable after faster play-agains; play-again rows are kept
  * for stats and never leaderboard-eligible.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -75,13 +75,13 @@ class CompletionRepositoryTest {
         )
 
     @Test
-    fun `play twice - record immutable, replay kept`() = runTest {
+    fun `play twice - record immutable, play-again kept`() = runTest {
         val day = LocalDate.of(2026, 10, 31)
         val ref = Ref(alpha, PuzzleKey.Daily(day, 592))
 
         repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 2))
         nowMs += 60_000
-        // The replay is objectively better (71_000 < 95_000) — the record must not move.
+        // The play-again is objectively better (71_000 < 95_000) — the record must not move.
         repository.onCompleted(completion(day, 592, timeMs = 71_000, hints = 0))
 
         val records = repository.observeRecords().first()
@@ -93,24 +93,24 @@ class CompletionRepositoryTest {
         assertTrue(record.isRecord)
         assertEquals(Instant.ofEpochMilli(7_000L), record.firstCompletedAt)
 
-        val replays = repository.observePlayAgains(ref).first()
-        assertEquals(1, replays.size)
-        val replay = replays.single()
-        assertEquals(ref, replay.puzzleRef)
-        assertEquals(71_000L, replay.time)
-        assertEquals(0, replay.hints)
-        assertFalse(replay.isRecord)
-        assertNull(replay.firstCompletedAt)
+        val playAgains = repository.observePlayAgains(ref).first()
+        assertEquals(1, playAgains.size)
+        val playAgain = playAgains.single()
+        assertEquals(ref, playAgain.puzzleRef)
+        assertEquals(71_000L, playAgain.time)
+        assertEquals(0, playAgain.hints)
+        assertFalse(playAgain.isRecord)
+        assertNull(playAgain.firstCompletedAt)
     }
 
     @Test
-    fun `distinct refs keep distinct records and replay stores`() = runTest {
+    fun `distinct refs keep distinct records and play-again stores`() = runTest {
         val day = LocalDate.of(2026, 10, 31)
         repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 2))
         nowMs += 1_000
         repository.onCompleted(completion(day, 593, timeMs = 88_000, hints = 1))
         nowMs += 1_000
-        // A replay of 592 must not leak into 593's replay list.
+        // A play-again of 592 must not leak into 593's play-again list.
         repository.onCompleted(completion(day, 592, timeMs = 90_000, hints = 0))
 
         val records = repository.observeRecords().first()
@@ -129,12 +129,12 @@ class CompletionRepositoryTest {
     }
 
     @Test
-    fun `best time is the game's fastest first solve, never a replay, never merged across games`() = runTest {
+    fun `best time is the game's fastest first solve, never a play-again, never merged across games`() = runTest {
         val day = LocalDate.of(2026, 10, 31)
         assertNull(repository.best(alpha))
 
         repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 2))
-        repository.onCompleted(completion(day, 592, timeMs = 71_000, hints = 0)) // replay
+        repository.onCompleted(completion(day, 592, timeMs = 71_000, hints = 0)) // play-again
         repository.onCompleted(completion(day.plusDays(1), 593, timeMs = 88_000, hints = 1))
         // Faster rows of other games: a different id, a longer id sharing the prefix, and
         // an id whose `_` would be a LIKE wildcard matching "alpha".
@@ -156,7 +156,7 @@ class CompletionRepositoryTest {
     }
 
     @Test
-    fun `a replay keeps its own match code`() = runTest {
+    fun `a play-again keeps its own match code`() = runTest {
         val day = LocalDate.of(2026, 10, 31)
         val ref = Ref(alpha, PuzzleKey.Daily(day, 592))
         repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 0))
@@ -179,7 +179,7 @@ class CompletionRepositoryTest {
     }
 
     @Test
-    fun `a replay keeps the source it was stored with`() = runTest {
+    fun `a play-again keeps the source it was stored with`() = runTest {
         val day = LocalDate.of(2026, 10, 31)
         val ref = Ref(alpha, PuzzleKey.Daily(day, 592))
         repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 0))
@@ -224,7 +224,7 @@ class CompletionRepositoryTest {
     }
 
     @Test
-    fun `an import onto an app record is a replay and leaves the record untouched`() = runTest {
+    fun `an import onto an app record is a play-again and leaves the record untouched`() = runTest {
         val day = LocalDate.of(2026, 10, 31)
         repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 2))
         nowMs += 1_000
@@ -240,7 +240,7 @@ class CompletionRepositoryTest {
     }
 
     @Test
-    fun `an app solve after an import is a replay`() = runTest {
+    fun `an app solve after an import is a play-again`() = runTest {
         val day = LocalDate.of(2026, 10, 31)
         val ref = Ref(alpha, PuzzleKey.Daily(day, 592))
         repository.onCompleted(completion(day, 592, timeMs = 95_000, hints = 0, source = CompletionSource.LinkedIn))
@@ -265,12 +265,12 @@ class CompletionRepositoryTest {
     }
 
     @Test
-    fun `room keeps one import and hides the replay from records`() = runTest {
+    fun `room keeps one import and hides the play-again from records`() = runTest {
         assertImportContract(repository)
     }
 
     @Test
-    fun `fake keeps one import and hides the replay from records`() = runTest {
+    fun `fake keeps one import and hides the play-again from records`() = runTest {
         assertImportContract(FakeCompletionRepository())
     }
 

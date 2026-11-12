@@ -73,7 +73,7 @@ class LeaderboardEntriesTest {
     }
 
     @Test
-    fun `replay rows are never leaderboard-eligible (A5)`() {
+    fun `play-again rows are never leaderboard-eligible (A5)`() {
         assertNull(LeaderboardEntries.fromRecord(record(isRecord = false), "u1", "Ann"))
         assertNull(LeaderboardEntries.fromEntity(entity(isRecord = false), "u1", "Ann"))
     }

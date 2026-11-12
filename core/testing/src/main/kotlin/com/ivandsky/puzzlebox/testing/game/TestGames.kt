@@ -82,7 +82,7 @@ object TestGames {
         rendererModel = { _, _, _ -> Model },
     )
 
-    /** The replay hand-off [plugin] builds: [game]'s envelope over the payload plus the puzzle's identity. */
+    /** The relaunch hand-off [plugin] builds: [game]'s envelope over the payload plus the puzzle's identity. */
     fun playAgainBlob(game: GameId, cached: Puzzle, key: PuzzleKey): ByteArray =
         SessionBlob.encode(game, cached.payload + key.toString().toByteArray(Charsets.UTF_8))
 

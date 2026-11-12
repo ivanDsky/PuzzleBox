@@ -8,7 +8,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.BestScore
 
 // Previews of ResultScreen (a friend puzzle's result) — internal, light + dark inside
-// PuzzleBoxTheme: a record solve (the pill) and a replay (its line).
+// PuzzleBoxTheme: a record solve (the pill) and a play-again (its line).
 
 private val PreviewBrand = GameBrand(AccentSlot.Violet, GameGlyphs.Queens)
 

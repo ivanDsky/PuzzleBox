@@ -8,7 +8,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Spec A10: "New best" only on a strictly lower SHOWN time of a first solve; replays never
+ * Spec A10: "New best" only on a strictly lower SHOWN time of a first solve; play-agains never
  * rank. A26: a hints-first game ranks fewer hints first, equal hints falling to time.
  */
 class RecordVerdictTest {
@@ -48,7 +48,7 @@ class RecordVerdictTest {
     }
 
     @Test
-    fun `a replay is a replay however fast, and with no best on record`() {
+    fun `a play-again is a play-again however fast, and with no best on record`() {
         assertEquals(RecordVerdict.PlayAgain, timeFirst(previousBestMs = 95_000, timeMs = 3_000, playAgain = true))
         assertEquals(RecordVerdict.PlayAgain, timeFirst(previousBestMs = null, timeMs = 3_000, playAgain = true))
     }

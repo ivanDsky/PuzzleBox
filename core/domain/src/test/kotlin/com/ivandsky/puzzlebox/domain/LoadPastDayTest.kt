@@ -28,19 +28,19 @@ class LoadPastDayTest {
 
     private val day: LocalDate = LocalDate.of(2026, 10, 31)
 
-    private fun replay(daily: FakeDailyRepository, games: List<GameId> = listOf(alpha, beta)) =
+    private fun loadPast(daily: FakeDailyRepository, games: List<GameId> = listOf(alpha, beta)) =
         LoadPastDay(daily, TestGames.registry(games))
 
     @Test
     fun `missing pieces launch nothing`() = runTest {
         val empty = FakeDailyRepository()
-        assertEquals(PastDayOutcome.Missing, replay(empty)(alpha, day, puzzleNumber = 592))
-        assertEquals(PastDayOutcome.Missing, replay(empty)(beta, day, puzzleNumber = 301))
+        assertEquals(PastDayOutcome.Missing, loadPast(empty)(alpha, day, puzzleNumber = 592))
+        assertEquals(PastDayOutcome.Missing, loadPast(empty)(beta, day, puzzleNumber = 301))
 
-        // A cached day of a game no registration authored is never replayed.
+        // A cached day of a game no registration authored is never re-opened.
         val unregistered = GameId("not-a-game")
         val daily = FakeDailyRepository().apply { setCached(unregistered, day, TestGames.puzzle(unregistered)) }
-        assertEquals(PastDayOutcome.Missing, replay(daily)(unregistered, day, puzzleNumber = 1))
+        assertEquals(PastDayOutcome.Missing, loadPast(daily)(unregistered, day, puzzleNumber = 1))
         assertEquals(0, daily.dayCalls(unregistered, day))
     }
 
@@ -49,7 +49,7 @@ class LoadPastDayTest {
         val fetched = TestGames.puzzle(alpha, tag = 3)
         val daily = FakeDailyRepository().apply { setDay(alpha, day, DailyDay.Ready(fetched, 584)) }
 
-        val ready = replay(daily)(alpha, day, puzzleNumber = null) as PastDayOutcome.Ready
+        val ready = loadPast(daily)(alpha, day, puzzleNumber = null) as PastDayOutcome.Ready
 
         assertArrayEquals(TestGames.playAgainBlob(alpha, fetched, PuzzleKey.Daily(day, 584)), ready.session)
         assertEquals(1, daily.dayCalls(alpha, day))
@@ -60,7 +60,7 @@ class LoadPastDayTest {
         val daily = FakeDailyRepository().apply {
             setArchiveRange(alpha, day.minusDays(10)..day.minusDays(1))
         }
-        assertEquals(PastDayOutcome.OutOfRange, replay(daily)(alpha, day, puzzleNumber = null))
+        assertEquals(PastDayOutcome.OutOfRange, loadPast(daily)(alpha, day, puzzleNumber = null))
 
         listOf(
             FetchError.Unavailable("offline"),
@@ -69,7 +69,7 @@ class LoadPastDayTest {
             FetchError.Throttled("cooldown"),
         ).forEach { error ->
             daily.setDay(beta, day, DailyDay.Failed(error))
-            assertEquals(PastDayOutcome.Failed(error), replay(daily)(beta, day, puzzleNumber = 1))
+            assertEquals(PastDayOutcome.Failed(error), loadPast(daily)(beta, day, puzzleNumber = 1))
         }
     }
 
@@ -78,7 +78,7 @@ class LoadPastDayTest {
         val cached = TestGames.puzzle(beta, tag = 7)
         val daily = FakeDailyRepository().apply { setCached(beta, day, cached) }
 
-        val ready = replay(daily)(beta, day, puzzleNumber = 301) as PastDayOutcome.Ready
+        val ready = loadPast(daily)(beta, day, puzzleNumber = 301) as PastDayOutcome.Ready
 
         // The envelope NAMES the game (ADR-0005) — the play route dispatches on it.
         assertEquals(beta, SessionBlob.decode(ready.session)?.game)
@@ -90,7 +90,7 @@ class LoadPastDayTest {
         val cached = TestGames.puzzle(alpha)
         val daily = FakeDailyRepository().apply { setCached(alpha, day, cached) }
 
-        val ready = replay(daily)(alpha, day, puzzleNumber = null) as PastDayOutcome.Ready
+        val ready = loadPast(daily)(alpha, day, puzzleNumber = null) as PastDayOutcome.Ready
 
         assertArrayEquals(TestGames.playAgainBlob(alpha, cached, PuzzleKey.Daily(day, null)), ready.session)
     }
@@ -102,7 +102,7 @@ class LoadPastDayTest {
 
         assertEquals(
             PastDayOutcome.Unreadable(DecodeError.Malformed("not a alpha payload")),
-            replay(daily)(alpha, day, puzzleNumber = 592),
+            loadPast(daily)(alpha, day, puzzleNumber = 592),
         )
     }
 }

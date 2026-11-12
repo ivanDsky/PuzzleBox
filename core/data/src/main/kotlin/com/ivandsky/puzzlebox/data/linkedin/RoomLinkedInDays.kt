@@ -98,7 +98,7 @@ internal class RoomLinkedInDays(
 
     /**
      * The day's import, whatever the link: a disconnect keeps imports, and the day still shows the
-     * result as LinkedIn's. A record and a replay of one day are the same result, so the first will do.
+     * result as LinkedIn's. A record and a play-again of one day are the same result, so the first will do.
      */
     private fun imported(game: GameId, day: LocalDate): Flow<CompletionRecord?> =
         completions.observeImports().map { rows ->

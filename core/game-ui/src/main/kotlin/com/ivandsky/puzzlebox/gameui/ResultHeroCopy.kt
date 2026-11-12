@@ -39,7 +39,7 @@ internal fun heroHints(hints: Int): String = when (hints) {
 
 /**
  * The one-sentence comparison under the hero time; null when there is nothing to say (a tie,
- * an unknown verdict, or a verdict with no best to name). A replay names the best it did not
+ * an unknown verdict, or a verdict with no best to name). A play-again names the best it did not
  * move. A hints-first game ([order]) words it from hints, falling to the time gap only when
  * the hints are level.
  */

@@ -29,7 +29,7 @@ import org.robolectric.annotation.Config
 /**
  * `best(game)` picks by the game's own rank order (ADR-0013): the shared [RankOrderCases]
  * table run against real Room and [FakeCompletionRepository], one game per case so the
- * cases never see each other's rows. Replays never rank in either.
+ * cases never see each other's rows. Play-agains never rank in either.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -64,7 +64,7 @@ class BestRankContractTest {
         for ((game, case) in cases) {
             assertNull(case.name, repository.best(game))
             repository.onCompleted(completion(game, 1, case.previous))
-            // A replay is a second play of the same puzzle; otherwise another puzzle's first solve.
+            // A play-again is a second play of the same puzzle; otherwise another puzzle's first solve.
             repository.onCompleted(completion(game, if (case.playAgain) 1 else 2, case.play))
             assertEquals(case.name, case.best, repository.best(game))
         }

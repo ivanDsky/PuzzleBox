@@ -33,7 +33,7 @@ class ObserveLinkedInDayView(
     // Bumped to run the shown day again; the number itself means nothing.
     private val again = MutableStateFlow(0)
 
-    // No replay: a Resume with nobody collecting is dropped, so it cannot lift the pause later behind the player's back.
+    // No re-delivery: a Resume with nobody collecting is dropped, so it cannot lift the pause later behind the player's back.
     private val resumes = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
     /**

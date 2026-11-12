@@ -154,7 +154,7 @@ class ObserveResultInsightsTest {
     }
 
     @Test
-    fun `a replay gets the spread and leaves streak and week as history stands`() = runTest {
+    fun `a play-again gets the spread and leaves streak and week as history stands`() = runTest {
         completions.setRecords(
             listOf(record(alpha, 0, 45_000L), record(alpha, 3, 80_000L), record(alpha, 5, 100_000L)),
         )
@@ -212,7 +212,7 @@ class ObserveResultInsightsTest {
     }
 
     @Test
-    fun `a replay of another weekday uses that weekday`() = runTest {
+    fun `a play-again of another weekday uses that weekday`() = runTest {
         // Monday: 1, 8 and 15 days ago.
         completions.setRecords(
             listOf(record(alpha, 8, 60_000L), record(alpha, 15, 90_000L), record(alpha, 7, 10_000L), record(alpha, 0, 45_000L)),

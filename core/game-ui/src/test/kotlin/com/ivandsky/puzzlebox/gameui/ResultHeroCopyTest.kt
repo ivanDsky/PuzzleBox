@@ -114,7 +114,7 @@ class ResultHeroCopyTest {
     }
 
     @Test
-    fun `a replay names the best it did not move`() {
+    fun `a play-again names the best it did not move`() {
         assertEquals("Replay · Best 1:52", line(RecordVerdict.PlayAgain, BestScore(112_000L, 0)))
         assertEquals("Replay · Best 2 hints · 1:52", line(RecordVerdict.PlayAgain, BestScore(112_000L, 2), hints))
         assertEquals("Replay", line(RecordVerdict.PlayAgain, null))
@@ -263,7 +263,7 @@ class ResultHeroCopyTest {
     }
 
     @Test
-    fun `a replay appends that its bar is dashed and not saved`() {
+    fun `a play-again appends that its bar is dashed and not saved`() {
         val spread = spreadOf(listOf(BestScore(112_000L, 0), BestScore(90_000L, 0)))
 
         assertEquals("2nd fastest of your 3 Zip. Average 1:41. Dashed = this replay, not saved.", verdict(all, spread, playAgain = true).text)
@@ -536,7 +536,7 @@ class ResultHeroCopyTest {
     }
 
     @Test
-    fun `a replay hides the pill, streak and rank and keeps the spread`() {
+    fun `a play-again hides the pill, streak and rank and keeps the spread`() {
         val model = model(facts(verdict = RecordVerdict.NewBest, playAgain = true))
 
         assertNull(model.pill)

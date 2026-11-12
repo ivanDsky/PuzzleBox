@@ -13,7 +13,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
- * Migration harness: replays committed schema JSONs from
+ * Migration harness: re-applies committed schema JSONs from
  * core/database/schemas (on the test classpath) so every version bump lands with a proof the
  * old data survives.
  */
@@ -90,7 +90,7 @@ class PuzzleBoxDatabaseMigrationTest {
             assertEquals("2026-10-31", cursor.getString(1))
             assertEquals(592, cursor.getInt(2))
         }
-        // The v3 completions store takes rows (nullable firstCompletedAtMs on replays).
+        // The v3 completions store takes rows (nullable firstCompletedAtMs on play-agains).
         db.execSQL(
             "INSERT INTO completions (puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord) " +
                 "VALUES ('zip/2026-10-31/592', 95000, 2, 1, '{\"v\":1}', 7000, 7000, 1)",
@@ -565,7 +565,7 @@ class PuzzleBoxDatabaseMigrationTest {
             assertEquals(1, cursor.getInt(7))
             assertTrue(cursor.isNull(8))
             assertEquals("app", cursor.getString(9))
-            // The replay row.
+            // The play-again row.
             assertTrue(cursor.moveToNext())
             assertEquals("zip/2026-10-31/592", cursor.getString(0))
             assertEquals(80000L, cursor.getLong(1))

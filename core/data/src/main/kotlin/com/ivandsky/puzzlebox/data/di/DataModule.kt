@@ -76,7 +76,7 @@ val dataModule = module {
             calendar = get(),
         )
     }
-    // Records/replays store (ADR-0004): the first-win record is enforced here, and
+    // Records/play-agains store (ADR-0004): the first-win record is enforced here, and
     // feature modules consume the interface only, so the rule cannot be bypassed.
     single<CompletionRepository> { RoomCompletionRepository(get(), get(), get(), get()) }
     single<UserPreferencesRepository> { OfflineUserPreferencesRepository(get()) }

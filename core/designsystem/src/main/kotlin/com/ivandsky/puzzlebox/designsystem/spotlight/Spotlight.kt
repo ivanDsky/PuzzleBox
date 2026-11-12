@@ -12,6 +12,6 @@ data class Spotlight(
     val callout: SpotlightCallout?,
     /** Built by the game's mapper from step + board. */
     val glyphs: SpotlightGlyphs,
-    /** Bump to replay the sequence on a free re-press. */
+    /** Bump to run the sequence again on a free re-press. */
     val playId: Int,
 )
