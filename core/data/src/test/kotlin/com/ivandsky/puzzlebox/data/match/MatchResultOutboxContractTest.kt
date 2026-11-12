@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.data.match
 import androidx.room.Room
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
@@ -13,6 +14,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -71,6 +73,23 @@ class MatchResultOutboxContractTest(private val adapter: String) {
 
         assertEquals(setOf("me", "you"), outbox.observe(A).first().map { it.result.uid }.toSet())
         assertEquals(2, outbox.observe(A).first().size)
+    }
+
+    @Test
+    fun `a queued result keeps its replay`() = runTest {
+        val replay = requireNotNull(SolveReplay.of(byteArrayOf(1, 2, 3, 4)))
+        val withReplay = leg("me", 0, completedAt = 10L).copy(replay = replay)
+        outbox.enqueue(A, withReplay)
+
+        assertEquals(listOf(OutboxResult(A, withReplay, ResultPostState.Pending, 0)), outbox.observe(A).first())
+        assertEquals(replay, outbox.observe(A).first().single().result.replay)
+    }
+
+    @Test
+    fun `a result without a replay reads null`() = runTest {
+        outbox.enqueue(A, leg("me", 0, completedAt = 10L))
+
+        assertNull(outbox.observe(A).first().single().result.replay)
     }
 
     @Test
