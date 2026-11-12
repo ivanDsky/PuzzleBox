@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.database
 
-import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
@@ -9,7 +8,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
-import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /** The cloud-sync main database bump ([CloudSyncMigration]); validates against the committed 11.json. */
@@ -133,32 +131,22 @@ class CloudSyncMigrationTest {
     }
 
     @Test
-    fun `fresh v11 database is created by the normal builder path`() {
+    fun `v11 schema carries sync defaults for source and uploaded`() {
         val dbName = "puzzlebox-fresh-v11.db"
-        val context = RuntimeEnvironment.getApplication()
-        context.deleteDatabase(dbName)
-        val database = Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, dbName)
-            .addMigrations(*Migrations.ALL)
-            .build()
-        try {
-            val db = database.openHelper.writableDatabase
-            assertEquals(11, db.version)
+        val db = helper.createDatabase(dbName, 11)
 
-            // source and uploaded are omitted: the column defaults fill them.
-            db.execSQL(
-                "INSERT INTO completions " +
-                    "(puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, syncId) " +
-                    "VALUES ('queens/2026-11-08/400', 61000, 1, 1, '{\"v\":1}', 9200, 9200, 1, 'abc')",
-            )
-            db.query("SELECT source, uploaded, ownerUid FROM completions").use { cursor ->
-                assertTrue(cursor.moveToFirst())
-                assertEquals("app", cursor.getString(0))
-                assertEquals(0, cursor.getInt(1))
-                assertTrue(cursor.isNull(2))
-            }
-        } finally {
-            database.close()
-            context.deleteDatabase(dbName)
+        // source and uploaded are omitted: the column defaults fill them.
+        db.execSQL(
+            "INSERT INTO completions " +
+                "(puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, syncId) " +
+                "VALUES ('queens/2026-11-08/400', 61000, 1, 1, '{\"v\":1}', 9200, 9200, 1, 'abc')",
+        )
+        db.query("SELECT source, uploaded, ownerUid FROM completions").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("app", cursor.getString(0))
+            assertEquals(0, cursor.getInt(1))
+            assertTrue(cursor.isNull(2))
         }
+        db.close()
     }
 }

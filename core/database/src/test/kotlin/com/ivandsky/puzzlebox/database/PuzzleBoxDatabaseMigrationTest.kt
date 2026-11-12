@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.database
 
+import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
@@ -8,6 +9,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 /**
@@ -651,5 +653,148 @@ class PuzzleBoxDatabaseMigrationTest {
             assertEquals(1, cursor.getInt(1))
         }
         db.close()
+    }
+
+    @Test
+    fun `migrate 11 to 12 keeps completions and match results and opens the replay store`() {
+        val dbName = "puzzlebox-migration-11-12-test.db"
+        val v11 = helper.createDatabase(dbName, 11)
+        v11.execSQL(
+            "INSERT INTO completions " +
+                "(id, puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, " +
+                "matchCode, source, ownerUid, syncId, uploaded) " +
+                "VALUES (1, 'queens/2026-11-08/400', 61000, 1, 1, '{\"v\":1}', 9200, 9200, 1, 'K7Q2MX', 'app', 'uid-a', 'aaaa', 1)",
+        )
+        v11.execSQL(
+            "INSERT INTO completions " +
+                "(id, puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, " +
+                "matchCode, source, ownerUid, syncId, uploaded) " +
+                "VALUES (2, 'zip/2026-10-31/592', 80000, 0, 1, '{\"v\":1}', 8000, NULL, 0, NULL, 'linkedin', NULL, 'bbbb', 0)",
+        )
+        v11.execSQL(
+            "INSERT INTO match_results " +
+                "(matchCode, legIndex, uid, timeMs, hints, completedAtMs, gaveUp, postState, postAttempts) " +
+                "VALUES ('K7Q2MX', 1, 'uid-a', 61000, 1, 9200, 0, 'Pending', 2)",
+        )
+        v11.close()
+
+        // Validates against the committed 12.json.
+        val db = helper.runMigrationsAndValidate(dbName, 12, true, Migrations.MIGRATION_11_12)
+
+        db.query(
+            "SELECT id, puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, " +
+                "matchCode, source, ownerUid, syncId, uploaded FROM completions ORDER BY id",
+        ).use { cursor ->
+            assertEquals(2, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals(1L, cursor.getLong(0))
+            assertEquals("queens/2026-11-08/400", cursor.getString(1))
+            assertEquals(61000L, cursor.getLong(2))
+            assertEquals(1, cursor.getInt(3))
+            assertEquals(1, cursor.getInt(4))
+            assertEquals("{\"v\":1}", cursor.getString(5))
+            assertEquals(9200L, cursor.getLong(6))
+            assertEquals(9200L, cursor.getLong(7))
+            assertEquals(1, cursor.getInt(8))
+            assertEquals("K7Q2MX", cursor.getString(9))
+            assertEquals("app", cursor.getString(10))
+            assertEquals("uid-a", cursor.getString(11))
+            assertEquals("aaaa", cursor.getString(12))
+            assertEquals(1, cursor.getInt(13))
+            assertTrue(cursor.moveToNext())
+            assertEquals(2L, cursor.getLong(0))
+            assertEquals("zip/2026-10-31/592", cursor.getString(1))
+            assertEquals(80000L, cursor.getLong(2))
+            assertEquals(0, cursor.getInt(3))
+            assertEquals(1, cursor.getInt(4))
+            assertEquals("{\"v\":1}", cursor.getString(5))
+            assertEquals(8000L, cursor.getLong(6))
+            assertTrue(cursor.isNull(7))
+            assertEquals(0, cursor.getInt(8))
+            assertTrue(cursor.isNull(9))
+            assertEquals("linkedin", cursor.getString(10))
+            assertTrue(cursor.isNull(11))
+            assertEquals("bbbb", cursor.getString(12))
+            assertEquals(0, cursor.getInt(13))
+        }
+        db.query(
+            "SELECT matchCode, legIndex, uid, timeMs, hints, completedAtMs, gaveUp, postState, postAttempts, replay " +
+                "FROM match_results",
+        ).use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("K7Q2MX", cursor.getString(0))
+            assertEquals(1, cursor.getInt(1))
+            assertEquals("uid-a", cursor.getString(2))
+            assertEquals(61000L, cursor.getLong(3))
+            assertEquals(1, cursor.getInt(4))
+            assertEquals(9200L, cursor.getLong(5))
+            assertEquals(0, cursor.getInt(6))
+            assertEquals("Pending", cursor.getString(7))
+            assertEquals(2, cursor.getInt(8))
+            assertTrue(cursor.isNull(9))
+        }
+        db.query("SELECT COUNT(*) FROM completion_replays").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
+
+        // The helper opens the file without Room's own open step, which is what enforces foreign keys in the app.
+        db.setForeignKeyConstraintsEnabled(true)
+        db.execSQL("INSERT INTO completion_replays (completionId, replay) VALUES (1, x'0102')")
+        db.execSQL("INSERT INTO completion_replays (completionId, replay) VALUES (2, x'03')")
+        db.execSQL("DELETE FROM completions WHERE id = 1")
+        db.query("SELECT completionId, replay FROM completion_replays").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals(2L, cursor.getLong(0))
+            assertTrue(byteArrayOf(3).contentEquals(cursor.getBlob(1)))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `fresh v12 database is created by the normal builder path`() {
+        val dbName = "puzzlebox-fresh-v12.db"
+        val context = RuntimeEnvironment.getApplication()
+        context.deleteDatabase(dbName)
+        val database = Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, dbName)
+            .addMigrations(*Migrations.ALL)
+            .build()
+        try {
+            val db = database.openHelper.writableDatabase
+            assertEquals(12, db.version)
+
+            // replay is omitted: a leg queued without one reads NULL.
+            db.execSQL(
+                "INSERT INTO match_results " +
+                    "(matchCode, legIndex, uid, timeMs, hints, completedAtMs, gaveUp, postState, postAttempts) " +
+                    "VALUES ('K7Q2MX', 1, 'uid-a', 61000, 1, 9200, 0, 'Pending', 0)",
+            )
+            db.query("SELECT replay FROM match_results").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertTrue(cursor.isNull(0))
+            }
+
+            db.execSQL(
+                "INSERT INTO completions " +
+                    "(id, puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, syncId) " +
+                    "VALUES (1, 'queens/2026-11-08/400', 61000, 1, 1, '{\"v\":1}', 9200, 9200, 1, 'aaaa')",
+            )
+            db.execSQL("INSERT INTO completion_replays (completionId, replay) VALUES (1, x'0102')")
+            db.query("SELECT replay FROM completion_replays WHERE completionId = 1").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertTrue(byteArrayOf(1, 2).contentEquals(cursor.getBlob(0)))
+            }
+            // No pragma here: the app's own open path must enforce the cascade.
+            db.execSQL("DELETE FROM completions WHERE id = 1")
+            db.query("SELECT COUNT(*) FROM completion_replays").use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals(0, cursor.getInt(0))
+            }
+        } finally {
+            database.close()
+            context.deleteDatabase(dbName)
+        }
     }
 }

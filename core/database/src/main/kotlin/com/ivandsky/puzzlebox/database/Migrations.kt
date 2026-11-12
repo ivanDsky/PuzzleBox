@@ -238,6 +238,24 @@ object Migrations {
         }
     }
 
+    /**
+     * v12 (full replay): adds the side table `completion_replays`, one row per completion that keeps a
+     * solve replay, and the nullable `match_results.replay`; additive only, every v11 row is kept as it is.
+     * v11 is [CloudSyncMigration].
+     */
+    val MIGRATION_11_12 = object : Migration(11, 12) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL(
+                "CREATE TABLE IF NOT EXISTS `completion_replays` (" +
+                    "`completionId` INTEGER NOT NULL, " +
+                    "`replay` BLOB NOT NULL, " +
+                    "PRIMARY KEY(`completionId`), " +
+                    "FOREIGN KEY(`completionId`) REFERENCES `completions`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE)",
+            )
+            db.execSQL("ALTER TABLE `match_results` ADD COLUMN `replay` BLOB")
+        }
+    }
+
     val ALL: Array<Migration> =
         arrayOf(
             MIGRATION_1_2,
@@ -250,5 +268,6 @@ object Migrations {
             MIGRATION_8_9,
             MIGRATION_9_10,
             CloudSyncMigration.MIGRATION_10_11,
+            MIGRATION_11_12,
         )
 }
