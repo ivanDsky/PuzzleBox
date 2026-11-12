@@ -620,7 +620,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   3→4 daily_puzzles rebuild, 4→5 drops the legacy daily_puzzles, 5→6 adds saved_plays, 6→7
   adds drafts, custom_saved_plays, published_puzzles, received_puzzles, 7→8 (MIGRATION_7_8)
   adds leg_saved_plays, matches_local, match_results and completions.matchCode, 8→9
-  (MIGRATION_8_9) adds completions.source, 11→12 (MIGRATION_11_12, ADR-0030) adds the side table
+  (MIGRATION_8_9) adds completions.source, 9→10 (`MIGRATION_9_10`), 10→11 (`CloudSyncMigration.MIGRATION_10_11`),
+  11→12 (MIGRATION_11_12, ADR-0030) adds the side table
   `completion_replays` and nullable `match_results.replay`); no destructive fallback. `LinkedInDatabase` is a
   separate Room file at version 1 with its own schema under
   `core/database/schemas/com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase/`, so backup
