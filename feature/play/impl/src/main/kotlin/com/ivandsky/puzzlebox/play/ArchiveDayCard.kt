@@ -17,6 +17,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -45,7 +49,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val EyebrowDate = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.US)
-private val PastEyebrowDate = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", Locale.US)
+private val PastEyebrowDates = listOf("EEE, MMM d, yyyy", "MMM d, yyyy", "MMM d").map { DateTimeFormatter.ofPattern(it, Locale.US) }
 
 // "Try again" reads unavailable while offline, yet stays a tap target: its tap is the retry.
 private const val UNAVAILABLE_ALPHA = 0.5f
@@ -191,23 +195,27 @@ private fun TopRow(face: TopFace, colors: GameCardColors) {
         modifier = Modifier.then(if (face.date == null) Modifier else Modifier.testTag("library.day_card.day.${face.date}")),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // A past day's date gives way before the pill and the chip beside it, which say what the day is and what to do:
+        // it sheds its weekday, then its year, rather than end in an ellipsis that hides which day it is.
+        var shed by remember(face) { mutableIntStateOf(0) }
         val eyebrow = when {
             !face.past -> "TODAY" + face.date?.let { " · " + it.format(EyebrowDate) }.orEmpty()
-            else -> face.date?.format(PastEyebrowDate).orEmpty()
+            else -> face.date?.format(PastEyebrowDates[shed]).orEmpty()
         }
         Text(
             eyebrow.uppercase(Locale.US),
+            modifier = Modifier.weight(1f, fill = false),
             style = MaterialTheme.typography.labelSmall,
             color = colors.fg2,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            onTextLayout = { if (face.past && it.hasVisualOverflow && shed < PastEyebrowDates.lastIndex) shed++ },
         )
         if (face.past) {
             Spacer(Modifier.width(10.dp))
             Box(
-                // Gives way to the LinkedIn chip beside the row when the width runs out.
+                // Keeps its whole width: the eyebrow date gives way to it and to the LinkedIn chip beside the row.
                 modifier = Modifier
-                    .weight(1f, fill = false)
                     .height(24.dp)
                     .clip(PillShape)
                     .background(colors.fg.copy(alpha = TAG_WELL_ALPHA))
