@@ -6,6 +6,8 @@ import java.time.Clock
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,10 +26,15 @@ import kotlinx.coroutines.withContext
  *
  * Runs and [eraseCloud] go through one mutex. [syncNow] calls that arrive while a run is in flight (or while a run is
  * already waiting for the mutex) share exactly one more run. A `WrongAccount` anywhere, including a uid that changed
- * under the run, ends it at once with no further call. Any other failure ends it too and the state stays what it was
- * before the run; refining failures into [CloudSyncState.Offline] and [CloudSyncState.Paused] is the failure policy's
- * job. Runs execute on [scope], so they outlive the caller that asked for them. The engine only reads the last uid;
- * `SignedInOwnerScope` writes it.
+ * under the run, ends it at once with no further call and keeps the state. Any other failure ends it too and, by
+ * [SyncRun.pause], shows [CloudSyncState.Offline] (the next run waits for a trigger) or [CloudSyncState.Paused]. A
+ * paused run retries on its own after the pause's delay (`Exhausted` and `Denied`: 1 min doubling to 30 min; the write
+ * cap: the next day); the timer lives on [scope], so it dies with the process, and any trigger runs sooner and replaces
+ * it. A failure changes no row, marker or cursor. Runs execute on [scope], so they outlive the caller that asked for
+ * them. The engine only reads the last uid; `SignedInOwnerScope` writes it.
+ *
+ * [state] is [CloudSyncState.SignedOut] only while nobody is signed in: a signed-in engine starts at
+ * [CloudSyncState.Syncing], the pass the app start is about to run.
  */
 class SyncedKindsCloudSync(
     private val kinds: List<SyncedKind>,
@@ -51,13 +58,26 @@ class SyncedKindsCloudSync(
     private val restoredByKind = HashMap<String, Int>()
     private var restoredFor: String? = null
 
+    /** The pending automatic retry, if any, and how many cloud pauses in a row [failuresFor] has had; under [mutex]. */
+    private var retry: Job? = null
+    private var failures = 0
+    private var failuresFor: String? = null
+    private var lastSynced: Pair<String, Long>? = null
+
     override val state: StateFlow<CloudSyncState> = mutableState.asStateFlow()
 
     override val restored: Flow<RestoreSummary> = restoreEvents.receiveAsFlow()
 
     init {
         scope.launch {
-            identity.current.collect { signedIn -> if (signedIn == null) mutableState.value = CloudSyncState.SignedOut }
+            identity.current.collect { signedIn ->
+                if (signedIn == null) {
+                    mutableState.value = CloudSyncState.SignedOut
+                } else {
+                    // A run that started meanwhile has already left SignedOut, so only a still-idle engine changes.
+                    mutableState.compareAndSet(CloudSyncState.SignedOut, CloudSyncState.Syncing(firstRestore(signedIn.uid)))
+                }
+            }
         }
     }
 
@@ -78,6 +98,7 @@ class SyncedKindsCloudSync(
         val uid = identity.current.value?.uid ?: return@withLock CloudResult.WrongAccount
         val result = withContext(dispatchers.default) { erase.erase(uid) }
         if (result is CloudResult.Ok) {
+            retry?.cancel()
             restoredByKind.clear()
             mutableState.value = CloudSyncState.SignedOut
         }
@@ -100,46 +121,71 @@ class SyncedKindsCloudSync(
     }
 
     private suspend fun runOnce() {
+        retry?.cancel()
+        retry = null
         val uid = identity.current.value?.uid
         if (uid == null) {
             mutableState.value = CloudSyncState.SignedOut
             return
         }
+        if (failuresFor != uid) {
+            failures = 0
+            failuresFor = uid
+        }
         val before = mutableState.value
         mutableState.value = CloudSyncState.Syncing(firstRestore(uid))
-        var outcome: CloudResult<Unit> = CloudResult.Offline
+        val run = SyncRun(uid, space, store, identity, clock)
+        var finished = false
+        var stop: SyncRun.Stop? = null
         try {
-            outcome = execute(SyncRun(uid, space, store, identity), uid)
+            stop = execute(run, uid)
+            finished = true
         } finally {
-            mutableState.value = when {
-                identity.current.value == null -> CloudSyncState.SignedOut
-                outcome is CloudResult.Ok -> CloudSyncState.Synced(clock.millis())
-                else -> before
+            mutableState.value = if (identity.current.value == null) {
+                CloudSyncState.SignedOut
+            } else if (!finished) {
+                before
+            } else {
+                settle(run, uid, stop) ?: before
             }
         }
     }
 
-    private suspend fun execute(run: SyncRun, uid: String): CloudResult<Unit> {
+    /** The state after a finished run: [Synced][CloudSyncState.Synced] on success, else [stop]'s pause (null: keep the old state). */
+    private fun settle(run: SyncRun, uid: String, stop: SyncRun.Stop?): CloudSyncState? {
+        if (stop == null) {
+            failures = 0
+            return CloudSyncState.Synced(clock.millis()).also { lastSynced = uid to it.atMs }
+        }
+        val attempt = failures + 1
+        val pause = run.pause(stop, attempt, lastSynced?.takeIf { it.first == uid }?.second) ?: return null
+        if (pause.retryAfterMs != null && stop is SyncRun.Stop.Cloud) failures = attempt
+        pause.retryAfterMs?.let { wait ->
+            retry = scope.launch(dispatchers.default) {
+                delay(wait)
+                syncNow()
+            }
+        }
+        return pause.state
+    }
+
+    private suspend fun execute(run: SyncRun, uid: String): SyncRun.Stop? {
         if (restoredFor != uid) restoredByKind.clear()
         restoredFor = uid
         for (kind in kinds) {
             val adopted = run.adopt(kind)
-            if (adopted !is CloudResult.Ok) return adopted
+            if (adopted !is CloudResult.Ok) return SyncRun.Stop.Cloud(adopted)
         }
         for (kind in kinds) {
             when (val pulled = run.pull(kind)) {
                 is CloudResult.Ok -> restoredByKind.merge(kind.kind, pulled.value, Int::plus)
-                CloudResult.Offline -> return CloudResult.Offline
-                CloudResult.Exhausted -> return CloudResult.Exhausted
-                CloudResult.Denied -> return CloudResult.Denied
-                CloudResult.WrongAccount -> return CloudResult.WrongAccount
+                else -> return SyncRun.Stop.Cloud(pulled)
             }
-            val pushed = run.push(kind)
-            if (pushed !is CloudResult.Ok) return pushed
+            run.push(kind)?.let { return it }
         }
-        if (!run.signedIn()) return CloudResult.WrongAccount
+        if (!run.signedIn()) return SyncRun.Stop.Cloud(CloudResult.WrongAccount)
         reportRestore(uid)
-        return CloudResult.Ok(Unit)
+        return null
     }
 
     /** True while [uid]'s first restore on this device has not finished: some kind still has no cursor. */
