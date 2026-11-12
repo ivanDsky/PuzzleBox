@@ -31,15 +31,28 @@ object SessionBlob {
     /** [log] is null for version 1, the move-log bytes for version 2. */
     data class Decoded(val game: GameId, val session: ByteArray, val log: ByteArray? = null)
 
-    fun encode(game: GameId, session: ByteArray): ByteArray {
+    /** [log] null or empty: version 1, byte-identical to what this encoder wrote before logs existed. Non-empty: version 2. */
+    fun encode(game: GameId, session: ByteArray, log: ByteArray? = null): ByteArray {
         val name = game.value
         require(name.isNotEmpty() && name.length <= 0xFF) { "gameId must be 1..255 ASCII chars" }
         val nameBytes = name.toByteArray(Charsets.US_ASCII)
-        return ByteArray(2 + nameBytes.size + session.size).also { out ->
-            out[0] = VERSION.toByte()
+        val headerSize = 2 + nameBytes.size
+        if (log == null || log.isEmpty()) {
+            return ByteArray(headerSize + session.size).also { out ->
+                out[0] = VERSION.toByte()
+                out[1] = nameBytes.size.toByte()
+                nameBytes.copyInto(out, destinationOffset = 2)
+                session.copyInto(out, destinationOffset = headerSize)
+            }
+        }
+        val sessionStart = headerSize + Int.SIZE_BYTES
+        return ByteArray(sessionStart + session.size + log.size).also { out ->
+            out[0] = VERSION_WITH_LOG.toByte()
             out[1] = nameBytes.size.toByte()
             nameBytes.copyInto(out, destinationOffset = 2)
-            session.copyInto(out, destinationOffset = 2 + nameBytes.size)
+            for (i in 0 until Int.SIZE_BYTES) out[headerSize + i] = (session.size ushr (24 - 8 * i)).toByte()
+            session.copyInto(out, destinationOffset = sessionStart)
+            log.copyInto(out, destinationOffset = sessionStart + session.size)
         }
     }
 
