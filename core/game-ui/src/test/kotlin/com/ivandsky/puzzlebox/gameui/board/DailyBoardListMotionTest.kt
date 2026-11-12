@@ -68,7 +68,7 @@ class DailyBoardListMotionTest {
     private fun ranked(vararg players: String) =
         players.mapIndexed { index, player -> DailyBoardLine.Real(real(player).row, index + 1) }
 
-    private fun show(initial: List<DailyBoardLine>, animated: Boolean = true, reducedMotion: Boolean = false) {
+    private fun show(initial: List<DailyBoardLine>, animated: Boolean = true, reducedMotion: Boolean = false, settled: Boolean = false) {
         if (reducedMotion) {
             val context = ApplicationProvider.getApplicationContext<Context>()
             Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
@@ -77,7 +77,7 @@ class DailyBoardListMotionTest {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                DailyBoardList(lines, RankOrder.TimeThenHints, pinned = pinned, animated = animated)
+                DailyBoardList(lines, RankOrder.TimeThenHints, pinned = pinned, animated = animated, settled = settled)
             }
         }
         // The first lines are on show from the start; the rows' own entrance, if any, is played out.
@@ -329,6 +329,19 @@ class DailyBoardListMotionTest {
 
         assertEquals(0, count("ada"))
         composeRule.onAllNodesWithText("bo").assertCountEquals(1)
+    }
+
+    @Test
+    fun `a settled list keeps the podium's medals and lands every change at once`() {
+        show(ranked("ada", "bo", "cy", "di"), settled = true)
+        assertTrue("the medals are there from the start", showsMedal("ada", MedalGold))
+
+        change { lines = ranked("di", "ada", "bo", "cy") }
+
+        rank("di").assertTextEquals("1")
+        assertTrue("di has its gold at once", showsMedal("di", MedalGold))
+        assertFalse("cy has no medal at once", showsAnyMedal("cy"))
+        assertEquals(1, count("di"))
     }
 
     @Test

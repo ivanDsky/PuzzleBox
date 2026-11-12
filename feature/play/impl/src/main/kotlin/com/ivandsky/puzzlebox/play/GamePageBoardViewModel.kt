@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView.Target
+import com.ivandsky.puzzlebox.domain.linkedin.SavedBoardState
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
@@ -47,13 +48,15 @@ import kotlinx.coroutines.flow.update
  * game's calendar, and the [board] to draw for it, the top rows with the player's own row pinned under them when
  * it ranks lower. While that day's board has not arrived, [board] is Loading, except that with LinkedIn a board
  * already drawn stays whole (day, rows and ghosts) until the next day is ready: the title and the rows change together.
- * [ghosts] are the LinkedIn connections of that day, none until they are read.
+ * [ghosts] are the LinkedIn connections of that day, none until they are read. [saved] says whether that day's board
+ * is a saved one, which the page marks and draws settled.
  */
 internal data class GamePageBoardState(
     val day: LocalDate? = null,
     val isToday: Boolean = true,
     val board: DailyBoardState = DailyBoardState.Loading,
     val ghosts: List<GhostRowModel> = emptyList(),
+    val saved: SavedBoardState = SavedBoardState.NotYetRead,
 ) {
     /** Whether rows or ghosts are on screen, so the next day can replace them rather than start from nothing. */
     fun isDrawn(): Boolean = board is DailyBoardState.Ranked || (board == DailyBoardState.SignedOut && ghosts.isNotEmpty())
@@ -157,7 +160,9 @@ internal class GamePageBoardViewModel(
      * times they show, each keeping its PuzzleBox rank.
      */
     private fun stateOf(shown: Shown, drawn: DailyBoardState, input: LinkedInBoardInput): GamePageBoardState {
-        if (drawn !is DailyBoardState.Ranked) return GamePageBoardState(day = shown.day, isToday = shown.isToday, board = drawn, ghosts = input.ghosts)
+        if (drawn !is DailyBoardState.Ranked) {
+            return GamePageBoardState(day = shown.day, isToday = shown.isToday, board = drawn, ghosts = input.ghosts, saved = input.saved)
+        }
         val ranked = if (input.ghosts.isEmpty() && input.you == null) null else rankWithLinkedIn(drawn.rows, input.ghosts, input.you, order)
         val reals = ranked?.filterIsInstance<DailyBoardLine.Real>()
         val rows = reals?.map { it.row } ?: drawn.rows
@@ -167,6 +172,7 @@ internal class GamePageBoardViewModel(
             day = shown.day,
             isToday = shown.isToday,
             ghosts = input.ghosts,
+            saved = input.saved,
             board = drawn.copy(
                 rows = rows.take(TOP_ROWS),
                 pinned = pinned,

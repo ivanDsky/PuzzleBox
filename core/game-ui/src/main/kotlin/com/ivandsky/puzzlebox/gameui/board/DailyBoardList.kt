@@ -31,7 +31,9 @@ private val DividerHeight = 1.dp
  * row and its divider too; under reduced motion every change lands at once, the final place and its medal included. Rows are the
  * same rows by their player or connection, never by place or day: on another day's board the people on both days
  * slide to their new places and update in place, the others arrive and leave. Animated rows are opaque, on [backdrop],
- * the colour the list sits on. Without [animated] the list is drawn plainly.
+ * the colour the list sits on. Without [animated] the list is drawn plainly. A [settled] list (a saved board: its rows
+ * are final and arrive in one order) never moves: it is drawn as under reduced motion, rows at their final places and
+ * the podium's medals included.
  */
 @Composable
 fun DailyBoardList(
@@ -40,10 +42,11 @@ fun DailyBoardList(
     modifier: Modifier = Modifier,
     pinned: DailyBoardLine.Real? = null,
     animated: Boolean = false,
+    settled: Boolean = false,
     backdrop: Color = MaterialTheme.colorScheme.background,
 ) {
     val withPuzzleBoxRank = (lines + listOfNotNull(pinned)).placesDifferFromPuzzleBox()
-    if (animated && !(rememberReducedMotion() || LocalInspectionMode.current)) {
+    if (animated && !settled && !(rememberReducedMotion() || LocalInspectionMode.current)) {
         AnimatedBoardList(lines, pinned, order, withPuzzleBoxRank, backdrop, modifier)
         return
     }

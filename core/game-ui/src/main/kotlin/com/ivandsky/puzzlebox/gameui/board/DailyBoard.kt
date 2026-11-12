@@ -24,7 +24,8 @@ private const val MaxGhosts = 20
  * The board body: [title] ("<Game> · today"), the [order]'s rule caption, and the one [state] drawn.
  * [ghosts] are LinkedIn connections drawn among the rows (or above [signIn] when signed out), each with its place in
  * one combined rank; a board with ghosts also tells each PuzzleBox row's own rank. [signIn] fills the signed-out state.
- * With [animated] the rows move, arrive and leave with motion (see [DailyBoardList]), on a change of day too.
+ * With [animated] the rows move, arrive and leave with motion (see [DailyBoardList]), on a change of day too, unless
+ * the board is [settled] (a saved board), whose rows are drawn at their final places and never move.
  * [isToday] says whether the board is today's, so an empty one names the day it shows.
  */
 @Composable
@@ -36,6 +37,7 @@ fun DailyBoard(
     ghosts: List<GhostRowModel> = emptyList(),
     signIn: (@Composable () -> Unit)? = null,
     animated: Boolean = false,
+    settled: Boolean = false,
     isToday: Boolean = true,
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -50,16 +52,23 @@ fun DailyBoard(
             DailyBoardState.Loading -> Line("Loading…", "daily_board.loading")
             DailyBoardState.Unavailable -> Line("Leaderboard unavailable right now.", "daily_board.unavailable")
             DailyBoardState.SignedOut -> {
-                DailyBoardList(rankWithGhosts(emptyList(), ghosts, order), order, animated = animated)
+                DailyBoardList(rankWithGhosts(emptyList(), ghosts, order), order, animated = animated, settled = settled)
                 signIn?.invoke()
             }
-            is DailyBoardState.Ranked -> Ranked(state, ghosts, order, animated, isToday)
+            is DailyBoardState.Ranked -> Ranked(state, ghosts, order, animated, settled, isToday)
         }
     }
 }
 
 @Composable
-private fun Ranked(state: DailyBoardState.Ranked, ghosts: List<GhostRowModel>, order: RankOrder, animated: Boolean, isToday: Boolean) {
+private fun Ranked(
+    state: DailyBoardState.Ranked,
+    ghosts: List<GhostRowModel>,
+    order: RankOrder,
+    animated: Boolean,
+    settled: Boolean,
+    isToday: Boolean,
+) {
     val lines = remember(state, ghosts, order) { (state.lines ?: rankWithGhosts(state.rows, ghosts, order)).capGhosts() }
     if (lines.isEmpty()) {
         val message = if (isToday) "No one is on today's board yet." else "No one is on this day's board yet."
@@ -70,6 +79,7 @@ private fun Ranked(state: DailyBoardState.Ranked, ghosts: List<GhostRowModel>, o
         order,
         pinned = state.pinned?.let { DailyBoardLine.Real(it, state.pinnedPlace ?: it.rank) },
         animated = animated,
+        settled = settled,
     )
     state.note?.let { Line(it.text, "daily_board.note") }
 }

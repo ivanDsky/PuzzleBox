@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
+import com.ivandsky.puzzlebox.domain.linkedin.SavedBoardState
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
@@ -138,6 +139,7 @@ class GamePageBoardViewModelTest {
         fetchedAtMs: Long? = 1L,
         own: LinkedInOwnState = LinkedInOwnState.Unknown,
         owner: LinkedInOwner? = null,
+        complete: Boolean = false,
     ) = LinkedInDayData(
         link = LinkState.Connected("member-1"),
         delta = 0,
@@ -148,6 +150,7 @@ class GamePageBoardViewModelTest {
         ghosts = ghosts,
         boardFetchedAtMs = fetchedAtMs,
         owner = owner,
+        boardComplete = complete,
     )
 
     private fun after(ms: Long) {
@@ -295,6 +298,36 @@ class GamePageBoardViewModelTest {
         days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L)), inWindow = false))
         settle()
         assertEquals(listOf("Ada"), model.state.value.ghosts.map { it.name })
+    }
+
+    @Test
+    fun `the board says whether its day is saved, never saved or not yet read - A36`() {
+        val model = linkedInModel()
+        model.state.launchIn(screen)
+
+        days.emit(game, today, dayData(emptyList(), fetchedAtMs = null))
+        settle()
+        assertEquals(SavedBoardState.NotYetRead, model.state.value.saved)
+
+        days.emit(game, today, dayData(emptyList(), inWindow = false, fetchedAtMs = null))
+        settle()
+        assertEquals(SavedBoardState.NeverSaved, model.state.value.saved)
+
+        days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L)), fetchedAtMs = 7_000L))
+        settle()
+        assertEquals(SavedBoardState.Saved(7_000L, final = false), model.state.value.saved)
+
+        days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L)), inWindow = false, fetchedAtMs = 9_000L, complete = true))
+        settle()
+        assertEquals(SavedBoardState.Saved(9_000L, final = true), model.state.value.saved)
+    }
+
+    @Test
+    fun `without LinkedIn the board is never saved or settled`() {
+        viewModel.state.launchIn(screen)
+        settle()
+
+        assertEquals(SavedBoardState.NotYetRead, viewModel.state.value.saved)
     }
 
     @Test
