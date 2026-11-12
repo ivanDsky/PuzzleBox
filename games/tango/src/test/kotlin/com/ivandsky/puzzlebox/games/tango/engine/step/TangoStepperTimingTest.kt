@@ -48,7 +48,10 @@ class TangoStepperTimingTest {
         assertTrue("n=${puzzle.n} took $ms ms", ms < LIMIT_MS)
     }
 
-    /** The search the UI runs: two solutions wanted, spent after [POLL_LIMIT] nodes (TangoStepGame.POLL_LIMIT). */
+    /**
+     * The search the UI runs: two solutions wanted, spent after [POLL_LIMIT] nodes
+     * (TangoBoundedSolution.POLL_LIMIT).
+     */
     private fun search(puzzle: TangoPuzzle): TangoSearchOutcome {
         var polls = 0
         return TangoUniqueness.bounded(puzzle, limit = 2, budget = Budget { polls++ >= POLL_LIMIT })
