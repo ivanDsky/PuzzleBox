@@ -23,6 +23,10 @@ interface SavedBoardDao {
     @Query("SELECT day FROM saved_boards WHERE game = :game ORDER BY day")
     fun observeDays(game: String): Flow<List<String>>
 
+    /** Every saved board of every owner, in (game, day) order. */
+    @Query("SELECT * FROM saved_boards ORDER BY game, day")
+    suspend fun all(): List<SavedBoardEntity>
+
     @Query("DELETE FROM saved_boards WHERE game = :game AND day = :day")
     suspend fun delete(game: String, day: String)
 
@@ -36,6 +40,10 @@ interface SavedBoardDao {
     /** Records the cloud-acknowledged content of one board. */
     @Query("UPDATE saved_boards SET uploadedFingerprint = :fingerprint WHERE game = :game AND day = :day")
     suspend fun setFingerprint(game: String, day: String, fingerprint: String)
+
+    /** Forgets what the cloud holds of [ownerUid]'s boards, so every one of them is pending again. */
+    @Query("UPDATE saved_boards SET uploadedFingerprint = NULL WHERE ownerUid = :ownerUid")
+    suspend fun clearFingerprints(ownerUid: String)
 
     /** Gives every unowned board to [ownerUid], at sign-in. */
     @Query("UPDATE saved_boards SET ownerUid = :ownerUid WHERE ownerUid IS NULL")
