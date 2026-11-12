@@ -9,19 +9,19 @@ import kotlinx.coroutines.CoroutineScope
 
 /**
  * The controller's [StepHints] for one play. A press only shows, a culprit included (A4); a count (A9) goes to
- * [count], which must not clear the Spotlight the press just set. [session] is non-null whenever a step delivers: a
+ * [count], which must not clear the Spotlight the press just set; it records the one counted hint. [session] is non-null whenever a step delivers: a
  * press needs a session and any input drops the search.
  */
 internal fun tangoStepHints(
     mode: HintMode.Stepwise,
     scope: CoroutineScope,
     session: () -> TangoSession?,
-    count: (TangoSession) -> Unit,
+    count: () -> Unit,
     solve: (TangoPuzzle) -> List<TangoCell>?,
 ): StepHints<*, *> = StepHints(
     mode,
     scope,
     TangoStepGame(session = { checkNotNull(session()) }, solve = solve),
     used = { session()?.hintsUsed ?: 0 },
-    onCount = { used -> session()?.let { count(it.copy(hintsUsed = used)) } },
+    onCount = { count() },
 )

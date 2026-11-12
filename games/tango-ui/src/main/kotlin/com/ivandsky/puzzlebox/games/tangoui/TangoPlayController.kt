@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
+import com.ivandsky.puzzlebox.games.tango.TangoReplayMove
 import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.games.tango.codec.TangoSessionCodec
@@ -73,10 +74,11 @@ class TangoPlayController(
     internal val guidance = TangoGuide()
 
     private val clock = TangoRunClock(now)
+    private val moveLog = TangoMoveLog(env.moveLog, now) { clock.since }
     private val settle = TangoSettle(env.scope)
 
     // Reset per play, never rebuilt, so the solution memo survives (A1, A9, A10).
-    private val stepHints = tangoStepHints(hintMode, env.scope, { session }, count = ::updateSession, solve = solve)
+    private val stepHints = tangoStepHints(hintMode, env.scope, { session }, count = ::countHint, solve = solve)
 
     /** The Stepwise hint on screen; null after any input. */
     val spotlight: Spotlight? get() = stepHints.spotlight
@@ -106,15 +108,16 @@ class TangoPlayController(
         if (grid[placement.idx] == placement.value) return // no-op
         val before = violatingSets(puzzle, grid)
         val move = TangoMove(placement.idx, placement.value)
+        val at = now()
         when (val verdict = rules.validate(move, TangoState(puzzle, grid))) {
-            is TangoVerdict.Valid -> land(current, move, placedAt = now(), mistake = null, before = before)
+            is TangoVerdict.Valid -> land(current, move, at, mistake = null, before = before)
 
             // Inert by policy (the tap policy never emits given/foreign placements).
             is TangoVerdict.Rejected if verdict.reason == TangoVerdict.Reason.LockedGiven ||
                 verdict.reason == TangoVerdict.Reason.ForeignMove -> Unit
 
             // A rule-violating placement LANDS (§6): mistake + rule-naming caption, none while guided.
-            is TangoVerdict.Rejected -> land(current, move, now(), verdict.reason.takeUnless { guidance.active }, before)
+            is TangoVerdict.Rejected -> land(current, move, at, verdict.reason.takeUnless { guidance.active }, before)
         }
     }
 
@@ -122,12 +125,12 @@ class TangoPlayController(
     private fun land(
         current: TangoSession,
         move: TangoMove,
-        placedAt: Instant,
+        at: Instant,
         mistake: TangoVerdict.Reason?,
         before: Set<Set<Int>>,
     ) {
-        val moved = current.withMove(move, placedAt)
-        val next = if (mistake != null) moved.withRejection() else moved
+        val moved = moveLog.record(current, TangoReplayMove.Place(move.idx, move.value), at)
+        val next = if (mistake != null) moveLog.record(moved, TangoReplayMove.Rejection, at) else moved
         if (next == current) return // nothing changed (e.g. a hinted-equal placement)
         // Suppress only the NEW violations this move introduced (after − before).
         settle.suppress(violatingSets(current.puzzle, next.grid()) - before)
@@ -140,10 +143,10 @@ class TangoPlayController(
      * transient reveals clear, and violations it NEWLY creates (a redo can restore one) wait
      * out the settle window while ones it removes vanish at once. The clock is not rewound.
      */
-    private fun stepHistory(step: (TangoSession) -> TangoSession) {
+    private fun stepHistory(move: TangoReplayMove) {
         val current = session ?: return
         stepHints.inputMade() // any history press is input, even one with nothing to move (A10)
-        val next = step(current)
+        val next = moveLog.record(current, move)
         if (next == current) return // nothing to move, or the session is complete
         lastRejection = null
         settle.arm()
@@ -154,12 +157,12 @@ class TangoPlayController(
     override val canUndo: Boolean get() = session?.let { !it.isComplete && it.history.canUndo } ?: false
     override val canRedo: Boolean get() = session?.let { !it.isComplete && it.history.canRedo } ?: false
 
-    override fun undo() = stepHistory(TangoSession::withUndo)
+    override fun undo() = stepHistory(TangoReplayMove.Undo)
 
-    override fun redo() = stepHistory(TangoSession::withRedo)
+    override fun redo() = stepHistory(TangoReplayMove.Redo)
 
     /** Clear: every player placement in ONE undo unit, givens stay; a no-op on an empty or solved board. */
-    fun clearBoard() = stepHistory(TangoSession::withCleared)
+    fun clearBoard() = stepHistory(TangoReplayMove.Clear)
 
     //endregion
 
@@ -273,6 +276,11 @@ class TangoPlayController(
     private fun commit(next: TangoSession) {
         stepHints.inputMade()
         updateSession(next)
+    }
+
+    private fun countHint() {
+        val current = session ?: return
+        updateSession(moveLog.record(current, TangoReplayMove.Hint))
     }
 
     private fun updateSession(next: TangoSession) {
