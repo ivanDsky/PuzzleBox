@@ -7,7 +7,8 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
  * Pure first-win decision core (JVM-tested): the FIRST in-app completion of a puzzleRef
  * is the player's record; every later play of the same ref is a replay — stored, but it
  * NEVER mutates the record (only records are leaderboard-eligible). Android-free so
- * the first-win rule stays provable without Room or Robolectric.
+ * the first-win rule stays provable without Room or Robolectric. Which rows count as "the ref's record" is the
+ * caller's visible-owner query, so a puzzle A finished does not make B's first finish a replay.
  */
 internal class FirstWinPolicy {
 
@@ -31,8 +32,9 @@ internal class FirstWinPolicy {
      * The row to insert for an emitted record under [decision]: the score inputs pass
      * through untouched; the record stamps come from the decision, never from the emitted
      * flags (emitted firstCompletedAt/isRecord are null/false per the core/game contract).
+     * [ownerUid] is the writer uid of the signed-in account, null when no account owns new rows.
      */
-    fun stamp(record: CompletionRecord, refKey: String, decision: Decision): CompletionEntity {
+    fun stamp(record: CompletionRecord, refKey: String, decision: Decision, ownerUid: String? = null): CompletionEntity {
         val (completedAtMs, isRecord) = when (decision) {
             is Decision.Record -> decision.completedAtMs to true
             is Decision.PlayAgain -> decision.completedAtMs to false
@@ -48,6 +50,7 @@ internal class FirstWinPolicy {
             isRecord = isRecord,
             matchCode = record.matchCode,
             source = record.source.storedName,
+            ownerUid = ownerUid,
         )
     }
 }
