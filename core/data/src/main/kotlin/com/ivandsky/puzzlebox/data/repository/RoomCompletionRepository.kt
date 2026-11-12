@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
 import com.ivandsky.puzzlebox.data.model.toModel
 import com.ivandsky.puzzlebox.database.CompletionDao
 import com.ivandsky.puzzlebox.database.CompletionReplayDao
+import com.ivandsky.puzzlebox.database.CompletionReplayEntity
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -40,7 +41,7 @@ internal class RoomCompletionRepository(
     private val clock: () -> Long = System::currentTimeMillis,
 ) : CompletionRepository {
 
-    override suspend fun onCompleted(record: CompletionRecord) {
+    override suspend fun onCompleted(record: CompletionRecord, replay: SolveReplay?) {
         val refKey = PuzzleRefKeys.encode(record.puzzleRef)
         db.withTransaction {
             // A repeated import adds nothing; checking inside the transaction keeps two racing imports from both inserting.
@@ -51,7 +52,12 @@ internal class RoomCompletionRepository(
                 return@withTransaction
             }
             val decision = policy.decide(hasRecord = dao.record(refKey, visible) != null, nowMs = clock())
-            dao.insert(policy.stamp(record, refKey, decision, owner.writer()))
+            val completionId = dao.insert(policy.stamp(record, refKey, decision, owner.writer()))
+            // The completion row goes first: the replay row references it.
+            if (replay != null) {
+                replayDao.insert(CompletionReplayEntity(completionId, replay.toByteArray()))
+                replayDao.prune(refKey)
+            }
         }
     }
 

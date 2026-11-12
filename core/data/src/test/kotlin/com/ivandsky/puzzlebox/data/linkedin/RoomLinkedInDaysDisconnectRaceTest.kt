@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInPhotoSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccountSource
@@ -197,10 +198,10 @@ class RoomLinkedInDaysDisconnectRaceTest {
         private val entered: CompletableDeferred<Unit>,
         private val release: CompletableDeferred<Unit>,
     ) : CompletionRepository by delegate {
-        override suspend fun onCompleted(record: CompletionRecord) {
+        override suspend fun onCompleted(record: CompletionRecord, replay: SolveReplay?) {
             entered.complete(Unit)
             release.await()
-            delegate.onCompleted(record)
+            delegate.onCompleted(record, replay)
         }
     }
 
