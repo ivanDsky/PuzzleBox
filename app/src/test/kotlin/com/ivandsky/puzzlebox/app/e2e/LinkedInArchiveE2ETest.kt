@@ -81,7 +81,7 @@ class LinkedInArchiveE2ETest {
     }
 
     @Test
-    fun `SC2 a never-seen past day costs one games-by-id call, stores one row, and replays offline in a new graph`() =
+    fun `SC2 a never-seen past day costs one games-by-id call, stores one row, and plays again offline in a new graph`() =
         forEachGame { game ->
             val transport = FakeFeedTransport().apply { respond(game.byId(1), FetchResult.Ok(game.fixture(1))) }
             val first = graph(transport)
@@ -237,7 +237,7 @@ class LinkedInArchiveE2ETest {
 
     private fun forEachGame(block: suspend (LinkedInGame) -> Unit) = runBlocking { GAMES.forEach { block(it) } }
 
-    /** Ready, and the game's own session codec reads the replay it built: the day plays. */
+    /** Ready, and the game's own session codec reads the session it built: the day plays. */
     private fun Graph.assertPlays(game: LinkedInGame, outcome: PastDayOutcome) {
         val ready = outcome as? PastDayOutcome.Ready ?: throw AssertionError("${game.id.value}: $outcome, expected Ready")
         val blob = checkNotNull(SessionBlob.decode(ready.session)) { "${game.id.value}: no session envelope" }

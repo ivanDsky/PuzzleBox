@@ -79,7 +79,7 @@ import org.robolectric.annotation.Config
  * Over the real shell, a file-backed Room record store and the daily board's submitter: a
  * duel's day puzzle is that day's official puzzle. Its first solve is the day's solo solve with
  * its duel origin, so history, stats, archive progress and the daily board move as a solo
- * solve's would; a later solo solve of it is a replay; the leg plays in its own slot, never a
+ * solve's would; a later solo solve of it is a play-again; the leg plays in its own slot, never a
  * daily's saved play; and its result is queued for the poster once.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -178,7 +178,7 @@ class OfficialLegE2ETest {
     }
 
     @Test
-    fun aLaterSoloSolveOfALegPuzzleIsAReplay() = duel {
+    fun aLaterSoloSolveOfALegPuzzleIsAPlayAgain() = duel {
         graph.koin.get<LeaderboardSubmitWatcher>().start()
         openDuelPuzzle(todayLeg)
         solveLeg(todayLeg)
@@ -192,17 +192,17 @@ class OfficialLegE2ETest {
         awaitActionable(PLAY_AGAIN)
         tap(PLAY_AGAIN)
         awaitTag(GAME_ROUTE)
-        val replay = awaitDaily { it.zip.session?.path?.isEmpty() == true && !it.controller.isComplete }
-        rule.runOnIdle { replay.trace(ZipPlayFixture.solution) }
+        val playAgain = awaitDaily { it.zip.session?.path?.isEmpty() == true && !it.controller.isComplete }
+        rule.runOnIdle { playAgain.trace(ZipPlayFixture.solution) }
         awaitTag(RESULT_ROUTE)
 
         val completions = graph.koin.get<CompletionRepository>()
         rule.waitUntil(TIMEOUT_MS) { runBlocking { completions.observePlayAgains(todayRef).first() }.isNotEmpty() }
-        val replays = runBlocking { completions.observePlayAgains(todayRef).first() }
-        assertEquals("the solo solve is one replay of its own", listOf(null), replays.map { it.matchCode })
+        val playAgains = runBlocking { completions.observePlayAgains(todayRef).first() }
+        assertEquals("the solo solve is one replay of its own", listOf(null), playAgains.map { it.matchCode })
         assertEquals("the leg's record stands", listOf(record), records())
         assertEquals("history is unchanged", history, reads().history)
-        awaitWallClock(SETTLE_MS) // a wrongly submitted replay would have been launched by now
+        awaitWallClock(SETTLE_MS) // a wrongly submitted play-again would have been launched by now
         assertEquals("a replay never reaches the board", submitted, graph.leaderboard.submitted.toList())
     }
 

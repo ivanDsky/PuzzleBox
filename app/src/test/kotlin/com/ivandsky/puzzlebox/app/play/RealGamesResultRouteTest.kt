@@ -110,12 +110,12 @@ class RealGamesResultRouteTest {
             composeRule.waitForIdle()
             // The route speaks for the live play only for the solve it holds: key it by that solve.
             val solved = composeRule.runOnIdle { checkNotNull(zip().session) }
-            var replayed = false
+            var playedAgain = false
             composeRule.setContent {
                 PuzzleBoxTheme(darkTheme = false) {
                     ResultRoute(
                         key = ResultKey(ZipDefinition.id.value, today.toString(), solved.elapsedMs, solved.hintsUsed),
-                        onPlayAgain = { replayed = true },
+                        onPlayAgain = { playedAgain = true },
                         onNext = {},
                         onDone = {},
                         onOpenBoard = {},
@@ -128,10 +128,10 @@ class RealGamesResultRouteTest {
             composeRule.onNodeWithTag("result.hero.time").assertExists()
             composeRule.onNodeWithTag("result.hero.pill").assertExists()
 
-            // "Play again": navigation is handed back; the explicit replay is a fresh session.
+            // "Play again": navigation is handed back; the explicit play-again is a fresh session.
             composeRule.onNodeWithTag("result.playAgain").performScrollTo().performClick()
             composeRule.runOnIdle {
-                assertTrue(replayed)
+                assertTrue(playedAgain)
                 store.playAgain(ResultKey(ZipDefinition.id.value, today.toString(), solved.elapsedMs, solved.hintsUsed))
                 assertTrue(zip().session?.path?.isEmpty() == true)
                 assertTrue(zip().session?.isComplete == false)

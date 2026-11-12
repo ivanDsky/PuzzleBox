@@ -41,7 +41,7 @@ import org.robolectric.annotation.Config
 /**
  * Play-flow rows of the transition table (spec §2.6) over the real shell: N2, N4–N9 (N3 is
  * PlayBackE2ETest's), SC4 (back from Result lands on its origin — the hub here in N5, Home's
- * "Play today" in N9; the History replay origin is HistoryE2ETest's N11) and SC10 ("Next"
+ * "Play today" in N9; the History play-again origin is HistoryE2ETest's N11) and SC10 ("Next"
  * names the next unsolved daily; all done shows when nothing is left, and Done returns to
  * the origin). Every row asserts the navigation state (with SC2's selected tab) and the
  * visible `route.*` tag.

@@ -120,7 +120,7 @@ class LeaderboardSubmitWatcherTest {
     }
 
     @Test
-    fun `replays and non-daily records never submit (A5)`() = runTest {
+    fun `play-agains and non-daily records never submit (A5)`() = runTest {
         val records = FakeCompletionRepository(
             listOf(record(isRecord = false), record(ref = ZipPuzzleRef(PuzzleKey.Daily(day, puzzleNumber = null)))),
         )
