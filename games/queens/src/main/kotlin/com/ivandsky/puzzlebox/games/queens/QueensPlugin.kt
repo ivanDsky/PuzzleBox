@@ -173,6 +173,7 @@ val queensPlugin: GamePlugin<QueensState, QueensSession, QueensRendererModel> =
             QueensRendererModel.of(state.puzzle, state.queens.map { it.idx }.toSet(), hint)
         },
         editor = QueensEditor,
+        replay = QueensReplay,
     )
 
 /**
