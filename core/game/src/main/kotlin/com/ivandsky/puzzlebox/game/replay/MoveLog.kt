@@ -25,6 +25,15 @@ class MoveLog private constructor(private var journal: Journal?) {
     fun <S : GameSession> setting(replay: GameReplay<S>, session: S, move: ReplayMove, atMs: Long): S =
         step(replay, session, move, atMs, isSetting = true)
 
+    /**
+     * Empties the journal for a new solve of the same game: play again after a restored play adopts the saved
+     * session first, and what that adopt recorded at the saved time would raise every stamp of the new solve.
+     * An off or void log stays as it was.
+     */
+    fun restart() {
+        journal?.moves?.clear()
+    }
+
     /** In-progress bytes for the saved play; null = nothing to save. */
     fun snapshot(): ByteArray? {
         val current = journal ?: return null
