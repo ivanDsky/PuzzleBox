@@ -211,8 +211,8 @@ class RevealSummaryModelTest {
         assertEquals("Best of 1 · Mon 9 Nov", summary.bestOf)
     }
 
-    private fun card(leg: LegReveal, title: String, rankOrder: RankOrder = RankOrder.TimeThenHints) =
-        RevealCard(leg, title, chip = "", rankOrder = rankOrder, basis = "", pill = "")
+    private fun card(leg: LegReveal, title: String, rankOrder: RankOrder = RankOrder.TimeThenHints, legIndex: Int = 0) =
+        RevealCard(leg, title, chip = "", rankOrder = rankOrder, basis = "", pill = "", legIndex = legIndex)
 
     private fun match(refs: List<GameId>, deadlineHours: Int, includeFriends: Boolean) = Match(
         code = code,

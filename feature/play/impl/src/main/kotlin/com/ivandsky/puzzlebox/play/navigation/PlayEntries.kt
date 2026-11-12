@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.play.LibraryRequest
 import com.ivandsky.puzzlebox.play.LibraryRoute
 import com.ivandsky.puzzlebox.play.MatchLegResultRoute
 import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.ReplayCompareRoute
 import com.ivandsky.puzzlebox.play.ReplayRoute
 import com.ivandsky.puzzlebox.play.ResultRoute
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
@@ -20,6 +21,7 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.friend.CustomResultRoute
@@ -45,7 +47,7 @@ import org.koin.compose.koinInject
  * acts once on [libraryRequest]'s game page or section and hands it back through [onLibraryRequestTaken].
  * The game page shows its leaderboard and a "Your history" row calling [onOpenGameHistory]; a signed-out
  * game's side-panel times card carries Google sign-in.
- * A [ReplayKey] draws that solve's replay; Up pops.
+ * A [ReplayKey] draws that solve's replay and a [ReplayCompareKey] two solves' replays side by side; Up pops.
  * A non-null [onReconnectLinkedIn] turns the LinkedIn lines on the game page's day card on and is what its Reconnect opens.
  */
 fun EntryProviderScope<NavKey>.playEntry(
@@ -113,6 +115,7 @@ fun EntryProviderScope<NavKey>.playEntry(
     }
     entry<MatchLegResultKey> { key -> MatchLegResultRoute(key, navigator) }
     entry<ReplayKey> { key -> ReplayRoute(key, onBack = { navigator.pop() }) }
+    entry<ReplayCompareKey> { key -> ReplayCompareRoute(key, onBack = { navigator.pop() }) }
 }
 
 /**

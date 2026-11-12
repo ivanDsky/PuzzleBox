@@ -141,13 +141,13 @@ abstract class RevealGoldenScreenshots(private val device: String, private val w
         fun time(ms: Long, hints: Int = 0) = DuelSideState.Time(ms, hints)
 
         fun card(game: GameId, title: String, mine: DuelSideState, theirs: DuelSideState, verdict: LegVerdict, basis: String, pill: String) =
-            RevealCard(LegReveal(game, mine, theirs, verdict), title, "#" + title.substringAfter('#'), RankOrder.TimeThenHints, basis, pill)
+            RevealCard(LegReveal(game, mine, theirs, verdict), title, "#" + title.substringAfter('#'), RankOrder.TimeThenHints, basis, pill, legIndex = 0)
 
         val ZIP_WIN = card(ZIP, "Zip #401", time(58_000), time(72_000), LegVerdict.Win(LegBasis.Time), "14 s faster", "Ivan wins")
         val QUEENS_LOSS = card(QUEENS, "Queens #88", time(95_000), time(80_000), LegVerdict.Loss(LegBasis.Time), "15 s faster", "Sam wins")
         val STRANDS_WIN = RevealCard(
             LegReveal(STRANDS, time(120_000, 0), time(100_000, 2), LegVerdict.Win(LegBasis.Hints)),
-            "Strands #12", "#12", RankOrder.HintsThenTime, "Fewer hints · 0 vs 2", "Ivan wins",
+            "Strands #12", "#12", RankOrder.HintsThenTime, "Fewer hints · 0 vs 2", "Ivan wins", legIndex = 0,
         )
         val NO_RESULT = card(
             QUEENS, "Queens #89", DuelSideState.NotPlayed, time(60_000), LegVerdict.Loss(LegBasis.Time),

@@ -31,7 +31,8 @@ internal data class RowMargin(val ratio: Float, val label: String)
 /**
  * One line of the puzzles list: the card's title and basis, each side's time text ("Gave up" or "No result" without
  * one), the [winner] (null when nobody took the puzzle), whether the puzzle was [tied], the [margin], and, in a game
- * that ranks on hints, each side's hint count ([myHints], [theirHints]; null elsewhere).
+ * that ranks on hints, each side's hint count ([myHints], [theirHints]; null elsewhere). [legIndex] is the puzzle's
+ * place in the match, which a compare of its two replays opens by.
  */
 internal data class PuzzleRow(
     val gameId: GameId,
@@ -44,6 +45,7 @@ internal data class PuzzleRow(
     val margin: RowMargin,
     val myHints: String? = null,
     val theirHints: String? = null,
+    val legIndex: Int,
 )
 
 /** Everything the summary draws and shares, from the viewer's side. */
@@ -122,6 +124,7 @@ internal fun puzzleRows(cards: List<RevealCard>): List<PuzzleRow> {
             margin = card.leg.marginAgainst(widest),
             myHints = card.leg.mine.hintsCaption(hinted),
             theirHints = card.leg.theirs.hintsCaption(hinted),
+            legIndex = card.legIndex,
         )
     }
 }

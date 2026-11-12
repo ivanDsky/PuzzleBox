@@ -156,11 +156,11 @@ internal val previewPlan = RevealPlan(
     cards = listOf(
         RevealCard(
             LegReveal(GameId("zip"), DuelSideState.Time(58_000, 0), DuelSideState.Time(72_000, 1), LegVerdict.Win(LegBasis.Time)),
-            "Zip #401", "#401", RankOrder.TimeThenHints, "14 s faster", "Ann wins",
+            "Zip #401", "#401", RankOrder.TimeThenHints, "14 s faster", "Ann wins", 0,
         ),
         RevealCard(
             LegReveal(GameId("queens"), DuelSideState.NotPlayed, DuelSideState.Time(95_000, 0), LegVerdict.Loss(LegBasis.Time)),
-            "Queens #88", "#88", RankOrder.TimeThenHints, "You didn't play · Bob wins this puzzle", "Bob wins",
+            "Queens #88", "#88", RankOrder.TimeThenHints, "You didn't play · Bob wins this puzzle", "Bob wins", 1,
         ),
     ),
 )

@@ -133,3 +133,19 @@ internal fun ReplayCompareMineOnlyPreview() {
         )
     }
 }
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ReplayComparePagePreview() {
+    PuzzleBoxTheme {
+        ReplayComparePage(
+            mine = previewTimeline(),
+            theirs = previewTimeline(),
+            board = PreviewBoard,
+            names = CompareNames(mine = "You", theirs = "Maya"),
+            layout = CompareLayout.FlipPeek,
+            context = "Preview · Duel",
+            onBack = {},
+        )
+    }
+}

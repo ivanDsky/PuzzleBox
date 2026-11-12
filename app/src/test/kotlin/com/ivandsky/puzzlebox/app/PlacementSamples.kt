@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
+import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import kotlin.reflect.KClass
@@ -29,6 +30,7 @@ internal object PlacementSamples {
         GameKey("zip", "2026-03-09"),
         ResultKey("zip", "2026-03-09", 61_200, 2),
         ReplayKey.daily("zip", "2026-03-09", 2, latest = true),
+        ReplayCompareKey.of(ReplayKey.leg("zip", "K7Q2MX", 0), ReplayKey.leg("zip", "K7Q2MX", 0, theirs = true), "You", "Sam"),
         CustomGameKey("zip", "p1"),
         CustomResultKey("zip", "p1", 61_200, 2),
         FriendPuzzleKey("K7Q2MX"),

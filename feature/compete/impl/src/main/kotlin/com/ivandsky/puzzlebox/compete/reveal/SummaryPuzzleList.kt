@@ -23,10 +23,19 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
  * The puzzles table: a "Puzzles" header with the count, then an outlined card of column heads over one row per puzzle in
  * order. Every row and the heads share one [TableMetrics], so the two time columns, the ticks and the margin bars sit
  * at the same x down the whole card. [wide] is the tablet table (one line per puzzle); otherwise the phone's, where the
- * margin bar and times drop under the puzzle's name. Rows arrive one after another, the stagger capped by [ResultBeats].
+ * margin bar and times drop under the puzzle's name. A puzzle in [compares] (by its leg index) offers [CompareAction],
+ * which calls [onCompare] with that index; with none the table is unchanged. Rows arrive one after another, the stagger
+ * capped by [ResultBeats].
  */
 @Composable
-internal fun SummaryPuzzleList(summary: DuelSummary, brands: GamePlayRegistry, wide: Boolean, modifier: Modifier = Modifier) {
+internal fun SummaryPuzzleList(
+    summary: DuelSummary,
+    brands: GamePlayRegistry,
+    wide: Boolean,
+    modifier: Modifier = Modifier,
+    compares: Set<Int> = emptySet(),
+    onCompare: (Int) -> Unit = {},
+) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             Text("Puzzles", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
@@ -44,7 +53,8 @@ internal fun SummaryPuzzleList(summary: DuelSummary, brands: GamePlayRegistry, w
                     PuzzleTableHeader(summary, metrics)
                     summary.rows.forEachIndexed { index, row ->
                         if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                        PuzzleTableRow(row, brands.brandOf(row.gameId), metrics, index)
+                        val compare = if (row.legIndex in compares) ({ onCompare(row.legIndex) }) else null
+                        PuzzleTableRow(row, brands.brandOf(row.gameId), metrics, index, onCompare = compare)
                     }
                 }
             }

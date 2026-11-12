@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.profile.api.LinkedInLoginKey
@@ -84,6 +85,7 @@ internal val placementRows: List<PlacementRow> = listOf(
     PlacementRow(GameKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(ResultKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(ReplayKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
+    PlacementRow(ReplayCompareKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(CustomGameKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(CustomResultKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(FriendPuzzleKey::class, Placement(PushedOn(Tab.Games), Chrome.Bar)),

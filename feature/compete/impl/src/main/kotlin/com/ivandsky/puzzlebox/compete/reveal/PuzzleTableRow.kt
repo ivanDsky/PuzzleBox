@@ -13,10 +13,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.ResultBeats
 import com.ivandsky.puzzlebox.designsystem.beatDelayMs
@@ -34,10 +36,18 @@ private const val TickAfterRowMs = 300
  * One puzzle of the table: the game's tile, "{Game} #{n}" over the basis line in the game's accent, each player's time
  * cell and the margin bar. On a tablet that is one line of columns; on a phone the tile and name sit over a second line
  * with the margin bar and the two time cells, the cells in the same columns as the header's. Row [index] sets its place
- * in the entrance stagger.
+ * in the entrance stagger. A non-null [onCompare] adds the [CompareAction] under the basis line; without one the row is
+ * laid out exactly as before.
  */
 @Composable
-internal fun PuzzleTableRow(row: PuzzleRow, brand: GameBrand, metrics: TableMetrics, index: Int, modifier: Modifier = Modifier) {
+internal fun PuzzleTableRow(
+    row: PuzzleRow,
+    brand: GameBrand,
+    metrics: TableMetrics,
+    index: Int,
+    modifier: Modifier = Modifier,
+    onCompare: (() -> Unit)? = null,
+) {
     val tickDelay = beatDelayMs(ResultBeats.Blocks, index, rememberReducedMotion()) + TickAfterRowMs
     val mine = row.cell(Side.Mine)
     val theirs = row.cell(Side.Theirs)
@@ -56,7 +66,7 @@ internal fun PuzzleTableRow(row: PuzzleRow, brand: GameBrand, metrics: TableMetr
         horizontalArrangement = Arrangement.spacedBy(metrics.columnGap),
     ) {
         if (metrics.compact) {
-            PhoneBody(row, brand, bar, cells, metrics)
+            PhoneBody(row, brand, bar, cells, metrics, onCompare)
         } else {
             Row(
                 modifier = Modifier.weight(PuzzleCellWeight),
@@ -64,7 +74,7 @@ internal fun PuzzleTableRow(row: PuzzleRow, brand: GameBrand, metrics: TableMetr
                 horizontalArrangement = Arrangement.spacedBy(metrics.columnGap),
             ) {
                 GameGlyph(brand, GameGlyphSize.Tile)
-                PuzzleName(row, brand, wide = true, Modifier.weight(1f))
+                PuzzleName(row, brand, wide = true, Modifier.weight(1f), onCompare)
             }
             cells()
             bar(Modifier.weight(1f))
@@ -79,10 +89,11 @@ private fun RowScope.PhoneBody(
     bar: @Composable (Modifier) -> Unit,
     cells: @Composable () -> Unit,
     metrics: TableMetrics,
+    onCompare: (() -> Unit)?,
 ) {
     GameGlyph(brand, GameGlyphSize.Tile)
     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        PuzzleName(row, brand, wide = false, Modifier.fillMaxWidth())
+        PuzzleName(row, brand, wide = false, Modifier.fillMaxWidth(), onCompare)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(metrics.columnGap)) {
             bar(Modifier.weight(1f))
             cells()
@@ -90,9 +101,9 @@ private fun RowScope.PhoneBody(
     }
 }
 
-/** The game's title over its basis line ("12 s faster", "Fewer hints · 0 vs 2"). */
+/** The game's title over its basis line ("12 s faster", "Fewer hints · 0 vs 2"), then the compare action when offered. */
 @Composable
-private fun PuzzleName(row: PuzzleRow, brand: GameBrand, wide: Boolean, modifier: Modifier) {
+private fun PuzzleName(row: PuzzleRow, brand: GameBrand, wide: Boolean, modifier: Modifier, onCompare: (() -> Unit)?) {
     Column(modifier) {
         Text(
             text = row.title,
@@ -108,6 +119,7 @@ private fun PuzzleName(row: PuzzleRow, brand: GameBrand, wide: Boolean, modifier
             maxLines = if (wide) 1 else 2,
             overflow = TextOverflow.Ellipsis,
         )
+        if (onCompare != null) AppTextButton(CompareAction, onCompare, Modifier.testTag("reveal.compare.${row.legIndex}"))
     }
 }
 

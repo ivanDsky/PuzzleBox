@@ -17,7 +17,8 @@ import kotlin.math.abs
 /**
  * One puzzle of the race as the screen draws it: the machine's [leg], the card's [title], the short [chip] the tablet
  * strip shows beside the game glyph, the game's [rankOrder] (which figure `DuelCompare` leads with), the [basis] line
- * under the sides and the [pill] naming who took it.
+ * under the sides and the [pill] naming who took it. [legIndex] is the puzzle's place in the match, which a settled
+ * card's place in the race is not once an earlier puzzle is still pending.
  */
 internal data class RevealCard(
     val leg: LegReveal,
@@ -26,6 +27,7 @@ internal data class RevealCard(
     val rankOrder: RankOrder,
     val basis: String,
     val pill: String,
+    val legIndex: Int,
 )
 
 /** The reveal's cast and its race: [cards] holds the settled puzzles only, in puzzle order. */
@@ -64,6 +66,7 @@ internal fun revealPlan(view: MatchView, nameOf: (GameId) -> String, rankOrderOf
             rankOrder = order,
             basis = basisLine(verdict, mySide, theirSide, order, opponent.name),
             pill = pillText(verdict, me.name, opponent.name),
+            legIndex = index,
         )
     }
     return RevealPlan(me, opponent, cards)
