@@ -36,13 +36,15 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 
 private val SPEEDS = intArrayOf(1, 2, 4, 8)
 private val ReadoutHeight = 32.dp
-private val SeekHeight = 64.dp
 private val ControlGap = Spacing.sm
 private val RowHeight = 56.dp
 private val TouchTarget = 48.dp
 
-/** The transport's fixed height, so a page can size its board around it without measuring. */
-internal val ReplayTransportHeight: Dp = ReadoutHeight + ControlGap + SeekHeight + ControlGap + RowHeight
+/** The controls' height around a seek strip of [stripHeight], so a page can size its board around them without measuring. */
+internal fun replayControlsHeight(stripHeight: Dp): Dp = ReadoutHeight + ControlGap + stripHeight + ControlGap + RowHeight
+
+/** The single-board transport's fixed height. */
+internal val ReplayTransportHeight: Dp = replayControlsHeight(SeekBarHeight)
 
 /**
  * Flat transport: the position readout over the activity bars, then Skip idle, previous / play / next and the
@@ -50,19 +52,37 @@ internal val ReplayTransportHeight: Dp = ReadoutHeight + ControlGap + SeekHeight
  */
 @Composable
 fun ReplayTransport(state: ReplayPlaybackState, playback: ReplayPlayback, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxWidth().height(ReplayTransportHeight),
-        verticalArrangement = Arrangement.spacedBy(ControlGap),
-    ) {
-        Box(Modifier.fillMaxWidth().height(ReadoutHeight), contentAlignment = Alignment.CenterStart) {
-            Readout(state.positionMs, state.durationMs)
-        }
+    ReplayControls(state, playback, SeekBarHeight, modifier) {
         ReplaySeekBar(
             positionMs = state.positionMs,
             durationMs = state.durationMs,
             ticksMs = state.ticksMs,
             onSeek = playback::seekTo,
         )
+    }
+}
+
+/** The transport's frame around any seek strip of [stripHeight]; [legend] sits at the readout's end. */
+@Composable
+internal fun ReplayControls(
+    state: ReplayPlaybackState,
+    playback: ReplayPlayback,
+    stripHeight: Dp,
+    modifier: Modifier = Modifier,
+    legend: @Composable () -> Unit = {},
+    strip: @Composable () -> Unit,
+) {
+    Column(
+        modifier = modifier.fillMaxWidth().height(replayControlsHeight(stripHeight)),
+        verticalArrangement = Arrangement.spacedBy(ControlGap),
+    ) {
+        Row(Modifier.fillMaxWidth().height(ReadoutHeight), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                Readout(state.positionMs, state.durationMs)
+            }
+            legend()
+        }
+        strip()
         Row(Modifier.fillMaxWidth().height(RowHeight), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 SkipIdleButton(state.skipIdle) { playback.setSkipIdle(it) }

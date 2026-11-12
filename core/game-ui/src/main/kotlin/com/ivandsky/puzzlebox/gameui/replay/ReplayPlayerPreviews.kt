@@ -97,3 +97,31 @@ internal fun ReplayLeadLinePreview() {
         ReplayLeadLine(state, mine, theirs, CompareNames(mine = "You", theirs = "Maya"), PreviewBoard.pieces)
     }
 }
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ReplayComparePreview() {
+    PuzzleBoxTheme {
+        ReplayCompare(
+            mine = previewTimeline(),
+            theirs = previewTimeline(),
+            board = PreviewBoard,
+            names = CompareNames(mine = "You", theirs = "Maya"),
+            layout = CompareLayout.Twin,
+        )
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ReplayCompareMineOnlyPreview() {
+    PuzzleBoxTheme {
+        ReplayCompare(
+            mine = previewTimeline(),
+            theirs = null,
+            board = PreviewBoard,
+            names = CompareNames(mine = "You", theirs = "Maya"),
+            layout = CompareLayout.Twin,
+        )
+    }
+}
