@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccountSource
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -111,14 +112,18 @@ class RoomLinkedInDaysDisconnectRaceTest {
 
     private fun days(link: LinkedInLink, completions: CompletionRepository) = RoomLinkedInDays(
         link, source, completions, daily, FakeGameCalendar(today), TestGames.registry(listOf(zip)), db,
-        LinkedInCallBudget({ NOW }, limit = 100), avatars, storeLock,
+        LinkedInCallBudget({ NOW }, limit = 100), avatars, storeLock, FakeOwnerScope(),
     ) { NOW }
 
     private suspend fun assertNothingLeftOfTheAccount(link: LinkedInLink) {
         assertNull(db.fetchLogDao().get(zip.value, day.toString(), LinkedInItem.Own.name, "me"))
         assertNull(db.fetchLogDao().get(zip.value, day.toString(), LinkedInItem.Board.name, "me"))
-        assertEquals(emptyList<Any>(), db.ghostDao().observe(zip.value, day.toString()).first())
         assertEquals(LinkState.NotConnected, link.state.first())
+    }
+
+    private suspend fun assertNoBoardStored() {
+        assertEquals(emptyList<Any>(), db.ghostDao().observe(zip.value, day.toString()).first())
+        assertNull(db.savedBoardDao().get(zip.value, day.toString()))
     }
 
     @Test
@@ -148,6 +153,7 @@ class RoomLinkedInDaysDisconnectRaceTest {
         assertEquals(LinkedInSync.NotLinked, sync.await())
         assertEquals(emptyList<CompletionRecord>(), completions.observeImports().first())
         assertNothingLeftOfTheAccount(link)
+        assertNoBoardStored()
     }
 
     @Test
@@ -171,6 +177,7 @@ class RoomLinkedInDaysDisconnectRaceTest {
         sync.await()
 
         assertNothingLeftOfTheAccount(link)
+        assertNoBoardStored()
     }
 
     @Test
@@ -190,6 +197,9 @@ class RoomLinkedInDaysDisconnectRaceTest {
 
         assertEquals(emptySet<String>(), avatars.present.first())
         assertNothingLeftOfTheAccount(link)
+        // The photos go with the account; the board a finished read stored is the player's and stays.
+        assertEquals(1, db.ghostDao().observe(zip.value, day.toString()).first().size)
+        assertEquals(day.toString(), db.savedBoardDao().get(zip.value, day.toString())?.day)
     }
 
     /** Parks the first import between the sync's last link check and its stores, until [release] completes. */

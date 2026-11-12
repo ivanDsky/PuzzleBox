@@ -9,16 +9,20 @@ import com.ivandsky.puzzlebox.app.e2e.LinkedInDataWorld.Companion.zipRef
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInSync
+import com.ivandsky.puzzlebox.database.linkedin.GhostEntity
+import com.ivandsky.puzzlebox.database.linkedin.SavedBoardEntity
 import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import java.time.Duration
+import java.time.LocalDate
 import java.util.concurrent.CompletableFuture
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,9 +32,9 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
- * Disconnecting removes everything that came with the account (its cookies, the connections' rows,
- * the read log and the link itself) and keeps what became the player's own: the imported result.
- * After it, looking at a day asks LinkedIn nothing.
+ * Disconnecting wipes what only the account needed (its cookies, the read log, the photos and the link
+ * itself) and keeps what became the player's own: the imported result, the connections' rows and the saved
+ * board of each day read. After it, looking at a day asks LinkedIn nothing and changes none of them.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -47,7 +51,7 @@ class LinkedInDisconnectE2ETest {
     }
 
     @Test
-    fun disconnectWipesTheAccountAndKeepsTheImports() {
+    fun disconnectKeepsTheBoardsAndWipesTheAccount() {
         world.scriptDay(today, LinkedInOwnResult.Solved(timeSeconds = 70, hintFree = true), GHOSTS)
         // Answerable, so a read of this day after the disconnect would show as a call and an import.
         world.scriptDay(yesterday, LinkedInOwnResult.Solved(timeSeconds = 88, hintFree = true), GHOSTS)
@@ -55,7 +59,7 @@ class LinkedInDisconnectE2ETest {
             runBlocking { world.connect() }
             openZipPage()
             awaitSynced(today)
-            assertEquals("the connections' rows were stored", GHOSTS.size, storedGhosts())
+            assertEquals("the connections' rows were stored", GHOSTS.size, storedGhostRows().size)
             assertTrue("the link is on disk", linkFileNames(PROFILE_ID))
             // Photos come after the log entry, so the day can be read before the last of them is on disk.
             offMain {
@@ -65,10 +69,17 @@ class LinkedInDisconnectE2ETest {
             assertEquals("one photo file per connection", GHOSTS.size, avatarFiles().size)
             assertTrue("no photo file is named after a member", avatarFiles().none { "GHOST" in it.name })
 
+            val keptGhosts = storedGhostRows()
+            val keptBoard = checkNotNull(savedBoard(today)) { "the board read was saved" }
+            assertTrue("with the time it was read", keptBoard.readAtMs > 0L)
+            // Today is not over, so the board is partial; no account was signed in, so it has no owner.
+            assertEquals(SavedBoardEntity(ZIP, today.toString(), PROFILE_ID, null, keptBoard.readAtMs, false, null), keptBoard)
+
             offMain { link().disconnect() }
 
             assertTrue("the session cookies are cleared", world.cookies.cleared)
-            assertEquals("no connection's row is left", 0, storedGhosts())
+            assertEquals("every connection's row is kept", keptGhosts, storedGhostRows())
+            assertEquals("the saved board is kept", keptBoard, savedBoard(today))
             assertEquals("the read log is empty", 0, runBlocking { linkedInDb().fetchLogDao().observe(ZIP, today.toString(), PROFILE_ID).first() }.size)
             assertEquals(LinkState.NotConnected, runBlocking { link().state.first() })
             assertFalse("the link file no longer names the profile", linkFileNames(PROFILE_ID))
@@ -89,6 +100,9 @@ class LinkedInDisconnectE2ETest {
             assertEquals("and so nothing new imported", kept, runBlocking { completions().observeRecords().first() })
             assertEquals("no photo asked for after the disconnect", photosAsked, world.photos.calls)
             assertTrue("and none stored", avatarFiles().isEmpty())
+            assertEquals("no ghost written or removed by the later looks", keptGhosts, storedGhostRows())
+            assertEquals("the saved board is as the read left it", keptBoard, savedBoard(today))
+            assertNull("and no board saved for the day looked at after", savedBoard(yesterday))
         }
     }
 
@@ -102,8 +116,11 @@ class LinkedInDisconnectE2ETest {
         return done.get()
     }
 
-    private fun ShellRobot.storedGhosts(): Int =
-        runBlocking { linkedInDb().ghostDao().observe(ZIP, today.toString()).first() }.size
+    private fun ShellRobot.storedGhostRows(): Set<GhostEntity> =
+        runBlocking { linkedInDb().ghostDao().observe(ZIP, today.toString()).first() }.toSet()
+
+    private fun ShellRobot.savedBoard(day: LocalDate): SavedBoardEntity? =
+        runBlocking { linkedInDb().savedBoardDao().get(ZIP, day.toString()) }
 
     /** Moves the main looper well past the day view's hold-back, then lets the screen settle. */
     private fun ShellRobot.settle() {
