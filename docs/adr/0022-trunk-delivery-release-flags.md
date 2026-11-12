@@ -80,3 +80,7 @@ to merge without being reachable in a release build.
 - Competitions flipped to `releaseDefault = true` in 0.26.0 on 2026-11-11. The Games tab gains
   Dailies / Friends / Duels, the Play tab badge counts duels that need you, and `/m/` links open
   a duel. Hosting, Firestore rules and the App Links filter were live before the flip.
+- LinkedInAccount flipped to `releaseDefault = true` in 0.27.0 on 2026-11-11. Profile's Accounts list
+  gains a LinkedIn row behind an opt-in risk warning, and the game page shows the player's imported
+  result and connections as ghost rows on one combined board. Room 9 and the backup rules were live
+  before the flip.
