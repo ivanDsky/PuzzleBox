@@ -54,7 +54,7 @@ private const val UNAVAILABLE_ALPHA = 0.5f
 private const val TAG_WELL_ALPHA = 0.22f
 private val ChipRowHeight = 48.dp
 
-/** What the card's slots draw for one day; a change of it is what cross-fades. */
+/** What the card's slots draw for one day; a change of it is what fades through. */
 private data class DayFace(val past: ArchiveDay?, val number: Int?, val line: DayLine, val unavailable: Boolean)
 
 /** The status slot's value: today's status (null while loading) or a past day's. */
@@ -70,7 +70,7 @@ private sealed interface DayLine {
  * with one it shows that day, tagged "From the archive" or "Past puzzle", plus
  * "Back to today" ([onBackToToday]). [onPlay] opens the shown day's board. A day that
  * can't load — today offline, or a never-opened past day while [offline] — offers
- * "Try again", whose tap is [onRetry]. A day change cross-fades every line and the action
+ * "Try again", whose tap is [onRetry]. A day change fades the old day out, then the new one in, over every line and the action
  * together in place ([DayFade]); the card's frame and size stay put. A non-null
  * [linkedIn] draws the LinkedIn sync chip in the top-end corner, beside the eyebrow, and only while the
  * card is composed.
