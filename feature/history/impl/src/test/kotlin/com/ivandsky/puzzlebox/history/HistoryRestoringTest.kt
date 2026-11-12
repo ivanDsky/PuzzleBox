@@ -62,6 +62,7 @@ class HistoryRestoringTest {
                     onBack = null,
                     onPlayAgain = { _, _ -> },
                     onOpenReplay = {},
+                    onOpenCompare = {},
                     viewModel = viewModel,
                 )
             }

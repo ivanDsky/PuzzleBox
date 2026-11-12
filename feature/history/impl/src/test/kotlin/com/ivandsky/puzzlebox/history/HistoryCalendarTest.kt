@@ -55,6 +55,7 @@ class HistoryCalendarTest {
                     onBack = {},
                     onPlayAgain = { _, _ -> },
                     onOpenReplay = {},
+                    onOpenCompare = {},
                     viewModel = viewModel,
                 )
             }

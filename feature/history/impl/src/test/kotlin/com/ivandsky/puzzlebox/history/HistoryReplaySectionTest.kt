@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -120,7 +121,7 @@ class HistoryReplaySectionTest {
     fun `two different replays offer Compare and it reports a tap`() {
         show(HistoryReplays.FirstAndLatest(short, long))
 
-        composeRule.onNodeWithText("Compare").performClick()
+        composeRule.onNodeWithContentDescription("Compare first solve with latest").performClick()
 
         assertEquals(1, compares)
     }

@@ -2,10 +2,14 @@ package com.ivandsky.puzzlebox.history
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySection
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
@@ -34,6 +38,7 @@ class HistoryReplayHost(
 private const val FIRST_SOLVE = "First solve"
 private const val LATEST = "Latest"
 private const val COMPARE = "Compare"
+private const val COMPARE_DESCRIPTION = "Compare first solve with latest"
 
 /** The compare of [row]'s two solves: the latest is "mine" (the primary side), the first solve the other. */
 internal fun historyCompareKey(row: HistoryDayRow): ReplayCompareKey {
@@ -66,7 +71,13 @@ internal fun HistoryReplaySection(
         is HistoryReplays.FirstAndLatest -> Column(modifier.fillMaxWidth()) {
             ReplaySection(ReplaySectionState.Ready(replays.first), ui, { onOpen(ReplaySolve.Record) }, label = FIRST_SOLVE)
             ReplaySection(ReplaySectionState.Ready(replays.latest), ui, { onOpen(ReplaySolve.Latest) }, label = LATEST)
-            OutlinedButton(onClick = onCompare, modifier = Modifier.fillMaxWidth()) { Text(COMPARE) }
+            OutlinedButton(
+                onClick = onCompare,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .semantics { contentDescription = COMPARE_DESCRIPTION },
+            ) { Text(COMPARE) }
         }
     }
 }
