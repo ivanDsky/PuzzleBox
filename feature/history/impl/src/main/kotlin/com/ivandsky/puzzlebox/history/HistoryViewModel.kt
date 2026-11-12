@@ -85,7 +85,7 @@ data class HistoryUiState(
  * the calendar there; [HistoryUiState.openingRowKey] names that game's row for the day, for
  * layouts that open a detail pane.
  *
- * Replay is navigation only (ticket 11): the route reports the (game, day) and the play
+ * Play again is navigation only (ticket 11): the route reports the (game, day) and the play
  * store opens that day's slot — History never builds a session blob.
  */
 @OptIn(ExperimentalCoroutinesApi::class)

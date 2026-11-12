@@ -39,9 +39,9 @@ import java.time.LocalDate
  * Phones — and portrait of any width — are single-pane (list, or a day's detail with a
  * back arrow); expanded landscape is list-detail side by side (07).
  *
- * Replay (A4, ticket 11): tapping a day opens its detail; "See result" / "Keep going"
+ * Play again (A4, ticket 11): tapping a day opens its detail; "See result" / "Keep going"
  * reports the (game, day) through [onPlayAgain] and the shell opens that day's game slot.
- * Every identity (selection, best lookup, replay) is (game, day), never day alone
+ * Every identity (selection, best lookup, play again) is (game, day), never day alone
  * (tango-05).
  */
 @Composable

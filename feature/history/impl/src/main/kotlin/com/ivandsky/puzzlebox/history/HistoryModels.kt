@@ -15,7 +15,7 @@ import java.time.format.DateTimeFormatter
 /**
  * One rendered history row: a captured or solved day, per game (ADR-0004: Zip and Tango
  * share the calendar, so every consumer keys by game+day). [fetchedAtMs] is 0 for rows
- * that came only from a completion record (never captured as a replayable day); it only
+ * that came only from a completion record (never captured as a day to play again); it only
  * orders rows within a day. [record] is that day's solve (null = not finished yet);
  * [isBest] marks the game's one best numbered solve under its [rankOrder], the same rule
  * as `GameStats.best` (practice never counts).
