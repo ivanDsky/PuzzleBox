@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
@@ -229,6 +230,7 @@ class DiGraphTest : KoinTest {
             // One sync app-wide: Home and the hub read the same failed fetches.
             assertSame(koin.get<SyncTodayPuzzles>(), koin.get<SyncTodayPuzzles>())
             assertNotNull(koin.get<LoadPastDay>())
+            assertNotNull(koin.get<LoadSolveReplay>())
             // The tablet play side panel's stats and the board gate beneath them.
             assertNotNull(koin.get<ObserveLeaderboard>())
             assertNotNull(koin.get<ObserveResultInsights>())
