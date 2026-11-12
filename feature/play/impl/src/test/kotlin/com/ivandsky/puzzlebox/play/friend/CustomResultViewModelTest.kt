@@ -1,8 +1,10 @@
 package com.ivandsky.puzzlebox.play.friend
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -14,6 +16,8 @@ import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.MatchRepository
@@ -29,22 +33,41 @@ import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.domain.FinishLeg
+import com.ivandsky.puzzlebox.domain.LoadCustomReplay
+import com.ivandsky.puzzlebox.domain.LoadDailyReplay
+import com.ivandsky.puzzlebox.domain.LoadLegReplay
+import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
+import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.replay.ReplayFrame
+import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
+import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
+import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.navigation.navKeySavedStateConfiguration
+import com.ivandsky.puzzlebox.play.ActivePlay
 import com.ivandsky.puzzlebox.play.FakeController
+import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.SlotOpening
+import com.ivandsky.puzzlebox.play.SlotWriter
+import com.ivandsky.puzzlebox.play.WriteLane
+import com.ivandsky.puzzlebox.play.testDispatchers
+import com.ivandsky.puzzlebox.play.FakePlayUi
 import com.ivandsky.puzzlebox.play.FakeGames
+import com.ivandsky.puzzlebox.play.loadSolveReplay
+import com.ivandsky.puzzlebox.play.replayCapableGames
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
@@ -53,7 +76,9 @@ import com.ivandsky.puzzlebox.play.api.playNavKeys
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -67,6 +92,8 @@ import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -76,6 +103,8 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import kotlin.coroutines.CoroutineContext
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -140,6 +169,7 @@ class CustomResultViewModelTest {
                     single<IdentityService> { FakeIdentityService() }
                     single { dismissedGoogleSignIn }
                     factory { LoadPastDay(get(), get()) }
+                    factory { loadSolveReplay(get(), get(), get()) }
                 },
                 playModule,
             )
@@ -180,11 +210,200 @@ class CustomResultViewModelTest {
     private fun observed(key: CustomResultKey): CustomResultViewModel {
         val koin = checkNotNull(koin).koin
         val viewModel = CustomResultViewModel(
-            key, completions, received, fakes.games, fakes.registry, koin.get(), koin.get(), koin.get(),
+            key, completions, received, fakes.games, fakes.registry, koin.get(), koin.get(), koin.get(), loadReplay(fakes.games),
         )
         screen.launch { viewModel.state.collect {} }
         main.testDispatcher.scheduler.runCurrent()
         return viewModel
+    }
+
+    private val fixture = ReplayFixtures.GAME
+    private val fixtureGames = replayCapableGames()
+    private val fixtureUi = FakePlayUi(fixture)
+    private val fixtureRef = TestGames.Ref(fixture, PuzzleKey.Custom(code.value))
+    private val replay: SolveReplay = ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES)
+
+    /** [LoadSolveReplay] over this test's stores; the fixture game opens a real timeline. */
+    private fun loadReplay(
+        games: GameRegistry,
+        flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
+    ): LoadSolveReplay {
+        val loadShared = LoadSharedPuzzle(games, FakeSharedPuzzleRepository(), received, { Budget.Unlimited }, { Instant.EPOCH })
+        return LoadSolveReplay(
+            flags = flags,
+            games = games,
+            daily = LoadDailyReplay(completions, FakeDailyRepository()),
+            custom = LoadCustomReplay(completions, received, loadShared),
+            leg = LoadLegReplay(FakeMatchRepository(), FakeMatchResultOutbox(), FakeIdentityService(), FakeDailyRepository(), received, loadShared),
+            completions = completions,
+            dispatchers = InlineDispatcherProvider,
+        )
+    }
+
+    /** A solve of the replay-capable fixture game's friend puzzle, observed as the screen would. */
+    private fun observedReplay(
+        timeMs: Long = FIXTURE_TIME_MS,
+        flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
+        board: GameReplayBoard? = ReplayBoard,
+        store: PlaySessionStore = checkNotNull(koin).koin.get(),
+    ): CustomResultViewModel {
+        storeFixturePuzzle()
+        fixtureUi.replayBoard = board
+        val koin = checkNotNull(koin).koin
+        val viewModel = CustomResultViewModel(
+            CustomResultKey(fixture.value, code.value, timeMs, 0), completions, received, fixtureGames,
+            GamePlayRegistry(listOf(fixtureUi)),
+            koin.get(), store, koin.get(), loadReplay(fixtureGames, flags),
+        )
+        screen.launch { viewModel.state.collect {} }
+        main.testDispatcher.scheduler.runCurrent()
+        return viewModel
+    }
+
+    private fun storeFixturePuzzle() {
+        runBlocking { received.upsert(puzzle().copy(gameId = fixture, variant = TestGames.variant(fixture))) }
+    }
+
+    /** A real store over the fixture game: its play's record write seals [replay], as a recording play's would. */
+    private fun liveStore(): PlaySessionStore {
+        val dispatcher = main.testDispatcher
+        val lane = WriteLane()
+        val saved = FakeSavedPlayRepository()
+        val calendar = FakeGameCalendar(LocalDate.parse("2026-11-04"))
+        val sealing = object : CompletionRepository by completions {
+            override suspend fun onCompleted(record: CompletionRecord, replay: SolveReplay?) =
+                completions.onCompleted(record, replay ?: this@CustomResultViewModelTest.replay)
+        }
+        return PlaySessionStore(
+            games = fixtureGames,
+            ui = GamePlayRegistry(listOf(fixtureUi)),
+            opening = SlotOpening(
+                FakeDailyRepository(), LoadPastDay(FakeDailyRepository(), fixtureGames), saved, calendar, fixtureGames, lane, received,
+                FakeMatchRepository(),
+                LoadSharedPuzzle(fixtureGames, FakeSharedPuzzleRepository(), received, { Budget.Unlimited }, { Instant.EPOCH }),
+                testDispatchers(dispatcher),
+            ),
+            writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
+            completions = sealing,
+            finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH },
+            calendar = calendar,
+            dispatchers = testDispatchers(dispatcher),
+        )
+    }
+
+    /** The friend puzzle's live play, won as the board leaves it before the result opens. */
+    private fun solveLive(store: PlaySessionStore): ActivePlay {
+        storeFixturePuzzle()
+        fixtureUi.replayBoard = ReplayBoard
+        val play = checkNotNull(store.open(CustomGameKey(fixture.value, code.value)))
+        main.testDispatcher.scheduler.runCurrent()
+        fixtureUi.latest.win()
+        main.testDispatcher.scheduler.runCurrent()
+        return play
+    }
+
+    private suspend fun writeFixtureSolve(timeMs: Long, replay: SolveReplay?) =
+        completions.onCompleted(CompletionRecord(fixtureRef, timeMs, 0, RecordStats(1, "{}"), isRecord = true), replay)
+
+    private fun solvedFixture(timeMs: Long = FIXTURE_TIME_MS, replay: SolveReplay? = this.replay) =
+        runBlocking { writeFixtureSolve(timeMs, replay) }
+
+    @Test
+    fun `a stored solve with a replay shows the replay section`() {
+        solvedFixture()
+
+        val ready = observedReplay().state.value.replay as ReplaySectionState.Ready
+
+        assertEquals(ReplayFixtures.SHORT_MOVES, ready.timeline.moveTimesMs.size)
+    }
+
+    @Test
+    fun `a live solve stays hidden until its own write returns, whatever an older row with the same time and hints says`() {
+        solvedFixture()
+        val gate = CompletableDeferred<Unit>()
+        completions.writeGate = gate
+        val store = liveStore()
+        val play = solveLive(store)
+
+        val viewModel = observedReplay(store = store)
+
+        assertFalse(play.record.value.stored)
+        assertEquals(ReplaySectionState.Hidden, viewModel.state.value.replay)
+
+        gate.complete(Unit)
+        main.testDispatcher.scheduler.runCurrent()
+
+        assertTrue(play.record.value.stored)
+        assertTrue(viewModel.state.value.replay is ReplaySectionState.Ready)
+    }
+
+    @Test
+    fun `a live solve whose write fails stays hidden, whatever an older row says`() {
+        solvedFixture()
+        completions.fail = true
+        val store = liveStore()
+        val play = solveLive(store)
+
+        val viewModel = observedReplay(store = store)
+        main.testDispatcher.scheduler.runCurrent()
+
+        assertFalse(play.record.value.stored)
+        assertTrue(play.record.value.writeFailed)
+        assertEquals(ReplaySectionState.Hidden, viewModel.state.value.replay)
+    }
+
+    @Test
+    fun `a stored solve without a replay stays hidden`() {
+        solvedFixture(replay = null)
+
+        assertEquals(ReplaySectionState.Hidden, observedReplay().state.value.replay)
+    }
+
+    @Test
+    fun `the replay section is hidden while the write is pending, ready once it lands`() {
+        val gate = CompletableDeferred<Unit>()
+        completions.writeGate = gate
+        val viewModel = observedReplay()
+        screen.launch { writeFixtureSolve(FIXTURE_TIME_MS, replay) }
+        main.testDispatcher.scheduler.runCurrent()
+        assertEquals(ReplaySectionState.Hidden, viewModel.state.value.replay)
+
+        gate.complete(Unit)
+        main.testDispatcher.scheduler.runCurrent()
+
+        assertTrue(viewModel.state.value.replay is ReplaySectionState.Ready)
+    }
+
+    @Test
+    fun `the replay section stays hidden after a failed write`() {
+        completions.fail = true
+        val viewModel = observedReplay()
+
+        runCatching { solvedFixture() }
+        main.testDispatcher.scheduler.runCurrent()
+
+        assertEquals(ReplaySectionState.Hidden, viewModel.state.value.replay)
+    }
+
+    @Test
+    fun `another solve of the puzzle does not open this result's replay`() {
+        solvedFixture(timeMs = FIXTURE_TIME_MS + 1)
+
+        assertEquals(ReplaySectionState.Hidden, observedReplay().state.value.replay)
+    }
+
+    @Test
+    fun `flag off keeps the replay section hidden`() {
+        solvedFixture()
+
+        assertEquals(ReplaySectionState.Hidden, observedReplay(flags = FakeReleaseFlags()).state.value.replay)
+    }
+
+    @Test
+    fun `a game with no replay board never shows the replay section`() {
+        solvedFixture()
+
+        assertEquals(ReplaySectionState.Hidden, observedReplay(board = null).state.value.replay)
     }
 
     @Test
@@ -374,7 +593,25 @@ class CustomResultViewModelTest {
     private fun count(tag: String) =
         composeRule.onAllNodes(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNodes().size
 
+    private object ReplayBoard : GameReplayBoard {
+        override val pieces = "pieces"
+
+        @Composable
+        override fun Board(frame: ReplayFrame, modifier: Modifier) = Unit
+    }
+
+    private object InlineDispatcherProvider : DispatcherProvider {
+        private val inline = object : CoroutineDispatcher() {
+            override fun isDispatchNeeded(context: CoroutineContext) = false
+            override fun dispatch(context: CoroutineContext, block: Runnable) = block.run()
+        }
+        override val main: CoroutineDispatcher = inline
+        override val io: CoroutineDispatcher = inline
+        override val default: CoroutineDispatcher = inline
+    }
+
     private companion object {
         const val WAIT_MS = 5_000L
+        const val FIXTURE_TIME_MS = 42_000L
     }
 }

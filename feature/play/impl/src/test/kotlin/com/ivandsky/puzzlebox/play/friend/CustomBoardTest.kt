@@ -37,6 +37,7 @@ import com.ivandsky.puzzlebox.play.FakeGames
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.di.playModule
+import com.ivandsky.puzzlebox.play.loadSolveReplay
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -249,7 +250,7 @@ class CustomBoardTest {
 
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CustomResultRoute(key = CustomResultKey(alpha.value, code.value, 200_000L, 0), onPlayAgain = {}, onDone = {})
+                CustomResultRoute(key = CustomResultKey(alpha.value, code.value, 200_000L, 0), onPlayAgain = {}, onDone = {}, onOpenReplay = {})
             }
         }
         composeRule.waitUntil(WAIT_MS) { count("custom_board.sign_in") > 0 }
@@ -288,6 +289,7 @@ class CustomBoardTest {
                     single<GoogleIdTokenProvider> { tokens }
                     single { GameEditorRegistry(emptyList()) }
                     factory { LoadPastDay(get(), get()) }
+                    factory { loadSolveReplay(get(), get(), get()) }
                 },
                 playModule,
             )

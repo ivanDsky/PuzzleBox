@@ -98,6 +98,7 @@ fun EntryProviderScope<NavKey>.playEntry(
             key = key,
             onPlayAgain = { navigator.replaceTop(CustomGameKey(key.gameId, key.puzzleId)) },
             onDone = { navigator.pop() },
+            onOpenReplay = { navigator.pushOnce(it) },
         )
     }
     entry<GameKey> { key -> GameEntry(key, layout, navigator, linkedIn = onReconnectLinkedIn != null) }
