@@ -26,6 +26,8 @@ abstract class PuzzleBoxDatabase : RoomDatabase() {
 
     abstract fun completionDao(): CompletionDao
 
+    abstract fun completionReplayDao(): CompletionReplayDao
+
     abstract fun savedPlayDao(): SavedPlayDao
 
     abstract fun customSavedPlayDao(): CustomSavedPlayDao
