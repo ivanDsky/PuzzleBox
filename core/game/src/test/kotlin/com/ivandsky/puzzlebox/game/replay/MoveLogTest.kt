@@ -74,6 +74,51 @@ class MoveLogTest {
     }
 
     @Test
+    fun `a restored log steps the setting it already ends on and records nothing`() {
+        val saved = MoveLog.fresh(game)
+        val first = saved.setting(replay, start, assist(true), atMs = 0)
+        saved.play(replay, first, add(1), atMs = 100)
+        val log = MoveLog.restored(game, saved.snapshot())
+
+        // The session as a game saves it: without the setting.
+        val next = log.setting(replay, FakeSession(target = 3, count = 1, movedAtMs = 100), assist(true), atMs = 100)
+
+        assertEquals(FakeSession(target = 3, count = 1, assist = true, movedAtMs = 100), next)
+        assertArrayEquals(saved.snapshot(), log.snapshot())
+    }
+
+    @Test
+    fun `a setting that differs from the latest one of its kind is recorded`() {
+        val log = MoveLog.fresh(game)
+        var session = log.setting(replay, start, assist(true), atMs = 0)
+        session = log.play(replay, session, add(1), atMs = 100)
+
+        session = log.setting(replay, session, assist(false), atMs = 200)
+        log.setting(replay, session, assist(true), atMs = 300)
+
+        assertEquals(
+            listOf(
+                StampedMove(0, assist(true)),
+                StampedMove(100, add(1)),
+                StampedMove(200, assist(false)),
+                StampedMove(300, assist(true)),
+            ),
+            recorded(log).moves,
+        )
+    }
+
+    @Test
+    fun `the first setting of its kind is recorded after other moves`() {
+        val log = MoveLog.fresh(game)
+        val first = log.play(replay, start, add(1), atMs = 100)
+
+        val next = log.setting(replay, first, assist(false), atMs = 200)
+
+        assertSame(first, next)
+        assertEquals(listOf(StampedMove(100, add(1)), StampedMove(200, assist(false))), recorded(log).moves)
+    }
+
+    @Test
     fun `a stamp below the previous one is raised to it`() {
         val log = MoveLog.fresh(game)
 
