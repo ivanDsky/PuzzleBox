@@ -15,8 +15,8 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
- * Compete feature wiring. [com.ivandsky.puzzlebox.domain.ObserveMyDuels], ObserveMatch, ObserveDuel, UpdateMatchSeat
- * and RecordRevealSeen come from :core:domain's domainModule and the identity service from the app's aggregation; the
+ * Compete feature wiring. [com.ivandsky.puzzlebox.domain.ObserveMyDuels], ObserveMatch, ObserveDuel, UpdateMatchSeat,
+ * RecordRevealSeen and LoadSolveReplay come from :core:domain's domainModule and the identity service from the app's aggregation; the
  * Duels tab's, the New duel sheet's, the duel screen's, the reveal's and the rematch sheet's view models are bound
  * here (the duel screen's by its code; the reveal's by its code and the screen's reduced motion, zone and locale; the
  * rematch's by the duel it repeats). The result sync comes from the app, which binds it to the result poster.
@@ -60,6 +60,7 @@ val competeModule: Module = module {
             registry = get(),
             brands = get(),
             recordSeen = get(),
+            loadReplay = get(),
         )
     }
     viewModel { (match: Match) -> RematchViewModel(match = match, createMatch = get()) }
