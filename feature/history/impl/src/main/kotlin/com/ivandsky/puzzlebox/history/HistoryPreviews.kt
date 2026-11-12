@@ -77,6 +77,9 @@ private fun ArchivedDetailPreview() {
                 row = ArchivedRow,
                 gameBest = ArchivedRow,
                 onBackToDayList = {},
+                replays = HistoryReplays.Hidden,
+                replayUi = null,
+                onOpenReplay = {},
                 onPlayAgain = {},
                 cardColor = MaterialTheme.colorScheme.surfaceContainerLow,
             )

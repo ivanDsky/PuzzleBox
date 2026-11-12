@@ -88,6 +88,14 @@ internal fun WatchReplayRowPreview() {
 
 @PuzzleBoxPreviews
 @Composable
+internal fun LabelledWatchReplayRowPreview() {
+    PuzzleBoxTheme {
+        WatchReplayRow(moves = PREVIEW_MOVES, durationMs = PREVIEW_MOVES * 1_000L, onClick = {}, label = "First solve")
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
 internal fun ReplayLeadLinePreview() {
     PuzzleBoxTheme {
         val mine = previewTimeline()

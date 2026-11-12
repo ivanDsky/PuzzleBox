@@ -41,6 +41,7 @@ import java.time.LocalDate
  *
  * Play again (A4, ticket 11): tapping a day opens its detail; "See result" / "Keep going"
  * reports the (game, day) through [onPlayAgain] and the shell opens that day's game slot.
+ * A day's detail lists its replays ([replayHost]); opening one asks the shell for the replay page.
  * Every identity (selection, best lookup, play again) is (game, day), never day alone
  * (tango-05).
  */
@@ -54,9 +55,14 @@ fun HistoryScreen(
     onSelectDay: (LocalDate?) -> Unit,
     onPlayAgain: (GameId, LocalDate) -> Unit,
     modifier: Modifier = Modifier,
+    replayHost: HistoryReplayHost = HistoryReplayHost.None,
 ) {
     var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
     val selectedRow = selectedKey?.let { key -> state.rows.firstOrNull { it.key == key } }
+
+    // The replays follow the open day: loaded when it opens, dropped when the detail closes.
+    val openKey = selectedRow?.key
+    LaunchedEffect(openKey) { replayHost.onOpenDay(selectedRow) }
 
     // Two panes show a detail beside the list, so the linked row opens once; a phone stays on the day list.
     var openingTaken by rememberSaveable { mutableStateOf(false) }
@@ -121,6 +127,9 @@ fun HistoryScreen(
                             row = selected,
                             gameBest = state.bestOf(selected),
                             onBackToDayList = null,
+                            replays = replayHost.replays.of(selected),
+                            replayUi = replayHost.playUi(selected.gameId),
+                            onOpenReplay = { solve -> replayHost.onOpen(selected, solve) },
                             onPlayAgain = { onPlayAgain(selected.gameId, selected.day) },
                             cardColor = cardColor,
                             modifier = Modifier.fillMaxSize(),
@@ -155,6 +164,9 @@ fun HistoryScreen(
                         row = selected,
                         gameBest = state.bestOf(selected),
                         onBackToDayList = { selectedKey = null },
+                        replays = replayHost.replays.of(selected),
+                        replayUi = replayHost.playUi(selected.gameId),
+                        onOpenReplay = { solve -> replayHost.onOpen(selected, solve) },
                         onPlayAgain = { onPlayAgain(selected.gameId, selected.day) },
                         cardColor = cardColor,
                         modifier = Modifier.fillMaxSize(),
@@ -164,6 +176,9 @@ fun HistoryScreen(
         }
     }
 }
+
+/** These replays when they are [row]'s, else none: the load of a day just switched to has not started. */
+private fun DayReplays.of(row: HistoryDayRow): HistoryReplays = if (key == row.key) replays else HistoryReplays.Hidden
 
 /** [row]'s game's best row, if it has a numbered solve. */
 private fun HistoryUiState.bestOf(row: HistoryDayRow): HistoryDayRow? =
