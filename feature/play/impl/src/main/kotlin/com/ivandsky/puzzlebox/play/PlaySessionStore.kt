@@ -157,7 +157,7 @@ class PlaySessionStore internal constructor(
         val code = ShareCode.parse(key.code) ?: return null
         val slot = PlaySlot.Leg(GameId(key.gameId), code.value, key.legIndex)
         return scope.async {
-            finishLeg(code, key.legIndex, LegFinish.GaveUp).also {
+            finishLeg(code, key.legIndex, LegFinish.GaveUp()).also {
                 if (it == FinishResult.SignedOut) return@also
                 val live = slots.remove(slot)
                 if (live != null) live.close(save = false) else writers(slot).discard()
