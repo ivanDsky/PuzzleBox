@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.linkedin
 
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.database.linkedin.FetchLogEntity
@@ -36,6 +37,7 @@ internal class RoomLinkedInDays(
     private val budget: LinkedInCallBudget,
     private val avatars: LinkedInAvatars,
     storeLock: LinkedInStoreLock,
+    ownerScope: OwnerScope,
     private val clock: () -> Long,
 ) : LinkedInDays {
 
@@ -44,7 +46,7 @@ internal class RoomLinkedInDays(
 
     private val fetchLog = db.fetchLogDao()
     private val ghostDao = db.ghostDao()
-    private val ghosts = LinkedInGhostWriter(ghostDao)
+    private val ghosts = LinkedInGhostWriter(db, ownerScope)
 
     private val window = LinkedInDayWindow(calendar)
 

@@ -41,9 +41,10 @@ internal class DataStoreLinkedInLink(
     /**
      * The link state goes last on purpose: if the process dies halfway the link still reads
      * as linked and the player can press Disconnect again, rather than being left not
-     * connected over a half-wiped store. Completions are not touched, so imported days stay. The photos go
-     * with the rows they belong to: a disconnect leaves no connection's face on the phone. It is not
-     * cancellable: the screen that asked may be left while the wipe runs, and stopping after the cookies
+     * connected over a half-wiped store. Completions, ghosts and saved boards are not touched: imported days and
+     * the boards read so far are the player's own and stay. The photos are the one thing of the connections that
+     * goes (the log, the cookies and the link with them): a disconnect leaves no connection's face on the phone.
+     * It is not cancellable: the screen that asked may be left while the wipe runs, and stopping after the cookies
      * would leave a half-wiped account behind a link that still reads as connected.
      */
     override suspend fun disconnect() {
@@ -52,7 +53,6 @@ internal class DataStoreLinkedInLink(
             // the link gone, instead of storing into a wiped account.
             storeLock.withLock {
                 cookies.clear()
-                db.ghostDao().clear()
                 db.fetchLogDao().clear()
                 avatars.clear()
                 source.clear()

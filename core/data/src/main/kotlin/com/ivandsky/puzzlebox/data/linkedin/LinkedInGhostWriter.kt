@@ -1,23 +1,38 @@
 package com.ivandsky.puzzlebox.data.linkedin
 
-import com.ivandsky.puzzlebox.database.linkedin.GhostDao
+import androidx.room.withTransaction
+import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.database.linkedin.GhostEntity
+import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
+import com.ivandsky.puzzlebox.database.linkedin.SavedBoardEntity
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
 /**
- * The only writer of the `ghosts` table: turns a fetched connections board into stored rows. Cap 50
- * connections; the player's own row is stored beside them (it is told apart on read by its member ref) and
- * never counts against the cap. Days older than `today - 8` are pruned on every write. The caller passes
- * both dates and the fetch time, so this class reads no clock and nothing here leaves the phone.
+ * The only writer of the `ghosts` table and of the `saved_boards` rows a board read makes: turns a fetched
+ * connections board into stored rows. Cap 50 connections; the player's own row is stored beside them (it is
+ * told apart on read by its member ref) and never counts against the cap. A board is the player's own record
+ * once read, so nothing prunes it by age. The caller passes both dates and the fetch time, so this class
+ * reads no clock and nothing here leaves the phone.
+ *
+ * It takes no [LinkedInStoreLock] itself, which is not reentrant: the caller already holds it, as it does for
+ * every LinkedIn store write.
  */
-internal class LinkedInGhostWriter(private val dao: GhostDao) {
+internal class LinkedInGhostWriter(
+    private val db: LinkedInDatabase,
+    private val ownerScope: OwnerScope,
+) {
+
+    private val ghosts = db.ghostDao()
+    private val savedBoards = db.savedBoardDao()
 
     /**
-     * Replaces the board of ([game], [day]) with [board]; other games and days are untouched. Returns the
-     * rows it kept, the player's own among them. [today] is the game's cadence-zone date and [ownProfileId]
-     * the connected member.
+     * Replaces the board of ([game], [day]) with [board] and writes its saved-board row in the same
+     * transaction; other games and days are untouched. Returns the rows it kept, the player's own among
+     * them. [today] is the game's cadence-zone date and [ownProfileId] the connected member. The saved
+     * board is complete when it was read after the day's end, is stamped with the signed-in uid (null when
+     * signed out) and has no acknowledged upload, even when it replaces one that had.
      */
     suspend fun write(
         game: GameId,
@@ -48,16 +63,24 @@ internal class LinkedInGhostWriter(private val dao: GhostDao) {
                     fetchedAtMs = fetchedAtMs,
                 )
             }
-        dao.replace(game.value, day.toString(), rows)
-        // Days are ISO strings, so the DAO's string comparison is a date comparison. Pruning on every
-        // write, even an empty one, keeps old boards from outliving the eight-day window.
-        dao.pruneBefore(today.minusDays(KEEP_DAYS).toString())
+        val saved = SavedBoardEntity(
+            game = game.value,
+            day = day.toString(),
+            profileId = ownProfileId,
+            ownerUid = ownerScope.writer(),
+            readAtMs = fetchedAtMs,
+            complete = today.isAfter(day),
+            uploadedFingerprint = null,
+        )
+        db.withTransaction {
+            ghosts.replace(game.value, day.toString(), rows)
+            savedBoards.upsert(saved)
+        }
         return kept
     }
 
     private companion object {
         const val MAX_GHOSTS = 50
-        const val KEEP_DAYS = 8L
         const val MS_PER_SECOND = 1000L
     }
 }
