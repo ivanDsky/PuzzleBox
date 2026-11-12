@@ -28,7 +28,7 @@ class SudokuMoveLog(
         val atMs = playTimeMs(session.elapsedMs, runningSince(), at)
         val next = log.play(SudokuReplay, session, move.toReplayMove(), atMs)
         // The step stamps a win with its play time, all a replay has. A live win keeps the
-        // wall-clock moment, in the session codec's millisecond precision.
+        // wall-clock moment, in the session codec's millisecond precision. The logged move carries no win time.
         val wonNow = next.isComplete && !session.isComplete
         return if (wonNow) next.copy(completedAt = Instant.ofEpochMilli(at.toEpochMilli())) else next
     }
