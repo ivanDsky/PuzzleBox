@@ -94,21 +94,20 @@ object HistoryTestSupport {
         flags: ReleaseFlags = FakeReleaseFlags(),
         games: GameRegistry = registry(hintsRanked),
     ): HistoryViewModel {
-        val registry = games
-        val observeGameHistory = ObserveGameHistory(registry, daily, completions)
-        val puzzleDay = GetPuzzleDay(registry, clock)
+        val observeGameHistory = ObserveGameHistory(games, daily, completions)
+        val puzzleDay = GetPuzzleDay(games, clock)
         return HistoryViewModel(
             observeGameHistory = observeGameHistory,
             observeGameStats = ObserveGameStats(
-                registry = registry,
+                games = games,
                 observeGameHistory = observeGameHistory,
                 computeStreak = ComputeStreak(puzzleDay = puzzleDay),
             ),
-            registry = registry,
+            games = games,
             // No play UIs: every game reads GameBrand.Neutral.
             playRegistry = GamePlayRegistry(emptyList()),
             puzzleDay = puzzleDay,
-            loadReplay = loadReplay(flags, registry, daily, completions),
+            loadReplay = loadReplay(flags, games, daily, completions),
             opening = opening,
         )
     }

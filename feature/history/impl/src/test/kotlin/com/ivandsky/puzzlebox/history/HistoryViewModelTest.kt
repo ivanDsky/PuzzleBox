@@ -3,7 +3,9 @@ package com.ivandsky.puzzlebox.history
 import androidx.paging.testing.asSnapshot
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
@@ -22,6 +24,7 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -570,11 +573,68 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `a fresh view model has no replays and the list never loads them`() = runTest {
-        val viewModel = replayViewModel(firstReplay, newerReplay)
+    fun `loading the list reads no replay`() = runTest {
+        val completions = CountingCompletionRepository(FakeCompletionRepository(listOf(solve(isRecord = true))))
+        val daily = FakeDailyRepository().apply { setCached(ReplayFixtures.GAME, replayDay, TestGames.puzzle(ReplayFixtures.GAME)) }
+        val viewModel = HistoryTestSupport.viewModel(
+            daily,
+            completions,
+            flags = FakeReleaseFlags(ReleaseFlag.FullReplay),
+            games = HistoryTestSupport.replayRegistry,
+        )
 
         viewModel.pagedDays.asSnapshot()
+        viewModel.uiState.first { it.rows.isNotEmpty() }
 
+        assertEquals(0, completions.replayReads)
         assertSame(HistoryReplays.Hidden, viewModel.replays.value)
+    }
+
+    @Test
+    fun `a slow day that finishes after the next day opened does not replace it`() = runTest {
+        val otherDay = replayDay.plusDays(1)
+        val otherPuzzle = TestGames.Ref(ReplayFixtures.GAME, PuzzleKey.Daily(otherDay, 1))
+        val gate = CompletableDeferred<Unit>()
+        val completions = GatedCompletionRepository(FakeCompletionRepository(), replayPuzzle, gate)
+        completions.onCompleted(solve(isRecord = true), firstReplay)
+        completions.onCompleted(solve(isRecord = true).copy(puzzleRef = otherPuzzle), newerReplay)
+        val daily = FakeDailyRepository().apply {
+            setCached(ReplayFixtures.GAME, replayDay, TestGames.puzzle(ReplayFixtures.GAME))
+            setCached(ReplayFixtures.GAME, otherDay, TestGames.puzzle(ReplayFixtures.GAME))
+        }
+        val viewModel = HistoryTestSupport.viewModel(
+            daily,
+            completions,
+            flags = FakeReleaseFlags(ReleaseFlag.FullReplay),
+            games = HistoryTestSupport.replayRegistry,
+        )
+
+        viewModel.openReplays(replayRow)
+        viewModel.openReplays(replayRow.copy(day = otherDay, record = solve(isRecord = true).copy(puzzleRef = otherPuzzle)))
+        gate.complete(Unit)
+
+        val one = viewModel.replays.value as HistoryReplays.One
+        assertEquals(ReplayFixtures.SHORT_MOVES * 2_000L, one.timeline.endMs)
+    }
+
+    private class CountingCompletionRepository(
+        private val inner: CompletionRepository,
+    ) : CompletionRepository by inner {
+        var replayReads = 0
+        override suspend fun recordReplay(puzzleRef: PuzzleRef): SolveReplay? = inner.recordReplay(puzzleRef).also { replayReads++ }
+        override suspend fun latestReplay(puzzleRef: PuzzleRef): SolveReplay? = inner.latestReplay(puzzleRef).also { replayReads++ }
+        override suspend fun latestIsRecord(puzzleRef: PuzzleRef): Boolean = inner.latestIsRecord(puzzleRef).also { replayReads++ }
+    }
+
+    /** Holds the record read of [slow] until [gate] opens. */
+    private class GatedCompletionRepository(
+        private val inner: CompletionRepository,
+        private val slow: PuzzleRef,
+        private val gate: CompletableDeferred<Unit>,
+    ) : CompletionRepository by inner {
+        override suspend fun recordReplay(puzzleRef: PuzzleRef): SolveReplay? {
+            if (puzzleRef == slow) gate.await()
+            return inner.recordReplay(puzzleRef)
+        }
     }
 }
