@@ -33,6 +33,7 @@ import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.game.replay.Timeline
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -51,18 +52,20 @@ import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.coroutines.CoroutineContext
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 /**
- * The custom resolver (spec A13, D8 slice 7) over the fake stores. The game is the replay
- * fixture game, so a resolved source opens a real timeline through [LoadSolveReplay]. Only
- * Record and Latest of a custom puzzle read anything; the rest are null before any read.
+ * The custom resolver (spec A13, D8 slice 7) through [LoadSolveReplay] over the fake stores. The game
+ * is the replay fixture game, so a resolved source opens a real timeline. Every outcome is asserted on
+ * the [Timeline] it opens to. Only Record and Latest of a custom puzzle read anything.
  */
 class LoadCustomReplayTest {
 
@@ -70,7 +73,7 @@ class LoadCustomReplayTest {
     private val completions = CountingCompletionRepository(inner)
     private val received = FakeReceivedPuzzleRepository()
     private val shared = FakeSharedPuzzleRepository().apply { signedInUid = AUTHOR }
-    private val registry = GameRegistry(listOf(fixturePlugin()))
+    private val registry = GameRegistry(listOf(fixturePlugin(), fixturePlugin(TestGames.beta)))
     private val loadShared = LoadSharedPuzzle(
         registry = registry,
         shared = shared,
@@ -84,67 +87,66 @@ class LoadCustomReplayTest {
     @Test
     fun `a received custom puzzle opens its record solve`() = runTest {
         received.upsert(stored())
-        val replay = ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES)
-        solved(replay, isRecord = true)
+        solved(ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES), isRecord = true)
 
-        val source = checkNotNull(custom(Record(ref)))
-
-        assertEquals(FIXTURE, source.puzzle.gameId)
-        assertEquals(replay, source.bytes)
-        assertNotNull(solveReplay(flagsOn()).invoke(Record(ref)))
+        assertSameTimeline(ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES), resolve(Record(ref)))
     }
 
     @Test
     fun `a received custom puzzle opens its newest solve, which is not the record`() = runTest {
         received.upsert(stored())
-        val record = ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES)
-        val newest = ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES, stepMs = 2_000)
-        solved(record, isRecord = true)
-        solved(newest, isRecord = false)
+        solved(ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES), isRecord = true)
+        solved(ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES, stepMs = 2_000), isRecord = false)
 
-        assertEquals(record, custom(Record(ref))?.bytes)
-        assertEquals(newest, custom(Latest(ref))?.bytes)
-        assertNotNull(solveReplay(flagsOn()).invoke(Latest(ref)))
+        assertSameTimeline(ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES), resolve(Record(ref)))
+        assertSameTimeline(ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES, stepMs = 2_000), resolve(Latest(ref)))
     }
 
     @Test
     fun `an own-created puzzle opens from its shared document`() = runTest {
         shared.publish(doc())
-        val replay = ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES)
-        solved(replay, isRecord = true)
+        solved(ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES), isRecord = true)
 
-        val source = checkNotNull(custom(Record(ref)))
-
-        assertEquals(replay, source.bytes)
+        assertSameTimeline(ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES), resolve(Record(ref)))
         assertTrue(received.rows.containsKey(CODE))
+    }
+
+    @Test
+    fun `the store wins over the shared document when both hold the puzzle`() = runTest {
+        received.upsert(stored())
+        // The shared copy names another game, so opening it would fail. Only the store makes this open.
+        shared.publish(doc().copy(gameId = TestGames.beta.value))
+        solved(ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES), isRecord = true)
+
+        assertSameTimeline(ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES), resolve(Record(ref)))
     }
 
     @Test
     fun `an unknown code gives null even with a stored solve`() = runTest {
         solved(ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES), isRecord = true)
 
-        assertNull(custom(Record(ref)))
-        assertNull(solveReplay(flagsOn()).invoke(Record(ref)))
+        assertNull(resolve(Record(ref)))
     }
 
     @Test
     fun `a custom solve with no stored bytes gives null and loads nothing`() = runTest {
         shared.publish(doc())
 
-        assertNull(custom(Record(ref)))
+        assertNull(resolve(Record(ref)))
         assertTrue(received.rows.isEmpty())
     }
 
     @Test
     fun `a puzzle of another game than the solve's gives null`() = runTest {
+        // The beta plugin is registered and the bytes are the fixture game's, so the opener refuses them.
         received.upsert(stored(gameId = TestGames.beta))
         solved(ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES), isRecord = true)
 
-        assertNull(custom(Record(ref)))
+        assertNull(resolve(Record(ref)))
     }
 
     @Test
-    fun `a daily reference gives null without a read`() = runTest {
+    fun `a daily reference gives null without a custom read`() = runTest {
         received.upsert(stored())
         solved(ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES), isRecord = true)
         val daily = TestGames.Ref(FIXTURE, PuzzleKey.Daily(LocalDate.parse("2026-11-08"), 1))
@@ -152,6 +154,7 @@ class LoadCustomReplayTest {
         assertNull(custom(Record(daily)))
         assertNull(custom(Latest(daily)))
         assertEquals(0, completions.reads)
+        assertNull(resolve(Record(daily)))
     }
 
     @Test
@@ -159,8 +162,8 @@ class LoadCustomReplayTest {
         received.upsert(stored())
         solved(ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES), isRecord = true)
 
-        assertNull(custom(MyLeg(CODE, 0)))
-        assertNull(custom(TheirLeg(CODE, 0)))
+        assertNull(resolve(MyLeg(CODE, 0)))
+        assertNull(resolve(TheirLeg(CODE, 0)))
         assertEquals(0, completions.reads)
     }
 
@@ -169,7 +172,20 @@ class LoadCustomReplayTest {
         received.upsert(stored())
         completions.throwOnRead = true
 
-        assertNull(custom(Record(ref)))
+        assertNull(resolve(Record(ref)))
+    }
+
+    @Test
+    fun `cancellation during the store read propagates`() = runTest {
+        received.upsert(stored())
+        completions.cancelOnRead = true
+
+        try {
+            resolve(Record(ref))
+            fail("cancellation must propagate, not become null")
+        } catch (e: CancellationException) {
+            assertEquals("cancelled", e.message)
+        }
     }
 
     @Test
@@ -177,7 +193,18 @@ class LoadCustomReplayTest {
         received.upsert(stored())
         solved(ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES), isRecord = true)
 
-        assertNull(solveReplay(FakeReleaseFlags()).invoke(Record(ref)))
+        assertNull(resolve(Record(ref), FakeReleaseFlags()))
+    }
+
+    private suspend fun resolve(ref: SolveReplayRef, flags: ReleaseFlags = flagsOn()): Timeline? =
+        solveReplay(flags, registry).invoke(ref)
+
+    private fun assertSameTimeline(expected: Timeline, actual: Timeline?) {
+        assertNotNull(actual)
+        assertEquals(expected.game, actual!!.game)
+        assertEquals(expected.outcome, actual.outcome)
+        assertEquals(expected.endMs, actual.endMs)
+        assertEquals(expected.moveTimesMs.toList(), actual.moveTimesMs.toList())
     }
 
     private suspend fun solved(replay: SolveReplay, isRecord: Boolean) = inner.onCompleted(
@@ -191,9 +218,9 @@ class LoadCustomReplayTest {
         replay,
     )
 
-    private fun solveReplay(flags: ReleaseFlags) = LoadSolveReplay(
+    private fun solveReplay(flags: ReleaseFlags, games: GameRegistry) = LoadSolveReplay(
         flags = flags,
-        games = registry,
+        games = games,
         daily = LoadDailyReplay(completions, FakeDailyRepository()),
         custom = custom,
         leg = LoadLegReplay(
@@ -222,20 +249,25 @@ class LoadCustomReplayTest {
         createdAtMs = 0L, unpublished = false,
     )
 
-    /** [LoadSolveReplay]'s store reads, counted, so a test can prove a reference never reached the store. */
+    /** [LoadSolveReplay]'s store reads, counted, with injectable failure and cancellation. */
     private class CountingCompletionRepository(private val inner: FakeCompletionRepository) : CompletionRepository by inner {
         var reads = 0
         var throwOnRead = false
+        var cancelOnRead = false
+
+        private fun read() {
+            reads++
+            if (cancelOnRead) throw CancellationException("cancelled")
+            if (throwOnRead) throw IllegalStateException("disk full")
+        }
 
         override suspend fun recordReplay(puzzleRef: PuzzleRef): SolveReplay? {
-            reads++
-            if (throwOnRead) throw IllegalStateException("disk full")
+            read()
             return inner.recordReplay(puzzleRef)
         }
 
         override suspend fun latestReplay(puzzleRef: PuzzleRef): SolveReplay? {
-            reads++
-            if (throwOnRead) throw IllegalStateException("disk full")
+            read()
             return inner.latestReplay(puzzleRef)
         }
     }
@@ -298,8 +330,8 @@ class LoadCustomReplayTest {
         val NOW: Instant = Instant.parse("2026-11-07T10:00:00Z")
 
         /** The fixture game as a plugin with a replay member and the pair editor, so opens reach a real timeline. */
-        fun fixturePlugin(): GamePlugin<Unit, FixtureSession, TestGames.Model> = GamePlugin(
-            definition = TestGames.definition(FIXTURE),
+        fun fixturePlugin(game: GameId = FIXTURE): GamePlugin<Unit, FixtureSession, TestGames.Model> = GamePlugin(
+            definition = TestGames.definition(game),
             rules = object : GameRules<Unit> {
                 override fun validate(move: Move, state: Unit): MoveVerdict = object : MoveVerdict {}
                 override fun isComplete(state: Unit): Boolean = false
@@ -315,7 +347,7 @@ class LoadCustomReplayTest {
             },
             stateOf = { },
             initialSession = { DecodeResult.Ok(ReplayFixtures.initial(ReplayFixtures.SHORT_MOVES)) },
-            refOf = { key -> TestGames.Ref(FIXTURE, key) },
+            refOf = { key -> TestGames.Ref(game, key) },
             playAgainSession = { cached, _ -> DecodeResult.Ok(cached.payload) },
             rendererModel = { _, _, _ -> TestGames.Model },
             editor = PairEditor,
