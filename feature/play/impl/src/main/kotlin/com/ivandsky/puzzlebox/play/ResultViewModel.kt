@@ -97,9 +97,10 @@ data class ResultUiState(
  *
  * [heroInsights], [heroRank] and [playAgain] feed the hero page.
  *
- * The replay is read from the stored completion ([completions]), never from the live play: it shows once a stored row
- * carries this solve's time and hints, which is also true after process death, and never while the write is pending or
- * failed. [loadReplay] answers null for no replay, so a solve without one shows no row.
+ * The replay is read from the stored completion, never from the live play: it shows once the solve is stored (the live
+ * play's [ActivePlay.Record.stored], or after process death a stored row with this solve's time and hints), and never
+ * while the write is pending or failed. A game with no replay board skips the load. [loadReplay] answers null for no
+ * replay, so a solve without one shows no row.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResultViewModel internal constructor(
@@ -122,6 +123,7 @@ class ResultViewModel internal constructor(
     private val slot = PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))
     private val solve = ActivePlay.Solve(key.timeMs, key.hintsUsed)
     private val live: ActivePlay? = store.peek(slot)
+    private val liveHoldsSolve = live != null && live.record.value.solve == solve
     private val names: Map<GameId, String> = store.playable.toMap()
     private val today: Boolean = calendar.today(slot.gameId) == slot.day
 
@@ -149,7 +151,7 @@ class ResultViewModel internal constructor(
     private val replay: Flow<ReplaySectionState> = dayRow
         .map { day -> day?.let { games[slot.gameId]?.refOf?.invoke(PuzzleKey.Daily(slot.day, it.puzzleNumber)) } }
         .distinctUntilChanged()
-        .flatMapLatest { ref -> if (ref == null) flowOf(ReplaySectionState.Hidden) else replayOf(ref) }
+        .flatMapLatest { ref -> if (ref == null || playUi?.replayBoard == null) flowOf(ReplaySectionState.Hidden) else replayOf(ref) }
 
     val state: StateFlow<ResultUiState> = combine(
         record,
@@ -207,14 +209,27 @@ class ResultViewModel internal constructor(
         live?.takeIf { it.record.value.solve == solve }?.retryRecordWrite()
     }
 
-    /** The row once a stored completion of [ref] carries this solve (a record row or a play-again row). */
-    private fun replayOf(ref: PuzzleRef): Flow<ReplaySectionState> =
-        combine(completions.observeRecords(), completions.observePlayAgains(ref)) { records, again ->
-            (records + again).count { it.puzzleRef == ref && it.time == solve.timeMs && it.hints == solve.hints }
+    /**
+     * True once this solve is stored. A live play that holds the solve says so itself ([ActivePlay.Record.stored]);
+     * the time and hints match against the stored rows is only the cold case (no live play, after process death), where
+     * no write signal exists. It must not decide the live case: an older row with the same time and hints would show
+     * the row before the new write lands.
+     */
+    private fun storedOf(ref: PuzzleRef): Flow<Boolean> =
+        if (liveHoldsSolve) {
+            live!!.record.map { it.solve == solve && it.stored }.runningFold(false) { seen, now -> seen || now }
+        } else {
+            combine(completions.observeRecords(), completions.observePlayAgains(ref)) { records, again ->
+                (records + again).any { it.puzzleRef == ref && it.time == solve.timeMs && it.hints == solve.hints }
+            }
         }
+
+    /** The row once [storedOf] says this solve is stored; the replay is read from that completion, never the live play. */
+    private fun replayOf(ref: PuzzleRef): Flow<ReplaySectionState> =
+        storedOf(ref)
             .distinctUntilChanged()
             .mapLatest { stored ->
-                if (stored == 0) {
+                if (!stored) {
                     ReplaySectionState.Hidden
                 } else {
                     loadReplay(SolveReplayRef.Latest(ref))?.let(ReplaySectionState::Ready) ?: ReplaySectionState.Hidden

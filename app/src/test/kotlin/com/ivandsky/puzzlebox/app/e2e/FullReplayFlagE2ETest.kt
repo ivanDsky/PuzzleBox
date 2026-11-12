@@ -47,8 +47,7 @@ class FullReplayFlagE2ETest {
             assertRoute(REPLAY_ROUTE)
             awaitTag(ReplayTags.NEXT)
             val end = seek().range.endInclusive
-            // The page plays on its own and a Queens solve driven by the test is over in milliseconds,
-            // so step back to the start first: Previous move pauses there whatever the autoplay reached.
+            // The page opens paused on the finished board, so step back to the start before stepping forward.
             repeat(MOVE_BUDGET) { tap(ReplayTags.PREVIOUS) }
             assertEquals("stepping back reaches the start", 0f, seek().current, 0f)
             tap(ReplayTags.NEXT)

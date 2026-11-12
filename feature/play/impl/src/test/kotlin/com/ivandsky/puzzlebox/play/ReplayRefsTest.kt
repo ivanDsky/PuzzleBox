@@ -54,4 +54,9 @@ class ReplayRefsTest {
         assertNull(ReplayKey.daily(game, "not-a-day", 7, latest = true).toSolveReplayRef(games))
         assertNull(ReplayKey.leg(game, "bad", legIndex = 0).toSolveReplayRef(games))
     }
+
+    @Test
+    fun `an unknown kind gives null`() {
+        assertNull(ReplayKey(game, kind = "bogus", day = day.toString(), puzzleNumber = 7).toSolveReplayRef(games))
+    }
 }

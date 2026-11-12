@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -48,6 +49,9 @@ import java.time.LocalDate
 class FakePlayUi(override val gameId: GameId) : GamePlayUi {
 
     val controllers = mutableListOf<FakeController>()
+
+    /** None by default, like a game with no replay; a test sets one to show the replay section. */
+    override var replayBoard: GameReplayBoard? = null
 
     /** When set, [GamePlayController.adoptToday] rejects the envelope with this copy. */
     var rejectWith: String? = null
