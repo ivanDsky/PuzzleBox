@@ -80,7 +80,13 @@ class MatchResultPoster(
 
     /** True when the outcome is settled on the row; false leaves the row to retry on a later change. */
     private suspend fun post(row: OutboxResult): Boolean = try {
-        when (val outcome = matches.post(row.code, row.result)) {
+        var outcome = matches.post(row.code, row.result)
+        // A replay must never cost the result: a rejection of a result carrying one is answered by the same result bare.
+        if (outcome is PostResult.Rejected && row.result.replay != null) {
+            Log.w(TAG, "duel result with replay rejected, retrying without it: ${outcome.message}")
+            outcome = matches.post(row.code, row.result.copy(replay = null))
+        }
+        when (outcome) {
             PostResult.Posted, PostResult.Duplicate -> settle(row, ResultPostState.Posted, row.attempts)
             PostResult.Late -> settle(row, ResultPostState.Late, row.attempts)
             is PostResult.Rejected -> {
