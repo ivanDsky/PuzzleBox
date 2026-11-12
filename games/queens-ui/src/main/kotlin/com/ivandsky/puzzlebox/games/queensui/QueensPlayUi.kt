@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.gameui.PlayOverflowItem
 import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
@@ -56,6 +57,8 @@ class QueensPlayUi(
         QueensPlayController(env, settings = null, hintMode = hintMode)
 
     override val tutorial: List<TutorialStep> get() = QueensTutorial.steps
+
+    override val replayBoard: GameReplayBoard get() = QueensReplayBoard
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
