@@ -3,8 +3,8 @@ package com.ivandsky.puzzlebox.games.tangoui
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.ivandsky.puzzlebox.game.playTimeMs
 import com.ivandsky.puzzlebox.games.tango.TangoSession
-import java.time.Duration
 import java.time.Instant
 
 /** The running timer window (F2 §2: active foreground play only); folds into [TangoSession.elapsedMs] on pause/background. */
@@ -32,15 +32,13 @@ internal class TangoRunClock(private val now: () -> Instant) {
     }
 
     /** What TimerBar draws right now (banked + running window). Never negative. */
-    fun displayedElapsedMs(bankedMs: Long): Long {
-        val window = since?.let { Duration.between(it, Instant.ofEpochMilli(nowMs)).toMillis() } ?: 0L
-        return (bankedMs + window).coerceAtLeast(0L)
-    }
+    fun displayedElapsedMs(bankedMs: Long): Long =
+        playTimeMs(bankedMs, since, Instant.ofEpochMilli(nowMs))
 
     /** Folds the running window into the session's banked elapsed and stops the clock. */
     fun fold(target: TangoSession): TangoSession {
         val rs = since ?: return target
         since = null
-        return target.copy(elapsedMs = target.elapsedMs + Duration.between(rs, now()).toMillis())
+        return target.copy(elapsedMs = playTimeMs(target.elapsedMs, rs, now()))
     }
 }
