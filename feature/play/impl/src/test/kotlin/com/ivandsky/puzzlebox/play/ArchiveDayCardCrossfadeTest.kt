@@ -108,8 +108,8 @@ class ArchiveDayCardCrossfadeTest {
         val switchDay = cardOnDayA()
         switchDay()
         composeRule.mainClock.advanceTimeByFrame()
-        // 130 ms in: past the old per-line fade, still inside the card's.
-        composeRule.mainClock.advanceTimeBy(130L)
+        // 300 ms in: past the old 240 ms fade, still inside the card's 400 ms one.
+        composeRule.mainClock.advanceTimeBy(300L)
         assertEquals(1, eyebrows(dayA))
         assertEquals(1, eyebrows(dayB))
         assertEquals("both actions", 2, drawn("library.play"))
@@ -120,7 +120,7 @@ class ArchiveDayCardCrossfadeTest {
     fun `a day switch settles on the new day only`() {
         val switchDay = cardOnDayA()
         switchDay()
-        composeRule.mainClock.advanceTimeBy(500L)
+        composeRule.mainClock.advanceTimeBy(450L)
         assertEquals(0, eyebrows(dayA))
         assertEquals(1, eyebrows(dayB))
         assertEquals(1, drawn("library.play"))
