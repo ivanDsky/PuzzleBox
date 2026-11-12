@@ -151,13 +151,13 @@ class ResultScreenTest {
     @Test
     fun `a hints-first play again leads its best line with the hints`() {
         setContent(verdict = RecordVerdict.PlayAgain, previousBestMs = 102_000, rankOrder = RankOrder.HintsThenTime)
-        composeRule.onNodeWithText("Replay · Best Perfect · 1:42").assertExists()
+        composeRule.onNodeWithText("Practice · Best Perfect · 1:42").assertExists()
     }
 
     @Test
     fun `a time-first best line never shows hints`() {
         setContent(verdict = RecordVerdict.PlayAgain, previousBestMs = 80_000, previousHints = 2)
-        composeRule.onNodeWithText("Replay · Best 1:20").assertExists()
+        composeRule.onNodeWithText("Practice · Best 1:20").assertExists()
     }
 
     @Test
