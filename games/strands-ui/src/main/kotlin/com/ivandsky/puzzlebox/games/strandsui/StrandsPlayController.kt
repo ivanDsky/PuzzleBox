@@ -28,8 +28,6 @@ import com.ivandsky.puzzlebox.games.strands.engine.StrandsRules
 import com.ivandsky.puzzlebox.games.strands.engine.StrandsVerdict
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strands.strandsPlugin
-import com.ivandsky.puzzlebox.games.strands.withHint
-import com.ivandsky.puzzlebox.games.strands.withSubmit
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.Instant
 
@@ -71,6 +69,7 @@ class StrandsPlayController(
 
     /** Compose state on purpose: the clock loop keys off [clockWindow], so it must be observable. */
     private var runningSince: Instant? by mutableStateOf(null)
+    private val moveLog = StrandsMoveLog(env.moveLog, now) { runningSince }
     private var verdictSeq = 0
     private var foundSeq = 0
 
@@ -147,7 +146,7 @@ class StrandsPlayController(
             is StrandsVerdict.Spangram -> lastFound = FoundEvent(verdict.word.cells, spangram = true, seq = ++foundSeq)
             else -> Unit
         }
-        val next = current.withSubmit(path)
+        val next = moveLog.submit(current, path)
         if (next !== current) commit(next)
     }
 
@@ -156,7 +155,8 @@ class StrandsPlayController(
         if (current.state.isComplete) return
         when (val hint = StrandsRules.hint(current.state) as StrandsHint) {
             is StrandsHint.Reveal -> {
-                commit(current.withHint(hint))
+                val next = moveLog.hint(current, hint.hint)
+                if (next !== current) commit(next)
             }
 
             StrandsHint.OnBoard -> hintDialog = HintDialog.OnBoard
