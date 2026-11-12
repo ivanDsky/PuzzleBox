@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play.di
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ShippedReleaseFlags
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
@@ -68,6 +69,8 @@ val playModule = module {
             finishLeg = get(),
             calendar = get(),
             dispatchers = dispatchers,
+            // Graphs without the app's build-type flags (feature tests) play with the shipped ones.
+            flags = getOrNull() ?: ShippedReleaseFlags,
         )
     }
     factory { ObserveFriendPuzzles(received = get(), saved = get(), completions = get(), registry = get()) }
