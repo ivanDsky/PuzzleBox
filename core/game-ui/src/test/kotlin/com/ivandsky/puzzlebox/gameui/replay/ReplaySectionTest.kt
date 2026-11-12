@@ -7,6 +7,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.GamePlayController
@@ -17,6 +19,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,7 +27,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** Ticket 45: the three cases of the one replay section every single-board surface shows. */
+/** Tickets 45 and 48: the three cases of the one replay section every single-board surface shows: the Watch replay row, or nothing. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -44,11 +47,13 @@ class ReplaySectionTest {
         }
     }
 
+    private var opened = 0
+
     private fun show(state: ReplaySectionState, replayBoard: GameReplayBoard?) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                ReplaySection(state, FakePlayUi(GameId("fake"), replayBoard))
+                ReplaySection(state, FakePlayUi(GameId("fake"), replayBoard), onOpen = { opened++ })
             }
         }
         composeRule.mainClock.advanceTimeByFrame()
@@ -58,28 +63,40 @@ class ReplaySectionTest {
     fun `hidden draws nothing even with a board`() {
         show(ReplaySectionState.Hidden, board)
 
-        composeRule.onNodeWithTag(BOARD).assertDoesNotExist()
-        composeRule.onNodeWithTag(ReplayTags.PLAY).assertDoesNotExist()
+        composeRule.onNodeWithTag(ROW).assertDoesNotExist()
     }
 
     @Test
     fun `ready with no board draws nothing`() {
         show(ReplaySectionState.Ready(timeline), replayBoard = null)
 
+        composeRule.onNodeWithTag(ROW).assertDoesNotExist()
+    }
+
+    @Test
+    fun `ready with a board draws the row with the move count and the play time, and no player`() {
+        show(ReplaySectionState.Ready(timeline), board)
+
+        composeRule.onNodeWithTag(ROW).assertExists()
+        composeRule.onNodeWithText("Watch replay").assertExists()
+        composeRule.onNodeWithText("12 moves").assertExists()
+        composeRule.onNodeWithText("0:12").assertExists()
         composeRule.onNodeWithTag(BOARD).assertDoesNotExist()
         composeRule.onNodeWithTag(ReplayTags.PLAY).assertDoesNotExist()
     }
 
     @Test
-    fun `ready with a board draws the board and the transport`() {
+    fun `tapping the row opens the replay`() {
         show(ReplaySectionState.Ready(timeline), board)
 
-        composeRule.onNodeWithTag(BOARD).assertExists()
-        composeRule.onNodeWithTag(ReplayTags.PLAY).assertExists()
+        composeRule.onNodeWithTag(ROW).performClick()
+
+        assertEquals(1, opened)
     }
 
     private companion object {
         const val BOARD = "replay-section-board"
+        const val ROW = ReplayTags.WATCH_ROW
     }
 }
 

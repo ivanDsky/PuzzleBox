@@ -20,8 +20,10 @@ import com.ivandsky.puzzlebox.gameui.ResultHeroActions
 import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
+import com.ivandsky.puzzlebox.gameui.replay.ReplaySection
 import com.ivandsky.puzzlebox.gameui.resultShareText
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -45,7 +47,8 @@ import org.koin.core.parameter.parametersOf
  *
  * Today's official result draws one "Full board" row (`summary.leaderboard`) that hands back this
  * result's game through [onOpenBoard]; the board has one owner, the game page. The hero's rank row
- * is the one sign-in action. With [linkedIn] on, that rank also gives the place among the player's LinkedIn connections.
+ * is the one sign-in action. A stored solve with a replay adds the Watch replay row ([ReplaySection]), which hands
+ * [onOpenReplay] the replay's key. With [linkedIn] on, that rank also gives the place among the player's LinkedIn connections.
  */
 @Composable
 fun ResultRoute(
@@ -54,6 +57,7 @@ fun ResultRoute(
     onNext: (GameId) -> Unit,
     onDone: () -> Unit,
     onOpenBoard: (GameId) -> Unit,
+    onOpenReplay: (ReplayKey) -> Unit,
     linkedIn: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
@@ -83,7 +87,7 @@ fun ResultRoute(
                 }
             },
         )
-        HeroPage(key, viewModel, state, primary, onPrimary, onShare, onPlayAgain, context, onOpenBoard)
+        HeroPage(key, viewModel, state, primary, onPrimary, onShare, onPlayAgain, context, onOpenBoard, onOpenReplay)
     }
 }
 
@@ -99,6 +103,7 @@ private fun ColumnScope.HeroPage(
     onPlayAgain: () -> Unit,
     context: Context,
     onOpenBoard: (GameId) -> Unit,
+    onOpenReplay: (ReplayKey) -> Unit,
 ) {
     val insights by viewModel.heroInsights.collectAsStateWithLifecycle()
     val rank by viewModel.heroRank.collectAsStateWithLifecycle()
@@ -132,6 +137,11 @@ private fun ColumnScope.HeroPage(
                 onPlayAgain = onPlayAgain,
                 rolloverAt = state.rolloverAt,
             )
+        },
+        replay = viewModel.playUi?.let { ui ->
+            {
+                ReplaySection(state.replay, ui, onOpen = { onOpenReplay(ReplayKey.daily(key.gameId, key.day, state.puzzleNumber, latest = true)) })
+            }
         },
         board = if (!viewModel.playAgain && state.puzzleNumber != null) {
             { SummaryLinkRow("Full board", { onOpenBoard(GameId(key.gameId)) }, Modifier.testTag("summary.leaderboard")) }

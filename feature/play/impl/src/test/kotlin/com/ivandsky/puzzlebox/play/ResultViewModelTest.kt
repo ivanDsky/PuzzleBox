@@ -164,6 +164,8 @@ class ResultViewModelTest {
             rank = ObserveResultRank(observeBoard, games),
             linkedIn = if (linkedIn) ObserveLinkedInDay(linkedInDays, games) else null,
             board = signedOutBoard(),
+            completions = completions,
+            loadReplay = loadSolveReplay(games, daily, completions),
         )
     }
 
