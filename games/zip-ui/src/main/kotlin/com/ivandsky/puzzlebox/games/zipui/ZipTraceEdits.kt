@@ -2,19 +2,18 @@ package com.ivandsky.puzzlebox.games.zipui
 
 import com.ivandsky.puzzlebox.gameui.PlayClear
 import com.ivandsky.puzzlebox.gameui.PlayUndo
+import com.ivandsky.puzzlebox.games.zip.ZipReplayMove
 import com.ivandsky.puzzlebox.games.zip.ZipSession
-import com.ivandsky.puzzlebox.games.zip.engine.ZipMove
-import java.time.Instant
 
 /**
  * The edits to Zip's trace that are not drawing it (A14): undo and redo over the
  * session's command history, and Clear back to the empty trace as one undo unit. Each
- * change goes out through [apply], which commits and persists it like any move; a no-op
- * step changes nothing. A finished trace takes no edits.
+ * change is recorded by [log] and goes out through [apply], which commits and persists it
+ * like any move; a no-op step changes nothing. A finished trace takes no edits.
  */
 internal class ZipTraceEdits(
     private val session: () -> ZipSession?,
-    private val now: () -> Instant,
+    private val log: ZipMoveLog,
     private val apply: (ZipSession) -> Unit,
 ) : PlayUndo, PlayClear {
 
@@ -24,17 +23,17 @@ internal class ZipTraceEdits(
     override val canRedo: Boolean
         get() = session()?.let { !it.isComplete && it.history.canRedo } == true
 
-    override fun undo() = step(ZipSession::withUndo)
+    override fun undo() = step(ZipReplayMove.Undo)
 
-    override fun redo() = step(ZipSession::withRedo)
+    override fun redo() = step(ZipReplayMove.Redo)
 
     /** The trace empties to the start state (R1); the session keeps timer and hints. */
-    override fun clear() = step { it.withMove(ZipMove.Reset, now()) }
+    override fun clear() = step(ZipReplayMove.Reset)
 
-    private fun step(edit: (ZipSession) -> ZipSession) {
+    private fun step(move: ZipReplayMove) {
         val current = session() ?: return
         if (current.isComplete) return
-        val next = edit(current)
+        val next = log.record(current, move)
         if (next !== current) apply(next)
     }
 }
