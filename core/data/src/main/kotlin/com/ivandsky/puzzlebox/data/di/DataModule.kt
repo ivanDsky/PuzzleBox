@@ -121,5 +121,5 @@ val dataModule = module {
             clock = System::currentTimeMillis,
         )
     }
-    single<LinkedInAccount> { RoomLinkedInAccount(link = get(), db = get(), avatars = get()) }
+    single<LinkedInAccount> { RoomLinkedInAccount(link = get(), db = get(), avatars = get(), ownerScope = get()) }
 }

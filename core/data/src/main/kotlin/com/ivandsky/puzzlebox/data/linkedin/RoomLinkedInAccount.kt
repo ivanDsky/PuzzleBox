@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.data.linkedin
 
+import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -9,11 +10,15 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
-/** [LinkedInAccount] over the ghosts and fetch-log tables, scoped to the linked profile. */
+/**
+ * [LinkedInAccount] over the ghosts and fetch-log tables, scoped to the linked profile. The ghost reads see only the
+ * boards [OwnerScope.visible] may see, like the day view does.
+ */
 internal class RoomLinkedInAccount(
     private val link: LinkedInLink,
     private val db: LinkedInDatabase,
     private val avatars: LinkedInAvatars,
+    private val ownerScope: OwnerScope,
 ) : LinkedInAccount {
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -22,17 +27,20 @@ internal class RoomLinkedInAccount(
             if (profileId == null) flowOf(EMPTY) else stored(profileId)
         }
 
-    private fun stored(profileId: String): Flow<LinkedInAccountData> = combine(
-        db.ghostDao().observeNewestOf(profileId),
-        db.ghostDao().observeConnectionCount(profileId),
-        db.fetchLogDao().observeLastFetchedAt(profileId),
-        avatars.present,
-    ) { newest, connections, lastFetchedAtMs, photos ->
-        LinkedInAccountData(
-            owner = newest?.let { LinkedInOwner(it.name, avatars.pathOf(it.memberRef, photos)) },
-            connectionsSeen = connections,
-            lastFetchedAtMs = lastFetchedAtMs,
-        )
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun stored(profileId: String): Flow<LinkedInAccountData> = ownerScope.visible.flatMapLatest { visibleOwner ->
+        combine(
+            db.ghostDao().observeNewestOf(profileId, visibleOwner),
+            db.ghostDao().observeConnectionCount(profileId, visibleOwner),
+            db.fetchLogDao().observeLastFetchedAt(profileId),
+            avatars.present,
+        ) { newest, connections, lastFetchedAtMs, photos ->
+            LinkedInAccountData(
+                owner = newest?.let { LinkedInOwner(it.name, avatars.pathOf(it.memberRef, photos)) },
+                connectionsSeen = connections,
+                lastFetchedAtMs = lastFetchedAtMs,
+            )
+        }
     }
 
     private fun LinkState.profileIdOrNull(): String? = when (this) {

@@ -27,7 +27,7 @@ class ObserveLinkedInDay(private val days: LinkedInDays, private val registry: G
 }
 
 private fun LinkedInDayData.toView(game: GameId, registry: GameRegistry): LinkedInDayView =
-    LinkedInDayView(status(), board(registry.rankOrderOf(game).comparator), owner)
+    LinkedInDayView(status(), board(registry.rankOrderOf(game).comparator), owner, saved())
 
 private fun LinkedInDayData.status(): LinkedInDayStatus = when (val linked = link) {
     LinkState.NotConnected -> LinkedInDayStatus.NotConnected
@@ -53,12 +53,23 @@ private fun LinkedInDayData.status(): LinkedInDayStatus = when (val linked = lin
     }
 }
 
+/**
+ * A saved board needs no link and no recent day, so the window only tells a day that can still be read from one that
+ * never will be, and only when no board is saved.
+ */
+private fun LinkedInDayData.saved(): SavedBoardState {
+    val readAtMs = boardFetchedAtMs
+    return when {
+        readAtMs != null -> SavedBoardState.Saved(readAtMs, boardComplete)
+        boardInWindow -> SavedBoardState.NotYetRead
+        else -> SavedBoardState.NeverSaved
+    }
+}
+
 private fun LinkedInDayData.board(order: Comparator<BestScore>): LinkedInBoardView = when {
-    link is LinkState.NotConnected -> LinkedInBoardView.Hidden
-    // Only a board that was read is drawn, so an empty one that was read still shows.
+    // Only a board that was read is drawn, so an empty one that was read still shows. Whatever the link says, a
+    // disconnected or paused player and a day past the window still have the board that was read.
     boardFetchedAtMs == null -> LinkedInBoardView.Hidden
-    !boardInWindow -> LinkedInBoardView.Hidden
-    // A paused link lands here too: the ghosts read before the pause are still on the phone.
     else -> shown(order)
 }
 

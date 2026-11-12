@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.data.linkedin
 import androidx.room.Room
 import com.ivandsky.puzzlebox.database.linkedin.GhostEntity
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
+import com.ivandsky.puzzlebox.database.linkedin.SavedBoardEntity
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -74,8 +75,11 @@ class RoomLinkedInDaysOwnerAnyDayTest {
     private fun row(memberRef: String, name: String, game: GameId, day: LocalDate, fetchedAtMs: Long) =
         GhostEntity(game.value, day.toString(), memberRef, name, 60_000L, hintFree = true, flawless = false, fetchedAtMs = fetchedAtMs)
 
-    private suspend fun store(game: GameId, day: LocalDate, vararg rows: GhostEntity) =
+    /** A board is its saved row and its ghosts: a day's rows are shown only through the saved board that owns them. */
+    private suspend fun store(game: GameId, day: LocalDate, vararg rows: GhostEntity) {
+        db.savedBoardDao().upsert(SavedBoardEntity(game.value, day.toString(), "me", null, rows.maxOf { it.fetchedAtMs }, true, null))
         db.ghostDao().replace(game.value, day.toString(), rows.toList())
+    }
 
     private suspend fun ownerOf(game: GameId, day: LocalDate): LinkedInOwner? = days.observe(game, day).first().owner
 

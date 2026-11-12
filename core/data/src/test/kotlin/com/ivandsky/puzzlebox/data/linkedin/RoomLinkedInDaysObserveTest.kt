@@ -164,7 +164,7 @@ class RoomLinkedInDaysObserveTest {
     }
 
     @Test
-    fun `ghosts appear after a board sync and disappear on disconnect`() = runTest {
+    fun `ghosts appear after a board sync and stay on disconnect`() = runTest {
         val day = ago(2)
         val rows = listOf("friend", "me", "rival").map { LinkedInBoard.Row(it, it, 60, hintFree = true, flawless = false) }
         respondOwn(day)
@@ -180,17 +180,20 @@ class RoomLinkedInDaysObserveTest {
                 synced.ghosts.toSet(),
             )
             assertEquals(now, synced.boardFetchedAtMs)
+            assertTrue(synced.boardComplete)
 
+            // The board was read and is the player's own record: a disconnect keeps it, saved by the same read.
             link.disconnect()
             val disconnected = awaitWhere { it.link == LinkState.NotConnected }
-            assertTrue(disconnected.ghosts.isEmpty())
-            assertNull(disconnected.boardFetchedAtMs)
+            assertEquals(synced.ghosts.toSet(), disconnected.ghosts.toSet())
+            assertEquals(now, disconnected.boardFetchedAtMs)
+            assertEquals(true, disconnected.boardInWindow)
             cancelAndIgnoreRemainingEvents()
         }
     }
 
     @Test
-    fun `the player's own board row is the owner, never a ghost, and goes on disconnect`() = runTest {
+    fun `the player's own board row is the owner, never a ghost, and stays on disconnect`() = runTest {
         val day = ago(2)
         val rows = listOf("friend", "me", "rival").map { LinkedInBoard.Row(it, if (it == "me") "Me Myself" else it, 60, hintFree = true, flawless = false) }
         respondOwn(day)
@@ -204,8 +207,11 @@ class RoomLinkedInDaysObserveTest {
             assertEquals(LinkedInOwner("Me Myself", photoPath = null), synced.owner)
             assertEquals(setOf("friend", "rival"), synced.ghosts.map { it.memberRef }.toSet())
 
+            // Told apart by the board's profile, so the player is still the owner without a link.
             link.disconnect()
-            assertNull(awaitWhere { it.link == LinkState.NotConnected }.owner)
+            val disconnected = awaitWhere { it.link == LinkState.NotConnected }
+            assertEquals(LinkedInOwner("Me Myself", photoPath = null), disconnected.owner)
+            assertEquals(setOf("friend", "rival"), disconnected.ghosts.map { it.memberRef }.toSet())
             cancelAndIgnoreRemainingEvents()
         }
     }
