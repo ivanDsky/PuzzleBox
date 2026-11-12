@@ -12,10 +12,16 @@ import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.FinishResult
 import com.ivandsky.puzzlebox.domain.LegFinish
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.SessionBlob
+import com.ivandsky.puzzlebox.game.replay.MoveLog
+import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.PlayClock
+import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
@@ -28,6 +34,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainCoroutineDispatcher
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 
@@ -149,20 +156,43 @@ class PlaySessionStore internal constructor(
      *  code is unreadable or the game is unplayable. */
     fun open(key: MatchLegKey): ActivePlay? = key.slot?.let { open(it) }
 
-    /** Gives up [key]'s leg (a loss, never restarted): the loss is queued first, then the live
-     *  play is dropped without its save, or the saved row when none is live; no completion. Signed
-     *  out, nothing is queued and the play and its save stay. Runs on the store's scope, so a
+    /** Gives up [key]'s leg (a loss, never restarted): the loss is queued first, with the replay of the moves made
+     *  before it, then the live play is dropped without its save, or the saved row when none is live; no completion.
+     *  Signed out, nothing is queued and the play and its save stay. Runs on the store's scope, so a
      *  navigation right after can't cut it. Null for an unreadable code. */
     suspend fun giveUp(key: MatchLegKey): FinishResult? {
         val code = ShareCode.parse(key.code) ?: return null
         val slot = PlaySlot.Leg(GameId(key.gameId), code.value, key.legIndex)
         return scope.async {
-            finishLeg(code, key.legIndex, LegFinish.GaveUp()).also {
+            val open = slots[slot]
+            val replay = if (open != null) open.sealGaveUp() else sealSaved(slot)
+            finishLeg(code, key.legIndex, LegFinish.GaveUp(replay)).also {
                 if (it == FinishResult.SignedOut) return@also
                 val live = slots.remove(slot)
                 if (live != null) live.close(save = false) else writers(slot).discard()
             }
         }.await()
+    }
+
+    /**
+     * The replay of a saved leg play that is not open: its envelope's log, sealed "gave up" at the play time the
+     * game banked. The game's own controller reads that time through [PlayClock], the same seam a live play is
+     * saved with, so no game is named here. Null with the flag off, no version 2 log, or an unreadable save.
+     */
+    private suspend fun sealSaved(slot: PlaySlot): SolveReplay? {
+        val plugin = games[slot.gameId] ?: return null
+        val gameUi = ui[slot.gameId] ?: return null
+        if (plugin.replay == null || !flags.isEnabled(ReleaseFlag.FullReplay)) return null
+        val decoded = SessionBlob.decode(opening.savedRow(slot) ?: return null) ?: return null
+        val log = MoveLog.restored(slot.gameId, decoded.log)
+        val reader = playScope()
+        try {
+            val controller = gameUi.createController(PlayEnvironment(reader, onSessionChanged = {}, onWon = {}, moveLog = log))
+            if (controller.adoptRestored(decoded.session) == null) return null
+            return log.seal(ReplayOutcome.GaveUp, (controller as? PlayClock)?.displayedElapsedMs() ?: 0L)
+        } finally {
+            reader.cancel()
+        }
     }
 
     /** The live play of [slot]; never creates one. */
