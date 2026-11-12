@@ -185,6 +185,7 @@ class FriendPuzzleCardTest {
         show()
 
         node("friend.card.cta.replay").assertExists()
+        composeRule.onNodeWithTag("friend.card.play").assert(hasText("Play again"))
         node("friend.card.solved").assert(hasText(formatDuration(125_000L), substring = true))
         node("friend.card.solved.hints").assert(hasText("2", substring = true))
     }

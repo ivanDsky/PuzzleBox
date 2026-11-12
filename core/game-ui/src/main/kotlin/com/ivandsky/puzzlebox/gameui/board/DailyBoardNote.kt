@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.gameui.board
 
+import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
+
 /**
  * A12: shown under the rows. [Posting], [Deferred] and [Rejected] tell how this player's
  * post stands ([toBoardNote]); [PostedOutsideTop] says a Posted time stands beyond the
@@ -12,5 +14,5 @@ enum class DailyBoardNote(val text: String) {
 
     /** RG9: the "100" is the backend board cap; its constant lives outside game-ui's reach, so the number rides this copy alone. */
     PostedOutsideTop("Your time is posted — outside the top 100."),
-    PlayAgainFirstTimeStands("Replay — your first time stands"),
+    PlayAgainFirstTimeStands(PlayAgainCopy.FIRST_TIME_STANDS),
 }

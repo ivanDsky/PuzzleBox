@@ -151,7 +151,7 @@ class DailyBoardTest {
     @Test
     fun `play-again note reads its copy`() {
         show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList(), DailyBoardNote.PlayAgainFirstTimeStands))
-        composeRule.onNodeWithTag("daily_board.note").assertTextEquals("Replay — your first time stands")
+        composeRule.onNodeWithTag("daily_board.note").assertTextEquals("Practice — your first time stands")
     }
 
     @Test
