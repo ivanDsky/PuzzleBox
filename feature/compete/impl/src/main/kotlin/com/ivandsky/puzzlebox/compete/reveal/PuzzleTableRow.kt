@@ -32,14 +32,18 @@ import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 
 private val TabletRowMinHeight = 72.dp
+private val RowPadding = 10.dp
+
+/** The phone row's vertical padding with a Compare: the 48 dp action makes the 44 dp title line 4 dp taller, the padding gives it back. */
+private val CompareRowPadding = 8.dp
 private const val TickAfterRowMs = 300
 
 /**
  * One puzzle of the table: the game's tile, "{Game} #{n}" over the basis line in the game's accent, each player's time
  * cell and the margin bar. On a tablet that is one line of columns; on a phone the tile and name sit over a second line
  * with the margin bar and the two time cells, the cells in the same columns as the header's. Row [index] sets its place
- * in the entrance stagger. A non-null [onCompare] adds the [CompareAction] under the basis line; without one the row is
- * laid out exactly as before.
+ * in the entrance stagger. A non-null [onCompare] puts the [CompareAction] at the trailing end of the title line, the row the same height
+ * as without one; without one the row is laid out exactly as before.
  */
 @Composable
 internal fun PuzzleTableRow(
@@ -63,7 +67,7 @@ internal fun PuzzleTableRow(
             .fillMaxWidth()
             .resultBeat(ResultBeats.Blocks, index)
             .heightIn(min = if (metrics.compact) 0.dp else TabletRowMinHeight)
-            .padding(horizontal = metrics.sidePadding, vertical = 10.dp),
+            .padding(horizontal = metrics.sidePadding, vertical = if (metrics.compact && onCompare != null) CompareRowPadding else RowPadding),
         verticalAlignment = if (metrics.compact) Alignment.Top else Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(metrics.columnGap),
     ) {
@@ -103,24 +107,26 @@ private fun RowScope.PhoneBody(
     }
 }
 
-/** The game's title over its basis line ("12 s faster", "Fewer hints · 0 vs 2"), then the compare action when offered. */
+/** The game's title over its basis line ("12 s faster", "Fewer hints · 0 vs 2"), the compare action when offered at the trailing end, centred on both. */
 @Composable
 private fun PuzzleName(row: PuzzleRow, brand: GameBrand, wide: Boolean, modifier: Modifier, onCompare: (() -> Unit)?) {
-    Column(modifier) {
-        Text(
-            text = row.title,
-            style = MaterialTheme.typography.titleSmall.copy(fontSize = if (wide) 17.sp else 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-        Text(
-            text = row.basis,
-            style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold),
-            color = brand.accent.colors().onContainer,
-            maxLines = if (wide) 1 else 2,
-            overflow = TextOverflow.Ellipsis,
-        )
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = row.title,
+                style = MaterialTheme.typography.titleSmall.copy(fontSize = if (wide) 17.sp else 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = row.basis,
+                style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold),
+                color = brand.accent.colors().onContainer,
+                maxLines = if (wide) 1 else 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
         if (onCompare != null) {
             val description = compareDescription(row.legIndex)
             AppTextButton(

@@ -1,15 +1,21 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.requiredWidth
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegVerdict
@@ -128,6 +134,30 @@ class RevealReplayCompareTest {
         rule.onNodeWithTag("reveal.compare.2").performScrollTo().assertContentDescriptionEquals(compareDescription(2)).performClick()
 
         assertEquals(listOf(2), opened)
+    }
+
+    @Test
+    fun aPhoneRowWithCompareIsAsTallAsOneWithout() = assertSameHeight(compact = true)
+
+    @Test
+    fun aTabletRowWithCompareIsAsTallAsOneWithout() = assertSameHeight(compact = false)
+
+    private fun assertSameHeight(compact: Boolean) {
+        val metrics = TableMetrics(compact, timeWidth = if (compact) 100.dp else 188.dp)
+        rule.setContent {
+            PuzzleBoxTheme {
+                Column(Modifier.requiredWidth(if (compact) 411.dp else 1280.dp)) {
+                    Box(Modifier.testTag("plain")) { PuzzleTableRow(row(0), GameBrand.Neutral, metrics, 0) }
+                    Box(Modifier.testTag("compare")) { PuzzleTableRow(row(1), GameBrand.Neutral, metrics, 0, onCompare = {}) }
+                }
+            }
+        }
+        rule.mainClock.advanceTimeBy(2_000)
+
+        val plain = rule.onNodeWithTag("plain").fetchSemanticsNode().size.height
+        val withCompare = rule.onNodeWithTag("compare").fetchSemanticsNode().size.height
+        assertEquals("plain $plain, with compare $withCompare", plain.toLong(), withCompare.toLong())
+        rule.onNodeWithTag("reveal.compare.1").assertHeightIsAtLeast(48.dp)
     }
 
     @Test
