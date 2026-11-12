@@ -24,11 +24,14 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultScreen
+import com.ivandsky.puzzlebox.gameui.replay.ReplaySection
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
+import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.shareText
 import java.time.Instant
 import org.koin.androidx.compose.koinViewModel
@@ -39,13 +42,15 @@ import org.koin.core.parameter.parametersOf
  * and Up are [onDone], back to the puzzle's card; Play again resets the finished play
  * before [onPlayAgain] reopens its board, so the board never re-hands off the old solve.
  * Share hands the system share sheet the puzzle's link, so the friend's friends can try it;
- * the board's sign-in hosts Google's account picker on this screen.
+ * the board's sign-in hosts Google's account picker on this screen. A stored solve with a replay adds the Watch replay
+ * row below the board, which hands [onOpenReplay] the key of this puzzle's newest solve.
  */
 @Composable
 internal fun CustomResultRoute(
     key: CustomResultKey,
     onPlayAgain: () -> Unit,
     onDone: () -> Unit,
+    onOpenReplay: (ReplayKey) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: CustomResultViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
@@ -70,6 +75,8 @@ internal fun CustomResultRoute(
                 onPlayAgain()
             },
             onSignIn = { viewModel.signIn(context) },
+            replayUi = viewModel.playUi,
+            onOpenReplay = { onOpenReplay(ReplayKey.custom(key.gameId, key.puzzleId, latest = true)) },
         )
     }
 }
@@ -78,7 +85,8 @@ internal fun CustomResultRoute(
  * The daily's [ResultScreen] over a friend's puzzle: its title, the time as the hero, a
  * "New best" pill once the solve is recorded as the record, or the score a play again leaves
  * standing; the Hints tile, then the puzzle's board with its author pinned. A friend's puzzle
- * never moves a streak, so there is no Streak tile, and the primary step is always Done.
+ * never moves a streak, so there is no Streak tile, and the primary step is always Done. The replay section ([replayUi]
+ * is the game's play UI, null for a game this build does not ship) follows the board and draws nothing until the state is Ready.
  */
 @Composable
 internal fun CustomResultScreen(
@@ -88,6 +96,8 @@ internal fun CustomResultScreen(
     onPlayAgain: () -> Unit,
     onSignIn: () -> Unit,
     modifier: Modifier = Modifier,
+    replayUi: GamePlayUi? = null,
+    onOpenReplay: () -> Unit = {},
 ) {
     ResultScreen(
         timeMs = state.timeMs,
@@ -116,6 +126,7 @@ internal fun CustomResultScreen(
                 onSignIn = onSignIn,
                 closed = state.boardClosed,
             )
+            if (replayUi != null) ReplaySection(state.replay, replayUi, onOpen = onOpenReplay)
         },
     )
 }
