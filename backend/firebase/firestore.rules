@@ -468,14 +468,22 @@ service cloud.firestore {
           && d.unpublished is bool;
       }
 
+      // The live shape carries what opens the puzzle offline (gameId, variant, sharedFormatVersion, bytes), the
+      // card's author fields and the post state. Only the first six keys below are required; the rest are
+      // optional, so a doc without them still passes.
       function validReceivedDoc(d) {
-        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'gameId', 'name', 'senderName', 'receivedAtMs',
+        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'gameId', 'variant', 'sharedFormatVersion', 'name',
+            'senderName', 'authorUid', 'note', 'authorTimeMs', 'authorHints', 'difficulty', 'receivedAtMs',
             'bytes', 'postState', 'deleted', 'deletedAtMs'])
           && (d.keys().hasAll(['gameId', 'name', 'senderName', 'receivedAtMs', 'bytes', 'postState'])
             || isTombstone(d))
           && isShareCode(docId)
           && isSpaceName(d.get('name', ''))
           && isSpaceName(d.get('senderName', ''))
+          && isSpaceName(d.get('variant', ''))
+          && isSpaceName(d.get('difficulty', ''))
+          && (!('authorUid' in d) || (d.authorUid is string && d.authorUid.size() <= 128))
+          && (!('note' in d) || (d.note is string && d.note.size() <= 140))
           && (!('bytes' in d) || (d.bytes is bytes && d.bytes.size() <= 8192));
       }
 
