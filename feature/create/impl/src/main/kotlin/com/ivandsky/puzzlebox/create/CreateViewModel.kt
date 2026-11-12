@@ -6,6 +6,8 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.importtext.ImportTextState
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DRAFT_UNDO_WINDOW_MS
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
@@ -30,8 +32,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -62,6 +66,9 @@ import kotlinx.coroutines.launch
  * import hands its draft to the next Studio through [importedNotice]. Text another app shared
  * ([SharedTextStore]) goes through that same sheet while the root is resumed
  * ([importSharedText]).
+ *
+ * [CreateUiState.restoring] is true while the cloud's first restore on this device runs (A34):
+ * the first-time empty state says the drafts are coming back instead of its first-time copy.
  */
 class CreateViewModel(
     private val games: GameRegistry,
@@ -77,6 +84,7 @@ class CreateViewModel(
     private val sharedText: SharedTextStore,
     private val clock: () -> Instant,
     private val nanoTime: () -> Long = System::nanoTime,
+    cloudSync: CloudSync? = null,
 ) : ViewModel() {
 
     private val editorGames: List<CreateUiState.NewGame> = editors.ids.mapNotNull { id ->
@@ -106,14 +114,21 @@ class CreateViewModel(
     private var creating: Job? = null
     private var syncing: Job? = null
 
+    // No CloudSync bound (the flag is off) is never restoring.
+    private val restoring: Flow<Boolean> = cloudSync?.state
+        ?.map { it is CloudSyncState.Syncing && it.firstRestore }
+        ?.distinctUntilChanged()
+        ?: flowOf(false)
+
     val uiState: StateFlow<CreateUiState> =
         combine(
             listed(),
             analysis.verdicts,
             combine(query, filter, tab.onEach(::syncWhenPublished), ::View),
             deleted,
-        ) { listed, settled, view, removed ->
-            stateOf(listed, settled, view, removed, editorGames, clock(), games, editors, plays)
+            restoring,
+        ) { listed, settled, view, removed, restoring ->
+            stateOf(listed, settled, view, removed, editorGames, clock(), games, editors, plays).copy(restoring = restoring)
         }.stateIn(
             viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), CreateUiState(games = editorGames),
         )

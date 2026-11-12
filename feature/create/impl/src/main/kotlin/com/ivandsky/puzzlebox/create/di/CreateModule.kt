@@ -28,12 +28,13 @@ private val DraftSaves = named("create.draftSaves")
  * [com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry] and the
  * [com.ivandsky.puzzlebox.gameui.GamePlayRegistry] from the app's aggregation (ADR-0001).
  * Publishing ([CreateSharedPuzzle]), unpublishing ([UpdatePublishState]) and the Published
- * rows' solve counts ([SyncSolvesCounts]) are bound here, their only consumer.
+ * rows' solve counts ([SyncSolvesCounts]) are bound here, their only consumer. The optional
+ * [com.ivandsky.puzzlebox.data.cloud.CloudSync] is resolved with getOrNull (unbound = no restoring state).
  */
 val createModule: Module = module {
     // Process lifetime on main, like Play's slot writes: leaving the Studio never cancels its last save.
     single(DraftSaves) { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().main) } onClose { it?.cancel() }
-    viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), get(), get(), syncSolves = get(), releaseFlags = get(), sharedText = get(), clock = { Instant.now() }) }
+    viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), get(), get(), syncSolves = get(), releaseFlags = get(), sharedText = get(), clock = { Instant.now() }, cloudSync = getOrNull()) }
     factory { SyncSolvesCounts(published = get(), boards = get(), clock = { Instant.now() }) }
     factory {
         CreateSharedPuzzle(

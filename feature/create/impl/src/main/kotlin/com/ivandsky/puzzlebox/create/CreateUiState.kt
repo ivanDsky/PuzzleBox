@@ -13,6 +13,8 @@ import com.ivandsky.puzzlebox.model.ShareCode
  * the New puzzle sheet's rows and, with no drafts at all ([isEmpty]), the empty state's.
  * [deleted] is the draft just deleted while its Undo is offered. [tab] is the list shown:
  * the drafts, or the [published] puzzles, newest first (no published draft is a draft row).
+ * [restoring] is true while the cloud's first restore on this device runs (A34): the empty
+ * state says the drafts are coming back instead of its first-time copy.
  */
 data class CreateUiState(
     val loading: Boolean = true,
@@ -26,6 +28,7 @@ data class CreateUiState(
     val deleted: Deleted? = null,
     val tab: Tab = Tab.Drafts,
     val published: List<PublishedRow> = emptyList(),
+    val restoring: Boolean = false,
 ) {
 
     /** Nothing stored or published yet: the first-time empty state instead of the tabs (spec A3). */

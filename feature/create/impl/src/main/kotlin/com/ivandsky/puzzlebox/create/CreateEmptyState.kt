@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -21,6 +22,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
+import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -42,7 +44,9 @@ private const val RuleMaxLines = 2
  * The first-time Create root (spec A3; 01 handoff "Empty (first time)", option C): with no
  * drafts at all it lists [games] inline, each with its glyph tile, one-line rule and default
  * size, so one tap on a game starts a draft of it at that size through [onStart]. Under the
- * games, "Import from text" ([onImport]) opens the Import sheet; null leaves it out.
+ * games, "Import from text" ([onImport]) opens the Import sheet; null leaves it out. While
+ * the first cloud [restoring] runs, the drafts are coming back instead, so it says that and
+ * offers no game (A34).
  */
 @Composable
 fun CreateEmptyState(
@@ -50,7 +54,16 @@ fun CreateEmptyState(
     onStart: (gameId: GameId, variant: VariantId) -> Unit,
     modifier: Modifier = Modifier,
     onImport: (() -> Unit)? = null,
+    restoring: Boolean = false,
 ) {
+    if (restoring) {
+        EmptyState(
+            title = "Bringing back your puzzles…",
+            message = "Your drafts and published puzzles will show up here in a moment.",
+            modifier = modifier.fillMaxSize().testTag("create.restoring"),
+        )
+        return
+    }
     val scroll = rememberScrollState()
     OnTabReselect { scroll.animateScrollTo(0) }
     Column(
@@ -178,6 +191,17 @@ private fun CreateEmptyStatePreview() {
     PuzzleBoxTheme {
         Surface {
             CreateEmptyState(games = PreviewGames, onStart = { _, _ -> }, onImport = {})
+        }
+    }
+}
+
+/** The first-time Create root while the first cloud restore runs (A34). */
+@PuzzleBoxPreviews
+@Composable
+private fun CreateRestoringPreview() {
+    PuzzleBoxTheme {
+        Surface {
+            CreateEmptyState(games = PreviewGames, onStart = { _, _ -> }, restoring = true)
         }
     }
 }
