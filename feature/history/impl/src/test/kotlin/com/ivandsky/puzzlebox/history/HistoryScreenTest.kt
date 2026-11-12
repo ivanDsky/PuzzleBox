@@ -49,7 +49,7 @@ import org.robolectric.annotation.GraphicsMode
  * blob (ticket 11), so cache state never blocks the tap.
  * Fix round 5, defect C: rows are per-game via the game-agnostic merged history — a
  * solved Queens day lists and details exactly like a captured day. tango-05: Zip and
- * Tango share the calendar without colliding, and a tango replay reports the tango game.
+ * Tango share the calendar without colliding, and a tango play-again reports the tango game.
  *
  * Drives [HistoryRoute] over a real [HistoryViewModel] (production use cases, fake
  * repositories, stand-in game plugins) — the route's exact projection. Assertions sit on
@@ -106,7 +106,7 @@ class HistoryScreenTest {
                         key = key,
                         layout = layout,
                         onBack = onBack,
-                        onPlayAgain = { game, replayed -> handedToShell = game to replayed },
+                        onPlayAgain = { game, playedAgain -> handedToShell = game to playedAgain },
                         viewModel = viewModel,
                     )
                 }
@@ -194,7 +194,7 @@ class HistoryScreenTest {
         composeRule.onNodeWithTag("history.see_result").performClick()
         composeRule.waitForIdle()
 
-        // The replayed DAY's identity, never today's (A4, N18).
+        // The play-again DAY's identity, never today's (A4, N18).
         assertEquals(ZIP to day, handedToShell)
     }
 
@@ -250,7 +250,7 @@ class HistoryScreenTest {
     }
 
     @Test
-    fun `uncached day still reports its replay - the play store resolves the slot`() {
+    fun `uncached day still reports its play-again - the play store resolves the slot`() {
         // Listed, but its payload is no longer cached: History no longer reads the cache.
         setContent(listOf(HistoryTestSupport.entry(day)))
 
