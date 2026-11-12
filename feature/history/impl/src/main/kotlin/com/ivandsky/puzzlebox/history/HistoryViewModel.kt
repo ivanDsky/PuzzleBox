@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
@@ -163,6 +164,9 @@ class HistoryViewModel(
 
     private val replaysState = MutableStateFlow<HistoryReplays>(HistoryReplays.Hidden)
     private var loadingReplays: Job? = null
+
+    /** [game]'s play UI, which owns its replay board; null for a game this build has no play UI for. */
+    fun playUiOf(game: GameId): GamePlayUi? = playRegistry[game]
 
     /** The replays of the open day. */
     val replays: StateFlow<HistoryReplays> = replaysState.asStateFlow()

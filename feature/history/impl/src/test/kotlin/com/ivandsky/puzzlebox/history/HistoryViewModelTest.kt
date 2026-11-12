@@ -519,6 +519,7 @@ class HistoryViewModelTest {
 
         val one = viewModel.replays.value as HistoryReplays.One
         assertEquals(ReplayFixtures.SHORT_MOVES * 1_000L, one.timeline.endMs)
+        assertFalse(one.latest)
     }
 
     @Test
@@ -529,6 +530,7 @@ class HistoryViewModelTest {
 
         val one = viewModel.replays.value as HistoryReplays.One
         assertEquals(ReplayFixtures.SHORT_MOVES * 2_000L, one.timeline.endMs)
+        assertTrue(one.latest)
     }
 
     @Test

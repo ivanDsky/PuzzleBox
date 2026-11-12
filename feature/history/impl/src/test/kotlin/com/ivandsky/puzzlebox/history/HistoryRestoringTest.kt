@@ -61,6 +61,7 @@ class HistoryRestoringTest {
                     layout = HistoryLayout.SinglePane,
                     onBack = null,
                     onPlayAgain = { _, _ -> },
+                    onOpenReplay = {},
                     viewModel = viewModel,
                 )
             }
