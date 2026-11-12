@@ -25,3 +25,5 @@ and a forward-compatible reader from day one — a small, always-consumed price.
 ## Rejected alternative
 Schema-less free-for-all (no versions): the first rule change would corrupt every stored
 puzzle and session.
+
+*(Amended 2026-11-12, ADR-0030: a solve's replay is not in the stats slot. It lives in its own side table `completion_replays`, so `RecordStats` stays a game-authored metric slot and `statsBlob` is unchanged.)*

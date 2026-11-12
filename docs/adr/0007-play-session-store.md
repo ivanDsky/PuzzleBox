@@ -71,3 +71,5 @@ ViewModel (F7).
   activity-scoped and the session survived in the saveable.
 - Tests of the play layer run against stand-in games; real-game route coverage lives in
   `app`, the only module that sees every game.
+
+*(Amended 2026-11-12, ADR-0030: `SessionBlob` version 2 carries the in-progress move log beside the session bytes. It is written only when a log exists, so with `ReleaseFlag.FullReplay` off the envelope stays version 1, byte-identical to before; the decoder accepts both. No game session codec changes.)*

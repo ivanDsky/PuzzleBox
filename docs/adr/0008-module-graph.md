@@ -95,3 +95,5 @@ No `core:*` or `feature:*` module changes; `checkModuleGraph` rejects any shortc
   the `:konsist` suite, not by this task: see ADR-0009.
 
 *(Amended 2026-11-06 by ADR-0019: `GamePlugin.editor` plus a single-owner `GameEditorRegistry` in `core:game-ui`; and by ADR-0021: the `tools:*` family and its two `forbiddenEdgeReason` arms.)*
+
+*(Amended 2026-11-12, ADR-0030: the replay types live in `core:game` (`game/replay`) and the player and compare chrome in `core:game-ui` (`gameui/replay`). A game implements `GamePlugin.replay` (`GameReplay`) and `GamePlayUi.replayBoard` (`GameReplayBoard`), both optional and null by default, so adding a game still edits no core or feature module.)*

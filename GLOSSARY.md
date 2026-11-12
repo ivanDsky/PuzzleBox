@@ -72,3 +72,32 @@ A synced marker that a draft or received puzzle was deleted, so the delete reach
 
 **Pause**:
 The persisted latch set by the first LinkedIn rejection; every account read waits until the player taps Resume, Reconnect or Disconnect.
+
+**Solve replay** (short: replay):
+The playback of one recorded solve on the game's own board, read-only. In code "replay" means only this.
+_Avoid_: using it for "play the puzzle again"
+
+**Play again**:
+A fresh session of the same puzzle; visible copy says "Play again" and "Practice". Formerly called replay in code.
+
+**Move**:
+One recorded player action: place, remove, mark, clear, undo, redo, a counted hint, a setting flip. Not a hint Step.
+_Avoid_: step
+
+**Move log**:
+The ordered moves of one solve, each stamped with its play time.
+
+**Play time**:
+Elapsed solve time with pause and background excluded; never wall clock.
+
+**Lead**:
+Who is ahead at a moment of a compare: fewer hints, then more correct pieces, else Level.
+
+**No replay**:
+The solve has no usable replay, for any cause; the section is not drawn and no placeholder shows.
+
+**Twin**:
+The compare layout with both boards side by side, at Expanded width.
+
+**Flip+peek**:
+The compare layout with one board at a time in a pager and the other peeking at the edge, at Compact and Medium width.
