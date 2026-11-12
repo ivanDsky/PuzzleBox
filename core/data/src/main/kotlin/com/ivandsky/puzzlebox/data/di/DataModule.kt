@@ -4,6 +4,8 @@ import android.content.Context
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.CadenceGameCalendar
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.cloud.NoOwnerScope
+import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.linkedin.DataStoreLinkedInLink
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInAccount
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInAvatars
@@ -63,6 +65,8 @@ val dataModule = module {
     includes(databaseModule, networkModule, datastoreModule)
     // Per-game "today": the daily fetch and the hub cues share one calendar.
     single<GameCalendar> { CadenceGameCalendar(get()) }
+    // Flag off: no filter, no stamp. cloudSyncModule overrides this with SignedInOwnerScope when CloudSync is on.
+    single<OwnerScope> { NoOwnerScope }
     single<DailyRepository> {
         OfflineFirstDailyRepository(
             sources = getAll<DailySource>().associateBy { it.gameId },
