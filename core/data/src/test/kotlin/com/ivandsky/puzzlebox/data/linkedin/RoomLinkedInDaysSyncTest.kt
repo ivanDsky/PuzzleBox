@@ -223,7 +223,7 @@ class RoomLinkedInDaysSyncTest {
         assertEquals(LinkedInSync.Done, days.sync(zip, old))
         assertEquals(LinkedInSync.Done, days.sync(zip, old))
         assertEquals(listOf(ownCall(recent), boardCall(recent), ownCall(old)), source.calls)
-        assertEquals(LinkedInSync.Done, days.syncState.lastSync(DayKey(zip, old)).first())
+        assertEquals(LinkedInSync.Done, days.syncState.lastSync(DayKey("me", zip, old)).first())
     }
 
     @Test
@@ -311,7 +311,7 @@ class RoomLinkedInDaysSyncTest {
         assertEquals(LinkedInSync.Offline, days.sync(zip, day))
         assertNull(logged(day, LinkedInItem.Own))
         assertEquals(LinkState.Connected("me"), link.state.first())
-        assertEquals(LinkedInSync.Offline, days.syncState.lastSync(DayKey(zip, day)).first())
+        assertEquals(LinkedInSync.Offline, days.syncState.lastSync(DayKey("me", zip, day)).first())
 
         assertEquals(LinkedInSync.Offline, days.sync(zip, day))
         assertEquals(listOf(ownCall(day), ownCall(day)), source.calls)
@@ -320,7 +320,7 @@ class RoomLinkedInDaysSyncTest {
     @Test
     fun `two concurrent syncs of one day make one own call and one board call`() = runTest {
         val day = ago(3)
-        val key = DayKey(zip, day)
+        val key = DayKey("me", zip, day)
         val held = held(day)
         val days = newDays(held)
         respondOwn(day)
@@ -399,7 +399,7 @@ class RoomLinkedInDaysSyncTest {
             assertTrue(runCatching { second.await() }.exceptionOrNull() is IllegalStateException)
         }
         assertEquals(listOf(ownCall(day)), source.calls)
-        assertFalse(days.syncState.inFlight(DayKey(zip, day)).first())
+        assertFalse(days.syncState.inFlight(DayKey("me", zip, day)).first())
     }
 
     @Test
@@ -432,8 +432,8 @@ class RoomLinkedInDaysSyncTest {
         assertNull(logged(day, LinkedInItem.Own))
         assertNull(logged(day, LinkedInItem.Own, profileId = "other"))
         assertTrue(ghosts(day).isEmpty())
-        assertNull(days.syncState.lastSync(DayKey(zip, day)).first())
-        assertFalse(days.syncState.inFlight(DayKey(zip, day)).first())
+        assertNull(days.syncState.lastSync(DayKey("me", zip, day)).first())
+        assertFalse(days.syncState.inFlight(DayKey("me", zip, day)).first())
     }
 
     /** Holds the own-result read of one puzzle open until [gate] completes; every other call passes straight through. */
