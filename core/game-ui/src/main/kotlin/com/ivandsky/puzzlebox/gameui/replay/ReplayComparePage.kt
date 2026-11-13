@@ -29,7 +29,7 @@ fun ReplayComparePage(
 ) {
     Column(modifier.fillMaxSize().padding(horizontal = Spacing.lg)) {
         ReplayTopBar(ReplayCopy.TITLE, context, onBack) {
-            ShowErrorsToggle(showErrors, onShowErrorsChange)
+            if (board.hasErrors) ShowErrorsToggle(showErrors, onShowErrorsChange)
         }
         ReplayCompare(
             mine = mine,

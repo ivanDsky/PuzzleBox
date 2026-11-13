@@ -39,14 +39,17 @@ class ShowErrorsToggleTest {
     private var showErrors by mutableStateOf(true)
 
     /** Writes what each board was told; the compare page draws two of them. */
-    private val board = object : GameReplayBoard {
+    private fun fakeBoard(errors: Boolean = true) = object : GameReplayBoard {
         override val pieces = "pieces"
+        override val hasErrors = errors
 
         @Composable
         override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {
             Text("errors ${options.showErrors}", modifier.testTag(BOARD))
         }
     }
+
+    private val board = fakeBoard()
 
     private fun state() =
         composeRule.onNodeWithTag(ReplayTags.SHOW_ERRORS).fetchSemanticsNode().config[SemanticsProperties.StateDescription]
@@ -109,6 +112,40 @@ class ShowErrorsToggleTest {
         composeRule.onAllNodesWithTag(BOARD).assertCountEquals(2)
         composeRule.onAllNodesWithTag(BOARD)[0].assertTextEquals("errors false")
         composeRule.onAllNodesWithTag(BOARD)[1].assertTextEquals("errors false")
+    }
+
+    @Test
+    fun `F21 the single page hides the switch when the game has no errors`() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                ReplayPage(timeline, fakeBoard(errors = false), context = "Fixture · #1", onBack = {}, showErrors = showErrors, onShowErrorsChange = { showErrors = it })
+            }
+        }
+
+        composeRule.onAllNodesWithTag(ReplayTags.SHOW_ERRORS).assertCountEquals(0)
+        composeRule.onNodeWithTag(BOARD).assertExists()
+    }
+
+    @Test
+    fun `F21 the compare page hides the switch when the game has no errors`() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                ReplayComparePage(
+                    mine = timeline,
+                    theirs = timeline,
+                    board = fakeBoard(errors = false),
+                    names = CompareNames("You", "Maya"),
+                    layout = CompareLayout.Twin,
+                    context = "Fixture · Duel",
+                    onBack = {},
+                    showErrors = showErrors,
+                    onShowErrorsChange = { showErrors = it },
+                )
+            }
+        }
+
+        composeRule.onAllNodesWithTag(ReplayTags.SHOW_ERRORS).assertCountEquals(0)
+        assertEquals(true, showErrors)
     }
 
     private companion object {
