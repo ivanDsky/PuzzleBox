@@ -40,6 +40,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
+import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import java.time.Instant
 import java.util.UUID
 import kotlin.random.Random
@@ -90,6 +91,9 @@ val domainModule = module {
         )
     }
     factory { ObserveLeaderboard(identity = get(), leaderboard = get(), registry = get(), calendar = get()) }
+    factory {
+        ObserveRankWindow(identity = get(), leaderboard = get(), finalBoards = get(), registry = get(), calendar = get())
+    }
     factory { ObserveLatestSolvedToday(completions = get(), calendar = get(), registry = get()) }
     factory { ObserveResultRank(leaderboard = get(), registry = get()) }
     factory {
