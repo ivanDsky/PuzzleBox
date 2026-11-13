@@ -56,6 +56,11 @@ val DarkNeutralLip = Color(0xFF07090B)
 val LightMutedStatus = MutedStatusColors(container = Color(0xFFDCE0E7), content = Color(0xFF4A505B))
 val DarkMutedStatus = MutedStatusColors(container = Color(0xFF303740), content = Color(0xFFB4BBC5))
 
+// A day a streak freeze covers (IceColors.kt): a saturated pale blue, apart from the green
+// primary, the amber warning and the grey-slate muted status. Light 7.8:1, dark 7.7:1.
+val LightIce = IceColors(container = Color(0xFFD3EEFF), onContainer = Color(0xFF0B4A6F))
+val DarkIce = IceColors(container = Color(0xFF0E4566), onContainer = Color(0xFFBFE6FF))
+
 // LinkedIn's brand blue, for what comes from LinkedIn (a connection's row frame, the Connect button). A brand colour
 // does not follow the theme, so light and dark share it; the logo drawables in this module paint the same value.
 val LinkedInBlue = Color(0xFF0A66C2)

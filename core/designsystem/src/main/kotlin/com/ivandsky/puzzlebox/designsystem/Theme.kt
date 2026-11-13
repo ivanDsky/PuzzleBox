@@ -56,6 +56,12 @@ internal val LocalNeutralLip = staticCompositionLocalOf { LightNeutralLip }
 val LocalMutedStatus = staticCompositionLocalOf { LightMutedStatus }
 
 /**
+ * Ice accent role (IceColors.kt): a day a streak freeze covers. Provided by [PuzzleBoxTheme]
+ * like [LocalOnFill].
+ */
+val LocalIce = staticCompositionLocalOf { LightIce }
+
+/**
  * Board color roles (BoardTokens.kt, spec UIUX-01 A5): the board renders from these named
  * roles, never raw colors. Provided by [PuzzleBoxTheme] so board rendering always follows
  * the RESOLVED theme — same contract as [LocalPrimaryText], including a forced appearance
@@ -96,6 +102,7 @@ fun PuzzleBoxTheme(
         LocalLinkedInText provides if (darkTheme) DarkLinkedInText else LightLinkedInText,
         LocalNeutralLip provides if (darkTheme) DarkNeutralLip else LightNeutralLip,
         LocalMutedStatus provides if (darkTheme) DarkMutedStatus else LightMutedStatus,
+        LocalIce provides if (darkTheme) DarkIce else LightIce,
         LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,
         LocalAccentPalette provides accentPalette(darkTheme),
     ) {
