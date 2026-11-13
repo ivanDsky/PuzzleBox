@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.domain
 
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -84,6 +85,8 @@ class ObservePlayStatsTest {
         completions.setRecords(listOf(solve(alpha, daysAgo = 1), solve(alpha, daysAgo = 2), solve(beta, daysAgo = 0)))
         val silent = object : LeaderboardRepository {
             override fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?> = emptyFlow()
+            override suspend fun fetch(board: LeaderboardRef, order: RankOrder): BoardPage? = error("unused")
+            override suspend fun count(board: LeaderboardRef): Int? = error("unused")
             override suspend fun submit(entry: LeaderboardEntry): SubmitResult = error("unused")
         }
 
