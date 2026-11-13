@@ -12,7 +12,7 @@ import java.time.LocalDate
 data class GameStats(
     /** The solved-day streak ([ComputeStreak]). */
     val currentStreak: Int,
-    /** The longest run of solved days ever ([ComputeStreak.best]). */
+    /** The longest run of solved days ever ([ComputeStreak.ledger]). */
     val bestStreak: Int,
     /** Solved dailies, one per game and day. */
     val solved: Int,
