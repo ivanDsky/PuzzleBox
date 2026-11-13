@@ -201,7 +201,7 @@ class HomeViewModel(
                 puzzleDay = day,
                 playTarget = if (entries == null) seedTarget else entries.playTarget(),
                 stats = stats,
-                week = week(days, endingOn = day),
+                week = homeWeek(days, endingOn = day, stats.freezes?.frozenDays.orEmpty(), registryOrder, brands),
                 rolloverAt = nextRollover(),
             )
         }.combine(updateUrl) { state, url -> state.copy(updateUrl = url) }
@@ -222,7 +222,7 @@ class HomeViewModel(
                         puzzleDay = day,
                         playTarget = seedTarget,
                         stats = NO_STATS,
-                        week = week(emptyList(), endingOn = day),
+                        week = homeWeek(emptyList(), endingOn = day, emptySet(), registryOrder, brands),
                         rolloverAt = nextRollover(),
                     )
                 },
@@ -260,22 +260,6 @@ class HomeViewModel(
                 )
             }
 
-    /** The 7 puzzle days ending on [endingOn], oldest first, each with its solved dailies' brands. */
-    private fun week(days: List<GameHistoryDay>, endingOn: LocalDate): List<WeekDay> {
-        val solved = days
-            .filter { it.record != null && it.puzzleNumber != null && it.day > endingOn.minusDays(WEEK_DAYS) }
-            .sortedWith(registryOrder)
-            .groupBy({ it.day }, { it.gameId })
-        return (WEEK_DAYS - 1 downTo 0L).map { back ->
-            val date = endingOn.minusDays(back)
-            WeekDay(
-                date = date,
-                solved = solved[date].orEmpty().distinct().map(brands::brandOf),
-                isToday = back == 0L,
-            )
-        }
-    }
-
     private fun registryRank(id: GameId): Int =
         registry.all.indexOfFirst { it.definition.id == id }.let { if (it < 0) Int.MAX_VALUE else it }
 
@@ -283,7 +267,6 @@ class HomeViewModel(
 
     private companion object {
         const val RECENT_DAYS = 3
-        const val WEEK_DAYS = 7L
         val HEADLINE: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM d")
         val NO_STATS = GameStats(
             currentStreak = 0,
