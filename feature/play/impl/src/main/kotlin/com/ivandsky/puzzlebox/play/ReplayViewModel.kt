@@ -13,7 +13,6 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** What the replay page shows: nothing yet, the timeline to play, or no replay for any cause (A13). */
@@ -43,14 +42,13 @@ internal class ReplayViewModel(
     private val _state = MutableStateFlow<ReplayState>(ReplayState.Loading)
     val state: StateFlow<ReplayState> = _state
 
-    private val _showErrors = MutableStateFlow(true)
+    private val showErrorsHolder = ReplayShowErrors(preferences)
 
     /** The "Show errors" switch: one global preference, read before the page leaves Loading and written on every change. */
-    val showErrors: StateFlow<Boolean> = _showErrors
+    val showErrors: StateFlow<Boolean> = showErrorsHolder.value
 
     fun setShowErrors(on: Boolean) {
-        _showErrors.value = on
-        viewModelScope.launch { preferences.setShowReplayErrors(on) }
+        showErrorsHolder.set(on, viewModelScope)
     }
 
     /** The game's replay board; null for a game that has none, which the page shows as no replay. */
@@ -61,7 +59,7 @@ internal class ReplayViewModel(
 
     init {
         viewModelScope.launch {
-            _showErrors.value = preferences.showReplayErrors.first()
+            showErrorsHolder.load()
             val ref = key.toSolveReplayRef(games)
             val timeline = ref?.let { loadReplay(it) }
             _state.value = if (timeline == null) ReplayState.None else ReplayState.Ready(timeline)
