@@ -1,8 +1,11 @@
 package com.ivandsky.puzzlebox.games.sudoku
 
 import com.ivandsky.puzzlebox.game.replay.GameReplay
+import com.ivandsky.puzzlebox.game.replay.MoveKind
+import com.ivandsky.puzzlebox.game.replay.MoveMark
 import com.ivandsky.puzzlebox.game.replay.ReplayFacts
 import com.ivandsky.puzzlebox.game.replay.ReplayMove
+import com.ivandsky.puzzlebox.games.sudoku.engine.rules.SudokuConflicts
 import java.time.Instant
 
 /**
@@ -28,6 +31,26 @@ object SudokuReplay : GameReplay<SudokuSession> {
                 else session.command(SudokuMoves.reveal(board, typed.idx, typed.digit), now)
             SudokuReplayMove.Hint -> session.withHintUsed()
         }
+    }
+
+    /**
+     * A revealed cell is marked by its index; the board draws the badge while the cell still holds
+     * the revealed (solution) digit. A placement that puts a cell into a conflict it was not in is a Mistake.
+     */
+    override fun markOf(before: SudokuSession, move: ReplayMove, after: SudokuSession, previous: ReplayMove?): MoveMark =
+        when (val typed = SudokuReplayMove.of(move, before.board.geometry)) {
+            is SudokuReplayMove.HintReveal -> MoveMark(MoveKind.Hint, setOf(typed.idx))
+            SudokuReplayMove.Hint -> MoveMark(MoveKind.Hint, emptySet())
+            is SudokuReplayMove.Place ->
+                if (createsConflict(before, after)) MoveMark(MoveKind.Mistake, emptySet()) else MoveMark.Plain
+            SudokuReplayMove.Undo, SudokuReplayMove.Redo, SudokuReplayMove.Clear -> MoveMark(MoveKind.Undo, emptySet())
+            is SudokuReplayMove.ToggleNote, is SudokuReplayMove.Erase, null -> MoveMark.Plain
+        }
+
+    private fun createsConflict(before: SudokuSession, after: SudokuSession): Boolean {
+        val now = SudokuConflicts.cellsIn(SudokuConflicts.find(after.board))
+        if (now.isEmpty()) return false
+        return !SudokuConflicts.cellsIn(SudokuConflicts.find(before.board)).containsAll(now)
     }
 
     override fun factsOf(initial: SudokuSession): (SudokuSession) -> ReplayFacts {

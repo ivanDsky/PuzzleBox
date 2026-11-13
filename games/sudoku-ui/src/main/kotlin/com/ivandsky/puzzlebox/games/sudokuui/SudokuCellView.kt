@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.BoardColors
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
+import com.ivandsky.puzzlebox.gameui.replay.ReplayHintBadge
 
 /**
  * One cell: its highlight tint, the digit or the notes mini-grid, the hint target's ring and the
@@ -120,6 +122,7 @@ internal fun SudokuCellView(
                 if (cell.selected) board.sudokuSelectionInk else colors.onSurfaceVariant,
             )
         }
+        if (cell.hinted) ReplayHintBadge(Modifier.align(Alignment.TopEnd).padding(HINT_BADGE_INSET))
         val ghost = motion?.ghostDigitOf(cell.idx) ?: 0
         if (cell.digit == 0 && ghost != 0) {
             Text(
@@ -219,6 +222,7 @@ private const val HINT_STRUCK_ALPHA = 0.22f
 private const val SAME_DIGIT_ALPHA = 0.5f
 private val HINT_RING_WIDTH = 2.dp
 private val HINT_RING_INSET = 1.dp
+private val HINT_BADGE_INSET = 1.dp
 private val SELECTION_TILE_INSET = 2.dp
 private val SELECTION_TILE_RADIUS = 6.dp
 private val SELECTION_LIP_DEPTH = 3.dp
