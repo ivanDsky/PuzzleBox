@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -18,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -119,8 +121,9 @@ private fun SkipIdleButton(on: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         modifier = Modifier
             .defaultMinSize(minHeight = TouchTarget)
+            .clip(CircleShape)
             .toggleable(value = on, role = Role.Switch, onValueChange = onChange)
-            .padding(end = Spacing.md)
+            .padding(horizontal = Spacing.md)
             .testTag(ReplayTags.SKIP_IDLE),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
