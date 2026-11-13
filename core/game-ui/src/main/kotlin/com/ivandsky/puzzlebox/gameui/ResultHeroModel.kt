@@ -14,7 +14,8 @@ internal data class HeroWeekDot(val label: String, val solved: Boolean, val toda
 
 /**
  * The streak block: [days] counts up on screen; [title] and [sub] are its sentences. [freezesHeld] is the
- * freeze count beside the number; null hides it (the StreakFreeze flag is off).
+ * freeze count beside the number; null hides it (the StreakFreeze flag is off). [moment] is the line for a
+ * freeze this solve spent or earned; null leaves it out.
  */
 internal data class HeroStreak(
     val days: Int,
@@ -22,6 +23,7 @@ internal data class HeroStreak(
     val sub: String,
     val week: List<HeroWeekDot>,
     val freezesHeld: Int? = null,
+    val moment: String? = null,
 )
 
 /** One bar of the histogram: its solve [count], relative [height] (0 for an empty bin) and its time [range] label. */
@@ -150,6 +152,7 @@ private fun streak(insights: ResultInsights, locale: Locale) = HeroStreak(
     sub = insights.freezes?.let(::heroFreezeSub) ?: heroStreakSub(insights.streak),
     week = insights.week.map { HeroWeekDot(weekdayInitial(it.date, locale), it.solved, it.today, it.frozen) },
     freezesHeld = insights.freezes?.held,
+    moment = insights.freezes?.let { freezes -> freezes.lastSolve?.let { heroFreezeMoment(it, freezes.held, locale) } },
 )
 
 private fun spread(facts: ResultHeroFacts, insights: ResultInsights, locale: Locale): HeroSpread {
