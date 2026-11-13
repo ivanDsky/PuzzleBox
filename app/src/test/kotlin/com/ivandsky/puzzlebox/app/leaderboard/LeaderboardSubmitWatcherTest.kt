@@ -8,6 +8,8 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
+import com.ivandsky.puzzlebox.data.visibility.OwnTier
+import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -17,6 +19,7 @@ import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -79,6 +82,62 @@ class LeaderboardSubmitWatcherTest {
         assertEquals("zip/2026-10-31/592", leaderboard.submitted.single().puzzleRef)
         assertEquals("u1", leaderboard.submitted.single().uid)
         assertEquals("Ann", leaderboard.submitted.single().displayName)
+    }
+
+    private fun watchWith(own: OwnTier, leaderboard: FakeLeaderboardRepository, scheduler: TestCoroutineScheduler): FakeVisibilityRepository {
+        val visibility = FakeVisibilityRepository(own)
+        LeaderboardSubmitWatcher(
+            FakeCompletionRepository(listOf(record())),
+            FakeIdentityService(initial = Identity("u1", "Ann", null)),
+            leaderboard,
+            calendar,
+            scope(scheduler),
+            SubmitStatusTracker(),
+            visibility,
+        ).start()
+        scheduler.advanceUntilIdle()
+        return visibility
+    }
+
+    @Test
+    fun `Hidden posts nothing`() = runTest {
+        val leaderboard = FakeLeaderboardRepository()
+        watchWith(OwnTier.Chosen(VisibilityTier.Hidden), leaderboard, TestCoroutineScheduler())
+        assertTrue(leaderboard.submitted.isEmpty())
+    }
+
+    @Test
+    fun `Unknown posts nothing until the tier loads, then posts for Board`() = runTest {
+        val leaderboard = FakeLeaderboardRepository()
+        val scheduler = TestCoroutineScheduler()
+        val visibility = watchWith(OwnTier.Unknown, leaderboard, scheduler)
+        assertTrue(leaderboard.submitted.isEmpty())
+
+        visibility.emitOwn(OwnTier.Chosen(VisibilityTier.Board))
+        scheduler.advanceUntilIdle()
+
+        assertEquals(1, leaderboard.submitted.size)
+    }
+
+    @Test
+    fun `Unknown then Hidden never posts`() = runTest {
+        val leaderboard = FakeLeaderboardRepository()
+        val scheduler = TestCoroutineScheduler()
+        val visibility = watchWith(OwnTier.Unknown, leaderboard, scheduler)
+
+        visibility.emitOwn(OwnTier.Chosen(VisibilityTier.Hidden))
+        scheduler.advanceUntilIdle()
+
+        assertTrue(leaderboard.submitted.isEmpty())
+    }
+
+    @Test
+    fun `Unset and every posting tier post`() = runTest {
+        for (own in listOf(OwnTier.Unset) + VisibilityTier.entries.filter { it.postsToBoards }.map { OwnTier.Chosen(it) }) {
+            val leaderboard = FakeLeaderboardRepository()
+            watchWith(own, leaderboard, TestCoroutineScheduler())
+            assertEquals("$own", 1, leaderboard.submitted.size)
+        }
     }
 
     @Test
