@@ -153,6 +153,15 @@ class QueensReplayMarkTest {
         timeline.assertKinds(MoveKind.Normal, MoveKind.Mistake, MoveKind.Normal)
     }
 
+    @Test
+    fun `a step that introduced no violation is never transient, as in Tango`() {
+        val now = java.time.Instant.EPOCH
+        val before = initial.withQueenPlaced(Cell(1), now)
+        val after = before.withCrossToggled(Cell(5), now)
+
+        assertEquals(false, QueensReplay.isTransientMistake(before, after, before))
+    }
+
     // ------------------------------------------------------------------ tap merge (F12)
 
     @Test
