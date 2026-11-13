@@ -15,6 +15,6 @@ interface CloudSpace {
     /** Deletes the docs with [ids]; an id that does not exist is not an error. */
     suspend fun delete(uid: String, kind: String, ids: List<String>): CloudResult<Unit>
 
-    /** Deletes every doc of the given [kinds] (the engine passes its registered kinds), leaving other kinds alone. */
+    /** Deletes every doc of the given [kinds] (the erase passes [CloudSpaceKinds.ALL]), leaving other kinds alone. */
     suspend fun deleteAll(uid: String, kinds: List<String>): CloudResult<Unit>
 }

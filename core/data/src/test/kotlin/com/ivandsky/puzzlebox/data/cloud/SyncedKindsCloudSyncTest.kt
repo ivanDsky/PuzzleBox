@@ -478,7 +478,7 @@ class SyncedKindsCloudSyncTest {
         engine.syncNow()
         runCurrent()
 
-        assertTrue(log.indexOf("deleteAll ann completions") > log.indexOf("acknowledge completions ann g1"))
+        assertTrue(log.indexOf("deleteAll ann ${CloudSpaceKinds.ALL.joinToString(",")}") > log.indexOf("acknowledge completions ann g1"))
         assertEquals(CloudResult.Ok(Unit), erased)
         assertTrue(space.isEmpty(ANN))
         assertNull(identity.currentIdentity)
