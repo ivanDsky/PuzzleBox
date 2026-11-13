@@ -18,7 +18,7 @@ import androidx.room.RoomDatabase
         SyncTombstoneEntity::class,
         CompletionReplayEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true,
 )
 abstract class PuzzleBoxDatabase : RoomDatabase() {

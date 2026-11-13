@@ -256,6 +256,16 @@ object Migrations {
         }
     }
 
+    /**
+     * v13 (replay sync): `completion_replays` gains `uploaded`, the cloud upload marker, 0 for every kept replay;
+     * additive only.
+     */
+    val MIGRATION_12_13 = object : Migration(12, 13) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `completion_replays` ADD COLUMN `uploaded` INTEGER NOT NULL DEFAULT 0")
+        }
+    }
+
     val ALL: Array<Migration> =
         arrayOf(
             MIGRATION_1_2,
@@ -269,5 +279,6 @@ object Migrations {
             MIGRATION_9_10,
             CloudSyncMigration.MIGRATION_10_11,
             MIGRATION_11_12,
+            MIGRATION_12_13,
         )
 }
