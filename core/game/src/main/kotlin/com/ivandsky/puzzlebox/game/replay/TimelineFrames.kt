@@ -44,7 +44,9 @@ internal class TimelineFrames<S : GameSession>(
         val applied = appliedBy(tMs)
         val board = reach(applied)
         val sinceMoveMs = if (applied == 0) tMs else tMs - moves[applied - 1].atMs
-        return ReplayFrame(board.session, board.before, board.hinted, facts(board.session), tMs, sinceMoveMs, ended)
+        val group: List<ReplayMove> =
+            if (applied == 0) emptyList() else GroupMoves(moves, from = groupStart[applied - 1], size = applied - groupStart[applied - 1])
+        return ReplayFrame(board.session, board.before, group, board.hinted, facts(board.session), tMs, sinceMoveMs, ended)
     }
 
     /** How many moves are stamped at or before [tMs]. */
@@ -79,5 +81,13 @@ internal class TimelineFrames<S : GameSession>(
             if (hinted[index].isNotEmpty()) hintedSoFar = hintedSoFar + hinted[index]
         }
         return Reached(applied, session, before, hintedSoFar).also { reached = it }
+    }
+}
+
+/** The moves [from] until `from + size` of [source], as [ReplayMove]s: a view, no copy. */
+private class GroupMoves(private val source: List<StampedMove>, private val from: Int, override val size: Int) : AbstractList<ReplayMove>() {
+    override fun get(index: Int): ReplayMove {
+        if (index !in 0 until size) throw IndexOutOfBoundsException("index $index, size $size")
+        return source[from + index].move
     }
 }

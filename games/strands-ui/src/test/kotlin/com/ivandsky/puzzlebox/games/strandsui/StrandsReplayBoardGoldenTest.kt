@@ -84,6 +84,7 @@ abstract class StrandsReplayBoardGoldenBase(private val widthLabel: String, priv
         return ReplayFrame(
             session = session,
             before = if (moves == 0) null else sessionAfter(moves - 1),
+            moves = listOfNotNull(script.getOrNull(moves - 1)?.toReplayMove(cols)),
             hinted = hintedAfter(moves),
             facts = StrandsReplay.factsOf(initial)(session),
             atMs = moves * 1_000L,
@@ -102,12 +103,12 @@ abstract class StrandsReplayBoardGoldenBase(private val widthLabel: String, priv
     /** The frame of a non-theme word (ARTS) submitted after the first theme word: its path rests selected. */
     private fun nonThemeFrame(): ReplayFrame {
         val before = sessionAfter(1)
-        val session = checkNotNull(
-            StrandsReplay.step(before, StrandsReplayMove.Submit(RealDay.firstHintWords[0]).toReplayMove(cols), 2_000L),
-        )
+        val submit = StrandsReplayMove.Submit(RealDay.firstHintWords[0]).toReplayMove(cols)
+        val session = checkNotNull(StrandsReplay.step(before, submit, 2_000L))
         return ReplayFrame(
             session = session,
             before = before,
+            moves = listOf(submit),
             hinted = emptySet(),
             facts = StrandsReplay.factsOf(initial)(session),
             atMs = 2_000L,

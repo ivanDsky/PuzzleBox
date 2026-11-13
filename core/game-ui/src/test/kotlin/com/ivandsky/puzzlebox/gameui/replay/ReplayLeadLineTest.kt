@@ -16,10 +16,10 @@ class ReplayLeadLineTest {
     private val session = object : GameSession {}
 
     private fun frame(hints: Int, correct: Int, solved: Boolean = false) =
-        ReplayFrame(session, null, emptySet(), ReplayFacts(hints, correct, total = 8, solved = solved), atMs = 0, sinceMoveMs = 0, ended = false)
+        ReplayFrame(session, null, emptyList(), emptySet(), ReplayFacts(hints, correct, total = 8, solved = solved), atMs = 0, sinceMoveMs = 0, ended = false)
 
     private fun atPosition(frame: ReplayFrame, positionMs: Long, endMs: Long) =
-        ReplayFrame(frame.session, null, emptySet(), frame.facts, positionMs, 0, ended = positionMs >= endMs)
+        ReplayFrame(frame.session, null, emptyList(), emptySet(), frame.facts, positionMs, 0, ended = positionMs >= endMs)
 
     private fun text(
         positionMs: Long,

@@ -52,6 +52,7 @@ class TangoReplayMotionTest {
     private fun frame(session: TangoSession, before: TangoSession?, atMs: Long) = ReplayFrame(
         session = session,
         before = before,
+        moves = emptyList(),
         hinted = emptySet(),
         facts = TangoReplay.factsOf(initial)(session),
         atMs = atMs,

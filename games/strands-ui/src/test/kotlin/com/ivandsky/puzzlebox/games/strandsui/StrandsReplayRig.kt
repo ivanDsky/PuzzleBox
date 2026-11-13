@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
+import com.ivandsky.puzzlebox.game.replay.ReplayMove
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzleRef
@@ -53,9 +54,10 @@ internal object StrandsReplayScript {
         return session
     }
 
-    private fun frameOf(session: StrandsSession, before: StrandsSession?, atMs: Long) = ReplayFrame(
+    private fun frameOf(session: StrandsSession, before: StrandsSession?, moves: List<ReplayMove>, atMs: Long) = ReplayFrame(
         session = session,
         before = before,
+        moves = moves,
         hinted = emptySet(),
         facts = StrandsReplay.factsOf(initial)(session),
         atMs = atMs,
@@ -63,13 +65,17 @@ internal object StrandsReplayScript {
         ended = false,
     )
 
-    /** The frame after [moves], with the board before the last of them behind it. */
-    fun frameAfter(moves: List<StrandsReplayMove>, atMs: Long = moves.size * 1_000L): ReplayFrame =
-        frameOf(sessionAfter(moves), if (moves.isEmpty()) null else sessionAfter(moves.dropLast(1)), atMs)
+    /** The frame after [moves], with the board before the last of them behind it and that last move as its group. */
+    fun frameAfter(moves: List<StrandsReplayMove>, atMs: Long = moves.size * 1_000L): ReplayFrame = frameOf(
+        sessionAfter(moves),
+        if (moves.isEmpty()) null else sessionAfter(moves.dropLast(1)),
+        listOfNotNull(moves.lastOrNull()?.toReplayMove(cols)),
+        atMs,
+    )
 
     /** The board [frameAfter] shows, reached with no step behind it: nothing found, set aside or settling. */
     fun bareFrameAfter(moves: List<StrandsReplayMove>, atMs: Long = moves.size * 1_000L): ReplayFrame =
-        frameOf(sessionAfter(moves), null, atMs)
+        frameOf(sessionAfter(moves), null, emptyList(), atMs)
 }
 
 /**
