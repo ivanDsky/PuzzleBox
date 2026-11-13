@@ -15,10 +15,10 @@ import java.time.ZoneOffset
 private const val READ_AT_MS = 1_793_801_520_000L
 
 @Composable
-private fun PreviewLines(vararg states: SavedBoardState) {
+private fun PreviewLines(vararg states: SavedBoardState, restoring: Boolean = false) {
     PuzzleBoxTheme {
         Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            states.forEach { SavedBoardLine(it, zone = ZoneOffset.UTC) }
+            states.forEach { SavedBoardLine(it, zone = ZoneOffset.UTC, restoring = restoring) }
         }
     }
 }
@@ -42,3 +42,8 @@ internal fun SavedBoardLineNeverSavedPreview() = PreviewLines(SavedBoardState.Ne
 @PuzzleBoxPreviews
 @Composable
 internal fun SavedBoardLineNotYetReadPreview() = PreviewLines(SavedBoardState.NotYetRead)
+
+// Preview: a day with no board yet while the first cloud restore runs: a skeleton where the line will be.
+@PuzzleBoxPreviews
+@Composable
+internal fun SavedBoardLineRestoringPreview() = PreviewLines(SavedBoardState.NotYetRead, restoring = true)

@@ -37,9 +37,12 @@ class SavedBoardLineTest {
     // 2026-11-04 14:12 UTC.
     private val readAtMs = 1_793_801_520_000L
 
-    private fun show(saved: SavedBoardState) {
+    private var restoring by mutableStateOf(false)
+
+    private fun show(saved: SavedBoardState, restoring: Boolean = false) {
         current = saved
-        composeRule.setContent { PuzzleBoxTheme { SavedBoardLine(current, zone = ZoneOffset.UTC) } }
+        this.restoring = restoring
+        composeRule.setContent { PuzzleBoxTheme { SavedBoardLine(current, zone = ZoneOffset.UTC, restoring = this.restoring) } }
     }
 
     private fun linkedInNodes() = composeRule.onAllNodes(
@@ -96,6 +99,28 @@ class SavedBoardLineTest {
         show(SavedBoardState.NotYetRead)
 
         linkedInNodes().assertCountEquals(0)
+    }
+
+    @Test
+    fun aDayWithNoBoardYetShowsASkeletonWhileTheFirstRestoreRuns() {
+        show(SavedBoardState.NotYetRead, restoring = true)
+
+        composeRule.onNodeWithTag("linkedin.saved_board.restoring", useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithTag("linkedin.saved_board.text", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun theSkeletonGivesWayToTheCurrentStatesWhenTheRestoreEnds() {
+        show(SavedBoardState.NotYetRead, restoring = true)
+        composeRule.onNodeWithTag("linkedin.saved_board.restoring", useUnmergedTree = true).assertExists()
+
+        composeRule.runOnIdle { restoring = false }
+        composeRule.onNodeWithTag("linkedin.saved_board.restoring", useUnmergedTree = true).assertDoesNotExist()
+        linkedInNodes().assertCountEquals(0)
+
+        composeRule.runOnIdle { restoring = true; current = SavedBoardState.Saved(readAtMs, final = true) }
+        composeRule.onNodeWithTag("linkedin.saved_board.mark", useUnmergedTree = true).assertTextEquals("Final")
+        composeRule.onNodeWithTag("linkedin.saved_board.restoring", useUnmergedTree = true).assertDoesNotExist()
     }
 
     @Test

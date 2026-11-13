@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
@@ -30,6 +31,7 @@ import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
@@ -176,6 +178,33 @@ class GamePageBoardViewModelTest {
         assertEquals(yesterday, viewModel.state.value.day)
         assertFalse(viewModel.state.value.isToday)
         assertEquals(DailyBoardState.Ranked(listOf(row("Yest1"))), viewModel.state.value.board)
+    }
+
+    @Test
+    fun `the board follows the cloud's first restore and is never restoring without one`() {
+        val cloud = FakeCloudSync(CloudSyncState.Syncing(firstRestore = true))
+        val restoring = GamePageBoardViewModel(
+            game, ObserveLeaderboard(identity, repository, registry, calendar), calendar, registry, identity,
+            dismissedGoogleSignIn, linkedIn = null, cloudSync = cloud,
+        )
+        restoring.state.launchIn(screen)
+        viewModel.state.launchIn(screen)
+        settle()
+
+        assertTrue(restoring.state.value.restoring)
+        assertFalse(viewModel.state.value.restoring)
+
+        cloud.state.value = CloudSyncState.Syncing(firstRestore = false)
+        settle()
+        assertFalse(restoring.state.value.restoring)
+
+        cloud.state.value = CloudSyncState.Syncing(firstRestore = true)
+        settle()
+        assertTrue(restoring.state.value.restoring)
+
+        cloud.state.value = CloudSyncState.Synced(atMs = 1L)
+        settle()
+        assertFalse(restoring.state.value.restoring)
     }
 
     @Test
