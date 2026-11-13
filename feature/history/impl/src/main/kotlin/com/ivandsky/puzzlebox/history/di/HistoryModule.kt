@@ -1,10 +1,13 @@
 package com.ivandsky.puzzlebox.history.di
 
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.history.HistoryViewModel
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection
 import com.ivandsky.puzzlebox.history.ranks.RanksViewModel
+import com.ivandsky.puzzlebox.history.ranks.rankBoards
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
@@ -19,10 +22,11 @@ val historyModule = module {
     viewModel { (key: HistoryKey) -> HistoryViewModel(get(), get(), get(), get(), get(), get(), getOrNull(), key) }
     // The flag and where the hub opens arrive as parameters, so a graph without LinkedIn bindings builds the hub with it off (ghosts read nothing).
     viewModel { params ->
+        val opening = (params.getOrNull<RanksSelection>() ?: RanksSelection()).landing(rankBoards(get<GameRegistry>()), get<GameCalendar>()::today)
         RanksViewModel(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
-            opening = params.getOrNull<RanksSelection>() ?: RanksSelection(),
+            opening = opening,
         )
     }
     viewModel { PlayerSheetViewModel(get(), get(), get(), get()) }

@@ -150,6 +150,38 @@ class RanksStateRestoreTest {
         assertEquals(RanksSelection(), RanksSelectionSaver(handle).restore(picked, boards))
     }
 
+    @Test
+    fun `a link to an unlisted game opens Overall at that day`() {
+        val link = RanksSelection.opening(RanksBoard.Game(GameId("retired")), day).landing(boards, hub.calendar::today)
+
+        val viewModel = hub.viewModel(opening = link)
+
+        assertEquals(RanksBoard.Overall, viewModel.selection.value.board)
+        assertEquals(day, viewModel.selection.value.day)
+    }
+
+    @Test
+    fun `a link to today opens with day null and the calendar at today`() {
+        val link = RanksSelection.opening(RanksBoard.Game(ZIP), hub.today).landing(boards, hub.calendar::today)
+
+        val viewModel = hub.viewModel(opening = link)
+
+        assertEquals(RanksBoard.Game(ZIP), viewModel.selection.value.board)
+        assertNull(viewModel.selection.value.day)
+        assertNull(viewModel.selection.value.shownDay)
+    }
+
+    @Test
+    fun `a day is judged by its own game's today, not another game's`() {
+        hub.calendar.set(ZIP, day)
+
+        val zip = RanksSelection.opening(RanksBoard.Game(ZIP), day).landing(boards, hub.calendar::today)
+        val queens = RanksSelection.opening(RanksBoard.Game(QUEENS), day).landing(boards, hub.calendar::today)
+
+        assertNull(zip.day)
+        assertEquals(day, queens.day)
+    }
+
     private fun RanksViewModel.selectDayForTest(day: LocalDate) = select { it.pickFromCalendar(day) }
 
     @Test
