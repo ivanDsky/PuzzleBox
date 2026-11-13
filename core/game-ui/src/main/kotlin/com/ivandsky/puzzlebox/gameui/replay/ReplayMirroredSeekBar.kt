@@ -11,8 +11,9 @@ internal val MirroredSeekBarHeight = 96.dp
 
 /**
  * The compare's seek strip: my activity above the axis, the other side's below it, both over the longer side's
- * play time and coloured by move kind ([mineKinds] and [theirsKinds] parallel to their ticks). A null side draws no bars on its half. The playhead
- * crosses both halves and the whole strip drags.
+ * play time and coloured by move kind ([mineKinds] and [theirsKinds] parallel to their ticks). Normal wears the
+ * side's tint (primary mine, tertiary theirs); the other kinds read the same on both halves. A null side draws
+ * no bars on its half. The playhead crosses both halves and the whole strip drags.
  */
 @Composable
 internal fun ReplayMirroredSeekBar(
@@ -32,17 +33,19 @@ internal fun ReplayMirroredSeekBar(
     val theirs = remember(theirsTicksMs, theirsKinds, durationMs) {
         if (theirsTicksMs != null && theirsKinds != null) activityBuckets(theirsTicksMs, theirsKinds, durationMs) else null
     }
-    val played = remember(colors) { kindColors(colors) }
-    val unplayed = remember(colors) { unplayedKindColors(colors) }
+    val minePlayed = remember(colors) { kindColors(colors, normal = colors.primary) }
+    val mineUnplayed = remember(colors) { unplayedKindColors(colors, normal = colors.primary) }
+    val theirsPlayed = remember(colors) { kindColors(colors, normal = colors.tertiary) }
+    val theirsUnplayed = remember(colors) { unplayedKindColors(colors, normal = colors.tertiary) }
     ReplayScrubStrip(positionMs, durationMs, onSeek, MirroredSeekBarHeight, modifier) { fraction ->
         val axis = size.height / 2
         val room = axis - 4.dp.toPx()
         val offset = 1.dp.toPx()
         if (mine != null) {
-            drawBarSeries(mine, fraction, axis - offset, room, true, played, unplayed)
+            drawBarSeries(mine, fraction, axis - offset, room, true, minePlayed, mineUnplayed)
         }
         if (theirs != null) {
-            drawBarSeries(theirs, fraction, axis + offset, room, false, played, unplayed)
+            drawBarSeries(theirs, fraction, axis + offset, room, false, theirsPlayed, theirsUnplayed)
         }
     }
 }

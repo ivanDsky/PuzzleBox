@@ -15,12 +15,17 @@ import com.ivandsky.puzzlebox.game.replay.MoveKind
 /** How faint the slices past the playhead are, in every replay seek bar. */
 internal const val UNPLAYED_ALPHA = 0.28f
 
-/** The colour of each [MoveKind] in the seek bars, indexed by ordinal: Normal primary, Undo outline, Hint tertiary, Mistake error. */
-internal fun kindColors(colors: ColorScheme): Array<Color> = arrayOf(colors.primary, colors.outline, colors.tertiary, colors.error)
+/**
+ * The colour of each [MoveKind] in the seek bars, indexed by ordinal: Normal [normal] (primary unless a compare side
+ * brings its own tint), Undo outline, Hint secondary, Mistake error. Hint is secondary because neither side tint
+ * (primary, tertiary) may be taken for it; [ReplayHintBadge] wears the same role.
+ */
+internal fun kindColors(colors: ColorScheme, normal: Color = colors.primary): Array<Color> =
+    arrayOf(normal, colors.outline, colors.secondary, colors.error)
 
-/** [kindColors] faded for the slices past the playhead. Normal may be given its own [normal] base. */
+/** [kindColors] faded for the slices past the playhead. */
 internal fun unplayedKindColors(colors: ColorScheme, normal: Color = colors.primary): Array<Color> =
-    kindColors(colors).also { it[MoveKind.Normal.ordinal] = normal }.map { it.copy(alpha = UNPLAYED_ALPHA) }.toTypedArray()
+    kindColors(colors, normal).map { it.copy(alpha = UNPLAYED_ALPHA) }.toTypedArray()
 
 /**
  * Draws one series across the full width. Bars grow from [axisY] up, or down when [up] is false, to at most
