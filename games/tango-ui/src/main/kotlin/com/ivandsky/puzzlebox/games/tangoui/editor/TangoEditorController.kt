@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.tangoui.editor
 
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.narrowTo
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.editor.TangoDraft
 import com.ivandsky.puzzlebox.games.tango.editor.TangoDraftCommand
@@ -102,9 +103,7 @@ class TangoEditorController(
     private companion object {
         /** The registry hands this controller Tango drafts only; anything else is a wiring bug. */
         fun typed(draft: EditorDraft<*>): EditorDraft<TangoDraft> {
-            require(draft.editor === TangoEditor) { "not a Tango draft: ${draft.gameId.value}" }
-            // Safe: the editor is TangoEditor, so the draft and its history are Tango values.
-            return draft as EditorDraft<TangoDraft>
+            return requireNotNull(draft.narrowTo(TangoEditor)) { "not a Tango draft: ${draft.gameId.value}" }
         }
     }
 }

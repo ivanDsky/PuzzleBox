@@ -14,10 +14,12 @@ val EditorDraft<*>.shareFormatVersion: Int?
 /** Share payload of the current board (no history, no solution); null when !canShare. */
 fun EditorDraft<*>.encodeShare(): ByteArray? = encodeBoardShare()
 
-/** The cast is erased: a game's editor implements both capabilities over its own [D]. */
 private fun <D : Any> EditorDraft<D>.encodeBoardShare(): ByteArray? =
-    if (canShare) (editor as EditorShareCodec<D>).encodeShare(state.draft) else null
+    if (canShare) shareCodec().encodeShare(state.draft) else null
 
-/** The same erased cast as [encodeBoardShare]. */
 private fun <D : Any> EditorDraft<D>.payloadShareVersion(): Int? =
-    if (canShare) (editor as EditorShareCodec<D>).shareFormatVersionOf(state.draft) else null
+    if (canShare) shareCodec().shareFormatVersionOf(state.draft) else null
+
+/** A wiring bug (canShare without the codec) must fail loudly, not read as "not shareable". */
+private fun <D : Any> EditorDraft<D>.shareCodec(): EditorShareCodec<D> =
+    checkNotNull(editor.capability<D, EditorShareCodec<D>>()) { "${editor::class} lacks EditorShareCodec" }

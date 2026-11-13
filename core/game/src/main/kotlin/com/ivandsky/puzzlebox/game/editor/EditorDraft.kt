@@ -46,10 +46,10 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
 
     /**
      * One undoable step: the editor's [DraftResize] board when it has one, else a blank
-     * [variant] board. The cast is erased: a game's editor implements both over the same [D].
+     * [variant] board.
      */
     fun resize(variant: VariantId): EditorDraft<D> = apply(
-        ReplaceDraft(state.draft, (editor as? DraftResize<D>)?.resized(state.draft, variant) ?: editor.newDraft(variant)),
+        ReplaceDraft(state.draft, editor.capability<D, DraftResize<D>>()?.resized(state.draft, variant) ?: editor.newDraft(variant)),
     )
 
     /** One undoable step: always a blank board of the current variant. */
@@ -62,11 +62,9 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
     /** The game's board gates for this board under [verdict]; empty for a game without any. */
     fun publishBlocks(verdict: Verdict): List<PublishBlock> = editor.publishBlocks(state.draft, verdict)
 
-    /**
-     * (editor as? DraftExport<D>)?.toPuzzle(state.draft, solution); null when !canTestSolve.
-     * The cast is erased: a game's editor implements both capabilities over the same [D].
-     */
-    fun toPuzzle(solution: Solution): Puzzle? = (editor as? DraftExport<D>)?.toPuzzle(state.draft, solution)
+    /** The editor's [DraftExport] of this board; null when !canTestSolve. */
+    fun toPuzzle(solution: Solution): Puzzle? =
+        editor.capability<D, DraftExport<D>>()?.toPuzzle(state.draft, solution)
 
     companion object {
         /** A blank [variant] board with an empty history. */

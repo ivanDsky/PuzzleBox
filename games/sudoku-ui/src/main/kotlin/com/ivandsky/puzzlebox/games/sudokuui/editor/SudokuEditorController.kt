@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.sudokuui.editor
 
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.ReplaceDraft
+import com.ivandsky.puzzlebox.game.editor.narrowTo
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuDraft
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuEditor
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuSymmetry
@@ -126,9 +127,7 @@ class SudokuEditorController(
     private companion object {
         /** The registry hands this controller Sudoku drafts only; anything else is a wiring bug. */
         fun typed(draft: EditorDraft<*>): EditorDraft<SudokuDraft> {
-            require(draft.editor is SudokuEditor) { "not a Sudoku draft: ${draft.gameId.value}" }
-            // Safe: the editor is a SudokuEditor, so the draft and its history are Sudoku values.
-            return draft as EditorDraft<SudokuDraft>
+            return requireNotNull(draft.narrowTo(SudokuEditor::class)) { "not a Sudoku draft: ${draft.gameId.value}" }
         }
     }
 }

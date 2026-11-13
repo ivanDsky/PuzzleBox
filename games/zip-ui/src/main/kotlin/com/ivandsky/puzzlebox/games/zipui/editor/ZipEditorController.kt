@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.zipui.editor
 
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.narrowTo
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.Wall
 import com.ivandsky.puzzlebox.games.zip.WallDirection
@@ -176,9 +177,7 @@ class ZipEditorController(
     private companion object {
         /** The registry hands this controller Zip drafts only; anything else is a wiring bug. */
         fun typed(draft: EditorDraft<*>): EditorDraft<ZipDraft> {
-            require(draft.editor === ZipEditor) { "not a Zip draft: ${draft.gameId.value}" }
-            // Safe: the editor is ZipEditor, so the draft and its history are Zip values.
-            return draft as EditorDraft<ZipDraft>
+            return requireNotNull(draft.narrowTo(ZipEditor)) { "not a Zip draft: ${draft.gameId.value}" }
         }
 
         /** Where a stroke landing on [from] carries on: the tail, the path cut back to [from], or a new path at [from]. */
