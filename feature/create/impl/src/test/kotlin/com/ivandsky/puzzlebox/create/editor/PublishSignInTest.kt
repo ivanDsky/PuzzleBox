@@ -5,7 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.key
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavKey
