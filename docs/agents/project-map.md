@@ -274,6 +274,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `replay/` (ADR-0030): `ReplayPlayback` (the headless state machine: advance by frame time, speed, skip idle,
   seek, step), `ReplayPlayer`/`ReplayPage`, `ReplayCompare`/`ReplayComparePage` with `CompareLayout`
   (`compareLayoutFor(width)`: `Twin` at Expanded, `FlipPeek` otherwise), `WatchReplayRow` (the result's entry),
+  `UnavailableWatchReplayRow` (the disabled row for a solve with no replay), `ReplayHintBadge`, `ShowErrorsToggle` (the top bar's Show errors switch),
   `ReplayLeadLine`, and the per-game `GameReplayBoard` contract.
 - `core/testing/` (`:core:testing`) — test doubles and contract tests, test configurations only (package
   `com.ivandsky.puzzlebox.testing`): `repository/` (`FakeDailyRepository`,
