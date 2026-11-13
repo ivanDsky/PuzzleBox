@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
 /**
@@ -35,6 +36,16 @@ internal data class RanksSelection(
     companion object {
         /** A link's landing (A4): [board] at [day], null for today; the calendar shows the week holding it. */
         fun opening(board: RanksBoard, day: LocalDate?) = RanksSelection(board = board, day = day, shownDay = day)
+    }
+
+    /**
+     * A link's landing as the hub takes it (A4, ticket 42): a board the registry does not list opens Overall at the same day;
+     * a game's day that is that game's puzzle today becomes null, the same rule as [pickFromCalendar], so the board follows rollover.
+     */
+    fun landing(boards: List<RanksBoard>, todayOf: (GameId) -> LocalDate?): RanksSelection {
+        val target = board.takeIf { it in boards } ?: RanksBoard.Overall
+        val game = (target as? RanksBoard.Game)?.id
+        return if (day != null && game != null && day == todayOf(game)) copy(board = target, day = null, shownDay = null) else copy(board = target)
     }
 
     fun pickBoard(board: RanksBoard) = copy(board = board)
