@@ -4,10 +4,12 @@ import android.net.ConnectivityManager
 import com.ivandsky.puzzlebox.app.buildTypeChecksForUpdates
 import com.ivandsky.puzzlebox.app.buildTypeUnlistedGames
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
+import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.app.match.AndroidNetworkStatus
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.domain.AppBuild
+import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -60,6 +62,8 @@ val appModule = module {
             visibility = if (get<ReleaseFlags>().isEnabled(ReleaseFlag.LeaderboardHub)) get<VisibilityRepository>() else null,
         )
     }
+    // Resolved only by the application, which starts it with the hub flag on; flag off, it is never created.
+    single { DailyReplayPublisher(publish = get<SubmitDailyReplay>(), scope = get<CoroutineScope>()) }
     // Friend puzzle wins post to their own boards, never through the daily watcher.
     single {
         CustomBoardSubmitter(
