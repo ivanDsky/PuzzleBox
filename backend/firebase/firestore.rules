@@ -5,7 +5,8 @@ rules_version = '2';
 // Layout: leaderboards/{boardId}/entries/{uid}
 //   boardId = "<gameId>_<ISO-day>" (e.g. "zip_2026-10-31") — one board per official
 //   daily puzzle; one entry per uid (the first write wins, as with records).
-//   Entries carry the full puzzleRef "<gameId>/<ISO-day>/<n>" and the score inputs.
+//   Entries carry the full puzzleRef "<gameId>/<ISO-day>/<n>" and the score inputs, and
+//   no other key: the board is public, so nothing else may ride on an entry.
 //   Only the games in dailyGameIds() have daily boards, and only for a puzzle day in
 //   [server UTC date - 2, server UTC date + 1] (ADR-0024): an explicit allow-list, not a
 //   generic id pattern, because entries can never be deleted; no historical backfill.
@@ -15,6 +16,14 @@ rules_version = '2';
 // owner-only with sanity validation (timeMs > 0, hints >= 0, puzzleRef shape and
 // board consistency). Immutable once written: replays and score edits can never
 // land, so the board is first-win by construction.
+//
+// Layout: leaderboards/{boardId}/replays/{uid} = {uid, blob, formatVersion, createdAtMs} — the
+//   replay of that player's record solve, beside their entry and never on it. `blob` is bytes,
+//   at most 12288. Written once by its owner for a daily board in the entry window, and theirs
+//   to delete. Readable by id while the owner's visibility tier is `replays`.
+// Layout: visibility/{uid} = {tier, v} — how much of a player the boards expose, one of
+//   hidden | board | duel | replays. Readable by id by any signed-in player, written only by
+//   its owner, never deleted; a missing doc means `board`.
 //
 // Layout: puzzles/{code} — one shared puzzle per share code, readable by id only;
 //   created once by its author and never edited, except that the author may set
@@ -59,26 +68,18 @@ service cloud.firestore {
       // First write stands: no score edits, no deletes, no replay overwrites.
       allow update, delete: if false;
 
-      // The four UTC days an entry may be for: server today -2, -1, 0 and +1 (ADR-0024).
-      // Exact days, not a string range: a range would also admit a day that does not exist.
-      function dailyWindowDays() {
-        return [
-          utcDay(request.time - duration.value(2, 'd')),
-          utcDay(request.time - duration.value(1, 'd')),
-          utcDay(request.time),
-          utcDay(request.time + duration.value(1, 'd'))
-        ];
-      }
-
       function validEntry() {
         let entry = request.resource.data;
         let ref = entry.puzzleRef;
-        return entry.formatVersion == 1
+        return entry.keys().hasOnly(['formatVersion', 'uid', 'displayName', 'puzzleRef',
+            'timeMs', 'hints', 'completedAtMs'])
+          && entry.formatVersion == 1
           && entry.uid == request.auth.uid
           && entry.displayName is string
           && entry.displayName.size() > 0
           && entry.displayName.size() <= 64
           && ref is string
+          && ref.size() <= 64
           && ref.matches('^[a-z]+/[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])/[1-9][0-9]*$')
           && ref.split('/')[0] in dailyGameIds()
           && ref.split('/')[1] in dailyWindowDays()
@@ -89,6 +90,56 @@ service cloud.firestore {
           && entry.hints >= 0
           && entry.completedAtMs is int
           && entry.completedAtMs > 0;
+      }
+    }
+
+    match /leaderboards/{boardId}/replays/{uid} {
+      // The owner's tier is read on every get, so lowering it hides the replay at once. `get` of a
+      // missing doc is an error rather than false, hence the `exists` guard: no tier doc, no read.
+      allow get: if request.auth != null
+        && exists(/databases/$(database)/documents/visibility/$(uid))
+        && get(/databases/$(database)/documents/visibility/$(uid)).data.tier == 'replays';
+
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && validDailyReplay();
+
+      // Published once and never rewritten; the owner may take it down, for any day.
+      allow delete: if request.auth != null && request.auth.uid == uid;
+      allow list, update: if false;
+
+      function validDailyReplay() {
+        let d = request.resource.data;
+        let board = boardId.split('_');
+        return d.keys().hasOnly(['uid', 'blob', 'formatVersion', 'createdAtMs'])
+          && d.formatVersion == 1
+          && d.uid == request.auth.uid
+          && d.blob is bytes
+          && d.blob.size() <= 12288
+          && d.createdAtMs is int
+          && d.createdAtMs > 0
+          && board.size() == 2
+          && board[0] in dailyGameIds()
+          && board[1] in dailyWindowDays();
+      }
+    }
+
+    match /visibility/{uid} {
+      allow get: if request.auth != null;
+
+      allow create, update: if request.auth != null
+        && request.auth.uid == uid
+        && validTier();
+
+      // No listing: it would hand out the uid of every player, the hidden ones too. A tier is
+      // changed, never removed, since a missing doc reads as `board`.
+      allow list, delete: if false;
+
+      function validTier() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['tier', 'v'])
+          && d.tier in ['hidden', 'board', 'duel', 'replays']
+          && d.v == 1;
       }
     }
 
@@ -565,6 +616,17 @@ service cloud.firestore {
     // The games with a daily board; FirestoreRulesAllowListTest pins it to the game registry.
     function dailyGameIds() {
       return ['zip', 'tango', 'queens', 'strands', 'minisudoku'];
+    }
+
+    // The four UTC days a daily entry or replay may be for: server today -2, -1, 0 and +1 (ADR-0024).
+    // Exact days, not a string range: a range would also admit a day that does not exist.
+    function dailyWindowDays() {
+      return [
+        utcDay(request.time - duration.value(2, 'd')),
+        utcDay(request.time - duration.value(1, 'd')),
+        utcDay(request.time),
+        utcDay(request.time + duration.value(1, 'd'))
+      ];
     }
 
     function isShareCode(s) {
