@@ -93,6 +93,7 @@ class FirestoreRulesCloudSpaceTest {
                 "validBoardDoc" to setOf(
                     "formatVersion", "updatedAt", "game", "day", "profileKey", "readAtMs", "complete", "rows",
                 ),
+                "validReplayDoc" to setOf("formatVersion", "updatedAt", "replay"),
             ),
             KIND_FUNCTIONS.associateWith { listIn(functionBody(block, it), "hasOnly") },
         )
@@ -120,6 +121,7 @@ class FirestoreRulesCloudSpaceTest {
             setOf("game", "day", "profileKey", "readAtMs", "complete", "rows"),
             listIn(functionBody(block, "validBoardDoc"), "hasAll"),
         )
+        assertEquals(setOf("replay"), listIn(functionBody(block, "validReplayDoc"), "hasAll"))
     }
 
     @Test
@@ -130,6 +132,7 @@ class FirestoreRulesCloudSpaceTest {
         assertTrue(functionBody(block, "validDraftDoc").contains("d.blob.size() <= 65536"))
         assertTrue(functionBody(block, "validReceivedDoc").contains("d.bytes.size() <= 8192"))
         assertTrue(functionBody(block, "validBoardDoc").contains("d.rows.size() <= 51"))
+        assertTrue(functionBody(block, "validReplayDoc").contains("d.replay.size() <= 12288"))
         for (function in listOf("validDraftDoc", "validPublishedDoc", "validReceivedDoc")) {
             assertTrue("$function caps name", functionBody(block, function).contains("isSpaceName(d.get('name', ''))"))
         }
@@ -142,13 +145,18 @@ class FirestoreRulesCloudSpaceTest {
     }
 
     @Test
-    fun `replays take no writes until their key list lands`() {
+    fun `replays are written under a sync id, as bytes of one to 12288`() {
         val block = spaceBlock()
-        assertTrue("replays are in the closed list for read and delete", "replays" in kindList(block))
+        assertTrue("replays are in the closed list", "replays" in kindList(block))
         assertTrue(
-            "no write branch names replays",
-            !functionBody(block, "validSpaceDoc").contains("replays"),
+            "the write branch validates replays",
+            functionBody(block, "validSpaceDoc").contains("kind == 'replays' && validReplayDoc(d)"),
         )
+        val body = functionBody(block, "validReplayDoc")
+        assertTrue("one doc per sync id", body.contains("docId.matches('^[0-9a-f]{32}$')"))
+        assertTrue("the replay is bytes", body.contains("d.replay is bytes"))
+        assertTrue("the cap is the duel replay's", body.contains("d.replay.size() <= 12288"))
+        assertTrue("an empty replay is refused", body.contains("d.replay.size() > 0"))
     }
 
     private fun topLevelBlocks(): Map<String, String> {
@@ -198,7 +206,7 @@ class FirestoreRulesCloudSpaceTest {
     private companion object {
         const val SPACE_MATCH = "match /users/{uid}/{kind}/{docId} {"
         val KIND_FUNCTIONS = listOf(
-            "validCompletionsDoc", "validDraftDoc", "validPublishedDoc", "validReceivedDoc", "validBoardDoc",
+            "validCompletionsDoc", "validDraftDoc", "validPublishedDoc", "validReceivedDoc", "validBoardDoc", "validReplayDoc",
         )
         val TOMBSTONE_FUNCTIONS = listOf("validDraftDoc", "validReceivedDoc")
     }

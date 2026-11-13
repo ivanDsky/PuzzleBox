@@ -327,7 +327,7 @@ class DiGraphTest : KoinTest {
         }
     }
 
-    /** CloudSync alone: the four app-database kinds, the engine and the runner; no boards kind, no saved-board deletion. */
+    /** CloudSync alone: the five app-database kinds, the engine and the runner; no boards kind, no saved-board deletion. */
     @Test
     fun `with CloudSync on the sync graph resolves without the LinkedIn kinds`() {
         val koinApp = startCloud(ReleaseFlag.CloudSync)
@@ -337,7 +337,10 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<CloudSync>())
             assertNotNull(koin.get<CloudSyncRunner>())
             assertTrue(koin.get<OwnerScope>() is SignedInOwnerScope)
-            assertEquals(setOf("completions", "drafts", "published", "received"), koin.getAll<SyncedKind>().map { it.kind }.toSet())
+            assertEquals(
+                setOf("completions", "drafts", "published", "received", "replays"),
+                koin.getAll<SyncedKind>().map { it.kind }.toSet(),
+            )
             assertNull(koin.getOrNull<SavedBoardsCloud>())
         } finally {
             stopKoin()
@@ -352,7 +355,7 @@ class DiGraphTest : KoinTest {
             val koin = koinApp.koin
             assertTrue(PuzzleBoxApplication.loadCloudSync(koin))
             assertEquals(
-                listOf("boards", "completions", "drafts", "published", "received"),
+                listOf("boards", "completions", "drafts", "published", "received", "replays"),
                 koin.getAll<SyncedKind>().map { it.kind }.sorted(),
             )
             assertNotNull(koin.get<SavedBoardsCloud>())
