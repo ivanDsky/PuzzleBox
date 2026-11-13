@@ -65,6 +65,31 @@ class FirestoreLeaderboardRepositoryTest {
             }
         }
 
+        var fetchError: Exception? = null
+        var countError: Exception? = null
+
+        /** What the server-side count reports; null = the stored docs. */
+        var total: Long? = null
+        val fetched = mutableListOf<String>()
+        val counted = mutableListOf<String>()
+
+        override suspend fun fetchEntries(boardId: String, order: RankOrder): List<Map<String, Any?>> {
+            fetched += boardId
+            fetchError?.let { throw it }
+            return docs.value[boardId].orEmpty().sortedWith(
+                compareBy(
+                    { (it[order.boardQueryFields()[0]] as? Number)?.toLong() ?: 0L },
+                    { (it[order.boardQueryFields()[1]] as? Number)?.toLong() ?: 0L },
+                ),
+            )
+        }
+
+        override suspend fun count(boardId: String): Long {
+            counted += boardId
+            countError?.let { throw it }
+            return total ?: docs.value[boardId].orEmpty().size.toLong()
+        }
+
         override suspend fun createIfAbsent(
             boardId: String,
             uid: String,
@@ -305,5 +330,81 @@ class FirestoreLeaderboardRepositoryTest {
         val result = repository.submit(entry())
 
         assertTrue((result as SubmitResult.Err).error is SubmitError.Unknown)
+    }
+
+    // ----- fetch / count -----
+
+    private fun fullBoard() = mapOf(
+        board.boardId to (1..100).map { doc(entry(uid = "u$it", timeMs = 1_000L * it)) },
+    )
+
+    @Test
+    fun `signed out fetch and count are null without touching the backend`() = runTest {
+        val store = FakeStore()
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { null })
+
+        assertNull(repository.fetch(board, RankOrder.TimeThenHints))
+        assertNull(repository.count(board))
+        assertTrue(store.fetched.isEmpty())
+        assertTrue(store.counted.isEmpty())
+    }
+
+    @Test
+    fun `fetch decodes a page ranked by the order and skips count when not full`() = runTest {
+        val store = FakeStore()
+        store.docs.value = mapOf(
+            board.boardId to listOf(
+                doc(entry(uid = "u1")),
+                doc(entry(uid = "u2", timeMs = 80_000)),
+                mapOf("uid" to "broken"),
+            ),
+        )
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+
+        val page = repository.fetch(board, RankOrder.TimeThenHints)!!
+
+        assertEquals(listOf("u2", "u1"), page.entries.map { it.uid })
+        assertEquals(2, page.count)
+        assertTrue(store.counted.isEmpty())
+    }
+
+    @Test
+    fun `fetch of a full page issues count once and reports N`() = runTest {
+        val store = FakeStore()
+        store.docs.value = fullBoard()
+        store.total = 137
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+
+        val page = repository.fetch(board, RankOrder.TimeThenHints)!!
+
+        assertEquals(100, page.entries.size)
+        assertEquals(137, page.count)
+        assertEquals(listOf(board.boardId), store.counted)
+    }
+
+    @Test
+    fun `fetch is null when the read fails or the count of a full page fails`() = runTest {
+        val store = FakeStore()
+        store.docs.value = fullBoard()
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+
+        store.countError = IllegalStateException("count down")
+        assertNull(repository.fetch(board, RankOrder.TimeThenHints))
+
+        store.countError = null
+        store.fetchError = FirebaseNetworkException("offline")
+        assertNull(repository.fetch(board, RankOrder.TimeThenHints))
+    }
+
+    @Test
+    fun `count reports N and is null on failure`() = runTest {
+        val store = FakeStore()
+        store.total = 250
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+
+        assertEquals(250, repository.count(board))
+
+        store.countError = FirebaseNetworkException("offline")
+        assertNull(repository.count(board))
     }
 }

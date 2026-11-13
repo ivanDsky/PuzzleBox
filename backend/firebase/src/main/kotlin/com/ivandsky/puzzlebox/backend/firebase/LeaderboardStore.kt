@@ -1,8 +1,10 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
+import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
+import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.game.RankOrder
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -18,6 +20,12 @@ internal interface LeaderboardStore {
     /** Live documents of one board, server-ordered by [order]'s [boardQueryFields]. */
     fun observeEntries(boardId: String, order: RankOrder): Flow<List<Map<String, Any?>>>
 
+    /** One-shot read of the same query [observeEntries] listens to. */
+    suspend fun fetchEntries(boardId: String, order: RankOrder): List<Map<String, Any?>>
+
+    /** Server-side count of the whole board (a billed aggregate, not a document read per row). */
+    suspend fun count(boardId: String): Long
+
     /** Creates the uid's entry doc iff absent; false = first write stands (A4/A5). */
     suspend fun createIfAbsent(boardId: String, uid: String, data: Map<String, Any?>): Boolean
 }
@@ -29,10 +37,18 @@ internal class FirestoreLeaderboardStore : LeaderboardStore {
     private fun entries(boardId: String) =
         firestore.collection(COLLECTION).document(boardId).collection(ENTRIES)
 
+    private fun page(boardId: String, order: RankOrder) = order.boardQueryFields()
+        .fold(entries(boardId) as Query) { query, field -> query.orderBy(field, Query.Direction.ASCENDING) }
+        .limit(MAX_BOARD_SIZE)
+
+    override suspend fun fetchEntries(boardId: String, order: RankOrder): List<Map<String, Any?>> =
+        page(boardId, order).get().await().documents.map { it.data.orEmpty() }
+
+    override suspend fun count(boardId: String): Long =
+        entries(boardId).count().get(AggregateSource.SERVER).await().count
+
     override fun observeEntries(boardId: String, order: RankOrder): Flow<List<Map<String, Any?>>> = callbackFlow {
-        val registration = order.boardQueryFields()
-            .fold(entries(boardId) as Query) { query, field -> query.orderBy(field, Query.Direction.ASCENDING) }
-            .limit(MAX_BOARD_SIZE)
+        val registration = page(boardId, order)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     close(error)
@@ -62,6 +78,6 @@ internal class FirestoreLeaderboardStore : LeaderboardStore {
     companion object {
         const val COLLECTION = "leaderboards"
         const val ENTRIES = "entries"
-        const val MAX_BOARD_SIZE = 100L
+        const val MAX_BOARD_SIZE = BoardPage.PAGE_SIZE.toLong()
     }
 }

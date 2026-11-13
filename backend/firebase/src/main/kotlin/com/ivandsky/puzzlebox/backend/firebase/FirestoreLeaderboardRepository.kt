@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.backend.firebase
 
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -49,6 +50,30 @@ internal class FirestoreLeaderboardRepository(
                 }
             }
             .catch { emit(null) }
+    }
+
+    override suspend fun fetch(board: LeaderboardRef, order: RankOrder): BoardPage? {
+        if (currentUid() == null) return null
+        return softNull {
+            val entries = store.fetchEntries(board.boardId, order).mapNotNull(LeaderboardDocCodec::decode)
+            // Count only a page that may hide a longer board; a short page IS the board.
+            val count = if (entries.size >= BoardPage.PAGE_SIZE) store.count(board.boardId).toInt() else entries.size
+            BoardPage(entries, count)
+        }
+    }
+
+    override suspend fun count(board: LeaderboardRef): Int? {
+        if (currentUid() == null) return null
+        return softNull { store.count(board.boardId).toInt() }
+    }
+
+    /** A7/A14: a failed one-shot read is a soft null, never an error across the seam. */
+    private inline fun <T> softNull(read: () -> T): T? = try {
+        read()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (_: Exception) {
+        null
     }
 
     override suspend fun submit(entry: LeaderboardEntry): SubmitResult {
