@@ -5,6 +5,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -86,18 +88,21 @@ class ReplaySectionTest {
     }
 
     @Test
-    fun `unavailable draws the imported line and no row`() {
+    fun `unavailable draws a disabled Watch replay row with the imported reason`() {
         show(ReplaySectionState.Unavailable(ReplayUnavailable.ImportedFromLinkedIn), board)
 
-        composeRule.onNodeWithTag(ReplayTags.UNAVAILABLE).assertExists()
-        composeRule.onNodeWithText("Replay not available · imported from LinkedIn").assertExists()
+        composeRule.onNodeWithTag(ReplayTags.UNAVAILABLE).assertExists().assertIsNotEnabled().assertHasNoClickAction()
+        composeRule.onNodeWithText("Watch replay").assertExists()
+        composeRule.onNodeWithText("Not available · imported from LinkedIn").assertExists()
         composeRule.onNodeWithTag(ROW).assertDoesNotExist()
     }
 
     @Test
-    fun `unavailable draws the generic line`() {
+    fun `unavailable draws the generic reason`() {
         show(ReplaySectionState.Unavailable(ReplayUnavailable.NotRecorded), board)
-        composeRule.onNodeWithText("No replay for this solve").assertExists()
+
+        composeRule.onNodeWithText("Watch replay").assertExists()
+        composeRule.onNodeWithText("Not available for this solve").assertExists()
     }
 
     @Test
