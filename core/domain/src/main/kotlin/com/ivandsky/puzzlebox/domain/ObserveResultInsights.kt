@@ -46,7 +46,7 @@ class ObserveResultInsights(
             if (counted) streakDays += day else own?.takeIf { it.isStreakDay() }?.let { streakDays += it.day }
 
             val today = puzzleDay()
-            val ledger = computeStreak.ledger(streakDays)
+            val ledger = computeStreak(streakDays)
             val freezes = ledger.freezes
             val moment = freezes?.lastSolve?.takeIf {
                 counted && it.day == day && day !in restStreakDays && (it.spent.isNotEmpty() || it.earned)

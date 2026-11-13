@@ -25,57 +25,57 @@ class ComputeStreakTest {
 
     @Test
     fun `no solves is no streak`() {
-        assertEquals(0, streak.ledger(emptyList()).current)
+        assertEquals(0, streak(emptyList()).current)
     }
 
     @Test
     fun `solved today and yesterday is two`() {
-        assertEquals(2, streak.ledger(listOf(today, yesterday)).current)
+        assertEquals(2, streak(listOf(today, yesterday)).current)
     }
 
     @Test
     fun `solved yesterday only is one`() {
-        assertEquals(1, streak.ledger(listOf(yesterday)).current)
+        assertEquals(1, streak(listOf(yesterday)).current)
     }
 
     @Test
     fun `last solve two days ago is no streak`() {
-        assertEquals(0, streak.ledger(listOf(today.minusDays(2), today.minusDays(3))).current)
+        assertEquals(0, streak(listOf(today.minusDays(2), today.minusDays(3))).current)
     }
 
     @Test
     fun `opened but unsolved days are ignored`() {
         // The caller passes only solved days; an opened-unsolved yesterday leaves a gap.
         val solved = listOf(today, today.minusDays(2))
-        assertEquals(1, streak.ledger(solved).current)
+        assertEquals(1, streak(solved).current)
     }
 
     @Test
     fun `duplicate days collapse`() {
-        assertEquals(2, streak.ledger(listOf(today, today, yesterday, yesterday)).current)
+        assertEquals(2, streak(listOf(today, today, yesterday, yesterday)).current)
     }
 
     @Test
     fun `no solves is no best streak`() {
-        assertEquals(0, streak.ledger(emptyList()).best)
+        assertEquals(0, streak(emptyList()).best)
     }
 
     @Test
     fun `the best streak is the longest run, wherever it falls`() {
         val oldRun = (10L..13L).map { today.minusDays(it) }
-        assertEquals(4, streak.ledger(oldRun + listOf(yesterday, today)).best)
+        assertEquals(4, streak(oldRun + listOf(yesterday, today)).best)
     }
 
     @Test
     fun `the best streak ignores order and duplicates`() {
-        assertEquals(3, streak.ledger(listOf(today, today.minusDays(2), yesterday, today, yesterday)).best)
+        assertEquals(3, streak(listOf(today, today.minusDays(2), yesterday, today, yesterday)).best)
     }
 
     @Test
     fun `a broken run still counts toward the best streak`() {
         // Last solved a week ago: no current streak, but the run is still the best one.
         val run = listOf(today.minusDays(7), today.minusDays(8))
-        assertEquals(0, streak.ledger(run).current)
-        assertEquals(2, streak.ledger(run).best)
+        assertEquals(0, streak(run).current)
+        assertEquals(2, streak(run).best)
     }
 }

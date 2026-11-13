@@ -25,7 +25,7 @@ class ComputeStreak(
     private val releaseFlags: ReleaseFlags = ShippedReleaseFlags,
 ) {
 
-    fun ledger(solvedDays: Collection<LocalDate>): StreakLedger {
+    operator fun invoke(solvedDays: Collection<LocalDate>): StreakLedger {
         if (!releaseFlags.isEnabled(ReleaseFlag.StreakFreeze)) {
             return StreakLedger(current = strictCurrent(solvedDays), best = strictBest(solvedDays))
         }
@@ -36,7 +36,7 @@ class ComputeStreak(
      * The freeze rule replayed forward once: over the solved days, then up to today. Nothing
      * about freezes is stored, so a day that arrives late simply replays differently. Gaps are
      * measured, never walked, so the cost follows the solve count, not the calendar span.
-     * Flag-blind: [ledger] owns the gate.
+     * Flag-blind: [invoke] owns the gate.
      */
     internal fun replay(solvedDays: Collection<LocalDate>): Replay {
         var current = 0
