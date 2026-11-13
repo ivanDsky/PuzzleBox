@@ -32,7 +32,7 @@ import org.robolectric.annotation.Config
 /**
  * The third tab under `ReleaseFlag.LeaderboardHub`: History with the flag off, Ranks with
  * it on, in the same slot and on the same key ([HistoryRootKey]). A pushed [HistoryKey]
- * opens the history browser in both states, and a back stack saved under one state restores
+ * opens the history browser with the flag off and the hub at that game with it on, and a back stack saved under one state restores
  * under the other, so the release that flips the flag keeps everyone's place. The flag is
  * read once per launch: a flip mid-run changes nothing until the next one.
  */
@@ -73,12 +73,12 @@ class RanksTabSwitchTest {
     }
 
     @Test
-    fun `a pushed HistoryKey opens the history browser in both flag states`() {
+    fun `a pushed HistoryKey opens the history browser, or the hub with the flag on`() {
         listOf(false, true).forEach { hub ->
             shell(hub) {
                 push(HistoryKey(ZIP))
 
-                assertRoute(HISTORY)
+                assertRoute(if (hub) RANKS else HISTORY)
 
                 back()
                 assertRoute(HOME)
@@ -151,13 +151,13 @@ class RanksTabSwitchTest {
         // flag as it stands then, while the running shell keeps the value it launched with.
         val graph = E2eKoinGraph(E2E_TODAY, overrides = module { single<ReleaseFlags> { flags(hub) } })
         shellRobot(seed, graph = graph, destinations = destinations(restoredUnderHub)) {
-            assertRoute(HISTORY)
+            assertRoute(if (savedUnderHub) RANKS else HISTORY)
             assertThirdTab(savedUnderHub)
 
             hub = restoredUnderHub
             relaunch(keepSavedState = true)
 
-            assertRoute(HISTORY)
+            assertRoute(if (restoredUnderHub) RANKS else HISTORY)
             assertState(seed)
             assertThirdTab(restoredUnderHub)
             back()

@@ -32,6 +32,11 @@ internal data class RanksSelection(
         }
     }
 
+    companion object {
+        /** A link's landing (A4): [board] at [day], null for today; the calendar shows the week holding it. */
+        fun opening(board: RanksBoard, day: LocalDate?) = RanksSelection(board = board, day = day, shownDay = day)
+    }
+
     fun pickBoard(board: RanksBoard) = copy(board = board)
 
     /** A swipe: [delta] boards along [boards]; stays put at either end (no wrap) or when the board is not listed. */

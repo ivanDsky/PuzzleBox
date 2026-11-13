@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.history.di
 
 import com.ivandsky.puzzlebox.history.HistoryViewModel
 import com.ivandsky.puzzlebox.history.api.HistoryKey
+import com.ivandsky.puzzlebox.history.ranks.RanksSelection
 import com.ivandsky.puzzlebox.history.ranks.RanksViewModel
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -15,11 +16,12 @@ import org.koin.dsl.module
  */
 val historyModule = module {
     viewModel { (key: HistoryKey) -> HistoryViewModel(get(), get(), get(), get(), get(), get(), getOrNull(), key) }
-    // The flag arrives as the parameter, so a graph without LinkedIn bindings builds the hub with it off (ghosts read nothing).
+    // The flag and where the hub opens arrive as parameters, so a graph without LinkedIn bindings builds the hub with it off (ghosts read nothing).
     viewModel { params ->
         RanksViewModel(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
+            opening = params.getOrNull<RanksSelection>() ?: RanksSelection(),
         )
     }
 }
