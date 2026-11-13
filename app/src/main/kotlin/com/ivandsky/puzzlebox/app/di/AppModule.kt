@@ -26,6 +26,10 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.games.queensui.QueensSettings
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuHighlightSettings
 import com.ivandsky.puzzlebox.profile.settings.GameOptions
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
+import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -53,6 +57,7 @@ val appModule = module {
             calendar = get<GameCalendar>(),
             scope = get<CoroutineScope>(),
             statuses = get<SubmitStatusTracker>(),
+            visibility = if (get<ReleaseFlags>().isEnabled(ReleaseFlag.LeaderboardHub)) get<VisibilityRepository>() else null,
         )
     }
     // Friend puzzle wins post to their own boards, never through the daily watcher.
