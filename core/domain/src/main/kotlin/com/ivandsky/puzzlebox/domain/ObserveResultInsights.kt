@@ -14,7 +14,9 @@ import kotlinx.coroutines.flow.map
  *
  * The solve's own record write is asynchronous, so the history may or may not hold it yet:
  * the slot's own row is always left out of the earlier data, and a counted solve is added
- * back as today's solve. The numbers are the same before and after the write lands.
+ * back as today's solve. The numbers are the same before and after the write lands, the freeze
+ * moment included: it is shown only for the first counted solve of the day, so a second game's
+ * solve of a day another game already solved, never repeats it.
  * Archived days (A23) count in the spread but never in the streak or week, as in
  * [ObserveGameStats].
  */
@@ -39,18 +41,25 @@ class ObserveResultInsights(
             val rest = days.filterNot { it === own }
             val earlierRows = rest.filter { it.gameId == game && it.isSolvedDaily() }
             val earlier = earlierRows.mapNotNull { row -> row.record?.let { row.day to BestScore(it.time, it.hints) } }
-            val streakDays = rest.filter { it.isStreakDay() }.mapTo(mutableSetOf()) { it.day }
+            val restStreakDays = rest.filter { it.isStreakDay() }.mapTo(mutableSetOf()) { it.day }
+            val streakDays = restStreakDays.toMutableSet()
             if (counted) streakDays += day else own?.takeIf { it.isStreakDay() }?.let { streakDays += it.day }
 
             val today = puzzleDay()
+            val ledger = computeStreak.ledger(streakDays)
+            val freezes = ledger.freezes
+            val moment = freezes?.lastSolve?.takeIf {
+                counted && it.day == day && day !in restStreakDays && (it.spent.isNotEmpty() || it.earned)
+            }
             ResultInsights(
-                streak = computeStreak(streakDays),
+                streak = ledger.current,
                 week = (WEEK_DAYS - 1 downTo 0).map { ago ->
                     val date = today.minusDays(ago.toLong())
-                    ResultDay(date, solved = date in streakDays, today = date == today)
+                    ResultDay(date, solved = date in streakDays, today = date == today, frozen = freezes != null && date in freezes.frozenDays)
                 },
                 spread = timeSpread(earlier.map { it.second }, solve, order),
                 weekday = weekdaySpread(earlier, day, solve, order),
+                freezes = freezes?.copy(lastSolve = moment),
             )
         }.distinctUntilChanged()
     }
