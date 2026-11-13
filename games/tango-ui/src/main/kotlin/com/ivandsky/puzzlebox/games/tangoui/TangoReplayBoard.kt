@@ -62,5 +62,7 @@ internal fun tangoReplaySuppressed(
     ended: Boolean,
 ): Set<Set<Int>> {
     if (ended || before == null || sinceMoveMs >= MotionTokens.SettleMillis) return emptySet()
-    return TangoViolations.cellSets(session) - TangoViolations.cellSets(before)
+    val now = TangoViolations.cellSets(session)
+    // A legal board has nothing to hide: the scan of [before] is skipped.
+    return if (now.isEmpty()) emptySet() else now - TangoViolations.cellSets(before)
 }
