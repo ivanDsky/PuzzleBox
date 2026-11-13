@@ -170,15 +170,63 @@ class CompletionMergeTest {
     }
 
     @Test
-    fun `the doc id is the UTC month until a month passes 1000 records`() {
+    fun `the doc id is the UTC month and a bucket of the sync id alone`() {
         val endOfMarch = 1_775_001_599_999L // 2026-03-31T23:59:59.999Z
         val startOfApril = endOfMarch + 1
 
-        assertEquals("2026-03", merge.docId(endOfMarch, ordinal = 0))
-        assertEquals("2026-04", merge.docId(startOfApril, ordinal = 0))
-        assertEquals("2026-03", merge.docId(endOfMarch, ordinal = 999))
-        assertEquals("2026-03-1", merge.docId(endOfMarch, ordinal = 1_000))
-        assertEquals("2026-03-1", merge.docId(endOfMarch, ordinal = 1_999))
-        assertEquals("2026-03-2", merge.docId(endOfMarch, ordinal = 2_000))
+        assertEquals(merge.docId(endOfMarch, "a"), merge.docId(endOfMarch, "a"))
+        assertTrue(merge.docId(endOfMarch, "a").matches(Regex("2026-03-100[0-7]")))
+        assertTrue(merge.docId(startOfApril, "a").matches(Regex("2026-04-100[0-7]")))
+        assertEquals("2026-03-1001", merge.docId(endOfMarch, "a"))
+        assertEquals("2026-03-1002", merge.docId(endOfMarch, "b"))
+    }
+
+    @Test
+    fun `a month spreads over every bucket and no doc nears the cap at 6000 records`() {
+        val random = java.util.Random(5)
+        val counts = (0 until 6_000)
+            .map { "%016x%016x".format(random.nextLong(), random.nextLong()) }
+            .groupingBy { merge.docId(1_000L, it) }
+            .eachCount()
+
+        assertEquals(CompletionMerge.BUCKETS, counts.size)
+        assertTrue(counts.values.max() < 1_000)
+    }
+
+    @Test
+    fun `a bucket id is above every block the ordinal scheme wrote`() {
+        val ids = (0 until 200).map { merge.docId(1_000L, "%032x".format(it)) }.toSet()
+
+        assertTrue(ids.all { it.substringAfterLast('-').toInt() >= CompletionMerge.BUCKET_BASE })
+    }
+
+    @Test
+    fun `a full doc of the largest plausible records stays under 900 KB`() {
+        val row = CompletionEntity(
+            puzzleRef = "x".repeat(120),
+            timeMs = Long.MAX_VALUE,
+            hints = Int.MAX_VALUE,
+            statsVersion = Int.MAX_VALUE,
+            statsBlob = "y".repeat(200),
+            completedAtMs = Long.MAX_VALUE,
+            firstCompletedAtMs = Long.MAX_VALUE,
+            isRecord = false,
+            matchCode = "z".repeat(16),
+            source = "linkedin",
+            ownerUid = "ann",
+            syncId = "0".repeat(32),
+            uploaded = false,
+        )
+        val record = merge.encode(row)
+        // Firestore sizes a field as its name, plus the value: a string's bytes, 8 for a number; 1 each for the tags.
+        val bytes = record.entries.sumOf { (name, value) ->
+            name.length + 1 + when (value) {
+                is String -> value.length + 1
+                is Number -> 8
+                else -> 1
+            }
+        } + row.syncId.length + 1
+
+        assertTrue("one record is $bytes bytes", bytes * 1_000 < 900_000)
     }
 }
