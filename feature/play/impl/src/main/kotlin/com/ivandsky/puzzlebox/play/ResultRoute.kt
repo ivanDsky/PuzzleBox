@@ -9,6 +9,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -46,6 +47,8 @@ import org.koin.core.parameter.parametersOf
  *
  * The hero's rank row is the one sign-in action. A stored solve with a replay adds the Watch replay row ([ReplaySection]), which hands
  * [onOpenReplay] the replay's key; one without says why there is none. With [linkedIn] on, that rank also gives the place among the player's LinkedIn connections.
+ * A non-null [onOpenRanks] replaces the hero's Today chip with a rank chip ("#12 of 340") that calls it with the game and
+ * the result's day, shown once the rank is known.
  */
 @Composable
 fun ResultRoute(
@@ -55,6 +58,7 @@ fun ResultRoute(
     onDone: () -> Unit,
     onOpenReplay: (ReplayKey) -> Unit,
     linkedIn: Boolean = false,
+    onOpenRanks: ((GameId, LocalDate?) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: ResultViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key, linkedIn) })
@@ -83,7 +87,7 @@ fun ResultRoute(
                 }
             },
         )
-        HeroPage(key, viewModel, state, primary, onPrimary, onShare, onPlayAgain, context, onOpenReplay)
+        HeroPage(key, viewModel, state, primary, onPrimary, onShare, onPlayAgain, context, onOpenReplay, onOpenRanks)
     }
 }
 
@@ -99,9 +103,15 @@ private fun ColumnScope.HeroPage(
     onPlayAgain: () -> Unit,
     context: Context,
     onOpenReplay: (ReplayKey) -> Unit,
+    onOpenRanks: ((GameId, LocalDate?) -> Unit)?,
 ) {
     val insights by viewModel.heroInsights.collectAsStateWithLifecycle()
     val rank by viewModel.heroRank.collectAsStateWithLifecycle()
+    val chip = if (onOpenRanks == null || state.practice) {
+        null
+    } else {
+        remember(rank, key, onOpenRanks) { resultRankChip(rank) { onOpenRanks(GameId(key.gameId), LocalDate.parse(key.day)) } }
+    }
     ResultHeroScreen(
         facts = ResultHeroFacts(
             timeMs = key.timeMs,
@@ -124,6 +134,7 @@ private fun ColumnScope.HeroPage(
         modifier = Modifier.weight(1f),
         brand = viewModel.brand,
         onRetryWrite = viewModel::retryRecordWrite.takeIf { state.writeFailed },
+        chip = chip,
         actions = {
             ResultHeroActions(
                 primary = primary,

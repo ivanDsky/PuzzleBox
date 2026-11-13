@@ -8,7 +8,10 @@ import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.data.match.MatchRepository
@@ -307,6 +310,62 @@ class ResultScreenTest {
         }
     }
 
+    private fun withRankedResult(onOpenRanks: ((GameId, LocalDate?) -> Unit)?, check: () -> Unit) {
+        val me = Identity(uid = "me", displayName = "Me", photoUrl = null)
+        val rows = (1..12).map { rank ->
+            LeaderboardEntry(
+                uid = if (rank == 3) me.uid else "p$rank",
+                displayName = "P$rank",
+                puzzleRef = "${game.value}/$day/1",
+                timeMs = rank * 10_000L,
+                hints = 0,
+                completedAtMs = 0L,
+            )
+        }
+        val koin = startGraph(
+            FakeGames(listOf(game)),
+            FakeDailyRepository(),
+            identity = FakeIdentityService(me),
+            leaderboard = FakeLeaderboardRepository(mapOf(LeaderboardRef(game.value, day) to rows)),
+        )
+        try {
+            composeRule.setContent {
+                PuzzleBoxTheme(darkTheme = false) {
+                    ResultRoute(
+                        key = ResultKey(game.value, day.toString(), 30_000, 0),
+                        onPlayAgain = {},
+                        onNext = {},
+                        onDone = {},
+                        onOpenReplay = {},
+                        onOpenRanks = onOpenRanks,
+                    )
+                }
+            }
+            composeRule.waitForIdle()
+            check()
+        } finally {
+            koin.close()
+        }
+    }
+
+    @Test
+    fun `with the hub on the rank chip replaces Today and opens the hub at the game and day`() {
+        val opened = mutableListOf<Pair<GameId, LocalDate?>>()
+        withRankedResult(onOpenRanks = { g, d -> opened += g to d }) {
+            composeRule.onNodeWithTag("result.hero.chip.today").assertDoesNotExist()
+            composeRule.onNodeWithTag("result.hero.chip.rank").assertExists().performClick()
+            composeRule.runOnIdle { assertEquals(listOf(game to day), opened) }
+        }
+    }
+
+    @Test
+    fun `without the hub the Today chip stays and there is no rank chip`() {
+        withRankedResult(onOpenRanks = null) {
+            composeRule.onNodeWithTag("result.hero.chip.rank").assertDoesNotExist()
+            composeRule.onNodeWithTag("result.hero.chip.today").assertExists()
+        }
+    }
+
     @Test
     fun `the hero page's date line leads today's result with Today`() {
         val saturday = LocalDate.of(2026, 11, 7)
@@ -382,7 +441,12 @@ class ResultScreenTest {
         }
     }
 
-    private fun startGraph(fakes: FakeGames, daily: FakeDailyRepository): KoinApplication {
+    private fun startGraph(
+        fakes: FakeGames,
+        daily: FakeDailyRepository,
+        identity: IdentityService = FakeIdentityService(),
+        leaderboard: LeaderboardRepository = FakeLeaderboardRepository(),
+    ): KoinApplication {
         stopKoin() // tests share the JVM-global Koin context
         return startKoin {
             modules(
@@ -408,8 +472,8 @@ class ResultScreenTest {
                     factory { GetNextRollover(get()) }
                     single<ReleaseFlags> { FakeReleaseFlags() }
                     factory { loadSolveReplay(get(), get(), get()) }
-                    single<IdentityService> { FakeIdentityService() }
-                    single<LeaderboardRepository> { FakeLeaderboardRepository() }
+                    single { identity }
+                    single { leaderboard }
                     single { SubmitStatusTracker() }
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }
                     single { dismissedGoogleSignIn }
