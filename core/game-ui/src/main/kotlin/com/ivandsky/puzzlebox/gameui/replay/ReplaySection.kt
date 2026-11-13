@@ -17,7 +17,7 @@ import com.ivandsky.puzzlebox.model.GameId
 /**
  * The replay section of a result-like screen. The one place that reads ui.replayBoard:
  * Hidden, or a game with no replay board, draws nothing. Ready draws the Watch replay row;
- * [onOpen] opens the replay page, where the player lives. Unavailable draws a quiet line saying why there is none.
+ * [onOpen] opens the replay page, where the player lives. Unavailable draws the same row, disabled, with the reason as its second line.
  * A [label] names which solve the row is, when a screen shows more than one.
  */
 @Composable
@@ -27,7 +27,7 @@ fun ReplaySection(state: ReplaySectionState, ui: GamePlayUi, onOpen: () -> Unit,
         ReplaySectionState.Hidden -> Unit
         is ReplaySectionState.Ready ->
             WatchReplayRow(state.timeline.moveTimesMs.size, state.timeline.endMs, onOpen, modifier.testTag(ReplayTags.WATCH_ROW), label)
-        is ReplaySectionState.Unavailable -> ReplayUnavailableLine(state.reason, modifier.testTag(ReplayTags.UNAVAILABLE))
+        is ReplaySectionState.Unavailable -> UnavailableWatchReplayRow(state.reason, modifier.testTag(ReplayTags.UNAVAILABLE), label)
     }
 }
 
