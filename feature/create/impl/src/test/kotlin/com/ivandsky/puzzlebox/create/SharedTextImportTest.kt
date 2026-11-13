@@ -5,7 +5,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeTestRule
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -151,6 +151,7 @@ class SharedTextImportTest {
         assertEquals(emptySet<String>(), drafts.rows.keys)
 
         navigator.pop()
+        idle()
         awaitTrue { navigator.state.currentStack.last() != CreateKey }
 
         assertEquals(setOf("draft-1"), drafts.rows.keys)

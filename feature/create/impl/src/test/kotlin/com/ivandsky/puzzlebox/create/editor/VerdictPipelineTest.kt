@@ -75,7 +75,7 @@ class VerdictPipelineTest {
         val lanes = lanes()
         val onDefault = mutableListOf<Boolean>()
         editor.analysis = { draft, _ ->
-            onDefault += lanes.recording.running.get()
+            onDefault += checkNotNull(lanes.recording.running.get())
             FakeGameEditor.defaultVerdict(draft)
         }
         val pipeline = pipeline(lanes)

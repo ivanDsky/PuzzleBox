@@ -364,7 +364,7 @@ class ImportTextStateTest {
         override val draftFormatVersion = 1
         override val notationVersion = 1
 
-        override fun newDraft(v: VariantId): List<Int> = List(size * size) { 0 }
+        override fun newDraft(variant: VariantId): List<Int> = List(size * size) { 0 }
         override fun variantOf(draft: List<Int>): VariantId = variant
         override fun encodeDraft(state: DraftState<List<Int>>): ByteArray =
             state.draft.map { it.toByte() }.toByteArray()
