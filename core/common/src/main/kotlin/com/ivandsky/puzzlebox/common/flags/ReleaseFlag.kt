@@ -27,4 +27,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
 
     /** Cloud sync: the signed-in account's history, puzzles and saved boards on every device (ADR-0029). */
     CloudSync(label = "Cloud sync: history on every device", releaseDefault = false),
+
+    /** Streak freeze: a missed day spends a freeze instead of breaking the streak; freezes come from the solved-day history. */
+    StreakFreeze(label = "Streak freeze", releaseDefault = false),
 }
