@@ -13,13 +13,14 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
+import com.ivandsky.puzzlebox.gameui.replay.rememberStepsForward
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 
 /**
  * Sudoku's read-only replay board: the committed board and the marks live play derives from it
  * (digits, notes, revealed cells, conflicts), drawn by the live grid, with a hint badge on each
  * revealed cell still holding its digit. No selection, peer highlight or input. Conflicts show only while [ReplayBoardOptions.showErrors].
- * While the replay plays ([ReplayBoardOptions.animate]) a forward step plays live's pop, erase fade and unit waves;
+ * A forward step while the replay plays ([ReplayBoardOptions.animate]) plays live's pop, erase fade and unit waves;
  * paused, scrubbing, stepping back or under Reduce motion the board snaps to the frame.
  */
 internal object SudokuReplayBoard : GameReplayBoard {
@@ -44,7 +45,7 @@ internal object SudokuReplayBoard : GameReplayBoard {
                 },
             )
         }
-        val motion = rememberReplayMotion(session, options.animate)
+        val motion = rememberReplayMotion(session, rememberStepsForward(options, frame.atMs))
         CompositionLocalProvider(LocalSudokuMotion provides motion) {
             SudokuGrid(model, onSelect = null, modifier = modifier)
         }
@@ -53,10 +54,10 @@ internal object SudokuReplayBoard : GameReplayBoard {
 
 /** Plays the live effect of each forward step from the frame shown before it; the first frame is the baseline and plays nothing. */
 @Composable
-private fun rememberReplayMotion(session: SudokuSession, animate: Boolean): SudokuMotionState {
+private fun rememberReplayMotion(session: SudokuSession, forward: Boolean): SudokuMotionState {
     val motion = remember(session.board.geometry.cellCount) { SudokuMotionState(session.board.geometry.cellCount) }
     val scope = rememberCoroutineScope()
-    val animating by rememberUpdatedState(animate)
+    val animating by rememberUpdatedState(forward)
     var previous by remember { mutableStateOf(session) }
     LaunchedEffect(session) {
         val event = sudokuPlayerEvent(previous, session)

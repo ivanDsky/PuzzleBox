@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
+import com.ivandsky.puzzlebox.gameui.replay.rememberStepsForward
 import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
@@ -17,7 +18,7 @@ import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
 /**
  * Tango's read-only replay board: the committed board and the marks live play derives from it,
  * drawn by the live renderer with no input. No selection, trace, rejection flash or guide. A glyph
- * fades in, out and between sun and moon while the replay plays ([ReplayBoardOptions.animate]); paused,
+ * fades in, out and between sun and moon on a forward step while the replay plays ([ReplayBoardOptions.animate]); paused,
  * scrubbing or under reduced motion a frame change redraws at once. A cell a hint pointed at wears the hint badge ([ReplayFrame.hinted]);
  * live play's spotlight is not drawn. Violations settle as live play does ([tangoReplaySuppressed]).
  */
@@ -43,8 +44,9 @@ internal object TangoReplayBoard : GameReplayBoard {
                 },
             )
         }
-        val glyphFade = remember(options.animate) {
-            if (options.animate) tween<Float>(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard) else snap()
+        val forward = rememberStepsForward(options, frame.atMs)
+        val glyphFade = remember(forward) {
+            if (forward) tween<Float>(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard) else snap()
         }
         remember { TangoBoardRenderer() }.Content(model, modifier, hinted = frame.hinted, glyphFade = glyphFade)
     }
