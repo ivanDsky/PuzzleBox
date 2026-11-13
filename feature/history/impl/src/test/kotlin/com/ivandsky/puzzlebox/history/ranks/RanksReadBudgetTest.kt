@@ -137,4 +137,70 @@ class RanksReadBudgetTest {
         assertEquals(0, leaderboard.fetchCalls)
         assertEquals(0, leaderboard.countCalls)
     }
+
+    // --- A24: refresh costs only what failed -------------------------------------------------
+
+    @Test
+    fun `a pull with every board loaded adds no fetch and no count`() = runTest {
+        val viewModel = hub().viewModel()
+        collect(viewModel)
+        val before = leaderboard.fetchCalls to leaderboard.countCalls
+
+        viewModel.refresh()
+        runCurrent()
+
+        assertEquals(before, leaderboard.fetchCalls to leaderboard.countCalls)
+        assertEquals(games.map { LeaderboardRef(it.value, today) }, leaderboard.observedBoards)
+    }
+
+    @Test
+    fun `a pull on a finished day fetches only the boards that failed`() = runTest {
+        val day = today.minusDays(10)
+        games.forEach { leaderboard.setEntries(LeaderboardRef(it.value, day), listOf(entry(it, "u1", 70_000))) }
+        leaderboard.readsAvailable = false
+        val viewModel = hub().viewModel(opening = RanksSelection().pickFromCalendar(day))
+        collect(viewModel)
+        assertEquals(games.size, leaderboard.fetchCalls)
+
+        leaderboard.readsAvailable = true
+        viewModel.refresh()
+        runCurrent()
+        assertEquals(2 * games.size, leaderboard.fetchCalls)
+
+        viewModel.refresh()
+        runCurrent()
+        assertEquals("every board loaded: nothing left to retry", 2 * games.size, leaderboard.fetchCalls)
+    }
+
+    @Test
+    fun `coming back online retries the failed boards once`() = runTest {
+        val day = today.minusDays(10)
+        games.forEach { leaderboard.setEntries(LeaderboardRef(it.value, day), listOf(entry(it, "u1", 70_000))) }
+        leaderboard.readsAvailable = false
+        val hub = hub()
+        hub.network.setOnline(false)
+        val viewModel = hub.viewModel(opening = RanksSelection().pickFromCalendar(day))
+        collect(viewModel)
+
+        leaderboard.readsAvailable = true
+        hub.network.setOnline(true)
+        runCurrent()
+
+        assertEquals(2 * games.size, leaderboard.fetchCalls)
+    }
+
+    @Test
+    fun `the pull indicator shows briefly`() = runTest {
+        val viewModel = hub().viewModel()
+        collect(viewModel)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.refreshing.collect { } }
+
+        viewModel.refresh()
+        runCurrent()
+        assertEquals(true, viewModel.refreshing.value)
+
+        testScheduler.advanceTimeBy(1_000)
+        runCurrent()
+        assertEquals(false, viewModel.refreshing.value)
+    }
 }

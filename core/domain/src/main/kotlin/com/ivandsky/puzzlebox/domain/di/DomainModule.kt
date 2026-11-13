@@ -44,6 +44,7 @@ import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
 import java.time.Instant
 import java.util.UUID
@@ -98,6 +99,7 @@ val domainModule = module {
     factory {
         ObserveRankWindow(identity = get(), leaderboard = get(), finalBoards = get(), registry = get(), calendar = get())
     }
+    factory { ObserveWindowRefresh(network = get()) }
     factory { ObserveLatestSolvedToday(completions = get(), calendar = get(), registry = get()) }
     factory { ObserveResultRank(leaderboard = get(), registry = get()) }
     factory {
