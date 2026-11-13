@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import java.time.Instant
 import java.util.UUID
 import kotlin.random.Random
@@ -115,6 +116,7 @@ val domainModule = module {
     factory {
         ObserveMyDuels(repo = get(), outbox = get(), local = get(), identity = get(), clock = { Instant.now() })
     }
+    factory { ObserveFriendUids(matches = get(), identity = get()) }
     factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default) }
     factory { UpdateMatchSeat(repo = get(), local = get(), identity = get()) }
     factory { RecordRevealSeen(local = get(), clock = { Instant.now() }) }
