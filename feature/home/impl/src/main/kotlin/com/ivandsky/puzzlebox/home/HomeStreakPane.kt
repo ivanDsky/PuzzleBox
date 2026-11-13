@@ -46,6 +46,7 @@ import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.GameStats
+import com.ivandsky.puzzlebox.gameui.FreezeCount
 import com.ivandsky.puzzlebox.gameui.WeekStrip
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
@@ -156,6 +157,7 @@ private fun BigStreakRow(stats: GameStats) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        stats.freezes?.let { FreezeCount(held = it.held, modifier = Modifier.padding(bottom = Spacing.sm)) }
     }
 }
 
