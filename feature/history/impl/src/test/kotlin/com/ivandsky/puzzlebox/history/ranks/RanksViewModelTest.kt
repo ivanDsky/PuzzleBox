@@ -110,6 +110,52 @@ class RanksViewModelTest {
     }
 
     @Test
+    fun `selecting each board emits its ranked rows, keyed by the same uids so the list re-ranks`() = runTest {
+        val viewModel = hub(mapOf(zipBoard, tangoBoard, queensBoard)).viewModel()
+        fun rowsOf(slice: RanksBoardSlice) = (slice.state as DailyBoardState.Ranked).rows
+
+        val overall = rowsOf(viewModel.ranked())
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)) }
+        val zip = rowsOf(viewModel.uiState.first { it.board.title == "Zip · today" && it.board.state is DailyBoardState.Ranked }.board)
+        viewModel.select { it.pickBoard(RanksBoard.Game(QUEENS)) }
+        val queens = rowsOf(viewModel.uiState.first { it.board.title == "Queens · today" && it.board.state is DailyBoardState.Ranked }.board)
+
+        assertEquals(listOf("maya", "u1", "jonas"), overall.map { it.playerId })
+        assertEquals(listOf("maya", "u1"), zip.map { it.playerId })
+        assertEquals(listOf("u1", "maya"), queens.map { it.playerId })
+        assertEquals(listOf(BoardRowValue.Timed(62_000, 0), BoardRowValue.Timed(75_000, 0)), zip.map { it.scoreValue })
+        assertEquals(listOf(false, true), zip.map { it.isSelf })
+    }
+
+    @Test
+    fun `a swipe walks the boards in order and stops at either end`() = runTest {
+        val viewModel = hub(mapOf(zipBoard, tangoBoard, queensBoard)).viewModel()
+        val order = rankBoards(hub().registry)
+
+        viewModel.swipe(-1)
+        assertEquals(RanksBoard.Overall, viewModel.selection.value.board)
+
+        order.drop(1).forEach {
+            viewModel.swipe(1)
+            assertEquals(it, viewModel.selection.value.board)
+        }
+        viewModel.swipe(1)
+        assertEquals(order.last(), viewModel.selection.value.board)
+    }
+
+    @Test
+    fun `the state says where the swipe stands`() = runTest {
+        val viewModel = hub(mapOf(zipBoard)).viewModel()
+        val count = rankBoards(hub().registry).size
+        viewModel.ranked()
+
+        assertEquals(0 to count, viewModel.uiState.value.let { it.position to it.boardCount })
+
+        viewModel.swipe(1)
+        assertEquals(1, viewModel.uiState.first { it.position == 1 }.position)
+    }
+
+    @Test
     fun `reset returns to Overall`() = runTest {
         val viewModel = hub(mapOf(zipBoard, tangoBoard)).viewModel()
         viewModel.select { it.pickBoard(RanksBoard.Game(TANGO)) }

@@ -30,7 +30,7 @@ private val Standings = OverallStandings(
 @Composable
 private fun Hub(slice: RanksBoardSlice, signIn: RanksSignIn = RanksSignIn.Idle) {
     PuzzleBoxTheme {
-        RanksScreen(RanksUiState(slice, signIn), onSignIn = {})
+        RanksScreen(RanksUiState(slice, signIn, position = 1, boardCount = 6), onSignIn = {}, onSwipe = {})
     }
 }
 

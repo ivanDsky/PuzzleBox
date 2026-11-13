@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.history.ranks
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -7,10 +9,16 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeRight
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -37,7 +45,7 @@ class RanksScreenTest {
 
     private fun show(state: OverallState, signIn: RanksSignIn = RanksSignIn.Idle, onSignIn: () -> Unit = {}) {
         val slice = RanksBoardSlice("Overall · today", RankOrder.TimeThenHints, state.toDailyBoardState("u1"), "Points", state.boardNote())
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(RanksUiState(slice, signIn), onSignIn) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(RanksUiState(slice, signIn), onSignIn, onSwipe = {}) } }
     }
 
     @Test
@@ -80,6 +88,50 @@ class RanksScreenTest {
         show(OverallState.SignedOut, signIn = RanksSignIn.Failed)
 
         composeRule.onNodeWithTag("ranks.signIn.failed").assertIsDisplayed()
+    }
+
+    private fun showSwiping(position: Int = 1, onSwipe: (Int) -> Unit) {
+        val slice = RanksBoardSlice("Zip · today", RankOrder.TimeThenHints, DailyBoardState.Ranked(listOf(DailyBoardRowModel(1, "Maya", 62_000L, 0, false, playerId = "maya"))))
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(RanksUiState(slice, position = position, boardCount = 4), {}, onSwipe) } }
+    }
+
+    @Test
+    fun `swiping the board left asks for the next board and right for the previous`() {
+        val steps = mutableListOf<Int>()
+        showSwiping { steps += it }
+
+        composeRule.onNodeWithTag("ranks.board").performTouchInput { swipeLeft() }
+        composeRule.onNodeWithTag("ranks.board").performTouchInput { swipeRight() }
+
+        assertEquals(listOf(1, -1), steps)
+    }
+
+    @Test
+    fun `a short slow drag leaves the board where it is`() {
+        val steps = mutableListOf<Int>()
+        showSwiping { steps += it }
+
+        composeRule.onNodeWithTag("ranks.board").performTouchInput {
+            swipe(Offset(centerX, centerY), Offset(centerX - width * 0.1f, centerY), durationMillis = 1_500)
+        }
+
+        assertEquals(emptyList<Int>(), steps)
+    }
+
+    @Test
+    fun `the dots say which board of how many`() {
+        showSwiping(position = 1) {}
+
+        composeRule.onNodeWithTag("ranks.dots").assertContentDescriptionEquals("Board 2 of 4")
+    }
+
+    @Test
+    fun `a single board shows no dots`() {
+        composeRule.setContent {
+            PuzzleBoxTheme { RanksScreen(RanksUiState(RanksBoardSlice("Zip · today", RankOrder.TimeThenHints, DailyBoardState.Loading)), {}, {}) }
+        }
+
+        assertEquals(0, composeRule.onAllNodesWithTagCount("ranks.dots"))
     }
 
     private fun androidx.compose.ui.test.junit4.ComposeTestRule.onAllNodesWithTagCount(tag: String) =
