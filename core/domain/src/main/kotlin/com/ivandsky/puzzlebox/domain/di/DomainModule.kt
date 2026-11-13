@@ -40,6 +40,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
+import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import java.time.Instant
 import java.util.UUID
@@ -120,6 +121,7 @@ val domainModule = module {
     factory {
         ObserveMyDuels(repo = get(), outbox = get(), local = get(), identity = get(), clock = { Instant.now() })
     }
+    factory { ObserveOverall(identity = get(), completions = get()) }
     factory { ObserveFriendUids(matches = get(), identity = get()) }
     factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default) }
     factory { UpdateMatchSeat(repo = get(), local = get(), identity = get()) }
