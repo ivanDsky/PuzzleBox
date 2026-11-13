@@ -15,7 +15,8 @@ import kotlin.random.Random
 /**
  * Starts a duel ("Start duel", "Rematch"): draws its puzzles once, picks a [random] code that is neither a shared
  * puzzle's nor a match's, writes the match and remembers it as mine, so it lists at once. A rematch invites the
- * other player of [Match] `rematchOf` and links its code. A taken code is replaced a bounded number of times.
+ * other player of [Match] `rematchOf` and links its code. An explicit [invitedUid] invites that player instead; the two
+ * never combine. A taken code is replaced a bounded number of times.
  * The challenger's name is trimmed and cut to the rules' bound, a blank one becoming the anonymous player label.
  */
 class CreateMatch(
@@ -25,7 +26,12 @@ class CreateMatch(
     private val identity: IdentityService,
     private val random: Random,
 ) {
-    suspend operator fun invoke(settings: DuelSettings, rematchOf: Match? = null): CreateOutcome {
+    suspend operator fun invoke(
+        settings: DuelSettings,
+        rematchOf: Match? = null,
+        invitedUid: String? = null,
+    ): CreateOutcome {
+        require(rematchOf == null || invitedUid == null) { "a rematch derives its invite target; pass one or the other" }
         val me = identity.current.value ?: return CreateOutcome.SignedOut
         val legs = draw(
             DrawRequest(
@@ -40,6 +46,7 @@ class CreateMatch(
         if (legs.isEmpty()) return CreateOutcome.NoPuzzles
         val challenger = Player(me.uid, playerName(me.displayName), me.photoUrl)
         val rival = rematchOf?.opponentOf(me.uid)
+        val target = rival?.uid ?: invitedUid
         repeat(MAX_CODE_ATTEMPTS) {
             val code = ShareCode.random(random)
             when (val check = repo.puzzleCodeTaken(code)) {
@@ -52,7 +59,7 @@ class CreateMatch(
                 code = code,
                 deadlineHours = settings.deadlineHours,
                 challenger = challenger,
-                invitedUid = rival?.uid,
+                invitedUid = target,
                 legs = legs,
                 includeFriends = settings.includeFriends,
                 rematchOf = rematchOf?.code,
