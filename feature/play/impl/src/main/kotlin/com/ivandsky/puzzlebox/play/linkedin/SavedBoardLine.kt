@@ -3,8 +3,10 @@ package com.ivandsky.puzzlebox.play.linkedin
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -23,20 +25,34 @@ import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.R
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.linkedin.SavedBoardState
+import com.ivandsky.puzzlebox.gameui.SkeletonLine
+import com.ivandsky.puzzlebox.play.SKELETON_ALPHA
 import java.time.ZoneId
 
 private val LogoSize = 14.dp
+private val SkeletonHeight = 14.dp
+private val LineHeight = 20.dp
 
 /**
  * The day's LinkedIn board line (A36): a saved board reads "as of" the time it was read, with a Partial or Final mark
  * (a fixed time, never a relative age); a day that was never saved says "Not saved" and how to keep the next one; a day
  * still inside the days LinkedIn serves draws nothing, because the sync chip's read is its whole state. The line needs
  * no LinkedIn link: a saved board is the player's own, whether or not they are connected. [zone] is the zone the time
- * is shown in, the device's.
+ * is shown in, the device's. While the first cloud [restoring] runs, a day with no board yet shows a skeleton in
+ * the line's place, since the restore may bring its board back (A34); the line's other states are unchanged.
  */
 @Composable
-internal fun SavedBoardLine(saved: SavedBoardState, modifier: Modifier = Modifier, zone: ZoneId = ZoneId.systemDefault()) {
-    val line = remember(saved, zone) { saved.toDayLine(zone) } ?: return
+internal fun SavedBoardLine(
+    saved: SavedBoardState,
+    modifier: Modifier = Modifier,
+    zone: ZoneId = ZoneId.systemDefault(),
+    restoring: Boolean = false,
+) {
+    val line = remember(saved, zone) { saved.toDayLine(zone) }
+    if (line == null) {
+        if (restoring) RestoringLine(modifier)
+        return
+    }
     val text = when (line) {
         is DayLine.Saved -> "Saved board · as of ${line.asOf}"
         DayLine.NeverSaved -> DayLine.NEVER_SAVED
@@ -68,5 +84,12 @@ internal fun SavedBoardLine(saved: SavedBoardState, modifier: Modifier = Modifie
                     .testTag("linkedin.saved_board.mark"),
             )
         }
+    }
+}
+
+@Composable
+private fun RestoringLine(modifier: Modifier) {
+    Box(modifier.fillMaxWidth().height(LineHeight).testTag("linkedin.saved_board.restoring"), contentAlignment = Alignment.CenterStart) {
+        SkeletonLine(0.5f, SkeletonHeight, MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = SKELETON_ALPHA))
     }
 }
