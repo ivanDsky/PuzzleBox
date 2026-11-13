@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.gameui.board.boardRowValueText
 import com.ivandsky.puzzlebox.history.HistoryDayRow
@@ -69,6 +70,7 @@ internal fun RanksTwoPane(
     onCompare: (HistoryDayRow) -> Unit = {},
     leftScroll: ScrollState = rememberScrollState(),
     rightScroll: ScrollState = rememberScrollState(),
+    onRowClick: ((DailyBoardRowModel) -> Unit)? = null,
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
@@ -98,7 +100,7 @@ internal fun RanksTwoPane(
             }
             RanksHeroCard(current?.name ?: "Ranks", current?.standing ?: Standing.None, state.board.selfScore())
             YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
-            RanksBoardSlot(state.board, state.signIn, onSignIn)
+            RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick)
         }
     }
     if (tuning) TuneSheet(state.scope, state.window, onScope, onWindow, onDismiss = { tuning = false })

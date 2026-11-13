@@ -17,10 +17,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.history.HistoryDayRow
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.ReplaySolve
@@ -36,7 +38,8 @@ import java.time.LocalDate
  * the hub. The first time the hub opens, a hint and the current dot nudge the swipe, then [onNudgeShown]. On
  * [HistoryLayout.TwoPane] the hub is [RanksTwoPane] instead: no title menu, week strip, dots or swipe. [onBack] (a pushed
  * hub, opened from a game's link) adds a back arrow above either layout. A tab reselect scrolls the hub to the top; one
- * more, with it already there, calls [onReset] (A8).
+ * more, with it already there, calls [onReset] (A8). With a [playerSheet] another player's row opens that sheet, which this
+ * screen only hosts; without one rows take no tap.
  */
 @Composable
 internal fun RanksScreen(
@@ -56,7 +59,9 @@ internal fun RanksScreen(
     onPlayAgain: (GameId, LocalDate) -> Unit = { _, _ -> },
     onOpenReplay: (HistoryDayRow, ReplaySolve) -> Unit = { _, _ -> },
     onCompare: (HistoryDayRow) -> Unit = {},
+    playerSheet: PlayerSheetViewModel? = null,
 ) {
+    val onRowClick = playerSheet?.let { sheet -> { row: DailyBoardRowModel -> sheet.open(row.toTarget(state)) } }
     val scroll = rememberScrollState()
     val leftScroll = rememberScrollState()
     val twoPane = layout == HistoryLayout.TwoPane
@@ -67,12 +72,13 @@ internal fun RanksScreen(
         }
         Box(Modifier.weight(1f)) {
             if (twoPane) {
-                RanksTwoPane(state, onSignIn, Modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, leftScroll, scroll)
+                RanksTwoPane(state, onSignIn, Modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, leftScroll, scroll, onRowClick)
             } else {
-                RanksPhone(state, scroll, onSignIn, onSwipe, onPickBoard, onNudgeShown, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare)
+                RanksPhone(state, scroll, onSignIn, onSwipe, onPickBoard, onNudgeShown, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, onRowClick)
             }
         }
     }
+    playerSheet?.let { PlayerSheetHost(it) }
 }
 
 /** Reselecting the tab: the first tap brings every scrolled pane in [scrolls] to its top; with all there already, [onReset]. */
@@ -99,6 +105,7 @@ private fun RanksPhone(
     onPlayAgain: (GameId, LocalDate) -> Unit,
     onOpenReplay: (HistoryDayRow, ReplaySolve) -> Unit,
     onCompare: (HistoryDayRow) -> Unit,
+    onRowClick: ((DailyBoardRowModel) -> Unit)?,
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
@@ -123,10 +130,28 @@ private fun RanksPhone(
                 Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.md).testTag("ranks.dots"),
                 pulseScale = { dotPulseScale(nudge.pulse.value) },
             )
-            BoardSwipe(onSwipe) { RanksBoardSlot(state.board, state.signIn, onSignIn) }
+            BoardSwipe(onSwipe) { RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick) }
         }
         SwipeNudgePill(nudgeText(state.places, state.position), nudge, Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.lg))
     }
     if (tuning) TuneSheet(state.scope, state.window, onScope, onWindow, onDismiss = { tuning = false })
     if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false })
+}
+
+@Composable
+private fun PlayerSheetHost(viewModel: PlayerSheetViewModel) {
+    val open by viewModel.state.collectAsStateWithLifecycle()
+    open?.let { PlayerSheet(it, onChallenge = viewModel::challenge, onDismiss = viewModel::close) }
+}
+
+/** The row as the sheet's target: the board's game (none on Overall) and, on a Day window only, its day (a week or month has no single puzzle). */
+private fun DailyBoardRowModel.toTarget(state: RanksUiState): PlayerSheetViewModel.Target {
+    val game = (state.places.getOrNull(state.position)?.board as? RanksBoard.Game)?.id
+    return PlayerSheetViewModel.Target(
+        uid = playerId,
+        name = name,
+        place = if (beyondPage) Standing.Beyond else Standing.Place(rank),
+        game = game,
+        day = state.calendar.selectedDay.takeIf { game != null && state.window == RanksSelection.Window.Day },
+    )
 }

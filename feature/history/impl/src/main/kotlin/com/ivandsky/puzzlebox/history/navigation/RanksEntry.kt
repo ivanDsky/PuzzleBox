@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.history.ReplaySolve
 import com.ivandsky.puzzlebox.history.historyCompareKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
+import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel
 import com.ivandsky.puzzlebox.history.ranks.RanksBoard
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection
 import com.ivandsky.puzzlebox.history.ranks.RanksScreen
@@ -59,6 +60,7 @@ private fun RanksRoute(
     onBack: (() -> Unit)?,
 ) {
     val viewModel = koinViewModel<RanksViewModel>(key = key, parameters = { parametersOf(linkedIn, opening) })
+    val playerSheet = koinViewModel<PlayerSheetViewModel>(key = key)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -80,5 +82,6 @@ private fun RanksRoute(
             navigator.pushOnce(ReplayKey.daily(row.gameId.value, row.day.toString(), row.puzzleNumber, latest = solve == ReplaySolve.Latest))
         },
         onCompare = { row -> navigator.pushOnce(historyCompareKey(row)) },
+        playerSheet = playerSheet,
     )
 }

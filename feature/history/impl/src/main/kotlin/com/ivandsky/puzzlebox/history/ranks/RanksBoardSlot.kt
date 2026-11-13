@@ -7,12 +7,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.board.DailyBoard
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.rankRuleText
 
 /**
  * The board slot: [slice] drawn by the shipped board kit. Rows move as they re-rank (the first
  * load climbs into place), the top three are medals, and the viewer's own row docks to the edge
- * while it scrolls out of view. Signed out, [signIn] and [onSignIn] fill the board in place.
+ * while it scrolls out of view. With [onRowClick] another player's row is tappable. Signed out, [signIn] and [onSignIn] fill the board in place.
  */
 @Composable
 internal fun RanksBoardSlot(
@@ -20,6 +21,7 @@ internal fun RanksBoardSlot(
     signIn: RanksSignIn,
     onSignIn: () -> Unit,
     modifier: Modifier = Modifier,
+    onRowClick: ((DailyBoardRowModel) -> Unit)? = null,
 ) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         DailyBoard(
@@ -32,6 +34,7 @@ internal fun RanksBoardSlot(
             caption = slice.caption ?: rankRuleText(slice.order),
             medals = true,
             dock = true,
+            onRowClick = onRowClick,
         )
         slice.note?.let { RanksBoardNote(it) }
     }
