@@ -134,7 +134,7 @@ class LinkedInGhostIsolationE2ETest {
             assertEquals("the connections are shown to the player", names, ghostNamesShown(today))
             val inCloud = boardsOf(me.uid)
             val kept = storedGhosts(today)
-            assertEquals(setOf(today), phone.shownBoardDays())
+            assertEquals(setOf(today), phone.shownBoardDays(today))
 
             // Disconnect keeps the board where it is: here, and in the cloud.
             offMain { link().disconnect() }
@@ -152,7 +152,7 @@ class LinkedInGhostIsolationE2ETest {
             assertEquals("not one write for the other account", writes, world.space.writes)
             assertTrue("nothing of the board is in the other account's space", world.space.isEmpty(other.uid))
             assertTrue("no doc was put for the other account", world.space.payloads.none { it.uid == other.uid })
-            assertEquals("no board day is shown to the other account", emptySet<LocalDate>(), phone.shownBoardDays())
+            assertEquals("no board day is shown to the other account", emptySet<LocalDate>(), phone.shownBoardDays(today))
             assertEquals("no connection is shown to the other account", emptySet<String>(), ghostNamesShown(today))
             assertEquals("the first account's cloud boards are as it left them", inCloud, boardsOf(me.uid))
 
@@ -161,7 +161,7 @@ class LinkedInGhostIsolationE2ETest {
             val back = world.space.reads
             phone.signIn(me)
             awaitCloud("the first account's run after coming back") { phone.synced() && world.space.reads > back }
-            assertEquals("the board is shown again", setOf(today), phone.shownBoardDays())
+            assertEquals("the board is shown again", setOf(today), phone.shownBoardDays(today))
             assertEquals("with its connections", names, ghostNamesShown(today))
             assertEquals("the first account's cloud boards are still as they were", inCloud, boardsOf(me.uid))
             assertEquals("still nothing deleted", 0, world.space.deletes)

@@ -49,16 +49,6 @@ internal class SavedBoardDays(
             combine(stored, avatars.present) { rows, photos -> rows.toSaved(photos) }
         }.distinctUntilChanged()
 
-    /**
-     * Every day of [game] that has a saved board the visible owner may see, re-emitted when a board is saved or
-     * removed or the visible owner changes. One list per game, whatever the number of days on screen.
-     */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    fun observeDays(game: GameId): Flow<Set<LocalDate>> =
-        ownerScope.visible.flatMapLatest { visibleOwner ->
-            savedBoards.observeVisibleDays(game.value, visibleOwner).map { days -> days.mapTo(HashSet(), LocalDate::parse) }
-        }.distinctUntilChanged()
-
     private suspend fun read(game: GameId, day: LocalDate, linkedProfileId: String?, visibleOwner: String?): Stored {
         val board = savedBoards.get(game.value, day.toString())?.takeIf { it.isVisibleTo(visibleOwner) }
         val profileId = board?.profileId ?: linkedProfileId

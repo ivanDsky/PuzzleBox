@@ -71,7 +71,6 @@ internal fun LibraryGamePage(
                     month = shownMonth,
                     // Until the month's days load, its discs draw as outside rather than the old month's.
                     days = shown?.takeIf { it.month == shownMonth }?.days.orEmpty(),
-                    saved = shown?.saved.orEmpty(),
                     picked = past?.date,
                     offline = unreachable,
                     accent = libraryCardColors(row.card.brand).fill,
