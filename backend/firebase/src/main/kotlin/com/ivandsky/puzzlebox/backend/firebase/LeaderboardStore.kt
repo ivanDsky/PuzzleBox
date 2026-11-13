@@ -4,6 +4,7 @@ import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
+import com.google.firebase.firestore.Source
 import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.game.RankOrder
 import kotlinx.coroutines.channels.awaitClose
@@ -20,7 +21,11 @@ internal interface LeaderboardStore {
     /** Live documents of one board, server-ordered by [order]'s [boardQueryFields]. */
     fun observeEntries(boardId: String, order: RankOrder): Flow<List<Map<String, Any?>>>
 
-    /** One-shot read of the same query [observeEntries] listens to. */
+    /**
+     * One-shot read of the same query [observeEntries] listens to, from the server only: offline it
+     * throws. A default-source read would answer an empty board from the cache, and a Final board
+     * is stored for good on its first answer.
+     */
     suspend fun fetchEntries(boardId: String, order: RankOrder): List<Map<String, Any?>>
 
     /** Server-side count of the whole board (a billed aggregate, not a document read per row). */
@@ -42,7 +47,7 @@ internal class FirestoreLeaderboardStore : LeaderboardStore {
         .limit(MAX_BOARD_SIZE)
 
     override suspend fun fetchEntries(boardId: String, order: RankOrder): List<Map<String, Any?>> =
-        page(boardId, order).get().await().documents.map { it.data.orEmpty() }
+        page(boardId, order).get(Source.SERVER).await().documents.map { it.data.orEmpty() }
 
     override suspend fun count(boardId: String): Long =
         entries(boardId).count().get(AggregateSource.SERVER).await().count

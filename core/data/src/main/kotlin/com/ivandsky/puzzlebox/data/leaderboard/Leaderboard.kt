@@ -113,8 +113,10 @@ interface LeaderboardRepository {
     fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?>
 
     /**
-     * The whole board once, ranked by [order], with its N; null when signed out or the read
-     * failed. N costs a second read only when the page is full ([BoardPage.PAGE_SIZE]).
+     * The whole board once, ranked by [order], with its N, read from the server only: null when
+     * signed out, offline or the read failed, never a cached or empty stand-in, so a non-null
+     * page is safe to keep for good. N costs a second read only when the page is full
+     * ([BoardPage.PAGE_SIZE]).
      */
     suspend fun fetch(board: LeaderboardRef, order: RankOrder): BoardPage?
 
