@@ -2,16 +2,19 @@ package com.ivandsky.puzzlebox.data.cloud.kinds
 
 import androidx.room.withTransaction
 import com.ivandsky.puzzlebox.data.cloud.CloudDoc
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.cloud.SyncedKind
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInItem
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOutcome
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayWindow
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInStoreLock
 import com.ivandsky.puzzlebox.database.linkedin.FetchLogEntity
 import com.ivandsky.puzzlebox.database.linkedin.GhostEntity
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import com.ivandsky.puzzlebox.database.linkedin.SavedBoardEntity
+import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import kotlinx.coroutines.flow.Flow
@@ -22,8 +25,9 @@ import kotlinx.coroutines.flow.map
 /**
  * Saved LinkedIn boards as the synced kind `boards` (ADR-0029 decisions 1 and 8): one doc per
  * `{game}_{day}_{profileKey}`, `{formatVersion, game, day, profileKey, readAtMs, complete, rows}` with every key from
- * [BoardDocKeys]. A row carries name, time and flags only: no member ref, no photo, so a third party's profile id never
- * leaves the phone, and no session value exists in these tables to leak.
+ * [BoardDocKeys]. A row carries name, time and flags, and for a connection their LinkedIn member id as `ref` (user-check
+ * F1, so a restored board keeps its avatars and row identity); never a photo, never the reading profile's own id, never
+ * a name stand-in, and no session value exists in these tables to leak. The ids stay in the account's owner-only space.
  *
  * A board is pending while its `uploadedFingerprint` is null: the ghost writer clears it on every rewrite. An
  * acknowledgement sets the fingerprint of the uploaded content only while the stored board still has that content, so
@@ -31,14 +35,17 @@ import kotlinx.coroutines.flow.map
  *
  * [apply] takes [LinkedInStoreLock] once, from outside, and never nests it. A restore keeps one board per
  * (game, day) by [BoardMerge], and marks the day read in the fetch log of the linked profile when the restored board
- * is that profile's, so no LinkedIn call is spent re-reading it (A26). The cloud holds no member ids, so a restored
- * connection gets a stable stand-in ref made from its name, and the board's own profile a stand-in id made from its
- * key, until the day is read again.
+ * is that profile's and its day is at least 2 days before the game's today, so no LinkedIn call is spent re-reading a
+ * fixed day (A26, amended by user-check F2). Today and yesterday get no mark, so the in-window flow reads them live
+ * once. A restored connection keeps its `ref` as the ghost `memberRef`; a row without one, or whose ref an earlier row
+ * already took, gets a stable stand-in made from its name, and the board's own profile a stand-in id made from its key,
+ * until the day is read again.
  */
 internal class BoardsKind(
     private val db: LinkedInDatabase,
     private val storeLock: LinkedInStoreLock,
     private val link: LinkedInLink,
+    private val calendar: GameCalendar,
 ) : SyncedKind {
 
     private val boards = db.savedBoardDao()
@@ -104,7 +111,8 @@ internal class BoardsKind(
         readAtMs = board.readAtMs,
         complete = board.complete,
         rows = ghosts.board(board.game, board.day).map {
-            BoardRow(it.name, it.timeMs, it.hintFree, it.flawless, isOwn = it.memberRef == board.profileId)
+            val own = it.memberRef == board.profileId
+            BoardRow(it.name, it.timeMs, it.hintFree, it.flawless, own, ref = it.memberRef.takeIf { ref -> !own && isMemberId(ref) })
         },
     )
 
@@ -119,7 +127,13 @@ internal class BoardsKind(
         boards.upsert(
             SavedBoardEntity(won.game, won.day, profileId, uid, won.readAtMs, won.complete, won.fingerprint()),
         )
-        if (linkedId != null && profileKeyOf(linkedId) == won.profileKey) markRead(won, linkedId)
+        if (linkedId != null && profileKeyOf(linkedId) == won.profileKey && isFixedDay(won)) markRead(won, linkedId)
+    }
+
+    /** A day at least 2 days before the game's today never changes on LinkedIn; today and yesterday are still read live. */
+    private fun isFixedDay(board: BoardValue): Boolean {
+        val delta = LinkedInDayWindow(calendar).deltaOf(GameId(board.game), LocalDate.parse(board.day))
+        return delta != null && delta >= FIXED_DAY_DELTA
     }
 
     private suspend fun markRead(board: BoardValue, profileId: String) {
@@ -132,8 +146,13 @@ internal class BoardsKind(
 
     private fun ghostsOf(board: BoardValue, profileId: String): List<GhostEntity> {
         val seen = HashMap<String, Int>()
+        val taken = hashSetOf(profileId)
         return board.rows.map { row ->
-            val ref = if (row.isOwn) profileId else standIn(row.name, seen)
+            val ref = when {
+                row.isOwn -> profileId
+                row.ref != null && taken.add(row.ref) -> row.ref
+                else -> standIn(row.name, seen)
+            }
             GhostEntity(board.game, board.day, ref, row.name, row.timeMs, row.hintFree, row.flawless, board.readAtMs)
         }
     }
@@ -167,6 +186,7 @@ internal class BoardsKind(
             BoardDocKeys.IS_OWN to row.isOwn,
         )
         row.timeMs?.let { fields[BoardDocKeys.TIME_MS] = it }
+        row.ref?.let { fields[BoardDocKeys.REF] = it }
         return fields.filterKeys { it in BoardDocKeys.ROW }
     }
 
@@ -189,6 +209,7 @@ internal class BoardsKind(
                 hintFree = row[BoardDocKeys.HINT_FREE] == true,
                 flawless = row[BoardDocKeys.FLAWLESS] == true,
                 isOwn = own,
+                ref = (row[BoardDocKeys.REF] as? String)?.takeIf { !own && isMemberId(it) },
             )
         }
         return BoardValue(
@@ -210,8 +231,15 @@ internal class BoardsKind(
 
     private companion object {
         const val FORMAT_VERSION = 1L
+        const val FIXED_DAY_DELTA = 2
     }
 }
+
+/** True for a ref that is a real member id: not blank, at most [MAX_REF_LENGTH] chars, and not a name stand-in. */
+private fun isMemberId(ref: String): Boolean =
+    ref.isNotBlank() && ref.length <= MAX_REF_LENGTH && !ref.startsWith(STAND_IN)
+
+private const val MAX_REF_LENGTH = 64
 
 /** The stand-in a restored board gets for the profile id the cloud does not hold; it carries the profile key. */
 private const val RESTORED_PROFILE = "key:"
