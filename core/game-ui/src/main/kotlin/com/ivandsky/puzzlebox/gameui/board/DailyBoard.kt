@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -28,7 +29,8 @@ private const val MaxGhosts = 20
  * the day's board is live or a saved one.
  * [isToday] says whether the board is today's, so an empty one names the day it shows.
  * [medals] makes the top three places medal rows and [dock] docks the viewer's own row to the edge of what scrolls the
- * board while it is out of view (see [DailyBoardList]).
+ * board while it is out of view (see [DailyBoardList]). With [onRowClick] another player's official row is tappable and
+ * reports its row; a board that passes none has rows that take no tap.
  */
 @Composable
 fun DailyBoard(
@@ -43,23 +45,26 @@ fun DailyBoard(
     caption: String = rankRuleText(order),
     medals: Boolean = false,
     dock: Boolean = false,
+    onRowClick: ((DailyBoardRowModel) -> Unit)? = null,
 ) {
-    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("daily_board.title"))
-        Text(
-            caption,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.testTag("daily_board.caption"),
-        )
-        when (state) {
-            DailyBoardState.Loading -> Line("Loading…", "daily_board.loading")
-            DailyBoardState.Unavailable -> Line("Leaderboard unavailable right now.", "daily_board.unavailable")
-            DailyBoardState.SignedOut -> {
-                DailyBoardList(rankWithGhosts(emptyList(), ghosts, order), order, animated = animated, medals = medals, dock = dock)
-                signIn?.invoke()
+    CompositionLocalProvider(LocalBoardRowClick provides onRowClick) {
+        Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("daily_board.title"))
+            Text(
+                caption,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("daily_board.caption"),
+            )
+            when (state) {
+                DailyBoardState.Loading -> Line("Loading…", "daily_board.loading")
+                DailyBoardState.Unavailable -> Line("Leaderboard unavailable right now.", "daily_board.unavailable")
+                DailyBoardState.SignedOut -> {
+                    DailyBoardList(rankWithGhosts(emptyList(), ghosts, order), order, animated = animated, medals = medals, dock = dock)
+                    signIn?.invoke()
+                }
+                is DailyBoardState.Ranked -> Ranked(state, ghosts, order, animated, isToday, medals, dock)
             }
-            is DailyBoardState.Ranked -> Ranked(state, ghosts, order, animated, isToday, medals, dock)
         }
     }
 }
