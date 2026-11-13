@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.gameui.board.BoardRowValue
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
+import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
@@ -171,5 +172,76 @@ class RanksViewModelTest {
         viewModel.select { it.toggleCalendar() }
 
         assertTrue(viewModel.selection.value.calendarExpanded)
+    }
+
+    @Test
+    fun `picking a day re-targets the board to that day and folds the calendar to its week`() = runTest {
+        val yesterday = today.minusDays(1)
+        val maya = entry(ZIP, "maya", "Maya", 58_000)
+        val h = hub(mapOf(LeaderboardRef(ZIP.value, yesterday) to listOf(maya)))
+        h.daily.setHistory(ZIP, listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(yesterday)))
+        val viewModel = h.viewModel()
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)).toggleCalendar() }
+
+        viewModel.selectDay(yesterday)
+        val state = viewModel.uiState.first { it.board.state is DailyBoardState.Ranked && it.calendar.selectedDay == yesterday }
+
+        assertEquals("Zip · Nov 12", state.board.title)
+        assertEquals(listOf("maya"), (state.board.state as DailyBoardState.Ranked).rows.map { it.playerId })
+        assertEquals(yesterday, viewModel.selection.value.day)
+        assertEquals(false, state.calendar.expanded)
+        assertEquals(yesterday, state.calendar.shownDay)
+    }
+
+    @Test
+    fun `signed out the strip, month, stats and Your solve come from local data`() = runTest {
+        val yesterday = today.minusDays(1)
+        val h = hub(identity = null)
+        h.daily.setHistory(ZIP, listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(yesterday)))
+        h.completions.setRecords(listOf(HistoryTestSupport.record(yesterday, timeMs = 95_000, hints = 2)))
+        val viewModel = h.viewModel()
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)).toggleCalendar() }
+
+        viewModel.selectDay(yesterday)
+        val state = viewModel.uiState.first { it.stats != null && it.yourSolve != null }
+
+        assertEquals(DailyBoardState.SignedOut, state.board.state)
+        assertEquals(setOf(today, yesterday), state.calendar.daysWithRows)
+        assertEquals(yesterday, state.calendar.earliestDay)
+        assertEquals(1, state.stats?.solved)
+        assertEquals(95_000L, state.yourSolve?.row?.record?.time)
+        assertEquals(2, state.yourSolve?.row?.record?.hints)
+    }
+
+    @Test
+    fun `Your solve belongs to a game's board on a day you solved it, not Overall`() = runTest {
+        val h = hub()
+        h.daily.setHistory(ZIP, listOf(HistoryTestSupport.entry(today)))
+        h.completions.setRecords(listOf(HistoryTestSupport.record(today)))
+        val viewModel = h.viewModel()
+
+        val overall = viewModel.uiState.first { it.stats != null }
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)) }
+        val zip = viewModel.uiState.first { it.yourSolve != null }
+        viewModel.select { it.pickBoard(RanksBoard.Game(TANGO)) }
+        val tango = viewModel.uiState.first { it.board.title.startsWith("Tango") }
+
+        assertNull(overall.yourSolve)
+        assertEquals(ZIP, zip.yourSolve?.row?.gameId)
+        assertNull(tango.yourSolve)
+    }
+
+    @Test
+    fun `the calendar pages by week and month without moving the picked day`() = runTest {
+        val h = hub()
+        h.daily.setHistory(ZIP, listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(today.minusDays(20))))
+        val viewModel = h.viewModel()
+        viewModel.uiState.first { it.calendar.earliestDay != null }
+
+        viewModel.showCalendar(today.minusDays(14), expanded = false)
+        val state = viewModel.uiState.first { it.calendar.shownDay == today.minusDays(14) }
+
+        assertNull(viewModel.selection.value.day)
+        assertEquals(today, state.calendar.selectedDay)
     }
 }
