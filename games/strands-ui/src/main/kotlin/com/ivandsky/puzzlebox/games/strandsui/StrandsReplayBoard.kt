@@ -10,14 +10,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
+import com.ivandsky.puzzlebox.game.replay.ReplayMove
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.gameui.replay.rememberStepsForward
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzle
+import com.ivandsky.puzzlebox.games.strands.StrandsReplayMove
 import com.ivandsky.puzzlebox.games.strands.StrandsSession
 import com.ivandsky.puzzlebox.games.strands.StrandsState
-import com.ivandsky.puzzlebox.games.strands.engine.StrandsPath
 import com.ivandsky.puzzlebox.games.strands.engine.StrandsVerdict
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strandsui.chrome.WordSlotLine
@@ -29,8 +30,9 @@ import com.ivandsky.puzzlebox.games.strandsui.chrome.WordSlotLine
  * on a forward step while the replay plays ([ReplayBoardOptions.animate]); paused, scrubbing, stepping back or under
  * Reduce motion, every frame rests.
  *
- * A frame that added a non-theme word draws the word's path selected, as live play does after the submit: playing, it
- * is set aside (held, then dissolved) on a forward step while playing; at rest it stays selected, so the letters picked can be read.
+ * A frame that added a non-theme word draws the path the player traced for it (the last Submit of [ReplayFrame.moves]), selected, as live
+ * play does after the submit: playing, it is set aside (held, then dissolved) on a forward step while playing; at rest it stays selected,
+ * so the letters picked can be read.
  *
  * Above the board sits live play's word slot: a frame that submitted a word (a theme word, the
  * spangram, or a non-theme word, which marks no cell) shows that word and its verdict until the
@@ -57,7 +59,7 @@ internal object StrandsReplayBoard : GameReplayBoard {
         SideEffect { if (!forward) rested = event?.seq ?: -1 }
         val badges = remember(session.state.puzzle, frame.hinted) { hintBadges(session.state.puzzle, frame.hinted) }
         val slot = remember(session.state, before) { submittedSlotOf(before, session.state) }
-        val nonTheme = remember(session.state, before) { nonThemePathOf(before, session.state) }
+        val nonTheme = remember(session.state, before, frame.moves) { nonThemePathOf(before, session.state, frame.moves) }
         val setAside = remember(nonTheme) { nonTheme?.let { TraceEnd(it, TraceEndKind.Bonus, seq = session.state.found.size + session.state.nonTheme.size) } }
         Column(modifier) {
             WordSlotLine(slot, model.foundCount, model.totalCount, reduceMotion = !forward)
@@ -107,10 +109,13 @@ internal fun submittedSlotOf(before: StrandsState?, after: StrandsState): WordSl
     return StrandsVerdictSlot.of(verdict, seq = after.found.size + after.nonTheme.size)
 }
 
-/** Cells [after] spells for the one new non-theme word on top of [before], as the board shows it; null for any other step. */
-internal fun nonThemePathOf(before: StrandsState?, after: StrandsState): List<Coord>? {
+/**
+ * The path traced for the one new non-theme word on top of [before]: the last Submit among [moves], the moves of the frame's
+ * stamp group, as recorded. Null for any other step, and when [moves] holds no Submit.
+ */
+internal fun nonThemePathOf(before: StrandsState?, after: StrandsState, moves: List<ReplayMove>): List<Coord>? {
     if (before == null || after.found.size != before.found.size || after.nonTheme.size != before.nonTheme.size + 1) return null
-    return StrandsPath.spelling(after.puzzle, after.nonTheme.last())
+    return moves.asReversed().firstNotNullOfOrNull { (StrandsReplayMove.of(it, after.puzzle) as? StrandsReplayMove.Submit)?.path }
 }
 
 /** The first letter cell of every word whose cells [hinted] names. */

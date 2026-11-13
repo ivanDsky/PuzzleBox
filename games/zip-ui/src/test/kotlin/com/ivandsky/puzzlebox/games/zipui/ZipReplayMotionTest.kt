@@ -65,6 +65,7 @@ class ZipReplayMotionTest {
         return ReplayFrame(
             session = session,
             before = if (cells == 0) null else sessionAfter(cells - 1),
+            moves = emptyList(),
             hinted = emptySet(),
             facts = ZipReplay.factsOf(initial)(session),
             atMs = atMs,

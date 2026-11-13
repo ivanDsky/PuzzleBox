@@ -93,6 +93,7 @@ abstract class SudokuReplayBoardGoldenBase(private val widthLabel: String, priva
         return ReplayFrame(
             session = session,
             before = if (moves == 0) null else sessionAfter(moves - 1),
+            moves = emptyList(),
             hinted = hintedAfter(moves),
             facts = SudokuReplay.factsOf(initial())(session),
             atMs = moves * 1_000L,

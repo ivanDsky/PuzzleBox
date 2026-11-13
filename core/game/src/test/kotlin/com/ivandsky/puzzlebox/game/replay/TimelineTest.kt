@@ -323,6 +323,32 @@ class TimelineTest {
         for (tMs in listOf(0L, 1_000, 1_399, 1_400, 1_799, 1_800, 1_899, 1_900, 2_399, 2_400, 9_000)) straight.assertFrame(tapped.at(tMs), tMs)
     }
 
+    @Test
+    fun `a frame carries the moves of the stamp group its before is taken from, in log order`() {
+        // 250 changes nothing, so it is no group; 400 holds two moves.
+        assertEquals(emptyList<ReplayMove>(), timeline.at(99).moves)
+        assertEquals(listOf(mark(3)), timeline.at(100).moves)
+        assertEquals(listOf(mark(3)), timeline.at(399).moves)
+        assertEquals(listOf(mark(1), mark(4)), timeline.at(400).moves)
+        assertEquals(listOf(mark(1)), timeline.at(1_000).moves)
+        // A seek back reads the same group.
+        assertEquals(listOf(mark(3)), timeline.at(100).moves)
+    }
+
+    @Test
+    fun `a merged tap cycle is one group, so its frame carries every move of the cycle`() {
+        val moves = listOf(
+            StampedMove(1_000, mark(11)), StampedMove(1_400, mark(12)), StampedMove(1_800, mark(13)),
+            StampedMove(1_900, mark(21)), StampedMove(2_400, mark(22)),
+        )
+        val tapped = checkNotNull(Timeline.open(marks, TapReplay(), Session(), sealed(moves, ReplayOutcome.GaveUp, endMs = 9_000)))
+        assertEquals(emptyList<ReplayMove>(), tapped.at(1_799).moves)
+        assertEquals(listOf(mark(11), mark(12), mark(13)), tapped.at(1_800).moves)
+        assertEquals(listOf(mark(21)), tapped.at(2_399).moves)
+        assertEquals(listOf(mark(22)), tapped.at(2_400).moves)
+        assertEquals(listOf(mark(11), mark(12), mark(13)), tapped.at(1_800).moves)
+    }
+
     private fun everyTenMs(count: Int) = List(count) { index -> StampedMove((index + 1) * 10L, mark(index % 9)) }
 
     private fun sealed(moves: List<StampedMove>, outcome: ReplayOutcome, endMs: Long, game: GameId = marks): SolveReplay {
