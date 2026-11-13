@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
+import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensReplay
 import com.ivandsky.puzzlebox.games.queens.QueensReplayMove
@@ -65,6 +66,7 @@ abstract class QueensReplayBoardGoldenBase(private val widthLabel: String, priva
         return ReplayFrame(
             session = session,
             before = if (moves == 0) null else sessionAfter(moves - 1),
+            hinted = emptySet(),
             facts = QueensReplay.factsOf(initial)(session),
             atMs = atMs,
             sinceMoveMs = 0L,
@@ -90,7 +92,7 @@ abstract class QueensReplayBoardGoldenBase(private val widthLabel: String, priva
             }
             CompositionLocalProvider(LocalConfiguration provides config) {
                 PuzzleBoxTheme(darkTheme = dark) {
-                    Box { QueensReplayBoard.Board(frame, Modifier.size(sideDp.dp)) }
+                    Box { QueensReplayBoard.Board(frame, ReplayBoardOptions(animate = false, showErrors = true), Modifier.size(sideDp.dp)) }
                 }
             }
         }

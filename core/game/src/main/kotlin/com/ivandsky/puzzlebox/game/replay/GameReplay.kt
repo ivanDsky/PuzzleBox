@@ -15,4 +15,10 @@ interface GameReplay<S : GameSession> {
      * (the solution) is done here and lives in the closure, so the adapter holds no cache.
      */
     fun factsOf(initial: S): (S) -> ReplayFacts
+
+    /**
+     * How the timeline and the board mark one move. [previous] = the move decoded just before [move]
+     * (any move, kept or not); null for the first. Game-owned indices in [MoveMark.hinted]. Pure.
+     */
+    fun markOf(before: S, move: ReplayMove, after: S, previous: ReplayMove?): MoveMark = MoveMark.Plain
 }

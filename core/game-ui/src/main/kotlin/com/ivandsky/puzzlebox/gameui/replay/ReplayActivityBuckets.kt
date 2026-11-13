@@ -1,13 +1,19 @@
 package com.ivandsky.puzzlebox.gameui.replay
 
+import com.ivandsky.puzzlebox.game.replay.MoveKind
+
 internal const val ACTIVITY_BUCKETS = 48
 
-/** Moves per equal slice of the replay: one series of the activity bars. A second side feeds its own ticks. */
-internal fun activityBuckets(ticksMs: LongArray, durationMs: Long): IntArray {
-    val counts = IntArray(ACTIVITY_BUCKETS)
+/**
+ * Moves per equal slice of the replay, split by kind: `[kind.ordinal][slice]`. One series of the activity bars;
+ * a second side feeds its own ticks. [kindsAt] runs parallel to [ticksMs].
+ */
+internal fun activityBuckets(ticksMs: LongArray, kindsAt: Array<MoveKind>, durationMs: Long): Array<IntArray> {
+    val counts = Array(MoveKind.entries.size) { IntArray(ACTIVITY_BUCKETS) }
     if (durationMs <= 0) return counts
-    for (tickMs in ticksMs) {
-        counts[(tickMs.toFloat() / durationMs * ACTIVITY_BUCKETS).toInt().coerceIn(0, ACTIVITY_BUCKETS - 1)]++
+    for (index in ticksMs.indices) {
+        val bucket = (ticksMs[index].toFloat() / durationMs * ACTIVITY_BUCKETS).toInt().coerceIn(0, ACTIVITY_BUCKETS - 1)
+        counts[kindsAt[index].ordinal][bucket]++
     }
     return counts
 }

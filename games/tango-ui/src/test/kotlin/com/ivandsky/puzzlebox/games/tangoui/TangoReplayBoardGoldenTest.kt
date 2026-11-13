@@ -12,6 +12,7 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
+import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoReplay
 import com.ivandsky.puzzlebox.games.tango.TangoReplayMove
@@ -67,6 +68,7 @@ abstract class TangoReplayBoardGoldenBase(private val widthLabel: String, privat
         return ReplayFrame(
             session = session,
             before = if (moves == 0) null else sessionAfter(moves - 1),
+            hinted = emptySet(),
             facts = TangoReplay.factsOf(initial)(session),
             atMs = moves * 1_000L,
             sinceMoveMs = MotionTokens.SettleMillis,
@@ -88,7 +90,7 @@ abstract class TangoReplayBoardGoldenBase(private val widthLabel: String, privat
             }
             CompositionLocalProvider(LocalConfiguration provides config) {
                 PuzzleBoxTheme(darkTheme = dark) {
-                    Box { TangoReplayBoard.Board(frame, Modifier.size(sideDp.dp)) }
+                    Box { TangoReplayBoard.Board(frame, ReplayBoardOptions(animate = false, showErrors = true), Modifier.size(sideDp.dp)) }
                 }
             }
         }

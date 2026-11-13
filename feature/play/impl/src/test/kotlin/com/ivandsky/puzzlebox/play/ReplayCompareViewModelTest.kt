@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
@@ -66,6 +67,7 @@ class ReplayCompareViewModelTest {
             games = games,
             ui = GamePlayRegistry(listOf(ui)),
             calendar = FakeGameCalendar(today),
+            preferences = FakeUserPreferencesRepository(),
         )
     }
 

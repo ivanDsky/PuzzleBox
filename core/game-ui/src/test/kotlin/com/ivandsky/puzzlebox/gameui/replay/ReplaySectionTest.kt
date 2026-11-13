@@ -42,7 +42,7 @@ class ReplaySectionTest {
         override val pieces = "pieces"
 
         @Composable
-        override fun Board(frame: ReplayFrame, modifier: Modifier) {
+        override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {
             Text("facts ${frame.facts.correct}", modifier.testTag(BOARD))
         }
     }

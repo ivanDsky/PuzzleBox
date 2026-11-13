@@ -23,4 +23,9 @@ interface UserPreferencesRepository {
     val autoShowWitness: Flow<Boolean>
 
     suspend fun setAutoShowWitness(on: Boolean)
+
+    /** Whether replay boards mark rule violations, for every replay; true until switched off. */
+    val showReplayErrors: Flow<Boolean>
+
+    suspend fun setShowReplayErrors(on: Boolean)
 }

@@ -52,7 +52,7 @@ abstract class ReplayPlayerGoldenScreenshots(private val device: String) {
     @Test fun `long playing dark`() = capture("long-playing", LONG, dark = true, playMs = PLAY_MS)
 
     private fun capture(name: String, timeline: Timeline, dark: Boolean, playMs: Long = 0, pause: Boolean = false) {
-        rule.showGolden(dark) { ReplayPage(timeline, ReplayGoldenBoard, context = "Fixture · #1 · Today", onBack = {}) }
+        rule.showGolden(dark) { ReplayPage(timeline, ReplayGoldenBoard, context = "Fixture · #1 · Today", onBack = {}, showErrors = true, onShowErrorsChange = {}) }
         if (playMs > 0) {
             rule.onNodeWithTag(ReplayTags.PLAY).performClick()
             rule.mainClock.advanceTimeBy(playMs)

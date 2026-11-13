@@ -78,6 +78,7 @@ internal fun ReplayFlipPeek(
     mine: Timeline?,
     theirs: Timeline?,
     board: GameReplayBoard,
+    options: ReplayBoardOptions,
     names: CompareNames,
     modifier: Modifier = Modifier,
 ) {
@@ -135,7 +136,7 @@ internal fun ReplayFlipPeek(
             ) { page ->
                 val frame = if (sides[page] == Side.Mine) state.mineFrame else state.theirsFrame
                 Box(Modifier.width(pageWidth), contentAlignment = Alignment.TopCenter) {
-                    ReplayBoardSlot(frame, board, boardSize)
+                    ReplayBoardSlot(frame, board, options, boardSize)
                 }
             }
             ReplayCompareTransport(state, playback, mine, theirs, names)
