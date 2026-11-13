@@ -99,8 +99,26 @@ abstract class StrandsReplayBoardGoldenBase(private val widthLabel: String, priv
             .also { checkNotNull(it.parentFile).mkdirs() }
             .absolutePath
 
-    private fun capture(name: String, dark: Boolean, moves: Int) {
-        val frame = frameAfter(moves)
+    /** The frame of a non-theme word (ARTS) submitted after the first theme word: its path rests selected. */
+    private fun nonThemeFrame(): ReplayFrame {
+        val before = sessionAfter(1)
+        val session = checkNotNull(
+            StrandsReplay.step(before, StrandsReplayMove.Submit(RealDay.firstHintWords[0]).toReplayMove(cols), 2_000L),
+        )
+        return ReplayFrame(
+            session = session,
+            before = before,
+            hinted = emptySet(),
+            facts = StrandsReplay.factsOf(initial)(session),
+            atMs = 2_000L,
+            sinceMoveMs = 0L,
+            ended = false,
+        )
+    }
+
+    private fun capture(name: String, dark: Boolean, moves: Int) = capture(name, dark, frameAfter(moves))
+
+    private fun capture(name: String, dark: Boolean, frame: ReplayFrame) {
         composeRule.setContent {
             // currentIsDarkTheme() reads uiMode, so the capture sets it as a device would.
             val config = android.content.res.Configuration(LocalConfiguration.current).apply {
@@ -122,6 +140,8 @@ abstract class StrandsReplayBoardGoldenBase(private val widthLabel: String, priv
     @Test fun `start dark`() = capture("start", true, 0)
     @Test fun `middle light`() = capture("middle", false, 3)
     @Test fun `middle dark`() = capture("middle", true, 3)
+    @Test fun `non-theme light`() = capture("nontheme", false, nonThemeFrame())
+    @Test fun `non-theme dark`() = capture("nontheme", true, nonThemeFrame())
     @Test fun `end light`() = capture("end", false, script.size)
     @Test fun `end dark`() = capture("end", true, script.size)
 }

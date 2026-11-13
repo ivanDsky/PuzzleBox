@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzle
 import com.ivandsky.puzzlebox.games.strands.StrandsSession
 import com.ivandsky.puzzlebox.games.strands.StrandsState
+import com.ivandsky.puzzlebox.games.strands.engine.StrandsPath
 import com.ivandsky.puzzlebox.games.strands.engine.StrandsVerdict
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 import com.ivandsky.puzzlebox.games.strandsui.chrome.WordSlotLine
@@ -25,6 +26,9 @@ import com.ivandsky.puzzlebox.games.strandsui.chrome.WordSlotLine
  * (found words, spangram, hint outline), drawn by the live board. No trace, verdict or input. A
  * frame that found one more word than [ReplayFrame.before] plays the live settle or link sweep
  * while the replay plays ([ReplayBoardOptions.animate]); paused or scrubbing, every frame rests.
+ *
+ * A frame that added a non-theme word draws the word's path selected, as live play does after the submit: playing, it
+ * is set aside (held, then dissolved); paused or scrubbing, it stays selected, so the letters picked can be read.
  *
  * Above the board sits live play's word slot: a frame that submitted a word (a theme word, the
  * spangram, or a non-theme word, which marks no cell) shows that word and its verdict until the
@@ -50,14 +54,18 @@ internal object StrandsReplayBoard : GameReplayBoard {
         SideEffect { if (!options.animate) rested = event?.seq ?: -1 }
         val badges = remember(session.state.puzzle, frame.hinted) { hintBadges(session.state.puzzle, frame.hinted) }
         val slot = remember(session.state, before) { submittedSlotOf(before, session.state) }
+        val nonTheme = remember(session.state, before) { nonThemePathOf(before, session.state) }
+        val setAside = remember(nonTheme) { nonTheme?.let { TraceEnd(it, TraceEndKind.Bonus, seq = session.state.found.size + session.state.nonTheme.size) } }
         Column(modifier) {
             WordSlotLine(slot, model.foundCount, model.totalCount, reduceMotion = !options.animate)
             StrandsBoardContent(
                 model = model,
                 found = event?.takeIf { options.animate && it.seq != rested },
                 reduceMotion = !options.animate,
-                trace = { Trace() },
+                // At rest the word stays selected; playing, it leaves as live play's set-aside word does.
+                trace = { if (options.animate) Trace() else Trace(nonTheme.orEmpty()) },
                 onTrace = {},
+                traceEnd = { setAside.takeIf { options.animate } },
                 // Nothing to touch, so the board shrinks to whatever space it is given.
                 floor = 0.dp,
                 readOnly = true,
@@ -94,6 +102,12 @@ internal fun submittedSlotOf(before: StrandsState?, after: StrandsState): WordSl
         else -> null
     } ?: return WordSlot.Empty
     return StrandsVerdictSlot.of(verdict, seq = after.found.size + after.nonTheme.size)
+}
+
+/** Cells [after] spells for the one new non-theme word on top of [before], as the board shows it; null for any other step. */
+internal fun nonThemePathOf(before: StrandsState?, after: StrandsState): List<Coord>? {
+    if (before == null || after.found.size != before.found.size || after.nonTheme.size != before.nonTheme.size + 1) return null
+    return StrandsPath.spelling(after.puzzle, after.nonTheme.last())
 }
 
 /** The first letter cell of every word whose cells [hinted] names. */
