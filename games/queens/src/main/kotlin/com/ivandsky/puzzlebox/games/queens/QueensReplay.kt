@@ -44,17 +44,22 @@ object QueensReplay : GameReplay<QueensSession> {
     override fun markOf(before: QueensSession, move: ReplayMove, after: QueensSession, previous: ReplayMove?): MoveMark =
         when (QueensReplayMove.of(move, after.puzzle.cellCount)) {
             is QueensReplayMove.Place ->
-                if (violationsOf(after).any { it !in violationsOf(before) }) MoveMark(MoveKind.Mistake, emptySet()) else MoveMark.Plain
+                if (introducedBy(before, after).isNotEmpty()) MoveMark(MoveKind.Mistake, emptySet()) else MoveMark.Plain
             QueensReplayMove.Undo, QueensReplayMove.Redo, QueensReplayMove.Clear -> MoveMark(MoveKind.Undo, emptySet())
             QueensReplayMove.Hint -> MoveMark(MoveKind.Hint, hintTargets(before))
             else -> MoveMark.Plain
         }
 
-    /** True when every violation [after] added over [before] is gone in [next]: the player fixed it before the live board showed it. */
+    /**
+     * A mistake is transient when every violation it introduced ([after] against [before]) is gone again
+     * in [next]: live play never showed it. A mistake that introduced no new violation was shown at once,
+     * so it is never transient; Tango's adapter has the same rule. Each session's violations are read once.
+     */
     override fun isTransientMistake(before: QueensSession, after: QueensSession, next: QueensSession): Boolean {
+        val introduced = introducedBy(before, after)
+        if (introduced.isEmpty()) return false
         val settled = violationsOf(next)
-        val kept = violationsOf(before)
-        return violationsOf(after).none { it !in kept && it in settled }
+        return introduced.none { it in settled }
     }
 
     /** A tap cycle is empty, cross, queen, empty: Cross(c) then Place(c), and Place(c) then Remove(c). */
@@ -101,6 +106,10 @@ object QueensReplay : GameReplay<QueensSession> {
             is QueensStep.Reveal -> setOf(step.cell.idx)
             QueensStep.Solved, QueensStep.Unavailable -> emptySet()
         }
+
+    /** The violations [after] has and [before] did not, each session evaluated once. */
+    private fun introducedBy(before: QueensSession, after: QueensSession): Set<QueensRuleViolation> =
+        violationsOf(after) - violationsOf(before)
 
     private fun violationsOf(session: QueensSession): Set<QueensRuleViolation> =
         (QueensRules.evaluate(session.puzzle, session.queens.toSet()) as? QueensRulesVerdict.Invalid)
