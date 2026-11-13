@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.home.di
 
 import com.ivandsky.puzzlebox.home.HomeViewModel
-import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**

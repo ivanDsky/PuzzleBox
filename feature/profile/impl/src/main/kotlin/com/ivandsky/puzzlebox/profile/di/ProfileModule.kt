@@ -11,8 +11,8 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.profile.linkedin.LinkedInLoginViewModel
 import com.ivandsky.puzzlebox.profile.linkedin.WebViewLinkedInSession
 import com.ivandsky.puzzlebox.profile.settings.SettingsViewModel
-import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.module.Module
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
