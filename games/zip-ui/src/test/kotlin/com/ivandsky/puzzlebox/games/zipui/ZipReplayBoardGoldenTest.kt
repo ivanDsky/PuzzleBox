@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
+import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipReplay
 import com.ivandsky.puzzlebox.games.zip.ZipReplayMove
@@ -60,6 +61,7 @@ abstract class ZipReplayBoardGoldenBase(private val widthLabel: String, private 
         return ReplayFrame(
             session = session,
             before = if (moves == 0) null else sessionAfter(moves - 1),
+            hinted = emptySet(),
             facts = ZipReplay.factsOf(initial)(session),
             atMs = moves * 1_000L,
             sinceMoveMs = 0L,
@@ -85,7 +87,7 @@ abstract class ZipReplayBoardGoldenBase(private val widthLabel: String, private 
             }
             CompositionLocalProvider(LocalConfiguration provides config) {
                 PuzzleBoxTheme(darkTheme = dark) {
-                    Box { ZipReplayBoard.Board(frame, Modifier.size(sideDp.dp)) }
+                    Box { ZipReplayBoard.Board(frame, ReplayBoardOptions(animate = false, showErrors = true), Modifier.size(sideDp.dp)) }
                 }
             }
         }

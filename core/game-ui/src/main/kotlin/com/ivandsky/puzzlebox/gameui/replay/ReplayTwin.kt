@@ -18,6 +18,7 @@ internal fun ReplayTwin(
     mine: Timeline?,
     theirs: Timeline?,
     board: GameReplayBoard,
+    options: ReplayBoardOptions,
     names: CompareNames,
     modifier: Modifier = Modifier,
 ) {
@@ -39,7 +40,7 @@ internal fun ReplayTwin(
                     tint = if (isMine) colors.primary else colors.tertiary,
                     onTint = if (isMine) colors.onPrimary else colors.onTertiary,
                 )
-                ReplayBoardSlot(frame, board, size)
+                ReplayBoardSlot(frame, board, options, size)
             }
         },
     )

@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
@@ -56,6 +57,7 @@ class ReplayViewModelTest {
         games = games,
         ui = GamePlayRegistry(emptyList()),
         calendar = FakeGameCalendar(onDay),
+        preferences = FakeUserPreferencesRepository(),
     )
 
     private fun daily(day: LocalDate = today, number: Int? = 7) =

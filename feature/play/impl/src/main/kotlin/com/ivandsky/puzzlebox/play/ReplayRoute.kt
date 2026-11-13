@@ -22,12 +22,13 @@ import org.koin.core.parameter.parametersOf
 internal fun ReplayRoute(key: ReplayKey, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel: ReplayViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val showErrors by viewModel.showErrors.collectAsStateWithLifecycle()
     val board = viewModel.board
     Box(modifier.fillMaxSize().testTag("route.replay")) {
         when (val shown = state) {
             ReplayState.Loading -> Unit
             is ReplayState.Ready ->
-                if (board != null) ReplayPage(shown.timeline, board, viewModel.context, onBack) else ReplayEmptyPage(viewModel.context, onBack)
+                if (board != null) ReplayPage(shown.timeline, board, viewModel.context, onBack, showErrors, viewModel::setShowErrors) else ReplayEmptyPage(viewModel.context, onBack)
             ReplayState.None -> ReplayEmptyPage(viewModel.context, onBack)
         }
     }

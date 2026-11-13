@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.GameSession
 import com.ivandsky.puzzlebox.game.replay.GameReplay
+import com.ivandsky.puzzlebox.game.replay.MoveKind
 import com.ivandsky.puzzlebox.game.replay.MoveLog
 import com.ivandsky.puzzlebox.game.replay.ReplayFacts
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
@@ -37,7 +38,7 @@ private val PreviewBoard = object : GameReplayBoard {
     override val pieces = "pieces"
 
     @Composable
-    override fun Board(frame: ReplayFrame, modifier: Modifier) {
+    override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {
         Text("${frame.facts.correct} of ${frame.facts.total} $pieces", modifier.padding(16.dp))
     }
 }
@@ -58,6 +59,12 @@ internal fun ReplayPlayerPreview() {
 
 @PuzzleBoxPreviews
 @Composable
+internal fun ReplayHintBadgePreview() {
+    PuzzleBoxTheme { ReplayHintBadge() }
+}
+
+@PuzzleBoxPreviews
+@Composable
 internal fun ReplayTransportPreview() {
     PuzzleBoxTheme {
         val playback = rememberReplayPlayback(previewTimeline(), theirs = null)
@@ -70,14 +77,20 @@ internal fun ReplayTransportPreview() {
 @Composable
 internal fun ReplaySeekBarPreview() {
     PuzzleBoxTheme {
-        ReplaySeekBar(positionMs = 5_000, durationMs = 12_000, ticksMs = longArrayOf(2_000, 5_000, 9_000), onSeek = {})
+        ReplaySeekBar(
+            positionMs = 5_000,
+            durationMs = 12_000,
+            ticksMs = longArrayOf(2_000, 5_000, 9_000),
+            tickKinds = arrayOf(MoveKind.Normal, MoveKind.Hint, MoveKind.Mistake),
+            onSeek = {},
+        )
     }
 }
 
 @PuzzleBoxPreviews
 @Composable
 internal fun ReplayPagePreview() {
-    PuzzleBoxTheme { ReplayPage(previewTimeline(), PreviewBoard, context = "Preview · #1 · Today", onBack = {}) }
+    PuzzleBoxTheme { ReplayPage(previewTimeline(), PreviewBoard, context = "Preview · #1 · Today", onBack = {}, showErrors = true, onShowErrorsChange = {}) }
 }
 
 @PuzzleBoxPreviews
@@ -146,6 +159,8 @@ internal fun ReplayComparePagePreview() {
             layout = CompareLayout.FlipPeek,
             context = "Preview · Duel",
             onBack = {},
+            showErrors = true,
+            onShowErrorsChange = {},
         )
     }
 }

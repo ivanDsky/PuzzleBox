@@ -12,6 +12,9 @@ object ReplayCopy {
     const val NEXT_MOVE = "Next move"
     const val SEEK = "Seek"
     const val BACK = "Back"
+    const val SHOW_ERRORS = "Show errors"
+    const val ON = "On"
+    const val OFF = "Off"
 
     fun speed(x: Int): String = "$x×"
 

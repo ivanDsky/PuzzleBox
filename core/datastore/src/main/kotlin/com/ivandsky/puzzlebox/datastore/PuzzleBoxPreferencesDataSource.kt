@@ -18,13 +18,15 @@ data class PuzzleBoxPreferences(
     val tutorialsSeen: Set<GameId>,
     /** Whether the Studio opens each 2+ solutions verdict with its witness on the board; on until switched off. */
     val autoShowWitness: Boolean,
+    /** Whether replay boards mark rule violations; on until switched off. One preference for every replay. */
+    val showReplayErrors: Boolean,
 )
 
 /**
  * Owns the Preferences DataStore keys. Reads tolerate a missing or corrupt value by
  * falling back to [ThemeMode.SYSTEM]; writes store the enum name so the file stays
  * human-readable and forward-compatible. Seen tutorials are one string set of game ids.
- * Auto-show is a plain boolean, true while the key is absent.
+ * Auto-show and replay errors are plain booleans, true while the key is absent.
  */
 class PuzzleBoxPreferencesDataSource(
     private val dataStore: DataStore<Preferences>,
@@ -35,6 +37,7 @@ class PuzzleBoxPreferencesDataSource(
             themeMode = preferences[KEY_THEME_MODE]?.let(ThemeMode::fromStored) ?: ThemeMode.SYSTEM,
             tutorialsSeen = preferences[KEY_TUTORIALS_SEEN].orEmpty().mapTo(mutableSetOf(), ::GameId),
             autoShowWitness = preferences[KEY_AUTO_SHOW_WITNESS] ?: true,
+            showReplayErrors = preferences[KEY_SHOW_REPLAY_ERRORS] ?: true,
         )
     }
 
@@ -52,6 +55,10 @@ class PuzzleBoxPreferencesDataSource(
         dataStore.edit { preferences -> preferences[KEY_AUTO_SHOW_WITNESS] = on }
     }
 
+    suspend fun setShowReplayErrors(on: Boolean) {
+        dataStore.edit { preferences -> preferences[KEY_SHOW_REPLAY_ERRORS] = on }
+    }
+
     /** A game's own boolean setting; [default] while it was never written. */
     fun gameFlag(game: GameId, name: String, default: Boolean): Flow<Boolean> =
         dataStore.data.map { it[gameFlagKey(game, name)] ?: default }
@@ -66,5 +73,6 @@ class PuzzleBoxPreferencesDataSource(
         val KEY_THEME_MODE = stringPreferencesKey("theme_mode")
         val KEY_TUTORIALS_SEEN = stringSetPreferencesKey("tutorials_seen")
         val KEY_AUTO_SHOW_WITNESS = booleanPreferencesKey("auto_show_witness")
+        val KEY_SHOW_REPLAY_ERRORS = booleanPreferencesKey("show_replay_errors")
     }
 }

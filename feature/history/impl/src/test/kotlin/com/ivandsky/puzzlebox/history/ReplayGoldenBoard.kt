@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.drawscope.Stroke
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
+import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.testing.replay.FixtureSession
 import kotlin.math.ceil
 import kotlin.math.min
@@ -24,7 +25,7 @@ internal object ReplayGoldenBoard : GameReplayBoard {
     override val pieces = "pieces"
 
     @Composable
-    override fun Board(frame: ReplayFrame, modifier: Modifier) {
+    override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {
         val session = frame.session as FixtureSession
         val filled = MaterialTheme.colorScheme.primary
         val empty = MaterialTheme.colorScheme.outlineVariant

@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
+import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
@@ -213,6 +214,6 @@ private class ReplayUi(withBoard: Boolean) : GamePlayUi {
         override val pieces = "pieces"
 
         @Composable
-        override fun Board(frame: ReplayFrame, modifier: Modifier) = Text("board", modifier)
+        override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) = Text("board", modifier)
     }
 }

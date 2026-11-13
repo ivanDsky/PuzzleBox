@@ -12,7 +12,7 @@ interface GameReplayBoard {
      */
     val pieces: String
 
-    /** Read-only board for one frame. No input. No controller. Static: no per-move animation. */
+    /** Read-only board for one frame. No input. No controller. Animates only while [ReplayBoardOptions.animate]. */
     @Composable
-    fun Board(frame: ReplayFrame, modifier: Modifier)
+    fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier)
 }

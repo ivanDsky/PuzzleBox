@@ -18,11 +18,13 @@ class ReplayPlayback(
     private val theirs: Timeline?,
     /** The duel's verdict. It replaces the computed lead once both sides ended. */
     private val finalLead: Lead? = null,
+    showErrors: Boolean = true,
 ) {
     private val durationMs = maxOf(mine?.endMs ?: 0L, theirs?.endMs ?: 0L)
     private val ticksMs = (mine ?: theirs)?.moveTimesMs ?: LongArray(0)
+    private val tickKinds = (mine ?: theirs)?.moveKindsAt ?: emptyArray()
 
-    private val _state = MutableStateFlow(stateAt(durationMs, playing = false, speed = 1, skipIdle = true))
+    private val _state = MutableStateFlow(stateAt(durationMs, playing = false, speed = 1, skipIdle = true, showErrors = showErrors))
     val state: StateFlow<ReplayPlaybackState> = _state.asStateFlow()
 
     /** At the end it starts over from 0. */
@@ -36,6 +38,9 @@ class ReplayPlayback(
     fun setSpeed(x: Int) = change { if (x in SPEEDS) it.with(speed = x) else it }
 
     fun setSkipIdle(on: Boolean) = change { it.with(skipIdle = on) }
+
+    /** Hides or shows every rule-violation mark; the position and the clock stay. */
+    fun setShowErrors(on: Boolean) = change { it.with(showErrors = on) }
 
     /** Pauses on the next tick; past the last tick, on the end. */
     fun nextMove() = change {
@@ -87,18 +92,19 @@ class ReplayPlayback(
         playing: Boolean = this.playing,
         speed: Int = this.speed,
         skipIdle: Boolean = this.skipIdle,
+        showErrors: Boolean = this.showErrors,
     ): ReplayPlaybackState {
         val unchanged = positionMs == this.positionMs && playing == this.playing &&
-            speed == this.speed && skipIdle == this.skipIdle
+            speed == this.speed && skipIdle == this.skipIdle && showErrors == this.showErrors
         // The state has identity equality, so only the same object keeps the flow from emitting.
-        return if (unchanged) this else stateAt(positionMs, playing, speed, skipIdle)
+        return if (unchanged) this else stateAt(positionMs, playing, speed, skipIdle, showErrors)
     }
 
-    private fun stateAt(positionMs: Long, playing: Boolean, speed: Int, skipIdle: Boolean): ReplayPlaybackState {
+    private fun stateAt(positionMs: Long, playing: Boolean, speed: Int, skipIdle: Boolean, showErrors: Boolean): ReplayPlaybackState {
         val mineFrame = mine?.at(positionMs)
         val theirsFrame = theirs?.at(positionMs)
         val lead = if (mineFrame != null && theirsFrame != null) leadOf(mineFrame, theirsFrame) else null
-        return ReplayPlaybackState(positionMs, durationMs, playing, speed, skipIdle, ticksMs, mineFrame, theirsFrame, lead)
+        return ReplayPlaybackState(positionMs, durationMs, playing, speed, skipIdle, ticksMs, tickKinds, mineFrame, theirsFrame, lead, showErrors)
     }
 
     private fun leadOf(mineFrame: ReplayFrame, theirsFrame: ReplayFrame): Lead = when {

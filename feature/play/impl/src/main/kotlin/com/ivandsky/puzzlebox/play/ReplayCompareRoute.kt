@@ -32,6 +32,7 @@ import org.koin.core.parameter.parametersOf
 internal fun ReplayCompareRoute(key: ReplayCompareKey, onBack: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel: ReplayCompareViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val showErrors by viewModel.showErrors.collectAsStateWithLifecycle()
     ReplayCompareScreen(
         state = state,
         board = viewModel.board,
@@ -40,6 +41,8 @@ internal fun ReplayCompareRoute(key: ReplayCompareKey, onBack: () -> Unit, modif
         context = viewModel.context,
         widthDp = LocalConfiguration.current.screenWidthDp,
         onBack = onBack,
+        showErrors = showErrors,
+        onShowErrorsChange = viewModel::setShowErrors,
         modifier = modifier,
     )
 }
@@ -54,6 +57,8 @@ internal fun ReplayCompareScreen(
     context: String,
     widthDp: Int,
     onBack: () -> Unit,
+    showErrors: Boolean,
+    onShowErrorsChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier.fillMaxSize().testTag("route.replay-compare")) {
@@ -61,7 +66,7 @@ internal fun ReplayCompareScreen(
             ReplayCompareState.Loading -> Unit
             is ReplayCompareState.Ready ->
                 if (board != null) {
-                    ReplayComparePage(state.mine, state.theirs, board, names, compareLayoutAt(widthDp), context, onBack, finalLead = finalLead)
+                    ReplayComparePage(state.mine, state.theirs, board, names, compareLayoutAt(widthDp), context, onBack, showErrors, onShowErrorsChange, finalLead = finalLead)
                 } else {
                     ReplayEmptyPage(context, onBack)
                 }

@@ -9,6 +9,7 @@ object ReplayTags {
     const val SKIP_IDLE = "replay-skip-idle"
     const val PREVIOUS = "replay-previous"
     const val NEXT = "replay-next"
+    const val SHOW_ERRORS = "replay-show-errors"
     const val SEEK = "replay-seek"
     const val POSITION = "replay-position"
 }

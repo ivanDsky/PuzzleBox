@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
+import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
@@ -19,16 +20,22 @@ internal object TangoReplayBoard : GameReplayBoard {
     override val pieces: String get() = "cells"
 
     @Composable
-    override fun Board(frame: ReplayFrame, modifier: Modifier) {
+    override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {
         // The frame is game-blind; this board is only reached through Tango's own plugin, so a miss draws nothing.
         val session = frame.session as? TangoSession ?: return
         val before = frame.before as? TangoSession
         // Keyed on whether the window has passed, not on sinceMoveMs, so scrubbing inside it rebuilds nothing.
         val settled = frame.ended || frame.sinceMoveMs >= MotionTokens.SettleMillis
-        val model = remember(session, before, settled) {
+        val showErrors = options.showErrors
+        val model = remember(session, before, settled, showErrors) {
             TangoRendererModel.of(
                 TangoState(session.puzzle, session.grid()),
-                suppressedSets = tangoReplaySuppressed(session, before, frame.sinceMoveMs, frame.ended),
+                // Errors off hides every violating set, settled or not.
+                suppressedSets = if (showErrors) {
+                    tangoReplaySuppressed(session, before, frame.sinceMoveMs, frame.ended)
+                } else {
+                    violatingSets(session.puzzle, session.grid())
+                },
             )
         }
         remember { TangoBoardRenderer() }.Content(model, modifier)
