@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.data.cloud.CloudSpace
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.match.MatchRepository
+import com.ivandsky.puzzlebox.data.replay.DailyReplayRepository
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
@@ -57,4 +58,7 @@ val firebaseBackendModule = module {
         )
     }
     single<VisibilityRepository> { FirestoreVisibilityRepository(identity = get<IdentityService>().current) }
+    single<DailyReplayRepository> {
+        FirestoreDailyReplayRepository(currentUid = { get<IdentityService>().current.value?.uid })
+    }
 }
