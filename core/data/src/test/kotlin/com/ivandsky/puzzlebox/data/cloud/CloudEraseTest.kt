@@ -63,12 +63,26 @@ class CloudEraseTest {
     }
 
     @Test
-    fun `ok empties the whole space when every kind is registered`() = runTest {
-        space.put(ANN, "drafts", listOf(CloudDoc("d1", mapOf("n" to 1L))))
+    fun `ok empties every space kind whichever kinds are registered`() = runTest {
+        CloudSpaceKinds.ALL.forEach { kind -> space.put(ANN, kind, listOf(CloudDoc("x", mapOf("n" to 1L)))) }
 
         CloudErase(space, listOf(drafts), store, identity).erase(ANN)
 
         assertTrue(space.isEmpty(ANN))
+    }
+
+    @Test
+    fun `ok deletes the boards docs when no boards kind is registered`() = runTest {
+        seed()
+
+        val withoutLinkedIn = CloudErase(space, listOf(drafts), store, identity)
+
+        assertEquals(CloudResult.Ok(Unit), withoutLinkedIn.erase(ANN))
+        assertTrue(space.docs(ANN, "boards").isEmpty())
+        assertTrue(space.docs(ANN, "drafts").isEmpty())
+        assertEquals(listOf(ANN), drafts.forgotten)
+        assertTrue(boards.forgotten.isEmpty())
+        assertNull(store.cursor(ANN, "boards"))
     }
 
     @Test
