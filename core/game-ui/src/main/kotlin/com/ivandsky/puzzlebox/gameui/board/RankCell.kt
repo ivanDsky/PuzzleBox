@@ -49,10 +49,11 @@ private fun medalInk(place: Int): Color = when (place) {
  * A row's place cell. Where the board has the LinkedIn account's motion the podium places are medals (see
  * [LocalPlaceMotion]) and a change of place rolls like an odometer; a board without it draws the plain number, as it
  * always did. [tag] marks the cell, and its text is the place the row is at, whatever the roll is showing.
- * A row [beyondPage] is at no place the board knows, so the cell says "100+" and never rolls or wears a medal.
+ * A row [beyondPage] is at no place the board knows, so the cell says "100+" and never rolls or wears a medal. A row
+ * without [medal] takes no place a medal can mark, so its cell never wears a disc, however it is placed.
  */
 @Composable
-internal fun RankPlace(place: Int?, quiet: Color, tag: String, beyondPage: Boolean = false) {
+internal fun RankPlace(place: Int?, quiet: Color, tag: String, beyondPage: Boolean = false, medal: Boolean = true) {
     val motion = LocalPlaceMotion.current
     when {
         beyondPage -> Text(
@@ -68,15 +69,15 @@ internal fun RankPlace(place: Int?, quiet: Color, tag: String, beyondPage: Boole
             color = quiet,
             modifier = Modifier.testTag(tag),
         )
-        motion.animated -> RankOdometer(place, quiet, motion, tag)
-        else -> RankCell(place, quiet, Modifier.placeSemantics(tag, place))
+        motion.animated -> RankOdometer(place, quiet, motion, tag, medal)
+        else -> RankCell(place, quiet, Modifier.placeSemantics(tag, place), medal)
     }
 }
 
-/** One number in the place cell: a disc in the medal's colour behind it for places 1 to 3. */
+/** One number in the place cell: a disc in the medal's colour behind it for places 1 to 3, when [medal] is set. */
 @Composable
-internal fun RankCell(place: Int, quiet: Color, modifier: Modifier = Modifier) {
-    val fill = medalFill(place)
+internal fun RankCell(place: Int, quiet: Color, modifier: Modifier = Modifier, medal: Boolean = true) {
+    val fill = if (medal) medalFill(place) else null
     Box(modifier.size(RankCellSize), contentAlignment = Alignment.Center) {
         if (fill != null) Box(Modifier.size(DiscSize).background(fill, CircleShape))
         Text(

@@ -39,7 +39,8 @@ internal class BoardRowTags(val root: String, val part: String, val detail: Stri
  * the secondary container and [connection] frames it in LinkedIn blue. [linkedIn] puts the LinkedIn dot on the photo.
  * [muted] greys the score, for a time that is hidden. [scoreTime] lets the score count to a new time where the board moves.
  * [mark] is a small line of its own under the name (the unofficial mark), [beyondPage] says the place cell reads "100+",
- * and a [medal] row wears its tint over whatever the row sits on and keeps its own minimum height.
+ * and a [medal] row wears its tint over whatever the row sits on and keeps its own minimum height. [placeMedal] is false
+ * for a row that takes no place (an unofficial one), so its place cell never wears a medal disc.
  */
 @Composable
 internal fun BoardRow(
@@ -58,6 +59,7 @@ internal fun BoardRow(
     mark: String? = null,
     beyondPage: Boolean = false,
     medal: MedalRow? = null,
+    placeMedal: Boolean = true,
 ) {
     val scheme = MaterialTheme.colorScheme
     val content = if (self) scheme.onSecondaryContainer else scheme.onSurface
@@ -86,7 +88,7 @@ internal fun BoardRow(
         )
         // "100+" is wider than a number cell: the name gives way to it.
         Box(if (beyondPage) Modifier.widthIn(min = RankCellSize) else Modifier.width(RankCellSize)) {
-            RankPlace(place, quiet, "${tags.part}.rank", beyondPage)
+            RankPlace(place, quiet, "${tags.part}.rank", beyondPage, placeMedal)
         }
         Column(Modifier.weight(1f)) {
             Text(

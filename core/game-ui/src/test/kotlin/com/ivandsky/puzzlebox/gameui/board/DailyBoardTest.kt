@@ -1,11 +1,17 @@
 package com.ivandsky.puzzlebox.gameui.board
 
+import android.content.Context
+import android.graphics.Color
+import android.provider.Settings
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -13,16 +19,20 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
+import com.ivandsky.puzzlebox.designsystem.MedalSilver
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.LocalDate
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -51,10 +61,20 @@ class DailyBoardTest {
         TodayLeaderboard.Board.Loaded(LeaderboardSnapshot(LeaderboardRef("queens", LocalDate.of(2026, 11, 8)), entries.toList())),
     )
 
-    private fun show(order: RankOrder, state: DailyBoardState, ghosts: List<GhostRowModel> = emptyList(), isToday: Boolean = true) {
+    private fun show(
+        order: RankOrder,
+        state: DailyBoardState,
+        ghosts: List<GhostRowModel> = emptyList(),
+        isToday: Boolean = true,
+        animated: Boolean = false,
+        medals: Boolean = false,
+    ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                DailyBoard("Queens · today", order, state, ghosts = ghosts, signIn = { Text("sign-in slot") }, isToday = isToday)
+                DailyBoard(
+                    "Queens · today", order, state, ghosts = ghosts, signIn = { Text("sign-in slot") },
+                    isToday = isToday, animated = animated, medals = medals,
+                )
             }
         }
     }
@@ -381,5 +401,44 @@ class DailyBoardTest {
 
         composeRule.onAllNodesWithTag("daily_board.ghost").assertCountEquals(20)
         composeRule.onAllNodesWithText("time hidden").assertCountEquals(0)
+    }
+
+    @Test
+    fun `an unofficial row at a podium place wears no medal`() {
+        reducedMotion()
+        val unofficial = DailyBoardRowModel(2, "You", 15_000L, 0, true, playerId = "you", unofficial = true)
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(listOf(real(1, 60), unofficial)), animated = true, medals = true)
+
+        composeRule.onAllNodesWithTag("daily_board.row.rank")[1].assertTextEquals("2")
+        assertFalse("an unofficial row's place wears no silver disc", showsSilverDisc(1))
+    }
+
+    @Test
+    fun `an official row at a podium place wears its medal`() {
+        reducedMotion()
+        show(RankOrder.TimeThenHints, DailyBoardState.Ranked(listOf(real(1, 60), real(2, 70))), animated = true, medals = true)
+
+        composeRule.onAllNodesWithTag("daily_board.row.rank")[1].assertTextEquals("2")
+        assertTrue("an official row at place 2 wears the silver disc", showsSilverDisc(1))
+    }
+
+    // Reduced motion lands the place cell at once, so its medal disc is drawn without a roll.
+    private fun reducedMotion() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+    }
+
+    // Whether the place cell of the row at [index] draws a silver medal disc anywhere.
+    private fun showsSilverDisc(index: Int): Boolean {
+        val image = composeRule.onAllNodesWithTag("daily_board.row.rank")[index].captureToImage().asAndroidBitmap()
+        val want = MedalSilver.toArgb()
+        for (x in 0 until image.width) for (y in 0 until image.height) {
+            val pixel = image.getPixel(x, y)
+            if (abs(Color.red(pixel) - Color.red(want)) <= 2 &&
+                abs(Color.green(pixel) - Color.green(want)) <= 2 &&
+                abs(Color.blue(pixel) - Color.blue(want)) <= 2
+            ) return true
+        }
+        return false
     }
 }
