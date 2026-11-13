@@ -146,18 +146,23 @@ private fun BigStreakRow(stats: GameStats) {
             modifier = Modifier.testTag("home.pane_streak"),
         )
         Column(Modifier.padding(bottom = Spacing.sm)) {
-            Text(
-                text = if (stats.currentStreak == 1) "day in a row" else "days in a row",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                Text(
+                    text = if (stats.currentStreak == 1) "day in a row" else "days in a row",
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                stats.freezes?.let { FreezeCount(held = it.held) }
+            }
             Text(
                 text = "Best ${grouped(stats.bestStreak)}",
                 style = MaterialTheme.typography.bodySmall.tabular(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        stats.freezes?.let { FreezeCount(held = it.held, modifier = Modifier.padding(bottom = Spacing.sm)) }
     }
 }
 
