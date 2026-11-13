@@ -61,7 +61,7 @@ internal fun archiveDiscFor(compact: Boolean): Dp = if (compact) 42.dp else 46.d
 /**
  * A game's month calendar (06-a §Month calendar): ‹ [month] › with the archive numbers in
  * it, the "#1" / year / "Today" jumps, Monday-first weekdays, six weeks of [ArchiveDayDisc]s
- * from [days] (the month's archive days; a disc of a [saved] date carries the saved-board dot) and the legend. ‹ › and the jumps call [onMonth]
+ * from [days] (the month's archive days) and the legend. ‹ › and the jumps call [onMonth]
  * inside [range] (#1 .. today); a disc calls [onPick]. The ring marks [picked], else today.
  * [compact] is the phone's smaller disc and row. A month change fades the grid in.
  */
@@ -70,7 +70,6 @@ internal fun ArchiveMonthCalendar(
     range: ClosedRange<LocalDate>,
     month: YearMonth,
     days: List<ArchiveDay>,
-    saved: Set<LocalDate>,
     picked: LocalDate?,
     offline: Boolean,
     accent: Color,
@@ -117,7 +116,6 @@ internal fun ArchiveMonthCalendar(
                                     ArchiveDayDisc(
                                         date = date,
                                         day = byDate[date]?.takeIf { inMonth && nav.contains(date) },
-                                        saved = date in saved,
                                         today = date == today,
                                         selected = inMonth && date == (picked ?: today),
                                         offline = offline,

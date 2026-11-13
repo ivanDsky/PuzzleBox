@@ -25,10 +25,4 @@ interface LinkedInDays {
      * changes. Reads local state only and never asks LinkedIn, so collecting it is always safe.
      */
     fun observe(game: GameId, day: LocalDate): Flow<LinkedInDayData>
-
-    /**
-     * Every day of [game] that has a saved board for the account on screen, whatever the link and the day's age:
-     * the archive's dot. One observation per game, never one per day. Reads local state only.
-     */
-    fun observeSavedDays(game: GameId): Flow<Set<LocalDate>>
 }

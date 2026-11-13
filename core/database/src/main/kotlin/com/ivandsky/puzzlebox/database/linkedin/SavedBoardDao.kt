@@ -27,16 +27,6 @@ interface SavedBoardDao {
     @Query("SELECT * FROM saved_boards ORDER BY game, day")
     suspend fun all(): List<SavedBoardEntity>
 
-    /**
-     * Every day of [game] with a board a screen of [visibleOwner] may show, oldest first, re-emitted on change: the
-     * ownerless boards and [visibleOwner]'s, or all of them while no owner is visible (ADR-0029 decision 6).
-     */
-    @Query(
-        "SELECT day FROM saved_boards WHERE game = :game " +
-            "AND (:visibleOwner IS NULL OR ownerUid IS NULL OR ownerUid = :visibleOwner) ORDER BY day",
-    )
-    fun observeVisibleDays(game: String, visibleOwner: String?): Flow<List<String>>
-
     @Query("DELETE FROM saved_boards WHERE game = :game AND day = :day")
     suspend fun delete(game: String, day: String)
 
