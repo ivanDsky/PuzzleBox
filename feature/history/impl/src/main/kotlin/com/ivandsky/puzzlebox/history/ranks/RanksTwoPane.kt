@@ -71,6 +71,8 @@ internal fun RanksTwoPane(
     leftScroll: ScrollState = rememberScrollState(),
     rightScroll: ScrollState = rememberScrollState(),
     onRowClick: ((DailyBoardRowModel) -> Unit)? = null,
+    refreshing: Boolean = false,
+    onRefresh: (() -> Unit)? = null,
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
@@ -86,21 +88,23 @@ internal fun RanksTwoPane(
             RanksCalendar(state.calendar.copy(expanded = true), state.stats, { day, _ -> onShowCalendar(day, true) }, onSelectDay, foldable = false)
             GameList(state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true })
         }
-        Column(
-            Modifier.weight(BOARD_WEIGHT).fillMaxHeight().verticalScroll(rightScroll).testTag("ranks.rightpane"),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
-                Text(
-                    state.board.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(start = Spacing.sm).testTag("ranks.boardtitle"),
-                )
+        RanksPullToRefresh(refreshing, onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight()) {
+            Column(
+                Modifier.fillMaxSize().verticalScroll(rightScroll).testTag("ranks.rightpane"),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
+                    Text(
+                        state.board.title,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(start = Spacing.sm).testTag("ranks.boardtitle"),
+                    )
+                }
+                RanksHeroCard(current?.name ?: "Ranks", current?.standing ?: Standing.None, state.board.selfScore())
+                YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
+                RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick)
             }
-            RanksHeroCard(current?.name ?: "Ranks", current?.standing ?: Standing.None, state.board.selfScore())
-            YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
-            RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick)
         }
     }
     if (tuning) TuneSheet(state.scope, state.window, onScope, onWindow, onDismiss = { tuning = false })

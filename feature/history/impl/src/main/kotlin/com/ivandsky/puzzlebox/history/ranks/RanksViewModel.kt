@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
@@ -62,7 +63,8 @@ import kotlinx.coroutines.launch
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class RanksViewModel(
-    private val observeRankWindow: ObserveRankWindow,
+    observeRankWindow: ObserveRankWindow,
+    observeWindowRefresh: ObserveWindowRefresh,
     private val observeOverall: ObserveOverall,
     private val observeFriendUids: ObserveFriendUids,
     observeGameHistory: ObserveGameHistory,
@@ -97,13 +99,13 @@ internal class RanksViewModel(
         .flatMapLatest { (kind, day) -> if (day != null) flowOf(kind.at(day)) else today().map(kind::at) }
         .distinctUntilChanged()
 
-    /**
-     * The one collection of the window's boards, tagged with the window it answers so a switch
-     * never shows the old window's boards as the new one's. Null until the first answer.
-     */
-    private val windowBoards: StateFlow<Pair<RankWindow, RankWindowBoards>?> = window
-        .flatMapLatest { window -> observeRankWindow(window, games).map { window to it } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+    private val reads = RanksWindowReads(observeRankWindow, observeWindowRefresh, window, games, viewModelScope)
+    private val windowBoards: StateFlow<Pair<RankWindow, RankWindowBoards>?> = reads.boards
+
+    /** The pull-to-refresh indicator, and the pull itself. */
+    val refreshing: StateFlow<Boolean> = reads.refreshing
+
+    fun refresh() = reads.pull()
 
     /** Overall's state over the shared boards, held once: Overall's slice and the title menu both read it. */
     private val overallState: StateFlow<OverallState> = window.flatMapLatest { window ->
