@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import com.ivandsky.puzzlebox.games.tango.codec.TangoCodec
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
+import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.TutorialStep
@@ -112,7 +113,7 @@ class TangoTutorialTest {
                 assertEquals(at, 0, s.session?.mistakeCount)
                 // Nothing new is waiting out the settle window, so the scan below is unsuppressed.
                 assertTrue(at, s.suppressedSets.isEmpty())
-                assertTrue(at, TangoSemantics.violations(s.rendererModel()!!).isEmpty())
+                assertTrue(at, TangoViolations.of(s.rendererModel()!!).isEmpty())
                 assertNull(at, s.violation)
             }
         }

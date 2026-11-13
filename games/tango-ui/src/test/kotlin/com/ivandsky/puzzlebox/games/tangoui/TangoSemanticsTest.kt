@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
+import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -12,14 +13,14 @@ import org.junit.Test
  * TalkBack phrasing + violation copy (design-direction §9/§6, floors §10.3/§10.6):
  * pure-string units, including the redundancy floor — the violation state lives in
  * the semantics stateDescription, never pixels alone. Violations are derived from
- * the LIVE grid by [TangoSemantics.violations] (review I2/I3): state-driven, the
+ * the LIVE grid by [TangoViolations.of] (review I2/I3): state-driven, the
  * specific broken edge carries the caption, satisfied edges never over-mark.
  */
 class TangoSemanticsTest {
 
     // Which edge's caption wins is the behaviour; its wording is the game's to change.
-    private val SAME_PHRASE = TangoSemantics.markerConflictPhrase(TangoMarkerKind.SAME)
-    private val OPPOSITE_PHRASE = TangoSemantics.markerConflictPhrase(TangoMarkerKind.OPPOSITE)
+    private val SAME_PHRASE = TangoViolations.markerConflictPhrase(TangoMarkerKind.SAME)
+    private val OPPOSITE_PHRASE = TangoViolations.markerConflictPhrase(TangoMarkerKind.OPPOSITE)
 
     private fun model(
         cells: Map<Int, TangoCell> = emptyMap(),

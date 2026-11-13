@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.engine.TangoUniqueness
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
+import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
 import com.ivandsky.puzzlebox.games.tango.tangoPlugin
 import com.ivandsky.puzzlebox.games.tangoui.hint.tangoStepHints
 import java.time.Instant
@@ -106,7 +107,7 @@ class TangoPlayController(
         val puzzle = current.puzzle
         val grid = current.grid()
         if (grid[placement.idx] == placement.value) return // no-op
-        val before = violatingSets(puzzle, grid)
+        val before = TangoViolations.cellSets(current)
         val move = TangoMove(placement.idx, placement.value)
         val at = now()
         when (val verdict = rules.validate(move, TangoState(puzzle, grid))) {
@@ -133,7 +134,7 @@ class TangoPlayController(
         val next = if (mistake != null) moveLog.record(moved, TangoReplayMove.Rejection, at) else moved
         if (next == current) return // nothing changed (e.g. a hinted-equal placement)
         // Suppress only the NEW violations this move introduced (after − before).
-        settle.suppress(violatingSets(current.puzzle, next.grid()) - before)
+        settle.suppress(TangoViolations.cellSets(next) - before)
         updateSession(if (next.isComplete) clock.fold(next) else next)
         if (mistake != null) lastRejection = TangoVerdict.Rejected(mistake, move.idx)
     }
@@ -150,7 +151,7 @@ class TangoPlayController(
         if (next == current) return // nothing to move, or the session is complete
         lastRejection = null
         settle.arm()
-        settle.suppress(violatingSets(current.puzzle, next.grid()) - violatingSets(current.puzzle, current.grid()))
+        settle.suppress(TangoViolations.cellSets(next) - TangoViolations.cellSets(current))
         commit(next)
     }
 

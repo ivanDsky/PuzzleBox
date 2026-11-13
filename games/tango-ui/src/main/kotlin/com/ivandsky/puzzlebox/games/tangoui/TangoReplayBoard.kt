@@ -10,11 +10,13 @@ import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.games.tango.TangoSession
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
+import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
 
 /**
  * Tango's read-only replay board: the committed board and the marks live play derives from it,
- * drawn by the live renderer with no input. No hint, selection, trace, rejection flash, guide
- * or placement animation. Violations settle as live play does ([tangoReplaySuppressed]).
+ * drawn by the live renderer with no input. No selection, trace, rejection flash, guide or
+ * placement animation. A cell a hint pointed at wears the hint badge ([ReplayFrame.hinted]);
+ * live play's spotlight is not drawn. Violations settle as live play does ([tangoReplaySuppressed]).
  */
 internal object TangoReplayBoard : GameReplayBoard {
     override val pieces: String get() = "cells"
@@ -34,11 +36,11 @@ internal object TangoReplayBoard : GameReplayBoard {
                 suppressedSets = if (showErrors) {
                     tangoReplaySuppressed(session, before, frame.sinceMoveMs, frame.ended)
                 } else {
-                    violatingSets(session.puzzle, session.grid())
+                    TangoViolations.cellSets(session)
                 },
             )
         }
-        remember { TangoBoardRenderer() }.Content(model, modifier)
+        remember { TangoBoardRenderer() }.Content(model, modifier, hinted = frame.hinted)
     }
 }
 
@@ -54,5 +56,5 @@ internal fun tangoReplaySuppressed(
     ended: Boolean,
 ): Set<Set<Int>> {
     if (ended || before == null || sinceMoveMs >= MotionTokens.SettleMillis) return emptySet()
-    return violatingSets(session.puzzle, session.grid()) - violatingSets(before.puzzle, before.grid())
+    return TangoViolations.cellSets(session) - TangoViolations.cellSets(before)
 }

@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoReplay
 import com.ivandsky.puzzlebox.games.tango.TangoReplayMove
 import com.ivandsky.puzzlebox.games.tango.TangoSession
+import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -23,12 +24,12 @@ class TangoReplaySettleTest {
     private val stillBroken = broken.place(8, TangoCell.MOON)
 
     private fun shown(session: TangoSession, before: TangoSession?, sinceMoveMs: Long, ended: Boolean = false) =
-        violatingSets(session.puzzle, session.grid()) - tangoReplaySuppressed(session, before, sinceMoveMs, ended)
+        TangoViolations.cellSets(session) - tangoReplaySuppressed(session, before, sinceMoveMs, ended)
 
     @Test
     fun `fixture breaks a rule`() {
-        assertTrue(violatingSets(broken.puzzle, broken.grid()).isNotEmpty())
-        assertTrue(violatingSets(initial.puzzle, initial.grid()).isEmpty())
+        assertTrue(TangoViolations.cellSets(broken).isNotEmpty())
+        assertTrue(TangoViolations.cellSets(initial).isEmpty())
     }
 
     @Test
@@ -39,21 +40,21 @@ class TangoReplaySettleTest {
 
     @Test
     fun `a new violation shows from the settle window on`() {
-        val all = violatingSets(broken.puzzle, broken.grid())
+        val all = TangoViolations.cellSets(broken)
         assertEquals(all, shown(broken, initial, settle))
         assertEquals(all, shown(broken, initial, settle + 1))
     }
 
     @Test
     fun `a violation already in before shows at once`() {
-        val all = violatingSets(stillBroken.puzzle, stillBroken.grid())
-        assertTrue(all.containsAll(violatingSets(broken.puzzle, broken.grid())))
-        assertTrue(shown(stillBroken, broken, 0L).containsAll(violatingSets(broken.puzzle, broken.grid())))
+        val all = TangoViolations.cellSets(stillBroken)
+        assertTrue(all.containsAll(TangoViolations.cellSets(broken)))
+        assertTrue(shown(stillBroken, broken, 0L).containsAll(TangoViolations.cellSets(broken)))
     }
 
     @Test
     fun `an ended frame shows everything`() {
-        assertEquals(violatingSets(broken.puzzle, broken.grid()), shown(broken, initial, 0L, ended = true))
+        assertEquals(TangoViolations.cellSets(broken), shown(broken, initial, 0L, ended = true))
     }
 
     @Test
