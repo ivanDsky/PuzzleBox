@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.e2e
 
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -19,7 +20,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 // A phone-sized window: the Games tab is the list alone, so a game's page opens only when its row is tapped.
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class LinkedInSafetyE2ETest {
 
     private val wire = LinkedInWire()

@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -25,9 +26,9 @@ import org.robolectric.annotation.Config
  * The drafts store is the fake "disk" that outlives the relaunch.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A real phone's height: Robolectric's default 470 dp leaves the Studio's board slot no room for a grid.
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class CreateSkeletonE2ETest {
 
     private val drafts = FakeDraftRepository()

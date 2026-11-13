@@ -8,11 +8,13 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.junit4.v2.AndroidComposeTestRule as v2AndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.MainActivity
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -41,8 +43,8 @@ import org.robolectric.annotation.Config
  * invite in Play; with it off the link changes nothing.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class DuelLinkE2ETest {
 
     private lateinit var rule: AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>
@@ -77,7 +79,7 @@ class DuelLinkE2ETest {
         graph.start()
         seedFriendsDuel()
         val intent = view(code.matchLink).addFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY)
-        rule = AndroidComposeTestRule(ActivityScenarioRule(intent), activityProvider = ::activityOf)
+        rule = v2AndroidComposeTestRule(ActivityScenarioRule(intent), activityProvider = ::activityOf)
         val run = object : Statement() {
             override fun evaluate() {
                 rule.waitUntil(TIMEOUT_MS) { routes() == listOf(HOME) }

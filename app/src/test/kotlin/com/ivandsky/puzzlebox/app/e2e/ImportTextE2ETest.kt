@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
@@ -27,9 +28,9 @@ import org.robolectric.annotation.Config
  * (Unique), and back on the root the imported draft's row exists.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A real phone's height: the Studio's board slot needs room for its grid.
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class ImportTextE2ETest {
 
     private val drafts = FakeDraftRepository()

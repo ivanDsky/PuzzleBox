@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.app
 
-import android.app.Application
 import android.os.Looper
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
@@ -34,7 +33,7 @@ import org.robolectric.annotation.Config
  * the shell-level fallback is PerTabShellTest's).
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class NavKeySavedStateTest {
 
     /**

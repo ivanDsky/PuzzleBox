@@ -6,6 +6,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.isRoot
 import androidx.test.core.app.ApplicationProvider
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
@@ -49,7 +50,7 @@ import org.robolectric.shadows.ShadowLog
  */
 @RunWith(RobolectricTestRunner::class)
 // A phone-sized window: the Games tab is the list alone, so the day view under test opens when the test opens it.
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class LinkedInSentinelE2ETest {
 
     private val wire = LinkedInWire()

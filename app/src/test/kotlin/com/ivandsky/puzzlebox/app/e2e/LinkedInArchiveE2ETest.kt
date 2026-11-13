@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -66,7 +67,7 @@ import org.robolectric.annotation.Config
  * since the sources bound today by the wall clock (A4).
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class LinkedInArchiveE2ETest {
 
     private val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java).build()

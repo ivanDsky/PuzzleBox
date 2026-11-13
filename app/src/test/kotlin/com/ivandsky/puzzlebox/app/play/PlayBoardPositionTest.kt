@@ -6,12 +6,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
@@ -102,8 +103,8 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-// Plain Application: the real PuzzleBoxApplication's startKoin would race this class's own graph.
-@Config(sdk = [34], application = android.app.Application::class)
+// DrainTestApplication (plain Application + looper drain): the real PuzzleBoxApplication's startKoin would race this class's own graph.
+@Config(sdk = [34], application = DrainTestApplication::class)
 class PlayBoardPositionTest {
 
     @get:Rule
@@ -164,19 +165,19 @@ class PlayBoardPositionTest {
         stopKoin()
     }
 
-    @Config(sdk = [34], application = android.app.Application::class, qualifiers = "w360dp-h800dp")
+    @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w360dp-h800dp")
     @Test
     fun `every board is centred vertically in its pane on a phone`() {
         assertBoardsCentred(DpSize(360.dp, 800.dp), PlayLayout.SinglePane)
     }
 
-    @Config(sdk = [34], application = android.app.Application::class, qualifiers = "w1280dp-h800dp")
+    @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w1280dp-h800dp")
     @Test
     fun `every board is centred vertically in its pane on a tablet`() {
         assertBoardsCentred(DpSize(1280.dp, 800.dp), PlayLayout.TwoPane)
     }
 
-    @Config(sdk = [34], application = android.app.Application::class, qualifiers = "w1280dp-h800dp")
+    @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w1280dp-h800dp")
     @Test
     fun `every game on a tablet times itself in the stats panel, not the top bar`() {
         eachGame(DpSize(1280.dp, 800.dp), PlayLayout.TwoPane) { game ->

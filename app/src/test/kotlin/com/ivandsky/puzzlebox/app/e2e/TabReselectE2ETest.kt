@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasTextExactly
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -23,8 +24,8 @@ import org.robolectric.annotation.Config
  * streak's week strip (Today no longer links to History, so the pushed screen is pushed directly).
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = android.app.Application::class)
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
+@Config(sdk = [34], application = DrainTestApplication::class)
 class TabReselectE2ETest {
 
     @Test

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.e2e
 
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.data.cloud.CloudDoc
 import com.ivandsky.puzzlebox.data.cloud.CloudResult
 import com.ivandsky.puzzlebox.data.cloud.SavedBoardsCloud
@@ -35,8 +36,8 @@ import org.robolectric.shadows.ShadowLog
  * allow-list `firestore.rules` states for its kind.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class CloudSyncSentinelE2ETest {
 
     private val wire = LinkedInWire()

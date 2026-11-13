@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.app.nav
 
-import android.app.Application
 import androidx.navigation3.runtime.NavKey
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.home.HomeLayout
@@ -23,7 +23,7 @@ import org.robolectric.annotation.Config
  * popped back to the screen that opened it.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class LinkedInNavTest {
 
     private fun provider(navigator: Navigator, linkedIn: Boolean) = puzzleBoxEntryProvider(

@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.navigation3.runtime.NavKey
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.create.api.CreateKey
@@ -46,8 +47,8 @@ import org.robolectric.annotation.Config
  * the signed-in player's record reaches the leaderboard exactly once.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = android.app.Application::class)
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
+@Config(sdk = [34], application = DrainTestApplication::class)
 class ResumeSolveE2ETest {
 
     /** One data graph per simulated process; each opens the same database file. */

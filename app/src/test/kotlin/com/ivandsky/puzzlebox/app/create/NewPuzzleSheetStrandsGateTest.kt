@@ -4,13 +4,14 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
@@ -78,7 +79,7 @@ import org.robolectric.annotation.Config
  * board, and lifting the last path of a board that needs only it moves the verdict pill off Incomplete.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w420dp-h900dp-420dpi")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w420dp-h900dp-420dpi")
 class NewPuzzleSheetStrandsGateTest {
 
     @get:Rule

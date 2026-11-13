@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.app.nav
 
-import android.app.Application
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 
 /** Today's rank row, the game page's summary row and Result's rank chip all push the hub's [HistoryKey] for a game and day. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class OpenRanksTest {
 
     private fun navigator() = Navigator(puzzleBoxNavigationState()).also { it.selectTab(PlayKey) }

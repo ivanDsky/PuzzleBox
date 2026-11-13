@@ -13,7 +13,7 @@ import org.robolectric.annotation.Config
 
 /** Release checks for updates on Home resume (spec A4); DiGraphTest pins the debug half. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class ReleaseUpdateChecksTest {
 
     @Test
