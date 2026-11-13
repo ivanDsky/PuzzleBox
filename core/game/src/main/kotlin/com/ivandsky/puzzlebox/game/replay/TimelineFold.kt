@@ -24,14 +24,16 @@ internal class TimelineFold<S : GameSession>(private val replay: GameReplay<S>, 
     private var pendingAtMs = -1L
     private var pendingMark = MoveMark.Plain
     private var previous: ReplayMove? = null
+    private var previousAtMs = -1L
 
     /** Folds one more decoded move. False = the game does not understand it, so there is no replay. */
     fun add(stamped: StampedMove): Boolean {
         // A decoded stamp may lie past endMs. Capped there, the frame at endMs is still the final board.
         val atMs = minOf(stamped.atMs, endMs)
         val next = replay.step(session, stamped.move, atMs) ?: return false
-        val mark = replay.markOf(session, stamped.move, next, previous)
+        val mark = replay.markOf(session, stamped.move, next, previous.takeIf { previousAtMs == atMs })
         previous = stamped.move
+        previousAtMs = atMs
         if (next === session) {
             markUnchanged(atMs, mark)
             return true
