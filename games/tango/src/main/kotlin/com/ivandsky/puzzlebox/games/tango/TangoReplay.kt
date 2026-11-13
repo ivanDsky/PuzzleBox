@@ -55,7 +55,9 @@ object TangoReplay : GameReplay<TangoSession> {
      */
     override fun isTransientMistake(before: TangoSession, after: TangoSession, next: TangoSession): Boolean {
         val introduced = TangoViolations.cellSets(after) - TangoViolations.cellSets(before)
-        return introduced.isNotEmpty() && introduced.none { it in TangoViolations.cellSets(next) }
+        if (introduced.isEmpty()) return false
+        val remaining = TangoViolations.cellSets(next)
+        return introduced.none { it in remaining }
     }
 
     /** A tap cycle is Place(c, x) then Place(c, y) on one cell; a Rejection in between rides on the first Place's stamp. */
