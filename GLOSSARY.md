@@ -117,3 +117,31 @@ _Avoid_: freeze timer
 **Freeze moment**:
 The one line on today's Result that says a freeze was used or earned by this solve.
 _Avoid_: freeze toast, freeze notification
+
+**Ranks**:
+The top-level tab that replaces History: one leaderboard, re-ranked in place, with your own row in view.
+_Avoid_: History tab
+
+**Overall**:
+The hub board that sums a player's percentile points across every daily game in a day, week or month window.
+_Avoid_: total, global board
+
+**Percentile points**:
+What a counted solve earns on a daily board: `100 × (N − rank + 1) / N` for N entries; a player past the top 100 earns the floor of place 101.
+_Avoid_: score
+
+**Final board**:
+A daily board whose day has passed the write window, so it can never change; fetched once and kept in the local cache `final_boards.db`.
+_Avoid_: saved board
+
+**Official**:
+An entry posted inside its day's client submit window; the server board accepted it, so it earns points.
+_Avoid_: settled
+
+**Unofficial**:
+A local solve or LinkedIn result for a day whose submit window has passed: device-only, owner-only, marked, with no points and no effect on anyone's place.
+_Avoid_: late
+
+**Visibility tier**:
+One rung of the ladder that sets how much of a player others see: Hidden, On leaderboards (default), Challengeable, or Replays watchable; each includes the ones below.
+_Avoid_: privacy setting
