@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -18,6 +19,10 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -52,7 +57,12 @@ class ReplayViewModelTest {
 
     private val replays = FakeDailyReplayRepository()
 
-    private fun vm(key: ReplayKey, flagOn: Boolean = true, onDay: LocalDate = today) = ReplayViewModel(
+    private fun vm(
+        key: ReplayKey,
+        flagOn: Boolean = true,
+        onDay: LocalDate = today,
+        preferences: UserPreferencesRepository = FakeUserPreferencesRepository(),
+    ) = ReplayViewModel(
         key = key,
         loadReplay = loadSolveReplay(
             games, daily, completions,
@@ -62,7 +72,7 @@ class ReplayViewModelTest {
         games = games,
         ui = GamePlayRegistry(emptyList()),
         calendar = FakeGameCalendar(onDay),
-        preferences = FakeUserPreferencesRepository(),
+        preferences = preferences,
     )
 
     private fun daily(day: LocalDate = today, number: Int? = 7) =
@@ -141,5 +151,50 @@ class ReplayViewModelTest {
     fun `a player replay is titled by the player's name`() {
         assertEquals("Fixture · Maya's solve · Today · Wed 4 Nov", vm(player()).context)
         assertEquals("Fixture · Player's solve · Today · Wed 4 Nov", vm(player(name = "")).context)
+    }
+
+    @Test
+    fun `the page opens with the stored Show errors off, read before it leaves Loading`() {
+        store()
+
+        val vm = vm(daily(), preferences = FakeUserPreferencesRepository(showReplayErrors = false))
+
+        assertTrue(vm.state.value is ReplayState.Ready)
+        assertEquals(false, vm.showErrors.value)
+    }
+
+    @Test
+    fun `Show errors is on when nothing was stored`() {
+        store()
+
+        assertEquals(true, vm(daily()).showErrors.value)
+    }
+
+    @Test
+    fun `Show errors is on while the stored value is still loading, and the page stays Loading`() {
+        val slow = object : UserPreferencesRepository by FakeUserPreferencesRepository(showReplayErrors = false) {
+            override val showReplayErrors: Flow<Boolean> = flow { awaitCancellation() }
+        }
+
+        val vm = vm(daily(), preferences = slow)
+
+        assertEquals(ReplayState.Loading, vm.state.value)
+        assertEquals(true, vm.showErrors.value)
+    }
+
+    @Test
+    fun `switching Show errors updates the page and is stored, both ways`() {
+        val preferences = FakeUserPreferencesRepository()
+        val vm = vm(daily(), preferences = preferences)
+
+        vm.setShowErrors(false)
+
+        assertEquals(false, vm.showErrors.value)
+        assertEquals(false, runBlocking { preferences.showReplayErrors.first() })
+
+        vm.setShowErrors(true)
+
+        assertEquals(true, vm.showErrors.value)
+        assertEquals(true, runBlocking { preferences.showReplayErrors.first() })
     }
 }
