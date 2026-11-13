@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
 import com.ivandsky.puzzlebox.data.visibility.OwnTier
+import com.ivandsky.puzzlebox.data.visibility.ReplayOptInStamp
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
@@ -18,18 +19,25 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyReplayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeReplayOptInStamp
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** A20: a record daily solve's replay is published once, when its post is accepted while the player is on the Replays tier. */
+/**
+ * A20: a record daily solve's replay is published once, when its post is accepted while the player is on the Replays tier
+ * and opted in before the solve was made.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class SubmitDailyReplayTest {
 
@@ -44,8 +52,25 @@ class SubmitDailyReplayTest {
     private val statuses = SubmitStatusTracker()
     private val visibility = FakeVisibilityRepository(OwnTier.Chosen(VisibilityTier.Replays))
     private val replays = FakeDailyReplayRepository(uid = ME)
-    private val publish =
-        SubmitDailyReplay(completions, identity, FakeGameCalendar(today), statuses, visibility, replays)
+    private val stamps = FakeReplayOptInStamp()
+    private var nowMs = BEFORE_SOLVE_MS
+    private val clock = object : Clock() {
+        override fun getZone() = ZoneOffset.UTC
+        override fun withZone(zone: java.time.ZoneId) = this
+        override fun instant(): Instant = Instant.ofEpochMilli(nowMs)
+    }
+    private val publish = publishWith(stamps)
+
+    private fun publishWith(stamp: ReplayOptInStamp) = SubmitDailyReplay(
+        completions = completions,
+        identity = identity,
+        calendar = FakeGameCalendar(today),
+        statuses = statuses,
+        visibility = visibility,
+        optIns = stamp,
+        replays = replays,
+        clock = clock,
+    )
 
     @Test
     fun `an accepted record solve on the Replays tier publishes its replay`() = runTest {
@@ -210,6 +235,137 @@ class SubmitDailyReplayTest {
         assertEquals(emptyList<Any>(), published())
     }
 
+    @Test
+    fun `a solve made before the opt-in is never published, even when its post is accepted afterwards`() = runTest {
+        visibility.emitOwn(OwnTier.Unset)
+        completions.onCompleted(solve(), firstSolve)
+        start()
+
+        nowMs = SOLVE_MS + 1
+        visibility.setOwnTier(VisibilityTier.Replays)
+        runCurrent()
+        accept()
+
+        assertEquals(emptyList<Any>(), published())
+    }
+
+    @Test
+    fun `after a restart a solve made before the opt-in is not published when its post is accepted again`() = runTest {
+        stamps.stamps[ME] = SOLVE_MS + 1
+        completions.onCompleted(solve(), firstSolve)
+        val restarted = publishWith(stamps)
+        backgroundScope.launch { restarted() }
+        runCurrent()
+
+        accept()
+
+        assertEquals(emptyList<Any>(), published())
+        assertEquals(SOLVE_MS + 1, stamps.stamps[ME])
+    }
+
+    @Test
+    fun `a stamp from an earlier run is kept and publishes a solve made after it`() = runTest {
+        stamps.stamps[ME] = SOLVE_MS - 1
+        nowMs = SOLVE_MS + 5_000
+        completions.onCompleted(solve(), firstSolve)
+        start()
+
+        accept()
+
+        assertEquals(listOf(board to firstSolve), published())
+        assertEquals(SOLVE_MS - 1, stamps.stamps[ME])
+    }
+
+    @Test
+    fun `a solve made after the opt-in is published once`() = runTest {
+        visibility.emitOwn(OwnTier.Unset)
+        start()
+
+        nowMs = SOLVE_MS - 1
+        visibility.setOwnTier(VisibilityTier.Replays)
+        runCurrent()
+        completions.onCompleted(solve(), firstSolve)
+        accept()
+        status(SubmitStatus.Posting)
+        accept()
+
+        assertEquals(listOf(board to firstSolve), published())
+        assertEquals(SOLVE_MS - 1, stamps.stamps[ME])
+    }
+
+    @Test
+    fun `dropping below Replays clears the stamp and the next opt-in stamps again, so gap solves never publish`() = runTest {
+        start()
+        assertEquals(BEFORE_SOLVE_MS, stamps.stamps[ME])
+
+        nowMs = SOLVE_MS - 2_000
+        visibility.setOwnTier(VisibilityTier.Board)
+        runCurrent()
+        assertNull(stamps.stamps[ME])
+
+        completions.onCompleted(solve(), firstSolve)
+        nowMs = SOLVE_MS + 1_000
+        visibility.setOwnTier(VisibilityTier.Replays)
+        runCurrent()
+        assertEquals(SOLVE_MS + 1_000, stamps.stamps[ME])
+        accept()
+        assertEquals(emptyList<Any>(), published())
+
+        val next = TestGames.Ref(TestGames.beta, PuzzleKey.Daily(today, 3))
+        completions.onCompleted(solve(next, atMs = SOLVE_MS + 2_000), secondSolve)
+        accept(next)
+        assertEquals(listOf(LeaderboardRef("beta", today) to secondSolve), published())
+    }
+
+    @Test
+    fun `an unknown tier neither stamps nor clears`() = runTest {
+        start()
+
+        visibility.emitOwn(OwnTier.Unknown)
+        runCurrent()
+
+        assertEquals(BEFORE_SOLVE_MS, stamps.stamps[ME])
+    }
+
+    @Test
+    fun `a stamp that was not kept publishes nothing`() = runTest {
+        val lost = object : ReplayOptInStamp {
+            override suspend fun since(uid: String): Long? = null
+            override suspend fun markIfAbsent(uid: String, atMs: Long) = Unit
+            override suspend fun clear(uid: String) = Unit
+        }
+        completions.onCompleted(solve(), firstSolve)
+        val unstamped = publishWith(lost)
+        backgroundScope.launch { unstamped() }
+        runCurrent()
+
+        accept()
+
+        assertEquals(emptyList<Any>(), published())
+    }
+
+    @Test
+    fun `a solve without a completion time publishes nothing`() = runTest {
+        completions.onCompleted(solve(atMs = null), firstSolve)
+        start()
+
+        accept()
+
+        assertEquals(emptyList<Any>(), published())
+    }
+
+    @Test
+    fun `stamps are kept per player`() = runTest {
+        start()
+
+        identity.currentIdentity = Identity("u2", "Bo", null)
+        visibility.emitOwn(OwnTier.Chosen(VisibilityTier.Board))
+        runCurrent()
+
+        assertEquals(BEFORE_SOLVE_MS, stamps.stamps[ME])
+        assertNull(stamps.stamps["u2"])
+    }
+
     private fun TestScope.start() {
         backgroundScope.launch { publish() }
         runCurrent()
@@ -225,17 +381,19 @@ class SubmitDailyReplayTest {
     private fun published(): List<Pair<LeaderboardRef, SolveReplay?>> =
         replays.publishCalls.map { (board, blob) -> board to SolveReplay.of(blob) }
 
-    private fun solve(ref: PuzzleRef = puzzle, isRecord: Boolean = true) = CompletionRecord(
+    private fun solve(ref: PuzzleRef = puzzle, isRecord: Boolean = true, atMs: Long? = SOLVE_MS) = CompletionRecord(
         puzzleRef = ref,
         time = 95_000,
         hints = 0,
         stats = RecordStats(schemaVersion = 1, blob = "{}"),
-        firstCompletedAt = Instant.ofEpochMilli(1_700_000_000_000),
+        firstCompletedAt = atMs?.let(Instant::ofEpochMilli),
         isRecord = isRecord,
     )
 
     private companion object {
         const val ME = "u1"
+        const val SOLVE_MS = 1_700_000_000_000
+        const val BEFORE_SOLVE_MS = SOLVE_MS - 1_000_000
 
         fun replay(tag: Byte) = checkNotNull(SolveReplay.of(byteArrayOf(tag, 2, 3)))
     }
