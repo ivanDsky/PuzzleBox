@@ -10,6 +10,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
@@ -18,6 +19,8 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import com.ivandsky.puzzlebox.data.visibility.OwnTier
+import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.model.ThemeMode
 import org.junit.Assert.assertEquals
@@ -41,6 +44,7 @@ class SettingsScreenTest {
     private val queensAutoCross = mutableListOf<Boolean>()
     private val sudokuPeer = mutableListOf<Boolean>()
     private val sudokuSameDigit = mutableListOf<Boolean>()
+    private val tiers = mutableListOf<VisibilityTier>()
     private var backClicks = 0
     private var catalogClicks = 0
 
@@ -57,6 +61,7 @@ class SettingsScreenTest {
                     onSetQueensAutoCross = { queensAutoCross += it },
                     onSetSudokuPeerHighlight = { sudokuPeer += it },
                     onSetSudokuSameDigitHighlight = { sudokuSameDigit += it },
+                    onSelectVisibility = { tiers += it },
                     onBack = { backClicks++ },
                     onOpenCatalog = if (showCatalog) ({ catalogClicks++ }) else null,
                     debugSections = debugSections,
@@ -82,6 +87,37 @@ class SettingsScreenTest {
         assertEquals(listOf(true), queensAutoCross)
         assertEquals(listOf(false), sudokuPeer)
         assertEquals(listOf(true), sudokuSameDigit)
+    }
+
+    @Test
+    fun `the visibility ladder marks the effective tier and a tap reports the tapped one`() {
+        setContent(
+            state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", visibility = OwnTier.Unset),
+        )
+
+        composeRule.onNodeWithTag("settings.visibility.board").performScrollTo().assertIsSelected()
+        composeRule.onNodeWithTag("settings.visibility.hidden").assertIsNotSelected()
+        composeRule.onNodeWithText("Past entries stay.", substring = true).assertExists()
+
+        composeRule.onNodeWithTag("settings.visibility.replays").performScrollTo().performClick()
+
+        assertEquals(listOf(VisibilityTier.Replays), tiers)
+    }
+
+    @Test
+    fun `an unloaded tier selects nothing`() {
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", visibility = OwnTier.Unknown))
+
+        VisibilityTier.entries.forEach {
+            composeRule.onNodeWithTag("settings.visibility.${it.storageName}").performScrollTo().assertIsNotSelected()
+        }
+    }
+
+    @Test
+    fun `no visibility section without a state`() {
+        setContent()
+
+        composeRule.onNodeWithTag("settings.visibility").assertDoesNotExist()
     }
 
     @Test

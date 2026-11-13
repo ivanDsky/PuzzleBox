@@ -30,6 +30,7 @@ import com.ivandsky.puzzlebox.play.navigation.resultEntry
 import com.ivandsky.puzzlebox.profile.api.LinkedInLoginKey
 import com.ivandsky.puzzlebox.profile.api.SettingsKey
 import com.ivandsky.puzzlebox.profile.navigation.profileEntry
+import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
 
 /**
  * The app's route table: one entry per [NavKey], every destination real —
@@ -57,6 +58,7 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  *
  * [ranks] (the LeaderboardHub flag, which only the app reads) makes [HistoryRootKey] the Ranks
  * hub; off, it is History's root. A pushed [HistoryKey] is the history browser either way.
+ * [visibility] (null with the flag off) adds Settings' Visibility section.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -69,6 +71,7 @@ internal fun puzzleBoxEntryProvider(
     libraryRequests: LibraryRequests = LibraryRequests(),
     linkedIn: Boolean = false,
     ranks: Boolean = false,
+    visibility: VisibilitySlot? = null,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(
         navigator,
@@ -117,6 +120,7 @@ internal fun puzzleBoxEntryProvider(
         onOpenSettings = { navigator.pushOnce(SettingsKey) },
         onOpenLinkedInLogin = { navigator.pushOnce(LinkedInLoginKey) }.takeIf { linkedIn },
         debugSections = { DebugSettingsSlot(openGame = { navigator.pushOnce(GameKey(it)) }) },
+        visibility = visibility,
     )
     competeEntry(navigator, playLayout)
     entry<CatalogKey> { CatalogScreen() }

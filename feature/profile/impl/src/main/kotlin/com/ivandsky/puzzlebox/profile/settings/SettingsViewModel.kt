@@ -3,31 +3,35 @@ package com.ivandsky.puzzlebox.profile.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
  * Settings state: the stored theme mode, the Games switches (live from [games]) and [AppBuild.versionName]; a pick is
- * saved through [preferences] and a switch through [games].
+ * saved through [preferences] and a switch through [games]. [visibility] (null: no Visibility section, repository untouched)
+ * supplies and saves the player's own tier.
  */
 internal class SettingsViewModel(
     private val preferences: UserPreferencesRepository,
     private val games: GameOptions,
     appBuild: AppBuild,
+    private val visibility: VisibilitySlot? = null,
 ) : ViewModel() {
 
     private val gamesSection: Flow<GamesSectionState> =
         combine(games.queensAutoCross, games.sudokuPeerHighlight, games.sudokuSameDigitHighlight, ::GamesSectionState)
 
     val uiState: StateFlow<SettingsUiState> =
-        combine(preferences.themeMode, gamesSection) { mode, gamesState ->
-            SettingsUiState(themeMode = mode, versionName = appBuild.versionName, games = gamesState)
+        combine(preferences.themeMode, gamesSection, visibility?.ownTier ?: flowOf(null)) { mode, gamesState, ownTier ->
+            SettingsUiState(themeMode = mode, versionName = appBuild.versionName, games = gamesState, visibility = ownTier)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -37,6 +41,12 @@ internal class SettingsViewModel(
     /** Appearance: persisted; the app root re-themes from the stored mode. */
     fun onSetThemeMode(mode: ThemeMode) {
         viewModelScope.launch { preferences.setThemeMode(mode) }
+    }
+
+    /** Visibility: written through the slot; the section follows the stored tier back. */
+    fun onSelectVisibility(tier: VisibilityTier) {
+        val slot = visibility ?: return
+        viewModelScope.launch { slot.onSelect(tier) }
     }
 
     /** Games: written to the store the in-game overflow toggle reads, so the board shows it next time it opens. */
