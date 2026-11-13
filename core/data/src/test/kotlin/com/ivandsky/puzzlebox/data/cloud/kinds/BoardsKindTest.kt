@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.data.cloud.kinds
 
 import androidx.room.Room
 import app.cash.turbine.test
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.cloud.CloudDoc
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInStoreLock
@@ -9,8 +10,11 @@ import com.ivandsky.puzzlebox.database.linkedin.FetchLogEntity
 import com.ivandsky.puzzlebox.database.linkedin.GhostEntity
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import com.ivandsky.puzzlebox.database.linkedin.SavedBoardEntity
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import java.security.MessageDigest
+import java.time.LocalDate
 import java.util.concurrent.Executors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -42,11 +46,12 @@ class BoardsKindTest {
     private lateinit var kind: BoardsKind
     private val lock = LinkedInStoreLock()
     private val link = FakeLinkedInLink(LinkState.NotConnected)
+    private val calendar = FakeGameCalendar(LocalDate.parse("2026-11-20"))
 
     @Before
     fun setUp() {
         db = newDb()
-        kind = BoardsKind(db, lock, link)
+        kind = BoardsKind(db, lock, link, calendar)
     }
 
     @After
@@ -126,7 +131,38 @@ class BoardsKindTest {
         val hidden = rows.map { it as Map<*, *> }.single { it["name"] == "Cy Dunn" }
         assertFalse("a hidden time has no key, never a zero", hidden.containsKey("timeMs"))
         val text = doc.toString()
-        for (secret in listOf(ME, "m1", "m2", "li_at")) assertFalse("doc names $secret", text.contains(secret))
+        for (secret in listOf(ME, "li_at")) assertFalse("doc names $secret", text.contains(secret))
+    }
+
+    @Test
+    fun `a pending row carries ref for a real member id only, never for the own row or a stand-in`() = runTest {
+        seed()
+        db.ghostDao().replace(
+            "queens",
+            DAY,
+            listOf(
+                ghost("queens", DAY, ME, "Ann Li", 61_000L),
+                ghost("queens", DAY, "m1", "Bea Ox", 75_000L),
+                ghost("queens", DAY, "name:0123456789abcdef", "Cy Dunn", 80_000L),
+                ghost("queens", DAY, "name:0123456789abcdef#2", "Cy Dunn", 90_000L),
+            ),
+        )
+
+        val rows = (kind.pending(ANN).single().fields["rows"] as List<*>).map { it as Map<*, *> }
+
+        rows.forEach { assertTrue(BoardDocKeys.ROW.containsAll(it.keys)) }
+        assertEquals("m1", rows.single { it["name"] == "Bea Ox" }["ref"])
+        assertFalse(rows.single { it["isOwn"] == true }.containsKey("ref"))
+        assertFalse(rows.filter { it["name"] == "Cy Dunn" }.any { it.containsKey("ref") })
+        assertFalse("the own member id is not in the doc", kind.pending(ANN).single().toString().contains(ME))
+    }
+
+    @Test
+    fun `a ref changes the fingerprint`() {
+        val row = BoardRow("Bea Ox", 1L, hintFree = true, flawless = false, isOwn = false)
+        val board = BoardValue("queens", DAY, "key", 1L, true, listOf(row))
+
+        assertTrue(board.fingerprint() != board.copy(rows = listOf(row.copy(ref = "m1"))).fingerprint())
     }
 
     @Test
@@ -203,12 +239,62 @@ class BoardsKindTest {
     }
 
     @Test
+    fun `a restored doc with refs writes ghosts under those refs and a doc without refs keeps the stand-ins`() = runTest {
+        val withRefs = listOf(
+            mapOf("name" to "Ann Li", "timeMs" to 61_000L, "hintFree" to true, "flawless" to false, "isOwn" to true),
+            mapOf("name" to "Bea Ox", "timeMs" to 70_000L, "hintFree" to true, "flawless" to false, "isOwn" to false, "ref" to "m1"),
+            mapOf("name" to "Cy Dunn", "timeMs" to 80_000L, "hintFree" to true, "flawless" to false, "isOwn" to false),
+        )
+
+        kind.apply(ANN, listOf(doc(rows = withRefs), doc(day = "2026-11-09")))
+
+        val rows = db.ghostDao().board("queens", DAY)
+        assertEquals("m1", rows.single { it.name == "Bea Ox" }.memberRef)
+        assertTrue(rows.single { it.name == "Cy Dunn" }.memberRef.startsWith("name:"))
+        assertTrue(db.ghostDao().board("queens", "2026-11-09").single { it.name == "Bea Ox" }.memberRef.startsWith("name:"))
+        assertEquals(db.savedBoardDao().get("queens", DAY)!!.profileId, rows.single { it.name == "Ann Li" }.memberRef)
+        assertTrue(kind.pending(ANN).isEmpty())
+        kind.forget(ANN)
+        val again = (kind.pending(ANN).first { it.id == doc().id }.fields["rows"] as List<*>).map { it as Map<*, *> }
+        assertEquals("m1", again.single { it["name"] == "Bea Ox" }["ref"])
+    }
+
+    @Test
+    fun `an invalid ref reads as no ref and the row still applies`() = runTest {
+        fun row(name: String, ref: Any?) =
+            mapOf("name" to name, "timeMs" to 1_000L, "hintFree" to true, "flawless" to false, "isOwn" to false, "ref" to ref)
+        val rows = listOf(row("Blank", " "), row("Number", 7L), row("Long", "x".repeat(65)), row("Edge", "y".repeat(64)))
+
+        assertEquals(1, kind.apply(ANN, listOf(doc(rows = rows))))
+
+        val ghosts = db.ghostDao().board("queens", DAY)
+        assertEquals(4, ghosts.size)
+        listOf("Blank", "Number", "Long").forEach { name ->
+            assertTrue(name, ghosts.single { it.name == name }.memberRef.startsWith("name:"))
+        }
+        assertEquals("y".repeat(64), ghosts.single { it.name == "Edge" }.memberRef)
+    }
+
+    @Test
+    fun `two rows with the same ref keep the first and the second takes its stand-in`() = runTest {
+        fun row(name: String, time: Long) =
+            mapOf("name" to name, "timeMs" to time, "hintFree" to true, "flawless" to false, "isOwn" to false, "ref" to "m1")
+
+        kind.apply(ANN, listOf(doc(rows = listOf(row("First", 1_000L), row("Second", 2_000L)))))
+
+        val ghosts = db.ghostDao().board("queens", DAY)
+        assertEquals(2, ghosts.size)
+        assertEquals("m1", ghosts.single { it.name == "First" }.memberRef)
+        assertTrue(ghosts.single { it.name == "Second" }.memberRef.startsWith("name:"))
+    }
+
+    @Test
     fun `a board survives the trip from one device to another`() = runTest {
         seed()
         val sent = kind.pending(ANN)
         val other = newDb()
         try {
-            val there = BoardsKind(other, lock, FakeLinkedInLink(LinkState.NotConnected))
+            val there = BoardsKind(other, lock, FakeLinkedInLink(LinkState.NotConnected), calendar)
             assertEquals(1, there.apply(ANN, sent))
 
             val back = there.pending(ANN)
@@ -232,6 +318,31 @@ class BoardsKindTest {
         assertEquals(9_000L, complete.fetchedAtMs)
         assertEquals("BoardToday", db.fetchLogDao().get("queens", "2026-11-09", "Board", ME)!!.outcome)
         assertEquals(ME, db.savedBoardDao().get("queens", DAY)!!.profileId)
+    }
+
+    @Test
+    fun `restoring today's and yesterday's boards leaves the fetch log alone, older ones are marked`() = runTest {
+        link.connect(ME, 1L)
+        calendar.setAll(LocalDate.parse("2026-11-10"))
+        kind.apply(ANN, listOf(doc(day = "2026-11-10"), doc(day = "2026-11-09"), doc(day = "2026-11-08")))
+
+        assertNull(db.fetchLogDao().get("queens", "2026-11-10", "Board", ME))
+        assertNull(db.fetchLogDao().get("queens", "2026-11-09", "Board", ME))
+        assertNotNull(db.fetchLogDao().get("queens", "2026-11-08", "Board", ME))
+        assertNotNull("the board itself is restored", db.savedBoardDao().get("queens", "2026-11-10"))
+    }
+
+    @Test
+    fun `restoring marks nothing when the calendar has no today`() = runTest {
+        link.connect(ME, 1L)
+        val noToday = FakeGameCalendar(LocalDate.parse("2026-11-20"))
+        val blind = BoardsKind(db, lock, link, object : GameCalendar by noToday {
+            override fun today(game: GameId): LocalDate? = null
+        })
+
+        blind.apply(ANN, listOf(doc()))
+
+        assertNull(db.fetchLogDao().get("queens", DAY, "Board", ME))
     }
 
     @Test

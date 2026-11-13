@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.data.di
 
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.cloud.CloudSpace
 import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.cloud.SavedBoardsCloud
@@ -20,7 +21,7 @@ import org.koin.dsl.module
  */
 val linkedInCloudSyncModule = module {
     single<SyncedKind>(named("cloud.kind.boards")) {
-        BoardsKind(get<LinkedInDatabase>(), get<LinkedInStoreLock>(), get<LinkedInLink>())
+        BoardsKind(get<LinkedInDatabase>(), get<LinkedInStoreLock>(), get<LinkedInLink>(), get<GameCalendar>())
     }
     single<SavedBoardsCloud> {
         RoomSavedBoardsCloud(get<LinkedInDatabase>(), get<LinkedInStoreLock>(), get<CloudSpace>(), get<OwnerScope>())

@@ -4,7 +4,10 @@ package com.ivandsky.puzzlebox.data.cloud.kinds
  * The only keys a board document may carry (ADR-0029 decisions 1 and 8, A30). The encoder builds a doc from these
  * and nothing else, so no other field, photo reference or session value can reach the cloud. The rules' `hasOnly`
  * list for boards is these [DOC] keys plus the server's `updatedAt`; a change here edits `firestore.rules` and
- * `FirestoreRulesCloudSpaceTest` in the same PR.
+ * `FirestoreRulesCloudSpaceTest` in the same PR, except [ROW]: the rules check only that `rows` is a list of at most
+ * 51, so a row key lives here alone. [REF] is a connection's LinkedIn member id, kept so a restored board shows
+ * the same avatars and row identity (user-check F1); it sits in the account's owner-only space, and the Play Data
+ * safety text before the flip (A42) names it.
  */
 internal object BoardDocKeys {
     const val FORMAT_VERSION = "formatVersion"
@@ -20,10 +23,11 @@ internal object BoardDocKeys {
     const val HINT_FREE = "hintFree"
     const val FLAWLESS = "flawless"
     const val IS_OWN = "isOwn"
+    const val REF = "ref"
 
     /** The keys of a board document, `updatedAt` aside (the space stamps it). */
     val DOC: Set<String> = setOf(FORMAT_VERSION, GAME, DAY, PROFILE_KEY, READ_AT_MS, COMPLETE, ROWS)
 
     /** The keys of one row of a board document. */
-    val ROW: Set<String> = setOf(NAME, TIME_MS, HINT_FREE, FLAWLESS, IS_OWN)
+    val ROW: Set<String> = setOf(NAME, TIME_MS, HINT_FREE, FLAWLESS, IS_OWN, REF)
 }

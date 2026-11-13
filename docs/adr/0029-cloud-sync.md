@@ -43,6 +43,7 @@ flowchart LR
 - Budget at 4 heavy users: under 5% of the daily read and write pool and about 15 MB stored per heavy user-year. A first restore of a year is about 1,500 reads, dominated by board days.
 - The rules matrix (`rules-matrix/`) gains the new block's cases; it stays a manual, networked step before each deploy, outside the merge gate.
 - Third parties' names and times now leave the phone (owner-only). Play Data safety and the privacy text change before the flip, a human step.
+- Amendment (user-check F1, F2): a board row carries the connection's LinkedIn member id (`ref`) so a restored board keeps its avatars and row identity; it stays in the account's owner-only space, never for the own row or a name stand-in, and `firestore.rules` is unchanged. Third parties' member ids now reach the player's own cloud space as well, which the Play Data safety text before the flip (A42) must name. A restore marks a day read only when it is at least 2 days before the game's today, so a restored board of today or yesterday is still read live once; this amends A26.
 - Delete my cloud data and Delete saved boards need a connection; offline they say so and do nothing.
 
 ## Rejected

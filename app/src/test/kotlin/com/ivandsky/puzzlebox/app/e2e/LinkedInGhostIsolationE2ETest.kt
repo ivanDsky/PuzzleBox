@@ -84,7 +84,7 @@ class LinkedInGhostIsolationE2ETest {
             rule.waitUntil(LinkedInDataWorld.TIMEOUT_MS) { graph.leaderboard.submitted.isNotEmpty() }
             awaitLooper { world.space.docs(me.uid, "boards").size == 2 && phone.uploaded(me.uid) && phone.synced() }
 
-            // The player's own space holds both boards: the connections' names, times and flags.
+            // The player's own space holds both boards: the connections' names, times, flags and member ids.
             val docs = world.space.docs(me.uid, "boards")
             assertEquals("a board doc per day read", 2, docs.size)
             listOf(today, older).forEach { day -> assertTrue("a board doc of $day: ${docs.map { it.id }}", docs.any { it.id.startsWith("${ZIP}_${day}_") }) }
@@ -92,11 +92,12 @@ class LinkedInGhostIsolationE2ETest {
                 val rows = (board.fields["rows"] as List<*>).map { it as Map<*, *> }
                 assertEquals("the board's connections, by name", names, rows.map { it["name"] }.toSet())
                 assertEquals("their times", GHOSTS.map { it.timeSeconds!! * MS_PER_SECOND }.toSet(), rows.map { it["timeMs"] }.toSet())
+                assertEquals("their member ids (user-check F1)", GHOSTS.map { it.memberRef }.toSet(), rows.map { it["ref"] }.toSet())
             }
-            // ...and nothing that names a connection's account, in any doc of any kind.
+            // ...and nothing that names a connection's account outside a board doc, which alone keeps their member ids.
             world.space.payloads.forEach { written ->
                 assertEquals("only the player's space is written", me.uid, written.uid)
-                assertNamesNoAccount("${written.kind}/${written.doc.id} ${written.doc.fields}")
+                assertNamesNoAccount("${written.kind}/${written.doc.id} ${written.doc.fields}", memberIdsAllowed = written.kind == "boards")
             }
             assertTrue("no other account has a space", world.space.isEmpty(other.uid))
 
@@ -206,9 +207,10 @@ class LinkedInGhostIsolationE2ETest {
         }
     }
 
-    /** A board names its connections, but never their accounts: no member id and no photo. */
-    private fun assertNamesNoAccount(text: String) {
-        GHOSTS.flatMap { listOfNotNull(it.memberRef, it.pictureUrl, "GHOST-") }.forEach { account ->
+    /** A board names its connections and their member ids (F1), never a photo; no other doc names a connection's account. */
+    private fun assertNamesNoAccount(text: String, memberIdsAllowed: Boolean) {
+        val accounts = GHOSTS.flatMap { if (memberIdsAllowed) listOfNotNull(it.pictureUrl) else listOfNotNull(it.memberRef, it.pictureUrl, "GHOST-") }
+        accounts.forEach { account ->
             assertTrue("\"$text\" names the connection's account $account", account !in text)
         }
         assertTrue("\"$text\" names the player's own profile id", PROFILE_ID !in text)
