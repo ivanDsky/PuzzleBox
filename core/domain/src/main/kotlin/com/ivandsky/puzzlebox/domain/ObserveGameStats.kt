@@ -32,15 +32,17 @@ class ObserveGameStats(
             val records = solved.mapNotNull { it.record }
             val solvedDays = solved.map { it.day }
             val streakDays = solved.filter { it.isStreakDay() }.map { it.day }
+            val ledger = computeStreak.ledger(streakDays)
             GameStats(
-                currentStreak = computeStreak(streakDays),
-                bestStreak = computeStreak.best(streakDays),
+                currentStreak = ledger.current,
+                bestStreak = ledger.best,
                 solved = records.size,
                 hintFree = records.count { it.hints == 0 },
                 averageTimeMs = if (records.isEmpty()) null else records.sumOf { it.time } / records.size,
                 playingSince = solvedDays.minOrNull(),
                 best = records.map { BestScore(it.time, it.hints) }.minWithOrNull(rankOrder.comparator),
                 rankOrder = rankOrder,
+                freezes = ledger.freezes,
             )
         }.distinctUntilChanged()
     }
