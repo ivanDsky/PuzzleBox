@@ -14,7 +14,7 @@ import java.net.URLEncoder
 
 /**
  * Raw reads and writes of the cloud-sync bookkeeping: a cursor per (uid, kind), the last signed-in uid, a
- * restore-shown flag per uid and a daily write counter per uid. It takes a DataStore of its own file so
+ * restore-shown flag per uid, a daily write counter per uid and the instant a uid's replay opt-in was first seen. It takes a DataStore of its own file so
  * backup rules can exclude the bookkeeping alone: a restored cursor would make a new device skip documents
  * it never downloaded. A uid is percent-encoded inside every key, so no uid can address another uid's keys.
  * It reads no clock; the caller supplies the day.
@@ -58,7 +58,19 @@ class SyncStateDataSource(
         return total
     }
 
-    /** Drops [uid]'s cursors and restore flag. The last uid and the write counter stay. */
+    suspend fun replaysSince(uid: String): Long? = dataStore.data.first()[replaysSinceKey(uid)]
+
+    /** Stores [atMs] unless [uid] already has an instant; check and write are one edit. */
+    suspend fun markReplaysSince(uid: String, atMs: Long) {
+        val key = replaysSinceKey(uid)
+        dataStore.edit { if (it[key] == null) it[key] = atMs }
+    }
+
+    suspend fun clearReplaysSince(uid: String) {
+        dataStore.edit { it.remove(replaysSinceKey(uid)) }
+    }
+
+    /** Drops [uid]'s cursors and restore flag. The last uid, the write counter and the replay opt-in instant stay. */
     suspend fun forget(uid: String) {
         val cursorPrefix = cursorPrefix(uid)
         val restoreKey = restoreKey(uid)
@@ -78,6 +90,7 @@ class SyncStateDataSource(
         fun cursorPrefix(uid: String) = "cursor/${encoded(uid)}/"
         fun cursorKey(uid: String, kind: String) = longPreferencesKey(cursorPrefix(uid) + kind)
         fun restoreKey(uid: String) = booleanPreferencesKey("restore_shown/${encoded(uid)}")
+        fun replaysSinceKey(uid: String) = longPreferencesKey("replays_since/${encoded(uid)}")
         fun writesDayKey(uid: String) = stringPreferencesKey("writes_day/${encoded(uid)}")
         fun writesCountKey(uid: String) = intPreferencesKey("writes_count/${encoded(uid)}")
     }

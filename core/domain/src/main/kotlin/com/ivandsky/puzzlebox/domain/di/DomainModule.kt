@@ -131,6 +131,7 @@ val domainModule = module {
             calendar = get(),
             statuses = get(),
             visibility = get(),
+            optIns = get(),
             replays = get(),
         )
     }

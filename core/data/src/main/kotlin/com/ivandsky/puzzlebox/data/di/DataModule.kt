@@ -43,6 +43,8 @@ import com.ivandsky.puzzlebox.data.repository.SharedTextStore
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.data.update.AppReleaseRepository
 import com.ivandsky.puzzlebox.data.update.NetworkAppReleaseRepository
+import com.ivandsky.puzzlebox.data.visibility.DataStoreReplayOptInStamp
+import com.ivandsky.puzzlebox.data.visibility.ReplayOptInStamp
 import com.ivandsky.puzzlebox.database.di.databaseModule
 import com.ivandsky.puzzlebox.datastore.di.datastoreModule
 import com.ivandsky.puzzlebox.game.DailySource
@@ -117,6 +119,8 @@ val dataModule = module {
     }
     // One lock for the process: a sync's stores and a disconnect's wipe are never interleaved.
     single { LinkedInStoreLock() }
+    // Stamped in the sync-state file, which backups exclude, so it is bound here and not with the flag-gated sync graph.
+    single<ReplayOptInStamp> { DataStoreReplayOptInStamp(get()) }
     single<LinkedInLink> { DataStoreLinkedInLink(get(), get(), get(), get(), get()) }
     single<LinkedInDays> {
         RoomLinkedInDays(
