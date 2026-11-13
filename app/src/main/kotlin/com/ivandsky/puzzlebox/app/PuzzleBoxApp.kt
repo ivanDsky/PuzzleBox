@@ -40,10 +40,12 @@ import com.ivandsky.puzzlebox.app.nav.chromePadding
 import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.app.nav.playTabBadged
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
+import com.ivandsky.puzzlebox.app.nav.ranksTopLevelDestinations
 import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.Competitions
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.LeaderboardHub
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
 import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
@@ -84,6 +86,9 @@ import org.koin.compose.koinInject
  * A duel link (`/m/`) opens the duel screen when the Competitions flag is on.
  * A [pendingShare] (shared text waiting in the store, which `MainActivity` filled) shows
  * Create's root the same way, then [onShareApplied]; the root imports the text.
+ * With the LeaderboardHub flag on the third tab is Ranks ([ranksTopLevelDestinations]) and its
+ * root is the hub; the flag is read here and nowhere else, once per launch and not saved, so a
+ * saved back stack restores under whichever state the launch finds.
  */
 @Composable
 fun PuzzleBoxApp(
@@ -98,7 +103,12 @@ fun PuzzleBoxApp(
 ) {
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
     val libraryRequests = rememberLibraryRequests()
-    val competitions = Competitions in koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle().value
+    val releaseFlags = koinInject<ReleaseFlags>()
+    val competitions = Competitions in releaseFlags.enabled.collectAsStateWithLifecycle().value
+    // Navigation3 keeps a stack's entries until the stack changes, so a flip mid-run would
+    // rename the tab over History's still-showing root; the tab and the root flip together
+    // on the next launch instead.
+    val ranks = remember(releaseFlags) { LeaderboardHub in releaseFlags.enabled.value }
     if (pendingLink != null) {
         remember(pendingLink) {
             FriendLink.of(pendingLink)?.let { link ->
@@ -139,7 +149,7 @@ fun PuzzleBoxApp(
     // Null while cloud sync is not bound (its flag is off): the shell then shows no restore message.
     val koin = getKoin()
     val cloudSync = remember(koin) { koin.getOrNull<CloudSync>() }
-    val destinations = topLevelDestinations
+    val destinations = if (ranks) ranksTopLevelDestinations else topLevelDestinations
     val selected = navigator.state.tab
     val top = navigator.state.currentStack.last()
     val immersive = isImmersive(top)
@@ -227,6 +237,7 @@ fun PuzzleBoxApp(
                     onCodeDraftTaken = { codeDraft = null },
                     duels = duels,
                     libraryRequests = libraryRequests,
+                    ranks = ranks,
                 )
             }
             // The one-time "Welcome back" after an account's first restore (A33), above the chrome.

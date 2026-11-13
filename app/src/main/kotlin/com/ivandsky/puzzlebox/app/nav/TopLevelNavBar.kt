@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 
@@ -143,5 +144,18 @@ private fun TabIcon(destination: TopLevelDestination, selected: Boolean, badged:
 internal fun TopLevelNavBarPreview() {
     PuzzleBoxTheme {
         TopLevelNavBar(selected = HomeKey, onSelect = {}, badged = setOf(PlayKey))
+    }
+}
+
+// The Ranks tab set, with its icon in both states: outlined beside a selected Today, filled
+// when selected.
+@PuzzleBoxPreviews
+@Composable
+internal fun RanksNavBarPreview() {
+    PuzzleBoxTheme {
+        Column {
+            TopLevelNavBar(selected = HomeKey, onSelect = {}, destinations = ranksTopLevelDestinations)
+            TopLevelNavBar(selected = HistoryRootKey, onSelect = {}, destinations = ranksTopLevelDestinations)
+        }
     }
 }
