@@ -34,6 +34,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 /**
@@ -264,6 +265,25 @@ class CreateMatchTest {
             server.signedInUid = BO.uid
             assertTrue(created.code in server.observeMine().first()!!.map { it.code })
             server.signedInUid = ANN.uid
+        }
+    }
+
+    @Test
+    fun anExplicitInviteTargetReachesTheDraft() = runTest {
+        val created = create(settings(), invitedUid = BO.uid) as CreateOutcome.Created
+
+        assertEquals(BO.uid, repo.drafts.single().invitedUid)
+        assertEquals(BO.uid, server.matches.getValue(created.code).invitedUid)
+        assertNull(rows().single().opponentName)
+    }
+
+    @Test
+    fun aRematchAndAnExplicitInviteTargetCannotBothBeSet() = runTest {
+        try {
+            create(settings(), rematchOf = oldMatch(challenger = ANN, opponent = BO), invitedUid = BO.uid)
+            fail("a rematch and an invite target together must throw")
+        } catch (expected: IllegalArgumentException) {
+            assertTrue(repo.drafts.isEmpty())
         }
     }
 
