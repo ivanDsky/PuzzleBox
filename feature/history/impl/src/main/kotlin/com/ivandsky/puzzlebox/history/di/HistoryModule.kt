@@ -15,5 +15,5 @@ import org.koin.dsl.module
  */
 val historyModule = module {
     viewModel { (key: HistoryKey) -> HistoryViewModel(get(), get(), get(), get(), get(), get(), getOrNull(), key) }
-    viewModel { RanksViewModel(get(), get(), get(), get(), get(), get()) }
+    viewModel { RanksViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
 }

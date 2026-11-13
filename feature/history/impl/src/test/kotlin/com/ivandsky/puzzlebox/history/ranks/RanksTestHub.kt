@@ -4,12 +4,19 @@ import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeFinalBoardStore
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
@@ -28,18 +35,26 @@ internal class RanksTestHub(
     val identity = FakeIdentityService(initial = identity)
     val calendar = FakeGameCalendar(today)
     val completions = FakeCompletionRepository()
+    val daily = FakeDailyRepository()
 
     private val clock = Clock.fixed(Instant.parse("${today}T12:00:00Z"), ZoneOffset.UTC)
 
-    fun viewModel() = RanksViewModel(
-        observeRankWindow = ObserveRankWindow(this.identity, leaderboard, FakeFinalBoardStore(), registry, calendar, clock),
-        observeOverall = ObserveOverall(this.identity, completions),
-        identity = this.identity,
-        idTokens = object : GoogleIdTokenProvider {
-            override suspend fun idToken(activityContext: Context) = GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.CANCELLED)
-        },
-        calendar = calendar,
-        registry = registry,
-        clock = clock,
-    )
+    fun viewModel(): RanksViewModel {
+        val history = ObserveGameHistory(registry, daily, completions)
+        return RanksViewModel(
+            observeRankWindow = ObserveRankWindow(this.identity, leaderboard, FakeFinalBoardStore(), registry, calendar, clock),
+            observeOverall = ObserveOverall(this.identity, completions),
+            observeGameHistory = history,
+            observeGameStats = ObserveGameStats(registry, history, ComputeStreak(puzzleDay = GetPuzzleDay(registry, clock))),
+            playRegistry = GamePlayRegistry(emptyList()),
+            loadReplay = HistoryTestSupport.loadReplay(FakeReleaseFlags(), registry, daily, completions),
+            identity = this.identity,
+            idTokens = object : GoogleIdTokenProvider {
+                override suspend fun idToken(activityContext: Context) = GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.CANCELLED)
+            },
+            calendar = calendar,
+            registry = registry,
+            clock = clock,
+        )
+    }
 }

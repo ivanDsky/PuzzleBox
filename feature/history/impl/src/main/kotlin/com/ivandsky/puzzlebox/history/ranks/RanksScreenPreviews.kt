@@ -3,11 +3,22 @@ package com.ivandsky.puzzlebox.history.ranks
 import androidx.compose.runtime.Composable
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
+import com.ivandsky.puzzlebox.history.CalendarState
+import com.ivandsky.puzzlebox.history.HistoryDayRow
+import com.ivandsky.puzzlebox.history.HistoryReplays
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
+import java.time.LocalDate
 
 // One preview per state of the board slice.
 
@@ -28,11 +39,51 @@ private val Standings = OverallStandings(
 )
 
 @Composable
-private fun Hub(slice: RanksBoardSlice, signIn: RanksSignIn = RanksSignIn.Idle) {
+private fun Hub(slice: RanksBoardSlice, signIn: RanksSignIn = RanksSignIn.Idle) = Hub(RanksUiState(slice, signIn, position = 1, boardCount = 6))
+
+@Composable
+private fun Hub(state: RanksUiState) {
     PuzzleBoxTheme {
-        RanksScreen(RanksUiState(slice, signIn, position = 1, boardCount = 6), onSignIn = {}, onSwipe = {})
+        RanksScreen(state, onSignIn = {}, onSwipe = {})
     }
 }
+
+private val Today = LocalDate.of(2026, 11, 13)
+private val Yesterday = Today.minusDays(1)
+
+private val Week = CalendarState(
+    shownDay = Yesterday,
+    earliestDay = Today.minusDays(40),
+    selectedDay = Yesterday,
+    solvedByDay = mapOf(Yesterday to listOf(GameBrand.Neutral), Today to listOf(GameBrand.Neutral)),
+    daysWithRows = setOf(Yesterday, Today),
+    gamesPerDay = 3,
+    today = Today,
+)
+
+private val Stats = GameStats(4, 9, 31, 22, 95_000L, Today.minusDays(40), best = null, rankOrder = RankOrder.TimeThenHints)
+
+private val Solve = YourSolve(
+    row = HistoryDayRow(
+        day = Yesterday,
+        puzzleNumber = 594,
+        gameId = GameId("zip"),
+        gameName = "Zip",
+        record = CompletionRecord(
+            puzzleRef = object : PuzzleRef {
+                override val gameId = GameId("zip")
+                override val key = PuzzleKey.Daily(Yesterday, 594)
+            },
+            time = 95_000L,
+            hints = 1,
+            stats = RecordStats(1, "{}"),
+        ),
+    ),
+    replays = HistoryReplays.Hidden,
+    playUi = null,
+)
+
+private val ZipSlice = RanksBoardSlice("Zip · Nov 12", RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows))
 
 @Composable
 private fun Hub(state: DailyBoardState) = Hub(RanksBoardSlice("Zip · today", RankOrder.TimeThenHints, state))
@@ -95,3 +146,15 @@ private fun RanksOverallLoadingPreview() = Overall(OverallState.Loading)
 @PuzzleBoxPreviews
 @Composable
 private fun RanksOverallUnavailablePreview() = Overall(OverallState.Offline(null))
+
+@PuzzleBoxPreviews
+@Composable
+private fun RanksWeekStripPreview() = Hub(RanksUiState(ZipSlice, calendar = Week, stats = Stats))
+
+@PuzzleBoxPreviews
+@Composable
+private fun RanksMonthWithStatsPreview() = Hub(RanksUiState(ZipSlice, calendar = Week.copy(expanded = true), stats = Stats))
+
+@PuzzleBoxPreviews
+@Composable
+private fun RanksYourSolvePreview() = Hub(RanksUiState(ZipSlice, calendar = Week, stats = Stats, yourSolve = Solve))
