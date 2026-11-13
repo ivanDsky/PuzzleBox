@@ -36,7 +36,7 @@ import org.robolectric.annotation.GraphicsMode
 // set and exercise the REAL entry point (metadata via the generated provider, prefs via
 // Robolectric's fresh per-test app storage → groups start collapsed).
 //
-// application = plain Application: Robolectric would otherwise boot the real
+// application = DrainTestApplication (plain Application + looper drain): Robolectric would otherwise boot the real
 // PuzzleBoxApplication (merged manifest), whose onCreate starts Koin on the JVM-global
 // context and races DiGraphTest's own startKoin. The browser reads no DI graph.
 @RunWith(RobolectricTestRunner::class)

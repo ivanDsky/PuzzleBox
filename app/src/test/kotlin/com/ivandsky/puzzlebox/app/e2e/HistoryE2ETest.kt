@@ -42,7 +42,7 @@ import org.robolectric.annotation.Config
  * never resumes as today). Compact width: History is single-pane.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class)
 class HistoryE2ETest {
 
@@ -148,7 +148,7 @@ class HistoryE2ETest {
 
     /** Scrolls History's list until [ROW] composes: the stats and weeks cards sit above the rows. */
     private fun ShellRobot.scrollToRow() {
-        awaitIdling {
+        rule.waitUntil(TIMEOUT_MS) {
             runCatching { rule.onNodeWithTag(LIST).performScrollToNode(hasTestTag(ROW)) }.isSuccess
         }
     }

@@ -37,7 +37,7 @@ import org.robolectric.annotation.Config
  * solve's verdict leaks into it.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class)
 class ResultIsolationE2ETest {
 

@@ -22,7 +22,7 @@ import org.robolectric.annotation.Config
  * hint button lights with its count badge.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A phone-sized window: the default Robolectric screen would push the 8-row board off it.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class StrandsFriendHintE2ETest {

@@ -60,7 +60,7 @@ import org.robolectric.annotation.Config
  * theme word and lands on the result. The win is a custom record, never a daily one.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A phone-sized window: the default Robolectric screen would push the 8-row board off it.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class StrandsPublishOpenLoopE2ETest {

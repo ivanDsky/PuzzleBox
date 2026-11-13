@@ -38,7 +38,7 @@ import org.robolectric.annotation.Config
  * before the solve; the other surfaces after it.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w1280dp-h800dp-land")
 class StreakFreezeFlagE2ETest {
 

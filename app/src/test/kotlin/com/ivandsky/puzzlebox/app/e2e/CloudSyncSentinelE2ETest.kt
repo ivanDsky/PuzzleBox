@@ -36,7 +36,7 @@ import org.robolectric.shadows.ShadowLog
  * allow-list `firestore.rules` states for its kind.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class CloudSyncSentinelE2ETest {
 

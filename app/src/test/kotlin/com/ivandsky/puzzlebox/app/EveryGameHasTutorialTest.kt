@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
  * module lands), and a game with fewer than two lessons fails, named.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application for DiGraphTest's reason: the real one would startKoin on its own.
+// DrainTestApplication (plain Application + looper drain) for DiGraphTest's reason: the real one would startKoin on its own.
 @Config(sdk = [34], application = DrainTestApplication::class)
 class EveryGameHasTutorialTest {
 

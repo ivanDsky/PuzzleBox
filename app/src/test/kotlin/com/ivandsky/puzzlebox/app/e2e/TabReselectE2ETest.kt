@@ -24,7 +24,7 @@ import org.robolectric.annotation.Config
  * streak's week strip (Today no longer links to History, so the pushed screen is pushed directly).
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class)
 class TabReselectE2ETest {
 

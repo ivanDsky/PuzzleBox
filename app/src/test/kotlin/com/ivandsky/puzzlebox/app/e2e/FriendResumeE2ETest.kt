@@ -49,7 +49,7 @@ import org.robolectric.annotation.Config
  * every time compares exactly, with no wall-clock tolerance.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class FriendResumeE2ETest {
 

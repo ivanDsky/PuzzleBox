@@ -34,7 +34,7 @@ import org.robolectric.annotation.Config
  * [FriendWorld] with only the Zip editor on.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // The phone's height is a real phone's: the Studio's board slot needs room for its grid.
 @Config(sdk = [34], application = DrainTestApplication::class)
 class ReachabilityInventoryE2ETest {

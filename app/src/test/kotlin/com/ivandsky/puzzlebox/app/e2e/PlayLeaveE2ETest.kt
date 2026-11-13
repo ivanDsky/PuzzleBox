@@ -49,7 +49,7 @@ import org.robolectric.annotation.Config
  * gesture's state and save only (the device suite covers the feel).
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class)
 class PlayLeaveE2ETest {
 

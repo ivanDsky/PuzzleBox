@@ -67,7 +67,7 @@ import org.robolectric.annotation.Config
  * Data and backend singles are fakes over the production graph.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class)
 class PerTabShellTest {
 

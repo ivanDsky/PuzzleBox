@@ -52,7 +52,7 @@ import org.robolectric.annotation.Config
  * board's day, labelled yesterday's, while the cues move on).
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class)
 class ProcessDeathE2ETest {
 

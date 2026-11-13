@@ -56,7 +56,7 @@ import org.robolectric.annotation.Config
  * share, and with the flag off a share opens the app on its start tab and creates nothing.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A real phone's height: the Studio's board slot needs room for its grid.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class ShareTargetE2ETest {

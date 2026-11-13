@@ -47,7 +47,7 @@ import org.robolectric.annotation.Config
  * the signed-in player's record reaches the leaderboard exactly once.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class)
 class ResumeSolveE2ETest {
 

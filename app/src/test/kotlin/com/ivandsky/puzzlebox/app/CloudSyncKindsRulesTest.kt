@@ -26,7 +26,7 @@ import org.robolectric.annotation.Config
  * must be bound, and every bound name must be in the rules.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application for DiGraphTest's reason: the real one would startKoin on its own.
+// DrainTestApplication (plain Application + looper drain) for DiGraphTest's reason: the real one would startKoin on its own.
 @Config(sdk = [34], application = DrainTestApplication::class)
 class CloudSyncKindsRulesTest {
 

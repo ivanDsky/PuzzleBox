@@ -84,7 +84,7 @@ import org.robolectric.annotation.Config
  * daily's saved play; and its result is queued for the poster once.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class OfficialLegE2ETest {
 
@@ -323,7 +323,7 @@ class OfficialLegE2ETest {
     /** Scrolls History's list to [day]'s Zip row once it shows, and checks it carries the duel pill. */
     private fun ShellRobot.assertDuelPill(day: LocalDate) {
         val key = "${ZIP.value}/$day"
-        awaitIdling {
+        rule.waitUntil(TIMEOUT_MS) {
             runCatching { rule.onNodeWithTag(HISTORY_LIST).performScrollToNode(hasTestTag("history.row.$key")) }.isSuccess
         }
         // The row's own pill, as the user reads it: the duel and its opponent, not the history data behind it.

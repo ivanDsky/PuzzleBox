@@ -103,7 +103,7 @@ import org.robolectric.annotation.GraphicsMode
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-// Plain Application: the real PuzzleBoxApplication's startKoin would race this class's own graph.
+// DrainTestApplication (plain Application + looper drain): the real PuzzleBoxApplication's startKoin would race this class's own graph.
 @Config(sdk = [34], application = DrainTestApplication::class)
 class PlayBoardPositionTest {
 

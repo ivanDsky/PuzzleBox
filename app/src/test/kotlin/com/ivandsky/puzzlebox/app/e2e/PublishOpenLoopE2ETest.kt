@@ -42,7 +42,7 @@ import org.robolectric.annotation.Config
  * puzzle to the win and lands on its result, whose Done returns to the card, now reading Solved.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A real phone's height: the Studio's board slot needs room for its grid.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class PublishOpenLoopE2ETest {

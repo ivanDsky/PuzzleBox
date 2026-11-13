@@ -34,7 +34,7 @@ import org.robolectric.annotation.Config
  * (`profile.settings`) opens Settings above it, so Back returns through Profile to Today. The tablet's rail placement is pinned in the e2e tests.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class ShellChromeTest {
 

@@ -98,7 +98,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-// application = plain Application (showkase-v2-05): with unit-test resources enabled
+// application = DrainTestApplication (plain Application + looper drain) (showkase-v2-05): with unit-test resources enabled
 // (:app runs the browser screenshot suite) Robolectric would boot the REAL
 // PuzzleBoxApplication from the merged manifest, whose onCreate startKoin races this
 // class's own startKoin on the JVM-global context. The graph under test is

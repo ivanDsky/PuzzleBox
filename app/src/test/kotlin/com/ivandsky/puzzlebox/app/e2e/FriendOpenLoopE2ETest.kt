@@ -25,7 +25,7 @@ import org.robolectric.annotation.Config
  * Today, History, the streak, the stats and the daily board stay as they were (E).
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A real phone's height: the Studio's board slot and Strands' 8-row board need the room.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class FriendOpenLoopE2ETest(name: String) {

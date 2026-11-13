@@ -44,7 +44,7 @@ import org.robolectric.annotation.Config
  * the board to the win and lands on its result. The win is a custom record, never a daily one.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A real phone's height: the Studio's board slot needs room for its grid.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class SudokuPublishOpenLoopE2ETest {

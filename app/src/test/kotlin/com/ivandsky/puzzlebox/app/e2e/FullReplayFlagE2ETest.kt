@@ -49,7 +49,7 @@ import org.robolectric.annotation.Config
  * page and Next move steps the playback; off, no replay is stored and the result shows no row.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class FullReplayFlagE2ETest {
 

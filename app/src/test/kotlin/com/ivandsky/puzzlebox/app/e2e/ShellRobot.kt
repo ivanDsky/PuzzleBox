@@ -89,9 +89,10 @@ import org.robolectric.Shadows.shadowOf
  * every feature entry — over [graph] (the production Koin modules with fakes on the
  * edges), starting at [state]. The width class comes from the real window, so a row's
  * `@Config(qualifiers = …)` picks bar or rail. [destinations] is the tab set the shell
- * shows. The caller's test class runs on Robolectric with a plain `Application`
- * (`@Config(application = Application::class)`), so the merged manifest's application
- * never starts a second Koin.
+ * shows. The caller's test class runs on Robolectric with [DrainTestApplication]
+ * (`@Config(application = DrainTestApplication::class)`): a plain `Application`, so the merged
+ * manifest's application never starts a second Koin, that also idles the main looper after every
+ * test, before Robolectric's looper reset drops Compose's pending dispatch.
  */
 internal fun shellRobot(
     state: NavigationState = puzzleBoxNavigationState(),
@@ -406,13 +407,8 @@ class ShellRobot internal constructor(
         awaitTag(RESULT_ROUTE)
     }
 
-    /**
-     * Waits for a node tagged [tag]. Each poll idles the main looper first: the v2 rule's
-     * `waitUntil` does not, so work queued behind a looper hop would otherwise never land.
-     */
     fun awaitTag(tag: String) {
         rule.waitUntil(TIMEOUT_MS) {
-            shadowOf(Looper.getMainLooper()).idle()
             rule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
         }
     }
@@ -423,10 +419,7 @@ class ShellRobot internal constructor(
      * [awaitTag] passes and the tap then finds nothing.
      */
     fun awaitActionable(tag: String) {
-        rule.waitUntil(TIMEOUT_MS) {
-            shadowOf(Looper.getMainLooper()).idle()
-            rule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
-        }
+        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
     }
 
     /**

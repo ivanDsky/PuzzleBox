@@ -38,7 +38,7 @@ import org.robolectric.annotation.Config
  * Every row asserts the navigation state and the visible `route.*` tag (SC1).
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class)
 class TabNavigationE2ETest {
 
@@ -122,7 +122,7 @@ class TabNavigationE2ETest {
             assertState(history)
             assertRoute(HISTORY)
             // The stats and weeks cards sit above the rows: wait for the first page by scrolling to it.
-            awaitIdling {
+            rule.waitUntil(TIMEOUT_MS) {
                 runCatching { rule.onNodeWithTag("history.list").performScrollToNode(hasTestTag(rowTag(0))) }.isSuccess
             }
             rule.onNodeWithTag("history.list").performScrollToIndex(SCROLLED_INDEX)

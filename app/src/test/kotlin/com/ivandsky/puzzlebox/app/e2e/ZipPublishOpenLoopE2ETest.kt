@@ -51,7 +51,7 @@ import org.robolectric.annotation.Config
  * reading Solved. Today's Zip stays unplayed and every daily read is as it was.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A real phone's height: the Studio's board slot needs room for its grid.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class ZipPublishOpenLoopE2ETest {

@@ -59,7 +59,7 @@ import org.robolectric.annotation.Config
  * header's "ends" time share the deadline; both finish and the header pills give way to the reveal.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class DuelUserCheckE2ETest {
 

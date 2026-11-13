@@ -53,7 +53,7 @@ import org.robolectric.annotation.Config
  * carries share version 1 (v1-only builds still open it); an 8×8 doc carries 2 (M4-tango-27).
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A real phone's height: the Studio's board slot needs room for its grid.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class TangoPublishOpenLoopE2ETest {

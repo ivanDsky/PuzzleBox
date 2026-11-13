@@ -20,7 +20,7 @@ import org.robolectric.annotation.Config
  * directory is the `:app` module root); the rules-matrix covers the rules' behavior.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application for DiGraphTest's reason: the real one would startKoin on its own.
+// DrainTestApplication (plain Application + looper drain) for DiGraphTest's reason: the real one would startKoin on its own.
 @Config(sdk = [34], application = DrainTestApplication::class)
 class FirestoreRulesAllowListTest {
 
