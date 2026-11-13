@@ -378,7 +378,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   toggle, the top five and the player's own row pinned beneath) and a "Your history" `SummaryLinkRow`; a phone pushes the
   page over the list; a one-shot `LibraryRequest` opens a page or a section), `GameRoute` + `GameViewModel` (one `GameKey`'s board; first-play tutorial
   and How to play via `TutorialGate`), `ResultRoute` + `ResultViewModel` (verdict + previous
-  best live, Play again, Next unsolved; an optional "Full board" row), duel legs
+  best live, Play again, Next unsolved), duel legs
   (`MatchLegRoute`/`MatchLegViewModel`, `MatchLegResultRoute`, `LegCompletionRepository`
   tagging a leg solve with its match), `friend/` (a friend's puzzle: `FriendsTabBody`,
   `EnterCodeSheet`, `FriendPuzzleRoute`, `CustomResultRoute`), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
@@ -525,7 +525,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `HomeKey` entries; only `LargeTopBar` and `CompactTopBar` read the slot. Profile's top-right
   gear (`profile.settings`) opens `SettingsKey`; the shell has no gear.
 - **`SummaryLinkRow`** (`core:designsystem`) — the one summary card: Today's rank and duels
-  rows (`HomeSummaries`), the game page's "Your history" row, Result's "Full board" row.
+  rows (`HomeSummaries`) and the game page's "Your history" row.
 - **`LocalTabReselect`** (`core:designsystem`) — the shell tells tab roots that the selected
   tab was tapped again; Today, History, the Games list and Create's lists scroll to the top.
 - **`openOwner`** (`app/nav/OpenOwner.kt`) and **`LibraryRequests`** (`app/nav/LibraryRequests.kt`)

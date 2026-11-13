@@ -76,22 +76,6 @@ class ShellSummariesE2ETest {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `on a phone Result's Full board opens the game's page and leaves the Result behind`() = fullBoard()
-
-    @Test
-    @Config(qualifiers = RAIL)
-    fun `on a tablet Result's Full board opens the game's page and leaves the Result behind`() = fullBoard()
-
-    @Test
-    @Config(qualifiers = PHONE)
-    fun `on a phone Full board from a Result played on Today leaves no Result behind`() = fullBoardFromToday(Width.Phone)
-
-    @Test
-    @Config(qualifiers = RAIL)
-    fun `on a tablet Full board from a Result played on Today leaves no Result behind`() = fullBoardFromToday(Width.Rail)
-
-    @Test
-    @Config(qualifiers = PHONE)
     fun `on a phone each block shows only on its owner and each summary at most once`() = sweep()
 
     @Test
@@ -165,41 +149,11 @@ class ShellSummariesE2ETest {
         assertState(tabAt(PlayKey))
     }
 
-    // Signed out: the row needs only today's official solve, which the record store holds.
-    private fun fullBoard() = shellRobot(tabAt(PlayKey, todaysResult()), graph = solvedGraph()) {
-        assertRoute(RESULT)
-        tap(RANK_ROW)
-
-        awaitTag(ZIP_PAGE)
-        assertRoute(LIBRARY)
-        assertState(tabAt(PlayKey))
-        assertTrue("no stack holds the Result", state.stacks.flatten().none { it is ResultKey })
-    }
-
-    // Played from Today: the Result sits on Home's stack, which opening Games does not reset.
-    private fun fullBoardFromToday(width: Width) = shellRobot(tabAt(HomeKey, todaysResult()), graph = solvedGraph()) {
-        assertRoute(RESULT)
-        tap(RANK_ROW)
-
-        awaitTag(ZIP_PAGE)
-        assertRoute(LIBRARY)
-        assertState(tabAt(PlayKey))
-        assertTrue("no stack holds the Result: $state", state.stacks.flatten().none { it is ResultKey })
-        if (width == Width.Phone) {
-            back()
-            assertRoute(LIBRARY)
-            assertFalse("the page closed onto the list", shows(ZIP_PAGE))
-        }
-        back()
-        assertRoute(HOME)
-        assertState(tabAt(HomeKey))
-    }
-
     private fun sweep() = shellRobot(tabAt(PlayKey, todaysResult()), graph = rankedGraph(ReleaseFlag.Competitions)) {
         seedBoards()
         seedDuelNeedingMe()
         assertRoute(RESULT)
-        awaitTag(RANK_ROW)
+        awaitTag("result.up")
         assertOwnersOnly()
 
         switchTab(HomeKey)

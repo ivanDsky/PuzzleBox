@@ -223,7 +223,6 @@ class ResultScreenTest {
                         onPlayAgain = { playedAgain = true },
                         onNext = {},
                         onDone = { done++ },
-                        onOpenBoard = {},
                         onOpenReplay = {},
                     )
                 }
@@ -267,7 +266,6 @@ class ResultScreenTest {
                         onPlayAgain = {},
                         onNext = {},
                         onDone = {},
-                        onOpenBoard = {},
                         onOpenReplay = {},
                     )
                 }
@@ -293,7 +291,6 @@ class ResultScreenTest {
                         onPlayAgain = {},
                         onNext = { next = it },
                         onDone = { done++ },
-                        onOpenBoard = {},
                         onOpenReplay = {},
                     )
                 }
@@ -329,7 +326,6 @@ class ResultScreenTest {
                         onPlayAgain = {},
                         onNext = { next = it },
                         onDone = {},
-                        onOpenBoard = {},
                         onOpenReplay = {},
                     )
                 }
@@ -342,34 +338,23 @@ class ResultScreenTest {
     }
 
     @Test
-    fun `today's official result draws one row that reports the game`() {
-        var opened = mutableListOf<GameId>()
-        withResult(day, onOpenBoard = { opened += it }) {
-            composeRule.onNodeWithTag("summary.leaderboard").assertExists()
-            composeRule.onNodeWithTag("daily_board.title").assertDoesNotExist()
-            composeRule.onNodeWithTag("summary.leaderboard").performScrollTo().performClick()
-            composeRule.runOnIdle { assertEquals(listOf(game), opened) }
-        }
-    }
-
-    @Test
-    fun `a past day's play again draws neither the row nor the board`() {
-        withResult(day.minusDays(1), onOpenBoard = {}) {
+    fun `today's result draws no full board row and no board`() {
+        withResult(day) {
             composeRule.onNodeWithTag("summary.leaderboard").assertDoesNotExist()
             composeRule.onNodeWithTag("daily_board.title").assertDoesNotExist()
         }
     }
 
     @Test
-    fun `signed out, the row draws no sign-in of its own`() {
-        withResult(day, onOpenBoard = {}) {
-            composeRule.onNodeWithTag("summary.leaderboard").assertExists()
-            composeRule.onNodeWithTag("custom_board.sign_in").assertDoesNotExist()
+    fun `a past day's play again draws neither the row nor the board`() {
+        withResult(day.minusDays(1)) {
+            composeRule.onNodeWithTag("summary.leaderboard").assertDoesNotExist()
+            composeRule.onNodeWithTag("daily_board.title").assertDoesNotExist()
         }
     }
 
     /** Renders [ResultRoute] for [resultDay] on an official puzzle (history seeded for today and yesterday), then runs [check]. */
-    private fun withResult(resultDay: LocalDate, onOpenBoard: (GameId) -> Unit, check: () -> Unit) {
+    private fun withResult(resultDay: LocalDate, check: () -> Unit) {
         val daily = FakeDailyRepository().apply {
             setToday(game, DailyToday.Fresh(TestGames.puzzle(game)))
             setHistory(
@@ -386,7 +371,6 @@ class ResultScreenTest {
                         onPlayAgain = {},
                         onNext = {},
                         onDone = {},
-                        onOpenBoard = onOpenBoard,
                         onOpenReplay = {},
                     )
                 }
