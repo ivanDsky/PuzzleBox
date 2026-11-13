@@ -18,6 +18,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
@@ -67,6 +68,7 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.app.di.PreferencesQueensSettings
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeGameSettingsRepository
@@ -140,6 +142,7 @@ class RealGamesPlayRouteTest {
                     single<CoroutineScope> { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().default) }
                     single { daily }
                     single<CompletionRepository> { FakeCompletionRepository() }
+                    single<ReleaseFlags> { FakeReleaseFlags() }
                     // The hub names games from the registry, in the app's order.
                     single { GameRegistry(listOf(zipPlugin, tangoPlugin, queensPlugin, strandsPlugin)) }
                     single { GamePlayRegistry(listOf(ZipPlayUi(), TangoPlayUi(HintMode.Stepwise(get<DispatcherProvider>().default)), QueensPlayUi(PreferencesQueensSettings(FakeGameSettingsRepository(), CoroutineScope(Dispatchers.Unconfined)), HintMode.Stepwise(get<DispatcherProvider>().default)), StrandsPlayUi())) }

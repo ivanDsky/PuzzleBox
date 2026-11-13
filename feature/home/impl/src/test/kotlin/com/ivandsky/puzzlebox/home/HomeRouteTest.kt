@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.entryProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
@@ -43,6 +44,7 @@ import com.ivandsky.puzzlebox.navigation.navigationState
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeAppReleaseRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -129,6 +131,7 @@ class HomeRouteTest {
                 module {
                     single<DailyRepository> { daily }
                     single<GameRegistry> { TestGames.registry(listOf(GameId("zip"))) }
+                    single<ReleaseFlags> { FakeReleaseFlags() }
                     single<CompletionRepository> { completions }
                     single<IdentityService> { fakeIdentity }
                     single<SavedPlayRepository> { saved }
