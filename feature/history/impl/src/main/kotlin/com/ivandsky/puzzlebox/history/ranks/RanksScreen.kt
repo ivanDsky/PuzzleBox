@@ -4,8 +4,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,6 +17,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.ivandsky.puzzlebox.designsystem.OnTabReselect
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.history.HistoryDayRow
@@ -29,7 +34,9 @@ import java.time.LocalDate
  * leads, then the viewer's solve of the day ([onPlayAgain], [onOpenReplay], [onCompare]), then the board under the page
  * dots; a horizontal swipe on the board reports [onSwipe] (+1 next board, -1 previous) and a vertical drag scrolls
  * the hub. The first time the hub opens, a hint and the current dot nudge the swipe, then [onNudgeShown]. On
- * [HistoryLayout.TwoPane] the hub is [RanksTwoPane] instead: no title menu, week strip, dots or swipe.
+ * [HistoryLayout.TwoPane] the hub is [RanksTwoPane] instead: no title menu, week strip, dots or swipe. [onBack] (a pushed
+ * hub, opened from a game's link) adds a back arrow above either layout. A tab reselect scrolls the hub to the top; one
+ * more, with it already there, calls [onReset] (A8).
  */
 @Composable
 internal fun RanksScreen(
@@ -38,6 +45,8 @@ internal fun RanksScreen(
     onSwipe: (Int) -> Unit,
     modifier: Modifier = Modifier,
     layout: HistoryLayout = HistoryLayout.SinglePane,
+    onBack: (() -> Unit)? = null,
+    onReset: () -> Unit = {},
     onPickBoard: (RanksBoard) -> Unit = {},
     onNudgeShown: () -> Unit = {},
     onScope: (RankScope) -> Unit = {},
@@ -48,20 +57,59 @@ internal fun RanksScreen(
     onOpenReplay: (HistoryDayRow, ReplaySolve) -> Unit = { _, _ -> },
     onCompare: (HistoryDayRow) -> Unit = {},
 ) {
-    if (layout == HistoryLayout.TwoPane) {
-        RanksTwoPane(state, onSignIn, modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare)
-        return
+    val scroll = rememberScrollState()
+    val leftScroll = rememberScrollState()
+    val twoPane = layout == HistoryLayout.TwoPane
+    ReselectToTop(if (twoPane) listOf(leftScroll, scroll) else listOf(scroll), onReset)
+    Column(modifier.fillMaxSize()) {
+        if (onBack != null) {
+            IconButton(onBack, Modifier.testTag("ranks.back")) { Icon(PuzzleIcons.Back, contentDescription = "Back") }
+        }
+        Box(Modifier.weight(1f)) {
+            if (twoPane) {
+                RanksTwoPane(state, onSignIn, Modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, leftScroll, scroll)
+            } else {
+                RanksPhone(state, scroll, onSignIn, onSwipe, onPickBoard, onNudgeShown, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare)
+            }
+        }
     }
+}
+
+/** Reselecting the tab: the first tap brings every scrolled pane in [scrolls] to its top; with all there already, [onReset]. */
+@Composable
+private fun ReselectToTop(scrolls: List<ScrollState>, onReset: () -> Unit) {
+    OnTabReselect {
+        val scrolled = scrolls.filter { it.value > 0 }
+        if (scrolled.isEmpty()) onReset() else scrolled.forEach { it.animateScrollTo(0) }
+    }
+}
+
+@Composable
+private fun RanksPhone(
+    state: RanksUiState,
+    scroll: ScrollState,
+    onSignIn: () -> Unit,
+    onSwipe: (Int) -> Unit,
+    onPickBoard: (RanksBoard) -> Unit,
+    onNudgeShown: () -> Unit,
+    onScope: (RankScope) -> Unit,
+    onWindow: (RanksSelection.Window) -> Unit,
+    onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
+    onSelectDay: (LocalDate?) -> Unit,
+    onPlayAgain: (GameId, LocalDate) -> Unit,
+    onOpenReplay: (HistoryDayRow, ReplaySolve) -> Unit,
+    onCompare: (HistoryDayRow) -> Unit,
+) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
     val current = state.places.getOrNull(state.position)
     val nudge = rememberSwipeNudge(show = state.nudge && !tuning && !howRanksWork, onShown = onNudgeShown)
-    Box(modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
                 .fillMaxSize()
                 .testTag("route.ranks")
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .padding(Spacing.lg),
         ) {
             RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {

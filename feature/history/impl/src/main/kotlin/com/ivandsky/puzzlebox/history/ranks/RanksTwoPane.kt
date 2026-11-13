@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
@@ -66,6 +67,8 @@ internal fun RanksTwoPane(
     onPlayAgain: (GameId, LocalDate) -> Unit = { _, _ -> },
     onOpenReplay: (HistoryDayRow, ReplaySolve) -> Unit = { _, _ -> },
     onCompare: (HistoryDayRow) -> Unit = {},
+    leftScroll: ScrollState = rememberScrollState(),
+    rightScroll: ScrollState = rememberScrollState(),
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
@@ -75,14 +78,14 @@ internal fun RanksTwoPane(
         horizontalArrangement = Arrangement.spacedBy(Spacing.xl),
     ) {
         Column(
-            Modifier.weight(LIST_WEIGHT).fillMaxHeight().verticalScroll(rememberScrollState()).testTag("ranks.leftpane"),
+            Modifier.weight(LIST_WEIGHT).fillMaxHeight().verticalScroll(leftScroll).testTag("ranks.leftpane"),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             RanksCalendar(state.calendar.copy(expanded = true), state.stats, { day, _ -> onShowCalendar(day, true) }, onSelectDay, foldable = false)
             GameList(state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true })
         }
         Column(
-            Modifier.weight(BOARD_WEIGHT).fillMaxHeight().verticalScroll(rememberScrollState()).testTag("ranks.rightpane"),
+            Modifier.weight(BOARD_WEIGHT).fillMaxHeight().verticalScroll(rightScroll).testTag("ranks.rightpane"),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {

@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.history.ranks
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
@@ -48,7 +49,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 
 /**
@@ -75,9 +76,12 @@ internal class RanksViewModel(
     private val registry: GameRegistry,
     private val clock: Clock = Clock.systemUTC(),
     linkedIn: ObserveLinkedInDayView? = null,
+    savedState: SavedStateHandle = SavedStateHandle(),
+    opening: RanksSelection = RanksSelection(),
 ) : ViewModel() {
 
-    private val _selection = MutableStateFlow(RanksSelection())
+    private val saver = RanksSelectionSaver(savedState)
+    private val _selection = MutableStateFlow(saver.restore(opening, rankBoards(registry)))
     val selection: StateFlow<RanksSelection> = _selection.asStateFlow()
 
     private val signInHolder = RanksSignInHolder(identity, idTokens)
@@ -198,7 +202,12 @@ internal class RanksViewModel(
 
     /** Applies one of [RanksSelection]'s transitions; the policy stays in the value. */
     fun select(change: (RanksSelection) -> RanksSelection) {
-        _selection.update(change)
+        saver.save(_selection.updateAndGet(change))
+    }
+
+    /** A second tab reselect: back to the landing choice (A4, A8). */
+    fun resetSelection() {
+        select { it.reset() }
     }
 
     /** The tune sheet's scope pick. */
