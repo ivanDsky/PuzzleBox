@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.zip
 
 import com.ivandsky.puzzlebox.game.replay.GameReplay
+import com.ivandsky.puzzlebox.game.replay.MoveKind
+import com.ivandsky.puzzlebox.game.replay.MoveMark
 import com.ivandsky.puzzlebox.game.replay.ReplayFacts
 import com.ivandsky.puzzlebox.game.replay.ReplayMove
 import com.ivandsky.puzzlebox.games.zip.engine.ZipMove
@@ -29,6 +31,26 @@ object ZipReplay : GameReplay<ZipSession> {
             // Live input is ignored once the trace is finished, so no rejection follows it.
             ZipReplayMove.Rejection -> if (session.isComplete) session else session.withRejection()
             ZipReplayMove.Hint -> if (session.isComplete) session else session.withHintApplied()
+        }
+    }
+
+    /**
+     * A hint is recorded as its trim, [ZipReplayMove.Hint], then its step, so the [ZipReplayMove.Extend]
+     * right after a Hint is the cell the hint placed. A refused step is a Mistake, undo/redo/clear an Undo.
+     */
+    override fun markOf(before: ZipSession, move: ReplayMove, after: ZipSession, previous: ReplayMove?): MoveMark {
+        val cellCount = before.puzzle.board.cellCount
+        return when (val typed = ZipReplayMove.of(move, cellCount)) {
+            ZipReplayMove.Hint -> MoveMark(MoveKind.Hint, emptySet())
+            ZipReplayMove.Rejection -> MoveMark(MoveKind.Mistake, emptySet())
+            ZipReplayMove.Undo, ZipReplayMove.Redo, ZipReplayMove.Reset -> MoveMark(MoveKind.Undo, emptySet())
+            is ZipReplayMove.Extend ->
+                if (previous?.let { ZipReplayMove.of(it, cellCount) } == ZipReplayMove.Hint) {
+                    MoveMark(MoveKind.Hint, setOf(typed.cell.idx))
+                } else {
+                    MoveMark.Plain
+                }
+            else -> MoveMark.Plain
         }
     }
 
