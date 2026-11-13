@@ -32,6 +32,28 @@ class RanksSelectionTest {
     }
 
     @Test
+    fun `step walks the boards in order and stays put at either end`() {
+        val boards = listOf(RanksBoard.Overall, RanksBoard.Game(ZIP), RanksBoard.Game(TANGO))
+
+        assertEquals(RanksBoard.Game(ZIP), landing.step(1, boards).board)
+        assertEquals(RanksBoard.Game(TANGO), landing.pickBoard(RanksBoard.Game(ZIP)).step(1, boards).board)
+        assertEquals(RanksBoard.Overall, landing.pickBoard(RanksBoard.Game(ZIP)).step(-1, boards).board)
+        assertEquals(landing, landing.step(-1, boards))
+        val last = landing.pickBoard(RanksBoard.Game(TANGO))
+        assertEquals(last, last.step(1, boards))
+    }
+
+    @Test
+    fun `step keeps everything but the board, and ignores a board that is not listed`() {
+        val boards = listOf(RanksBoard.Overall, RanksBoard.Game(ZIP))
+        val picked = landing.setWindow(RanksSelection.Window.Week).toggleCalendar()
+
+        assertEquals(picked.copy(board = RanksBoard.Game(ZIP)), picked.step(1, boards))
+        val unlisted = landing.pickBoard(RanksBoard.Game(QUEENS))
+        assertEquals(unlisted, unlisted.step(1, boards))
+    }
+
+    @Test
     fun `pickDay changes only the day, and null is today again`() {
         val day = LocalDate.of(2026, 11, 6)
 

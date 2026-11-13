@@ -24,7 +24,8 @@ import org.junit.Test
 
 /**
  * A23 at the view-model seam: reads = listeners (`observedBoards`) + fetches + counts over the
- * counting fake. Overall, the hub's one window-boards collection, is the only reader (goldfish B arch-2).
+ * counting fake. The hub's one window-boards collection is the only reader: Overall and every game's board
+ * project it (goldfish B arch-2).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class RanksReadBudgetTest {
@@ -69,6 +70,25 @@ class RanksReadBudgetTest {
         runCurrent()
 
         assertEquals(5, leaderboard.observedBoards.size)
+        assertEquals(0, leaderboard.fetchCalls)
+        assertEquals(0, leaderboard.countCalls)
+    }
+
+    @Test
+    fun `swiping between boards adds no listener, fetch or count`() = runTest {
+        val viewModel = hub().viewModel()
+        collect(viewModel)
+
+        viewModel.swipe(1)
+        runCurrent()
+        viewModel.swipe(1)
+        runCurrent()
+        viewModel.select { it.pickBoard(RanksBoard.Game(games.last())) }
+        runCurrent()
+        viewModel.swipe(-1)
+        runCurrent()
+
+        assertEquals(games.map { LeaderboardRef(it.value, today) }, leaderboard.observedBoards)
         assertEquals(0, leaderboard.fetchCalls)
         assertEquals(0, leaderboard.countCalls)
     }
