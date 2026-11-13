@@ -19,9 +19,10 @@ internal const val TARGET_SDK = 37
 
 /**
  * SDK levels and Java 17 for every Android module. Kotlin is AGP 9's built-in Kotlin
- * (no kotlin-android plugin). The Kotlin JVM target is also pinned on the compilation-level
- * options: KSP reads those, and unset they default to the daemon JDK (25), which Kotlin 2.2
- * cannot target and logs a fallback warning for.
+ * (no kotlin-android plugin). The Kotlin JVM target is also pinned on the target-level
+ * compiler options, which every compilation inherits: KSP reads its target from them, and
+ * unset they default to the daemon JDK (25), which Kotlin 2.2 cannot target and logs a
+ * fallback warning for.
  */
 internal fun Project.configureKotlinAndroid(commonExtension: CommonExtension) {
     commonExtension.apply {
@@ -31,7 +32,7 @@ internal fun Project.configureKotlinAndroid(commonExtension: CommonExtension) {
         compileOptions.targetCompatibility = JavaVersion.VERSION_17
     }
     extensions.configure<KotlinAndroidProjectExtension> {
-        target.compilations.configureEach { compilerOptions.configure { jvmTarget.set(JvmTarget.JVM_17) } }
+        target.compilerOptions.jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 

@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -29,11 +30,13 @@ internal class RoomReceivedPuzzleRepository(
 ) : ReceivedPuzzleRepository {
 
     // Room re-runs both queries on every `received_puzzles` write, including other rows'.
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun observeAll(): Flow<List<ReceivedPuzzle>> = owners.visible
         .flatMapLatest { owner -> dao.observeAll(owner) }
         .map { rows -> rows.mapNotNull { it.toReceivedPuzzle() } }
         .distinctUntilChanged()
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun observe(code: ShareCode): Flow<ReceivedPuzzle?> = owners.visible
         .flatMapLatest { owner -> dao.observe(code.value, owner) }
         .map { it?.toReceivedPuzzle() }
