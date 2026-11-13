@@ -1,6 +1,6 @@
 # ADR-0027 — Navigation placement: one owner per content type
 
-Date: 2026-11-09 · Status: accepted · Source: `.scratch/nav-ia/spec.md` (A1–A19) · Amended by ADR-0028 (§2 owner table gains the row "LinkedIn connection | Profile (Accounts list) | —") · Amended 2026-11-10 by the re-gate fixes F1–F8 (§2, §3, §4, §11, §12)
+Date: 2026-11-09 · Status: accepted · Source: `.scratch/nav-ia/spec.md` (A1–A19) · Amended by ADR-0028 (§2 owner table gains the row "LinkedIn connection | Profile (Accounts list) | —") · Amended 2026-11-10 by the re-gate fixes F1–F8 (§2, §3, §4, §11, §12) · Amended 2026-11-13 by the leaderboard hub (`.scratch/leaderboard-hub/spec.md` A1, A33: §2 owner table, Ranks owns daily leaderboards, the history timeline and lifetime stats)
 
 ## Context
 The app grew screen by screen. Stats show on five screens, boards on four and the week strip on two, so no screen is
@@ -11,6 +11,7 @@ a new feature where it belongs (Duels landed as a Games sub-tab by local choice)
 ADR-0011 fixed how navigation moves (one immutable `NavigationState`, one stack per tab). It says nothing about *where
 content lives*. This ADR adds that. The reducer, its verbs and its invariants stay as ADR-0011 has them. The tab set
 becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag was removed); Profile stops being a tab.
+*(Amended 2026-11-13: with the `LeaderboardHub` flag on the set is Today · Games · Ranks · Create, §2.)*
 
 ## Decision
 1. **One owner.** Each content type has one owner screen. Every other screen shows at most one summary row for it, and
@@ -22,11 +23,11 @@ becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag w
    | Today's set (status per game, play-today) | Today | — |
    | Streak + week strip | Today | — |
    | App update available | Today (the existing pill) | — |
-   | Lifetime stats (solved, best streak, no-hint, days) | History (header) | — |
-   | History timeline (every past play) | History | Games › game page: "Your history" row; Today: the recent days with "See all" to History's root, and on the tablet the picked day's detail |
+   | Lifetime stats (solved, best streak, no-hint, days) | Ranks | — |
+   | History timeline (every past play) | Ranks | Games › game page: "Your history" row; Today: the recent days with "See all" to Ranks' root, and on the tablet the picked day's detail |
    | Per-game stats (solved, hint-free, avg, best) | Games › game page | — |
    | Past-day archive (play a past day) | Games › game page | History detail: "Play this day" action |
-   | Daily leaderboards (Today/Yesterday; the top five, with the player's own row pinned beneath when it ranks lower) | Games › game page | Today: "Today's rank: #12 on Zip"; Result: "You: #12 of 340" |
+   | Daily leaderboards | Ranks | Games › game page: one summary row; Today: "Today's rank: #12 on Zip"; Result: "You: #12 of 340" |
    | Duels | Games › Duels section | Today: "2 duels need you" |
    | Friends' puzzles (received, enter code) | Games › Friends section | — |
    | Drafts and published | Create | — |
@@ -36,6 +37,18 @@ becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag w
 
    A section inside a tab (the update pill) is a valid home. History (what I played) and Archive (play a past day) are
    two content types with two owners, cross-linked by one row each.
+
+   *(Amended 2026-11-13, leaderboard hub A1/A33.)* Ranks is the leaderboard hub. It takes History's tab slot and owns
+   the three rows above that name it; the game page, Result and Today keep one summary row each. The tab keeps its
+   root key (`HistoryRootKey`) and its `Tab` value (`Tab.History`): only the label, the icons and the test tag
+   (`nav.tab.ranks`) change, so the placement table, saved navigation and "go to owner" read the same under either
+   tab set. The hub is dark behind the `LeaderboardHub` flag, and the rows describe the flag-on target. With the flag
+   off the tab reads History, History owns lifetime stats (its header) and the timeline, and the game page owns the
+   daily leaderboards (Today/Yesterday; the top five, with the player's own row pinned beneath when it ranks lower).
+   The app reads the flag at one site, once per launch and unsaved, and passes `ranks: Boolean` to the route table
+   (§10), which registers the hub's entry or History's for the root key, never both. So a flip lands on the next
+   launch, tab and root together, and saved navigation restores under it. A pushed `HistoryKey` opens the History
+   screen in both states until the hub serves it.
 3. **Chrome types.** Every `NavKey` has one of two:
    - **Bar** shows the tab bar (rail on expanded width). Tab roots, pushed lists and details, Profile, Settings, the
      Studio and editor, and Catalog are `Bar`.

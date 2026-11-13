@@ -49,6 +49,7 @@ import org.koin.compose.koinInject
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
  * [linkedIn] is read once per launch through [rememberLinkedIn] and gates the LinkedIn entries.
+ * [ranks] (the LeaderboardHub flag, read by the app) makes the History tab's root the Ranks hub.
  * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
  */
 @Composable
@@ -63,6 +64,7 @@ internal fun PuzzleBoxNavShell(
     duels: DuelsSlot? = null,
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
     linkedIn: Boolean = rememberLinkedIn(),
+    ranks: Boolean = false,
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
 ) {
@@ -88,6 +90,7 @@ internal fun PuzzleBoxNavShell(
             duels = duels,
             libraryRequests = libraryRequests,
             linkedIn = linkedIn,
+            ranks = ranks,
         ).withHintCooldown(),
         shellChrome = shellChrome,
     )
