@@ -28,6 +28,6 @@ internal enum class TraceEndKind {
 
 /**
  * The submitted [path] still on the board while it plays out its [kind]; [seq] is the verdict it answers, so a repeat replays.
- * [pulse] marks a [TraceEndKind.Repeat] of a found theme word, whose tiles also pulse; a repeated non-theme word has none to pulse.
+ * [holdMs], when set, replaces the kind's hold (the replay board's). [pulse] marks a [TraceEndKind.Repeat] of a found theme word, whose tiles also pulse; a repeated non-theme word has none to pulse.
  */
-internal data class TraceEnd(val path: List<Coord>, val kind: TraceEndKind, val seq: Int, val pulse: Boolean = false)
+internal data class TraceEnd(val path: List<Coord>, val kind: TraceEndKind, val seq: Int, val pulse: Boolean = false, val holdMs: Int? = null)

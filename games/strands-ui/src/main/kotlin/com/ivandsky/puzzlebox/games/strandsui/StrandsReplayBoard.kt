@@ -60,7 +60,7 @@ internal object StrandsReplayBoard : GameReplayBoard {
         val badges = remember(session.state.puzzle, frame.hinted) { hintBadges(session.state.puzzle, frame.hinted) }
         val slot = remember(session.state, before) { submittedSlotOf(before, session.state) }
         val nonTheme = remember(session.state, before, frame.moves) { nonThemePathOf(before, session.state, frame.moves) }
-        val setAside = remember(nonTheme) { nonTheme?.let { TraceEnd(it, TraceEndKind.Bonus, seq = session.state.found.size + session.state.nonTheme.size) } }
+        val setAside = remember(nonTheme) { nonTheme?.let { TraceEnd(it, TraceEndKind.Bonus, seq = session.state.found.size + session.state.nonTheme.size, holdMs = StrandsMotion.ReplayBonusHoldMs) } }
         Column(modifier) {
             WordSlotLine(slot, model.foundCount, model.totalCount, reduceMotion = !forward)
             StrandsBoardContent(

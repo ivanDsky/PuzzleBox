@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.strandsui
 
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.ivandsky.puzzlebox.games.strands.StrandsReplayMove
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -59,6 +60,20 @@ class StrandsReplayBoardMotionTest {
         assertTrue("the path is on the board as the step lands", early.any { !it.sameAs(untraced) })
 
         assertTrue("the path is gone once it has dissolved", rig.boardAfter(2_000).sameAs(untraced))
+    }
+
+    @Test
+    fun `playing, a non-theme word holds its path about a second, then dissolves`() {
+        rig.show(bare(), animate = true)
+        val untraced = rig.board()
+
+        rig.update(nonThemeStep)
+        val held = rig.boardAfter(StrandsMotion.ReplayBonusHoldMs - 100L)
+        assertTrue("the path is still selected at about 900 ms", !held.sameAs(untraced))
+        assertTrue("and still whole, not dissolving", held.sameAs(rig.boardAfter(0)))
+
+        val gone = rig.boardAfter(100L + MotionTokens.DissolveDuration + 200L)
+        assertTrue("the path is gone after the hold and the dissolve", gone.sameAs(untraced))
     }
 
     private fun restingStepIsPlain(found: StrandsReplayMove) {

@@ -14,11 +14,11 @@ internal data class TraceEndLook(val error: Boolean, val shake: Float, val alpha
 /** The path's end as a pure timeline: the look at any elapsed time, null once it is gone, so tests read it without a clock. */
 internal object TraceEndTimeline {
 
-    fun look(kind: TraceEndKind, elapsedMs: Int, reduceMotion: Boolean, pulse: Boolean = false): TraceEndLook? {
+    fun look(kind: TraceEndKind, elapsedMs: Int, reduceMotion: Boolean, pulse: Boolean = false, hold: Int? = null): TraceEndLook? {
         val error = kind == TraceEndKind.Error
-        if (elapsedMs >= totalMs(kind, reduceMotion)) return null
+        if (elapsedMs >= totalMs(kind, reduceMotion, hold)) return null
         if (reduceMotion) return TraceEndLook(error, shake = 0f, alpha = 1f, scale = 1f)
-        val held = if (error) StrandsMotion.ErrorShakeMs else holdMs(kind)
+        val held = if (error) StrandsMotion.ErrorShakeMs else hold ?: holdMs(kind)
         val pulsed = if (pulse) pulseScale(elapsedMs) else 1f
         if (elapsedMs < held) {
             val shake = if (error) shakeAt(elapsedMs.toFloat() / StrandsMotion.ErrorShakeMs) else 0f
@@ -29,12 +29,13 @@ internal object TraceEndTimeline {
         return TraceEndLook(error, shake = 0f, alpha = 1f - eased, scale = (1f - (1f - MotionTokens.DissolveScale) * eased) * pulsed)
     }
 
-    fun totalMs(kind: TraceEndKind, reduceMotion: Boolean): Int = when {
+    /** [hold] overrides the kind's own hold of a set-aside path (the replay board's). */
+    fun totalMs(kind: TraceEndKind, reduceMotion: Boolean, hold: Int? = null): Int = when {
         reduceMotion && kind == TraceEndKind.Error -> MotionTokens.ErrorReducedHold
         reduceMotion && kind == TraceEndKind.Bonus -> StrandsMotion.ReducedBonusHoldMs
         reduceMotion -> maxOf(holdMs(kind), StrandsMotion.ReducedHoldMinMs)
         kind == TraceEndKind.Error -> MotionTokens.ErrorDuration
-        else -> holdMs(kind) + MotionTokens.DissolveDuration
+        else -> (hold ?: holdMs(kind)) + MotionTokens.DissolveDuration
     }
 
     private fun holdMs(kind: TraceEndKind): Int = when (kind) {
