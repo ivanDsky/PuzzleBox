@@ -81,7 +81,7 @@ class CloudSyncRunner(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                Log.w(TAG, "sync run failed: ${e.message}")
+                Log.w(TAG, "sync run failed: ${e.javaClass.simpleName}")
             }
         }
     }

@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSpace
 import com.ivandsky.puzzlebox.testing.cloud.FakeSyncStateStore
+import com.ivandsky.puzzlebox.testing.network.FakeNetworkStatus
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import java.time.Clock
 import java.time.Instant
@@ -17,6 +18,7 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
@@ -65,6 +67,7 @@ class SyncedKindsCloudSyncTest {
     private val space = FakeCloudSpace(identity) { cloudNow }
     private val store = FakeSyncStateStore(lastUid = LAST)
     private val clock = MutableClock(10_000L)
+    private val network = FakeNetworkStatus(initial = false)
     private val log = mutableListOf<String>()
     private val loggingSpace = LoggingSpace(space, log)
 
@@ -81,7 +84,7 @@ class SyncedKindsCloudSyncTest {
             override val default = dispatcher
         }
         return SyncedKindsCloudSync(
-            kinds, loggingSpace, store, identity, CloudErase(loggingSpace, kinds, store, identity), clock, dispatchers, scope,
+            kinds, loggingSpace, store, identity, CloudErase(loggingSpace, kinds, store, identity), clock, dispatchers, network, scope,
         )
     }
 
@@ -347,7 +350,7 @@ class SyncedKindsCloudSyncTest {
     }
 
     @Test
-    fun `a failure stops the run at once and shows its state with the last success time`() = runTest {
+    fun `a failed pull fails only its kind and the next kind still pulls and pushes`() = runTest {
         val completions = kind("completions")
         val drafts = kind("drafts")
         val engine = engine(listOf(completions, drafts))
@@ -355,12 +358,130 @@ class SyncedKindsCloudSyncTest {
         assertEquals(CloudSyncState.Synced(10_000L), engine.state.value)
         log.clear()
         clock.ms = 50_000L
+        completions.edit("g1", mapOf("n" to 1L))
+        drafts.edit("d2", mapOf("n" to 2L))
         space.failNext(CloudResult.Offline)
 
         engine.syncNow()
 
         assertEquals(CloudSyncState.Offline(10_000L), engine.state.value)
-        assertEquals(listOf("adopt completions ann", "adopt drafts ann", "changedSince completions ann null"), log)
+        assertEquals(
+            listOf(
+                "adopt completions ann",
+                "adopt drafts ann",
+                "changedSince completions ann null",
+                "changedSince drafts ann null",
+                "pending drafts ann",
+                "put drafts ann d2",
+                "acknowledge drafts ann d2",
+            ),
+            log,
+        )
+        assertEquals(listOf("g1"), completions.pendingRowIds)
+    }
+
+    @Test
+    fun `a denied put on one kind still lets the next kind upload`() = runTest {
+        val completions = kind("completions")
+        val drafts = kind("drafts")
+        completions.edit("g1", mapOf("n" to 1L))
+        drafts.edit("d1", mapOf("n" to 2L))
+        completions.onCall = { if (it == "pending") space.failNext(CloudResult.Denied) }
+        val engine = engine(listOf(completions, drafts))
+
+        engine.syncNow()
+
+        assertTrue(completions.calls("acknowledge").isEmpty())
+        assertEquals(listOf("g1"), completions.pendingRowIds)
+        assertEquals(listOf("d1"), space.docs(ANN, "drafts").map { it.id })
+        assertTrue(drafts.pendingRowIds.isEmpty())
+        assertEquals(CloudSyncState.Paused(PauseReason.Denied, null), engine.state.value)
+        assertFalse(store.restoreShown(ANN))
+    }
+
+    @Test
+    fun `the run shows the worst failure of its kinds`() = runTest {
+        val results = listOf(CloudResult.Offline, CloudResult.Exhausted, CloudResult.Denied)
+        val expected = mapOf(
+            CloudResult.Offline to CloudSyncState.Offline(null),
+            CloudResult.Exhausted to CloudSyncState.Paused(PauseReason.Exhausted, null),
+            CloudResult.Denied to CloudSyncState.Paused(PauseReason.Denied, null),
+        )
+        for (first in results) for (second in results) {
+            space.failNext(first)
+            space.failNext(second)
+            val engine = engine(listOf(kind("completions"), kind("drafts")))
+
+            engine.syncNow()
+
+            val worst = if (results.indexOf(first) >= results.indexOf(second)) first else second
+            assertEquals("$first then $second", expected.getValue(worst), engine.state.value)
+        }
+    }
+
+    @Test
+    fun `a wrong account after a failed kind still ends the run with no further call`() = runTest {
+        space.failNext(CloudResult.Offline)
+        space.failNext(CloudResult.WrongAccount)
+        val engine = engine(listOf(kind("completions"), kind("drafts"), kind("published")))
+
+        engine.syncNow()
+
+        assertEquals(
+            listOf("changedSince completions ann null", "changedSince drafts ann null"),
+            log.filter { it.startsWith("changedSince") },
+        )
+        assertFalse(engine.state.value is CloudSyncState.Synced)
+    }
+
+    @Test
+    fun `an edit made while its row uploads starts one more run that sends it`() = runTest {
+        val completions = kind("completions")
+        completions.edit("g1", mapOf("n" to 1L))
+        var edited = false
+        completions.onCall = {
+            if (it == "acknowledge" && !edited) {
+                edited = true
+                completions.edit("g1", mapOf("n" to 2L))
+            }
+        }
+        val engine = engine(listOf(completions))
+
+        engine.syncNow()
+
+        assertEquals(2, completions.calls("adopt").size)
+        assertEquals(listOf("put completions ann g1", "put completions ann g1"), log.filter { it.startsWith("put") })
+        assertTrue(completions.pendingRowIds.isEmpty())
+        assertEquals(2L, space.docs(ANN, "completions").single().fields["n"])
+        assertEquals(CloudSyncState.Synced(10_000L), engine.state.value)
+    }
+
+    @Test
+    fun `pending ids left after a run start at most one more run`() = runTest {
+        val completions = kind("completions")
+        completions.edit("g1", mapOf("n" to 1L))
+        var n = 1L
+        completions.onCall = { if (it == "acknowledge") completions.edit("g1", mapOf("n" to ++n)) }
+        val engine = engine(listOf(completions))
+
+        engine.syncNow()
+        advanceUntilIdle()
+
+        assertEquals(2, completions.calls("adopt").size)
+        assertEquals(listOf("g1"), completions.pendingRowIds)
+        assertEquals(CloudSyncState.Synced(10_000L), engine.state.value)
+    }
+
+    @Test
+    fun `a failed run does not rerun for the pending ids it left`() = runTest {
+        val completions = kind("completions")
+        completions.edit("g1", mapOf("n" to 1L))
+        space.failNext(CloudResult.Denied)
+        val engine = engine(listOf(completions))
+
+        engine.syncNow()
+
+        assertEquals(1, completions.calls("adopt").size)
     }
 
     @Test

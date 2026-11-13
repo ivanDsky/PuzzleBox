@@ -26,6 +26,10 @@ internal class SyncRun(
 
         /** The account's daily write cap is spent; some pending docs wait for the next day. */
         data object WriteCap : Stop
+
+        /** True when only this kind failed: the run goes on with the next kind (Denied, Offline and Exhausted). */
+        val perKind: Boolean
+            get() = this is Cloud && (result == CloudResult.Offline || result == CloudResult.Exhausted || result == CloudResult.Denied)
     }
 
     /** True while [uid] is still the signed-in account. */
@@ -78,9 +82,24 @@ internal class SyncRun(
         return if (docs.size < pending.size) Stop.WriteCap else null
     }
 
-    /** The pause for [stop] as the [attempt]th consecutive cloud failure; null when [stop] is no reason to pause. */
-    fun pause(stop: Stop, attempt: Int, lastAtMs: Long?): SyncBackoff.Pause? = when (stop) {
+    /**
+     * The pause for [stop] as the [attempt]th consecutive cloud failure; null when [stop] is no reason to pause.
+     * [online] is whether the network is up, which decides if an `Offline` answer is retried (see [SyncBackoff.after]).
+     */
+    fun pause(stop: Stop, attempt: Int, lastAtMs: Long?, online: Boolean): SyncBackoff.Pause? = when (stop) {
         Stop.WriteCap -> SyncBackoff.capped(lastAtMs, WriteCap.msUntilNextDay(clock.millis(), clock.zone))
-        is Stop.Cloud -> SyncBackoff.after(stop.result, attempt, lastAtMs)
+        is Stop.Cloud -> SyncBackoff.after(stop.result, attempt, lastAtMs, online)
+    }
+
+    /** Whichever of [a] and [b] the run shows: Denied, then Exhausted, Offline, the write cap; null only if both are. */
+    fun worse(a: Stop?, b: Stop?): Stop? = if (a == null || b == null) a ?: b else if (rank(b) > rank(a)) b else a
+
+    private fun rank(stop: Stop): Int = when (stop) {
+        Stop.WriteCap -> 0
+        is Stop.Cloud -> when (stop.result) {
+            CloudResult.Offline -> 1
+            CloudResult.Exhausted -> 2
+            else -> 3
+        }
     }
 }
