@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.history.HistoryDayRow
+import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.ReplaySolve
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
@@ -27,7 +28,8 @@ import java.time.LocalDate
  * ([onScope], [onWindow]). The calendar (a week strip that expands to the month, [onShowCalendar] / [onSelectDay])
  * leads, then the viewer's solve of the day ([onPlayAgain], [onOpenReplay], [onCompare]), then the board under the page
  * dots; a horizontal swipe on the board reports [onSwipe] (+1 next board, -1 previous) and a vertical drag scrolls
- * the hub. The first time the hub opens, a hint and the current dot nudge the swipe, then [onNudgeShown].
+ * the hub. The first time the hub opens, a hint and the current dot nudge the swipe, then [onNudgeShown]. On
+ * [HistoryLayout.TwoPane] the hub is [RanksTwoPane] instead: no title menu, week strip, dots or swipe.
  */
 @Composable
 internal fun RanksScreen(
@@ -35,6 +37,7 @@ internal fun RanksScreen(
     onSignIn: () -> Unit,
     onSwipe: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    layout: HistoryLayout = HistoryLayout.SinglePane,
     onPickBoard: (RanksBoard) -> Unit = {},
     onNudgeShown: () -> Unit = {},
     onScope: (RankScope) -> Unit = {},
@@ -45,6 +48,10 @@ internal fun RanksScreen(
     onOpenReplay: (HistoryDayRow, ReplaySolve) -> Unit = { _, _ -> },
     onCompare: (HistoryDayRow) -> Unit = {},
 ) {
+    if (layout == HistoryLayout.TwoPane) {
+        RanksTwoPane(state, onSignIn, modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare)
+        return
+    }
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
     val current = state.places.getOrNull(state.position)

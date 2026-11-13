@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.history.ranks
 
+import android.content.res.Configuration
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.GameStats
@@ -15,6 +17,7 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.history.CalendarState
 import com.ivandsky.puzzlebox.history.HistoryDayRow
+import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.HistoryReplays
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
@@ -158,3 +161,49 @@ private fun RanksMonthWithStatsPreview() = Hub(RanksUiState(ZipSlice, calendar =
 @PuzzleBoxPreviews
 @Composable
 private fun RanksYourSolvePreview() = Hub(RanksUiState(ZipSlice, calendar = Week, stats = Stats, yourSolve = Solve))
+
+private val TabletPlaces = listOf(
+    BoardPlace(RanksBoard.Overall, "Overall", Standing.Place(4)),
+    BoardPlace(RanksBoard.Game(GameId("zip")), "Zip", Standing.Place(2)),
+    BoardPlace(RanksBoard.Game(GameId("tango")), "Tango", Standing.Beyond),
+    BoardPlace(RanksBoard.Game(GameId("queens")), "Queens", Standing.None),
+    BoardPlace(RanksBoard.Game(GameId("strands")), "Strands", Standing.Pending),
+)
+
+@Composable
+private fun Tablet(state: RanksUiState) {
+    PuzzleBoxTheme {
+        RanksScreen(state, onSignIn = {}, onSwipe = {}, layout = HistoryLayout.TwoPane)
+    }
+}
+
+// A Galaxy Tab S9 Ultra held landscape: 14.6", 2960 x 1848 px at 2x.
+private const val TabWidth = 1480
+private const val TabHeight = 924
+
+@Preview(name = "Tab S9 Ultra Light", widthDp = TabWidth, heightDp = TabHeight, showBackground = true)
+@Preview(name = "Tab S9 Ultra Dark", widthDp = TabWidth, heightDp = TabHeight, showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun RanksTwoPanePreview() = Tablet(
+    RanksUiState(ZipSlice, position = 1, boardCount = TabletPlaces.size, calendar = Week.copy(expanded = true), stats = Stats, places = TabletPlaces),
+)
+
+@Preview(name = "Tab S9 Ultra Light", widthDp = TabWidth, heightDp = TabHeight, showBackground = true)
+@Preview(name = "Tab S9 Ultra Dark", widthDp = TabWidth, heightDp = TabHeight, showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun RanksTwoPaneOverallPreview() = Tablet(
+    RanksUiState(
+        RanksBoardSlice("Overall · today", RankOrder.TimeThenHints, OverallState.Partial(Standings, loaded = 2, total = 5).toDailyBoardState("you"), "Points from every game's board. Higher is better.", "2 of 5 boards"),
+        boardCount = TabletPlaces.size,
+        calendar = Week.copy(expanded = true),
+        stats = Stats,
+        places = TabletPlaces,
+    ),
+)
+
+@Preview(name = "Tab S9 Ultra Light", widthDp = TabWidth, heightDp = TabHeight, showBackground = true)
+@Preview(name = "Tab S9 Ultra Dark", widthDp = TabWidth, heightDp = TabHeight, showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+private fun RanksTwoPanePastDayPreview() = Tablet(
+    RanksUiState(ZipSlice, position = 1, boardCount = TabletPlaces.size, calendar = Week.copy(expanded = true), stats = Stats, yourSolve = Solve, places = TabletPlaces),
+)
