@@ -30,11 +30,11 @@ internal fun tuneLabel(scope: RankScope, window: Window): String? = listOfNotNul
     window.name.takeIf { window != Window.Day },
 ).takeIf { it.isNotEmpty() }?.joinToString(" · ")
 
-/** The hub's title with the active [label] (if any) and the tune icon that calls [onTune]. */
+/** The hub's bar: the [title] (the board menu) at the start, the active [label] (if any) and the tune icon that calls [onTune] at the end. */
 @Composable
-internal fun RanksTopBar(label: String?, onTune: () -> Unit, modifier: Modifier = Modifier) {
+internal fun RanksTopBar(label: String?, onTune: () -> Unit, modifier: Modifier = Modifier, title: @Composable () -> Unit) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        Text("Ranks", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+        title()
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
             label?.let {
                 Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.testTag("ranks.tune.label"))

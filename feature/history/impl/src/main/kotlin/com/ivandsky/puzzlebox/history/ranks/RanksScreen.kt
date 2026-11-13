@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.history.ranks
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -21,11 +22,12 @@ import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
 /**
- * The Ranks hub as a stack of slots, each reading only its own slice of [state]. The calendar (a week strip that
- * expands to the month, [onShowCalendar] / [onSelectDay]) leads, then the viewer's solve of the day ([onPlayAgain],
- * [onOpenReplay], [onCompare]), then the board under the page dots; a horizontal swipe on the board reports [onSwipe]
- * (+1 next board, -1 previous) and a vertical drag scrolls the hub. The top bar's tune icon opens the [TuneSheet]
- * ([onScope], [onWindow]); the dots sit under the bar.
+ * The Ranks hub as a stack of slots, each reading only its own slice of [state]. The top bar's title is the board menu
+ * ([onPickBoard]; its "How ranks work" row opens the [HowRanksWorkSheet]) and its tune icon opens the [TuneSheet]
+ * ([onScope], [onWindow]). The calendar (a week strip that expands to the month, [onShowCalendar] / [onSelectDay])
+ * leads, then the viewer's solve of the day ([onPlayAgain], [onOpenReplay], [onCompare]), then the board under the page
+ * dots; a horizontal swipe on the board reports [onSwipe] (+1 next board, -1 previous) and a vertical drag scrolls
+ * the hub. The first time the hub opens, a hint and the current dot nudge the swipe, then [onNudgeShown].
  */
 @Composable
 internal fun RanksScreen(
@@ -33,6 +35,8 @@ internal fun RanksScreen(
     onSignIn: () -> Unit,
     onSwipe: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    onPickBoard: (RanksBoard) -> Unit = {},
+    onNudgeShown: () -> Unit = {},
     onScope: (RankScope) -> Unit = {},
     onWindow: (RanksSelection.Window) -> Unit = {},
     onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit = { _, _ -> },
@@ -42,18 +46,32 @@ internal fun RanksScreen(
     onCompare: (HistoryDayRow) -> Unit = {},
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
-    Column(
-        modifier
-            .fillMaxSize()
-            .testTag("route.ranks")
-            .verticalScroll(rememberScrollState())
-            .padding(Spacing.lg),
-    ) {
-        RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true })
-        RanksCalendar(state.calendar, state.stats, onShowCalendar, onSelectDay)
-        YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
-        PageDots(state.boardCount, state.position, Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.md).testTag("ranks.dots"))
-        BoardSwipe(onSwipe) { RanksBoardSlot(state.board, state.signIn, onSignIn) }
+    var howRanksWork by rememberSaveable { mutableStateOf(false) }
+    val current = state.places.getOrNull(state.position)
+    val nudge = rememberSwipeNudge(show = state.nudge && !tuning && !howRanksWork, onShown = onNudgeShown)
+    Box(modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .testTag("route.ranks")
+                .verticalScroll(rememberScrollState())
+                .padding(Spacing.lg),
+        ) {
+            RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
+                RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true })
+            }
+            RanksCalendar(state.calendar, state.stats, onShowCalendar, onSelectDay)
+            YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
+            PageDots(
+                state.boardCount,
+                state.position,
+                Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.md).testTag("ranks.dots"),
+                pulseScale = { dotPulseScale(nudge.pulse.value) },
+            )
+            BoardSwipe(onSwipe) { RanksBoardSlot(state.board, state.signIn, onSignIn) }
+        }
+        SwipeNudgePill(nudgeText(state.places, state.position), nudge, Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.lg))
     }
     if (tuning) TuneSheet(state.scope, state.window, onScope, onWindow, onDismiss = { tuning = false })
+    if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false })
 }
