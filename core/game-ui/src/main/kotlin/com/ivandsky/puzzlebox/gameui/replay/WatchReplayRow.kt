@@ -78,8 +78,8 @@ private fun WatchReplayRowFrame(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Box(Modifier.size(44.dp).background(colors.primary, CircleShape), contentAlignment = Alignment.Center) {
-                Icon(PuzzleIcons.Play, contentDescription = null, tint = colors.onPrimary, modifier = Modifier.size(24.dp))
+            Box(Modifier.size(PlayCircleSize).background(colors.primary, CircleShape), contentAlignment = Alignment.Center) {
+                Icon(PuzzleIcons.Play, contentDescription = null, tint = colors.onPrimary, modifier = Modifier.size(ReplaySizes.Icon))
             }
             Column(Modifier.weight(1f)) {
                 label?.let { Text(it, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant) }
@@ -90,3 +90,5 @@ private fun WatchReplayRowFrame(
         }
     }
 }
+
+private val PlayCircleSize = 44.dp

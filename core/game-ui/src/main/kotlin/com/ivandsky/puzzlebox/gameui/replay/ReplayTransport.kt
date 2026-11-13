@@ -46,7 +46,10 @@ private val SPEEDS = intArrayOf(1, 2, 4, 8)
 private val ReadoutHeight = 32.dp
 private val ControlGap = Spacing.sm
 private val RowHeight = 56.dp
-private val TouchTarget = 48.dp
+private val SkipCheckSlot = 18.dp
+private val IconSize = ReplaySizes.Icon
+private val PlayIconSize = 28.dp
+private val TouchTarget = ReplaySizes.TouchTarget
 
 /** The controls' height around a seek strip of [stripHeight], so a page can size its board around them without measuring. */
 internal fun replayControlsHeight(stripHeight: Dp): Dp = ReadoutHeight + ControlGap + stripHeight + ControlGap + RowHeight
@@ -137,7 +140,7 @@ private fun SkipIdleButton(on: Boolean, onChange: (Boolean) -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        Icon(PuzzleIcons.Check, contentDescription = null, tint = colors.primary, modifier = Modifier.size(18.dp).alpha(checkAlpha))
+        Icon(PuzzleIcons.Check, contentDescription = null, tint = colors.primary, modifier = Modifier.size(SkipCheckSlot).alpha(checkAlpha))
         Text(
             text = ReplayCopy.SKIP_IDLE,
             style = MaterialTheme.typography.labelLarge,
@@ -168,7 +171,7 @@ private fun StepButton(description: String, tag: String, icon: ImageVector, onCl
             .testTag(tag)
             .semantics { contentDescription = description },
     ) {
-        Icon(icon, contentDescription = null, modifier = Modifier.size(24.dp))
+        Icon(icon, contentDescription = null, modifier = Modifier.size(IconSize))
     }
 }
 
@@ -181,6 +184,6 @@ private fun PlayButton(playing: Boolean, onClick: () -> Unit) {
             .testTag(ReplayTags.PLAY)
             .semantics { contentDescription = if (playing) ReplayCopy.PAUSE else ReplayCopy.PLAY },
     ) {
-        Icon(if (playing) ReplayIcons.Pause else PuzzleIcons.Play, contentDescription = null, modifier = Modifier.size(28.dp))
+        Icon(if (playing) ReplayIcons.Pause else PuzzleIcons.Play, contentDescription = null, modifier = Modifier.size(PlayIconSize))
     }
 }
