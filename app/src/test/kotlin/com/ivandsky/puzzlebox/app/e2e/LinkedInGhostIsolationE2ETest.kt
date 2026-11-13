@@ -19,6 +19,29 @@ import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccountSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInPhotoSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
+import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
+import com.ivandsky.puzzlebox.data.leaderboard.FinalBoardStore
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
+import com.ivandsky.puzzlebox.data.replay.DailyReplayRepository
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.visibility.OwnTier
+import com.ivandsky.puzzlebox.data.visibility.ReplayOptInStamp
+import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
+import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
+import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
+import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.domain.ranks.OverallState
+import com.ivandsky.puzzlebox.domain.ranks.RankWindow
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
+import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.model.SolveReplay
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyReplayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeFinalBoardStore
+import com.ivandsky.puzzlebox.testing.repository.FakeReplayOptInStamp
+import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
+import kotlinx.coroutines.withTimeout
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import java.util.concurrent.CompletableFuture
@@ -51,8 +74,16 @@ class LinkedInGhostIsolationE2ETest {
         single<LinkedInAccountSource> { source }
         single<LinkedInPhotoSource> { photos }
         single<LinkedInSessionCookies> { FakeLinkedInSessionCookies(sentinelSession) }
+        single<FinalBoardStore> { finalBoards }
+        single<DailyReplayRepository> { replays }
+        single<ReplayOptInStamp> { optIns }
+        single<VisibilityRepository> { visibility }
     }
     private val today = E2E_TODAY
+    private val finalBoards = FakeFinalBoardStore()
+    private val replays = FakeDailyReplayRepository("uid-me")
+    private val optIns = FakeReplayOptInStamp()
+    private val visibility = FakeVisibilityRepository(OwnTier.Chosen(VisibilityTier.Replays))
     private val older = E2E_TODAY.minusDays(3)
     private val me = Identity("uid-me", "Me Myself", photoUrl = null)
     private val other = Identity("uid-other", "Someone Else", photoUrl = null)
@@ -120,6 +151,48 @@ class LinkedInGhostIsolationE2ETest {
 
             // Fetched and kept: the rows are in the LinkedIn database for both days.
             listOf(today, older).forEach { day -> assertEquals(GHOSTS.map { it.memberRef to it.name }.toSet(), storedGhosts(day)) }
+        }
+    }
+
+    /** The hub's reads and writes (Final boards, Overall, the daily replay, the visibility tier) never see a connection (A15, A20, SC 12). */
+    @Test
+    fun connectionsReachNoHubPath() {
+        val phone = phoneOf(me)
+        val yesterday = today.minusDays(1)
+        // A rival on every day of the window, so the Final boards the hub stores are not empty ones.
+        val days = listOf(older, yesterday, today)
+        days.forEach { day ->
+            phone.graph.leaderboard.setEntries(LeaderboardRef(ZIP, day), listOf(LeaderboardEntry(other.uid, other.displayName, zipRefKey(day), 70_000, 0, 1L)))
+        }
+        phone.shell {
+            runBlocking { link().connect(PROFILE_ID, CONSENT_AT_MS) }
+            openZipPage()
+            awaitSynced(today)
+            awaitLooper { textsUnder("daily_board.ghost.name").toSet() == names }
+
+            // Tier Replays and opted in before the solve, so the solve below is published at Posted.
+            graph.koin.get<DailyReplayPublisher>().start()
+            awaitLooper { optIns.stamps.containsKey(me.uid) }
+            graph.koin.get<LeaderboardSubmitWatcher>().start()
+            val record = CompletionRecord(ZipPuzzleRef(PuzzleKey.Daily(yesterday, zipNumber(yesterday))), 61_000, 0, RecordStats(1, "{}"))
+            runBlocking { graph.koin.get<CompletionRepository>().onCompleted(record, SolveReplay.of(REPLAY_BYTES)) }
+            awaitLooper { replays.publishCalls.isNotEmpty() }
+
+            val window = RankWindow.Month(today)
+            val boards = graph.koin.get<ObserveRankWindow>()(window, listOf(ZipDefinition.id))
+            val overall = offMain { withTimeout(LinkedInDataWorld.TIMEOUT_MS) { graph.koin.get<ObserveOverall>()(boards, window).first { it is OverallState.Complete } } }
+            val rows = (overall as OverallState.Complete).standings.rows
+            assertEquals("Overall ranks the real rival and no connection", setOf(other.uid), rows.map { it.uid }.toSet())
+            assertNamesNoGhost("Overall $rows")
+            // A Final board is only ever read back as the page that was put, so reading it back is reading the put.
+            val stored = days.mapNotNull { day -> runBlocking { finalBoards.get(LeaderboardRef(ZIP, day)) }?.let { day to it } }
+            assertTrue("the hub stored a Final board", finalBoards.putCalls > 0 && stored.isNotEmpty())
+            stored.forEach { (day, page) -> assertNamesNoGhost("Final board $day ${page.entries}") }
+            assertEquals("the real rival is on a stored board", setOf(other.uid), stored.flatMap { (_, page) -> page.entries.map { it.uid } }.toSet())
+            assertTrue("the solve was published: ${replays.publishCalls}", replays.publishCalls.single().first == LeaderboardRef(ZIP, yesterday))
+            replays.publishCalls.forEach { (board, blob) -> assertNamesNoGhost("replay doc $board ${String(blob, Charsets.ISO_8859_1)}") }
+            assertNamesNoGhost("visibility doc ${visibility.setCalls} ${runBlocking { visibility.ownTier.first() }}")
+            graph.leaderboard.submitted.forEach { assertNamesNoGhost("submitted ${it.uid} ${it.displayName} ${it.puzzleRef}") }
         }
     }
 
@@ -217,6 +290,7 @@ class LinkedInGhostIsolationE2ETest {
     }
 
     private companion object {
+        val REPLAY_BYTES = "replay".toByteArray()
         const val ZIP_TYPE = 6
         const val ARCHIVE_DAYS = 10L
         const val CONSENT_AT_MS = 1_700_000_000_000L
