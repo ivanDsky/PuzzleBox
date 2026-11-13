@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeFinalBoardStore
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Clock
@@ -43,6 +44,7 @@ internal class RanksTestHub(
     val identity = FakeIdentityService(initial = identity)
     val calendar = FakeGameCalendar(today)
     val completions = FakeCompletionRepository()
+    val preferences = FakeUserPreferencesRepository()
     val daily = FakeDailyRepository()
     val matches = FakeMatchRepository().apply { signedInUid = identity?.uid }
 
@@ -73,6 +75,7 @@ internal class RanksTestHub(
             idTokens = object : GoogleIdTokenProvider {
                 override suspend fun idToken(activityContext: Context) = GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.CANCELLED)
             },
+            preferences = preferences,
             calendar = calendar,
             registry = registry,
             clock = clock,
