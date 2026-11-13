@@ -297,6 +297,32 @@ class TimelineTest {
         assertEquals(listOf(1, 2, 4), listOf(before.marks, after.marks, next.marks))
     }
 
+    /** A mark's cell is its value / 10: a mark continues the tap cycle of an earlier mark on the same cell. */
+    private class TapReplay : GameReplay<Session> {
+        private val inner = CountingReplayGame(goal = 4)
+
+        override fun step(session: Session, move: ReplayMove, atMs: Long) = inner.step(session, move, atMs)
+
+        override fun factsOf(initial: Session) = inner.factsOf(initial)
+
+        override fun continuesTap(previous: ReplayMove, move: ReplayMove) = previous.args[0] / 10 == move.args[0] / 10
+    }
+
+    @Test
+    fun `a same-cell tap within 500 ms of the last is one tick at the later stamp, any other stays two`() {
+        // Cell 1: three taps chain into one tick at 1 800. Cell 2 follows at 1 900 (another cell) and at 2 400 (500 ms: no merge).
+        val moves = listOf(
+            StampedMove(1_000, mark(11)), StampedMove(1_400, mark(12)), StampedMove(1_800, mark(13)),
+            StampedMove(1_900, mark(21)), StampedMove(2_400, mark(22)),
+        )
+        val tapped = checkNotNull(Timeline.open(marks, TapReplay(), Session(), sealed(moves, ReplayOutcome.GaveUp, endMs = 9_000)))
+        assertArrayEquals(longArrayOf(1_800, 1_900, 2_400), tapped.moveTimesMs)
+        assertEquals(3, tapped.moveKindsAt.size)
+        // Every frame is a straight fold of the moves with the merged ones stamped at the tick: none shows a half-way board.
+        val straight = StraightFold(moves.map { if (it.atMs < 1_800) StampedMove(1_800, it.move) else it }, endMs = 9_000, goal = 4)
+        for (tMs in listOf(0L, 1_000, 1_399, 1_400, 1_799, 1_800, 1_899, 1_900, 2_399, 2_400, 9_000)) straight.assertFrame(tapped.at(tMs), tMs)
+    }
+
     private fun everyTenMs(count: Int) = List(count) { index -> StampedMove((index + 1) * 10L, mark(index % 9)) }
 
     private fun sealed(moves: List<StampedMove>, outcome: ReplayOutcome, endMs: Long, game: GameId = marks): SolveReplay {

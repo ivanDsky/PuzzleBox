@@ -22,7 +22,9 @@ class Timeline private constructor(
      * What each tick of [moveTimesMs] was, parallel to it. Moves sharing a stamp are one tick; the
      * highest of Mistake > Hint > Undo > Normal wins. A Mistake the game calls transient
      * ([GameReplay.isTransientMistake]) and that the next tick lands within [MISTAKE_SETTLE_MS] of is
-     * not one: it takes the highest non-Mistake kind of its own moves.
+     * not one: it takes the highest non-Mistake kind of its own moves. A group that [GameReplay.continuesTap]
+     * folds into the next one, which starts within [MISTAKE_SETTLE_MS], is no tick of its own: it takes
+     * the next group's stamp, so one tap cycle is one tick.
      */
     val moveKindsAt: Array<MoveKind> = fold.tickKinds()
 
@@ -143,6 +145,15 @@ class Timeline private constructor(
             }
         }
 
+        /**
+         * The group `start until end` was folded into the stamp group that follows it: [before] and [after]
+         * bracket it, and [next] is the board after the first move of that group. A Mistake the game calls
+         * transient over that span leaves it, as it would have left the next group's settling.
+         */
+        fun mergedIntoNext(start: Int, end: Int, before: S, after: S, next: S) {
+            if (isMistake(start, end) && replay.isTransientMistake(before, after, next)) downgrade(start, end)
+        }
+
         private fun isMistake(start: Int, end: Int): Boolean {
             for (index in start until end) if (kinds[index] == MoveKind.Mistake) return true
             return false
@@ -214,12 +225,25 @@ class Timeline private constructor(
                 val merged = if (pendingAtMs == atMs) merge(pendingMark, mark) else mark
                 pendingAtMs = -1L
                 pendingMark = MoveMark.Plain
+                var after = next
                 if (moves.isEmpty() || moves.last().atMs != atMs) {
-                    if (moves.isNotEmpty()) settle.closed(groupStart, moves.size, moves.last().atMs, checkNotNull(groupBefore), session, nextAtMs = atMs)
-                    groupBefore = session
-                    groupStart = moves.size
+                    if (moves.isNotEmpty() && continuesTap(replay, moves, groupStart, stamped.move, atMs)) {
+                        // One tap cycle: the group so far takes this stamp, and its moves are folded again at it.
+                        settle.mergedIntoNext(groupStart, moves.size, checkNotNull(groupBefore), session, next)
+                        session = checkNotNull(groupBefore)
+                        for (index in groupStart until moves.size) {
+                            moves[index] = StampedMove(atMs, moves[index].move)
+                            session = replay.step(session, moves[index].move, atMs) ?: return null
+                            if ((index + 1) % CHECKPOINT_EVERY == 0) checkpointSessions[(index + 1) / CHECKPOINT_EVERY] = session
+                        }
+                        after = replay.step(session, stamped.move, atMs) ?: return null
+                    } else {
+                        if (moves.isNotEmpty()) settle.closed(groupStart, moves.size, moves.last().atMs, checkNotNull(groupBefore), session, nextAtMs = atMs)
+                        groupBefore = session
+                        groupStart = moves.size
+                    }
                 }
-                session = next
+                session = after
                 moves += StampedMove(atMs, stamped.move)
                 kinds += merged.kind
                 hinted += merged.hinted
@@ -241,6 +265,13 @@ class Timeline private constructor(
                 Checkpoint(checkpointSessions[index], checkpointGroupBefores[index], hintedSoFar)
             }
             return Timeline(game, record.endMs, record.outcome, Fold(replay, facts, moves, kinds, hinted, checkpoints))
+        }
+
+        /** Whether [move], stamped [atMs], continues a tap cycle of the group `groupStart until moves.size`, which ended less than [MISTAKE_SETTLE_MS] ago. */
+        private fun <S : GameSession> continuesTap(replay: GameReplay<S>, moves: List<StampedMove>, groupStart: Int, move: ReplayMove, atMs: Long): Boolean {
+            if (atMs - moves.last().atMs >= MISTAKE_SETTLE_MS) return false
+            for (index in moves.lastIndex downTo groupStart) if (replay.continuesTap(moves[index].move, move)) return true
+            return false
         }
 
         private fun merge(first: MoveMark, second: MoveMark) =
