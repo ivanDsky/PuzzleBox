@@ -25,7 +25,7 @@ fun ReplayPage(
 ) {
     Column(modifier.fillMaxSize().padding(horizontal = Spacing.lg)) {
         ReplayTopBar(ReplayCopy.TITLE, ReplayCopy.subtitle(context, timeline.moveTimesMs.size), onBack) {
-            ShowErrorsToggle(showErrors, onShowErrorsChange)
+            if (board.hasErrors) ShowErrorsToggle(showErrors, onShowErrorsChange)
         }
         ReplayPlayer(timeline, board, Modifier.weight(1f).fillMaxSize().padding(bottom = Spacing.lg), showErrors)
     }
