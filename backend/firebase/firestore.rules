@@ -467,14 +467,21 @@ service cloud.firestore {
     match /users/{uid}/{kind}/{docId} {
       // The account's own cloud space (ADR-0029): its owner reads, lists, writes and deletes, on the
       // closed list of kinds below, and nobody else touches it. Reads cover the owner's own collection
-      // queries (`updatedAt >= cursor`); a query across accounts or kinds matches no rule.
+      // queries (`updatedAt >= cursor`); a query across accounts or kinds matches no rule. Only a Google
+      // sign-in reaches the space, the one sign-in the client syncs for; an anonymous account is refused.
       allow read, delete: if request.auth != null
         && request.auth.uid == uid
+        && isGoogleSignIn()
         && isSpaceKind();
 
       allow create, update: if request.auth != null
         && request.auth.uid == uid
+        && isGoogleSignIn()
         && validSpaceDoc();
+
+      function isGoogleSignIn() {
+        return request.auth.token.firebase.sign_in_provider == 'google.com';
+      }
 
       function isSpaceKind() {
         return kind in ['completions', 'drafts', 'published', 'received', 'boards', 'replays'];
@@ -494,30 +501,42 @@ service cloud.firestore {
             || (kind == 'replays' && validReplayDoc(d)));
       }
 
-      // One document per month, `yyyy-MM`, or `yyyy-MM-n` once the month overflows.
+      // One document per month, `yyyy-MM`, or `yyyy-MM-n` once the month overflows. A record is named by
+      // its completion's sync id (32 lowercase hex). The rules language cannot walk a map's values, so a
+      // record's own fields stay bounded by the doc cap of 1000 records and Firestore's own document size
+      // limit; the keys, which it can join into one string, are checked here.
       function validCompletionsDoc(d) {
         return d.keys().hasOnly(['formatVersion', 'updatedAt', 'records'])
           && d.keys().hasAll(['records'])
           && docId.matches('^[0-9]{4}-(0[1-9]|1[0-2])(-[0-9]+)?$')
           && d.records is map
-          && d.records.size() <= 1000;
+          && d.records.size() <= 1000
+          && d.records.keys().join('').matches('^([0-9a-f]{32})*$');
       }
 
+      // One document per draft, named by its random UUID. `reservedCode` is the share code the draft is
+      // kept under once published; it is optional, so a doc written before it existed stays valid.
       function validDraftDoc(d) {
         return d.keys().hasOnly(['formatVersion', 'updatedAt', 'gameId', 'variant', 'draftFormatVersion', 'name',
-            'blob', 'editedAtMs', 'deleted', 'deletedAtMs'])
+            'blob', 'editedAtMs', 'reservedCode', 'deleted', 'deletedAtMs'])
           && (d.keys().hasAll(['gameId', 'variant', 'draftFormatVersion', 'name', 'blob', 'editedAtMs'])
             || isTombstone(d))
+          && docId.matches('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
           && isSpaceName(d.get('name', ''))
-          && (!('blob' in d) || (d.blob is bytes && d.blob.size() <= 65536));
+          && (!('blob' in d) || (d.blob is bytes && d.blob.size() <= 65536))
+          && (!('reservedCode' in d) || isShareCode(d.reservedCode));
       }
 
+      // `variant` and `authorTimeMs` are optional, so a doc written before they existed stays valid.
       function validPublishedDoc(d) {
-        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'gameId', 'name', 'publishedAtMs', 'unpublished'])
+        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'gameId', 'name', 'publishedAtMs', 'unpublished',
+            'variant', 'authorTimeMs'])
           && d.keys().hasAll(['gameId', 'name', 'publishedAtMs', 'unpublished'])
           && isShareCode(docId)
           && isSpaceName(d.get('name', ''))
-          && d.unpublished is bool;
+          && d.unpublished is bool
+          && (!('variant' in d) || (d.variant is string && d.variant.size() <= 32))
+          && (!('authorTimeMs' in d) || (d.authorTimeMs is int && d.authorTimeMs >= 0));
       }
 
       // The live shape carries what opens the puzzle offline (gameId, variant, sharedFormatVersion, bytes), the
@@ -539,14 +558,56 @@ service cloud.firestore {
           && (!('bytes' in d) || (d.bytes is bytes && d.bytes.size() <= 8192));
       }
 
-      // One document per game, day and hashed LinkedIn profile; the rows are the board's connections.
+      // One document per game, day and hashed LinkedIn profile, named `game_day_profileKey`; the rows are
+      // the board's connections, at most 50 beside the player's own.
       function validBoardDoc(d) {
         return d.keys().hasOnly(['formatVersion', 'updatedAt', 'game', 'day', 'profileKey', 'readAtMs',
             'complete', 'rows'])
           && d.keys().hasAll(['game', 'day', 'profileKey', 'readAtMs', 'complete', 'rows'])
+          && docId.matches('^[a-z0-9]{1,32}_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9a-f]{16}$')
+          && d.game is string && d.game.size() <= 32
+          && d.day is string && d.day.size() == 10
+          && d.profileKey is string && d.profileKey.size() == 16
+          && docId == d.game + '_' + d.day + '_' + d.profileKey
           && d.complete is bool
           && d.rows is list
-          && d.rows.size() <= 51;
+          && d.rows.size() <= 51
+          && validBoardRows(d.rows);
+      }
+
+      // The rules language has no loop over a list, so each possible row is checked by its index, and a request
+      // may evaluate 1000 expressions at most: a row's key allow-list fits for all 51 rows, its value types and
+      // string lengths do not. A row holds only the codec's keys, so nothing else (a photo, a session value)
+      // reaches the space.
+      function validBoardRows(rows) {
+        let n = rows.size();
+        let k = ['name', 'timeMs', 'hintFree', 'flawless', 'isOwn', 'ref'];
+        return (n <= 0 || rows[0].keys().hasOnly(k)) && (n <= 1 || rows[1].keys().hasOnly(k))
+          && (n <= 2 || rows[2].keys().hasOnly(k)) && (n <= 3 || rows[3].keys().hasOnly(k))
+          && (n <= 4 || rows[4].keys().hasOnly(k)) && (n <= 5 || rows[5].keys().hasOnly(k))
+          && (n <= 6 || rows[6].keys().hasOnly(k)) && (n <= 7 || rows[7].keys().hasOnly(k))
+          && (n <= 8 || rows[8].keys().hasOnly(k)) && (n <= 9 || rows[9].keys().hasOnly(k))
+          && (n <= 10 || rows[10].keys().hasOnly(k)) && (n <= 11 || rows[11].keys().hasOnly(k))
+          && (n <= 12 || rows[12].keys().hasOnly(k)) && (n <= 13 || rows[13].keys().hasOnly(k))
+          && (n <= 14 || rows[14].keys().hasOnly(k)) && (n <= 15 || rows[15].keys().hasOnly(k))
+          && (n <= 16 || rows[16].keys().hasOnly(k)) && (n <= 17 || rows[17].keys().hasOnly(k))
+          && (n <= 18 || rows[18].keys().hasOnly(k)) && (n <= 19 || rows[19].keys().hasOnly(k))
+          && (n <= 20 || rows[20].keys().hasOnly(k)) && (n <= 21 || rows[21].keys().hasOnly(k))
+          && (n <= 22 || rows[22].keys().hasOnly(k)) && (n <= 23 || rows[23].keys().hasOnly(k))
+          && (n <= 24 || rows[24].keys().hasOnly(k)) && (n <= 25 || rows[25].keys().hasOnly(k))
+          && (n <= 26 || rows[26].keys().hasOnly(k)) && (n <= 27 || rows[27].keys().hasOnly(k))
+          && (n <= 28 || rows[28].keys().hasOnly(k)) && (n <= 29 || rows[29].keys().hasOnly(k))
+          && (n <= 30 || rows[30].keys().hasOnly(k)) && (n <= 31 || rows[31].keys().hasOnly(k))
+          && (n <= 32 || rows[32].keys().hasOnly(k)) && (n <= 33 || rows[33].keys().hasOnly(k))
+          && (n <= 34 || rows[34].keys().hasOnly(k)) && (n <= 35 || rows[35].keys().hasOnly(k))
+          && (n <= 36 || rows[36].keys().hasOnly(k)) && (n <= 37 || rows[37].keys().hasOnly(k))
+          && (n <= 38 || rows[38].keys().hasOnly(k)) && (n <= 39 || rows[39].keys().hasOnly(k))
+          && (n <= 40 || rows[40].keys().hasOnly(k)) && (n <= 41 || rows[41].keys().hasOnly(k))
+          && (n <= 42 || rows[42].keys().hasOnly(k)) && (n <= 43 || rows[43].keys().hasOnly(k))
+          && (n <= 44 || rows[44].keys().hasOnly(k)) && (n <= 45 || rows[45].keys().hasOnly(k))
+          && (n <= 46 || rows[46].keys().hasOnly(k)) && (n <= 47 || rows[47].keys().hasOnly(k))
+          && (n <= 48 || rows[48].keys().hasOnly(k)) && (n <= 49 || rows[49].keys().hasOnly(k))
+          && (n <= 50 || rows[50].keys().hasOnly(k));
       }
 
       // One document per completion, named by the completion's sync id (32 lowercase hex); the replay is the
