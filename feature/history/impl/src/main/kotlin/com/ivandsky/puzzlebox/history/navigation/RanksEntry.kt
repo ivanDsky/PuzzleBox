@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.history.navigation
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
@@ -9,6 +11,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.history.ranks.RanksScreen
 import com.ivandsky.puzzlebox.history.ranks.RanksViewModel
 import com.ivandsky.puzzlebox.navigation.Navigator
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 /**
@@ -24,6 +27,8 @@ fun EntryProviderScope<NavKey>.ranksEntry(
     entry<HistoryRootKey> {
         val viewModel = koinViewModel<RanksViewModel>()
         val state by viewModel.uiState.collectAsStateWithLifecycle()
-        RanksScreen(state)
+        val context = LocalContext.current
+        val scope = rememberCoroutineScope()
+        RanksScreen(state, onSignIn = { scope.launch { viewModel.signIn(context) } })
     }
 }

@@ -14,6 +14,8 @@ dependencies {
     // A play-again day opens play's play-again key (api edge only).
     implementation(projects.feature.play.api)
     implementation(projects.core.data)
+    // The hub's board asks a signed-out player to sign in, in place.
+    implementation(projects.core.auth)
     // HistoryViewModel resolves per-game names against the app's GameRegistry.
     implementation(projects.core.game)
     // ADR-0001: history is game-agnostic — play-again sessions come from each game's plugin
