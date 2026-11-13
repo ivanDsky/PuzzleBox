@@ -48,7 +48,7 @@ off  # user ruling 2026-11-05 (replaces 2026-10-31 `always`): publish the review
 - pr-check: none   # user ruling 2026-11-07 (ADR-0023, replaces the required `pr-check`): PRs run no CI and main requires no status check. The merge gate is local: `./gradlew assembleDebug test` green on the PR branch rebased onto fresh origin/main. Main's workflow re-runs it after every merge; red main → stop merging, revert the culprit or fix it forward in one line. Skip `gh pr checks` waits (there are none)
 
 ## Consent ledger
-- pre-approved: merge dark slices on green   # user ruling 2026-11-07: agent merges dark/non-behavioral slice PRs on a green LOCAL suite (`./gradlew assembleDebug test` on the rebased branch, ADR-0023) + clean fast review; flip PRs, live changes (migrations, persisted formats, manifest/permissions, dependency/SDK bumps) still wait for the user
+- pre-approved: merge dark slices on green   # user ruling 2026-11-07: agent merges dark/non-behavioral slice PRs on a green LOCAL suite (`./gradlew assembleDebug test` on the rebased branch, ADR-0023) + clean fast review; flip PRs, live changes (migrations, persisted formats, manifest/permissions, dependency/SDK bumps, GitHub Actions version bumps) still wait for the user
 
 ## Testing style
 - runner: ./gradlew :app:testDebugUnitTest   # JVM unit tests against fakes
