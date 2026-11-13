@@ -12,7 +12,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.linkedin.SavedBoardState
 import com.ivandsky.puzzlebox.gameui.board.DailyBoard
 import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
 import com.ivandsky.puzzlebox.model.GameId
@@ -30,8 +29,8 @@ import org.koin.core.parameter.parametersOf
  * player's own row pinned at its bottom when it is outside the top rows. That is the [picked] calendar day, else
  * the day card's own [cardDay] (null until it loads, when it is the game calendar's today). Signed out, the board's
  * slot offers Google sign-in, which signs in here and loads the board in the same place. [linkedIn] adds that day's
- * LinkedIn connections to the board, as far as the phone holds them. A day whose board is saved draws it settled, in
- * its final order with no rank motion, and a line under it says when it was read (or that none was kept).
+ * LinkedIn connections to the board, as far as the phone holds them, and with LinkedIn the board moves like any live
+ * one, a saved day too. A line under it says when a saved day's board was read (or that none was kept).
  */
 @Composable
 internal fun GamePageBoard(
@@ -56,7 +55,6 @@ internal fun GamePageBoard(
             state = state.board,
             ghosts = state.ghosts,
             animated = linkedIn,
-            settled = state.saved is SavedBoardState.Saved,
             isToday = otherDay == null,
             signIn = {
                 Column(Modifier.testTag("leaderboard.signIn")) {

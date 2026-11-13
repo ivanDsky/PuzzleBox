@@ -323,7 +323,7 @@ class GamePageBoardViewModelTest {
     }
 
     @Test
-    fun `without LinkedIn the board is never saved or settled`() {
+    fun `without LinkedIn the board is never saved`() {
         viewModel.state.launchIn(screen)
         settle()
 

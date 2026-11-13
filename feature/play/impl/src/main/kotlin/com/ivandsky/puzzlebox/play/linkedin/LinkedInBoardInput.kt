@@ -9,7 +9,7 @@ import com.ivandsky.puzzlebox.gameui.board.LinkedInYou
 /**
  * What a day's LinkedIn data adds to a board that ranks it with the PuzzleBox rows: the connections as [ghosts], each
  * with its cached photo, and the player themself as [you] (imported result, LinkedIn name and photo); none of either
- * while there is nothing. [saved] says whether the day's board is a saved one, which the page draws settled.
+ * while there is nothing. [saved] says whether the day's board is a saved one, which the page marks with a line under the board.
  */
 internal data class LinkedInBoardInput(
     val ghosts: List<GhostRowModel> = emptyList(),
