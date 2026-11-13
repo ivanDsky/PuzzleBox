@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.Identity

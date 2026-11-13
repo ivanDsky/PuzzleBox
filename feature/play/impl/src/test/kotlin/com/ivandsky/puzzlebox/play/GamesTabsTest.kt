@@ -4,7 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
