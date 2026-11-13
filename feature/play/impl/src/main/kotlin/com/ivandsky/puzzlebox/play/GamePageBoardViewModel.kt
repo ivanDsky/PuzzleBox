@@ -49,7 +49,7 @@ import kotlinx.coroutines.flow.update
  * it ranks lower. While that day's board has not arrived, [board] is Loading, except that with LinkedIn a board
  * already drawn stays whole (day, rows and ghosts) until the next day is ready: the title and the rows change together.
  * [ghosts] are the LinkedIn connections of that day, none until they are read. [saved] says whether that day's board
- * is a saved one, which the page marks and draws settled.
+ * is a saved one, which the page marks with a line under the board.
  */
 internal data class GamePageBoardState(
     val day: LocalDate? = null,

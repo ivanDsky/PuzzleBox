@@ -68,7 +68,7 @@ class DailyBoardListMotionTest {
     private fun ranked(vararg players: String) =
         players.mapIndexed { index, player -> DailyBoardLine.Real(real(player).row, index + 1) }
 
-    private fun show(initial: List<DailyBoardLine>, animated: Boolean = true, reducedMotion: Boolean = false, settled: Boolean = false) {
+    private fun show(initial: List<DailyBoardLine>, animated: Boolean = true, reducedMotion: Boolean = false) {
         if (reducedMotion) {
             val context = ApplicationProvider.getApplicationContext<Context>()
             Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
@@ -77,7 +77,7 @@ class DailyBoardListMotionTest {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                DailyBoardList(lines, RankOrder.TimeThenHints, pinned = pinned, animated = animated, settled = settled)
+                DailyBoardList(lines, RankOrder.TimeThenHints, pinned = pinned, animated = animated)
             }
         }
         // The first lines are on show from the start; the rows' own entrance, if any, is played out.
@@ -332,16 +332,21 @@ class DailyBoardListMotionTest {
     }
 
     @Test
-    fun `a settled list keeps the podium's medals and lands every change at once`() {
-        show(ranked("ada", "bo", "cy", "di"), settled = true)
-        assertTrue("the medals are there from the start", showsMedal("ada", MedalGold))
+    fun `a saved board switching days glides, rolls, arrives and leaves like a live board`() {
+        show(ranked("ada", "bo", "cy", "di"))
+        val diFrom = top("di")
 
-        change { lines = ranked("di", "ada", "bo", "cy") }
+        change { lines = ranked("di", "ada", "cy", "ei") }
+        composeRule.mainClock.advanceTimeBy(EARLY_MS)
 
+        assertTrue("di glides up from $diFrom, it does not jump", top("di") < diFrom)
+        assertEquals("bo is still shrinking out", 1, count("bo"))
         rank("di").assertTextEquals("1")
-        assertTrue("di has its gold at once", showsMedal("di", MedalGold))
-        assertFalse("cy has no medal at once", showsAnyMedal("cy"))
-        assertEquals(1, count("di"))
+        settle()
+        assertEquals("bo is gone once it has shrunk out", 0, count("bo"))
+        assertEquals("ei arrived", 1, count("ei"))
+        assertTrue("di has its gold once it has moved", showsMedal("di", MedalGold))
+        assertFalse("ei is fourth: no medal", showsAnyMedal("ei"))
     }
 
     @Test
