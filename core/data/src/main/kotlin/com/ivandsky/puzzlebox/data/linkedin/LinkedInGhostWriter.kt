@@ -14,7 +14,7 @@ import java.time.LocalDate
  * connections board into stored rows. Cap 50 connections; the player's own row is stored beside them (it is
  * told apart on read by its member ref) and never counts against the cap. A board is the player's own record
  * once read, so nothing prunes it by age. The caller passes both dates and the fetch time, so this class
- * reads no clock and nothing here leaves the phone.
+ * reads no clock. The rows it stores are synced to the owner's cloud space when signed in.
  *
  * It takes no [LinkedInStoreLock] itself, which is not reentrant: the caller already holds it, as it does for
  * every LinkedIn store write.

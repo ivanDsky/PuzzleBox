@@ -75,7 +75,7 @@ class LinkedInGhostWriterTest {
     )
 
     private suspend fun stored(day: LocalDate, game: GameId = this.game): List<GhostEntity> =
-        dao.observe(game.value, day.toString()).first()
+        dao.board(game.value, day.toString())
 
     private suspend fun write(board: LinkedInBoard, day: LocalDate = today, game: GameId = this.game, fetchedAtMs: Long = 5L) =
         writer.write(game, day, today, ownProfileId, board, fetchedAtMs)

@@ -73,7 +73,7 @@ class LinkedInDaoTest {
         outcome = outcome,
     )
 
-    private suspend fun board(game: String, day: String): Set<GhostEntity> = ghosts.observe(game, day).first().toSet()
+    private suspend fun board(game: String, day: String): Set<GhostEntity> = ghosts.board(game, day).toSet()
 
     @Test
     fun `replacing a board drops the rows the new board lacks`() = runTest {
@@ -112,29 +112,14 @@ class LinkedInDaoTest {
     }
 
     @Test
-    fun `clearing both stores leaves both tables empty`() = runTest {
-        ghosts.replace("queens", "2026-11-01", listOf(ghost("a")))
-        ghosts.replace("zip", "2026-11-02", listOf(ghost("b", game = "zip", day = "2026-11-02")))
+    fun `clearing the fetch log leaves it empty`() = runTest {
         log.put(entry("Own", "Solved"))
         log.put(entry("Board", "Board", game = "zip", day = "2026-11-02"))
 
-        ghosts.clear()
         log.clear()
 
-        assertEquals(emptySet<GhostEntity>(), board("queens", "2026-11-01"))
-        assertEquals(emptySet<GhostEntity>(), board("zip", "2026-11-02"))
         assertEquals(emptyList<FetchLogEntity>(), log.observe("queens", "2026-11-01", "me").first())
         assertEquals(emptyList<FetchLogEntity>(), log.observe("zip", "2026-11-02", "me").first())
-    }
-
-    @Test
-    fun `clearing ghosts keeps the fetch log`() = runTest {
-        ghosts.replace("queens", "2026-11-01", listOf(ghost("a")))
-        log.put(entry("Own", "Solved"))
-
-        ghosts.clear()
-
-        assertEquals(listOf(entry("Own", "Solved")), log.observe("queens", "2026-11-01", "me").first())
     }
 
     @Test
@@ -189,7 +174,7 @@ class LinkedInDaoTest {
 
         ghosts.replace("queens", "2026-11-01", rows)
 
-        val stored = ghosts.observe("queens", "2026-11-01").first().associateBy { it.memberRef }
+        val stored = ghosts.board("queens", "2026-11-01").associateBy { it.memberRef }
         assertNull(stored.getValue("hidden").timeMs)
         assertEquals(rows.toSet(), stored.values.toSet())
     }
@@ -202,18 +187,6 @@ class LinkedInDaoTest {
         ghosts.replace("tango", "2026-11-09", listOf(ghost("friend", game = "tango", day = "2026-11-09", fetchedAtMs = 9_000L)))
 
         assertEquals(newest, ghosts.observeNewestOf("me", owner = null).first())
-    }
-
-    @Test
-    fun `the one-shot reads see what the observed ones do`() = runTest {
-        val own = ghost("me", fetchedAtMs = 5_000L)
-        savedFor("alice", "queens", "2026-11-01", listOf(own, ghost("a")))
-        savedFor("bob", "queens", "2026-11-02", listOf(ghost("me", day = "2026-11-02", fetchedAtMs = 9_000L)))
-
-        assertEquals(ghosts.observe("queens", "2026-11-01").first().toSet(), ghosts.board("queens", "2026-11-01").toSet())
-        assertEquals(own, ghosts.newestOf("me", owner = "alice"))
-        assertEquals(ghosts.observeNewestOf("me", owner = "bob").first(), ghosts.newestOf("me", owner = "bob"))
-        assertNull(ghosts.newestOf("nobody", owner = null))
     }
 
     @Test

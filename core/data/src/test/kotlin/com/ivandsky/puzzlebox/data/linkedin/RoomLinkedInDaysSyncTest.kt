@@ -108,7 +108,7 @@ class RoomLinkedInDaysSyncTest {
     private suspend fun logged(day: LocalDate, item: LinkedInItem, profileId: String = "me"): String? =
         db.fetchLogDao().get(zip.value, day.toString(), item.name, profileId)?.outcome
 
-    private suspend fun ghosts(day: LocalDate) = db.ghostDao().observe(zip.value, day.toString()).first()
+    private suspend fun ghosts(day: LocalDate) = db.ghostDao().board(zip.value, day.toString())
 
     private suspend fun imports() = completions.observeImports().first()
 

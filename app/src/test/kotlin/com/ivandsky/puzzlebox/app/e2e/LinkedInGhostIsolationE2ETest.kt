@@ -266,7 +266,7 @@ class LinkedInGhostIsolationE2ETest {
         offMain { graph.koin.get<LinkedInDays>().observe(ZipDefinition.id, day).first() }.ghosts.map { it.name }.toSet()
 
     private fun ShellRobot.storedGhosts(day: LocalDate): Set<Pair<String, String>> =
-        runBlocking { linkedInDb().ghostDao().observe(ZIP, day.toString()).first() }.map { it.memberRef to it.name }.toSet()
+        runBlocking { linkedInDb().ghostDao().board(ZIP, day.toString()) }.map { it.memberRef to it.name }.toSet()
 
     /** Runs [block] on another thread while this one keeps turning the main looper, which the day view's collectors need. */
     private fun <T> ShellRobot.offMain(block: suspend () -> T): T {

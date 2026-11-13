@@ -180,7 +180,7 @@ class CloudSyncSentinelE2ETest {
     }
 
     private fun ShellRobot.storedGhostRowCount(): Int = runBlocking {
-        listOf(E2E_TODAY, LINKEDIN_PAST_DAY).sumOf { day -> linkedInDb().ghostDao().observe(ZipDefinition.id.value, day.toString()).first().size }
+        listOf(E2E_TODAY, LINKEDIN_PAST_DAY).sumOf { day -> linkedInDb().ghostDao().board(ZipDefinition.id.value, day.toString()).size }
     }
 
     /** Every key and every value of [value] as text, one entry each; bytes as one char per byte. */

@@ -118,7 +118,7 @@ class LinkedInDisconnectE2ETest {
     }
 
     private fun ShellRobot.storedGhostRows(): Set<GhostEntity> =
-        runBlocking { linkedInDb().ghostDao().observe(ZIP, today.toString()).first() }.toSet()
+        runBlocking { linkedInDb().ghostDao().board(ZIP, today.toString()) }.toSet()
 
     private fun ShellRobot.savedBoard(day: LocalDate): SavedBoardEntity? =
         runBlocking { linkedInDb().savedBoardDao().get(ZIP, day.toString()) }
