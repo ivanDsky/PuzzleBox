@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.DpSize
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.BoardGrid
+import com.ivandsky.puzzlebox.gameui.replay.ReplayHintBadge
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
@@ -85,7 +86,7 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
  * finger in cell units after each move's steps, and null at the lift, before the lift's step.
  * [dim] fades the letters and connectors it names (the editor's unselected paths); the live
  * trace is never faded. [floor] is the least cell pitch ([strandsCellSizeFor]). [readOnly] drops the
- * gesture layer, so the board takes no drag (the replay board).
+ * gesture layer, so the board takes no drag (the replay board). [hintBadges] are the cells that wear the replay's hint badge in their top-right corner.
  */
 @Composable
 internal fun StrandsBoardContent(
@@ -100,6 +101,7 @@ internal fun StrandsBoardContent(
     dim: StrandsDim = StrandsDim.None,
     floor: Dp = StrandsBoardSpec.TouchFloor,
     readOnly: Boolean = false,
+    hintBadges: Set<Coord> = emptySet(),
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalBoardColors.current
@@ -148,6 +150,7 @@ internal fun StrandsBoardContent(
                         trace = trace,
                         onTrace = onTrace,
                     )
+                    if (Coord(row, col) in hintBadges) ReplayHintBadge(Modifier.align(Alignment.TopEnd))
                 },
             )
             if (!readOnly) {

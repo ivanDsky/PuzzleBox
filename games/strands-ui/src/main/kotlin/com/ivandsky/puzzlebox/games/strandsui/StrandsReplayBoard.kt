@@ -1,19 +1,32 @@
 package com.ivandsky.puzzlebox.games.strandsui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
+import com.ivandsky.puzzlebox.games.strands.Coord
+import com.ivandsky.puzzlebox.games.strands.StrandsPuzzle
 import com.ivandsky.puzzlebox.games.strands.StrandsSession
+import com.ivandsky.puzzlebox.games.strands.StrandsState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 
 /**
  * Strands' read-only replay board: the committed board and the marks live play derives from it
- * (found words, spangram, hint outline), drawn by the live board. No trace, verdict, input or
- * motion: every frame rests, so scrubbing redraws at once.
+ * (found words, spangram, hint outline), drawn by the live board. No trace, verdict or input. A
+ * frame that found one more word than [ReplayFrame.before] plays the live settle or link sweep
+ * while the replay plays ([ReplayBoardOptions.animate]); paused or scrubbing, every frame rests.
+ *
+ * [ReplayFrame.hinted] holds the cells of each hinted word as `row * cols + col`
+ * ([com.ivandsky.puzzlebox.games.strands.StrandsReplay.markOf]); the board puts the hint badge on
+ * the first letter of each such word. A hinted word is always either found or the active hint, so
+ * the badge never outlives the word's marks.
  */
 internal object StrandsReplayBoard : GameReplayBoard {
     override val pieces: String get() = "words"
@@ -22,17 +35,42 @@ internal object StrandsReplayBoard : GameReplayBoard {
     override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {
         // The frame is game-blind; this board is only reached through Strands' own plugin, so a miss draws nothing.
         val session = frame.session as? StrandsSession ?: return
+        val before = (frame.before as? StrandsSession)?.state
         val model = remember(session.state) { StrandsRendererModel.of(session.state) }
+        val event = remember(session.state, before) { foundEventOf(before, session.state) }
+        // A word that was shown at rest (paused, scrubbed) must not play when the replay resumes on the same frame.
+        var rested by remember { mutableIntStateOf(-1) }
+        SideEffect { if (!options.animate) rested = event?.seq ?: -1 }
+        val badges = remember(session.state.puzzle, frame.hinted) { hintBadges(session.state.puzzle, frame.hinted) }
         StrandsBoardContent(
             model = model,
-            found = null,
-            reduceMotion = true,
+            found = event?.takeIf { options.animate && it.seq != rested },
+            reduceMotion = !options.animate,
             trace = { Trace() },
             onTrace = {},
             // Nothing to touch, so the board shrinks to whatever space it is given.
             floor = 0.dp,
             readOnly = true,
+            hintBadges = badges,
             modifier = modifier,
         )
     }
+}
+
+/** The word [after] found on top of [before] (one more, the newest), as live play would announce it; null for any other step. */
+private fun foundEventOf(before: StrandsState?, after: StrandsState): FoundEvent? {
+    if (before == null || after.found.size != before.found.size + 1) return null
+    val puzzle = after.puzzle
+    val text = after.found.last()
+    val spangram = text == puzzle.spangram.text
+    val word = if (spangram) puzzle.spangram else puzzle.themeWords.firstOrNull { it.text == text } ?: return null
+    return FoundEvent(word.cells, spangram, seq = after.found.size)
+}
+
+/** The first letter cell of every word whose cells [hinted] names. */
+private fun hintBadges(puzzle: StrandsPuzzle, hinted: Set<Int>): Set<Coord> {
+    if (hinted.isEmpty()) return emptySet()
+    return (puzzle.themeWords + puzzle.spangram)
+        .filter { word -> word.cells.first().let { it.row * puzzle.cols + it.col } in hinted }
+        .mapTo(HashSet()) { it.cells.first() }
 }

@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.strands
 
 import com.ivandsky.puzzlebox.game.replay.GameReplay
+import com.ivandsky.puzzlebox.game.replay.MoveKind
+import com.ivandsky.puzzlebox.game.replay.MoveMark
 import com.ivandsky.puzzlebox.game.replay.ReplayFacts
 import com.ivandsky.puzzlebox.game.replay.ReplayMove
 import com.ivandsky.puzzlebox.games.strands.engine.StrandsHint
@@ -30,6 +32,17 @@ object StrandsReplay : GameReplay<StrandsSession> {
         }
         if (!legal) return null
         return session.withHint(StrandsHint.Reveal(ActiveHint(word.text, stage)))
+    }
+
+    /**
+     * A hint is a Hint mark naming its word's cells by `row * cols + col`, the packing the recorded
+     * paths use. A submit is Normal: live play counts no wrong guess (a non-word is never recorded).
+     */
+    override fun markOf(before: StrandsSession, move: ReplayMove, after: StrandsSession, previous: ReplayMove?): MoveMark {
+        val puzzle = after.state.puzzle
+        val hint = StrandsReplayMove.of(move, puzzle) as? StrandsReplayMove.Hint ?: return MoveMark.Plain
+        val cells = hint.wordIn(puzzle).cells.mapTo(LinkedHashSet()) { it.row * puzzle.cols + it.col }
+        return MoveMark(MoveKind.Hint, cells)
     }
 
     override fun factsOf(initial: StrandsSession): (StrandsSession) -> ReplayFacts {
