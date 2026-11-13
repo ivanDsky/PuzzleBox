@@ -101,4 +101,23 @@ class RanksReadBudgetTest {
         assertEquals(0, leaderboard.fetchCalls)
         assertEquals(0, leaderboard.countCalls)
     }
+
+    @Test
+    fun `picking a day reads that day's boards once and re-picking or paging the calendar reads nothing more`() = runTest {
+        val viewModel = hub().viewModel()
+        collect(viewModel)
+        val yesterday = today.minusDays(1)
+
+        viewModel.selectDay(yesterday)
+        runCurrent()
+        val afterPick = leaderboard.observedBoards.size
+        viewModel.selectDay(yesterday)
+        viewModel.showCalendar(yesterday.minusDays(7), expanded = true)
+        runCurrent()
+
+        assertEquals((games.map { LeaderboardRef(it.value, today) } + games.map { LeaderboardRef(it.value, yesterday) }), leaderboard.observedBoards)
+        assertEquals(afterPick, leaderboard.observedBoards.size)
+        assertEquals(0, leaderboard.fetchCalls)
+        assertEquals(0, leaderboard.countCalls)
+    }
 }
