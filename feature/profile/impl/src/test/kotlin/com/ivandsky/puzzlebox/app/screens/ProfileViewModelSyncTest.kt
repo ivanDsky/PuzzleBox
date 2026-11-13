@@ -23,10 +23,13 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -47,13 +50,25 @@ class ProfileViewModelSyncTest {
         override suspend fun idToken(activityContext: Context): GoogleIdToken = GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.OTHER)
     }
 
-    private fun TestScope.viewModel(cloud: FakeCloudSync?): ProfileViewModel {
+    /** A clock the test moves by hand, counting how often it is read. */
+    private class MovableClock(var nowMs: Long) : Clock() {
+        var reads = 0
+        override fun getZone() = ZoneOffset.UTC
+        override fun withZone(zone: java.time.ZoneId?): Clock = this
+        override fun instant(): Instant {
+            reads++
+            return Instant.ofEpochMilli(nowMs)
+        }
+    }
+
+    private fun TestScope.viewModel(cloud: FakeCloudSync?, now: Clock = clock): ProfileViewModel {
         val history = ObserveGameHistory(registry, FakeDailyRepository(), FakeCompletionRepository())
         val vm = ProfileViewModel(
             identityService = FakeIdentityService(initial = Identity("u1", "Ann", null)),
             idTokenProvider = UnavailableGoogleIdTokenProvider,
             observeGameStats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
             cloudSync = cloud,
+            clock = now,
         )
         backgroundScope.launch { vm.uiState.collect {} }
         advanceUntilIdle()
@@ -103,7 +118,7 @@ class ProfileViewModelSyncTest {
         PauseReason.entries.forEach { reason ->
             cloud.state.value = CloudSyncState.Paused(reason, lastAtMs = 5_000L)
             advanceUntilIdle()
-            assertEquals(GoogleSync(GoogleSync.Status.Paused), vm.sync())
+            assertEquals(GoogleSync(GoogleSync.Status.Paused(reason)), vm.sync())
         }
 
         cloud.state.value = CloudSyncState.SignedOut
@@ -179,5 +194,44 @@ class ProfileViewModelSyncTest {
         advanceUntilIdle()
 
         assertNull(vm.sync()?.eraseMessage)
+    }
+
+    @Test
+    fun `the age clock ticks each minute while collected`() = runTest(dispatcher) {
+        val movable = MovableClock(nowMs = 10 * MINUTE)
+        val vm = viewModel(FakeCloudSync(CloudSyncState.Synced(1L)), movable)
+        val seen = mutableListOf<Long>()
+        backgroundScope.launch { vm.nowMs.collect { seen += it } }
+        runCurrent()
+        assertEquals(listOf(10 * MINUTE), seen)
+
+        movable.nowMs = 11 * MINUTE
+        advanceTimeBy(MINUTE)
+        runCurrent()
+        movable.nowMs = 12 * MINUTE
+        advanceTimeBy(MINUTE)
+        runCurrent()
+
+        assertEquals(listOf(10 * MINUTE, 11 * MINUTE, 12 * MINUTE), seen)
+    }
+
+    @Test
+    fun `the age clock stops when nothing collects it`() = runTest(dispatcher) {
+        val movable = MovableClock(nowMs = 10 * MINUTE)
+        val vm = viewModel(FakeCloudSync(CloudSyncState.Synced(1L)), movable)
+        val collecting: Job = backgroundScope.launch { vm.nowMs.collect {} }
+        runCurrent()
+        collecting.cancel()
+        runCurrent()
+        val reads = movable.reads
+
+        advanceTimeBy(5 * MINUTE)
+        runCurrent()
+
+        assertEquals(reads, movable.reads)
+    }
+
+    private companion object {
+        const val MINUTE = 60_000L
     }
 }

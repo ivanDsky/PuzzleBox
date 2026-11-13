@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.app.screens
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
@@ -27,8 +26,8 @@ fun ProfileRoute(
     // The credential sheet launches from the current Activity's context (I2) —
     // read in composition (LocalContext is composable-scoped), handed per call.
     val activityContext = LocalContext.current
-    // The update time is phrased once per visit; a Profile left open does not tick.
-    val nowMs = remember { System.currentTimeMillis() }
+    // Ticks each minute while Profile is visible; the lifecycle-aware collect stops it in the background.
+    val nowMs by viewModel.nowMs.collectAsStateWithLifecycle()
     ProfileContent(
         state = state,
         onSignIn = { viewModel.onSignIn(activityContext) },
