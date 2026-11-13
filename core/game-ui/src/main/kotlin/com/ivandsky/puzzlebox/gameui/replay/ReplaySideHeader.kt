@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.replay.ReplayFacts
 
 internal val SideHeaderHeight = 40.dp
+private val DiscSize = 28.dp
 
 /** Who a board belongs to: a [tint] disc with the initial, the [name], and under it where that side stands. */
 @Composable
@@ -36,7 +37,7 @@ internal fun ReplaySideHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Box(Modifier.size(28.dp).background(tint, CircleShape), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(DiscSize).background(tint, CircleShape), contentAlignment = Alignment.Center) {
             Text(name.take(1).uppercase(), style = MaterialTheme.typography.labelLarge, color = onTint)
         }
         Column {
