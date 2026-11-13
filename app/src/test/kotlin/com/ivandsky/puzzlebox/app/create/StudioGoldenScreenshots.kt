@@ -16,6 +16,7 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.create.editor.ActionArea
 import com.ivandsky.puzzlebox.create.editor.StudioScreen
 import com.ivandsky.puzzlebox.create.editor.ToolStrip
@@ -55,17 +56,17 @@ import java.io.File
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w320dp-h640dp-xhdpi")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w320dp-h640dp-xhdpi")
 class StudioGoldenScreenshotsPhone320 : StudioGoldenScreenshots(PlayLayout.SinglePane, "phone320")
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp-420dpi")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp-420dpi")
 class StudioGoldenScreenshotsPhone411 : StudioGoldenScreenshots(PlayLayout.SinglePane, "phone411")
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w1280dp-h800dp-land-mdpi")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w1280dp-h800dp-land-mdpi")
 class StudioGoldenScreenshotsTablet : StudioGoldenScreenshots(PlayLayout.TwoPane, "tablet")
 
 abstract class StudioGoldenScreenshots(private val layout: PlayLayout, private val device: String) {

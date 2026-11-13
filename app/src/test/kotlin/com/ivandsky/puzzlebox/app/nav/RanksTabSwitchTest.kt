@@ -5,6 +5,7 @@ import androidx.compose.ui.graphics.vector.VectorPath
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.e2e.E2E_TODAY
 import com.ivandsky.puzzlebox.app.e2e.E2eKoinGraph
 import com.ivandsky.puzzlebox.app.e2e.ShellRobot
@@ -38,7 +39,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class RanksTabSwitchTest {
 
     @Test

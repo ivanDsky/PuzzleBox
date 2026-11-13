@@ -10,6 +10,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
@@ -59,7 +60,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class DuelUserCheckE2ETest {
 
     private val graph = E2eKoinGraph(E2E_TODAY, releaseFlags = FakeReleaseFlags(ReleaseFlag.Competitions))

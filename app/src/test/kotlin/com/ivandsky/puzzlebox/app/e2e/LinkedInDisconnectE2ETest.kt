@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import android.os.Looper
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import java.io.File
 import com.ivandsky.puzzlebox.app.e2e.LinkedInDataWorld.Companion.GHOSTS
 import com.ivandsky.puzzlebox.app.e2e.LinkedInDataWorld.Companion.PROFILE_ID
@@ -38,7 +39,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class LinkedInDisconnectE2ETest {
 
     private val world = LinkedInDataWorld()

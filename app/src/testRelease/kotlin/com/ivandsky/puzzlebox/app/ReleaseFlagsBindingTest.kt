@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 
 /** Release reads only the shipped defaults: no override path can reach a release build (ADR-0022). */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class ReleaseFlagsBindingTest {
 
     @Test

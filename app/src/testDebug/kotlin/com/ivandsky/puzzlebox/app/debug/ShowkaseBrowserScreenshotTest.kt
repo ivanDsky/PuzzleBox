@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import java.io.File
 import org.junit.Assert.assertTrue
@@ -40,7 +41,7 @@ import org.robolectric.annotation.GraphicsMode
 // context and races DiGraphTest's own startKoin. The browser reads no DI graph.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w440dp-h3400dp-420dpi", application = android.app.Application::class)
+@Config(sdk = [34], qualifiers = "w440dp-h3400dp-420dpi", application = DrainTestApplication::class)
 class ShowkaseBrowserScreenshotTest {
 
     @get:Rule

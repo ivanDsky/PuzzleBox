@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
@@ -63,7 +64,7 @@ import org.robolectric.annotation.Config
  * instance state and rebuilds the host with it — the same save/restore a rotation runs.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class QueensRotationRestoreTest {
 
     @get:Rule

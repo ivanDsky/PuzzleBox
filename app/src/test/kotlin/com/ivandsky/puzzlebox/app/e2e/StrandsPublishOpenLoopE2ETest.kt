@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.Draft
@@ -61,7 +62,7 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A phone-sized window: the default Robolectric screen would push the 8-row board off it.
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class StrandsPublishOpenLoopE2ETest {
 
     private val drafts = FakeDraftRepository()

@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import android.content.Context
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
@@ -89,7 +90,7 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 // Plain Application: the real PuzzleBoxApplication's startKoin would race this class's own graph.
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class RealGamesResultRouteTest {
 
     @get:Rule

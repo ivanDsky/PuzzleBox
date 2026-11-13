@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.app.leaderboard
 
-import android.app.Application
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
@@ -38,7 +38,7 @@ import org.robolectric.annotation.Config
  * posts log through android.util.Log.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class CustomBoardSubmitterTest {
 
     private val code = ShareCode.parse("K7Q2MX")!!

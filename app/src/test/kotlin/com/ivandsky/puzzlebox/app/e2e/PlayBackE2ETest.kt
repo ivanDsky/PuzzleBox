@@ -4,6 +4,7 @@ import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.navigation3.runtime.NavKey
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.domain.TodayStatus
@@ -34,7 +35,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class PlayBackE2ETest {
 
     @Test

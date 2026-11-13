@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
@@ -67,7 +68,7 @@ import org.robolectric.shadows.ShadowLooper
  * Sudoku, opens the Sudoku editor, and one placed digit moves the verdict pill.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class NewPuzzleSheetSudokuGateTest {
 
     @get:Rule

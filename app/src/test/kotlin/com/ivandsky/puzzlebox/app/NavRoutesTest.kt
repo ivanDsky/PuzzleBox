@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.app
 
-import android.app.Application
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxEntryProvider
@@ -27,7 +26,7 @@ import org.robolectric.annotation.Config
  * back, reselect) is pinned by NavigationStateTest and PerTabShellTest.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class NavRoutesTest {
 
     /** A key a future surface might push before its entry is wired. */

@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.CreateViewModel
@@ -54,7 +55,7 @@ import org.robolectric.annotation.Config
  * [QueensEditor.variants], in order, each row labelled by [QueensEditorUi.sizeLabel].
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class NewPuzzleSheetQueensTest {
 
     @get:Rule

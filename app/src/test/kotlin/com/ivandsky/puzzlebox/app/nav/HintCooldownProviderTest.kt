@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.gameui.LocalHintCooldown
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -16,7 +17,7 @@ import kotlin.time.Duration.Companion.seconds
 
 /** F2: every entry's content sees a five-second Hint cooldown. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class HintCooldownProviderTest {
 
     @get:Rule

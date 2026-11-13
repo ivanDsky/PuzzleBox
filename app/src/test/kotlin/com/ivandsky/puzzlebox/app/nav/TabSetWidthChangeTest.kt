@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.e2e.E2E_TODAY
 import com.ivandsky.puzzlebox.app.e2e.E2eKoinGraph
@@ -35,7 +36,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w1280dp-h800dp-land")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w1280dp-h800dp-land")
 class TabSetWidthChangeTest {
 
     @get:Rule

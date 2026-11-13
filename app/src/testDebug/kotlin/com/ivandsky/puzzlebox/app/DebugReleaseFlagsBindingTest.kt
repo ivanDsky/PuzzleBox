@@ -16,7 +16,7 @@ import org.robolectric.annotation.Config
 
 /** Debug gates and the Catalog's Release flags tab share one override store (ADR-0022). */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class DebugReleaseFlagsBindingTest {
 
     @Test

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.e2e
 
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.e2e.CloudSyncWorld.Device
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.data.cloud.SyncedKind
@@ -48,7 +49,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class CloudSyncTwoDevicesE2ETest {
 
     private val world = CloudSyncWorld(linkedIn = true)

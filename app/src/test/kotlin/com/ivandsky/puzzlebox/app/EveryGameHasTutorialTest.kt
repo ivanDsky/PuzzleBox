@@ -20,7 +20,7 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application for DiGraphTest's reason: the real one would startKoin on its own.
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class EveryGameHasTutorialTest {
 
     @Test
