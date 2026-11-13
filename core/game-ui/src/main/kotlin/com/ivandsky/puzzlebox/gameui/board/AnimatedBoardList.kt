@@ -46,6 +46,7 @@ internal fun AnimatedBoardList(
     withPuzzleBoxRank: Boolean,
     backdrop: Color,
     modifier: Modifier = Modifier,
+    medals: Boolean = false,
 ) {
     val rows = remember { BoardRows() }
     val items = rows.update(lines, pinned)
@@ -56,7 +57,7 @@ internal fun AnimatedBoardList(
             for (item in items) {
                 key(item.key) {
                     CompositionLocalProvider(LocalBoardBackdrop provides backdrop) {
-                        BoardItemSlot(item, item.line, item.pinned, item.present, rows, order, withPuzzleBoxRank)
+                        BoardItemSlot(item, item.line, item.pinned, item.present, rows, order, withPuzzleBoxRank, medals)
                     }
                 }
             }
@@ -89,6 +90,7 @@ private fun BoardItemSlot(
     rows: BoardRows,
     order: RankOrder,
     withPuzzleBoxRank: Boolean,
+    medals: Boolean,
 ) {
     // An item starts closed and invisible and opens on the first frame, so its arrival is an opening and not a first sight.
     LaunchedEffect(present) {
@@ -112,20 +114,30 @@ private fun BoardItemSlot(
             CompositionLocalProvider(LocalPlaceMotion provides item) {
                 when {
                     line == null -> HorizontalDivider()
-                    pinned -> Box(Modifier.testTag("leaderboard.you")) { BoardLine(line, order, withPuzzleBoxRank) }
-                    else -> BoardLine(line, order, withPuzzleBoxRank)
+                    pinned -> Box(Modifier.testTag("leaderboard.you")) { BoardLine(line, order, withPuzzleBoxRank, medals) }
+                    else -> BoardLine(line, order, withPuzzleBoxRank, medals)
                 }
             }
         }
     }
 }
 
-/** One line drawn as every board draws it: a PuzzleBox row or a connection. */
+/**
+ * One line drawn as every board draws it: a PuzzleBox row or a connection. The viewer's own row reports to the board's
+ * dock, if it has one (see [DockedSelfRow]).
+ */
 @Composable
-internal fun BoardLine(line: DailyBoardLine, order: RankOrder, withPuzzleBoxRank: Boolean) {
+internal fun BoardLine(line: DailyBoardLine, order: RankOrder, withPuzzleBoxRank: Boolean, medals: Boolean = false) {
     when (line) {
-        is DailyBoardLine.Real -> DailyBoardRow(line.row, order, place = line.place, showPuzzleBoxRank = withPuzzleBoxRank)
-        is DailyBoardLine.Ghost -> GhostRow(line.row, line.place, order)
+        is DailyBoardLine.Real -> DailyBoardRow(
+            line.row,
+            order,
+            modifier = if (line.row.isSelf) Modifier.dockedRow(LocalSelfRowDock.current) else Modifier,
+            place = line.place,
+            showPuzzleBoxRank = withPuzzleBoxRank,
+            medals = medals,
+        )
+        is DailyBoardLine.Ghost -> GhostRow(line.row, line.place, order, medals = medals)
     }
 }
 

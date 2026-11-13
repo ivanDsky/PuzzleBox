@@ -6,6 +6,9 @@ package com.ivandsky.puzzlebox.gameui.board
  * [fromLinkedIn] marks the player's own LinkedIn row added to a board they are not on: it has no PuzzleBox [rank].
  * [timeFromLinkedIn] says the shown [timeMs] is a LinkedIn one, whether on that added row or on a PuzzleBox row whose
  * time a LinkedIn result replaced.
+ * The score column shows [timeMs] and [hints] unless the row has a [value] of its own (an average, or points), see [scoreValue].
+ * [beyondPage] shows "100+" in place of a number, for a player outside the top the board reads. [unofficial] marks the
+ * viewer's device-only result: the row sits where it would rank and takes no place from anyone.
  */
 data class DailyBoardRowModel(
     val rank: Int,
@@ -17,4 +20,10 @@ data class DailyBoardRowModel(
     val fromLinkedIn: Boolean = false,
     val timeFromLinkedIn: Boolean = false,
     val playerId: String,
-)
+    val value: BoardRowValue? = null,
+    val beyondPage: Boolean = false,
+    val unofficial: Boolean = false,
+) {
+    /** What the score column says: the row's own [value], else its [timeMs] and [hints] as they stand now. */
+    val scoreValue: BoardRowValue get() = value ?: BoardRowValue.Timed(timeMs, hints)
+}

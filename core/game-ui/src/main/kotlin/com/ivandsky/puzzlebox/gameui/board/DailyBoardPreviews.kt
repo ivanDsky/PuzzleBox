@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.gameui.board
 
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -213,6 +214,42 @@ internal fun DailyBoardLinkedInTimePreview() = Padded {
         DailyBoardRow(Rows[0], RankOrder.TimeThenHints)
         DailyBoardRow(Rows[1].copy(timeFromLinkedIn = true), RankOrder.TimeThenHints, place = 2)
         GhostRow(Ghosts[0], 3, RankOrder.TimeThenHints)
+    }
+}
+
+// The row values: a day's time, a Week or Month average (and the Strands voice), points, a lower bound, and the marks.
+@PuzzleBoxPreviews
+@Composable
+internal fun DailyBoardRowValuesPreview() = Padded {
+    val average = BoardRowValue.Average(252_000L, avgHints = 0.7)
+    val points = BoardRowValue.Points(1240.0, games = 5, atLeast = false)
+    Column {
+        DailyBoardRow(Rows[0], RankOrder.TimeThenHints)
+        DailyBoardRow(Rows[1].copy(value = average), RankOrder.TimeThenHints)
+        DailyBoardRow(Rows[2].copy(value = average), RankOrder.HintsThenTime)
+        DailyBoardRow(Rows[0].copy(value = points), RankOrder.TimeThenHints)
+        DailyBoardRow(Rows[1].copy(value = points.copy(atLeast = true)), RankOrder.TimeThenHints)
+    }
+}
+
+// A player past the board's top reads "100+"; a device-only result sits at its place with the "unofficial" mark.
+@PuzzleBoxPreviews
+@Composable
+internal fun DailyBoardMarksPreview() = Padded {
+    Column {
+        DailyBoardRow(Rows[1].copy(rank = 101, beyondPage = true), RankOrder.TimeThenHints)
+        DailyBoardRow(Rows[1].copy(unofficial = true), RankOrder.TimeThenHints, place = 2)
+    }
+}
+
+// Medal rows, plain and with the account's motion: the tint steps down with the place, the winner's row is taller.
+@PuzzleBoxPreviews
+@Composable
+internal fun DailyBoardMedalsPreview() = Padded {
+    val lines = rankWithGhosts(Rows, Ghosts, RankOrder.TimeThenHints)
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        DailyBoardList(lines, RankOrder.TimeThenHints, medals = true)
+        DailyBoardList(lines, RankOrder.TimeThenHints, animated = true, medals = true)
     }
 }
 
