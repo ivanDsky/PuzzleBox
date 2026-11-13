@@ -2,12 +2,10 @@ package com.ivandsky.puzzlebox.games.zipui
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
@@ -46,7 +44,7 @@ internal object ZipReplayBoard : GameReplayBoard {
                 Box(Modifier.fillMaxSize()) {
                     ZipCellDecor(model, row, col, animated = options.animate)
                     if (idx in frame.hinted && model.cells[idx].isOnPath) {
-                        ReplayHintBadge(Modifier.align(Alignment.TopEnd).padding(1.dp))
+                        ReplayHintBadge(Modifier.align(Alignment.TopEnd))
                     }
                 }
             },
