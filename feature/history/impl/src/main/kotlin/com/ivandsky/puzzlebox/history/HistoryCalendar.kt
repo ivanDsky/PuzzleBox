@@ -86,15 +86,15 @@ internal fun collapsedWeek(
  */
 @Composable
 internal fun HistoryCalendar(
-    state: HistoryUiState,
+    state: CalendarState,
     onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
     onSelectDay: (LocalDate?) -> Unit,
     cardColor: Color,
     modifier: Modifier = Modifier,
 ) {
-    val shown = state.calendarDay ?: return
+    val shown = state.shownDay ?: return
     val today = state.today ?: return
-    val expanded = state.calendarExpanded
+    val expanded = state.expanded
     val pages = CalendarPages(expanded, today, earliest = state.earliestDay ?: shown)
     val index = pages.indexOf(shown)
     val reducedMotion = rememberReducedMotion()

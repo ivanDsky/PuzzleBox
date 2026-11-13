@@ -63,7 +63,7 @@ private fun weekdayLetter(weekday: DayOfWeek, locale: Locale): String =
 
 /** The collapsed calendar: the seven days from [monday], each under its weekday letter. */
 @Composable
-internal fun CalendarWeek(monday: LocalDate, state: HistoryUiState, onSelectDay: (LocalDate?) -> Unit) {
+internal fun CalendarWeek(monday: LocalDate, state: CalendarState, onSelectDay: (LocalDate?) -> Unit) {
     val locale = Locale.getDefault()
     Row(Modifier.fillMaxWidth().testTag("history.calendar.week")) {
         (0L until DayOfWeek.entries.size).map(monday::plusDays).forEach { date ->
@@ -81,7 +81,7 @@ internal fun CalendarWeek(monday: LocalDate, state: HistoryUiState, onSelectDay:
 
 /** The expanded calendar: one weekday row, then [month]'s weeks. */
 @Composable
-internal fun CalendarMonth(month: YearMonth, state: HistoryUiState, onSelectDay: (LocalDate?) -> Unit) {
+internal fun CalendarMonth(month: YearMonth, state: CalendarState, onSelectDay: (LocalDate?) -> Unit) {
     val locale = Locale.getDefault()
     Column(Modifier.fillMaxWidth().testTag("history.calendar.grid")) {
         Row(Modifier.fillMaxWidth().padding(bottom = Spacing.xs)) {
@@ -118,14 +118,14 @@ internal fun CalendarMonth(month: YearMonth, state: HistoryUiState, onSelectDay:
  * One day: its [weekday] letter (week view only) over its [DayRing], with the number
  * inside — on an ink disc when selected, bold on a tinted disc today. Later days and the
  * neighbouring months' days are dimmed with no ring; a day taps when it has a row
- * ([HistoryUiState.canSelect]).
+ * ([CalendarState.canSelect]).
  */
 @Composable
 private fun CalendarDay(
     date: LocalDate,
     weekday: String?,
     inMonth: Boolean,
-    state: HistoryUiState,
+    state: CalendarState,
     onSelectDay: (LocalDate?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
