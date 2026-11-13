@@ -60,6 +60,15 @@ class ZipReplayMarkTest {
         assertEquals(emptySet<Int>(), timeline.at(1_999).hinted)
     }
 
+    /** A hand-built log: the real controller always follows a Hint with a step (see ticket 99), but stored bytes need not. */
+    @Test
+    fun `an extend at a later stamp than a hint that placed no step is a plain move`() {
+        val timeline = timeline(at(1_000, Extend(Cell(0))), at(2_000, Hint), at(3_000, Extend(Cell(1))))
+
+        timeline.assertKinds(MoveKind.Normal, MoveKind.Hint, MoveKind.Normal)
+        assertEquals(emptySet<Int>(), timeline.at(3_000).hinted)
+    }
+
     @Test
     fun `an extend with no hint before it names no cell`() {
         val timeline = timeline(at(1_000, Extend(Cell(0))), at(2_000, Extend(Cell(1))), at(3_000, Extend(Cell(2))))

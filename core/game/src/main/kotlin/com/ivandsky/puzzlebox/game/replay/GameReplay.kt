@@ -20,7 +20,8 @@ interface GameReplay<S : GameSession> {
 
     /**
      * How the timeline and the board mark one move. [previous] = the move decoded just before [move]
-     * (any move, kept or not); null for the first. Game-owned indices in [MoveMark.hinted]. Pure.
+     * (any move, kept or not), when it shares [move]'s stamp; null otherwise, and for the first move.
+     * Game-owned indices in [MoveMark.hinted]. Pure.
      */
     fun markOf(before: S, move: ReplayMove, after: S, previous: ReplayMove?): MoveMark = MoveMark.Plain
 
