@@ -68,7 +68,7 @@ private const val SOLVED_ALPHA = 0.5f
  * signed-out player; the route supplies the real action, and without one the row has no button.
  * The chart opens on [initialScope], else on the model's default scope.
  *
- * The streak, week and heading come in on the blocks beat (the streak counts up as it does);
+ * The streak, week and heading come in on the blocks beat (the streak counts up as it does, the freeze moment follows);
  * the chart's bars grow on their own stagger, and the rank row rises in last.
  */
 @Composable
@@ -106,7 +106,7 @@ internal fun ResultSideCard(
     }
 }
 
-/** The flame tile and the streak sentence (the number counts up), over the seven week dots. */
+/** The flame tile and the streak sentence (the number counts up), over the seven week dots and the freeze moment. */
 @Composable
 private fun StreakBlock(streak: HeroStreak, accent: Color) {
     val days = rememberCountUp(streak.days.toLong()).toInt()
@@ -159,6 +159,9 @@ private fun StreakBlock(streak: HeroStreak, accent: Color) {
             horizontalArrangement = Arrangement.spacedBy(WeekGap),
         ) {
             streak.week.forEachIndexed { index, day -> WeekDot(index, day, accent, Modifier.weight(1f)) }
+        }
+        if (streak.moment != null) {
+            FreezeMoment(streak.moment, Modifier.padding(top = Spacing.md).testTag("result.side.streak.moment"))
         }
     }
 }

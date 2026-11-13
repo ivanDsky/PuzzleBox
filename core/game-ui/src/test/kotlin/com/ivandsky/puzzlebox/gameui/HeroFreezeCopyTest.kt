@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.gameui
 
 import com.ivandsky.puzzlebox.domain.ResultDay
 import com.ivandsky.puzzlebox.domain.StreakFreezes
+import java.time.LocalDate
 import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -55,5 +56,56 @@ class HeroFreezeCopyTest {
         assertEquals("2 more days to earn a freeze", streak.sub)
         assertEquals(listOf(false, false, true, false, false, false, false), streak.week.map { it.frozen })
         assertFalse(streak.week[2].solved)
+    }
+
+    private val tuesday = LocalDate.of(2026, 11, 3)
+
+    private fun moment(spent: List<LocalDate> = emptyList(), earned: Boolean = false) =
+        StreakFreezes.Moment(day = tuesday.plusDays(1), spent = spent, earned = earned)
+
+    @Test
+    fun `one freeze spent names the day it held`() {
+        assertEquals("Streak freeze used for Tue · 1 left", heroFreezeMoment(moment(spent = listOf(tuesday)), held = 1, Locale.US))
+    }
+
+    @Test
+    fun `the day reads in the locale`() {
+        assertEquals("Streak freeze used for mar. · 1 left", heroFreezeMoment(moment(spent = listOf(tuesday)), held = 1, Locale.FRANCE))
+    }
+
+    @Test
+    fun `several freezes spent are counted, not named`() {
+        val spent = listOf(tuesday, tuesday.plusDays(1))
+        assertEquals("Used 2 freezes · 0 left", heroFreezeMoment(moment(spent = spent), held = 0, Locale.US))
+    }
+
+    @Test
+    fun `an earned freeze says how many are held`() {
+        assertEquals("Freeze earned · 3 held", heroFreezeMoment(moment(earned = true), held = 3, Locale.US))
+    }
+
+    @Test
+    fun `a solve that spent and earned shows the used line`() {
+        assertEquals("Streak freeze used for Tue · 2 left", heroFreezeMoment(moment(listOf(tuesday), earned = true), held = 2, Locale.US))
+    }
+
+    @Test
+    fun `without a moment the streak card has no line`() {
+        val facts = heroSampleFacts(streak = 3)
+        val insights = facts.insights!!.copy(freezes = freezes(held = 3, daysToNext = 2))
+        assertNull(resultHeroModel(facts.copy(insights = insights), Locale.US).streak!!.moment)
+    }
+
+    @Test
+    fun `a moment puts its line on the streak card`() {
+        val facts = heroSampleFacts(streak = 3)
+        val lastSolve = moment(spent = listOf(tuesday))
+        val insights = facts.insights!!.copy(freezes = StreakFreezes(1, emptySet(), 2, lastSolve))
+        assertEquals("Streak freeze used for Tue · 1 left", resultHeroModel(facts.copy(insights = insights), Locale.US).streak!!.moment)
+    }
+
+    @Test
+    fun `without freezes the streak card has no moment`() {
+        assertNull(heroSampleModel(streak = 3).streak!!.moment)
     }
 }
