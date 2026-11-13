@@ -12,6 +12,9 @@ interface GameReplayBoard {
      */
     val pieces: String
 
+    /** False when this game's replay can show no error, so the Show errors switch has nothing to do and is hidden. */
+    val hasErrors: Boolean get() = true
+
     /** Read-only board for one frame. No input. No controller. Animates only while [ReplayBoardOptions.animate]. */
     @Composable
     fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier)

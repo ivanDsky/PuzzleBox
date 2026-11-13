@@ -24,7 +24,7 @@ class StrandsPlayUi : GamePlayUi {
 
     override val tutorial: List<TutorialStep> get() = StrandsTutorial.steps
 
-    override val replayBoard: GameReplayBoard get() = StrandsReplayBoard
+    override val replayBoard: GameReplayBoard get() = StrandsReplayBoardNoErrors
 
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
