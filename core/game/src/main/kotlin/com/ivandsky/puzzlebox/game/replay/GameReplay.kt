@@ -3,8 +3,10 @@ package com.ivandsky.puzzlebox.game.replay
 import com.ivandsky.puzzlebox.game.GameSession
 
 /**
- * Game adapter for solve replay (ADR-0008). Pure and deterministic: no clock, and no solver or hint
- * engine inside [step], so a replay never re-runs what the live play already decided.
+ * Game adapter for solve replay (ADR-0008). Pure and deterministic: no clock. [step] runs no solver or hint
+ * engine, so a replay never re-runs what the live play already decided. [factsOf] does its puzzle-wide work
+ * (the solution a compare counts against) once per timeline. [markOf] may run the live hint engine: Tango and
+ * Queens recompute the target of each recorded hint from the board before it, at open.
  */
 interface GameReplay<S : GameSession> {
     /** Same instance back = the move changed nothing. Null = the move is not understood. Never throws. */
