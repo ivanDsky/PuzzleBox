@@ -119,8 +119,8 @@ val playModule = module {
             loadReplay = get(),
         )
     }
-    viewModel { (key: ReplayKey) -> ReplayViewModel(key, get(), get(), get(), get()) }
-    viewModel { (key: ReplayCompareKey) -> ReplayCompareViewModel(key, get(), get(), get(), get()) }
+    viewModel { (key: ReplayKey) -> ReplayViewModel(key, get(), get(), get(), get(), get()) }
+    viewModel { (key: ReplayCompareKey) -> ReplayCompareViewModel(key, get(), get(), get(), get(), get()) }
     viewModel { (key: MatchLegResultKey) ->
         MatchLegResultViewModel(
             key = key,

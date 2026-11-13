@@ -57,6 +57,7 @@ fun ReplayTransport(state: ReplayPlaybackState, playback: ReplayPlayback, modifi
             positionMs = state.positionMs,
             durationMs = state.durationMs,
             ticksMs = state.ticksMs,
+            tickKinds = state.tickKinds,
             onSeek = playback::seekTo,
         )
     }

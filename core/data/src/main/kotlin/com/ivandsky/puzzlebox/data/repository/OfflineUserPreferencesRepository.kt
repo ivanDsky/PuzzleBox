@@ -31,4 +31,11 @@ internal class OfflineUserPreferencesRepository(
     override suspend fun setAutoShowWitness(on: Boolean) {
         dataSource.setAutoShowWitness(on)
     }
+
+    override val showReplayErrors: Flow<Boolean> =
+        dataSource.preferences.map { it.showReplayErrors }.distinctUntilChanged()
+
+    override suspend fun setShowReplayErrors(on: Boolean) {
+        dataSource.setShowReplayErrors(on)
+    }
 }

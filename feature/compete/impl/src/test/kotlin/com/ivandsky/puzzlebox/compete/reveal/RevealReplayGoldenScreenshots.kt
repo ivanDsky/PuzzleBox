@@ -118,6 +118,8 @@ abstract class RevealReplayGoldenScreenshots(private val device: String, private
                 layout = layout,
                 context = CONTEXT,
                 onBack = {},
+                showErrors = true,
+                onShowErrorsChange = {},
                 finalLead = case.finalLead,
             )
         }

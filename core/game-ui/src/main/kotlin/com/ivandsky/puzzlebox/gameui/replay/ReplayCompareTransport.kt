@@ -49,7 +49,9 @@ internal fun ReplayCompareTransport(
             positionMs = state.positionMs,
             durationMs = state.durationMs,
             mineTicksMs = mine?.moveTimesMs,
+            mineKinds = mine?.moveKindsAt,
             theirsTicksMs = theirs?.moveTimesMs,
+            theirsKinds = theirs?.moveKindsAt,
             onSeek = playback::seekTo,
         )
     }

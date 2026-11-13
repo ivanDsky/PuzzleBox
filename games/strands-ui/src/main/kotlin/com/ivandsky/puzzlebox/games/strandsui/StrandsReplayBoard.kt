@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
+import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.games.strands.StrandsSession
 import com.ivandsky.puzzlebox.games.strands.render.StrandsRendererModel
 
@@ -18,7 +19,7 @@ internal object StrandsReplayBoard : GameReplayBoard {
     override val pieces: String get() = "words"
 
     @Composable
-    override fun Board(frame: ReplayFrame, modifier: Modifier) {
+    override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {
         // The frame is game-blind; this board is only reached through Strands' own plugin, so a miss draws nothing.
         val session = frame.session as? StrandsSession ?: return
         val model = remember(session.state) { StrandsRendererModel.of(session.state) }

@@ -1,39 +1,65 @@
 package com.ivandsky.puzzlebox.gameui.replay
 
+import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.game.replay.MoveKind
 
 /** How faint the slices past the playhead are, in every replay seek bar. */
 internal const val UNPLAYED_ALPHA = 0.28f
 
+/** The colour of each [MoveKind] in the seek bars, indexed by ordinal: Normal primary, Undo outline, Hint tertiary, Mistake error. */
+internal fun kindColors(colors: ColorScheme): Array<Color> = arrayOf(colors.primary, colors.outline, colors.tertiary, colors.error)
+
+/** [kindColors] faded for the slices past the playhead. Normal may be given its own [normal] base. */
+internal fun unplayedKindColors(colors: ColorScheme, normal: Color = colors.primary): Array<Color> =
+    kindColors(colors).also { it[MoveKind.Normal.ordinal] = normal }.map { it.copy(alpha = UNPLAYED_ALPHA) }.toTypedArray()
+
 /**
  * Draws one series across the full width. Bars grow from [axisY] up, or down when [up] is false, to at most
- * [room]; an empty slice keeps a hairline so the timeline never has a hole. Slices up to [fraction] are [played].
+ * [room]; an empty slice keeps a hairline so the timeline never has a hole. A bar is its kinds stacked from the
+ * axis out, Normal first. Slices up to [fraction] are [played], the rest [unplayed]; both are indexed by [MoveKind] ordinal.
  */
 internal fun DrawScope.drawBarSeries(
-    counts: IntArray,
+    counts: Array<IntArray>,
     fraction: Float,
     axisY: Float,
     room: Float,
     up: Boolean,
-    played: Color,
-    unplayed: Color,
+    played: Array<Color>,
+    unplayed: Array<Color>,
 ) {
     val gap = 2.dp.toPx()
     val bar = (size.width - gap * (ACTIVITY_BUCKETS - 1)) / ACTIVITY_BUCKETS
     val shortest = 12.dp.toPx()
-    val peak = counts.max().coerceAtLeast(1)
+    val totals = IntArray(ACTIVITY_BUCKETS) { slice -> counts.sumOf { it[slice] } }
+    val peak = totals.max().coerceAtLeast(1)
     for (i in 0 until ACTIVITY_BUCKETS) {
-        val height = if (counts[i] == 0) 3.dp.toPx() else shortest + (room - shortest) * counts[i] / peak
-        drawRoundRect(
-            color = if ((i + 0.5f) / ACTIVITY_BUCKETS <= fraction) played else unplayed,
-            topLeft = Offset(i * (bar + gap), if (up) axisY - height else axisY),
-            size = Size(bar, height),
-            cornerRadius = CornerRadius(bar / 2),
-        )
+        val height = if (totals[i] == 0) 3.dp.toPx() else shortest + (room - shortest) * totals[i] / peak
+        val left = i * (bar + gap)
+        val top = if (up) axisY - height else axisY
+        val palette = if ((i + 0.5f) / ACTIVITY_BUCKETS <= fraction) played else unplayed
+        if (totals[i] == 0) {
+            drawRoundRect(palette[MoveKind.Normal.ordinal], Offset(left, top), Size(bar, height), CornerRadius(bar / 2))
+            continue
+        }
+        val rounded = Path().apply { addRoundRect(RoundRect(left, top, left + bar, top + height, CornerRadius(bar / 2))) }
+        clipPath(rounded) {
+            var stacked = 0f
+            for (kind in MoveKind.entries) {
+                val count = counts[kind.ordinal][i]
+                if (count == 0) continue
+                val part = height * count / totals[i]
+                drawRect(palette[kind.ordinal], Offset(left, if (up) axisY - stacked - part else axisY + stacked), Size(bar, part))
+                stacked += part
+            }
+        }
     }
 }

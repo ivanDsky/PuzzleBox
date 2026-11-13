@@ -11,17 +11,18 @@ import com.ivandsky.puzzlebox.game.replay.Timeline
 
 /**
  * Single-board replay: the game's read-only board centred at the largest size the space allows, the transport
- * under it at the board's width. Opens paused on the finished board.
+ * under it at the board's width. Opens paused on the finished board. [showErrors] false hides every rule-violation mark.
  */
 @Composable
-fun ReplayPlayer(timeline: Timeline, board: GameReplayBoard, modifier: Modifier = Modifier) {
-    val playback = rememberReplayPlayback(mine = timeline, theirs = null)
+fun ReplayPlayer(timeline: Timeline, board: GameReplayBoard, modifier: Modifier = Modifier, showErrors: Boolean = true) {
+    val playback = rememberReplayPlayback(mine = timeline, theirs = null, showErrors = showErrors)
     val state by playback.state.collectAsState()
     val frame = state.mineFrame ?: return
+    val options = rememberReplayBoardOptions(state)
     ReplayStage(
         boardCount = 1,
         modifier = modifier,
         controls = { ReplayTransport(state, playback) },
-        board = { _, size -> Box(Modifier.size(size)) { board.Board(frame, Modifier.fillMaxWidth()) } },
+        board = { _, size -> Box(Modifier.size(size)) { board.Board(frame, options, Modifier.fillMaxWidth()) } },
     )
 }

@@ -16,10 +16,10 @@ import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 
 /** One side's square: its board at [frame], or "No replay" when that side has none. Never an empty board. */
 @Composable
-internal fun ReplayBoardSlot(frame: ReplayFrame?, board: GameReplayBoard, size: Dp, modifier: Modifier = Modifier) {
+internal fun ReplayBoardSlot(frame: ReplayFrame?, board: GameReplayBoard, options: ReplayBoardOptions, size: Dp, modifier: Modifier = Modifier) {
     Box(modifier.size(size), contentAlignment = Alignment.Center) {
         if (frame != null) {
-            board.Board(frame, Modifier.fillMaxWidth())
+            board.Board(frame, options, Modifier.fillMaxWidth())
         } else {
             Box(
                 Modifier.size(size).background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(12.dp)),

@@ -83,7 +83,7 @@ class TimelineTest {
     @Test
     fun `equal stamps are one tick`() {
         assertEquals(1, timeline.moveTimesMs.count { it == 400L })
-        assertFrame(timeline.at(400), session = afterThird, before = afterSecond, atMs = 400, sinceMoveMs = 0)
+        assertFrame(timeline.at(400), session = afterThird, before = afterFirst, atMs = 400, sinceMoveMs = 0)
     }
 
     @Test
@@ -202,7 +202,7 @@ class TimelineTest {
         assertArrayEquals(longArrayOf(50, 100), late.moveTimesMs)
         assertFrame(late.at(99), session = Session(1, 1, 50), before = Session(), atMs = 99, sinceMoveMs = 49, goal = 3)
         val last = Session(marks = 3, trail = 1_026, markedAtMs = 100)
-        val beforeLast = Session(marks = 2, trail = 33, markedAtMs = 100)
+        val beforeLast = Session(marks = 1, trail = 1, markedAtMs = 50)
         assertFrame(late.at(100), session = last, before = beforeLast, atMs = 100, sinceMoveMs = 0, ended = true, goal = 3)
         assertFrame(late.at(Long.MAX_VALUE), session = last, before = beforeLast, atMs = 100, sinceMoveMs = 0, ended = true, goal = 3)
     }
@@ -299,7 +299,7 @@ private class StraightFold(moves: List<StampedMove>, private val endMs: Long, go
         val clampedMs = tMs.coerceIn(0, endMs)
         val applied = stamps.count { it <= clampedMs }
         assertEquals("session at $tMs", sessions[applied], frame.session)
-        assertEquals("before at $tMs", sessions.getOrNull(applied - 1), frame.before)
+        assertEquals("before at $tMs", if (applied == 0) null else sessions[stamps.indexOf(stamps[applied - 1])], frame.before)
         assertEquals("facts at $tMs", facts(sessions[applied]), frame.facts)
         assertEquals("atMs at $tMs", clampedMs, frame.atMs)
         assertEquals("sinceMoveMs at $tMs", if (applied == 0) clampedMs else clampedMs - stamps[applied - 1], frame.sinceMoveMs)

@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.replay.CompareLayout
 import com.ivandsky.puzzlebox.gameui.replay.CompareNames
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
+import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.gameui.replay.ReplayCopy
 import com.ivandsky.puzzlebox.gameui.replay.ReplayFlipTags
 import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
@@ -42,7 +43,7 @@ class ReplayCompareScreenTest {
         override val pieces = "pieces"
 
         @Composable
-        override fun Board(frame: ReplayFrame, modifier: Modifier) {
+        override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {
             Text("facts ${frame.facts.correct}", modifier.testTag("board"))
         }
     }
@@ -57,7 +58,7 @@ class ReplayCompareScreenTest {
     ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                ReplayCompareScreen(state, board, names, finalLead = null, context = "Fixture · Duel", widthDp = widthDp, onBack = onBack)
+                ReplayCompareScreen(state, board, names, finalLead = null, context = "Fixture · Duel", widthDp = widthDp, onBack = onBack, showErrors = true, onShowErrorsChange = {})
             }
         }
     }

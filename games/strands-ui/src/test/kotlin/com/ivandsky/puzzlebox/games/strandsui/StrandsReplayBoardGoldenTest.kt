@@ -12,6 +12,7 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
+import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.games.strands.HintStage
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzleRef
 import com.ivandsky.puzzlebox.games.strands.StrandsReplay
@@ -73,6 +74,7 @@ abstract class StrandsReplayBoardGoldenBase(private val widthLabel: String, priv
         return ReplayFrame(
             session = session,
             before = if (moves == 0) null else sessionAfter(moves - 1),
+            hinted = emptySet(),
             facts = StrandsReplay.factsOf(initial)(session),
             atMs = moves * 1_000L,
             sinceMoveMs = 0L,
@@ -98,7 +100,7 @@ abstract class StrandsReplayBoardGoldenBase(private val widthLabel: String, priv
             }
             CompositionLocalProvider(LocalConfiguration provides config) {
                 PuzzleBoxTheme(darkTheme = dark) {
-                    Box { StrandsReplayBoard.Board(frame, Modifier.size(sideDp.dp)) }
+                    Box { StrandsReplayBoard.Board(frame, ReplayBoardOptions(animate = false, showErrors = true), Modifier.size(sideDp.dp)) }
                 }
             }
         }

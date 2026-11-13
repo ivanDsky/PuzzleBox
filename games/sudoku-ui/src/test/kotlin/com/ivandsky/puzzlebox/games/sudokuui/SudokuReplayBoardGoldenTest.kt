@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
+import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuReplay
@@ -82,6 +83,7 @@ abstract class SudokuReplayBoardGoldenBase(private val widthLabel: String, priva
         return ReplayFrame(
             session = session,
             before = if (moves == 0) null else sessionAfter(moves - 1),
+            hinted = emptySet(),
             facts = SudokuReplay.factsOf(initial())(session),
             atMs = moves * 1_000L,
             sinceMoveMs = 0L,
@@ -107,7 +109,7 @@ abstract class SudokuReplayBoardGoldenBase(private val widthLabel: String, priva
             }
             CompositionLocalProvider(LocalConfiguration provides config) {
                 PuzzleBoxTheme(darkTheme = dark) {
-                    Box { SudokuReplayBoard.Board(frame, Modifier.size(sideDp.dp)) }
+                    Box { SudokuReplayBoard.Board(frame, ReplayBoardOptions(animate = false, showErrors = true), Modifier.size(sideDp.dp)) }
                 }
             }
         }

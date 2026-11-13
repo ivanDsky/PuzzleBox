@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
+import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
@@ -216,7 +217,7 @@ class RevealReplayCompareTest {
         override val pieces = "pieces"
 
         @Composable
-        override fun Board(frame: ReplayFrame, modifier: Modifier) = Unit
+        override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) = Unit
     }
 
     private companion object {

@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
+import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.SolveReplay
@@ -248,7 +249,7 @@ class ResultReplaySectionTest {
         override val pieces = "pieces"
 
         @Composable
-        override fun Board(frame: ReplayFrame, modifier: Modifier) = Unit
+        override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) = Unit
     }
 
     private companion object {

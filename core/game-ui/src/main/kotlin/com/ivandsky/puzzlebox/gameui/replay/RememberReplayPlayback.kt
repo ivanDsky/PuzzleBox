@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.gameui.replay
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
 import com.ivandsky.puzzlebox.game.replay.Lead
@@ -15,11 +16,12 @@ private const val NANOS_PER_MS = 1_000_000L
 
 /**
  * Remembers a playback for the given sides and feeds it frame time while it is playing.
- * Leaving the composition pauses it.
+ * Leaving the composition pauses it. A change of [showErrors] reaches the state without restarting the playback.
  */
 @Composable
-fun rememberReplayPlayback(mine: Timeline?, theirs: Timeline?, finalLead: Lead? = null): ReplayPlayback {
-    val playback = remember(mine, theirs, finalLead) { ReplayPlayback(mine, theirs, finalLead) }
+fun rememberReplayPlayback(mine: Timeline?, theirs: Timeline?, finalLead: Lead? = null, showErrors: Boolean = true): ReplayPlayback {
+    val playback = remember(mine, theirs, finalLead) { ReplayPlayback(mine, theirs, finalLead, showErrors) }
+    SideEffect { playback.setShowErrors(showErrors) }
     DisposableEffect(playback) { onDispose { playback.pause() } }
     // Keyed on the playing flag only, so a frame's position change never recomposes the caller.
     LaunchedEffect(playback) {
