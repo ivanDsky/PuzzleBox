@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
@@ -92,7 +93,7 @@ data class HistoryUiState(
  * layouts that open a detail pane.
  *
  * Replays: the list never loads them. [openReplays] loads the open day's record and latest
- * solves into [replays] ([HistoryReplays.Hidden] when neither has one); closing the detail
+ * solves into [replays] ([HistoryReplays.Unavailable] when neither has one); closing the detail
  * drops them.
  *
  * Play again is navigation only (ticket 11): the route reports the (game, day) and the play
@@ -178,11 +179,13 @@ class HistoryViewModel(
     fun openReplays(row: HistoryDayRow?) {
         loadingReplays?.cancel()
         replaysState.value = DayReplays(row?.key, HistoryReplays.Hidden)
-        val puzzle = row?.record?.puzzleRef ?: return
+        val solved = row?.record ?: return
+        val puzzle = solved.puzzleRef
         loadingReplays = viewModelScope.launch {
             val record = loadReplay(SolveReplayRef.Record(puzzle))
             val latest = loadReplay(SolveReplayRef.Latest(puzzle))
-            replaysState.value = DayReplays(row.key, historyReplays(record, latest, loadReplay.latestIsRecord(puzzle)))
+            val none = if (loadReplay.enabled) HistoryReplays.Unavailable(ReplayUnavailable.of(solved.source)) else HistoryReplays.Hidden
+            replaysState.value = DayReplays(row.key, historyReplays(record, latest, loadReplay.latestIsRecord(puzzle), none))
         }
     }
 

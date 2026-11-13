@@ -5,6 +5,8 @@ object ReplayCopy {
     const val TITLE = "Replay"
     const val WATCH = "Watch replay"
     const val NO_REPLAY = "No replay"
+    const val UNAVAILABLE_IMPORTED = "Replay not available · imported from LinkedIn"
+    const val UNAVAILABLE = "No replay for this solve"
     const val SKIP_IDLE = "Skip idle"
     const val PLAY = "Play"
     const val PAUSE = "Pause"

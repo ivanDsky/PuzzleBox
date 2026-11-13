@@ -45,7 +45,7 @@ import org.koin.core.parameter.parametersOf
  * insights and rank, and the same callbacks plus a sign in.
  *
  * The hero's rank row is the one sign-in action. A stored solve with a replay adds the Watch replay row ([ReplaySection]), which hands
- * [onOpenReplay] the replay's key. With [linkedIn] on, that rank also gives the place among the player's LinkedIn connections.
+ * [onOpenReplay] the replay's key; one without says why there is none. With [linkedIn] on, that rank also gives the place among the player's LinkedIn connections.
  */
 @Composable
 fun ResultRoute(

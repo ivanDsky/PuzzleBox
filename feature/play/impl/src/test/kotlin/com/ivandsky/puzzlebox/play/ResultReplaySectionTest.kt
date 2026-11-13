@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
@@ -25,6 +26,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
+import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -63,8 +65,8 @@ import org.junit.Test
 
 /**
  * The own result's replay section (ticket 48): it follows the stored completion, never the live play. Hidden while the
- * write is pending or failed, Ready once the row with this solve's time and hints lands with a replay, and Hidden for a
- * solve without one or with the flag off. A cold result (the row is already stored) is Ready at once.
+ * write is pending or failed, Ready once the row with this solve's time and hints lands with a replay, Unavailable for a
+ * stored solve without one, and Hidden with the flag off. A cold result (the row is already stored) is Ready at once.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResultReplaySectionTest {
@@ -152,8 +154,8 @@ class ResultReplaySectionTest {
         return play
     }
 
-    private fun solve(timeMs: Long = TIME_MS) =
-        CompletionRecord(ref, timeMs, 0, RecordStats(1, "{}"), isRecord = true)
+    private fun solve(timeMs: Long = TIME_MS, source: CompletionSource = CompletionSource.App) =
+        CompletionRecord(ref, timeMs, 0, RecordStats(1, "{}"), isRecord = true, source = source)
 
     private val ResultViewModel.replaySection get() = state.value.replay
 
@@ -197,10 +199,24 @@ class ResultReplaySectionTest {
     }
 
     @Test
-    fun `a stored solve without a replay stays hidden`() {
+    fun `a stored solve without a replay says there is none`() {
         kotlinx.coroutines.runBlocking { completions.onCompleted(solve(), replay = null) }
 
-        assertEquals(ReplaySectionState.Hidden, vm().replaySection)
+        assertEquals(ReplaySectionState.Unavailable(ReplayUnavailable.NotRecorded), vm().replaySection)
+    }
+
+    @Test
+    fun `a stored LinkedIn import says it was imported`() {
+        kotlinx.coroutines.runBlocking { completions.onCompleted(solve(source = CompletionSource.LinkedIn), replay = null) }
+
+        assertEquals(ReplaySectionState.Unavailable(ReplayUnavailable.ImportedFromLinkedIn), vm().replaySection)
+    }
+
+    @Test
+    fun `flag off stays hidden for a stored solve without a replay`() {
+        kotlinx.coroutines.runBlocking { completions.onCompleted(solve(), replay = null) }
+
+        assertEquals(ReplaySectionState.Hidden, vm(flags = FakeReleaseFlags()).replaySection)
     }
 
     @Test
@@ -235,7 +251,7 @@ class ResultReplaySectionTest {
         // The play's own write carries no replay (the fake game seals none): once stored it is the newest solve, so
         // the older row's replay is not this solve's.
         assertTrue(play.record.value.stored)
-        assertEquals(ReplaySectionState.Hidden, viewModel.replaySection)
+        assertEquals(ReplaySectionState.Unavailable(ReplayUnavailable.NotRecorded), viewModel.replaySection)
     }
 
     @Test

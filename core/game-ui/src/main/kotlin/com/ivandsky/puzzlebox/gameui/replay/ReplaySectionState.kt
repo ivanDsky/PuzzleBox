@@ -10,4 +10,7 @@ sealed interface ReplaySectionState {
     data object Hidden : ReplaySectionState
 
     class Ready(val timeline: Timeline) : ReplaySectionState
+
+    /** A stored solve with no replay: the section says so, in place of the Watch replay row. */
+    data class Unavailable(val reason: ReplayUnavailable) : ReplaySectionState
 }
