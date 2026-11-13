@@ -60,6 +60,23 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.data.cloud.CloudSyncRunner
+import com.ivandsky.puzzlebox.data.cloud.OwnerScope
+import com.ivandsky.puzzlebox.data.cloud.SavedBoardsCloud
+import com.ivandsky.puzzlebox.data.cloud.SignedInOwnerScope
+import com.ivandsky.puzzlebox.data.cloud.SyncStateStore
+import com.ivandsky.puzzlebox.data.cloud.SyncedKind
+import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInAccount
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
@@ -291,5 +308,86 @@ class DiGraphTest : KoinTest {
         } finally {
             stopKoin()
         }
+    }
+
+    /** Flag off: the sync graph is not loaded, so nothing resolves it and the owner scope stays the no-op one. */
+    @Test
+    fun `with CloudSync off no cloud sync is bound and the owner scope is NoOwnerScope`() {
+        val koinApp = startCloud(ReleaseFlag.LinkedInAccount)
+        try {
+            val koin = koinApp.koin
+            assertFalse(PuzzleBoxApplication.loadCloudSync(koin))
+            assertNull(koin.getOrNull<CloudSync>())
+            assertNull(koin.getOrNull<CloudSyncRunner>())
+            assertNull(koin.getOrNull<SavedBoardsCloud>())
+            assertTrue(koin.getAll<SyncedKind>().isEmpty())
+            assertEquals("NoOwnerScope", koin.get<OwnerScope>()::class.simpleName)
+        } finally {
+            stopKoin()
+        }
+    }
+
+    /** CloudSync alone: the four app-database kinds, the engine and the runner; no boards kind, no saved-board deletion. */
+    @Test
+    fun `with CloudSync on the sync graph resolves without the LinkedIn kinds`() {
+        val koinApp = startCloud(ReleaseFlag.CloudSync)
+        try {
+            val koin = koinApp.koin
+            assertTrue(PuzzleBoxApplication.loadCloudSync(koin))
+            assertNotNull(koin.get<CloudSync>())
+            assertNotNull(koin.get<CloudSyncRunner>())
+            assertTrue(koin.get<OwnerScope>() is SignedInOwnerScope)
+            assertEquals(setOf("completions", "drafts", "published", "received"), koin.getAll<SyncedKind>().map { it.kind }.toSet())
+            assertNull(koin.getOrNull<SavedBoardsCloud>())
+        } finally {
+            stopKoin()
+        }
+    }
+
+    /** Both flags: the boards kind joins and saved boards can be deleted everywhere. */
+    @Test
+    fun `with CloudSync and LinkedInAccount on the boards kind and saved-board deletion are bound`() {
+        val koinApp = startCloud(ReleaseFlag.CloudSync, ReleaseFlag.LinkedInAccount)
+        try {
+            val koin = koinApp.koin
+            assertTrue(PuzzleBoxApplication.loadCloudSync(koin))
+            assertEquals(
+                listOf("boards", "completions", "drafts", "published", "received"),
+                koin.getAll<SyncedKind>().map { it.kind }.sorted(),
+            )
+            assertNotNull(koin.get<SavedBoardsCloud>())
+            assertNotNull(koin.get<LinkedInDays>())
+            assertNotNull(koin.get<LinkedInAccount>())
+            // The engine, the erase and the runner all see the same registered kinds.
+            assertNotNull(koin.get<CloudSync>())
+            assertNotNull(koin.get<CloudSyncRunner>())
+        } finally {
+            stopKoin()
+        }
+    }
+
+    /** SignedInOwnerScope starts collecting at construction, so the graph must create it before any starter runs. */
+    @Test
+    fun `the signed-in owner scope is created at start so the last uid is recorded from launch`() {
+        val identity = FakeIdentityService(initial = Identity(uid = "u1", displayName = "One", photoUrl = null))
+        val koinApp = startCloud(ReleaseFlag.CloudSync, identity = identity)
+        try {
+            assertTrue(PuzzleBoxApplication.loadCloudSync(koinApp.koin))
+            // Nobody resolved OwnerScope: only an eager binding can have written the uid.
+            val last = runBlocking { withTimeout(10_000) { koinApp.koin.get<SyncStateStore>().lastUid.first { it == "u1" } } }
+            assertEquals("u1", last)
+        } finally {
+            stopKoin()
+        }
+    }
+
+    private fun startCloud(vararg flags: ReleaseFlag, identity: FakeIdentityService = FakeIdentityService()) = startKoin {
+        androidContext(RuntimeEnvironment.getApplication())
+        modules(
+            PuzzleBoxApplication.appModules + module {
+                single<IdentityService> { identity }
+                single<ReleaseFlags> { FakeReleaseFlags(*flags) }
+            },
+        )
     }
 }
