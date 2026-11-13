@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection
 import com.ivandsky.puzzlebox.history.ranks.RanksViewModel
+import com.ivandsky.puzzlebox.history.ranks.ReplayOptInViewModel
 import com.ivandsky.puzzlebox.history.ranks.rankBoards
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
@@ -16,7 +17,7 @@ import org.koin.dsl.module
  * [com.ivandsky.puzzlebox.game.GameRegistry] and the game brands
  * ([com.ivandsky.puzzlebox.gameui.GamePlayRegistry]) from the app's aggregation (ADR-0001);
  * the optional [com.ivandsky.puzzlebox.data.cloud.CloudSync] is resolved with getOrNull (unbound = no restoring state).
- * The Ranks hub's [RanksViewModel] and its [PlayerSheetViewModel] are bound beside History's; the app decides which entry shows.
+ * The Ranks hub's [RanksViewModel] and its [PlayerSheetViewModel] and [ReplayOptInViewModel] are bound beside History's; the app decides which entry shows.
  */
 val historyModule = module {
     viewModel { (key: HistoryKey) -> HistoryViewModel(get(), get(), get(), get(), get(), get(), getOrNull(), key) }
@@ -30,4 +31,5 @@ val historyModule = module {
         )
     }
     viewModel { PlayerSheetViewModel(get(), get(), get(), get()) }
+    viewModel { ReplayOptInViewModel(get()) }
 }

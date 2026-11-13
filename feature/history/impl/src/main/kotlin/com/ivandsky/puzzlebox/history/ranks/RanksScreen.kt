@@ -40,6 +40,7 @@ import java.time.LocalDate
  * hub, opened from a game's link) adds a back arrow above either layout. A tab reselect scrolls the hub to the top; one
  * more, with it already there, calls [onReset] (A8). With a [playerSheet] another player's row opens that sheet, which this
  * screen only hosts; without one rows take no tap. Its Watch tap closes it and reports [onWatchPlayer].
+ * With a [replayOptIn] the first ranked solve asks about sharing replays, on either layout.
  */
 @Composable
 internal fun RanksScreen(
@@ -61,6 +62,7 @@ internal fun RanksScreen(
     onCompare: (HistoryDayRow) -> Unit = {},
     onWatchPlayer: (PlayerSheetViewModel.Target) -> Unit = {},
     playerSheet: PlayerSheetViewModel? = null,
+    replayOptIn: ReplayOptInViewModel? = null,
     refreshing: Boolean = false,
     onRefresh: (() -> Unit)? = null,
 ) {
@@ -82,6 +84,7 @@ internal fun RanksScreen(
         }
     }
     playerSheet?.let { PlayerSheetHost(it, onWatchPlayer) }
+    replayOptIn?.let { ReplayOptInHost(it, state) }
 }
 
 /** Reselecting the tab: the first tap brings every scrolled pane in [scrolls] to its top; with all there already, [onReset]. */
