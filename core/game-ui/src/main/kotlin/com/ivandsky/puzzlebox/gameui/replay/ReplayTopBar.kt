@@ -20,7 +20,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
@@ -41,7 +40,7 @@ internal fun ReplayTopBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        IconButton(onClick = onBack, modifier = Modifier.size(48.dp)) {
+        IconButton(onClick = onBack, modifier = Modifier.size(ReplaySizes.TouchTarget)) {
             Icon(PuzzleIcons.Back, contentDescription = ReplayCopy.BACK, tint = MaterialTheme.colorScheme.onSurface)
         }
         Column(Modifier.weight(1f)) {
@@ -65,7 +64,7 @@ internal fun ShowErrorsToggle(showErrors: Boolean, onChange: (Boolean) -> Unit, 
         checked = showErrors,
         onCheckedChange = onChange,
         modifier = modifier
-            .size(48.dp)
+            .size(ReplaySizes.TouchTarget)
             .testTag(ReplayTags.SHOW_ERRORS)
             .semantics {
                 contentDescription = ReplayCopy.SHOW_ERRORS
@@ -77,6 +76,6 @@ internal fun ShowErrorsToggle(showErrors: Boolean, onChange: (Boolean) -> Unit, 
             checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         ),
     ) {
-        Icon(ReplayIcons.Errors, contentDescription = null, modifier = Modifier.size(24.dp))
+        Icon(ReplayIcons.Errors, contentDescription = null, modifier = Modifier.size(ReplaySizes.Icon))
     }
 }
