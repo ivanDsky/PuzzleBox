@@ -23,7 +23,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 private const val TITLE = "Delete my cloud data?"
 private const val BODY =
     "This removes your synced history and saved boards from your account and signs you out. " +
-        "Everything stays on this phone. It can't be undone."
+        "Everything stays on this phone. Signing in again uploads this phone's history again. It can't be undone."
 
 /**
  * The destructive confirm for Delete my cloud data: Cancel ([onCancel], also the scrim and Back) changes nothing;

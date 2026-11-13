@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -127,7 +128,8 @@ private fun GoogleSyncExtra(sync: ProfileUiState.GoogleSync, nowMs: Long, onSync
 @Composable
 private fun GoogleOverflow(enabled: Boolean, onDeleteCloudData: () -> Unit) {
     var open by remember { mutableStateOf(false) }
-    var confirming by remember { mutableStateOf(false) }
+    // Saved so a rotation does not close the confirm.
+    var confirming by rememberSaveable { mutableStateOf(false) }
     Box {
         IconButton(onClick = { open = true }, modifier = Modifier.testTag("profile.google.overflow")) {
             Icon(

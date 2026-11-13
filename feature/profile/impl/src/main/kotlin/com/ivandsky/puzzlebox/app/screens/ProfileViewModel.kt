@@ -20,11 +20,14 @@ import com.ivandsky.puzzlebox.domain.linkedin.LinkedInAccountView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.profile.accounts.LinkedInRowState
+import java.time.Clock
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -38,6 +41,9 @@ private const val SIGN_IN_GOOGLE_UNAVAILABLE_MESSAGE =
     "Google sign-in isn't available right now. Try again, or try another account."
 private const val SIGN_IN_RETRY_MESSAGE = "Sign-in failed. Please try again."
 
+// The sync age phrase is minute-coarse, so a minute tick keeps it honest.
+private const val NOW_REFRESH_MS = 60_000L
+
 // Delete my cloud data needs a connection (ADR-0029): offline says so and changes nothing.
 private const val ERASE_OFFLINE_MESSAGE = "You're offline. Try again when you're connected."
 private const val ERASE_FAILED_MESSAGE = "Couldn't delete your cloud data. Try again later."
@@ -50,7 +56,8 @@ private const val DELETE_BOARDS_FAILED_MESSAGE = "Couldn't delete your saved boa
  * row and carries its Resume and Disconnect. The activity context the credential sheet needs (I2) is passed per
  * call and never stored. With a [cloudSync] (the CloudSync switch is on) it also carries the Google row's sync line,
  * Sync now and Delete my cloud data, and the LinkedIn row's saved-to-your-account copy; with a [savedBoardsCloud] it
- * carries the LinkedIn row's Delete saved boards.
+ * carries the LinkedIn row's Delete saved boards. [nowMs] is the clock for the update times; it ticks each minute
+ * while something collects it, so a Profile that is not on screen does not.
  */
 class ProfileViewModel(
     private val identityService: IdentityService,
@@ -60,7 +67,15 @@ class ProfileViewModel(
     observeAccount: ObserveLinkedInAccount? = null,
     private val cloudSync: CloudSync? = null,
     private val savedBoardsCloud: SavedBoardsCloud? = null,
+    private val clock: Clock = Clock.systemUTC(),
 ) : ViewModel() {
+
+    val nowMs: StateFlow<Long> = flow {
+        while (true) {
+            emit(clock.millis())
+            delay(NOW_REFRESH_MS)
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(), clock.millis())
 
     private val signIn = MutableStateFlow(ProfileUiState.Account.SignedOut())
 
@@ -187,12 +202,13 @@ class ProfileViewModel(
     }
 
     /** Credential Manager half (ticket 24): copy chosen per preserved failure class. */
-    private fun friendly(reason: GoogleIdToken.Unavailable.Reason): String = when (reason) {
+    private fun friendly(reason: GoogleIdToken.Unavailable.Reason): String? = when (reason) {
         GoogleIdToken.Unavailable.Reason.NETWORK -> SIGN_IN_NETWORK_MESSAGE
         GoogleIdToken.Unavailable.Reason.NO_CREDENTIAL,
         GoogleIdToken.Unavailable.Reason.PROVIDER_UNAVAILABLE,
         -> SIGN_IN_GOOGLE_UNAVAILABLE_MESSAGE
-        GoogleIdToken.Unavailable.Reason.CANCELLED,
+        // A35: backing out of the Google sheet is a choice, not a failure: no message.
+        GoogleIdToken.Unavailable.Reason.CANCELLED -> null
         GoogleIdToken.Unavailable.Reason.MALFORMED,
         GoogleIdToken.Unavailable.Reason.OTHER,
         -> SIGN_IN_RETRY_MESSAGE
@@ -208,7 +224,7 @@ private fun CloudSyncState.toSync(erase: Deletion): ProfileUiState.GoogleSync? {
         is CloudSyncState.Syncing -> ProfileUiState.GoogleSync.Status.Syncing
         is CloudSyncState.Synced -> ProfileUiState.GoogleSync.Status.Synced(atMs)
         is CloudSyncState.Offline -> ProfileUiState.GoogleSync.Status.Offline
-        is CloudSyncState.Paused -> ProfileUiState.GoogleSync.Status.Paused
+        is CloudSyncState.Paused -> ProfileUiState.GoogleSync.Status.Paused(reason)
     }
     return ProfileUiState.GoogleSync(status, erase.running, erase.message)
 }
