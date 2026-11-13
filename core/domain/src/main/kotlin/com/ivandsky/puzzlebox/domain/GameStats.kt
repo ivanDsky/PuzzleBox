@@ -25,4 +25,6 @@ data class GameStats(
     val best: BestScore?,
     /** The game's ranking; [RankOrder.TimeThenHints] for every game's stats. */
     val rankOrder: RankOrder,
+    /** The streak's freezes; null while `StreakFreeze` is off ([ComputeStreak.ledger]). */
+    val freezes: StreakFreezes? = null,
 )
