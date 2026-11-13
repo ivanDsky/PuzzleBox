@@ -21,6 +21,8 @@ import kotlinx.coroutines.launch
  * on the phone a picked day scrolls the page up to the day card. [onBack] is the phone's back row.
  * The page carries the game's leaderboard and a "Your history" row calling [onOpenGameHistory]
  * with the game and its picked day (null: today).
+ * A non-null [onOpenRanks] (the Ranks hub is on) replaces the board with one "You #12 of 340" row calling it with the game and
+ * the day the page shows; null keeps the board.
  * A non-null [linkedIn] puts the LinkedIn sync chip on the day card, which collects its state while it is shown.
  */
 @Composable
@@ -38,6 +40,7 @@ internal fun LibraryGamePage(
     hasLesson: Boolean,
     onOpenGameHistory: (GameId, LocalDate?) -> Unit,
     linkedIn: LinkedInCardState? = null,
+    onOpenRanks: ((GameId, LocalDate?) -> Unit)? = null,
 ) {
     val game = row.card.game
     val shown = page?.takeIf { it.game == game }
@@ -92,7 +95,19 @@ internal fun LibraryGamePage(
         hasLesson = hasLesson,
         scroll = scroll,
         // The board shows the day the day card shows: the picked day, else the card's own latest day.
-        board = { GamePageBoard(game, linkedIn = linkedIn != null, picked = past?.date, cardDay = row.cardDay) },
+        board = {
+            if (onOpenRanks == null) {
+                GamePageBoard(game, linkedIn = linkedIn != null, picked = past?.date, cardDay = row.cardDay)
+            } else {
+                GamePageRankRow(
+                    game,
+                    onOpen = { onOpenRanks(game, past?.date ?: row.cardDay) },
+                    linkedIn = linkedIn != null,
+                    picked = past?.date,
+                    cardDay = row.cardDay,
+                )
+            }
+        },
         onOpenHistory = { onOpenGameHistory(game, past?.date) },
     )
 }
