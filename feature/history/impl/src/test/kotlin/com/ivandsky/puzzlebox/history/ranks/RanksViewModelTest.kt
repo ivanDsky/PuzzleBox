@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.history.ranks
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.gameui.board.BoardRowValue
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
@@ -243,5 +244,62 @@ class RanksViewModelTest {
 
         assertNull(viewModel.selection.value.day)
         assertEquals(today, state.calendar.selectedDay)
+    }
+
+    private fun rowsOf(slice: RanksBoardSlice) = (slice.state as DailyBoardState.Ranked).rows
+
+    @Test
+    fun `Friends keeps the global place and points of the viewer and friends, and drops the rest`() = runTest {
+        val h = hub(mapOf(zipBoard, tangoBoard, queensBoard))
+        h.befriend("jonas")
+        val viewModel = h.viewModel()
+        viewModel.ranked()
+
+        viewModel.setScope(RankScope.Friends)
+        val slice = viewModel.uiState.first { it.scope == RankScope.Friends && rowsOf(it.board).size == 2 }.board
+
+        val rows = rowsOf(slice)
+        assertEquals(listOf("Ann", "Jonas"), rows.map { it.name })
+        assertEquals(listOf(1, 3), rows.map { it.rank })
+        assertEquals(BoardRowValue.Points(150.0, 2, atLeast = false), rows[0].scoreValue)
+        assertEquals(BoardRowValue.Points(100.0, 1, atLeast = false), rows[1].scoreValue)
+    }
+
+    @Test
+    fun `Friends filters a game's rows the same way and Global brings everyone back`() = runTest {
+        val h = hub(mapOf(zipBoard, tangoBoard, queensBoard))
+        h.befriend("maya")
+        val viewModel = h.viewModel()
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)) }
+        assertEquals(listOf("Maya", "Ann"), rowsOf(viewModel.ranked()).map { it.name })
+
+        viewModel.setScope(RankScope.Friends)
+        viewModel.uiState.first { it.scope == RankScope.Friends }
+        assertEquals(listOf("Maya", "Ann"), rowsOf(viewModel.ranked()).map { it.name })
+
+        val other = hub(mapOf(zipBoard)).viewModel()
+        other.select { it.pickBoard(RanksBoard.Game(ZIP)).setScope(RankScope.Friends) }
+        assertEquals(listOf("Ann"), rowsOf(other.uiState.first { it.scope == RankScope.Friends && it.board.state is DailyBoardState.Ranked }.board).map { it.name })
+
+        other.setScope(RankScope.Global)
+        assertEquals(listOf("Maya", "Ann"), rowsOf(other.uiState.first { it.scope == RankScope.Global && rowsOf(it.board).size == 2 }.board).map { it.name })
+    }
+
+    @Test
+    fun `Week and Month rank a game by average over the days played, titled for the window`() = runTest {
+        val viewModel = hub(mapOf(zipBoard)).viewModel()
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)) }
+
+        viewModel.setWindow(RanksSelection.Window.Week)
+        val week = viewModel.uiState.first { it.window == RanksSelection.Window.Week && it.board.state is DailyBoardState.Ranked }
+        assertEquals("Zip · this week", week.board.title)
+        assertTrue(rowsOf(week.board).all { it.scoreValue is BoardRowValue.Average })
+
+        viewModel.setWindow(RanksSelection.Window.Month)
+        viewModel.selectDay(today.minusDays(3))
+        val month = viewModel.uiState.first { it.window == RanksSelection.Window.Month && it.board.title == "Zip · November 2026" }
+        assertEquals(RanksSelection.Window.Month, viewModel.selection.value.window)
+        assertEquals(today.minusDays(3), viewModel.selection.value.day)
+        assertEquals(RankScope.Global, month.scope)
     }
 }

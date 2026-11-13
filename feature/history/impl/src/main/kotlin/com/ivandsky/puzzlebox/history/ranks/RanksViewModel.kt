@@ -10,9 +10,11 @@ import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
+import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -60,6 +62,7 @@ import kotlinx.coroutines.flow.update
 internal class RanksViewModel(
     private val observeRankWindow: ObserveRankWindow,
     private val observeOverall: ObserveOverall,
+    private val observeFriendUids: ObserveFriendUids,
     observeGameHistory: ObserveGameHistory,
     observeGameStats: ObserveGameStats,
     private val playRegistry: GamePlayRegistry,
@@ -136,13 +139,26 @@ internal class RanksViewModel(
 
     private val local = combine(calendarState, observeGameStats(), yourSolve) { calendar, stats, solve -> Local(calendar, stats, solve) }
 
-    val uiState: StateFlow<RanksUiState> = combine(
+    /** Friends' uids, listened to only while the scope is Friends; the boards never see the scope, so changing it re-reads nothing. */
+    private val friends: Flow<Set<String>> = selection.map { it.scope }.distinctUntilChanged()
+        .flatMapLatest { scope -> if (scope == RankScope.Friends) observeFriendUids() else flowOf(emptySet()) }
+
+    private val scoped: Flow<RanksBoardSlice> = combine(
         selection.map { Triple(it.board, it.window, it.day) }.distinctUntilChanged().flatMapLatest { (board, kind, day) -> boardSlice(board, kind, day) },
+        selection.map { it.scope }.distinctUntilChanged(),
+        friends,
+    ) { slice, scope, friends ->
+        if (scope == RankScope.Friends) slice.copy(state = slice.state.friendsOnly(friends)) else slice
+    }
+
+    val uiState: StateFlow<RanksUiState> = combine(
+        scoped,
         signInHolder.status,
         selection.map { boards.indexOf(it.board) }.distinctUntilChanged(),
         local,
-    ) { slice, signIn, position, local ->
-        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve)
+        selection.map { it.scope to it.window }.distinctUntilChanged(),
+    ) { slice, signIn, position, local, (scope, kind) ->
+        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
@@ -152,6 +168,16 @@ internal class RanksViewModel(
     /** Applies one of [RanksSelection]'s transitions; the policy stays in the value. */
     fun select(change: (RanksSelection) -> RanksSelection) {
         _selection.update(change)
+    }
+
+    /** The tune sheet's scope pick. */
+    fun setScope(scope: RankScope) {
+        select { it.setScope(scope) }
+    }
+
+    /** The tune sheet's window pick: Week and Month anchor at the picked day, else today. */
+    fun setWindow(window: RanksSelection.Window) {
+        select { it.setWindow(window) }
     }
 
     /** A swipe on the board: [delta] boards along the hub's boards, not past either end. */

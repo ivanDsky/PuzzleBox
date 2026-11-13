@@ -8,6 +8,11 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.data.match.LegRef
+import com.ivandsky.puzzlebox.data.match.MatchDraft
+import com.ivandsky.puzzlebox.data.match.MatchLeg
+import com.ivandsky.puzzlebox.data.match.Player
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -20,6 +25,9 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeFinalBoardStore
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -36,6 +44,18 @@ internal class RanksTestHub(
     val calendar = FakeGameCalendar(today)
     val completions = FakeCompletionRepository()
     val daily = FakeDailyRepository()
+    val matches = FakeMatchRepository().apply { signedInUid = identity?.uid }
+
+    /** A duel between the viewer and [uid], which makes [uid] a friend. */
+    suspend fun befriend(uid: String, code: String = "AAAAA2") {
+        val me = checkNotNull(this.identity.currentIdentity)
+        val shareCode = checkNotNull(ShareCode.parse(code))
+        val leg = MatchLeg(LegRef.Daily(GameId("zip"), today, 1), null)
+        matches.create(MatchDraft(shareCode, 24, Player(me.uid, me.displayName, null), null, listOf(leg), true, null))
+        matches.signedInUid = uid
+        matches.claim(shareCode, Player(uid, uid, null))
+        matches.signedInUid = me.uid
+    }
 
     private val clock = Clock.fixed(Instant.parse("${today}T12:00:00Z"), ZoneOffset.UTC)
 
@@ -44,6 +64,7 @@ internal class RanksTestHub(
         return RanksViewModel(
             observeRankWindow = ObserveRankWindow(this.identity, leaderboard, FakeFinalBoardStore(), registry, calendar, clock),
             observeOverall = ObserveOverall(this.identity, completions),
+            observeFriendUids = ObserveFriendUids(matches, this.identity),
             observeGameHistory = history,
             observeGameStats = ObserveGameStats(registry, history, ComputeStreak(puzzleDay = GetPuzzleDay(registry, clock))),
             playRegistry = GamePlayRegistry(emptyList()),
