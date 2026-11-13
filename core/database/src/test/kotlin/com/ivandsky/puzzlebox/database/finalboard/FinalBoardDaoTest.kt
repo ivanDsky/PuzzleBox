@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.database.finalboard
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.database.RoomQueryThread
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -24,6 +25,7 @@ class FinalBoardDaoTest {
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), FinalBoardDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         dao = db.finalBoardDao()
     }

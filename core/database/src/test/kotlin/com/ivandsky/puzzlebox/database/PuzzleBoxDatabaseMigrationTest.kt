@@ -786,6 +786,7 @@ class PuzzleBoxDatabaseMigrationTest {
         context.deleteDatabase(dbName)
         val database = Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, dbName)
             .addMigrations(*Migrations.ALL)
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         try {
             val db = database.openHelper.writableDatabase

@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.cloud.kinds
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.cloud.CloudDoc
@@ -61,6 +62,7 @@ class BoardsKindTest {
 
     private fun newDb() = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), LinkedInDatabase::class.java)
         .allowMainThreadQueries()
+        .setQueryExecutor(RoomQueryThread.executor)
         .build()
 
     private fun keyOf(profileId: String) =

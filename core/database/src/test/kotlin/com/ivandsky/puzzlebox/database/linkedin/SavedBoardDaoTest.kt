@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.database.linkedin
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.database.RoomQueryThread
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -25,6 +26,7 @@ class SavedBoardDaoTest {
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), LinkedInDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         dao = db.savedBoardDao()
     }
