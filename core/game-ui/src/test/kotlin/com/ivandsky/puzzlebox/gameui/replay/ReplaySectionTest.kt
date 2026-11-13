@@ -1,12 +1,21 @@
 package com.ivandsky.puzzlebox.gameui.replay
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -92,6 +101,7 @@ class ReplaySectionTest {
         show(ReplaySectionState.Unavailable(ReplayUnavailable.ImportedFromLinkedIn), board)
 
         composeRule.onNodeWithTag(ReplayTags.UNAVAILABLE).assertExists().assertIsNotEnabled().assertHasNoClickAction()
+        composeRule.onAllNodes(hasClickAction() and hasAnyAncestor(hasTestTag(ReplayTags.UNAVAILABLE))).assertCountEquals(0)
         composeRule.onNodeWithText("Watch replay").assertExists()
         composeRule.onNodeWithText("Not available · imported from LinkedIn").assertExists()
         composeRule.onNodeWithTag(ROW).assertDoesNotExist()
@@ -110,6 +120,40 @@ class ReplaySectionTest {
         show(ReplaySectionState.Unavailable(ReplayUnavailable.NotRecorded), replayBoard = null)
 
         composeRule.onNodeWithTag(ReplayTags.UNAVAILABLE).assertDoesNotExist()
+    }
+
+    @Test
+    fun `the Ready row is enabled and clickable`() {
+        show(ReplaySectionState.Ready(timeline), board)
+
+        composeRule.onNodeWithTag(ROW).assertIsEnabled()
+        composeRule.onNode(hasClickAction() and hasAnyAncestor(hasTestTag(ROW))).assertIsEnabled().assertHasClickAction()
+    }
+
+    @Test
+    fun `the unavailable row is the ready row drawn at 38 percent`() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                Column {
+                    ReplaySection(ReplaySectionState.Ready(timeline), FakePlayUi(GameId("fake"), board), onOpen = {})
+                    ReplaySection(ReplaySectionState.Unavailable(ReplayUnavailable.NotRecorded), FakePlayUi(GameId("fake"), board), onOpen = {})
+                }
+            }
+        }
+        val ready = composeRule.onNodeWithTag(ROW).captureToImage().toPixelMap()
+        val unavailable = composeRule.onNodeWithTag(ReplayTags.UNAVAILABLE).captureToImage().toPixelMap()
+        assertEquals("the two rows share one layout", ready.height, unavailable.height)
+
+        // On the play disc, clear of its glyph: the disc's colour at full strength, and the same disc faded over the surface.
+        val x = (5 * composeRule.density.density).toInt()
+        val y = ready.height / 2
+        val surface = ready[ready.width - 1, y]
+        val full = ready[x, y]
+        val faded = unavailable[x, y]
+        val channels = listOf(surface.red to (full.red to faded.red), surface.green to (full.green to faded.green), surface.blue to (full.blue to faded.blue))
+        val (back, pair) = channels.maxBy { (back, pair) -> kotlin.math.abs(back - pair.first) }
+        val alpha = (back - pair.second) / (back - pair.first)
+        assertEquals("disabled alpha, from $surface over $full to $faded", 0.38f, alpha, 0.03f)
     }
 
     @Test

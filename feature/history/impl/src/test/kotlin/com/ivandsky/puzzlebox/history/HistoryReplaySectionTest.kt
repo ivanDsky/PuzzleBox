@@ -5,6 +5,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -22,6 +27,7 @@ import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
+import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
@@ -184,6 +190,37 @@ class HistoryReplaySectionTest {
         show(HistoryReplays.One(short, solve = ReplaySolve.Latest), ui = null)
 
         rows().assertCountEquals(0)
+    }
+
+    @Test
+    fun `a day with no recorded replay draws one disabled Watch replay row with the generic reason`() {
+        show(HistoryReplays.Unavailable(ReplayUnavailable.NotRecorded))
+
+        composeRule.onNodeWithTag(ReplayTags.UNAVAILABLE).assertExists().assertIsNotEnabled().assertHasNoClickAction()
+        composeRule.onAllNodes(hasClickAction() and hasAnyAncestor(hasTestTag(ReplayTags.UNAVAILABLE))).assertCountEquals(0)
+        composeRule.onNodeWithText("Watch replay").assertExists()
+        composeRule.onNodeWithText("Not available for this solve").assertExists()
+        rows().assertCountEquals(0)
+        composeRule.onNodeWithText("Compare").assertDoesNotExist()
+    }
+
+    @Test
+    fun `an imported day draws the disabled row with the LinkedIn reason, and a tap opens nothing`() {
+        show(HistoryReplays.Unavailable(ReplayUnavailable.ImportedFromLinkedIn))
+
+        composeRule.onNodeWithTag(ReplayTags.UNAVAILABLE).assertIsNotEnabled().performClick()
+
+        composeRule.onNodeWithText("Not available · imported from LinkedIn").assertExists()
+        assertEquals(emptyList<ReplaySolve>(), opened)
+        assertEquals(0, compares)
+    }
+
+    @Test
+    fun `an unavailable day in a game without a replay board draws nothing`() {
+        show(HistoryReplays.Unavailable(ReplayUnavailable.NotRecorded), ui = ReplayUi(withBoard = false))
+
+        composeRule.onNodeWithTag(ReplayTags.UNAVAILABLE).assertDoesNotExist()
+        composeRule.onNodeWithText("Watch replay").assertDoesNotExist()
     }
 }
 

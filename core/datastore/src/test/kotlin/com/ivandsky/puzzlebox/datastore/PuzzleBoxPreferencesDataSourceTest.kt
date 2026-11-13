@@ -89,6 +89,35 @@ class PuzzleBoxPreferencesDataSourceTest {
     }
 
     @Test
+    fun `first launch shows replay errors`() = runTest {
+        val dataSource = newDataSource(tempFile())
+
+        assertTrue(dataSource.preferences.first().showReplayErrors)
+    }
+
+    @Test
+    fun `replay errors off survives a new data source over the same file, and on again too`() = runTest {
+        val file = tempFile()
+        val firstScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())
+        val firstProcess = PuzzleBoxPreferencesDataSource(
+            PreferenceDataStoreFactory.create(scope = firstScope) { file },
+        )
+
+        firstProcess.setShowReplayErrors(false)
+        firstScope.cancel()
+
+        val secondScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())
+        val secondProcess = PuzzleBoxPreferencesDataSource(
+            PreferenceDataStoreFactory.create(scope = secondScope) { file },
+        )
+        assertFalse(secondProcess.preferences.first().showReplayErrors)
+        secondProcess.setShowReplayErrors(true)
+        secondScope.cancel()
+
+        assertTrue(newDataSource(file).preferences.first().showReplayErrors)
+    }
+
+    @Test
     fun `an unset game flag emits its default`() = runTest {
         val dataSource = newDataSource(tempFile())
 
