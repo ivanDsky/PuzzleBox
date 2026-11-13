@@ -86,6 +86,28 @@ class ReplaySectionTest {
     }
 
     @Test
+    fun `unavailable draws the imported line and no row`() {
+        show(ReplaySectionState.Unavailable(ReplayUnavailable.ImportedFromLinkedIn), board)
+
+        composeRule.onNodeWithTag(ReplayTags.UNAVAILABLE).assertExists()
+        composeRule.onNodeWithText("Replay not available · imported from LinkedIn").assertExists()
+        composeRule.onNodeWithTag(ROW).assertDoesNotExist()
+    }
+
+    @Test
+    fun `unavailable draws the generic line`() {
+        show(ReplaySectionState.Unavailable(ReplayUnavailable.NotRecorded), board)
+        composeRule.onNodeWithText("No replay for this solve").assertExists()
+    }
+
+    @Test
+    fun `unavailable with no board draws nothing`() {
+        show(ReplaySectionState.Unavailable(ReplayUnavailable.NotRecorded), replayBoard = null)
+
+        composeRule.onNodeWithTag(ReplayTags.UNAVAILABLE).assertDoesNotExist()
+    }
+
+    @Test
     fun `tapping the row opens the replay`() {
         show(ReplaySectionState.Ready(timeline), board)
 

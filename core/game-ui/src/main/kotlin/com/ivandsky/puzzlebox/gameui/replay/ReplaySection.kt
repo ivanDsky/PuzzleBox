@@ -17,20 +17,36 @@ import com.ivandsky.puzzlebox.model.GameId
 /**
  * The replay section of a result-like screen. The one place that reads ui.replayBoard:
  * Hidden, or a game with no replay board, draws nothing. Ready draws the Watch replay row;
- * [onOpen] opens the replay page, where the player lives.
+ * [onOpen] opens the replay page, where the player lives. Unavailable draws a quiet line saying why there is none.
  * A [label] names which solve the row is, when a screen shows more than one.
  */
 @Composable
 fun ReplaySection(state: ReplaySectionState, ui: GamePlayUi, onOpen: () -> Unit, modifier: Modifier = Modifier, label: String? = null) {
-    if (state !is ReplaySectionState.Ready) return
     if (ui.replayBoard == null) return
-    WatchReplayRow(state.timeline.moveTimesMs.size, state.timeline.endMs, onOpen, modifier.testTag(ReplayTags.WATCH_ROW), label)
+    when (state) {
+        ReplaySectionState.Hidden -> Unit
+        is ReplaySectionState.Ready ->
+            WatchReplayRow(state.timeline.moveTimesMs.size, state.timeline.endMs, onOpen, modifier.testTag(ReplayTags.WATCH_ROW), label)
+        is ReplaySectionState.Unavailable -> ReplayUnavailableLine(state.reason, modifier.testTag(ReplayTags.UNAVAILABLE))
+    }
 }
 
 @PuzzleBoxPreviews
 @Composable
 internal fun ReplaySectionPreview() {
     PuzzleBoxTheme { ReplaySection(ReplaySectionState.Hidden, PreviewGame, onOpen = {}) }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ReplaySectionUnavailableImportedPreview() {
+    PuzzleBoxTheme { ReplaySection(ReplaySectionState.Unavailable(ReplayUnavailable.ImportedFromLinkedIn), PreviewGame, onOpen = {}) }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ReplaySectionUnavailableNotRecordedPreview() {
+    PuzzleBoxTheme { ReplaySection(ReplaySectionState.Unavailable(ReplayUnavailable.NotRecorded), PreviewGame, onOpen = {}) }
 }
 
 private object PreviewGame : GamePlayUi {

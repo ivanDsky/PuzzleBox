@@ -47,7 +47,7 @@ internal fun historyCompareKey(row: HistoryDayRow): ReplayCompareKey {
 }
 
 /**
- * The replays of the open day: nothing for [HistoryReplays.Hidden] or a game without a replay board, one Watch replay
+ * The replays of the open day: nothing for [HistoryReplays.Hidden] or a game without a replay board, a quiet line for [HistoryReplays.Unavailable], one Watch replay
  * row for [HistoryReplays.One], and a "First solve" and a "Latest" row plus a "Compare" button for
  * [HistoryReplays.FirstAndLatest]. [onOpen] says which solve to open; [onCompare] opens both side by side.
  */
@@ -62,6 +62,7 @@ internal fun HistoryReplaySection(
     if (ui?.replayBoard == null) return
     when (replays) {
         HistoryReplays.Hidden -> Unit
+        is HistoryReplays.Unavailable -> ReplaySection(ReplaySectionState.Unavailable(replays.reason), ui, onOpen = {}, modifier = modifier)
         is HistoryReplays.One -> ReplaySection(
             state = ReplaySectionState.Ready(replays.timeline),
             ui = ui,

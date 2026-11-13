@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
+import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import org.junit.Rule
@@ -26,7 +27,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * History's day-detail replay section at the two golden devices, light and dark: one replay (a short 12-move and a long
- * 64-move one) and the first solve and the latest with their labelled rows and Compare button. Goldens in `snapshots/replay/`.
+ * 64-move one), the first solve and the latest with their labelled rows and Compare button, and the two
+ * "no replay" lines. Goldens in `snapshots/replay/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -51,6 +53,12 @@ abstract class HistoryReplayGoldenScreenshots(private val device: String) {
 
     @Test fun `first and latest light`() = capture("first-latest", HistoryReplays.FirstAndLatest(SHORT, LONG), dark = false)
     @Test fun `first and latest dark`() = capture("first-latest", HistoryReplays.FirstAndLatest(SHORT, LONG), dark = true)
+
+    @Test fun `unavailable imported light`() = capture("unavailable-imported", HistoryReplays.Unavailable(ReplayUnavailable.ImportedFromLinkedIn), dark = false)
+    @Test fun `unavailable imported dark`() = capture("unavailable-imported", HistoryReplays.Unavailable(ReplayUnavailable.ImportedFromLinkedIn), dark = true)
+
+    @Test fun `unavailable light`() = capture("unavailable", HistoryReplays.Unavailable(ReplayUnavailable.NotRecorded), dark = false)
+    @Test fun `unavailable dark`() = capture("unavailable", HistoryReplays.Unavailable(ReplayUnavailable.NotRecorded), dark = true)
 
     private fun capture(name: String, replays: HistoryReplays, dark: Boolean) {
         rule.showGolden(dark) {
