@@ -6,6 +6,8 @@ import com.ivandsky.puzzlebox.data.calendar.CadenceGameCalendar
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.cloud.NoOwnerScope
 import com.ivandsky.puzzlebox.data.cloud.OwnerScope
+import com.ivandsky.puzzlebox.data.leaderboard.FinalBoardStore
+import com.ivandsky.puzzlebox.data.leaderboard.RoomFinalBoardStore
 import com.ivandsky.puzzlebox.data.linkedin.DataStoreLinkedInLink
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInAccount
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInAvatars
@@ -96,6 +98,8 @@ val dataModule = module {
     // the match repository, the NetworkStatus and the process scope are supplied by app and the backend.
     single { MatchResultPoster(identity = get(), outbox = get(), matches = get(), network = get(), scope = get()) }
     single<MatchResultSync> { get<MatchResultPoster>() }
+    // Final boards read from the cloud are kept in their own database; nothing there is authoritative.
+    single<FinalBoardStore> { RoomFinalBoardStore(get()) }
     // Process-wide so the 15-minute update-check throttle survives screen changes.
     single<AppReleaseRepository> { NetworkAppReleaseRepository(get()) }
     // Shared-text hand-off: app puts, the Create root takes it exactly once. In memory
