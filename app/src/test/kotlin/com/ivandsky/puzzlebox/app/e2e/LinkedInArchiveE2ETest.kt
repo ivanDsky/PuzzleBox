@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.room.Room
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -28,6 +29,7 @@ import com.ivandsky.puzzlebox.games.zip.zipModule
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.network.LINKEDIN_THROTTLE_COOLDOWN
 import com.ivandsky.puzzlebox.network.linkedInFeedTransport
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.network.FakeFeedTransport
 import java.time.Clock
 import java.time.Instant
@@ -177,6 +179,7 @@ class LinkedInArchiveE2ETest {
                         single { transport }
                         single { db }
                         single { GameRegistry(getAll<GamePlugin<*, *, *>>()) }
+                        single<ReleaseFlags> { FakeReleaseFlags() }
                     },
                 )
             }.also { live = it }
