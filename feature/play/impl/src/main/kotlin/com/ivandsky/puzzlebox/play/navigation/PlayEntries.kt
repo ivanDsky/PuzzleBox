@@ -122,11 +122,10 @@ fun EntryProviderScope<NavKey>.playEntry(
 /**
  * A slot's result: "Play again" starts a fresh attempt of the same day explicitly
  * ([PlaySessionStore.playAgain]) and replaces the result with its game; Next replaces it
- * with another game's today (17); Up and Done pop. Today's board block is a
- * "Full board" row that hands back the result's game through [onOpenBoard].
+ * with another game's today (17); Up and Done pop.
  * [linkedIn] adds the day's LinkedIn connections to the rank row.
  */
-fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator, onOpenBoard: (GameId) -> Unit, linkedIn: Boolean = false) {
+fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator, linkedIn: Boolean = false) {
     entry<ResultKey> { key ->
         val store = koinInject<PlaySessionStore>()
         ResultRoute(
@@ -137,7 +136,6 @@ fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator, onOpenBoard: (G
             },
             onNext = { game -> navigator.replaceTop(GameKey(game.value)) },
             onDone = { navigator.pop() },
-            onOpenBoard = onOpenBoard,
             onOpenReplay = { navigator.pushOnce(it) },
             linkedIn = linkedIn,
         )

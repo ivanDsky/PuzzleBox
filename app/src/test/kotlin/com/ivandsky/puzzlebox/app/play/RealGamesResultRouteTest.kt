@@ -123,7 +123,6 @@ class RealGamesResultRouteTest {
                         onPlayAgain = { playedAgain = true },
                         onNext = {},
                         onDone = {},
-                        onOpenBoard = {},
                         onOpenReplay = {},
                     )
                 }
@@ -162,7 +161,6 @@ class RealGamesResultRouteTest {
                         onPlayAgain = {},
                         onNext = {},
                         onDone = {},
-                        onOpenBoard = {},
                         onOpenReplay = {},
                     )
                 }

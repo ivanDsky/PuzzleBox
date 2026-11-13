@@ -19,7 +19,6 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.HomeSummaries
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
-import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GamesTab
@@ -46,8 +45,8 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  * including after process-death restore. A [codeDraft] (a tapped link's text that isn't a
  * code) opens the Play library's code sheet holding it.
  *
- * Each content type has one owner (ADR-0027): Today's rank and duels summaries, the game
- * page's "Your history" row and Result's "Full board" row open their owner (a game page or
+ * Each content type has one owner (ADR-0027): Today's rank and duels summaries and the game
+ * page's "Your history" row open their owner (a game page or
  * Games section through [libraryRequests], History's tab root through [openOwner]); Today
  * hides what is owned elsewhere, the game page draws its board, the tablet times card signs
  * in in place, and Profile has its own back and a gear to Settings.
@@ -93,15 +92,7 @@ internal fun puzzleBoxEntryProvider(
         onOpenGameHistory = { game, day -> navigator.pushOnce(HistoryKey(game.value, day?.toString())) },
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) }.takeIf { linkedIn },
     )
-    resultEntry(
-        navigator,
-        onOpenBoard = { game: GameId ->
-            // Leave no Result behind: openOwner resets only a reselected tab, so a Result on Today's stack would outlive it.
-            if (navigator.state.currentStack.last() is ResultKey) navigator.pop()
-            libraryRequests.openGamePage(navigator, game.value)
-        },
-        linkedIn = linkedIn,
-    )
+    resultEntry(navigator, linkedIn = linkedIn)
     createEntry(navigator)
     editorEntry(navigator, playLayout)
     publishedPuzzleEntry(navigator, playLayout)
