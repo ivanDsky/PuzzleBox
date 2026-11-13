@@ -754,8 +754,34 @@ class PuzzleBoxDatabaseMigrationTest {
     }
 
     @Test
-    fun `fresh v12 database is created by the normal builder path`() {
-        val dbName = "puzzlebox-fresh-v12.db"
+    fun `migrate 12 to 13 keeps every replay and marks it not uploaded`() {
+        val dbName = "puzzlebox-migration-12-13-test.db"
+        val v12 = helper.createDatabase(dbName, 12)
+        v12.execSQL(
+            "INSERT INTO completions " +
+                "(id, puzzleRef, timeMs, hints, statsVersion, statsBlob, completedAtMs, firstCompletedAtMs, isRecord, " +
+                "matchCode, source, ownerUid, syncId, uploaded) " +
+                "VALUES (1, 'queens/2026-11-08/400', 61000, 1, 1, '{\"v\":1}', 9200, 9200, 1, NULL, 'app', 'uid-a', 'aaaa', 1)",
+        )
+        v12.execSQL("INSERT INTO completion_replays (completionId, replay) VALUES (1, x'0102')")
+        v12.close()
+
+        // Validates against the committed 13.json.
+        val db = helper.runMigrationsAndValidate(dbName, 13, true, Migrations.MIGRATION_12_13)
+
+        db.query("SELECT completionId, replay, uploaded FROM completion_replays").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals(1L, cursor.getLong(0))
+            assertTrue(byteArrayOf(1, 2).contentEquals(cursor.getBlob(1)))
+            assertEquals(0, cursor.getInt(2))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `fresh v13 database is created by the normal builder path`() {
+        val dbName = "puzzlebox-fresh-v13.db"
         val context = RuntimeEnvironment.getApplication()
         context.deleteDatabase(dbName)
         val database = Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, dbName)
@@ -763,7 +789,7 @@ class PuzzleBoxDatabaseMigrationTest {
             .build()
         try {
             val db = database.openHelper.writableDatabase
-            assertEquals(12, db.version)
+            assertEquals(13, db.version)
 
             // replay is omitted: a leg queued without one reads NULL.
             db.execSQL(
@@ -782,9 +808,10 @@ class PuzzleBoxDatabaseMigrationTest {
                     "VALUES (1, 'queens/2026-11-08/400', 61000, 1, 1, '{\"v\":1}', 9200, 9200, 1, 'aaaa')",
             )
             db.execSQL("INSERT INTO completion_replays (completionId, replay) VALUES (1, x'0102')")
-            db.query("SELECT replay FROM completion_replays WHERE completionId = 1").use { cursor ->
+            db.query("SELECT replay, uploaded FROM completion_replays WHERE completionId = 1").use { cursor ->
                 assertTrue(cursor.moveToFirst())
                 assertTrue(byteArrayOf(1, 2).contentEquals(cursor.getBlob(0)))
+                assertEquals(0, cursor.getInt(1))
             }
             // No pragma here: the app's own open path must enforce the cascade.
             db.execSQL("DELETE FROM completions WHERE id = 1")
