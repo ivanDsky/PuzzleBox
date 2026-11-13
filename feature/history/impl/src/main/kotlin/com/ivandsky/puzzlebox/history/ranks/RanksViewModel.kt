@@ -6,11 +6,13 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
@@ -21,7 +23,6 @@ import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
 import com.ivandsky.puzzlebox.history.CalendarState
 import com.ivandsky.puzzlebox.history.DayReplays
 import com.ivandsky.puzzlebox.history.DayReplaysLoader
@@ -31,9 +32,7 @@ import com.ivandsky.puzzlebox.history.historyRows
 import com.ivandsky.puzzlebox.history.solvedByDay
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Clock
-import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,12 +74,14 @@ internal class RanksViewModel(
     private val calendar: GameCalendar,
     private val registry: GameRegistry,
     private val clock: Clock = Clock.systemUTC(),
+    linkedIn: ObserveLinkedInDayView? = null,
 ) : ViewModel() {
 
     private val _selection = MutableStateFlow(RanksSelection())
     val selection: StateFlow<RanksSelection> = _selection.asStateFlow()
 
     private val signInHolder = RanksSignInHolder(identity, idTokens)
+    private val ghosts = BoardGhosts(linkedIn)
     private val viewer = identity.current
     private val boards = rankBoards(registry)
     private val games: List<GameId> = boards.filterIsInstance<RanksBoard.Game>().map { it.id }
@@ -167,12 +168,18 @@ internal class RanksViewModel(
     private val friends: Flow<Set<String>> = selection.map { it.scope }.distinctUntilChanged()
         .flatMapLatest { scope -> if (scope == RankScope.Friends) observeFriendUids() else flowOf(emptySet()) }
 
+    /** The LinkedIn ghosts of the board on screen: read only on a game's Day board in Friends scope. */
+    private val ghostInput: Flow<BoardGhostInput> = combine(selection.map { it.board to it.scope }.distinctUntilChanged(), window) { (board, scope), window ->
+        Triple(board, scope, window)
+    }.flatMapLatest { (board, scope, window) -> ghosts.observe(board, scope, window) }
+
     private val scoped: Flow<RanksBoardSlice> = combine(
         selection.map { Triple(it.board, it.window, it.day) }.distinctUntilChanged().flatMapLatest { (board, kind, day) -> boardSlice(board, kind, day) },
         selection.map { it.scope }.distinctUntilChanged(),
         friends,
-    ) { slice, scope, friends ->
-        if (scope == RankScope.Friends) slice.copy(state = slice.state.friendsOnly(friends)) else slice
+        ghostInput,
+    ) { slice, scope, friends, ghostInput ->
+        if (scope == RankScope.Friends) slice.inFriends(friends, ghostInput) else slice
     }
 
     val uiState: StateFlow<RanksUiState> = combine(
@@ -247,12 +254,14 @@ internal class RanksViewModel(
         combine(overallState, viewer) { state, me -> overallSlice(kind, day, state, me?.uid) }
 
     private fun game(game: GameId, kind: RanksSelection.Window, day: LocalDate?): Flow<RanksBoardSlice> = window.flatMapLatest { window ->
-        combine(windowBoards, viewer) { answered, me ->
+        combine(windowBoards, viewer, history, calendar.observeToday(game)) { answered, me, rows, _ ->
             val inWindow = answered?.takeIf { (of, _) -> of == window }?.second
+            val order = registry.rankOrderOf(game)
+            val unofficial = inWindow.unofficialRow(game, order, me, rows) { calendar.inSubmitWindow(game, it) }.takeIf { kind == RanksSelection.Window.Day }
             RanksBoardSlice(
                 title = boardTitle(registry.displayName(game), kind, day),
-                order = registry.rankOrderOf(game),
-                state = inWindow.toGameBoardState(game, registry.rankOrderOf(game), kind, me?.uid),
+                order = order,
+                state = inWindow.toGameBoardState(game, order, kind, me?.uid).withUnofficialRow(unofficial),
                 note = inWindow.gameBoardNote(game, kind),
             )
         }
@@ -266,18 +275,6 @@ internal class RanksViewModel(
         note = state.boardNote(),
     )
 
-    /** A picked day names its day, week (by its Monday) or month; no pick is the live "today" / "this week" / "this month". */
-    private fun boardTitle(name: String, kind: RanksSelection.Window, day: LocalDate?) = when {
-        day == null -> when (kind) {
-            RanksSelection.Window.Day -> dailyBoardTitle(name)
-            RanksSelection.Window.Week -> "$name · this week"
-            RanksSelection.Window.Month -> "$name · this month"
-        }
-        kind == RanksSelection.Window.Day -> "$name · ${day.format(DAY_LABEL)}"
-        kind == RanksSelection.Window.Week -> "$name · week of ${day.with(DayOfWeek.MONDAY).format(DAY_LABEL)}"
-        else -> "$name · ${day.format(MONTH_LABEL)}"
-    }
-
     /** The replays of [row]'s day only: a switch never flashes the last day's. */
     private fun DayReplays.of(row: HistoryDayRow): HistoryReplays = if (key == row.key) replays else HistoryReplays.Hidden
 
@@ -287,7 +284,5 @@ internal class RanksViewModel(
         const val STOP_TIMEOUT_MS = 5_000L
         const val OVERALL_CAPTION = "Points from every game's board. Higher is better."
         val SWIPE_NUDGE = GameId("ranks.swipe")
-        val DAY_LABEL: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
-        val MONTH_LABEL: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
     }
 }

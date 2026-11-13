@@ -89,7 +89,7 @@ internal fun puzzleBoxEntryProvider(
         onOpenHistory = { navigator.openOwner(HistoryRootKey) },
     )
     if (ranks) {
-        ranksEntry(navigator, historyLayout)
+        ranksEntry(navigator, historyLayout, linkedIn)
         // The hub serves the root only, and historyEntry cannot sit beside it: both register
         // HistoryRootKey, which Navigation3 rejects. So a pushed HistoryKey resolves through
         // History's own table until the hub takes that key over.

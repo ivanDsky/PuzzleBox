@@ -15,5 +15,11 @@ import org.koin.dsl.module
  */
 val historyModule = module {
     viewModel { (key: HistoryKey) -> HistoryViewModel(get(), get(), get(), get(), get(), get(), getOrNull(), key) }
-    viewModel { RanksViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    // The flag arrives as the parameter, so a graph without LinkedIn bindings builds the hub with it off (ghosts read nothing).
+    viewModel { params ->
+        RanksViewModel(
+            get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
+            linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
+        )
+    }
 }
