@@ -147,6 +147,8 @@ dependencies {
 
     // DiGraphTest asserts the Room database resolves from the composed graph.
     testImplementation(projects.core.database)
+    // CloudSyncWorld: a device's own sync-state file, so two devices on one cloud share no bookkeeping.
+    testImplementation(projects.core.datastore)
     testImplementation(projects.core.testing)
     testImplementation(libs.koin.test)
     testImplementation(libs.koin.test.junit4)
