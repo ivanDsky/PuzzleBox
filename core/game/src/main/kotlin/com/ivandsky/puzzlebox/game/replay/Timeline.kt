@@ -20,7 +20,9 @@ class Timeline private constructor(
 
     /**
      * What each tick of [moveTimesMs] was, parallel to it. Moves sharing a stamp are one tick; the
-     * highest of Mistake > Hint > Undo > Normal wins.
+     * highest of Mistake > Hint > Undo > Normal wins. A Mistake the game calls transient
+     * ([GameReplay.isTransientMistake]) and that the next tick lands within [MISTAKE_SETTLE_MS] of is
+     * not one: it takes the highest non-Mistake kind of its own moves.
      */
     val moveKindsAt: Array<MoveKind> = fold.tickKinds()
 
@@ -112,8 +114,60 @@ class Timeline private constructor(
     /** The board after the first [applied] moves; [before] is the board before the last stamp's first move. */
     private class Reached<S>(val applied: Int, val session: S, val before: S?, val hinted: Set<Int>)
 
+    /**
+     * Downgrades transient Mistakes in [kinds] as stamp groups close. One pass; the pending group lives
+     * in fields, so a fold allocates nothing per group.
+     */
+    private class SettleFilter<S : GameSession>(private val replay: GameReplay<S>, private val kinds: MutableList<MoveKind>) {
+        private var pendingStart = 0
+        private var pendingEnd = 0
+        private var pendingBefore: S? = null
+        private var pendingAfter: S? = null
+
+        /**
+         * The stamp group `start until end` is complete: [before] and [after] bracket it, and the next group
+         * starts at [nextAtMs] ([NO_NEXT] = none). Settles the pending Mistake group, whose next group this was.
+         */
+        fun closed(start: Int, end: Int, atMs: Long, before: S, after: S, nextAtMs: Long) {
+            val pendingBefore = pendingBefore
+            if (pendingBefore != null) {
+                if (replay.isTransientMistake(pendingBefore, checkNotNull(pendingAfter), after)) downgrade(pendingStart, pendingEnd)
+                this.pendingBefore = null
+                pendingAfter = null
+            }
+            if (nextAtMs != NO_NEXT && nextAtMs - atMs < MISTAKE_SETTLE_MS && isMistake(start, end)) {
+                pendingStart = start
+                pendingEnd = end
+                this.pendingBefore = before
+                pendingAfter = after
+            }
+        }
+
+        private fun isMistake(start: Int, end: Int): Boolean {
+            for (index in start until end) if (kinds[index] == MoveKind.Mistake) return true
+            return false
+        }
+
+        private fun downgrade(start: Int, end: Int) {
+            var best = MoveKind.Normal
+            for (index in start until end) if (kinds[index] != MoveKind.Mistake) best = maxOf(best, kinds[index])
+            for (index in start until end) if (kinds[index] == MoveKind.Mistake) kinds[index] = best
+        }
+
+        companion object {
+            const val NO_NEXT = Long.MAX_VALUE
+        }
+    }
+
     companion object {
         private const val CHECKPOINT_EVERY = 64
+
+        /**
+         * A Mistake whose next stamp group lands less than this later may be a transient one the player
+         * undid at once ([GameReplay.isTransientMistake]); the live twin is MotionTokens.SettleMillis, the
+         * delay before a new violation shows. core:game cannot see the design system, so the value is repeated.
+         */
+        const val MISTAKE_SETTLE_MS = 500L
 
         /**
          * Decodes [bytes] and folds every move once from [initial]; calls `replay.factsOf(initial)` once.
@@ -131,6 +185,8 @@ class Timeline private constructor(
             val checkpointGroupBefores = arrayListOf<S?>(null)
             var session = initial
             var groupBefore: S? = null
+            var groupStart = 0
+            val settle = SettleFilter(replay, kinds)
             // The mark of the last move that changed nothing, kept while the next kept move may still share its stamp.
             var pendingAtMs = -1L
             var pendingMark = MoveMark.Plain
@@ -158,7 +214,11 @@ class Timeline private constructor(
                 val merged = if (pendingAtMs == atMs) merge(pendingMark, mark) else mark
                 pendingAtMs = -1L
                 pendingMark = MoveMark.Plain
-                if (moves.isEmpty() || moves.last().atMs != atMs) groupBefore = session
+                if (moves.isEmpty() || moves.last().atMs != atMs) {
+                    if (moves.isNotEmpty()) settle.closed(groupStart, moves.size, moves.last().atMs, checkNotNull(groupBefore), session, nextAtMs = atMs)
+                    groupBefore = session
+                    groupStart = moves.size
+                }
                 session = next
                 moves += StampedMove(atMs, stamped.move)
                 kinds += merged.kind
@@ -167,6 +227,9 @@ class Timeline private constructor(
                     checkpointSessions += session
                     checkpointGroupBefores += groupBefore
                 }
+            }
+            if (moves.isNotEmpty()) {
+                settle.closed(groupStart, moves.size, moves.last().atMs, checkNotNull(groupBefore), session, SettleFilter.NO_NEXT)
             }
             if (record.outcome == ReplayOutcome.Solved && !facts(session).solved) return null
             // Hints are known only now: a move that changed nothing may still add its hints to the kept move before it.
