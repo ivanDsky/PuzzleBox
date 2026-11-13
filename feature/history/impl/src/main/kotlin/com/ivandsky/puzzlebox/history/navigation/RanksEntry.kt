@@ -62,6 +62,7 @@ private fun RanksRoute(
     val viewModel = koinViewModel<RanksViewModel>(key = key, parameters = { parametersOf(linkedIn, opening) })
     val playerSheet = koinViewModel<PlayerSheetViewModel>(key = key)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     RanksScreen(
@@ -86,5 +87,7 @@ private fun RanksRoute(
             target.board?.let { navigator.pushOnce(ReplayKey.player(it.gameId, it.day.toString(), target.uid, target.name)) }
         },
         playerSheet = playerSheet,
+        refreshing = refreshing,
+        onRefresh = viewModel::refresh,
     )
 }

@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
@@ -31,6 +32,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
+import com.ivandsky.puzzlebox.testing.network.FakeNetworkStatus
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.model.GameId
@@ -54,6 +56,8 @@ internal class RanksTestHub(
     val daily = FakeDailyRepository()
     /** What the phone holds of the viewer's LinkedIn days; read only by a [viewModel] built with LinkedIn on. */
     val linkedInDays = FakeLinkedInDays()
+    /** The connection the hub's reconnect refresh hears; online until a test says otherwise. */
+    val network = FakeNetworkStatus()
     val matches = FakeMatchRepository().apply { signedInUid = identity?.uid }
 
     /** A duel between the viewer and [uid], which makes [uid] a friend. */
@@ -77,6 +81,7 @@ internal class RanksTestHub(
         val history = ObserveGameHistory(registry, daily, completions)
         return RanksViewModel(
             observeRankWindow = ObserveRankWindow(this.identity, leaderboard, FakeFinalBoardStore(), registry, calendar, clock),
+            observeWindowRefresh = ObserveWindowRefresh(network),
             observeOverall = ObserveOverall(this.identity, completions),
             observeFriendUids = ObserveFriendUids(matches, this.identity),
             observeGameHistory = history,

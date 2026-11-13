@@ -61,6 +61,8 @@ internal fun RanksScreen(
     onCompare: (HistoryDayRow) -> Unit = {},
     onWatchPlayer: (PlayerSheetViewModel.Target) -> Unit = {},
     playerSheet: PlayerSheetViewModel? = null,
+    refreshing: Boolean = false,
+    onRefresh: (() -> Unit)? = null,
 ) {
     val onRowClick = playerSheet?.let { sheet -> { row: DailyBoardRowModel -> sheet.open(row.toTarget(state)) } }
     val scroll = rememberScrollState()
@@ -73,9 +75,9 @@ internal fun RanksScreen(
         }
         Box(Modifier.weight(1f)) {
             if (twoPane) {
-                RanksTwoPane(state, onSignIn, Modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, leftScroll, scroll, onRowClick)
+                RanksTwoPane(state, onSignIn, Modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, leftScroll, scroll, onRowClick, refreshing, onRefresh)
             } else {
-                RanksPhone(state, scroll, onSignIn, onSwipe, onPickBoard, onNudgeShown, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, onRowClick)
+                RanksPhone(state, scroll, onSignIn, onSwipe, onPickBoard, onNudgeShown, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, onRowClick, refreshing, onRefresh)
             }
         }
     }
@@ -107,33 +109,37 @@ private fun RanksPhone(
     onOpenReplay: (HistoryDayRow, ReplaySolve) -> Unit,
     onCompare: (HistoryDayRow) -> Unit,
     onRowClick: ((DailyBoardRowModel) -> Unit)?,
+    refreshing: Boolean,
+    onRefresh: (() -> Unit)?,
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
     val current = state.places.getOrNull(state.position)
     val nudge = rememberSwipeNudge(show = state.nudge && !tuning && !howRanksWork, onShown = onNudgeShown)
-    Box(Modifier.fillMaxSize()) {
-        Column(
-            Modifier
-                .fillMaxSize()
-                .testTag("route.ranks")
-                .verticalScroll(scroll)
-                .padding(Spacing.lg),
-        ) {
-            RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
-                RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true })
+    RanksPullToRefresh(refreshing, onRefresh) {
+        Box(Modifier.fillMaxSize()) {
+            Column(
+                Modifier
+                    .fillMaxSize()
+                    .testTag("route.ranks")
+                    .verticalScroll(scroll)
+                    .padding(Spacing.lg),
+            ) {
+                RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
+                    RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true })
+                }
+                RanksCalendar(state.calendar, state.stats, onShowCalendar, onSelectDay)
+                YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
+                PageDots(
+                    state.boardCount,
+                    state.position,
+                    Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.md).testTag("ranks.dots"),
+                    pulseScale = { dotPulseScale(nudge.pulse.value) },
+                )
+                BoardSwipe(onSwipe) { RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick) }
             }
-            RanksCalendar(state.calendar, state.stats, onShowCalendar, onSelectDay)
-            YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
-            PageDots(
-                state.boardCount,
-                state.position,
-                Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.md).testTag("ranks.dots"),
-                pulseScale = { dotPulseScale(nudge.pulse.value) },
-            )
-            BoardSwipe(onSwipe) { RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick) }
+            SwipeNudgePill(nudgeText(state.places, state.position), nudge, Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.lg))
         }
-        SwipeNudgePill(nudgeText(state.places, state.position), nudge, Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.lg))
     }
     if (tuning) TuneSheet(state.scope, state.window, onScope, onWindow, onDismiss = { tuning = false })
     if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false })
