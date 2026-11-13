@@ -83,6 +83,7 @@ internal fun collapsedWeek(
  * the list ([onSelectDay]; the selected day again clears it); later days never tap.
  * [onShowCalendar] reports the day whose week or month to show, and the mode. Shows
  * nothing until the state has a calendar day.
+ * [foldable] false drops the header's chevron and its tap; the calendar stays the mode it is given.
  */
 @Composable
 internal fun HistoryCalendar(
@@ -90,6 +91,7 @@ internal fun HistoryCalendar(
     onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
     onSelectDay: (LocalDate?) -> Unit,
     cardColor: Color,
+    foldable: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     val shown = state.shownDay ?: return
@@ -114,6 +116,7 @@ internal fun HistoryCalendar(
             CalendarHeader(
                 title = if (expanded) YearMonth.from(shown).format(MONTH_YEAR) else weekTitle(weekOf(shown)),
                 expanded = expanded,
+                foldable = foldable,
                 canGoBack = index < pages.count - 1,
                 canGoForward = index > 0,
                 onToggle = {
@@ -164,13 +167,14 @@ private class CalendarPages(private val expanded: Boolean, private val today: Lo
 }
 
 /**
- * The title, which toggles the month view (its chevron points down to expand, up to
- * fold), and the arrows; the back arrow is the forward chevron turned around.
+ * The title, which toggles the month view when [foldable] (its chevron points down to expand, up to fold), and the
+ * arrows; the back arrow is the forward chevron turned around.
  */
 @Composable
 private fun CalendarHeader(
     title: String,
     expanded: Boolean,
+    foldable: Boolean,
     canGoBack: Boolean,
     canGoForward: Boolean,
     onToggle: () -> Unit,
@@ -181,10 +185,8 @@ private fun CalendarHeader(
         Row(
             modifier = Modifier
                 .weight(1f)
-                .clip(PillShape)
-                .clickable(onClick = onToggle)
-                .padding(horizontal = Spacing.sm, vertical = Spacing.xs)
-                .testTag("history.calendar.expand"),
+                .then(if (foldable) Modifier.clip(PillShape).clickable(onClick = onToggle).testTag("history.calendar.expand") else Modifier)
+                .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
@@ -194,12 +196,14 @@ private fun CalendarHeader(
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.testTag("history.calendar.month"),
             )
-            Icon(
-                imageVector = PuzzleIcons.ExpandMore,
-                contentDescription = if (expanded) "Show one week" else "Show the month",
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = if (expanded) Modifier.rotate(180f) else Modifier,
-            )
+            if (foldable) {
+                Icon(
+                    imageVector = PuzzleIcons.ExpandMore,
+                    contentDescription = if (expanded) "Show one week" else "Show the month",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = if (expanded) Modifier.rotate(180f) else Modifier,
+                )
+            }
         }
         IconButton(onClick = onBack, enabled = canGoBack, modifier = Modifier.testTag("history.calendar.prev")) {
             Icon(imageVector = PuzzleIcons.Chevron, contentDescription = "Back", modifier = Modifier.rotate(180f))

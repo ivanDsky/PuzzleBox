@@ -1,10 +1,12 @@
 package com.ivandsky.puzzlebox.history
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -96,6 +98,15 @@ class HistoryCalendarTest {
         assertFalse("no day before this week", hasTag(dayTag(monday.minusDays(1))))
         assertFalse("no day after this week", hasTag(dayTag(monday.plusDays(7))))
         assertFalse("the month stays folded", hasTag("history.calendar.grid"))
+    }
+
+    @Test
+    fun `the header shows its fold chevron by default`() {
+        setContent(listOf(HistoryTestSupport.entry(today)))
+        scrollTo(rowTag(today))
+        scrollTo("history.calendar.expand")
+
+        composeRule.onNodeWithContentDescription("Show the month", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test

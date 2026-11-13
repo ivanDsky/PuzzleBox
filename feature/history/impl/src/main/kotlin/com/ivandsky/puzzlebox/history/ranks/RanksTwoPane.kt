@@ -78,7 +78,7 @@ internal fun RanksTwoPane(
             Modifier.weight(LIST_WEIGHT).fillMaxHeight().verticalScroll(rememberScrollState()).testTag("ranks.leftpane"),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            RanksCalendar(state.calendar.copy(expanded = true), state.stats, { day, _ -> onShowCalendar(day, true) }, onSelectDay)
+            RanksCalendar(state.calendar.copy(expanded = true), state.stats, { day, _ -> onShowCalendar(day, true) }, onSelectDay, foldable = false)
             GameList(state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true })
         }
         Column(

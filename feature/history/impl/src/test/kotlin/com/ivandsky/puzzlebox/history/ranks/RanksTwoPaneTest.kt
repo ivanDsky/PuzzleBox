@@ -4,6 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -100,13 +101,12 @@ class RanksTwoPaneTest {
     }
 
     @Test
-    fun `the month never folds to a week on the tablet`() {
-        val calls = mutableListOf<Boolean>()
-        show(onShowCalendar = { _, expanded -> calls += expanded })
+    fun `the month has no fold chevron and no fold tap on the tablet`() {
+        show()
 
-        composeRule.onNodeWithTag("history.calendar.expand").performClick()
-
-        assertEquals(listOf(true), calls)
+        composeRule.onAllNodesWithTag("history.calendar.expand", useUnmergedTree = true).assertCountEquals(0)
+        composeRule.onAllNodesWithContentDescription("Show one week", useUnmergedTree = true).assertCountEquals(0)
+        composeRule.onAllNodesWithContentDescription("Show the month", useUnmergedTree = true).assertCountEquals(0)
     }
 
     @Test

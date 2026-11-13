@@ -36,6 +36,7 @@ internal fun RanksCalendar(
     stats: GameStats?,
     onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
     onSelectDay: (LocalDate?) -> Unit,
+    foldable: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     if (state.shownDay == null || state.today == null) return
@@ -50,6 +51,7 @@ internal fun RanksCalendar(
             onShowCalendar = onShowCalendar,
             onSelectDay = onSelectDay,
             cardColor = MaterialTheme.colorScheme.surfaceContainerLow,
+            foldable = foldable,
         )
         AnimatedVisibility(visible = state.expanded && stats != null, enter = enter, exit = exit) {
             // Held through the fold, so the strip leaves with its numbers.
