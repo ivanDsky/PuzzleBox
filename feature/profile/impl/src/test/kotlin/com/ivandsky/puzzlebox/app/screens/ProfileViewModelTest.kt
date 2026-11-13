@@ -46,6 +46,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -210,11 +211,14 @@ class ProfileViewModelTest {
     }
 
     @Test
-    fun `user cancel gets the generic retry wording`() = runTest(dispatcher) {
-        assertEquals(
-            "Sign-in failed. Please try again.",
-            signInMessage(tokens = FakeTokenProvider(GoogleIdToken.Unavailable(CANCELLED))),
-        )
+    fun `user cancel is silent and leaves the button ready`() = runTest(dispatcher) {
+        val deps = viewModel(tokens = FakeTokenProvider(GoogleIdToken.Unavailable(CANCELLED)))
+
+        deps.vm.onSignIn(appContext)
+        advanceUntilIdle()
+
+        assertNull(deps.signedOut.signInMessage)
+        assertEquals(false, deps.signedOut.signingIn)
     }
 
     @Test

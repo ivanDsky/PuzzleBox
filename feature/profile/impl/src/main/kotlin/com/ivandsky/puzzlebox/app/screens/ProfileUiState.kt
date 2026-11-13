@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.screens
 
+import com.ivandsky.puzzlebox.data.cloud.PauseReason
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.profile.accounts.LinkedInRowState
 import java.time.LocalDate
@@ -49,8 +50,8 @@ data class ProfileUiState(
             /** The cloud is unreachable; history syncs once the phone is online again. */
             data object Offline : Status
 
-            /** Quota, rules or the daily write cap stopped sync; it resumes on its own. */
-            data object Paused : Status
+            /** Quota, rules or the daily write cap ([reason]) stopped sync; it resumes on its own. */
+            data class Paused(val reason: PauseReason) : Status
         }
     }
 

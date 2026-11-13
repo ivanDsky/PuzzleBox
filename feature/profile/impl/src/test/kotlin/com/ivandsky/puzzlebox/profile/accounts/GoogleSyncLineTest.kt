@@ -1,14 +1,17 @@
 package com.ivandsky.puzzlebox.profile.accounts
 
 import android.app.Application
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.app.screens.ProfileUiState
 import com.ivandsky.puzzlebox.app.screens.ProfileUiState.GoogleSync
+import com.ivandsky.puzzlebox.data.cloud.PauseReason
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.Assert.assertEquals
@@ -84,11 +87,50 @@ class GoogleSyncLineTest {
     }
 
     @Test
-    fun `paused says sync paused`() {
-        setRow(GoogleSync(GoogleSync.Status.Paused))
+    fun `paused gives each reason its own short line`() {
+        val lines = mapOf(
+            PauseReason.Exhausted to "Sync paused · over today's limit, tries again later",
+            PauseReason.WriteCap to "Sync paused · this phone is over its daily limit, tries again later",
+            PauseReason.Denied to "Sync paused · your account was refused, tries again later",
+        )
+        assertEquals(PauseReason.entries.toSet(), lines.keys)
+        val sync = mutableStateOf(GoogleSync(GoogleSync.Status.Paused(PauseReason.Exhausted)))
+        composeRule.setContent {
+            PuzzleBoxTheme { GoogleRow(account = signedIn, onSignIn = {}, onSignOut = {}, sync = sync.value, nowMs = NOW) }
+        }
 
-        composeRule.onNodeWithText("Sync paused").assertExists()
-        composeRule.onNodeWithText("Sync now").assertIsEnabled()
+        lines.forEach { (reason, line) ->
+            sync.value = GoogleSync(GoogleSync.Status.Paused(reason))
+
+            composeRule.onNodeWithText(line).assertExists()
+            composeRule.onNodeWithText("Sync now").assertIsEnabled()
+        }
+    }
+
+    @Test
+    fun `erasing shows Deleting and leaves Sync now idle`() {
+        setRow(GoogleSync(GoogleSync.Status.Synced(NOW), erasing = true))
+
+        composeRule.onNodeWithText("Deleting…").assertExists()
+        composeRule.onNodeWithText("Synced · just now").assertDoesNotExist()
+        composeRule.onNodeWithTag("profile.google.sync.now").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `the open delete confirm survives a rotation`() {
+        val restoration = StateRestorationTester(composeRule)
+        restoration.setContent {
+            PuzzleBoxTheme {
+                GoogleRow(account = signedIn, onSignIn = {}, onSignOut = {}, sync = GoogleSync(GoogleSync.Status.Synced(NOW)), nowMs = NOW)
+            }
+        }
+        composeRule.onNodeWithTag("profile.google.overflow").performClick()
+        composeRule.onNodeWithText("Delete my cloud data").performClick()
+        composeRule.onNodeWithTag("profile.google.delete.dialog").assertExists()
+
+        restoration.emulateSavedInstanceStateRestore()
+
+        composeRule.onNodeWithTag("profile.google.delete.dialog").assertExists()
     }
 
     @Test

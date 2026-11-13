@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.app.screens.ProfileUiState.GoogleSync
+import com.ivandsky.puzzlebox.data.cloud.PauseReason
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -18,11 +19,14 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 
 private const val SYNCING = "Syncing…"
 private const val OFFLINE = "No connection, so your history didn't sync. It will when you're online."
-private const val PAUSED = "Sync paused"
+private const val DELETING = "Deleting…"
+private const val PAUSED_EXHAUSTED = "Sync paused · over today's limit, tries again later"
+private const val PAUSED_WRITE_CAP = "Sync paused · this phone is over its daily limit, tries again later"
+private const val PAUSED_DENIED = "Sync paused · your account was refused, tries again later"
 
 /**
  * The signed-in Google row's sync line: what the engine is doing, with Sync now beside it (idle while a pass is
- * already running) and, under it, why the last Delete my cloud data did not finish. [nowMs] only phrases the age.
+ * already running or a delete is) and, under it, why the last Delete my cloud data did not finish. [nowMs] only phrases the age.
  */
 @Composable
 internal fun GoogleSyncLine(
@@ -34,7 +38,7 @@ internal fun GoogleSyncLine(
     Column(modifier.fillMaxWidth().testTag("profile.google.sync"), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Text(
-                text = syncText(sync.status, nowMs),
+                text = if (sync.erasing) DELETING else syncText(sync.status, nowMs),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f).testTag("profile.google.sync.status"),
@@ -43,7 +47,7 @@ internal fun GoogleSyncLine(
                 text = "Sync now",
                 onClick = onSyncNow,
                 modifier = Modifier.testTag("profile.google.sync.now"),
-                enabled = sync.status != GoogleSync.Status.Syncing,
+                enabled = sync.status != GoogleSync.Status.Syncing && !sync.erasing,
             )
         }
         sync.eraseMessage?.let { message ->
@@ -61,16 +65,22 @@ private fun syncText(status: GoogleSync.Status, nowMs: Long): String = when (sta
     is GoogleSync.Status.Synced -> "Synced · ${relativeAgeText(status.atMs, nowMs)}"
     GoogleSync.Status.Syncing -> SYNCING
     GoogleSync.Status.Offline -> OFFLINE
-    GoogleSync.Status.Paused -> PAUSED
+    is GoogleSync.Status.Paused -> pausedText(status.reason)
+}
+
+private fun pausedText(reason: PauseReason): String = when (reason) {
+    PauseReason.Exhausted -> PAUSED_EXHAUSTED
+    PauseReason.WriteCap -> PAUSED_WRITE_CAP
+    PauseReason.Denied -> PAUSED_DENIED
 }
 
 private const val PREVIEW_NOW_MS = 1_800_000_000_000L
 private const val PREVIEW_MINUTE_MS = 60_000L
 
 @Composable
-private fun SyncLinePreview(status: GoogleSync.Status, eraseMessage: String? = null) {
+private fun SyncLinePreview(status: GoogleSync.Status, eraseMessage: String? = null, erasing: Boolean = false) {
     PuzzleBoxTheme {
-        GoogleSyncLine(GoogleSync(status, eraseMessage = eraseMessage), PREVIEW_NOW_MS, onSyncNow = {})
+        GoogleSyncLine(GoogleSync(status, erasing = erasing, eraseMessage = eraseMessage), PREVIEW_NOW_MS, onSyncNow = {})
     }
 }
 
@@ -89,7 +99,20 @@ internal fun GoogleSyncLineOfflinePreview() = SyncLinePreview(GoogleSync.Status.
 
 @PuzzleBoxPreviews
 @Composable
-internal fun GoogleSyncLinePausedPreview() = SyncLinePreview(GoogleSync.Status.Paused)
+internal fun GoogleSyncLinePausedExhaustedPreview() = SyncLinePreview(GoogleSync.Status.Paused(PauseReason.Exhausted))
+
+@PuzzleBoxPreviews
+@Composable
+internal fun GoogleSyncLinePausedWriteCapPreview() = SyncLinePreview(GoogleSync.Status.Paused(PauseReason.WriteCap))
+
+@PuzzleBoxPreviews
+@Composable
+internal fun GoogleSyncLinePausedDeniedPreview() = SyncLinePreview(GoogleSync.Status.Paused(PauseReason.Denied))
+
+@PuzzleBoxPreviews
+@Composable
+internal fun GoogleSyncLineDeletingPreview() =
+    SyncLinePreview(GoogleSync.Status.Synced(PREVIEW_NOW_MS - 2 * PREVIEW_MINUTE_MS), erasing = true)
 
 @PuzzleBoxPreviews
 @Composable
