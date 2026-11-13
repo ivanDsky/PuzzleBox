@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.NotationParse
 import com.ivandsky.puzzlebox.game.editor.NotationText
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.game.editor.capability
 
 /** Maps a [NotationParse] (+ the analysis it runs under [budget]) to the JSON shape (§9.2). */
 object CliVerdicts {
@@ -122,7 +123,7 @@ object CliVerdicts {
 }
 
 private fun cellPairs(editor: GameEditor<*>, draft: Any, indices: Set<Int>): List<List<Int>> {
-    // The capability is erased over the game's own D — the same cast NotationText.parseGame makes.
-    val columns = (editor as? EditorNotation<Any>)?.columns(draft) ?: 1
+    // C is spelled over Any: the star-projected editor has no nameable D.
+    val columns = editor.capability<_, EditorNotation<Any>>()?.columns(draft) ?: 1
     return indices.sorted().map { listOf(it / columns + 1, it % columns + 1) }
 }
