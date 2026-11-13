@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import kotlinx.coroutines.flow.Flow
 
 /** Replays of completions by puzzle; a puzzle keeps only its record solve's and latest solve's after [prune]. */
 @Dao
@@ -42,4 +43,46 @@ interface CompletionReplayDao {
             "ORDER BY completedAtMs DESC, id DESC LIMIT 1), -1))",
     )
     suspend fun prune(refKey: String)
+
+    /** Cloud ids of [uid]'s completions whose replay is not uploaded, re-emitting when either table changes. */
+    @Query(
+        "SELECT c.syncId FROM completion_replays r JOIN completions c ON c.id = r.completionId " +
+            "WHERE c.ownerUid = :uid AND r.uploaded = 0 ORDER BY c.completedAtMs, c.syncId",
+    )
+    fun observePendingSyncIds(uid: String): Flow<List<String>>
+
+    /** Replays of [uid]'s completions not yet uploaded, oldest completion first. */
+    @Query(
+        "SELECT c.syncId AS syncId, r.replay AS replay FROM completion_replays r JOIN completions c ON c.id = r.completionId " +
+            "WHERE c.ownerUid = :uid AND r.uploaded = 0 ORDER BY c.completedAtMs, c.syncId",
+    )
+    suspend fun pending(uid: String): List<CompletionReplayCloudRow>
+
+    /** Marks the replays of [uid]'s completions [syncIds] as stored in the cloud. */
+    @Query(
+        "UPDATE completion_replays SET uploaded = 1 WHERE completionId IN " +
+            "(SELECT id FROM completions WHERE ownerUid = :uid AND syncId IN (:syncIds))",
+    )
+    suspend fun markUploaded(uid: String, syncIds: List<String>)
+
+    /** Makes every replay of [uid]'s completions pending again, for a re-upload after the cloud space was reset. */
+    @Query(
+        "UPDATE completion_replays SET uploaded = 0 WHERE completionId IN " +
+            "(SELECT id FROM completions WHERE ownerUid = :uid)",
+    )
+    suspend fun clearUploaded(uid: String)
+
+    /**
+     * The id of [uid]'s completion [syncId] when it is the record row or the newest row of its puzzle, i.e. the rows
+     * [prune] keeps a replay for; null for any other row, an unknown id or another owner's row.
+     */
+    @Query(
+        "SELECT c.id FROM completions c WHERE c.ownerUid = :uid AND c.syncId = :syncId AND (c.isRecord = 1 " +
+            "OR c.id = (SELECT id FROM completions WHERE puzzleRef = c.puzzleRef ORDER BY completedAtMs DESC, id DESC LIMIT 1))",
+    )
+    suspend fun keptCompletionId(uid: String, syncId: String): Long?
+
+    /** Inserts a restored replay (`uploaded = true`) and leaves a replay the completion already has untouched; -1 when ignored. */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertIfAbsent(row: CompletionReplayEntity): Long
 }
