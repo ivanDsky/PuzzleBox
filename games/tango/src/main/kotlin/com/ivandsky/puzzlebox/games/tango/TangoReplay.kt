@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.tango
 
 import com.ivandsky.puzzlebox.game.replay.GameReplay
+import com.ivandsky.puzzlebox.game.replay.MoveKind
+import com.ivandsky.puzzlebox.game.replay.MoveMark
 import com.ivandsky.puzzlebox.game.replay.ReplayFacts
 import com.ivandsky.puzzlebox.game.replay.ReplayMove
 import com.ivandsky.puzzlebox.games.tango.engine.TangoBoundedSolution
@@ -25,6 +27,15 @@ object TangoReplay : GameReplay<TangoSession> {
             TangoReplayMove.Redo -> session.withRedo()
             TangoReplayMove.Hint -> hinted(session)
             TangoReplayMove.Rejection -> session.withRejection()
+        }
+
+    /** A Tango hint places nothing, so it marks no cell: it shows on the timeline only. */
+    override fun markOf(before: TangoSession, move: ReplayMove, after: TangoSession, previous: ReplayMove?): MoveMark =
+        when (TangoReplayMove.of(move, before.puzzle.cellCount)) {
+            TangoReplayMove.Rejection -> MoveMark(MoveKind.Mistake, emptySet())
+            TangoReplayMove.Undo, TangoReplayMove.Redo, TangoReplayMove.Clear -> MoveMark(MoveKind.Undo, emptySet())
+            TangoReplayMove.Hint -> MoveMark(MoveKind.Hint, emptySet())
+            is TangoReplayMove.Place, null -> MoveMark.Plain
         }
 
     override fun factsOf(initial: TangoSession): (TangoSession) -> ReplayFacts {
