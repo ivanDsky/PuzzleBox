@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
+import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
+import com.ivandsky.puzzlebox.model.SolveReplay
 import java.io.File
 import java.security.MessageDigest
 import org.junit.Assert.assertEquals
@@ -13,17 +16,21 @@ import org.junit.Test
  * service-level functions through the end of the service body). The per-kind key lists are pinned here as
  * literals because the kind tickets own their codecs; a kind that changes its doc keys changes the rules
  * and this test in the same PR.
+ *
+ * Two pins moved after that: the daily entries block when it gained its closed key set, and the helpers when
+ * the entry window moved there for the daily replays block to share. The visibility and daily replays blocks
+ * are pinned against their codecs rather than by hash, so a doc key or a tier cannot change on one side only.
  */
 class FirestoreRulesCloudSpaceTest {
 
     private val rules = File("firestore.rules").readText().lines()
 
     @Test
-    fun `existing blocks, deny-all and helpers are byte-identical to before the account space`() {
+    fun `the hash-pinned blocks, deny-all and helpers are unchanged`() {
         val pinned = mapOf(
             "match /{document=**} {" to "2fa7810103dc8eb3f4050c94653a46e8c3ed08cf3536292a3963424eadffd1e9",
             "match /leaderboards/{boardId}/entries/{uid} {" to
-                "d2eea56b5561c6dd1b4cb90170ff9fff05b277b2797577c87758aa6419ce048c",
+                "7a11c5d570ecd206ef9e3314e6f5692c6dabb361d25527fda5f18a5b1b0784a0",
             "match /puzzles/{code} {" to "c3256ffb26eebe2e8e182f3681e1cb3e8a8f33d5b95fafb584896331126c2e34",
             "match /puzzles/{code}/entries/{uid} {" to
                 "09382f2ceb2f5fcaccd2b22f12d2e501898ec1715275abe390fbfd81ee7f60cb",
@@ -35,8 +42,8 @@ class FirestoreRulesCloudSpaceTest {
         )
         val blocks = topLevelBlocks()
         assertEquals(
-            "the rules hold exactly the pinned blocks plus the account space",
-            pinned.keys + SPACE_MATCH,
+            "the rules hold exactly the pinned blocks plus visibility, daily replays and the account space",
+            pinned.keys + setOf(VISIBILITY_MATCH, DAILY_REPLAYS_MATCH, SPACE_MATCH),
             blocks.keys,
         )
         for ((header, hash) in pinned) {
@@ -44,7 +51,7 @@ class FirestoreRulesCloudSpaceTest {
         }
         assertEquals(
             "service-level helper functions changed",
-            "466ff0fb83a123ccb12a0744c125758a2cb7f57adf625cd5e1ae441b2a260eb8",
+            "7277ef8acb16bd7fc6e416720ce7b0cde8adbba3b56fab35112f5f9e613f3871",
             sha256(helpers()),
         )
     }
@@ -159,6 +166,65 @@ class FirestoreRulesCloudSpaceTest {
         assertTrue("an empty replay is refused", body.contains("d.replay.size() > 0"))
     }
 
+    @Test
+    fun `a daily entry carries only the codec's keys, with capped strings`() {
+        val body = functionBody(block(ENTRIES_MATCH), "validEntry")
+        val entry = LeaderboardEntry("bob", "Bob", "zip/2026-11-07/1", timeMs = 61_000, hints = 0, completedAtMs = 1)
+        assertEquals(LeaderboardDocCodec.encode(entry).keys, listIn(body, "hasOnly"))
+        assertTrue("the name is capped", body.contains("entry.displayName.size() <= 64"))
+        assertTrue("the ref is capped", body.contains("ref.size() <= 64"))
+    }
+
+    @Test
+    fun `a tier is read by id when signed in, set by its owner over the ladder and never deleted`() {
+        val block = block(VISIBILITY_MATCH)
+        assertTrue("any signed-in player gets a tier", block.contains("allow get: if request.auth != null;"))
+        assertTrue("no listing, no delete", block.contains("allow list, delete: if false;"))
+        assertTrue(
+            "create and update need the owner and a valid tier doc",
+            Regex("""allow create, update: if request\.auth != null\s+&& request\.auth\.uid == uid\s+&& validTier\(\);""")
+                .containsMatchIn(block),
+        )
+        assertEquals("only the three allow lines", 3, Regex("""\ballow """).findAll(block).count())
+        val body = functionBody(block, "validTier")
+        assertEquals(encodeTierDoc(VisibilityTier.Board).keys, listIn(body, "hasOnly"))
+        assertEquals(
+            VisibilityTier.entries.map { it.storageName }.toSet(),
+            quoted(Regex("""d\.tier in \[(.*?)]""").find(body)!!.groupValues[1]),
+        )
+        assertTrue("the doc version is the codec's", body.contains("d.v == $TIER_DOC_VERSION;"))
+    }
+
+    @Test
+    fun `a daily replay is read while its owner's tier is replays, written once in the entry window, deleted by its owner`() {
+        val block = block(DAILY_REPLAYS_MATCH)
+        val tier = """/databases/\$\(database\)/documents/visibility/\$\(uid\)"""
+        assertTrue(
+            "a get needs the owner's tier doc to exist and say replays",
+            Regex(
+                """allow get: if request\.auth != null\s+&& exists\($tier\)\s+""" +
+                    """&& get\($tier\)\.data\.tier == '${VisibilityTier.Replays.storageName}';""",
+            ).containsMatchIn(block),
+        )
+        assertTrue("no listing, no rewrite", block.contains("allow list, update: if false;"))
+        assertTrue(
+            "create needs the owner and a valid replay doc",
+            Regex("""allow create: if request\.auth != null\s+&& request\.auth\.uid == uid\s+&& validDailyReplay\(\);""")
+                .containsMatchIn(block),
+        )
+        assertTrue(
+            "the owner takes it down",
+            block.contains("allow delete: if request.auth != null && request.auth.uid == uid;"),
+        )
+        assertEquals("only the four allow lines", 4, Regex("""\ballow """).findAll(block).count())
+        val body = functionBody(block, "validDailyReplay")
+        assertEquals(setOf("uid", "blob", "formatVersion", "createdAtMs"), listIn(body, "hasOnly"))
+        assertTrue("the replay is bytes", body.contains("d.blob is bytes"))
+        assertTrue("the cap is a solve replay's", body.contains("d.blob.size() <= ${SolveReplay.MAX_BYTES}"))
+        assertTrue("a daily game's board", body.contains("board[0] in dailyGameIds()"))
+        assertTrue("a day in the entry window", body.contains("board[1] in dailyWindowDays()"))
+    }
+
     private fun topLevelBlocks(): Map<String, String> {
         val blocks = linkedMapOf<String, String>()
         var i = 0
@@ -179,7 +245,9 @@ class FirestoreRulesCloudSpaceTest {
         return rules.subList(start, end).joinToString("\n")
     }
 
-    private fun spaceBlock(): String = topLevelBlocks()[SPACE_MATCH] ?: error("no account-space block in the rules")
+    private fun spaceBlock(): String = block(SPACE_MATCH)
+
+    private fun block(header: String): String = topLevelBlocks()[header] ?: error("no `$header` block in the rules")
 
     private fun kindList(block: String): Set<String> =
         quoted(Regex("""return kind in \[(.*?)];""").find(block)!!.groupValues[1])
@@ -188,7 +256,7 @@ class FirestoreRulesCloudSpaceTest {
     private fun functionBody(block: String, name: String): String {
         val lines = block.lines()
         val start = lines.indexOfFirst { it.startsWith("      function $name(") }
-        assertTrue("no function $name in the account space", start >= 0)
+        assertTrue("no function $name in the block", start >= 0)
         val end = (start until lines.size).first { lines[it] == "      }" }
         return lines.subList(start, end + 1).joinToString("\n")
     }
@@ -204,6 +272,9 @@ class FirestoreRulesCloudSpaceTest {
         MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).joinToString("") { "%02x".format(it) }
 
     private companion object {
+        const val ENTRIES_MATCH = "match /leaderboards/{boardId}/entries/{uid} {"
+        const val DAILY_REPLAYS_MATCH = "match /leaderboards/{boardId}/replays/{uid} {"
+        const val VISIBILITY_MATCH = "match /visibility/{uid} {"
         const val SPACE_MATCH = "match /users/{uid}/{kind}/{docId} {"
         val KIND_FUNCTIONS = listOf(
             "validCompletionsDoc", "validDraftDoc", "validPublishedDoc", "validReceivedDoc", "validBoardDoc", "validReplayDoc",
