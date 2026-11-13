@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -30,7 +31,7 @@ import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.profile.AppearanceRow
 
 /**
- * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Games, About (the version name), and — in debug builds only — a "Debug build only" block set off by a divider (shown when [debugSections] or [onOpenCatalog] is given): the [debugSections] slot (the app's flags and game tools), then the Component catalog row, each only when given.
+ * Settings, a pushed tool screen: a compact top bar with Back, then Appearance, Games, Visibility (only with [SettingsUiState.visibility]), About (the version name), and — in debug builds only — a "Debug build only" block set off by a divider (shown when [debugSections] or [onOpenCatalog] is given): the [debugSections] slot (the app's flags and game tools), then the Component catalog row, each only when given.
  */
 @Composable
 internal fun SettingsScreen(
@@ -43,6 +44,7 @@ internal fun SettingsScreen(
     onOpenCatalog: (() -> Unit)?,
     modifier: Modifier = Modifier,
     debugSections: (@Composable () -> Unit)? = null,
+    onSelectVisibility: (VisibilityTier) -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CompactTopBar(
@@ -73,6 +75,7 @@ internal fun SettingsScreen(
                 onSudokuPeerHighlight = onSetSudokuPeerHighlight,
                 onSudokuSameDigitHighlight = onSetSudokuSameDigitHighlight,
             )
+            state.visibility?.let { VisibilitySection(own = it, onSelect = onSelectVisibility) }
             Column(
                 modifier = Modifier.fillMaxWidth().testTag("settings.about"),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),

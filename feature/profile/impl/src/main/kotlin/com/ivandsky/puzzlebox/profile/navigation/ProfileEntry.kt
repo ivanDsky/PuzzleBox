@@ -9,12 +9,14 @@ import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.profile.api.SettingsKey
 import com.ivandsky.puzzlebox.profile.linkedin.LinkedInLoginRoute
 import com.ivandsky.puzzlebox.profile.settings.SettingsRoute
+import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
 
 /**
  * Profile's route (pushed on the current tab) and the pages it opens. [onBack] is the back
  * icon of Profile and Settings and closes the LinkedIn login; [onOpenSettings] is Profile's gear.
  * Settings uses [onOpenCatalog], the component catalog, an app-owned deep page, and [debugSections], the app's debug tools
  * (shown only in debuggable builds).
+ * [visibility] (null: none) adds Settings' Visibility section.
  * [onOpenLinkedInLogin] opens the LinkedIn login; null hides Profile's LinkedIn row.
  */
 fun EntryProviderScope<NavKey>.profileEntry(
@@ -23,12 +25,13 @@ fun EntryProviderScope<NavKey>.profileEntry(
     onOpenSettings: () -> Unit,
     onOpenLinkedInLogin: (() -> Unit)? = null,
     debugSections: (@Composable () -> Unit)? = null,
+    visibility: VisibilitySlot? = null,
 ) {
     entry<ProfileKey> {
         ProfileRoute(onBack = onBack, onOpenSettings = onOpenSettings, onConnectLinkedIn = onOpenLinkedInLogin)
     }
     entry<SettingsKey> {
-        SettingsRoute(onBack = onBack, onOpenCatalog = onOpenCatalog, debugSections = debugSections)
+        SettingsRoute(onBack = onBack, onOpenCatalog = onOpenCatalog, debugSections = debugSections, visibility = visibility)
     }
     entry<LinkedInLoginKey> {
         LinkedInLoginRoute(onDone = onBack)

@@ -1,8 +1,11 @@
 package com.ivandsky.puzzlebox.profile.settings
 
+import com.ivandsky.puzzlebox.data.visibility.OwnTier
+import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -11,6 +14,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 
@@ -75,5 +79,34 @@ class SettingsViewModelTest {
         games.sudokuSameDigitHighlight.value = true
         advanceUntilIdle()
         assertEquals(GamesSectionState(), vm.uiState.value.games)
+    }
+
+    private fun slotOf(repository: FakeVisibilityRepository) = VisibilitySlot(repository.ownTier, repository::setOwnTier)
+
+    @Test
+    fun `picking a tier calls setOwnTier and the section shows the stored tier`() = runTest(dispatcher) {
+        val repository = FakeVisibilityRepository(OwnTier.Unset)
+        val vm = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, slotOf(repository))
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(OwnTier.Unset, vm.uiState.value.visibility)
+
+        vm.onSelectVisibility(VisibilityTier.Duel)
+        advanceUntilIdle()
+
+        assertEquals(listOf(VisibilityTier.Duel), repository.setCalls)
+        assertEquals(OwnTier.Chosen(VisibilityTier.Duel), vm.uiState.value.visibility)
+    }
+
+    @Test
+    fun `the section is absent without a slot and a pick touches nothing`() = runTest(dispatcher) {
+        val vm = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild)
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        vm.onSelectVisibility(VisibilityTier.Hidden)
+        advanceUntilIdle()
+
+        assertNull(vm.uiState.value.visibility)
     }
 }

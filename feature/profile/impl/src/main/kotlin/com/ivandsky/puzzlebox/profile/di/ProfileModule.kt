@@ -34,7 +34,8 @@ val profileModule: Module = module {
             savedBoardsCloud = getOrNull<SavedBoardsCloud>(),
         )
     }
-    viewModel { SettingsViewModel(preferences = get(), games = get(), appBuild = get()) }
+    // The parameter is the app's VisibilitySlot; without it Settings has no Visibility section.
+    viewModel { params -> SettingsViewModel(preferences = get(), games = get(), appBuild = get(), visibility = params.getOrNull()) }
     // Bound only with the CloudSync switch on; it makes the risk warning say the boards are saved to the account.
     viewModel { LinkedInLoginViewModel(createLink = get(), cookies = get(), savedToAccount = getOrNull<CloudSync>() != null) }
     // Both providers are lambdas, so resolving this neither starts the web view provider nor reads a cookie.
