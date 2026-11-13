@@ -3,7 +3,8 @@ package com.ivandsky.puzzlebox.games.sudokuui
 /**
  * What one cell draws. [digit] is 0 when the cell shows none; [notes] is the visible notes mask
  * (bit `d - 1` for digit `d`), 0 under an entry because an entry hides its notes. [hintStruck]
- * marks a cell whose candidates the hint's eliminations cleared.
+ * marks a cell whose candidates the hint's eliminations cleared. [hinted] is replay-only: the cell
+ * still holds a digit a hint revealed, so it wears the hint badge.
  */
 data class SudokuCellModel(
     val idx: Int,
@@ -17,4 +18,5 @@ data class SudokuCellModel(
     val hintTarget: Boolean,
     val hintUnit: Boolean,
     val hintStruck: Boolean,
+    val hinted: Boolean = false,
 )

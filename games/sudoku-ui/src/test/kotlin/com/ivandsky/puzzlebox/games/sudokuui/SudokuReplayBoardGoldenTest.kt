@@ -78,12 +78,22 @@ abstract class SudokuReplayBoardGoldenBase(private val widthLabel: String, priva
         return session
     }
 
+    /** The union of the adapter's marks over the first [moves] moves, as the timeline builds it. */
+    private fun hintedAfter(moves: Int): Set<Int> = (0 until moves).flatMapTo(mutableSetOf()) { i ->
+        SudokuReplay.markOf(
+            sessionAfter(i),
+            script[i].toReplayMove(),
+            sessionAfter(i + 1),
+            script.getOrNull(i - 1)?.toReplayMove(),
+        ).hinted
+    }
+
     private fun frameAfter(moves: Int): ReplayFrame {
         val session = sessionAfter(moves)
         return ReplayFrame(
             session = session,
             before = if (moves == 0) null else sessionAfter(moves - 1),
-            hinted = emptySet(),
+            hinted = hintedAfter(moves),
             facts = SudokuReplay.factsOf(initial())(session),
             atMs = moves * 1_000L,
             sinceMoveMs = 0L,
