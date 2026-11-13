@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.games.queensui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
@@ -10,8 +13,10 @@ import com.ivandsky.puzzlebox.games.queens.QueensSession
 
 /**
  * Queens' read-only replay board: the committed board and the marks live play derives from it,
- * drawn by the live board's face. A hint shows as the replay badge on its target cells ([ReplayFrame.hinted]); no selection, trace or placement animation, no input. Conflict
- * stripes show only while [ReplayBoardOptions.showErrors].
+ * drawn by the live board's face. A hint shows as the replay badge on its target cells ([ReplayFrame.hinted]); no
+ * selection, trace or input. While the replay plays forward ([ReplayBoardOptions.animate]) pieces enter, exit and
+ * change as in live play (a placed queen pops, its auto crosses grow in); paused, scrubbing, stepping back or
+ * under reduced motion a frame change redraws at once. Conflict stripes show only while [ReplayBoardOptions.showErrors].
  */
 internal object QueensReplayBoard : GameReplayBoard {
     override val pieces: String get() = "queens"
@@ -24,6 +29,20 @@ internal object QueensReplayBoard : GameReplayBoard {
         val model = remember(session, showErrors) {
             QueensBoardModel.of(session).let { if (showErrors) it else it.copy(violations = emptySet()) }
         }
-        QueensBoardFace(model, modifier, hinted = frame.hinted)
+        // The frame shown last; it moves after each composition, so this one compares against the one before it.
+        val last = remember { ShownFrame(session, frame.atMs) }
+        val animate = options.animate && frame.atMs >= last.atMs
+        val placed = if (animate) (session.queens - last.session.queens.toSet()).singleOrNull()?.idx else null
+        SideEffect { last.session = session; last.atMs = frame.atMs }
+        val motion = remember(session.puzzle.size) { QueensMotionState(session.puzzle.size) }
+        LaunchedEffect(session) { if (placed != null) motion.pop(placed) }
+        CompositionLocalProvider(
+            LocalQueensReducedMotion provides !animate,
+            LocalQueensMotion provides motion,
+        ) {
+            QueensBoardFace(model, modifier, staggerFrom = placed, hinted = frame.hinted)
+        }
     }
+
+    private class ShownFrame(var session: QueensSession, var atMs: Long)
 }
