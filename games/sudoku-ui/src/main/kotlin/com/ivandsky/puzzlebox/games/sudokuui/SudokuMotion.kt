@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.SudokuUnit
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.abs
@@ -194,26 +195,37 @@ internal fun rememberSudokuMotion(state: SudokuBoardState?, onSolved: (SudokuSes
             val event = sudokuPlayerEvent(previous, next)
             previous = next
             sudokuHapticFor(event)?.let(haptics::perform)
-            val geometry = next.board.geometry
-            when (event) {
-                is SudokuPlayerEvent.Placed -> {
-                    launch { motion.pop(event.idx) }
-                    if (event.completedUnits.isNotEmpty()) {
-                        launch { motion.sweep(SudokuMotion.unitWave(geometry, event.idx, event.completedUnits)) }
-                    }
-                }
-                is SudokuPlayerEvent.Erased -> launch { motion.fade(event.idx, event.digit) }
-                is SudokuPlayerEvent.Solved -> {
-                    launch { motion.pop(event.idx) }
-                    launch {
-                        motion.sweep(SudokuMotion.solveWave(geometry))
-                        haptics.perform(SudokuHaptic.Confirm)
-                        handOff(state.session)
-                    }
-                }
-                SudokuPlayerEvent.None -> Unit
+            playSudokuEvent(motion, event, next.board.geometry) {
+                haptics.perform(SudokuHaptic.Confirm)
+                handOff(state.session)
             }
         }
     }
     return motion
+}
+
+/** Launches [event]'s effects on [motion]; [afterSolveSweep] runs once a solve's sweep has finished. */
+internal fun CoroutineScope.playSudokuEvent(
+    motion: SudokuMotionState,
+    event: SudokuPlayerEvent,
+    geometry: SudokuGeometry,
+    afterSolveSweep: suspend () -> Unit = {},
+) {
+    when (event) {
+        is SudokuPlayerEvent.Placed -> {
+            launch { motion.pop(event.idx) }
+            if (event.completedUnits.isNotEmpty()) {
+                launch { motion.sweep(SudokuMotion.unitWave(geometry, event.idx, event.completedUnits)) }
+            }
+        }
+        is SudokuPlayerEvent.Erased -> launch { motion.fade(event.idx, event.digit) }
+        is SudokuPlayerEvent.Solved -> {
+            launch { motion.pop(event.idx) }
+            launch {
+                motion.sweep(SudokuMotion.solveWave(geometry))
+                afterSolveSweep()
+            }
+        }
+        SudokuPlayerEvent.None -> Unit
+    }
 }
