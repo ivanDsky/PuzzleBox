@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
+import com.ivandsky.puzzlebox.designsystem.LocalIce
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.ResultBeats
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -47,10 +48,12 @@ import com.ivandsky.puzzlebox.domain.SpreadScope
 internal const val SIGN_IN_LABEL = "Sign in"
 internal const val WEEK_SOLVED = "Solved"
 internal const val WEEK_OPEN = "Not solved"
+internal const val WEEK_FROZEN = "Frozen"
 
 private val FlameTile = 48.dp
 private val FlameIcon = 28.dp
 private val WeekDotHeight = 12.dp
+private val FrozenGlyphSize = 8.dp
 private val WeekDotMaxWidth = 40.dp
 private val WeekGap = 6.dp
 private val DashStroke = 1.5.dp
@@ -127,14 +130,22 @@ private fun StreakBlock(streak: HeroStreak, accent: Color) {
                 )
             }
             Column(Modifier.weight(1f)) {
-                Text(
-                    text = heroStreakTitle(days),
-                    style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold).tabular(),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.testTag("result.side.streak"),
-                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = heroStreakTitle(days),
+                        style = MaterialTheme.typography.titleLarge.copy(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold).tabular(),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false).testTag("result.side.streak"),
+                    )
+                    if (streak.freezesHeld != null) {
+                        FreezeCount(streak.freezesHeld, Modifier.testTag("result.side.streak.freezes"))
+                    }
+                }
                 Text(
                     text = streak.sub,
                     style = MaterialTheme.typography.bodyMedium,
@@ -152,20 +163,30 @@ private fun StreakBlock(streak: HeroStreak, accent: Color) {
     }
 }
 
-/** One day of the week: its pill (50 percent accent solved, full today, dashed when open) over its initial. */
+/** One day of the week: its pill (50 percent accent solved, full today, ice with a snowflake frozen, dashed when open) over its initial. */
 @Composable
 private fun WeekDot(index: Int, day: HeroWeekDot, accent: Color, modifier: Modifier) {
     val outline = MaterialTheme.colorScheme.outline
     val pill = RoundedCornerShape(WeekDotHeight / 2)
     Column(
         modifier = modifier
-            .semantics(mergeDescendants = true) { stateDescription = if (day.solved) WEEK_SOLVED else WEEK_OPEN }
+            .semantics(mergeDescendants = true) { stateDescription = weekState(day) }
             .testTag("result.side.week.$index"),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         val dot = Modifier.widthIn(max = WeekDotMaxWidth).fillMaxWidth().height(WeekDotHeight)
-        if (day.solved) {
+        if (day.frozen) {
+            val ice = LocalIce.current
+            Box(dot.background(ice.container, pill), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = PuzzleIcons.Snowflake,
+                    contentDescription = null,
+                    tint = ice.onContainer,
+                    modifier = Modifier.size(FrozenGlyphSize),
+                )
+            }
+        } else if (day.solved) {
             Box(dot.background(accent.copy(alpha = if (day.today) 1f else SOLVED_ALPHA), pill))
         } else {
             Box(
@@ -191,6 +212,12 @@ private fun WeekDot(index: Int, day: HeroWeekDot, accent: Color, modifier: Modif
             maxLines = 1,
         )
     }
+}
+
+private fun weekState(day: HeroWeekDot): String = when {
+    day.frozen -> WEEK_FROZEN
+    day.solved -> WEEK_SOLVED
+    else -> WEEK_OPEN
 }
 
 /** The rank row: a bold place and its sub line, or the sign-in prompt with its button. No chevron: nothing opens from it. */
