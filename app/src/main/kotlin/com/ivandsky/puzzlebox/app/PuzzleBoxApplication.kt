@@ -4,6 +4,7 @@ import android.app.Application
 import com.ivandsky.puzzlebox.app.di.appModule
 import com.ivandsky.puzzlebox.app.di.buildTypeReleaseFlagsModule
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
+import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.backend.firebase.firebaseBackendModule
@@ -55,6 +56,8 @@ class PuzzleBoxApplication : Application() {
         koin.get<CustomBoardSubmitter>().start()
         // Duel results: pending posts retry on every app start; idle while the outbox is empty.
         koin.get<MatchResultPoster>().start()
+        // Daily replays: an accepted solve's replay goes public only on the Replays tier; absent with the hub flag off.
+        if (koin.get<ReleaseFlags>().isEnabled(ReleaseFlag.LeaderboardHub)) koin.get<DailyReplayPublisher>().start()
         // Cloud sync: the one place that starts runs besides "Sync now"; absent with the flag off.
         if (cloudSync) koin.get<CloudSyncRunner>().start()
     }
