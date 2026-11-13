@@ -33,6 +33,13 @@ internal data class RanksSelection(
 
     fun pickBoard(board: RanksBoard) = copy(board = board)
 
+    /** A swipe: [delta] boards along [boards]; stays put at either end (no wrap) or when the board is not listed. */
+    fun step(delta: Int, boards: List<RanksBoard>): RanksSelection {
+        val at = boards.indexOf(board)
+        val target = if (at < 0) null else boards.getOrNull(at + delta)
+        return if (target == null) this else pickBoard(target)
+    }
+
     fun pickDay(day: LocalDate?) = copy(day = day)
 
     fun setWindow(window: Window) = copy(window = window)

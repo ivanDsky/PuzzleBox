@@ -4,7 +4,6 @@ import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
-import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -33,7 +32,6 @@ internal class RanksTestHub(
     private val clock = Clock.fixed(Instant.parse("${today}T12:00:00Z"), ZoneOffset.UTC)
 
     fun viewModel() = RanksViewModel(
-        leaderboard = ObserveLeaderboard(this.identity, leaderboard, registry, calendar),
         observeRankWindow = ObserveRankWindow(this.identity, leaderboard, FakeFinalBoardStore(), registry, calendar, clock),
         observeOverall = ObserveOverall(this.identity, completions),
         identity = this.identity,

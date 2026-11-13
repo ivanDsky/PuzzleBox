@@ -6,7 +6,6 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
@@ -14,9 +13,7 @@ import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
-import com.ivandsky.puzzlebox.gameui.board.toDailyBoardState
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Clock
 import java.time.LocalDate
@@ -41,12 +38,11 @@ import kotlinx.coroutines.flow.update
  * derived from it, slice by slice.
  *
  * The window's boards are read once, here: every listener the hub holds hangs off [windowBoards]
- * (A23), and Overall derives from it without a read of its own. A game's board is still the
- * first-shipped today board; the picked day and per-game windows join the shared flow later.
+ * (A23), and Overall and each game's board are projections of it, so a swipe between boards
+ * attaches and fetches nothing.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class RanksViewModel(
-    private val leaderboard: ObserveLeaderboard,
     private val observeRankWindow: ObserveRankWindow,
     private val observeOverall: ObserveOverall,
     identity: IdentityService,
@@ -61,7 +57,8 @@ internal class RanksViewModel(
 
     private val signInHolder = RanksSignInHolder(identity, idTokens)
     private val viewer = identity.current
-    private val games: List<GameId> = rankBoards(registry).filterIsInstance<RanksBoard.Game>().map { it.id }
+    private val boards = rankBoards(registry)
+    private val games: List<GameId> = boards.filterIsInstance<RanksBoard.Game>().map { it.id }
 
     /** The window the hub reads: the picked day, or the latest "today" of any game, following the rollover. */
     private val window: Flow<RankWindow> = selection
@@ -81,8 +78,8 @@ internal class RanksViewModel(
     val uiState: StateFlow<RanksUiState> = combine(
         selection.map { it.board to it.window }.distinctUntilChanged().flatMapLatest { (board, kind) -> boardSlice(board, kind) },
         signInHolder.status,
-        ::RanksUiState,
-    ).stateIn(
+        selection.map { boards.indexOf(it.board) }.distinctUntilChanged(),
+    ) { slice, signIn, position -> RanksUiState(slice, signIn, position, boards.size) }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
         RanksUiState(overallSlice(RanksSelection.Window.Day, OverallState.Loading, null)),
@@ -93,6 +90,11 @@ internal class RanksViewModel(
         _selection.update(change)
     }
 
+    /** A swipe on the board: [delta] boards along the hub's boards, not past either end. */
+    fun swipe(delta: Int) {
+        select { it.step(delta, boards) }
+    }
+
     /** The sign-in prompt's button; [activityContext] hosts Google's account picker. */
     suspend fun signIn(activityContext: Context) = signInHolder.signIn(activityContext)
 
@@ -101,31 +103,39 @@ internal class RanksViewModel(
 
     private fun boardSlice(board: RanksBoard, kind: RanksSelection.Window): Flow<RanksBoardSlice> = when (board) {
         RanksBoard.Overall -> overall(kind)
-        is RanksBoard.Game -> leaderboard.today(board.id).map { gameSlice(board.id, it.toDailyBoardState()) }
+        is RanksBoard.Game -> game(board.id, kind)
     }
 
     private fun overall(kind: RanksSelection.Window): Flow<RanksBoardSlice> = window.flatMapLatest { window ->
-        val boards = windowBoards.filterNotNull().filter { (answered, _) -> answered == window }.map { (_, boards) -> boards }
-        combine(observeOverall(boards, window), viewer) { state, me -> overallSlice(kind, state, me?.uid) }
+        val answered = windowBoards.filterNotNull().filter { (of, _) -> of == window }.map { (_, boards) -> boards }
+        combine(observeOverall(answered, window), viewer) { state, me -> overallSlice(kind, state, me?.uid) }
+    }
+
+    private fun game(game: GameId, kind: RanksSelection.Window): Flow<RanksBoardSlice> = window.flatMapLatest { window ->
+        combine(windowBoards, viewer) { answered, me ->
+            val inWindow = answered?.takeIf { (of, _) -> of == window }?.second
+            RanksBoardSlice(
+                title = boardTitle(registry.displayName(game), kind),
+                order = registry.rankOrderOf(game),
+                state = inWindow.toGameBoardState(game, registry.rankOrderOf(game), kind, me?.uid),
+                note = inWindow.gameBoardNote(game, kind),
+            )
+        }
     }
 
     private fun overallSlice(kind: RanksSelection.Window, state: OverallState, selfUid: String?) = RanksBoardSlice(
-        title = when (kind) {
-            RanksSelection.Window.Day -> dailyBoardTitle("Overall")
-            RanksSelection.Window.Week -> "Overall · this week"
-            RanksSelection.Window.Month -> "Overall · this month"
-        },
+        title = boardTitle("Overall", kind),
         order = RankOrder.TimeThenHints,
         state = state.toDailyBoardState(selfUid),
         caption = OVERALL_CAPTION,
         note = state.boardNote(),
     )
 
-    private fun gameSlice(game: GameId, state: DailyBoardState) = RanksBoardSlice(
-        title = dailyBoardTitle(registry.displayName(game)),
-        order = registry.rankOrderOf(game),
-        state = state,
-    )
+    private fun boardTitle(name: String, kind: RanksSelection.Window) = when (kind) {
+        RanksSelection.Window.Day -> dailyBoardTitle(name)
+        RanksSelection.Window.Week -> "$name · this week"
+        RanksSelection.Window.Month -> "$name · this month"
+    }
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L

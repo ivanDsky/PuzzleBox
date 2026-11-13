@@ -29,6 +29,6 @@ fun EntryProviderScope<NavKey>.ranksEntry(
         val state by viewModel.uiState.collectAsStateWithLifecycle()
         val context = LocalContext.current
         val scope = rememberCoroutineScope()
-        RanksScreen(state, onSignIn = { scope.launch { viewModel.signIn(context) } })
+        RanksScreen(state, onSignIn = { scope.launch { viewModel.signIn(context) } }, onSwipe = viewModel::swipe)
     }
 }
