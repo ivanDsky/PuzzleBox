@@ -26,7 +26,7 @@ becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag w
    | History timeline (every past play) | History | Games › game page: "Your history" row; Today: the recent days with "See all" to History's root, and on the tablet the picked day's detail |
    | Per-game stats (solved, hint-free, avg, best) | Games › game page | — |
    | Past-day archive (play a past day) | Games › game page | History detail: "Play this day" action |
-   | Daily leaderboards (Today/Yesterday; the top five, with the player's own row pinned beneath when it ranks lower) | Games › game page | Today: "Today's rank: #12 on Zip"; Result: "You: #12 of 340" and "Full board" |
+   | Daily leaderboards (Today/Yesterday; the top five, with the player's own row pinned beneath when it ranks lower) | Games › game page | Today: "Today's rank: #12 on Zip"; Result: "You: #12 of 340" |
    | Duels | Games › Duels section | Today: "2 duels need you" |
    | Friends' puzzles (received, enter code) | Games › Friends section | — |
    | Drafts and published | Create | — |
@@ -55,8 +55,8 @@ becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag w
      from the gear at Profile's top right and is pushed on top of Profile, so Back from Settings returns to Profile.
      Settings is avatar then gear: two taps on the tablet, three on the phone from a tab other than Today.
    - Every summary row is one designsystem `SummaryLinkRow` card (56dp minimum height, extra-large corners, a raised
-     surface, a chevron): Today's rank and duels rows, the game page's "Your history" row and Result's "Full board"
-     row. The duels row opens Games at its top, on the Duels section.
+     surface, a chevron): Today's rank and duels rows and the game page's "Your history" row.
+     The duels row opens Games at its top, on the Duels section.
    - Profile's content starts at the same padding as Settings' (`Spacing.lg`) under the same top bar.
    - Link-ins land as before: friend link → Games, shared text → Create, update link → browser.
    - "Go to owner" composes existing reducer verbs (`selectTab` again at a non-root resets, then `push`), as shared text
