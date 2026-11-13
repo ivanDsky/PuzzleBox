@@ -17,7 +17,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** What the compare page shows: nothing yet, no replay on either side, or the two sides, one of which may be null (S7). */
@@ -47,14 +46,13 @@ internal class ReplayCompareViewModel(
     private val _state = MutableStateFlow<ReplayCompareState>(ReplayCompareState.Loading)
     val state: StateFlow<ReplayCompareState> = _state
 
-    private val _showErrors = MutableStateFlow(true)
+    private val showErrorsHolder = ReplayShowErrors(preferences)
 
     /** The "Show errors" switch: one global preference, read before the page leaves Loading and written on every change. */
-    val showErrors: StateFlow<Boolean> = _showErrors
+    val showErrors: StateFlow<Boolean> = showErrorsHolder.value
 
     fun setShowErrors(on: Boolean) {
-        _showErrors.value = on
-        viewModelScope.launch { preferences.setShowReplayErrors(on) }
+        showErrorsHolder.set(on, viewModelScope)
     }
 
     /** The game's replay board; null for a game that has none, which the page shows as no replay. */
@@ -75,7 +73,7 @@ internal class ReplayCompareViewModel(
 
     init {
         viewModelScope.launch {
-            _showErrors.value = preferences.showReplayErrors.first()
+            showErrorsHolder.load()
             val (mine, theirs) = coroutineScope {
                 val mine = async { key.mine().toSolveReplayRef(games)?.let { loadReplay(it) } }
                 val theirs = async { key.theirs().toSolveReplayRef(games)?.let { loadReplay(it) } }
