@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.match
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
@@ -171,6 +172,7 @@ class MatchLocalRepositoryContractTest(private val adapter: String) {
     private fun database(): PuzzleBoxDatabase = db ?: Room
         .inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
         .allowMainThreadQueries()
+        .setQueryExecutor(RoomQueryThread.executor)
         .build()
         .also { db = it }
 

@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.linkedin
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.database.linkedin.FetchLogEntity
 import com.ivandsky.puzzlebox.database.linkedin.GhostEntity
@@ -37,6 +38,7 @@ class RoomLinkedInAccountTest {
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), LinkedInDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         account = RoomLinkedInAccount(link, db, avatars, FakeOwnerScope())
     }

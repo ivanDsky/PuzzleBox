@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.data.linkedin
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import com.ivandsky.puzzlebox.datastore.LinkedInLinkDataSource
@@ -87,6 +88,7 @@ class RoomLinkedInDaysDisconnectRaceTest {
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), LinkedInDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         source.respondOwn("me", 6, number(day), LinkedInRead.Ok(LinkedInOwnResult.Solved(timeSeconds = 70, hintFree = true)))
         source.respondBoard("me", 6, number(today), 3, LinkedInRead.Ok(LinkedInBoard(listOf(BOARD_ROW))))

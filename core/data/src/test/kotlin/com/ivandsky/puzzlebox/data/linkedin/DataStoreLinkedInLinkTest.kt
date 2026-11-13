@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.data.linkedin
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.database.linkedin.FetchLogEntity
 import com.ivandsky.puzzlebox.database.linkedin.GhostEntity
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
@@ -91,6 +92,7 @@ class DataStoreLinkedInLinkTest {
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), LinkedInDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         avatars = testAvatars(File(folder.root, "avatars"))
     }

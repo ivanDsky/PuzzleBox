@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.database.linkedin
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.database.RoomQueryThread
 import androidx.room.testing.MigrationTestHelper
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.test.platform.app.InstrumentationRegistry
@@ -176,6 +177,7 @@ class LinkedInDatabaseMigrationTest {
         context.deleteDatabase(dbName)
         val database = Room.databaseBuilder(context, LinkedInDatabase::class.java, dbName)
             .addMigrations(*LinkedInMigrations.ALL)
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         try {
             val db = database.openHelper.writableDatabase

@@ -10,6 +10,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import androidx.room.Room
 import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -266,7 +267,11 @@ class StrandsArchiveE2ETest {
                 strandsModule,
                 module {
                     single<NytTransport> { transport }
-                    single { Room.inMemoryDatabaseBuilder(get(), PuzzleBoxDatabase::class.java).build() }
+                    single {
+                        Room.inMemoryDatabaseBuilder(get(), PuzzleBoxDatabase::class.java)
+                            .setQueryExecutor(RoomQueryThread.executor)
+                            .build()
+                    }
                     single { registry }
                     single<GameCalendar> { CapturedToday(calendar) }
                 },

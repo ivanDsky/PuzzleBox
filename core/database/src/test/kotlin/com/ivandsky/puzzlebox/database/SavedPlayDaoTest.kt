@@ -26,6 +26,7 @@ class SavedPlayDaoTest {
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         dao = db.savedPlayDao()
     }

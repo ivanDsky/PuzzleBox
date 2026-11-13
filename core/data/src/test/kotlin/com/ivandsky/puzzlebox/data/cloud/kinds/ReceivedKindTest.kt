@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.cloud.kinds
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.cloud.CloudDoc
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
@@ -37,6 +38,7 @@ class ReceivedKindTest {
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         val clock = object : Clock() {
             override fun getZone() = ZoneOffset.UTC
