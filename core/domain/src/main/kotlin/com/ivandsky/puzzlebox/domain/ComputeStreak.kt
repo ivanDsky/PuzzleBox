@@ -25,10 +25,6 @@ class ComputeStreak(
     private val releaseFlags: ReleaseFlags = ShippedReleaseFlags,
 ) {
 
-    operator fun invoke(solvedDays: Collection<LocalDate>): Int = ledger(solvedDays).current
-
-    fun best(solvedDays: Collection<LocalDate>): Int = ledger(solvedDays).best
-
     fun ledger(solvedDays: Collection<LocalDate>): StreakLedger {
         if (!releaseFlags.isEnabled(ReleaseFlag.StreakFreeze)) {
             return StreakLedger(current = strictCurrent(solvedDays), best = strictBest(solvedDays))

@@ -166,11 +166,11 @@ class StreakLedgerTest {
     }
 
     @Test
-    fun `invoke and best read the freeze-aware ledger`() {
+    fun `ledger current and best read the freeze-aware ledger`() {
         val streak = streakOn(day(9))
         val solved = (1..7).map(::day)
-        assertEquals(7, streak(solved))
-        assertEquals(7, streak.best(solved))
+        assertEquals(7, streak.ledger(solved).current)
+        assertEquals(7, streak.ledger(solved).best)
     }
 
     @Test
@@ -212,8 +212,8 @@ class StreakLedgerTest {
             val solved = generatedDays(random, today)
             val strict = StreakLedger(current = strictCurrent(solved, today), best = strictBest(solved), freezes = null)
             assertEquals("solved $solved", strict, streak.ledger(solved))
-            assertEquals(strict.current, streak(solved))
-            assertEquals(strict.best, streak.best(solved))
+            assertEquals(strict.current, streak.ledger(solved).current)
+            assertEquals(strict.best, streak.ledger(solved).best)
         }
     }
 
