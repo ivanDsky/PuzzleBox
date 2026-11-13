@@ -23,7 +23,7 @@ import org.koin.core.parameter.parametersOf
  * The Ranks hub's route for the tab root [HistoryRootKey], the successor of [historyEntry]'s root
  * entry. The module exports both; the app picks one by flag, so this feature never reads it
  * (A27). Same receiver and parameters as [historyEntry]: [navigator] opens a day's game and its
- * replays from the Your solve row; [layout] is what the tablet pane reads once it exists. [linkedIn] adds
+ * replays from the Your solve row; [layout] picks the tablet's two panes. [linkedIn] adds
  * the connections' ghosts to a game's Friends day board, from what the phone holds; off, the hub touches nothing of LinkedIn.
  */
 fun EntryProviderScope<NavKey>.ranksEntry(
@@ -38,6 +38,7 @@ fun EntryProviderScope<NavKey>.ranksEntry(
         val scope = rememberCoroutineScope()
         RanksScreen(
             state = state,
+            layout = layout,
             onSignIn = { scope.launch { viewModel.signIn(context) } },
             onSwipe = viewModel::swipe,
             onPickBoard = viewModel::pickBoard,
