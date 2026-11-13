@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.games.tangoui
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -58,7 +60,9 @@ private val SpotlightOnBoard = Modifier.wrapContentSize(Alignment.TopStart).aspe
  * the model this board last composed with is stale until the next frame, so a fast second
  * tap repeated the first and no-opped (M4-tango-28). [onPlacement] lands TalkBack's custom
  * actions; null for both = an inert board (the editor's preview). [hinted] cells wear the replay
- * hint badge in their top-right corner (a replay board only; live play passes none).
+ * hint badge in their top-right corner (a replay board only; live play passes none). [glyphFade],
+ * set by the replay board only, fades a glyph in, out and between sun and moon on that spec
+ * (`snap()` = at once); null, as live play passes, draws the glyph as is.
  */
 class TangoBoardRenderer(
     private val onTap: ((idx: Int) -> Unit)? = null,
@@ -67,7 +71,12 @@ class TangoBoardRenderer(
 ) {
 
     @Composable
-    fun Content(model: RendererModel, modifier: Modifier, hinted: Set<Int> = emptySet()) {
+    fun Content(
+        model: RendererModel,
+        modifier: Modifier,
+        hinted: Set<Int> = emptySet(),
+        glyphFade: FiniteAnimationSpec<Float>? = null,
+    ) {
         val tango = model as? TangoRendererModel
             ?: error("TangoBoardRenderer expects TangoRendererModel, got ${model::class.simpleName}")
         val commit = onPlacement
@@ -124,6 +133,7 @@ class TangoBoardRenderer(
                             model = tango,
                             onPlacement = commit,
                             hinted = (row * tango.n + col) in hinted,
+                            glyphFade = glyphFade,
                             idx = row * tango.n + col,
                             row = row,
                             col = col,
@@ -142,6 +152,7 @@ private fun Cell(
     model: TangoRendererModel,
     onPlacement: ((TangoPlacement) -> Unit)?,
     hinted: Boolean,
+    glyphFade: FiniteAnimationSpec<Float>?,
     idx: Int,
     row: Int,
     col: Int,
@@ -199,7 +210,13 @@ private fun Cell(
             },
         contentAlignment = Alignment.Center,
     ) {
-        render?.value?.let { Glyph(it, Modifier.fillMaxSize(), model.n) }
+        if (glyphFade == null) {
+            render?.value?.let { Glyph(it, Modifier.fillMaxSize(), model.n) }
+        } else {
+            Crossfade(render?.value, Modifier.fillMaxSize(), glyphFade, label = "tango.glyph") { value ->
+                value?.let { Glyph(it, Modifier.fillMaxSize(), model.n) }
+            }
+        }
         // Guide ghost (spec A12): the lesson's answer, faint, until the square matches —
         // full size on an empty square, a corner badge beside a wrong glyph.
         model.ghosts[idx]?.let { answer ->

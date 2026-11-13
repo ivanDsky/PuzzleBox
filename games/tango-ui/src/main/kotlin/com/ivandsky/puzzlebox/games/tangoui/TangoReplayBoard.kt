@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.games.tangoui
 
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -14,8 +16,9 @@ import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
 
 /**
  * Tango's read-only replay board: the committed board and the marks live play derives from it,
- * drawn by the live renderer with no input. No selection, trace, rejection flash, guide or
- * placement animation. A cell a hint pointed at wears the hint badge ([ReplayFrame.hinted]);
+ * drawn by the live renderer with no input. No selection, trace, rejection flash or guide. A glyph
+ * fades in, out and between sun and moon while the replay plays ([ReplayBoardOptions.animate]); paused,
+ * scrubbing or under reduced motion a frame change redraws at once. A cell a hint pointed at wears the hint badge ([ReplayFrame.hinted]);
  * live play's spotlight is not drawn. Violations settle as live play does ([tangoReplaySuppressed]).
  */
 internal object TangoReplayBoard : GameReplayBoard {
@@ -40,7 +43,10 @@ internal object TangoReplayBoard : GameReplayBoard {
                 },
             )
         }
-        remember { TangoBoardRenderer() }.Content(model, modifier, hinted = frame.hinted)
+        val glyphFade = remember(options.animate) {
+            if (options.animate) tween<Float>(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard) else snap()
+        }
+        remember { TangoBoardRenderer() }.Content(model, modifier, hinted = frame.hinted, glyphFade = glyphFade)
     }
 }
 
