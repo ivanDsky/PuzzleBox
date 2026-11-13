@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.games.queens.QueensSession
 
 /**
  * Queens' read-only replay board: the committed board and the marks live play derives from it,
- * drawn by the live board's face. No hint, selection, trace or placement animation, no input. Conflict
+ * drawn by the live board's face. A hint shows as the replay badge on its target cells ([ReplayFrame.hinted]); no selection, trace or placement animation, no input. Conflict
  * stripes show only while [ReplayBoardOptions.showErrors].
  */
 internal object QueensReplayBoard : GameReplayBoard {
@@ -24,6 +24,6 @@ internal object QueensReplayBoard : GameReplayBoard {
         val model = remember(session, showErrors) {
             QueensBoardModel.of(session).let { if (showErrors) it else it.copy(violations = emptySet()) }
         }
-        QueensBoardFace(model, modifier)
+        QueensBoardFace(model, modifier, hinted = frame.hinted)
     }
 }
