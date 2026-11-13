@@ -5588,14 +5588,27 @@
     },
     {
       "group": "account space",
-      "name": "replays take no writes before their key list",
+      "name": "replays doc without its replay",
       "expect": "deny",
       "method": "create",
-      "path": "users/alice/replays/sync-1",
+      "path": "users/alice/replays/0123456789abcdef0123456789abcdef",
       "auth": "alice",
       "data": {
         "formatVersion": 1,
         "updatedAt": "2026-11-07T12:00:00Z"
+      }
+    },
+    {
+      "group": "account space",
+      "name": "replays doc whose replay is a string",
+      "expect": "deny",
+      "method": "create",
+      "path": "users/alice/replays/0123456789abcdef0123456789abcdef",
+      "auth": "alice",
+      "data": {
+        "formatVersion": 1,
+        "updatedAt": "2026-11-07T12:00:00Z",
+        "replay": "AQID"
       }
     },
     {

@@ -328,9 +328,9 @@ existing `results (create)` row):
 
 `users/{uid}/{kind}/{docId}` (ADR-0029): owner-only, closed over six kinds, `updatedAt` must be the server time,
 per-kind key lists and size caps. Request time is `2026-11-07T12:00:00Z`; no other document is read, so no mocks.
-Drafts and received puzzles carry bytes (`blob`, `bytes`), which the Rules Test API's JSON cannot express, so their
-live shapes are covered only on the deny side (a string where bytes belong); their allow side, the 64 KiB and
-8 KiB bounds and a merge-set tombstone over a live doc were checked on the local Firestore emulator instead.
+Drafts, received puzzles and replays carry bytes (`blob`, `bytes`, `replay`), which the Rules Test API's JSON cannot express, so their
+live shapes are covered only on the deny side (a string where bytes belong); their allow side, the 64 KiB,
+8 KiB and 12 288-byte replay bounds, the replay sync-id doc id shape and a merge-set tombstone over a live doc were checked on the local Firestore emulator instead.
 Tombstones (`deleted`, `deletedAtMs`) stand for the draft and received kinds in the allow and name-cap cases.
 
 | Expect | Method | Path | Auth | Case |
@@ -357,7 +357,8 @@ Tombstones (`deleted`, `deletedAtMs`) stand for the draft and received kinds in 
 | deny | get | `users/alice/secrets/s1` | alice | get under an unknown kind |
 | deny | list | `users/alice/secrets/s1` | alice | list under an unknown kind |
 | deny | delete | `users/alice/secrets/s1` | alice | delete under an unknown kind |
-| deny | create | `users/alice/replays/sync-1` | alice | replays take no writes before their key list |
+| deny | create | `users/alice/replays/0123456789abcdef0123456789abcdef` | alice | replays doc without its replay |
+| deny | create | `users/alice/replays/0123456789abcdef0123456789abcdef` | alice | replays doc whose replay is a string |
 | deny | create | `users/alice/published/K7Q2MX` | alice | updatedAt other than the server time |
 | deny | create | `users/alice/published/K7Q2MX` | alice | updatedAt missing |
 | deny | create | `users/alice/published/K7Q2MX` | alice | formatVersion 2 |

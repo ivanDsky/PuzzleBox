@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.data.cloud.kinds.CompletionsKind
 import com.ivandsky.puzzlebox.data.cloud.kinds.DraftsKind
 import com.ivandsky.puzzlebox.data.cloud.kinds.PublishedKind
 import com.ivandsky.puzzlebox.data.cloud.kinds.ReceivedKind
+import com.ivandsky.puzzlebox.data.cloud.kinds.ReplaysKind
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.network.NetworkStatus
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
@@ -41,7 +42,7 @@ val cloudSyncModule = module {
     }
     single<CloudSync> {
         SyncedKindsCloudSync(
-            kinds = getAll<SyncedKind>(),
+            kinds = inSyncOrder(getAll<SyncedKind>()),
             space = get(),
             store = get(),
             identity = get<IdentityService>(),
@@ -76,4 +77,14 @@ val cloudSyncModule = module {
         val db = get<PuzzleBoxDatabase>()
         ReceivedKind(db, db.receivedPuzzleDao(), db.syncTombstoneDao(), Clock.systemDefaultZone())
     }
+    single<SyncedKind>(named("cloud.kind.replays")) {
+        val db = get<PuzzleBoxDatabase>()
+        ReplaysKind(db, db.completionReplayDao())
+    }
 }
+
+/**
+ * [kinds] in the order a run visits them. Koin lists a `getAll` in no fixed order, and a replay can only be restored
+ * once its completion is, so the replays kind goes last and the rest keep their order.
+ */
+internal fun inSyncOrder(kinds: List<SyncedKind>): List<SyncedKind> = kinds.sortedBy { it.kind == "replays" }

@@ -430,8 +430,7 @@ service cloud.firestore {
       }
 
       // Writes are merge-sets, so a tombstone written over a live doc leaves both shapes' keys; each
-      // kind therefore lists the union of its live and tombstone keys once. Replays have no key list
-      // yet, so they take no writes until their kind lands.
+      // kind therefore lists the union of its live and tombstone keys once.
       function validSpaceDoc() {
         let d = request.resource.data;
         return d.updatedAt == request.time
@@ -440,7 +439,8 @@ service cloud.firestore {
             || (kind == 'drafts' && validDraftDoc(d))
             || (kind == 'published' && validPublishedDoc(d))
             || (kind == 'received' && validReceivedDoc(d))
-            || (kind == 'boards' && validBoardDoc(d)));
+            || (kind == 'boards' && validBoardDoc(d))
+            || (kind == 'replays' && validReplayDoc(d)));
       }
 
       // One document per month, `yyyy-MM`, or `yyyy-MM-n` once the month overflows.
@@ -496,6 +496,17 @@ service cloud.firestore {
           && d.complete is bool
           && d.rows is list
           && d.rows.size() <= 51;
+      }
+
+      // One document per completion, named by the completion's sync id (32 lowercase hex); the replay is the
+      // encoded solve, never empty and at most 12288 bytes (the cap of a duel result's replay).
+      function validReplayDoc(d) {
+        return d.keys().hasOnly(['formatVersion', 'updatedAt', 'replay'])
+          && d.keys().hasAll(['replay'])
+          && docId.matches('^[0-9a-f]{32}$')
+          && d.replay is bytes
+          && d.replay.size() > 0
+          && d.replay.size() <= 12288;
       }
 
       function isTombstone(d) {
