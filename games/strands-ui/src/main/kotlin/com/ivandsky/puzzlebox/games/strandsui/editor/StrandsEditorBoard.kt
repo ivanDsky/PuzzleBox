@@ -15,7 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.semantics.invisibleToUser
+import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
@@ -181,7 +181,7 @@ private fun CellTaps(
                                         .size(cell)
                                         .testTag("strands.editor.cell.$idx")
                                         .semantics {
-                                            invisibleToUser()
+                                            hideFromAccessibility()
                                             onClick { onTap(idx); true }
                                         },
                                 ) {

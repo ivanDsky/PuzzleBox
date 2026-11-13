@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.create.importtext
 
+import android.content.ClipboardManager
+import android.content.Context
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +20,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.Clipboard
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.material3.CircularProgressIndicator
@@ -72,12 +75,13 @@ fun ImportSheet(
 ) {
     if (!ui.visible) return
     val clipboard = LocalClipboard.current
+    val manager = LocalContext.current.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     // Saved, so an activity recreation does not read again; dropped with the sheet when it closes.
     var read by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         if (!read) {
             read = true
-            actions.onClipboard(clipboard.textOrNull())
+            actions.onClipboard(clipboard.textOrNull(manager))
         }
     }
     ModalBottomSheet(
@@ -95,8 +99,8 @@ fun ImportSheet(
  * description is checked first: it carries no payload and shows no paste toast, so an image
  * is never read.
  */
-private suspend fun Clipboard.textOrNull(): String? {
-    if (nativeClipboard.primaryClipDescription?.hasMimeType(TEXT_MIME) != true) return null
+private suspend fun Clipboard.textOrNull(manager: ClipboardManager): String? {
+    if (manager.primaryClipDescription?.hasMimeType(TEXT_MIME) != true) return null
     val data = getClipEntry()?.clipData ?: return null
     if (data.itemCount == 0) return null
     return data.getItemAt(0).text?.toString()
