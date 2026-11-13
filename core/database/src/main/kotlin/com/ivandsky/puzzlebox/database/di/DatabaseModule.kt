@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.ivandsky.puzzlebox.database.Migrations
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
+import com.ivandsky.puzzlebox.database.finalboard.FinalBoardDatabase
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInMigrations
 import org.koin.dsl.module
@@ -36,4 +37,11 @@ val databaseModule = module {
     single { get<LinkedInDatabase>().ghostDao() }
     single { get<LinkedInDatabase>().fetchLogDao() }
     single { get<LinkedInDatabase>().savedBoardDao() }
+    // Own file like linkedin.db: it holds other players' names, so backup excludes it. A cache, so a version change just drops it.
+    single {
+        Room.databaseBuilder(get<Context>(), FinalBoardDatabase::class.java, FinalBoardDatabase.NAME)
+            .fallbackToDestructiveMigration(dropAllTables = true)
+            .build()
+    }
+    single { get<FinalBoardDatabase>().finalBoardDao() }
 }

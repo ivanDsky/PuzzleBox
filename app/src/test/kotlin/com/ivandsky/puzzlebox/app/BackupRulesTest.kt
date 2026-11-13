@@ -13,10 +13,10 @@ import org.xmlpull.v1.XmlPullParser
 
 /**
  * What leaves the device in a cloud backup or a device transfer: the web view's data
- * directory (the LinkedIn session cookie lives there), the LinkedIn database with its
- * write-ahead-log side files, the link-state file, the cloud-sync state file and the
+ * directory (the LinkedIn session cookie lives there), the LinkedIn and Final board databases with
+ * their write-ahead-log side files, the link-state file, the cloud-sync state file and the
  * Firestore SDK's disk cache (it holds connections' names) with its side files. Backup rules exclude whole files,
- * so each of the ten is pinned by name; the rest of the app's data keeps backing up.
+ * so each of the thirteen is pinned by name; the rest of the app's data keeps backing up.
  */
 @RunWith(RobolectricTestRunner::class)
 // Plain Application for DiGraphTest's reason: the real one would startKoin on its own.
@@ -26,17 +26,17 @@ class BackupRulesTest {
     private val context: Context = ApplicationProvider.getApplicationContext()
 
     @Test
-    fun `cloud backup excludes the web view, the LinkedIn database, the link state, the sync state and the Firestore cache`() {
+    fun `cloud backup excludes the web view, the LinkedIn and Final board databases, the link state, the sync state and the Firestore cache`() {
         assertEquals(EXPECTED, excludesIn(R.xml.data_extraction_rules, "cloud-backup"))
     }
 
     @Test
-    fun `device transfer excludes the web view, the LinkedIn database, the link state, the sync state and the Firestore cache`() {
+    fun `device transfer excludes the web view, the LinkedIn and Final board databases, the link state, the sync state and the Firestore cache`() {
         assertEquals(EXPECTED, excludesIn(R.xml.data_extraction_rules, "device-transfer"))
     }
 
     @Test
-    fun `full backup content on API 26 to 30 excludes the same ten`() {
+    fun `full backup content on API 26 to 30 excludes the same thirteen`() {
         assertEquals(EXPECTED, excludesIn(R.xml.backup_rules, "full-backup-content"))
     }
 
@@ -88,6 +88,9 @@ class BackupRulesTest {
             "database/linkedin.db",
             "database/linkedin.db-wal",
             "database/linkedin.db-shm",
+            "database/final_boards.db",
+            "database/final_boards.db-wal",
+            "database/final_boards.db-shm",
             "file/linkedin_link.preferences_pb",
             "file/cloud_sync_state.preferences_pb",
             "database/$FIRESTORE_CACHE",
