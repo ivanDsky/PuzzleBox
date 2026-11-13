@@ -8,10 +8,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 /**
  * Settings' DI-bound entry point. [onOpenCatalog] and [debugSections] are shown only in debuggable builds
- * (debug tools).
+ * (debug tools). [visibility] adds the Visibility section.
  */
 @Composable
 internal fun SettingsRoute(
@@ -19,7 +20,8 @@ internal fun SettingsRoute(
     onOpenCatalog: (() -> Unit)?,
     modifier: Modifier = Modifier,
     debugSections: (@Composable () -> Unit)? = null,
-    viewModel: SettingsViewModel = koinViewModel(),
+    visibility: VisibilitySlot? = null,
+    viewModel: SettingsViewModel = koinViewModel(parameters = { parametersOf(*listOfNotNull(visibility).toTypedArray()) }),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val debuggable = LocalContext.current.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
@@ -29,6 +31,7 @@ internal fun SettingsRoute(
         onSetQueensAutoCross = viewModel::onSetQueensAutoCross,
         onSetSudokuPeerHighlight = viewModel::onSetSudokuPeerHighlight,
         onSetSudokuSameDigitHighlight = viewModel::onSetSudokuSameDigitHighlight,
+        onSelectVisibility = viewModel::onSelectVisibility,
         onBack = onBack,
         onOpenCatalog = onOpenCatalog.takeIf { debuggable },
         debugSections = debugSections.takeIf { debuggable },

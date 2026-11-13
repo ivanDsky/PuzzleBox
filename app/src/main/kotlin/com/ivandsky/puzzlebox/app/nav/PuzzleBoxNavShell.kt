@@ -25,6 +25,8 @@ import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
+import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
+import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import org.koin.compose.koinInject
 
@@ -49,7 +51,7 @@ import org.koin.compose.koinInject
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
  * [linkedIn] is read once per launch through [rememberLinkedIn] and gates the LinkedIn entries.
- * [ranks] (the LeaderboardHub flag, read by the app) makes the History tab's root the Ranks hub.
+ * [ranks] (the LeaderboardHub flag, read by the app) makes the History tab's root the Ranks hub and adds Settings' Visibility section.
  * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
  */
 @Composable
@@ -68,6 +70,8 @@ internal fun PuzzleBoxNavShell(
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
 ) {
+    // Resolved only with the flag on, so flag-off Settings never touches the repository.
+    val visibility = if (ranks) rememberVisibilitySlot(koinInject()) else null
     val reduceMotion = rememberReducedMotion()
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
@@ -91,6 +95,7 @@ internal fun PuzzleBoxNavShell(
             libraryRequests = libraryRequests,
             linkedIn = linkedIn,
             ranks = ranks,
+            visibility = visibility,
         ).withHintCooldown(),
         shellChrome = shellChrome,
     )
@@ -149,3 +154,7 @@ internal fun ((NavKey) -> NavEntry<NavKey>).withHintCooldown(): (NavKey) -> NavE
         CompositionLocalProvider(LocalHintCooldown provides HINT_COOLDOWN) { entry.Content() }
     }
 }
+
+@Composable
+private fun rememberVisibilitySlot(repository: VisibilityRepository): VisibilitySlot =
+    remember(repository) { VisibilitySlot(repository.ownTier, repository::setOwnTier) }
