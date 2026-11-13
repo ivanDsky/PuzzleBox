@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.queensui.editor
 
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Verdict
+import com.ivandsky.puzzlebox.game.editor.narrowTo
 import com.ivandsky.puzzlebox.games.queens.editor.QueensAnswerFit
 import com.ivandsky.puzzlebox.games.queens.editor.QueensCrowns
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
@@ -161,9 +162,7 @@ class QueensEditorController(
     private companion object {
         /** The registry hands this controller Queens drafts only; anything else is a wiring bug. */
         fun typed(draft: EditorDraft<*>): EditorDraft<QueensDraft> {
-            require(draft.editor === QueensEditor) { "not a Queens draft: ${draft.gameId.value}" }
-            // Safe: the editor is QueensEditor, so the draft and its history are Queens values.
-            return draft as EditorDraft<QueensDraft>
+            return requireNotNull(draft.narrowTo(QueensEditor)) { "not a Queens draft: ${draft.gameId.value}" }
         }
 
         /** Crown for a new draft (nothing painted outside the crowns), else Paint. */

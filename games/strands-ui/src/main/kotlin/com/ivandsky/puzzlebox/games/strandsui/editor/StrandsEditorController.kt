@@ -4,6 +4,7 @@ import androidx.compose.ui.geometry.Offset
 import com.ivandsky.puzzlebox.game.CommandHistory
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.narrowTo
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftCommand
@@ -284,9 +285,7 @@ class StrandsEditorController(
     private companion object {
         /** The registry hands this controller Strands drafts only; anything else is a wiring bug. */
         fun typed(draft: EditorDraft<*>): EditorDraft<StrandsDraft> {
-            require(draft.editor === StrandsEditor) { "not a Strands draft: ${draft.gameId.value}" }
-            // Safe: the editor is StrandsEditor, so the draft and its history are Strands values.
-            return draft as EditorDraft<StrandsDraft>
+            return requireNotNull(draft.narrowTo(StrandsEditor)) { "not a Strands draft: ${draft.gameId.value}" }
         }
     }
 }

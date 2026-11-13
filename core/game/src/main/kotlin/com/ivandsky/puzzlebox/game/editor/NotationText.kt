@@ -34,17 +34,13 @@ object NotationText {
         return parseGame(editor, header, headerLine, blanked(text, headerLine))
     }
 
-    /**
-     * The cast is erased: a game's editor implements the capability over its own [D], the same
-     * contract [SharedOpen.verifyTyped] relies on.
-     */
     private fun <D : Any> parseGame(
         editor: GameEditor<D>,
         header: NotationHeader,
         headerLine: Int,
         blanked: String,
     ): NotationParse {
-        val notation = editor as? EditorNotation<D>
+        val notation = editor.capability<D, EditorNotation<D>>()
             ?: return NotationParse.UnknownGame(header.gameId)
         if (header.version > notation.notationVersion) {
             return NotationParse.UnsupportedVersion(

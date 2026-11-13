@@ -13,18 +13,14 @@ object SharedOpen {
     fun verify(editor: GameEditor<*>, shareFormatVersion: Int, payload: ByteArray, budget: Budget): SharedOpenResult =
         verifyTyped(editor, shareFormatVersion, payload, budget)
 
-    /**
-     * The casts are erased: a game's editor implements both capabilities over its own [D],
-     * the same contract [EditorDraft.toPuzzle] relies on.
-     */
     private fun <D : Any> verifyTyped(
         editor: GameEditor<D>,
         shareFormatVersion: Int,
         payload: ByteArray,
         budget: Budget,
     ): SharedOpenResult {
-        val codec = editor as? EditorShareCodec<D> ?: return SharedOpenResult.NotShareable
-        val export = editor as? DraftExport<D> ?: return SharedOpenResult.NotShareable
+        val codec = editor.capability<D, EditorShareCodec<D>>() ?: return SharedOpenResult.NotShareable
+        val export = editor.capability<D, DraftExport<D>>() ?: return SharedOpenResult.NotShareable
         if (shareFormatVersion > codec.shareFormatVersion) {
             return SharedOpenResult.NeedsUpdate(found = shareFormatVersion, maxKnown = codec.shareFormatVersion)
         }
