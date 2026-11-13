@@ -17,19 +17,22 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
+import org.koin.core.parameter.parametersOf
 
 /**
  * The Ranks hub's route for the tab root [HistoryRootKey], the successor of [historyEntry]'s root
  * entry. The module exports both; the app picks one by flag, so this feature never reads it
  * (A27). Same receiver and parameters as [historyEntry]: [navigator] opens a day's game and its
- * replays from the Your solve row; [layout] is what the tablet pane reads once it exists.
+ * replays from the Your solve row; [layout] is what the tablet pane reads once it exists. [linkedIn] adds
+ * the connections' ghosts to a game's Friends day board, from what the phone holds; off, the hub touches nothing of LinkedIn.
  */
 fun EntryProviderScope<NavKey>.ranksEntry(
     navigator: Navigator,
     layout: HistoryLayout,
+    linkedIn: Boolean = false,
 ) {
     entry<HistoryRootKey> {
-        val viewModel = koinViewModel<RanksViewModel>()
+        val viewModel = koinViewModel<RanksViewModel>(parameters = { parametersOf(linkedIn) })
         val state by viewModel.uiState.collectAsStateWithLifecycle()
         val context = LocalContext.current
         val scope = rememberCoroutineScope()

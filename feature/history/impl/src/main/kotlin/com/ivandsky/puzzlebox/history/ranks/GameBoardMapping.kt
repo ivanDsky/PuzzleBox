@@ -8,8 +8,10 @@ import com.ivandsky.puzzlebox.domain.ranks.gameWindowStandings
 import com.ivandsky.puzzlebox.domain.ranks.rankBoard
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.board.BoardRowValue
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
+import com.ivandsky.puzzlebox.gameui.board.rankWithLinkedIn
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 import com.ivandsky.puzzlebox.model.GameId
 import kotlin.math.roundToInt
@@ -48,6 +50,25 @@ internal fun RankWindowBoards?.gameBoardNote(game: GameId, kind: Window): String
     val boards = boards.filter { it.board.gameId == game.value }
     val loaded = boards.count { it is BoardLoad.Loaded }
     return if (loaded in 1 until boards.size) "$loaded of ${boards.size} days" else null
+}
+
+private const val WITH_LINKEDIN = "with LinkedIn connections"
+
+/**
+ * A game's board in Friends scope (A6, A15): the connections [input] merge in as on the game page (`rankWithLinkedIn`: a
+ * shared place, no PuzzleBox rank, no actions) over the whole board, and only then do the rows narrow to the viewer and
+ * [friends], so every place counts everyone ahead of it. The viewer's unofficial row stays out of that ranking and goes back
+ * at its own place: it takes none from anyone (A14). Without ghosts this is plain [friendsOnly].
+ */
+internal fun RanksBoardSlice.inFriends(friends: Set<String>, input: BoardGhostInput): RanksBoardSlice {
+    val ranked = state as? DailyBoardState.Ranked
+    if (ranked == null || (input.ghosts.isEmpty() && input.you == null)) return copy(state = state.friendsOnly(friends))
+    val (unofficial, official) = ranked.rows.partition { it.unofficial }
+    // A LinkedIn import replaces the viewer's time only on a row they really have; off the board it is the unofficial row's business.
+    val you = input.you.takeIf { official.any { it.isSelf } }
+    val lines = unofficial.fold(rankWithLinkedIn(official, input.ghosts, you, order)) { merged, row -> merged.withUnofficialLine(row) }
+    val merged = DailyBoardState.Ranked(rows = lines.filterIsInstance<DailyBoardLine.Real>().map { it.row }, lines = lines)
+    return copy(state = merged.friendsOnly(friends), note = WITH_LINKEDIN.takeIf { input.ghosts.isNotEmpty() })
 }
 
 private fun RankedBoard.Row.toRow(selfUid: String?) = DailyBoardRowModel(

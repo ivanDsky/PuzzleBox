@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.history.CalendarState
 
@@ -32,4 +33,11 @@ internal data class RanksUiState(
  * points the global board gave it. Anything that is not a list of rows is unchanged.
  */
 internal fun DailyBoardState.friendsOnly(friends: Set<String>): DailyBoardState =
-    if (this is DailyBoardState.Ranked) DailyBoardState.Ranked(rows.filter { it.isSelf || it.playerId in friends }) else this
+    if (this is DailyBoardState.Ranked) {
+        copy(
+            rows = rows.filter { it.isSelf || it.playerId in friends },
+            lines = lines?.filter { it !is DailyBoardLine.Real || it.row.isSelf || it.row.playerId in friends },
+        )
+    } else {
+        this
+    }
