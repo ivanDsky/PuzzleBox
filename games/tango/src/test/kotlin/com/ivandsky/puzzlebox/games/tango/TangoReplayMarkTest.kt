@@ -173,6 +173,20 @@ class TangoReplayMarkTest {
         timeline.assertKinds(MoveKind.Mistake, MoveKind.Normal)
     }
 
+    @Test
+    fun `a mistake that introduced no new violation was shown at once, so undoing it is no transient`() {
+        // The sun on 2 breaks row 0 and stays; the moon on 8 breaks nothing new, is rejected and undone inside the window.
+        val timeline = timeline(
+            at(1_000, Place(2, TangoCell.SUN)),
+            at(1_000, Rejection),
+            at(3_000, Place(8, TangoCell.MOON)),
+            at(3_000, Rejection),
+            at(3_200, Undo),
+        )
+
+        timeline.assertKinds(MoveKind.Mistake, MoveKind.Mistake, MoveKind.Undo)
+    }
+
     // ------------------------------------------------------------------ tap merge (F12)
 
     @Test
