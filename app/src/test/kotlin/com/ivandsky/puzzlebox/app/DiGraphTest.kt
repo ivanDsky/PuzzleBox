@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
+import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
@@ -261,6 +262,8 @@ class DiGraphTest : KoinTest {
             assertEquals(GameId("zip"), koin.get<GetFeaturedGame>()().id)
             // Duel results: onCreate starts the poster on every launch, and the duel screen pokes the same instance.
             assertSame(koin.get<MatchResultPoster>(), koin.get<MatchResultSync>())
+            // Daily replays: onCreate starts the publisher with the hub flag on, so its whole chain must bind.
+            assertNotNull(koin.get<DailyReplayPublisher>())
 
             // Game aggregation (ADR-0001): every game module's plugin lands in the
             // registry in picker order, and every game's play UI is registered — a

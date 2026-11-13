@@ -42,6 +42,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
+import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
 import java.time.Instant
 import java.util.UUID
 import kotlin.random.Random
@@ -123,6 +124,16 @@ val domainModule = module {
     }
     factory { ObserveOverall(identity = get(), completions = get()) }
     factory { ObserveFriendUids(matches = get(), identity = get()) }
+    factory {
+        SubmitDailyReplay(
+            completions = get(),
+            identity = get(),
+            calendar = get(),
+            statuses = get(),
+            visibility = get(),
+            replays = get(),
+        )
+    }
     factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default) }
     factory { UpdateMatchSeat(repo = get(), local = get(), identity = get()) }
     factory { RecordRevealSeen(local = get(), clock = { Instant.now() }) }
