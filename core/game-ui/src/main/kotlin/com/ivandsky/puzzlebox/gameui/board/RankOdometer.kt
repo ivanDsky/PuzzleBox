@@ -39,9 +39,9 @@ private class RankMemory {
     private var strip: RankStrip? = null
     var offset = 0f
 
-    fun next(place: Int, arrival: Boolean): RankRoll {
+    fun next(place: Int, arrival: Boolean, medal: Boolean): RankRoll {
         val from = strip?.centre(offset)
-        val roll = RankRoll(rankStrip(from ?: place, place), medalChange(from, place, arrival))
+        val roll = RankRoll(rankStrip(from ?: place, place), if (medal) medalChange(from, place, arrival) else MedalChange.None)
         strip = roll.strip
         offset = roll.strip.start.toFloat()
         return roll
@@ -60,9 +60,9 @@ private class RankMemory {
  * nothing; a place change recomposes the cell once, and once more when the roll is over and the column is dropped.
  */
 @Composable
-internal fun RankOdometer(place: Int, quiet: Color, motion: PlaceMotion, tag: String) {
+internal fun RankOdometer(place: Int, quiet: Color, motion: PlaceMotion, tag: String, medal: Boolean) {
     val memory = remember { RankMemory() }
-    val roll = remember(place) { memory.next(place, motion.arrived) }
+    val roll = remember(place) { memory.next(place, motion.arrived, medal) }
     var settled by remember(roll) { mutableStateOf(!roll.strip.rolls) }
     LaunchedEffect(roll) {
         val wait = motion.delayMs.toLong()
@@ -81,7 +81,7 @@ internal fun RankOdometer(place: Int, quiet: Color, motion: PlaceMotion, tag: St
     }
     Box(Modifier.size(RankCellSize).clipToBounds().placeSemantics(tag, place)) {
         if (settled) {
-            RankCell(place, quiet, Modifier.flippedIn(roll.flip))
+            RankCell(place, quiet, Modifier.flippedIn(roll.flip), medal)
         } else {
             val strip = roll.strip
             val offset = checkNotNull(roll.offset)
@@ -96,7 +96,7 @@ internal fun RankOdometer(place: Int, quiet: Color, motion: PlaceMotion, tag: St
                         strip.start -> Modifier.drainedOut(roll.drain)
                         else -> Modifier
                     }
-                    RankCell(number, quiet, cell)
+                    RankCell(number, quiet, cell, medal)
                 }
             }
         }
