@@ -11,8 +11,9 @@ import kotlinx.serialization.Serializable
  *
  * [kind] says which solve (one of [RECORD], [LATEST], [MY_LEG], [THEIR_LEG], the four `SolveReplayRef` kinds). A solve of
  * a puzzle names it by [day] (an ISO date) and [puzzleNumber] (null for a practice puzzle) for a daily one, or by
- * [puzzleId] for a friend's; a leg names its duel by [code] and [legIndex]. Build one with the factories, which fill
- * only the fields their kind reads.
+ * [puzzleId] for a friend's; a leg names its duel by [code] and [legIndex]; a [PLAYER] kind is another player's replay of
+ * that day, named by [uid] and shown as [name]'s solve. Build one with the factories, which fill only the fields their
+ * kind reads.
  */
 @Serializable
 @SerialName("com.ivandsky.puzzlebox.play.api.Replay")
@@ -24,6 +25,8 @@ data class ReplayKey(
     val puzzleId: String? = null,
     val code: String? = null,
     val legIndex: Int = 0,
+    val uid: String? = null,
+    val name: String? = null,
 ) : NavKey {
 
     companion object {
@@ -31,6 +34,7 @@ data class ReplayKey(
         const val LATEST = "latest"
         const val MY_LEG = "myLeg"
         const val THEIR_LEG = "theirLeg"
+        const val PLAYER = "player"
 
         /** A daily puzzle's solve: its first win with [latest] false, its newest with [latest] true. */
         fun daily(gameId: String, day: String, puzzleNumber: Int?, latest: Boolean) =
@@ -43,5 +47,9 @@ data class ReplayKey(
         /** Leg [legIndex] of the duel [code]: the player's own, or the opponent's when [theirs] (online only). */
         fun leg(gameId: String, code: String, legIndex: Int, theirs: Boolean = false) =
             ReplayKey(gameId, if (theirs) THEIR_LEG else MY_LEG, code = code, legIndex = legIndex)
+
+        /** The replay [uid] (shown as [name]) published for [gameId]'s daily of [day]. */
+        fun player(gameId: String, day: String, uid: String, name: String) =
+            ReplayKey(gameId, PLAYER, day = day, uid = uid, name = name)
     }
 }

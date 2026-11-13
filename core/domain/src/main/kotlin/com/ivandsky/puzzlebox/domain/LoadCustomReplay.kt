@@ -22,7 +22,7 @@ class LoadCustomReplay(
         val (puzzle, newest) = when (ref) {
             is SolveReplayRef.Record -> ref.puzzle to false
             is SolveReplayRef.Latest -> ref.puzzle to true
-            is SolveReplayRef.MyLeg, is SolveReplayRef.TheirLeg -> return null
+            is SolveReplayRef.MyLeg, is SolveReplayRef.TheirLeg, is SolveReplayRef.Player -> return null
         }
         val key = puzzle.key as? PuzzleKey.Custom ?: return null
         return try {

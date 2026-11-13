@@ -39,7 +39,7 @@ import java.time.LocalDate
  * [HistoryLayout.TwoPane] the hub is [RanksTwoPane] instead: no title menu, week strip, dots or swipe. [onBack] (a pushed
  * hub, opened from a game's link) adds a back arrow above either layout. A tab reselect scrolls the hub to the top; one
  * more, with it already there, calls [onReset] (A8). With a [playerSheet] another player's row opens that sheet, which this
- * screen only hosts; without one rows take no tap.
+ * screen only hosts; without one rows take no tap. Its Watch tap closes it and reports [onWatchPlayer].
  */
 @Composable
 internal fun RanksScreen(
@@ -59,6 +59,7 @@ internal fun RanksScreen(
     onPlayAgain: (GameId, LocalDate) -> Unit = { _, _ -> },
     onOpenReplay: (HistoryDayRow, ReplaySolve) -> Unit = { _, _ -> },
     onCompare: (HistoryDayRow) -> Unit = {},
+    onWatchPlayer: (PlayerSheetViewModel.Target) -> Unit = {},
     playerSheet: PlayerSheetViewModel? = null,
 ) {
     val onRowClick = playerSheet?.let { sheet -> { row: DailyBoardRowModel -> sheet.open(row.toTarget(state)) } }
@@ -78,7 +79,7 @@ internal fun RanksScreen(
             }
         }
     }
-    playerSheet?.let { PlayerSheetHost(it) }
+    playerSheet?.let { PlayerSheetHost(it, onWatchPlayer) }
 }
 
 /** Reselecting the tab: the first tap brings every scrolled pane in [scrolls] to its top; with all there already, [onReset]. */
@@ -139,9 +140,19 @@ private fun RanksPhone(
 }
 
 @Composable
-private fun PlayerSheetHost(viewModel: PlayerSheetViewModel) {
+private fun PlayerSheetHost(viewModel: PlayerSheetViewModel, onWatchPlayer: (PlayerSheetViewModel.Target) -> Unit) {
     val open by viewModel.state.collectAsStateWithLifecycle()
-    open?.let { PlayerSheet(it, onChallenge = viewModel::challenge, onDismiss = viewModel::close) }
+    open?.let {
+        PlayerSheet(
+            it,
+            onChallenge = viewModel::challenge,
+            onDismiss = viewModel::close,
+            onWatch = {
+                viewModel.close()
+                onWatchPlayer(it.target)
+            },
+        )
+    }
 }
 
 /** The row as the sheet's target: the board's game (none on Overall) and, on a Day window only, its day (a week or month has no single puzzle). */

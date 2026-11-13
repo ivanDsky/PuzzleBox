@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -12,6 +13,7 @@ import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyReplayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
@@ -48,11 +50,14 @@ class ReplayViewModelTest {
         }
     }
 
+    private val replays = FakeDailyReplayRepository()
+
     private fun vm(key: ReplayKey, flagOn: Boolean = true, onDay: LocalDate = today) = ReplayViewModel(
         key = key,
         loadReplay = loadSolveReplay(
             games, daily, completions,
             if (flagOn) FakeReleaseFlags(ReleaseFlag.FullReplay) else FakeReleaseFlags(),
+            replays,
         ),
         games = games,
         ui = GamePlayRegistry(emptyList()),
@@ -108,5 +113,33 @@ class ReplayViewModelTest {
     fun `a friend's puzzle and a duel name where they came from`() {
         assertEquals("Fixture · Friend's puzzle", vm(ReplayKey.custom(game, "abc", latest = true)).context)
         assertTrue(vm(ReplayKey.leg(game, "M8T3VQ", legIndex = 0)).context.endsWith("Duel"))
+    }
+
+    private fun player(name: String = "Maya") = ReplayKey.player(game, today.toString(), "them", name)
+
+    @Test
+    fun `a fetched player replay opens as ready`() {
+        replays.putReplay(LeaderboardRef(game, today), "them", ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES).toByteArray())
+
+        val ready = vm(player()).state.value as ReplayState.Ready
+
+        assertEquals(ReplayFixtures.SHORT_MOVES, ready.timeline.moveTimesMs.size)
+    }
+
+    @Test
+    fun `a player replay that is absent or denied is none`() {
+        assertEquals(ReplayState.None, vm(player()).state.value)
+
+        val board = LeaderboardRef(game, today)
+        replays.putReplay(board, "them", ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES).toByteArray())
+        replays.deniedReads += board to "them"
+
+        assertEquals(ReplayState.None, vm(player()).state.value)
+    }
+
+    @Test
+    fun `a player replay is titled by the player's name`() {
+        assertEquals("Fixture · Maya's solve · Today · Wed 4 Nov", vm(player()).context)
+        assertEquals("Fixture · Player's solve · Today · Wed 4 Nov", vm(player(name = "")).context)
     }
 }

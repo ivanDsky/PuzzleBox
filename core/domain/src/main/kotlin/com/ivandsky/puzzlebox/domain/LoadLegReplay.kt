@@ -32,7 +32,7 @@ class LoadLegReplay(
         val (code, legIndex) = when (ref) {
             is SolveReplayRef.MyLeg -> ref.code to ref.legIndex
             is SolveReplayRef.TheirLeg -> ref.code to ref.legIndex
-            is SolveReplayRef.Record, is SolveReplayRef.Latest -> return null
+            is SolveReplayRef.Record, is SolveReplayRef.Latest, is SolveReplayRef.Player -> return null
         }
         return try {
             val me = identity.current.value?.uid ?: return null

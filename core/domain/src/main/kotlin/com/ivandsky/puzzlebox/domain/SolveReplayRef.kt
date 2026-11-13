@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.model.ShareCode
 
@@ -15,4 +16,7 @@ sealed interface SolveReplayRef {
 
     /** Online only: the opponent's leg exists only on the server. */
     class TheirLeg(val code: ShareCode, val legIndex: Int) : SolveReplayRef
+
+    /** Another player's published replay of [board]'s daily; the owner's tier decides whether it exists for the viewer. */
+    class Player(val board: LeaderboardRef, val uid: String) : SolveReplayRef
 }

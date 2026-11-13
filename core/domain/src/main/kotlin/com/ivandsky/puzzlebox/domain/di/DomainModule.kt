@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.domain.LoadCustomReplay
 import com.ivandsky.puzzlebox.domain.LoadDailyReplay
 import com.ivandsky.puzzlebox.domain.LoadLegReplay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.LoadPlayerReplay
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveArchiveMonth
 import com.ivandsky.puzzlebox.domain.ObserveArchiveProgress
@@ -178,6 +179,7 @@ val domainModule = module {
             loadShared = get(),
         )
     }
+    factory { LoadPlayerReplay(replays = get(), daily = get()) }
     factory {
         LoadSolveReplay(
             flags = get(),
@@ -185,6 +187,7 @@ val domainModule = module {
             daily = get(),
             custom = get(),
             leg = get(),
+            player = get(),
             completions = get(),
             dispatchers = get(),
         )

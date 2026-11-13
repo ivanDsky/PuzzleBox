@@ -26,6 +26,7 @@ class ReplayKeyTest {
             ReplayKey.daily("queens", "2026-11-04", null, latest = false),
             ReplayKey.custom("queens", "abc", latest = true),
             ReplayKey.leg("queens", "M8T3VQ", legIndex = 1, theirs = true),
+            ReplayKey.player("queens", "2026-11-04", "uid1", "Maya"),
         )
         val state = NavigationState(PlayKey, listOf(listOf(PlayKey) + keys))
         val config = navKeySavedStateConfiguration { playNavKeys() }

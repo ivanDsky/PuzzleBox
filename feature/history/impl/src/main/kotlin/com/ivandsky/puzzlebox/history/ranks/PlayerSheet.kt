@@ -40,7 +40,7 @@ private val TILE_WIDTH = 120.dp
 /**
  * The sheet a ranked row opens, icon first: the player's name and place over the two things to do with them. Challenge
  * (one tap on a game's board, a row of game icons to pick from on Overall) ends on "Sent to <name>"; Watch shows
- * why it is locked when it is. [onWatch] null leaves Watch's tap to a later hookup. [onDismiss] closes it.
+ * why it is locked when it is. [onWatch] null leaves the Watch tile disabled. [onDismiss] closes it.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

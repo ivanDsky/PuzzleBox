@@ -22,6 +22,7 @@ class LoadSolveReplay(
     private val daily: LoadDailyReplay,
     private val custom: LoadCustomReplay,
     private val leg: LoadLegReplay,
+    private val player: LoadPlayerReplay,
     private val completions: CompletionRepository,
     private val dispatchers: DispatcherProvider,
 ) {
@@ -32,7 +33,7 @@ class LoadSolveReplay(
     suspend operator fun invoke(ref: SolveReplayRef): Timeline? {
         if (!flags.isEnabled(ReleaseFlag.FullReplay)) return null
         return try {
-            val source = daily(ref) ?: custom(ref) ?: leg(ref) ?: return null
+            val source = daily(ref) ?: custom(ref) ?: leg(ref) ?: player(ref) ?: return null
             val plugin = games[source.puzzle.gameId] ?: return null
             withContext(dispatchers.default) { plugin.openTimeline(source.puzzle, source.bytes) }
         } catch (e: CancellationException) {
