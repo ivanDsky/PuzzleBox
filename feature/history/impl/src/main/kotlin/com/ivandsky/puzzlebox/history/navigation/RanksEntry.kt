@@ -37,6 +37,8 @@ fun EntryProviderScope<NavKey>.ranksEntry(
             state = state,
             onSignIn = { scope.launch { viewModel.signIn(context) } },
             onSwipe = viewModel::swipe,
+            onPickBoard = viewModel::pickBoard,
+            onNudgeShown = viewModel::markSwipeNudgeSeen,
             onScope = viewModel::setScope,
             onWindow = viewModel::setWindow,
             onShowCalendar = viewModel::showCalendar,

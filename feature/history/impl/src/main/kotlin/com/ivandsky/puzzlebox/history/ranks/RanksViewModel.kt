@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
@@ -49,6 +50,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
  * The Ranks hub's state holder: one [selection] (what the player picked) and the [uiState]
@@ -69,6 +71,7 @@ internal class RanksViewModel(
     loadReplay: LoadSolveReplay,
     identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
+    private val preferences: UserPreferencesRepository,
     private val calendar: GameCalendar,
     private val registry: GameRegistry,
     private val clock: Clock = Clock.systemUTC(),
@@ -96,6 +99,25 @@ internal class RanksViewModel(
     private val windowBoards: StateFlow<Pair<RankWindow, RankWindowBoards>?> = window
         .flatMapLatest { window -> observeRankWindow(window, games).map { window to it } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
+    /** Overall's state over the shared boards, held once: Overall's slice and the title menu both read it. */
+    private val overallState: StateFlow<OverallState> = window.flatMapLatest { window ->
+        val answered = windowBoards.filterNotNull().filter { (of, _) -> of == window }.map { (_, boards) -> boards }
+        observeOverall(answered, window)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), OverallState.Loading)
+
+    /** The viewer's place on every board for the title menu: projections of the shared boards, so opening it reads nothing. */
+    private val places: Flow<List<BoardPlace>> = combine(
+        window,
+        windowBoards,
+        overallState,
+        viewer,
+        selection.map { it.window }.distinctUntilChanged(),
+    ) { window, answered, overall, me, kind ->
+        boardPlaces(boards, registry, overall, answered?.takeIf { (of, _) -> of == window }?.second, kind, me?.uid)
+    }.distinctUntilChanged()
+
+    private val nudge: Flow<Boolean> = preferences.tutorialSeen(SWIPE_NUDGE).map { !it }
 
     private val history: Flow<List<HistoryDayRow>> = observeGameHistory()
         .map { historyRows(it, registry, playRegistry, currentYear = LocalDate.now(clock).year) }
@@ -137,7 +159,9 @@ internal class RanksViewModel(
         if (row == null) flowOf(null) else dayReplays.replays.map { YourSolve(row, it.of(row), playRegistry[row.gameId]) }
     }
 
-    private val local = combine(calendarState, observeGameStats(), yourSolve) { calendar, stats, solve -> Local(calendar, stats, solve) }
+    private val local = combine(calendarState, observeGameStats(), yourSolve, places, nudge) { calendar, stats, solve, places, nudge ->
+        Local(calendar, stats, solve, places, nudge)
+    }
 
     /** Friends' uids, listened to only while the scope is Friends; the boards never see the scope, so changing it re-reads nothing. */
     private val friends: Flow<Set<String>> = selection.map { it.scope }.distinctUntilChanged()
@@ -158,7 +182,7 @@ internal class RanksViewModel(
         local,
         selection.map { it.scope to it.window }.distinctUntilChanged(),
     ) { slice, signIn, position, local, (scope, kind) ->
-        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind)
+        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, local.places, local.nudge)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
@@ -180,9 +204,20 @@ internal class RanksViewModel(
         select { it.setWindow(window) }
     }
 
-    /** A swipe on the board: [delta] boards along the hub's boards, not past either end. */
+    /** A swipe on the board: [delta] boards along the hub's boards, not past either end. A swipe is the lesson the nudge teaches. */
     fun swipe(delta: Int) {
         select { it.step(delta, boards) }
+        markSwipeNudgeSeen()
+    }
+
+    /** The title menu's pick: that board, re-ranked in place. */
+    fun pickBoard(board: RanksBoard) {
+        select { it.pickBoard(board) }
+    }
+
+    /** The one-time swipe hint has played (or the player swiped): never show it again. */
+    fun markSwipeNudgeSeen() {
+        viewModelScope.launch { preferences.markTutorialSeen(SWIPE_NUDGE) }
     }
 
     /** The calendar's week or month moved: show the one holding [day]. The picked day stays. */
@@ -208,10 +243,8 @@ internal class RanksViewModel(
         is RanksBoard.Game -> game(board.id, kind, day)
     }
 
-    private fun overall(kind: RanksSelection.Window, day: LocalDate?): Flow<RanksBoardSlice> = window.flatMapLatest { window ->
-        val answered = windowBoards.filterNotNull().filter { (of, _) -> of == window }.map { (_, boards) -> boards }
-        combine(observeOverall(answered, window), viewer) { state, me -> overallSlice(kind, day, state, me?.uid) }
-    }
+    private fun overall(kind: RanksSelection.Window, day: LocalDate?): Flow<RanksBoardSlice> =
+        combine(overallState, viewer) { state, me -> overallSlice(kind, day, state, me?.uid) }
 
     private fun game(game: GameId, kind: RanksSelection.Window, day: LocalDate?): Flow<RanksBoardSlice> = window.flatMapLatest { window ->
         combine(windowBoards, viewer) { answered, me ->
@@ -248,11 +281,12 @@ internal class RanksViewModel(
     /** The replays of [row]'s day only: a switch never flashes the last day's. */
     private fun DayReplays.of(row: HistoryDayRow): HistoryReplays = if (key == row.key) replays else HistoryReplays.Hidden
 
-    private data class Local(val calendar: CalendarState, val stats: GameStats, val yourSolve: YourSolve?)
+    private data class Local(val calendar: CalendarState, val stats: GameStats, val yourSolve: YourSolve?, val places: List<BoardPlace>, val nudge: Boolean)
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
         const val OVERALL_CAPTION = "Points from every game's board. Higher is better."
+        val SWIPE_NUDGE = GameId("ranks.swipe")
         val DAY_LABEL: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
         val MONTH_LABEL: DateTimeFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
     }

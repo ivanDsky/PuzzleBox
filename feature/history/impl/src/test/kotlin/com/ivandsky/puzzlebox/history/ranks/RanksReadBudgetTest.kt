@@ -94,6 +94,23 @@ class RanksReadBudgetTest {
     }
 
     @Test
+    fun `the title menu's places and picking a board from it add no listener, fetch or count`() = runTest {
+        val viewModel = hub().viewModel()
+        collect(viewModel)
+        assertEquals(games.size, viewModel.uiState.value.places.size - 1)
+
+        viewModel.pickBoard(RanksBoard.Game(games[2]))
+        runCurrent()
+        viewModel.pickBoard(RanksBoard.Overall)
+        viewModel.markSwipeNudgeSeen()
+        runCurrent()
+
+        assertEquals(games.map { LeaderboardRef(it.value, today) }, leaderboard.observedBoards)
+        assertEquals(0, leaderboard.fetchCalls)
+        assertEquals(0, leaderboard.countCalls)
+    }
+
+    @Test
     fun `signed out reads nothing`() = runTest {
         collect(hub(identity = null).viewModel())
 
