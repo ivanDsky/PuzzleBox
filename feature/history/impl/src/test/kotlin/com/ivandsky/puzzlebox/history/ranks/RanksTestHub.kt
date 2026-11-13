@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.history.ranks
 
 import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -68,7 +69,11 @@ internal class RanksTestHub(
 
     private val clock = Clock.fixed(Instant.parse("${today}T12:00:00Z"), ZoneOffset.UTC)
 
-    fun viewModel(linkedIn: Boolean = false): RanksViewModel {
+    fun viewModel(
+        linkedIn: Boolean = false,
+        savedState: SavedStateHandle = SavedStateHandle(),
+        opening: RanksSelection = RanksSelection(),
+    ): RanksViewModel {
         val history = ObserveGameHistory(registry, daily, completions)
         return RanksViewModel(
             observeRankWindow = ObserveRankWindow(this.identity, leaderboard, FakeFinalBoardStore(), registry, calendar, clock),
@@ -87,6 +92,8 @@ internal class RanksTestHub(
             registry = registry,
             clock = clock,
             linkedIn = ObserveLinkedInDayView(ObserveLinkedInDay(linkedInDays, registry), SyncLinkedInDay(linkedInDays, 500), FakeLinkedInLink(), linkedInDays).takeIf { linkedIn },
+            savedState = savedState,
+            opening = opening,
         )
     }
 }

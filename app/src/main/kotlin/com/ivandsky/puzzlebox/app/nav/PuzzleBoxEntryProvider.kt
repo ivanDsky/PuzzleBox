@@ -57,7 +57,7 @@ import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
  * connect), both opening [LinkedInLoginKey]; off, those entries stay hidden.
  *
  * [ranks] (the LeaderboardHub flag, which only the app reads) makes [HistoryRootKey] the Ranks
- * hub; off, it is History's root. A pushed [HistoryKey] is the history browser either way.
+ * hub and a pushed [HistoryKey] opens it at that game and day; off, they are History's root and browser.
  * [visibility] (null with the flag off) adds Settings' Visibility section.
  */
 internal fun puzzleBoxEntryProvider(
@@ -90,11 +90,6 @@ internal fun puzzleBoxEntryProvider(
     )
     if (ranks) {
         ranksEntry(navigator, historyLayout, linkedIn)
-        // The hub serves the root only, and historyEntry cannot sit beside it: both register
-        // HistoryRootKey, which Navigation3 rejects. So a pushed HistoryKey resolves through
-        // History's own table until the hub takes that key over.
-        val history = entryProvider<NavKey> { historyEntry(navigator, historyLayout) }
-        entry<HistoryKey> { key -> history(key).Content() }
     } else {
         historyEntry(navigator, historyLayout)
     }
