@@ -62,6 +62,8 @@ internal object StrandsMotion {
 
     /** A set-aside word's traced path holds neutral this long before it dissolves, by kind. */
     const val BonusHoldMs = 60
+    /** The replay board holds a non-theme word's path this long, so the letters picked can be read, before the live dissolve. */
+    const val ReplayBonusHoldMs = 1_000
     const val ShortHoldMs = 200
     const val RepeatHoldMs = 260
 
