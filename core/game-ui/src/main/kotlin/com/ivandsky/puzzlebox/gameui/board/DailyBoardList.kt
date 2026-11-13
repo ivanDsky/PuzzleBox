@@ -32,6 +32,10 @@ private val DividerHeight = 1.dp
  * same rows by their player or connection, never by place or day: on another day's board the people on both days
  * slide to their new places and update in place, the others arrive and leave. Animated rows are opaque, on [backdrop],
  * the colour the list sits on. Without [animated] the list is drawn plainly.
+ *
+ * With [medals] the rows at places 1 to 3 are medal rows: tinted, the winner's a little taller (see [MedalRow]). With
+ * [dock] the viewer's own row, the [pinned] one or the one among [lines], docks to the top or bottom edge of whatever
+ * scrolls the list while it is out of view, and a tap on the dock scrolls to it (see [DockedSelfRow]).
  */
 @Composable
 fun DailyBoardList(
@@ -41,20 +45,27 @@ fun DailyBoardList(
     pinned: DailyBoardLine.Real? = null,
     animated: Boolean = false,
     backdrop: Color = MaterialTheme.colorScheme.background,
+    medals: Boolean = false,
+    dock: Boolean = false,
 ) {
     val withPuzzleBoxRank = (lines + listOfNotNull(pinned)).placesDifferFromPuzzleBox()
-    if (animated && !(rememberReducedMotion() || LocalInspectionMode.current)) {
-        AnimatedBoardList(lines, pinned, order, withPuzzleBoxRank, backdrop, modifier)
-        return
-    }
-    if (lines.isEmpty() && pinned == null) return
-    // The podium's medals belong to the LinkedIn account's board; here they are drawn at once, with no roll or flip.
-    CompositionLocalProvider(LocalPlaceMotion provides if (animated) StillPlaces else null) {
-        Column(modifier.fillMaxWidth().testTag("daily_board.list"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            lines.forEach { BoardLine(it, order, withPuzzleBoxRank) }
-            pinned?.let {
-                HorizontalDivider()
-                Box(Modifier.testTag("leaderboard.you")) { BoardLine(it, order, withPuzzleBoxRank) }
+    val self = pinned ?: lines.firstNotNullOfOrNull { line -> (line as? DailyBoardLine.Real)?.takeIf { it.row.isSelf } }
+    DockedSelfRow(dock, self, order, withPuzzleBoxRank, medals, animated, backdrop, modifier) { boardModifier ->
+        if (animated && !(rememberReducedMotion() || LocalInspectionMode.current)) {
+            AnimatedBoardList(lines, pinned, order, withPuzzleBoxRank, backdrop, boardModifier, medals)
+        } else if (lines.isNotEmpty() || pinned != null) {
+            // The podium's medals belong to the LinkedIn account's board; here they are drawn at once, with no roll or flip.
+            CompositionLocalProvider(LocalPlaceMotion provides if (animated) StillPlaces else null) {
+                Column(
+                    boardModifier.fillMaxWidth().testTag("daily_board.list"),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    lines.forEach { BoardLine(it, order, withPuzzleBoxRank, medals) }
+                    pinned?.let {
+                        HorizontalDivider()
+                        Box(Modifier.testTag("leaderboard.you")) { BoardLine(it, order, withPuzzleBoxRank, medals) }
+                    }
+                }
             }
         }
     }

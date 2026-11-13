@@ -108,6 +108,17 @@ class DailyBoardTest {
     }
 
     @Test
+    fun `a caption of its own replaces the order's rule`() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                DailyBoard("Queens · week", RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()), caption = "Average of the days you played")
+            }
+        }
+
+        composeRule.onNodeWithTag("daily_board.caption").assertTextEquals("Average of the days you played")
+    }
+
+    @Test
     fun `a hints-first row leads with hints`() {
         show(RankOrder.HintsThenTime, DailyBoardState.Ranked(listOf(DailyBoardRowModel(1, "Ann", 252_000, 2, false, playerId = "ann"))))
 

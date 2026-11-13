@@ -1,10 +1,12 @@
 package com.ivandsky.puzzlebox.gameui.board
 
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -32,11 +34,13 @@ class DailyBoardListTest {
 
     private fun ghost(place: Int?) = DailyBoardLine.Ghost(GhostRowModel("ref-$place", "Ada $place", 25_000L, hintFree = true), place)
 
-    private fun show(lines: List<DailyBoardLine>, pinned: DailyBoardLine.Real? = null) {
+    private fun show(lines: List<DailyBoardLine>, pinned: DailyBoardLine.Real? = null, medals: Boolean = false) {
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) { DailyBoardList(lines, RankOrder.TimeThenHints, pinned = pinned) }
+            PuzzleBoxTheme(darkTheme = false) { DailyBoardList(lines, RankOrder.TimeThenHints, pinned = pinned, medals = medals) }
         }
     }
+
+    private fun row(vararg lines: DailyBoardLine) = lines.toList()
 
     @Test
     fun `rows are set apart by the board's gap`() {
@@ -91,5 +95,62 @@ class DailyBoardListTest {
 
         val list = composeRule.onNodeWithTag("daily_board.list").getBoundsInRoot()
         assertTrue("list ${list.height} within the reserved ${dailyBoardListHeight(5, pinned = true)}", list.height <= dailyBoardListHeight(5, pinned = true))
+    }
+
+    @Test
+    fun `a row beyond the page reads 100+ in place of a number`() {
+        val beyond = DailyBoardRowModel(120, "You", 300_000L, 2, true, playerId = "you", beyondPage = true)
+        show(row(real(1)), pinned = DailyBoardLine.Real(beyond, 120))
+
+        composeRule.onAllNodesWithTag("daily_board.row.rank")[0].assertTextEquals("1")
+        composeRule.onAllNodesWithTag("daily_board.row.rank")[1].assertTextEquals("100+")
+    }
+
+    @Test
+    fun `an unofficial row keeps its place and carries the mark, an official one has none`() {
+        val unofficial = DailyBoardRowModel(2, "You", 15_000L, 0, true, playerId = "you", unofficial = true)
+        show(row(real(1), DailyBoardLine.Real(unofficial, 2)))
+
+        composeRule.onAllNodesWithTag("daily_board.row.mark").assertCountEquals(1)
+        composeRule.onNodeWithTag("daily_board.row.mark").assertTextEquals("unofficial")
+        composeRule.onAllNodesWithTag("daily_board.row.rank")[1].assertTextEquals("2")
+    }
+
+    @Test
+    fun `a row with a points value says its points and games`() {
+        val points = DailyBoardRowModel(1, "Maya", 0L, 0, false, playerId = "maya", value = BoardRowValue.Points(1240.0, games = 5, atLeast = true))
+        show(row(DailyBoardLine.Real(points, 1)))
+
+        composeRule.onNodeWithTag("daily_board.row.score").assertTextEquals("≥1,240 pts")
+        composeRule.onNodeWithTag("daily_board.row.puzzlebox_rank").assertTextEquals("5 games")
+    }
+
+    @Test
+    fun `medal rows are only with medals on, and the winner's is taller`() {
+        show(row(real(1), real(2), real(3), real(4)), medals = true)
+
+        val heights = composeRule.onAllNodesWithTag("daily_board.row").fetchSemanticsNodes().map { it.size.height }
+        assertTrue("the winner's row $heights is the tallest", heights[0] > heights[1] && heights[1] == heights[2] && heights[2] == heights[3])
+        val winner = composeRule.onAllNodesWithTag("daily_board.row")[0].getBoundsInRoot().height
+        assertEquals(72.dp, winner)
+        assertEquals(BoardRowMinHeight, composeRule.onAllNodesWithTag("daily_board.row")[1].getBoundsInRoot().height)
+    }
+
+    @Test
+    fun `without medals the winner's row is as tall as any`() {
+        show(row(real(1), real(2)))
+
+        assertEquals(BoardRowMinHeight, composeRule.onAllNodesWithTag("daily_board.row")[0].getBoundsInRoot().height)
+    }
+
+    @Test
+    fun `the tint steps down from gold to silver to bronze and the rest have none`() {
+        assertEquals(0.18f, medalRowOf(1)!!.tint.alpha, 0.01f)
+        assertEquals(0.11f, medalRowOf(2)!!.tint.alpha, 0.01f)
+        assertEquals(0.06f, medalRowOf(3)!!.tint.alpha, 0.01f)
+        assertEquals(null, medalRowOf(4))
+        assertEquals(null, medalRowOf(null))
+        assertEquals(72.dp, medalRowOf(1)!!.minHeight)
+        assertEquals(BoardRowMinHeight, medalRowOf(3)!!.minHeight)
     }
 }
