@@ -41,6 +41,7 @@ import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyReplayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
@@ -231,6 +232,7 @@ class LoadCustomReplayTest {
             received = received,
             loadShared = loadShared,
         ),
+        player = LoadPlayerReplay(FakeDailyReplayRepository(), FakeDailyRepository()),
         completions = completions,
         dispatchers = InlineDispatcherProvider,
     )

@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.domain.SolveReplayRef
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
@@ -46,6 +47,19 @@ class ReplayRefsTest {
         assertEquals("M8T3VQ", (mine as SolveReplayRef.MyLeg).code.value)
         assertEquals(1, mine.legIndex)
         assertTrue(theirs is SolveReplayRef.TheirLeg)
+    }
+
+    @Test
+    fun `a player key names that player's replay of the day's board`() {
+        val ref = ReplayKey.player(game, day.toString(), "them", "Maya").toSolveReplayRef(games) as SolveReplayRef.Player
+
+        assertEquals(LeaderboardRef(game, day), ref.board)
+        assertEquals("them", ref.uid)
+    }
+
+    @Test
+    fun `a player key with a bad day gives null`() {
+        assertNull(ReplayKey.player(game, "junk", "them", "Maya").toSolveReplayRef(games))
     }
 
     @Test

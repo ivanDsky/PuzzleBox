@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadCustomReplay
 import com.ivandsky.puzzlebox.domain.LoadDailyReplay
 import com.ivandsky.puzzlebox.domain.LoadLegReplay
+import com.ivandsky.puzzlebox.domain.LoadPlayerReplay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveMatch
@@ -36,6 +37,7 @@ import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyReplayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
@@ -193,6 +195,7 @@ class MatchLegResultViewModelTest {
             daily = LoadDailyReplay(completions, daily),
             custom = LoadCustomReplay(completions, received, loadShared),
             leg = LoadLegReplay(matches, outbox, identity, daily, received, loadShared),
+            player = LoadPlayerReplay(FakeDailyReplayRepository(), daily),
             completions = completions,
             dispatchers = testDispatchers(dispatcher),
         )
