@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.app.nav
 import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.lifecycle.Lifecycle
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication

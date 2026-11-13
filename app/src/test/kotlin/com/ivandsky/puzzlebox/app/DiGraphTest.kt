@@ -86,6 +86,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.parameter.parametersOf
@@ -106,6 +107,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = android.app.Application::class)
 class DiGraphTest : KoinTest {
 
+    @OptIn(KoinExperimentalAPI::class)
     @Test
     fun `pure module graph is complete`() {
         // commonModule has no Android dependencies, so static verification applies.

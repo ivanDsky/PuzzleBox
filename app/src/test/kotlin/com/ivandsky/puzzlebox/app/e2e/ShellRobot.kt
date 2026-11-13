@@ -32,7 +32,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onChildAt
@@ -406,8 +406,13 @@ class ShellRobot internal constructor(
         awaitTag(RESULT_ROUTE)
     }
 
+    /**
+     * Waits for a node tagged [tag]. Each poll idles the main looper first: the v2 rule's
+     * `waitUntil` does not, so work queued behind a looper hop would otherwise never land.
+     */
     fun awaitTag(tag: String) {
         rule.waitUntil(TIMEOUT_MS) {
+            shadowOf(Looper.getMainLooper()).idle()
             rule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
         }
     }
@@ -418,7 +423,10 @@ class ShellRobot internal constructor(
      * [awaitTag] passes and the tap then finds nothing.
      */
     fun awaitActionable(tag: String) {
-        rule.waitUntil(TIMEOUT_MS) { rule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
+        rule.waitUntil(TIMEOUT_MS) {
+            shadowOf(Looper.getMainLooper()).idle()
+            rule.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     /**

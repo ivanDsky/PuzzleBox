@@ -267,6 +267,6 @@ class ShowkaseBrowserScreenshotTest {
     companion object {
         // Committed inside the module (NOT gitignored .scratch/) so a fresh clone can
         // verify against goldens instead of having to re-record them.
-        private val SNAPSHOT_DIR = File(System.getProperty("user.dir")).resolve("snapshots")
+        private val SNAPSHOT_DIR = File(checkNotNull(System.getProperty("user.dir"))).resolve("snapshots")
     }
 }

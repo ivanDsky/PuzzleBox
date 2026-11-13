@@ -217,11 +217,14 @@ class StrandsArchiveE2ETest {
         tapTab(HomeKey)
         tapText("See all")
         awaitTag(STREAK)
+        val isRow = SemanticsMatcher("a History row") { node ->
+            node.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(ROW_PREFIX) == true
+        }
+        // The paged rows land a main-looper hop after the header.
+        awaitIdling { rule.onAllNodes(isRow).fetchSemanticsNodes().isNotEmpty() }
         val count = rule.onNodeWithTag(STREAK, useUnmergedTree = true).performScrollTo().fetchSemanticsNode()
             .config.getOrNull(SemanticsProperties.Text)!!.first().text
-        val rows = rule.onAllNodes(SemanticsMatcher("a History row") { node ->
-            node.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(ROW_PREFIX) == true
-        }).fetchSemanticsNodes().mapNotNull { it.config.getOrNull(SemanticsProperties.TestTag) }.toSet()
+        val rows = rule.onAllNodes(isRow).fetchSemanticsNodes().mapNotNull { it.config.getOrNull(SemanticsProperties.TestTag) }.toSet()
         back()
         tapTab(PlayKey)
         return HistoryView(count, rows)

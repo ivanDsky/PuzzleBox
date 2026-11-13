@@ -121,7 +121,7 @@ class TabNavigationE2ETest {
             assertState(history)
             assertRoute(HISTORY)
             // The stats and weeks cards sit above the rows: wait for the first page by scrolling to it.
-            rule.waitUntil(TIMEOUT_MS) {
+            awaitIdling {
                 runCatching { rule.onNodeWithTag("history.list").performScrollToNode(hasTestTag(rowTag(0))) }.isSuccess
             }
             rule.onNodeWithTag("history.list").performScrollToIndex(SCROLLED_INDEX)

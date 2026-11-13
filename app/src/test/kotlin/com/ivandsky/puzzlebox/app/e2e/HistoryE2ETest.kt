@@ -147,7 +147,7 @@ class HistoryE2ETest {
 
     /** Scrolls History's list until [ROW] composes: the stats and weeks cards sit above the rows. */
     private fun ShellRobot.scrollToRow() {
-        rule.waitUntil(TIMEOUT_MS) {
+        awaitIdling {
             runCatching { rule.onNodeWithTag(LIST).performScrollToNode(hasTestTag(ROW)) }.isSuccess
         }
     }

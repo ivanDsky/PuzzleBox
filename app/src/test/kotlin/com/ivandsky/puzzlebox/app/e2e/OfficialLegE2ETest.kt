@@ -322,7 +322,7 @@ class OfficialLegE2ETest {
     /** Scrolls History's list to [day]'s Zip row once it shows, and checks it carries the duel pill. */
     private fun ShellRobot.assertDuelPill(day: LocalDate) {
         val key = "${ZIP.value}/$day"
-        rule.waitUntil(TIMEOUT_MS) {
+        awaitIdling {
             runCatching { rule.onNodeWithTag(HISTORY_LIST).performScrollToNode(hasTestTag("history.row.$key")) }.isSuccess
         }
         // The row's own pill, as the user reads it: the duel and its opponent, not the history data behind it.

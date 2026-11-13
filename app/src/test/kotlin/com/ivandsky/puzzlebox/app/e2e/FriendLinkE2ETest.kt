@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.junit4.v2.AndroidComposeTestRule as v2AndroidComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -135,7 +136,7 @@ class FriendLinkE2ETest {
 
     /** Runs [block] over [MainActivity] started by [intent], torn down by the compose rule. */
     private fun launching(intent: Intent, block: () -> Unit) {
-        rule = AndroidComposeTestRule(ActivityScenarioRule(intent), activityProvider = ::activityOf)
+        rule = v2AndroidComposeTestRule(ActivityScenarioRule(intent), activityProvider = ::activityOf)
         val run = object : Statement() {
             override fun evaluate() = block()
         }

@@ -8,6 +8,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.junit4.v2.AndroidComposeTestRule as v2AndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.core.app.ApplicationProvider
@@ -77,7 +78,7 @@ class DuelLinkE2ETest {
         graph.start()
         seedFriendsDuel()
         val intent = view(code.matchLink).addFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY)
-        rule = AndroidComposeTestRule(ActivityScenarioRule(intent), activityProvider = ::activityOf)
+        rule = v2AndroidComposeTestRule(ActivityScenarioRule(intent), activityProvider = ::activityOf)
         val run = object : Statement() {
             override fun evaluate() {
                 rule.waitUntil(TIMEOUT_MS) { routes() == listOf(HOME) }
