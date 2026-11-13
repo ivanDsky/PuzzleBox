@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.profile.accounts
 
 import android.app.Application
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.ivandsky.puzzlebox.app.screens.ProfileUiState
 import com.ivandsky.puzzlebox.app.screens.ProfileUiState.GoogleSync

@@ -27,6 +27,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.RoborazziOptions
 import com.github.takahirom.roborazzi.RoborazziTaskType
 import com.github.takahirom.roborazzi.captureRoboImage
@@ -222,6 +223,7 @@ class VariantMatrixScreenshotTest {
 
     private fun theme(dark: Boolean) = if (dark) "dark" else "light"
 
+    @OptIn(ExperimentalRoborazziApi::class)
     private fun capture(name: String, darkTheme: Boolean, content: @Composable () -> Unit) {
         MATRIX_DIR.mkdirs()
         composeRule.setContent {
@@ -307,7 +309,7 @@ class VariantMatrixScreenshotTest {
 
     companion object {
         // The review-page tree served on :8777 (user.dir = the module dir under Gradle).
-        private val MATRIX_DIR = File(System.getProperty("user.dir"))
+        private val MATRIX_DIR = File(checkNotNull(System.getProperty("user.dir")) { "user.dir system property is not set" })
             .resolve("../../.scratch/puzzlebox/design/diagrams/matrix")
             .canonicalFile
     }
