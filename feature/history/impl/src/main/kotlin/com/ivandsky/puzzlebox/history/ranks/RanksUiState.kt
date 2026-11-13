@@ -6,4 +6,5 @@ package com.ivandsky.puzzlebox.history.ranks
  */
 internal data class RanksUiState(
     val board: RanksBoardSlice,
+    val signIn: RanksSignIn = RanksSignIn.Idle,
 )

@@ -15,7 +15,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
  * slot is filled; the top bar, calendar and sheets join it as their own slot composables.
  */
 @Composable
-internal fun RanksScreen(state: RanksUiState, modifier: Modifier = Modifier) {
+internal fun RanksScreen(state: RanksUiState, onSignIn: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier
             .fillMaxSize()
@@ -23,6 +23,6 @@ internal fun RanksScreen(state: RanksUiState, modifier: Modifier = Modifier) {
             .verticalScroll(rememberScrollState())
             .padding(Spacing.lg),
     ) {
-        RanksBoardSlot(state.board)
+        RanksBoardSlot(state.board, state.signIn, onSignIn)
     }
 }

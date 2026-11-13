@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.history.ranks
 
+import com.ivandsky.puzzlebox.domain.ranks.RankScope
+import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import java.time.LocalDate
 
 /**
@@ -11,13 +13,23 @@ import java.time.LocalDate
 internal data class RanksSelection(
     val board: RanksBoard = RanksBoard.Overall,
     val window: Window = Window.Day,
-    val scope: Scope = Scope.Global,
+    val scope: RankScope = RankScope.Global,
     val day: LocalDate? = null,
     val calendarExpanded: Boolean = false,
 ) {
-    enum class Window { Day, Week, Month }
+    /** The span the player chose; the domain's [RankWindow] is that span at an anchor day, which [day] and the calendar supply. */
+    enum class Window {
+        Day,
+        Week,
+        Month,
+        ;
 
-    enum class Scope { Global, Friends }
+        fun at(anchor: LocalDate): RankWindow = when (this) {
+            Day -> RankWindow.Day(anchor)
+            Week -> RankWindow.Week(anchor)
+            Month -> RankWindow.Month(anchor)
+        }
+    }
 
     fun pickBoard(board: RanksBoard) = copy(board = board)
 
@@ -25,7 +37,7 @@ internal data class RanksSelection(
 
     fun setWindow(window: Window) = copy(window = window)
 
-    fun setScope(scope: Scope) = copy(scope = scope)
+    fun setScope(scope: RankScope) = copy(scope = scope)
 
     fun toggleCalendar() = copy(calendarExpanded = !calendarExpanded)
 

@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.history.ranks
 
+import com.ivandsky.puzzlebox.domain.ranks.RankScope
+import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
@@ -17,7 +19,7 @@ class RanksSelectionTest {
     fun `a fresh selection is Overall, today, Global, calendar folded`() {
         assertEquals(RanksBoard.Overall, landing.board)
         assertEquals(RanksSelection.Window.Day, landing.window)
-        assertEquals(RanksSelection.Scope.Global, landing.scope)
+        assertEquals(RankScope.Global, landing.scope)
         assertEquals(null, landing.day)
         assertEquals(false, landing.calendarExpanded)
     }
@@ -45,7 +47,7 @@ class RanksSelectionTest {
 
     @Test
     fun `setScope changes only the scope`() {
-        assertEquals(landing.copy(scope = RanksSelection.Scope.Friends), landing.setScope(RanksSelection.Scope.Friends))
+        assertEquals(landing.copy(scope = RankScope.Friends), landing.setScope(RankScope.Friends))
     }
 
     @Test
@@ -60,7 +62,7 @@ class RanksSelectionTest {
     fun `transitions return new values and leave the receiver untouched`() {
         val before = landing.pickBoard(RanksBoard.Game(QUEENS))
 
-        before.pickDay(LocalDate.of(2026, 11, 6)).setScope(RanksSelection.Scope.Friends).toggleCalendar()
+        before.pickDay(LocalDate.of(2026, 11, 6)).setScope(RankScope.Friends).toggleCalendar()
 
         assertEquals(RanksSelection(board = RanksBoard.Game(QUEENS)), before)
     }
@@ -71,7 +73,7 @@ class RanksSelectionTest {
             .pickBoard(RanksBoard.Game(ZIP))
             .pickDay(LocalDate.of(2026, 11, 6))
             .setWindow(RanksSelection.Window.Month)
-            .setScope(RanksSelection.Scope.Friends)
+            .setScope(RankScope.Friends)
             .toggleCalendar()
 
         assertEquals(landing, busy.reset())
@@ -83,5 +85,14 @@ class RanksSelectionTest {
             listOf(RanksBoard.Overall, RanksBoard.Game(ZIP), RanksBoard.Game(TANGO), RanksBoard.Game(QUEENS)),
             rankBoards(HistoryTestSupport.registry),
         )
+    }
+
+    @Test
+    fun `a window kind is the domain window at its anchor`() {
+        val anchor = LocalDate.of(2026, 11, 6)
+
+        assertEquals(RankWindow.Day(anchor), RanksSelection.Window.Day.at(anchor))
+        assertEquals(RankWindow.Week(anchor), RanksSelection.Window.Week.at(anchor))
+        assertEquals(RankWindow.Month(anchor), RanksSelection.Window.Month.at(anchor))
     }
 }
