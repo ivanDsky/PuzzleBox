@@ -5,6 +5,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
@@ -50,7 +52,8 @@ import kotlinx.coroutines.flow.update
  * already drawn stays whole (day, rows and ghosts) until the next day is ready: the title and the rows change together.
  * [ghosts] are the LinkedIn connections of that day, none until they are read. [saved] says whether that day's board
  * is a saved one, which the page marks with a line under the board. [entries] is how many players are on a Ranked
- * board, before the cut to the top rows (the rank summary's "of N").
+ * board, before the cut to the top rows (the rank summary's "of N"). [restoring] is true while the cloud's first
+ * restore on this device runs (A34), when a day with no saved board yet may still get one.
  */
 internal data class GamePageBoardState(
     val day: LocalDate? = null,
@@ -59,6 +62,7 @@ internal data class GamePageBoardState(
     val ghosts: List<GhostRowModel> = emptyList(),
     val saved: SavedBoardState = SavedBoardState.NotYetRead,
     val entries: Int = 0,
+    val restoring: Boolean = false,
 ) {
     /** Whether rows or ghosts are on screen, so the next day can replace them rather than start from nothing. */
     fun isDrawn(): Boolean = board is DailyBoardState.Ranked || (board == DailyBoardState.SignedOut && ghosts.isNotEmpty())
@@ -70,6 +74,7 @@ internal data class GamePageBoardState(
  * Sign-in goes through one [BoardSignInHolder], so the page's board signs in without leaving.
  * A non-null [linkedIn] adds that day's LinkedIn ghosts, only ever read from what the phone holds: the day card's
  * own collection already syncs the day it shows, so the board never asks LinkedIn anything. Null touches nothing of LinkedIn.
+ * A non-null [cloudSync] says when the first restore runs; null (the flag is off) never restores.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class GamePageBoardViewModel(
@@ -80,6 +85,7 @@ internal class GamePageBoardViewModel(
     identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
     private val linkedIn: ObserveLinkedInDayView?,
+    cloudSync: CloudSync? = null,
 ) : ViewModel() {
 
     private val choice = MutableStateFlow(Choice(picked = null, cardDay = null))
@@ -91,11 +97,18 @@ internal class GamePageBoardViewModel(
     /** The game's own rank rule. */
     val order: RankOrder = registry.rankOrderOf(game)
 
+    // No CloudSync bound (the flag is off) is never restoring.
+    private val restoring: Flow<Boolean> = cloudSync?.state
+        ?.map { it is CloudSyncState.Syncing && it.firstRestore }
+        ?.distinctUntilChanged()
+        ?: flowOf(false)
+
     val state: StateFlow<GamePageBoardState> = flow {
         // What the board last said, so a day switch can tell whether a board is on screen to keep.
         var said = GamePageBoardState()
         emitAll(shown().flatMapLatest { shown -> statesOf(shown, held = said).onEach { said = it } })
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GamePageBoardState())
+    }.combine(restoring) { board, restoring -> if (board.restoring == restoring) board else board.copy(restoring = restoring) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GamePageBoardState())
 
     /** How this block's last sign-in went. */
     val signInStatus: StateFlow<BoardSignIn> = signInHolder.status

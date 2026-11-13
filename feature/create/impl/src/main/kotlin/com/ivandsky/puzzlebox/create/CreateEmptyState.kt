@@ -40,6 +40,16 @@ import com.ivandsky.puzzlebox.model.GameId
 private val GameRowMinHeight = 84.dp
 private const val RuleMaxLines = 2
 
+/** The first cloud restore's state (A34): the whole screen's, and each tab's own empty card while it runs. */
+@Composable
+internal fun CreateRestoring(modifier: Modifier = Modifier) {
+    EmptyState(
+        title = "Bringing back your puzzles…",
+        message = "Your drafts and published puzzles will show up here in a moment.",
+        modifier = modifier.fillMaxSize().testTag("create.restoring"),
+    )
+}
+
 /**
  * The first-time Create root (spec A3; 01 handoff "Empty (first time)", option C): with no
  * drafts at all it lists [games] inline, each with its glyph tile, one-line rule and default
@@ -57,11 +67,7 @@ fun CreateEmptyState(
     restoring: Boolean = false,
 ) {
     if (restoring) {
-        EmptyState(
-            title = "Bringing back your puzzles…",
-            message = "Your drafts and published puzzles will show up here in a moment.",
-            modifier = modifier.fillMaxSize().testTag("create.restoring"),
-        )
+        CreateRestoring(modifier)
         return
     }
     val scroll = rememberScrollState()

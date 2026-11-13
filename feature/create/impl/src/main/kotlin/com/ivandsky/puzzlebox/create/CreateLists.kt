@@ -40,7 +40,8 @@ private val ListBottomInset = 56.dp + Spacing.lg * 2
 /**
  * The shown tab's list under the Drafts / Published switch, **Cross-fading** on a switch
  * (DurationMedium; ReducedFadeDuration under reduced motion). A tab with nothing in it while
- * the other has items says so: "No drafts" or "Nothing published yet".
+ * the other has items says so: "No drafts" or "Nothing published yet", unless the first cloud
+ * restore is still running ([CreateUiState.restoring]), when the tab says they are coming back (A34).
  */
 @Composable
 internal fun CreateTabContent(
@@ -58,12 +59,14 @@ internal fun CreateTabContent(
         label = "createTab",
     ) { tab ->
         when {
+            tab == CreateUiState.Tab.Published && state.published.isEmpty() && state.restoring -> CreateRestoring()
             tab == CreateUiState.Tab.Published && state.published.isEmpty() -> EmptyState(
                 title = "Nothing published yet",
                 message = "A draft can be published once it has exactly one solution (Unique) and you’ve test-solved it.",
                 modifier = Modifier.fillMaxSize().testTag("create.published.empty"),
             )
             tab == CreateUiState.Tab.Published -> PublishedList(state, onOpenPublished)
+            state.draftCount == 0 && state.restoring -> CreateRestoring()
             state.draftCount == 0 -> EmptyState(
                 title = "No drafts",
                 message = "Everything you started is published. Tap New puzzle to start another.",

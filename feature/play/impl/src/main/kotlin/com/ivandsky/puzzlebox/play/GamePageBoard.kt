@@ -67,7 +67,7 @@ internal fun GamePageBoard(
                 }
             },
         )
-        SavedBoardLine(state.saved)
+        SavedBoardLine(state.saved, restoring = state.restoring)
     }
 }
 
