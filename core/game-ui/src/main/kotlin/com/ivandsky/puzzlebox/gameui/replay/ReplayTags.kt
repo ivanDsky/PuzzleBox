@@ -4,6 +4,7 @@ package com.ivandsky.puzzlebox.gameui.replay
 object ReplayTags {
     const val NONE = "replay-none"
     const val WATCH_ROW = "replay-section-row"
+    const val UNAVAILABLE = "replay-unavailable"
     const val PLAY = "replay-play"
     const val SPEED = "replay-speed"
     const val SKIP_IDLE = "replay-skip-idle"

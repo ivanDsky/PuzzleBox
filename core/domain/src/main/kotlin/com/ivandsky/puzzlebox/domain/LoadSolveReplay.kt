@@ -25,6 +25,9 @@ class LoadSolveReplay(
     private val completions: CompletionRepository,
     private val dispatchers: DispatcherProvider,
 ) {
+    /** Whether replays are on at all: a surface that says "no replay" asks first, so a flag-off build shows nothing. */
+    val enabled: Boolean get() = flags.isEnabled(ReleaseFlag.FullReplay)
+
     /** Null = no replay, for any cause (A13). Flag off: always null. Cancellation still propagates. */
     suspend operator fun invoke(ref: SolveReplayRef): Timeline? {
         if (!flags.isEnabled(ReleaseFlag.FullReplay)) return null

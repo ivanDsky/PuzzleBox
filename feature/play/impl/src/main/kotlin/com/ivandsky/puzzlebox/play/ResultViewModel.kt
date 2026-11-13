@@ -28,6 +28,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
+import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
@@ -41,6 +42,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
@@ -100,7 +102,7 @@ data class ResultUiState(
  * The replay is read from the stored completion, never from the live play: it shows once the solve is stored (the live
  * play's [ActivePlay.Record.stored], or after process death a stored row with this solve's time and hints), and never
  * while the write is pending or failed. A game with no replay board skips the load. [loadReplay] answers null for no
- * replay, so a solve without one shows no row.
+ * replay, so a stored solve without one shows [ReplaySectionState.Unavailable] instead of the row.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResultViewModel internal constructor(
@@ -232,9 +234,17 @@ class ResultViewModel internal constructor(
                 if (!stored) {
                     ReplaySectionState.Hidden
                 } else {
-                    loadReplay(SolveReplayRef.Latest(ref))?.let(ReplaySectionState::Ready) ?: ReplaySectionState.Hidden
+                    loadReplay(SolveReplayRef.Latest(ref))?.let(ReplaySectionState::Ready) ?: unavailableOf(ref)
                 }
             }
+
+    /** A stored solve with no replay says so, naming a LinkedIn import; hidden while replays are off. */
+    private suspend fun unavailableOf(ref: PuzzleRef): ReplaySectionState {
+        if (!loadReplay.enabled) return ReplaySectionState.Hidden
+        val stored = completions.observeRecords().first() + completions.observePlayAgains(ref).first()
+        val source = stored.firstOrNull { it.puzzleRef == ref && it.time == solve.timeMs && it.hints == solve.hints }?.source
+        return ReplaySectionState.Unavailable(source?.let(ReplayUnavailable::of) ?: ReplayUnavailable.NotRecorded)
+    }
 
     /** This solve's facts while the play holds it; after a play again or another solve, the
      *  verdict this entry already saw stays (it was this solve's), and retry hides. */

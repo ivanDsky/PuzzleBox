@@ -5,12 +5,14 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.QUEENS
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
@@ -494,8 +496,26 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `no replay on either solve hides the replays`() = runTest {
+    fun `no replay on either solve says there is none`() = runTest {
         val viewModel = replayViewModel(null, null)
+
+        viewModel.openReplays(replayRow)
+
+        assertEquals(HistoryReplays.Unavailable(ReplayUnavailable.NotRecorded), viewModel.replays.value.replays)
+    }
+
+    @Test
+    fun `a LinkedIn import without a replay says it was imported`() = runTest {
+        val viewModel = replayViewModel(null)
+
+        viewModel.openReplays(replayRow.copy(record = solve(isRecord = true).copy(source = CompletionSource.LinkedIn)))
+
+        assertEquals(HistoryReplays.Unavailable(ReplayUnavailable.ImportedFromLinkedIn), viewModel.replays.value.replays)
+    }
+
+    @Test
+    fun `flag off hides the replays of a solve without one`() = runTest {
+        val viewModel = replayViewModel(null, flags = FakeReleaseFlags())
 
         viewModel.openReplays(replayRow)
 
