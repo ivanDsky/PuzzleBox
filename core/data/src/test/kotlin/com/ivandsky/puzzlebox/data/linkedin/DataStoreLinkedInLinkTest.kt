@@ -116,7 +116,7 @@ class DataStoreLinkedInLinkTest {
         return DataStoreLinkedInLink(source, db, cookies, avatars, storeLock)
     }
 
-    private suspend fun ghosts(): List<GhostEntity> = db.ghostDao().observe(ghost.game, ghost.day).first()
+    private suspend fun ghosts(): List<GhostEntity> = db.ghostDao().board(ghost.game, ghost.day)
 
     private suspend fun fetchLog(): FetchLogEntity? =
         db.fetchLogDao().get(fetch.game, fetch.day, fetch.item, fetch.profileId)

@@ -472,6 +472,54 @@ class BoardsKindTest {
         }
     }
 
+    @Test
+    fun `adopt acknowledge and forget wait for the store lock`() = runBlocking {
+        seed(owner = null)
+        seed(day = "2026-11-09", owner = ANN)
+        val executor = Executors.newSingleThreadExecutor { Thread(it, "boards-test").apply { isDaemon = true } }
+        val scope = CoroutineScope(executor.asCoroutineDispatcher() + SupervisorJob())
+        try {
+            val writes = listOf<suspend () -> Unit>(
+                { kind.adopt(ANN) },
+                { kind.acknowledge(ANN, kind.pending(ANN)) },
+                { kind.forget(ANN) },
+            )
+            for (write in writes) {
+                lateinit var job: Deferred<Unit>
+                lock.withLock {
+                    job = scope.async { write() }
+                    Thread.sleep(HOLD_MS)
+                    assertFalse("a store write ran under a held lock", job.isCompleted)
+                }
+                job.await()
+            }
+        } finally {
+            scope.cancel()
+            executor.shutdownNow()
+        }
+    }
+
+    @Test
+    fun `a board doc without ref restores with stand-ins and a later live read upgrades it to member refs`() = runTest {
+        kind.apply(ANN, listOf(doc()))
+        val restored = db.ghostDao().board("queens", DAY).single { it.name == "Bea Ox" }
+        assertTrue(restored.memberRef.startsWith("name:"))
+
+        val profileId = db.savedBoardDao().get("queens", DAY)!!.profileId
+        db.ghostDao().replace(
+            "queens",
+            DAY,
+            listOf(
+                ghost("queens", DAY, profileId, "Ann Li", 61_000L),
+                ghost("queens", DAY, "m1", "Bea Ox", 70_000L),
+            ),
+        )
+        db.savedBoardDao().upsert(db.savedBoardDao().get("queens", DAY)!!.copy(uploadedFingerprint = null))
+
+        val rows = (kind.pending(ANN).single { it.id == doc().id }.fields["rows"] as List<*>).map { it as Map<*, *> }
+        assertEquals("m1", rows.single { it["name"] == "Bea Ox" }["ref"])
+    }
+
     private companion object {
         const val ANN = "ann"
         const val BEA = "bea"
