@@ -107,10 +107,19 @@ interface LeaderboardRepository {
 
     /**
      * Live board ranked by [order]; null = not observable right now (soft unavailable, A14).
-     * [order] MUST be the board's game's rank order; `ObserveLeaderboard` is the only
-     * production caller.
+     * [order] MUST be the board's game's rank order; `ObserveLeaderboard` and
+     * `ObserveRankWindow` are the production callers.
      */
     fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?>
+
+    /**
+     * The whole board once, ranked by [order], with its N; null when signed out or the read
+     * failed. N costs a second read only when the page is full ([BoardPage.PAGE_SIZE]).
+     */
+    suspend fun fetch(board: LeaderboardRef, order: RankOrder): BoardPage?
+
+    /** N alone — for an open board whose live page is at the cap; null when signed out or failed. */
+    suspend fun count(board: LeaderboardRef): Int?
 
     suspend fun submit(entry: LeaderboardEntry): SubmitResult
 }

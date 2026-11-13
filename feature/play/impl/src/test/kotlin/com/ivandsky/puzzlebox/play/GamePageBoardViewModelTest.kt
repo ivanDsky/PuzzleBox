@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
+import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -89,6 +90,8 @@ class GamePageBoardViewModelTest {
             emit(LeaderboardSnapshot(board, names.mapIndexed { i, name -> entry(name, 10_000L + i * 1_000L) }))
         }
 
+        override suspend fun fetch(board: LeaderboardRef, order: RankOrder): BoardPage? = error("unused")
+        override suspend fun count(board: LeaderboardRef): Int? = error("unused")
         override suspend fun submit(entry: LeaderboardEntry): SubmitResult = error("never submitted")
     }
 
