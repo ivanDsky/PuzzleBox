@@ -1,17 +1,25 @@
 package com.ivandsky.puzzlebox.history.ranks
 
+import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
+import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.board.BoardRowValue
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
+import com.ivandsky.puzzlebox.history.HistoryDayRow
+import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -110,5 +118,157 @@ class GameBoardMappingTest {
         assertNull(partial.gameBoardNote(ZIP, Window.Day))
         assertNull(boards(loaded(ref(0), entry("u1", 1))).gameBoardNote(ZIP, Window.Week))
         assertNull(null.gameBoardNote(ZIP, Window.Week))
+    }
+
+    private val nora = Identity("nora", "Nora", null)
+
+    private fun historyRow(timeMs: Long, hints: Int = 0, day: Int = 0) = HistoryDayRow(
+        day = monday.plusDays(day.toLong()),
+        puzzleNumber = 1,
+        gameId = ZIP,
+        gameName = "Zip",
+        record = HistoryTestSupport.record(monday.plusDays(day.toLong()), timeMs, hints),
+    )
+
+    private val lateBoard = boards(
+        loaded(ref(0), entry("lia", 250), entry("max", 260, 1), entry("you", 300), entry("gwen", 330), entry("omar", 340)),
+    )
+
+    /** The card of [boards] as Nora sees it with a solve of [timeMs] whose day is [inWindow] or not. */
+    private fun noraCard(timeMs: Long, inWindow: Boolean = false, boards: RankWindowBoards = lateBoard): List<DailyBoardRowModel> {
+        val row = boards.unofficialRow(ZIP, RankOrder.TimeThenHints, nora, listOf(historyRow(timeMs))) { inWindow }
+        return rows(boards.toGameBoardState(ZIP, RankOrder.TimeThenHints, Window.Day, "nora").withUnofficialRow(row))
+    }
+
+    private fun assertOfficialUntouched(rows: List<DailyBoardRowModel>) {
+        assertEquals(listOf("lia", "max", "you", "gwen", "omar"), rows.filterNot { it.unofficial }.map { it.playerId })
+        assertEquals(listOf(1, 2, 3, 4, 5), rows.filterNot { it.unofficial }.map { it.rank })
+    }
+
+    @Test
+    fun `case 14a a late solve ahead of everyone is the unofficial first and moves nobody`() {
+        val rows = noraCard(95)
+
+        assertEquals(listOf("nora", "lia", "max", "you", "gwen", "omar"), rows.map { it.playerId })
+        assertEquals(1, rows[0].rank)
+        assertEquals(true, rows[0].unofficial)
+        assertOfficialUntouched(rows)
+    }
+
+    @Test
+    fun `case 14b a late solve between two players sits between them`() {
+        val rows = noraCard(255)
+
+        assertEquals(listOf("lia", "nora", "max", "you", "gwen", "omar"), rows.map { it.playerId })
+        assertEquals(2, rows[1].rank)
+        assertOfficialUntouched(rows)
+    }
+
+    @Test
+    fun `case 14c a late solve equal to a player shares that place`() {
+        val rows = noraCard(300)
+
+        assertEquals(listOf("lia", "max", "nora", "you", "gwen", "omar"), rows.map { it.playerId })
+        assertEquals(listOf(3, 3), listOf(rows[2].rank, rows[3].rank))
+        assertOfficialUntouched(rows)
+    }
+
+    @Test
+    fun `case 15 a solve past the window edge is unofficial ahead of the official first`() {
+        val zip = boards(loaded(ref(0), entry("p", 50), entry("q", 60)))
+
+        val rows = noraCard(40, boards = zip)
+
+        assertEquals(listOf("nora", "p", "q"), rows.map { it.playerId })
+        assertEquals(listOf(1, 1, 2), rows.map { it.rank })
+    }
+
+    @Test
+    fun `inside the submit window the solve is not unofficial`() {
+        assertEquals(listOf("lia", "max", "you", "gwen", "omar"), noraCard(95, inWindow = true).map { it.playerId })
+    }
+
+    @Test
+    fun `the window boundary day is official yesterday and unofficial the day before`() {
+        val calendar = FakeGameCalendar(monday.plusDays(1))
+
+        fun row() = lateBoard.unofficialRow(ZIP, RankOrder.TimeThenHints, nora, listOf(historyRow(95))) { calendar.inSubmitWindow(ZIP, it) }
+
+        assertNull(row())
+        calendar.setAll(monday.plusDays(2))
+        assertEquals(true, row()?.unofficial)
+    }
+
+    private fun ghost(name: String, timeMs: Long?, hintFree: Boolean = true) = GhostRowModel("ref-$name", name, timeMs, hintFree)
+
+    private fun friendsCard(input: BoardGhostInput, friends: Set<String>, board: RankWindowBoards): RanksBoardSlice {
+        val state = board.toGameBoardState(TANGO, RankOrder.TimeThenHints, Window.Day, "u1")
+        return RanksBoardSlice("Tango", RankOrder.TimeThenHints, state).inFriends(friends, input)
+    }
+
+    private fun lines(slice: RanksBoardSlice) = (slice.state as DailyBoardState.Ranked).lines!!
+
+    private fun named(line: DailyBoardLine) = when (line) {
+        is DailyBoardLine.Real -> line.row.name to line.place
+        is DailyBoardLine.Ghost -> line.row.name to line.place
+    }
+
+    private val caseFive = boards(
+        loaded(
+            ref(0, TANGO.value),
+            entry("sam", 58_000, 1, TANGO.value),
+            entry("lia", 62_000, 1, TANGO.value),
+            entry("ria", 66_000, 0, TANGO.value),
+            entry("u1", 70_000, 0, TANGO.value),
+            entry("gwen", 96_000, 0, TANGO.value),
+        ),
+    )
+
+    @Test
+    fun `case 5 the card puts the ghost among the rows by time and says so`() {
+        val slice = friendsCard(BoardGhostInput(listOf(ghost("Cal", 64_000, hintFree = false))), setOf("sam", "lia", "ria", "gwen"), caseFive)
+
+        assertEquals(
+            listOf("Sam" to 1, "Lia" to 2, "Cal" to 3, "Ria" to 4, "U1" to 5, "Gwen" to 6),
+            lines(slice).map(::named),
+        )
+        assertEquals("with LinkedIn connections", slice.note)
+    }
+
+    @Test
+    fun `friends keep the whole board's places while the ghost counts among them`() {
+        val slice = friendsCard(BoardGhostInput(listOf(ghost("Cal", 64_000, hintFree = false))), setOf("ria"), caseFive)
+
+        assertEquals(listOf("Cal" to 3, "Ria" to 4, "U1" to 5), lines(slice).map(::named))
+        assertEquals(listOf("ria", "u1"), (slice.state as DailyBoardState.Ranked).rows.map { it.playerId })
+    }
+
+    @Test
+    fun `a hidden-time ghost has no place and goes last`() {
+        val slice = friendsCard(BoardGhostInput(listOf(ghost("Cal", null))), setOf("sam"), caseFive)
+
+        assertEquals(listOf("Sam" to 1, "U1" to 4, "Cal" to null), lines(slice).map(::named))
+    }
+
+    @Test
+    fun `no ghosts is the plain friends board with no note`() {
+        val slice = friendsCard(BoardGhostInput.None, setOf("sam"), caseFive)
+
+        assertEquals(listOf("sam", "u1"), rows(slice.state).map { it.playerId })
+        assertNull((slice.state as DailyBoardState.Ranked).lines)
+        assertNull(slice.note)
+    }
+
+    @Test
+    fun `the unofficial row stays out of the ghost ranking and takes no place from anyone`() {
+        val base = lateBoard.toGameBoardState(ZIP, RankOrder.TimeThenHints, Window.Day, "nora")
+        val row = lateBoard.unofficialRow(ZIP, RankOrder.TimeThenHints, nora, listOf(historyRow(255))) { false }
+        val slice = RanksBoardSlice("Zip", RankOrder.TimeThenHints, base.withUnofficialRow(row))
+            .inFriends(setOf("lia", "max", "you", "gwen", "omar"), BoardGhostInput(listOf(ghost("Cal", 255))))
+
+        assertEquals(
+            listOf("Lia" to 1, "Nora" to 2, "Cal" to 2, "Max" to 3, "You" to 4, "Gwen" to 5, "Omar" to 6),
+            lines(slice).map(::named),
+        )
     }
 }
