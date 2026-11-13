@@ -16,7 +16,7 @@ private const val UnofficialMark = "unofficial"
  * A row whose time came from LinkedIn carries the LinkedIn dot on its photo.
  * The score column says the row's [DailyBoardRowModel.scoreValue] in [order]'s voice; a row [DailyBoardRowModel.beyondPage]
  * reads "100+" for its place and an [DailyBoardRowModel.unofficial] one carries the "unofficial" mark. With [medals] the
- * rows at places 1 to 3 are medal rows (see [MedalRow]).
+ * rows at places 1 to 3 are medal rows (see [MedalRow]); an unofficial row takes no place, so it wears no medal.
  */
 @Composable
 fun DailyBoardRow(
@@ -41,6 +41,7 @@ fun DailyBoardRow(
         linkedIn = row.timeFromLinkedIn,
         mark = if (row.unofficial) UnofficialMark else null,
         beyondPage = row.beyondPage,
-        medal = if (medals && !row.beyondPage) medalRowOf(place) else null,
+        medal = if (medals && !row.beyondPage && !row.unofficial) medalRowOf(place) else null,
+        placeMedal = !row.unofficial,
     )
 }
