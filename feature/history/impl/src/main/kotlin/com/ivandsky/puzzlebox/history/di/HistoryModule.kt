@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.history.di
 import com.ivandsky.puzzlebox.history.HistoryViewModel
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.ranks.RanksViewModel
-import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
