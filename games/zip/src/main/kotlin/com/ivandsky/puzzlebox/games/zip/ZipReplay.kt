@@ -35,8 +35,9 @@ object ZipReplay : GameReplay<ZipSession> {
     }
 
     /**
-     * A hint is recorded as its trim, [ZipReplayMove.Hint], then its step, so the [ZipReplayMove.Extend]
-     * right after a Hint is the cell the hint placed. A refused step is a Mistake, undo/redo/clear an Undo.
+     * A hint is recorded as its trim, [ZipReplayMove.Hint], then its step, all at one stamp, so the
+     * [ZipReplayMove.Extend] right after a Hint at the same stamp is the cell the hint placed (the timeline
+     * passes no [previous] across a stamp). A refused step is a Mistake, undo/redo/clear an Undo.
      */
     override fun markOf(before: ZipSession, move: ReplayMove, after: ZipSession, previous: ReplayMove?): MoveMark {
         val cellCount = before.puzzle.board.cellCount
