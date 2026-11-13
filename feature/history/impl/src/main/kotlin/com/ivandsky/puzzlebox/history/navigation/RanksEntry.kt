@@ -37,6 +37,8 @@ fun EntryProviderScope<NavKey>.ranksEntry(
             state = state,
             onSignIn = { scope.launch { viewModel.signIn(context) } },
             onSwipe = viewModel::swipe,
+            onScope = viewModel::setScope,
+            onWindow = viewModel::setWindow,
             onShowCalendar = viewModel::showCalendar,
             onSelectDay = viewModel::selectDay,
             onPlayAgain = { game, day -> navigator.pushOnce(GameKey(game.value, day.toString())) },
