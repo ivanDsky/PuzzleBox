@@ -33,7 +33,7 @@ import kotlinx.coroutines.flow.map
  * acknowledgement sets the fingerprint of the uploaded content only while the stored board still has that content, so
  * a board re-read during an upload stays pending. Boards carry no tombstone (A27).
  *
- * [apply] takes [LinkedInStoreLock] once, from outside, and never nests it. A restore keeps one board per
+ * [adopt], [apply], [acknowledge] and [forget] each take [LinkedInStoreLock] once, from outside, and never nest it. A restore keeps one board per
  * (game, day) by [BoardMerge], and marks the day read in the fetch log of the linked profile when the restored board
  * is that profile's and its day is at least 2 days before the game's today, so no LinkedIn call is spent re-reading a
  * fixed day (A26, amended by user-check F2). Today and yesterday get no mark, so the in-window flow reads them live
@@ -59,7 +59,7 @@ internal class BoardsKind(
             .map { boards.pending(uid).mapTo(HashSet(), ::docIdOf) }
             .distinctUntilChanged()
 
-    override suspend fun adopt(uid: String) = boards.adoptNullOwner(uid)
+    override suspend fun adopt(uid: String) = storeLock.withLock { boards.adoptNullOwner(uid) }
 
     override suspend fun pending(uid: String): List<CloudDoc> = db.withTransaction {
         boards.pending(uid).map { board -> encode(valueOf(board)) }
@@ -88,15 +88,17 @@ internal class BoardsKind(
         }
     }
 
-    override suspend fun acknowledge(uid: String, uploaded: List<CloudDoc>) = db.withTransaction {
-        for (sent in uploaded.mapNotNull(::decode)) {
-            val board = boards.get(sent.game, sent.day)?.takeIf { it.ownerUid == uid } ?: continue
-            val current = valueOf(board)
-            if (current.fingerprint() == sent.fingerprint()) boards.setFingerprint(sent.game, sent.day, current.fingerprint())
+    override suspend fun acknowledge(uid: String, uploaded: List<CloudDoc>) = storeLock.withLock {
+        db.withTransaction {
+            for (sent in uploaded.mapNotNull(::decode)) {
+                val board = boards.get(sent.game, sent.day)?.takeIf { it.ownerUid == uid } ?: continue
+                val current = valueOf(board)
+                if (current.fingerprint() == sent.fingerprint()) boards.setFingerprint(sent.game, sent.day, current.fingerprint())
+            }
         }
     }
 
-    override suspend fun forget(uid: String) = boards.clearFingerprints(uid)
+    override suspend fun forget(uid: String) = storeLock.withLock { boards.clearFingerprints(uid) }
 
     private suspend fun linkedProfileId(): String? = when (val state = link.state.first()) {
         LinkState.NotConnected -> null

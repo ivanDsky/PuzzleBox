@@ -32,10 +32,6 @@ interface GhostDao {
 
     /** The board of one game day, in no guaranteed order. */
     @Query("SELECT * FROM ghosts WHERE game = :game AND day = :day")
-    fun observe(game: String, day: String): Flow<List<GhostEntity>>
-
-    /** [observe] read once, for a reader that re-reads on its own trigger. */
-    @Query("SELECT * FROM ghosts WHERE game = :game AND day = :day")
     suspend fun board(game: String, day: String): List<GhostEntity>
 
     /**
@@ -66,7 +62,4 @@ interface GhostDao {
     /** Plain insert: [replace] has just deleted the board, so no row can conflict. */
     @Insert
     suspend fun insertAll(rows: List<GhostEntity>)
-
-    @Query("DELETE FROM ghosts")
-    suspend fun clear()
 }

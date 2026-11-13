@@ -122,7 +122,7 @@ class RoomLinkedInDaysDisconnectRaceTest {
     }
 
     private suspend fun assertNoBoardStored() {
-        assertEquals(emptyList<Any>(), db.ghostDao().observe(zip.value, day.toString()).first())
+        assertEquals(emptyList<Any>(), db.ghostDao().board(zip.value, day.toString()))
         assertNull(db.savedBoardDao().get(zip.value, day.toString()))
     }
 
@@ -198,7 +198,7 @@ class RoomLinkedInDaysDisconnectRaceTest {
         assertEquals(emptySet<String>(), avatars.present.first())
         assertNothingLeftOfTheAccount(link)
         // The photos go with the account; the board a finished read stored is the player's and stays.
-        assertEquals(1, db.ghostDao().observe(zip.value, day.toString()).first().size)
+        assertEquals(1, db.ghostDao().board(zip.value, day.toString()).size)
         assertEquals(day.toString(), db.savedBoardDao().get(zip.value, day.toString())?.day)
     }
 
