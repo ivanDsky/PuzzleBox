@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
+import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import kotlinx.coroutines.CoroutineScope
 import org.koin.dsl.module
 
@@ -55,4 +56,5 @@ val firebaseBackendModule = module {
             currentUid = { get<IdentityService>().current.value?.uid },
         )
     }
+    single<VisibilityRepository> { FirestoreVisibilityRepository(identity = get<IdentityService>().current) }
 }
