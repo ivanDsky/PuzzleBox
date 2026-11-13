@@ -11,7 +11,7 @@ import com.ivandsky.puzzlebox.play.friend.EnterCodeViewModel
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleBoard
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleViewModel
 import java.time.Instant
-import org.koin.androidx.viewmodel.dsl.viewModel
+import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 /**
