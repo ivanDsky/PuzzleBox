@@ -6,11 +6,23 @@ import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.SpreadScope
 import java.util.Locale
 
-/** One dot of the week: [label] is the weekday's initial; [solved] fills it, [today] marks the last. */
-internal data class HeroWeekDot(val label: String, val solved: Boolean, val today: Boolean)
+/**
+ * One dot of the week: [label] is the weekday's initial; [solved] fills it, [today] marks the last.
+ * A [frozen] day was held by a streak freeze and is never [solved].
+ */
+internal data class HeroWeekDot(val label: String, val solved: Boolean, val today: Boolean, val frozen: Boolean = false)
 
-/** The streak block: [days] counts up on screen; [title] and [sub] are its sentences. */
-internal data class HeroStreak(val days: Int, val title: String, val sub: String, val week: List<HeroWeekDot>)
+/**
+ * The streak block: [days] counts up on screen; [title] and [sub] are its sentences. [freezesHeld] is the
+ * freeze count beside the number; null hides it (the StreakFreeze flag is off).
+ */
+internal data class HeroStreak(
+    val days: Int,
+    val title: String,
+    val sub: String,
+    val week: List<HeroWeekDot>,
+    val freezesHeld: Int? = null,
+)
 
 /** One bar of the histogram: its solve [count], relative [height] (0 for an empty bin) and its time [range] label. */
 internal data class HeroBar(val count: Int, val height: Float, val range: String)
@@ -135,8 +147,9 @@ private fun chips(facts: ResultHeroFacts, insights: ResultInsights?, supplied: R
 private fun streak(insights: ResultInsights, locale: Locale) = HeroStreak(
     days = insights.streak,
     title = heroStreakTitle(insights.streak),
-    sub = heroStreakSub(insights.streak),
-    week = insights.week.map { HeroWeekDot(weekdayInitial(it.date, locale), it.solved, it.today) },
+    sub = insights.freezes?.let(::heroFreezeSub) ?: heroStreakSub(insights.streak),
+    week = insights.week.map { HeroWeekDot(weekdayInitial(it.date, locale), it.solved, it.today, it.frozen) },
+    freezesHeld = insights.freezes?.held,
 )
 
 private fun spread(facts: ResultHeroFacts, insights: ResultInsights, locale: Locale): HeroSpread {

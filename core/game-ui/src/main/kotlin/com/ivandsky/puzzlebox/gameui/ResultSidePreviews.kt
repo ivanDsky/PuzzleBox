@@ -13,15 +13,16 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.SpreadScope
+import com.ivandsky.puzzlebox.domain.StreakFreezes
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 
 // Previews of ResultSideCard and TimeSpreadChart — internal, light + dark inside PuzzleBoxTheme,
 // one per state: a plain solve, a first solve, 2/3/4/10/60 solves, a new best, the slowest,
-// hints-first (Strands), one hour plus, a play-again, the weekday scope with 0/1/3/8 earlier solves,
-// the fastest weekday, signed out, no rank row yet, and the long case (a 365-day streak, long
-// names, a thin column). The sample builders are the hero card's. A chart with no weekday does not
-// exist here: practice puzzles, the only ones without one, draw no spread.
+// hints-first (Strands), one hour plus, a play-again, a frozen day with 3 freezes held, the weekday
+// scope with 0/1/3/8 earlier solves, the fastest weekday, signed out, no rank row yet, and the long
+// case (a 365-day streak, long names, a thin column). The sample builders are the hero card's. A chart
+// with no weekday does not exist here: practice puzzles, the only ones without one, draw no spread.
 
 private val SideBrand = GameBrand(AccentSlot.Violet, GameGlyphs.Queens)
 private val SideStrandsBrand = GameBrand(AccentSlot.Teal, GameGlyphs.Queens)
@@ -218,4 +219,20 @@ internal fun ResultSideFastestWeekdayPreview() {
 @Composable
 internal fun ResultSidePlayAgainWeekdayPreview() {
     SidePreview(heroSampleModel(verdict = RecordVerdict.PlayAgain, playAgain = true, weekdayEarlier = earlierTimes(3)))
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ResultSideFrozenPreview() {
+    val model = heroSampleModel()
+    val streak = model.streak!!
+    SidePreview(
+        model.copy(
+            streak = streak.copy(
+                sub = heroFreezeSub(StreakFreezes(held = 3, frozenDays = emptySet(), daysToNext = 2, lastSolve = null)),
+                week = streak.week.mapIndexed { i, day -> if (i == 3) day.copy(solved = false, frozen = true) else day },
+                freezesHeld = 3,
+            ),
+        ),
+    )
 }
