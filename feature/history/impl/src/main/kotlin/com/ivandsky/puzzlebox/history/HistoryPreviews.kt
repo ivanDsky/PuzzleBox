@@ -152,7 +152,7 @@ private fun HistoryMonthCalendarPreview() {
     PuzzleBoxTheme {
         Surface {
             Column(Modifier.padding(Spacing.lg)) {
-                CalendarMonth(YearMonth.from(PreviewToday), state, onSelectDay = {})
+                CalendarMonth(YearMonth.from(PreviewToday), state.toCalendarState(), onSelectDay = {})
             }
         }
     }

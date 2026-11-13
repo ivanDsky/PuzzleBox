@@ -4,8 +4,10 @@ import com.ivandsky.puzzlebox.domain.DuelOrigin
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import java.time.LocalDate
@@ -75,6 +77,20 @@ data class HistoryDayRow(
         val OPENED_YEAR_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
     }
 }
+
+/**
+ * The rows of every merged game-agnostic day: named by [registry], branded by [playRegistry], newest first
+ * ([HISTORY_ROW_ORDER]), each game's best marked. [currentYear] is the year days spell out when they differ (A23).
+ */
+internal fun historyRows(
+    merged: List<GameHistoryDay>,
+    registry: GameRegistry,
+    playRegistry: GamePlayRegistry,
+    currentYear: Int,
+): List<HistoryDayRow> = merged
+    .map { it.toRow(registry.displayName(it.gameId), playRegistry.brandOf(it.gameId), currentYear) }
+    .sortedWith(HISTORY_ROW_ORDER)
+    .markBest { id -> registry[id]?.score?.rankOrder ?: RankOrder.TimeThenHints }
 
 /** The row projection of one merged game-agnostic history day. */
 internal fun GameHistoryDay.toRow(gameName: String, brand: GameBrand, currentYear: Int) = HistoryDayRow(
