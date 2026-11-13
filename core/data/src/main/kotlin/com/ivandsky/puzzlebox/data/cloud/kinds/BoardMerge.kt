@@ -2,7 +2,10 @@ package com.ivandsky.puzzlebox.data.cloud.kinds
 
 import java.security.MessageDigest
 
-/** One row of a saved board as the cloud holds it: no profile id, so nothing but what the board shows. */
+/**
+ * One row of a saved board as the cloud holds it: what the board shows, and for a connection their LinkedIn member id
+ * as [ref] (user-check F1). The reading profile's id is never in a row; [BoardValue.profileKey] is a hash.
+ */
 internal data class BoardRow(
     val name: String,
     /** Null when the connection hides the time. */
@@ -11,6 +14,8 @@ internal data class BoardRow(
     val flawless: Boolean,
     /** True for the row of the profile that read the board; at most one row per board. */
     val isOwn: Boolean,
+    /** The connection's LinkedIn member id; null for the own row, for a name stand-in, and for a doc without a valid one. */
+    val ref: String? = null,
 )
 
 /** A saved board whole: the unit that merges, uploads and restores. [profileKey] is the hash of the reading profile. */
@@ -27,14 +32,14 @@ internal data class BoardValue(
      * are the same document, which is how an acknowledgement is matched to the content that was uploaded.
      */
     fun fingerprint(): String {
-        val body = rows.sortedWith(ROW_ORDER).joinToString(";") { "${it.name}|${it.timeMs}|${it.hintFree}|${it.flawless}|${it.isOwn}" }
+        val body = rows.sortedWith(ROW_ORDER).joinToString(";") { "${it.name}|${it.timeMs}|${it.hintFree}|${it.flawless}|${it.isOwn}|${it.ref}" }
         return sha256Hex("$game|$day|$profileKey|$readAtMs|$complete|$body")
     }
 }
 
 /** Rows in the one order a document and a fingerprint use. */
 internal val ROW_ORDER: Comparator<BoardRow> =
-    compareBy<BoardRow>({ !it.isOwn }, { it.timeMs == null }, { it.timeMs }, { it.name }, { it.hintFree }, { it.flawless })
+    compareBy<BoardRow>({ !it.isOwn }, { it.timeMs == null }, { it.timeMs }, { it.name }, { it.hintFree }, { it.flawless }, { it.ref })
 
 /**
  * Which saved board a (game, day) keeps (A19, A25), pure. A board merges whole, never row by row, so a connection who

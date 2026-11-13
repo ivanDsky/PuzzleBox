@@ -143,16 +143,18 @@ class CloudSyncSentinelE2ETest {
 
     private fun boardDocs(): List<CloudDoc> = world.space.payloads.filter { it.kind == "boards" }.map { it.doc }
 
-    /** A board doc says only what the board says: its profile as a hash, its connections by name, time and flags. */
+    /** A board doc says only what the board says: its profile as a hash, its connections by name, time, flags and member id. */
     private fun assertBoardDoc(board: CloudDoc) {
         val key = sha256Hex(LINKEDIN_MEMBER).take(PROFILE_KEY_LENGTH)
         assertEquals("the profile is its hash", key, board.fields["profileKey"])
         assertTrue("the doc id is game, day and profile hash: ${board.id}", Regex("zip_\\d{4}-\\d{2}-\\d{2}_$key").matches(board.id))
         val rows = board.fields["rows"] as List<*>
         assertTrue("the board has the connections of the day", rows.isNotEmpty())
-        rows.forEach { row ->
-            val extra = (row as Map<*, *>).keys - ROW_KEYS
+        rows.forEach { raw ->
+            val row = raw as Map<*, *>
+            val extra = row.keys - ROW_KEYS
             assertEquals("keys of a board row outside the allow-list", emptySet<Any?>(), extra)
+            assertFalse("the own row carries a ref", row["isOwn"] == true && "ref" in row.keys)
         }
         val text = flatten(board.fields).joinToString("\n")
         assertFalse("the member id is in a board doc", LINKEDIN_MEMBER in text)
@@ -196,6 +198,6 @@ class CloudSyncSentinelE2ETest {
         const val PROFILE_KEY_LENGTH = 16
         val KINDS = listOf("completions", "drafts", "boards")
         val RULE_FUNCTIONS = mapOf("completions" to "validCompletionsDoc", "drafts" to "validDraftDoc", "boards" to "validBoardDoc")
-        val ROW_KEYS = setOf("name", "timeMs", "hintFree", "flawless", "isOwn")
+        val ROW_KEYS = setOf("name", "timeMs", "hintFree", "flawless", "isOwn", "ref")
     }
 }
