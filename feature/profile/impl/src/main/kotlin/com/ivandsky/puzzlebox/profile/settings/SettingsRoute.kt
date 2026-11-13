@@ -32,6 +32,7 @@ internal fun SettingsRoute(
         onSetSudokuPeerHighlight = viewModel::onSetSudokuPeerHighlight,
         onSetSudokuSameDigitHighlight = viewModel::onSetSudokuSameDigitHighlight,
         onSelectVisibility = viewModel::onSelectVisibility,
+        onSetRanksFriendsDefault = viewModel::onSetRanksFriendsDefault,
         onBack = onBack,
         onOpenCatalog = onOpenCatalog.takeIf { debuggable },
         debugSections = debugSections.takeIf { debuggable },

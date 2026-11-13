@@ -38,4 +38,11 @@ internal class OfflineUserPreferencesRepository(
     override suspend fun setShowReplayErrors(on: Boolean) {
         dataSource.setShowReplayErrors(on)
     }
+
+    override val ranksFriendsDefault: Flow<Boolean> =
+        dataSource.preferences.map { it.ranksFriendsDefault }.distinctUntilChanged()
+
+    override suspend fun setRanksFriendsDefault(friends: Boolean) {
+        dataSource.setRanksFriendsDefault(friends)
+    }
 }

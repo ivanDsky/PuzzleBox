@@ -36,6 +36,7 @@ internal fun RanksBoardSlot(
             dock = true,
             onRowClick = onRowClick,
         )
+        if (slice.friendsAlone) RanksFriendsHint()
         slice.note?.let { RanksBoardNote(it) }
     }
 }

@@ -71,6 +71,6 @@ internal data class RanksSelection(
 
     fun toggleCalendar() = copy(calendarExpanded = !calendarExpanded)
 
-    /** Back to the landing choice: Overall, today, Global (A4). The calendar folds too. */
-    fun reset() = RanksSelection()
+    /** Back to the landing choice: Overall, today, the player's default [scope] (A4, F1). The calendar folds too. */
+    fun reset(scope: RankScope) = RanksSelection(scope = scope)
 }
