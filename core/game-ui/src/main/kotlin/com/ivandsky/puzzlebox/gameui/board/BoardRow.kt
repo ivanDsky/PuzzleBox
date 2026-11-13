@@ -10,11 +10,13 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -36,6 +38,8 @@ internal class BoardRowTags(val root: String, val part: String, val detail: Stri
  * initial), [place] (null while it is hidden), [name] with its small [detail] line when there is one, then [score]. Framed; [self] puts it on
  * the secondary container and [connection] frames it in LinkedIn blue. [linkedIn] puts the LinkedIn dot on the photo.
  * [muted] greys the score, for a time that is hidden. [scoreTime] lets the score count to a new time where the board moves.
+ * [mark] is a small line of its own under the name (the unofficial mark), [beyondPage] says the place cell reads "100+",
+ * and a [medal] row wears its tint over whatever the row sits on and keeps its own minimum height.
  */
 @Composable
 internal fun BoardRow(
@@ -51,18 +55,23 @@ internal fun BoardRow(
     connection: Boolean = false,
     linkedIn: Boolean = false,
     muted: Boolean = false,
+    mark: String? = null,
+    beyondPage: Boolean = false,
+    medal: MedalRow? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val content = if (self) scheme.onSecondaryContainer else scheme.onSurface
     val quiet = if (self) scheme.onSecondaryContainer else scheme.onSurfaceVariant
-    val fill = if (self) scheme.secondaryContainer else LocalBoardBackdrop.current
+    val base = if (self) scheme.secondaryContainer else LocalBoardBackdrop.current
+    // Rows that overlap are drawn opaque (see LocalBoardBackdrop), so a tint is laid over what the row sits on, not left see-through.
+    val fill = if (medal == null) base else base?.let { medal.tint.compositeOver(it) } ?: medal.tint
     Row(
         modifier = modifier
             .testTag(tags.root)
             .fillMaxWidth()
             .then(if (fill != null) Modifier.background(fill, MaterialTheme.shapes.small) else Modifier)
             .border(FrameWidth, if (connection) LinkedInBlue else scheme.outlineVariant, MaterialTheme.shapes.small)
-            .defaultMinSize(minHeight = BoardRowMinHeight)
+            .defaultMinSize(minHeight = medal?.minHeight ?: BoardRowMinHeight)
             .padding(horizontal = Spacing.md, vertical = Spacing.sm),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -75,7 +84,10 @@ internal fun BoardRow(
             ring = if (self) scheme.secondaryContainer else scheme.surface,
             linkedIn = linkedIn,
         )
-        Box(Modifier.width(RankCellSize)) { RankPlace(place, quiet, "${tags.part}.rank") }
+        // "100+" is wider than a number cell: the name gives way to it.
+        Box(if (beyondPage) Modifier.widthIn(min = RankCellSize) else Modifier.width(RankCellSize)) {
+            RankPlace(place, quiet, "${tags.part}.rank", beyondPage)
+        }
         Column(Modifier.weight(1f)) {
             Text(
                 name,
@@ -85,6 +97,14 @@ internal fun BoardRow(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.testTag("${tags.part}.name"),
             )
+            if (mark != null) {
+                Text(
+                    mark,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = quiet,
+                    modifier = Modifier.testTag("${tags.part}.mark"),
+                )
+            }
             if (detail != null) {
                 Text(
                     detail,

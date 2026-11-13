@@ -21,12 +21,14 @@ import com.ivandsky.puzzlebox.gameui.rankRuleText
 private const val MaxGhosts = 20
 
 /**
- * The board body: [title] ("<Game> · today"), the [order]'s rule caption, and the one [state] drawn.
+ * The board body: [title] ("<Game> · today"), the [caption] (the [order]'s rule unless a board says otherwise), and the one [state] drawn.
  * [ghosts] are LinkedIn connections drawn among the rows (or above [signIn] when signed out), each with its place in
  * one combined rank; a board with ghosts also tells each PuzzleBox row's own rank. [signIn] fills the signed-out state.
  * With [animated] the rows move, arrive and leave with motion (see [DailyBoardList]), on a change of day too, whether
  * the day's board is live or a saved one.
  * [isToday] says whether the board is today's, so an empty one names the day it shows.
+ * [medals] makes the top three places medal rows and [dock] docks the viewer's own row to the edge of what scrolls the
+ * board while it is out of view (see [DailyBoardList]).
  */
 @Composable
 fun DailyBoard(
@@ -38,11 +40,14 @@ fun DailyBoard(
     signIn: (@Composable () -> Unit)? = null,
     animated: Boolean = false,
     isToday: Boolean = true,
+    caption: String = rankRuleText(order),
+    medals: Boolean = false,
+    dock: Boolean = false,
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("daily_board.title"))
         Text(
-            rankRuleText(order),
+            caption,
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.testTag("daily_board.caption"),
@@ -51,10 +56,10 @@ fun DailyBoard(
             DailyBoardState.Loading -> Line("Loading…", "daily_board.loading")
             DailyBoardState.Unavailable -> Line("Leaderboard unavailable right now.", "daily_board.unavailable")
             DailyBoardState.SignedOut -> {
-                DailyBoardList(rankWithGhosts(emptyList(), ghosts, order), order, animated = animated)
+                DailyBoardList(rankWithGhosts(emptyList(), ghosts, order), order, animated = animated, medals = medals, dock = dock)
                 signIn?.invoke()
             }
-            is DailyBoardState.Ranked -> Ranked(state, ghosts, order, animated, isToday)
+            is DailyBoardState.Ranked -> Ranked(state, ghosts, order, animated, isToday, medals, dock)
         }
     }
 }
@@ -66,6 +71,8 @@ private fun Ranked(
     order: RankOrder,
     animated: Boolean,
     isToday: Boolean,
+    medals: Boolean,
+    dock: Boolean,
 ) {
     val lines = remember(state, ghosts, order) { (state.lines ?: rankWithGhosts(state.rows, ghosts, order)).capGhosts() }
     if (lines.isEmpty()) {
@@ -77,6 +84,8 @@ private fun Ranked(
         order,
         pinned = state.pinned?.let { DailyBoardLine.Real(it, state.pinnedPlace ?: it.rank) },
         animated = animated,
+        medals = medals,
+        dock = dock,
     )
     state.note?.let { Line(it.text, "daily_board.note") }
 }
