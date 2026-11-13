@@ -74,6 +74,23 @@ abstract class QueensReplayBoardGoldenBase(private val widthLabel: String, priva
         )
     }
 
+    /** The frame of a hint pressed on the board after [moves] script moves; [target] overrides the hinted cells. */
+    private fun hintFrame(moves: Int, target: Set<Int>? = null): ReplayFrame {
+        val initial = QueensUiFixtures.session()
+        val before = sessionAfter(moves)
+        val hint = QueensReplayMove.Hint.toReplayMove()
+        val after = checkNotNull(QueensReplay.step(before, hint, moves * 1_000L + 1_000L))
+        return ReplayFrame(
+            session = after,
+            before = before,
+            hinted = target ?: QueensReplay.markOf(before, hint, after, null).hinted,
+            facts = QueensReplay.factsOf(initial)(after),
+            atMs = moves * 1_000L + 1_000L,
+            sinceMoveMs = 0L,
+            ended = false,
+        )
+    }
+
     private fun out(name: String, dark: Boolean): String =
         File(checkNotNull(System.getProperty("user.dir")))
             .resolve("snapshots/replay-$name-$widthLabel-${if (dark) "dark" else "light"}.png")
@@ -81,8 +98,9 @@ abstract class QueensReplayBoardGoldenBase(private val widthLabel: String, priva
             .also { checkNotNull(it.parentFile).mkdirs() }
             .absolutePath
 
-    private fun capture(name: String, dark: Boolean, moves: Int) {
-        val frame = frameAfter(moves)
+    private fun capture(name: String, dark: Boolean, moves: Int) = capture(name, dark, frameAfter(moves))
+
+    private fun capture(name: String, dark: Boolean, frame: ReplayFrame) {
         composeRule.setContent {
             // currentIsDarkTheme() reads uiMode, so the capture sets it as a device would.
             val config = android.content.res.Configuration(LocalConfiguration.current).apply {
@@ -106,4 +124,17 @@ abstract class QueensReplayBoardGoldenBase(private val widthLabel: String, priva
     @Test fun `middle dark`() = capture("middle", true, 3)
     @Test fun `end light`() = capture("end", false, script.size)
     @Test fun `end dark`() = capture("end", true, script.size)
+
+    // Queens 1 and 2 clash: the hint names the one placed last (cell 2), a Mistake culprit.
+    @Test fun `hint mistake light`() = capture("hint-mistake", false, hintFrame(2))
+    @Test fun `hint mistake dark`() = capture("hint-mistake", true, hintFrame(2))
+
+    // An empty board: the first deduction on the fixture names cell 5.
+    @Test fun `hint deduction light`() = capture("hint-deduction", false, hintFrame(0))
+    @Test fun `hint deduction dark`() = capture("hint-deduction", true, hintFrame(0))
+
+    // A Reveal step is out of reach of the real ladder on this board, so the badge is set directly on a solution
+    // cell (14): the board draws every hint target the same way, whatever step named it.
+    @Test fun `hint reveal light`() = capture("hint-reveal", false, hintFrame(0, target = setOf(14)))
+    @Test fun `hint reveal dark`() = capture("hint-reveal", true, hintFrame(0, target = setOf(14)))
 }

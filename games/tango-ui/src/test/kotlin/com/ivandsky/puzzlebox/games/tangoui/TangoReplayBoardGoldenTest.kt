@@ -79,8 +79,25 @@ abstract class TangoReplayBoardGoldenBase(private val widthLabel: String, privat
     private fun goldenPath(name: String, dark: Boolean) =
         File("src/test/resources/goldens/replay-$name-$widthLabel-${if (dark) "dark" else "light"}.png")
 
-    private fun capture(name: String, dark: Boolean, moves: Int) {
-        val frame = frameAfter(moves)
+    // Cell 8 holds a moon, so the hint on the next board proves cell 2 is a moon: the badge sits on cell 2.
+    private fun hintFrame(): ReplayFrame {
+        val before = checkNotNull(TangoReplay.step(initial, TangoReplayMove.Place(8, TangoCell.MOON).toReplayMove(), 1_000L))
+        val hint = TangoReplayMove.Hint.toReplayMove()
+        val after = checkNotNull(TangoReplay.step(before, hint, 2_000L))
+        return ReplayFrame(
+            session = after,
+            before = before,
+            hinted = TangoReplay.markOf(before, hint, after, null).hinted,
+            facts = TangoReplay.factsOf(initial)(after),
+            atMs = 2_000L,
+            sinceMoveMs = MotionTokens.SettleMillis,
+            ended = false,
+        )
+    }
+
+    private fun capture(name: String, dark: Boolean, moves: Int) = capture(name, dark, frameAfter(moves))
+
+    private fun capture(name: String, dark: Boolean, frame: ReplayFrame) {
         composeRule.setContent {
             // currentIsDarkTheme() reads uiMode, so the capture sets it as a device would.
             val config = android.content.res.Configuration(LocalConfiguration.current).apply {
@@ -107,4 +124,6 @@ abstract class TangoReplayBoardGoldenBase(private val widthLabel: String, privat
     @Test fun `middle dark`() = capture("middle", true, 3)
     @Test fun `end light`() = capture("end", false, script.size)
     @Test fun `end dark`() = capture("end", true, script.size)
+    @Test fun `hint light`() = capture("hint", false, hintFrame())
+    @Test fun `hint dark`() = capture("hint", true, hintFrame())
 }
