@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.domain
 
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -10,6 +12,7 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
@@ -41,11 +44,13 @@ class ObserveResultInsightsTest {
     private val completions = FakeCompletionRepository()
     private val daily = FakeDailyRepository()
 
-    private fun insights(game: GameId, daysAgo: Long, solve: BestScore, counted: Boolean) =
+    private val freezeOn = FakeReleaseFlags(ReleaseFlag.StreakFreeze)
+
+    private fun insights(game: GameId, daysAgo: Long, solve: BestScore, counted: Boolean, flags: ReleaseFlags = FakeReleaseFlags()) =
         ObserveResultInsights(
             registry = registry,
             history = ObserveGameHistory(registry, daily, completions),
-            computeStreak = ComputeStreak(GetPuzzleDay(registry, clock)),
+            computeStreak = ComputeStreak(GetPuzzleDay(registry, clock), flags),
             puzzleDay = GetPuzzleDay(registry, clock),
         )(game, today.minusDays(daysAgo), solve, counted)
 
@@ -266,6 +271,88 @@ class ObserveResultInsightsTest {
         daily.addEntry(captured(alpha, 0, number = null))
 
         assertNull(insights(alpha, 0, now, counted = true).first())
+    }
+
+    @Test
+    fun `a missed day held by a freeze shows frozen and the moment spends it`() = runTest {
+        completions.setRecords(listOf(record(alpha, 2, 60_000L)))
+        daily.addEntry(captured(alpha, 0))
+
+        val result = insights(alpha, 0, now, counted = true, flags = freezeOn).first()!!
+
+        val yesterday = today.minusDays(1)
+        assertEquals(2, result.streak)
+        val freezes = result.freezes!!
+        assertEquals(setOf(yesterday), freezes.frozenDays)
+        assertEquals(StreakFreezes.Moment(today, spent = listOf(yesterday), earned = false), freezes.lastSolve)
+        assertEquals(listOf(false, false, false, false, true, false, true), result.week.map { it.solved })
+        assertEquals(listOf(false, false, false, false, false, true, false), result.week.map { it.frozen })
+        assertTrue(result.week.none { it.solved && it.frozen })
+    }
+
+    @Test
+    fun `streak, freezes, frozen days and moment are the same after the write lands`() = runTest {
+        completions.setRecords(listOf(record(alpha, 2, 60_000L)))
+        daily.addEntry(captured(alpha, 0))
+        val before = insights(alpha, 0, now, counted = true, flags = freezeOn).first()
+
+        completions.setRecords(listOf(record(alpha, 0, now.timeMs), record(alpha, 2, 60_000L)))
+
+        assertEquals(before, insights(alpha, 0, now, counted = true, flags = freezeOn).first())
+    }
+
+    @Test
+    fun `the seventh consecutive day earns a freeze`() = runTest {
+        completions.setRecords((1L..6L).map { record(alpha, it, 60_000L) })
+        daily.addEntry(captured(alpha, 0))
+
+        val moment = insights(alpha, 0, now, counted = true, flags = freezeOn).first()!!.freezes!!.lastSolve
+
+        assertEquals(StreakFreezes.Moment(today, spent = emptyList(), earned = true), moment)
+    }
+
+    @Test
+    fun `a solve that spent and earned nothing has no moment`() = runTest {
+        daily.addEntry(captured(alpha, 0))
+
+        val freezes = insights(alpha, 0, now, counted = true, flags = freezeOn).first()!!.freezes!!
+
+        assertEquals(2, freezes.held)
+        assertNull(freezes.lastSolve)
+    }
+
+    @Test
+    fun `an uncounted solve has no moment`() = runTest {
+        completions.setRecords(listOf(record(alpha, 0, now.timeMs), record(alpha, 2, 60_000L)))
+        daily.addEntry(captured(alpha, 0))
+
+        val freezes = insights(alpha, 0, now, counted = false, flags = freezeOn).first()!!.freezes!!
+
+        assertNull(freezes.lastSolve)
+        assertEquals(setOf(today.minusDays(1)), freezes.frozenDays)
+    }
+
+    @Test
+    fun `a second game's solve the same day has no moment`() = runTest {
+        completions.setRecords(listOf(record(beta, 0, 20_000L), record(alpha, 2, 60_000L)))
+        daily.addEntry(captured(alpha, 0))
+
+        val result = insights(alpha, 0, now, counted = true, flags = freezeOn).first()!!
+
+        assertNull(result.freezes!!.lastSolve)
+        assertTrue(result.week[5].frozen)
+    }
+
+    @Test
+    fun `with the flag off there are no freezes and no frozen days`() = runTest {
+        completions.setRecords(listOf(record(alpha, 2, 60_000L)))
+        daily.addEntry(captured(alpha, 0))
+
+        val result = insights(alpha, 0, now, counted = true).first()!!
+
+        assertNull(result.freezes)
+        assertEquals(1, result.streak)
+        assertTrue(result.week.none { it.frozen })
     }
 
     private fun <P> hintsFirst(
