@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoHint
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.render.TangoRendererModel
+import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
 
 /**
  * A guided lesson (spec A12) on one [TangoPlayController]: once [start]ed, the board ghosts
@@ -31,7 +32,7 @@ internal class TangoGuide {
     /** [model] as the board draws it: unchanged while unguided, else ghosted with no rule marks. */
     fun apply(model: TangoRendererModel): TangoRendererModel {
         val answer = answer ?: return model
-        val violating = TangoSemantics.violations(model.copy(suppressedSets = emptySet()))
+        val violating = TangoViolations.of(model.copy(suppressedSets = emptySet()))
             .mapTo(mutableSetOf()) { it.cells }
         return model.copy(
             suppressedSets = violating,

@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.tangoui
 
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.games.tango.TangoCell
+import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.TutorialSandbox
@@ -52,7 +53,7 @@ class TangoGuideTest {
         assertNull(at, lastRejection)
         assertEquals(at, 0, session?.mistakeCount)
         val model = rendererModel()!!
-        assertTrue(at, TangoSemantics.violations(model).isEmpty())
+        assertTrue(at, TangoViolations.of(model).isEmpty())
         for (idx in model.cells.indices) assertNull(at, TangoSemantics.violationPhraseAt(model, idx))
     }
 

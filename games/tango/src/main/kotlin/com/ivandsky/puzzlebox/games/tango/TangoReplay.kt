@@ -10,6 +10,9 @@ import com.ivandsky.puzzlebox.games.tango.engine.TangoMove
 import com.ivandsky.puzzlebox.games.tango.engine.TangoRules
 import com.ivandsky.puzzlebox.games.tango.engine.TangoState
 import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
+import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStep
+import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepper
+import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
 import java.time.Instant
 
 /**
@@ -29,14 +32,43 @@ object TangoReplay : GameReplay<TangoSession> {
             TangoReplayMove.Rejection -> session.withRejection()
         }
 
-    /** A Tango hint places nothing, so it marks no cell: it shows on the timeline only. */
+    /**
+     * A hint is marked with the cell its step pointed at: [MoveMark.hinted] holds that one row-major
+     * cell index. Live play's hint (TangoStepGame) is a pure function of the board and the last
+     * placement, with a poll-counted, repeatable solution search, so it is recomputed here from
+     * [before] with the same [TangoStepper] call. The target is the step's own cell: the proven
+     * cell of a deduction or reveal, the wrong entry of a mistake; evidence cells are not marked.
+     * A solved board or an unavailable step marks none. A rejection is a Mistake, undo/redo/clear an Undo.
+     */
     override fun markOf(before: TangoSession, move: ReplayMove, after: TangoSession, previous: ReplayMove?): MoveMark =
         when (TangoReplayMove.of(move, before.puzzle.cellCount)) {
             TangoReplayMove.Rejection -> MoveMark(MoveKind.Mistake, emptySet())
             TangoReplayMove.Undo, TangoReplayMove.Redo, TangoReplayMove.Clear -> MoveMark(MoveKind.Undo, emptySet())
-            TangoReplayMove.Hint -> MoveMark(MoveKind.Hint, emptySet())
+            TangoReplayMove.Hint -> MoveMark(MoveKind.Hint, hintTarget(before))
             is TangoReplayMove.Place, null -> MoveMark.Plain
         }
+
+    /**
+     * A mistake is transient when every violation it introduced ([after] against [before], by the
+     * scan live play settles with) is gone again in [next]: live play never showed it. A mistake that
+     * introduced no new violation was shown at once, so it is never transient.
+     */
+    override fun isTransientMistake(before: TangoSession, after: TangoSession, next: TangoSession): Boolean {
+        val introduced = TangoViolations.cellSets(after) - TangoViolations.cellSets(before)
+        return introduced.isNotEmpty() && introduced.none { it in TangoViolations.cellSets(next) }
+    }
+
+    /** The cell the live step hint points at on [session]'s board, as TangoStepGame.capture computes it. */
+    private fun hintTarget(session: TangoSession): Set<Int> {
+        val puzzle = session.puzzle
+        val lastMove = (session.history.done.lastOrNull() as? TangoPlace)?.idx
+        return when (val step = TangoStepper.next(puzzle, session.grid(), lastMove, TangoBoundedSolution.of(puzzle))) {
+            is TangoStep.Deduction -> setOf(step.idx)
+            is TangoStep.Reveal -> setOf(step.idx)
+            is TangoStep.Mistake -> setOf(step.idx)
+            TangoStep.Solved, TangoStep.Unavailable -> emptySet()
+        }
+    }
 
     override fun factsOf(initial: TangoSession): (TangoSession) -> ReplayFacts {
         val solution = TangoBoundedSolution.of(initial.puzzle)

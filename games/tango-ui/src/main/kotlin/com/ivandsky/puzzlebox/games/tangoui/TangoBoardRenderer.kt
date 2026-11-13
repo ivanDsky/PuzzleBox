@@ -36,6 +36,7 @@ import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.EdgeOverlay
 import com.ivandsky.puzzlebox.gameui.EdgeSide
 import com.ivandsky.puzzlebox.gameui.GridCell
+import com.ivandsky.puzzlebox.gameui.replay.ReplayHintBadge
 import com.ivandsky.puzzlebox.games.tango.TangoCell
 import com.ivandsky.puzzlebox.games.tango.TangoEdgeSide
 import com.ivandsky.puzzlebox.games.tango.TangoMarkerKind
@@ -56,7 +57,8 @@ private val SpotlightOnBoard = Modifier.wrapContentSize(Alignment.TopStart).aspe
  * [onTap] gets the tapped cell index, never a model-derived placement: a step computed from
  * the model this board last composed with is stale until the next frame, so a fast second
  * tap repeated the first and no-opped (M4-tango-28). [onPlacement] lands TalkBack's custom
- * actions; null for both = an inert board (the editor's preview).
+ * actions; null for both = an inert board (the editor's preview). [hinted] cells wear the replay
+ * hint badge in their top-right corner (a replay board only; live play passes none).
  */
 class TangoBoardRenderer(
     private val onTap: ((idx: Int) -> Unit)? = null,
@@ -65,7 +67,7 @@ class TangoBoardRenderer(
 ) {
 
     @Composable
-    fun Content(model: RendererModel, modifier: Modifier) {
+    fun Content(model: RendererModel, modifier: Modifier, hinted: Set<Int> = emptySet()) {
         val tango = model as? TangoRendererModel
             ?: error("TangoBoardRenderer expects TangoRendererModel, got ${model::class.simpleName}")
         val commit = onPlacement
@@ -121,6 +123,7 @@ class TangoBoardRenderer(
                         Cell(
                             model = tango,
                             onPlacement = commit,
+                            hinted = (row * tango.n + col) in hinted,
                             idx = row * tango.n + col,
                             row = row,
                             col = col,
@@ -138,6 +141,7 @@ class TangoBoardRenderer(
 private fun Cell(
     model: TangoRendererModel,
     onPlacement: ((TangoPlacement) -> Unit)?,
+    hinted: Boolean,
     idx: Int,
     row: Int,
     col: Int,
@@ -202,6 +206,7 @@ private fun Cell(
             val badge = Modifier.align(Alignment.TopEnd).fillMaxSize(TangoBoardSpec.ghostBadgeFraction)
             Glyph(answer, if (render?.value == null) Modifier.fillMaxSize() else badge, model.n, TangoBoardSpec.ghostAlpha)
         }
+        if (hinted) ReplayHintBadge(Modifier.align(Alignment.TopEnd))
 
         // Per-cell TalkBack semantics (§9): one focusable node per cell, row-major;
         // givens distinguished by words ("given sun"), not visuals (§2), and neither
