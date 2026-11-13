@@ -49,7 +49,8 @@ import kotlinx.coroutines.flow.update
  * it ranks lower. While that day's board has not arrived, [board] is Loading, except that with LinkedIn a board
  * already drawn stays whole (day, rows and ghosts) until the next day is ready: the title and the rows change together.
  * [ghosts] are the LinkedIn connections of that day, none until they are read. [saved] says whether that day's board
- * is a saved one, which the page marks with a line under the board.
+ * is a saved one, which the page marks with a line under the board. [entries] is how many players are on a Ranked
+ * board, before the cut to the top rows (the rank summary's "of N").
  */
 internal data class GamePageBoardState(
     val day: LocalDate? = null,
@@ -57,6 +58,7 @@ internal data class GamePageBoardState(
     val board: DailyBoardState = DailyBoardState.Loading,
     val ghosts: List<GhostRowModel> = emptyList(),
     val saved: SavedBoardState = SavedBoardState.NotYetRead,
+    val entries: Int = 0,
 ) {
     /** Whether rows or ghosts are on screen, so the next day can replace them rather than start from nothing. */
     fun isDrawn(): Boolean = board is DailyBoardState.Ranked || (board == DailyBoardState.SignedOut && ghosts.isNotEmpty())
@@ -173,6 +175,7 @@ internal class GamePageBoardViewModel(
             isToday = shown.isToday,
             ghosts = input.ghosts,
             saved = input.saved,
+            entries = rows.size,
             board = drawn.copy(
                 rows = rows.take(TOP_ROWS),
                 pinned = pinned,

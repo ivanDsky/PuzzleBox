@@ -49,6 +49,8 @@ import org.koin.compose.koinInject
  * game's side-panel times card carries Google sign-in.
  * A [ReplayKey] draws that solve's replay and a [ReplayCompareKey] two solves' replays side by side; Up pops.
  * A non-null [onReconnectLinkedIn] turns the LinkedIn lines on the game page's day card on and is what its Reconnect opens.
+ * A non-null [onOpenRanks] (the Ranks hub is on) turns the game page's board into a summary row calling it with the game
+ * and its day.
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -60,6 +62,7 @@ fun EntryProviderScope<NavKey>.playEntry(
     libraryRequest: () -> LibraryRequest? = { null },
     onLibraryRequestTaken: () -> Unit = {},
     onReconnectLinkedIn: (() -> Unit)? = null,
+    onOpenRanks: ((GameId, LocalDate?) -> Unit)? = null,
 ) {
     entry<PlayKey> {
         LibraryRoute(
@@ -74,6 +77,7 @@ fun EntryProviderScope<NavKey>.playEntry(
             onOpenGameHistory = onOpenGameHistory,
             linkedIn = onReconnectLinkedIn != null,
             onReconnectLinkedIn = onReconnectLinkedIn,
+            onOpenRanks = onOpenRanks,
         )
     }
     entry<FriendPuzzleKey> { key ->
@@ -123,9 +127,14 @@ fun EntryProviderScope<NavKey>.playEntry(
  * A slot's result: "Play again" starts a fresh attempt of the same day explicitly
  * ([PlaySessionStore.playAgain]) and replaces the result with its game; Next replaces it
  * with another game's today (17); Up and Done pop.
- * [linkedIn] adds the day's LinkedIn connections to the rank row.
+ * [linkedIn] adds the day's LinkedIn connections to the rank row. A non-null [onOpenRanks] puts the player's rank in a
+ * chip that calls it with the game and the result's day.
  */
-fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator, linkedIn: Boolean = false) {
+fun EntryProviderScope<NavKey>.resultEntry(
+    navigator: Navigator,
+    linkedIn: Boolean = false,
+    onOpenRanks: ((GameId, LocalDate?) -> Unit)? = null,
+) {
     entry<ResultKey> { key ->
         val store = koinInject<PlaySessionStore>()
         ResultRoute(
@@ -138,6 +147,7 @@ fun EntryProviderScope<NavKey>.resultEntry(navigator: Navigator, linkedIn: Boole
             onDone = { navigator.pop() },
             onOpenReplay = { navigator.pushOnce(it) },
             linkedIn = linkedIn,
+            onOpenRanks = onOpenRanks,
         )
     }
 }

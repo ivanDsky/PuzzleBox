@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.home.HomeSummaries
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GamesTab
@@ -31,6 +32,7 @@ import com.ivandsky.puzzlebox.profile.api.LinkedInLoginKey
 import com.ivandsky.puzzlebox.profile.api.SettingsKey
 import com.ivandsky.puzzlebox.profile.navigation.profileEntry
 import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
+import java.time.LocalDate
 
 /**
  * The app's route table: one entry per [NavKey], every destination real —
@@ -58,6 +60,8 @@ import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
  *
  * [ranks] (the LeaderboardHub flag, which only the app reads) makes [HistoryRootKey] the Ranks
  * hub and a pushed [HistoryKey] opens it at that game and day; off, they are History's root and browser.
+ * With it on, Today's rank row, the game page's board summary row and Result's rank chip all push that [HistoryKey] ([openRanks]); off,
+ * Today's rank row opens the game page and the page and Result keep their board and Today chip.
  * [visibility] (null with the flag off) adds Settings' Visibility section.
  */
 internal fun puzzleBoxEntryProvider(
@@ -78,7 +82,9 @@ internal fun puzzleBoxEntryProvider(
         homeLayout,
         title = topLevelDestinations.first { it.key == HomeKey }.label,
         summaries = HomeSummaries(
-            onOpenRank = { libraryRequests.openGamePage(navigator, it.value) },
+            onOpenRank = { game ->
+                if (ranks) openRanks(navigator)(game, null) else libraryRequests.openGamePage(navigator, game.value)
+            },
             duels = duels?.let {
                 HomeDuelsSummary(
                     onOpen = { libraryRequests.openGamesSection(navigator, GamesTab.Duels) },
@@ -101,10 +107,11 @@ internal fun puzzleBoxEntryProvider(
         onLibraryRequestTaken = libraryRequests::take,
         onCodeDraftTaken = onCodeDraftTaken,
         duels = duels,
-        onOpenGameHistory = { game, day -> navigator.pushOnce(HistoryKey(game.value, day?.toString())) },
+        onOpenGameHistory = openRanks(navigator),
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) }.takeIf { linkedIn },
+        onOpenRanks = openRanks(navigator).takeIf { ranks },
     )
-    resultEntry(navigator, linkedIn = linkedIn)
+    resultEntry(navigator, linkedIn = linkedIn, onOpenRanks = openRanks(navigator).takeIf { ranks })
     createEntry(navigator)
     editorEntry(navigator, playLayout)
     publishedPuzzleEntry(navigator, playLayout)
@@ -120,3 +127,10 @@ internal fun puzzleBoxEntryProvider(
     competeEntry(navigator, playLayout)
     entry<CatalogKey> { CatalogScreen() }
 }
+
+/**
+ * Opens [HistoryKey] for a game and day (null: today) on the current stack, once per tap. With [puzzleBoxEntryProvider]'s
+ * `ranks` on that key is the Ranks hub at that board; off, it is History's browser at that game and day.
+ */
+internal fun openRanks(navigator: Navigator): (GameId, LocalDate?) -> Unit =
+    { game, day -> navigator.pushOnce(HistoryKey(game.value, day?.toString())) }
