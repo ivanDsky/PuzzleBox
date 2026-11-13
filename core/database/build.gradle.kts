@@ -9,7 +9,7 @@ android {
     sourceSets {
         // WHY: MigrationTestHelper (ticket-04 deferral harness) reads the committed schema
         // JSONs (exported by puzzlebox.android.room) from the merged test ASSETS.
-        getByName("test") { assets.srcDir("$projectDir/schemas") }
+        getByName("test") { assets.directories.add("$projectDir/schemas") }
     }
 }
 

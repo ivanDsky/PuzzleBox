@@ -21,15 +21,15 @@ android {
 
     // The fakes graph and play fixtures serve both the JVM shell tests and the device tests.
     sourceSets {
-        getByName("test").kotlin.srcDir("src/sharedTest/kotlin")
-        getByName("androidTest").kotlin.srcDir("src/sharedTest/kotlin")
+        getByName("test").kotlin.directories.add("src/sharedTest/kotlin")
+        getByName("androidTest").kotlin.directories.add("src/sharedTest/kotlin")
         // LinkedInArchiveE2ETest reads each LinkedIn game's committed by-id fixtures in place:
         // the game module stays their one home, so the E2E and the unit tests never drift.
         listOf("zip", "queens", "tango", "sudoku").forEach { game ->
-            getByName("test").resources.srcDir("../games/$game/src/test/resources")
+            getByName("test").resources.directories.add("../games/$game/src/test/resources")
         }
         // The LinkedIn account E2Es answer with core/network's sanitized account fixtures, read in place for the same reason.
-        getByName("test").resources.srcDir("../core/network/src/test/resources")
+        getByName("test").resources.directories.add("../core/network/src/test/resources")
     }
 
     // The release key lives outside the repo (owner: ~/.gradle/gradle.properties, CI: -P from
