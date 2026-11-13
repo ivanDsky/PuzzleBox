@@ -57,6 +57,14 @@ object QueensReplay : GameReplay<QueensSession> {
         return violationsOf(after).none { it !in kept && it in settled }
     }
 
+    /** A tap cycle is empty, cross, queen, empty: Cross(c) then Place(c), and Place(c) then Remove(c). */
+    override fun continuesTap(previous: ReplayMove, move: ReplayMove): Boolean =
+        when (val first = QueensReplayMove.of(previous, Int.MAX_VALUE)) {
+            is QueensReplayMove.Cross -> (QueensReplayMove.of(move, Int.MAX_VALUE) as? QueensReplayMove.Place)?.cell == first.cell
+            is QueensReplayMove.Place -> (QueensReplayMove.of(move, Int.MAX_VALUE) as? QueensReplayMove.Remove)?.cell == first.cell
+            else -> false
+        }
+
     override fun factsOf(initial: QueensSession): (QueensSession) -> ReplayFacts {
         val solution = (initial.puzzle.solution ?: onlySolution(initial.puzzle))?.toSet()
         val total = initial.requiredQueens

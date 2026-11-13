@@ -30,4 +30,13 @@ interface GameReplay<S : GameSession> {
      * never downgrades.
      */
     fun isTransientMistake(before: S, after: S, next: S): Boolean = false
+
+    /**
+     * Whether [move] is the next step of the tap cycle on one cell that [previous] belonged to: the
+     * player tapped that cell again before the board settled. [previous] is a move of the stamp group
+     * that came less than [Timeline.MISTAKE_SETTLE_MS] before [move]'s group, tried last first, and [move]
+     * is the first move of the later group. True = the timeline folds the earlier group into the later
+     * one, so one tap cycle is one tick and no frame shows the half-way board. Pure; the default never merges.
+     */
+    fun continuesTap(previous: ReplayMove, move: ReplayMove): Boolean = false
 }
