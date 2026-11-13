@@ -39,7 +39,7 @@ internal fun unavailableReason(e: Exception): GoogleIdToken.Unavailable.Reason =
  */
 internal class CredentialManagerGoogleIdTokenProvider(
     private val context: Context,
-    @StringRes private val serverClientIdRes: Int,
+    @param:StringRes private val serverClientIdRes: Int,
 ) : GoogleIdTokenProvider {
 
     override suspend fun idToken(activityContext: Context): GoogleIdToken = try {
