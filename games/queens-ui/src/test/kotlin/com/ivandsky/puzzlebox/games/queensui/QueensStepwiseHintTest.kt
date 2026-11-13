@@ -19,10 +19,10 @@ import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.MarkKind
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensSession
+import com.ivandsky.puzzlebox.games.queens.QueensSessionStep
 import com.ivandsky.puzzlebox.games.queens.codec.QueensSessionCodec
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRules
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRulesVerdict
-import com.ivandsky.puzzlebox.games.queensui.hint.QueensStepGame
 import java.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -374,7 +374,7 @@ class QueensStepwiseHintTest {
     @Test
     fun `the play fixture has one layout and the rows board has another`() {
         val fixture = QueensPlayFixtures.puzzle()
-        assertEquals(fixture.solution!!.toSet(), QueensStepGame.boundedSolution(fixture.copy(solution = null)))
+        assertEquals(fixture.solution!!.toSet(), QueensSessionStep.boundedSolution(fixture.copy(solution = null)))
 
         val rows = QueensPlayFixtures.rowsPuzzle()
         assertEquals(QueensRulesVerdict.Valid, QueensRules.evaluate(rows, OTHER_SOLUTION.map(::Cell).toSet()))

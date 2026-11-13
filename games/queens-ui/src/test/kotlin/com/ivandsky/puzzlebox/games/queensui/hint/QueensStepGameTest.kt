@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensBoard
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import com.ivandsky.puzzlebox.games.queens.QueensSession
+import com.ivandsky.puzzlebox.games.queens.QueensSessionStep
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStepper
 import com.ivandsky.puzzlebox.games.queensui.QueensUiFixtures
@@ -81,7 +82,7 @@ class QueensStepGameTest {
 
     @Test
     fun `a second puzzle in the same game is solved again`() {
-        val play = Play(big.copy(solution = null), solve = { QueensStepGame.boundedSolution(it) })
+        val play = Play(big.copy(solution = null), solve = { QueensSessionStep.boundedSolution(it) })
         play.next()
 
         play.session = QueensSession(ref = null, puzzle = small.copy(solution = null))
@@ -92,7 +93,7 @@ class QueensStepGameTest {
 
     @Test
     fun `a puzzle with a stored solution is still searched, once across presses`() {
-        val play = Play(big, solve = { QueensStepGame.boundedSolution(it) })
+        val play = Play(big, solve = { QueensSessionStep.boundedSolution(it) })
 
         play.next()
         play.place(offSolution)
@@ -103,7 +104,7 @@ class QueensStepGameTest {
 
     @Test
     fun `a stored solution on a two-solution board accuses neither the other solution's queen nor its cross, and reveals nothing`() {
-        assertNull("precondition: the search finds two solutions", QueensStepGame.boundedSolution(small.copy(solution = null)))
+        assertNull("precondition: the search finds two solutions", QueensSessionStep.boundedSolution(small.copy(solution = null)))
         val queen = Play(small)
         queen.place(otherQueen)
         val cross = Play(small)
@@ -116,7 +117,7 @@ class QueensStepGameTest {
 
     @Test
     fun `a spent budget keeps the stored solution`() {
-        assertEquals(big.solution!!.toSet(), QueensStepGame.boundedSolution(big, pollLimit = 0))
+        assertEquals(big.solution!!.toSet(), QueensSessionStep.boundedSolution(big, pollLimit = 0))
     }
 
     @Test
@@ -134,14 +135,14 @@ class QueensStepGameTest {
     fun `the default search finds a unique puzzle's solution and a spent budget finds none`() {
         val bare = big.copy(solution = null)
 
-        assertEquals(big.solution!!.toSet(), QueensStepGame.boundedSolution(bare))
-        assertNull(QueensStepGame.boundedSolution(bare, pollLimit = 0))
+        assertEquals(big.solution!!.toSet(), QueensSessionStep.boundedSolution(bare))
+        assertNull(QueensSessionStep.boundedSolution(bare, pollLimit = 0))
     }
 
     @Test
     fun `a non-unique puzzle without a stored solution has none, so a legal queen is not accused`() {
         val bare = small.copy(solution = null)
-        assertNull(QueensStepGame.boundedSolution(bare))
+        assertNull(QueensSessionStep.boundedSolution(bare))
         val play = Play(bare)
         play.place(offSolution)
 
@@ -153,7 +154,7 @@ class QueensStepGameTest {
     @Test
     fun `a spent budget accuses no merely off-solution queen, reveals nothing, and is not retried`() {
         val bare = small.copy(solution = null)
-        val play = Play(bare, solve = { QueensStepGame.boundedSolution(it, pollLimit = 0) })
+        val play = Play(bare, solve = { QueensSessionStep.boundedSolution(it, pollLimit = 0) })
         play.place(offSolution)
 
         val step = play.next()
