@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,9 +20,11 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
+import com.ivandsky.puzzlebox.designsystem.LocalIce
 import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
 import java.time.LocalDate
@@ -36,11 +39,15 @@ private val LargeDiscClearance = 4.dp
 // Rings at least this big read their day number in TitleSmall instead of Label.
 private val LargeRing = 56.dp
 
+// The snowflake's share of the ice disc it sits on.
+private const val FROZEN_GLYPH_FRACTION = 0.6f
+
 /**
  * A week of [days] as seven columns, oldest to newest (spec A18): the weekday initial over
  * that day's [DayRing] out of [total] games, with the day number inside. Today's number
  * is bold on a filled inner disc (an ink ring would clash with the game ring), and any
- * day with a solve shows its number in the success text colour.
+ * day with a solve shows its number in the success text colour. A frozen day swaps the
+ * number for a snowflake on an ice disc and keeps its ring segments.
  * Callers build the [WeekDay]s; the strip only draws them. [ringSize] and [ringStroke]
  * enlarge every ring (the tablet streak pane runs 64/5).
  */
@@ -64,6 +71,7 @@ private fun WeekStripDay(day: WeekDay, total: Int, ringSize: Dp, ringStroke: Dp,
     val colors = MaterialTheme.colorScheme
     val large = ringSize >= LargeRing
     val disc = if (large) ringSize - ringStroke * 2 - LargeDiscClearance * 2 else TodayDisc
+    val ice = LocalIce.current
     val numberStyle = if (large) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge
     Column(
         modifier = modifier,
@@ -76,6 +84,17 @@ private fun WeekStripDay(day: WeekDay, total: Int, ringSize: Dp, ringStroke: Dp,
             color = colors.onSurfaceVariant,
         )
         DayRing(solved = day.solved, total = total, size = ringSize, stroke = ringStroke) {
+            if (day.frozen) {
+                Box(Modifier.size(disc).background(ice.container, CircleShape), contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = PuzzleIcons.Snowflake,
+                        contentDescription = "Frozen",
+                        modifier = Modifier.size(disc * FROZEN_GLYPH_FRACTION),
+                        tint = ice.onContainer,
+                    )
+                }
+                return@DayRing
+            }
             if (day.isToday) {
                 Box(Modifier.size(disc).background(colors.surfaceContainerHighest, CircleShape))
             }
@@ -93,8 +112,8 @@ private fun WeekStripDay(day: WeekDay, total: Int, ringSize: Dp, ringStroke: Dp,
 internal fun weekdayInitial(date: LocalDate, locale: Locale): String =
     date.dayOfWeek.getDisplayName(TextStyle.NARROW, locale).uppercase(locale)
 
-// Preview: Monday to Sunday with today on Wednesday; earlier days mix solves, later
-// days are still empty.
+// Preview: Monday to Sunday with today on Wednesday; earlier days mix solves, Tuesday is
+// frozen over its solve, later days are still empty.
 @PuzzleBoxPreviews
 @Composable
 internal fun WeekStripPreview() {
@@ -108,6 +127,7 @@ internal fun WeekStripPreview() {
             date = monday.plusDays(offset.toLong()),
             solved = solves.getOrElse(offset) { emptyList() },
             isToday = offset == 2,
+            frozen = offset == 1,
         )
     }
     PuzzleBoxTheme {
