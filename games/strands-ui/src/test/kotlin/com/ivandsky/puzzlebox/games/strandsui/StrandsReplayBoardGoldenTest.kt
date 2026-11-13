@@ -69,12 +69,22 @@ abstract class StrandsReplayBoardGoldenBase(private val widthLabel: String, priv
         return session
     }
 
+    /** The hinted cells the timeline would hand the frame: the marks of the first [moves] script moves. */
+    private fun hintedAfter(moves: Int): Set<Int> {
+        var hinted = emptySet<Int>()
+        for (i in 0 until moves) {
+            val move = script[i].toReplayMove(cols)
+            hinted = hinted + StrandsReplay.markOf(sessionAfter(i), move, sessionAfter(i + 1), null).hinted
+        }
+        return hinted
+    }
+
     private fun frameAfter(moves: Int): ReplayFrame {
         val session = sessionAfter(moves)
         return ReplayFrame(
             session = session,
             before = if (moves == 0) null else sessionAfter(moves - 1),
-            hinted = emptySet(),
+            hinted = hintedAfter(moves),
             facts = StrandsReplay.factsOf(initial)(session),
             atMs = moves * 1_000L,
             sinceMoveMs = 0L,
