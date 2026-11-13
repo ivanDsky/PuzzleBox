@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.Identity
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -36,7 +35,6 @@ import org.robolectric.annotation.Config
  * come out as a typed [AuthError], never as a thrown surprise crossing the seam.
  * Robolectric: constructing real Firebase exceptions reaches android.* (TextUtils).
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class FirebaseIdentityServiceTest {

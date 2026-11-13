@@ -23,7 +23,6 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -35,7 +34,6 @@ import org.junit.Rule
 import org.junit.Test
 
 /** Profile ViewModel's LinkedIn-row side of cloud sync (A27, A35): the saved-boards flags and Delete saved boards. */
-@OptIn(ExperimentalCoroutinesApi::class)
 class ProfileViewModelSavedBoardsTest {
 
     private val dispatcher = StandardTestDispatcher()

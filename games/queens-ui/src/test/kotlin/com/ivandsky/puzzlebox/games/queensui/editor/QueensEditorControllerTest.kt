@@ -20,7 +20,6 @@ import com.ivandsky.puzzlebox.games.queens.editor.QueensCrowns
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -38,7 +37,6 @@ import org.robolectric.annotation.GraphicsMode
  * Tickets 18–19: select cells (tap, drag, All of colour, Area), pick one ring colour → one Paint step. Ticket 36: Crown | Paint modes.
  * Ticket 31: adoptOverlay updates the overlay the board draws (witness queens without crowns, the ghosts' witness with them).
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w420dp-h900dp-420dpi")

@@ -66,7 +66,6 @@ import java.util.Locale
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
@@ -86,7 +85,6 @@ import org.junit.Test
  * The reveal's state holder over a hand-fed match: Ann is the viewer, Bob the opponent, two puzzles. The race is
  * fixed at the first load with a settled puzzle; the summary follows every later load.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class RevealViewModelTest {
 
     @get:Rule

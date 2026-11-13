@@ -23,7 +23,6 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -35,7 +34,6 @@ import org.junit.Rule
 import org.junit.Test
 
 /** Profile ViewModel cloud-sync mapping (A32): the engine's state as the Google row's line, Sync now, Delete my cloud data. */
-@OptIn(ExperimentalCoroutinesApi::class)
 class ProfileViewModelSyncTest {
 
     private val dispatcher = StandardTestDispatcher()

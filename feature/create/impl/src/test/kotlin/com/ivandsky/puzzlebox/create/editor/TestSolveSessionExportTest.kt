@@ -34,7 +34,6 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -53,7 +52,6 @@ import org.junit.Test
  * session's own: a second start during the export is ignored and a [TestSolveSession.close] or
  * scope end during it drops the result.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class TestSolveSessionExportTest {
 
     private val scheduler = TestCoroutineScheduler()
@@ -191,7 +189,6 @@ class TestSolveSessionExportTest {
 }
 
 /** Runs queued work on [delegate]'s scheduler; [running] is true while a block of it executes. */
-@OptIn(ExperimentalCoroutinesApi::class)
 private class MarkedDispatcher(private val delegate: CoroutineDispatcher) : CoroutineDispatcher() {
     private val queue = ArrayDeque<Runnable>()
 

@@ -25,7 +25,6 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -42,7 +41,6 @@ import org.junit.Test
  * drops the live play first, so no save lands behind it; Undo keeps the live play and its
  * progress.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class FriendRemovalPlayTest {
 
     private val alpha = TestGames.alpha

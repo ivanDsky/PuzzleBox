@@ -42,7 +42,6 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.TestScope
@@ -69,7 +68,6 @@ import org.robolectric.annotation.Config
  * final save resumed by its reopen without the network, a solve's row deleted, and the
  * app-stop flush folding the clock before it writes.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 // Robolectric: the store logs a failed records snapshot through android.util.Log.
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])

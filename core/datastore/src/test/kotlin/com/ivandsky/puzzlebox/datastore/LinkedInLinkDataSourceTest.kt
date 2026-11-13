@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.datastore
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
@@ -23,7 +22,6 @@ import java.util.UUID
  * writes is a plain temp file, so a fresh data source over the same file is an exact
  * stand-in for a new process reading persisted state.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class LinkedInLinkDataSourceTest {

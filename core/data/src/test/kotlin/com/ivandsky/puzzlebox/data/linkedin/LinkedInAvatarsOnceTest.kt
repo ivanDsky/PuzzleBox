@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.data.linkedin
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInBoard
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInPhotoSource
 import java.io.File
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -15,7 +14,6 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
 /** Overlapping downloads of a board's photos must not GET the same member twice. */
-@OptIn(ExperimentalCoroutinesApi::class)
 class LinkedInAvatarsOnceTest {
 
     @get:Rule

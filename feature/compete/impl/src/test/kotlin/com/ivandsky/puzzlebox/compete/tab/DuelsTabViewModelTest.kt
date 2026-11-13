@@ -21,7 +21,6 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -37,7 +36,6 @@ import org.junit.Test
  * The Duels tab's state holder over a real [ObserveMyDuels] and [UpdateMatchSeat] on the in-memory server: Ann
  * challenges, Bob is the signed-in viewer whose Invited rows the buttons act on.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class DuelsTabViewModelTest {
 
     @get:Rule

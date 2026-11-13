@@ -36,7 +36,6 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -53,7 +52,6 @@ import org.junit.Test
  * whole rows, must carry that code on a save made while the publish is still unsettled (its
  * answer lost), so the retry reuses it instead of committing a second doc.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class PublishReservedCodeTest {
 
     @get:Rule

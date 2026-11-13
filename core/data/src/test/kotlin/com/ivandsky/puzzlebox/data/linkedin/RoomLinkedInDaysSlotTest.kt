@@ -21,7 +21,6 @@ import java.time.temporal.ChronoUnit
 import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
@@ -45,7 +44,6 @@ import org.robolectric.annotation.Config
  * A shown day waits for a free call slot instead of giving up. The budget's clock is the test
  * scheduler's, so the wait is virtual time, and every call is stamped with the virtual time it was sent.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class RoomLinkedInDaysSlotTest {

@@ -15,7 +15,6 @@ import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInPhotoSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -46,7 +45,6 @@ import java.io.IOException
  * and the wipe are checked against what is actually stored. A second link over the same
  * file stands in for a new process.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class DataStoreLinkedInLinkTest {

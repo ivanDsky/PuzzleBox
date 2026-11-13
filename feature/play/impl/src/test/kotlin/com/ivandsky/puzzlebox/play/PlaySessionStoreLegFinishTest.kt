@@ -31,7 +31,6 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestDispatcher
@@ -53,7 +52,6 @@ import org.junit.Test
  * "taken"), then writes its completion tagged with the match; a give up queues a loss and drops
  * the leg's save. Both run on the store's own scope, so a release or a kill right after keeps them.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class PlaySessionStoreLegFinishTest {
 
     private val alpha = TestGames.alpha

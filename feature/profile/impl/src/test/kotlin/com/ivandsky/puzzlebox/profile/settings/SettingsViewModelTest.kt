@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -19,7 +18,6 @@ import org.junit.Rule
 import org.junit.Test
 
 /** Settings ViewModel: a theme pick and the Games switches are persisted. */
-@OptIn(ExperimentalCoroutinesApi::class)
 class SettingsViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()
