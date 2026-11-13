@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel
 import com.ivandsky.puzzlebox.history.ranks.RanksBoard
+import com.ivandsky.puzzlebox.history.ranks.ReplayOptInViewModel
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection
 import com.ivandsky.puzzlebox.history.ranks.RanksScreen
 import com.ivandsky.puzzlebox.history.ranks.RanksViewModel
@@ -61,6 +62,7 @@ private fun RanksRoute(
 ) {
     val viewModel = koinViewModel<RanksViewModel>(key = key, parameters = { parametersOf(linkedIn, opening) })
     val playerSheet = koinViewModel<PlayerSheetViewModel>(key = key)
+    val replayOptIn = koinViewModel<ReplayOptInViewModel>(key = key)
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -87,6 +89,7 @@ private fun RanksRoute(
             target.board?.let { navigator.pushOnce(ReplayKey.player(it.gameId, it.day.toString(), target.uid, target.name)) }
         },
         playerSheet = playerSheet,
+        replayOptIn = replayOptIn,
         refreshing = refreshing,
         onRefresh = viewModel::refresh,
     )
