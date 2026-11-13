@@ -58,6 +58,13 @@ object TangoReplay : GameReplay<TangoSession> {
         return introduced.isNotEmpty() && introduced.none { it in TangoViolations.cellSets(next) }
     }
 
+    /** A tap cycle is Place(c, x) then Place(c, y) on one cell; a Rejection in between rides on the first Place's stamp. */
+    override fun continuesTap(previous: ReplayMove, move: ReplayMove): Boolean {
+        val first = TangoReplayMove.of(previous, Int.MAX_VALUE) as? TangoReplayMove.Place ?: return false
+        val second = TangoReplayMove.of(move, Int.MAX_VALUE) as? TangoReplayMove.Place ?: return false
+        return first.cell == second.cell
+    }
+
     /** The cell the live step hint points at on [session]'s board, as TangoStepGame.capture computes it. */
     private fun hintTarget(session: TangoSession): Set<Int> {
         val puzzle = session.puzzle

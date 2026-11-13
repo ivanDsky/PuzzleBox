@@ -122,11 +122,17 @@ class QueensReplayRecordingTest {
 
     private fun Timeline.sessionAt(atMs: Long): QueensSession = at(atMs).session as QueensSession
 
-    /** S2 for one play: every live session is the replay's frame at its play time, and the replay ends solved. */
+    /**
+     * S2 for one play: the replay's frame at each play time is the live session as of the last tick at or
+     * before it (a tap cycle within the settle time is one tick, so the half-way board has no frame),
+     * and the replay ends solved.
+     */
     private fun assertReplays(live: Map<Long, QueensSession>, sealed: SolveReplay) {
         val timeline = timelineOf(sealed)
-        for ((atMs, session) in live) {
-            assertEquals("frame at $atMs ms", session.clockFree(), timeline.sessionAt(atMs).clockFree())
+        for (atMs in live.keys) {
+            val settledAtMs = timeline.moveTimesMs.lastOrNull { it <= atMs } ?: 0L
+            val expected = live.entries.lastOrNull { it.key <= settledAtMs }?.value ?: live.values.first()
+            assertEquals("frame at $atMs ms", expected.clockFree(), timeline.sessionAt(atMs).clockFree())
         }
         val end = timeline.at(timeline.endMs)
         assertTrue(end.ended)
