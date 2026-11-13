@@ -13,7 +13,6 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -26,7 +25,6 @@ import org.junit.Test
  * The Create root's draft analysis: one verdict per (id, updatedAt), settled on
  * [DispatcherProvider.default], dropped with its draft, null for a game this build cannot open.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class DraftAnalysisTest {
 
     @get:Rule

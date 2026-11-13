@@ -9,7 +9,6 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitError
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.LocalDate
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -29,7 +28,6 @@ import org.robolectric.annotation.Config
  * for REAL Firebase exception types thrown at the seam. Robolectric: constructing real
  * Firebase exceptions reaches android.* (TextUtils).
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class FirestoreLeaderboardRepositoryTest {

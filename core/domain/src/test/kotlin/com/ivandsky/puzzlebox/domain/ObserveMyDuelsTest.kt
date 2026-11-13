@@ -23,7 +23,6 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import java.time.Instant
 import java.time.LocalDate
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -39,7 +38,6 @@ import org.junit.Test
  * The Duels list read model over the rules-faithful fakes; Ann challenges, Bob is the other seat. Every match is
  * created at time 0 on the server clock and the use case reads the virtual scheduler.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class ObserveMyDuelsTest {
 
     private val ann = Player("ann", "Ann", null)

@@ -37,7 +37,6 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
@@ -55,7 +54,6 @@ import org.junit.Rule
 import org.junit.Test
 
 /** The board shows the day card's day, or the picked one over it; with LinkedIn the title and the rows change together, once the new day is ready. */
-@OptIn(ExperimentalCoroutinesApi::class)
 class GamePageBoardViewModelTest {
 
     @get:Rule

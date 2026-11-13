@@ -6,7 +6,6 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
@@ -24,7 +23,6 @@ import org.junit.Test
  * through days asks nothing; and a day that leaves takes its wait, or its running sync, with it.
  * All time here is the test scheduler's.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class SyncLinkedInDayTest {
 
     private val zip = GameId("zip")

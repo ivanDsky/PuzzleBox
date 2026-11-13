@@ -5,7 +5,6 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
@@ -21,7 +20,6 @@ import org.junit.Test
  * still stored every window; writes are conflated and never overlap; finish stores the last
  * row after any write already running and takes no more.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class DraftAutosaveTest {
 
     private val stored = mutableListOf<String>()

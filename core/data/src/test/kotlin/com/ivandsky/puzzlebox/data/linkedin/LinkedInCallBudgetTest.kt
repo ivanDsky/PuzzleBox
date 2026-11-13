@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.data.linkedin
 
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.launch
@@ -14,7 +13,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** The rolling window of the call budget, with a mutable [now] standing in for the clock. */
-@OptIn(ExperimentalCoroutinesApi::class)
 class LinkedInCallBudgetTest {
 
     private val t0 = 1_800_000_000_000L

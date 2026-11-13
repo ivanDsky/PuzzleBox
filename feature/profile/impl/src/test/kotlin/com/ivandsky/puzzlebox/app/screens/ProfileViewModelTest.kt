@@ -40,7 +40,6 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -52,7 +51,6 @@ import org.junit.Rule
 import org.junit.Test
 
 /** Profile ViewModel states (brief §4, A20): signed-out/in, sign-in results, "Playing since". */
-@OptIn(ExperimentalCoroutinesApi::class)
 class ProfileViewModelTest {
 
     private val day = LocalDate.of(2026, 10, 31)

@@ -23,7 +23,6 @@ import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestCoroutineScheduler
@@ -42,7 +41,6 @@ import org.robolectric.annotation.Config
  * submission is deduped per (uid, puzzleRef), and signed-out/offline failures never
  * surface (A7). Robolectric: the failure path logs through android.util.Log.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = Application::class)
 class LeaderboardSubmitWatcherTest {

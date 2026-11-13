@@ -10,7 +10,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -25,7 +24,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** The engine's failure policy (ticket 13) under scripted failures on a virtual clock. */
-@OptIn(ExperimentalCoroutinesApi::class)
 class SyncFailureTest {
 
     private class MutableClock(var ms: Long) : Clock() {

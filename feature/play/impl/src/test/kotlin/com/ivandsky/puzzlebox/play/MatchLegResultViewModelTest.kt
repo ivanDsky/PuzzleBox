@@ -48,7 +48,6 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.cancel
@@ -68,7 +67,6 @@ import org.junit.Test
  * state is read, never its text: the next action, the opponent's side, the posting state, the hero facts and my
  * own replay section, which never asks for the opponent's.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class MatchLegResultViewModelTest {
 
     @get:Rule

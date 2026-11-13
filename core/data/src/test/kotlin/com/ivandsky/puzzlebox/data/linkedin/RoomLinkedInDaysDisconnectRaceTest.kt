@@ -26,7 +26,6 @@ import java.time.temporal.ChronoUnit
 import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancel
@@ -53,7 +52,6 @@ import org.robolectric.annotation.Config
  * and the real day sync share their lock, over real Room and DataStore, and the test holds each side at the
  * point where the other would otherwise slip in.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class RoomLinkedInDaysDisconnectRaceTest {
