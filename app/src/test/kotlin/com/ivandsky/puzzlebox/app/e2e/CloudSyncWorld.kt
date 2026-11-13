@@ -59,6 +59,7 @@ import org.junit.runner.Description
 import org.junit.runners.model.Statement
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.Koin
+import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
@@ -76,7 +77,10 @@ import org.koin.dsl.onClose
  * cloud authenticates; it follows the running device's identity, which [Device.signIn] and [Device.signOut] keep
  * together. [close] after the run.
  */
-internal class CloudSyncWorld(private val linkedIn: Boolean = false) : AutoCloseable {
+internal class CloudSyncWorld(
+    private val linkedIn: Boolean = false,
+    private val edges: Module.() -> Unit = {},
+) : AutoCloseable {
 
     /** What the cloud authenticates: the signed-in account of the device that is running. */
     val authority = FakeIdentityService()
@@ -177,6 +181,7 @@ internal class CloudSyncWorld(private val linkedIn: Boolean = false) : AutoClose
                     }.koin
                 } onClose { it?.close() }
                 single<CompletionRepository> { get<Koin>(named(DATA)).get() }
+                edges()
             },
             FakeReleaseFlags(*listOfNotNull(ReleaseFlag.CloudSync, ReleaseFlag.LinkedInAccount.takeIf { linkedIn }).toTypedArray()),
         )
