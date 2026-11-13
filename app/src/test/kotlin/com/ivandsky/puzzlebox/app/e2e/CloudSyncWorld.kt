@@ -52,6 +52,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -75,7 +76,7 @@ import org.koin.dsl.onClose
  * nothing but the cloud, like two phones. Koin is process-global, so only one device runs at a time: a [Device.shell]
  * run starts it and stops it, and what it stored stays for its next run (a relaunch). [authority] is the account the
  * cloud authenticates; it follows the running device's identity, which [Device.signIn] and [Device.signOut] keep
- * together. [close] after the run.
+ * together. [edges] adds a test's own bindings last in every device's graph, so they win. [close] after the run.
  */
 internal class CloudSyncWorld(
     private val linkedIn: Boolean = false,
@@ -102,7 +103,12 @@ internal class CloudSyncWorld(
         devices.forEach(Device::close)
     }
 
-    /** A [CloudSpace] that passes every call to [inner], but can hold the next `put` until the test lets it go. */
+    /**
+     * A [CloudSpace] that passes every call to [inner], except: while [offline] every call answers
+     * [CloudResult.Offline] and reaches nothing; the next `put` can be held ([holdNextPut]) before it reaches the space,
+     * or made to reach the space and then never answer ([loseNextAnswer]), as a process that dies between the put and its
+     * acknowledgement.
+     */
     internal class CloudGate(private val inner: CloudSpace) : CloudSpace {
 
         /** One held `put`: [arrived] once it is in flight, [release] to let it reach the space. */
@@ -111,27 +117,44 @@ internal class CloudSyncWorld(
             val release = CompletableDeferred<Unit>()
         }
 
+        /** True while the phone has no connection to the cloud. */
+        @Volatile
+        var offline = false
+
         private val lock = Any()
         private var next: Hold? = null
+        private var lose: CompletableDeferred<Unit>? = null
 
         /** The next `put`, whoever makes it, waits on the returned hold before it reaches the space. */
         fun holdNextPut(): Hold = Hold().also { hold -> synchronized(lock) { next = hold } }
 
+        /** The next `put` reaches the space, then never answers; the returned deferred completes once it has. */
+        fun loseNextAnswer(): CompletableDeferred<Unit> = CompletableDeferred<Unit>().also { lost -> synchronized(lock) { lose = lost } }
+
         override suspend fun changedSince(uid: String, kind: String, cursorMs: Long?): CloudResult<List<CloudDoc>> =
-            inner.changedSince(uid, kind, cursorMs)
+            if (offline) CloudResult.Offline else inner.changedSince(uid, kind, cursorMs)
 
         override suspend fun put(uid: String, kind: String, docs: List<CloudDoc>): CloudResult<Unit> {
+            if (offline) return CloudResult.Offline
             val hold = synchronized(lock) { next.also { next = null } }
             if (hold != null) {
                 hold.arrived.complete(Unit)
                 hold.release.await()
             }
-            return inner.put(uid, kind, docs)
+            val result = inner.put(uid, kind, docs)
+            val lost = synchronized(lock) { lose.also { lose = null } }
+            if (lost != null) {
+                lost.complete(Unit)
+                awaitCancellation()
+            }
+            return result
         }
 
-        override suspend fun delete(uid: String, kind: String, ids: List<String>): CloudResult<Unit> = inner.delete(uid, kind, ids)
+        override suspend fun delete(uid: String, kind: String, ids: List<String>): CloudResult<Unit> =
+            if (offline) CloudResult.Offline else inner.delete(uid, kind, ids)
 
-        override suspend fun deleteAll(uid: String, kinds: List<String>): CloudResult<Unit> = inner.deleteAll(uid, kinds)
+        override suspend fun deleteAll(uid: String, kinds: List<String>): CloudResult<Unit> =
+            if (offline) CloudResult.Offline else inner.deleteAll(uid, kinds)
     }
 
     /** One phone: the app graph plus the files that outlive a run of it. */
@@ -145,11 +168,13 @@ internal class CloudSyncWorld(
         private val opened = mutableListOf<() -> Unit>()
 
         private val puzzleDb: PuzzleBoxDatabase by lazy {
-            Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, "$name-puzzlebox.db").addMigrations(*Migrations.ALL).build()
+            Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, "$name-puzzlebox.db").addMigrations(*Migrations.ALL)
+                .setQueryExecutor(roomIo).build()
                 .also { opened += it::close }
         }
         private val linkedInDb: LinkedInDatabase by lazy {
-            Room.databaseBuilder(context, LinkedInDatabase::class.java, "$name-linkedin.db").addMigrations(*LinkedInMigrations.ALL).build()
+            Room.databaseBuilder(context, LinkedInDatabase::class.java, "$name-linkedin.db").addMigrations(*LinkedInMigrations.ALL)
+                .setQueryExecutor(roomIo).build()
                 .also { opened += it::close }
         }
         private val syncState: DataStore<Preferences> by lazy {
@@ -219,6 +244,8 @@ internal class CloudSyncWorld(
                     .apply(run, Description.createTestDescription(ShellRobot::class.java, "cloudSyncShell"))
                     .evaluate()
             } finally {
+                // The process dies with the run: its sync scope stops, so nothing of this run syncs in the next one.
+                graph.koin.get<CoroutineScope>().cancel()
                 graph.stop()
             }
         }
@@ -301,6 +328,19 @@ internal class CloudSyncWorld(
     companion object {
         const val CLOUD_TIMEOUT_MS = 30_000L
         private const val DATA = "cloud.world.data"
+
+        /**
+         * The one thread every Room database of every device works on. Robolectric's native `CursorWindow` opens
+         * each window through libc `tmpfile()`, which blocks all signals and then restores them with `sigprocmask`.
+         * On macOS that call sets the mask of every thread in the process, so two overlapping queries leave every
+         * thread with SIGSEGV blocked for good, and the next safepoint poll or null check in compiled code spins
+         * forever. Room's default pool has four threads; one thread means no two windows open at once.
+         *
+         * Transactions share it too (Room uses the query executor when no transaction executor is set): a second
+         * thread for them would bring back two concurrent windows. A transaction keeps the thread and runs its own
+         * queries on it, so other queries wait behind it and nothing waits on itself.
+         */
+        private val roomIo = Executors.newSingleThreadExecutor { Thread(it, "cloud-world-room").apply { isDaemon = true } }
     }
 }
 
