@@ -71,6 +71,16 @@ internal fun ReplayHintBadgePreview() {
 
 @PuzzleBoxPreviews
 @Composable
+internal fun ReplayStepDirectionPreview() {
+    PuzzleBoxTheme {
+        // The first frame is the baseline, so it counts as a forward step while the replay animates.
+        val forward = rememberStepsForward(ReplayBoardOptions(animate = true, showErrors = true), atMs = 1_000L)
+        Text(if (forward) "forward step" else "rests", Modifier.padding(16.dp))
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
 internal fun ReplayTransportPreview() {
     PuzzleBoxTheme {
         val playback = rememberReplayPlayback(previewTimeline(), theirs = null)

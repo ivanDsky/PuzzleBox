@@ -28,6 +28,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * A forward step on the replay board: with `animate` a glyph fades in, out and between sun and moon,
  * so half a fade in the board differs from the finished one; without it the board lands at once.
+ * A backward step (an earlier `atMs`, as a seek back while playing) lands at once even with `animate` (D1).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -64,8 +65,14 @@ class TangoReplayMotionTest {
     }
 
     /** The board half a fade after a step from [from] to [to], then once it has finished. */
-    private fun midAndFinal(from: TangoSession, to: TangoSession, animate: Boolean): Pair<IntArray, IntArray> {
-        val shown = mutableStateOf(frame(from, before = null, atMs = 1_000))
+    private fun midAndFinal(
+        from: TangoSession,
+        to: TangoSession,
+        animate: Boolean,
+        fromAtMs: Long = 1_000,
+        toAtMs: Long = 2_000,
+    ): Pair<IntArray, IntArray> {
+        val shown = mutableStateOf(frame(from, before = null, atMs = fromAtMs))
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme {
@@ -73,7 +80,7 @@ class TangoReplayMotionTest {
             }
         }
         composeRule.mainClock.advanceTimeBy(1_000)
-        composeRule.runOnIdle { shown.value = frame(to, before = from, atMs = 2_000) }
+        composeRule.runOnIdle { shown.value = frame(to, before = from, atMs = toAtMs) }
         // Frame by frame: an animation, even a snap, starts on one frame and ends on a later one.
         // A capture draws the board as of the frame before it, so each frame is captured and the last one kept.
         var mid = IntArray(0)
@@ -97,8 +104,8 @@ class TangoReplayMotionTest {
         assertFalse("the board was already at rest half way through the fade", mid.contentEquals(final))
     }
 
-    private fun assertAtOnce(from: TangoSession, to: TangoSession) {
-        val (mid, final) = midAndFinal(from, to, animate = false)
+    private fun assertAtOnce(from: TangoSession, to: TangoSession, animate: Boolean = false, fromAtMs: Long = 1_000, toAtMs: Long = 2_000) {
+        val (mid, final) = midAndFinal(from, to, animate, fromAtMs, toAtMs)
         assertArrayEquals("the board was still moving", final, mid)
     }
 
@@ -108,4 +115,11 @@ class TangoReplayMotionTest {
     @Test fun `without animate a glyph appears at once`() = assertAtOnce(empty, sun)
     @Test fun `without animate a sun turns to a moon at once`() = assertAtOnce(sun, moon)
     @Test fun `without animate a glyph vanishes at once`() = assertAtOnce(sun, erased)
+
+    // A seek back while playing: the frame shown is at an earlier atMs than the one before it.
+    private fun assertAtOnceBackward(from: TangoSession, to: TangoSession) = assertAtOnce(from, to, animate = true, fromAtMs = 2_000, toAtMs = 1_000)
+
+    @Test fun `with animate a glyph that appears on a backward step shows at once`() = assertAtOnceBackward(empty, sun)
+    @Test fun `with animate a sun that turns to a moon on a backward step changes at once`() = assertAtOnceBackward(sun, moon)
+    @Test fun `with animate a glyph that vanishes on a backward step is gone at once`() = assertAtOnceBackward(sun, erased)
 }

@@ -35,7 +35,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * F1 / F14: a forward step on the replay board plays Zip's motion only while [ReplayBoardOptions.animate]; paused,
  * scrubbing or under Reduce motion (animate off) the frame is drawn at once. The clock is paused and stepped one frame
- * at a time, as on a device, and the rendered board is sampled.
+ * at a time, as on a device, and the rendered board is sampled. A backward step (an earlier `atMs`, as a seek back while
+ * playing) is drawn at once even with `animate` (D1).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -59,22 +60,28 @@ class ZipReplayMotionTest {
         return session
     }
 
-    private fun frameAfter(cells: Int): ReplayFrame {
+    private fun frameAfter(cells: Int, atMs: Long = cells * 1_000L): ReplayFrame {
         val session = sessionAfter(cells)
         return ReplayFrame(
             session = session,
             before = if (cells == 0) null else sessionAfter(cells - 1),
             hinted = emptySet(),
             facts = ZipReplay.factsOf(initial)(session),
-            atMs = cells * 1_000L,
+            atMs = atMs,
             sinceMoveMs = 0L,
             ended = false,
         )
     }
 
     /** Shows the board at [from] cells, then steps it to [to] cells and returns the board drawn on each of the 16 frames after the step is composed. */
-    private fun stepFrames(animate: Boolean, from: Int, to: Int): List<ImageBitmap> {
-        frame = frameAfter(from)
+    private fun stepFrames(
+        animate: Boolean,
+        from: Int,
+        to: Int,
+        fromAtMs: Long = from * 1_000L,
+        toAtMs: Long = to * 1_000L,
+    ): List<ImageBitmap> {
+        frame = frameAfter(from, fromAtMs)
         options = ReplayBoardOptions(animate = animate, showErrors = true)
         rule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -83,7 +90,7 @@ class ZipReplayMotionTest {
         }
         rule.waitForIdle()
         rule.mainClock.autoAdvance = false
-        frame = frameAfter(to)
+        frame = frameAfter(to, toAtMs)
         // The first frame recomposes the board with the step; a capture shows the frame before it, so the first is dropped.
         rule.mainClock.advanceTimeByFrame()
         return (0..16).map {
@@ -123,6 +130,28 @@ class ZipReplayMotionTest {
     @Test
     fun `paused or scrubbing, a dot the path reaches does not pop`() {
         val frames = stepFrames(animate = false, from = 12, to = 14)
+        val rest = frames.last().at(2.5f, rimAboveDot)
+        assertTrue("no frame draws the dot larger than at rest", frames.all { it.at(2.5f, rimAboveDot) == rest })
+    }
+
+    // A seek back while playing: the frame shown is at an earlier atMs than the one before it. Here the path is longer
+    // on the earlier frame (the undo came after it), so the board grows.
+    @Test
+    fun `playing, a backward step that lengthens the path draws it at once`() {
+        val frames = stepFrames(animate = true, from = 3, to = 4, fromAtMs = 2_000, toAtMs = 1_000)
+        assertEquals(LightBoardTokens.pathTrace, frames.first().at(3.5f, 0.5f))
+        assertEquals(LightBoardTokens.pathTrace, frames.last().at(3.5f, 0.5f))
+    }
+
+    @Test
+    fun `playing, a backward step that shortens the path leaves at once`() {
+        val frames = stepFrames(animate = true, from = 4, to = 3, fromAtMs = 2_000, toAtMs = 1_000)
+        assertNotEquals("the old end is still drawn", LightBoardTokens.pathTrace, frames.first().at(3.5f, 0.5f))
+    }
+
+    @Test
+    fun `playing, a backward step onto a dot does not pop it`() {
+        val frames = stepFrames(animate = true, from = 12, to = 14, fromAtMs = 2_000, toAtMs = 1_000)
         val rest = frames.last().at(2.5f, rimAboveDot)
         assertTrue("no frame draws the dot larger than at rest", frames.all { it.at(2.5f, rimAboveDot) == rest })
     }

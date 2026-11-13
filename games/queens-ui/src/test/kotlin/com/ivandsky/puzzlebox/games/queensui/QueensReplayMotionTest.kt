@@ -27,7 +27,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * A forward step on the replay board: with `animate` a placed queen pops in and its crosses grow in,
  * so a board a few frames after the step differs from the finished one; without it the board lands at once.
- * Only forward steps are pinned.
+ * A backward step (an earlier `atMs`, as a seek back while playing) lands at once even with `animate` (D1).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -61,8 +61,14 @@ class QueensReplayMotionTest {
     }
 
     /** The board a few frames after a forward step to [to], then once it has come to rest. */
-    private fun midAndFinal(to: QueensSession, animate: Boolean): Pair<IntArray, IntArray> {
-        val shown = mutableStateOf(frame(initial, before = null, atMs = 1_000))
+    private fun midAndFinal(
+        to: QueensSession,
+        animate: Boolean,
+        from: QueensSession = initial,
+        fromAtMs: Long = 1_000,
+        toAtMs: Long = 2_000,
+    ): Pair<IntArray, IntArray> {
+        val shown = mutableStateOf(frame(from, before = null, atMs = fromAtMs))
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -70,7 +76,7 @@ class QueensReplayMotionTest {
             }
         }
         composeRule.mainClock.advanceTimeBy(1_000)
-        composeRule.runOnIdle { shown.value = frame(to, before = initial, atMs = 2_000) }
+        composeRule.runOnIdle { shown.value = frame(to, before = initial, atMs = toAtMs) }
         // Frame by frame: an animation, even a snap, starts on one frame and ends on a later one.
         // A capture draws the board as of the frame before it, so each frame is captured and the last one kept.
         var mid = IntArray(0)
@@ -112,6 +118,20 @@ class QueensReplayMotionTest {
     @Test
     fun `without animate a cross lands at once`() {
         val (mid, final) = midAndFinal(cross, animate = false)
+
+        assertArrayEquals("the board was still moving", final, mid)
+    }
+
+    @Test
+    fun `with animate a queen that appears on a backward step lands at once`() {
+        val (mid, final) = midAndFinal(queen, animate = true, from = initial, fromAtMs = 2_000, toAtMs = 1_000)
+
+        assertArrayEquals("the board was still moving", final, mid)
+    }
+
+    @Test
+    fun `with animate a cross that appears on a backward step lands at once`() {
+        val (mid, final) = midAndFinal(cross, animate = true, from = initial, fromAtMs = 2_000, toAtMs = 1_000)
 
         assertArrayEquals("the board was still moving", final, mid)
     }

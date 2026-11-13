@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.gameui.replay.ReplayHintBadge
+import com.ivandsky.puzzlebox.gameui.replay.rememberStepsForward
 import com.ivandsky.puzzlebox.games.zip.ZipSession
 import com.ivandsky.puzzlebox.games.zip.engine.ZipState
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
@@ -18,8 +19,8 @@ import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 /**
  * Zip's read-only replay board: the committed trace and the marks live play derives from it,
  * drawn by the live faces. No hint arrow, rejection flash, in-flight tip or input. The path grows
- * in and a reached dot pops as live while the replay plays ([ReplayBoardOptions.animate]); paused,
- * scrubbing or under reduced motion a frame change redraws at once. A cell a hint placed and the
+ * in and a reached dot pops as live on a forward step while the replay plays ([ReplayBoardOptions.animate]); paused,
+ * scrubbing, stepping back or under reduced motion a frame change redraws at once. A cell a hint placed and the
  * trace still holds wears the hint badge. Zip has no standing rule violation, so
  * [ReplayBoardOptions.showErrors] hides nothing.
  */
@@ -33,16 +34,17 @@ internal object ZipReplayBoard : GameReplayBoard {
         val model = remember(session) {
             ZipRendererModel.of(ZipState(session.puzzle, session.path), hint = null, rejection = null)
         }
+        val forward = rememberStepsForward(options, frame.atMs)
         BoardGrid(
             rows = model.n,
             cols = model.n,
             modifier = modifier.zipBoardOutline(model.n),
             edgeOverlays = zipWallOverlays(model),
-            underlay = { ZipPipes(model, animate = options.animate) },
+            underlay = { ZipPipes(model, animate = forward) },
             cellContent = { row, col ->
                 val idx = row * model.n + col
                 Box(Modifier.fillMaxSize()) {
-                    ZipCellDecor(model, row, col, animated = options.animate)
+                    ZipCellDecor(model, row, col, animated = forward)
                     if (idx in frame.hinted && model.cells[idx].isOnPath) {
                         ReplayHintBadge(Modifier.align(Alignment.TopEnd))
                     }

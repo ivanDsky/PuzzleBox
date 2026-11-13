@@ -13,7 +13,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * F2 / F19 / R13: what the Strands replay board draws for a forward step, sampled from its rendered pixels under a paused,
  * hand-stepped clock. A found word's settle and a non-theme word's held path play only while animating; at rest the
- * non-theme word stays traced and a found word is plain. A theme or spangram step never draws a trace.
+ * non-theme word stays traced and a found word is plain. A theme or spangram step never draws a trace. A backward
+ * step (an earlier `atMs`, as a seek back while playing) is a rest frame even with `animate` (D1).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -108,5 +109,24 @@ class StrandsReplayBoardMotionTest {
         val rest = rig.board()
         rig.update(animate = true)
         assertTrue("the word stays as it rests", rig.frames().all { it.sameAs(rest) })
+    }
+
+    // A seek back while playing: the frame shown is at an earlier atMs than the one before it.
+    @Test
+    fun `playing, a found word that appears on a backward step shows at once`() {
+        rig.show(StrandsReplayScript.bareFrameAfter(emptyList(), atMs = 2_000), animate = true)
+        rig.update(StrandsReplayScript.frameAfter(listOf(theme), atMs = 1_000))
+        val frames = rig.frames()
+        assertTrue("every frame is the settled board", frames.all { it.sameAs(frames.last()) })
+        assertTrue("the board stays as it is", rig.boardAfter(3_000).sameAs(frames.last()))
+    }
+
+    @Test
+    fun `playing, a non-theme word on a backward step stays traced`() {
+        rig.show(StrandsReplayScript.bareFrameAfter(emptyList(), atMs = 2_000), animate = true, referenceTrace = artsPath)
+        rig.update(StrandsReplayScript.frameAfter(listOf(nonTheme), atMs = 1_000))
+        assertTrue("the path is drawn as at rest", rig.board().sameAs(rig.reference()))
+        val later = rig.boardAfter(2_000)
+        assertTrue("the path is still drawn once the live dissolve would have ended", later.sameAs(rig.reference()))
     }
 }
