@@ -201,7 +201,7 @@ class HomeViewModel(
                 puzzleDay = day,
                 playTarget = if (entries == null) seedTarget else entries.playTarget(),
                 stats = stats,
-                week = homeWeek(days, endingOn = day, registryOrder, brands),
+                week = homeWeek(days, endingOn = day, stats.freezes?.frozenDays.orEmpty(), registryOrder, brands),
                 rolloverAt = nextRollover(),
             )
         }.combine(updateUrl) { state, url -> state.copy(updateUrl = url) }
@@ -222,7 +222,7 @@ class HomeViewModel(
                         puzzleDay = day,
                         playTarget = seedTarget,
                         stats = NO_STATS,
-                        week = homeWeek(emptyList(), endingOn = day, registryOrder, brands),
+                        week = homeWeek(emptyList(), endingOn = day, emptySet(), registryOrder, brands),
                         rolloverAt = nextRollover(),
                     )
                 },

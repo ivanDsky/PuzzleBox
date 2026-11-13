@@ -13,6 +13,10 @@ import com.ivandsky.puzzlebox.data.update.AppRelease
 import com.ivandsky.puzzlebox.data.update.AppReleaseRepository
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.ComputeStreak
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.game.CompletionSource
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.GetNextRollover
@@ -101,6 +105,7 @@ class HomeViewModelTest {
         boards: Map<LeaderboardRef, List<LeaderboardEntry>> = emptyMap(),
         summariesShown: Boolean = false,
         savedState: SavedStateHandle = SavedStateHandle(),
+        flags: ReleaseFlags = FakeReleaseFlags(),
     ): Deps {
         val registry = GameRegistry(
             listOf(zip, tango).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
@@ -114,7 +119,7 @@ class HomeViewModelTest {
         val puzzleDay = GetPuzzleDay(registry, clock)
         val vm = HomeViewModel(
             observeGameHistory = history,
-            observeGameStats = ObserveGameStats(registry, history, ComputeStreak(puzzleDay)),
+            observeGameStats = ObserveGameStats(registry, history, ComputeStreak(puzzleDay, flags)),
             todaySet = ObserveTodaySet(registry, saved, completions, calendar, daily, sync),
             identityService = identity,
             registry = registry,
@@ -213,6 +218,49 @@ class HomeViewModelTest {
         assertEquals(2, stats.currentStreak)
         assertEquals(2, stats.bestStreak)
         assertEquals(2, stats.solved)
+    }
+
+    @Test
+    fun `with streak freezes a missed day between two solves is frozen and the count is held - A13`() = runTest {
+        val deps = viewModel(flags = FakeReleaseFlags(ReleaseFlag.StreakFreeze))
+        deps.completions.onCompleted(record(zip, day.minusDays(2), timeMs = 40_000L))
+        deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
+
+        val state = deps.vm.uiState.value
+        assertEquals(1, state.stats.freezes?.held)
+        assertEquals(listOf(day.minusDays(1)), state.week.filter { it.frozen }.map { it.date })
+        assertEquals(listOf(0, 0, 0, 0, 1, 0, 1), state.week.map { it.solved.size })
+    }
+
+    @Test
+    fun `streak freezes off leaves no frozen day and no freezes - SC8`() = runTest {
+        val deps = viewModel()
+        deps.completions.onCompleted(record(zip, day.minusDays(2), timeMs = 40_000L))
+        deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
+
+        val state = deps.vm.uiState.value
+        assertNull(state.stats.freezes)
+        assertTrue(state.week.none { it.frozen })
+    }
+
+    @Test
+    fun `the week's frozen days are the streak's, an archive day frozen and still ringed, a LinkedIn import filling its archived day - A23`() = runTest {
+        val deps = viewModel(flags = FakeReleaseFlags(ReleaseFlag.StreakFreeze))
+        deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
+        deps.completions.onCompleted(
+            record(zip, day.minusDays(1), timeMs = 30_000L).copy(source = CompletionSource.LinkedIn, isRecord = true),
+        )
+        deps.daily.addEntry(DailyEntry(zip, day.minusDays(1), 916, "v", fetchedAtMs = clock.millis(), archived = true))
+        deps.completions.onCompleted(record(zip, day.minusDays(2), timeMs = 30_000L))
+        deps.daily.addEntry(DailyEntry(zip, day.minusDays(2), 916, "v", fetchedAtMs = clock.millis(), archived = true))
+        deps.completions.onCompleted(record(zip, day.minusDays(3), timeMs = 30_000L))
+
+        val state = deps.vm.uiState.value
+        val frozen = checkNotNull(state.stats.freezes).frozenDays
+        assertEquals(setOf(day.minusDays(2)), frozen)
+        assertEquals(frozen, state.week.filter { it.frozen }.map { it.date }.toSet())
+        // The archive play still rings its day, frozen or not.
+        assertEquals(listOf(0, 0, 0, 1, 1, 1, 1), state.week.map { it.solved.size })
     }
 
     @Test

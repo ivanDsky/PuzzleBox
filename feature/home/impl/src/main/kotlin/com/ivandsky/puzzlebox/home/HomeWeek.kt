@@ -7,10 +7,15 @@ import java.time.LocalDate
 
 private const val WEEK_DAYS = 7L
 
-/** The 7 puzzle days ending on [endingOn], oldest first, each with its solved dailies' brands. */
+/**
+ * The 7 puzzle days ending on [endingOn], oldest first, each with its solved dailies' brands
+ * and whether a freeze covers it ([frozenDays]). The rings count archive plays too (A23),
+ * which the streak itself does not, so a frozen day can still be ringed.
+ */
 internal fun homeWeek(
     days: List<GameHistoryDay>,
     endingOn: LocalDate,
+    frozenDays: Set<LocalDate>,
     registryOrder: Comparator<GameHistoryDay>,
     brands: GamePlayRegistry,
 ): List<WeekDay> {
@@ -24,6 +29,7 @@ internal fun homeWeek(
             date = date,
             solved = solved[date].orEmpty().distinct().map(brands::brandOf),
             isToday = back == 0L,
+            frozen = date in frozenDays,
         )
     }
 }
