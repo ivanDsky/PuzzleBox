@@ -246,6 +246,57 @@ class TimelineTest {
         }
     }
 
+    /** A mark of 9 is a Mistake, of 8 a Hint; [transient] answers the hook, and it sees the three sessions it is given. */
+    private class MistakeReplay(private val transient: Boolean) : GameReplay<Session> {
+        private val inner = CountingReplayGame(goal = 4)
+        var lastHookCall: Triple<Session, Session, Session>? = null
+
+        override fun step(session: Session, move: ReplayMove, atMs: Long) = inner.step(session, move, atMs)
+
+        override fun factsOf(initial: Session) = inner.factsOf(initial)
+
+        override fun markOf(before: Session, move: ReplayMove, after: Session, previous: ReplayMove?) = when (move.args.firstOrNull()) {
+            9 -> MoveMark(MoveKind.Mistake, emptySet())
+            8 -> MoveMark(MoveKind.Hint, emptySet())
+            else -> MoveMark.Plain
+        }
+
+        override fun isTransientMistake(before: Session, after: Session, next: Session): Boolean {
+            lastHookCall = Triple(before, after, next)
+            return transient
+        }
+    }
+
+    private fun kindsOf(transient: Boolean, vararg moves: StampedMove): Array<MoveKind> =
+        checkNotNull(Timeline.open(marks, MistakeReplay(transient), Session(), sealed(moves.toList(), ReplayOutcome.GaveUp, endMs = 9_000)))
+            .moveKindsAt
+
+    @Test
+    fun `a transient Mistake the next group settles within 500 ms leaves the timeline, any other stays`() {
+        val normal = MoveKind.Normal
+        val mistake = MoveKind.Mistake
+        // Downgraded: the next group lands 499 ms later and the game says transient.
+        assertArrayEquals(
+            arrayOf(normal, normal, normal, normal),
+            kindsOf(true, StampedMove(100, mark(1)), StampedMove(1_000, mark(9)), StampedMove(1_499, mark(2)), StampedMove(3_000, mark(3))),
+        )
+        // Downgraded to the highest other kind of its own group.
+        assertArrayEquals(
+            arrayOf(MoveKind.Hint, normal),
+            kindsOf(true, StampedMove(1_000, mark(9)), StampedMove(1_000, mark(8)), StampedMove(1_100, mark(2))),
+        )
+        // Stays: the next group lands at 500 ms, the game says lasting, or no group follows.
+        assertArrayEquals(arrayOf(mistake, normal), kindsOf(true, StampedMove(1_000, mark(9)), StampedMove(1_500, mark(2))))
+        assertArrayEquals(arrayOf(mistake, normal), kindsOf(false, StampedMove(1_000, mark(9)), StampedMove(1_100, mark(2))))
+        assertArrayEquals(arrayOf(normal, mistake), kindsOf(true, StampedMove(1_000, mark(1)), StampedMove(1_100, mark(9))))
+        // The hook sees the board before the Mistake group, after it, and after the whole next group.
+        val replay = MistakeReplay(transient = true)
+        val moves = listOf(StampedMove(100, mark(1)), StampedMove(1_000, mark(9)), StampedMove(1_200, mark(2)), StampedMove(1_200, mark(3)))
+        checkNotNull(Timeline.open(marks, replay, Session(), sealed(moves, ReplayOutcome.GaveUp, endMs = 9_000)))
+        val (before, after, next) = checkNotNull(replay.lastHookCall)
+        assertEquals(listOf(1, 2, 4), listOf(before.marks, after.marks, next.marks))
+    }
+
     private fun everyTenMs(count: Int) = List(count) { index -> StampedMove((index + 1) * 10L, mark(index % 9)) }
 
     private fun sealed(moves: List<StampedMove>, outcome: ReplayOutcome, endMs: Long, game: GameId = marks): SolveReplay {
