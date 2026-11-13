@@ -14,7 +14,7 @@ import org.robolectric.annotation.Config
 
 /** Debug ships the 9x9 unlisted: every surface's five games, the 9x9 reachable by id (ADR-0015). */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class DebugGameModulesTest {
 
     @Test

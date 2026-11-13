@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.app.leaderboard
 
-import android.app.Application
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -42,7 +42,7 @@ import org.robolectric.annotation.Config
  * surface (A7). Robolectric: the failure path logs through android.util.Log.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class LeaderboardSubmitWatcherTest {
 
     private val day = LocalDate.of(2026, 10, 31)

@@ -5,13 +5,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isEnabled
-import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
@@ -63,7 +64,7 @@ import org.robolectric.annotation.Config
  * instance state and rebuilds the host with it — the same save/restore a rotation runs.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class QueensRotationRestoreTest {
 
     @get:Rule
@@ -186,6 +187,8 @@ class QueensRotationRestoreTest {
         controller.setup()
         setContent(controller.get())
         idle()
+        // The hub's start prefetch is launched from a composition effect, which v2 queues until the rule idles.
+        composeRule.waitForIdle()
         // The hub's start prefetch is its own fetch; only opening the board is counted below.
         val prefetched = repo.todayCalls(QueensDefinition.id)
         // The Play tab opens the hub; Queens is one of its games (the fix under test

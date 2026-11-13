@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.app.e2e
 
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.data.cloud.CloudSpace
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
@@ -27,8 +28,8 @@ import org.robolectric.annotation.Config
  * and not one cloud call is made, nothing of the sync graph is bound, and Profile shows no sync line.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = android.app.Application::class)
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
+@Config(sdk = [34], application = DrainTestApplication::class)
 class CloudSyncFlagOffE2ETest {
 
     private lateinit var graph: E2eKoinGraph

@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.app
 
-import android.app.Application
 import androidx.lifecycle.SavedStateHandle
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
@@ -86,6 +85,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.parameter.parametersOf
@@ -98,14 +98,15 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-// application = plain Application (showkase-v2-05): with unit-test resources enabled
+// application = DrainTestApplication (plain Application + looper drain) (showkase-v2-05): with unit-test resources enabled
 // (:app runs the browser screenshot suite) Robolectric would boot the REAL
 // PuzzleBoxApplication from the merged manifest, whose onCreate startKoin races this
 // class's own startKoin on the JVM-global context. The graph under test is
 // PuzzleBoxApplication.appModules, built below against any Context.
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class DiGraphTest : KoinTest {
 
+    @OptIn(KoinExperimentalAPI::class)
     @Test
     fun `pure module graph is complete`() {
         // commonModule has no Android dependencies, so static verification applies.

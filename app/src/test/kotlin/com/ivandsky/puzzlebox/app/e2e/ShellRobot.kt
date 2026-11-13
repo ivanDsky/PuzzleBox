@@ -32,7 +32,7 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.StateRestorationTester
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onChildAt
@@ -89,9 +89,10 @@ import org.robolectric.Shadows.shadowOf
  * every feature entry — over [graph] (the production Koin modules with fakes on the
  * edges), starting at [state]. The width class comes from the real window, so a row's
  * `@Config(qualifiers = …)` picks bar or rail. [destinations] is the tab set the shell
- * shows. The caller's test class runs on Robolectric with a plain `Application`
- * (`@Config(application = Application::class)`), so the merged manifest's application
- * never starts a second Koin.
+ * shows. The caller's test class runs on Robolectric with [DrainTestApplication]
+ * (`@Config(application = DrainTestApplication::class)`): a plain `Application`, so the merged
+ * manifest's application never starts a second Koin, that also idles the main looper after every
+ * test, before Robolectric's looper reset drops Compose's pending dispatch.
  */
 internal fun shellRobot(
     state: NavigationState = puzzleBoxNavigationState(),

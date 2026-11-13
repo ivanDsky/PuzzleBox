@@ -7,11 +7,13 @@ import android.os.Looper
 import android.view.WindowManager
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.junit4.v2.AndroidComposeTestRule as v2AndroidComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.rules.ActivityScenarioRule
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.MainActivity
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
@@ -44,8 +46,8 @@ import org.robolectric.annotation.Config
  * root's search field, the main window's other text field, still filters under it.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class KeyboardModeE2ETest {
 
     private lateinit var rule: AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>
@@ -60,7 +62,7 @@ class KeyboardModeE2ETest {
     @Test
     fun `the activity declares that the keyboard resizes its window`() {
         val info = context.packageManager.getActivityInfo(ComponentName(context, MainActivity::class.java), 0)
-        assertEquals(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE, info.softInputMode and ADJUST)
+        assertEquals(RESIZE, info.softInputMode and ADJUST)
     }
 
     @Test
@@ -68,7 +70,7 @@ class KeyboardModeE2ETest {
         graph.start()
         seedDrafts()
         launching {
-            assertEquals(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE, rule.activity.window.attributes.softInputMode and ADJUST)
+            assertEquals(RESIZE, rule.activity.window.attributes.softInputMode and ADJUST)
             tap("nav.tab.create")
             awaitIdling { count(ROW) > 1 }
             tap(SEARCH)
@@ -106,7 +108,7 @@ class KeyboardModeE2ETest {
     /** Runs [block] over [MainActivity] launched from the home screen, torn down by the compose rule. */
     private fun launching(block: () -> Unit) {
         val intent = Intent(Intent.ACTION_MAIN, null, context, MainActivity::class.java).addCategory(Intent.CATEGORY_LAUNCHER)
-        rule = AndroidComposeTestRule(ActivityScenarioRule(intent), activityProvider = ::activityOf)
+        rule = v2AndroidComposeTestRule(ActivityScenarioRule(intent), activityProvider = ::activityOf)
         val run = object : Statement() {
             override fun evaluate() = block()
         }
@@ -137,6 +139,11 @@ class KeyboardModeE2ETest {
 
     private companion object {
         const val ADJUST = WindowManager.LayoutParams.SOFT_INPUT_MASK_ADJUST
+
+        // The manifest's android:windowSoftInputMode="adjustResize" is what this test pins, and the
+        // platform has no non-deprecated constant for reading that mode back from the window.
+        @Suppress("DEPRECATION")
+        const val RESIZE = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
         const val ROW = "create.draft.row"
         const val SEARCH = "create.search"
         const val DRAFTS = 9

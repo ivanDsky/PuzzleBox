@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.app
 
-import android.app.Application
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.data.cloud.RestoreSummary
@@ -15,7 +14,7 @@ import org.robolectric.annotation.Config
 
 /** A33: the first full restore on a device shows "Welcome back" once; with no cloud sync bound the shell shows nothing. */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class RestoreMessageTest {
 
     @get:Rule

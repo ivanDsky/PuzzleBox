@@ -15,7 +15,7 @@ import org.robolectric.annotation.Config
  * (ADR-0022 flip).
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = android.app.Application::class)
+@Config(sdk = [34], application = DrainTestApplication::class)
 class ReleaseShareLinksTest {
 
     private val packageManager get() = RuntimeEnvironment.getApplication().packageManager

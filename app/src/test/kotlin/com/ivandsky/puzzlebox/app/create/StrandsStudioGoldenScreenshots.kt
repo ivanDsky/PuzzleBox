@@ -17,11 +17,12 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.hasScrollAction
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.create.editor.ActionArea
 import com.ivandsky.puzzlebox.create.editor.PublishDetails
 import com.ivandsky.puzzlebox.create.editor.PublishSession
@@ -67,12 +68,12 @@ import java.io.File
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp-420dpi")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp-420dpi")
 class StrandsStudioGoldenScreenshotsPhone411 : StrandsStudioGoldenScreenshots(PlayLayout.SinglePane, "phone411")
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w1280dp-h800dp-land-mdpi")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w1280dp-h800dp-land-mdpi")
 class StrandsStudioGoldenScreenshotsTablet : StrandsStudioGoldenScreenshots(PlayLayout.TwoPane, "tablet")
 
 abstract class StrandsStudioGoldenScreenshots(private val layout: PlayLayout, private val device: String) {

@@ -5,6 +5,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.navigation3.runtime.NavKey
 import androidx.savedstate.savedState
 import androidx.savedstate.serialization.encodeToSavedState
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.CatalogKey
 import com.ivandsky.puzzlebox.app.nav.NAVIGATION_STATE_KEY
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
@@ -29,8 +30,8 @@ import org.robolectric.annotation.Config
  * and its route.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = android.app.Application::class)
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
+@Config(sdk = [34], application = DrainTestApplication::class)
 class TabSetRestoreE2ETest {
 
     @Test

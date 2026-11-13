@@ -19,8 +19,8 @@ import org.xmlpull.v1.XmlPullParser
  * so each of the thirteen is pinned by name; the rest of the app's data keeps backing up.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application for DiGraphTest's reason: the real one would startKoin on its own.
-@Config(sdk = [34], application = android.app.Application::class)
+// DrainTestApplication (plain Application + looper drain) for DiGraphTest's reason: the real one would startKoin on its own.
+@Config(sdk = [34], application = DrainTestApplication::class)
 class BackupRulesTest {
 
     private val context: Context = ApplicationProvider.getApplicationContext()

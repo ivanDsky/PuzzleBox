@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import java.io.File
 import org.junit.Assert.assertTrue
@@ -35,12 +36,12 @@ import org.robolectric.annotation.GraphicsMode
 // set and exercise the REAL entry point (metadata via the generated provider, prefs via
 // Robolectric's fresh per-test app storage → groups start collapsed).
 //
-// application = plain Application: Robolectric would otherwise boot the real
+// application = DrainTestApplication (plain Application + looper drain): Robolectric would otherwise boot the real
 // PuzzleBoxApplication (merged manifest), whose onCreate starts Koin on the JVM-global
 // context and races DiGraphTest's own startKoin. The browser reads no DI graph.
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [34], qualifiers = "w440dp-h3400dp-420dpi", application = android.app.Application::class)
+@Config(sdk = [34], qualifiers = "w440dp-h3400dp-420dpi", application = DrainTestApplication::class)
 class ShowkaseBrowserScreenshotTest {
 
     @get:Rule
@@ -267,6 +268,6 @@ class ShowkaseBrowserScreenshotTest {
     companion object {
         // Committed inside the module (NOT gitignored .scratch/) so a fresh clone can
         // verify against goldens instead of having to re-record them.
-        private val SNAPSHOT_DIR = File(System.getProperty("user.dir")).resolve("snapshots")
+        private val SNAPSHOT_DIR = File(checkNotNull(System.getProperty("user.dir"))).resolve("snapshots")
     }
 }

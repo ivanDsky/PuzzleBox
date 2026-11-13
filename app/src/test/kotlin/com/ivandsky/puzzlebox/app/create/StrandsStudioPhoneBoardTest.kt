@@ -19,7 +19,7 @@ import androidx.compose.ui.layout.findRootCoordinates
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
@@ -35,6 +35,7 @@ import androidx.core.graphics.Insets
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.test.core.app.ApplicationProvider
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.create.editor.ActionArea
 import com.ivandsky.puzzlebox.create.editor.PublishDetails
 import com.ivandsky.puzzlebox.create.editor.PublishSession
@@ -72,7 +73,7 @@ import kotlin.math.abs
  * Edit board. The keyboard is the IME inset dispatched to the compose root.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h914dp-420dpi")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h914dp-420dpi")
 class StrandsStudioPhoneBoardTest {
 
     @get:Rule
