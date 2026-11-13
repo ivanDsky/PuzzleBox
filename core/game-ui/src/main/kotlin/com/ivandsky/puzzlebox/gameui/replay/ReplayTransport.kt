@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.gameui.replay
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,8 +19,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -31,9 +35,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 
 private val SPEEDS = intArrayOf(1, 2, 4, 8)
@@ -118,6 +124,9 @@ private fun Readout(positionMs: Long, durationMs: Long) {
 @Composable
 private fun SkipIdleButton(on: Boolean, onChange: (Boolean) -> Unit) {
     val colors = MaterialTheme.colorScheme
+    val target = if (on) 1f else 0f
+    val animated by animateFloatAsState(target, tween(MotionTokens.DurationShort), label = "skipIdleCheck")
+    val checkAlpha = if (rememberReducedMotion()) target else animated
     Row(
         modifier = Modifier
             .defaultMinSize(minHeight = TouchTarget)
@@ -128,7 +137,7 @@ private fun SkipIdleButton(on: Boolean, onChange: (Boolean) -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        if (on) Icon(PuzzleIcons.Check, contentDescription = null, tint = colors.primary, modifier = Modifier.size(18.dp))
+        Icon(PuzzleIcons.Check, contentDescription = null, tint = colors.primary, modifier = Modifier.size(18.dp).alpha(checkAlpha))
         Text(
             text = ReplayCopy.SKIP_IDLE,
             style = MaterialTheme.typography.labelLarge,
