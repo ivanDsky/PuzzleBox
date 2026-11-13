@@ -12,6 +12,7 @@ internal fun ReplayKey.origin(calendar: GameCalendar): String = when {
     else -> {
         val date = day?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
         listOfNotNull(
+            uid?.let { "${name?.ifBlank { null } ?: "Player"}'s solve" },
             puzzleNumber?.let { "#$it" },
             date?.let { resultDateLine(it, today = calendar.today(GameId(gameId)) == it) },
         ).joinToString(" · ")

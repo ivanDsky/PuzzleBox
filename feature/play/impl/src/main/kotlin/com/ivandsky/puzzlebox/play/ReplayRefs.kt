@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.domain.SolveReplayRef
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -23,8 +24,15 @@ internal fun ReplayKey.toSolveReplayRef(games: GameRegistry): SolveReplayRef? {
         ReplayKey.LATEST -> puzzle(game)?.let(SolveReplayRef::Latest)
         ReplayKey.MY_LEG -> code?.let(ShareCode::parse)?.let { SolveReplayRef.MyLeg(it, legIndex) }
         ReplayKey.THEIR_LEG -> code?.let(ShareCode::parse)?.let { SolveReplayRef.TheirLeg(it, legIndex) }
+        ReplayKey.PLAYER -> board()?.let { board -> uid?.let { SolveReplayRef.Player(board, it) } }
         else -> null
     }
+}
+
+private fun ReplayKey.board(): LeaderboardRef? = try {
+    day?.let { LeaderboardRef(gameId, LocalDate.parse(it)) }
+} catch (_: DateTimeException) {
+    null
 }
 
 private fun ReplayKey.puzzle(game: GamePlugin<*, *, *>?): PuzzleRef? {

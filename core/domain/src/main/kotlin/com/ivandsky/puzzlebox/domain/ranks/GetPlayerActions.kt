@@ -9,14 +9,13 @@ import com.ivandsky.puzzlebox.data.visibility.TierLookup
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Challenge
 import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Watch
-import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import kotlinx.coroutines.flow.first
 
 /**
  * Tier, the viewer's own solve and the replay flag → what they may do with [uid]: one tier read per call. A tier that
  * cannot be read fails closed (everything Private). Challenge needs the player's tier at Duel or above; Watch needs
- * Replays, the viewer's own solve of that same game and day (the spoiler gate, A21) and replays switched on.
+ * Replays, the viewer's own solve of that same game and day, an imported LinkedIn one too (the spoiler gate, A21) and replays switched on.
  */
 class GetPlayerActions(
     private val visibility: VisibilityRepository,
@@ -38,6 +37,6 @@ class GetPlayerActions(
 
     private suspend fun viewerSolved(board: LeaderboardRef): Boolean = completions.observeRecords().first().any {
         val key = it.puzzleRef.key
-        it.source == CompletionSource.App && it.puzzleRef.gameId.value == board.gameId && key is PuzzleKey.Daily && key.date == board.day
+        it.puzzleRef.gameId.value == board.gameId && key is PuzzleKey.Daily && key.date == board.day
     }
 }

@@ -58,10 +58,10 @@ class GetPlayerActionsTest {
     }
 
     @Test
-    fun `a LinkedIn import is not the viewer's solve`() = runTest {
+    fun `a LinkedIn import is the viewer's solve`() = runTest {
         visibility.putTier("them", VisibilityTier.Replays)
 
-        assertEquals(Watch.SolveFirst, actions(solved = true, source = CompletionSource.LinkedIn)("them", board).watch)
+        assertEquals(Watch.Allowed, actions(solved = true, source = CompletionSource.LinkedIn)("them", board).watch)
     }
 
     @Test

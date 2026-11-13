@@ -82,6 +82,9 @@ private fun RanksRoute(
             navigator.pushOnce(ReplayKey.daily(row.gameId.value, row.day.toString(), row.puzzleNumber, latest = solve == ReplaySolve.Latest))
         },
         onCompare = { row -> navigator.pushOnce(historyCompareKey(row)) },
+        onWatchPlayer = { target ->
+            target.board?.let { navigator.pushOnce(ReplayKey.player(it.gameId, it.day.toString(), target.uid, target.name)) }
+        },
         playerSheet = playerSheet,
     )
 }
