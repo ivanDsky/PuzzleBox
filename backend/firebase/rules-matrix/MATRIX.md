@@ -11,7 +11,8 @@ bash backend/firebase/rules-matrix/run.sh
 ```
 
 It exits non-zero when any verdict differs from the expected one. Request time is
-`2026-11-07T12:00:00Z`, so "today" in the quota cases is `2026-11-07`.
+`2026-11-07T12:00:00Z`, so "today" in the quota cases is `2026-11-07`. The API refuses a request of more
+than about 240 cases, so the script sends them in batches of 200 and prints one joined log.
 
 
 ## puzzles
@@ -150,6 +151,128 @@ the ref and the day always agree, so each row's path day is the ref day.
 | deny | create | `leaderboards/strands_2026-11-09/entries/bob` | bob | strands entry two days ahead |
 | deny | create | `leaderboards/minisudoku_2025-11-07/entries/bob` | bob | minisudoku entry a year back |
 | deny | create | `leaderboards/queens_2026-11-31/entries/bob` | bob | queens entry for a day that does not exist |
+
+## daily leaderboards (closed keys and caps)
+
+Ticket 25 (spec A21). A new entry carries only the seven fields every client has written since the first
+release (`formatVersion`, `uid`, `displayName`, `puzzleRef`, `timeMs`, `hints`, `completedAtMs`), with
+`displayName` and `puzzleRef` at most 64 characters. The check is on writes only: an entry that already
+carries something else is still read.
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| deny | create | `leaderboards/zip_2026-11-07/entries/bob` | bob | daily entry with an extra field |
+| allow | create | `leaderboards/zip_2026-11-07/entries/bob` | bob | 64-char display name |
+| deny | create | `leaderboards/zip_2026-11-07/entries/bob` | bob | 65-char display name |
+| deny | create | `leaderboards/zip_2026-11-07/entries/bob` | bob | empty display name |
+| allow | create | `leaderboards/zip_2026-11-07/entries/bob` | bob | 64-char puzzleRef |
+| deny | create | `leaderboards/zip_2026-11-07/entries/bob` | bob | 65-char puzzleRef |
+| allow | get | `leaderboards/zip_2026-11-07/entries/bob` | carol | signed-in read of an older entry that carries an extra field |
+
+## visibility
+
+Ticket 25 (spec A16, A17). `visibility/{uid}` = `{tier, v}` with `tier` one of `hidden | board | duel | replays`
+and `v` 1. Any signed-in player gets one tier by id; only its owner creates or changes it; nobody lists or
+deletes. A list would hand out the uid of every player, the hidden ones included, and the client only ever
+reads one tier by id. No other document is read, so no mocks.
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | get | `visibility/bob` | carol | another signed-in player gets a tier |
+| allow | get | `visibility/bob` | bob | owner gets own tier |
+| deny | get | `visibility/bob` | — | signed-out get of a tier |
+| deny | list | `visibility/bob` | carol | signed-in list of tiers |
+| allow | create | `visibility/bob` | bob | owner sets tier hidden |
+| allow | create | `visibility/bob` | bob | owner sets tier board |
+| allow | create | `visibility/bob` | bob | owner sets tier duel |
+| allow | create | `visibility/bob` | bob | owner sets tier replays |
+| allow | update | `visibility/bob` | bob | owner raises the tier (board -> replays) |
+| allow | update | `visibility/bob` | bob | owner lowers the tier (replays -> hidden) |
+| deny | create | `visibility/bob` | carol | tier under another uid |
+| deny | create | `visibility/bob` | — | signed-out tier write |
+| deny | create | `visibility/bob` | bob | a tier off the ladder |
+| deny | create | `visibility/bob` | bob | tier as a number |
+| deny | create | `visibility/bob` | bob | v 2 |
+| deny | create | `visibility/bob` | bob | tier doc without v |
+| deny | create | `visibility/bob` | bob | tier doc without a tier |
+| deny | create | `visibility/bob` | bob | tier doc with an extra field |
+| deny | update | `visibility/bob` | carol | another user changes a tier |
+| deny | delete | `visibility/bob` | bob | owner deletes the tier |
+
+## daily replays
+
+Ticket 25 (spec A18–A20). `leaderboards/{boardId}/replays/{uid}` = `{uid, blob, formatVersion, createdAtMs}`,
+beside the entry and never on it. A get passes only while the owner's tier doc exists and says `replays`; the
+tier is read on every request (`exists` then `get` of `visibility/bob`, mocked per case), so lowering it hides
+the replay at once, from its owner too. No tier doc is the default tier, `board`, so it denies. Written once by
+its owner; the owner may delete it, for any day; nobody lists or rewrites.
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | get | `leaderboards/zip_2026-11-07/replays/bob` | carol | signed-in get while the owner's tier is replays |
+| allow | get | `leaderboards/zip_2026-11-07/replays/bob` | bob | owner gets own replay while their tier is replays |
+| deny | get | `leaderboards/zip_2026-11-07/replays/bob` | carol | get while the owner's tier is duel |
+| deny | get | `leaderboards/zip_2026-11-07/replays/bob` | carol | get while the owner's tier is board |
+| deny | get | `leaderboards/zip_2026-11-07/replays/bob` | carol | get while the owner's tier is hidden |
+| deny | get | `leaderboards/zip_2026-11-07/replays/bob` | carol | get while the owner has no tier doc (the default, board) |
+| deny | get | `leaderboards/zip_2026-11-07/replays/bob` | bob | owner gets own replay after lowering the tier to board |
+| deny | get | `leaderboards/zip_2026-11-07/replays/bob` | carol | get while the owner's tier doc has no tier |
+| deny | get | `leaderboards/zip_2026-11-07/replays/bob` | — | signed-out get while the owner's tier is replays |
+| deny | list | `leaderboards/zip_2026-11-07/replays/bob` | carol | signed-in list of a board's replays |
+| deny | create | `leaderboards/zip_2026-11-07/replays/bob` | bob | replay whose blob is a string |
+| deny | create | `leaderboards/zip_2026-11-07/replays/bob` | — | signed-out replay write |
+| deny | create | `leaderboards/zip_2026-11-07/replays/bob` | carol | replay under another uid |
+| deny | update | `leaderboards/zip_2026-11-07/replays/bob` | bob | owner rewrites a replay |
+| allow | delete | `leaderboards/zip_2026-11-07/replays/bob` | bob | owner deletes own replay |
+| allow | delete | `leaderboards/zip_2026-10-01/replays/bob` | bob | owner deletes own replay of a board past the entry window |
+| deny | delete | `leaderboards/zip_2026-11-07/replays/bob` | carol | another user deletes a replay |
+| deny | delete | `leaderboards/zip_2026-11-07/replays/bob` | — | signed-out delete of a replay |
+
+`blob` must be bytes of at most 12 288 (the cap of a duel result's replay), and the Rules Test API cannot send
+bytes (see `results (create)`), so every create above is a deny. The create rule and the tier read against real
+documents were checked on the local Firestore emulator instead (2026-11-13, REST, unsigned tokens, no network;
+request day `2026-11-13`, bob the owner, carol the reader, board `zip_<day>` unless the row names one):
+
+| Expect | Case |
+|---|---|
+| allow | create with a `blob` of 12 288 bytes |
+| allow | create with a `blob` of 1 byte |
+| allow | create with a `blob` of 0 bytes |
+| deny | create with a `blob` of 12 289 bytes |
+| deny | create with `blob` as a string |
+| deny | create with `blob` as an int |
+| deny | create with an extra field |
+| deny | create whose `uid` field names another player |
+| deny | create by another uid under bob |
+| deny | signed-out create |
+| deny | create with `formatVersion` 2 |
+| deny | create with `createdAtMs` 0 |
+| deny | create with `createdAtMs` as a string |
+| deny | create without `blob`, without `uid`, without `formatVersion`, without `createdAtMs` (four rows) |
+| allow | create on the board two days back (window start) |
+| allow | create on the board one day ahead (window end) |
+| deny | create on the board three days back |
+| deny | create on the board two days ahead |
+| allow | create on today's `tango`, `queens`, `strands`, `minisudoku` board (four rows) |
+| deny | create on a `sudoku` board (debug-only game) |
+| deny | create on a `chess` board (unknown game) |
+| deny | create on board id `zip_<day>_x` |
+| deny | create on board id `zip` |
+| deny | owner rewrites a published replay |
+| deny | get while the owner has no tier doc (a real missing doc), by carol and by bob |
+| deny | get after bob creates tier `duel` |
+| allow | get after bob raises the tier to `replays`, by carol and by bob |
+| deny | signed-out get while the tier is `replays` |
+| deny | list of the board's replays while the tier is `replays` |
+| deny | get right after bob lowers the tier to `board`, by carol and by bob |
+| deny | delete by carol, signed-out delete |
+| allow | delete by bob while the tier is `board` |
+
+The same emulator run gave the expected verdict for the `visibility` rows (owner create, raise and lower
+allowed; get by another player allowed; signed-out get, list, an off-ladder tier, `v` 2, an extra field, another
+user's update and create, and the owner's delete denied) and for a daily entry (seven fields allowed and read;
+an extra field and a 65-char `puzzleRef` denied). A get of a tier doc that does not exist answers not-found,
+not permission-denied, which is what lets a client read "no doc" as the default tier.
 
 ## matches (create)
 
@@ -404,14 +527,16 @@ Tombstones (`deleted`, `deletedAtMs`) stand for the draft and received kinds in 
 
 ## Last run
 
-2026-11-11, local `firestore.rules` with the optional result `replay` (not deployed;
-the run uses the local source on the Rules Test API): **213 cases, 213/213 passed**, exit 0.
+2026-11-13, local `firestore.rules` with `visibility`, `daily replays` and the closed daily entry keys (not
+deployed; the run uses the local source on the Rules Test API), two batches: **316 cases, 316/316 passed**,
+exit 0.
 
-The `account space` group (57 cases) was added after that run and has not run on the Rules Test API: run
-`run.sh` before the rules deploy. On the local Firestore emulator (REST, unsigned tokens, no network) all 57 gave
-their expected verdict, and so did the byte cases above (draft blob 65,536 bytes allowed, 65,537 denied; received
-bytes 8,192 allowed, 8,193 denied; a merge-set tombstone over a live draft allowed). A collection-group query over a kind (a list across all accounts)
-was denied there too; the Test API cannot express one.
+This is the first recorded run with the `account space` group (58 cases) on the Rules Test API; the previous
+record (2026-11-11, 213/213) predates it. That group's byte cases stay emulator-only (2026-11-11: draft blob
+65,536 bytes allowed, 65,537 denied; received bytes 8,192 allowed, 8,193 denied; a merge-set tombstone over a
+live draft allowed; a collection-group query over a kind, a list across all accounts, denied; the Test API
+cannot express one). So do the `daily replays` create rows above: 62 emulator checks on 2026-11-13, all with
+the expected verdict.
 
 ```
 PASS  ALLOW  [puzzles] anonymous get of a puzzle
@@ -521,6 +646,51 @@ PASS  DENY  [daily leaderboards (allow-list and day window)] tango entry three d
 PASS  DENY  [daily leaderboards (allow-list and day window)] strands entry two days ahead
 PASS  DENY  [daily leaderboards (allow-list and day window)] minisudoku entry a year back
 PASS  DENY  [daily leaderboards (allow-list and day window)] queens entry for a day that does not exist
+PASS  DENY  [daily leaderboards (closed keys and caps)] daily entry with an extra field
+PASS  ALLOW  [daily leaderboards (closed keys and caps)] 64-char display name
+PASS  DENY  [daily leaderboards (closed keys and caps)] 65-char display name
+PASS  DENY  [daily leaderboards (closed keys and caps)] empty display name
+PASS  ALLOW  [daily leaderboards (closed keys and caps)] 64-char puzzleRef
+PASS  DENY  [daily leaderboards (closed keys and caps)] 65-char puzzleRef
+PASS  ALLOW  [daily leaderboards (closed keys and caps)] signed-in read of an older entry that carries an extra field
+PASS  ALLOW  [visibility] another signed-in player gets a tier
+PASS  ALLOW  [visibility] owner gets own tier
+PASS  DENY  [visibility] signed-out get of a tier
+PASS  DENY  [visibility] signed-in list of tiers
+PASS  ALLOW  [visibility] owner sets tier hidden
+PASS  ALLOW  [visibility] owner sets tier board
+PASS  ALLOW  [visibility] owner sets tier duel
+PASS  ALLOW  [visibility] owner sets tier replays
+PASS  ALLOW  [visibility] owner raises the tier (board -> replays)
+PASS  ALLOW  [visibility] owner lowers the tier (replays -> hidden)
+PASS  DENY  [visibility] tier under another uid
+PASS  DENY  [visibility] signed-out tier write
+PASS  DENY  [visibility] a tier off the ladder
+PASS  DENY  [visibility] tier as a number
+PASS  DENY  [visibility] v 2
+PASS  DENY  [visibility] tier doc without v
+PASS  DENY  [visibility] tier doc without a tier
+PASS  DENY  [visibility] tier doc with an extra field
+PASS  DENY  [visibility] another user changes a tier
+PASS  DENY  [visibility] owner deletes the tier
+PASS  ALLOW  [daily replays] signed-in get while the owner's tier is replays
+PASS  ALLOW  [daily replays] owner gets own replay while their tier is replays
+PASS  DENY  [daily replays] get while the owner's tier is duel
+PASS  DENY  [daily replays] get while the owner's tier is board
+PASS  DENY  [daily replays] get while the owner's tier is hidden
+PASS  DENY  [daily replays] get while the owner has no tier doc (the default, board)
+PASS  DENY  [daily replays] owner gets own replay after lowering the tier to board
+PASS  DENY  [daily replays] get while the owner's tier doc has no tier
+PASS  DENY  [daily replays] signed-out get while the owner's tier is replays
+PASS  DENY  [daily replays] signed-in list of a board's replays
+PASS  DENY  [daily replays] replay whose blob is a string
+PASS  DENY  [daily replays] signed-out replay write
+PASS  DENY  [daily replays] replay under another uid
+PASS  DENY  [daily replays] owner rewrites a replay
+PASS  ALLOW  [daily replays] owner deletes own replay
+PASS  ALLOW  [daily replays] owner deletes own replay of a board past the entry window
+PASS  DENY  [daily replays] another user deletes a replay
+PASS  DENY  [daily replays] signed-out delete of a replay
 PASS  ALLOW  [matches (create)] open match with the matchQuota bump (3 -> 4, last = code)
 PASS  ALLOW  [matches (create)] rematch inviting a player (participants = [challenger, invited])
 PASS  ALLOW  [matches (create)] first-ever match starts the matchQuota doc at 1
@@ -624,8 +794,66 @@ PASS  DENY  [matchQuota] bump without last
 PASS  ALLOW  [matchQuota] owner reads own quota
 PASS  DENY  [matchQuota] another user reads the quota
 PASS  DENY  [matchQuota] owner deletes the quota
+PASS  ALLOW  [account space] owner creates a completions month doc
+PASS  ALLOW  [account space] owner overwrites a completions month doc
+PASS  ALLOW  [account space] owner creates an overflow completions doc
+PASS  ALLOW  [account space] owner creates a published doc
+PASS  ALLOW  [account space] owner creates a board doc
+PASS  ALLOW  [account space] owner writes a draft tombstone
+PASS  ALLOW  [account space] owner writes a received tombstone
+PASS  ALLOW  [account space] owner gets own doc
+PASS  ALLOW  [account space] owner lists own collection
+PASS  ALLOW  [account space] owner gets a replays doc
+PASS  DENY  [account space] other uid creates in the space
+PASS  DENY  [account space] other uid overwrites in the space
+PASS  DENY  [account space] other uid gets a doc
+PASS  DENY  [account space] other uid lists the space
+PASS  DENY  [account space] signed-out create
+PASS  DENY  [account space] signed-out get
+PASS  DENY  [account space] signed-out list
+PASS  DENY  [account space] list of another account's draft collection
+PASS  DENY  [account space] create under an unknown kind
+PASS  DENY  [account space] get under an unknown kind
+PASS  DENY  [account space] list under an unknown kind
+PASS  DENY  [account space] delete under an unknown kind
+PASS  DENY  [account space] replays doc without its replay
+PASS  DENY  [account space] replays doc whose replay is a string
+PASS  DENY  [account space] updatedAt other than the server time
+PASS  DENY  [account space] updatedAt missing
+PASS  DENY  [account space] formatVersion 2
+PASS  DENY  [account space] completions doc with an extra key
+PASS  DENY  [account space] published doc with an extra key
+PASS  DENY  [account space] draft tombstone with an extra key
+PASS  DENY  [account space] received tombstone with an extra key
+PASS  DENY  [account space] board doc with a session key
+PASS  DENY  [account space] completions doc without records
+PASS  DENY  [account space] published doc missing a key
+PASS  DENY  [account space] board doc without rows
+PASS  DENY  [account space] draft doc with neither shape
+PASS  DENY  [account space] draft tombstone with a text deletedAtMs
+PASS  DENY  [account space] draft doc whose blob is a string
+PASS  DENY  [account space] received doc whose bytes are a string
+PASS  DENY  [account space] published doc with a text unpublished
+PASS  DENY  [account space] completions doc id outside the month shape
+PASS  DENY  [account space] published doc id outside the share alphabet
+PASS  ALLOW  [account space] 64-char published name
+PASS  DENY  [account space] 65-char published name
+PASS  ALLOW  [account space] 64-char draft name
+PASS  DENY  [account space] 65-char draft name
+PASS  ALLOW  [account space] 64-char received sender name
+PASS  DENY  [account space] 65-char received sender name
+PASS  ALLOW  [account space] 51 board rows
+PASS  DENY  [account space] 52 board rows
+PASS  ALLOW  [account space] 1000 completion records
+PASS  DENY  [account space] 1001 completion records
+PASS  ALLOW  [account space] owner deletes a draft
+PASS  ALLOW  [account space] owner deletes a board
+PASS  ALLOW  [account space] owner deletes a replays doc
+PASS  DENY  [account space] other uid deletes a draft
+PASS  DENY  [account space] other uid deletes a board
+PASS  DENY  [account space] signed-out delete
 PASS  DENY  [deny-all] signed-in read of an unmatched path
 PASS  DENY  [deny-all] signed-in write of an unmatched path
 PASS  DENY  [deny-all] signed-in read of a puzzle's unknown subcollection
-213/213 passed
+316/316 passed
 ```

@@ -39,6 +39,16 @@
       "hints": 0,
       "completedAtMs": 1794052800000
     },
+    "tier": {
+      "tier": "replays",
+      "v": 1
+    },
+    "dailyReplay": {
+      "formatVersion": 1,
+      "uid": "bob",
+      "blob": "AQIDBA==",
+      "createdAtMs": 1794052800000
+    },
     "newMatch": {
       "formatVersion": 1,
       "createdAt": "2026-11-07T12:00:00Z",
@@ -2237,6 +2247,673 @@
       "data": {
         "$fixture": "dailyEntry",
         "puzzleRef": "queens/2026-11-31/1"
+      }
+    },
+    {
+      "group": "daily leaderboards (closed keys and caps)",
+      "name": "daily entry with an extra field",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "note": "x"
+      }
+    },
+    {
+      "group": "daily leaderboards (closed keys and caps)",
+      "name": "64-char display name",
+      "expect": "allow",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "displayName": {
+          "$repeat": [
+            "a",
+            64
+          ]
+        }
+      }
+    },
+    {
+      "group": "daily leaderboards (closed keys and caps)",
+      "name": "65-char display name",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "displayName": {
+          "$repeat": [
+            "a",
+            65
+          ]
+        }
+      }
+    },
+    {
+      "group": "daily leaderboards (closed keys and caps)",
+      "name": "empty display name",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "displayName": ""
+      }
+    },
+    {
+      "group": "daily leaderboards (closed keys and caps)",
+      "name": "64-char puzzleRef",
+      "expect": "allow",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "zip/2026-11-07/1234567890123456789012345678901234567890123456789"
+      }
+    },
+    {
+      "group": "daily leaderboards (closed keys and caps)",
+      "name": "65-char puzzleRef",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyEntry",
+        "puzzleRef": "zip/2026-11-07/12345678901234567890123456789012345678901234567890"
+      }
+    },
+    {
+      "group": "daily leaderboards (closed keys and caps)",
+      "name": "signed-in read of an older entry that carries an extra field",
+      "expect": "allow",
+      "method": "get",
+      "path": "leaderboards/zip_2026-11-07/entries/bob",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "dailyEntry",
+        "note": "x"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "another signed-in player gets a tier",
+      "expect": "allow",
+      "method": "get",
+      "path": "visibility/bob",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "tier",
+        "tier": "duel"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "owner gets own tier",
+      "expect": "allow",
+      "method": "get",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "tier"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "signed-out get of a tier",
+      "expect": "deny",
+      "method": "get",
+      "path": "visibility/bob",
+      "auth": null,
+      "resource": {
+        "$fixture": "tier"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "signed-in list of tiers",
+      "expect": "deny",
+      "method": "list",
+      "path": "visibility/bob",
+      "auth": "carol"
+    },
+    {
+      "group": "visibility",
+      "name": "owner sets tier hidden",
+      "expect": "allow",
+      "method": "create",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "tier",
+        "tier": "hidden"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "owner sets tier board",
+      "expect": "allow",
+      "method": "create",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "tier",
+        "tier": "board"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "owner sets tier duel",
+      "expect": "allow",
+      "method": "create",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "tier",
+        "tier": "duel"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "owner sets tier replays",
+      "expect": "allow",
+      "method": "create",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "tier"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "owner raises the tier (board -> replays)",
+      "expect": "allow",
+      "method": "update",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "tier",
+        "tier": "board"
+      },
+      "data": {
+        "$fixture": "tier"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "owner lowers the tier (replays -> hidden)",
+      "expect": "allow",
+      "method": "update",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "tier"
+      },
+      "data": {
+        "$fixture": "tier",
+        "tier": "hidden"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "tier under another uid",
+      "expect": "deny",
+      "method": "create",
+      "path": "visibility/bob",
+      "auth": "carol",
+      "data": {
+        "$fixture": "tier"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "signed-out tier write",
+      "expect": "deny",
+      "method": "create",
+      "path": "visibility/bob",
+      "auth": null,
+      "data": {
+        "$fixture": "tier"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "a tier off the ladder",
+      "expect": "deny",
+      "method": "create",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "tier",
+        "tier": "public"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "tier as a number",
+      "expect": "deny",
+      "method": "create",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "tier",
+        "tier": 3
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "v 2",
+      "expect": "deny",
+      "method": "create",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "tier",
+        "v": 2
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "tier doc without v",
+      "expect": "deny",
+      "method": "create",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "data": {
+        "tier": "board"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "tier doc without a tier",
+      "expect": "deny",
+      "method": "create",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "data": {
+        "v": 1
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "tier doc with an extra field",
+      "expect": "deny",
+      "method": "create",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "tier",
+        "note": "x"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "another user changes a tier",
+      "expect": "deny",
+      "method": "update",
+      "path": "visibility/bob",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "tier"
+      },
+      "data": {
+        "$fixture": "tier",
+        "tier": "hidden"
+      }
+    },
+    {
+      "group": "visibility",
+      "name": "owner deletes the tier",
+      "expect": "deny",
+      "method": "delete",
+      "path": "visibility/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "tier"
+      }
+    },
+    {
+      "group": "daily replays",
+      "name": "signed-in get while the owner's tier is replays",
+      "expect": "allow",
+      "method": "get",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "dailyReplay"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "visibility/bob",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "visibility/bob",
+          "data": {
+            "$fixture": "tier"
+          }
+        }
+      ]
+    },
+    {
+      "group": "daily replays",
+      "name": "owner gets own replay while their tier is replays",
+      "expect": "allow",
+      "method": "get",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "dailyReplay"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "visibility/bob",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "visibility/bob",
+          "data": {
+            "$fixture": "tier"
+          }
+        }
+      ]
+    },
+    {
+      "group": "daily replays",
+      "name": "get while the owner's tier is duel",
+      "expect": "deny",
+      "method": "get",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "dailyReplay"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "visibility/bob",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "visibility/bob",
+          "data": {
+            "$fixture": "tier",
+            "tier": "duel"
+          }
+        }
+      ]
+    },
+    {
+      "group": "daily replays",
+      "name": "get while the owner's tier is board",
+      "expect": "deny",
+      "method": "get",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "dailyReplay"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "visibility/bob",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "visibility/bob",
+          "data": {
+            "$fixture": "tier",
+            "tier": "board"
+          }
+        }
+      ]
+    },
+    {
+      "group": "daily replays",
+      "name": "get while the owner's tier is hidden",
+      "expect": "deny",
+      "method": "get",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "dailyReplay"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "visibility/bob",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "visibility/bob",
+          "data": {
+            "$fixture": "tier",
+            "tier": "hidden"
+          }
+        }
+      ]
+    },
+    {
+      "group": "daily replays",
+      "name": "get while the owner has no tier doc (the default, board)",
+      "expect": "deny",
+      "method": "get",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "dailyReplay"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "visibility/bob",
+          "value": false
+        }
+      ]
+    },
+    {
+      "group": "daily replays",
+      "name": "owner gets own replay after lowering the tier to board",
+      "expect": "deny",
+      "method": "get",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "dailyReplay"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "visibility/bob",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "visibility/bob",
+          "data": {
+            "$fixture": "tier",
+            "tier": "board"
+          }
+        }
+      ]
+    },
+    {
+      "group": "daily replays",
+      "name": "get while the owner's tier doc has no tier",
+      "expect": "deny",
+      "method": "get",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "dailyReplay"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "visibility/bob",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "visibility/bob",
+          "data": {
+            "v": 1
+          }
+        }
+      ]
+    },
+    {
+      "group": "daily replays",
+      "name": "signed-out get while the owner's tier is replays",
+      "expect": "deny",
+      "method": "get",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": null,
+      "resource": {
+        "$fixture": "dailyReplay"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "visibility/bob",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "visibility/bob",
+          "data": {
+            "$fixture": "tier"
+          }
+        }
+      ]
+    },
+    {
+      "group": "daily replays",
+      "name": "signed-in list of a board's replays",
+      "expect": "deny",
+      "method": "list",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "carol",
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "visibility/bob",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "visibility/bob",
+          "data": {
+            "$fixture": "tier"
+          }
+        }
+      ]
+    },
+    {
+      "group": "daily replays",
+      "name": "replay whose blob is a string",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "dailyReplay"
+      }
+    },
+    {
+      "group": "daily replays",
+      "name": "signed-out replay write",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": null,
+      "data": {
+        "$fixture": "dailyReplay"
+      }
+    },
+    {
+      "group": "daily replays",
+      "name": "replay under another uid",
+      "expect": "deny",
+      "method": "create",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "carol",
+      "data": {
+        "$fixture": "dailyReplay"
+      }
+    },
+    {
+      "group": "daily replays",
+      "name": "owner rewrites a replay",
+      "expect": "deny",
+      "method": "update",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "dailyReplay"
+      },
+      "data": {
+        "$fixture": "dailyReplay",
+        "createdAtMs": 1794052800001
+      }
+    },
+    {
+      "group": "daily replays",
+      "name": "owner deletes own replay",
+      "expect": "allow",
+      "method": "delete",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "dailyReplay"
+      }
+    },
+    {
+      "group": "daily replays",
+      "name": "owner deletes own replay of a board past the entry window",
+      "expect": "allow",
+      "method": "delete",
+      "path": "leaderboards/zip_2026-10-01/replays/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "dailyReplay"
+      }
+    },
+    {
+      "group": "daily replays",
+      "name": "another user deletes a replay",
+      "expect": "deny",
+      "method": "delete",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "dailyReplay"
+      }
+    },
+    {
+      "group": "daily replays",
+      "name": "signed-out delete of a replay",
+      "expect": "deny",
+      "method": "delete",
+      "path": "leaderboards/zip_2026-11-07/replays/bob",
+      "auth": null,
+      "resource": {
+        "$fixture": "dailyReplay"
       }
     },
     {
