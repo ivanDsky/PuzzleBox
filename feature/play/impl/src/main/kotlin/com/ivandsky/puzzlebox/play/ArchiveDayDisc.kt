@@ -1,20 +1,16 @@
 package com.ivandsky.puzzlebox.play
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -24,7 +20,6 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -48,9 +43,6 @@ private val ProgressRing = 2.5.dp
 private val SavedRing = 2.dp
 private val SelectedRing = 2.5.dp
 private val SelectedGap = 3.dp
-private val SavedDot = 4.dp
-private val SavedDotTop = 8.dp
-private val SavedDotEnd = 7.dp
 
 /** How far the selected ring's outer edge reaches past its disc on every side. */
 internal val SelectedRingRoom = SelectedGap + SelectedRing
@@ -125,14 +117,12 @@ internal fun archiveCellFor(disc: Dp): Dp = disc + (SelectedRingRoom + TodayBarC
  * One calendar cell (06-a §Month calendar): a [disc]-sized disc centred in [cell], the
  * day number over "#N" in the state's colours. [today] adds a bar under the disc and
  * [selected] a ring just outside it; offline a never-opened disc dims. An outside day
- * (null [day]) is only a faint number and takes no tap; others call [onClick]. A [saved] day
- * (it has a saved LinkedIn board, spec A25) carries a small dot at the disc's top right.
+ * (null [day]) is only a faint number and takes no tap; others call [onClick].
  */
 @Composable
 internal fun ArchiveDayDisc(
     date: LocalDate,
     day: ArchiveDay?,
-    saved: Boolean,
     today: Boolean,
     selected: Boolean,
     offline: Boolean,
@@ -203,19 +193,6 @@ internal fun ArchiveDayDisc(
                         color = text.copy(alpha = NUMBER_ALPHA),
                     )
                 }
-            }
-            if (saved && day != null) {
-                val dot = if (kind == DiscKind.Solved) LocalOnFill.current else accent
-                Box(
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(top = SavedDotTop, end = SavedDotEnd)
-                        .size(SavedDot)
-                        .clip(CircleShape)
-                        .background(dot)
-                        .testTag("library.calendar.day.$date.saved_board")
-                        .semantics { contentDescription = "Saved board" },
-                )
             }
         }
     }

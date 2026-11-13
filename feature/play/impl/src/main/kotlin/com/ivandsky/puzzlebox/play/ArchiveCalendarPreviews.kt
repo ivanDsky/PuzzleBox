@@ -46,10 +46,6 @@ private fun previewDays(month: YearMonth): List<ArchiveDay> =
             ArchiveDay(day, numberOf(day), status, archived = day.dayOfMonth % 4 == 0, openedOn = PreviewToday.minusDays(2))
         }
 
-/** Every fourth day of [month] has a saved board. */
-private fun previewSaved(month: YearMonth): Set<LocalDate> =
-    (1..month.lengthOfMonth()).filter { it % 4 == 0 }.mapTo(HashSet(), month::atDay)
-
 private fun previewRow(): LibraryRowModel = LibraryRowModel(
     card = GameCardModel(
         game = GameId("zip"),
@@ -72,7 +68,6 @@ private fun PreviewCalendar(month: YearMonth, picked: LocalDate?, offline: Boole
         range = PreviewRange,
         month = month,
         days = previewDays(month),
-        saved = previewSaved(month),
         picked = picked,
         offline = offline,
         accent = MaterialTheme.colorScheme.primary,
@@ -128,8 +123,6 @@ internal fun ArchiveDayDiscPreview() {
                 ArchiveDayDisc(
                     date = day.plusDays(index.toLong()),
                     day = status?.let { ArchiveDay(day.plusDays(index.toLong()), numberOf(day) + index, it, false, null) },
-                    // Saved on the first, third and last disc; the outside one never carries a dot.
-                    saved = index in setOf(0, 2, 4),
                     today = index == 0,
                     selected = index == 1,
                     offline = false,

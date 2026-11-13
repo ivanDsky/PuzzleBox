@@ -90,7 +90,7 @@ class CloudSyncSentinelE2ETest {
             syncEverything(phone)
             val boardIds = world.space.docs(me.uid, "boards").map { it.id }.toSet()
             assertEquals("the two days read are two board docs", 2, boardIds.size)
-            assertEquals("both days are shown here", setOf(E2E_TODAY, LINKEDIN_PAST_DAY), phone.shownBoardDays())
+            assertEquals("both days are shown here", setOf(E2E_TODAY, LINKEDIN_PAST_DAY), phone.shownBoardDays(E2E_TODAY, LINKEDIN_PAST_DAY))
             val others = listOf("completions", "drafts").associateWith { kind -> world.space.docs(me.uid, kind).map { it.id to it.updatedAtMs } }
             val deletesBefore = world.space.deletes
             val writesBefore = world.space.writes
@@ -100,7 +100,7 @@ class CloudSyncSentinelE2ETest {
             assertEquals(CloudResult.Ok(Unit), result)
             assertEquals("no board is left in the cloud", emptyList<CloudDoc>(), world.space.docs(me.uid, "boards"))
             assertEquals("one delete per board", deletesBefore + boardIds.size, world.space.deletes)
-            assertEquals("no board is shown here", emptySet<Any>(), phone.shownBoardDays())
+            assertEquals("no board is shown here", emptySet<Any>(), phone.shownBoardDays(E2E_TODAY, LINKEDIN_PAST_DAY))
             assertEquals("no connection of a deleted board is kept", 0, storedGhostRowCount())
             assertEquals("nothing but boards was deleted", others, KINDS.minus("boards").associateWith { kind -> world.space.docs(me.uid, kind).map { it.id to it.updatedAtMs } })
             assertEquals("the draft is still shown", setOf("draft-1"), phone.shownDrafts().map { it.id }.toSet())
@@ -132,9 +132,9 @@ class CloudSyncSentinelE2ETest {
         phone.makeDraft("draft-1", "Mine")
         openLinkedInGamePage()
         // One day at a time: picking another day while a read is held back drops that read.
-        awaitLinkedIn { E2E_TODAY in phone.shownBoardDays() }
+        awaitLinkedIn { E2E_TODAY in phone.shownBoardDays(E2E_TODAY) }
         pickLinkedInPastDay()
-        awaitLinkedIn { phone.shownBoardDays() == setOf(E2E_TODAY, LINKEDIN_PAST_DAY) }
+        awaitLinkedIn { phone.shownBoardDays(E2E_TODAY, LINKEDIN_PAST_DAY) == setOf(E2E_TODAY, LINKEDIN_PAST_DAY) }
         awaitLinkedIn {
             KINDS.all { world.space.docs(me.uid, it).isNotEmpty() } && world.space.docs(me.uid, "boards").size == 2 &&
                 phone.uploaded(me.uid) && phone.synced()

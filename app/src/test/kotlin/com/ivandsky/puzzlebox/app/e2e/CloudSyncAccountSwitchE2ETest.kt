@@ -54,7 +54,7 @@ class CloudSyncAccountSwitchE2ETest {
             val aDocs = spaceOf(a.uid)
             assertEquals("both finishes are shown to A", 2, phone.shownRecords().size)
             assertEquals(setOf("draft-1", "draft-2"), phone.shownDrafts().map { it.id }.toSet())
-            assertEquals(setOf(yesterday), phone.shownBoardDays())
+            assertEquals(setOf(yesterday), phone.shownBoardDays(yesterday))
 
             // A signs out, B signs in.
             phone.signOut()
@@ -69,7 +69,7 @@ class CloudSyncAccountSwitchE2ETest {
             assertEquals("A's space is as A left it", aDocs, spaceOf(a.uid))
             assertEquals("none of A's finishes is shown to B", emptyList<Any>(), phone.shownRecords())
             assertEquals("none of A's drafts is shown to B", emptyList<Any>(), phone.shownDrafts())
-            assertEquals("none of A's boards is shown to B", emptySet<Any>(), phone.shownBoardDays())
+            assertEquals("none of A's boards is shown to B", emptySet<Any>(), phone.shownBoardDays(yesterday))
 
             // B finishes the puzzle A finished, slower than A did: B's first finish is B's record, and A's time is not
             // B's best. (A's finished play is still in this process's session store, so B's finish goes in directly.)
@@ -96,7 +96,7 @@ class CloudSyncAccountSwitchE2ETest {
             assertEquals("A's own time on the shared puzzle", aToday.time, phone.shownRecords().single { it.puzzleRef == aToday.puzzleRef }.time)
             assertTrue("A's yesterday is back", phone.shownRecords().any { it.puzzleRef == aRef && it.isRecord })
             assertEquals("A's drafts are back", setOf("draft-1", "draft-2"), phone.shownDrafts().map { it.id }.toSet())
-            assertEquals("A's board is back", setOf(yesterday), phone.shownBoardDays())
+            assertEquals("A's board is back", setOf(yesterday), phone.shownBoardDays(yesterday))
             assertEquals("A's space is still as A left it", aDocs, spaceOf(a.uid))
         }
     }

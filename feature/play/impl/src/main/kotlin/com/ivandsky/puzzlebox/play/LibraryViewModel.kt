@@ -198,7 +198,7 @@ class LibraryViewModel(
     @OptIn(ExperimentalCoroutinesApi::class)
     internal val page: StateFlow<ArchivePageState?> =
         combine(selected, month, picked, ::Triple)
-            .flatMapLatest { (game, shown, day) -> archiveMonth.page(game, shown, day, calendar, linkedIn?.savedDays(game) ?: flowOf(emptySet())) }
+            .flatMapLatest { (game, shown, day) -> archiveMonth.page(game, shown, day, calendar) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     /** The day card's LinkedIn view; no stop grace, so a sync still in its debounce dies with the card. */

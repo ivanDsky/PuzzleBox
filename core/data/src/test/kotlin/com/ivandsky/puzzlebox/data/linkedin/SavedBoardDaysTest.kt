@@ -185,48 +185,6 @@ class SavedBoardDaysTest {
     }
 
     @Test
-    fun `the saved days of a game are the days read, any age, any link`() = runTest {
-        read(today.minusDays(30))
-        read(today.minusDays(2))
-        read(today.minusDays(1), game = GameId("queens"))
-
-        assertEquals(setOf(today.minusDays(30), today.minusDays(2)), reader.observeDays(zip).first())
-        assertEquals(setOf(today.minusDays(1)), reader.observeDays(GameId("queens")).first())
-        assertEquals(emptySet<LocalDate>(), reader.observeDays(GameId("tango")).first())
-    }
-
-    @Test
-    fun `the saved days leave out another account's boards and follow the visible owner`() = runTest {
-        val mine = today.minusDays(3)
-        val theirs = today.minusDays(2)
-        val ownerless = today.minusDays(1)
-        owners.writerUid = "alice"
-        read(mine)
-        owners.writerUid = "bob"
-        read(theirs)
-        owners.writerUid = null
-        read(ownerless)
-        owners.visibleOwner = "alice"
-
-        reader.observeDays(zip).test {
-            assertEquals(setOf(mine, ownerless), awaitItem())
-            owners.visibleOwner = "bob"
-            assertEquals(setOf(theirs, ownerless), awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `a board saved while the days are watched joins them`() = runTest {
-        reader.observeDays(zip).test {
-            assertEquals(emptySet<LocalDate>(), awaitItem())
-            read(today.minusDays(4))
-            assertEquals(setOf(today.minusDays(4)), awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
     fun `the owner's name stands in only from a board the visible account may see`() = runTest {
         owners.writerUid = "bob"
         read(today.minusDays(9), profile = "me", readAtMs = 1_000L)

@@ -231,7 +231,11 @@ internal class CloudSyncWorld(
 
         fun shownDrafts(): List<Draft> = runBlocking { graph.koin.get<DraftRepository>().observeAll().first() }
 
-        fun shownBoardDays(): Set<LocalDate> = runBlocking { graph.koin.get<LinkedInDays>().observeSavedDays(ZipDefinition.id).first() }
+        /** Which of [days] a screen of this phone shows a saved Zip board for, as [LinkedInDays.observe] reads local state. */
+        fun shownBoardDays(vararg days: LocalDate): Set<LocalDate> = runBlocking {
+            val linkedIn = graph.koin.get<LinkedInDays>()
+            days.filterTo(HashSet()) { linkedIn.observe(ZipDefinition.id, it).first().boardFetchedAtMs != null }
+        }
 
         /** A finished game of [day], as the play flow emits it; the repository stamps the owner and the first win. */
         fun finish(day: LocalDate, puzzleNumber: Int?, timeMs: Long = 61_000): PuzzleRef {

@@ -87,12 +87,6 @@ class ObserveLinkedInDayView(
     /** The view of [target]'s day as the phone holds it. Calls nothing: another collector's [invoke] syncs the day. */
     fun observed(target: Target): Flow<LinkedInDayView> = observe(target.game, target.day)
 
-    /**
-     * The days of [game] that have a saved board, for the archive calendar's dots (spec A25): one list per game, not a
-     * query per day. Reads what the phone holds and calls nothing.
-     */
-    fun savedDays(game: GameId): Flow<Set<LocalDate>> = days.observeSavedDays(game)
-
     /** The user asked again (Retry): the same day, one more sync. Does nothing unless a collector is on a day. */
     fun retry() {
         again.update { it + 1 }

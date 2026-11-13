@@ -9,41 +9,35 @@ import java.time.YearMonth
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 /**
- * The selected game's calendar: the shown [month] and its archive [days], the [picked] past day the day card
- * shows (null = today) and the [saved] days of the game that have a saved LinkedIn board (a dot on their disc).
+ * The selected game's calendar: the shown [month] and its archive [days], and the
+ * [picked] past day the day card shows (null = today).
  */
 internal data class ArchivePageState(
     val game: GameId,
     val month: YearMonth,
     val days: List<ArchiveDay>,
     val picked: ArchiveDay?,
-    val saved: Set<LocalDate>,
 )
 
-/**
- * [game]'s page for [shown] (null = today's month) and the past [day] picked for the day card, null while its today is not
- * known. [saved] is the game's saved-board days from one observation, whatever the month or the day.
- */
+/** [game]'s page for [shown] (null = today's month) and the past [day] picked for the day card, null while its today is not known. */
 internal fun ObserveArchiveMonth.page(
     game: GameId,
     shown: YearMonth?,
     day: LocalDate?,
     calendar: GameCalendar,
-    saved: Flow<Set<LocalDate>>,
 ): Flow<ArchivePageState?> {
     val target = shown ?: calendar.today(game)?.let(YearMonth::from) ?: return flowOf(null)
     val days = this(game, target)
-    if (day == null) return combine(days, saved) { list, boards -> ArchivePageState(game, target, list, null, boards) }
+    if (day == null) return days.map { ArchivePageState(game, target, it, null) }
     val dayMonth = YearMonth.from(day)
     if (dayMonth == target) {
-        return combine(days, saved) { list, boards ->
-            ArchivePageState(game, target, list, list.firstOrNull { it.date == day }, boards)
-        }
+        return days.map { list -> ArchivePageState(game, target, list, list.firstOrNull { it.date == day }) }
     }
     // The picked day sits in another month: its own query keeps its status live.
-    return combine(days, this(game, dayMonth), saved) { list, other, boards ->
-        ArchivePageState(game, target, list, other.firstOrNull { it.date == day }, boards)
+    return combine(days, this(game, dayMonth)) { list, other ->
+        ArchivePageState(game, target, list, other.firstOrNull { it.date == day })
     }
 }
