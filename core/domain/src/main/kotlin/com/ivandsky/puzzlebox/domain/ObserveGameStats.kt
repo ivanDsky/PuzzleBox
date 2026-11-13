@@ -32,7 +32,7 @@ class ObserveGameStats(
             val records = solved.mapNotNull { it.record }
             val solvedDays = solved.map { it.day }
             val streakDays = solved.filter { it.isStreakDay() }.map { it.day }
-            val ledger = computeStreak.ledger(streakDays)
+            val ledger = computeStreak(streakDays)
             GameStats(
                 currentStreak = ledger.current,
                 bestStreak = ledger.best,

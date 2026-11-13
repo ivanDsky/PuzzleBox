@@ -16,7 +16,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * The streak-freeze rule as [ComputeStreak.ledger] replays it with `StreakFreeze` on: the spec's
+ * The streak-freeze rule as [ComputeStreak.invoke] replays it with `StreakFreeze` on: the spec's
  * golden table row by row, its edges, and the day-by-day walk the gap-jumping pass must equal.
  * With the flag off the ledger is the strict streak and carries no freezes.
  */
@@ -54,7 +54,7 @@ class StreakLedgerTest {
     private fun goldenRow(solvedThrough: Int, today: Int = solvedThrough): Row {
         val solved = goldenSolved.filter { it <= solvedThrough }.map(::day)
         val streak = streakOn(day(today))
-        val ledger = streak.ledger(solved)
+        val ledger = streak(solved)
         val replay = streak.replay(solved)
         val freezes = checkNotNull(ledger.freezes)
         return Row(
@@ -69,12 +69,12 @@ class StreakLedgerTest {
     }
 
     private fun goldenMoment(solvedThrough: Int, today: Int = solvedThrough): Moment? =
-        streakOn(day(today)).ledger(goldenSolved.filter { it <= solvedThrough }.map(::day)).freezes?.lastSolve
+        streakOn(day(today))(goldenSolved.filter { it <= solvedThrough }.map(::day)).freezes?.lastSolve
 
     @Test
     fun `no solves is an empty ledger seven days from a freeze`() {
         val expected = StreakLedger(0, 0, StreakFreezes(held = 0, frozenDays = emptySet(), daysToNext = 7, lastSolve = null))
-        assertEquals(expected, streakOn(day(1)).ledger(emptyList()))
+        assertEquals(expected, streakOn(day(1))(emptyList()))
     }
 
     @Test
@@ -166,16 +166,16 @@ class StreakLedgerTest {
     }
 
     @Test
-    fun `ledger current and best read the freeze-aware ledger`() {
+    fun `invoke current and best read the freeze-aware ledger`() {
         val streak = streakOn(day(9))
         val solved = (1..7).map(::day)
-        assertEquals(7, streak.ledger(solved).current)
-        assertEquals(7, streak.ledger(solved).best)
+        assertEquals(7, streak(solved).current)
+        assertEquals(7, streak(solved).best)
     }
 
     @Test
     fun `a gap of 2 holding 2 is bridged`() {
-        val ledger = streakOn(day(4)).ledger(listOf(day(1), day(4)))
+        val ledger = streakOn(day(4))(listOf(day(1), day(4)))
         val moment = Moment(day(4), spent = listOf(day(2), day(3)), earned = false)
         val freezes = StreakFreezes(held = 0, frozenDays = setOf(day(2), day(3)), daysToNext = 6, lastSolve = moment)
         assertEquals(StreakLedger(current = 2, best = 2, freezes = freezes), ledger)
@@ -183,7 +183,7 @@ class StreakLedgerTest {
 
     @Test
     fun `a gap of 3 holding 2 breaks`() {
-        val ledger = streakOn(day(5)).ledger(listOf(day(1), day(5)))
+        val ledger = streakOn(day(5))(listOf(day(1), day(5)))
         val moment = Moment(day(5), spent = emptyList(), earned = false)
         val freezes = StreakFreezes(held = 0, frozenDays = emptySet(), daysToNext = 6, lastSolve = moment)
         assertEquals(StreakLedger(current = 1, best = 1, freezes = freezes), ledger)
@@ -193,8 +193,8 @@ class StreakLedgerTest {
     fun `yesterday missed spends at the puzzle-day rollover, today open never does`() {
         val solved = listOf(day(1), day(2))
 
-        val lastSecondOfDay3 = streakAt(Instant.parse("2026-01-03T23:59:59Z")).ledger(solved)
-        val firstSecondOfDay4 = streakAt(Instant.parse("2026-01-04T00:00:00Z")).ledger(solved)
+        val lastSecondOfDay3 = streakAt(Instant.parse("2026-01-03T23:59:59Z"))(solved)
+        val firstSecondOfDay4 = streakAt(Instant.parse("2026-01-04T00:00:00Z"))(solved)
 
         val moment = Moment(day(2), spent = emptyList(), earned = false)
         val open = StreakFreezes(held = 2, frozenDays = emptySet(), daysToNext = 5, lastSolve = moment)
@@ -211,9 +211,9 @@ class StreakLedgerTest {
         repeat(GENERATED_SETS) {
             val solved = generatedDays(random, today)
             val strict = StreakLedger(current = strictCurrent(solved, today), best = strictBest(solved), freezes = null)
-            assertEquals("solved $solved", strict, streak.ledger(solved))
-            assertEquals(strict.current, streak.ledger(solved).current)
-            assertEquals(strict.best, streak.ledger(solved).best)
+            assertEquals("solved $solved", strict, streak(solved))
+            assertEquals(strict.current, streak(solved).current)
+            assertEquals(strict.best, streak(solved).best)
         }
     }
 
@@ -236,7 +236,7 @@ class StreakLedgerTest {
         repeat(GENERATED_SETS) {
             val solved = generatedDays(random, today)
             val arrived = (solved + solved.take(5)).shuffled(random)
-            assertEquals("solved $solved", streak.ledger(solved.sorted()), streak.ledger(arrived))
+            assertEquals("solved $solved", streak(solved.sorted()), streak(arrived))
         }
     }
 
@@ -259,7 +259,7 @@ class StreakLedgerTest {
     // A walk over every calendar day between these two solves would never finish.
     @Test(timeout = 10_000)
     fun `a gap is jumped, never walked day by day`() {
-        val ledger = streakOn(day(1)).ledger(listOf(LocalDate.MIN, day(1)))
+        val ledger = streakOn(day(1))(listOf(LocalDate.MIN, day(1)))
         assertEquals(1, ledger.current)
         assertEquals(0, ledger.freezes?.held)
     }
