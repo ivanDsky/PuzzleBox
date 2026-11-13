@@ -68,19 +68,25 @@ class DraftsKindTest {
 
     private suspend fun pendingIds(uid: String = ANN): List<String> = kind.pending(uid).map { it.id }.sorted()
 
-    private fun live(id: String, editedAtMs: Long, name: String = "Cloud $id", blob: ByteArray = byteArrayOf(9, 9)) =
-        CloudDoc(
-            id,
-            mapOf(
-                "formatVersion" to 1L,
-                "gameId" to "queens",
-                "variant" to "queens/n8",
-                "draftFormatVersion" to 1L,
-                "name" to name,
-                "blob" to blob,
-                "editedAtMs" to editedAtMs,
-            ),
-        )
+    private fun live(
+        id: String,
+        editedAtMs: Long,
+        name: String = "Cloud $id",
+        blob: ByteArray = byteArrayOf(9, 9),
+        reservedCode: String? = null,
+    ) = CloudDoc(
+        id,
+        buildMap {
+            put("formatVersion", 1L)
+            put("gameId", "queens")
+            put("variant", "queens/n8")
+            put("draftFormatVersion", 1L)
+            put("name", name)
+            put("blob", blob)
+            put("editedAtMs", editedAtMs)
+            reservedCode?.let { put("reservedCode", it) }
+        },
+    )
 
     private fun tombstone(id: String, deletedAtMs: Long) =
         CloudDoc(id, mapOf("formatVersion" to 1L, "deleted" to true, "deletedAtMs" to deletedAtMs))
@@ -190,6 +196,101 @@ class DraftsKindTest {
         assertEquals("CODE", stored.reservedCode)
         assertEquals("Ann", stored.authorName)
         assertEquals("hi", stored.note)
+    }
+
+    @Test
+    fun `a draft kept under a published code uploads its reserved code`() = runTest {
+        db.draftDao().upsert(entity("a", ANN, 2_000L, null, reservedCode = "K7Q2MX"))
+
+        val doc = kind.pending(ANN).single()
+
+        assertEquals("K7Q2MX", doc.fields["reservedCode"])
+        assertEquals(1L, doc.fields["formatVersion"])
+    }
+
+    @Test
+    fun `reserving a code on an uploaded draft makes it pending again`() = runTest {
+        seed("a")
+        kind.acknowledge(ANN, kind.pending(ANN))
+        assertEquals(emptyList<String>(), pendingIds())
+
+        db.draftDao().upsert(entity("a", ANN, 1_000L, row("a")!!.uploadedFingerprint, reservedCode = "K7Q2MX"))
+
+        assertEquals(listOf("a"), pendingIds())
+    }
+
+    @Test
+    fun `a cloud draft with a reserved code is restored with it`() = runTest {
+        val restored = kind.apply(ANN, listOf(live("new", editedAtMs = 2_000L, reservedCode = "K7Q2MX")))
+
+        assertEquals(1, restored)
+        assertEquals("K7Q2MX", row("new")!!.reservedCode)
+        assertEquals(emptyList<String>(), pendingIds())
+    }
+
+    @Test
+    fun `a newer cloud edit with a code replaces the content and sets the code`() = runTest {
+        seed("a", editedAtMs = 1_000L)
+
+        kind.apply(ANN, listOf(live("a", editedAtMs = 2_000L, reservedCode = "K7Q2MX")))
+
+        val stored = row("a")!!
+        assertEquals("Cloud a", stored.title)
+        assertEquals("K7Q2MX", stored.reservedCode)
+    }
+
+    @Test
+    fun `an older or equal cloud doc gives a local draft without a code its code and nothing else`() = runTest {
+        seed("a", editedAtMs = 2_000L)
+        seed("b", editedAtMs = 2_000L)
+
+        kind.apply(
+            ANN,
+            listOf(
+                live("a", editedAtMs = 1_000L, reservedCode = "K7Q2MX"),
+                live("b", editedAtMs = 2_000L, reservedCode = "B4N8TW"),
+            ),
+        )
+
+        val a = row("a")!!
+        assertEquals("K7Q2MX", a.reservedCode)
+        assertEquals("Draft a", a.title)
+        assertEquals(2_000L, a.updatedAt)
+        assertEquals("B4N8TW", row("b")!!.reservedCode)
+    }
+
+    @Test
+    fun `a code is never cleared by an older or newer doc without one`() = runTest {
+        db.draftDao().upsert(entity("old", ANN, 3_000L, null, reservedCode = "K7Q2MX"))
+        db.draftDao().upsert(entity("new", ANN, 1_000L, null, reservedCode = "B4N8TW"))
+
+        kind.apply(ANN, listOf(live("old", editedAtMs = 1_000L), live("new", editedAtMs = 2_000L)))
+
+        assertEquals("K7Q2MX", row("old")!!.reservedCode)
+        assertEquals("a newer doc replaces the content but not the code", "Cloud new", row("new")!!.title)
+        assertEquals("B4N8TW", row("new")!!.reservedCode)
+        val uploaded = kind.pending(ANN).associate { it.id to it.fields["reservedCode"] }
+        assertEquals("the kept codes go back up", mapOf("old" to "K7Q2MX", "new" to "B4N8TW"), uploaded)
+    }
+
+    @Test
+    fun `a local code wins over a different code in an older doc`() = runTest {
+        db.draftDao().upsert(entity("a", ANN, 3_000L, null, reservedCode = "K7Q2MX"))
+
+        kind.apply(ANN, listOf(live("a", editedAtMs = 1_000L, reservedCode = "B4N8TW")))
+
+        assertEquals("K7Q2MX", row("a")!!.reservedCode)
+    }
+
+    @Test
+    fun `a reserved code that is not a share code is ignored`() = runTest {
+        kind.apply(
+            ANN,
+            listOf(live("bad", editedAtMs = 2_000L, reservedCode = "k7q2mx"), live("short", 2_000L, reservedCode = "K7Q")),
+        )
+
+        assertNull(row("bad")!!.reservedCode)
+        assertNull(row("short")!!.reservedCode)
     }
 
     @Test

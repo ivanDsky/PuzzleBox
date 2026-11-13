@@ -52,6 +52,8 @@ class PublishedKindTest {
         assertEquals("zip", row.gameId)
         assertEquals("Cats", row.title)
         assertEquals(7L, row.createdAt)
+        assertEquals("zip/6", row.variant)
+        assertEquals(42_000L, row.authorTimeMs)
         assertEquals(false, row.unpublished)
         assertNull(row.solvesCount)
         assertNull(row.solvesCountAt)
@@ -194,9 +196,92 @@ class PublishedKindTest {
                 "name" to "Cats",
                 "publishedAtMs" to 7L,
                 "unpublished" to true,
+                "variant" to "zip/6",
+                "authorTimeMs" to 42_000L,
             ),
             doc.fields,
         )
+    }
+
+    @Test
+    fun `a legacy doc without variant and authorTimeMs restores with the empty values and stays acknowledged`() = runTest {
+        val legacy = doc("AAA111", variant = null, authorTimeMs = null)
+        assertEquals(setOf("formatVersion", "gameId", "name", "publishedAtMs", "unpublished"), legacy.fields.keys)
+
+        val restored = kind.apply("ann", listOf(legacy))
+
+        assertEquals(1, restored)
+        val row = row("AAA111")
+        assertEquals("", row.variant)
+        assertEquals(0L, row.authorTimeMs)
+        assertTrue("a restored legacy row is not pending", kind.pending("ann").isEmpty())
+    }
+
+    @Test
+    fun `a row with no variant or author time uploads neither key`() = runTest {
+        dao.upsert(copyWithoutDetails(entity("AAA111", owner = "ann")))
+
+        val fields = kind.pending("ann").single().fields
+
+        assertEquals(setOf("formatVersion", "gameId", "name", "publishedAtMs", "unpublished"), fields.keys)
+    }
+
+    @Test
+    fun `a published row's variant and author time survive a round trip through the cloud`() = runTest {
+        seed("AAA111", owner = "ann")
+        val uploaded = kind.pending("ann").single()
+
+        kind.apply("ann", listOf(CloudDoc("BBB222", uploaded.fields)))
+
+        val row = row("BBB222")
+        assertEquals("zip/6", row.variant)
+        assertEquals(42_000L, row.authorTimeMs)
+        assertEquals(listOf("AAA111"), kind.pending("ann").map { it.id })
+    }
+
+    @Test
+    fun `a row restored from a legacy doc takes the variant and author time a later doc carries`() = runTest {
+        kind.apply("ann", listOf(doc("AAA111", variant = null, authorTimeMs = null)))
+
+        kind.apply("ann", listOf(doc("AAA111")))
+
+        val row = row("AAA111")
+        assertEquals("zip/6", row.variant)
+        assertEquals(42_000L, row.authorTimeMs)
+        assertTrue(kind.pending("ann").isEmpty())
+    }
+
+    @Test
+    fun `a local variant and author time win over the doc's`() = runTest {
+        seed("AAA111", owner = "ann", fingerprint = "old")
+
+        kind.apply("ann", listOf(doc("AAA111", variant = "zip/8", authorTimeMs = 9_000)))
+
+        val row = row("AAA111")
+        assertEquals("zip/6", row.variant)
+        assertEquals(42_000L, row.authorTimeMs)
+    }
+
+    @Test
+    fun `a doc whose variant or author time is mistyped or negative is skipped`() = runTest {
+        val restored = kind.apply(
+            "ann",
+            listOf(
+                CloudDoc("AAA111", encoded("AAA111") + ("variant" to 6L)),
+                CloudDoc("BBB222", encoded("BBB222") + ("authorTimeMs" to "slow")),
+                CloudDoc("CCC333", encoded("CCC333") + ("authorTimeMs" to -1L)),
+            ),
+        )
+
+        assertEquals(0, restored)
+        assertTrue(dao.owned("ann").isEmpty())
+    }
+
+    @Test
+    fun `the format version is the shared const`() = runTest {
+        seed("AAA111", owner = "ann")
+
+        assertEquals(CLOUD_FORMAT_VERSION, kind.pending("ann").single().fields["formatVersion"])
     }
 
     @Test
@@ -318,19 +403,27 @@ class PublishedKindTest {
         uploadedFingerprint = fingerprint,
     )
 
+    /** The doc [seed]'s rows encode to; a null [variant] or [authorTimeMs] is a legacy doc without the key. */
     private fun encoded(
         code: String,
         title: String = "T $code",
         gameId: String = "zip",
         createdAt: Long = 1,
         unpublished: Boolean = false,
-    ) = mapOf(
-        "formatVersion" to 1L,
-        "gameId" to gameId,
-        "name" to title,
-        "publishedAtMs" to createdAt,
-        "unpublished" to unpublished,
-    )
+        variant: String? = "zip/6",
+        authorTimeMs: Long? = 42_000,
+    ): Map<String, Any?> {
+        val fields = mutableMapOf<String, Any?>(
+            "formatVersion" to 1L,
+            "gameId" to gameId,
+            "name" to title,
+            "publishedAtMs" to createdAt,
+            "unpublished" to unpublished,
+        )
+        variant?.let { fields["variant"] = it }
+        authorTimeMs?.let { fields["authorTimeMs"] = it }
+        return fields
+    }
 
     private fun doc(
         code: String,
@@ -338,5 +431,22 @@ class PublishedKindTest {
         at: Long = 1,
         unpublished: Boolean = false,
         gameId: String = "zip",
-    ) = CloudDoc(code, encoded(code, name, gameId, at, unpublished), updatedAtMs = 1_000)
+        variant: String? = "zip/6",
+        authorTimeMs: Long? = 42_000,
+    ) = CloudDoc(code, encoded(code, name, gameId, at, unpublished, variant, authorTimeMs), updatedAtMs = 1_000)
+
+    private fun copyWithoutDetails(row: PublishedPuzzleEntity) = PublishedPuzzleEntity(
+        code = row.code,
+        gameId = row.gameId,
+        variant = "",
+        title = row.title,
+        authorTimeMs = 0,
+        createdAt = row.createdAt,
+        unpublished = row.unpublished,
+        solvesCount = null,
+        solvesCountAt = null,
+        authorHints = 0,
+        ownerUid = row.ownerUid,
+        uploadedFingerprint = null,
+    )
 }

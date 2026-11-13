@@ -9,14 +9,21 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import java.time.Instant
 
-/** One Published-tab row: [row]'s game tile, its title, "Author 1:42" and its age as of [now]. */
+/**
+ * One Published-tab row: [row]'s game tile, its title, "Author 1:42" (nothing for a row restored from a legacy doc, whose
+ * author time is unknown) and its age as of [now].
+ */
 internal fun publishedRowOf(row: PublishedPuzzle, plays: GamePlayRegistry, now: Instant) =
     CreateUiState.PublishedRow(
         code = row.code,
         gameId = row.gameId,
         brand = plays.brandOf(row.gameId),
         title = row.title,
-        meta = if (row.unpublished) "Unpublished" else "Author ${formatDuration(row.authorTimeMs)}",
+        meta = when {
+            row.unpublished -> "Unpublished"
+            row.authorTimeMs > 0 -> "Author ${formatDuration(row.authorTimeMs)}"
+            else -> ""
+        },
         published = ageLabel("published", row.createdAt, now),
         unpublished = row.unpublished,
         solves = row.solvesCount,

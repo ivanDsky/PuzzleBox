@@ -97,7 +97,8 @@ fun PublishedRow(row: CreateUiState.PublishedRow, onOpen: () -> Unit, modifier: 
 }
 
 /**
- * The solve count beside the row's meta: "3 solves · Author 1:42", or "Unpublished · 3 solves".
+ * The solve count beside the row's meta: "3 solves · Author 1:42", or "Unpublished · 3 solves"; the count alone when
+ * the row has no meta.
  * A fresh count replaces the cached one with a **Slide up + Fade** (DurationShort; a fade
  * under reduced motion), so a change reads as an update rather than a jump.
  */
@@ -114,7 +115,10 @@ private fun MetaLine(row: CreateUiState.PublishedRow) {
             meta(Modifier.weight(1f, fill = false))
             return@Row
         }
-        if (row.unpublished) {
+        if (row.meta.isEmpty()) {
+            // A legacy row has no author time to show beside the count.
+            SolvesCount(solves, Modifier)
+        } else if (row.unpublished) {
             Text("${row.meta} · ", color = color, style = style, maxLines = 1)
             SolvesCount(solves, Modifier.weight(1f, fill = false))
         } else {

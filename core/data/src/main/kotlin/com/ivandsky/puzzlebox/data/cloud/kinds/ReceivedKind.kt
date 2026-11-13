@@ -150,7 +150,7 @@ private fun postRank(state: String): Int = when (state) {
 
 private fun ReceivedPuzzleEntity.toDoc(): CloudDoc {
     val fields = mutableMapOf<String, Any?>(
-        "formatVersion" to 1L,
+        "formatVersion" to CLOUD_FORMAT_VERSION,
         "gameId" to gameId,
         "variant" to variant,
         "sharedFormatVersion" to sharedFormatVersion.toLong(),
@@ -170,7 +170,7 @@ private fun ReceivedPuzzleEntity.toDoc(): CloudDoc {
 }
 
 private fun SyncTombstoneEntity.toDoc() =
-    CloudDoc(docId, mapOf("formatVersion" to 1L, "deleted" to true, "deletedAtMs" to deletedAtMs))
+    CloudDoc(docId, mapOf("formatVersion" to CLOUD_FORMAT_VERSION, "deleted" to true, "deletedAtMs" to deletedAtMs))
 
 /** Null for a doc that cannot be used: a code that does not parse, or a live doc missing what opens the puzzle. */
 private fun decode(uid: String, doc: CloudDoc): IncomingReceived? {

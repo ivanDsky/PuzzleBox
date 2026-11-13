@@ -89,7 +89,8 @@ class PublishedPuzzleViewModel(
                 code = code,
                 title = row.title,
                 author = stored.authorName.trim(),
-                authorTimeMs = row.authorTimeMs,
+                // A row restored from a legacy doc has no author time; the ticket then shows none.
+                authorTimeMs = row.authorTimeMs.takeIf { it > 0 },
                 game = games.displayName(row.gameId),
                 accent = plays.brandOf(row.gameId).accent,
                 unpublished = row.unpublished,
