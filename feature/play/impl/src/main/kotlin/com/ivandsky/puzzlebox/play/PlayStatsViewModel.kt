@@ -73,7 +73,7 @@ class PlayStatsViewModel(
         gamesToday = registry.all.size,
         streak = null,
         // Seven empty days, so the strip holds its height while history loads.
-        week = week(emptySet(), calendar.today(slot.gameId) ?: (slot as? PlaySlot.Daily)?.day ?: LocalDate.now()),
+        week = week(emptySet(), emptySet(), calendar.today(slot.gameId) ?: (slot as? PlaySlot.Daily)?.day ?: LocalDate.now()),
         best = null,
         rankOrder = registry[slot.gameId]?.score?.rankOrder ?: RankOrder.TimeThenHints,
         averageMs = null,
@@ -96,11 +96,12 @@ class PlayStatsViewModel(
         solvedToday = stats.solvedToday,
         gamesToday = stats.gamesToday,
         streak = stats.stats.currentStreak,
-        week = week(stats.streakDays, stats.today),
+        week = week(stats.streakDays, stats.stats.freezes?.frozenDays.orEmpty(), stats.today),
         best = stats.stats.best,
         rankOrder = stats.stats.rankOrder,
         averageMs = stats.stats.averageTimeMs,
         times = times(stats.board, stats.solved, post, input),
+        freezesHeld = stats.stats.freezes?.held,
     )
 
     /** The signed-in player's post to the slot's daily board; null when none is observed. */
@@ -110,12 +111,12 @@ class PlayStatsViewModel(
         return if (daily == null || uid == null) flowOf(null) else posts.observe(uid, LeaderboardRef(daily.gameId.value, daily.day))
     }
 
-    /** The seven days ending [today], each ringed when it is one of this game's [streakDays]. */
-    private fun week(streakDays: Set<LocalDate>, today: LocalDate): List<WeekDay> {
+    /** The seven days ending [today], each ringed when it is one of this game's [streakDays], marked when one of its [frozenDays]. */
+    private fun week(streakDays: Set<LocalDate>, frozenDays: Set<LocalDate>, today: LocalDate): List<WeekDay> {
         val brand = listOf(brands.brandOf(slot.gameId))
         return (WEEK_DAYS - 1 downTo 0L).map { back ->
             val date = today.minusDays(back)
-            WeekDay(date, if (date in streakDays) brand else emptyList(), isToday = back == 0L)
+            WeekDay(date, if (date in streakDays) brand else emptyList(), isToday = back == 0L, frozen = date in frozenDays)
         }
     }
 

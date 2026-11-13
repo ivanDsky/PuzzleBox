@@ -29,8 +29,13 @@ private val PreviewBrand = GameBrand.Neutral.copy(accent = AccentSlot.Blue)
 // A 30% side pane on a 1280dp-wide tablet.
 private val PreviewPaneWidth = 384.dp
 
-private fun previewWeek(solvedBack: Set<Long>): List<WeekDay> = (6L downTo 0L).map { back ->
-    WeekDay(PreviewToday.minusDays(back), if (back in solvedBack) listOf(PreviewBrand) else emptyList(), isToday = back == 0L)
+private fun previewWeek(solvedBack: Set<Long>, frozenBack: Set<Long> = emptySet()): List<WeekDay> = (6L downTo 0L).map { back ->
+    WeekDay(
+        PreviewToday.minusDays(back),
+        if (back in solvedBack) listOf(PreviewBrand) else emptyList(),
+        isToday = back == 0L,
+        frozen = back in frozenBack,
+    )
 }
 
 private fun real(place: Int, name: String, timeMs: Long, hints: Int = 0, you: Boolean = false, rank: Int = place) =
@@ -76,6 +81,14 @@ private fun PanelPreview(state: PlayStatsState, elapsedMs: Long?) {
 @PuzzleBoxPreviews
 @Composable
 internal fun PlayStatsPanelLoadedPreview() = PanelPreview(Loaded, elapsedMs = 31_000L)
+
+/** Streak freezes on: a missed day a freeze covered, and the held count beside the streak line. */
+@PuzzleBoxPreviews
+@Composable
+internal fun PlayStatsPanelFreezesPreview() = PanelPreview(
+    Loaded.copy(week = previewWeek(setOf(1, 2, 4, 5, 6), frozenBack = setOf(3)), freezesHeld = 2),
+    elapsedMs = 31_000L,
+)
 
 @PuzzleBoxPreviews
 @Composable

@@ -33,6 +33,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
+import com.ivandsky.puzzlebox.gameui.FreezeCount
 import com.ivandsky.puzzlebox.gameui.WeekStrip
 import com.ivandsky.puzzlebox.gameui.bestScoreText
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
@@ -113,8 +114,10 @@ private fun StreakCard(state: PlayStatsState) {
                 streakText(state.streak),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.ExtraBold,
-                modifier = Modifier.testTag("play.stats.streak"),
+                // The count pill keeps its width when the no-streak line wraps in a narrow pane.
+                modifier = Modifier.weight(1f, fill = false).testTag("play.stats.streak"),
             )
+            state.freezesHeld?.let { FreezeCount(it) }
         }
         WeekStrip(days = state.week, total = 1, modifier = Modifier.padding(top = Spacing.sm).testTag("play.stats.week"))
         Row(Modifier.padding(top = Spacing.sm)) {

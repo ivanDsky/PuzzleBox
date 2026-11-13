@@ -7,8 +7,10 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -18,6 +20,8 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
@@ -55,6 +59,7 @@ import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.play.friend.oneGoogleAccount
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -116,6 +121,7 @@ class PlayStatsPanelTest {
         slotDay: LocalDate = day,
         idTokens: GoogleIdTokenProvider = dismissedGoogleSignIn,
         linkedIn: Boolean = false,
+        flags: ReleaseFlags = FakeReleaseFlags(),
     ): PlayStatsViewModel {
         val history = ObserveGameHistory(fakes.games, daily, completions)
         val identityService = FakeIdentityService(identity)
@@ -129,7 +135,7 @@ class PlayStatsPanelTest {
                     fakes.games, FakeSavedPlayRepository(), completions, calendar, daily,
                     SyncTodayPuzzles(fakes.games, daily, calendar),
                 ),
-                stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games))),
+                stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games), flags)),
                 history = history,
                 calendar = calendar,
                 leaderboard = ObserveLeaderboard(identityService, leaderboard, fakes.games, calendar),
@@ -310,6 +316,35 @@ class PlayStatsPanelTest {
         composeRule.onNodeWithTag("play.stats.best").assertTextContains("1:00", substring = true)
         composeRule.onNodeWithTag("play.stats.average").assertTextContains("1:15", substring = true)
         composeRule.onNodeWithTag("play.stats.week").assertExists()
+    }
+
+    @Test
+    fun `with freezes held the streak line shows the count beside it`() {
+        showFrozen(viewModel().state.value.copy(streak = 12, freezesHeld = 2))
+
+        composeRule.onNodeWithContentDescription("2 freezes").assertExists()
+        composeRule.onNodeWithTag("play.stats.streak").assertTextEquals("12-day streak")
+    }
+
+    @Test
+    fun `with freezes off the streak line shows no count and the strip no frozen day`() {
+        show(viewModel())
+
+        composeRule.onNodeWithTag("play.stats.streak").assertTextEquals("2-day streak")
+        composeRule.onAllNodesWithContentDescription("1 freeze").assertCountEquals(0)
+        composeRule.onAllNodesWithContentDescription("Frozen").assertCountEquals(0)
+    }
+
+    @Test
+    fun `a missed day the game's freeze covered shows frozen on the strip and the held count is left`() {
+        val gap = FakeCompletionRepository().apply {
+            setRecords(listOf(record(alpha, day.minusDays(3), 60_000L), record(alpha, day.minusDays(1), 60_000L)))
+        }
+        show(viewModel(completions = gap, flags = FakeReleaseFlags(ReleaseFlag.StreakFreeze)))
+
+        composeRule.onNodeWithTag("play.stats.streak").assertTextEquals("2-day streak")
+        composeRule.onNodeWithContentDescription("1 freeze").assertExists()
+        composeRule.onAllNodesWithContentDescription("Frozen").assertCountEquals(1)
     }
 
     @Test

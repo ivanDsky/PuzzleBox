@@ -10,7 +10,8 @@ import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
  * What the tablet play side panel shows beside the board (A15), besides the live clock
  * the route reads off the controller: today's set progress ([solvedToday] of [gamesToday],
  * null until the set loads), this game's [streak] (null until its stats load) with its
- * [week], [best] and [averageMs], and today's [times] on this game's board. [linkedIn] says the LinkedIn account is
+ * [week], [best] and [averageMs], and today's [times] on this game's board. [freezesHeld] is the streak
+ * freezes the player holds (null with freezes off, which keeps the streak line and strip as they were). [linkedIn] says the LinkedIn account is
  * on, which is what lets the times card's rows move, arrive and leave with motion.
  */
 internal data class PlayStatsState(
@@ -24,6 +25,7 @@ internal data class PlayStatsState(
     val averageMs: Long?,
     val times: PlayTimes,
     val linkedIn: Boolean = false,
+    val freezesHeld: Int? = null,
 )
 
 /** This game's board for the slot's day, as the panel can show it. */
