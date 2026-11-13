@@ -59,7 +59,6 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -81,7 +80,6 @@ import org.junit.Test
  * and the rollover. The primary action is Next (the next unsolved
  * playable daily) or AllDone on today's slot only.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class ResultViewModelTest {
 
     @get:Rule

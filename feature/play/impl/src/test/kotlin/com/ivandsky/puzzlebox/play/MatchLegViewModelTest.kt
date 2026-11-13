@@ -35,7 +35,6 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
@@ -55,7 +54,6 @@ import org.junit.Test
  * challenges and Ben claims a duel of three alpha dailies. The state and the exits are read, never the
  * route's text: whether the board opened, where the route leaves to, and what reached the outbox first.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class MatchLegViewModelTest {
 
     @get:Rule

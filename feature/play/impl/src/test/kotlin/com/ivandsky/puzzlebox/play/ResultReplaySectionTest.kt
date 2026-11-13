@@ -52,7 +52,6 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
@@ -68,7 +67,6 @@ import org.junit.Test
  * write is pending or failed, Ready once the row with this solve's time and hints lands with a replay, Unavailable for a
  * stored solve without one, and Hidden with the flag off. A cold result (the row is already stored) is Ready at once.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class ResultReplaySectionTest {
 
     @get:Rule

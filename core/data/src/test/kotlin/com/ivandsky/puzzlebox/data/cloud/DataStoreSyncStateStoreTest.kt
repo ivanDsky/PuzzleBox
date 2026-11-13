@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.data.cloud
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.ivandsky.puzzlebox.datastore.SyncStateDataSource
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.TestScope
@@ -25,7 +24,6 @@ import java.io.File
  * The store over a real Preferences DataStore file. DataStore allows one live instance per file, so a "process"
  * is a scope that is cancelled afterwards; the next store over the same file stands in for a new process.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class DataStoreSyncStateStoreTest {

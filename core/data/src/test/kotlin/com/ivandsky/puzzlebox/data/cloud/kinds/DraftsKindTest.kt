@@ -16,7 +16,6 @@ import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
@@ -459,7 +458,6 @@ class DraftsKindTest {
         }
     }
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `pendingIds shows a deleted draft once its undo window has closed`() = runTest {
         seed("a")

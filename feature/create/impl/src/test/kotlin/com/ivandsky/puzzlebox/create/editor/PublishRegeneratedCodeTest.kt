@@ -38,7 +38,6 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -54,7 +53,6 @@ import org.junit.Test
  * after the replacement and before the publish returns must carry the new code, so the draft
  * ends up holding the code its doc was published under (a retry after a lost answer finds it).
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class PublishRegeneratedCodeTest {
 
     @get:Rule

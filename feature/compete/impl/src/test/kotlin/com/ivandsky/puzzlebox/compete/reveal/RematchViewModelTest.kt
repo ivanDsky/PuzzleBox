@@ -27,7 +27,6 @@ import java.time.Instant
 import java.time.LocalDate
 import kotlin.random.Random
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeoutOrNull
@@ -40,7 +39,6 @@ import org.junit.Rule
 import org.junit.Test
 
 /** The rematch sheet's Send new invite: its sending flag, refusal note and created duel, over the fakes and the real use case. */
-@OptIn(ExperimentalCoroutinesApi::class)
 class RematchViewModelTest {
 
     @get:Rule

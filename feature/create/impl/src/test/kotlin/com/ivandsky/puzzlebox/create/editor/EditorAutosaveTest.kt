@@ -29,7 +29,6 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.isActive
@@ -52,7 +51,6 @@ import org.junit.Test
  * and Delete store it first, so the copy and the Create root's Undo both have it; after
  * Delete no late save brings the draft back.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class EditorAutosaveTest {
 
     @get:Rule

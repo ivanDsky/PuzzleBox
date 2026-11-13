@@ -20,7 +20,6 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlin.io.path.createTempDirectory
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
@@ -43,7 +42,6 @@ import org.robolectric.annotation.Config
  * The day sync over real in-memory Room and scripted fakes. Every reply a test needs is scripted:
  * an unscripted call answers Offline and stops the sync. `source.calls` is the proof of what was sent.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class RoomLinkedInDaysSyncTest {

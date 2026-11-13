@@ -18,7 +18,6 @@ import java.time.LocalDate
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineStart
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -39,7 +38,6 @@ import org.junit.Test
  * flush writes at once, and the shared lane orders a released writer's final save
  * before a reopened slot's read and its new writer (patterns-7).
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class SlotWriterTest {
 
     private val alpha = TestGames.alpha

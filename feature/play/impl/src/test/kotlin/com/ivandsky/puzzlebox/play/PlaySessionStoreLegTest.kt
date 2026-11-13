@@ -23,7 +23,6 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
@@ -38,7 +37,6 @@ import org.junit.Test
  * The store's duel-leg plays: a [MatchLegKey] opens its leg's slot, kept only while the key is
  * on a stack, and a live leg is handed back as it stands, never reset.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class PlaySessionStoreLegTest {
 
     private val alpha = TestGames.alpha

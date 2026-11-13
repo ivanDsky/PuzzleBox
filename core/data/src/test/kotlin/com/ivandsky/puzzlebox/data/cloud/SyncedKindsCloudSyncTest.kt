@@ -11,7 +11,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.joinAll
@@ -28,7 +27,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** The engine's one run (ticket 12) over [RecordingKind]s, [FakeCloudSpace] and [FakeSyncStateStore], on virtual time. */
-@OptIn(ExperimentalCoroutinesApi::class)
 class SyncedKindsCloudSyncTest {
 
     private class MutableClock(var ms: Long) : Clock() {

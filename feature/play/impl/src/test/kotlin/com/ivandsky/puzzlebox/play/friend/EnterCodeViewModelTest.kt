@@ -25,7 +25,6 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
@@ -41,7 +40,6 @@ import org.junit.Test
  * The Enter code sheet's lookup order over the real [LoadSharedPuzzle]: a puzzle check first,
  * then (with duels on) one read of the match, each outcome mapped to the sheet's state.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class EnterCodeViewModelTest {
 
     private val code = requireNotNull(ShareCode.parse("K7Q2MX"))

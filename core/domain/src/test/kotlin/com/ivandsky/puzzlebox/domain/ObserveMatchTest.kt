@@ -27,7 +27,6 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import java.time.Instant
 import java.time.LocalDate
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -46,7 +45,6 @@ import org.junit.Test
  * and the use case reads the virtual scheduler, so every match is created at time 0. [repo] counts sealed reads and
  * lets a test script a read the rules cannot produce.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class ObserveMatchTest {
 
     private val code = ShareCode.parse("K7Q2MX")!!

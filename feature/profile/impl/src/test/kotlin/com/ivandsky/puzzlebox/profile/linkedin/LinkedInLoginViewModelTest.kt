@@ -14,7 +14,6 @@ import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -34,7 +33,6 @@ import org.junit.Test
  * The login route's state holder: the warning gates everything, one completed login sends one
  * `check`, and every failure leaves the link not connected.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class LinkedInLoginViewModelTest {
 
     private val dispatcher = StandardTestDispatcher()

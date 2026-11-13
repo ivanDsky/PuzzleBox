@@ -18,7 +18,6 @@ import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuEditor
 import com.ivandsky.puzzlebox.games.sudokuui.digitKeyPlacedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.getOrNull
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -32,7 +31,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")

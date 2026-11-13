@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Runnable
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
@@ -27,7 +26,6 @@ import org.junit.Test
  * 150 ms after the last edit on the provided default dispatcher, a newer edit cancels the
  * older one (debouncing or already solving), and a solve past 1.5 s settles on Undetermined.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class VerdictPipelineTest {
 
     private val editor = FakeGameEditor()

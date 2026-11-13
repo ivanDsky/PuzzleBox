@@ -42,7 +42,6 @@ import java.time.ZoneOffset
 import java.util.Locale
 import kotlin.random.Random
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -58,7 +57,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /** The New duel sheet's draft and its Create outcomes, over the core:testing fakes and the real use cases. */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class NewDuelViewModelTest {

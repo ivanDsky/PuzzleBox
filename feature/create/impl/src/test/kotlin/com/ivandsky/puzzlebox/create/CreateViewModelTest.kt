@@ -25,7 +25,6 @@ import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Duration
 import java.time.Instant
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -47,7 +46,6 @@ import org.junit.Test
  * empty state offering exactly the games with an editor UI, each at its default size. A row's
  * Duplicate stores an untested copy; Delete is undoable for 5 s and Undo restores it unchanged.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class CreateViewModelTest {
 
     @get:Rule

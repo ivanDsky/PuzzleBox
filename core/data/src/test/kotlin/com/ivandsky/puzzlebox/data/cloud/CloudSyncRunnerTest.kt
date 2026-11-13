@@ -6,7 +6,6 @@ import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.network.FakeNetworkStatus
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.TestScope
@@ -26,7 +25,6 @@ import org.robolectric.annotation.Config
  * within 2 s starts one, a pending set that did not grow starts none, signed out starts none. Robolectric: a failed
  * run is logged through android.util.Log.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = Application::class)
 class CloudSyncRunnerTest {

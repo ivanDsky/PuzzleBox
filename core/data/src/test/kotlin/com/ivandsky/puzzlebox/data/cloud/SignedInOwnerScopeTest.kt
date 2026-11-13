@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.testing.cloud.FakeSyncStateStore
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.test.TestScope
@@ -14,7 +13,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-@OptIn(ExperimentalCoroutinesApi::class)
 class SignedInOwnerScopeTest {
 
     private val a = Identity(uid = "A", displayName = "Ann", photoUrl = null)

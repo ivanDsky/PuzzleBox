@@ -5,7 +5,6 @@ import com.ivandsky.puzzlebox.datastore.PuzzleBoxPreferencesDataSource
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.GameSetting
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.toList
@@ -23,7 +22,6 @@ import org.robolectric.annotation.Config
 import java.io.File
 import java.util.UUID
 
-@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class OfflineGameSettingsRepositoryTest {

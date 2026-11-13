@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.Instant
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -24,7 +23,6 @@ import org.junit.Test
  * its window closes; Undo inside the window leaves puzzle and saved play untouched; expiry,
  * a newer removal and clearing each delete exactly once.
  */
-@OptIn(ExperimentalCoroutinesApi::class)
 class FriendRemovalTest {
 
     private val alpha = TestGames.alpha

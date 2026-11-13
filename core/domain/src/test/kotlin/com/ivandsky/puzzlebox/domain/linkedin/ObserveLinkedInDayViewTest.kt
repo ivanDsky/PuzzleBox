@@ -13,7 +13,6 @@ import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
@@ -28,7 +27,6 @@ import org.junit.Rule
 import org.junit.Test
 
 /** A day asks LinkedIn for its data only while a screen shows it, once, and only after it has stayed there. */
-@OptIn(ExperimentalCoroutinesApi::class)
 class ObserveLinkedInDayViewTest {
 
     @get:Rule
