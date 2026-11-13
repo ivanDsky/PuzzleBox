@@ -123,6 +123,10 @@ object PuzzleIcons {
     val Flame: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ic_local_fire_department)
 
+    /** A streak freeze: `ac_unit`, a snowflake. */
+    val Snowflake: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_ac_unit)
+
     /** Closed to new entries: `lock`. */
     val Lock: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ic_lock)
@@ -219,6 +223,7 @@ internal fun PuzzleIconsPreview() {
             "Back" to PuzzleIcons.Back,
             "Check" to PuzzleIcons.Check,
             "Flame" to PuzzleIcons.Flame,
+            "Snowflake" to PuzzleIcons.Snowflake,
             "Lock" to PuzzleIcons.Lock,
             "LinkOff" to PuzzleIcons.LinkOff,
             "FailedCheck" to PuzzleIcons.FailedCheck,
