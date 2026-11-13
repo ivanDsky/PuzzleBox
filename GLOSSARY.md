@@ -101,3 +101,19 @@ The compare layout with both boards side by side, at Expanded width.
 
 **Flip+peek**:
 The compare layout with one board at a time in a pager and the other peeking at the edge, at Compact and Medium width.
+
+**Streak freeze** (short: freeze):
+A held token that covers one missed puzzle day so the streak survives; derived from the solved-day history, never stored.
+_Avoid_: shield, life
+
+**Frozen day**:
+A missed puzzle day a freeze covered; it keeps the streak count and adds nothing to it.
+_Avoid_: skipped day, rest day
+
+**Freeze ladder**:
+The run lengths that earn a freeze (7, then 14, then 28 for every later step) up to 5 held; each spent freeze moves one step back.
+_Avoid_: freeze timer
+
+**Freeze moment**:
+The one line on today's Result that says a freeze was used or earned by this solve.
+_Avoid_: freeze toast, freeze notification
