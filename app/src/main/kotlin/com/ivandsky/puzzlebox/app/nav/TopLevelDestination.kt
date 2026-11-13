@@ -5,6 +5,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.Ranks
+import com.ivandsky.puzzlebox.designsystem.RanksFilled
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
@@ -34,6 +36,9 @@ private val play = TopLevelDestination(
 private val history = TopLevelDestination(
     HistoryRootKey, "History", { PuzzleIcons.History }, { PuzzleIcons.HistoryFilled }, "nav.tab.history", Tab.History,
 )
+private val ranks = TopLevelDestination(
+    HistoryRootKey, "Ranks", { PuzzleIcons.Ranks }, { PuzzleIcons.RanksFilled }, "nav.tab.ranks", Tab.History,
+)
 private val create = TopLevelDestination(
     CreateKey, "Create", { PuzzleIcons.Create }, { PuzzleIcons.CreateFilled }, "nav.tab.create", Tab.Create,
 )
@@ -43,3 +48,10 @@ private val create = TopLevelDestination(
  * icons and tags, and History has an outlined and a filled icon like the others.
  */
 internal val topLevelDestinations: List<TopLevelDestination> = listOf(home, play, history, create)
+
+/**
+ * The tab set while the leaderboard hub is on (ADR-0027, amended): Ranks takes History's
+ * slot. It keeps History's key and [Tab], so a saved back stack, the placement table and
+ * [openOwner] read the same under either set; only the label, icons and tag differ.
+ */
+internal val ranksTopLevelDestinations: List<TopLevelDestination> = listOf(home, play, ranks, create)

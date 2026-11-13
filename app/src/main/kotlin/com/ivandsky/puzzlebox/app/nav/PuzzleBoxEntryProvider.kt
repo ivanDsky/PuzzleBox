@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.history.navigation.historyEntry
+import com.ivandsky.puzzlebox.history.navigation.ranksEntry
 import com.ivandsky.puzzlebox.home.HomeDuelsSummary
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -53,6 +54,9 @@ import com.ivandsky.puzzlebox.profile.navigation.profileEntry
  *
  * [linkedIn] turns on the LinkedIn entry points (the game page's reconnect and Profile's
  * connect), both opening [LinkedInLoginKey]; off, those entries stay hidden.
+ *
+ * [ranks] (the LeaderboardHub flag, which only the app reads) makes [HistoryRootKey] the Ranks
+ * hub; off, it is History's root. A pushed [HistoryKey] is the history browser either way.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -64,6 +68,7 @@ internal fun puzzleBoxEntryProvider(
     duels: DuelsSlot? = null,
     libraryRequests: LibraryRequests = LibraryRequests(),
     linkedIn: Boolean = false,
+    ranks: Boolean = false,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(
         navigator,
@@ -80,7 +85,16 @@ internal fun puzzleBoxEntryProvider(
         ),
         onOpenHistory = { navigator.openOwner(HistoryRootKey) },
     )
-    historyEntry(navigator, historyLayout)
+    if (ranks) {
+        ranksEntry(navigator, historyLayout)
+        // The hub serves the root only, and historyEntry cannot sit beside it: both register
+        // HistoryRootKey, which Navigation3 rejects. So a pushed HistoryKey resolves through
+        // History's own table until the hub takes that key over.
+        val history = entryProvider<NavKey> { historyEntry(navigator, historyLayout) }
+        entry<HistoryKey> { key -> history(key).Content() }
+    } else {
+        historyEntry(navigator, historyLayout)
+    }
     playEntry(
         navigator,
         playLayout,
