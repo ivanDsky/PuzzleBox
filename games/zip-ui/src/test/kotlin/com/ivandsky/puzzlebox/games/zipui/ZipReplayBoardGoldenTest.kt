@@ -61,6 +61,7 @@ abstract class ZipReplayBoardGoldenBase(private val widthLabel: String, private 
         return ReplayFrame(
             session = session,
             before = if (moves == 0) null else sessionAfter(moves - 1),
+            moves = emptyList(),
             hinted = emptySet(),
             facts = ZipReplay.factsOf(initial)(session),
             atMs = moves * 1_000L,

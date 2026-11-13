@@ -48,6 +48,7 @@ class QueensReplayMotionTest {
     private fun frame(session: QueensSession, before: QueensSession?, atMs: Long) = ReplayFrame(
         session = session,
         before = before,
+        moves = emptyList(),
         hinted = emptySet(),
         facts = QueensReplay.factsOf(initial)(session),
         atMs = atMs,

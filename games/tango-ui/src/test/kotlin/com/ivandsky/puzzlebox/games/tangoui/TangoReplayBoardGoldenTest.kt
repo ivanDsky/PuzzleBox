@@ -68,6 +68,7 @@ abstract class TangoReplayBoardGoldenBase(private val widthLabel: String, privat
         return ReplayFrame(
             session = session,
             before = if (moves == 0) null else sessionAfter(moves - 1),
+            moves = emptyList(),
             hinted = emptySet(),
             facts = TangoReplay.factsOf(initial)(session),
             atMs = moves * 1_000L,
@@ -87,6 +88,7 @@ abstract class TangoReplayBoardGoldenBase(private val widthLabel: String, privat
         return ReplayFrame(
             session = after,
             before = before,
+            moves = emptyList(),
             hinted = TangoReplay.markOf(before, hint, after, null).hinted,
             facts = TangoReplay.factsOf(initial)(after),
             atMs = 2_000L,

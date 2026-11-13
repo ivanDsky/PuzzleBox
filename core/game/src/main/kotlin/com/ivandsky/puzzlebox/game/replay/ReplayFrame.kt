@@ -15,6 +15,12 @@ class ReplayFrame(
      * (the settle or link sweep, the word slot, the set-aside path).
      */
     val before: GameSession?,
+    /**
+     * The moves of the stamp group [before] is taken from, in log order: the ones that changed the board
+     * (a merged tap cycle, see [GameReplay.continuesTap], counts as one group), so [before] plus these moves
+     * is [session]. Empty before the first move. Strands reads the traced path of a Submit from it.
+     */
+    val moves: List<ReplayMove>,
     /** Union of [MoveMark.hinted] over the applied moves. The board marks only cells still holding the hinted content. */
     val hinted: Set<Int>,
     val facts: ReplayFacts,

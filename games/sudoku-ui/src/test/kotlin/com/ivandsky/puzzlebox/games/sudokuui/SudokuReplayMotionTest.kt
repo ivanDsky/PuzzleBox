@@ -68,6 +68,7 @@ class SudokuReplayMotionTest {
         return ReplayFrame(
             session = session,
             before = if (moves.isEmpty()) null else sessionAfter(moves.dropLast(1)),
+            moves = emptyList(),
             hinted = emptySet(),
             facts = SudokuReplay.factsOf(initial)(session),
             atMs = atMs,

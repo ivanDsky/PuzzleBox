@@ -1,10 +1,7 @@
 package com.ivandsky.puzzlebox.games.strands.engine
 
 import com.ivandsky.puzzlebox.games.strands.Coord
-import com.ivandsky.puzzlebox.games.strands.tinyPuzzle
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -48,19 +45,5 @@ class StrandsPathTest {
         assertFalse(valid(7 to 5, 8 to 5))
         assertFalse(valid(0 to 5, 0 to 6))
         assertTrue(valid(7 to 5, 7 to 4))
-    }
-
-    @Test
-    fun `a spelling is a valid path that reads the word`() {
-        val path = checkNotNull(StrandsPath.spelling(tinyPuzzle, "TAT"))
-        assertTrue(StrandsPath.isValid(path, tinyPuzzle.rows, tinyPuzzle.cols))
-        assertEquals("TAT", path.map(tinyPuzzle::letterAt).joinToString(""))
-    }
-
-    @Test
-    fun `a word the board cannot spell has no path`() {
-        assertNull(StrandsPath.spelling(tinyPuzzle, "CATC"))
-        assertNull(StrandsPath.spelling(tinyPuzzle, "TATT"))
-        assertNull(StrandsPath.spelling(tinyPuzzle, ""))
     }
 }

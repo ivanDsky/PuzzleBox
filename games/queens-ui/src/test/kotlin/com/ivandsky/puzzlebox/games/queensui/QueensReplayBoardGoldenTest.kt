@@ -66,6 +66,7 @@ abstract class QueensReplayBoardGoldenBase(private val widthLabel: String, priva
         return ReplayFrame(
             session = session,
             before = if (moves == 0) null else sessionAfter(moves - 1),
+            moves = emptyList(),
             hinted = emptySet(),
             facts = QueensReplay.factsOf(initial)(session),
             atMs = atMs,
@@ -83,6 +84,7 @@ abstract class QueensReplayBoardGoldenBase(private val widthLabel: String, priva
         return ReplayFrame(
             session = after,
             before = before,
+            moves = emptyList(),
             hinted = target ?: QueensReplay.markOf(before, hint, after, null).hinted,
             facts = QueensReplay.factsOf(initial)(after),
             atMs = moves * 1_000L + 1_000L,
