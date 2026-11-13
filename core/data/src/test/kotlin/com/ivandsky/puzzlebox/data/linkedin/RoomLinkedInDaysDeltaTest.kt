@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.linkedin
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.data.calendar.CadenceGameCalendar
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import com.ivandsky.puzzlebox.game.Cadence
@@ -146,6 +147,7 @@ class RoomLinkedInDaysDeltaTest {
         private val today = now.toLocalDate()
         private val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), LinkedInDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         private val daily = FakeDailyRepository().apply {
             setPuzzleNumbers(zip) { number(it) }

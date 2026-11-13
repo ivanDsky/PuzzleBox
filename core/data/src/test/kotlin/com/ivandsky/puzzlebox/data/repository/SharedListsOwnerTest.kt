@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
@@ -35,6 +36,7 @@ class SharedListsOwnerTest {
     private val db: PuzzleBoxDatabase = Room
         .inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
         .allowMainThreadQueries()
+        .setQueryExecutor(RoomQueryThread.executor)
         .build()
     private val scope = FakeOwnerScope()
     private var nowMs = 5_000L

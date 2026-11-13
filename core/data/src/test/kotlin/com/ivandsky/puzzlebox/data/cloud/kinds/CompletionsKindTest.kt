@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.cloud.kinds
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import androidx.room.withTransaction
 import com.ivandsky.puzzlebox.data.cloud.CloudDoc
 import com.ivandsky.puzzlebox.database.CompletionEntity
@@ -44,6 +45,7 @@ class CompletionsKindTest {
     private fun newDb(): PuzzleBoxDatabase = Room
         .inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
         .allowMainThreadQueries()
+        .setQueryExecutor(RoomQueryThread.executor)
         .build()
         .also { dbs += it }
 

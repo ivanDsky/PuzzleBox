@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.cloud.NoOwnerScope
 import com.ivandsky.puzzlebox.data.model.Draft
@@ -173,6 +174,7 @@ class DraftRepositoryContractTest(private val adapter: String) : DraftRepository
             ROOM -> {
                 val database = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
                     .allowMainThreadQueries()
+                    .setQueryExecutor(RoomQueryThread.executor)
                     .build()
                 db = database
                 RoomDraftRepository(database, database.draftDao(), database.syncTombstoneDao(), NoOwnerScope)

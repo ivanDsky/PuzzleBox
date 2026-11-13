@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import kotlinx.coroutines.flow.first
@@ -33,6 +34,7 @@ class SavedPlayRepositoryContractTest(private val adapter: String) : SavedPlayRe
             ROOM -> {
                 val database = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
                     .allowMainThreadQueries()
+                    .setQueryExecutor(RoomQueryThread.executor)
                     .build()
                 db = database
                 RoomSavedPlayRepository(

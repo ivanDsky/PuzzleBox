@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import androidx.room.Room
 import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -70,7 +71,9 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = DrainTestApplication::class)
 class LinkedInArchiveE2ETest {
 
-    private val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java).build()
+    private val db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
+        .setQueryExecutor(RoomQueryThread.executor)
+        .build()
 
     /** The one live graph: Koin caches a module's singles in the shared module object, so two live apps would share sources. */
     private var live: KoinApplication? = null

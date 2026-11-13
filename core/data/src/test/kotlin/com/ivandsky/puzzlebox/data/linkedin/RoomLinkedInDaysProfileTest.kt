@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.linkedin
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
@@ -59,6 +60,7 @@ class RoomLinkedInDaysProfileTest {
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), LinkedInDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
     }
 

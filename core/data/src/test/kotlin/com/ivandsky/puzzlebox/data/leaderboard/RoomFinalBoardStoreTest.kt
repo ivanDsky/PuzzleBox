@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.leaderboard
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.database.finalboard.FinalBoardDatabase
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
@@ -27,6 +28,7 @@ class RoomFinalBoardStoreTest {
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), FinalBoardDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         store = RoomFinalBoardStore(db.finalBoardDao())
     }

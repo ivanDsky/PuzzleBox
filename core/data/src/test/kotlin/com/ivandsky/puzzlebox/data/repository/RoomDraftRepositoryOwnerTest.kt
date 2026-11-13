@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.database.DraftEntity
@@ -36,6 +37,7 @@ class RoomDraftRepositoryOwnerTest {
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         repository = RoomDraftRepository(db, db.draftDao(), db.syncTombstoneDao(), owners) { nowMs }
     }

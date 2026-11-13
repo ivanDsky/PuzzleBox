@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
@@ -25,6 +26,7 @@ class PublishedPuzzleRepositoryContractTest(private val adapter: String) : Publi
             ROOM -> {
                 val database = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
                     .allowMainThreadQueries()
+                    .setQueryExecutor(RoomQueryThread.executor)
                     .build()
                 db = database
                 RoomPublishedPuzzleRepository(database.publishedPuzzleDao(), FakeOwnerScope())

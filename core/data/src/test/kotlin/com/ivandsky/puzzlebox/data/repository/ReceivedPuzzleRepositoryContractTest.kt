@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.database.ReceivedPuzzleEntity
@@ -73,6 +74,7 @@ class ReceivedPuzzleRepositoryContractTest(private val adapter: String) : Receiv
     private fun database(): PuzzleBoxDatabase = db ?: Room
         .inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
         .allowMainThreadQueries()
+        .setQueryExecutor(RoomQueryThread.executor)
         .build()
         .also { db = it }
 

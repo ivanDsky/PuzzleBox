@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.linkedin
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.data.cloud.CloudDoc
 import com.ivandsky.puzzlebox.data.cloud.CloudResult
 import com.ivandsky.puzzlebox.data.cloud.CloudSpace
@@ -62,6 +63,7 @@ class RoomSavedBoardsCloudTest {
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), LinkedInDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         cloud = RoomSavedBoardsCloud(db, lock, watching, owner)
     }

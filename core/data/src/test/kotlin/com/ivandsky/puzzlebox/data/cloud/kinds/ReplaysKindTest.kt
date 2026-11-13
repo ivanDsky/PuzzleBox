@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.cloud.kinds
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.data.cloud.CloudDoc
 import com.ivandsky.puzzlebox.data.di.inSyncOrder
 import com.ivandsky.puzzlebox.database.CompletionEntity
@@ -33,6 +34,7 @@ class ReplaysKindTest {
     fun setUp() {
         db = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
             .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
             .build()
         kind = ReplaysKind(db, db.completionReplayDao())
     }
@@ -98,7 +100,9 @@ class ReplaysKindTest {
         val sent = kind.pending("ann")
 
         val other = Room.inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
-            .allowMainThreadQueries().build()
+            .allowMainThreadQueries()
+            .setQueryExecutor(RoomQueryThread.executor)
+            .build()
         try {
             val id = other.completionDao().insert(
                 CompletionEntity(

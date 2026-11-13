@@ -44,6 +44,7 @@ import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSpace
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.network.FakeNetworkStatus
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import java.io.File
 import java.time.Instant
 import java.time.LocalDate
@@ -169,12 +170,12 @@ internal class CloudSyncWorld(
 
         private val puzzleDb: PuzzleBoxDatabase by lazy {
             Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, "$name-puzzlebox.db").addMigrations(*Migrations.ALL)
-                .setQueryExecutor(roomIo).build()
+                .setQueryExecutor(RoomQueryThread.executor).build()
                 .also { opened += it::close }
         }
         private val linkedInDb: LinkedInDatabase by lazy {
             Room.databaseBuilder(context, LinkedInDatabase::class.java, "$name-linkedin.db").addMigrations(*LinkedInMigrations.ALL)
-                .setQueryExecutor(roomIo).build()
+                .setQueryExecutor(RoomQueryThread.executor).build()
                 .also { opened += it::close }
         }
         private val syncState: DataStore<Preferences> by lazy {
@@ -328,19 +329,6 @@ internal class CloudSyncWorld(
     companion object {
         const val CLOUD_TIMEOUT_MS = 30_000L
         private const val DATA = "cloud.world.data"
-
-        /**
-         * The one thread every Room database of every device works on. Robolectric's native `CursorWindow` opens
-         * each window through libc `tmpfile()`, which blocks all signals and then restores them with `sigprocmask`.
-         * On macOS that call sets the mask of every thread in the process, so two overlapping queries leave every
-         * thread with SIGSEGV blocked for good, and the next safepoint poll or null check in compiled code spins
-         * forever. Room's default pool has four threads; one thread means no two windows open at once.
-         *
-         * Transactions share it too (Room uses the query executor when no transaction executor is set): a second
-         * thread for them would bring back two concurrent windows. A transaction keeps the thread and runs its own
-         * queries on it, so other queries wait behind it and nothing waits on itself.
-         */
-        private val roomIo = Executors.newSingleThreadExecutor { Thread(it, "cloud-world-room").apply { isDaemon = true } }
     }
 }
 
