@@ -33,6 +33,7 @@ import org.robolectric.annotation.GraphicsMode
  * F14: a forward step on the Sudoku replay board plays live's motion (the placed digit's pop, the erased digit's fade)
  * only while [ReplayBoardOptions.animate]; paused, scrubbing or under Reduce motion the board snaps to the frame. The
  * clock is paused and stepped one frame at a time, and the whole rendered board is compared with its settled frame.
+ * A backward step (an earlier `atMs`, as a seek back while playing) snaps even with `animate` (D1).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -62,22 +63,28 @@ class SudokuReplayMotionTest {
         return session
     }
 
-    private fun frameAfter(moves: List<SudokuReplayMove>): ReplayFrame {
+    private fun frameAfter(moves: List<SudokuReplayMove>, atMs: Long = moves.size * 1_000L): ReplayFrame {
         val session = sessionAfter(moves)
         return ReplayFrame(
             session = session,
             before = if (moves.isEmpty()) null else sessionAfter(moves.dropLast(1)),
             hinted = emptySet(),
             facts = SudokuReplay.factsOf(initial)(session),
-            atMs = moves.size * 1_000L,
+            atMs = atMs,
             sinceMoveMs = 0L,
             ended = false,
         )
     }
 
     /** Shows the board after [before], then steps it with [step] and returns the board drawn on each of the 16 frames after the step is composed. */
-    private fun stepFrames(animate: Boolean, before: List<SudokuReplayMove>, step: SudokuReplayMove): List<ImageBitmap> {
-        frame = frameAfter(before)
+    private fun stepFrames(
+        animate: Boolean,
+        before: List<SudokuReplayMove>,
+        step: SudokuReplayMove,
+        beforeAtMs: Long = before.size * 1_000L,
+        stepAtMs: Long = (before.size + 1) * 1_000L,
+    ): List<ImageBitmap> {
+        frame = frameAfter(before, beforeAtMs)
         options = ReplayBoardOptions(animate = animate, showErrors = true)
         rule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -86,7 +93,7 @@ class SudokuReplayMotionTest {
         }
         rule.waitForIdle()
         rule.mainClock.autoAdvance = false
-        frame = frameAfter(before + step)
+        frame = frameAfter(before + step, stepAtMs)
         // The first frame recomposes the board with the step; a capture shows the frame before it, so the first is dropped.
         rule.mainClock.advanceTimeByFrame()
         return (0..16).map {
@@ -120,6 +127,19 @@ class SudokuReplayMotionTest {
     @Test
     fun `paused or scrubbing, an erased digit is gone at once`() {
         val frames = stepFrames(animate = false, before = listOf(placed), step = erased)
+        assertTrue("every frame is the settled board", frames.all { it.sameAs(frames.last()) })
+    }
+
+    // A seek back while playing: the frame shown is at an earlier atMs than the one before it.
+    @Test
+    fun `playing, a digit that appears on a backward step shows at once`() {
+        val frames = stepFrames(animate = true, before = emptyList(), step = placed, beforeAtMs = 2_000, stepAtMs = 1_000)
+        assertTrue("every frame is the settled board", frames.all { it.sameAs(frames.last()) })
+    }
+
+    @Test
+    fun `playing, a digit that vanishes on a backward step is gone at once`() {
+        val frames = stepFrames(animate = true, before = listOf(placed), step = erased, beforeAtMs = 2_000, stepAtMs = 1_000)
         assertTrue("every frame is the settled board", frames.all { it.sameAs(frames.last()) })
     }
 

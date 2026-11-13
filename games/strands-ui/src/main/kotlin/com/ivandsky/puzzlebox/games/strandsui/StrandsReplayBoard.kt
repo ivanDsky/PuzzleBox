@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
+import com.ivandsky.puzzlebox.gameui.replay.rememberStepsForward
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzle
 import com.ivandsky.puzzlebox.games.strands.StrandsSession
@@ -25,10 +26,11 @@ import com.ivandsky.puzzlebox.games.strandsui.chrome.WordSlotLine
  * Strands' read-only replay board: the committed board and the marks live play derives from it
  * (found words, spangram, hint outline), drawn by the live board. No trace, verdict or input. A
  * frame that found one more word than [ReplayFrame.before] plays the live settle or link sweep
- * while the replay plays ([ReplayBoardOptions.animate]); paused or scrubbing, every frame rests.
+ * on a forward step while the replay plays ([ReplayBoardOptions.animate]); paused, scrubbing, stepping back or under
+ * Reduce motion, every frame rests.
  *
  * A frame that added a non-theme word draws the word's path selected, as live play does after the submit: playing, it
- * is set aside (held, then dissolved); paused or scrubbing, it stays selected, so the letters picked can be read.
+ * is set aside (held, then dissolved) on a forward step while playing; at rest it stays selected, so the letters picked can be read.
  *
  * Above the board sits live play's word slot: a frame that submitted a word (a theme word, the
  * spangram, or a non-theme word, which marks no cell) shows that word and its verdict until the
@@ -47,25 +49,26 @@ internal object StrandsReplayBoard : GameReplayBoard {
         // The frame is game-blind; this board is only reached through Strands' own plugin, so a miss draws nothing.
         val session = frame.session as? StrandsSession ?: return
         val before = (frame.before as? StrandsSession)?.state
+        val forward = rememberStepsForward(options, frame.atMs)
         val model = remember(session.state) { StrandsRendererModel.of(session.state) }
         val event = remember(session.state, before) { foundEventOf(before, session.state) }
         // A word that was shown at rest (paused, scrubbed) must not play when the replay resumes on the same frame.
         var rested by remember { mutableIntStateOf(-1) }
-        SideEffect { if (!options.animate) rested = event?.seq ?: -1 }
+        SideEffect { if (!forward) rested = event?.seq ?: -1 }
         val badges = remember(session.state.puzzle, frame.hinted) { hintBadges(session.state.puzzle, frame.hinted) }
         val slot = remember(session.state, before) { submittedSlotOf(before, session.state) }
         val nonTheme = remember(session.state, before) { nonThemePathOf(before, session.state) }
         val setAside = remember(nonTheme) { nonTheme?.let { TraceEnd(it, TraceEndKind.Bonus, seq = session.state.found.size + session.state.nonTheme.size) } }
         Column(modifier) {
-            WordSlotLine(slot, model.foundCount, model.totalCount, reduceMotion = !options.animate)
+            WordSlotLine(slot, model.foundCount, model.totalCount, reduceMotion = !forward)
             StrandsBoardContent(
                 model = model,
-                found = event?.takeIf { options.animate && it.seq != rested },
-                reduceMotion = !options.animate,
+                found = event?.takeIf { forward && it.seq != rested },
+                reduceMotion = !forward,
                 // At rest the word stays selected; playing, it leaves as live play's set-aside word does.
-                trace = { if (options.animate) Trace() else Trace(nonTheme.orEmpty()) },
+                trace = { if (forward) Trace() else Trace(nonTheme.orEmpty()) },
                 onTrace = {},
-                traceEnd = { setAside.takeIf { options.animate } },
+                traceEnd = { setAside.takeIf { forward } },
                 // Nothing to touch, so the board shrinks to whatever space it is given.
                 floor = 0.dp,
                 readOnly = true,

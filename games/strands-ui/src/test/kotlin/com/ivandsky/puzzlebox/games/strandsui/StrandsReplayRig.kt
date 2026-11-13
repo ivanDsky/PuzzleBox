@@ -64,11 +64,12 @@ internal object StrandsReplayScript {
     )
 
     /** The frame after [moves], with the board before the last of them behind it. */
-    fun frameAfter(moves: List<StrandsReplayMove>): ReplayFrame =
-        frameOf(sessionAfter(moves), if (moves.isEmpty()) null else sessionAfter(moves.dropLast(1)), moves.size * 1_000L)
+    fun frameAfter(moves: List<StrandsReplayMove>, atMs: Long = moves.size * 1_000L): ReplayFrame =
+        frameOf(sessionAfter(moves), if (moves.isEmpty()) null else sessionAfter(moves.dropLast(1)), atMs)
 
     /** The board [frameAfter] shows, reached with no step behind it: nothing found, set aside or settling. */
-    fun bareFrameAfter(moves: List<StrandsReplayMove>): ReplayFrame = frameOf(sessionAfter(moves), null, moves.size * 1_000L)
+    fun bareFrameAfter(moves: List<StrandsReplayMove>, atMs: Long = moves.size * 1_000L): ReplayFrame =
+        frameOf(sessionAfter(moves), null, atMs)
 }
 
 /**
