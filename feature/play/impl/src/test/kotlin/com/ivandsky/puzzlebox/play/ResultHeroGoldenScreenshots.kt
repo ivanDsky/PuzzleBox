@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.domain.ResultDay
 import com.ivandsky.puzzlebox.domain.ResultInsights
 import com.ivandsky.puzzlebox.domain.ResultRank
+import com.ivandsky.puzzlebox.domain.StreakFreezes
 import com.ivandsky.puzzlebox.domain.WeekdaySpread
 import com.ivandsky.puzzlebox.domain.timeSpread
 import com.ivandsky.puzzlebox.game.BestScore
@@ -86,6 +87,9 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
     @Test fun `sixty solves light`() = capture("sixty-solves", SIXTY, dark = false)
     @Test fun `sixty solves dark`() = capture("sixty-solves", SIXTY, dark = true)
 
+    @Test fun `freeze used light`() = capture("freeze-used", FREEZE_USED, dark = false)
+    @Test fun `freeze used dark`() = capture("freeze-used", FREEZE_USED, dark = true)
+
     @Test fun `new best reduced motion light`() = capture("new-best-reduced", NEW_BEST, dark = false, animated = false)
     @Test fun `new best reduced motion dark`() = capture("new-best-reduced", NEW_BEST, dark = true, animated = false)
 
@@ -131,11 +135,17 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             order: RankOrder = RankOrder.TimeThenHints,
             streak: Int = 3,
             weekdayEarlier: List<BestScore> = earlier.take(1),
+            freezes: StreakFreezes? = null,
         ) = ResultInsights(
             streak = streak,
-            week = (6 downTo 0).map { ResultDay(TODAY.minusDays(it.toLong()), solved = it < streak.coerceAtMost(7), today = it == 0) },
+            week = (6 downTo 0).map { back ->
+                val day = TODAY.minusDays(back.toLong())
+                val frozen = freezes?.frozenDays?.contains(day) == true
+                ResultDay(day, solved = back < streak.coerceAtMost(7) && !frozen, today = back == 0, frozen = frozen)
+            },
             spread = timeSpread(earlier, current, order),
             weekday = WeekdaySpread(TODAY.dayOfWeek, timeSpread(weekdayEarlier, current, order), fastest = false),
+            freezes = freezes,
         )
 
         fun facts(
@@ -152,6 +162,7 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             doneToday: Int = 2,
             primary: ResultPrimaryAction = ResultPrimaryAction.Next(GameId("tango"), "Tango"),
             weekdayEarlier: List<BestScore> = earlier.take(1),
+            freezes: StreakFreezes? = null,
         ) = ResultHeroFacts(
             timeMs = timeMs,
             hintsUsed = hints,
@@ -165,7 +176,7 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             dateLine = "Today · Sat 7 Nov",
             doneToday = doneToday,
             total = 3,
-            insights = insights(BestScore(timeMs, hints), earlier, order, streak, weekdayEarlier),
+            insights = insights(BestScore(timeMs, hints), earlier, order, streak, weekdayEarlier, freezes),
             rank = rank,
             primary = primary,
         )
@@ -196,6 +207,17 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
         /** The weekday scope opens: three earlier Saturdays among twelve solves. */
         val WEEKDAY = facts(
             timeMs = 84_000L, earlier = SPREAD_12, weekdayEarlier = listOf(BestScore(90_000L, 0), BestScore(98_000L, 0), BestScore(104_000L, 0)),
+        )
+
+        /** Thursday was missed and held by the one freeze spent; two are left once today's solve counts. */
+        val FREEZE_USED = facts(
+            streak = 5,
+            freezes = StreakFreezes(
+                held = 2,
+                frozenDays = setOf(TODAY.minusDays(2)),
+                daysToNext = 4,
+                lastSolve = StreakFreezes.Moment(TODAY, spent = listOf(TODAY.minusDays(2)), earned = false),
+            ),
         )
         val SIXTY = facts(timeMs = 100_000L, earlier = SPREAD_60, weekdayEarlier = emptyList())
     }
