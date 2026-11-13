@@ -13,10 +13,13 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.visibility.OwnTier
+import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import com.ivandsky.puzzlebox.model.GameId
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -27,7 +30,8 @@ import kotlinx.coroutines.launch
  * error ever surfaces; the backend's create-if-absent makes the first write stand
  * (A4) and re-submissions after process death are deduped server-side too. Each
  * attempt's outcome goes to [statuses] (Posting, then Posted, Deferred or Rejected),
- * so the screens can end their Posting line; signed out writes none.
+ * so the screens can end their Posting line; signed out writes none. A Hidden player posts
+ * no new entries (A17); [visibility] is null while the hub flag is off, which reads as Board.
  */
 class LeaderboardSubmitWatcher(
     private val records: CompletionRepository,
@@ -36,6 +40,7 @@ class LeaderboardSubmitWatcher(
     private val calendar: GameCalendar,
     private val scope: CoroutineScope,
     private val statuses: SubmitStatusTracker,
+    private val visibility: VisibilityRepository? = null,
 ) {
 
     private val submitted = java.util.Collections.newSetFromMap(
@@ -56,6 +61,8 @@ class LeaderboardSubmitWatcher(
                     ) ?: continue
                     if (!inWindow(entry)) continue
                     val key = me.uid to entry.puzzleRef
+                    if (key in submitted) continue
+                    if (!postsToBoards()) continue
                     if (!submitted.add(key)) continue // in-process dedup
                     statuses.set(me.uid, entry.puzzleRef, SubmitStatus.Posting)
                     scope.launch {
@@ -70,6 +77,15 @@ class LeaderboardSubmitWatcher(
                 }
             }
         }
+    }
+
+    /**
+     * Waits for the first loaded own tier (a cached snapshot counts): entries are immutable, so a
+     * post before a Hidden snapshot arrives could never be taken back.
+     */
+    private suspend fun postsToBoards(): Boolean {
+        val tier = visibility?.ownTier?.first { it != OwnTier.Unknown }?.effective ?: return true
+        return tier.postsToBoards
     }
 
     /** The entry's day is the game's today or yesterday ([inSubmitWindow]); an unknown game never submits. */
