@@ -94,7 +94,13 @@ Elapsed solve time with pause and background excluded; never wall clock.
 Who is ahead at a moment of a compare: fewer hints, then more correct pieces, else Level.
 
 **No replay**:
-The solve has no usable replay, for any cause; the section is not drawn and no placeholder shows.
+The solve has no usable replay, for any cause. On the daily result and the History day a stored solve shows the disabled Watch replay row with the reason; elsewhere the section is not drawn.
+
+**Replay mark** (kind):
+The kind of one timeline tick: Normal, Undo, Hint or Mistake. A merged tap cycle takes the highest kind of its marks.
+
+**Hint badge**:
+The corner disc on a replay board cell (Strands: a word) that a replayed hint revealed.
 
 **Twin**:
 The compare layout with both boards side by side, at Expanded width.
