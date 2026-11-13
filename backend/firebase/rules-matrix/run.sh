@@ -25,8 +25,9 @@ batch=200
 results='[]'
 for ((offset = 0; offset < expected; offset += batch)); do
 
-# A case's documents may be {"$fixture": name, ...overrides} and a string may be
-# {"$repeat": [text, n]}; both expand here, before the request is built.
+# A case's documents may be {"$fixture": name, ...overrides}, a string may be {"$repeat": [text, n]} and a
+# map of n sync-id keys (32 digits each, every value 1) may be {"$syncIds": n}, a list may be {"$list": [item, n]}
+# (n copies) or {"$concat": [list, ...]}; all expand here, before the request is built.
 suite="$(jq --rawfile source "$rules" --argjson offset "$offset" --argjson batch "$batch" '
   .fixtures as $fx
   | .time as $time
@@ -35,6 +36,12 @@ suite="$(jq --rawfile source "$rules" --argjson offset "$offset" --argjson batch
         ($fx[."$fixture"] | expand) + (del(."$fixture") | map_values(expand))
       elif type == "object" and has("$repeat") then
         ."$repeat"[0] * ."$repeat"[1]
+      elif type == "object" and has("$list") then
+        [."$list"[0] | expand] as $item | [range(0; ."$list"[1]) | $item[0]]
+      elif type == "object" and has("$concat") then
+        ."$concat" | map(expand) | add
+      elif type == "object" and has("$syncIds") then
+        [range(0; ."$syncIds") | { key: (tostring | ("0" * (32 - length)) + .), value: 1 }] | from_entries
       elif type == "object" then map_values(expand)
       elif type == "array" then map(expand)
       else . end;
@@ -50,7 +57,7 @@ suite="$(jq --rawfile source "$rules" --argjson offset "$offset" --argjson batch
     testSuite: { testCases: [ .cases[$offset:$offset + $batch][] | {
       expectation: (.expect | ascii_upcase),
       request: ({ path: (.path | doc), method: .method, time: $time }
-        + (if .auth then { auth: { uid: .auth } } else {} end)
+        + (if .auth then { auth: { uid: .auth, token: { firebase: { sign_in_provider: (.provider // "google.com") } } } } else {} end)
         + (if has("data") then { resource: { data: (.data | expand) } } else {} end)),
       functionMocks: [ (.mocks // [])[] | mock ]
     } + (if has("resource") then { resource: { data: (.resource | expand) } } else {} end) ] }

@@ -60,14 +60,18 @@ class FirestoreRulesCloudSpaceTest {
     fun `the account space is owner-only, closed over its kinds and stamps updatedAt`() {
         val block = spaceBlock()
         assertTrue(
-            "read and delete need the owner and a listed kind",
-            Regex("""allow read, delete: if request\.auth != null\s+&& request\.auth\.uid == uid\s+&& isSpaceKind\(\);""")
-                .containsMatchIn(block),
+            "read and delete need the owner, a Google sign-in and a listed kind",
+            Regex(
+                """allow read, delete: if request\.auth != null\s+&& request\.auth\.uid == uid\s+""" +
+                    """&& isGoogleSignIn\(\)\s+&& isSpaceKind\(\);""",
+            ).containsMatchIn(block),
         )
         assertTrue(
-            "create and update need the owner and a valid doc",
-            Regex("""allow create, update: if request\.auth != null\s+&& request\.auth\.uid == uid\s+&& validSpaceDoc\(\);""")
-                .containsMatchIn(block),
+            "create and update need the owner, a Google sign-in and a valid doc",
+            Regex(
+                """allow create, update: if request\.auth != null\s+&& request\.auth\.uid == uid\s+""" +
+                    """&& isGoogleSignIn\(\)\s+&& validSpaceDoc\(\);""",
+            ).containsMatchIn(block),
         )
         assertEquals("only the two allow lines", 2, Regex("""\ballow """).findAll(block).count())
         assertEquals(
@@ -79,6 +83,15 @@ class FirestoreRulesCloudSpaceTest {
     }
 
     @Test
+    fun `only a Google sign-in reaches the space`() {
+        val body = functionBody(spaceBlock(), "isGoogleSignIn")
+        assertTrue(
+            "the provider claim is google.com",
+            body.contains("request.auth.token.firebase.sign_in_provider == 'google.com'"),
+        )
+    }
+
+    @Test
     fun `each kind allows exactly its codec keys`() {
         val block = spaceBlock()
         assertEquals(
@@ -87,10 +100,11 @@ class FirestoreRulesCloudSpaceTest {
                 // Live and tombstone shapes in one list: a merge-set tombstone over a live doc carries both.
                 "validDraftDoc" to setOf(
                     "formatVersion", "updatedAt", "gameId", "variant", "draftFormatVersion", "name", "blob",
-                    "editedAtMs", "deleted", "deletedAtMs",
+                    "editedAtMs", "reservedCode", "deleted", "deletedAtMs",
                 ),
                 "validPublishedDoc" to setOf(
-                    "formatVersion", "updatedAt", "gameId", "name", "publishedAtMs", "unpublished",
+                    "formatVersion", "updatedAt", "gameId", "name", "publishedAtMs", "unpublished", "variant",
+                    "authorTimeMs",
                 ),
                 "validReceivedDoc" to setOf(
                     "formatVersion", "updatedAt", "gameId", "variant", "sharedFormatVersion", "name", "senderName",
@@ -149,6 +163,66 @@ class FirestoreRulesCloudSpaceTest {
         }
         assertTrue(functionBody(block, "validReceivedDoc").contains("d.authorUid.size() <= 128"))
         assertTrue(functionBody(block, "validReceivedDoc").contains("d.note.size() <= 140"))
+        assertTrue(functionBody(block, "validPublishedDoc").contains("d.variant.size() <= 32"))
+        assertTrue(functionBody(block, "validPublishedDoc").contains("d.authorTimeMs >= 0"))
+        val board = functionBody(block, "validBoardDoc")
+        assertTrue("the game is capped", board.contains("d.game.size() <= 32"))
+        assertTrue("the day is a date's length", board.contains("d.day.size() == 10"))
+        assertTrue("the profile key is its hash's length", board.contains("d.profileKey.size() == 16"))
+        assertTrue(
+            "completions keys are sync ids",
+            functionBody(block, "validCompletionsDoc").contains("d.records.keys().join('').matches('^([0-9a-f]{32})*$')"),
+        )
+    }
+
+    @Test
+    fun `the new optional fields are share-code or bounded and never required`() {
+        val block = spaceBlock()
+        assertTrue(functionBody(block, "validDraftDoc").contains("(!('reservedCode' in d) || isShareCode(d.reservedCode))"))
+        for (field in listOf("variant", "authorTimeMs")) {
+            assertTrue("$field is optional", functionBody(block, "validPublishedDoc").contains("!('$field' in d)"))
+        }
+        assertEquals(setOf("gameId", "name", "publishedAtMs", "unpublished"), listIn(functionBody(block, "validPublishedDoc"), "hasAll"))
+        assertEquals(
+            setOf("gameId", "variant", "draftFormatVersion", "name", "blob", "editedAtMs"),
+            listIn(functionBody(block, "validDraftDoc"), "hasAll"),
+        )
+    }
+
+    @Test
+    fun `every kind names its doc ids`() {
+        val block = spaceBlock()
+        val patterns = mapOf(
+            "validCompletionsDoc" to "docId.matches('^[0-9]{4}-(0[1-9]|1[0-2])(-[0-9]+)?\$')",
+            "validDraftDoc" to "docId.matches('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\$')",
+            "validPublishedDoc" to "isShareCode(docId)",
+            "validReceivedDoc" to "isShareCode(docId)",
+            "validBoardDoc" to "docId.matches('^[a-z0-9]{1,32}_[0-9]{4}-[0-9]{2}-[0-9]{2}_[0-9a-f]{16}\$')",
+            "validReplayDoc" to "docId.matches('^[0-9a-f]{32}\$')",
+        )
+        assertEquals(KIND_FUNCTIONS.toSet(), patterns.keys)
+        for ((function, pattern) in patterns) {
+            assertTrue("$function pins its doc id", functionBody(block, function).contains(pattern))
+        }
+        assertTrue(
+            "a board doc is named by its own game, day and profile key",
+            functionBody(block, "validBoardDoc").contains("docId == d.game + '_' + d.day + '_' + d.profileKey"),
+        )
+    }
+
+    @Test
+    fun `a board row carries only the codec's row keys, for every row the doc may hold`() {
+        val rows = functionBody(spaceBlock(), "validBoardRows")
+        assertEquals(
+            setOf("name", "timeMs", "hintFree", "flawless", "isOwn", "ref"),
+            quoted(Regex("""let k = \[(.*?)];""").find(rows)!!.groupValues[1]),
+        )
+        assertEquals(
+            "one key check per possible row (rows cap 51)",
+            (0..50).toList(),
+            Regex("""rows\[(\d+)]\.keys\(\)\.hasOnly\(k\)""").findAll(rows).map { it.groupValues[1].toInt() }.toList(),
+        )
+        assertTrue(functionBody(spaceBlock(), "validBoardDoc").contains("validBoardRows(d.rows)"))
     }
 
     @Test

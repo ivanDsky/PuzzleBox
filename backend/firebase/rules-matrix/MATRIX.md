@@ -463,7 +463,7 @@ Tombstones (`deleted`, `deletedAtMs`) stand for the draft and received kinds in 
 | allow | create | `users/alice/completions/2026-11-2` | alice | owner creates an overflow completions doc |
 | allow | create | `users/alice/published/K7Q2MX` | alice | owner creates a published doc |
 | allow | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | owner creates a board doc |
-| allow | create | `users/alice/drafts/d1` | alice | owner writes a draft tombstone |
+| allow | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | owner writes a draft tombstone |
 | allow | create | `users/alice/received/K7Q2MX` | alice | owner writes a received tombstone |
 | allow | get | `users/alice/published/K7Q2MX` | alice | owner gets own doc |
 | allow | list | `users/alice/published/K7Q2MX` | alice | owner lists own collection |
@@ -475,7 +475,7 @@ Tombstones (`deleted`, `deletedAtMs`) stand for the draft and received kinds in 
 | deny | create | `users/alice/published/K7Q2MX` | — | signed-out create |
 | deny | get | `users/alice/published/K7Q2MX` | — | signed-out get |
 | deny | list | `users/alice/published/K7Q2MX` | — | signed-out list |
-| deny | list | `users/alice/drafts/d1` | bob | list of another account's draft collection |
+| deny | list | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | bob | list of another account's draft collection |
 | deny | create | `users/alice/secrets/s1` | alice | create under an unknown kind |
 | deny | get | `users/alice/secrets/s1` | alice | get under an unknown kind |
 | deny | list | `users/alice/secrets/s1` | alice | list under an unknown kind |
@@ -487,35 +487,113 @@ Tombstones (`deleted`, `deletedAtMs`) stand for the draft and received kinds in 
 | deny | create | `users/alice/published/K7Q2MX` | alice | formatVersion 2 |
 | deny | create | `users/alice/completions/2026-11` | alice | completions doc with an extra key |
 | deny | create | `users/alice/published/K7Q2MX` | alice | published doc with an extra key |
-| deny | create | `users/alice/drafts/d1` | alice | draft tombstone with an extra key |
+| deny | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | draft tombstone with an extra key |
 | deny | create | `users/alice/received/K7Q2MX` | alice | received tombstone with an extra key |
 | deny | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | board doc with a session key |
 | deny | create | `users/alice/completions/2026-11` | alice | completions doc without records |
 | deny | create | `users/alice/published/K7Q2MX` | alice | published doc missing a key |
 | deny | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | board doc without rows |
-| deny | create | `users/alice/drafts/d1` | alice | draft doc with neither shape |
-| deny | create | `users/alice/drafts/d1` | alice | draft tombstone with a text deletedAtMs |
-| deny | create | `users/alice/drafts/d1` | alice | draft doc whose blob is a string |
+| deny | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | draft doc with neither shape |
+| deny | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | draft tombstone with a text deletedAtMs |
+| deny | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | draft doc whose blob is a string |
 | deny | create | `users/alice/received/K7Q2MX` | alice | received doc whose bytes are a string |
 | deny | create | `users/alice/published/K7Q2MX` | alice | published doc with a text unpublished |
 | deny | create | `users/alice/completions/2026-13` | alice | completions doc id outside the month shape |
 | deny | create | `users/alice/published/k7q2mx` | alice | published doc id outside the share alphabet |
 | allow | create | `users/alice/published/K7Q2MX` | alice | 64-char published name |
 | deny | create | `users/alice/published/K7Q2MX` | alice | 65-char published name |
-| allow | create | `users/alice/drafts/d1` | alice | 64-char draft name |
-| deny | create | `users/alice/drafts/d1` | alice | 65-char draft name |
+| allow | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | 64-char draft name |
+| deny | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | 65-char draft name |
 | allow | create | `users/alice/received/K7Q2MX` | alice | 64-char received sender name |
 | deny | create | `users/alice/received/K7Q2MX` | alice | 65-char received sender name |
 | allow | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | 51 board rows |
 | deny | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | 52 board rows |
 | allow | create | `users/alice/completions/2026-11` | alice | 1000 completion records |
 | deny | create | `users/alice/completions/2026-11` | alice | 1001 completion records |
-| allow | delete | `users/alice/drafts/d1` | alice | owner deletes a draft |
+| allow | delete | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | owner deletes a draft |
 | allow | delete | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | owner deletes a board |
 | allow | delete | `users/alice/replays/sync-1` | alice | owner deletes a replays doc |
-| deny | delete | `users/alice/drafts/d1` | bob | other uid deletes a draft |
+| deny | delete | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | bob | other uid deletes a draft |
 | deny | delete | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | bob | other uid deletes a board |
-| deny | delete | `users/alice/drafts/d1` | — | signed-out delete |
+| deny | delete | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | — | signed-out delete |
+
+## account space (hardening)
+
+Ticket 44 tightens the same block. Every other case here, and every case above, signs in with the Google
+provider (`run.sh` sends `sign_in_provider: google.com` unless a case sets `"provider"`). The rules now also
+require that provider, pin each kind's doc id, cap a board's game, day and profile key, restrict a board's rows to
+the codec's keys, require a completions doc's record keys to be sync ids, and admit the new optional fields
+(`reservedCode` on drafts; `variant` and `authorTimeMs` on published docs). The rules language cannot loop over a
+map's values or evaluate more than 1000 expressions per request, so a completions record's value and a board
+row's value types and lengths are not checked beyond the 1000-record and 51-row caps. So the cases below cover
+a row's keys and the caps, and a completions record's key, and nothing more.
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| deny | get | `users/alice/published/K7Q2MX` | alice (anonymous) | anonymous sign-in gets a doc |
+| deny | list | `users/alice/published/K7Q2MX` | alice (anonymous) | anonymous sign-in lists its collection |
+| deny | delete | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice (anonymous) | anonymous sign-in deletes a draft |
+| deny | create | `users/alice/published/K7Q2MX` | alice (anonymous) | anonymous sign-in creates a published doc |
+| deny | create | `users/alice/completions/2026-11` | alice (anonymous) | anonymous sign-in creates a completions doc |
+| deny | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice (anonymous) | anonymous sign-in creates a board doc |
+| deny | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice (anonymous) | anonymous sign-in creates a draft tombstone |
+| deny | create | `users/alice/received/K7Q2MX` | alice (anonymous) | anonymous sign-in creates a received tombstone |
+| deny | create | `users/alice/published/K7Q2MX` | alice (password) | password sign-in creates a published doc |
+| allow | create | `users/alice/published/K7Q2MX` | alice (google.com) | google sign-in creates a published doc |
+| allow | get | `users/alice/published/K7Q2MX` | alice (google.com) | google sign-in gets a doc |
+| deny | create | `users/alice/drafts/d1` | alice | draft doc id is not a UUID |
+| deny | create | `users/alice/drafts/3F2B8C1E-5D4A-4B7E-9C1D-0A1B2C3D4E5F` | alice | draft doc id is an uppercase UUID |
+| deny | create | `users/alice/drafts/3f2b8c1e5d4a4b7e9c1d0a1b2c3d4e5f` | alice | draft doc id is a UUID without dashes |
+| deny | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f-2` | alice | draft doc id is a UUID with a suffix |
+| deny | create | `users/alice/published/K7Q2M` | alice | published doc id is too short |
+| deny | create | `users/alice/published/K7Q2MXA` | alice | published doc id is too long |
+| deny | create | `users/alice/received/K7Q2MI` | alice | received doc id is outside the share alphabet |
+| deny | create | `users/alice/received/k7q2mx` | alice | received doc id is lowercase |
+| deny | create | `users/alice/boards/zip_2026-11-07` | alice | board doc id is a game and day only |
+| deny | create | `users/alice/boards/Zip_2026-11-07_0123456789abcdef` | alice | board doc id has an uppercase game |
+| deny | create | `users/alice/boards/zip_2026-11-07_0123456789abcde` | alice | board doc id has a 15-char profile key |
+| deny | create | `users/alice/boards/zip_2026-11-08_0123456789abcdef` | alice | board doc id names another day than the doc |
+| deny | create | `users/alice/boards/tango_2026-11-07_0123456789abcdef` | alice | board doc id names another game than the doc |
+| deny | create | `users/alice/boards/zip_2026-11-07_fedcba9876543210` | alice | board doc id names another profile than the doc |
+| deny | create | `users/alice/boards/zip_2026-11-7_0123456789abcdef` | alice | board doc day is not a date shape |
+| allow | create | `users/alice/boards/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa_2026-11-07_0123456789abcdef` | alice | board doc game of 32 chars |
+| deny | create | `users/alice/boards/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa_2026-11-07_0123456789abcdef` | alice | board doc game of 33 chars |
+| allow | create | `users/alice/boards/minisudoku_2026-07-19_93b1ec6d3a151ecb` | alice | board doc of a minisudoku day, as already in the cloud |
+| allow | create | `users/alice/boards/queens_2026-08-01_93b1ec6d3a151ecb` | alice | board doc of a queens day, as already in the cloud |
+| allow | create | `users/alice/boards/tango_2026-09-30_93b1ec6d3a151ecb` | alice | board doc of a tango day, as already in the cloud |
+| allow | create | `users/alice/boards/zip_2026-10-14_93b1ec6d3a151ecb` | alice | board doc of a zip day, as already in the cloud |
+| allow | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | board row without a time (hidden) |
+| allow | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | board row with a member id of 64 chars |
+| deny | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | board row with an extra key |
+| deny | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | board row that is a string |
+| deny | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | 51st board row with an extra key |
+| deny | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | board with a bad row among 51 |
+| allow | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | 51 well-formed board rows including own and ref |
+| allow | create | `users/alice/boards/zip_2026-11-07_0123456789abcdef` | alice | empty board |
+| deny | create | `users/alice/completions/2026-11` | alice | completions record keyed by a non-sync id |
+| deny | create | `users/alice/completions/2026-11` | alice | completions record keyed by 31 hex chars |
+| deny | create | `users/alice/completions/2026-11` | alice | completions record keyed by uppercase hex |
+| deny | create | `users/alice/completions/2026-11` | alice | completions doc with one bad key among good ones |
+| allow | create | `users/alice/completions/2026-11` | alice | completions doc with two records |
+| allow | create | `users/alice/completions/2026-11` | alice | completions doc with no records |
+| allow | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | draft tombstone with a reservedCode |
+| deny | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | draft with a lowercase reservedCode |
+| deny | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | draft with a 5-char reservedCode |
+| deny | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | draft with a reservedCode outside the share alphabet |
+| deny | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | draft with a numeric reservedCode |
+| allow | create | `users/alice/drafts/3f2b8c1e-5d4a-4b7e-9c1d-0a1b2c3d4e5f` | alice | draft without a reservedCode (legacy) |
+| allow | create | `users/alice/published/K7Q2MX` | alice | published doc with a variant |
+| allow | create | `users/alice/published/K7Q2MX` | alice | published doc with a 32-char variant |
+| deny | create | `users/alice/published/K7Q2MX` | alice | published doc with a 33-char variant |
+| deny | create | `users/alice/published/K7Q2MX` | alice | published doc with a numeric variant |
+| allow | create | `users/alice/published/K7Q2MX` | alice | published doc with an authorTimeMs |
+| allow | create | `users/alice/published/K7Q2MX` | alice | published doc with a zero authorTimeMs |
+| deny | create | `users/alice/published/K7Q2MX` | alice | published doc with a negative authorTimeMs |
+| deny | create | `users/alice/published/K7Q2MX` | alice | published doc with a text authorTimeMs |
+| deny | create | `users/alice/published/K7Q2MX` | alice | published doc with a fractional authorTimeMs |
+| allow | create | `users/alice/published/K7Q2MX` | alice | published doc with both new fields |
+| allow | update | `users/alice/published/K7Q2MX` | alice | published doc without the new fields (legacy) |
+| deny | create | `users/alice/published/K7Q2MX` | alice | published doc with an unlisted extra key |
 
 ## deny-all
 
@@ -527,12 +605,12 @@ Tombstones (`deleted`, `deletedAtMs`) stand for the draft and received kinds in 
 
 ## Last run
 
-2026-11-13, local `firestore.rules` with `visibility`, `daily replays` and the closed daily entry keys (not
-deployed; the run uses the local source on the Rules Test API), two batches: **316 cases, 316/316 passed**,
-exit 0.
+2026-11-13, local `firestore.rules` with the hardened `account space` block (not deployed; the run uses the
+local source on the Rules Test API), two batches: **380 cases, 380/380 passed**, exit 0.
 
-This is the first recorded run with the `account space` group (58 cases) on the Rules Test API; the previous
-record (2026-11-11, 213/213) predates it. That group's byte cases stay emulator-only (2026-11-11: draft blob
+The `account space` group's 58 cases were rewritten for the Google-only rule and the doc id patterns (draft ids
+are UUIDs, the completions fixture and the 1000/1001-record cases carry sync-id keys), and the new
+`account space (hardening)` group adds 64 cases. The byte cases stay emulator-only (2026-11-11: draft blob
 65,536 bytes allowed, 65,537 denied; received bytes 8,192 allowed, 8,193 denied; a merge-set tombstone over a
 live draft allowed; a collection-group query over a kind, a list across all accounts, denied; the Test API
 cannot express one). So do the `daily replays` create rows above: 62 emulator checks on 2026-11-13, all with
@@ -852,8 +930,72 @@ PASS  ALLOW  [account space] owner deletes a replays doc
 PASS  DENY  [account space] other uid deletes a draft
 PASS  DENY  [account space] other uid deletes a board
 PASS  DENY  [account space] signed-out delete
+PASS  DENY  [account space (hardening)] anonymous sign-in gets a doc
+PASS  DENY  [account space (hardening)] anonymous sign-in lists its collection
+PASS  DENY  [account space (hardening)] anonymous sign-in deletes a draft
+PASS  DENY  [account space (hardening)] anonymous sign-in creates a published doc
+PASS  DENY  [account space (hardening)] anonymous sign-in creates a completions doc
+PASS  DENY  [account space (hardening)] anonymous sign-in creates a board doc
+PASS  DENY  [account space (hardening)] anonymous sign-in creates a draft tombstone
+PASS  DENY  [account space (hardening)] anonymous sign-in creates a received tombstone
+PASS  DENY  [account space (hardening)] password sign-in creates a published doc
+PASS  ALLOW  [account space (hardening)] google sign-in creates a published doc
+PASS  ALLOW  [account space (hardening)] google sign-in gets a doc
+PASS  DENY  [account space (hardening)] draft doc id is not a UUID
+PASS  DENY  [account space (hardening)] draft doc id is an uppercase UUID
+PASS  DENY  [account space (hardening)] draft doc id is a UUID without dashes
+PASS  DENY  [account space (hardening)] draft doc id is a UUID with a suffix
+PASS  DENY  [account space (hardening)] published doc id is too short
+PASS  DENY  [account space (hardening)] published doc id is too long
+PASS  DENY  [account space (hardening)] received doc id is outside the share alphabet
+PASS  DENY  [account space (hardening)] received doc id is lowercase
+PASS  DENY  [account space (hardening)] board doc id is a game and day only
+PASS  DENY  [account space (hardening)] board doc id has an uppercase game
+PASS  DENY  [account space (hardening)] board doc id has a 15-char profile key
+PASS  DENY  [account space (hardening)] board doc id names another day than the doc
+PASS  DENY  [account space (hardening)] board doc id names another game than the doc
+PASS  DENY  [account space (hardening)] board doc id names another profile than the doc
+PASS  DENY  [account space (hardening)] board doc day is not a date shape
+PASS  ALLOW  [account space (hardening)] board doc game of 32 chars
+PASS  DENY  [account space (hardening)] board doc game of 33 chars
+PASS  ALLOW  [account space (hardening)] board doc of a minisudoku day, as already in the cloud
+PASS  ALLOW  [account space (hardening)] board doc of a queens day, as already in the cloud
+PASS  ALLOW  [account space (hardening)] board doc of a tango day, as already in the cloud
+PASS  ALLOW  [account space (hardening)] board doc of a zip day, as already in the cloud
+PASS  ALLOW  [account space (hardening)] board row without a time (hidden)
+PASS  ALLOW  [account space (hardening)] board row with a member id of 64 chars
+PASS  DENY  [account space (hardening)] board row with an extra key
+PASS  DENY  [account space (hardening)] board row that is a string
+PASS  DENY  [account space (hardening)] 51st board row with an extra key
+PASS  DENY  [account space (hardening)] board with a bad row among 51
+PASS  ALLOW  [account space (hardening)] 51 well-formed board rows including own and ref
+PASS  ALLOW  [account space (hardening)] empty board
+PASS  DENY  [account space (hardening)] completions record keyed by a non-sync id
+PASS  DENY  [account space (hardening)] completions record keyed by 31 hex chars
+PASS  DENY  [account space (hardening)] completions record keyed by uppercase hex
+PASS  DENY  [account space (hardening)] completions doc with one bad key among good ones
+PASS  ALLOW  [account space (hardening)] completions doc with two records
+PASS  ALLOW  [account space (hardening)] completions doc with no records
+PASS  ALLOW  [account space (hardening)] draft tombstone with a reservedCode
+PASS  DENY  [account space (hardening)] draft with a lowercase reservedCode
+PASS  DENY  [account space (hardening)] draft with a 5-char reservedCode
+PASS  DENY  [account space (hardening)] draft with a reservedCode outside the share alphabet
+PASS  DENY  [account space (hardening)] draft with a numeric reservedCode
+PASS  ALLOW  [account space (hardening)] draft without a reservedCode (legacy)
+PASS  ALLOW  [account space (hardening)] published doc with a variant
+PASS  ALLOW  [account space (hardening)] published doc with a 32-char variant
+PASS  DENY  [account space (hardening)] published doc with a 33-char variant
+PASS  DENY  [account space (hardening)] published doc with a numeric variant
+PASS  ALLOW  [account space (hardening)] published doc with an authorTimeMs
+PASS  ALLOW  [account space (hardening)] published doc with a zero authorTimeMs
+PASS  DENY  [account space (hardening)] published doc with a negative authorTimeMs
+PASS  DENY  [account space (hardening)] published doc with a text authorTimeMs
+PASS  DENY  [account space (hardening)] published doc with a fractional authorTimeMs
+PASS  ALLOW  [account space (hardening)] published doc with both new fields
+PASS  ALLOW  [account space (hardening)] published doc without the new fields (legacy)
+PASS  DENY  [account space (hardening)] published doc with an unlisted extra key
 PASS  DENY  [deny-all] signed-in read of an unmatched path
 PASS  DENY  [deny-all] signed-in write of an unmatched path
 PASS  DENY  [deny-all] signed-in read of a puzzle's unknown subcollection
-316/316 passed
+380/380 passed
 ```
