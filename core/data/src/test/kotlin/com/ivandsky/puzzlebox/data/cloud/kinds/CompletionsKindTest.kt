@@ -89,8 +89,10 @@ class CompletionsKindTest {
         mapOf("formatVersion" to 1L, "records" to rows.associate { it.syncId to CompletionMerge().encode(it) }),
     )
 
+    private fun idOf(syncId: String, at: Long) = CompletionMerge().docId(at, syncId)
+
     @Test
-    fun `pending groups the account's unuploaded rows into month docs`() = runTest {
+    fun `pending groups the account's unuploaded rows by the doc of their month and sync id`() = runTest {
         insert(
             row("a", march + 10),
             row("b", march + 20, ref = "alpha/y"),
@@ -102,11 +104,16 @@ class CompletionsKindTest {
 
         val docs = kind.pending("ann")
 
-        assertEquals(listOf("2026-03", "2026-04"), docs.map { it.id }.sorted())
-        val marchDoc = docs.single { it.id == "2026-03" }
-        assertEquals(1L, marchDoc.fields["formatVersion"])
-        assertEquals(setOf("a", "b"), records(marchDoc).keys)
-        assertEquals(setOf("c"), records(docs.single { it.id == "2026-04" }).keys)
+        assertEquals(
+            mapOf(
+                idOf("a", march + 10) to setOf("a"),
+                idOf("b", march + 20) to setOf("b"),
+                idOf("c", april + 10) to setOf("c"),
+            ),
+            docs.associate { it.id to records(it).keys },
+        )
+        assertTrue(docs.all { it.fields["formatVersion"] == 1L })
+        assertTrue(idOf("a", march + 10).startsWith("2026-03-") && idOf("c", april + 10).startsWith("2026-04-"))
     }
 
     @Test
@@ -127,35 +134,73 @@ class CompletionsKindTest {
     }
 
     @Test
-    fun `a doc id switches to a numbered overflow every 1000 records by finish time and sync id`() = runTest {
-        // 2,001 rows in March: finish times 0..1999 and one tie at 1999; insert order is shuffled so ordinals come from the sort.
-        val rows = (0 until 2_001).map { i -> row("s%04d".format(i), march + minOf(i, 1_999)) }
-        insertAll(rows.shuffled(java.util.Random(7)))
+    fun `two devices that each add 700 rows to a month offline keep every doc under the cap and restore all 1400 once`() = runTest {
+        val deviceA = newDb()
+        val deviceB = newDb()
+        val kindA = CompletionsKind(deviceA, deviceA.completionDao())
+        val kindB = CompletionsKind(deviceB, deviceB.completionDao())
+        val random = java.util.Random(11)
+        fun ids(n: Int) = List(n) { "%016x%016x".format(random.nextLong(), random.nextLong()) }
+        val idsA = ids(700)
+        val idsB = ids(700)
+        deviceA.withTransaction { idsA.forEachIndexed { i, id -> deviceA.completionDao().insert(row(id, march + i)) } }
+        deviceB.withTransaction { idsB.forEachIndexed { i, id -> deviceB.completionDao().insert(row(id, march + i)) } }
 
-        val docs = kind.pending("ann").associate { it.id to records(it).keys }
+        // The cloud deep-merges each put into the doc of that id, as Firestore does.
+        val cloud = HashMap<String, MutableMap<String, Any?>>()
+        for (docs in listOf(kindA.pending("ann"), kindB.pending("ann"))) {
+            docs.forEach { cloud.getOrPut(it.id) { HashMap() } += records(it) }
+        }
 
-        assertEquals(setOf("2026-03", "2026-03-1", "2026-03-2"), docs.keys)
-        assertEquals((0 until 1_000).map { "s%04d".format(it) }.toSet(), docs.getValue("2026-03"))
-        assertEquals((1_000 until 2_000).map { "s%04d".format(it) }.toSet(), docs.getValue("2026-03-1"))
-        assertEquals(setOf("s2000"), docs.getValue("2026-03-2"))
+        assertTrue(cloud.values.all { it.size <= 1_000 })
+        assertEquals((idsA + idsB).toSet(), cloud.values.flatMap { it.keys }.toSet())
+        val fromCloud = cloud.map { (id, records) -> CloudDoc(id, mapOf("formatVersion" to 1L, "records" to records)) }
+        assertEquals(700, kindB.apply("ann", fromCloud))
+        assertEquals(1_400, allRows(deviceB).size)
+        assertEquals((idsA + idsB).toSet(), allRows(deviceB).map { it.syncId }.toSet())
+        assertEquals(0, kindB.apply("ann", fromCloud))
     }
 
     @Test
-    fun `only the pending rows of an overflowed month travel`() = runTest {
-        val rows = (0 until 1_001).map { i -> row("s%04d".format(i), march + i, uploaded = i != 1_000) }
-        insertAll(rows)
+    fun `the doc of a record does not depend on the order or the rows around it`() = runTest {
+        val rows = (0 until 300).map { i -> row("%032x".format(i * 7_919L), march + i) }
+        insertAll(rows.shuffled(java.util.Random(3)))
+        val all = kind.pending("ann").associate { it.id to records(it).keys }
 
-        val docs = kind.pending("ann")
+        val other = newDb()
+        val otherKind = CompletionsKind(other, other.completionDao())
+        other.withTransaction { rows.reversed().take(100).forEach { other.completionDao().insert(it) } }
+        val some = otherKind.pending("ann").associate { it.id to records(it).keys }
 
-        assertEquals(listOf("2026-03-1"), docs.map { it.id })
-        assertEquals(setOf("s1000"), records(docs.single()).keys)
+        assertTrue(some.all { (id, keys) -> all.getValue(id).containsAll(keys) })
+        assertEquals(rows.map { it.syncId }.toSet(), all.values.flatten().toSet())
+    }
+
+    @Test
+    fun `docs written by the earlier ordinal scheme merge without duplicates`() = runTest {
+        val legacyMonth = (0 until 1_000).map { row("%032x".format(it), march + it) }
+        val legacyOverflow = (1_000 until 1_200).map { row("%032x".format(it), march + it) }
+        val legacyDocs = listOf(doc("2026-03", *legacyMonth.toTypedArray()), doc("2026-03-1", *legacyOverflow.toTypedArray()))
+
+        assertEquals(1_200, kind.apply("ann", legacyDocs))
+        assertEquals(1_200, allRows().size)
+
+        // The same records re-offered under their new doc ids, with a new record beside them, add only the new one.
+        val newOne = row("%032x".format(5_000), march + 5_000)
+        val bucketed = (legacyOverflow.take(50) + newOne)
+            .groupBy { idOf(it.syncId, it.completedAtMs) }
+            .map { (id, rows) -> doc(id, *rows.toTypedArray()) }
+
+        assertEquals(1, kind.apply("ann", legacyDocs + bucketed))
+        assertEquals(1_201, allRows().size)
+        assertEquals(1_201, allRows().map { it.syncId }.toSet().size)
     }
 
     @Test
     fun `pendingIds follows the pending docs`() = runTest {
         insert(row("a", march + 10), row("c", april + 10), row("other", march + 40, owner = "bob"))
 
-        assertEquals(setOf("2026-03", "2026-04"), kind.pendingIds("ann").first())
+        assertEquals(setOf(idOf("a", march + 10), idOf("c", april + 10)), kind.pendingIds("ann").first())
 
         kind.acknowledge("ann", kind.pending("ann"))
 
@@ -172,7 +217,7 @@ class CompletionsKindTest {
         assertTrue(byId.getValue("a").uploaded)
         assertFalse(byId.getValue("b").uploaded)
         assertFalse(byId.getValue("other").uploaded)
-        assertEquals(setOf("2026-03"), kind.pending("ann").map { it.id }.toSet())
+        assertEquals(setOf(idOf("b", march + 20)), kind.pending("ann").map { it.id }.toSet())
         assertEquals(setOf("b"), records(kind.pending("ann").single()).keys)
     }
 

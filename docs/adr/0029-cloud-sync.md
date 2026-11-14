@@ -7,7 +7,7 @@ Finished games, drafts, the published list, received puzzles and LinkedIn connec
 
 ## Decision
 1. **One owner-only cloud space per account.** All synced data lives under `users/{uid}/{kind}/{docId}`. A new rules block grants read, write and delete only when `request.auth.uid == uid`, validates each kind's keys with `hasOnly` and its sizes, and allows nothing else; `{kind}` is a closed allow-list. It is the first block that allows delete (Delete saved boards, Delete my cloud data). Cloud tombstones are never cleaned up: they are tiny and stay until Delete my cloud data. The deny-all default and the five existing blocks stay byte-unchanged; a JVM text guard pins them. Layout per kind:
-   - `completions/{yyyy-MM}[-n]`: `{formatVersion, updatedAt, records: {syncId: record}}`, one document per month, a numbered overflow when the month holds 1,000 records;
+   - `completions/{yyyy-MM}-{1000..1007}`: `{formatVersion, updatedAt, records: {syncId: record}}`, eight documents per month, the record's own sync id picking the bucket so every device names the same document and none passes the rules' 1,000-record cap (a month would need about 6,000 finishes). Docs the first scheme wrote, `{yyyy-MM}` and `{yyyy-MM}-{n}` for n below 1000 (counted by position among a device's rows), are still read; their records merge by sync id and new records never go into them;
    - `drafts/{draftId}`, `published/{code}`, `received/{code}`: one document each, `deleted: true` is the tombstone;
    - `boards/{game}_{day}_{profileKey}`: one LinkedIn board, `profileKey` a hash of the owner's LinkedIn profile id;
    - `replays/{syncId}` (last ticket): one replay, fetched only when opened.
