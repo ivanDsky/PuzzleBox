@@ -181,7 +181,7 @@ class LinkedInGhostIsolationE2ETest {
 
             val window = RankWindow.Month(today)
             val boards = graph.koin.get<ObserveRankWindow>()(window, listOf(ZipDefinition.id))
-            val overall = offMain { withTimeout(LinkedInDataWorld.TIMEOUT_MS) { graph.koin.get<ObserveOverall>()(boards, window).first { it is OverallState.Complete } } }
+            val overall = offMain { withTimeout(LinkedInDataWorld.TIMEOUT_MS) { graph.koin.get<ObserveOverall>()(boards).first { it is OverallState.Complete } } }
             val rows = (overall as OverallState.Complete).standings.rows
             assertEquals("Overall ranks the real rival and no connection", setOf(other.uid), rows.map { it.uid }.toSet())
             assertNamesNoGhost("Overall $rows")

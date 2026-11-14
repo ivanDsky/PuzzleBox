@@ -55,7 +55,7 @@ internal class RanksBoardSlices(
         // Null until this window's boards answer in this scope: neither the last window's nor the other scope's show as these.
         val answered = ghosts.counted(scope, scopedBoards(scope).map { it?.takeIf { (of, _) -> of == window }?.second }, viewer)
         fun drawn(inScope: Flow<BoardGhosts.Counted?>) =
-            combine(inScope, observeOverall(inScope.mapNotNull { it?.counted }, window), viewer, history, rollover) { inWindow, overall, me, rows, _ ->
+            combine(inScope, observeOverall(inScope.mapNotNull { it?.counted }), viewer, history, rollover) { inWindow, overall, me, rows, _ ->
                 slicesOf(kind, day, scope, inWindow, overall, me, rows)
             }
         if (scope == RankScope.Global) {

@@ -57,8 +57,6 @@ internal data class RanksSelection(
         return if (target == null) this else pickBoard(target)
     }
 
-    fun pickDay(day: LocalDate?) = copy(day = day)
-
     /** A day tapped on the calendar: it is the board's day, and the calendar folds back to the week holding it. */
     fun pickFromCalendar(day: LocalDate?) = copy(day = day, shownDay = day, calendarExpanded = false)
 
@@ -68,8 +66,6 @@ internal data class RanksSelection(
     fun setWindow(window: Window) = copy(window = window)
 
     fun setScope(scope: RankScope) = copy(scope = scope)
-
-    fun toggleCalendar() = copy(calendarExpanded = !calendarExpanded)
 
     /** Back to the landing choice: Overall, today, the player's default [scope] (A4, F1). The calendar folds too. */
     fun reset(scope: RankScope) = RanksSelection(scope = scope)

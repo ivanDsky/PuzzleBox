@@ -23,11 +23,10 @@ class ObserveOverall(
 ) {
 
     /**
-     * [boards] must be the shared collection of [ObserveRankWindow] for [window], or its [amongFriends] projection for
-     * Overall among friends (F18); its boards already carry the window's days.
+     * Ranks the [boards] it is given: the shared collection of [ObserveRankWindow], or its [amongFriends] projection for
+     * Overall among friends (F18). Its boards already carry the window's days.
      */
-    @Suppress("UNUSED_PARAMETER")
-    operator fun invoke(boards: Flow<RankWindowBoards>, window: RankWindow): Flow<OverallState> =
+    operator fun invoke(boards: Flow<RankWindowBoards>): Flow<OverallState> =
         combine(boards, identity.current, completions.observeRecords(), ::stateOf)
             .onStart { emit(OverallState.Loading) }
             .distinctUntilChanged()
