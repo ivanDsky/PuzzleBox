@@ -1,13 +1,20 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import android.os.Looper
+import androidx.activity.ComponentDialog
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.onAllNodesWithTag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.di.dataModule
+import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
+import com.ivandsky.puzzlebox.data.match.LegRef
+import com.ivandsky.puzzlebox.data.match.MatchDraft
+import com.ivandsky.puzzlebox.data.match.MatchLeg
+import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import com.ivandsky.puzzlebox.domain.GameStats
@@ -25,6 +32,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccountSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
@@ -33,16 +41,19 @@ import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.koin.android.ext.koin.androidContext
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPhotoSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInPhotoSource
 import org.koin.core.Koin
 import org.koin.core.KoinApplication
+import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
+import org.robolectric.shadows.ShadowDialog
 
 /**
  * One LinkedIn data scenario over the real app graph: the account is the scripted [source] and
@@ -57,6 +68,10 @@ internal class LinkedInDataWorld(
     ),
     /** Answers every [GHOSTS] photo; any other address answers nothing, like a photo that could not be fetched. */
     val photos: FakeLinkedInPhotoSource = FakeLinkedInPhotoSource(),
+    /** Flags on besides the LinkedIn account's: a scenario on another surface (the Ranks hub) names them. */
+    also: List<ReleaseFlag> = emptyList(),
+    /** Bindings that replace the graph's, for what that surface reads from a backend. */
+    bindings: Module.() -> Unit = {},
 ) : AutoCloseable {
 
     /** The nested data graph that owns Room; closed with the world. */
@@ -64,7 +79,9 @@ internal class LinkedInDataWorld(
 
     val graph: E2eKoinGraph = shellGraph(
         ReleaseFlag.LinkedInAccount,
+        *also.toTypedArray(),
         overrides = module {
+            bindings()
             single<LinkedInAccountSource> { source }
             single<LinkedInPhotoSource> { photos }
             single<LinkedInSessionCookies> { cookies }
@@ -91,6 +108,23 @@ internal class LinkedInDataWorld(
     /** Links the account as a finished login would; the login web view cannot run on the JVM. */
     suspend fun connect() {
         graph.koin.get<LinkedInLink>().connect(PROFILE_ID, CONSENT_AT_MS)
+    }
+
+    /** Signs [me] in everywhere the graph asks who the player is: the identity and the duels backend. */
+    fun signIn(me: Identity) {
+        graph.identity.currentIdentity = me
+        graph.matches.signedInUid = me.uid
+    }
+
+    /** A duel between the signed-in player and [friendUid], which is what makes [friendUid] a friend on the Friends boards. */
+    fun befriend(friendUid: String) = runBlocking {
+        val me = checkNotNull(graph.identity.currentIdentity)
+        val code = checkNotNull(ShareCode.parse(FRIEND_DUEL))
+        val leg = MatchLeg(LegRef.Daily(ZipDefinition.id, E2E_TODAY, zipNumber(E2E_TODAY)), null)
+        graph.matches.create(MatchDraft(code, DUEL_HOURS, Player(me.uid, me.displayName, null), null, listOf(leg), true, null))
+        graph.matches.signedInUid = friendUid
+        graph.matches.claim(code, Player(friendUid, friendUid, null))
+        graph.matches.signedInUid = me.uid
     }
 
     /**
@@ -135,6 +169,8 @@ internal class LinkedInDataWorld(
         private const val TODAY_NUMBER = 592
         private const val ARCHIVE_DAYS = 10L
         private const val CONSENT_AT_MS = 1_700_000_000_000L
+        private const val FRIEND_DUEL = "AAAAA2"
+        private const val DUEL_HOURS = 24
 
         /** LinkedIn numbers the dailies one per day; today's matches the fixture the page serves. */
         fun zipNumber(day: LocalDate): Int = TODAY_NUMBER - ChronoUnit.DAYS.between(day, E2E_TODAY).toInt()
@@ -190,6 +226,38 @@ internal fun ShellRobot.awaitLooper(condition: () -> Boolean) {
     }
 }
 
+/** Waits for [read] to give [expected], then asserts it: a screen that never gets there fails with what it shows instead. */
+internal fun <T> ShellRobot.awaitEquals(expected: T, read: () -> T) {
+    runCatching { awaitLooper { read() == expected } }.onFailure { if (it !is ComposeTimeoutException) throw it }
+    assertEquals(expected, read())
+}
+
+/** Opens the Ranks hub at Zip's board from the row that stands for the board on Zip's page while the hub is on. */
+internal fun ShellRobot.openZipRanks() {
+    tap("summary.rank")
+    awaitTag("route.ranks")
+}
+
+/** Picks [scope] (Friends, Global) and [window] (Day, Week, Month) on the hub's tune sheet, then closes the sheet. */
+internal fun ShellRobot.tuneRanks(scope: String, window: String) {
+    tap("ranks.tune")
+    tap("ranks.tune.scope.$scope")
+    tap("ranks.tune.window.$window")
+    closeSheet()
+}
+
+/** System back while a bottom sheet is up: the sheet is a window of its own, so the press is the sheet's, not the screen's under it. */
+internal fun ShellRobot.closeSheet() {
+    rule.runOnUiThread { (ShadowDialog.getLatestDialog() as ComponentDialog).onBackPressedDispatcher.onBackPressed() }
+    rule.waitForIdle()
+}
+
+/** Picks Overall, the first board of the hub's title menu. */
+internal fun ShellRobot.pickOverallRanks() {
+    tap("ranks.title")
+    tap("ranks.menu.item.0")
+}
+
 /**
  * Waits until [day]'s LinkedIn read is on disk. The log entry is written after the result it stands
  * for, so once it is there the import and the ghosts are stored too. Boards only reach back a week.
@@ -208,5 +276,10 @@ internal fun ShellRobot.textsUnder(tag: String): List<String> =
 
 private fun SemanticsNode.texts(): List<String> =
     config.getOrNull(SemanticsProperties.Text).orEmpty().map { it.text } + children.flatMap { it.texts() }
+
+/** What each node tagged [tag] says itself, one text a node: a place cell says its place once, whatever is drawn inside it. */
+internal fun ShellRobot.textsAt(tag: String): List<String> =
+    rule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes()
+        .map { node -> node.config.getOrNull(SemanticsProperties.Text).orEmpty().joinToString("") { it.text } }
 
 private const val BOARD_REACH_DAYS = 7L
