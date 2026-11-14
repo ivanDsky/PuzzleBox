@@ -31,7 +31,7 @@ class ObserveLinkedInDay(private val days: LinkedInDays, private val registry: G
 }
 
 private fun LinkedInDayData.toView(game: GameId, registry: GameRegistry): LinkedInDayView =
-    LinkedInDayView(status(), board(registry.rankOrderOf(game).comparator), owner, saved())
+    LinkedInDayView(status(), board(registry.rankOrderOf(game).comparator), owner)
 
 private fun LinkedInDayData.status(): LinkedInDayStatus = when (val linked = link) {
     LinkState.NotConnected -> LinkedInDayStatus.NotConnected
@@ -54,19 +54,6 @@ private fun LinkedInDayData.status(): LinkedInDayStatus = when (val linked = lin
                 else -> LinkedInDayStatus.Idle
             }
         }
-    }
-}
-
-/**
- * A saved board needs no link and no recent day, so the window only tells a day that can still be read from one that
- * never will be, and only when no board is saved.
- */
-private fun LinkedInDayData.saved(): SavedBoardState {
-    val readAtMs = boardFetchedAtMs
-    return when {
-        readAtMs != null -> SavedBoardState.Saved(readAtMs, boardComplete)
-        boardInWindow -> SavedBoardState.NotYetRead
-        else -> SavedBoardState.NeverSaved
     }
 }
 

@@ -86,13 +86,11 @@ val playModule = module {
     }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
     // Same flag-as-parameter rule as the library: a graph without LinkedIn bindings builds the rank row with it off.
-    // The restoring state comes from CloudSync, which the data graph always binds.
     // The app always binds ObserveFriendDay.Binding.
     viewModel { params ->
         GamePageRankViewModel(
             params.get<GameId>(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
-            cloudSync = get(),
             friendDay = get<ObserveFriendDay.Binding>().reader,
         )
     }

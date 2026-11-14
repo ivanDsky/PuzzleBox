@@ -24,7 +24,6 @@ import com.ivandsky.puzzlebox.domain.PastDayStatus
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
-import com.ivandsky.puzzlebox.domain.linkedin.SavedBoardState
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameCardModel
@@ -134,7 +133,6 @@ class ArchiveSavedBoardDiscTest {
             ),
         )
         val view = runBlocking { ObserveLinkedInDay(linkedIn, FakeGames(listOf(game)).games)(game, on).first() }
-        assertTrue("the fixture really is a saved, final board: ${view.saved}", view.saved.let { it is SavedBoardState.Saved && it.final })
         return view
     }
 

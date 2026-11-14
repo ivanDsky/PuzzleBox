@@ -41,8 +41,8 @@ class LibraryRequestsTest {
     }
 
     @Test
-    fun `the saver round-trips a page, every section, and none`() {
-        val requests = listOf<LibraryRequest?>(LibraryRequest.GamePage("zip"), null) +
+    fun `the saver round-trips every section, and none`() {
+        val requests = listOf<LibraryRequest?>(null) +
             GamesTab.entries.map { LibraryRequest.Section(it) }
         for (request in requests) {
             val saved = with(LibraryRequests.Saver) { SaverScope { true }.save(LibraryRequests(request)) }

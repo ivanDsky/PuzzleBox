@@ -38,9 +38,8 @@ import java.time.LocalDate
  * Building it is a plain lookup construction — no composition — so NavRoutesTest
  * resolves each key against it and fails fast if a pushed key ever lacks a route.
  *
- * Loop wiring: Home's Today card selects the Play tab; its history teaser pushes History
- * on Home's stack, and the games hub's "Older puzzles" pushes it on Play's stack; the Ranks
- * hub's rows push the day's game key; Settings' Component catalog row pushes [CatalogKey] on the current
+ * Loop wiring: Home's Today card selects the Play tab; its history teaser opens
+ * the Ranks tab; the Ranks hub's rows push the day's game key; Settings' Component catalog row pushes [CatalogKey] on the current
  * tab's stack.
  * The Create tab's New puzzle and its draft rows push that draft's
  * Studio on Create's stack, and its published rows that puzzle's page. Back pops the current tab's stack ([Navigator.pop]),

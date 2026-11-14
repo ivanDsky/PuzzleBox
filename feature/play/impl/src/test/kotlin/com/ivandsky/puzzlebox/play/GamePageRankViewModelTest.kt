@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
@@ -17,7 +16,6 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
-import com.ivandsky.puzzlebox.domain.linkedin.SavedBoardState
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
@@ -31,7 +29,6 @@ import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
@@ -104,7 +101,7 @@ class GamePageRankViewModelTest {
     private val viewModel by lazy {
         GamePageRankViewModel(
             game, ObserveLeaderboard(identity, repository, registry, calendar), calendar, registry, identity,
-            dismissedGoogleSignIn, linkedIn = null, cloudSync = FakeCloudSync(), friendDay = null, // no Friends/Global setting
+            dismissedGoogleSignIn, linkedIn = null, friendDay = null, // no Friends/Global setting
         )
     }
 
@@ -129,7 +126,7 @@ class GamePageRankViewModelTest {
     /** A board with LinkedIn on. */
     private fun linkedInModel() = GamePageRankViewModel(
         game, ObserveLeaderboard(identity, repository, registry, calendar), calendar, registry, identity,
-        dismissedGoogleSignIn, linkedIn = holder(), cloudSync = FakeCloudSync(), friendDay = null, // no Friends/Global setting
+        dismissedGoogleSignIn, linkedIn = holder(), friendDay = null, // no Friends/Global setting
     )
 
     private fun ghost(name: String, timeMs: Long?, hintFree: Boolean = true, photoPath: String? = null) =
@@ -178,33 +175,6 @@ class GamePageRankViewModelTest {
         assertEquals(yesterday, viewModel.state.value.day)
         assertFalse(viewModel.state.value.isToday)
         assertEquals(DailyBoardState.Ranked(listOf(row("Yest1"))), viewModel.state.value.board)
-    }
-
-    @Test
-    fun `the board follows the cloud's first restore and is never restoring without one`() {
-        val cloud = FakeCloudSync(CloudSyncState.Syncing(firstRestore = true))
-        val restoring = GamePageRankViewModel(
-            game, ObserveLeaderboard(identity, repository, registry, calendar), calendar, registry, identity,
-            dismissedGoogleSignIn, linkedIn = null, cloudSync = cloud, friendDay = null, // no Friends/Global setting
-        )
-        restoring.state.launchIn(screen)
-        viewModel.state.launchIn(screen)
-        settle()
-
-        assertTrue(restoring.state.value.restoring)
-        assertFalse(viewModel.state.value.restoring)
-
-        cloud.state.value = CloudSyncState.Syncing(firstRestore = false)
-        settle()
-        assertFalse(restoring.state.value.restoring)
-
-        cloud.state.value = CloudSyncState.Syncing(firstRestore = true)
-        settle()
-        assertTrue(restoring.state.value.restoring)
-
-        cloud.state.value = CloudSyncState.Synced(atMs = 1L)
-        settle()
-        assertFalse(restoring.state.value.restoring)
     }
 
     @Test
@@ -328,36 +298,6 @@ class GamePageRankViewModelTest {
         days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L)), inWindow = false))
         settle()
         assertEquals(listOf("Ada"), model.state.value.ghosts.map { it.name })
-    }
-
-    @Test
-    fun `the board says whether its day is saved, never saved or not yet read - A36`() {
-        val model = linkedInModel()
-        model.state.launchIn(screen)
-
-        days.emit(game, today, dayData(emptyList(), fetchedAtMs = null))
-        settle()
-        assertEquals(SavedBoardState.NotYetRead, model.state.value.saved)
-
-        days.emit(game, today, dayData(emptyList(), inWindow = false, fetchedAtMs = null))
-        settle()
-        assertEquals(SavedBoardState.NeverSaved, model.state.value.saved)
-
-        days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L)), fetchedAtMs = 7_000L))
-        settle()
-        assertEquals(SavedBoardState.Saved(7_000L, final = false), model.state.value.saved)
-
-        days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L)), inWindow = false, fetchedAtMs = 9_000L, complete = true))
-        settle()
-        assertEquals(SavedBoardState.Saved(9_000L, final = true), model.state.value.saved)
-    }
-
-    @Test
-    fun `without LinkedIn the board is never saved`() {
-        viewModel.state.launchIn(screen)
-        settle()
-
-        assertEquals(SavedBoardState.NotYetRead, viewModel.state.value.saved)
     }
 
     @Test

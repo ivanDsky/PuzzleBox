@@ -18,7 +18,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -216,12 +215,6 @@ internal fun LibraryScreen(
     var pageOpen by rememberSaveable { mutableStateOf(false) }
     ConsumeLibraryRequest(
         request = request,
-        rows = remember(state.rows) { state.rows.map { it.card.game } },
-        onGamePage = { game ->
-            onRow(game)
-            tab = GamesTab.Dailies
-            if (layout == PlayLayout.SinglePane) pageOpen = true
-        },
         onSection = { next ->
             if (duels != null) {
                 tab = next

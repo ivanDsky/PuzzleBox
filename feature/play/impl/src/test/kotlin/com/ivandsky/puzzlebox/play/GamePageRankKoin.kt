@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
-import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
@@ -36,7 +35,6 @@ internal fun startGamePageRankKoin(ids: List<GameId>, today: LocalDate = LocalDa
                         identity,
                         dismissedGoogleSignIn,
                         linkedIn = null,
-                        cloudSync = FakeCloudSync(),
                         friendDay = null, // no Friends/Global setting
                     )
                 }

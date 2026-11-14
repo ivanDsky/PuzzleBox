@@ -33,18 +33,16 @@ internal class LibraryRequests(initial: LibraryRequest? = null) {
     }
 
     companion object {
-        private const val PAGE = "page:"
         private const val SECTION = "section:"
 
         /**
-         * Wire shape: `page:<gameId>`, `section:<GamesTab.name>`, or `""` for none. The app owns
+         * Wire shape: `section:<GamesTab.name>`, or `""` for none. The app owns
          * it, so renaming a [GamesTab] entry changes what an old saved state holds; an
          * unreadable value restores as no request.
          */
         val Saver: Saver<LibraryRequests, String> = Saver(
             save = { requests ->
                 when (val request = requests.pending) {
-                    is LibraryRequest.GamePage -> PAGE + request.gameId
                     is LibraryRequest.Section -> SECTION + request.tab.name
                     null -> ""
                 }
@@ -52,7 +50,6 @@ internal class LibraryRequests(initial: LibraryRequest? = null) {
             restore = { saved ->
                 LibraryRequests(
                     when {
-                        saved.startsWith(PAGE) -> LibraryRequest.GamePage(saved.removePrefix(PAGE))
                         saved.startsWith(SECTION) ->
                             GamesTab.entries.firstOrNull { it.name == saved.removePrefix(SECTION) }
                                 ?.let(LibraryRequest::Section)

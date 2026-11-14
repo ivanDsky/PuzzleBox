@@ -5,14 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
-import com.ivandsky.puzzlebox.data.cloud.CloudSync
-import com.ivandsky.puzzlebox.data.cloud.restoring
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView.Target
-import com.ivandsky.puzzlebox.domain.linkedin.SavedBoardState
 import com.ivandsky.puzzlebox.domain.ranks.FriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -53,10 +50,8 @@ import kotlinx.coroutines.flow.update
  * game's calendar, and the [board] to draw for it, the top rows with the player's own row pinned under them when
  * it ranks lower. While that day's board has not arrived, [board] is Loading, except that with LinkedIn a board
  * already drawn stays whole (day, rows and ghosts) until the next day is ready: the title and the rows change together.
- * [ghosts] are the LinkedIn connections of that day, none until they are read. [saved] says whether that day's board
- * is a saved one, which the page marks with a line under the board. [entries] is how many players are on a Ranked
- * board, before the cut to the top rows (the rank summary's "of N"). [restoring] is true while the cloud's first
- * restore on this device runs (A34), when a day with no saved board yet may still get one. In Friends scope (F20)
+ * [ghosts] are the LinkedIn connections of that day, none until they are read.  [entries] is how many players are on a Ranked
+ * board, before the cut to the top rows (the rank summary's "of N"). In Friends scope (F20)
  * [amongFriends] is true and [standing] is the player's place among their friends and connections, null off the
  * board; the rows stay the whole board's.
  */
@@ -65,9 +60,7 @@ internal data class GamePageRankState(
     val isToday: Boolean = true,
     val board: DailyBoardState = DailyBoardState.Loading,
     val ghosts: List<GhostRowModel> = emptyList(),
-    val saved: SavedBoardState = SavedBoardState.NotYetRead,
     val entries: Int = 0,
-    val restoring: Boolean = false,
     val amongFriends: Boolean = false,
     val standing: FriendDay.Standing? = null,
 ) {
@@ -81,7 +74,6 @@ internal data class GamePageRankState(
  * Sign-in goes through one [BoardSignInHolder], so the page's board signs in without leaving.
  * A non-null [linkedIn] adds that day's LinkedIn ghosts, only ever read from what the phone holds: the day card's
  * own collection already syncs the day it shows, so the board never asks LinkedIn anything. Null touches nothing of LinkedIn.
- * [cloudSync] says when the first restore runs.
  * A non-null [friendDay] makes the rank summary follow the player's Friends/Global setting (F20); null is Global.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -93,7 +85,6 @@ internal class GamePageRankViewModel(
     identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
     private val linkedIn: ObserveLinkedInDayView?,
-    cloudSync: CloudSync,
     private val friendDay: ObserveFriendDay?,
 ) : ViewModel() {
 
@@ -106,14 +97,11 @@ internal class GamePageRankViewModel(
     /** The game's own rank rule. */
     val order: RankOrder = registry.rankOrderOf(game)
 
-    private val restoring: Flow<Boolean> = cloudSync.restoring
-
     val state: StateFlow<GamePageRankState> = flow {
         // What the board last said, so a day switch can tell whether a board is on screen to keep.
         var said = GamePageRankState()
         emitAll(shown().flatMapLatest { shown -> statesOf(shown, held = said).onEach { said = it } })
-    }.combine(restoring) { board, restoring -> if (board.restoring == restoring) board else board.copy(restoring = restoring) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GamePageRankState())
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GamePageRankState())
 
     /** How this block's last sign-in went. */
     val signInStatus: StateFlow<BoardSignIn> = signInHolder.status
@@ -191,7 +179,7 @@ internal class GamePageRankViewModel(
      */
     private fun stateOf(shown: Shown, drawn: DailyBoardState, input: LinkedInBoardInput): GamePageRankState {
         if (drawn !is DailyBoardState.Ranked) {
-            return GamePageRankState(day = shown.day, isToday = shown.isToday, board = drawn, ghosts = input.ghosts, saved = input.saved)
+            return GamePageRankState(day = shown.day, isToday = shown.isToday, board = drawn, ghosts = input.ghosts)
         }
         val ranked = if (input.ghosts.isEmpty() && input.you == null) null else rankWithLinkedIn(drawn.rows, input.ghosts, input.you, order)
         val reals = ranked?.filterIsInstance<DailyBoardLine.Real>()
@@ -202,7 +190,6 @@ internal class GamePageRankViewModel(
             day = shown.day,
             isToday = shown.isToday,
             ghosts = input.ghosts,
-            saved = input.saved,
             entries = rows.size,
             board = drawn.copy(
                 rows = rows.take(TOP_ROWS),

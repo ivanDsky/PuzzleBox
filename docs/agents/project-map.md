@@ -107,7 +107,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   the app's `e2e` test package, the E2E robot (`shellRobot`/`ShellRobot`: gestures, back and
   predictive back, background/restore/relaunch, spec-notation row assertions; `E2eKoinGraph`:
   production `appModules` with core:testing fakes on the edges; `TabNavigationE2ETest`,
-  `HistoryE2ETest`, `ProcessDeathE2ETest`, `ShellTabsE2ETest`, `ShellSummariesE2ETest`,
+  `ProcessDeathE2ETest`, `ShellTabsE2ETest`, `ShellSummariesE2ETest`,
   `StrandsPlayE2ETest`, `StrandsArchiveE2ETest`, `DuelFlowE2ETest`),
   `nav/PerTabShellTest`, `nav/ShellSessionLifecycleTest`, `nav/PlacementTest`, `nav/ShellChromeTest`.
 - `konsist/` (`:konsist`, test-only `puzzlebox.jvm.library`, no project dependencies) — the

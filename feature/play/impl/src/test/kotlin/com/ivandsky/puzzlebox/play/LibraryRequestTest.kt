@@ -208,94 +208,6 @@ class LibraryRequestTest {
         composeRule.waitForIdle()
     }
 
-    private fun back() {
-        composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
-        composeRule.waitForIdle()
-    }
-
-    @Test
-    @Config(qualifiers = "w411dp-h891dp")
-    fun `on the phone a game page request opens the page over the list and back returns to it`() {
-        request = LibraryRequest.GamePage("alpha")
-        setContent(PlayLayout.SinglePane)
-
-        awaitTag("library.page.alpha")
-        composeRule.onNodeWithTag("library.list").assertDoesNotExist()
-        assertEquals(1, taken)
-
-        back()
-        awaitTag("library.list")
-        composeRule.onNodeWithTag("library.page.alpha").assertDoesNotExist()
-    }
-
-    @Test
-    @Config(qualifiers = "w411dp-h891dp")
-    fun `on the phone a game page request opens the page on the Dailies tab`() {
-        setContent(PlayLayout.SinglePane, duels = slot)
-        awaitTag("library.tab.duels")
-        tap("library.tab.duels")
-        awaitTag(DUELS_BODY)
-
-        request = LibraryRequest.GamePage("alpha")
-        awaitTag("library.page.alpha")
-        back()
-        awaitTag("library.list")
-        composeRule.onNodeWithTag("library.tab.dailies").assertIsSelected()
-        composeRule.onNodeWithTag(DUELS_BODY).assertDoesNotExist()
-    }
-
-    @Test
-    fun `on the tablet a game page request selects the game's row`() {
-        request = LibraryRequest.GamePage("alpha")
-        setContent(PlayLayout.TwoPane)
-
-        awaitTag("library.page.alpha")
-        composeRule.onNodeWithTag("library.row.alpha").assertIsSelected()
-        composeRule.onNodeWithTag("library.row.zip").assertIsNotSelected()
-        assertEquals(1, taken)
-    }
-
-    @Test
-    @Config(qualifiers = "w411dp-h891dp")
-    fun `on the phone a game not in the list opens nothing`() {
-        request = LibraryRequest.GamePage("nope")
-        setContent(PlayLayout.SinglePane)
-
-        awaitTag("library.row.zip")
-        composeRule.waitForIdle()
-        assertEquals(1, taken)
-        composeRule.onNodeWithTag("library.list").assertExists()
-        composeRule.onNodeWithTag("library.page.zip").assertDoesNotExist()
-        composeRule.onNodeWithTag("library.page.alpha").assertDoesNotExist()
-    }
-
-    @Test
-    fun `on the tablet a game not in the list keeps the selection rather than falling back to the first row`() {
-        setContent(PlayLayout.TwoPane)
-        awaitTag("library.row.alpha")
-        tap("library.row.alpha")
-        awaitTag("library.page.alpha")
-
-        request = LibraryRequest.GamePage("nope")
-        composeRule.waitForIdle()
-        assertEquals(1, taken)
-        composeRule.onNodeWithTag("library.row.alpha").assertIsSelected()
-        composeRule.onNodeWithTag("library.row.zip").assertIsNotSelected()
-        composeRule.onNodeWithTag("library.page.alpha").assertExists()
-    }
-
-    @Test
-    @Config(qualifiers = "w411dp-h891dp")
-    fun `a section request switches the tab and the list shows`() {
-        request = LibraryRequest.Section(GamesTab.Duels)
-        setContent(PlayLayout.SinglePane, duels = slot)
-
-        awaitTag(DUELS_BODY)
-        composeRule.onNodeWithTag("library.tab.duels").assertIsSelected()
-        composeRule.onNodeWithTag("library.list").assertExists()
-        assertEquals(1, taken)
-    }
-
     @Test
     @Config(qualifiers = "w411dp-h891dp")
     fun `on the phone a section request closes an open page`() {
@@ -346,19 +258,19 @@ class LibraryRequestTest {
     @Config(qualifiers = "w411dp-h891dp")
     fun `a request is taken once and composing it again does not act twice`() {
         val restoration = StateRestorationTester(composeRule)
-        request = LibraryRequest.GamePage("alpha")
-        restoration.setContent(content(PlayLayout.SinglePane, duels = null))
-        awaitTag("library.page.alpha")
-        back()
+        request = LibraryRequest.Section(GamesTab.Duels)
+        restoration.setContent(content(PlayLayout.SinglePane, duels = slot))
+        awaitTag(DUELS_BODY)
+        tap("library.tab.dailies")
         awaitTag("library.list")
 
         tick++
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("library.page.alpha").assertDoesNotExist()
+        composeRule.onNodeWithTag("library.tab.dailies").assertIsSelected()
 
         restoration.emulateSavedInstanceStateRestore()
         awaitTag("library.list")
-        composeRule.onNodeWithTag("library.page.alpha").assertDoesNotExist()
+        composeRule.onNodeWithTag("library.tab.dailies").assertIsSelected()
         assertEquals(1, taken)
     }
 
