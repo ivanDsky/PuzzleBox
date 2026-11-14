@@ -36,8 +36,8 @@ internal fun RanksCalendar(
     stats: GameStats?,
     onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
     onSelectDay: (LocalDate?) -> Unit,
-    foldable: Boolean = true,
     modifier: Modifier = Modifier,
+    foldable: Boolean = true,
 ) {
     if (state.shownDay == null || state.today == null) return
     val reducedMotion = rememberReducedMotion()
