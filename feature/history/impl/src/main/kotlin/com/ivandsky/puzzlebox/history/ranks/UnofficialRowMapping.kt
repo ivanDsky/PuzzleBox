@@ -14,7 +14,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 
 /**
- * The viewer's device-only row for [game]'s day board (A14), or null when they have none to show: on the board
+ * The viewer's device-only row for [game]'s day board, or null when they have none to show: on the board
  * already, still inside the submit window, or no solve of that day. [inWindow] is the client's one window rule.
  */
 internal fun RankWindowBoards?.unofficialRow(

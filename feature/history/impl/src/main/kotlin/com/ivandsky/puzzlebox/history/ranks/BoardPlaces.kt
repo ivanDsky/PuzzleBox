@@ -47,7 +47,7 @@ private val OverallBrand = GameBrand(AccentSlot.Neutral, gameGlyph(name = "Overa
 
 /**
  * The viewer's place on every board of [boards], read off the [slices] the hub draws them from (same order), so the
- * menu and the hero say the place the board shows: among friends in Friends scope (F18), a LinkedIn ghost ahead
+ * menu and the hero say the place the board shows: among friends in Friends scope, a LinkedIn ghost ahead
  * counted, and nothing here reads. [brandOf] is each game's registered brand.
  */
 internal fun boardPlaces(
@@ -62,7 +62,7 @@ internal fun boardPlaces(
     }
 }
 
-/** The viewer's official row's place; the unofficial row has none (A14). With ghosts merged in, the place its line shows. */
+/** The viewer's official row's place; the unofficial row has none. With ghosts merged in, the place its line shows. */
 private fun DailyBoardState.standing(): Standing = when (this) {
     DailyBoardState.Loading -> Standing.Pending
     is DailyBoardState.Ranked -> {

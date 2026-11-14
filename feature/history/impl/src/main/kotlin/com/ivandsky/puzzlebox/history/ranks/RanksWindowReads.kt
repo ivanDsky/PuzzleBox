@@ -23,8 +23,8 @@ import kotlinx.coroutines.launch
 
 /**
  * The hub's one read of the window's boards, and how it is refreshed: [boards] is the single
- * collection (A23), tagged with the window it answers so a switch never shows the old window's
- * boards as the new one's (null until the first answer). Reconnects and the shared backoff (A24)
+ * collection, tagged with the window it answers so a switch never shows the old window's
+ * boards as the new one's (null until the first answer). Reconnects and the shared backoff
  * come from [ObserveWindowRefresh], which also hears [pull]; the answers it reads from are the
  * ones [boards] shows.
  */

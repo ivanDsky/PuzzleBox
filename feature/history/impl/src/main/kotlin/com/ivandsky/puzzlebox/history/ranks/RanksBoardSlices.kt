@@ -27,11 +27,10 @@ import kotlinx.coroutines.flow.shareIn
 private const val OVERALL_CAPTION = "Points from every game's board. Higher is better."
 
 /**
- * Every board of the hub as the slice its slot draws, in the hub's swipe order. All of them are projections of what
- * the hub already holds (the [window]'s shared boards as a scope ranks them, [scopedBoards], and Overall over the
- * same boards), so the board next to the one on screen is there to scrub to, and holding them reads nothing. Every
- * slice of one list answers the same scope: in Friends each game and Overall rank friends among themselves (F18),
- * with the LinkedIn connections the phone holds ([ghosts]) counted on every one of them (F21).
+ * Every board of the hub as the slice its slot draws, in the hub's swipe order. All are projections of the hub's shared
+ * window boards (the [window]'s boards as a scope ranks them, [scopedBoards], and Overall over the same), so scrubbing
+ * to a neighbouring board reads nothing. Every slice of one list answers the same scope: in Friends each game and
+ * Overall rank friends among themselves, with the LinkedIn connections ([ghosts]) counted on every one.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class RanksBoardSlices(

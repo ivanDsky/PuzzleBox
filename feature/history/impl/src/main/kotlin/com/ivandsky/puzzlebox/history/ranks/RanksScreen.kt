@@ -26,27 +26,10 @@ import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.history.HistoryLayout
 
 /**
- * The Ranks hub as a stack of slots, each reading only its own slice of [state]; what a tap does is one of [actions].
- * The top bar's title is the board menu ([RanksActions.onPickBoard]; its "How ranks work" row opens the
- * [HowRanksWorkSheet]) and its tune icon opens the [TuneSheet] ([RanksActions.onScope], [RanksActions.onWindow]). The
- * calendar (a week strip that expands to the month, [RanksActions.onShowCalendar] / [RanksActions.onSelectDay]) leads,
- * then the [RanksBoardStack]: the viewer's solve of the day ([RanksActions.onPlayAgain], [RanksActions.onOpenReplay],
- * [RanksActions.onCompare]), then the board under the page dots; a horizontal swipe anywhere under the calendar, down
- * to the bottom of the screen however short the board is, reports [RanksActions.onSwipe] (+1 next board, -1 previous)
- * and a vertical drag scrolls the hub or pulls its refresh ([refreshing], [RanksActions.onRefresh]). The first time the
- * hub opens, a hint and the current dot nudge the swipe, then [RanksActions.onNudgeShown]. On [HistoryLayout.TwoPane]
- * the hub is [RanksTwoPane] instead, around the same stack: no title menu, week strip or dots. [RanksActions.onBack] (a
- * pushed hub, opened from a game's link) adds a back arrow above either layout. A tab reselect scrolls the hub to the
- * top; one more, with it already there, calls [RanksActions.onReset] (A8). With a [RanksActions.onOpenPlayer] a tap on
- * another player's row reports that player; without one rows take no tap. The screen only hosts the sheet of the
- * [playerSheet] its caller has open ([RanksActions.onChallenge], [RanksActions.onClosePlayer]); its Watch tap closes it
- * and reports [RanksActions.onWatchPlayer]. While [replayOptIn], the first ranked solve's question about sharing
- * replays is up, on either layout ([RanksActions.onShareReplays], [RanksActions.onKeepReplaysPrivate]).
- * A day or window pick keeps the board on screen until the next one answers ([rememberHeldBoard]): only what differs
- * between the two days then changes, each part in place. A held board's rows take no tap, for they are not the picked day's.
- * The whole hub sits in the shown board's world ([RanksWorld]): its accent as a wash and its glyph behind the content,
- * blending to the next board's as the hub moves to it ([BoardScrub]). The same scrub moves the board itself: a swipe
- * (on either layout) or a pick re-ranks the rows in place from the one board to the other ([rememberBoardMorph]).
+ * The Ranks hub as a stack of slots, each reading only its own slice of [state]; every tap is reported through [actions].
+ * On [HistoryLayout.TwoPane] the hub is [RanksTwoPane] around the same stack, with no title menu, week strip or dots.
+ * A day or window pick keeps the held board on screen until the next one answers ([rememberHeldBoard]); a held board takes no tap.
+ * The whole hub sits in the shown board's world ([RanksWorld]), which blends to the next board's as the hub moves to it.
  */
 @Composable
 internal fun RanksScreen(

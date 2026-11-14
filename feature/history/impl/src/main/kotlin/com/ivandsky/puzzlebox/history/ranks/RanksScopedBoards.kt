@@ -15,11 +15,10 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.shareIn
 
 /**
- * The window's boards with who each scope ranks on them (F18), both off the hub's one read ([global], A23): Global
- * ranks everyone on that read, Friends the viewer and their friends, so every place, N and point drawn for Friends
- * counts friends only. A scope change therefore reads no board. The boards are narrowed where connections are
- * counted ([BoardGhosts.counted]), so both steps run in the domain's one Friends pipeline. The friends are listened
- * to only while something shows Friends, and once for all of it.
+ * The window's boards with who each scope ranks on them, both off the hub's one read ([global]): Global ranks everyone
+ * on that read, Friends the viewer and their friends, so every place, N and point drawn for Friends counts friends only.
+ * A scope change therefore reads no board. The boards are narrowed where connections are counted ([BoardGhosts.counted]),
+ * so both steps run in the domain's one Friends pipeline. The friends are listened to only while something shows Friends.
  */
 internal class RanksScopedBoards(
     global: StateFlow<Pair<RankWindow, RankWindowBoards>?>,

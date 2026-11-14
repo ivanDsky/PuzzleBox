@@ -22,9 +22,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 
 /**
- * The LinkedIn ghosts of the hub's boards (A15), read from what the phone already holds: owner-only local data, so no
- * Firestore read and no sync. In Friends scope every day of the window has its connections counted (F21), each taking
- * a place among the friends (F18); Global, and a hub built without LinkedIn ([linkedIn] null), get none and touch nothing.
+ * The LinkedIn ghosts of the hub's boards, read from the phone's own local data: no Firestore read and no sync.
+ * Friends scope counts each day's connections and places them among the friends; Global and a hub without LinkedIn
+ * ([linkedIn] null) get none.
  * Friends boards are built here by the domain's one pipeline ([amongFriends]), the same the entry points' place uses.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
