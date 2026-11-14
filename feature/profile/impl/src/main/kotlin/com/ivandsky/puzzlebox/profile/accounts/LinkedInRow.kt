@@ -45,8 +45,8 @@ private const val NO_NAME = "LinkedIn account"
  * (the risk warning and login are the caller's); a paused link that needs a reconnect offers Reconnect, not
  * Resume, since resuming a rejected session would only pause again. [nowMs] only phrases the update time. With cloud
  * boards on ([boards] given) the copy says the boards are saved to the account, a connected row whose Google account
- * is signed out ([googleSignedIn] false) asks to sign in, and the overflow may offer Delete saved boards
- * ([onDeleteSavedBoards]); without it the row is exactly the plain one.
+ * is signed out ([ProfileUiState.LinkedInBoards.googleSignedIn] false) asks to sign in, and the overflow may offer
+ * Delete saved boards ([onDeleteSavedBoards]); without it the row is exactly the plain one.
  */
 @Composable
 internal fun LinkedInRow(
@@ -55,10 +55,9 @@ internal fun LinkedInRow(
     onConnect: () -> Unit,
     onResume: () -> Unit,
     onDisconnect: () -> Unit,
+    onDeleteSavedBoards: () -> Unit,
     modifier: Modifier = Modifier,
     boards: ProfileUiState.LinkedInBoards? = null,
-    googleSignedIn: Boolean = true,
-    onDeleteSavedBoards: () -> Unit = {},
 ) {
     val row = modifier.testTag("profile.linkedin")
     val overflow: @Composable () -> Unit = {
@@ -82,7 +81,7 @@ internal fun LinkedInRow(
             sub = connectedSub(state.summary),
             modifier = row,
             trailing = overflow,
-            extra = { StatsAndBoards(state.summary, nowMs, boards, googleSignedIn) },
+            extra = { StatsAndBoards(state.summary, nowMs, boards) },
         )
         is LinkedInRowState.Paused -> AccountRow(
             lead = { LinkedInLead(state.summary) },
@@ -106,7 +105,7 @@ internal fun LinkedInRow(
                     } else {
                         StatsLine(state.summary, nowMs)
                     }
-                    BoardsLines(boards, googleSignedIn)
+                    BoardsLines(boards)
                 }
             },
         )
@@ -114,18 +113,18 @@ internal fun LinkedInRow(
 }
 
 @Composable
-private fun StatsAndBoards(summary: LinkedInAccountView, nowMs: Long, boards: ProfileUiState.LinkedInBoards?, googleSignedIn: Boolean) {
+private fun StatsAndBoards(summary: LinkedInAccountView, nowMs: Long, boards: ProfileUiState.LinkedInBoards?) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         StatsLine(summary, nowMs)
-        BoardsLines(boards, googleSignedIn)
+        BoardsLines(boards)
     }
 }
 
 /** Under the stats: the sign-in hint while boards are meant for the account but nobody is signed in, and why a Delete saved boards did not finish. */
 @Composable
-private fun BoardsLines(boards: ProfileUiState.LinkedInBoards?, googleSignedIn: Boolean) {
+private fun BoardsLines(boards: ProfileUiState.LinkedInBoards?) {
     if (boards == null) return
-    if (boards.savedToAccount && !googleSignedIn) {
+    if (boards.savedToAccount && !boards.googleSignedIn) {
         Text(
             text = SIGN_IN_HINT,
             style = MaterialTheme.typography.bodySmall,

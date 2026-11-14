@@ -81,7 +81,7 @@ class ProfileViewModelSyncTest {
         return vm
     }
 
-    private fun ProfileViewModel.sync(): GoogleSync? = uiState.value.sync
+    private fun ProfileViewModel.sync(): GoogleSync? = (uiState.value.account as? ProfileUiState.Account.SignedIn)?.sync
 
     @Test
     fun `with cloud sync off nothing sync is in the state and the actions do nothing`() = runTest(dispatcher) {
