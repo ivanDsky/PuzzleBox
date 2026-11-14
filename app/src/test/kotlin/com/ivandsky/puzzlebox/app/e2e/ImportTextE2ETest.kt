@@ -9,10 +9,8 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -22,7 +20,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * M5-01-d's walking skeleton over the real shell with `TextImport` forced on: on the Create
+ * M5-01-d's walking skeleton over the real shell: on the Create
  * root the header Import pill opens the sheet, a pasted Queens board and one tap on Import open
  * the new draft in the Studio with the verdict the same board would show painted by hand
  * (Unique), and back on the root the imported draft's row exists.
@@ -38,11 +36,7 @@ class ImportTextE2ETest {
     @Test
     fun `pasting a Queens board and tapping Import opens an imported draft in the Studio`() =
         shellRobot(
-            graph = E2eKoinGraph(
-                E2E_TODAY,
-                overrides = module { single<DraftRepository> { drafts } },
-                releaseFlags = FakeReleaseFlags(ReleaseFlag.TextImport),
-            ),
+            graph = E2eKoinGraph(E2E_TODAY, overrides = module { single<DraftRepository> { drafts } }),
         ) {
             tapTab(CreateKey)
             assertRoute(CREATE)

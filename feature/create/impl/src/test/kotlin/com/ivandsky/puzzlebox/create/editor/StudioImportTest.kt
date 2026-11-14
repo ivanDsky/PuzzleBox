@@ -14,9 +14,6 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.ShippedReleaseFlags
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
 import com.ivandsky.puzzlebox.create.TestDraft
@@ -39,7 +36,6 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
@@ -52,7 +48,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -68,8 +63,7 @@ import org.robolectric.shadows.ShadowLooper
 /**
  * The Studio's overflow Import from text (M5-07) over the real view model, the real
  * `ImportDraftFromText` and a [FakeDraftRepository]: the item opens the one Import sheet and
- * exists only while [ReleaseFlag.TextImport] is on (the default [ReleaseFlags] are the shipped
- * ones). A good import replaces the Studio on the back stack with the new draft, so Back lands
+ * is always offered. A good import replaces the Studio on the back stack with the new draft, so Back lands
  * on the Create root; the draft being edited is untouched. A bad one keeps the stack. Only an
  * imported draft's Studio carries the Imported chip.
  */
@@ -90,7 +84,7 @@ class StudioImportTest {
 
     @Test
     fun `the overflow's Import from text opens the Import sheet`() {
-        open(FakeReleaseFlags(ReleaseFlag.TextImport))
+        open()
 
         composeRule.onNodeWithTag(MORE).performClick()
         awaitTag(MENU_IMPORT)
@@ -101,7 +95,7 @@ class StudioImportTest {
 
     @Test
     fun `a valid import replaces the Studio with the new draft and leaves the source untouched`() {
-        open(FakeReleaseFlags(ReleaseFlag.TextImport))
+        open()
         val source = drafts.rows.getValue(SOURCE_ID)
 
         importText(NOTATION)
@@ -117,7 +111,7 @@ class StudioImportTest {
 
     @Test
     fun `Back from the imported Studio lands on the Create root, not the old draft`() {
-        open(FakeReleaseFlags(ReleaseFlag.TextImport))
+        open()
         importText(NOTATION)
         awaitTag(IMPORTED)
 
@@ -128,7 +122,7 @@ class StudioImportTest {
 
     @Test
     fun `a malformed import keeps the stack and shows the error`() {
-        open(FakeReleaseFlags(ReleaseFlag.TextImport))
+        open()
         val before = navigator.state.currentStack
 
         importText("no header here")
@@ -142,7 +136,7 @@ class StudioImportTest {
 
     @Test
     fun `the imported toast shows on the new Studio and not again once it is back on screen`() {
-        open(FakeReleaseFlags(ReleaseFlag.TextImport))
+        open()
         importText(NOTATION)
         awaitTag(IMPORTED_TOAST)
 
@@ -157,44 +151,18 @@ class StudioImportTest {
 
     @Test
     fun `a Studio of a plain draft shows no Imported chip`() {
-        open(FakeReleaseFlags(ReleaseFlag.TextImport))
+        open()
 
         awaitTag(TITLE)
         assertTrue(composeRule.onAllNodes(hasTestTag(IMPORTED), useUnmergedTree = true).fetchSemanticsNodes().isEmpty())
     }
 
     @Test
-    fun `an imported draft's Studio shows the Imported chip even with TextImport off`() {
+    fun `an imported draft's Studio shows the Imported chip`() {
         open(imported = true)
 
         awaitTag(IMPORTED)
     }
-
-    @Test
-    fun `with TextImport off the overflow has no Import from text`() {
-        open()
-
-        composeRule.onNodeWithTag(MORE).performClick()
-
-        awaitTag(MENU_DUPLICATE)
-        assertTrue(composeRule.onAllNodes(hasTestTag(MENU_IMPORT)).fetchSemanticsNodes().isEmpty())
-    }
-
-    @Test
-    fun `importEnabled is on with TextImport`() {
-        open(FakeReleaseFlags(ReleaseFlag.TextImport))
-
-        assertTrue(vm.importEnabled.value)
-    }
-
-    @Test
-    fun `importEnabled is off without TextImport`() {
-        open()
-
-        assertFalse(vm.importEnabled.value)
-    }
-
-    private lateinit var vm: EditorViewModel
 
     /** False while the Studio is taken off the screen, as a rotation or a Back and return does. */
     private var mounted by mutableStateOf(true)
@@ -208,8 +176,8 @@ class StudioImportTest {
         composeRule.onNodeWithTag(SUBMIT).performClick()
     }
 
-    /** Opens the Studio of the stored source draft; [flags] default to the shipped ones. */
-    private fun open(flags: ReleaseFlags = ShippedReleaseFlags, imported: Boolean = false) {
+    /** Opens the Studio of the stored source draft. */
+    private fun open(imported: Boolean = false) {
         val editor = NotatedEditor()
         runBlocking { drafts.upsert(sourceRow(editor, imported)) }
         val games = GameRegistry(listOf(pluginOf(editor)))
@@ -231,8 +199,7 @@ class StudioImportTest {
                             idTokens = noGoogleAccount,
                             updatePublishState = signedOutUnpublishing(),
                             preferences = FakeUserPreferencesRepository(),
-                            releaseFlags = flags,
-                        ).also { vm = it }
+                        )
                     }
                     idleCreateRoot(drafts)
                 },
@@ -322,7 +289,6 @@ class StudioImportTest {
         const val BACK = "create.editor.back"
         const val TITLE = "create.studio.title"
         const val MORE = "create.studio.more"
-        const val MENU_DUPLICATE = "create.studio.duplicate"
         const val MENU_IMPORT = "create.studio.import"
         const val IMPORTED = "create.studio.imported"
         const val IMPORTED_TOAST = "create.toast.imported"

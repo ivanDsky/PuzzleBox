@@ -27,7 +27,6 @@ internal fun CreateRoute(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val importEnabled by viewModel.importEnabled.collectAsStateWithLifecycle()
     val importSheet by viewModel.importText.ui.collectAsStateWithLifecycle()
     val open by rememberUpdatedState(onOpen)
     LaunchedEffect(viewModel) { viewModel.created.collect { open(it) } }
@@ -47,7 +46,6 @@ internal fun CreateRoute(
         onDelete = viewModel::delete,
         onUndoDelete = viewModel::undoDelete,
         modifier = modifier.testTag("route.create"),
-        importEnabled = importEnabled,
         importSheet = importSheet,
         onImportOpen = viewModel.importText::open,
         importActions = remember(viewModel) { ImportSheetActions.of(viewModel.importText) },

@@ -85,7 +85,6 @@ internal fun EditorRoute(
     // Each Copy code bumps it, so the same code copied twice still toasts twice.
     var copies by remember { mutableIntStateOf(0) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { viewModel.flush() }
-    val importEnabled by viewModel.importEnabled.collectAsStateWithLifecycle()
     val importSheet by viewModel.importText.ui.collectAsStateWithLifecycle()
     val importActions = remember(viewModel) { ImportSheetActions.of(viewModel.importText) }
     val importedOpen by rememberUpdatedState(onImported)
@@ -224,7 +223,7 @@ internal fun EditorRoute(
                 unpublished = ticket?.unpublished == true,
                 onUnpublish = (viewModel.unpublish::ask).takeIf { ticket?.unpublished == false },
                 imported = ready.imported,
-                onImport = (viewModel.importText::open).takeIf { importEnabled },
+                onImport = viewModel.importText::open,
                 importSheet = importSheet,
                 importActions = importActions,
             )
