@@ -1,9 +1,12 @@
 package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -47,7 +50,13 @@ class ResultHeroScreenTest {
     private val brand = GameBrand(AccentSlot.Violet, GameGlyphs.Queens)
     private var retried = 0
 
-    private fun setContent(widthDp: Int, heightDp: Int, writeFailed: Boolean = false, facts: ResultHeroFacts = heroSampleFacts()) {
+    private fun setContent(
+        widthDp: Int,
+        heightDp: Int,
+        writeFailed: Boolean = false,
+        facts: ResultHeroFacts = heroSampleFacts(),
+        extraActionsHeight: Dp = 0.dp,
+    ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 ResultHeroScreen(
@@ -56,7 +65,7 @@ class ResultHeroScreenTest {
                     modifier = Modifier.requiredSize(widthDp.dp, heightDp.dp),
                     brand = brand,
                     onRetryWrite = if (writeFailed) ({ retried++ }) else null,
-                    actions = { ResultHeroActions(facts.primary, onPrimary = {}, onShare = {}, onPlayAgain = {}) },
+                    actions = { TallActions(facts, extraActionsHeight) },
                 )
             }
         }
@@ -84,13 +93,21 @@ class ResultHeroScreenTest {
         assertEquals("hero ${hero.height} vs side ${side.height}", hero.height.value, side.height.value, 1f)
     }
 
+    /** The action row, with [extra] height under it: the side card now always holds its three blocks, so the hero card only out-grows it with tall actions. */
+    @Composable
+    private fun TallActions(facts: ResultHeroFacts, extra: Dp) {
+        Column {
+            ResultHeroActions(facts.primary, onPrimary = {}, onShare = {}, onPlayAgain = {})
+            Spacer(Modifier.height(extra))
+        }
+    }
+
     @Test
     fun tablet_cards_are_equal_height_when_the_side_card_is_the_shorter() {
-        // A play-again has no streak and no rank: the side card is the chart block alone.
-        setContent(1280, 800, facts = heroSampleFacts(playAgain = true))
+        setContent(1280, 800, extraActionsHeight = TALL_ACTIONS)
         val hero = composeRule.onNodeWithTag("result.hero.card").getUnclippedBoundsInRoot()
-        val verdict = composeRule.onNodeWithTag("result.side.verdict").getUnclippedBoundsInRoot()
-        assertTrue("premise: side content ends at ${verdict.bottom}, inside the hero card (${hero.bottom})", verdict.bottom < hero.bottom)
+        val rank = composeRule.onNodeWithTag("result.side.rank").getUnclippedBoundsInRoot()
+        assertTrue("premise: side content ends at ${rank.bottom}, inside the hero card (${hero.bottom})", rank.bottom < hero.bottom)
         assertCardsEqualHeight()
     }
 
@@ -170,11 +187,12 @@ class ResultHeroScreenTest {
 
     @Test
     fun tablet_keeps_the_actions_a_gap_under_the_chips_when_the_side_card_is_the_shorter() {
-        setContent(1280, 800, facts = heroSampleFacts(playAgain = true))
+        // Tall actions make the hero card the taller: nothing stretches it, so the row rests under the chips.
+        setContent(1280, 800, extraActionsHeight = TALL_ACTIONS)
         val parts = heroParts()
-        val (card, _, next) = parts
-        assertEquals("the row sits Spacing.lg under the chips", (parts.chipsBottom + Spacing.lg).value, next.top.value, 1f)
-        assertEquals("the row sits on the card padding", (card.bottom - Spacing.xl).value, next.bottom.value, 1f)
+        val rank = composeRule.onNodeWithTag("result.side.rank").getUnclippedBoundsInRoot()
+        assertTrue("premise: side content ends at ${rank.bottom}, inside the hero card (${parts.card.bottom})", rank.bottom < parts.card.bottom)
+        assertEquals("the row sits Spacing.lg under the chips", (parts.chipsBottom + Spacing.lg).value, parts.next.top.value, 1f)
     }
 
     @Test
@@ -182,12 +200,12 @@ class ResultHeroScreenTest {
         var withActions by mutableStateOf(true)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                val facts = heroSampleFacts(playAgain = true)
+                val facts = heroSampleFacts()
                 ResultHeroScreen(
                     facts = facts,
                     modifier = Modifier.requiredSize(1280.dp, 800.dp),
                     brand = brand,
-                    actions = if (withActions) ({ ResultHeroActions(facts.primary, onPrimary = {}, onShare = {}, onPlayAgain = {}) }) else null,
+                    actions = if (withActions) ({ TallActions(facts, TALL_ACTIONS) }) else null,
                 )
             }
         }
@@ -269,5 +287,9 @@ class ResultHeroScreenTest {
     fun a_null_slot_composes_no_replay_node() {
         setContent(411, 891)
         composeRule.onNodeWithTag("result.replay.slot").assertDoesNotExist()
+    }
+
+    private companion object {
+        val TALL_ACTIONS = 300.dp
     }
 }

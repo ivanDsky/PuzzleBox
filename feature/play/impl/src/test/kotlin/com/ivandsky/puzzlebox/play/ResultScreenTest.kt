@@ -310,13 +310,13 @@ class ResultScreenTest {
         }
     }
 
-    private fun withRankedResult(onOpenRanks: ((GameId, LocalDate?) -> Unit)?, check: () -> Unit) {
+    private fun withRankedResult(onOpenRanks: ((GameId, LocalDate?) -> Unit)?, resultDay: LocalDate = day, check: () -> Unit) {
         val me = Identity(uid = "me", displayName = "Me", photoUrl = null)
         val rows = (1..12).map { rank ->
             LeaderboardEntry(
                 uid = if (rank == 3) me.uid else "p$rank",
                 displayName = "P$rank",
-                puzzleRef = "${game.value}/$day/1",
+                puzzleRef = "${game.value}/$resultDay/1",
                 timeMs = rank * 10_000L,
                 hints = 0,
                 completedAtMs = 0L,
@@ -326,13 +326,13 @@ class ResultScreenTest {
             FakeGames(listOf(game)),
             FakeDailyRepository(),
             identity = FakeIdentityService(me),
-            leaderboard = FakeLeaderboardRepository(mapOf(LeaderboardRef(game.value, day) to rows)),
+            leaderboard = FakeLeaderboardRepository(mapOf(LeaderboardRef(game.value, resultDay) to rows)),
         )
         try {
             composeRule.setContent {
                 PuzzleBoxTheme(darkTheme = false) {
                     ResultRoute(
-                        key = ResultKey(game.value, day.toString(), 30_000, 0),
+                        key = ResultKey(game.value, resultDay.toString(), 30_000, 0),
                         onPlayAgain = {},
                         onNext = {},
                         onDone = {},
@@ -355,6 +355,15 @@ class ResultScreenTest {
             composeRule.onNodeWithTag("result.hero.chip.today").assertDoesNotExist()
             composeRule.onNodeWithTag("result.hero.chip.rank").assertExists().performClick()
             composeRule.runOnIdle { assertEquals(listOf(game to day), opened) }
+        }
+    }
+
+    @Test
+    fun `a play again shows the day's rank in the side card, never as a chip beside this time`() {
+        withRankedResult(onOpenRanks = { _, _ -> }, resultDay = day.minusDays(1)) {
+            composeRule.onNodeWithTag("result.hero.chip.rank").assertDoesNotExist()
+            composeRule.onNodeWithTag("result.hero.chip.today").assertExists()
+            composeRule.onNodeWithTag("result.side.rank").assertExists()
         }
     }
 

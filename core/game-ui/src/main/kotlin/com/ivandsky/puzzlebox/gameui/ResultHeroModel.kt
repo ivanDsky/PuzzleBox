@@ -16,7 +16,7 @@ internal data class HeroWeekDot(val label: String, val solved: Boolean, val toda
 /**
  * The streak block: [days] counts up on screen; [title] and [sub] are its sentences. [freezesHeld] is the
  * freeze count beside the number, already ruled by [heldWhileStreak]; null hides it. [moment] is the line for a
- * freeze this solve spent or earned; null leaves it out.
+ * freeze this solve spent or earned; null leaves it out (a play again never has one: it spends and earns nothing).
  */
 internal data class HeroStreak(
     val days: Int,
@@ -59,7 +59,8 @@ internal data class HeroSpread(
 
 /**
  * The rank row: a bold [value] and its [sub] line, or a sign-in prompt. A [connections] line, when present, gives the
- * place among players and LinkedIn connections under the PuzzleBox rank.
+ * place among players and LinkedIn connections under the PuzzleBox rank. On a play again the [sub] says the place is
+ * the player's counting solve of that day.
  */
 internal sealed interface HeroRank {
     data class Place(val value: String, val sub: String, val connections: String? = null) : HeroRank
@@ -89,10 +90,13 @@ internal data class ResultHeroModel(
 )
 
 /**
- * The model for [facts]. A practice puzzle counts nothing: no
- * pill, streak, spread or rank. A play-again counts nothing either but shows the spread: no
- * pill, streak or rank. The streak, spread and rank wait for their data, so none shows a
- * placeholder; the Average chip hides on a first solve.
+ * The model for [facts]. A practice puzzle counts nothing: no pill, streak, spread or rank. A play-again
+ * counts nothing either, so it has no pill, celebration or burst, but its side card matches a counting solve's:
+ * the streak is the player's current one (the insights leave this play-again out of it), the spread is
+ * drawn with this solve dashed, and the rank is the player's counting solve's place on that day's board, labelled
+ * so ([heroRankSubPlayAgain], [HERO_SIGN_IN_PLAY_AGAIN_LINE]) and never read as this play-again's. The streak,
+ * spread and rank wait for their data, so none shows a placeholder (a player not on that day's board has no rank
+ * row); the Average chip hides on a first solve.
  * A non-null [chip] replaces the Today chip with the caller's own.
  */
 internal fun resultHeroModel(
@@ -122,9 +126,9 @@ internal fun resultHeroModel(
         },
         bestImproved = counts && verdict == RecordVerdict.NewBest,
         chips = chips(facts, insights, chip),
-        streak = insights?.takeIf { counts }?.let { streak(it, locale) },
+        streak = insights?.let { streak(it, locale) },
         spread = insights?.let { spread(facts, it, locale) },
-        rank = if (counts) rank(facts.rank) else null,
+        rank = if (facts.practice) null else rank(facts.rank, facts.playAgain),
         celebrate = counts && (verdict == RecordVerdict.NewBest || verdict == RecordVerdict.FirstSolve),
         burst = counts && verdict == RecordVerdict.NewBest,
         primary = facts.primary,
@@ -180,12 +184,12 @@ private fun spread(facts: ResultHeroFacts, insights: ResultInsights, locale: Loc
     return HeroSpread(views = views, defaultScope = defaultScope, playAgain = facts.playAgain, switchable = switchable)
 }
 
-private fun rank(rank: ResultRank): HeroRank? = when (rank) {
+private fun rank(rank: ResultRank, playAgain: Boolean): HeroRank? = when (rank) {
     ResultRank.Hidden -> null
-    ResultRank.SignedOut -> HeroRank.SignIn(HERO_SIGN_IN_LINE)
+    ResultRank.SignedOut -> HeroRank.SignIn(if (playAgain) HERO_SIGN_IN_PLAY_AGAIN_LINE else HERO_SIGN_IN_LINE)
     is ResultRank.Ranked -> HeroRank.Place(
         value = heroRankValue(rank.position, rank.count, rank.topPercent),
-        sub = heroRankSub(rank.count),
+        sub = if (playAgain) heroRankSubPlayAgain(rank.count) else heroRankSub(rank.count),
         connections = rank.withConnections?.let { heroRankConnections(it.position, it.count) },
     )
 }
