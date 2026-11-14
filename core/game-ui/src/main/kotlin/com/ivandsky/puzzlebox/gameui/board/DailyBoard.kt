@@ -38,7 +38,8 @@ private class Handover(var scrubbed: Boolean = false)
  * reports its row; a board that passes none has rows that take no tap. With [morphText] a new [title] or [caption]
  * frosts over the old one ([MorphCell]) instead of replacing it. [backdrop] is the colour every row that is not
  * the viewer's own is filled with, for a board that sits on something other than the theme's background; it may be
- * see-through. Null leaves the rows as the list draws them.
+ * see-through. Null leaves the rows as the list draws them. With [inlineMarks] a row's mark and detail are chips
+ * beside its name instead of small lines under it (see [DailyBoardList]).
  *
  * While there is a [morph] an [animated] board draws the two boards it is between as one, as far along as the morph
  * says, instead of [state]: the rows on both travel and change in place, the rest frost in and out (see [BoardMorph]).
@@ -61,6 +62,7 @@ fun DailyBoard(
     morphText: Boolean = false,
     backdrop: Color? = null,
     morph: BoardMorph? = null,
+    inlineMarks: Boolean = false,
 ) {
     val rowsOn = backdrop ?: MaterialTheme.colorScheme.background
     val still = rememberReducedMotion() || LocalInspectionMode.current
@@ -68,7 +70,11 @@ fun DailyBoard(
     val handover = remember { Handover() }
     val landed = scrub == null && handover.scrubbed
     SideEffect { handover.scrubbed = scrub != null }
-    CompositionLocalProvider(LocalBoardRowClick provides onRowClick, LocalBoardBackdrop provides (backdrop ?: LocalBoardBackdrop.current)) {
+    CompositionLocalProvider(
+        LocalBoardRowClick provides onRowClick,
+        LocalBoardBackdrop provides (backdrop ?: LocalBoardBackdrop.current),
+        LocalInlineMarks provides inlineMarks,
+    ) {
         Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             BoardText(title, scrub, BoardFace::title, morphText) { Title(it) }
             BoardText(caption, scrub, BoardFace::caption, morphText) { Caption(it) }

@@ -36,7 +36,9 @@ private val DividerHeight = 1.dp
  *
  * With [medals] the rows at places 1 to 3 are medal rows: tinted, the winner's a little taller (see [MedalRow]). With
  * [dock] the viewer's own row, the [pinned] one or the one among [lines], docks to the top or bottom edge of whatever
- * scrolls the list while it is out of view, and a tap on the dock scrolls to it (see [DockedSelfRow]).
+ * scrolls the list while it is out of view, and a tap on the dock scrolls to it (see [DockedSelfRow]). With
+ * [inlineMarks] a row's mark and detail are chips beside its name, so every row is one line; without, they are small
+ * lines under the name.
  */
 @Composable
 fun DailyBoardList(
@@ -48,8 +50,11 @@ fun DailyBoardList(
     backdrop: Color = MaterialTheme.colorScheme.background,
     medals: Boolean = false,
     dock: Boolean = false,
+    inlineMarks: Boolean = false,
 ) {
-    BoardList(lines, order, modifier, pinned, animated, backdrop, medals, dock)
+    CompositionLocalProvider(LocalInlineMarks provides inlineMarks) {
+        BoardList(lines, order, modifier, pinned, animated, backdrop, medals, dock)
+    }
 }
 
 /**

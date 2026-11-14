@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.gameui.board
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.getBoundsInRoot
@@ -109,6 +110,58 @@ class BoardRowLayoutTest {
         show(showPuzzleBoxRank = true)
         val withLine = composeRule.onAllNodesWithTag("daily_board.row")[0].getBoundsInRoot().height
         composeRule.onNodeWithTag("daily_board.ghost").assertHeightIsEqualTo(withLine)
+    }
+
+    @Test
+    fun `with inline marks a row with its mark and its PuzzleBox rank is one line, the same height as a row without`() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                CompositionLocalProvider(LocalInlineMarks provides true) {
+                    Column {
+                        DailyBoardRow(self.copy(unofficial = true), RankOrder.TimeThenHints, place = 2, showPuzzleBoxRank = true)
+                        GhostRow(ghost, 3, RankOrder.TimeThenHints)
+                    }
+                }
+            }
+        }
+        val row = composeRule.onNodeWithTag("daily_board.row.self").getBoundsInRoot()
+        val name = composeRule.onNodeWithTag("daily_board.row.name").getBoundsInRoot()
+
+        composeRule.onNodeWithTag("daily_board.ghost").assertHeightIsEqualTo(row.height)
+        listOf("daily_board.row.mark", "daily_board.row.puzzlebox_rank").forEach { tag ->
+            val chip = composeRule.onNodeWithTag(tag).getBoundsInRoot()
+            assertTrue("$tag $chip is beside the name $name", chip.left >= name.right && chip.top >= name.top && chip.bottom <= name.bottom)
+        }
+    }
+
+    private fun showList(inlineMarks: Boolean) {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                if (inlineMarks) {
+                    DailyBoardList(listOf(DailyBoardLine.Real(self.copy(unofficial = true), 2)), RankOrder.TimeThenHints, inlineMarks = true)
+                } else {
+                    DailyBoardList(listOf(DailyBoardLine.Real(self.copy(unofficial = true), 2)), RankOrder.TimeThenHints)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `a list that does not ask for inline marks keeps a row's mark on a line under its name`() {
+        showList(inlineMarks = false)
+        val name = composeRule.onNodeWithTag("daily_board.row.name").getBoundsInRoot()
+        val mark = composeRule.onNodeWithTag("daily_board.row.mark").getBoundsInRoot()
+
+        assertTrue("the mark $mark is under the name $name", mark.top >= name.bottom && mark.left == name.left)
+    }
+
+    @Test
+    fun `a list with inline marks puts a row's mark beside its name`() {
+        showList(inlineMarks = true)
+        val name = composeRule.onNodeWithTag("daily_board.row.name").getBoundsInRoot()
+        val mark = composeRule.onNodeWithTag("daily_board.row.mark").getBoundsInRoot()
+
+        assertTrue("the mark $mark is beside the name $name", mark.left >= name.right && mark.top >= name.top && mark.bottom <= name.bottom)
     }
 
     @Test

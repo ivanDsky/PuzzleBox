@@ -52,7 +52,8 @@ import org.koin.core.parameter.parametersOf
  *
  * A game's first play shows its tutorial before the board, and the bar's How to play
  * reopens it over the live play; Skip or "Let's play" hands back to the board.
- * The bar's Up stays, so back leaves the game from a tutorial too.
+ * The bar's Up stays, so back leaves the game from a tutorial too. [inlineMarks] is the side panel's
+ * times' (see [PlayTimesCard]).
  */
 @Composable
 internal fun GameRoute(
@@ -62,6 +63,7 @@ internal fun GameRoute(
     onSolved: (slot: PlaySlot, timeMs: Long, hintsUsed: Int) -> Unit,
     linkedIn: Boolean = false,
     modifier: Modifier = Modifier,
+    inlineMarks: Boolean = false,
 ) {
     val viewModel: GameViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val pastDay by viewModel.pastDay.collectAsStateWithLifecycle()
@@ -70,6 +72,7 @@ internal fun GameRoute(
         play = viewModel.play,
         pastDay = pastDay,
         tutorial = tutorial,
+        inlineMarks = inlineMarks,
         onHowToPlay = viewModel::howToPlay,
         onTutorialFinished = viewModel::closeTutorial,
         layout = layout,
@@ -111,7 +114,8 @@ internal fun GameRoute(
 
 /** One live [play]'s top bar and board, behind the [tutorial] gate; How to play shows
  *  when [onHowToPlay] is given and the game has lessons, and the route's [overflow] items
- *  follow the game's own in the bar's menu. [linkedIn] ranks the day's LinkedIn connections into the side panel's times. */
+ *  follow the game's own in the bar's menu. [linkedIn] ranks the day's LinkedIn connections into the side panel's times
+ *  and [inlineMarks] draws their rows' marks as chips beside the name (see [PlayTimesCard]). */
 @Composable
 internal fun GameBoard(
     play: ActivePlay?,
@@ -125,6 +129,7 @@ internal fun GameBoard(
     overflow: List<PlayOverflowItem>,
     modifier: Modifier,
     linkedIn: Boolean = false,
+    inlineMarks: Boolean = false,
 ) {
     Column(modifier = modifier.testTag("route.game")) {
         if (play == null) {
@@ -179,7 +184,9 @@ internal fun GameBoard(
                 }
                 val clock = (board.controller as? PlayClock)?.takeIf { board.status is PlayBoardStatus.Ready }
                 val activityContext = LocalContext.current
-                val sidePanel = remember(stats, clock, activityContext) { stats?.let { statsPanel(it, clock, activityContext) } }
+                val sidePanel = remember(stats, clock, activityContext, inlineMarks) {
+                    stats?.let { statsPanel(it, clock, activityContext, inlineMarks) }
+                }
                 play.ui.Screen(
                     controller = board.controller,
                     status = board.status,
@@ -198,7 +205,12 @@ internal fun GameBoard(
  * The tablet side panel's content: [PlayStatsPanel] over [stats], under the game's
  * chrome, timing it off [clock] (null while the board isn't ready).
  */
-private fun statsPanel(stats: PlayStatsViewModel, clock: PlayClock?, activityContext: Context): @Composable ColumnScope.() -> Unit = {
+private fun statsPanel(
+    stats: PlayStatsViewModel,
+    clock: PlayClock?,
+    activityContext: Context,
+    inlineMarks: Boolean,
+): @Composable ColumnScope.() -> Unit = {
     val state by stats.state.collectAsStateWithLifecycle()
     val signIn by stats.signIn.collectAsStateWithLifecycle()
     PlayStatsPanel(
@@ -206,6 +218,7 @@ private fun statsPanel(stats: PlayStatsViewModel, clock: PlayClock?, activityCon
         elapsedMs = { clock?.displayedElapsedMs() },
         signIn = signIn,
         onSignIn = { stats.signIn(activityContext) },
+        inlineMarks = inlineMarks,
     )
 }
 
