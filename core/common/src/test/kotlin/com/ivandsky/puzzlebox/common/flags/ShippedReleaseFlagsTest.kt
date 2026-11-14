@@ -17,6 +17,11 @@ class ShippedReleaseFlagsTest {
     }
 
     @Test
+    fun `shipped flags include StreakFreeze`() {
+        assertTrue(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.StreakFreeze))
+    }
+
+    @Test
     fun `shipped flags exclude FullReplay until its flip ticket`() {
         assertFalse(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.FullReplay))
     }

@@ -84,3 +84,7 @@ to merge without being reachable in a release build.
   gains a LinkedIn row behind an opt-in risk warning, and the game page shows the player's imported
   result and connections as ghost rows on one combined board. Room 9 and the backup rules were live
   before the flip.
+- StreakFreeze flipped to `releaseDefault = true` in 0.28.0 on 2026-11-13. Streaks hold freezes derived from
+  solved-day history (never stored); a missed day spends one instead of resetting the streak. Existing
+  players' current streaks and bests may rise on first launch. No persisted format, no migration;
+  rollback = flip back.

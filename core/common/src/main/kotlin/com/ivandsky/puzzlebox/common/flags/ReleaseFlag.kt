@@ -31,6 +31,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     /** Ranks hub: per-game and Overall daily boards, the calendar as History, the visibility ladder (ADR-0031). */
     LeaderboardHub(label = "Ranks hub", releaseDefault = false),
 
-    /** Streak freeze: a missed day spends a freeze instead of breaking the streak; freezes come from the solved-day history. */
-    StreakFreeze(label = "Streak freeze", releaseDefault = false),
+    /** Streak freeze: a missed day spends a freeze instead of breaking the streak; freezes come from the solved-day history. Live. */
+    StreakFreeze(label = "Streak freeze", releaseDefault = true),
 }
