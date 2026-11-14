@@ -221,23 +221,15 @@ class SyncedKindsCloudSync(
     private suspend fun firstRestore(uid: String): Boolean =
         !store.restoreShown(uid) && kinds.any { store.cursor(uid, it.kind) == null }
 
-    /** After an account's first full run: marks the restore shown and emits what came back, if anything did. */
+    /**
+     * After an account's first full run: emits what came back, if anything did, then marks the restore shown. The
+     * send comes first so a death between the two repeats nothing but can never lose the welcome.
+     */
     private suspend fun reportRestore(uid: String) {
-        val counts = restoredByKind.toMap()
+        val counts = restoredByKind.filterValues { it > 0 }
         restoredByKind.clear()
         if (store.restoreShown(uid)) return
+        if (counts.isNotEmpty()) restoreEvents.send(RestoreSummary(counts))
         store.markRestoreShown(uid)
-        val summary = RestoreSummary(
-            games = counts[COMPLETIONS] ?: 0,
-            drafts = counts[DRAFTS] ?: 0,
-            boardDays = counts[BOARDS] ?: 0,
-        )
-        if (summary.games + summary.drafts + summary.boardDays > 0) restoreEvents.trySend(summary)
-    }
-
-    private companion object {
-        const val COMPLETIONS = "completions"
-        const val DRAFTS = "drafts"
-        const val BOARDS = "boards"
     }
 }

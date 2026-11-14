@@ -75,6 +75,7 @@ class SyncedKindsCloudSyncTest {
 
     private fun TestScope.engine(
         kinds: List<SyncedKind>,
+        syncState: SyncStateStore = store,
         scope: CoroutineScope = backgroundScope,
     ): SyncedKindsCloudSync {
         val dispatcher = StandardTestDispatcher(testScheduler)
@@ -84,7 +85,7 @@ class SyncedKindsCloudSyncTest {
             override val default = dispatcher
         }
         return SyncedKindsCloudSync(
-            kinds, loggingSpace, store, identity, CloudErase(loggingSpace, kinds, store, identity), clock, dispatchers, network, scope,
+            kinds, loggingSpace, syncState, identity, CloudErase(loggingSpace, kinds, syncState, identity), clock, dispatchers, network, scope,
         )
     }
 
@@ -494,7 +495,7 @@ class SyncedKindsCloudSyncTest {
 
         engine.restored.test {
             engine.syncNow()
-            assertEquals(RestoreSummary(games = 2, drafts = 1, boardDays = 3), awaitItem())
+            assertEquals(RestoreSummary(mapOf("completions" to 2, "drafts" to 1, "boards" to 3, "published" to 5)), awaitItem())
             assertTrue(store.restoreShown(ANN))
 
             engine.syncNow()
@@ -513,16 +514,42 @@ class SyncedKindsCloudSyncTest {
 
         engine.restored.test {
             engine.syncNow()
-            assertEquals(RestoreSummary(0, 1, 0), awaitItem())
+            assertEquals(RestoreSummary(mapOf("drafts" to 1)), awaitItem())
 
             identity.currentIdentity = bob
             engine.syncNow()
-            assertEquals(RestoreSummary(0, 2, 0), awaitItem())
+            assertEquals(RestoreSummary(mapOf("drafts" to 2)), awaitItem())
 
             identity.currentIdentity = ann
             engine.syncNow()
             expectNoEvents()
         }
+    }
+
+    @Test
+    fun `a kind the engine has never heard of reaches the summary under its own name`() = runTest {
+        cloud(ANN, "widgets", "w1", "w2")
+        val engine = engine(listOf(kind("widgets"), kind("completions")))
+
+        engine.restored.test {
+            engine.syncNow()
+            assertEquals(RestoreSummary(mapOf("widgets" to 2)), awaitItem())
+        }
+    }
+
+    @Test
+    fun `the summary is sent before the restore is marked shown`() = runTest {
+        cloud(ANN, "drafts", "d1")
+        val failing = object : SyncStateStore by store {
+            override suspend fun markRestoreShown(uid: String) = error("the process died before the mark")
+        }
+        val engine = engine(listOf(kind("drafts")), failing)
+
+        engine.restored.test {
+            runCatching { engine.syncNow() }
+            assertEquals(RestoreSummary(mapOf("drafts" to 1)), awaitItem())
+        }
+        assertFalse(store.restoreShown(ANN))
     }
 
     @Test
@@ -552,7 +579,7 @@ class SyncedKindsCloudSyncTest {
 
             completions.onCall = {}
             engine.syncNow()
-            assertEquals(RestoreSummary(games = 2, drafts = 1, boardDays = 0), awaitItem())
+            assertEquals(RestoreSummary(mapOf("completions" to 2, "drafts" to 1)), awaitItem())
         }
     }
 
@@ -562,7 +589,7 @@ class SyncedKindsCloudSyncTest {
         completions.edit("g1", mapOf("n" to 1L))
         completions.onCall = { if (it == "acknowledge") awaitCancellation() }
         val dying = Job()
-        val first = engine(listOf(completions), CoroutineScope(StandardTestDispatcher(testScheduler) + dying))
+        val first = engine(listOf(completions), scope = CoroutineScope(StandardTestDispatcher(testScheduler) + dying))
         val caller = launch { runCatching { first.syncNow() } }
         runCurrent()
 

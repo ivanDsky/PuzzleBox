@@ -1,10 +1,14 @@
 package com.ivandsky.puzzlebox.data.cloud
 
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import com.ivandsky.puzzlebox.datastore.SyncStateDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -51,7 +55,7 @@ class DataStoreSyncStateStoreTest {
 
         process { store ->
             assertEquals(42L, store.cursor("u1", "completions"))
-            assertEquals("u1", store.lastUid.value)
+            assertEquals("u1", store.lastUid.first())
             assertTrue(store.restoreShown("u1"))
             assertEquals(5, store.countWrites("u1", "2026-11-01", 2))
         }
@@ -61,18 +65,29 @@ class DataStoreSyncStateStoreTest {
     fun `a fresh file has no cursor no last uid no restore flag`() = runTest {
         process { store ->
             assertNull(store.cursor("u1", "completions"))
-            assertNull(store.lastUid.value)
+            assertNull(store.lastUid.first())
             assertFalse(store.restoreShown("u1"))
         }
+    }
+
+    @Test
+    fun `constructing the store reads nothing`() {
+        val untouchable = object : DataStore<Preferences> {
+            override val data = flow<Preferences> { error("the store read the file while being constructed") }
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences =
+                error("the store wrote while being constructed")
+        }
+
+        DataStoreSyncStateStore(SyncStateDataSource(untouchable))
     }
 
     @Test
     fun `last uid flow follows setLastUid`() = runTest {
         process { store ->
             store.setLastUid("u1")
-            assertEquals("u1", store.lastUid.value)
+            assertEquals("u1", store.lastUid.first())
             store.setLastUid("u2")
-            assertEquals("u2", store.lastUid.value)
+            assertEquals("u2", store.lastUid.first())
         }
     }
 
@@ -143,12 +158,12 @@ class DataStoreSyncStateStoreTest {
             assertNull(store.cursor("u1", "completions"))
             assertNull(store.cursor("u1", "settings"))
             assertFalse(store.restoreShown("u1"))
-            assertEquals("u1", store.lastUid.value)
+            assertEquals("u1", store.lastUid.first())
             assertEquals(9L, store.cursor("u2", "completions"))
         }
 
         process { store ->
-            assertEquals("u1", store.lastUid.value)
+            assertEquals("u1", store.lastUid.first())
             assertNull(store.cursor("u1", "completions"))
         }
     }
