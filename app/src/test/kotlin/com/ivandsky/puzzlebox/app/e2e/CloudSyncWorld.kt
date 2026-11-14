@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.navigation3.runtime.NavKey
+import androidx.room.RoomDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
@@ -38,6 +39,7 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
+import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSpace
@@ -265,13 +267,21 @@ internal class CloudSyncWorld(
             days.filterTo(HashSet()) { linkedIn.observe(ZipDefinition.id, it).first().boardFetchedAtMs != null }
         }
 
-        /** A finished game of [day], as the play flow emits it; the repository stamps the owner and the first win. */
-        fun finish(day: LocalDate, puzzleNumber: Int?, timeMs: Long = 61_000): PuzzleRef {
+        /** A finished game of [day], as the play flow emits it, with its [replay] when given; the repository stamps the owner and the first win. */
+        fun finish(day: LocalDate, puzzleNumber: Int?, timeMs: Long = 61_000, replay: SolveReplay? = null): PuzzleRef {
             val ref = ZipPuzzleRef(PuzzleKey.Daily(day, puzzleNumber))
             runBlocking {
-                graph.koin.get<CompletionRepository>().onCompleted(CompletionRecord(ref, timeMs, 0, RecordStats(1, "{}")))
+                graph.koin.get<CompletionRepository>().onCompleted(CompletionRecord(ref, timeMs, 0, RecordStats(1, "{}")), replay)
             }
             return ref
+        }
+
+        /** How many rows each synced table of this phone holds for [ownerUid]: its local files, read below the repositories. */
+        fun storedRows(ownerUid: String): Map<String, Int> {
+            fun count(db: RoomDatabase, table: String): Int =
+                db.openHelper.readableDatabase.query("SELECT COUNT(*) FROM $table WHERE ownerUid = ?", arrayOf(ownerUid)).use { it.moveToFirst(); it.getInt(0) }
+            return listOf("completions", "drafts", "published_puzzles", "received_puzzles").associateWith { count(puzzleDb, it) } +
+                ("saved_boards" to count(linkedInDb, "saved_boards"))
         }
 
         /** A draft of the Studio, stamped with the signed-in account by the repository. */
