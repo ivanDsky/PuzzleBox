@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.history.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
@@ -18,6 +19,7 @@ import com.ivandsky.puzzlebox.history.ranks.ReplayOptInViewModel
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection
 import com.ivandsky.puzzlebox.history.ranks.RanksScreen
 import com.ivandsky.puzzlebox.history.ranks.RanksViewModel
+import com.ivandsky.puzzlebox.history.ranks.hasOfficialOwnRow
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -50,7 +52,10 @@ fun EntryProviderScope<NavKey>.ranksEntry(
     }
 }
 
-/** One hub per entry: [key] keeps a pushed hub's state apart from the root's; [opening] is where a fresh one starts. */
+/**
+ * One hub per entry: [key] keeps a pushed hub's state apart from the root's; [opening] is where a fresh one starts. The
+ * hub's three view models end here: the screen below takes their state and reports its taps.
+ */
 @Composable
 private fun RanksRoute(
     navigator: Navigator,
@@ -66,6 +71,11 @@ private fun RanksRoute(
     val replayOptIn = koinViewModel<ReplayOptInViewModel>(key = key?.let { "$it/replayOptIn" })
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
+    val openPlayer by playerSheet.state.collectAsStateWithLifecycle()
+    // The opt-in asks only once the board on screen holds the viewer's official row.
+    val ranked = state.board.state.hasOfficialOwnRow()
+    LaunchedEffect(ranked) { replayOptIn.rankedRow(ranked) }
+    val askReplays by replayOptIn.show.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     RanksScreen(
@@ -89,8 +99,13 @@ private fun RanksRoute(
         onWatchPlayer = { target ->
             target.board?.let { navigator.pushOnce(ReplayKey.player(it.gameId, it.day.toString(), target.uid, target.name)) }
         },
-        playerSheet = playerSheet,
-        replayOptIn = replayOptIn,
+        playerSheet = openPlayer,
+        onOpenPlayer = playerSheet::open,
+        onChallenge = playerSheet::challenge,
+        onClosePlayer = playerSheet::close,
+        replayOptIn = askReplays,
+        onShareReplays = replayOptIn::share,
+        onKeepReplaysPrivate = replayOptIn::keepPrivate,
         refreshing = refreshing,
         onRefresh = viewModel::refresh,
     )
