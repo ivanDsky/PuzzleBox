@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasAnyAncestor
@@ -174,12 +175,12 @@ class PlayStatsPanelTest {
     /** The [part] inside the row tagged [row], whatever else on the card shares its tag. */
     private fun inRow(row: String, part: String) = hasTestTag(part) and hasAnyAncestor(hasTestTag(row))
 
-    private fun show(vm: PlayStatsViewModel, elapsedMs: Long? = 83_000L) {
+    private fun show(vm: PlayStatsViewModel, elapsedMs: Long? = 83_000L, inlineMarks: Boolean = false) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Column {
                     val state by vm.state.collectAsStateWithLifecycle()
-                    PlayStatsPanel(state = state, elapsedMs = { elapsedMs }, signIn = BoardSignIn.Idle, onSignIn = {})
+                    PlayStatsPanel(state = state, elapsedMs = { elapsedMs }, signIn = BoardSignIn.Idle, onSignIn = {}, inlineMarks = inlineMarks)
                 }
             }
         }
@@ -400,6 +401,32 @@ class PlayStatsPanelTest {
         composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.rank")).assertTextEquals("9")
         composeRule.onNode(inRow("daily_board.row.self", "daily_board.row.puzzlebox_rank")).assertTextEquals("#7 on PuzzleBox")
         composeRule.onNodeWithText("Cy Park").assertDoesNotExist()
+    }
+
+    private fun ownRowPart(part: String) = composeRule.onNode(inRow("daily_board.row.self", part)).getBoundsInRoot()
+
+    /** The player's own row with its "#7 on PuzzleBox" detail, on a board that connections joined. */
+    private fun showOwnRowWithPuzzleBoxRank(inlineMarks: Boolean) {
+        cachedConnections(ghost("Ada Lin", 25), ghost("Cy Park", 65))
+        show(viewModel(linkedIn = true), inlineMarks = inlineMarks)
+    }
+
+    @Test
+    fun `with inline marks a row's PuzzleBox rank is a chip on the name's line - F22`() {
+        showOwnRowWithPuzzleBoxRank(inlineMarks = true)
+        val name = ownRowPart("daily_board.row.name")
+        val chip = ownRowPart("daily_board.row.puzzlebox_rank")
+
+        assertTrue("the chip $chip is beside the name $name", chip.left >= name.right && chip.top >= name.top && chip.bottom <= name.bottom)
+    }
+
+    @Test
+    fun `without inline marks a row's PuzzleBox rank stays a line under the name - F22`() {
+        showOwnRowWithPuzzleBoxRank(inlineMarks = false)
+        val name = ownRowPart("daily_board.row.name")
+        val line = ownRowPart("daily_board.row.puzzlebox_rank")
+
+        assertTrue("the line $line is under the name $name", line.top >= name.bottom && line.left == name.left)
     }
 
     private fun placeCell(row: Int) = composeRule.onAllNodesWithTag("daily_board.row.rank")[row]
