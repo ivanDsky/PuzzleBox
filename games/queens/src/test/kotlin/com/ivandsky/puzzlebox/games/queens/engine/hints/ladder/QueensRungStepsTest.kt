@@ -18,54 +18,68 @@ import org.junit.Test
 /** `steps()` (ticket 07): the whole deduction list with each rung's own evidence, and `step` as its first element. */
 class QueensRungStepsTest {
 
-    private val propagation = listOf(SinglesRung, LineLockRung, PigeonholeRung)
-    private val rungs: List<QueensRung> = propagation + LookAheadRung(propagation)
+    private companion object {
+        val propagation = listOf(SinglesRung, LineLockRung, PigeonholeRung)
+        val rungs: List<QueensRung> = propagation + LookAheadRung(propagation)
 
-    private fun text(name: String): String =
-        QueensRungStepsTest::class.java.getResourceAsStream("/fixtures/$name")!!.readBytes().decodeToString()
+        fun text(name: String): String =
+            QueensRungStepsTest::class.java.getResourceAsStream("/fixtures/$name")!!.readBytes().decodeToString()
 
-    private fun daily(name: String): QueensPuzzle {
-        val body = text(name)
-        val wire = QueensGameExtractor.extract(body)?.queensGamePuzzleJson ?: body
-        return when (val r = QueensWireParser.parse(wire, LocalDate.of(2026, 11, 2))) {
-            is DecodeResult.Ok -> r.value.puzzle
-            is DecodeResult.Err -> throw AssertionError("$name parse failed: ${r.error}")
-        }
-    }
-
-    private fun goldenBoards(): List<Pair<String, QueensPuzzle>> =
-        Json.parseToJsonElement(text("queens-solver-golden.json")).jsonObject["boards"]!!.jsonArray.map { e ->
-            val o = e.jsonObject
-            fun ints(key: String) = o[key]!!.jsonArray.map { it.jsonPrimitive.content.toInt() }
-            o["name"]!!.jsonPrimitive.content to QueensPuzzle(
-                size = o["size"]!!.jsonPrimitive.content.toInt(),
-                regions = ints("regions"),
-                queensPerUnit = o["queensPerUnit"]!!.jsonPrimitive.content.toInt(),
-                solution = ints("solve").map(::Cell),
-            )
-        }
-
-    private val boards: List<Pair<String, QueensPuzzle>> = listOf(
-        "queens-daily-ambiguous.json", "queens-daily-graphql.json", "queens-daily-real-916.json",
-        "queens-daily-sample.json", "queens-daily-unique.json", "02-byid-gt3-1.json",
-        "02-byid-gt3-916.json", "02-byid-gt3-918.json",
-    ).map { it to daily(it) } + goldenBoards() + ("n8N2" to QueensTestSupport.n8N2Puzzle())
-
-    /** Every state a Default-ladder solve passes through, from the empty board. */
-    private fun states(puzzle: QueensPuzzle): List<QueensCandidates> {
-        var state = QueensCandidates.start(puzzle, emptySet())
-        val seen = mutableListOf(state)
-        while (true) {
-            state = when (val d = QueensLadder.Default.next(puzzle, state) ?: return seen) {
-                is QueensDeduction.Place -> state.place(puzzle, d.cell)
-                is QueensDeduction.Exclude -> state.exclude(d.cells)
+        fun daily(name: String): QueensPuzzle {
+            val body = text(name)
+            val wire = QueensGameExtractor.extract(body)?.queensGamePuzzleJson ?: body
+            return when (val r = QueensWireParser.parse(wire, LocalDate.of(2026, 11, 2))) {
+                is DecodeResult.Ok -> r.value.puzzle
+                is DecodeResult.Err -> throw AssertionError("$name parse failed: ${r.error}")
             }
-            seen += state
+        }
+
+        fun goldenBoards(): List<Pair<String, QueensPuzzle>> =
+            Json.parseToJsonElement(text("queens-solver-golden.json")).jsonObject["boards"]!!.jsonArray.map { e ->
+                val o = e.jsonObject
+                fun ints(key: String) = o[key]!!.jsonArray.map { it.jsonPrimitive.content.toInt() }
+                o["name"]!!.jsonPrimitive.content to QueensPuzzle(
+                    size = o["size"]!!.jsonPrimitive.content.toInt(),
+                    regions = ints("regions"),
+                    queensPerUnit = o["queensPerUnit"]!!.jsonPrimitive.content.toInt(),
+                    solution = ints("solve").map(::Cell),
+                )
+            }
+
+        val boards: List<Pair<String, QueensPuzzle>> = listOf(
+            "queens-daily-ambiguous.json", "queens-daily-graphql.json", "queens-daily-real-916.json",
+            "queens-daily-sample.json", "queens-daily-unique.json", "02-byid-gt3-1.json",
+            "02-byid-gt3-916.json", "02-byid-gt3-918.json",
+        ).map { it to daily(it) } + goldenBoards() + ("n8N2" to QueensTestSupport.n8N2Puzzle())
+
+        /** Every state a Default-ladder solve passes through, from the empty board. */
+        fun states(puzzle: QueensPuzzle): List<QueensCandidates> {
+            var state = QueensCandidates.start(puzzle, emptySet())
+            val seen = mutableListOf(state)
+            while (true) {
+                state = when (val d = QueensLadder.Default.next(puzzle, state) ?: return seen) {
+                    is QueensDeduction.Place -> state.place(puzzle, d.cell)
+                    is QueensDeduction.Exclude -> state.exclude(d.cells)
+                }
+                seen += state
+            }
+        }
+
+        class Visit(val name: String, val puzzle: QueensPuzzle, val state: QueensCandidates, val proofs: Map<QueensRung, List<QueensProof>>)
+
+        /**
+         * Every state of every board with each rung's full `steps()` there, computed once for the
+         * class: JUnit builds a fresh instance per test, and the look-ahead sweep dominates the runtime.
+         */
+        val visits: List<Visit> by lazy {
+            boards.flatMap { (name, puzzle) ->
+                states(puzzle).map { state -> Visit(name, puzzle, state, rungs.associateWith { it.steps(puzzle, state).toList() }) }
+            }
         }
     }
 
-    private fun forEveryState(check: (String, QueensPuzzle, QueensCandidates) -> Unit) {
-        for ((name, puzzle) in boards) states(puzzle).forEach { check(name, puzzle, it) }
+    private fun forEveryState(check: (String, QueensPuzzle, QueensCandidates, Map<QueensRung, List<QueensProof>>) -> Unit) {
+        for (v in visits) check(v.name, v.puzzle, v.state, v.proofs)
     }
 
     private fun unitCells(puzzle: QueensPuzzle, unit: HintReason): Set<Int> {
@@ -78,14 +92,14 @@ class QueensRungStepsTest {
     }
 
     @Test
-    fun `look ahead step is the first of its lazy steps`() = forEveryState { name, puzzle, state ->
+    fun `look ahead step is the first of its lazy steps`() = forEveryState { name, puzzle, state, proofs ->
         val rung = rungs.last()
-        assertEquals(name, rung.steps(puzzle, state).firstOrNull()?.deduction, rung.step(puzzle, state))
+        assertEquals(name, proofs.getValue(rung).firstOrNull()?.deduction, rung.step(puzzle, state))
     }
 
     @Test
-    fun `every deduction is applicable and its evidence is non-empty and clear of what it excludes`() = forEveryState { name, puzzle, state ->
-        for (rung in rungs) for (proof in rung.steps(puzzle, state)) {
+    fun `every deduction is applicable and its evidence is non-empty and clear of what it excludes`() = forEveryState { name, _, state, proofs ->
+        for (rung in rungs) for (proof in proofs.getValue(rung)) {
             val where = "$name ${rung.id} ${proof.deduction}"
             assertTrue(where, proof.evidence.isNotEmpty())
             when (val d = proof.deduction) {
@@ -99,16 +113,16 @@ class QueensRungStepsTest {
     }
 
     @Test
-    fun `singles evidence is the cells of the unit that has one open cell left`() = forEveryState { name, puzzle, state ->
-        for (proof in SinglesRung.steps(puzzle, state)) {
+    fun `singles evidence is the cells of the unit that has one open cell left`() = forEveryState { name, puzzle, _, proofs ->
+        for (proof in proofs.getValue(SinglesRung)) {
             val d = proof.deduction as QueensDeduction.Place
             assertEquals(name, unitCells(puzzle, d.unit), proof.evidence)
         }
     }
 
     @Test
-    fun `line lock evidence is the open cells of the exact locking unit`() = forEveryState { name, puzzle, state ->
-        for (proof in LineLockRung.steps(puzzle, state)) {
+    fun `line lock evidence is the open cells of the exact locking unit`() = forEveryState { name, puzzle, state, proofs ->
+        for (proof in proofs.getValue(LineLockRung)) {
             val d = proof.deduction as QueensDeduction.Exclude
             fun open(cells: Set<Int>) = cells.filter(state::isOpen).toSet()
             val lockingLine = open(unitCells(puzzle, d.unit))
@@ -118,8 +132,8 @@ class QueensRungStepsTest {
     }
 
     @Test
-    fun `pigeonhole evidence is the open cells of at least two whole units`() = forEveryState { name, puzzle, state ->
-        for (proof in PigeonholeRung.steps(puzzle, state)) {
+    fun `pigeonhole evidence is the open cells of at least two whole units`() = forEveryState { name, puzzle, state, proofs ->
+        for (proof in proofs.getValue(PigeonholeRung)) {
             val n = puzzle.size
             val perKind = listOf(
                 HintReason.Kind.ROW to proof.evidence.map { it / n },
@@ -135,16 +149,16 @@ class QueensRungStepsTest {
     }
 
     @Test
-    fun `look ahead evidence is the open cells of the emptied unit, without the probed cell`() = forEveryState { name, puzzle, state ->
-        for (proof in rungs.last().steps(puzzle, state)) {
+    fun `look ahead evidence is the open cells of the emptied unit, without the probed cell`() = forEveryState { name, puzzle, state, proofs ->
+        for (proof in proofs.getValue(rungs.last())) {
             val d = proof.deduction as QueensDeduction.Exclude
             assertEquals(name, unitCells(puzzle, d.unit).filter { state.isOpen(it) && it !in d.cells }.toSet(), proof.evidence)
         }
     }
 
     @Test
-    fun `steps is deterministic`() = forEveryState { name, puzzle, state ->
-        for (rung in rungs) assertEquals("$name ${rung.id}", rung.steps(puzzle, state).toList(), rung.steps(puzzle, state).toList())
+    fun `steps is deterministic`() = forEveryState { name, puzzle, state, proofs ->
+        for (rung in rungs) assertEquals("$name ${rung.id}", proofs.getValue(rung), rung.steps(puzzle, state).toList())
     }
 
     /** Region 3 locks column 4 (excluding 4, 9, 14) and region 4 locks row 4 (excluding 24). */
