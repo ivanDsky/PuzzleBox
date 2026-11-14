@@ -6,8 +6,8 @@ import java.time.LocalDate
  * What the Results page shows beside the time for one solve: the streak in days over every
  * game, the [WEEK_DAYS] days ending today (oldest first), and the [spread] of this game's
  * times over every day plus the same [weekday]'s own spread. [averageMs] is the average of
- * the game's earlier solves; null on a first solve. [freezes] is null while the StreakFreeze flag is
- * off. [moment] is set only when this very solve spent or earned a freeze, so Result shows it once.
+ * the game's earlier solves; null on a first solve. [freezes] is null only on insights built without
+ * a streak ledger (previews). [moment] is set only when this very solve spent or earned a freeze, so Result shows it once.
  */
 data class ResultInsights(
     val streak: Int,

@@ -48,13 +48,13 @@ class ObserveResultInsights(
             val today = puzzleDay()
             val ledger = computeStreak(streakDays)
             val freezes = ledger.freezes
-            val moment = freezes?.lastSolve?.takeIf {
+            val moment = freezes.lastSolve?.takeIf {
                 counted && it.day == day && day !in restStreakDays && (it.spent.isNotEmpty() || it.earned)
             }
             ResultInsights(
                 streak = ledger.current,
                 week = weekEnding(today).map { date ->
-                    ResultDay(date, solved = date in streakDays, today = date == today, frozen = date in freezes.frozenDaysOrEmpty)
+                    ResultDay(date, solved = date in streakDays, today = date == today, frozen = date in freezes.frozenDays)
                 },
                 spread = timeSpread(earlier.map { it.second }, solve, order),
                 weekday = weekdaySpread(earlier, day, solve, order),

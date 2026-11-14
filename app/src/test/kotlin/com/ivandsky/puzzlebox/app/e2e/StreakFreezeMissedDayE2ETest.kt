@@ -10,7 +10,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTextExactly
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.play.QueensPlayFixture
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -24,7 +23,6 @@ import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -32,44 +30,18 @@ import org.robolectric.annotation.Config
 
 /**
  * The streak freeze over the real app and the real Queens, on a tablet where Today's streak pane, the play
- * side panel and the Result all show. The history misses yesterday: off, every surface keeps the strict streak and
- * hides every freeze element; on, the missed day spends a held freeze, so the run holds and the surfaces show the
- * count, the frozen day and, on Result, the spent-freeze moment. The play panel sits only on the board, so it is read
- * before the solve; the other surfaces after it.
+ * side panel and the Result all show. The history misses yesterday, so the missed day spends a held freeze:
+ * the run holds and the surfaces show the count, the frozen day and, on Result, the spent-freeze moment. The
+ * play panel sits only on the board, so it is read before the solve; the other surfaces after it.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w1280dp-h800dp-land")
-class StreakFreezeFlagE2ETest {
+class StreakFreezeMissedDayE2ETest {
 
     @Test
-    fun flagOff_streakSurfacesUnchanged() =
+    fun missedDaySpendsFreeze() =
         shellRobot(tabAt(PlayKey), graph = historyWithMissedYesterday()) {
-            openTodaysQueens()
-            // Strict: yesterday was missed and today is open, so no run stands yet.
-            awaitText(PLAY_STREAK, "No streak yet — solve today to start one")
-            assertEquals("no freeze count on the play panel", 0, freezeCounts())
-            assertEquals("no frozen day on the play panel", 0, frozenDays(PLAY_WEEK))
-
-            solveTodaysQueens()
-
-            awaitText(RESULT_STREAK, "1 day streak")
-            assertEquals("no freeze count on Result", 0, freezeCounts())
-            assertEquals("no frozen day on Result", 0, resultFrozenDays())
-            assertFalse("no freeze moment on Result", shows(RESULT_MOMENT))
-
-            back()
-            tapTab(HomeKey)
-
-            awaitText(HOME_PANE_STREAK, "1")
-            awaitTextIn(HOME_PANE_TAG, "Best 2")
-            assertEquals("no freeze count on Home", 0, freezeCounts())
-            assertEquals("no frozen day in the Home week", 0, frozenDays(HOME_PANE_WEEK))
-        }
-
-    @Test
-    fun flagOn_missedDaySpendsFreeze() =
-        shellRobot(tabAt(PlayKey), graph = historyWithMissedYesterday(ReleaseFlag.StreakFreeze)) {
             openTodaysQueens()
             // Opening today finds yesterday missed with a freeze held: it is already spent.
             awaitText(PLAY_STREAK, "2-day streak")
@@ -93,7 +65,7 @@ class StreakFreezeFlagE2ETest {
         }
 
     /** Queens solved on the 1st and 2nd of the month, today the 4th: the 3rd is the missed day. */
-    private fun historyWithMissedYesterday(vararg flags: ReleaseFlag) = shellGraph(*flags).apply {
+    private fun historyWithMissedYesterday() = shellGraph().apply {
         val earlier = listOf(E2E_TODAY.minusDays(3) to 4, E2E_TODAY.minusDays(2) to 5)
         records.setRecords(
             earlier.map { (day, number) ->

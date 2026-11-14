@@ -82,7 +82,7 @@ private fun PanelPreview(state: PlayStatsState, elapsedMs: Long?) {
 @Composable
 internal fun PlayStatsPanelLoadedPreview() = PanelPreview(Loaded, elapsedMs = 31_000L)
 
-/** Streak freezes on: a missed day a freeze covered, and the held count beside the streak line. */
+/** A missed day a freeze covered, and the held count beside the streak line. */
 @PuzzleBoxPreviews
 @Composable
 internal fun PlayStatsPanelFreezesPreview() = PanelPreview(

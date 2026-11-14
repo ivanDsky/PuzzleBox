@@ -13,10 +13,7 @@ import com.ivandsky.puzzlebox.data.update.AppRelease
 import com.ivandsky.puzzlebox.data.update.AppReleaseRepository
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.game.CompletionSource
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.GetNextRollover
@@ -105,7 +102,6 @@ class HomeViewModelTest {
         boards: Map<LeaderboardRef, List<LeaderboardEntry>> = emptyMap(),
         summariesShown: Boolean = false,
         savedState: SavedStateHandle = SavedStateHandle(),
-        flags: ReleaseFlags = FakeReleaseFlags(),
     ): Deps {
         val registry = GameRegistry(
             listOf(zip, tango).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
@@ -119,7 +115,7 @@ class HomeViewModelTest {
         val puzzleDay = GetPuzzleDay(registry, clock)
         val vm = HomeViewModel(
             observeGameHistory = history,
-            observeGameStats = ObserveGameStats(registry, history, ComputeStreak(puzzleDay, flags)),
+            observeGameStats = ObserveGameStats(registry, history, ComputeStreak(puzzleDay)),
             todaySet = ObserveTodaySet(registry, saved, completions, calendar, daily, sync),
             identityService = identity,
             registry = registry,
@@ -222,7 +218,7 @@ class HomeViewModelTest {
 
     @Test
     fun `with streak freezes a missed day between two solves is frozen and the count is held - A13`() = runTest {
-        val deps = viewModel(flags = FakeReleaseFlags(ReleaseFlag.StreakFreeze))
+        val deps = viewModel()
         deps.completions.onCompleted(record(zip, day.minusDays(2), timeMs = 40_000L))
         deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
 
@@ -233,19 +229,8 @@ class HomeViewModelTest {
     }
 
     @Test
-    fun `streak freezes off leaves no frozen day and no freezes - SC8`() = runTest {
-        val deps = viewModel()
-        deps.completions.onCompleted(record(zip, day.minusDays(2), timeMs = 40_000L))
-        deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
-
-        val state = deps.vm.uiState.value
-        assertNull(state.stats.freezes)
-        assertTrue(state.week.none { it.frozen })
-    }
-
-    @Test
     fun `a live streak carries the held count to the card - F2`() = runTest {
-        val deps = viewModel(flags = FakeReleaseFlags(ReleaseFlag.StreakFreeze))
+        val deps = viewModel()
         deps.completions.onCompleted(record(zip, day.minusDays(2), timeMs = 40_000L))
         deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
 
@@ -254,7 +239,7 @@ class HomeViewModelTest {
 
     @Test
     fun `a broken streak carries no count to the card, not a 0 - F5`() = runTest {
-        val deps = viewModel(flags = FakeReleaseFlags(ReleaseFlag.StreakFreeze))
+        val deps = viewModel()
         // Eight missed days outrun the two freezes held, so the streak is 0 and the ledger holds 0.
         deps.completions.onCompleted(record(zip, day.minusDays(9), timeMs = 40_000L))
 
@@ -266,7 +251,7 @@ class HomeViewModelTest {
 
     @Test
     fun `the week's frozen days are the streak's, an archive day frozen and still ringed, a LinkedIn import filling its archived day - A23`() = runTest {
-        val deps = viewModel(flags = FakeReleaseFlags(ReleaseFlag.StreakFreeze))
+        val deps = viewModel()
         deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
         deps.completions.onCompleted(
             record(zip, day.minusDays(1), timeMs = 30_000L).copy(source = CompletionSource.LinkedIn, isRecord = true),

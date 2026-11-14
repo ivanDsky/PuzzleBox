@@ -1,9 +1,5 @@
 package com.ivandsky.puzzlebox.domain
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.ShippedReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -13,32 +9,20 @@ import java.time.temporal.ChronoUnit
  * history, not habit: playing one never extends or bridges the run, so callers drop them
  * before counting.
  *
- * Strict streak (A8): the run of consecutive solved days anchored at today's puzzle day
- * ([GetPuzzleDay]) — or yesterday when today has no solve yet, so the run stays alive
- * until the day is actually missed. With [ReleaseFlag.StreakFreeze] on, held freezes
- * cover missed days instead ([replay]). The flag is read on every computation rather
- * than collected: use cases have no UI scope to collect in, so a debug toggle shows on
- * the next history emission.
+ * The streak is the run of solved days anchored at today's puzzle day ([GetPuzzleDay]), or at
+ * yesterday while today has no solve yet, so it stays alive until the day is actually missed.
+ * Held freezes cover missed days ([replay]).
  */
-class ComputeStreak(
-    private val puzzleDay: GetPuzzleDay,
-    private val releaseFlags: ReleaseFlags = ShippedReleaseFlags,
-) {
+class ComputeStreak(private val puzzleDay: GetPuzzleDay) {
 
-    operator fun invoke(solvedDays: Collection<LocalDate>): StreakLedger {
-        if (!releaseFlags.isEnabled(ReleaseFlag.StreakFreeze)) {
-            return StreakLedger(current = strictCurrent(solvedDays), best = strictBest(solvedDays))
-        }
-        return replay(solvedDays).ledger
-    }
+    operator fun invoke(solvedDays: Collection<LocalDate>): StreakLedger = replay(solvedDays).ledger
 
     /**
      * The freeze rule replayed forward once: over the solved days, then up to today. Nothing
      * about freezes is stored, so a day that arrives late simply replays differently. Gaps are
      * measured, never walked, so the cost follows the solve count, not the calendar span.
-     * Days after today (clock skew, another zone) feed no freeze number, as the strict streak
-     * ignores them; [Replay.ledger]'s best still counts them, like the strict best.
-     * Flag-blind: [invoke] owns the gate.
+     * Days after today (clock skew, another zone) feed no freeze number; [Replay.ledger]'s best
+     * still counts them.
      */
     internal fun replay(solvedDays: Collection<LocalDate>): Replay {
         val today = puzzleDay()
@@ -100,30 +84,6 @@ class ComputeStreak(
 
     /** [step] and [run] stay inside the module: surfaces read only [StreakFreezes.daysToNext]. */
     internal data class Replay(val ledger: StreakLedger, val step: Int, val run: Int)
-
-    private fun strictCurrent(solvedDays: Collection<LocalDate>): Int {
-        val solved = solvedDays.toHashSet()
-        val today = puzzleDay()
-        var day = if (today in solved) today else today.minusDays(1)
-        var streak = 0
-        while (day in solved) {
-            streak++
-            day = day.minusDays(1)
-        }
-        return streak
-    }
-
-    private fun strictBest(solvedDays: Collection<LocalDate>): Int {
-        var best = 0
-        var run = 0
-        var previous: LocalDate? = null
-        for (day in solvedDays.toSortedSet()) {
-            run = if (previous != null && day == previous.plusDays(1)) run + 1 else 1
-            best = maxOf(best, run)
-            previous = day
-        }
-        return best
-    }
 }
 
 private const val STARTING_FREEZES = 2

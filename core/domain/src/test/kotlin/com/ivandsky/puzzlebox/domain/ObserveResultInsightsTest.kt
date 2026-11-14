@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.domain
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -12,7 +10,6 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
@@ -44,13 +41,11 @@ class ObserveResultInsightsTest {
     private val completions = FakeCompletionRepository()
     private val daily = FakeDailyRepository()
 
-    private val freezeOn = FakeReleaseFlags(ReleaseFlag.StreakFreeze)
-
-    private fun insights(game: GameId, daysAgo: Long, solve: BestScore, counted: Boolean, flags: ReleaseFlags = FakeReleaseFlags()) =
+    private fun insights(game: GameId, daysAgo: Long, solve: BestScore, counted: Boolean) =
         ObserveResultInsights(
             registry = registry,
             history = ObserveGameHistory(registry, daily, completions),
-            computeStreak = ComputeStreak(GetPuzzleDay(registry, clock), flags),
+            computeStreak = ComputeStreak(GetPuzzleDay(registry, clock)),
             puzzleDay = GetPuzzleDay(registry, clock),
         )(game, today.minusDays(daysAgo), solve, counted)
 
@@ -278,7 +273,7 @@ class ObserveResultInsightsTest {
         completions.setRecords(listOf(record(alpha, 2, 60_000L)))
         daily.addEntry(captured(alpha, 0))
 
-        val result = insights(alpha, 0, now, counted = true, flags = freezeOn).first()!!
+        val result = insights(alpha, 0, now, counted = true).first()!!
 
         val yesterday = today.minusDays(1)
         assertEquals(2, result.streak)
@@ -294,11 +289,11 @@ class ObserveResultInsightsTest {
     fun `streak, freezes, frozen days and moment are the same after the write lands`() = runTest {
         completions.setRecords(listOf(record(alpha, 2, 60_000L)))
         daily.addEntry(captured(alpha, 0))
-        val before = insights(alpha, 0, now, counted = true, flags = freezeOn).first()
+        val before = insights(alpha, 0, now, counted = true).first()
 
         completions.setRecords(listOf(record(alpha, 0, now.timeMs), record(alpha, 2, 60_000L)))
 
-        assertEquals(before, insights(alpha, 0, now, counted = true, flags = freezeOn).first())
+        assertEquals(before, insights(alpha, 0, now, counted = true).first())
     }
 
     @Test
@@ -306,7 +301,7 @@ class ObserveResultInsightsTest {
         completions.setRecords((1L..6L).map { record(alpha, it, 60_000L) })
         daily.addEntry(captured(alpha, 0))
 
-        val moment = insights(alpha, 0, now, counted = true, flags = freezeOn).first()!!.moment
+        val moment = insights(alpha, 0, now, counted = true).first()!!.moment
 
         assertEquals(StreakFreezes.Moment(today, spent = emptyList(), earned = true), moment)
     }
@@ -315,9 +310,9 @@ class ObserveResultInsightsTest {
     fun `a solve that spent and earned nothing has no moment`() = runTest {
         daily.addEntry(captured(alpha, 0))
 
-        val result = insights(alpha, 0, now, counted = true, flags = freezeOn).first()!!
+        val result = insights(alpha, 0, now, counted = true).first()!!
 
-        assertEquals(2, result.freezes!!.held)
+        assertEquals(2, checkNotNull(result.freezes).held)
         assertNull(result.moment)
     }
 
@@ -326,10 +321,10 @@ class ObserveResultInsightsTest {
         completions.setRecords(listOf(record(alpha, 0, now.timeMs), record(alpha, 2, 60_000L)))
         daily.addEntry(captured(alpha, 0))
 
-        val result = insights(alpha, 0, now, counted = false, flags = freezeOn).first()!!
+        val result = insights(alpha, 0, now, counted = false).first()!!
 
         assertNull(result.moment)
-        assertEquals(setOf(today.minusDays(1)), result.freezes!!.frozenDays)
+        assertEquals(setOf(today.minusDays(1)), checkNotNull(result.freezes).frozenDays)
     }
 
     @Test
@@ -337,22 +332,10 @@ class ObserveResultInsightsTest {
         completions.setRecords(listOf(record(beta, 0, 20_000L), record(alpha, 2, 60_000L)))
         daily.addEntry(captured(alpha, 0))
 
-        val result = insights(alpha, 0, now, counted = true, flags = freezeOn).first()!!
+        val result = insights(alpha, 0, now, counted = true).first()!!
 
         assertNull(result.moment)
         assertTrue(result.week[5].frozen)
-    }
-
-    @Test
-    fun `with the flag off there are no freezes and no frozen days`() = runTest {
-        completions.setRecords(listOf(record(alpha, 2, 60_000L)))
-        daily.addEntry(captured(alpha, 0))
-
-        val result = insights(alpha, 0, now, counted = true).first()!!
-
-        assertNull(result.freezes)
-        assertEquals(1, result.streak)
-        assertTrue(result.week.none { it.frozen })
     }
 
     private fun <P> hintsFirst(

@@ -8,11 +8,6 @@ class FreezeCountRuleTest {
     private fun holding(held: Int) = StreakFreezes(held = held, frozenDays = emptySet(), daysToNext = 3, lastSolve = null)
 
     @Test
-    fun `freezes off shows no count at any streak`() {
-        assertNull((null as StreakFreezes?).heldWhileStreak(streak = 5))
-    }
-
-    @Test
     fun `a streak of 0 hides the count however many are held - F5`() {
         assertNull(holding(3).heldWhileStreak(streak = 0))
     }
