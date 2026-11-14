@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.gameui.replay
 
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -11,6 +12,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.ResultColumnMaxWidth
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.model.GameId
 
@@ -23,11 +25,12 @@ import com.ivandsky.puzzlebox.model.GameId
 @Composable
 fun ReplaySection(state: ReplaySectionState, ui: GamePlayUi, onOpen: () -> Unit, modifier: Modifier = Modifier, label: String? = null) {
     if (ui.replayBoard == null) return
+    val capped = modifier.widthIn(max = ResultColumnMaxWidth)
     when (state) {
         ReplaySectionState.Hidden -> Unit
         is ReplaySectionState.Ready ->
-            WatchReplayRow(state.timeline.moveTimesMs.size, state.timeline.endMs, onOpen, modifier.testTag(ReplayTags.WATCH_ROW), label)
-        is ReplaySectionState.Unavailable -> UnavailableWatchReplayRow(state.reason, modifier.testTag(ReplayTags.UNAVAILABLE), label)
+            WatchReplayRow(state.timeline.moveTimesMs.size, state.timeline.endMs, onOpen, capped.testTag(ReplayTags.WATCH_ROW), label)
+        is ReplaySectionState.Unavailable -> UnavailableWatchReplayRow(state.reason, capped.testTag(ReplayTags.UNAVAILABLE), label)
     }
 }
 

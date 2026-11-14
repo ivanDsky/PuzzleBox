@@ -18,6 +18,11 @@ import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
+import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
+import com.ivandsky.puzzlebox.gameui.ResultColumnMaxWidth
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -45,6 +50,8 @@ abstract class HistoryReplayGoldenScreenshots(private val device: String) {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
+    private fun columnMaxPx() = with(rule.density) { ResultColumnMaxWidth.roundToPx() }
+
     @Test fun `one short light`() = capture("one-short", HistoryReplays.One(SHORT, ReplaySolve.Record), dark = false)
     @Test fun `one short dark`() = capture("one-short", HistoryReplays.One(SHORT, ReplaySolve.Record), dark = true)
 
@@ -53,6 +60,17 @@ abstract class HistoryReplayGoldenScreenshots(private val device: String) {
 
     @Test fun `first and latest light`() = capture("first-latest", HistoryReplays.FirstAndLatest(SHORT, LONG), dark = false)
     @Test fun `first and latest dark`() = capture("first-latest", HistoryReplays.FirstAndLatest(SHORT, LONG), dark = true)
+
+    /** VX-1: on a wide pane the replay rows and Compare stay in the 600 dp result column. */
+    @Test fun `rows stay in the result column`() {
+        rule.showGolden(dark = false) {
+            HistoryReplaySection(HistoryReplays.FirstAndLatest(SHORT, LONG), GoldenReplayUi, onOpen = {}, onCompare = {})
+        }
+        val rows = rule.onAllNodesWithTag(ReplayTags.WATCH_ROW).fetchSemanticsNodes()
+        assertTrue(rows.isNotEmpty() && rows.all { it.size.width <= columnMaxPx() })
+        val c = rule.onNodeWithContentDescription("Compare first solve with latest").fetchSemanticsNode().size.width
+        assertTrue("compare=$c max=${columnMaxPx()} rows=${rows.map { it.size.width }}", c <= columnMaxPx())
+    }
 
     @Test fun `unavailable imported light`() = capture("unavailable-imported", HistoryReplays.Unavailable(ReplayUnavailable.ImportedFromLinkedIn), dark = false)
     @Test fun `unavailable imported dark`() = capture("unavailable-imported", HistoryReplays.Unavailable(ReplayUnavailable.ImportedFromLinkedIn), dark = true)

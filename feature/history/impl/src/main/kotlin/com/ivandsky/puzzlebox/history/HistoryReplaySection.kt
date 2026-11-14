@@ -3,14 +3,18 @@ package com.ivandsky.puzzlebox.history
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.ResultColumnMaxWidth
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySection
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
 import com.ivandsky.puzzlebox.model.GameId
@@ -69,7 +73,7 @@ internal fun HistoryReplaySection(
             onOpen = { onOpen(replays.solve) },
             modifier = modifier,
         )
-        is HistoryReplays.FirstAndLatest -> Column(modifier.fillMaxWidth()) {
+        is HistoryReplays.FirstAndLatest -> Column(modifier.wrapContentWidth(Alignment.Start).widthIn(max = ResultColumnMaxWidth).fillMaxWidth()) {
             ReplaySection(ReplaySectionState.Ready(replays.first), ui, { onOpen(ReplaySolve.Record) }, label = FIRST_SOLVE)
             ReplaySection(ReplaySectionState.Ready(replays.latest), ui, { onOpen(ReplaySolve.Latest) }, label = LATEST)
             OutlinedButton(
