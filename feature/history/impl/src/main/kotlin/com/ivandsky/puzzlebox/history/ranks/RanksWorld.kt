@@ -16,7 +16,6 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -35,14 +34,6 @@ internal const val WORLD_SURFACE_ALPHA = 0.84f
 
 private const val GLYPH_ALPHA = 0.22f
 private const val GLYPH_TURN = 16f
-private val GlyphSize = 330.dp
-private val GlyphSizeWide = 480.dp
-private val GlyphDrift = 130.dp
-private val GlyphDriftWide = 200.dp
-private val GlyphOutset = 50.dp
-private val GlyphLift = 40.dp
-private val GlyphOutsetWide = 30.dp
-private val GlyphLiftWide = (-30).dp
 
 /**
  * The hub's world: [content] on a wash of the shown board's accent ([brands] in swipe order), with the board's glyph
@@ -72,15 +63,18 @@ internal fun RanksWorld(brands: List<GameBrand>, scrub: BoardScrub, wide: Boolea
 /** One glyph of the world, [away] of its drift from its resting place (0 there, ±1 gone; read while drawing). */
 @Composable
 private fun BoxScope.GhostGlyph(brand: GameBrand, wide: Boolean, away: () -> Float) {
-    val drift = if (wide) GlyphDriftWide else GlyphDrift
+    val drift = if (wide) RanksMetrics.GlyphDriftWide else RanksMetrics.GlyphDrift
     Icon(
         brand.glyph,
         contentDescription = null,
         tint = brand.accent.colors().accent,
         modifier = Modifier
             .align(Alignment.BottomEnd)
-            .offset(x = if (wide) GlyphOutsetWide else GlyphOutset, y = -(if (wide) GlyphLiftWide else GlyphLift))
-            .size(if (wide) GlyphSizeWide else GlyphSize)
+            .offset(
+                x = if (wide) RanksMetrics.GlyphOutsetWide else RanksMetrics.GlyphOutset,
+                y = -(if (wide) RanksMetrics.GlyphLiftWide else RanksMetrics.GlyphLift),
+            )
+            .size(if (wide) RanksMetrics.GlyphSizeWide else RanksMetrics.GlyphSize)
             .graphicsLayer {
                 val by = away()
                 alpha = GLYPH_ALPHA * (1f - abs(by))
