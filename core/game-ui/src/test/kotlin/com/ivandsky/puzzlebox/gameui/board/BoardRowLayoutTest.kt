@@ -134,6 +134,20 @@ class BoardRowLayoutTest {
         }
     }
 
+    @Test
+    fun `with inline marks a long name keeps 56 dp beside chips that would take the whole line`() {
+        val crowded = self.copy(name = "Maximiliana Featherstonehaugh-Cholmondeley", unofficial = true)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                CompositionLocalProvider(LocalInlineMarks provides true) {
+                    DailyBoardRow(crowded, RankOrder.TimeThenHints, place = 2, showPuzzleBoxRank = true)
+                }
+            }
+        }
+
+        assertEquals(56.dp, composeRule.onNodeWithTag("daily_board.row.name").getBoundsInRoot().width)
+    }
+
     private fun showList(inlineMarks: Boolean) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {

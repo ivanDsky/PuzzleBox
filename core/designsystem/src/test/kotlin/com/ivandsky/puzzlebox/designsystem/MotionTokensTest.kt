@@ -1,7 +1,10 @@
 package com.ivandsky.puzzlebox.designsystem
 
 import androidx.compose.animation.core.FloatSpringSpec
+import androidx.compose.animation.core.Spring
+import androidx.compose.ui.unit.dp
 import kotlin.math.abs
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -102,6 +105,25 @@ class MotionTokensTest {
         val peak = swing.max()
         assertTrue("first swing $peak vs kick $kick", abs(peak - kick) <= kick * 0.1f)
         assertTrue("settled at ${swing.last()}", abs(swing.last()) < kick * 0.05f)
+    }
+
+    // The swipe's feel is the one the user approved on a device: these pin the numbers, so a change is a decision.
+    @Test
+    fun `a released swipe settles on the soft spring, to a distance nobody sees`() {
+        assertEquals(Spring.StiffnessLow, MotionTokens.Swipe.SettleStiffness, 0f)
+        assertEquals(0.002f, MotionTokens.Swipe.SettleThreshold, 0f)
+    }
+
+    @Test
+    fun `a swipe commits at a quarter of the board, 120 dp at most, or a flick of 300 dp a second`() {
+        assertEquals(0.25f, MotionTokens.Swipe.CommitFraction, 0f)
+        assertEquals(120.dp, MotionTokens.Swipe.CommitCap)
+        assertEquals(300.dp, MotionTokens.Swipe.FlingVelocity)
+    }
+
+    @Test
+    fun `past the first or last board the content follows the finger a fifth of the way`() {
+        assertEquals(0.2f, MotionTokens.Swipe.EdgeFollow, 0f)
     }
 
     private companion object {
