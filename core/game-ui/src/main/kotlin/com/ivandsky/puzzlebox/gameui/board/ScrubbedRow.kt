@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.lerp
-import androidx.compose.ui.util.lerp
 import com.ivandsky.puzzlebox.designsystem.ScrubCell
 
 // What a place cell says, apart from the row's other cells: two rows with one label have the same place cell.
@@ -29,9 +28,6 @@ private val RowCells.label get() = PlaceLabel(place, beyondPage, placeMedal)
 // Rows that overlap are drawn on what they sit on (see LocalBoardBackdrop), so a tint is laid over it, not left see-through.
 private fun fillOf(base: Color?, medal: MedalRow?): Color? =
     if (medal == null) base else base?.let { medal.tint.compositeOver(it) } ?: medal.tint
-
-// How far down the strip the roll is when the row is this far between its two boards.
-private fun RankStrip.offsetAt(progress: Float): Float = lerp(start.toFloat(), end.toFloat(), progress)
 
 /**
  * The row's fill in [shape]: what it sits on ([base]), under the tint of the medal its place earns. A row between

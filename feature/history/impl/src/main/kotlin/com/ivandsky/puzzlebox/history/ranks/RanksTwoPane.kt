@@ -54,7 +54,8 @@ private val ICON = 20.dp
  * The Ranks hub on a tablet: the left pane holds the full month with the lifetime stats under it and the game list
  * (Overall first, the viewer's place on each); the right pane holds the top bar (the board's name and the tune icon),
  * the placement hero card, Your solve for a past day and the board. A pick in the list re-ranks the board in place, and
- * so does a swipe on the board ([onSwipe], as on the phone), so there is no title menu, week strip or dots here. The
+ * so does a swipe anywhere under the top bar, down to the bottom of the pane ([onSwipe], as on the phone), so there is
+ * no title menu, week strip or dots here. The
  * calendar is always the month: the shared calendar's fold-to-week is turned back into a month at the door
  * ([onShowCalendar] only ever hears `expanded = true`). The hero card wears the shown board's accent; it, the board's
  * title and the board itself go to the next board's with the [scrub].
@@ -105,7 +106,7 @@ internal fun RanksTwoPane(
             GameList(state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true })
         }
         RanksPullToRefresh(refreshing, onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight()) {
-            Column(Modifier.fillMaxSize().verticalScroll(rightScroll).testTag("ranks.rightpane")) {
+            FillRemainingColumn(Modifier.fillMaxSize().verticalScroll(rightScroll).testTag("ranks.rightpane")) {
                 RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
                     BoardScrubCell(scrub, state.position, state.board.title, Modifier.padding(start = Spacing.sm), at = { state.sliceAt(it)?.title }) { title ->
                         Text(
@@ -116,18 +117,20 @@ internal fun RanksTwoPane(
                         )
                     }
                 }
-                // The pane's one gap between its parts: Your solve brings its own under it, and is nothing when there is none.
-                RanksHeroCard(
-                    face = heroFace(if (between) target else state.position),
-                    container = { scrub.blend(containers, plain.surfaceContainerHigh) },
-                    ink = { scrub.blend(inks, plain.onSurface) },
-                    modifier = Modifier.padding(vertical = Spacing.md),
-                    was = heroFace(scrub.from).takeIf { between },
-                    progress = { scrub.progress },
-                )
-                YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
-                BoardSwipe(scrub, state.position, state.boardCount, onSwipe) {
-                    RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick, morph = rememberBoardMorph(state, scrub))
+                BoardSwipe(scrub, state.position, state.boardCount, onSwipe, Modifier.fillMaxWidth()) {
+                    Column {
+                        // The pane's one gap between its parts: Your solve brings its own under it, and is nothing when there is none.
+                        RanksHeroCard(
+                            face = heroFace(if (between) target else state.position),
+                            container = { scrub.blend(containers, plain.surfaceContainerHigh) },
+                            ink = { scrub.blend(inks, plain.onSurface) },
+                            modifier = Modifier.padding(vertical = Spacing.md),
+                            was = heroFace(scrub.from).takeIf { between },
+                            progress = { scrub.progress },
+                        )
+                        YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
+                        RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick, morph = rememberBoardMorph(state, scrub))
+                    }
                 }
             }
         }

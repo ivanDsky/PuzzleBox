@@ -79,9 +79,9 @@ fun DailyBoard(
                     if (animated && state is DailyBoardState.Ranked) FadingLine(it.text, it.tag, landed) else BoardMessage(it.text, it.tag)
                 }
             }
-            val scrubbed: (@Composable (Modifier) -> Unit)? =
-                if (scrub == null) null else { board -> ScrubbedBoardList(scrub, isToday, medals, rowsOn, board) }
-            if (scrub != null || state is DailyBoardState.Ranked || state == DailyBoardState.SignedOut) {
+            // An empty board's message is worded for the day, so the two boards' parts are cut here, once a morph.
+            val parts = if (scrub == null) null else remember(scrub, isToday) { MorphParts(scrub, isToday) }
+            if (parts != null || state is DailyBoardState.Ranked || state == DailyBoardState.SignedOut) {
                 BoardList(
                     lines,
                     order,
@@ -91,7 +91,7 @@ fun DailyBoard(
                     medals = medals,
                     dock = dock,
                     landed = landed,
-                    scrubbed = scrubbed,
+                    scrub = parts,
                 )
             }
             if (state == DailyBoardState.SignedOut) signIn?.invoke()

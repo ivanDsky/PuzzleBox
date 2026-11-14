@@ -1,14 +1,11 @@
 package com.ivandsky.puzzlebox.designsystem
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -249,24 +246,18 @@ object MotionTokens {
         val EasingOut = CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
         val EasingRetract = EasingEmphasizedAccelerate
     }
-}
 
-/** Plays the trace pop ([MotionTokens.Trace]) from the current value: up to PopScale, then back to 1. */
-suspend fun Animatable<Float, AnimationVector1D>.tracePop() {
-    val rise = (MotionTokens.Trace.PopDuration * MotionTokens.Trace.PopRiseFraction).toInt()
-    animateTo(MotionTokens.Trace.PopScale, tween(rise, easing = MotionTokens.Trace.EasingOut))
-    animateTo(1f, tween(MotionTokens.Trace.PopDuration - rise, easing = MotionTokens.EasingStandard))
-}
-
-/** The trace pop's scale at [t] (0..1, clamped) through PopDuration, for frame-driven cells. */
-fun tracePopScale(t: Float): Float {
-    val p = t.coerceIn(0f, 1f)
-    val rise = MotionTokens.Trace.PopRiseFraction
-    val peak = MotionTokens.Trace.PopScale
-    return if (p < rise) {
-        1f + (peak - 1f) * MotionTokens.Trace.EasingOut.transform(p / rise)
-    } else {
-        peak + (1f - peak) * MotionTokens.EasingStandard.transform((p - rise) / (1f - rise))
+    // Swipe (the Ranks hub's boards): the finger scrubs 1:1; a release settles on a soft, critically damped spring
+    // (no wobble). A drag commits at CommitFraction of the board's width, never further than CommitCap, or at a
+    // flick of FlingVelocity a second. Past the first or last board the content follows the finger by EdgeFollow
+    // of the way. Reduced: no scrub, the board steps on release.
+    object Swipe {
+        const val SettleStiffness = Spring.StiffnessLow
+        val Settle: SpringSpec<Float> = spring(SpringDampingDefault, SettleStiffness)
+        const val CommitFraction = 0.25f
+        val CommitCap: Dp = 120.dp
+        val FlingVelocity: Dp = 300.dp
+        const val EdgeFollow = 0.2f
     }
 }
 

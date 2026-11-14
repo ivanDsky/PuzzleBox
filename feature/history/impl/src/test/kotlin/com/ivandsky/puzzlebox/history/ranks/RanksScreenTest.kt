@@ -136,6 +136,18 @@ class RanksScreenTest {
     }
 
     @Test
+    fun `a swipe in the empty space under a short board changes the board too`() {
+        val steps = mutableListOf<Int>()
+        showSwiping { steps += it }
+
+        composeRule.onNodeWithTag("route.ranks").performTouchInput {
+            swipe(Offset(right - 10f, bottom - 10f), Offset(left + 10f, bottom - 10f))
+        }
+
+        assertEquals(listOf(1), steps)
+    }
+
+    @Test
     fun `a slanted sideways swipe changes the board and pulls no refresh`() {
         val steps = mutableListOf<Int>()
         var refreshes = 0

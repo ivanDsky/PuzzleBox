@@ -130,10 +130,41 @@ internal fun Modifier.dockedRow(dock: SelfRowDock?): Modifier =
     if (dock == null) this else bringIntoViewRequester(dock.requester).onGloballyPositioned { dock.rowPlaced(it) }
 
 /**
+ * The viewer's row as the dock draws it while the board is between two (see [BoardMorph]): [self] as the board it goes
+ * to ranks it ([order], [withPuzzleBoxRank]), changing from the cells it [was] on the board it leaves as the row in the
+ * list does (see [RowScrub]). A row only the board being left has [leaves]: it is that board's, and frosts out.
+ */
+internal class DockScrub(
+    val self: DailyBoardLine.Real,
+    val order: RankOrder,
+    val withPuzzleBoxRank: Boolean,
+    val was: RowScrub?,
+    val leaves: Boolean,
+    val progress: () -> Float,
+)
+
+// The viewer's own row among a board's parts: the pinned one under the divider, or the one among the rows.
+private fun List<BoardPart>.selfRow(): BoardPart.Row? {
+    val divider = indexOf(BoardPart.Divider)
+    if (divider >= 0) return getOrNull(divider + 1) as? BoardPart.Row
+    return firstNotNullOfOrNull { part -> (part as? BoardPart.Row)?.takeIf { (it.line as? DailyBoardLine.Real)?.row?.isSelf == true } }
+}
+
+/** The dock between these two boards; none when the board being left has no row of the viewer's to dock. */
+internal fun MorphParts.dock(medals: Boolean): DockScrub? {
+    val old = from.selfRow() ?: return null
+    val row = to.selfRow() ?: old
+    val self = row.line as? DailyBoardLine.Real ?: return null
+    val was = if (row === old) null else RowScrub(old.line.cells(old.order, old.withPuzzleBoxRank, medals), progress)
+    return DockScrub(self, row.order, row.withPuzzleBoxRank, was, leaves = row === old, progress)
+}
+
+/**
  * [board] with the viewer's [self] row docked to the top or bottom edge of the viewport while it is scrolled out of
  * view, when [enabled]: a copy of the row laid over the board at that edge, which jumps to the row when tapped. The
  * board is drawn exactly as it is without a dock, and the row in it is the one at its own place, so the dock never
- * changes what the board animates. [board] gets the modifier the board is to carry.
+ * changes what the board animates. [board] gets the modifier the board is to carry. Between two boards the dock is
+ * the row of [scrub] instead, and stays at the edge it was docked to.
  */
 @Composable
 internal fun DockedSelfRow(
@@ -145,6 +176,7 @@ internal fun DockedSelfRow(
     animated: Boolean,
     backdrop: Color,
     modifier: Modifier,
+    scrub: DockScrub? = null,
     board: @Composable (Modifier) -> Unit,
 ) {
     if (!enabled) {
@@ -154,7 +186,8 @@ internal fun DockedSelfRow(
     val dock = remember { SelfRowDock() }
     Box(modifier.onGloballyPositioned { dock.boardPlaced(it) }) {
         CompositionLocalProvider(LocalSelfRowDock provides dock) { board(Modifier) }
-        if (self != null) Dock(dock, self, order, withPuzzleBoxRank, medals, animated, backdrop)
+        val row = scrub?.self ?: self
+        if (row != null) Dock(dock, row, scrub?.order ?: order, scrub?.withPuzzleBoxRank ?: withPuzzleBoxRank, medals, animated, backdrop, scrub)
     }
 }
 
@@ -167,6 +200,7 @@ private fun Dock(
     medals: Boolean,
     animated: Boolean,
     backdrop: Color,
+    scrub: DockScrub?,
 ) {
     val instant = rememberReducedMotion() || LocalInspectionMode.current
     val scope = rememberCoroutineScope()
@@ -187,11 +221,22 @@ private fun Dock(
         },
         exit = if (instant) ExitTransition.None else fadeOut(BoardMotion.fadeOut),
     ) {
-        DockBar(self, order, withPuzzleBoxRank, medals, animated, backdrop) { scope.launch { dock.requester.bringIntoView() } }
+        DockBar(self, order, withPuzzleBoxRank, medals, animated, backdrop, scrub) { scope.launch { dock.requester.bringIntoView() } }
     }
 }
 
-/** The docked row: the viewer's own row, lifted off the board it covers, one tap from where it is. */
+// The docked row's own clock: a new place rolls and a new time counts at once, with no stagger and no medal flip.
+private object DockPlaces : PlaceMotion {
+    override val animated = true
+    override val delayMs = 0
+    override val arrived = false
+}
+
+/**
+ * The docked row: the viewer's own row, lifted off the board it covers, one tap from where it is. On an [animated]
+ * board a new place rolls and a new time counts in it, as in the row it copies. With a [scrub] the scrub is the clock:
+ * its place rolls and its other cells frost over from what they were, or the whole row frosts out, as far as it says.
+ */
 @Composable
 internal fun DockBar(
     self: DailyBoardLine.Real,
@@ -200,12 +245,16 @@ internal fun DockBar(
     medals: Boolean,
     animated: Boolean,
     backdrop: Color,
+    scrub: DockScrub? = null,
     onJump: () -> Unit,
 ) {
     val place = if (self.row.beyondPage) BeyondPageLabel else "#${self.place}"
+    val leaving = scrub?.takeIf { it.leaves }?.progress
+    val still = scrub != null || rememberReducedMotion() || LocalInspectionMode.current
     Box(
         Modifier
             .testTag("leaderboard.dock")
+            .then(if (leaving != null) Modifier.frostedOut(leaving) else Modifier)
             .shadow(Spacing.xs, MaterialTheme.shapes.small)
             .clickable(onClickLabel = "Jump to your row", role = Role.Button, onClick = onJump)
             .clearAndSetSemantics { contentDescription = "Your row, $place. Jump to it" },
@@ -214,7 +263,8 @@ internal fun DockBar(
         CompositionLocalProvider(
             LocalSelfRowDock provides null,
             LocalBoardBackdrop provides backdrop,
-            LocalPlaceMotion provides if (animated) StillPlaces else null,
+            LocalPlaceMotion provides if (!animated) null else if (still) StillPlaces else DockPlaces,
+            LocalRowScrub provides scrub?.was,
         ) { BoardLine(self, order, withPuzzleBoxRank, medals) }
     }
 }
