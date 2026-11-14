@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.gameui.board
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.HorizontalDivider
@@ -71,20 +70,18 @@ internal fun BoardList(
         } else if (animated && !(rememberReducedMotion() || LocalInspectionMode.current)) {
             AnimatedBoardList(lines, pinned, order, withPuzzleBoxRank, style.backdrop, boardModifier, medals, style.inlineMarks, landed)
         } else if (lines.isNotEmpty() || pinned != null) {
-            CompositionLocalProvider(
-                // The podium's medals belong to the LinkedIn account's board; here they are drawn at once, with no roll or flip.
-                LocalPlaceMotion provides if (animated) StillPlaces else null,
+            // The podium's medals belong to the LinkedIn account's board; here they are drawn at once, with no roll or flip.
+            CompositionLocalProvider(LocalPlaceMotion provides if (animated) StillPlaces else null) {
                 // Rows at rest never overlap, so they need no fill: one is a look the style asks for.
-                LocalBoardBackdrop provides style.backdrop.takeIf { style.filledRows },
-            ) {
+                val backdrop = style.backdrop.takeIf { style.filledRows }
                 Column(
                     boardModifier.fillMaxWidth().testTag("daily_board.list"),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    lines.forEach { BoardLine(it, order, withPuzzleBoxRank, medals, style.inlineMarks) }
+                    lines.forEach { BoardSlot(backdrop) { BoardLine(it, order, withPuzzleBoxRank, medals, style.inlineMarks) } }
                     pinned?.let {
                         HorizontalDivider()
-                        Box(Modifier.testTag("leaderboard.you")) { BoardLine(it, order, withPuzzleBoxRank, medals, style.inlineMarks) }
+                        BoardSlot(backdrop, you = true) { BoardLine(it, order, withPuzzleBoxRank, medals, style.inlineMarks) }
                     }
                 }
             }

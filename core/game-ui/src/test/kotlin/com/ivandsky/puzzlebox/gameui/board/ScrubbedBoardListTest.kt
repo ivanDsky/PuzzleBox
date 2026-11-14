@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.InspectableValue
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.SemanticsNodeInteractionsProvider
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
@@ -101,6 +102,21 @@ class ScrubbedBoardListTest {
         show()
 
         assertEquals(listOf(144, 108, 72, 0), progress.at(0f, 0.25f, 0.5f, 1f) { top("Cal") })
+    }
+
+    @Test
+    fun `the viewer's row carries the you tag and no other row does`() {
+        fun face(vararg names: String) = BoardFace(
+            "Zip",
+            RankOrder.TimeThenHints,
+            DailyBoardState.Ranked(names.mapIndexed { index, name -> DailyBoardRowModel(index + 1, name, 60_000L, 0, isSelf = name == "Me", playerId = name) }),
+        )
+        val parts = MorphParts(BoardMorph(face("Ann", "Me"), face("Me", "Ann")) { 0.5f }, isToday = true)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) { ScrubbedBoardList(parts, medals = false, backdrop = MaterialTheme.colorScheme.background) }
+        }
+
+        composeRule.onAllNodes(hasTestTag("leaderboard.you"), useUnmergedTree = true).assertCountEquals(1)
     }
 
     @Test
