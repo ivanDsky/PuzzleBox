@@ -12,7 +12,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.designsystem.SwipeMotion
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -150,7 +150,7 @@ internal class BoardScrub(position: Int, private val scope: CoroutineScope) {
         motion?.cancel()
         arriving = arrive
         motion = scope.launch {
-            animate(travel, if (arrive) 1f else 0f, speed, MotionTokens.Swipe.Settle) { value, _ -> travel = value }
+            animate(travel, if (arrive) 1f else 0f, speed, SwipeMotion.Settle) { value, _ -> travel = value }
             if (arrive) from = to else to = from
             travel = 0f
             if (from != wanted) moveTo(wanted, instant = false)
