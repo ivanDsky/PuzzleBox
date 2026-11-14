@@ -57,7 +57,6 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.navigation.navKeySavedStateConfiguration
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -396,7 +395,6 @@ class CreatePublishedTabTest {
                             CreateDraft(games, drafts, newId = { "new" }, clock = { NOW }), copyDraft, DefaultDispatcherProvider(),
                             sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(published, boards, clock = { NOW }),
-                            releaseFlags = FakeReleaseFlags(),
                             clock = { NOW },
                         ).also { create = it }
                     }

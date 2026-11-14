@@ -14,7 +14,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.navigation.createEntry
@@ -41,7 +40,6 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -110,7 +108,6 @@ class NewPuzzleSheetTest {
         val createDraft = CreateDraft(games, drafts, newId = { "draft-${++next}" }, clock = { NOW })
         runBlocking { drafts.upsert(seed()) }
         startKoin {
-            modules(module { single<ReleaseFlags> { FakeReleaseFlags() } })
             modules(
                 module {
                     viewModel {
@@ -125,7 +122,6 @@ class NewPuzzleSheetTest {
                             DefaultDispatcherProvider(),
                             sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
-                            releaseFlags = get(),
                             clock = { NOW },
                         )
                     }

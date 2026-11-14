@@ -65,10 +65,10 @@ private const val DELETED_TITLE_MAX = 28
  * and [onDelete]. While [CreateUiState.deleted] is set, a snackbar "Deleted “{title}”" offers
  * Undo ([onUndoDelete]); it leaves when the state clears it (the 5 s window is the ViewModel's).
  *
- * While [importEnabled] the header carries a tonal Import pill ([onImportOpen]) that opens the
+ * The header carries a tonal Import pill ([onImportOpen]) that opens the
  * [ImportSheet] over [importSheet], which reports through [importActions] (its clipboard banner
  * included).
- * Two more entries open the same sheet through [onImportOpen], both only while [importEnabled]:
+ * Two more entries open the same sheet through [onImportOpen]:
  * the empty state's "Import from text" button, and the New puzzle sheet's last row, which
  * closes the sheet first.
  *
@@ -91,7 +91,6 @@ fun CreateScreen(
     onDelete: (draftId: String) -> Unit,
     onUndoDelete: () -> Unit,
     modifier: Modifier = Modifier,
-    importEnabled: Boolean = false,
     importSheet: ImportSheetUi = ImportSheetUi(),
     onImportOpen: () -> Unit = {},
     importActions: ImportSheetActions = ImportSheetActions(),
@@ -118,9 +117,7 @@ fun CreateScreen(
                 subtitle = headerCounts(state),
                 modifier = Modifier.maxContentWidth().testTag("create.header"),
                 actions = {
-                    if (importEnabled) {
-                        SecondaryButton(text = "Import", onClick = onImportOpen, modifier = Modifier.testTag("create.header.import"))
-                    }
+                    SecondaryButton(text = "Import", onClick = onImportOpen, modifier = Modifier.testTag("create.header.import"))
                 },
             )
             // Keyed on the restoring card alone: only the first cloud restore's fill-in animates, every other change lands as before.
@@ -133,14 +130,14 @@ fun CreateScreen(
                     restoring -> CreateEmptyState(
                         games = state.games,
                         onStart = onNew,
-                        onImport = onImportOpen.takeIf { importEnabled },
+                        onImport = onImportOpen,
                         restoring = true,
                     )
                     state.loading -> Unit
                     state.isEmpty -> CreateEmptyState(
                         games = state.games,
                         onStart = onNew,
-                        onImport = onImportOpen.takeIf { importEnabled },
+                        onImport = onImportOpen,
                     )
                     else -> Column(Modifier.fillMaxSize()) {
                         CreateTabs(state, onTab)
@@ -166,13 +163,9 @@ fun CreateScreen(
                 onNew(gameId, variant)
             },
             onDismiss = { sheetOpen = false },
-            onImport = if (importEnabled) {
-                {
-                    sheetOpen = false
-                    onImportOpen()
-                }
-            } else {
-                null
+            onImport = {
+                sheetOpen = false
+                onImportOpen()
             },
         )
     }

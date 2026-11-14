@@ -16,7 +16,6 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
@@ -44,7 +43,6 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -97,7 +95,7 @@ class NewPuzzleSheetZipGateTest {
 
     @Test
     fun `Zip is offered and opens the Zip editor, and one stroke changes the verdict pill`() {
-        open(flags = FakeReleaseFlags())
+        open()
         rule.onNodeWithTag(NEW).performClick()
         rule.onNodeWithTag("$GAME${zip.value}").assertExists()
         rule.onNodeWithTag("$GAME${zip.value}").performClick()
@@ -119,7 +117,7 @@ class NewPuzzleSheetZipGateTest {
     private fun pill(): String? =
         rule.onAllNodesWithTag(PILL).fetchSemanticsNodes().firstOrNull()?.config?.getOrNull(SemanticsProperties.StateDescription)
 
-    private fun open(flags: ReleaseFlags) {
+    private fun open() {
         val games = GameRegistry(listOf(queensPlugin, zipPlugin))
         val editors = GameEditorRegistry(listOf(QueensEditorUi, ZipEditorUi))
         var next = 0
@@ -127,7 +125,6 @@ class NewPuzzleSheetZipGateTest {
         // One stored draft keeps the draft list, and its New puzzle button, on screen.
         runBlocking { createDraft(QueensDefinition.id, QueensEditor.variants.first()) }
         startKoin {
-            modules(module { single { flags } })
             modules(
                 module {
                     viewModel {
@@ -142,7 +139,6 @@ class NewPuzzleSheetZipGateTest {
                             DefaultDispatcherProvider(),
                             sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
-                            releaseFlags = flags,
                             clock = { NOW },
                         )
                     }

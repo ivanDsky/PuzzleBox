@@ -3,8 +3,6 @@ package com.ivandsky.puzzlebox.create
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.importtext.ImportTextState
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.restoring
@@ -34,7 +32,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -59,8 +56,7 @@ import kotlinx.coroutines.launch
  * search and its verdict chips. Each time that tab shows, [syncSolves] refreshes the rows' solve
  * counts in the background; the list never waits for it, and the cached counts show meanwhile.
  *
- * [importText] owns the Import from text sheet; the header pill shows while [importEnabled]
- * ([ReleaseFlag.TextImport]). An imported draft is sent on [created], like a new one. A Studio's
+ * [importText] owns the Import from text sheet. An imported draft is sent on [created], like a new one. A Studio's
  * import hands its draft to the next Studio through [importedNotice]. Text another app shared
  * ([SharedTextStore]) goes through that same sheet while the root is resumed
  * ([importSharedText]).
@@ -78,7 +74,6 @@ class CreateViewModel(
     private val copyDraft: CreateDraftCopy,
     private val dispatchers: DispatcherProvider,
     private val syncSolves: SyncSolvesCounts,
-    private val releaseFlags: ReleaseFlags,
     private val sharedText: SharedTextStore,
     private val clock: () -> Instant,
     private val nanoTime: () -> Long = System::nanoTime,
@@ -149,11 +144,6 @@ class CreateViewModel(
 
     /** The id of each draft [newPuzzle] or the import sheet stored, once each, for the route to open. */
     val created: Flow<String> = createdIds.receiveAsFlow()
-
-    /** Whether the header's Import pill shows: [ReleaseFlag.TextImport] is on. */
-    val importEnabled: StateFlow<Boolean> = releaseFlags.enabled.map { ReleaseFlag.TextImport in it }.stateIn(
-        viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ReleaseFlag.TextImport in releaseFlags.enabled.value,
-    )
 
     /** The Import from text sheet; an imported draft is sent on [created] like a new one. */
     val importText = ImportTextState(

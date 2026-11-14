@@ -3,6 +3,8 @@ package com.ivandsky.puzzlebox.create
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.filter
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onChildren
@@ -44,7 +46,7 @@ class CreateHeaderCountsTest {
     @Test
     fun `the subtitle carries the draft and published counts`() {
         show(CreateUiState(loading = false, drafts = drafts, draftCount = drafts.size, published = published, games = PreviewGames))
-        val lines = header().onChildren()
+        val lines = lines()
         lines.assertCountEquals(2)
         lines[1].assert(hasText("${drafts.size}", substring = true)).assert(hasText("${published.size}", substring = true))
     }
@@ -52,16 +54,19 @@ class CreateHeaderCountsTest {
     @Test
     fun `with nothing made yet the title stands alone`() {
         show(CreateUiState(loading = false, games = PreviewGames))
-        header().onChildren().assertCountEquals(1)
+        lines().assertCountEquals(1)
     }
 
     @Test
     fun `while loading the title stands alone`() {
         show(CreateUiState(loading = true, draftCount = drafts.size, published = published, games = PreviewGames))
-        header().onChildren().assertCountEquals(1)
+        lines().assertCountEquals(1)
     }
 
     private fun header() = rule.onNodeWithTag("create.header", useUnmergedTree = true)
+
+    /** The header's title and subtitle lines: everything but the Import pill. */
+    private fun lines() = header().onChildren().filter(!hasTestTag("create.header.import"))
 
     private fun show(state: CreateUiState) {
         rule.setContent {

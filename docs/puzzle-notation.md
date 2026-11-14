@@ -600,7 +600,7 @@ person imports it into the app.
 
 ## In the app
 
-Import from text is in the app behind the `TextImport` flag; it runs the same import as the CLI,
+Import from text is in the app; it runs the same import as the CLI,
 so the verdict matches.
 
 - **Import from text.** On the Create tab, tap Import. The Import from text sheet opens: paste

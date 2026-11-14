@@ -146,7 +146,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `NAVIGATION_STATE_KEY` (ADR-0011).
 - `core/common/` (`:core:common`) — `DispatcherProvider` seam (+ `DefaultDispatcherProvider`),
   `AppResult`/`AppError` and `resultOf` convention (typed errors, never thrown surprises),
-  `flags/` `ReleaseFlag` enum (TextImport, Competitions, LinkedInAccount) + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022), Koin `commonModule`.
+  `flags/` `ReleaseFlag` enum (Competitions, LinkedInAccount) + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022), Koin `commonModule`.
 - `core/data/` (`:core:data`) — game-agnostic repositories: `DailyRepository` →
   `OfflineFirstDailyRepository` (`today(game)`/`cached(game, day)`/`observeHistory(game)`,
   by-date `day(game, day)` → `DailyDay` (cache first; on a miss fetches and persists only for an

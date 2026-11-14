@@ -10,9 +10,6 @@ package com.ivandsky.puzzlebox.common.flags
  * @property releaseDefault the value every release build uses; debug builds start from it too.
  */
 enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
-    /** Import from text: the Create header pill, empty-state button, New-puzzle row and Studio overflow item. */
-    TextImport(label = "Import from text", releaseDefault = false),
-
     /** Competitions: async 1v1 duels between friends; live since 0.26.0. */
     Competitions(label = "Competitions: 1v1 duels", releaseDefault = true),
 

@@ -9,7 +9,6 @@ import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
@@ -38,7 +37,6 @@ internal fun Module.idleCreateRoot(drafts: DraftRepository) {
             DefaultDispatcherProvider(),
             sharedText = FakeSharedTextStore(),
             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { IdleNow }),
-            releaseFlags = FakeReleaseFlags(),
             clock = { IdleNow },
         )
     }

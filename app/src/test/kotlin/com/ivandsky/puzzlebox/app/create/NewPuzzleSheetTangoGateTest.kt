@@ -16,7 +16,6 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
@@ -44,7 +43,6 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -92,7 +90,7 @@ class NewPuzzleSheetTangoGateTest {
 
     @Test
     fun `Tango is offered and opens the Tango editor, and one given moves the verdict`() {
-        open(FakeReleaseFlags())
+        open()
         rule.onNodeWithTag(NEW).performClick()
         rule.onNodeWithTag("$GAME${tango.value}").assertExists()
         rule.onNodeWithTag("$GAME${tango.value}").performClick()
@@ -106,7 +104,7 @@ class NewPuzzleSheetTangoGateTest {
         rule.waitUntil(TIMEOUT_MS) { pillState() == MULTIPLE }
     }
 
-    private fun open(flags: ReleaseFlags) {
+    private fun open() {
         val games = GameRegistry(listOf(queensPlugin, tangoPlugin))
         var next = 0
         val createDraft = CreateDraft(games, drafts, newId = { "draft-${++next}" }, clock = { NOW })
@@ -118,7 +116,6 @@ class NewPuzzleSheetTangoGateTest {
         startKoin {
             modules(
                 module {
-                    single { flags }
                     viewModel {
                         CreateViewModel(
                             games,
@@ -131,7 +128,6 @@ class NewPuzzleSheetTangoGateTest {
                             DefaultDispatcherProvider(),
                             sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(published, FakeCustomBoardRepository(), clock = { NOW }),
-                            releaseFlags = get(),
                             clock = { NOW },
                         )
                     }

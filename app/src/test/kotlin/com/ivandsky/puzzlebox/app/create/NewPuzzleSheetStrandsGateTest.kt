@@ -15,7 +15,6 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
@@ -47,7 +46,6 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -95,7 +93,7 @@ class NewPuzzleSheetStrandsGateTest {
 
     @Test
     fun `Strands is offered and opens the Strands editor`() {
-        open(FakeReleaseFlags())
+        open()
         rule.onNodeWithTag(NEW).performClick()
         rule.onNodeWithTag("$GAME${StrandsDefinition.id.value}").assertExists()
         // Strands has one size: its row opens the editor, with no size step between.
@@ -111,7 +109,7 @@ class NewPuzzleSheetStrandsGateTest {
         val draftId = "strands-1"
         runBlocking { drafts.upsert(storedRow(draftId, almostDone())) }
         navigator.pushOnce(EditorKey(draftId))
-        open(FakeReleaseFlags())
+        open()
         rule.waitUntil(WAIT_MS) { count(BOARD) > 0 }
         rule.waitUntil(WAIT_MS) { pill() == INCOMPLETE }
 
@@ -132,7 +130,7 @@ class NewPuzzleSheetStrandsGateTest {
     private fun count(tag: String): Int =
         rule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().size
 
-    private fun open(flags: ReleaseFlags) {
+    private fun open() {
         val games = GameRegistry(listOf(queensPlugin, strandsPlugin))
         val editors = GameEditorRegistry(listOf(QueensEditorUi, StrandsEditorUi))
         var next = 0
@@ -140,7 +138,6 @@ class NewPuzzleSheetStrandsGateTest {
         // One stored Queens draft keeps the draft list, and its New puzzle button, on screen.
         runBlocking { createDraft(QueensDefinition.id, QueensEditor.variants.first()) }
         startKoin {
-            modules(module { single<ReleaseFlags> { flags } })
             modules(
                 module {
                     viewModel {
@@ -155,7 +152,6 @@ class NewPuzzleSheetStrandsGateTest {
                             DefaultDispatcherProvider(),
                             sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
-                            releaseFlags = get(),
                             clock = { NOW },
                         )
                     }

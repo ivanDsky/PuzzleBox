@@ -11,7 +11,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.data.model.Draft
@@ -26,7 +25,6 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -50,9 +48,8 @@ import org.robolectric.annotation.Config
 
 /**
  * The Create root's import entries (M5-06) over the real view model: the empty state's text
- * button and the New puzzle sheet's row each open the one Import sheet, and exist only while
- * [ReleaseFlag.TextImport] is on. A draft row shows its imported tag for an imported draft
- * only, flag or not: the suffix is data, not a gate.
+ * button and the New puzzle sheet's row each open the one Import sheet. A draft row shows its
+ * imported tag for an imported draft only: the suffix is data, not a gate.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -71,14 +68,14 @@ class ImportEntriesTest {
 
     @Test
     fun `the empty state's button opens the Import sheet`() {
-        show(importOn = true)
+        show()
         composeRule.onNodeWithTag(EMPTY_IMPORT).performScrollTo().performClick()
         composeRule.waitUntil { composeRule.exists(IMPORT_SHEET) }
     }
 
     @Test
     fun `the New puzzle sheet's row closes the sheet and opens the Import sheet`() {
-        show(importOn = true, seed = listOf(draft("plain", imported = false)))
+        show(seed = listOf(draft("plain", imported = false)))
         composeRule.onNodeWithTag(NEW).performClick()
         composeRule.onNodeWithTag(NEW_IMPORT).performScrollTo().performClick()
 
@@ -87,37 +84,16 @@ class ImportEntriesTest {
     }
 
     @Test
-    fun `with the flag off the empty state has no import button`() {
-        show(importOn = false)
-        composeRule.onNodeWithTag(EMPTY).assertExists()
-        composeRule.onAllNodesWithTag(EMPTY_IMPORT).assertCountEquals(0)
-    }
-
-    @Test
-    fun `with the flag off the New puzzle sheet has no import row`() {
-        show(importOn = false, seed = listOf(draft("plain", imported = false)))
-        composeRule.onNodeWithTag(NEW).performClick()
-        composeRule.onNodeWithTag(NEW_SHEET).assertExists()
-        composeRule.onAllNodesWithTag(NEW_IMPORT).assertCountEquals(0)
-    }
-
-    @Test
     fun `only the imported draft shows the imported tag`() {
-        show(importOn = true, seed = listOf(draft("plain", imported = false), draft("copy", imported = true)))
+        show(seed = listOf(draft("plain", imported = false), draft("copy", imported = true)))
         composeRule.onAllNodesWithTag(DRAFT_ROW).assertCountEquals(2)
         // The row merges its children into one node; the suffix is its own text inside it.
         composeRule.onAllNodesWithTag(DRAFT_IMPORTED, useUnmergedTree = true).assertCountEquals(1)
     }
 
     @Test
-    fun `an imported draft keeps its tag while the flag is off`() {
-        show(importOn = false, seed = listOf(draft("copy", imported = true)))
-        composeRule.onAllNodesWithTag(DRAFT_IMPORTED, useUnmergedTree = true).assertCountEquals(1)
-    }
-
-    @Test
     fun `the actions sheet header carries the imported tag of an imported draft`() {
-        show(importOn = true, seed = listOf(draft("copy", imported = true)))
+        show(seed = listOf(draft("copy", imported = true)))
         composeRule.onNodeWithTag(DRAFT_MORE).performClick()
         composeRule.waitUntil { composeRule.exists(ACTIONS_CONTINUE) }
         // One in the row behind the sheet, one in the sheet's own header.
@@ -140,13 +116,12 @@ class ImportEntriesTest {
     private fun ComposeTestRule.exists(tag: String): Boolean =
         onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
 
-    private fun show(importOn: Boolean, seed: List<Draft> = emptyList()) {
+    private fun show(seed: List<Draft> = emptyList()) {
         val plugin = withEditor(FakeGameEditor(game))
         val games = GameRegistry(listOf(plugin))
         val editors = GameEditorRegistry(listOf(FakeGameEditorUi(game)))
         val createDraft = CreateDraft(games, drafts, newId = { "new" }, clock = { NOW })
         runBlocking { seed.forEach { drafts.upsert(it) } }
-        val flags = if (importOn) FakeReleaseFlags(ReleaseFlag.TextImport) else FakeReleaseFlags()
         startKoin {
             modules(
                 module {
@@ -162,7 +137,6 @@ class ImportEntriesTest {
                             DefaultDispatcherProvider(),
                             sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
-                            releaseFlags = flags,
                             clock = { NOW },
                         )
                     }
@@ -212,7 +186,6 @@ class ImportEntriesTest {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
         const val NEW = "create.new"
         const val NEW_SHEET = "create.new.sheet"
-        const val EMPTY = "create.empty"
         const val DRAFT_MORE = "create.draft.more"
         const val ACTIONS_CONTINUE = "create.actions.continue"
         const val NEW_IMPORT = "create.new.import"
