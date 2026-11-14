@@ -41,6 +41,9 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
+import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
+import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
+import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.game.DailySource
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
@@ -299,6 +302,37 @@ class DiGraphTest : KoinTest {
     }
 
     /** Two editor UIs for one game is a wiring bug that fails the registry's first resolve. */
+    /**
+     * The hub's view models are `internal` to their feature modules, so they are asked for by class name; a missing
+     * binding behind RanksViewModel's thirteen positional `get()`s would otherwise surface only when the hub opens.
+     */
+    @Test
+    fun `the Ranks hub resolves off the real graph with the hub on`() {
+        val koinApp = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(
+                PuzzleBoxApplication.appModules + module {
+                    single<IdentityService> { FakeIdentityService() }
+                    single<ReleaseFlags> { FakeReleaseFlags(ReleaseFlag.LeaderboardHub) }
+                },
+            )
+        }
+        try {
+            val koin = koinApp.koin
+            fun viewModel(name: String, vararg params: Any) =
+                koin.get<Any>(Class.forName("com.ivandsky.puzzlebox.$name").kotlin, null) { parametersOf(*params) }
+            assertNotNull(viewModel("history.ranks.RanksViewModel", SavedStateHandle()))
+            assertNotNull(viewModel("history.ranks.PlayerSheetViewModel"))
+            assertNotNull(viewModel("history.ranks.ReplayOptInViewModel"))
+            assertNotNull(viewModel("play.GamePageBoardViewModel", GameId("zip")))
+            assertNotNull(koin.get<ObserveRankWindow>())
+            assertNotNull(koin.get<ObserveOverall>())
+            assertNotNull(koin.get<GetPlayerActions>())
+        } finally {
+            stopKoin()
+        }
+    }
+
     @Test
     fun `a second editor UI for one game fails the registry`() {
         val duplicate = module { single<GameEditorUi>(qualifier = qualifier("queens.editor.again")) { QueensEditorUi } }
