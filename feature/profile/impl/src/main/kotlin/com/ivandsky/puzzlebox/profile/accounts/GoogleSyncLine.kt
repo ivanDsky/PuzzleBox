@@ -23,6 +23,7 @@ private const val DELETING = "Deleting…"
 private const val PAUSED_EXHAUSTED = "Sync paused · over today's limit, tries again later"
 private const val PAUSED_WRITE_CAP = "Sync paused · this phone is over its daily limit, tries again later"
 private const val PAUSED_DENIED = "Sync paused · your account was refused, tries again later"
+private const val PAUSED_LOCAL = "Sync paused · something went wrong on this phone, tries again later"
 
 /**
  * The signed-in Google row's sync line: what the engine is doing, with Sync now beside it (idle while a pass is
@@ -84,6 +85,7 @@ private fun pausedText(reason: PauseReason): String = when (reason) {
     PauseReason.Exhausted -> PAUSED_EXHAUSTED
     PauseReason.WriteCap -> PAUSED_WRITE_CAP
     PauseReason.Denied -> PAUSED_DENIED
+    PauseReason.Local -> PAUSED_LOCAL
 }
 
 private const val PREVIEW_NOW_MS = 1_800_000_000_000L
@@ -129,6 +131,10 @@ internal fun GoogleSyncLinePausedWriteCapPreview() = SyncLinePreview(GoogleSync.
 @PuzzleBoxPreviews
 @Composable
 internal fun GoogleSyncLinePausedDeniedPreview() = SyncLinePreview(GoogleSync.Status.Paused(PauseReason.Denied))
+
+@PuzzleBoxPreviews
+@Composable
+internal fun GoogleSyncLinePausedLocalPreview() = SyncLinePreview(GoogleSync.Status.Paused(PauseReason.Local))
 
 @PuzzleBoxPreviews
 @Composable
