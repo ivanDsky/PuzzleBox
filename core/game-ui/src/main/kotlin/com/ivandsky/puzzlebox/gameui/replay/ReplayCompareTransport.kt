@@ -44,9 +44,9 @@ internal fun ReplayCompareTransport(
                 if (theirs != null) LegendEntry(names.theirs, colors.tertiary)
             }
         },
-    ) {
+    ) { positionMs ->
         ReplayMirroredSeekBar(
-            positionMs = state.positionMs,
+            positionMs = positionMs,
             durationMs = state.durationMs,
             mineTicksMs = mine?.moveTimesMs,
             mineKinds = mine?.moveKindsAt,

@@ -52,10 +52,13 @@ class ReplayPlayback(
         it.with(positionMs = ticksMs.lastBelow(it.positionMs) ?: 0L, playing = false)
     }
 
-    /** Clamps [ms] into the replay. A playing replay keeps playing, but a seek to the end pauses there, as [advance] does. */
+    /**
+     * Clamps [ms] into the replay. A playing replay keeps playing, but a seek to the end pauses there, as [advance] does.
+     * The frame a seek lands on is [ReplayPlaybackState.seeked]: it changes the board with no motion, until the next [advance].
+     */
     fun seekTo(ms: Long) = change {
         val positionMs = ms.coerceIn(0, durationMs)
-        it.with(positionMs = positionMs, playing = it.playing && positionMs < durationMs)
+        it.with(positionMs = positionMs, playing = it.playing && positionMs < durationMs, seeked = it.seeked || positionMs != it.positionMs)
     }
 
     /** A playing replay moves on by [frameDtMs] times the speed and pauses at the end. Paused, nothing moves. */
@@ -63,9 +66,9 @@ class ReplayPlayback(
         if (!it.playing) return@change it
         val reachedMs = (it.positionMs + frameDtMs * it.speed).coerceAtLeast(0)
         when {
-            reachedMs >= durationMs -> it.with(positionMs = durationMs, playing = false)
-            it.skipIdle -> it.with(positionMs = pastIdle(reachedMs, it.speed))
-            else -> it.with(positionMs = reachedMs)
+            reachedMs >= durationMs -> it.with(positionMs = durationMs, playing = false, seeked = false)
+            it.skipIdle -> it.with(positionMs = pastIdle(reachedMs, it.speed), seeked = false)
+            else -> it.with(positionMs = reachedMs, seeked = false)
         }
     }
 
@@ -105,18 +108,26 @@ class ReplayPlayback(
         speed: Int = this.speed,
         skipIdle: Boolean = this.skipIdle,
         showErrors: Boolean = this.showErrors,
+        seeked: Boolean = this.seeked,
     ): ReplayPlaybackState {
         val unchanged = positionMs == this.positionMs && playing == this.playing &&
-            speed == this.speed && skipIdle == this.skipIdle && showErrors == this.showErrors
+            speed == this.speed && skipIdle == this.skipIdle && showErrors == this.showErrors && seeked == this.seeked
         // The state has identity equality, so only the same object keeps the flow from emitting.
-        return if (unchanged) this else stateAt(positionMs, playing, speed, skipIdle, showErrors)
+        return if (unchanged) this else stateAt(positionMs, playing, speed, skipIdle, showErrors, seeked)
     }
 
-    private fun stateAt(positionMs: Long, playing: Boolean, speed: Int, skipIdle: Boolean, showErrors: Boolean): ReplayPlaybackState {
+    private fun stateAt(
+        positionMs: Long,
+        playing: Boolean,
+        speed: Int,
+        skipIdle: Boolean,
+        showErrors: Boolean,
+        seeked: Boolean = false,
+    ): ReplayPlaybackState {
         val mineFrame = mine?.at(positionMs)
         val theirsFrame = theirs?.at(positionMs)
         val lead = if (mineFrame != null && theirsFrame != null) leadOf(mineFrame, theirsFrame) else null
-        return ReplayPlaybackState(positionMs, durationMs, playing, speed, skipIdle, ticksMs, tickKinds, mineFrame, theirsFrame, lead, showErrors)
+        return ReplayPlaybackState(positionMs, durationMs, playing, speed, skipIdle, ticksMs, tickKinds, mineFrame, theirsFrame, lead, showErrors, seeked)
     }
 
     private fun leadOf(mineFrame: ReplayFrame, theirsFrame: ReplayFrame): Lead = when {
@@ -131,13 +142,22 @@ class ReplayPlayback(
         const val LEAD_IN_MS = 1_000L
 
         /**
-         * Wall time a move's board animation needs before an idle jump may leave it. The longest
-         * replay-board animation is Strands' spangram of about 12 letters: draw-in 12 x
-         * ReplayDrawInLetterMs (90) = 1 080 ms, then SpangramSweep 900 ms, then FoundSettle 1 000 ms
-         * = 2 980 ms. A bonus word is shorter: 1 080 + ReplayBonusHoldMs 1 000 + DissolveDuration 160
-         * = 2 240 ms. Rounded up to 3 000 ms.
+         * Wall time a move's board animation needs before an idle jump may leave it. The worst replay step
+         * is Strands' (the other four games peak at 840 ms), and the worst Strands step is its longest word:
+         * a published word is 4..24 letters (`StrandsPublishGates.WORD_LENGTHS`), and a replay step draws the
+         * recorded path in at ReplayDrawInLetterMs (90) per letter, then hands over to the word's animation.
+         *  - Theme word of 24 letters: draw-in 24 x 90 = 2 160, then FoundSettle: letter n starts n x
+         *    SettleStaggerMs (50) in, runs SettleMs (1 000), so the last (n = 23) ends at 23 x 50 + 1 000
+         *    = 2 150. Total 4 310.
+         *  - Spangram of 24 letters: draw-in 2 160, then the sweep. Its last letter starts at most
+         *    SweepMaxMs (900) in (the stagger is squeezed, StrandsMotion.sweepDelayMs) and runs the same
+         *    1 000 settle. The sweep and the settle are one overlapped animation (per-letter delay plus
+         *    settle, FoundSpangramSpec.motionMs), not two in a row: 900 + 1 000 = 1 900. Total 4 060.
+         *  - Bonus word of 24 letters: 2 160 + ReplayBonusHoldMs 1 000 + DissolveDuration 160 = 3 320.
+         * Worst case 4 310 ms, plus 390 ms of slack for the first frames after the move stamp = 4 700 ms.
+         * The longest word in the fixture puzzles has 13 letters (about 2 700 ms).
          */
-        const val DWELL_MS = 3_000L
+        const val DWELL_MS = 4_700L
     }
 }
 

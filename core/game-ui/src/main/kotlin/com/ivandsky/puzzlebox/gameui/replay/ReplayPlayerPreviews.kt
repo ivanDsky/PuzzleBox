@@ -94,7 +94,7 @@ internal fun ReplayTransportPreview() {
 internal fun ReplaySeekBarPreview() {
     PuzzleBoxTheme {
         ReplaySeekBar(
-            positionMs = 5_000,
+            positionMs = { 5_000 },
             durationMs = 12_000,
             ticksMs = longArrayOf(2_000, 5_000, 9_000),
             tickKinds = arrayOf(MoveKind.Normal, MoveKind.Hint, MoveKind.Mistake),

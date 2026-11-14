@@ -4,7 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -31,7 +30,7 @@ fun ReplayCompare(
 ) {
     if (mine == null && theirs == null) return
     val playback = rememberReplayPlayback(mine, theirs, finalLead, showErrors)
-    val state by playback.state.collectAsState()
+    val state by rememberStableReplayState(playback)
     val options = rememberReplayBoardOptions(state)
     Column(modifier) {
         if (mine != null && theirs != null) {

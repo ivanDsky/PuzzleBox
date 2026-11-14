@@ -1,9 +1,9 @@
 package com.ivandsky.puzzlebox.gameui.replay
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -12,6 +12,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.CacheDrawScope
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
@@ -29,28 +31,30 @@ private val PlayheadWidth = 2.dp
 
 /**
  * The draggable strip every replay seek bar is built on: the whole strip taps and drags, a playhead crosses it,
- * and it reads as a slider to a screen reader. [bars] draws the activity under the playhead; it gets the played
- * fraction of the replay.
+ * and it reads as a slider to a screen reader. [positionMs] is read only in the draw and semantics phases, so a
+ * moving playhead redraws the strip and recomposes nothing. [bars] runs once per size, in the cache scope, to lay
+ * the activity out; the draw lambda it returns draws it under the playhead, given the played fraction of the replay,
+ * and must not allocate.
  */
 @Composable
 internal fun ReplayScrubStrip(
-    positionMs: Long,
+    positionMs: () -> Long,
     durationMs: Long,
     onSeek: (Long) -> Unit,
     height: Dp,
     modifier: Modifier = Modifier,
-    bars: DrawScope.(playedFraction: Float) -> Unit,
+    bars: CacheDrawScope.() -> DrawScope.(playedFraction: Float) -> Unit,
 ) {
     val playheadColor = MaterialTheme.colorScheme.onSurface
     val seek by rememberUpdatedState(onSeek)
-    val clamped = positionMs.coerceIn(0, durationMs.coerceAtLeast(0))
-    Canvas(
+    Spacer(
         modifier = modifier
             .fillMaxWidth()
             .height(height)
             .testTag(ReplayTags.SEEK)
             .semantics {
                 contentDescription = ReplayCopy.SEEK
+                val clamped = positionMs().coerceIn(0, durationMs.coerceAtLeast(0))
                 progressBarRangeInfo = ProgressBarRangeInfo(clamped.toFloat(), 0f..durationMs.coerceAtLeast(1).toFloat())
                 setProgress { ms -> (durationMs > 0).also { if (it) seek(ms.toLong()) } }
             }
@@ -64,20 +68,24 @@ internal fun ReplayScrubStrip(
                     change.consume()
                     seek(msAt(change.position.x, size.width, KnobRadius.toPx(), durationMs))
                 }
+            }
+            .drawWithCache {
+                val drawBars = bars()
+                val knob = KnobRadius.toPx()
+                val headWidth = PlayheadWidth.toPx()
+                val headSize = Size(headWidth, size.height)
+                val headCorner = CornerRadius(headWidth / 2)
+                onDrawBehind {
+                    val clamped = positionMs().coerceIn(0, durationMs.coerceAtLeast(0))
+                    val fraction = if (durationMs > 0) clamped.toFloat() / durationMs else 0f
+                    drawBars(fraction)
+                    // The playhead rides a track inset by the knob radius so the knob stays whole at both ends.
+                    val x = knob + (size.width - 2 * knob) * fraction
+                    drawRoundRect(color = playheadColor, topLeft = Offset(x - headWidth / 2, 0f), size = headSize, cornerRadius = headCorner)
+                    drawCircle(playheadColor, knob, Offset(x, knob))
+                }
             },
-    ) {
-        val fraction = if (durationMs > 0) clamped.toFloat() / durationMs else 0f
-        bars(fraction)
-        // The playhead rides a track inset by the knob radius so the knob stays whole at both ends.
-        val x = KnobRadius.toPx() + (size.width - 2 * KnobRadius.toPx()) * fraction
-        drawRoundRect(
-            color = playheadColor,
-            topLeft = Offset(x - PlayheadWidth.toPx() / 2, 0f),
-            size = Size(PlayheadWidth.toPx(), size.height),
-            cornerRadius = CornerRadius(PlayheadWidth.toPx() / 2),
-        )
-        drawCircle(playheadColor, KnobRadius.toPx(), Offset(x, KnobRadius.toPx()))
-    }
+    )
 }
 
 private fun msAt(x: Float, width: Int, inset: Float, durationMs: Long): Long =
