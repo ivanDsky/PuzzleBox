@@ -94,7 +94,7 @@ class BoardRowLayoutTest {
     }
 
     @Test
-    fun `a row with a second line and one without are the same size`() {
+    fun `a PuzzleBox row and a connection row are the same size`() {
         show(showPuzzleBoxRank = false)
         val plain = composeRule.onAllNodesWithTag("daily_board.row")[0].getBoundsInRoot()
         val connection = composeRule.onNodeWithTag("daily_board.ghost").getBoundsInRoot()
@@ -105,14 +105,27 @@ class BoardRowLayoutTest {
     }
 
     @Test
-    fun `a row with its PuzzleBox rank line is the same height as without`() {
-        show(showPuzzleBoxRank = true)
-        val withLine = composeRule.onAllNodesWithTag("daily_board.row")[0].getBoundsInRoot().height
-        composeRule.onNodeWithTag("daily_board.ghost").assertHeightIsEqualTo(withLine)
+    fun `a row with its mark and its PuzzleBox rank is one line, the same height as a row without`() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                Column {
+                    DailyBoardRow(self.copy(unofficial = true), RankOrder.TimeThenHints, place = 2, showPuzzleBoxRank = true)
+                    GhostRow(ghost, 3, RankOrder.TimeThenHints)
+                }
+            }
+        }
+        val row = composeRule.onNodeWithTag("daily_board.row.self").getBoundsInRoot()
+        val name = composeRule.onNodeWithTag("daily_board.row.name").getBoundsInRoot()
+
+        composeRule.onNodeWithTag("daily_board.ghost").assertHeightIsEqualTo(row.height)
+        listOf("daily_board.row.mark", "daily_board.row.puzzlebox_rank").forEach { tag ->
+            val chip = composeRule.onNodeWithTag(tag).getBoundsInRoot()
+            assertTrue("$tag $chip is beside the name $name", chip.left >= name.right && chip.top >= name.top && chip.bottom <= name.bottom)
+        }
     }
 
     @Test
-    fun `a connection row has the LinkedIn dot and no second line, a PuzzleBox row has no dot`() {
+    fun `a connection row has the LinkedIn dot and no chip, a PuzzleBox row has no dot`() {
         showLinkedInRows()
 
         composeRule.onNodeWithTag("daily_board.ghost.linkedin_dot").assertExists()

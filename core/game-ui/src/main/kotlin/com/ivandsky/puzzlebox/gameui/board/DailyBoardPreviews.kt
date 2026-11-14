@@ -232,13 +232,16 @@ internal fun DailyBoardRowValuesPreview() = Padded {
     }
 }
 
-// A player past the board's top reads "100+"; a device-only result sits at its place with the "unofficial" mark.
+// A player past the board's top reads "100+"; a device-only result sits at its place with the "unofficial" chip. The
+// chips are beside the name, which gives way to them, so a row with both is as tall as one with none.
 @PuzzleBoxPreviews
 @Composable
 internal fun DailyBoardMarksPreview() = Padded {
     Column {
         DailyBoardRow(Rows[1].copy(rank = 101, beyondPage = true), RankOrder.TimeThenHints)
         DailyBoardRow(Rows[1].copy(unofficial = true), RankOrder.TimeThenHints, place = 2)
+        DailyBoardRow(Rows[0].copy(name = "Maximiliana Featherstonehaugh"), RankOrder.TimeThenHints, place = 3, showPuzzleBoxRank = true)
+        DailyBoardRow(Rows[1].copy(isSelf = true, unofficial = true), RankOrder.TimeThenHints, place = 4, showPuzzleBoxRank = true)
     }
 }
 

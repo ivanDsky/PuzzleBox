@@ -6,7 +6,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 
 /**
  * The cells of a row that differ from board to board, while the row stays the same person: its [place] (null while
- * hidden, "100+" when [beyondPage]), the small [detail] and [mark] lines, the [score], whether its place makes it a
+ * hidden, "100+" when [beyondPage]), the small [detail] and [mark] chips, the [score], whether its place makes it a
  * medal row ([medalRow]) and whether its place cell may wear a disc ([placeMedal]; an unofficial row takes no place).
  */
 internal data class RowCells(
