@@ -17,9 +17,6 @@ private const val CONNECTION_UID = "linkedin:"
  */
 fun connectionUid(memberRef: String): String = CONNECTION_UID + memberRef
 
-/** Whether a ranked row's [uid] is a LinkedIn connection's ([connectionUid]) rather than a PuzzleBox player's. */
-fun isConnectionUid(uid: String): Boolean = uid.startsWith(CONNECTION_UID)
-
 /**
  * These Friends boards ([amongFriends]) with the LinkedIn [days] the phone has saved counted on them (F21): every
  * loaded board that has a saved day takes it in ([BoardPage.withConnections]). Ranking the result with [rankBoard],
