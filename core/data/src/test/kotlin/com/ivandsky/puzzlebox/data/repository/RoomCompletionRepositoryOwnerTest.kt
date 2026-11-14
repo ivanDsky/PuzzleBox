@@ -20,11 +20,14 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -86,6 +89,16 @@ class RoomCompletionRepositoryOwnerTest {
         scope.writerUid = uid
         repository.onCompleted(completion(timeMs, key, source))
         nowMs += 1_000
+    }
+
+    /**
+     * Runs [DRAIN_ROUNDS] no-op tasks through the one Room thread, one after another. A transaction's queries reach that
+     * thread one hop at a time, so every round lets work already on it advance; nothing here waits on the clock.
+     */
+    private suspend fun drainRoomThread() {
+        repeat(DRAIN_ROUNDS) {
+            suspendCancellableCoroutine { done -> RoomQueryThread.executor.execute { done.resume(Unit) } }
+        }
     }
 
     private fun storedOwners(): List<Pair<String?, Boolean>> =
@@ -201,8 +214,9 @@ class RoomCompletionRepositoryOwnerTest {
 
         val import = launch { cold.onCompleted(completion(50_000, key, CompletionSource.LinkedIn)) }
         runCurrent()
-        // The owner is read on the database thread, so give a read that does not wait its real time to happen.
-        Thread.sleep(500)
+        // An import that did not wait for the owner would by now have run its queries on Room's thread and finished.
+        drainRoomThread()
+        assertFalse("the import must wait for the last uid", import.isCompleted)
         assertEquals(listOf<Pair<String?, Boolean>>("B" to true), storedOwners())
 
         store.load("A")
@@ -221,5 +235,10 @@ class RoomCompletionRepositoryOwnerTest {
 
         assertEquals(2, repository.observeRecords().first().size)
         assertEquals(80_000L, repository.best(alpha)?.timeMs)
+    }
+
+    private companion object {
+        /** Far more hops than `onCompleted` takes to finish its queries. */
+        const val DRAIN_ROUNDS = 200
     }
 }
