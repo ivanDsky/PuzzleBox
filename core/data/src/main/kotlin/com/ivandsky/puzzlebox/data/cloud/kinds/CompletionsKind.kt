@@ -12,10 +12,11 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 /**
- * Finished games as a synced kind (ADR-0029 decisions 1 and 8): one doc per UTC month of `completedAtMs`,
- * `{formatVersion: 1, records: {syncId: record}}`, with a numbered overflow doc per 1,000 records of a month. A put
- * deep-merges, so a doc carries only the records not yet uploaded. Only the account's own rows ever leave the device:
- * rows of another owner and ownerless ones are never pending.
+ * Finished games as a synced kind (ADR-0029 decisions 1 and 8): the UTC month of `completedAtMs`,
+ * `{formatVersion: 1, records: {syncId: record}}`, spread over [CompletionMerge.BUCKETS] bucket docs a month by the
+ * record's own sync id, so every device names the same doc for a record. Docs of the earlier ordinal scheme restore
+ * like any other. A put deep-merges, so a doc carries only the records not yet uploaded. Only the account's own rows
+ * ever leave the device: rows of another owner and ownerless ones are never pending.
  *
  * Restored rows go in through [CompletionDao.insertIgnore], never `CompletionRepository.onCompleted`, so they keep
  * their timestamps and trigger no first-win stamp or live side effect. Right after a restore and after an adopt the
@@ -31,7 +32,7 @@ internal class CompletionsKind(
     override val kind: String = "completions"
 
     override fun pendingIds(uid: String): Flow<Set<String>> =
-        dao.observePending(uid).map { rows -> docsOf(uid, rows).keys }.distinctUntilChanged()
+        dao.observePending(uid).map { rows -> rows.mapTo(HashSet()) { docOf(it) } }.distinctUntilChanged()
 
     override suspend fun adopt(uid: String) {
         db.withTransaction {
@@ -43,7 +44,7 @@ internal class CompletionsKind(
     }
 
     override suspend fun pending(uid: String): List<CloudDoc> = db.withTransaction {
-        docsOf(uid, dao.pending(uid)).map { (id, rows) ->
+        dao.pending(uid).groupBy(::docOf).map { (id, rows) ->
             CloudDoc(id, mapOf(FORMAT_VERSION to 1L, CompletionMerge.RECORDS to rows.associate { it.syncId to merge.encode(it) }))
         }
     }
@@ -63,22 +64,7 @@ internal class CompletionsKind(
 
     override suspend fun forget(uid: String) = dao.clearUploaded(uid)
 
-    /**
-     * [rows] of [uid] grouped by the doc they belong to. A row's doc depends on its place among all of the account's
-     * rows of that month, so the month's sync ids are read once per month present in [rows].
-     */
-    private suspend fun docsOf(uid: String, rows: List<CompletionEntity>): Map<String, List<CompletionEntity>> {
-        val docs = LinkedHashMap<String, MutableList<CompletionEntity>>()
-        for ((month, inMonth) in rows.groupBy { merge.monthOf(it.completedAtMs) }) {
-            val ordinals = dao.syncIdsBetween(uid, merge.startMs(month), merge.startMs(month.plusMonths(1)))
-                .withIndex().associate { it.value to it.index }
-            for (row in inMonth) {
-                val ordinal = ordinals[row.syncId] ?: continue
-                docs.getOrPut(merge.docId(row.completedAtMs, ordinal)) { mutableListOf() } += row
-            }
-        }
-        return docs
-    }
+    private fun docOf(row: CompletionEntity): String = merge.docId(row.completedAtMs, row.syncId)
 
     /** Fixes the record flag of [refs] among the rows [uid] sees. */
     private suspend fun recompute(uid: String, refs: List<String>) {

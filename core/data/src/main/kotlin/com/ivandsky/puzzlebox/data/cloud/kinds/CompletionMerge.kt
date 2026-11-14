@@ -30,19 +30,19 @@ internal class CompletionMerge {
     /** The UTC month of [completedAtMs]. */
     fun monthOf(completedAtMs: Long): YearMonth = YearMonth.from(Instant.ofEpochMilli(completedAtMs).atZone(ZoneOffset.UTC))
 
-    /** The first instant of [month], UTC, in epoch milliseconds. */
-    fun startMs(month: YearMonth): Long = month.atDay(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-
     /**
-     * The doc a record finished at [completedAtMs] lives in: its UTC month `yyyy-MM`, and `yyyy-MM-n` for the n-th
-     * block of [PER_DOC] records once the month holds more, where [ordinal] is the record's place among the month's
-     * records ordered by (`completedAtMs`, `syncId`), counted from 0. The first block keeps the plain month id.
+     * The doc a record lives in: its UTC month `yyyy-MM` and a bucket id of `BUCKET_BASE + hash(syncId) mod BUCKETS`,
+     * `yyyy-MM-1000` to `yyyy-MM-1007`. The key is the record's own, so every device sends the same record to the same
+     * doc whatever else it holds, and the month's records spread evenly: a month would need about 6,000 finishes to
+     * bring one bucket near the rules' 1,000-record cap. A record is about 350 bytes, so a full doc stays far under the
+     * 1 MiB document limit (see `CompletionMergeTest`). The bucket ids sit above any `yyyy-MM` or `yyyy-MM-n` doc the
+     * earlier count-by-ordinal scheme wrote, so a record never joins a doc that may already be full; those legacy docs
+     * are read like any other and their records merge by sync id.
      */
-    fun docId(completedAtMs: Long, ordinal: Int): String {
+    fun docId(completedAtMs: Long, syncId: String): String {
         val month = monthOf(completedAtMs)
-        val id = "${month.year.toString().padStart(4, '0')}-${month.monthValue.toString().padStart(2, '0')}"
-        val block = ordinal / PER_DOC
-        return if (block == 0) id else "$id-$block"
+        val bucket = BUCKET_BASE + Math.floorMod(syncId.hashCode(), BUCKETS)
+        return "${month.year.toString().padStart(4, '0')}-${month.monthValue.toString().padStart(2, '0')}-$bucket"
     }
 
     /**
@@ -81,8 +81,11 @@ internal class CompletionMerge {
         /** The key of the records map in a doc. */
         const val RECORDS = "records"
 
-        /** The most records one doc holds; the rules cap it at 1,000. */
-        const val PER_DOC = 1_000
+        /** The docs a month spreads over; the rules cap one doc at 1,000 records. */
+        const val BUCKETS = 8
+
+        /** The first bucket id, above every overflow block of the scheme this replaced. */
+        const val BUCKET_BASE = 1_000
 
         private const val PUZZLE_REF = "puzzleRef"
         private const val TIME_MS = "timeMs"

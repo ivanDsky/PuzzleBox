@@ -89,13 +89,6 @@ interface CompletionDao {
     @Query("SELECT * FROM completions WHERE ownerUid = :uid AND uploaded = 0 ORDER BY completedAtMs, syncId")
     fun observePending(uid: String): Flow<List<CompletionEntity>>
 
-    /** The sync ids of every row [uid] holds with a finish in `[fromMs, toMs)`, in (completedAtMs, syncId) order. */
-    @Query(
-        "SELECT syncId FROM completions " +
-            "WHERE ownerUid = :uid AND completedAtMs >= :fromMs AND completedAtMs < :toMs ORDER BY completedAtMs, syncId",
-    )
-    suspend fun syncIdsBetween(uid: String, fromMs: Long, toMs: Long): List<String>
-
     @Query("UPDATE completions SET uploaded = 1 WHERE ownerUid = :uid AND syncId IN (:syncIds)")
     suspend fun markUploaded(uid: String, syncIds: List<String>)
 
