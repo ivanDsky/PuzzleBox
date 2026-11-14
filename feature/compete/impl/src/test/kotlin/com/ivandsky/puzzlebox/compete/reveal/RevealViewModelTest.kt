@@ -79,6 +79,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertSame
 import org.junit.Rule
 import org.junit.Test
@@ -522,6 +523,7 @@ class RevealViewModelTest {
         matches.value = loaded(revealed = setOf(0, 1), of = compareMatch)
         vm.revealEnded()
 
+        assertTrue("no leg is offered before any tap", running(vm).compareLegs.isEmpty())
         vm.openCompare(0)
 
         assertNull(vm.compare.value)
