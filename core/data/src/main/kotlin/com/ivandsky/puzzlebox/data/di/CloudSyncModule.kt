@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.data.cloud.CloudErase
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncRunner
 import com.ivandsky.puzzlebox.data.cloud.DataStoreSyncStateStore
+import com.ivandsky.puzzlebox.data.cloud.OversizedDrafts
 import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.cloud.SignedInOwnerScope
 import com.ivandsky.puzzlebox.data.cloud.SyncStateStore
@@ -12,6 +13,7 @@ import com.ivandsky.puzzlebox.data.cloud.SyncedKindsCloudSync
 import com.ivandsky.puzzlebox.data.cloud.kinds.CompletionsKind
 import com.ivandsky.puzzlebox.data.cloud.kinds.DraftsKind
 import com.ivandsky.puzzlebox.data.cloud.kinds.PublishedKind
+import com.ivandsky.puzzlebox.data.cloud.kinds.RoomOversizedDrafts
 import com.ivandsky.puzzlebox.data.cloud.kinds.ReceivedKind
 import com.ivandsky.puzzlebox.data.cloud.kinds.ReplaysKind
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -62,6 +64,8 @@ val cloudSyncModule = module {
             scope = get<CoroutineScope>(),
         )
     }
+    // The Google row's "N drafts are too big to sync" line; bound only with the flag on.
+    single<OversizedDrafts> { RoomOversizedDrafts(get<PuzzleBoxDatabase>().draftDao(), get<IdentityService>()) }
     single<SyncedKind>(named("cloud.kind.completions")) {
         val db = get<PuzzleBoxDatabase>()
         CompletionsKind(db, db.completionDao())

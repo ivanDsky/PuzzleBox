@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.cloud.CloudResult
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
+import com.ivandsky.puzzlebox.data.cloud.OversizedDrafts
 import com.ivandsky.puzzlebox.data.cloud.SavedBoardsCloud
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
@@ -55,7 +56,8 @@ private const val DELETE_BOARDS_FAILED_MESSAGE = "Couldn't delete your saved boa
  * ([ObserveGameStats]). With a [link] and [observeAccount] (the LinkedIn switch is on) it also follows the LinkedIn
  * row and carries its Resume and Disconnect. The activity context the credential sheet needs (I2) is passed per
  * call and never stored. With a [cloudSync] (the CloudSync switch is on) it also carries the Google row's sync line,
- * Sync now and Delete my cloud data, and the LinkedIn row's saved-to-your-account copy; with a [savedBoardsCloud] it
+ * Sync now and Delete my cloud data, and the LinkedIn row's saved-to-your-account copy; with [oversizedDrafts] the
+ * sync line also counts the drafts too big to sync. With a [savedBoardsCloud] it
  * carries the LinkedIn row's Delete saved boards. [nowMs] is the clock for the update times; it ticks each minute
  * while something collects it, so a Profile that is not on screen does not.
  */
@@ -66,6 +68,7 @@ class ProfileViewModel(
     private val link: LinkedInLink? = null,
     observeAccount: ObserveLinkedInAccount? = null,
     private val cloudSync: CloudSync? = null,
+    private val oversizedDrafts: OversizedDrafts? = null,
     private val savedBoardsCloud: SavedBoardsCloud? = null,
     private val clock: Clock = Clock.systemUTC(),
 ) : ViewModel() {
@@ -98,7 +101,9 @@ class ProfileViewModel(
         if (cloudSync == null) {
             flowOf(null)
         } else {
-            combine(cloudSync.state, erase) { state, erase -> state.toSync(erase) }
+            combine(cloudSync.state, erase, oversizedDrafts?.count ?: flowOf(0)) { state, erase, oversized ->
+                state.toSync(erase, oversized)
+            }
         }
 
     // Null while neither switch is on: the LinkedIn row is exactly today's.
@@ -218,7 +223,7 @@ class ProfileViewModel(
 /** Progress and outcome of the last Delete my cloud data or Delete saved boards call. */
 private data class Deletion(val running: Boolean = false, val message: String? = null)
 
-private fun CloudSyncState.toSync(erase: Deletion): ProfileUiState.GoogleSync? {
+private fun CloudSyncState.toSync(erase: Deletion, oversizedDrafts: Int): ProfileUiState.GoogleSync? {
     val status = when (this) {
         CloudSyncState.SignedOut -> return null
         is CloudSyncState.Syncing -> ProfileUiState.GoogleSync.Status.Syncing
@@ -226,7 +231,7 @@ private fun CloudSyncState.toSync(erase: Deletion): ProfileUiState.GoogleSync? {
         is CloudSyncState.Offline -> ProfileUiState.GoogleSync.Status.Offline
         is CloudSyncState.Paused -> ProfileUiState.GoogleSync.Status.Paused(reason)
     }
-    return ProfileUiState.GoogleSync(status, erase.running, erase.message)
+    return ProfileUiState.GoogleSync(status, erase.running, erase.message, oversizedDrafts)
 }
 
 private fun LinkState.toRow(summary: LinkedInAccountView): LinkedInRowState = when (this) {

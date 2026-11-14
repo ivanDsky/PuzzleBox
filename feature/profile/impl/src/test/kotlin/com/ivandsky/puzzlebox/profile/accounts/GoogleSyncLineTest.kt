@@ -71,6 +71,27 @@ class GoogleSyncLineTest {
     }
 
     @Test
+    fun `one draft over the cap says so in the singular`() {
+        setRow(GoogleSync(GoogleSync.Status.Synced(NOW), oversizedDrafts = 1))
+
+        composeRule.onNodeWithText("1 draft is too big to sync").assertExists()
+    }
+
+    @Test
+    fun `several drafts over the cap say so in the plural`() {
+        setRow(GoogleSync(GoogleSync.Status.Synced(NOW), oversizedDrafts = 3))
+
+        composeRule.onNodeWithText("3 drafts are too big to sync").assertExists()
+    }
+
+    @Test
+    fun `no draft over the cap shows no line`() {
+        setRow(GoogleSync(GoogleSync.Status.Synced(NOW), oversizedDrafts = 0))
+
+        composeRule.onNodeWithTag("profile.google.sync.drafts").assertDoesNotExist()
+    }
+
+    @Test
     fun `syncing says so and leaves Sync now idle`() {
         setRow(GoogleSync(GoogleSync.Status.Syncing))
 
