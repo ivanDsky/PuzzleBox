@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -419,6 +420,16 @@ class RanksScreenTest {
 
         composeRule.onNodeWithText("Ann").assertIsDisplayed()
         composeRule.onNodeWithTag("daily_board.row").assertHasClickAction()
+    }
+
+    @Test
+    fun `a tap on another player's row opens the player sheet on them`() {
+        val sheet = playerSheet()
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(drawn, {}, onSwipe = {}, playerSheet = sheet) } }
+
+        composeRule.onNodeWithText("Maya").performClick()
+
+        composeRule.onNodeWithTag("ranks.player.name").assertTextEquals("Maya")
     }
 
     private fun playerSheet(): PlayerSheetViewModel {

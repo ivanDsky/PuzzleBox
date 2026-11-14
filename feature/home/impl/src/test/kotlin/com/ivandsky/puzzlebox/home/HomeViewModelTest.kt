@@ -1,10 +1,18 @@
 package com.ivandsky.puzzlebox.home
 
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.match.LegRef
+import com.ivandsky.puzzlebox.data.match.MatchDraft
+import com.ivandsky.puzzlebox.data.match.MatchLeg
+import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.domain.ObserveLatestSolvedToday
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
@@ -38,13 +46,18 @@ import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.repository.FakeAppReleaseRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Clock
 import java.time.Instant
@@ -102,6 +115,7 @@ class HomeViewModelTest {
         boards: Map<LeaderboardRef, List<LeaderboardEntry>> = emptyMap(),
         summariesShown: Boolean = false,
         savedState: SavedStateHandle = SavedStateHandle(),
+        friendDay: ObserveFriendDay? = null,
     ): Deps {
         val registry = GameRegistry(
             listOf(zip, tango).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
@@ -131,6 +145,7 @@ class HomeViewModelTest {
             observeResultRank = ObserveResultRank(
                 ObserveLeaderboard(identity, FakeLeaderboardRepository(boards), registry, calendar),
                 registry,
+                friendDay,
             ),
             savedState = savedState,
         )
@@ -606,6 +621,49 @@ class HomeViewModelTest {
 
         deps.vm.setSummariesShown(false)
         assertNull(deps.vm.uiState.value.rank)
+    }
+
+    /** The Friends/Global setting the rank follows (F20), stored as [friends], with p3 the player's one friend. */
+    private suspend fun settingWithFriendP3(identity: FakeIdentityService, friends: Boolean, hub: Boolean = true): ObserveFriendDay {
+        val matches = FakeMatchRepository().apply { signedInUid = me.uid }
+        val code = checkNotNull(ShareCode.parse("AAAAA2"))
+        matches.create(MatchDraft(code, 24, Player(me.uid, "Me", null), null, listOf(MatchLeg(LegRef.Daily(zip, day, 1), null)), true, null))
+        matches.signedInUid = "p3"
+        matches.claim(code, Player("p3", "p3", null))
+        matches.signedInUid = me.uid
+        return ObserveFriendDay(
+            FakeUserPreferencesRepository(ranksFriendsDefault = friends),
+            if (hub) FakeReleaseFlags(ReleaseFlag.LeaderboardHub) else FakeReleaseFlags(),
+            ObserveFriendUids(matches, identity),
+            ObserveLinkedInDay(FakeLinkedInDays(), TestGames.registry(listOf(zip, tango))),
+        )
+    }
+
+    private suspend fun TestScope.rankUnder(friends: Boolean, hub: Boolean = true): TodayRank? {
+        val identity = FakeIdentityService(initial = me)
+        val deps = viewModel(
+            identity = identity,
+            boards = mapOf(twelfth(zip)),
+            summariesShown = true,
+            friendDay = settingWithFriendP3(identity, friends, hub),
+        )
+        deps.solve(zip, "2026-11-04T08:00:00Z")
+        return deps.vm.uiState.value.rank
+    }
+
+    @Test
+    fun `with the Friends setting the rank is the place among friends`() = runTest {
+        assertEquals(TodayRank(zip, "Zip", 2), rankUnder(friends = true))
+    }
+
+    @Test
+    fun `with the Global setting the rank is the whole board's`() = runTest {
+        assertEquals(TodayRank(zip, "Zip", 12), rankUnder(friends = false))
+    }
+
+    @Test
+    fun `with the hub off the Friends setting leaves the rank the whole board's`() = runTest {
+        assertEquals(TodayRank(zip, "Zip", 12), rankUnder(friends = true, hub = false))
     }
 
     /** A release check stuck on the network: it never answers. */
