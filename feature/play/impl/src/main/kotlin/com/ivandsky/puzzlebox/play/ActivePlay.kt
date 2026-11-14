@@ -52,8 +52,6 @@ class ActivePlay internal constructor(
     private val completions: CompletionRepository,
     private val scope: CoroutineScope,
     private val recordScope: CoroutineScope,
-    /** Read at each open: a debug override applies to the next play, never mid-play. */
-    private val recordsReplay: () -> Boolean,
 ) {
     /** What the play screen draws: the live controller and the shared fetch state. */
     data class Board(val controller: GamePlayController, val status: PlayBoardStatus)
@@ -240,8 +238,8 @@ class ActivePlay internal constructor(
         return created
     }
 
-    /** Whether this play records a replay: the flag is on and the game ships a replay member. */
-    private val recording: Boolean get() = plugin.replay != null && recordsReplay()
+    /** Whether this play records a replay: the game ships a replay member. */
+    private val recording: Boolean get() = plugin.replay != null
 
     /**
      * The controller to adopt into once the origin is known: [current] while nothing records, else a new

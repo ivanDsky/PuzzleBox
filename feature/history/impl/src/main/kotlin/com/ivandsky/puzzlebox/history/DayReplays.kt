@@ -33,7 +33,7 @@ internal class DayReplaysLoader(private val scope: CoroutineScope, private val l
         loading = scope.launch {
             val record = loadReplay(SolveReplayRef.Record(puzzle))
             val latest = loadReplay(SolveReplayRef.Latest(puzzle))
-            val none = if (loadReplay.enabled) HistoryReplays.Unavailable(ReplayUnavailable.of(solved.source)) else HistoryReplays.Hidden
+            val none = HistoryReplays.Unavailable(ReplayUnavailable.of(solved.source))
             current.value = DayReplays(row.key, historyReplays(record, latest, loadReplay.latestIsRecord(puzzle), none))
         }
     }

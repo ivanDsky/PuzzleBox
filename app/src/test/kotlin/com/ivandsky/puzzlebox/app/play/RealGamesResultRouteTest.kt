@@ -25,7 +25,6 @@ import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.domain.LoadLegReplay
 import com.ivandsky.puzzlebox.domain.LoadPlayerReplay
 import com.ivandsky.puzzlebox.domain.LoadCustomReplay
@@ -206,10 +205,9 @@ class RealGamesResultRouteTest {
                     factory { ComputeStreak(get()) }
                     factory { ObserveGameStats(get(), get(), get()) }
                     factory { GetNextRollover(get()) }
-                    // The replay stays off in this graph (no flag): the loader only has to exist.
+                    // The loader only has to exist in this graph.
                     factory {
                         LoadSolveReplay(
-                            flags = FakeReleaseFlags(),
                             games = get(),
                             daily = LoadDailyReplay(get(), get()),
                             custom = LoadCustomReplay(get(), get(), get()),

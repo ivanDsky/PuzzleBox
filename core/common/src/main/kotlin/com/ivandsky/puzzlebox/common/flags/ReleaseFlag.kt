@@ -22,9 +22,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     /** LinkedIn account: imports the player's own results and shows connections as ghost rows (ADR-0028). Live. */
     LinkedInAccount(label = "LinkedIn: account results + connections", releaseDefault = true),
 
-    /** Solve replay: every solve keeps its move log so the player can watch it again. */
-    FullReplay(label = "Full replay", releaseDefault = true),
-
     /** Cloud sync: the signed-in account's history, puzzles and saved boards on every device (ADR-0029). */
     CloudSync(label = "Cloud sync: history on every device", releaseDefault = false),
 

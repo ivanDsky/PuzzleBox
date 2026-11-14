@@ -2,10 +2,6 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.ShippedReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.FinishLeg
@@ -61,8 +57,6 @@ class PlaySessionStore internal constructor(
     private val finishLeg: FinishLeg,
     private val calendar: GameCalendar,
     dispatchers: DispatcherProvider,
-    /** Gate 1 of two (D6): a play records its replay only while [ReleaseFlag.FullReplay] is on. */
-    private val flags: ReleaseFlags = ShippedReleaseFlags,
 ) {
     /** The picker's entries: every game with both a plugin and a play UI, in
      *  [GameRegistry.all] order, with its display name. */
@@ -177,12 +171,12 @@ class PlaySessionStore internal constructor(
     /**
      * The replay of a saved leg play that is not open: its envelope's log, sealed "gave up" at the play time the
      * game banked. The game's own controller reads that time through [PlayClock], the same seam a live play is
-     * saved with, so no game is named here. Null with the flag off, no version 2 log, or an unreadable save.
+     * saved with, so no game is named here. Null for a game with no replay, no version 2 log, or an unreadable save.
      */
     private suspend fun sealSaved(slot: PlaySlot): SolveReplay? {
         val plugin = games[slot.gameId] ?: return null
         val gameUi = ui[slot.gameId] ?: return null
-        if (plugin.replay == null || !flags.isEnabled(ReleaseFlag.FullReplay)) return null
+        if (plugin.replay == null) return null
         val decoded = SessionBlob.decode(opening.savedRow(slot) ?: return null) ?: return null
         val log = MoveLog.restored(slot.gameId, decoded.log)
         val reader = playScope()
@@ -260,7 +254,6 @@ class PlaySessionStore internal constructor(
             completions = completions.forSlot(slot, finishLeg),
             scope = playScope(),
             recordScope = scope,
-            recordsReplay = { flags.isEnabled(ReleaseFlag.FullReplay) },
         ).also {
             slots[slot] = it
             it.load()

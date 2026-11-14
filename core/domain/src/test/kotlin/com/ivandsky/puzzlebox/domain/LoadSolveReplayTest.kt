@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.SolveReplayRef.Latest
 import com.ivandsky.puzzlebox.domain.SolveReplayRef.MyLeg
@@ -13,7 +11,6 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyReplayRepository
@@ -30,11 +27,10 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Read-side flag gate (D6): flag off the entry answers "no replay" for every reference; flag on with no replay stored still does. */
-class LoadSolveReplayFlagTest {
+/** The replay entry: with no replay stored it answers "no replay" for every reference, and latestIsRecord reads the repository. */
+class LoadSolveReplayTest {
 
     private val game = TestGames.alpha
     private val puzzle = TestGames.Ref(game, PuzzleKey.Daily(LocalDate.parse("2026-11-08"), 1))
@@ -42,27 +38,15 @@ class LoadSolveReplayFlagTest {
     private val refs = listOf(Record(puzzle), Latest(puzzle), MyLeg(code, 0), TheirLeg(code, 0))
 
     @Test
-    fun `flag off gives null for every reference kind`() = runTest {
-        val load = entry(FakeReleaseFlags())
+    fun `with no replay stored it gives null for every reference kind`() = runTest {
+        val load = entry()
 
         refs.forEach { assertNull(load(it)) }
     }
 
     @Test
-    fun `flag off says the newest solve is the record even when a later solve exists`() = runTest {
-        assertTrue(entry(FakeReleaseFlags(), twoSolves()).latestIsRecord(puzzle))
-    }
-
-    @Test
-    fun `flag on with no replay stored gives null for every reference kind`() = runTest {
-        val load = entry(FakeReleaseFlags(ReleaseFlag.FullReplay))
-
-        refs.forEach { assertNull(load(it)) }
-    }
-
-    @Test
-    fun `flag on forwards latestIsRecord to the repository`() = runTest {
-        assertFalse(entry(FakeReleaseFlags(ReleaseFlag.FullReplay), twoSolves()).latestIsRecord(puzzle))
+    fun `latestIsRecord forwards to the repository`() = runTest {
+        assertFalse(entry(twoSolves()).latestIsRecord(puzzle))
     }
 
     private fun twoSolves() = FakeCompletionRepository(
@@ -77,7 +61,7 @@ class LoadSolveReplayFlagTest {
         isRecord = isRecord,
     )
 
-    private fun entry(flags: ReleaseFlags, completions: CompletionRepository = FakeCompletionRepository()): LoadSolveReplay {
+    private fun entry(completions: CompletionRepository = FakeCompletionRepository()): LoadSolveReplay {
         val daily = FakeDailyRepository()
         val received = FakeReceivedPuzzleRepository()
         val loadShared = LoadSharedPuzzle(
@@ -88,7 +72,6 @@ class LoadSolveReplayFlagTest {
             clock = { Instant.EPOCH },
         )
         return LoadSolveReplay(
-            flags = flags,
             games = TestGames.registry(listOf(game)),
             daily = LoadDailyReplay(completions, daily),
             custom = LoadCustomReplay(completions, received, loadShared),

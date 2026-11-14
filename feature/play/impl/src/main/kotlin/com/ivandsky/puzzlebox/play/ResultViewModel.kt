@@ -62,7 +62,7 @@ import kotlinx.coroutines.launch
  * true once the history shows the slot has none (A22: it never ranks or counts).
  * [doneToday] of [total] is today's playable set solved, this game counted the moment it
  * is solved; [rolloverAt] is when the next puzzles land. [replay] is Ready once this solve is stored with a replay,
- * Hidden before (a pending or failed write), or when there is none (A13, flag off).
+ * Hidden before (a pending or failed write), or when there is none (A13).
  */
 data class ResultUiState(
     val verdict: RecordVerdict? = null,
@@ -238,9 +238,8 @@ class ResultViewModel internal constructor(
                 }
             }
 
-    /** A stored solve with no replay says so, naming a LinkedIn import; hidden while replays are off. */
+    /** A stored solve with no replay says so, naming a LinkedIn import. */
     private suspend fun unavailableOf(ref: PuzzleRef): ReplaySectionState {
-        if (!loadReplay.enabled) return ReplaySectionState.Hidden
         val stored = completions.observeRecords().first() + completions.observePlayAgains(ref).first()
         val source = stored.firstOrNull { it.puzzleRef == ref && it.time == solve.timeMs && it.hints == solve.hints }?.source
         return ReplaySectionState.Unavailable(source?.let(ReplayUnavailable::of) ?: ReplayUnavailable.NotRecorded)

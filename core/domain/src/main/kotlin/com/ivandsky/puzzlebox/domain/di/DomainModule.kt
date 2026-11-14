@@ -128,7 +128,7 @@ val domainModule = module {
     }
     factory { ObserveOverall(identity = get(), completions = get()) }
     factory { ObserveFriendUids(matches = get(), identity = get()) }
-    factory { GetPlayerActions(visibility = get(), completions = get(), flags = get()) }
+    factory { GetPlayerActions(visibility = get(), completions = get()) }
     factory {
         SubmitDailyReplay(
             completions = get(),
@@ -184,7 +184,6 @@ val domainModule = module {
     factory { LoadPlayerReplay(replays = get(), daily = get()) }
     factory {
         LoadSolveReplay(
-            flags = get(),
             games = get(),
             daily = get(),
             custom = get(),

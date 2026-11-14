@@ -14,7 +14,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.play.QueensPlayFixture
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
@@ -32,11 +31,9 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,18 +41,17 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The walking skeleton of the full replay over the real app and the real Queens: the flag decides whether a solve
- * stores a replay and whether the own result offers it. On, the result shows Watch replay, the row opens the replay
- * page and Next move steps the playback; off, no replay is stored and the result shows no row.
+ * The walking skeleton of the full replay over the real app and the real Queens: a solve stores a replay and the own
+ * result offers it. The result shows Watch replay, the row opens the replay page and Next move steps the playback.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
-class FullReplayFlagE2ETest {
+class FullReplayE2ETest {
 
     @Test
-    fun withTheFlagOnTheResultOpensTheReplayAndNextMoveStepsIt() =
-        shellRobot(tabAt(PlayKey), graph = shellGraph(ReleaseFlag.FullReplay)) {
+    fun theResultOpensTheReplayAndNextMoveStepsIt() =
+        shellRobot(tabAt(PlayKey), graph = shellGraph()) {
             solveTodaysQueens()
             awaitActionable(WATCH_ROW)
 
@@ -77,41 +73,8 @@ class FullReplayFlagE2ETest {
         }
 
     @Test
-    fun withTheFlagOffTheSolveStoresNoReplayAndTheResultOffersNone() =
-        shellRobot(tabAt(PlayKey), graph = shellGraph()) {
-            solveTodaysQueens()
-            rule.waitForIdle()
-
-            assertFalse("no Watch replay row", shows(WATCH_ROW))
-            assertFalse("no unavailable row either", shows(ReplayTags.UNAVAILABLE))
-            val ref = QueensPuzzleRef(PuzzleKey.Daily(E2E_TODAY, NUMBER))
-            assertEquals("the completion itself is stored", 1, runBlocking { graph.records.observeRecords().first() }.size)
-            assertNull("no replay is stored", runBlocking { graph.records.latestReplay(ref) })
-        }
-
-    @Test
-    fun withTheFlagOffAStoredReplayIsOfferedNowhere() {
-        val replay = queensReplay()
-        shellRobot(tabAt(PlayKey, STORED_RESULT), graph = storedSolve(replay)) {
-            awaitTag(RESULT_ROUTE)
-            rule.waitForIdle()
-            assertFalse("no Watch replay row", shows(WATCH_ROW))
-            assertFalse("no unavailable row", shows(ReplayTags.UNAVAILABLE))
-
-            push(ReplayKey.daily(QUEENS, "$E2E_TODAY", NUMBER, latest = true))
-            awaitTag(ReplayTags.NONE)
-            assertFalse("no player", shows(ReplayTags.PLAY))
-
-            push(withoutTheirSide())
-            awaitTag(COMPARE_ROUTE)
-            awaitTag(ReplayTags.NONE)
-            assertFalse("no compare player", shows(ReplayTags.PLAY))
-        }
-    }
-
-    @Test
-    fun withTheFlagOnAStoredSolveWithoutAReplayOffersADisabledWatchReplayRow() =
-        shellRobot(tabAt(PlayKey, STORED_RESULT), graph = storedSolve(replay = null, ReleaseFlag.FullReplay)) {
+    fun aStoredSolveWithoutAReplayOffersADisabledWatchReplayRow() =
+        shellRobot(tabAt(PlayKey, STORED_RESULT), graph = storedSolve(replay = null)) {
             awaitTag(ReplayTags.UNAVAILABLE)
 
             rule.onNodeWithTag(ReplayTags.UNAVAILABLE).assertIsNotEnabled().assertHasNoClickAction()
@@ -122,9 +85,9 @@ class FullReplayFlagE2ETest {
         }
 
     @Test
-    fun withTheFlagOnAStoredReplayThatTheResultOpensHasNamedControls() {
+    fun aStoredReplayThatTheResultOpensHasNamedControls() {
         val replay = queensReplay()
-        shellRobot(tabAt(PlayKey, STORED_RESULT), graph = storedSolve(replay, ReleaseFlag.FullReplay)) {
+        shellRobot(tabAt(PlayKey, STORED_RESULT), graph = storedSolve(replay)) {
             awaitActionable(WATCH_ROW)
             tap(WATCH_ROW)
             awaitTag(ReplayTags.NEXT)
@@ -141,7 +104,7 @@ class FullReplayFlagE2ETest {
     @Test
     fun aCompareWhoseOtherSideHasNoReplaySaysNoReplayThereAndStillPlaysMine() {
         val replay = queensReplay()
-        shellRobot(tabAt(PlayKey), graph = storedSolve(replay, ReleaseFlag.FullReplay)) {
+        shellRobot(tabAt(PlayKey), graph = storedSolve(replay)) {
             push(withoutTheirSide())
             awaitTag(COMPARE_ROUTE)
             awaitTag(ReplayTags.PLAY)
@@ -151,18 +114,18 @@ class FullReplayFlagE2ETest {
         }
     }
 
-    /** A real Queens solve's replay, recorded in a flag-on app: the bytes a later, flag-off app finds stored. */
+    /** A real Queens solve's replay, recorded by the live play: the bytes a later app finds stored. */
     private fun queensReplay(): SolveReplay {
         var replay: SolveReplay? = null
-        shellRobot(tabAt(PlayKey), graph = shellGraph(ReleaseFlag.FullReplay)) {
+        shellRobot(tabAt(PlayKey), graph = shellGraph()) {
             solveTodaysQueens()
             replay = runBlocking { graph.records.latestReplay(QUEENS_REF) }
         }
-        return checkNotNull(replay) { "the flag-on solve stored a replay" }
+        return checkNotNull(replay) { "the solve stored a replay" }
     }
 
-    /** Today's Queens, solved in [STORED_RESULT]'s terms with [replay] stored beside it, under [flags]. */
-    private fun storedSolve(replay: SolveReplay?, vararg flags: ReleaseFlag) = shellGraph(*flags).apply {
+    /** Today's Queens, solved in [STORED_RESULT]'s terms with [replay] stored beside it. */
+    private fun storedSolve(replay: SolveReplay?) = shellGraph().apply {
         daily.addEntry(DailyEntry(QueensDefinition.id, E2E_TODAY, NUMBER, "queens/n4", 0L))
         daily.setCached(QueensDefinition.id, E2E_TODAY, QueensPlayFixture.envelope())
         runBlocking {

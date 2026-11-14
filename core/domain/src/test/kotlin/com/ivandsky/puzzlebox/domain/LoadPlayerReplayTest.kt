@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.replay.DailyReplayRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -15,7 +13,6 @@ import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.FixtureSession
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
@@ -36,7 +33,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** Another player's replay through the one entry: fetch, cached puzzle, open; absent, denied, corrupt and flag off are all null. */
+/** Another player's replay through the one entry: fetch, cached puzzle, open; absent, denied and corrupt are all null. */
 class LoadPlayerReplayTest {
 
     private val game = ReplayFixtures.GAME
@@ -78,11 +75,6 @@ class LoadPlayerReplayTest {
     }
 
     @Test
-    fun `flag off gives null with a stored replay`() = runTest {
-        assertNull(entry(FakeReleaseFlags())(SolveReplayRef.Player(board, "them")))
-    }
-
-    @Test
     fun `another kind of reference is not answered`() = runTest {
         val source = LoadPlayerReplay(ThrowingDailyReplayRepository, FakeDailyRepository())(
             SolveReplayRef.Record(TestGames.Ref(game, PuzzleKey.Daily(day, 1))),
@@ -92,7 +84,6 @@ class LoadPlayerReplayTest {
     }
 
     private fun entry(
-        flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
         cached: Boolean = true,
     ): LoadSolveReplay {
         val daily = FakeDailyRepository().apply { if (cached) setCached(game, day, TestGames.puzzle(game)) }
@@ -107,7 +98,6 @@ class LoadPlayerReplayTest {
             clock = { Instant.EPOCH },
         )
         return LoadSolveReplay(
-            flags = flags,
             games = games,
             daily = LoadDailyReplay(completions, daily),
             custom = LoadCustomReplay(completions, received, loadShared),

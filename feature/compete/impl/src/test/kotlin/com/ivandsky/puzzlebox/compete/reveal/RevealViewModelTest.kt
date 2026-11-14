@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.LegResult
@@ -47,7 +46,6 @@ import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.SolveReplay
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.FixtureSession
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
@@ -79,7 +77,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Assert.assertSame
 import org.junit.Rule
 import org.junit.Test
@@ -146,7 +143,7 @@ class RevealViewModelTest {
         }
     }
 
-    private fun loadReplay(flags: FakeReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay)): LoadSolveReplay {
+    private fun loadReplay(): LoadSolveReplay {
         val completions = FakeCompletionRepository()
         val loadShared = LoadSharedPuzzle(
             registry = registry,
@@ -156,7 +153,6 @@ class RevealViewModelTest {
             clock = { Instant.EPOCH },
         )
         return LoadSolveReplay(
-            flags = flags,
             games = registry,
             daily = LoadDailyReplay(completions, daily),
             custom = LoadCustomReplay(completions, received, loadShared),
@@ -513,21 +509,6 @@ class RevealViewModelTest {
         slow.complete(Unit)
 
         assertNull(vm.compare.value)
-    }
-
-    @Test
-    fun withTheFlagOffNoLegCanBeOpened() = runTest {
-        duel()
-        play(0, solved, solved)
-        val vm = started(viewModel(loadReplay(FakeReleaseFlags())))
-        matches.value = loaded(revealed = setOf(0, 1), of = compareMatch)
-        vm.revealEnded()
-
-        assertTrue("no leg is offered before any tap", running(vm).compareLegs.isEmpty())
-        vm.openCompare(0)
-
-        assertNull(vm.compare.value)
-        assertFalse("the leg is not offered again", 0 in running(vm).compareLegs)
     }
 
     private object InlineDispatcherProvider : DispatcherProvider {
