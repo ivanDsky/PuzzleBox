@@ -47,3 +47,14 @@ internal fun SavedBoardLineNotYetReadPreview() = PreviewLines(SavedBoardState.No
 @PuzzleBoxPreviews
 @Composable
 internal fun SavedBoardLineRestoringPreview() = PreviewLines(SavedBoardState.NotYetRead, restoring = true)
+
+// Preview: a day past the days LinkedIn serves while the first restore runs: a skeleton, not "Not saved".
+@PuzzleBoxPreviews
+@Composable
+internal fun SavedBoardLineRestoringPastWindowPreview() = PreviewLines(SavedBoardState.NeverSaved, restoring = true)
+
+// Preview: past-window days once the restore has landed: the board it brought back, and the copy for one it did not.
+@PuzzleBoxPreviews
+@Composable
+internal fun SavedBoardLineRestoredPastWindowPreview() =
+    PreviewLines(SavedBoardState.Saved(READ_AT_MS, final = true), SavedBoardState.NeverSaved)
