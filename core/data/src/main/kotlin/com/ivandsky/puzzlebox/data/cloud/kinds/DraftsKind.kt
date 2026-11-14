@@ -17,6 +17,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transformLatest
 
 private const val DRAFTS = "drafts"
@@ -48,19 +49,23 @@ internal class DraftsKind(
 
     override val kind: String = DRAFTS
 
+    override fun pendingIds(uid: String): Flow<Set<String>> =
+        pendingStamps(uid).map { it.keys.toSet() }.distinctUntilChanged()
+
     /**
      * Fires on a change to the uid's drafts or draft tombstones, and again when the next unsent tombstone's undo
-     * window closes, since nothing else changes then.
+     * window closes, since nothing else changes then. An edited draft's token is its content fingerprint, which an
+     * upload's acknowledgement leaves alone; a delete's token is empty.
      */
     @OptIn(ExperimentalCoroutinesApi::class)
-    override fun pendingIds(uid: String): Flow<Set<String>> =
+    override fun pendingStamps(uid: String): Flow<Map<String, String>> =
         combine(drafts.observeOwnedBy(uid), drafts.observeUnsentTombstoneIds(uid)) { rows, _ -> rows }
             .transformLatest { rows ->
-                val edited = rows.filter { it.isPending() }.mapTo(mutableSetOf()) { it.id }
+                val edited = rows.filter { it.isPending() }.associate { it.id to it.fingerprint() }
                 while (true) {
                     val now = clock.millis()
                     val unsent = unsentTombstones(uid)
-                    emit(edited + unsent.filter { it.eligibleAtMs <= now }.map { it.docId })
+                    emit(edited + unsent.filter { it.eligibleAtMs <= now }.associate { it.docId to "" })
                     val wake = unsent.minOfOrNull { it.eligibleAtMs }?.takeIf { it > now } ?: break
                     delay(wake - now)
                 }

@@ -27,10 +27,11 @@ import kotlinx.coroutines.launch
  * asks the [engine] for a run when:
  * - the app starts, or the identity signs in (null to a uid, or one uid to another): one run;
  * - the network comes back (the false-to-true edge; the state at sign-in is not an edge);
- * - some kind's pending ids gained an id, [DEBOUNCE] after the last such change. A table emission whose pending set
- *   did not grow starts nothing: an equal set is not a change and a shrinking one is an upload being acknowledged,
- *   so a run never starts another by acknowledging its own rows. The set a kind holds when the account signs in is
- *   the sign-in run's to upload, not a change.
+ * - some kind's pending rows gained a row or a row's content changed (its [SyncedKind.pendingStamps] token), [DEBOUNCE]
+ *   after the last such change, so an edit to a row that is already pending, or made during its own upload, starts a
+ *   run too. A table emission with the same rows and tokens starts nothing, and a shrinking set is an upload being
+ *   acknowledged, so a run never starts another by acknowledging its own rows. What a kind holds when the account
+ *   signs in is the sign-in run's to upload, not a change.
  *
  * Signed out, nothing is watched and nothing starts. Signing out cancels nothing in flight: a run lives on [scope]
  * and the engine's uid check ends it. There is no timer, no WorkManager and no listener; the engine coalesces runs
@@ -53,22 +54,22 @@ class CloudSyncRunner(
         }
     }
 
-    /** Every reason to run for [uid]: the sign-in (or app start) itself, the network coming back, new pending ids. */
+    /** Every reason to run for [uid]: the sign-in (or app start) itself, the network coming back, a new or edited pending row. */
     private fun triggers(uid: String): Flow<Unit> = merge(
         flowOf(Unit),
         network.online.distinctUntilChanged().drop(1).filter { it }.map { },
-        pendingGrowth(uid),
+        pendingChanges(uid),
     )
 
     @OptIn(FlowPreview::class)
-    private fun pendingGrowth(uid: String): Flow<Unit> {
-        val sets = combine(kinds.map { it.pendingIds(uid) }) { it.toList() }
+    private fun pendingChanges(uid: String): Flow<Unit> {
+        val rows = combine(kinds.map { it.pendingStamps(uid) }) { it.toList() }
         return flow {
-            var previous: List<Set<String>>? = null
-            sets.collect { now ->
+            var previous: List<Map<String, String>>? = null
+            rows.collect { now ->
                 val before = previous
                 previous = now
-                if (before != null && now.indices.any { !before[it].containsAll(now[it]) }) emit(Unit)
+                if (before != null && now.indices.any { kind -> now[kind].any { (id, token) -> before[kind][id] != token } }) emit(Unit)
             }
         }.debounce(DEBOUNCE)
     }

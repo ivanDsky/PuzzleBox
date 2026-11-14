@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
@@ -23,25 +24,33 @@ import org.robolectric.shadows.ShadowLog
 
 /**
  * The runner's trigger table (ticket 15) on a virtual clock: each trigger starts one run, a burst of pending changes
- * within 2 s starts one, a pending set that did not grow starts none, signed out starts none. Robolectric: a failed
+ * within 2 s starts one, a pending set whose rows and content did not change starts none, signed out starts none. Robolectric: a failed
  * run is logged through android.util.Log.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = Application::class)
 class CloudSyncRunnerTest {
 
-    /** A kind whose pending ids the test pushes by hand; every uid the runner asked for lands in [asked]. */
+    /** A kind whose pending rows the test pushes by hand; every uid the runner asked for lands in [asked]. */
     private class PendingKind(name: String) : SyncedKind by RecordingKind(name) {
-        val pending = MutableSharedFlow<Set<String>>(replay = 1, extraBufferCapacity = 16)
+        val pending = MutableSharedFlow<Map<String, String>>(replay = 1, extraBufferCapacity = 16)
         val asked = mutableListOf<String>()
 
         override fun pendingIds(uid: String): Flow<Set<String>> {
             asked += uid
+            return pending.map { it.keys }
+        }
+
+        override fun pendingStamps(uid: String): Flow<Map<String, String>> {
+            asked += uid
             return pending
         }
 
-        fun set(vararg ids: String) {
-            check(pending.tryEmit(ids.toSet()))
+        fun set(vararg ids: String) = put(ids.associateWith { "" })
+
+        /** The pending rows [rows] (id to content token); a token that differs from the last push is an edit. */
+        fun put(rows: Map<String, String>) {
+            check(pending.tryEmit(rows))
         }
     }
 
@@ -177,6 +186,53 @@ class CloudSyncRunnerTest {
         drafts.set("d1")
         drafts.set("d1")
         completions.set()
+        pass(10_000)
+
+        assertEquals(2, engine.syncNowCalls)
+    }
+
+    @Test
+    fun `an edit to a row that is already pending starts one run after 2 seconds`() = runTest {
+        start()
+        drafts.put(mapOf("d1" to "v1"))
+        pass(10_000)
+        assertEquals(2, engine.syncNowCalls)
+
+        drafts.put(mapOf("d1" to "v2"))
+        pass(1_999)
+        assertEquals(2, engine.syncNowCalls)
+
+        pass(1)
+        assertEquals(3, engine.syncNowCalls)
+        pass(10_000)
+        assertEquals(3, engine.syncNowCalls)
+    }
+
+    @Test
+    fun `a burst of edits to one pending row starts one run`() = runTest {
+        start()
+        drafts.put(mapOf("d1" to "v1"))
+        pass(10_000)
+        assertEquals(2, engine.syncNowCalls)
+
+        for (token in listOf("v2", "v3", "v4")) {
+            drafts.put(mapOf("d1" to token))
+            pass(500)
+        }
+        pass(10_000)
+
+        assertEquals(3, engine.syncNowCalls)
+    }
+
+    @Test
+    fun `the same content pushed again, or another row acknowledged, starts no run`() = runTest {
+        start()
+        drafts.put(mapOf("d1" to "v1", "d2" to "w1"))
+        pass(10_000)
+        assertEquals(2, engine.syncNowCalls)
+
+        drafts.put(mapOf("d1" to "v1", "d2" to "w1"))
+        drafts.put(mapOf("d1" to "v1"))
         pass(10_000)
 
         assertEquals(2, engine.syncNowCalls)
