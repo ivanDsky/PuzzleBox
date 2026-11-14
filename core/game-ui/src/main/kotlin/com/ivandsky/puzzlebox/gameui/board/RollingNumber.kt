@@ -49,12 +49,6 @@ private class RollMemory {
 }
 
 /**
- * Between two values of a [RollingNumber]: the number it leaves, and how far along it is (0 to 1, read only where the
- * roll is laid out, so a frame of it recomposes nothing). An alias, not a class: the file holds one public type.
- */
-typealias RollScrub = Pair<Int, () -> Float>
-
-/**
  * A whole number that rolls like the board's place odometer when it changes: every number between the old and the new
  * one (eight evenly spaced ones when they are far apart) scrolls past, a smaller number coming from above. [cell] draws
  * one number; the roll is as tall as the tallest cell and as wide as the cells it is between, and clips to that.
@@ -75,9 +69,9 @@ fun RollingNumber(
     val memory = remember { RollMemory() }
     when {
         rememberReducedMotion() -> Box(modifier) { cell(value) }
-        scrub != null && scrub.first != value -> {
-            val strip = remember(scrub.first, value) { rankStrip(scrub.first, value) }
-            RollingStrip(strip, value, { memory.at(strip, strip.offsetAt(scrub.second())) }, modifier, cell)
+        scrub != null && scrub.from != value -> {
+            val strip = remember(scrub.from, value) { rankStrip(scrub.from, value) }
+            RollingStrip(strip, value, { memory.at(strip, strip.offsetAt(scrub.progress())) }, modifier, cell)
         }
         else -> {
             val roll = remember(value) { memory.next(value) }
@@ -123,6 +117,6 @@ private fun RollingNumberPreview() = PuzzleBoxTheme {
     val style = MaterialTheme.typography.displaySmall.tabular()
     Row(Modifier.padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         RollingNumber(12) { Text("#$it", style = style) }
-        RollingNumber(12, scrub = 3 to { 0.5f }) { Text("#$it", style = style) }
+        RollingNumber(12, scrub = RollScrub(3) { 0.5f }) { Text("#$it", style = style) }
     }
 }
