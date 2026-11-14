@@ -41,7 +41,7 @@ import com.ivandsky.puzzlebox.history.ReplaySolve
 /** An icon button of the solve card: the least a finger can hit. */
 internal val SolveButtonSize = 48.dp
 
-/** Why the day has no replay to watch, as the solve card's one small line says it; null when it has one or shows none. */
+/** Why the day has no replay to watch, as the disabled replay button tells assistive tech; null when it has one or shows none. */
 internal fun HistoryReplays.unavailableText(): String? = when ((this as? HistoryReplays.Unavailable)?.reason) {
     ReplayUnavailable.ImportedFromLinkedIn -> "${ReplayCopy.NO_REPLAY} · imported from LinkedIn"
     ReplayUnavailable.NotRecorded -> "${ReplayCopy.NO_REPLAY} for this solve"
@@ -51,14 +51,15 @@ internal fun HistoryReplays.unavailableText(): String? = when ((this as? History
 /**
  * The solve card's way into the day's [replays], as one icon button: a tap opens the one replay ([onOpen]); with two
  * different solves it drops a menu of the first solve, the latest and their compare ([onCompare]). A day whose solve
- * has no replay keeps the button, disabled (the card says why, see [unavailableText]); a day that shows none has no button.
+ * has no replay keeps the button, disabled, and it says why ([unavailableText]); the card's label only says "No replay".
+ * A day that shows none has no button.
  */
 @Composable
 internal fun SolveReplayButton(replays: HistoryReplays, onOpen: (ReplaySolve) -> Unit, onCompare: () -> Unit, modifier: Modifier = Modifier) {
     when (replays) {
         HistoryReplays.Hidden -> Unit
         is HistoryReplays.Unavailable -> IconButton(onClick = {}, enabled = false, modifier = modifier.size(SolveButtonSize).testTag(ReplayTags.UNAVAILABLE)) {
-            Icon(PuzzleIcons.Play, contentDescription = ReplayCopy.WATCH)
+            Icon(PuzzleIcons.Play, contentDescription = "${ReplayCopy.WATCH}, ${replays.unavailableText()}")
         }
         is HistoryReplays.One -> IconButton(onClick = { onOpen(replays.solve) }, modifier = modifier.size(SolveButtonSize).testTag(ReplayTags.WATCH_ROW)) {
             Icon(PuzzleIcons.Play, contentDescription = "${ReplayCopy.WATCH}, ${replays.timeline.summary()}")
@@ -102,7 +103,7 @@ private fun SolveItem(label: String, timeline: Timeline, onClick: () -> Unit) {
 
 private fun Timeline.summary(): String = "${ReplayCopy.moves(moveTimesMs.size)} · ${formatDuration(endMs)}"
 
-// The button for a solve with no replay, beside the reason the card gives; a replay's own button needs a recorded solve.
+// The button for a solve with no replay, beside the reason it reads out; a replay's own button needs a recorded solve.
 @PuzzleBoxPreviews
 @Composable
 private fun SolveReplayButtonPreview() {
