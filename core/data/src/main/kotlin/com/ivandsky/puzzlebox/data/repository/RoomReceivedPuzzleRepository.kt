@@ -44,7 +44,7 @@ internal class RoomReceivedPuzzleRepository(
         .distinctUntilChanged()
 
     override suspend fun get(code: ShareCode): ReceivedPuzzle? =
-        dao.get(code.value, owners.visible.value)?.toReceivedPuzzle()
+        dao.get(code.value, owners.visibleNow())?.toReceivedPuzzle()
 
     override suspend fun upsert(puzzle: ReceivedPuzzle) {
         val stored = dao.find(puzzle.code.value)

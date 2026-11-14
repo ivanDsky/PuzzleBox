@@ -43,9 +43,9 @@ internal class RoomCompletionRepository(
 
     override suspend fun onCompleted(record: CompletionRecord, replay: SolveReplay?) {
         val refKey = PuzzleRefKeys.encode(record.puzzleRef)
+        val visible = owner.visibleNow()
         db.withTransaction {
             // A repeated import adds nothing; checking inside the transaction keeps two racing imports from both inserting.
-            val visible = owner.visible.value
             if (record.source == CompletionSource.LinkedIn &&
                 dao.hasSource(refKey, CompletionSource.LinkedIn.storedName, visible)
             ) {
@@ -87,7 +87,7 @@ internal class RoomCompletionRepository(
     // A game this build does not ship ranks time-first, the shared default.
     override suspend fun best(game: GameId): BestScore? {
         val prefix = "${game.value}/"
-        val visible = owner.visible.value
+        val visible = owner.visibleNow()
         val row = when (registry[game]?.score?.rankOrder ?: RankOrder.TimeThenHints) {
             RankOrder.TimeThenHints -> dao.bestByTime(prefix, visible)
             RankOrder.HintsThenTime -> dao.bestByHints(prefix, visible)
@@ -97,11 +97,11 @@ internal class RoomCompletionRepository(
 
     // An unreadable size (empty or over the cap) reads as no replay.
     override suspend fun recordReplay(puzzleRef: PuzzleRef): SolveReplay? =
-        replayDao.recordReplay(PuzzleRefKeys.encode(puzzleRef), owner.visible.value)?.let(SolveReplay::of)
+        replayDao.recordReplay(PuzzleRefKeys.encode(puzzleRef), owner.visibleNow())?.let(SolveReplay::of)
 
     override suspend fun latestReplay(puzzleRef: PuzzleRef): SolveReplay? =
-        replayDao.latestReplay(PuzzleRefKeys.encode(puzzleRef), owner.visible.value)?.let(SolveReplay::of)
+        replayDao.latestReplay(PuzzleRefKeys.encode(puzzleRef), owner.visibleNow())?.let(SolveReplay::of)
 
     override suspend fun latestIsRecord(puzzleRef: PuzzleRef): Boolean =
-        replayDao.latestIsRecord(PuzzleRefKeys.encode(puzzleRef), owner.visible.value)
+        replayDao.latestIsRecord(PuzzleRefKeys.encode(puzzleRef), owner.visibleNow())
 }

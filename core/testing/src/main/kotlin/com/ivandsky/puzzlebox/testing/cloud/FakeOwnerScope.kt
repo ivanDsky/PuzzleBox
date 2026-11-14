@@ -22,5 +22,7 @@ class FakeOwnerScope(visible: String? = null, writer: String? = null) : OwnerSco
 
     override val visible: StateFlow<String?> = owner
 
+    override suspend fun visibleNow(): String? = owner.value
+
     override fun writer(): String? = writerUid
 }

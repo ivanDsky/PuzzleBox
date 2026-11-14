@@ -12,9 +12,16 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import java.time.LocalDate
+import com.ivandsky.puzzlebox.data.cloud.LateLastUidSyncStateStore
+import com.ivandsky.puzzlebox.data.cloud.SignedInOwnerScope
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -178,6 +185,31 @@ class RoomCompletionRepositoryOwnerTest {
         finishAs("B", 55_000, key, CompletionSource.LinkedIn)
 
         assertEquals(listOf<Pair<String?, Boolean>>("A" to true, "B" to true), storedOwners())
+    }
+
+    @Test
+    fun `a LinkedIn import before the last uid has loaded waits and dedupes against that account only`() = runTest {
+        val key = PuzzleKey.Daily(day, 600)
+        finishAs("B", 55_000, key, CompletionSource.LinkedIn)
+        val store = LateLastUidSyncStateStore()
+        val ownerScope = SignedInOwnerScope(
+            FakeIdentityService(), store, CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob()),
+        )
+        val cold = RoomCompletionRepository(
+            db, db.completionDao(), db.completionReplayDao(), TestGames.registry(listOf(alpha)), ownerScope, clock = { nowMs },
+        )
+
+        val import = launch { cold.onCompleted(completion(50_000, key, CompletionSource.LinkedIn)) }
+        runCurrent()
+        // The owner is read on the database thread, so give a read that does not wait its real time to happen.
+        Thread.sleep(500)
+        assertEquals(listOf<Pair<String?, Boolean>>("B" to true), storedOwners())
+
+        store.load("A")
+        import.join()
+
+        // A has no import of this puzzle yet, so it lands; B's row is not A's to dedupe against.
+        assertEquals(2, storedOwners().size)
     }
 
     @Test

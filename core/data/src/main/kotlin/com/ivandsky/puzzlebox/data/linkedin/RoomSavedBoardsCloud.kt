@@ -43,7 +43,7 @@ internal class RoomSavedBoardsCloud(
 
     /** The boards the screens show now: the account's own and the ownerless ones. */
     private suspend fun shownBoards(uid: String?): List<SavedBoardEntity> {
-        val visible = uid ?: ownerScope.visible.value
+        val visible = uid ?: ownerScope.visibleNow()
         return boards.all().filter { visible == null || it.ownerUid == null || it.ownerUid == visible }
     }
 
