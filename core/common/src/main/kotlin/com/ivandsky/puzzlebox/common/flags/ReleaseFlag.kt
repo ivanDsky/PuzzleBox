@@ -23,7 +23,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     LinkedInAccount(label = "LinkedIn: account results + connections", releaseDefault = true),
 
     /** Cloud sync: the signed-in account's history, puzzles and saved boards on every device (ADR-0029). */
-    CloudSync(label = "Cloud sync: history on every device", releaseDefault = false),
+    CloudSync(label = "Cloud sync: history on every device", releaseDefault = true),
 
     /** Ranks hub: per-game and Overall daily boards, the calendar as History, the visibility ladder (ADR-0031). */
     LeaderboardHub(label = "Ranks hub", releaseDefault = false),
