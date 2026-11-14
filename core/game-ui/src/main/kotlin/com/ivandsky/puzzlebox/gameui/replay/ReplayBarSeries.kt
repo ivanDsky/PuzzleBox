@@ -45,7 +45,7 @@ internal class BarShape(
 internal class BarSeriesShapes(val bars: Array<BarShape>)
 
 /**
- * Lays one series out across [width]. Bars grow from [axisY] up, or down when [up] is false, to at most
+ * Lays one series out across [width] starting [inset] from the left edge (the needle's track, so fraction 0 plays nothing and 1 plays every bar). Bars grow from [axisY] up, or down when [up] is false, to at most
  * [room]; an empty slice keeps a hairline so the timeline never has a hole. A bar is its kinds stacked from the
  * axis out, Normal first. Build it where the size is known and cache it, so the draw phase allocates nothing.
  */
@@ -55,6 +55,7 @@ internal fun Density.barSeriesShapes(
     axisY: Float,
     room: Float,
     up: Boolean,
+    inset: Float = 0f,
 ): BarSeriesShapes {
     val gap = 2.dp.toPx()
     val bar = (width - gap * (ACTIVITY_BUCKETS - 1)) / ACTIVITY_BUCKETS
@@ -64,7 +65,7 @@ internal fun Density.barSeriesShapes(
     return BarSeriesShapes(
         Array(ACTIVITY_BUCKETS) { i ->
             val height = if (totals[i] == 0) 3.dp.toPx() else shortest + (room - shortest) * totals[i] / peak
-            val left = i * (bar + gap)
+            val left = inset + i * (bar + gap)
             val top = if (up) axisY - height else axisY
             val partTops = FloatArray(counts.size)
             val partHeights = FloatArray(counts.size)
@@ -92,12 +93,11 @@ internal fun playedExtent(left: Float, width: Float, needleX: Float): Float = (n
 
 /**
  * Draws a laid-out series. A bar left of the playhead is [played], one right of it [unplayed], and the bar under it is
- * split at the needle; both palettes are indexed by [MoveKind] ordinal.
+ * split at [needleX], the x the playhead is drawn at; both palettes are indexed by [MoveKind] ordinal.
  * Allocates nothing: it runs on every frame the playhead moves.
  */
-internal fun DrawScope.drawBarSeries(shapes: BarSeriesShapes, fraction: Float, played: Array<Color>, unplayed: Array<Color>) {
+internal fun DrawScope.drawBarSeries(shapes: BarSeriesShapes, needleX: Float, played: Array<Color>, unplayed: Array<Color>) {
     val bars = shapes.bars
-    val needleX = fraction * size.width
     for (i in bars.indices) {
         val shape = bars[i]
         val extent = playedExtent(shape.left, shape.width, needleX)
