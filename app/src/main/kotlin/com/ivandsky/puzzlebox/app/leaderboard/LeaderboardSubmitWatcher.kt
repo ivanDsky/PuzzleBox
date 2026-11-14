@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatusTracker
 import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.visibility.OwnTier
+import com.ivandsky.puzzlebox.data.visibility.SkippedPosts
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import com.ivandsky.puzzlebox.model.GameId
 import kotlin.coroutines.cancellation.CancellationException
@@ -31,7 +32,7 @@ import kotlinx.coroutines.launch
  * (A4) and re-submissions after process death are deduped server-side too. Each
  * attempt's outcome goes to [statuses] (Posting, then Posted, Deferred or Rejected),
  * so the screens can end their Posting line; signed out writes none. A Hidden player posts
- * no new entries (A17); [visibility] is null while the hub flag is off, which reads as Board.
+ * no new entries (A17), and a solve made while Hidden stays unposted after a switch to Board (kept in [skipped]); [visibility] is null while the hub flag is off, which reads as Board.
  */
 class LeaderboardSubmitWatcher(
     private val records: CompletionRepository,
@@ -41,6 +42,7 @@ class LeaderboardSubmitWatcher(
     private val scope: CoroutineScope,
     private val statuses: SubmitStatusTracker,
     private val visibility: VisibilityRepository? = null,
+    private val skipped: SkippedPosts? = null,
 ) {
 
     private val submitted = java.util.Collections.newSetFromMap(
@@ -62,7 +64,11 @@ class LeaderboardSubmitWatcher(
                     if (!inWindow(entry)) continue
                     val key = me.uid to entry.puzzleRef
                     if (key in submitted) continue
-                    if (!postsToBoards()) continue
+                    if (!postsToBoards()) {
+                        remember(me.uid, entry.puzzleRef)
+                        continue
+                    }
+                    if (wasSkipped(me.uid, entry.puzzleRef)) continue
                     if (!submitted.add(key)) continue // in-process dedup
                     statuses.set(me.uid, entry.puzzleRef, SubmitStatus.Posting)
                     scope.launch {
@@ -86,6 +92,27 @@ class LeaderboardSubmitWatcher(
     private suspend fun postsToBoards(): Boolean {
         val tier = visibility?.ownTier?.first { it != OwnTier.Unknown }?.effective ?: return true
         return tier.postsToBoards
+    }
+
+    /** A solve made while Hidden is kept off the boards for good (ledger L264), also once the player moves to Board. */
+    private suspend fun remember(uid: String, puzzleRef: String) {
+        try {
+            skipped?.add(uid, puzzleRef)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "skipped solve not stored: ${e.message}")
+        }
+    }
+
+    /** Fails closed: a store that cannot answer posts nothing, since an entry can never be taken back. */
+    private suspend fun wasSkipped(uid: String, puzzleRef: String): Boolean = try {
+        skipped?.contains(uid, puzzleRef) ?: false
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        Log.w(TAG, "skipped solves not read: ${e.message}")
+        true
     }
 
     /** The entry's day is the game's today or yesterday ([inSubmitWindow]); an unknown game never submits. */

@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSkippedPosts
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import java.time.Instant
 import java.time.LocalDate
@@ -459,6 +460,73 @@ class LeaderboardSubmitWatcherTest {
 
         assertEquals(listOf(SubmitStatus.Posting), seen) // the unread default, never written
         assertTrue(leaderboard.submitted.isEmpty())
+    }
+
+    /** One process of the watcher over shared stores: the fakes outlive it, so a second call is a relaunch. */
+    private fun process(
+        records: FakeCompletionRepository,
+        visibility: FakeVisibilityRepository,
+        leaderboard: FakeLeaderboardRepository,
+        skipped: FakeSkippedPosts,
+        scheduler: TestCoroutineScheduler,
+    ) {
+        LeaderboardSubmitWatcher(
+            records,
+            FakeIdentityService(initial = Identity("u1", "Ann", null)),
+            leaderboard,
+            calendar,
+            scope(scheduler),
+            SubmitStatusTracker(),
+            visibility,
+            skipped,
+        ).start()
+        scheduler.advanceUntilIdle()
+    }
+
+    @Test
+    fun `a solve made while Hidden never posts after a switch to Board`() = runTest {
+        val leaderboard = FakeLeaderboardRepository()
+        val visibility = FakeVisibilityRepository(OwnTier.Chosen(VisibilityTier.Hidden))
+        val records = FakeCompletionRepository(listOf(record()))
+        val scheduler = TestCoroutineScheduler()
+        process(records, visibility, leaderboard, FakeSkippedPosts(), scheduler)
+
+        visibility.emitOwn(OwnTier.Chosen(VisibilityTier.Board))
+        records.setRecords(listOf(record(), zipRecord(day, 593))) // the next emission re-reads every record
+        scheduler.advanceUntilIdle()
+
+        assertEquals(listOf("zip/2026-10-31/593"), leaderboard.submitted.map { it.puzzleRef })
+    }
+
+    @Test
+    fun `a solve made while Hidden stays unposted across a relaunch on Board`() = runTest {
+        val leaderboard = FakeLeaderboardRepository()
+        val skipped = FakeSkippedPosts()
+        val records = FakeCompletionRepository(listOf(record()))
+        process(records, FakeVisibilityRepository(OwnTier.Chosen(VisibilityTier.Hidden)), leaderboard, skipped, TestCoroutineScheduler())
+
+        process(records, FakeVisibilityRepository(OwnTier.Chosen(VisibilityTier.Board)), leaderboard, skipped, TestCoroutineScheduler())
+
+        assertTrue(leaderboard.submitted.isEmpty())
+    }
+
+    @Test
+    fun `Board to Hidden to Board posts the Board solves and never the Hidden one`() = runTest {
+        val leaderboard = FakeLeaderboardRepository()
+        val skipped = FakeSkippedPosts()
+        val visibility = FakeVisibilityRepository(OwnTier.Chosen(VisibilityTier.Board))
+        val records = FakeCompletionRepository(listOf(record()))
+        val scheduler = TestCoroutineScheduler()
+        process(records, visibility, leaderboard, skipped, scheduler)
+
+        visibility.emitOwn(OwnTier.Chosen(VisibilityTier.Hidden))
+        records.setRecords(listOf(record(), zipRecord(day.minusDays(1), 591)))
+        scheduler.advanceUntilIdle()
+        visibility.emitOwn(OwnTier.Chosen(VisibilityTier.Board))
+        records.setRecords(listOf(record(), zipRecord(day.minusDays(1), 591), zipRecord(day, 593)))
+        scheduler.advanceUntilIdle()
+
+        assertEquals(setOf("zip/2026-10-31/592", "zip/2026-10-31/593"), leaderboard.submitted.map { it.puzzleRef }.toSet())
     }
 
     /** The watcher as the real graph builds it, over fakes, with the hub flag [on] or off and [own] stored. */
