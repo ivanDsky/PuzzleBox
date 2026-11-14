@@ -20,7 +20,7 @@ import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 
-/** A game's Friends day board with the phone's LinkedIn connections on it (A15), and nowhere else. */
+/** The Friends boards with the phone's LinkedIn connections counted on them (A15, F21), and Global with none. */
 class RanksViewModelGhostsTest {
 
     @get:Rule
@@ -75,6 +75,43 @@ class RanksViewModelGhostsTest {
         assertEquals(listOf("Maya" to 1, "Cal" to 2, "Ann" to 3), placed(state.board.state))
         assertEquals(listOf("Maya" to 1, "Ann" to 2), (state.board.state as DailyBoardState.Ranked).rows.map { it.name to it.rank })
         assertEquals(Standing.Place(3), state.places.single { it.name == "Zip" }.standing)
+    }
+
+    private fun rowsOf(slice: RanksBoardSlice?) = (slice?.state as? DailyBoardState.Ranked)?.rows.orEmpty()
+
+    @Test
+    fun `Friends counts the connection on the game's week and on Overall, each place counting it`() = runTest {
+        val h = hub()
+        h.befriend("maya")
+        val viewModel = h.viewModel(linkedIn = true)
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)).setScope(RankScope.Friends).setWindow(RanksSelection.Window.Week) }
+
+        val state = viewModel.uiState.first {
+            it.scope == RankScope.Friends && it.window == RanksSelection.Window.Week && rowsOf(it.board).size == 3 && rowsOf(it.boards.firstOrNull()).size == 3
+        }
+
+        assertEquals(listOf("Maya" to 1, "Cal" to 2, "Ann" to 3), rowsOf(state.board).map { it.name to it.rank })
+        assertEquals(listOf(false, true, false), rowsOf(state.board).map { it.fromLinkedIn })
+        assertEquals(true, state.board.note?.endsWith("with LinkedIn connections"))
+        val overall = state.boards.first()
+        assertEquals(listOf("Maya" to 1, "Cal" to 2, "Ann" to 3), rowsOf(overall).map { it.name to it.rank })
+        assertEquals(true, overall.note?.endsWith("with LinkedIn connections"))
+        assertEquals(listOf("Overall", "Zip"), state.places.filter { it.standing == Standing.Place(3) }.map { it.name })
+    }
+
+    @Test
+    fun `Global counts no connection on a week or on Overall`() = runTest {
+        val h = hub()
+        h.befriend("maya")
+        val viewModel = h.viewModel(linkedIn = true)
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)).setWindow(RanksSelection.Window.Week) }
+
+        val state = viewModel.uiState.first {
+            it.window == RanksSelection.Window.Week && rowsOf(it.board).size == 2 && rowsOf(it.boards.firstOrNull()).size == 2
+        }
+
+        assertEquals(listOf("Maya" to 1, "Ann" to 2), rowsOf(state.board).map { it.name to it.rank })
+        assertEquals(listOf("Maya", "Ann"), rowsOf(state.boards.first()).map { it.name })
     }
 
     @Test
