@@ -93,7 +93,7 @@ internal fun HomeStreakPane(
         verticalArrangement = Arrangement.spacedBy(Spacing.xl),
     ) {
         Eyebrow("STREAK")
-        BigStreakRow(state.stats)
+        BigStreakRow(state.stats, state.freezesHeld)
         WeekStrip(
             days = state.week,
             total = state.today.size,
@@ -128,7 +128,7 @@ private fun Eyebrow(text: String) {
 }
 
 @Composable
-private fun BigStreakRow(stats: GameStats) {
+private fun BigStreakRow(stats: GameStats, freezesHeld: Int?) {
     Row(
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -155,7 +155,7 @@ private fun BigStreakRow(stats: GameStats) {
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                if (stats.currentStreak > 0) stats.freezes?.let { FreezeCount(held = it.held) }
+                freezesHeld?.let { FreezeCount(held = it) }
             }
             Text(
                 text = "Best ${grouped(stats.bestStreak)}",

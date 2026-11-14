@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.ResultInsights
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.SpreadScope
+import com.ivandsky.puzzlebox.domain.heldWhileStreak
 import java.util.Locale
 
 /**
@@ -14,7 +15,7 @@ internal data class HeroWeekDot(val label: String, val solved: Boolean, val toda
 
 /**
  * The streak block: [days] counts up on screen; [title] and [sub] are its sentences. [freezesHeld] is the
- * freeze count beside the number; null hides it (the StreakFreeze flag is off). [moment] is the line for a
+ * freeze count beside the number, already ruled by [heldWhileStreak]; null hides it. [moment] is the line for a
  * freeze this solve spent or earned; null leaves it out.
  */
 internal data class HeroStreak(
@@ -151,7 +152,7 @@ private fun streak(insights: ResultInsights, locale: Locale) = HeroStreak(
     title = heroStreakTitle(insights.streak),
     sub = insights.freezes?.let(::heroFreezeSub) ?: heroStreakSub(insights.streak),
     week = insights.week.map { HeroWeekDot(weekdayInitial(it.date, locale), it.solved, it.today, it.frozen) },
-    freezesHeld = insights.freezes?.held,
+    freezesHeld = insights.freezes.heldWhileStreak(insights.streak),
     moment = insights.freezes?.let { freezes -> freezes.lastSolve?.let { heroFreezeMoment(it, freezes.held, locale) } },
 )
 

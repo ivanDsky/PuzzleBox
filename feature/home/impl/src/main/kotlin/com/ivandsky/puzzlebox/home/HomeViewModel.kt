@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.domain.heldWhileStreak
 import com.ivandsky.puzzlebox.domain.playTarget
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -51,7 +52,8 @@ import kotlinx.coroutines.launch
  * [playTarget] is the game the one CTA opens (core:domain's `playTarget`: the first game
  * with an unfinished save, else the first unsolved one, else the first game; before the
  * set lands, the first game). [stats] and [week] feed the streak card (A8): the solved-day
- * numbers and the last 7 puzzle days, oldest first, ending on [puzzleDay]. [rolloverAt] is
+ * numbers and the last 7 puzzle days, oldest first, ending on [puzzleDay]. [freezesHeld] is the count
+ * the streak card shows, already ruled by [heldWhileStreak] (null hides it). [rolloverAt] is
  * when the next puzzles land, the CTA's countdown once every game is solved. [updateUrl] is
  * a newer release's page (spec A7), null while none is known. [rank] is the player's place on
  * the game they solved last today, null unless signed in and ranked. [selectedDay]: two-pane's detail day.
@@ -65,6 +67,7 @@ internal data class HomeUiState(
     val stats: GameStats,
     val week: List<WeekDay>,
     val rolloverAt: Instant,
+    val freezesHeld: Int? = null,
     val updateUrl: String? = null,
     val rank: TodayRank? = null,
     val selectedDay: String? = null,
@@ -203,6 +206,7 @@ class HomeViewModel(
                 stats = stats,
                 week = homeWeek(days, endingOn = day, stats.freezes?.frozenDays.orEmpty(), registryOrder, brands),
                 rolloverAt = nextRollover(),
+                freezesHeld = stats.freezes.heldWhileStreak(stats.currentStreak),
             )
         }.combine(updateUrl) { state, url -> state.copy(updateUrl = url) }
             .combine(rank) { state, rank -> state.copy(rank = rank) }

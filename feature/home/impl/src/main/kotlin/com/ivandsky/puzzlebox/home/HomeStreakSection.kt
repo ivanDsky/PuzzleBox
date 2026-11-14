@@ -28,12 +28,13 @@ import com.ivandsky.puzzlebox.gameui.WeekStrip
  * The streak card (A8, identity §2.8): "N days in a row · Best M" from [stats] over the
  * [WeekStrip] of the last 7 puzzle days ([week], oldest first, ending today), each day's
  * game ring counting its solved dailies out of [total] games. With streak freezes on
- * ([GameStats.freezes] set) the [FreezeCount] sits after the line, and a frozen day shows
+ * the [FreezeCount] of [freezesHeld] sits after the line, and a frozen day shows
  * its snowflake; without them the card is unchanged.
  */
 @Composable
 internal fun HomeStreakSection(
     stats: GameStats,
+    freezesHeld: Int?,
     week: List<WeekDay>,
     total: Int,
     modifier: Modifier = Modifier,
@@ -62,7 +63,7 @@ internal fun HomeStreakSection(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                if (stats.currentStreak > 0) stats.freezes?.let { FreezeCount(held = it.held) }
+                freezesHeld?.let { FreezeCount(held = it) }
             }
             WeekStrip(days = week, total = total, modifier = Modifier.testTag("home.week"))
         }

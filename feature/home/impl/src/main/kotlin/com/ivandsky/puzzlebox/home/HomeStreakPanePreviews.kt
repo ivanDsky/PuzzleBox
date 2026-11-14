@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.StreakFreezes
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.domain.heldWhileStreak
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -93,7 +94,10 @@ private fun frozenState(): HomeUiState {
     val freezes = StreakFreezes(held = 3, frozenDays = setOf(FrozenDay), daysToNext = 4, lastSolve = null)
     val stats = GameStats(12, 21, 1_234, 980, 96_000L, LocalDate.of(2025, 3, 14), best = null, rankOrder = RankOrder.TimeThenHints, freezes = freezes)
     val state = paneState(PaneRows, stats)
-    return state.copy(week = state.week.map { it.copy(frozen = it.date == FrozenDay) })
+    return state.copy(
+        week = state.week.map { it.copy(frozen = it.date == FrozenDay) },
+        freezesHeld = freezes.heldWhileStreak(stats.currentStreak),
+    )
 }
 
 // Preview: the tablet pane with 3 freezes held and one frozen day.
@@ -114,7 +118,7 @@ internal fun HomeStreakCardFrozenPreview() {
     val state = frozenState()
     PuzzleBoxTheme {
         Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.lg).width(360.dp)) {
-            HomeStreakSection(stats = state.stats, week = state.week, total = state.today.size)
+            HomeStreakSection(stats = state.stats, freezesHeld = state.freezesHeld, week = state.week, total = state.today.size)
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
+import com.ivandsky.puzzlebox.domain.heldWhileStreak
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.WeekDay
@@ -10,8 +11,8 @@ import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
  * What the tablet play side panel shows beside the board (A15), besides the live clock
  * the route reads off the controller: today's set progress ([solvedToday] of [gamesToday],
  * null until the set loads), this game's [streak] (null until its stats load) with its
- * [week], [best] and [averageMs], and today's [times] on this game's board. [freezesHeld] is the streak
- * freezes the player holds (null with freezes off, which keeps the streak line and strip as they were). [linkedIn] says the LinkedIn account is
+ * [week], [best] and [averageMs], and today's [times] on this game's board. [freezesHeld] is the count beside
+ * the streak line, already ruled by [heldWhileStreak] (null hides it). [linkedIn] says the LinkedIn account is
  * on, which is what lets the times card's rows move, arrive and leave with motion.
  */
 internal data class PlayStatsState(
