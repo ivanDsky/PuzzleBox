@@ -81,7 +81,7 @@ private fun Parts(line: LineParts, was: LineParts?, progress: (() -> Float)?, st
                         val seen = remember { intArrayOf(1) }
                         val digits = maxOf(seen[0], part.fixedDigits(), old?.fixedDigits() ?: 1)
                         seen[0] = digits
-                        RollingNumber(number, from = old?.number(), progress = progress) {
+                        RollingNumber(number, scrub = old?.number()?.let { from -> progress?.let { from to it } }) {
                             Word(it.toString().padStart(digits, '0'), style, color)
                         }
                     }
