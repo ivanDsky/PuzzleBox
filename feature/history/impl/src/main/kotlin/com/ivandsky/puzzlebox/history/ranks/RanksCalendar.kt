@@ -15,6 +15,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -38,6 +39,7 @@ internal fun RanksCalendar(
     onSelectDay: (LocalDate?) -> Unit,
     modifier: Modifier = Modifier,
     foldable: Boolean = true,
+    gapBelow: Dp = Spacing.md,
 ) {
     if (state.shownDay == null || state.today == null) return
     val reducedMotion = rememberReducedMotion()
@@ -45,7 +47,7 @@ internal fun RanksCalendar(
         expandVertically(tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard))
     val exit = if (reducedMotion) ExitTransition.None else fadeOut(tween(MotionTokens.DurationExit)) +
         shrinkVertically(tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard))
-    Column(modifier.padding(bottom = Spacing.md).testTag("ranks.calendar"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+    Column(modifier.padding(bottom = gapBelow).testTag("ranks.calendar"), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         HistoryCalendar(
             state = state,
             onShowCalendar = onShowCalendar,
