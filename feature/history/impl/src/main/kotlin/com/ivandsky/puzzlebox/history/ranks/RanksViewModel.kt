@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
@@ -23,7 +22,6 @@ import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.CalendarState
 import com.ivandsky.puzzlebox.history.DayReplays
@@ -157,18 +155,20 @@ internal class RanksViewModel(
     private val friends: Flow<Set<String>> = selection.map { it.scope }.distinctUntilChanged()
         .flatMapLatest { scope -> if (scope == RankScope.Friends) observeFriendUids() else flowOf(emptySet()) }
 
-    /** The LinkedIn ghosts of the board on screen: read only on a game's Day board in Friends scope. */
-    private val ghostInput: Flow<BoardGhostInput> = combine(selection.map { it.board to it.scope }.distinctUntilChanged(), window) { (board, scope), window ->
-        Triple(board, scope, window)
-    }.flatMapLatest { (board, scope, window) -> ghosts.observe(board, scope, window) }
+    /** The LinkedIn ghosts of every board, in the boards' order: read only on a game's Day board in Friends scope. */
+    private val ghostInputs: Flow<List<BoardGhostInput>> = combine(selection.map { it.scope }.distinctUntilChanged(), window) { scope, window -> scope to window }
+        .flatMapLatest { (scope, window) -> combine(boards.map { ghosts.observe(it, scope, window) }) { it.toList() } }
 
-    private val scoped: Flow<RanksBoardSlice> = combine(
-        selection.map { Triple(it.board, it.window, it.day) }.distinctUntilChanged().flatMapLatest { (board, kind, day) -> boardSlice(board, kind, day) },
+    private val slices = RanksBoardSlices(boards, window, windowBoards, overallState, viewer, history, calendar, registry)
+
+    /** Every board as its slot draws it in the picked scope, so the one a swipe scrubs to is already there. */
+    private val scoped: Flow<List<RanksBoardSlice>> = combine(
+        selection.map { it.window to it.day }.distinctUntilChanged().flatMapLatest { (kind, day) -> slices.observe(kind, day) },
         selection.map { it.scope }.distinctUntilChanged(),
         friends,
-        ghostInput,
-    ) { slice, scope, friends, ghostInput ->
-        if (scope == RankScope.Friends) slice.inFriends(friends, ghostInput) else slice
+        ghostInputs,
+    ) { slices, scope, friends, inputs ->
+        if (scope == RankScope.Friends) slices.mapIndexed { index, slice -> slice.inFriends(friends, inputs[index]) } else slices
     }
 
     val uiState: StateFlow<RanksUiState> = combine(
@@ -177,8 +177,9 @@ internal class RanksViewModel(
         selection.map { boards.indexOf(it.board) }.distinctUntilChanged(),
         local,
         selection.map { it.scope to it.window }.distinctUntilChanged(),
-    ) { slice, signIn, position, local, (scope, kind) ->
-        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, local.places, local.nudge)
+    ) { slices, signIn, position, local, (scope, kind) ->
+        val slice = slices.getOrElse(position) { slices.first() }
+        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, local.places, local.nudge, slices)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
@@ -239,36 +240,6 @@ internal class RanksViewModel(
     private fun today(): Flow<LocalDate> =
         if (games.isEmpty()) flowOf(LocalDate.now(clock)) else combine(games.map(calendar::observeToday)) { days -> days.max() }
 
-    private fun boardSlice(board: RanksBoard, kind: RanksSelection.Window, day: LocalDate?): Flow<RanksBoardSlice> = when (board) {
-        RanksBoard.Overall -> overall(kind, day)
-        is RanksBoard.Game -> game(board.id, kind, day)
-    }
-
-    private fun overall(kind: RanksSelection.Window, day: LocalDate?): Flow<RanksBoardSlice> =
-        combine(overallState, viewer) { state, me -> overallSlice(kind, day, state, me?.uid) }
-
-    private fun game(game: GameId, kind: RanksSelection.Window, day: LocalDate?): Flow<RanksBoardSlice> = window.flatMapLatest { window ->
-        combine(windowBoards, viewer, history, calendar.observeToday(game)) { answered, me, rows, _ ->
-            val inWindow = answered?.takeIf { (of, _) -> of == window }?.second
-            val order = registry.rankOrderOf(game)
-            val unofficial = inWindow.unofficialRow(game, order, me, rows) { calendar.inSubmitWindow(game, it) }.takeIf { kind == RanksSelection.Window.Day }
-            RanksBoardSlice(
-                title = boardTitle(registry.displayName(game), kind, day),
-                order = order,
-                state = inWindow.toGameBoardState(game, order, kind, me?.uid).withUnofficialRow(unofficial),
-                note = inWindow.gameBoardNote(game, kind),
-            )
-        }
-    }
-
-    private fun overallSlice(kind: RanksSelection.Window, day: LocalDate?, state: OverallState, selfUid: String?) = RanksBoardSlice(
-        title = boardTitle("Overall", kind, day),
-        order = RankOrder.TimeThenHints,
-        state = state.toDailyBoardState(selfUid),
-        caption = OVERALL_CAPTION,
-        note = state.boardNote(),
-    )
-
     /** The replays of [row]'s day only: a switch never flashes the last day's. */
     private fun DayReplays.of(row: HistoryDayRow): HistoryReplays = if (key == row.key) replays else HistoryReplays.Hidden
 
@@ -276,7 +247,6 @@ internal class RanksViewModel(
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
-        const val OVERALL_CAPTION = "Points from every game's board. Higher is better."
         val SWIPE_NUDGE = GameId("ranks.swipe")
     }
 }

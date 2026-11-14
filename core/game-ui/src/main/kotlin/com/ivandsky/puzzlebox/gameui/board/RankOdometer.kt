@@ -85,21 +85,29 @@ internal fun RankOdometer(place: Int, quiet: Color, motion: PlaceMotion, tag: St
         } else {
             val strip = roll.strip
             val offset = checkNotNull(roll.offset)
-            Column(
-                Modifier
-                    .wrapContentHeight(Alignment.Top, unbounded = true)
-                    .graphicsLayer { translationY = -offset.value * size.height / strip.cells.size },
-            ) {
-                strip.cells.forEachIndexed { index, number ->
-                    val cell = when (index) {
-                        strip.end -> Modifier.flippedIn(roll.flip)
-                        strip.start -> Modifier.drainedOut(roll.drain)
-                        else -> Modifier
-                    }
-                    RankCell(number, quiet, cell, medal)
+            RankStripColumn(strip, quiet, medal, { offset.value }) { index ->
+                when (index) {
+                    strip.end -> Modifier.flippedIn(roll.flip)
+                    strip.start -> Modifier.drainedOut(roll.drain)
+                    else -> Modifier
                 }
             }
         }
+    }
+}
+
+/**
+ * The column of numbers a place rolls through, [strip], drawn [offset] cells down it; [cell] dresses the cell at an
+ * index. The offset is read only where the column is drawn.
+ */
+@Composable
+internal fun RankStripColumn(strip: RankStrip, quiet: Color, medal: Boolean, offset: () -> Float, cell: (Int) -> Modifier = { Modifier }) {
+    Column(
+        Modifier
+            .wrapContentHeight(Alignment.Top, unbounded = true)
+            .graphicsLayer { translationY = -offset() * size.height / strip.cells.size },
+    ) {
+        strip.cells.forEachIndexed { index, number -> RankCell(number, quiet, cell(index), medal) }
     }
 }
 

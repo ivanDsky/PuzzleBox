@@ -42,7 +42,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
-import com.ivandsky.puzzlebox.designsystem.DayMorph
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -59,9 +58,9 @@ private val ICON = 20.dp
 private val PLACE_MIN_WIDTH = 48.dp
 
 /**
- * The hub's title: the current board's [title] and a chevron; another board's name crossfades over the old one
- * ([DayMorph]). A tap drops a menu of every board in [places] with the
- * viewer's place on each (a pick reports [onPick]; the board re-ranks in place) and a "How ranks work" row
+ * The hub's title: the current board's [title] and a chevron; another board's name frosts over the old one, as far as
+ * the [scrub] is between the two when there is one ([BoardScrubCell]). A tap drops a menu of every board in [places]
+ * with the viewer's place on each (a pick reports [onPick]; the board re-ranks in place) and a "How ranks work" row
  * ([onHowRanksWork]). The menu grows out of the title and its rows rise in one after another; reduced motion drops
  * the travel and keeps the fades.
  */
@@ -73,6 +72,7 @@ internal fun RanksTitleMenu(
     onPick: (RanksBoard) -> Unit,
     onHowRanksWork: () -> Unit,
     modifier: Modifier = Modifier,
+    scrub: BoardScrub? = null,
 ) {
     var open by rememberSaveable { mutableStateOf(false) }
     val reduced = rememberReducedMotion()
@@ -94,7 +94,9 @@ internal fun RanksTitleMenu(
                 .semantics { stateDescription = if (open) "Expanded" else "Collapsed" },
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            DayMorph(title) { Text(it, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface) }
+            BoardScrubCell(scrub, places.indexOfFirst { it.board == selected }, title, at = { places.getOrNull(it)?.name }) {
+                Text(it, style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
+            }
             Icon(
                 PuzzleIcons.ExpandMore,
                 contentDescription = null,

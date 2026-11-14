@@ -34,6 +34,7 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import kotlin.math.abs
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.sign
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -42,19 +43,29 @@ import kotlinx.coroutines.launch
 /** A drag this far across the board (a quarter of its width) commits the swipe. */
 internal const val SWIPE_COMMIT_FRACTION = 0.25f
 
-/** The board follows the finger this much of the way: a hint of the swipe, not a page slide. */
+/** Past the first or last board the content follows the finger this much of the way: a pull that gives, not a page slide. */
 private const val FOLLOW = 0.2f
 
 private val FLING_VELOCITY = 700.dp
 
+/** A drag never has to go further than this to commit, however wide the board is (a tablet's pane). */
+private val COMMIT_DISTANCE = 120.dp
+
 /**
  * How many boards a horizontal drag of [dragPx] released at [velocityPx] (both px, negative = leftwards)
  * walks: one forward for a leftward swipe, one back for a rightward one, none when it is neither a
- * fling ([flingPx]/s) nor [SWIPE_COMMIT_FRACTION] of [widthPx]. A fling decides by its own direction.
+ * fling ([flingPx]/s) nor a drag of [commitPx] ([SWIPE_COMMIT_FRACTION] of [widthPx] unless the caller
+ * caps it). A fling decides by its own direction.
  */
-internal fun swipeStep(dragPx: Float, velocityPx: Float, widthPx: Float, flingPx: Float): Int = when {
+internal fun swipeStep(
+    dragPx: Float,
+    velocityPx: Float,
+    widthPx: Float,
+    flingPx: Float,
+    commitPx: Float = widthPx * SWIPE_COMMIT_FRACTION,
+): Int = when {
     abs(velocityPx) >= flingPx -> -sign(velocityPx).toInt()
-    abs(dragPx) >= widthPx * SWIPE_COMMIT_FRACTION -> -sign(dragPx).toInt()
+    abs(dragPx) >= commitPx -> -sign(dragPx).toInt()
     else -> 0
 }
 
@@ -119,22 +130,37 @@ private suspend fun PointerInputScope.detectSwipe(onDrag: (Float) -> Unit, onEnd
     }
 
 /**
- * Horizontal swipe on [content] that reports one step per committed swipe through [onStep] (+1 next,
- * -1 previous). A drag belongs to one axis from its touch slop on ([swipeAxis]): a mostly-sideways one
- * is the swipe and never scrolls the page or pulls its refresh, a mostly-vertical one is the page's
- * and never moves the board. The content leans a little with the finger and settles back, and a new
- * drag picks it up where it is; the new board is the parent's re-ranking of the same list, not a
- * slide. Assistive tech gets both steps as actions.
+ * Horizontal swipe on [content] between the hub's [count] boards, of which it is on the one at [position]. The
+ * finger scrubs [scrub] towards the neighbouring board as it goes, a board width for the whole way, and whatever
+ * draws from the scrub (the list re-ranking in place, the world behind it) follows it there and back. On release
+ * the scrub settles on the board the swipe picked and [onStep] hears how many boards that is from [position]
+ * (+1 next, -1 previous); a new drag picks the scrub up wherever it is. A swipe commits at a fling or at a quarter
+ * of the width, and never needs more than [COMMIT_DISTANCE].
+ *
+ * A drag belongs to one axis from its touch slop on ([swipeAxis]): a mostly-sideways one is the swipe and never
+ * scrolls the page or pulls its refresh, a mostly-vertical one is the page's and never moves the board. Nothing
+ * slides: past the first or last board the content gives a little with the finger and settles back. Reduced
+ * motion leaves the scrub alone and steps on release. Assistive tech gets both steps as actions.
  */
 @Composable
-internal fun BoardSwipe(onStep: (Int) -> Unit, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+internal fun BoardSwipe(
+    scrub: BoardScrub,
+    position: Int,
+    count: Int,
+    onStep: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
     val scope = rememberCoroutineScope()
-    var lean by remember { mutableFloatStateOf(0f) }
+    var over by remember { mutableFloatStateOf(0f) }
     var settling by remember { mutableStateOf<Job?>(null) }
     var width by remember { mutableFloatStateOf(0f) }
     val fling = with(LocalDensity.current) { FLING_VELOCITY.toPx() }
+    val commitCap = with(LocalDensity.current) { COMMIT_DISTANCE.toPx() }
     val still = rememberReducedMotion()
     val step by rememberUpdatedState(onStep)
+    val at by rememberUpdatedState(position)
+    val boards by rememberUpdatedState(count)
     Box(
         modifier
             .onSizeChanged { width = it.width.toFloat() }
@@ -144,21 +170,35 @@ internal fun BoardSwipe(onStep: (Int) -> Unit, modifier: Modifier = Modifier, co
                     CustomAccessibilityAction("Previous board") { onStep(-1); true },
                 )
             }
-            .pointerInput(fling) {
+            .pointerInput(fling, commitCap, still, scrub) {
                 detectSwipe(
                     onDrag = { dx ->
-                        settling?.cancel()
-                        lean += dx * FOLLOW
+                        if (!still && width > 0f) {
+                            settling?.cancel()
+                            // A pull past the end is taken back first; only what is left of the move scrubs.
+                            val back = if (over * dx < 0f) dx.coerceIn(-abs(over), abs(over)) else 0f
+                            over += back + scrub.dragBy((dx - back) / width, boards) * width
+                        }
                     },
                     onEnd = { dragPx, velocityPx ->
-                        val by = swipeStep(dragPx, velocityPx, width, fling)
-                        if (by != 0) step(by)
-                        settling = scope.launch {
-                            animate(lean, 0f, animationSpec = spring(MotionTokens.SpringDampingDefault, Spring.StiffnessMediumLow)) { value, _ -> lean = value }
+                        val commit = min(width * SWIPE_COMMIT_FRACTION, commitCap)
+                        if (still || width <= 0f) {
+                            val by = swipeStep(dragPx, velocityPx, width, fling, commit)
+                            if (by != 0) step(by)
+                        } else {
+                            if (dragPx == 0f && velocityPx == 0f) {
+                                scrub.cancel()
+                            } else {
+                                val target = scrub.release(at, -velocityPx / width, fling / width, commit / width)
+                                if (target != at) step(target - at)
+                            }
+                            settling = scope.launch {
+                                animate(over, 0f, animationSpec = spring(MotionTokens.SpringDampingDefault, Spring.StiffnessMediumLow)) { value, _ -> over = value }
+                            }
                         }
                     },
                 )
             }
-            .graphicsLayer { translationX = if (still) 0f else lean },
+            .graphicsLayer { translationX = if (still) 0f else over * FOLLOW },
     ) { content() }
 }

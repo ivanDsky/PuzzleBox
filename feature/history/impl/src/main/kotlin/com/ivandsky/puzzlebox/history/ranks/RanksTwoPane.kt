@@ -30,12 +30,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.DayMorph
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
@@ -53,10 +53,11 @@ private val ICON = 20.dp
 /**
  * The Ranks hub on a tablet: the left pane holds the full month with the lifetime stats under it and the game list
  * (Overall first, the viewer's place on each); the right pane holds the top bar (the board's name and the tune icon),
- * the placement hero card, Your solve for a past day and the board. A pick in the list re-ranks the board in place, so
- * there is no title menu, week strip or swipe here. The calendar is always the month: the shared calendar's fold-to-week
- * is turned back into a month at the door ([onShowCalendar] only ever hears `expanded = true`). The hero card wears the
- * shown board's accent, blending to the next board's with the [scrub].
+ * the placement hero card, Your solve for a past day and the board. A pick in the list re-ranks the board in place, and
+ * so does a swipe on the board ([onSwipe], as on the phone), so there is no title menu, week strip or dots here. The
+ * calendar is always the month: the shared calendar's fold-to-week is turned back into a month at the door
+ * ([onShowCalendar] only ever hears `expanded = true`). The hero card wears the shown board's accent; it, the board's
+ * title and the board itself go to the next board's with the [scrub].
  */
 @Composable
 internal fun RanksTwoPane(
@@ -77,6 +78,7 @@ internal fun RanksTwoPane(
     refreshing: Boolean = false,
     onRefresh: (() -> Unit)? = null,
     scrub: BoardScrub = rememberBoardScrub(state.position),
+    onSwipe: (Int) -> Unit = {},
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
@@ -85,6 +87,12 @@ internal fun RanksTwoPane(
     val containers = accents.map { it.container }
     val inks = accents.map { it.onContainer }
     val plain = MaterialTheme.colorScheme
+    val target = scrub.target(state.position)
+    val between = target != scrub.from && !rememberReducedMotion()
+    val heroFace = { board: Int ->
+        val place = state.places.getOrNull(board)
+        HeroFace(place?.name ?: "Ranks", place?.standing ?: Standing.None, state.sliceAt(board)?.selfScore())
+    }
     Row(
         modifier.fillMaxSize().testTag("route.ranks").padding(Spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xl),
@@ -97,12 +105,9 @@ internal fun RanksTwoPane(
             GameList(state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true })
         }
         RanksPullToRefresh(refreshing, onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight()) {
-            Column(
-                Modifier.fillMaxSize().verticalScroll(rightScroll).testTag("ranks.rightpane"),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md),
-            ) {
+            Column(Modifier.fillMaxSize().verticalScroll(rightScroll).testTag("ranks.rightpane")) {
                 RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
-                    DayMorph(state.board.title, Modifier.padding(start = Spacing.sm)) { title ->
+                    BoardScrubCell(scrub, state.position, state.board.title, Modifier.padding(start = Spacing.sm), at = { state.sliceAt(it)?.title }) { title ->
                         Text(
                             title,
                             style = MaterialTheme.typography.titleLarge,
@@ -111,15 +116,19 @@ internal fun RanksTwoPane(
                         )
                     }
                 }
+                // The pane's one gap between its parts: Your solve brings its own under it, and is nothing when there is none.
                 RanksHeroCard(
-                    current?.name ?: "Ranks",
-                    current?.standing ?: Standing.None,
-                    state.board.selfScore(),
+                    face = heroFace(if (between) target else state.position),
                     container = { scrub.blend(containers, plain.surfaceContainerHigh) },
                     ink = { scrub.blend(inks, plain.onSurface) },
+                    modifier = Modifier.padding(vertical = Spacing.md),
+                    was = heroFace(scrub.from).takeIf { between },
+                    progress = { scrub.progress },
                 )
                 YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
-                RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick)
+                BoardSwipe(scrub, state.position, state.boardCount, onSwipe) {
+                    RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick, morph = rememberBoardMorph(state, scrub))
+                }
             }
         }
     }

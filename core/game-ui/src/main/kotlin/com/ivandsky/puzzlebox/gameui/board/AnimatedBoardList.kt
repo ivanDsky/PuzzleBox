@@ -47,8 +47,9 @@ internal fun AnimatedBoardList(
     backdrop: Color,
     modifier: Modifier = Modifier,
     medals: Boolean = false,
+    landed: Boolean = false,
 ) {
-    val rows = remember { BoardRows() }
+    val rows = remember { BoardRows(landed) }
     val items = rows.update(lines, pinned)
     if (items.isEmpty()) return
     val scope = rememberCoroutineScope()

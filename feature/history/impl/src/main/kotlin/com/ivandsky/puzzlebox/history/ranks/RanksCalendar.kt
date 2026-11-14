@@ -52,6 +52,7 @@ internal fun RanksCalendar(
             onSelectDay = onSelectDay,
             cardColor = MaterialTheme.colorScheme.surfaceContainerLow,
             foldable = foldable,
+            foldInPlace = true,
         )
         AnimatedVisibility(visible = state.expanded && stats != null, enter = enter, exit = exit) {
             // Held through the fold, so the strip leaves with its numbers.
