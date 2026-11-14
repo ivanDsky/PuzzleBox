@@ -202,7 +202,7 @@ class SudokuPlayControllerTest {
     }
 
     @Test
-    fun `replay restarts from zero and advances at once`() {
+    fun `play-again restarts from zero and advances at once`() {
         val c = adopted()
         val open = givens.indices.filter { givens[it] == 0 }
         clockMs += 4_000
@@ -315,7 +315,7 @@ class SudokuPlayControllerTest {
     }
 
     @Test
-    fun `a replay starts a board with no spotlight and nothing known`() {
+    fun `a play again starts a board with no spotlight and nothing known`() {
         val c = stepwiseMini(noSingle)
         c.requestHint()
         val first = checkNotNull(c.board!!.spotlight)
@@ -330,7 +330,7 @@ class SudokuPlayControllerTest {
     }
 
     @Test
-    fun `a press still computing when the board is replayed never touches the new session`() {
+    fun `a press still computing when the board is played again never touches the new session`() {
         val scheduler = TestCoroutineScheduler()
         val held = HintMode.Stepwise(StandardTestDispatcher(scheduler))
         val c = SudokuPlayController(SudokuGames.MINI, env, InMemorySudokuHighlightSettings(), now = { Instant.ofEpochMilli(clockMs) }, hintMode = held)
@@ -338,10 +338,10 @@ class SudokuPlayControllerTest {
         c.requestHint()
 
         c.playAgain()
-        val savedByReplay = saved.size
+        val savedByPlayAgain = saved.size
         scheduler.advanceUntilIdle()
 
-        assertEquals(savedByReplay, saved.size)
+        assertEquals(savedByPlayAgain, saved.size)
         assertEquals(0, savedSession().hintsUsed)
         assertEquals(0, c.hintsUsed)
         assertNull(c.board!!.spotlight)

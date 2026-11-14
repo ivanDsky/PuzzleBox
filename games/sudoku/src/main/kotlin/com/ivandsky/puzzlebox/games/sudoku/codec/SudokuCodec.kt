@@ -8,7 +8,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuVariants
 
 /**
  * Puzzle payload v1, the bytes a [com.ivandsky.puzzlebox.game.Puzzle] envelope carries.
- * One byte sequence per puzzle, so archive dedup and replay compare bytes:
+ * One byte sequence per puzzle, so archive dedup and play-again compare bytes:
  *
  * ```
  * 0   u8   formatVersion = 1

@@ -174,7 +174,7 @@ class TangoPlayControllerTest {
     }
 
     @Test
-    fun `a replay emits a second record on its own win`() {
+    fun `a play again emits a second record on its own win`() {
         val s = loaded()
         playAll(s)
         assertEquals(1, won.size)
@@ -321,7 +321,7 @@ class TangoPlayControllerTest {
     }
 
     @Test
-    fun `replay restarts from zero and advances at once`() {
+    fun `play-again restarts from zero and advances at once`() {
         val s = loaded()
         fakeNow = fakeNow.plusMillis(7_000)
         playAll(s)

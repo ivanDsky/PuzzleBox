@@ -27,7 +27,7 @@ import java.time.Instant
 import kotlinx.coroutines.launch
 
 /**
- * Plays one [definition]'s board: adopt / restore / replay and the clock. Every game decision
+ * Plays one [definition]'s board: adopt / restore / play-again and the clock. Every game decision
  * lives in the session and the [SudokuBoardState]; this class owns the process-local running
  * window and publishes every stored session as codec bytes (Queens parity).
  */
@@ -153,7 +153,7 @@ class SudokuPlayController(
 
     //region PlayClock
 
-    /** A win folds the running window in; the window itself is opened by adopt/restore/replay/foreground. */
+    /** A win folds the running window in; the window itself is opened by adopt/restore/play-again/foreground. */
     private fun settle(next: SudokuSession): SudokuSession =
         if (next.isComplete) foldRunning(next) else next
 

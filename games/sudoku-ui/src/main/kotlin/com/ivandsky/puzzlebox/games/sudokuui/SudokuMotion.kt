@@ -177,7 +177,7 @@ internal fun SudokuMotionHost(
 
 /**
  * Plays each player commit's effect and haptic. The board as first seen (restore, rotation,
- * replay) is the baseline and plays nothing; a board already solved hands off at once. A solve
+ * play-again) is the baseline and plays nothing; a board already solved hands off at once. A solve
  * runs its sweep, then CONFIRM, then [onSolved]; the win record was written at commit.
  */
 @Composable

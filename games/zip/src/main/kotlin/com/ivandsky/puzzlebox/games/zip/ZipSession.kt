@@ -12,7 +12,7 @@ import java.time.Instant
  * Serializable in-progress play (F2 §2 as amended by the §10 rulings). [elapsedMs]
  * accumulates ACTIVE foreground play only: the owner opens the window with [onForeground]
  * the moment the play screen shows the session (a move never starts it), [onBackground]
- * pauses it, and it folds into [elapsedMs] at completion. Replays are new sessions and
+ * pauses it, and it folds into [elapsedMs] at completion. Play-agains are new sessions and
  * emit again; one play-through emits at most once (A4, guarded by [completedAt]).
  *
  * [runningSince] is the runtime anchor for the running timer and intentionally NOT

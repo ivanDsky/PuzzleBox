@@ -289,7 +289,7 @@ class QueensStepwiseHintTest {
     }
 
     @Test
-    fun `a press still computing at replay neither shows on the new board nor saves the old session`() {
+    fun `a press still computing at play-again neither shows on the new board nor saves the old session`() {
         val scheduler = TestCoroutineScheduler()
         val c = stepwise(compute = StandardTestDispatcher(scheduler))
         c.state.onTap(FREE_CELL)

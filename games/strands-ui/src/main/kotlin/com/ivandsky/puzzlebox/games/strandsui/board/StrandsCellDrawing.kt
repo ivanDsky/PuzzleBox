@@ -44,7 +44,7 @@ internal interface StrandsCellSpec {
     fun frame(elapsedMs: Int, cue: StrandsMotionCue, reduceMotion: Boolean): StrandsCellFrame
 
     /**
-     * What starts this look's motion on [cell]: a new trigger (by equality) replays it, null
+     * What starts this look's motion on [cell]: a new trigger (by equality) restarts it, null
      * holds it at rest. [found] is the word just found, if any.
      */
     fun trigger(cell: StrandsCell, found: FoundEvent?): StrandsMotionTrigger? = null
@@ -64,7 +64,7 @@ internal data class StrandsCellFrame(val scale: Float = 1f, val ringScale: Float
     }
 }
 
-/** A motion start: [key] identifies it (a new key replays), [cue] places the letter in it. */
+/** A motion start: [key] identifies it (a new key restarts it), [cue] places the letter in it. */
 internal data class StrandsMotionTrigger(val key: Any, val cue: StrandsMotionCue)
 
 /** A letter's place in the motion that moves it: [order] of [count] letters. */

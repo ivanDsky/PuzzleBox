@@ -69,7 +69,7 @@ val tangoPlugin: GamePlugin<TangoState, TangoSession, TangoRendererModel> =
             }
         },
         refOf = { key -> TangoPuzzleRef(key) },
-        // Replay hand-off: zip's shape plus the A15 gate — an archived puzzle that decodes
+        // Play-again hand-off: zip's shape plus the A15 gate — an archived puzzle that decodes
         // but is not uniquely solvable is never playable (payload untrusted), exactly as
         // the play state refuses it on a fresh load.
         playAgainSession = { cached, key ->

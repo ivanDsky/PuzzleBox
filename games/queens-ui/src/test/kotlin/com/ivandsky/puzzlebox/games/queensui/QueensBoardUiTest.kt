@@ -421,7 +421,7 @@ class QueensBoardUiTest {
         composeRule.onNodeWithTag("queens.stray.$stray").assertDoesNotExist()
     }
 
-    /** U2: the next lesson (or a replay) is a new state of the same size; its taps
+    /** U2: the next lesson (or a play-again) is a new state of the same size; its taps
      *  must reach it, not the state it replaced. */
     @Test
     fun `a new board of the same size takes the taps`() {

@@ -25,7 +25,7 @@ import java.io.ByteArrayOutputStream
  * ```
  *
  * [read] checks a command against the puzzle alone: open cells, digits and masks in range,
- * peers that really are peers. Whether the command fits the board is the session codec's replay.
+ * peers that really are peers. Whether the command fits the board is the session codec's re-apply.
  */
 internal object SudokuCommandCodec {
 

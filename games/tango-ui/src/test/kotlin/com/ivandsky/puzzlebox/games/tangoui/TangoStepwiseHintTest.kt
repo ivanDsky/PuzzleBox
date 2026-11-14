@@ -281,7 +281,7 @@ class TangoStepwiseHintTest {
     }
 
     @Test
-    fun `replay clears the spotlight and forgets counted steps, so the same step counts again`() {
+    fun `play-again clears the spotlight and forgets counted steps, so the same step counts again`() {
         val s = loaded().apply { requestHint() }
         val first = s.spotlight
         assertEquals(1, s.hintsUsed)
@@ -342,7 +342,7 @@ class TangoStepwiseHintTest {
     }
 
     @Test
-    fun `replay keeps the searched solution, so the solver runs once`() {
+    fun `play-again keeps the searched solution, so the solver runs once`() {
         var solves = 0
         val s = TangoPlayController(
             env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), onSessionChanged = {}, onWon = {}),

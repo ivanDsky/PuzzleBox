@@ -219,10 +219,10 @@ class TangoDraftCodecTest {
     }
 
     @Test
-    fun `a step off the board it meets in the replay is Malformed`() {
+    fun `a step off the board it meets in the re-apply is Malformed`() {
         val blank8 = TangoDraft(8, emptyMap(), emptyList())
         val cellOn6 = DraftState(blank, CommandHistory(listOf(ReplaceDraft(blank8, blank), TangoDraftCommand.SetCell(40, TangoCell.SUN, null))))
-        // The redo stack's last element replays first: the resize to 6×6, then 5→ which has no right neighbour there.
+        // The redo stack's last element is re-applied first: the resize to 6×6, then 5→ which has no right neighbour there.
         val markerOn6 = DraftState(
             blank8,
             CommandHistory(emptyList(), listOf(TangoDraftCommand.SetMarker(5, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME, null), ReplaceDraft(blank8, blank))),

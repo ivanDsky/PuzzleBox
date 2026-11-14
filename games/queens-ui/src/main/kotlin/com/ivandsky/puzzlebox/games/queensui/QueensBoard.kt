@@ -88,7 +88,7 @@ private fun QueensPlayBoardContent(
     Box(
         modifier = modifier
             .aspectRatio(1f)
-            // Keyed on the state too: the next lesson or a replay brings a new state of
+            // Keyed on the state too: the next lesson or a play-again brings a new state of
             // the same size, and the gestures must feed it, not the solved one.
             .pointerInput(state, model.n) {
                 detectTapGestures(

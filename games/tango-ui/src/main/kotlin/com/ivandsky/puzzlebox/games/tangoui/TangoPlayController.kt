@@ -184,7 +184,7 @@ class TangoPlayController(
         return Adopt.Adopted
     }
 
-    /** Rotation/process-death + history-replay restore (one path, Zip parity): a
+    /** Rotation/process-death + history re-apply restore (one path, Zip parity): a
      *  restored COMPLETED session shows the win without re-emitting (emission happens
      *  on the transition only). */
     override fun adoptRestored(bytes: ByteArray): Restored? =

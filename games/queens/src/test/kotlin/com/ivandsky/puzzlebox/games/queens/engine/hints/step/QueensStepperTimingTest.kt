@@ -57,7 +57,7 @@ class QueensStepperTimingTest {
     }
 
     /**
-     * Positive control: gen-n8-q1 with one manual cross on cell 2 and no queens: found by replaying the full stepper, its first
+     * Positive control: gen-n8-q1 with one manual cross on cell 2 and no queens: found by re-running the full stepper, its first
      * step is a look-ahead rung's. The look-ahead
      * path must run, produce a step, and stay under the bound, so an instantly empty chain search cannot pass.
      */

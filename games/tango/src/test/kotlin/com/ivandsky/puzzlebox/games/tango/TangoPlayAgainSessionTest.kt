@@ -14,7 +14,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Tango's replay hand-off (tango-05): the blob round-trips through Tango's own session
+ * Tango's play-again hand-off (tango-05): the blob round-trips through Tango's own session
  * codec with THIS day's identity (ADR-0005 envelope); an archive the A15 gate refuses
  * never launches (A16).
  */
@@ -53,7 +53,7 @@ class TangoPlayAgainSessionTest {
     }
 
     @Test
-    fun `a custom key replays carrying the friend's puzzle identity`() {
+    fun `a custom key plays again carrying the friend's puzzle identity`() {
         val custom = PuzzleKey.Custom("K7Q2MX")
         assertEquals(TangoPuzzleRef(custom), tangoPlugin.playAgainSession(envelope(), custom).session().ref)
     }

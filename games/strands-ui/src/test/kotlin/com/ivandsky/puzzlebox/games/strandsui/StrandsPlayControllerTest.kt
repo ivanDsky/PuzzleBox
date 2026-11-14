@@ -198,7 +198,7 @@ class StrandsPlayControllerTest {
     }
 
     @Test
-    fun `a new trace, an outside tap and a replay drop the trace end, and each verdict has its own seq`() {
+    fun `a new trace, an outside tap and a play-again drop the trace end, and each verdict has its own seq`() {
         val c = adopted()
         c.play(listOf(Coord(0, 0), Coord(0, 1), Coord(0, 2)))
         val first = c.traceEnd
@@ -369,7 +369,7 @@ class StrandsPlayControllerTest {
     }
 
     @Test
-    fun `replay starts the same puzzle over and its win is a new transition`() {
+    fun `play-again starts the same puzzle over and its win is a new transition`() {
         val c = adopted()
         c.solve()
         c.playAgain()
@@ -382,7 +382,7 @@ class StrandsPlayControllerTest {
     }
 
     @Test
-    fun `replay restarts the clock from zero and advances at once`() {
+    fun `play-again restarts the clock from zero and advances at once`() {
         clockMs = 1_000
         val c = adopted()
         clockMs = 9_000

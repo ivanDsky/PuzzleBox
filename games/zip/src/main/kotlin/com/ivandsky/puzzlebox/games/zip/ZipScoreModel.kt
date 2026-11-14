@@ -11,7 +11,7 @@ import kotlinx.serialization.json.buildJsonObject
  * time = [ZipSession.elapsedMs] (active play only), hints = [ZipSession.hintsUsed] —
  * and the ADR-0005 stats slot v1 carries the variant plus the §10 mistake/backtrack
  * counters, analytics only, never indexed, never scored. Every completion emits,
- * replays included; core/data stamps firstCompletedAt/isRecord (A4/A5).
+ * play-agains included; core/data stamps firstCompletedAt/isRecord (A4/A5).
  *
  * Custom boards (no [ZipPuzzleRef]) are not record-eligible until Phase 2 gives custom
  * puzzles an identity — completion() returns null for them.

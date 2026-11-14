@@ -20,7 +20,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Replays [TangoStepper] over every real 6×6 Tango board in the corpus and checks the catalog numbers
+ * Reruns [TangoStepper] over every real 6×6 Tango board in the corpus and checks the catalog numbers
  * (spec A6, SC1, SC2; `tango-deductions.md`). Measurement gate only: no behaviour ships with it.
  *
  * Corpus: `fixtures/tango-boards.json`, one record per board: `{id, src, n, giv, sol, sg}` with `giv`/`sol`
@@ -51,18 +51,18 @@ class TangoCorpusTest {
     }
 
     @Test
-    fun `stepper replays every corpus board to Solved soundly within the catalog shares`() {
-        val replays = corpus().map(::replay)
-        assertEquals(emptyList<String>(), replays.mapNotNull { it.problem }.take(5))
-        assertEquals(756, replays.count { it.solved })
+    fun `stepper reruns every corpus board to Solved soundly within the catalog shares`() {
+        val reruns = corpus().map(::rerun)
+        assertEquals(emptyList<String>(), reruns.mapNotNull { it.problem }.take(5))
+        assertEquals(756, reruns.count { it.solved })
 
-        val steps = replays.flatMap { it.steps }
-        val reveals = replays.sumOf { it.reveals }
+        val steps = reruns.flatMap { it.steps }
+        val reveals = reruns.sumOf { it.reveals }
         val cells = steps.sumOf { it.cells }
         val d8Steps = steps.count { it.rung == TangoStepRung.LINE_OPTIONS }
         val d8Cells = steps.filter { it.rung == TangoStepRung.LINE_OPTIONS }.sumOf { it.cells }
         println(
-            "tango corpus: boards=${replays.size} steps=${steps.size} cells=$cells reveals=$reveals " +
+            "tango corpus: boards=${reruns.size} steps=${steps.size} cells=$cells reveals=$reveals " +
                 "d8Steps=$d8Steps (${"%.2f".format(100.0 * d8Steps / steps.size)}% of steps) " +
                 "d8Cells=$d8Cells (${"%.2f".format(100.0 * d8Cells / cells)}% of cells)",
         )
@@ -76,9 +76,9 @@ class TangoCorpusTest {
     /** One catalog step: consecutive deductions with the same rung, evidence and line; a reveal is its own step. */
     private data class Step(val rung: TangoStepRung?, val evidence: Set<Int>, val row: Int?, val col: Int?, val cells: Int)
 
-    private class Replay(val steps: List<Step>, val reveals: Int, val solved: Boolean, val problem: String?)
+    private class Rerun(val steps: List<Step>, val reveals: Int, val solved: Boolean, val problem: String?)
 
-    private fun replay(board: Board): Replay {
+    private fun rerun(board: Board): Rerun {
         val puzzle = board.puzzle
         val solution = board.solution
         val grid = MutableList<TangoCell?>(puzzle.cellCount) { puzzle.givens[it] }
@@ -89,7 +89,7 @@ class TangoCorpusTest {
         var placed = 0
         while (true) {
             val (idx, value) = when (val step = TangoStepper.next(puzzle, grid, last, solution)) {
-                TangoStep.Solved -> return Replay(steps, reveals, solved = true, problem = null)
+                TangoStep.Solved -> return Rerun(steps, reveals, solved = true, problem = null)
                 is TangoStep.Deduction -> {
                     record(steps, Step(step.rung, step.evidence, step.row, step.col, 1))
                     step.idx to step.value
@@ -100,11 +100,11 @@ class TangoCorpusTest {
                     step.idx to step.value
                 }
                 is TangoStep.Mistake, TangoStep.Unavailable ->
-                    return Replay(steps, reveals, solved = false, problem = "${board.id}: $step")
+                    return Rerun(steps, reveals, solved = false, problem = "${board.id}: $step")
             }
-            if (grid[idx] != null) return Replay(steps, reveals, solved = false, problem = "${board.id}: names filled cell $idx")
-            if (value != solution[idx]) return Replay(steps, reveals, solved = false, problem = "${board.id}: unsound value at $idx")
-            if (++placed > empties) return Replay(steps, reveals, solved = false, problem = "${board.id}: replay not finite")
+            if (grid[idx] != null) return Rerun(steps, reveals, solved = false, problem = "${board.id}: names filled cell $idx")
+            if (value != solution[idx]) return Rerun(steps, reveals, solved = false, problem = "${board.id}: unsound value at $idx")
+            if (++placed > empties) return Rerun(steps, reveals, solved = false, problem = "${board.id}: replay not finite")
             grid[idx] = value
             last = idx
         }

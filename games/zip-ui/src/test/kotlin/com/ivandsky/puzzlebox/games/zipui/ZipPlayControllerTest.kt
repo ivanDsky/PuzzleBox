@@ -401,7 +401,7 @@ class ZipPlayControllerTest {
     }
 
     @Test
-    fun `replay resets the hint arrow`() {
+    fun `play-again resets the hint arrow`() {
         val c = readyController()
         c.onDragEvent(DragEvent.Extend(GridCell(0, 0)))
         c.hint()
@@ -436,7 +436,7 @@ class ZipPlayControllerTest {
     }
 
     @Test
-    fun `replay after a win emits again`() {
+    fun `play-again after a win emits again`() {
         val c = readyController()
         playSolution(c)
         c.playAgain()
@@ -559,7 +559,7 @@ class ZipPlayControllerTest {
     }
 
     @Test
-    fun `replay restarts from zero and advances at once`() {
+    fun `play-again restarts from zero and advances at once`() {
         val wall = Wall()
         val c = readyController(now = wall.now)
         wall.ms += 2_000

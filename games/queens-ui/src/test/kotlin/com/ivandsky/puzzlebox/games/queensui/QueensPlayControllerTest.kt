@@ -86,7 +86,7 @@ class QueensPlayControllerTest {
         assertNull(state.board)
     }
 
-    /** R-4 (fix round 4): every committed session — and the fresh one of an adopt/replay —
+    /** R-4 (fix round 4): every committed session — and the fresh one of an adopt/play-again —
      *  reaches the environment, so a process death mid-play still restores. */
     @Test
     fun `the saver sees the fresh session and every committed move`() {
@@ -121,9 +121,9 @@ class QueensPlayControllerTest {
         assertEquals(0, won.size)
     }
 
-    /** A4 controller half: a replayed win is a new transition and emits again. */
+    /** A4 controller half: a win after play again is a new transition and emits again. */
     @Test
-    fun `replay after a win emits a second record on the next win`() {
+    fun `play-again after a win emits a second record on the next win`() {
         val state = readyBoard()
         solve(state.board!!)
         assertEquals(1, won.size)
@@ -212,7 +212,7 @@ class QueensPlayControllerTest {
     }
 
     @Test
-    fun `replay restarts from zero and advances at once`() {
+    fun `play-again restarts from zero and advances at once`() {
         val state = readyBoard()
         clockMs += 8_000L
         solve(state.board!!)

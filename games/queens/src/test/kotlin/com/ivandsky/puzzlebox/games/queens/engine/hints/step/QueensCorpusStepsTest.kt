@@ -18,7 +18,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Replays [QueensStepper] over the 806-board measurement corpus, one press at a time: each press
+ * Reruns [QueensStepper] over the 806-board measurement corpus, one press at a time: each press
  * applies one target cell and asks again, as the app does (SC1, SC2; spec A6–A8). A step is a run
  * of consecutive presses with the same rung, evidence and unit, and its cells are the cross set
  * it proves at its first press, as the catalog counts them. Measurement gate: no behaviour ships
@@ -38,7 +38,7 @@ class QueensCorpusStepsTest {
     @Test
     fun `stepper solves every corpus board by its own steps with auto-cross on`() {
         val tally = Tally("auto-cross on, all 806")
-        corpus().forEach { replay(it, autoCross = true, tally) }
+        corpus().forEach { rerun(it, autoCross = true, tally) }
         tally.report()
         tally.assertGates()
     }
@@ -46,7 +46,7 @@ class QueensCorpusStepsTest {
     @Test
     fun `stepper solves every eighth corpus board by id with auto-cross off`() {
         val tally = Tally("auto-cross off, every 8th by id")
-        corpus().sortedBy { it.id }.filterIndexed { i, _ -> i % 8 == 0 }.forEach { replay(it, autoCross = false, tally) }
+        corpus().sortedBy { it.id }.filterIndexed { i, _ -> i % 8 == 0 }.forEach { rerun(it, autoCross = false, tally) }
         tally.report()
         tally.assertGates()
     }
@@ -106,7 +106,7 @@ class QueensCorpusStepsTest {
         private fun pct(part: Int, whole: Int): String = if (whole == 0) "0.00%" else "%.2f%%".format(100.0 * part / whole)
     }
 
-    private fun replay(board: Board, autoCross: Boolean, tally: Tally) {
+    private fun rerun(board: Board, autoCross: Boolean, tally: Tally) {
         tally.boards++
         val n = board.puzzle.size
         var state = QueensBoard()

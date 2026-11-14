@@ -17,7 +17,7 @@ class SudokuStepperTest {
 
     private val mini = KnownSolutions.miniSample
 
-    /** Norvig's grid2, as in SudokuHintsTest: singles stall on it, so the replay needs eliminations. */
+    /** Norvig's grid2, as in SudokuHintsTest: singles stall on it, so the rerun needs eliminations. */
     private val hard = SudokuPuzzle(
         SudokuVariants.CLASSIC,
         KnownSolutions.grid("4.....8.5.3..........7......2.....6.....8.4......1.......6.3.7.5..2.....1.4......"),
@@ -218,7 +218,7 @@ class SudokuStepperTest {
     }
 
     @Test
-    fun `replaying every step from the givens, strikes through known, solves the legacy fixtures soundly`() {
+    fun `re-running every step from the givens, strikes through known, solves the legacy fixtures soundly`() {
         for (puzzle in listOf(mini, KnownSolutions.classicSample, hard)) {
             var board = SudokuBoard.of(puzzle)
             var lastMove: Int? = null

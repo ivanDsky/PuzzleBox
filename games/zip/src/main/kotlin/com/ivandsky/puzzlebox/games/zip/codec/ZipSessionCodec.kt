@@ -23,7 +23,7 @@ import java.time.Instant
  * ```
  * 0   u8    formatVersion = 3
  *     u16   puzzleLen; puzzleLen x u8   (ZipCodec bytes: the puzzle rides by VALUE so an
- *                                        in-progress day survives offline replay, F2 §2)
+ *                                        in-progress day survives offline play-again, F2 §2)
  *     u8    flags                       (bit0 completedAt present, bit1 ref present,
  *                                        bit2 timerStarted)
  *     [bit1] key := u8 tag              (v3+; v1/v2 carry no tag and are always Daily)
@@ -141,7 +141,7 @@ object ZipSessionCodec : GameSessionCodec<ZipSession> {
             val done = readCommands(cursor, cellCount) ?: return malformed("malformed command history")
             val undone = readCommands(cursor, cellCount) ?: return malformed("malformed redo history")
             if (done.size + undone.size > MAX_HISTORY) return malformed("history exceeds $MAX_HISTORY commands")
-            if (!replaysTo(done, path)) return malformed("command history does not reproduce the path")
+            if (!reappliesTo(done, path)) return malformed("command history does not reproduce the path")
             history = CommandHistory(done, undone)
         }
 
@@ -247,7 +247,7 @@ object ZipSessionCodec : GameSessionCodec<ZipSession> {
 
     /** The done stack must be a real timeline: reverting it from [path] and re-applying it
      *  forward lands back on [path], otherwise an undo would corrupt the board. */
-    private fun replaysTo(done: List<ZipCommand>, path: List<Cell>): Boolean {
+    private fun reappliesTo(done: List<ZipCommand>, path: List<Cell>): Boolean {
         var state = path
         for (command in done.asReversed()) state = command.revert(state)
         for (command in done) state = command.apply(state)

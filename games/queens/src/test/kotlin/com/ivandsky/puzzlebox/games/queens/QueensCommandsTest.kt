@@ -56,7 +56,7 @@ class QueensCommandsTest {
 
     @Test
     fun `a mismatched board never throws`() {
-        // a stale save may replay a command against a board that diverged
+        // a stale save may re-apply a command against a board that diverged
         val board = QueensBoard(queens = c(1))
         QueensCommand.RemoveQueen(Cell(7), index = 99, hadMark = true).revert(board)
         QueensCommand.PlaceQueen(Cell(40)).revert(board)
