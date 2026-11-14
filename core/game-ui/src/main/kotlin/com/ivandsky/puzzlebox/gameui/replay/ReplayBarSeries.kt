@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.game.replay.MoveKind
 
@@ -27,43 +28,83 @@ internal fun kindColors(colors: ColorScheme, normal: Color = colors.primary): Ar
 internal fun unplayedKindColors(colors: ColorScheme, normal: Color = colors.primary): Array<Color> =
     kindColors(colors, normal).map { it.copy(alpha = UNPLAYED_ALPHA) }.toTypedArray()
 
+/** One bar of a series, laid out: its box, the clip it is drawn through and each kind's stacked part (indexed by [MoveKind] ordinal). */
+internal class BarShape(
+    val left: Float,
+    val top: Float,
+    val width: Float,
+    val height: Float,
+    /** Null for an empty slice, which is a plain hairline with no kinds to stack. */
+    val clip: Path?,
+    val partTops: FloatArray,
+    val partHeights: FloatArray,
+)
+
+/** A series laid out once for a size: the draw phase only picks colours and draws. */
+internal class BarSeriesShapes(val bars: Array<BarShape>)
+
 /**
- * Draws one series across the full width. Bars grow from [axisY] up, or down when [up] is false, to at most
+ * Lays one series out across [width]. Bars grow from [axisY] up, or down when [up] is false, to at most
  * [room]; an empty slice keeps a hairline so the timeline never has a hole. A bar is its kinds stacked from the
- * axis out, Normal first. Slices up to [fraction] are [played], the rest [unplayed]; both are indexed by [MoveKind] ordinal.
+ * axis out, Normal first. Build it where the size is known and cache it, so the draw phase allocates nothing.
  */
-internal fun DrawScope.drawBarSeries(
+internal fun Density.barSeriesShapes(
     counts: Array<IntArray>,
-    fraction: Float,
+    width: Float,
     axisY: Float,
     room: Float,
     up: Boolean,
-    played: Array<Color>,
-    unplayed: Array<Color>,
-) {
+): BarSeriesShapes {
     val gap = 2.dp.toPx()
-    val bar = (size.width - gap * (ACTIVITY_BUCKETS - 1)) / ACTIVITY_BUCKETS
+    val bar = (width - gap * (ACTIVITY_BUCKETS - 1)) / ACTIVITY_BUCKETS
     val shortest = 12.dp.toPx()
     val totals = IntArray(ACTIVITY_BUCKETS) { slice -> counts.sumOf { it[slice] } }
     val peak = totals.max().coerceAtLeast(1)
-    for (i in 0 until ACTIVITY_BUCKETS) {
-        val height = if (totals[i] == 0) 3.dp.toPx() else shortest + (room - shortest) * totals[i] / peak
-        val left = i * (bar + gap)
-        val top = if (up) axisY - height else axisY
+    return BarSeriesShapes(
+        Array(ACTIVITY_BUCKETS) { i ->
+            val height = if (totals[i] == 0) 3.dp.toPx() else shortest + (room - shortest) * totals[i] / peak
+            val left = i * (bar + gap)
+            val top = if (up) axisY - height else axisY
+            val partTops = FloatArray(counts.size)
+            val partHeights = FloatArray(counts.size)
+            if (totals[i] != 0) {
+                var stacked = 0f
+                for (kind in MoveKind.entries) {
+                    val count = counts[kind.ordinal][i]
+                    if (count == 0) continue
+                    val part = height * count / totals[i]
+                    partTops[kind.ordinal] = if (up) axisY - stacked - part else axisY + stacked
+                    partHeights[kind.ordinal] = part
+                    stacked += part
+                }
+            }
+            val clip = if (totals[i] == 0) null else Path().apply {
+                addRoundRect(RoundRect(left, top, left + bar, top + height, CornerRadius(bar / 2)))
+            }
+            BarShape(left, top, bar, height, clip, partTops, partHeights)
+        },
+    )
+}
+
+/**
+ * Draws a laid-out series. Slices up to [fraction] are [played], the rest [unplayed]; both are indexed by [MoveKind] ordinal.
+ * Allocates nothing: it runs on every frame the playhead moves.
+ */
+internal fun DrawScope.drawBarSeries(shapes: BarSeriesShapes, fraction: Float, played: Array<Color>, unplayed: Array<Color>) {
+    val bars = shapes.bars
+    for (i in bars.indices) {
+        val shape = bars[i]
         val palette = if ((i + 0.5f) / ACTIVITY_BUCKETS <= fraction) played else unplayed
-        if (totals[i] == 0) {
-            drawRoundRect(palette[MoveKind.Normal.ordinal], Offset(left, top), Size(bar, height), CornerRadius(bar / 2))
+        val clip = shape.clip
+        if (clip == null) {
+            drawRoundRect(palette[MoveKind.Normal.ordinal], Offset(shape.left, shape.top), Size(shape.width, shape.height), CornerRadius(shape.width / 2))
             continue
         }
-        val rounded = Path().apply { addRoundRect(RoundRect(left, top, left + bar, top + height, CornerRadius(bar / 2))) }
-        clipPath(rounded) {
-            var stacked = 0f
-            for (kind in MoveKind.entries) {
-                val count = counts[kind.ordinal][i]
-                if (count == 0) continue
-                val part = height * count / totals[i]
-                drawRect(palette[kind.ordinal], Offset(left, if (up) axisY - stacked - part else axisY + stacked), Size(bar, part))
-                stacked += part
+        clipPath(clip) {
+            for (kind in shape.partHeights.indices) {
+                val part = shape.partHeights[kind]
+                if (part == 0f) continue
+                drawRect(palette[kind], Offset(shape.left, shape.partTops[kind]), Size(shape.width, part))
             }
         }
     }

@@ -490,7 +490,7 @@ class ReplayPlaybackTest {
         playback.advance(500)
         assertEquals(20_000L, playback.state.value.positionMs)
 
-        playback.advance(3_000)
+        playback.advance(4_700)
         assertEquals(39_000L, playback.state.value.positionMs)
     }
 
@@ -500,25 +500,26 @@ class ReplayPlaybackTest {
         playback.seekTo(20_000)
         playback.play()
 
-        playback.advance(2_900)
-        assertEquals(22_900L, playback.state.value.positionMs)
+        // The dwell is 4 700 ms: a 24-letter theme word, the longest a published Strands word may be (F23-R1).
+        playback.advance(4_600)
+        assertEquals(24_600L, playback.state.value.positionMs)
 
         playback.advance(100)
         assertEquals(39_000L, playback.state.value.positionMs)
     }
 
     @Test
-    fun `the dwell is wall time, so it is longer in play time at speed 4`() {
+    fun `the dwell is wall time, so it is longer in play time at speed 2`() {
         val playback = ReplayPlayback(slowSolve, theirs = null)
-        playback.setSpeed(4)
+        playback.setSpeed(2)
         playback.seekTo(20_000)
         playback.play()
 
         playback.advance(2_900)
-        assertEquals(31_600L, playback.state.value.positionMs)
+        assertEquals(25_800L, playback.state.value.positionMs)
 
         playback.seekTo(20_000)
-        playback.advance(3_000)
+        playback.advance(4_700)
         assertEquals(39_000L, playback.state.value.positionMs)
     }
 
@@ -526,11 +527,11 @@ class ReplayPlaybackTest {
     fun `in a compare the other side's move restarts the dwell`() {
         val theirsAt22 = ReplayFixtures.timeline(moves = 1, stepMs = 22_000)
         val playback = ReplayPlayback(slowSolve, theirsAt22)
-        playback.seekTo(24_800)
+        playback.seekTo(26_500)
         playback.play()
 
         playback.advance(100)
-        assertEquals(24_900L, playback.state.value.positionMs)
+        assertEquals(26_600L, playback.state.value.positionMs)
 
         playback.advance(100)
         assertEquals(39_000L, playback.state.value.positionMs)
@@ -613,7 +614,7 @@ class ReplayPlaybackTest {
         playback.play()
         playback.seekTo(1_000)
 
-        playback.advance(3_000)
+        playback.advance(4_700)
 
         assertEquals(19_000L, playback.state.value.positionMs)
     }
