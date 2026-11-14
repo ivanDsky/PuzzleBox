@@ -26,7 +26,7 @@ import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-private val KnobRadius = 4.dp
+internal val KnobRadius = 4.dp
 private val PlayheadWidth = 2.dp
 
 /**

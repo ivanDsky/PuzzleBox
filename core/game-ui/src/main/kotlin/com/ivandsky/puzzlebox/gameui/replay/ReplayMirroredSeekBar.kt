@@ -42,8 +42,10 @@ internal fun ReplayMirroredSeekBar(
         val axis = size.height / 2
         val room = axis - 4.dp.toPx()
         val offset = 1.dp.toPx()
-        val mineShapes = mine?.let { barSeriesShapes(it, size.width, axis - offset, room, up = true) }
-        val theirsShapes = theirs?.let { barSeriesShapes(it, size.width, axis + offset, room, up = false) }
+        val knob = KnobRadius.toPx()
+        val trackWidth = size.width - 2 * knob
+        val mineShapes = mine?.let { barSeriesShapes(it, trackWidth, axis - offset, room, up = true, inset = knob) }
+        val theirsShapes = theirs?.let { barSeriesShapes(it, trackWidth, axis + offset, room, up = false, inset = knob) }
         val draw: DrawScope.(needleX: Float) -> Unit = { needleX ->
             if (mineShapes != null) drawBarSeries(mineShapes, needleX, minePlayed, mineUnplayed)
             if (theirsShapes != null) drawBarSeries(theirsShapes, needleX, theirsPlayed, theirsUnplayed)
