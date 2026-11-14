@@ -50,7 +50,7 @@ import org.koin.compose.koinInject
  * A [ReplayKey] draws that solve's replay and a [ReplayCompareKey] two solves' replays side by side; Up pops.
  * A non-null [onReconnectLinkedIn] turns the LinkedIn lines on the game page's day card on and is what its Reconnect opens.
  * A non-null [onOpenRanks] (the Ranks hub is on) turns the game page's board into a summary row calling it with the game
- * and its day.
+ * and its day, and draws the marks of the play side panel's times as chips beside the name, as the hub's boards do.
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -105,7 +105,9 @@ fun EntryProviderScope<NavKey>.playEntry(
             onOpenReplay = { navigator.pushOnce(it) },
         )
     }
-    entry<GameKey> { key -> GameEntry(key, layout, navigator, linkedIn = onReconnectLinkedIn != null) }
+    entry<GameKey> { key ->
+        GameEntry(key, layout, navigator, linkedIn = onReconnectLinkedIn != null, inlineMarks = onOpenRanks != null)
+    }
     entry<MatchLegKey> { key ->
         GameRoute(
             key = key,
