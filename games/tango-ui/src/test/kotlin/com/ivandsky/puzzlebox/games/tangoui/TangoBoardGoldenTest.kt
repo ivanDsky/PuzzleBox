@@ -30,10 +30,10 @@ import org.robolectric.annotation.GraphicsMode
  * tablet-landscape posture (w1280dp-h800dp, §10.8's second posture) in light.
  *
  * Committed goldens live in `src/test/resources/goldens/`. The module build wires
- * `tango.golden.mode`: the default run (compare) captures to a scratch file and neither reads
- * nor writes a golden, so it never fails on drift and leaves the worktree clean.
- * `-Proborazzi.verify=true` pixel-compares against the committed golden — drift or a missing
- * golden fails the test (a REAL floor, review I6); `-Pgoldens.pixelCompare=false` keeps the
+ * `tango.golden.mode`: the class does not run without `-Proborazzi.verify=true` or
+ * `-Proborazzi.record=true`. `-Proborazzi.verify=true` pixel-compares against the committed
+ * golden — drift or a missing golden fails the test (a REAL floor, review I6);
+ * `-Pgoldens.pixelCompare=false` keeps the
  * size check and skips the pixel diff. `-Proborazzi.record=true` rewrites the goldens.
  */
 @RunWith(RobolectricTestRunner::class)

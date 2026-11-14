@@ -102,7 +102,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `di/BuildTypeReleaseFlagsModule` (`src/debug` `DebugReleaseFlags` with local
   overrides, `src/release` `ShippedReleaseFlags`; ADR-0022), debug-only Showkase catalog route and flat Settings debug sections (`DebugSettingsSections`):
   browser (`CatalogDebugBinding`, `ShowkaseBrowserScreen`, `PreviewBackdrop`,
-  `BrowserRadioControls`; goldens in `app/snapshots/`), Release flags
+  `BrowserRadioControls`; no goldens), Release flags
   (`ReleaseFlagsPanel`). Tests:
   the app's `e2e` test package, the E2E robot (`shellRobot`/`ShellRobot`: gestures, back and
   predictive back, background/restore/relaunch, spec-notation row assertions; `E2eKoinGraph`:
@@ -630,12 +630,13 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   forbidden edge; `feature:create:impl` reaches games only through the registries.
 - **Structure rules** — `:konsist` S0–S7 / P1–P11 (see Layout); allowlists only shrink.
 - **Roborazzi** — plugin `puzzlebox.android.roborazzi` (app, designsystem, home, play, create,
-  compete, zip-ui, tango-ui, queens-ui, strands-ui, sudoku-ui) unifies the switch: default compares (never fails on drift, never writes goldens),
-  `-Proborazzi.verify=true` fails on drift, `-Proborazzi.record=true` records, and
-  `-Pgoldens.skip=true` (CI) does not run the golden classes (names containing `Golden` or `Screenshot`)
-  outside `:app`; `:app` keeps them, because skipping them there made the Robolectric native runtime abort the test JVM on CI.
+  compete, zip-ui, tango-ui, queens-ui, strands-ui, sudoku-ui) unifies the switch: by default the golden classes (names containing `Golden` or `Screenshot`) do
+  not run in any module; `-Proborazzi.verify=true` runs them and fails on drift,
+  `-Proborazzi.record=true` runs them and records. The merge gate (`assembleDebug test`) therefore
+  gates no golden; a UI ticket verifies the modules it changed. `:app`'s `NativeGraphicsWarmUpTest` runs first
+  and warms the Robolectric native runtime, which the goldens used to do (without a warm-up the `:app` test JVM aborts).
   Committed goldens sit in each module's `snapshots/` directory: `app/snapshots/`
-  (`ShowkaseBrowserScreenshotTest` and the Studio authoring shots), `core/designsystem/snapshots/`
+  (the Studio authoring shots; the Showkase browser has no golden), `core/designsystem/snapshots/`
   (`SpotlightOverlayGoldenTest` and the cooldown ring), `feature/compete/impl/snapshots/`
   (`DuelsTabGoldenScreenshots`, `RevealGoldenScreenshots`), `feature/create/impl/snapshots/`,
   `feature/home/impl/snapshots/`, `feature/play/impl/snapshots/`, `games/queens-ui/snapshots/`
