@@ -12,7 +12,6 @@ import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.SolveReplay
-import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.flow.first
 
 /**
@@ -27,27 +26,21 @@ class LoadLegReplay(
     private val received: ReceivedPuzzleRepository,
     private val loadShared: LoadSharedPuzzle,
 ) {
-    /** Null = no replay, for any cause. Cancellation still propagates. */
+    /** Null = no replay, for any cause. */
     suspend operator fun invoke(ref: SolveReplayRef): ReplaySource? {
         val (code, legIndex) = when (ref) {
             is SolveReplayRef.MyLeg -> ref.code to ref.legIndex
             is SolveReplayRef.TheirLeg -> ref.code to ref.legIndex
             is SolveReplayRef.Record, is SolveReplayRef.Latest, is SolveReplayRef.Player -> return null
         }
-        return try {
-            val me = identity.current.value?.uid ?: return null
-            val match = (matches.observe(code).first() as? MatchFetch.Found)?.match ?: return null
-            val bytes = when (ref) {
-                is SolveReplayRef.TheirLeg -> theirs(match, legIndex, me)
-                else -> mine(code, legIndex, me)
-            } ?: return null
-            val puzzle = puzzleOf(match, legIndex) ?: return null
-            ReplaySource(puzzle, bytes)
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            null
-        }
+        val me = identity.current.value?.uid ?: return null
+        val match = (matches.observe(code).first() as? MatchFetch.Found)?.match ?: return null
+        val bytes = when (ref) {
+            is SolveReplayRef.TheirLeg -> theirs(match, legIndex, me)
+            else -> mine(code, legIndex, me)
+        } ?: return null
+        val puzzle = puzzleOf(match, legIndex) ?: return null
+        return ReplaySource(puzzle, bytes)
     }
 
     private suspend fun mine(code: ShareCode, legIndex: Int, me: String): SolveReplay? =
@@ -63,7 +56,7 @@ class LoadLegReplay(
         return when (leg) {
             is LegRef.Daily -> daily.cachedPuzzle(leg.gameId, leg.day)
             is LegRef.Custom -> {
-                val row = received.get(leg.code) ?: (loadShared(leg.code) as? OpenOutcome.Opened)?.puzzle
+        val row = received.get(leg.code) ?: (loadShared(leg.code) as? OpenOutcome.Opened)?.puzzle
                 row?.takeIf { it.gameId == leg.gameId }
                     ?.let { Puzzle(it.gameId, it.variant, it.sharedFormatVersion, it.puzzleBytes) }
             }

@@ -113,7 +113,7 @@ class ReplaysKindTest {
 
             assertEquals(1, ReplaysKind(other, other.completionReplayDao()).apply("ann", sent))
 
-            val row = other.completionReplayDao().recordReplay("alpha/2026-03-01/1")
+            val row = other.completionReplayDao().recordReplay("alpha/2026-03-01/1", null)
             assertArrayEquals(bytes(10), row)
             assertEquals(emptyList<String>(), other.completionReplayDao().pending("ann").map { it.syncId })
             assertEquals(id, other.completionReplayDao().keptCompletionId("ann", "s1"))
