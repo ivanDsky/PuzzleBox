@@ -64,7 +64,7 @@ class ReplayPlayback(
         val reachedMs = (it.positionMs + frameDtMs * it.speed).coerceAtLeast(0)
         when {
             reachedMs >= durationMs -> it.with(positionMs = durationMs, playing = false)
-            it.skipIdle -> it.with(positionMs = pastIdle(reachedMs))
+            it.skipIdle -> it.with(positionMs = pastIdle(reachedMs, it.speed))
             else -> it.with(positionMs = reachedMs)
         }
     }
@@ -74,11 +74,23 @@ class ReplayPlayback(
         _state.update(next)
     }
 
-    /** [positionMs], or the lead-in of the next move when that move is more than the idle gap away. */
-    private fun pastIdle(positionMs: Long): Long {
+    /**
+     * [positionMs], or the lead-in of the next move when that move is more than the idle gap away.
+     * Never jumps before the latest move at or before [positionMs] (either side) has had [DWELL_MS]
+     * of wall time, [DWELL_MS] times [speed] of play time, to animate on the board.
+     */
+    private fun pastIdle(positionMs: Long, speed: Int): Long {
         // After the last move of both sides nothing is left to jump to: the tail plays out.
         val nextMoveMs = nextMoveAfter(positionMs) ?: return positionMs
+        val lastMoveMs = lastMoveAtOrBefore(positionMs)
+        if (lastMoveMs != null && positionMs - lastMoveMs < DWELL_MS * speed) return positionMs
         return if (nextMoveMs - positionMs > IDLE_GAP_MS) nextMoveMs - LEAD_IN_MS else positionMs
+    }
+
+    private fun lastMoveAtOrBefore(positionMs: Long): Long? {
+        val mineMs = mine?.moveTimesMs?.lastAtOrBelow(positionMs)
+        val theirsMs = theirs?.moveTimesMs?.lastAtOrBelow(positionMs)
+        return if (mineMs != null && theirsMs != null) maxOf(mineMs, theirsMs) else mineMs ?: theirsMs
     }
 
     private fun nextMoveAfter(positionMs: Long): Long? {
@@ -117,6 +129,15 @@ class ReplayPlayback(
         val SPEEDS = intArrayOf(1, 2, 4, 8)
         const val IDLE_GAP_MS = 6_000L
         const val LEAD_IN_MS = 1_000L
+
+        /**
+         * Wall time a move's board animation needs before an idle jump may leave it. The longest
+         * replay-board animation is Strands' spangram of about 12 letters: draw-in 12 x
+         * ReplayDrawInLetterMs (90) = 1 080 ms, then SpangramSweep 900 ms, then FoundSettle 1 000 ms
+         * = 2 980 ms. A bonus word is shorter: 1 080 + ReplayBonusHoldMs 1 000 + DissolveDuration 160
+         * = 2 240 ms. Rounded up to 3 000 ms.
+         */
+        const val DWELL_MS = 3_000L
     }
 }
 
@@ -124,6 +145,12 @@ class ReplayPlayback(
 private fun LongArray.firstAbove(ms: Long): Long? {
     val found = binarySearch(ms)
     return getOrNull(if (found >= 0) found + 1 else insertionPoint(found))
+}
+
+/** The last stamp at or below [ms] in ascending distinct stamps. */
+private fun LongArray.lastAtOrBelow(ms: Long): Long? {
+    val found = binarySearch(ms)
+    return getOrNull(if (found >= 0) found else insertionPoint(found) - 1)
 }
 
 /** The last stamp below [ms] in ascending distinct stamps. */
