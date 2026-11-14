@@ -65,8 +65,14 @@ internal fun <T : Any> BoardScrubCell(
     val leaving = at(from)
     val arriving = at(target)
     if (scrub == null || reduced || target == from || leaving == null || arriving == null) {
-        MorphCell(resting, modifier, content = content)
+        FrostCell(null, resting, { 0f }, modifier, content)
     } else {
-        ScrubCell(leaving, arriving, { scrub.progress }, modifier, content = content)
+        FrostCell(leaving, arriving, { scrub.progress }, modifier, content)
     }
+}
+
+/** A piece of text that is [now] at rest, frosting over what it was; with a [was], it is [was] frosted into [now] by [progress]. */
+@Composable
+internal fun <T : Any> FrostCell(was: T?, now: T, progress: () -> Float, modifier: Modifier = Modifier, content: @Composable (T) -> Unit) {
+    if (was == null) MorphCell(now, modifier, content = content) else ScrubCell(was, now, progress, modifier, content = content)
 }

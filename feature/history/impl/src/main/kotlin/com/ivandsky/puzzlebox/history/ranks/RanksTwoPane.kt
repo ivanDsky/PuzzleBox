@@ -28,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -41,8 +40,6 @@ import com.ivandsky.puzzlebox.gameui.board.boardRowValueText
 
 private const val LIST_WEIGHT = 0.4f
 private const val BOARD_WEIGHT = 0.6f
-private val ItemHeight = 52.dp
-private val ICON = 20.dp
 
 /**
  * The Ranks hub on a tablet: the left pane holds the full month with the lifetime stats under it and the game list
@@ -139,14 +136,14 @@ private fun GameList(places: List<BoardPlace>, selected: RanksBoard?, onPick: (R
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .defaultMinSize(minHeight = ItemHeight)
+                    .defaultMinSize(minHeight = RanksMetrics.ListItemHeight)
                     .selectable(selected = false, role = Role.Button, onClick = onHowRanksWork)
                     .padding(horizontal = Spacing.md)
                     .testTag("ranks.list.how"),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
-                Icon(PuzzleIcons.HowTo, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(ICON))
+                Icon(PuzzleIcons.HowTo, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(RanksMetrics.IconSize))
                 Text("How ranks work", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -159,7 +156,7 @@ private fun GameItem(place: BoardPlace, selected: Boolean, modifier: Modifier, o
     Surface(
         selected = selected,
         onClick = onClick,
-        modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = ItemHeight),
+        modifier = modifier.fillMaxWidth().defaultMinSize(minHeight = RanksMetrics.ListItemHeight),
         shape = MaterialTheme.shapes.medium,
         color = if (selected) scheme.secondaryContainer else scheme.surfaceContainerLow,
         contentColor = if (selected) scheme.onSecondaryContainer else scheme.onSurface,
