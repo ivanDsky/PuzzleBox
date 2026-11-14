@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.history.ranks
 
-import androidx.compose.animation.core.animate
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -8,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
@@ -34,8 +32,6 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sign
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
 
 /**
  * How many boards a horizontal drag of [dragPx] released at [velocityPx] (both px, negative = leftwards)
@@ -126,8 +122,8 @@ private suspend fun PointerInputScope.detectSwipe(onDrag: (Float) -> Unit, onEnd
  *
  * A drag belongs to one axis from its touch slop on ([swipeAxis]): a mostly-sideways one is the swipe and never
  * scrolls the page or pulls its refresh, a mostly-vertical one is the page's and never moves the board. Nothing
- * slides: past the first or last board the content gives a little with the finger and settles back. Reduced
- * motion leaves the scrub alone and steps on release. Assistive tech gets both steps as actions.
+ * slides: past the first or last board the content gives a little with the finger and settles back ([EdgePull]).
+ * Reduced motion leaves the scrub alone and steps on release. Assistive tech gets both steps as actions.
  */
 @Composable
 internal fun BoardSwipe(
@@ -139,8 +135,7 @@ internal fun BoardSwipe(
     content: @Composable () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    var over by remember { mutableFloatStateOf(0f) }
-    var settling by remember { mutableStateOf<Job?>(null) }
+    val pull = remember { EdgePull(scope) }
     var width by remember { mutableFloatStateOf(0f) }
     val fling = with(LocalDensity.current) { SwipeMotion.FlingVelocity.toPx() }
     val commitCap = with(LocalDensity.current) { SwipeMotion.CommitCap.toPx() }
@@ -160,12 +155,7 @@ internal fun BoardSwipe(
             .pointerInput(fling, commitCap, still, scrub) {
                 detectSwipe(
                     onDrag = { dx ->
-                        if (!still && width > 0f) {
-                            settling?.cancel()
-                            // A pull past the end is taken back first; only what is left of the move scrubs.
-                            val back = if (over * dx < 0f) dx.coerceIn(-abs(over), abs(over)) else 0f
-                            over += back + scrub.dragBy((dx - back) / width, boards) * width
-                        }
+                        if (!still && width > 0f) pull.dragBy(dx) { rest -> scrub.dragBy(rest / width, boards) * width }
                     },
                     onEnd = { dragPx, velocityPx ->
                         val commit = min(width * SwipeMotion.CommitFraction, commitCap)
@@ -179,13 +169,11 @@ internal fun BoardSwipe(
                                 val target = scrub.release(at, -velocityPx / width, fling / width, commit / width)
                                 if (target != at) step(target - at)
                             }
-                            settling = scope.launch {
-                                animate(over, 0f, animationSpec = SwipeMotion.Settle) { value, _ -> over = value }
-                            }
+                            pull.release()
                         }
                     },
                 )
             }
-            .graphicsLayer { translationX = if (still) 0f else over * SwipeMotion.EdgeFollow },
+            .graphicsLayer { translationX = if (still) 0f else pull.lean },
     ) { content() }
 }
