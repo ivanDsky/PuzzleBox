@@ -449,6 +449,55 @@ class SubmitDailyReplayTest {
         return running
     }
 
+    @Test
+    fun `after a failed clear a solve made below Replays stays private when its post is accepted after the next opt-in`() = runTest {
+        optOutWithoutClearing()
+        completions.onCompleted(solve(), firstSolve)
+
+        nowMs = SOLVE_MS + 1_000
+        visibility.setOwnTier(VisibilityTier.Replays)
+        runCurrent()
+        accept()
+
+        assertEquals(emptyList<Any>(), published())
+    }
+
+    @Test
+    fun `after a failed clear a solve whose post was accepted below Replays stays private after the next opt-in`() = runTest {
+        optOutWithoutClearing()
+        completions.onCompleted(solve(), firstSolve)
+        accept()
+
+        nowMs = SOLVE_MS + 1_000
+        visibility.setOwnTier(VisibilityTier.Replays)
+        runCurrent()
+
+        assertEquals(emptyList<Any>(), published())
+    }
+
+    @Test
+    fun `the opt-in after a failed clear is stamped afresh`() = runTest {
+        optOutWithoutClearing()
+
+        nowMs = SOLVE_MS + 1_000
+        visibility.setOwnTier(VisibilityTier.Replays)
+        runCurrent()
+
+        assertEquals(SOLVE_MS + 1_000, stamps.stamps[ME])
+    }
+
+    /** Opts in, then drops below Replays on a store that cannot clear, which leaves the first stamp behind. */
+    private fun TestScope.optOutWithoutClearing() {
+        val store = UnwritableStamp(stamps, failing = false)
+        backgroundScope.launch { publishWith(store)() }
+        runCurrent()
+        store.failing = true
+        visibility.emitOwn(OwnTier.Chosen(VisibilityTier.Board))
+        runCurrent()
+        assertEquals(BEFORE_SOLVE_MS, stamps.stamps[ME])
+        store.failing = false
+    }
+
     private fun TestScope.start() {
         backgroundScope.launch { publish() }
         runCurrent()
@@ -483,9 +532,11 @@ class SubmitDailyReplayTest {
 }
 
 /** Reads go to [kept]; writes throw [failure] while [failing], like a disk that has stopped taking them. */
-private class UnwritableStamp(private val kept: ReplayOptInStamp) : ReplayOptInStamp by kept {
+private class UnwritableStamp(
+    private val kept: ReplayOptInStamp,
+    var failing: Boolean = true,
+) : ReplayOptInStamp by kept {
     val failure = IOException("stamp store is unwritable")
-    var failing = true
 
     override suspend fun markIfAbsent(uid: String, atMs: Long) {
         if (failing) throw failure
