@@ -15,9 +15,9 @@ import java.net.URLEncoder
 
 /**
  * Raw reads and writes of the cloud-sync bookkeeping: a cursor per (uid, kind), the last signed-in uid, a
- * restore-shown flag per uid, a daily write counter per uid the instant a uid's replay opt-in was first seen and the solves a uid made while hidden. It takes a DataStore of its own file so
- * backup rules can exclude the bookkeeping alone: a restored cursor would make a new device skip documents
- * it never downloaded. A uid is percent-encoded inside every key, so no uid can address another uid's keys.
+ * restore-shown flag per uid, a daily write counter per uid, the instant a uid's replay opt-in was first seen,
+ * and the solves a uid made while hidden. It takes a DataStore of its own file so backup rules can exclude the
+ * bookkeeping alone: a restored cursor would make a new device skip documents it never downloaded. A uid is percent-encoded inside every key, so no uid can address another uid's keys.
  * It reads no clock; the caller supplies the day.
  */
 class SyncStateDataSource(

@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.data.visibility
 import com.ivandsky.puzzlebox.datastore.SyncStateDataSource
 
 /**
- * The solves a player made while Hidden (ledger L264): they never post, even after a switch to Board. The tier doc has no
+ * The solves a player made while Hidden: they never post, even after a switch to Board. The tier doc has no
  * room for a per-solve fact, so the device keeps the puzzle refs itself, per uid, across process death.
  */
 interface SkippedPosts {

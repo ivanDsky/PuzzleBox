@@ -32,7 +32,8 @@ import kotlinx.coroutines.launch
  * (A4) and re-submissions after process death are deduped server-side too. Each
  * attempt's outcome goes to [statuses] (Posting, then Posted, Deferred or Rejected),
  * so the screens can end their Posting line; signed out writes none. A Hidden player posts
- * no new entries (A17), and a solve made while Hidden stays unposted after a switch to Board (kept in [skipped]); [visibility] is null while the hub flag is off, which reads as Board.
+ * no new entries (A17), and a solve made while Hidden stays unposted after a switch to Board (kept in [skipped]).
+ * [visibility] is null while the hub flag is off, which reads as Board.
  */
 class LeaderboardSubmitWatcher(
     private val records: CompletionRepository,
@@ -94,7 +95,7 @@ class LeaderboardSubmitWatcher(
         return tier.postsToBoards
     }
 
-    /** A solve made while Hidden is kept off the boards for good (ledger L264), also once the player moves to Board. */
+    /** A solve made while Hidden is kept off the boards for good, also once the player moves to Board. */
     private suspend fun remember(uid: String, puzzleRef: String) {
         try {
             skipped?.add(uid, puzzleRef)
