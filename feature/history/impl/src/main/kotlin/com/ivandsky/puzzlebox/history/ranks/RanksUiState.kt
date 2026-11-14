@@ -11,8 +11,9 @@ import com.ivandsky.puzzlebox.history.CalendarState
  * slots (top bar, calendar, sheets) add their slices here, each type in its own file. [position]
  * of [boardCount] boards is where the swipe stands. The [calendar] and the month's [stats] come from local
  * history alone, so they never wait on the network or a sign-in; [yourSolve] is the viewer's own solve of the board's day.
- * [scope] and [window] are the tune sheet's picks the board already answers. [places] is the viewer's place on every
- * board, for the title menu; [nudge] says the one-time swipe hint has not been shown yet. [boards] is every board's
+ * [scope] and [window] are the tune sheet's picks the board already answers: in Friends every board and place is among
+ * the viewer and their friends (F18). [places] is the viewer's place on every board, as the boards show it, for the
+ * title menu; [nudge] says the one-time swipe hint has not been shown yet. [boards] is every board's
  * slice in swipe order ([board] is the one at [position]), there for a swipe to scrub to; empty when only [board] is known.
  */
 internal data class RanksUiState(
@@ -29,20 +30,6 @@ internal data class RanksUiState(
     val nudge: Boolean = false,
     val boards: List<RanksBoardSlice> = emptyList(),
 )
-
-/**
- * Friends scope (A6) only filters: the viewer's own row and the [friends]' rows stay, each with the place and
- * points the global board gave it. Anything that is not a list of rows is unchanged.
- */
-internal fun DailyBoardState.friendsOnly(friends: Set<String>): DailyBoardState =
-    if (this is DailyBoardState.Ranked) {
-        copy(
-            rows = rows.filter { it.isSelf || it.playerId in friends },
-            lines = lines?.filter { it !is DailyBoardLine.Real || it.row.isSelf || it.row.playerId in friends },
-        )
-    } else {
-        this
-    }
 
 /** True for a list of rows holding nobody but the viewer, and no LinkedIn ghost either; empty counts. Any other state is not "alone". */
 internal fun DailyBoardState.isViewerAlone(): Boolean =

@@ -22,7 +22,10 @@ class ObserveOverall(
     private val completions: CompletionRepository,
 ) {
 
-    /** [boards] must be the shared collection of [ObserveRankWindow] for [window]; its boards already carry the window's days. */
+    /**
+     * [boards] must be the shared collection of [ObserveRankWindow] for [window], or its [amongFriends] projection for
+     * Overall among friends (F18); its boards already carry the window's days.
+     */
     @Suppress("UNUSED_PARAMETER")
     operator fun invoke(boards: Flow<RankWindowBoards>, window: RankWindow): Flow<OverallState> =
         combine(boards, identity.current, completions.observeRecords(), ::stateOf)

@@ -72,15 +72,21 @@ class RanksTitleMenuViewModelTest {
     }
 
     @Test
-    fun `the places do not depend on which board is showing, nor on the scope`() = runTest {
+    fun `the places do not depend on which board is showing, and follow the scope`() = runTest {
         val viewModel = hub().viewModel()
         val landed = viewModel.uiState.first { state -> state.places.any { it.standing is Standing.Place } }.standings()
 
         viewModel.pickBoard(RanksBoard.Game(QUEENS))
-        viewModel.setScope(RankScope.Friends)
-        val after = viewModel.uiState.first { it.scope == RankScope.Friends && it.board.title.startsWith("Queens") }.standings()
+        assertEquals(landed, viewModel.uiState.first { it.board.title.startsWith("Queens") && it.board.state is DailyBoardState.Ranked }.standings())
 
-        assertEquals(landed, after)
+        // F18: with no friends the viewer is first wherever they played, in Overall too.
+        viewModel.setScope(RankScope.Friends)
+        val friends = viewModel.uiState.first { state -> state.scope == RankScope.Friends && state.places.none { it.standing == Standing.Pending } }
+
+        assertEquals(
+            mapOf("Overall" to Standing.Place(1), "Zip" to Standing.Place(1), "Tango" to Standing.None, "Queens" to Standing.Place(1)),
+            friends.standings(),
+        )
     }
 
     @Test

@@ -55,23 +55,23 @@ internal fun RankWindowBoards?.gameBoardNote(game: GameId, kind: Window): String
 private const val WITH_LINKEDIN = "with LinkedIn connections"
 
 /**
- * A game's board in Friends scope (A6, A15): the connections [input] merge in as on the game page (`rankWithLinkedIn`: a
- * shared place, no PuzzleBox rank, no actions) over the whole board, and only then do the rows narrow to the viewer and
- * [friends], so every place counts everyone ahead of it. The viewer's unofficial row stays out of that ranking and goes back
- * at its own place: it takes none from anyone (A14). Without ghosts this is plain [friendsOnly]. [RanksBoardSlice.friendsAlone] marks a list of the viewer alone.
+ * A game's board in Friends scope (F18, A15). Its rows are already the viewer and their friends ranked among
+ * themselves; the connections [input] merge in over them as on the game page (`rankWithLinkedIn`: a shared place, no
+ * PuzzleBox rank, no actions), so a ghost takes a friend place. The viewer's unofficial row stays out of that ranking
+ * and goes back at its own place: it takes none from anyone (A14). [RanksBoardSlice.friendsAlone] marks a list of the viewer alone.
  */
-internal fun RanksBoardSlice.inFriends(friends: Set<String>, input: BoardGhostInput): RanksBoardSlice =
-    inFriendsList(friends, input).let { it.copy(friendsAlone = it.state.isViewerAlone()) }
+internal fun RanksBoardSlice.inFriends(input: BoardGhostInput): RanksBoardSlice =
+    withGhosts(input).let { it.copy(friendsAlone = it.state.isViewerAlone()) }
 
-private fun RanksBoardSlice.inFriendsList(friends: Set<String>, input: BoardGhostInput): RanksBoardSlice {
+private fun RanksBoardSlice.withGhosts(input: BoardGhostInput): RanksBoardSlice {
     val ranked = state as? DailyBoardState.Ranked
-    if (ranked == null || (input.ghosts.isEmpty() && input.you == null)) return copy(state = state.friendsOnly(friends))
+    if (ranked == null || (input.ghosts.isEmpty() && input.you == null)) return this
     val (unofficial, official) = ranked.rows.partition { it.unofficial }
     // A LinkedIn import replaces the viewer's time only on a row they really have; off the board it is the unofficial row's business.
     val you = input.you.takeIf { official.any { it.isSelf } }
     val lines = unofficial.fold(rankWithLinkedIn(official, input.ghosts, you, order)) { merged, row -> merged.withUnofficialLine(row) }
     val merged = DailyBoardState.Ranked(rows = lines.filterIsInstance<DailyBoardLine.Real>().map { it.row }, lines = lines)
-    return copy(state = merged.friendsOnly(friends), note = WITH_LINKEDIN.takeIf { input.ghosts.isNotEmpty() })
+    return copy(state = merged, note = WITH_LINKEDIN.takeIf { input.ghosts.isNotEmpty() })
 }
 
 private fun RankedBoard.Row.toRow(selfUid: String?) = DailyBoardRowModel(

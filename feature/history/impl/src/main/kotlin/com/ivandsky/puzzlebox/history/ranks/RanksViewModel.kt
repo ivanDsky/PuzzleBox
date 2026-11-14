@@ -20,7 +20,6 @@ import com.ivandsky.puzzlebox.domain.ranks.ObserveWindowRefresh
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.domain.ranks.RankWindow
-import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.CalendarState
@@ -40,8 +39,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -54,16 +51,16 @@ import kotlinx.coroutines.launch
  * The Ranks hub's state holder: one [selection] (what the player picked) and the [uiState]
  * derived from it, slice by slice.
  *
- * The window's boards are read once, here: every listener the hub holds hangs off [windowBoards]
- * (A23), and Overall and each game's board are projections of it, so a swipe between boards
- * attaches and fetches nothing.
+ * The window's boards are read once, here: every listener the hub holds hangs off [reads]
+ * (A23), and Overall and each game's board are projections of it in either scope, so a swipe between boards
+ * or a scope change attaches and fetches nothing.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class RanksViewModel(
     observeRankWindow: ObserveRankWindow,
     observeWindowRefresh: ObserveWindowRefresh,
-    private val observeOverall: ObserveOverall,
-    private val observeFriendUids: ObserveFriendUids,
+    observeOverall: ObserveOverall,
+    observeFriendUids: ObserveFriendUids,
     observeGameHistory: ObserveGameHistory,
     observeGameStats: ObserveGameStats,
     private val playRegistry: GamePlayRegistry,
@@ -98,29 +95,12 @@ internal class RanksViewModel(
         .distinctUntilChanged()
 
     private val reads = RanksWindowReads(observeRankWindow, observeWindowRefresh, window, games, viewModelScope)
-    private val windowBoards: StateFlow<Pair<RankWindow, RankWindowBoards>?> = reads.boards
+    private val scopedBoards = RanksScopedBoards(reads.boards, observeFriendUids, viewer, viewModelScope)
 
     /** The pull-to-refresh indicator, and the pull itself. */
     val refreshing: StateFlow<Boolean> = reads.refreshing
 
     fun refresh() = reads.pull()
-
-    /** Overall's state over the shared boards, held once: Overall's slice and the title menu both read it. */
-    private val overallState: StateFlow<OverallState> = window.flatMapLatest { window ->
-        val answered = windowBoards.filterNotNull().filter { (of, _) -> of == window }.map { (_, boards) -> boards }
-        observeOverall(answered, window)
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), OverallState.Loading)
-
-    /** The viewer's place on every board for the title menu: projections of the shared boards, so opening it reads nothing. */
-    private val places: Flow<List<BoardPlace>> = combine(
-        window,
-        windowBoards,
-        overallState,
-        viewer,
-        selection.map { it.window }.distinctUntilChanged(),
-    ) { window, answered, overall, me, kind ->
-        boardPlaces(boards, registry, playRegistry::brandOf, overall, answered?.takeIf { (of, _) -> of == window }?.second, kind, me?.uid)
-    }.distinctUntilChanged()
 
     private val nudge: Flow<Boolean> = preferences.tutorialSeen(SWIPE_NUDGE).map { !it }
 
@@ -147,39 +127,38 @@ internal class RanksViewModel(
         if (row == null) flowOf(null) else dayReplays.replays.map { YourSolve(row, it.of(row), playRegistry[row.gameId]) }
     }
 
-    private val local = combine(calendarState, observeGameStats(), yourSolve, places, nudge) { calendar, stats, solve, places, nudge ->
-        Local(calendar, stats, solve, places, nudge)
-    }
-
-    /** Friends' uids, listened to only while the scope is Friends; the boards never see the scope, so changing it re-reads nothing. */
-    private val friends: Flow<Set<String>> = selection.map { it.scope }.distinctUntilChanged()
-        .flatMapLatest { scope -> if (scope == RankScope.Friends) observeFriendUids() else flowOf(emptySet()) }
+    private val local = combine(calendarState, observeGameStats(), yourSolve, nudge, ::Local)
 
     /** The LinkedIn ghosts of every board, in the boards' order: read only on a game's Day board in Friends scope. */
     private val ghostInputs: Flow<List<BoardGhostInput>> = combine(selection.map { it.scope }.distinctUntilChanged(), window) { scope, window -> scope to window }
         .flatMapLatest { (scope, window) -> combine(boards.map { ghosts.observe(it, scope, window) }) { it.toList() } }
 
-    private val slices = RanksBoardSlices(boards, window, windowBoards, overallState, viewer, history, calendar, registry)
+    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry)
 
-    /** Every board as its slot draws it in the picked scope, so the one a swipe scrubs to is already there. */
-    private val scoped: Flow<List<RanksBoardSlice>> = combine(
-        selection.map { it.window to it.day }.distinctUntilChanged().flatMapLatest { (kind, day) -> slices.observe(kind, day) },
-        selection.map { it.scope }.distinctUntilChanged(),
-        friends,
-        ghostInputs,
-    ) { slices, scope, friends, inputs ->
-        if (scope == RankScope.Friends) slices.mapIndexed { index, slice -> slice.inFriends(friends, inputs[index]) } else slices
-    }
+    /**
+     * Every board as its slot draws it in the picked scope, with that scope: the one a swipe scrubs to is already
+     * there, and the scope the hub names is always the one its boards and places answer (F18).
+     */
+    private val scoped: Flow<Pair<RankScope, List<RanksBoardSlice>>> = selection.map { Triple(it.window, it.day, it.scope) }.distinctUntilChanged()
+        .flatMapLatest { (kind, day, scope) ->
+            val drawn = slices.observe(kind, day, scope)
+            if (scope == RankScope.Global) {
+                drawn.map { scope to it }
+            } else {
+                combine(drawn, ghostInputs) { slices, inputs -> scope to slices.mapIndexed { index, slice -> slice.inFriends(inputs[index]) } }
+            }
+        }
 
     val uiState: StateFlow<RanksUiState> = combine(
         scoped,
         signInHolder.status,
         selection.map { boards.indexOf(it.board) }.distinctUntilChanged(),
         local,
-        selection.map { it.scope to it.window }.distinctUntilChanged(),
-    ) { slices, signIn, position, local, (scope, kind) ->
+        selection.map { it.window }.distinctUntilChanged(),
+    ) { (scope, slices), signIn, position, local, kind ->
         val slice = slices.getOrElse(position) { slices.first() }
-        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, local.places, local.nudge, slices)
+        val places = boardPlaces(boards, registry, playRegistry::brandOf, slices)
+        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
@@ -243,7 +222,7 @@ internal class RanksViewModel(
     /** The replays of [row]'s day only: a switch never flashes the last day's. */
     private fun DayReplays.of(row: HistoryDayRow): HistoryReplays = if (key == row.key) replays else HistoryReplays.Hidden
 
-    private data class Local(val calendar: CalendarState, val stats: GameStats, val yourSolve: YourSolve?, val places: List<BoardPlace>, val nudge: Boolean)
+    private data class Local(val calendar: CalendarState, val stats: GameStats, val yourSolve: YourSolve?, val nudge: Boolean)
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
