@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -21,6 +22,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -177,8 +179,8 @@ class ResultHeroScreenTest {
     }
 
     @Test
-    fun tablet_spreads_the_hero_blocks_evenly_down_the_card_when_the_side_card_grows_taller() {
-        // Same hero beside a shorter side card (nothing stretches) and then a taller one (the spare height is shared out).
+    fun tablet_gives_the_stretched_hero_a_top_a_big_time_in_the_middle_and_a_bottom_group() {
+        // Same hero beside a shorter side card (nothing stretches) and then a taller one (the spare height is the time's).
         var sideTall by mutableStateOf(false)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -195,14 +197,19 @@ class ResultHeroScreenTest {
         sideTall = true
         composeRule.waitForIdle()
         val tall = heroParts()
-        val extra = tall.card.height - short.card.height
-        assertTrue("premise: the hero stretches (${short.card.height} -> ${tall.card.height})", extra > 8.dp)
-        val share = extra.value / short.gaps.size
-        short.gaps.zip(tall.gaps).forEachIndexed { index, (before, after) ->
-            assertEquals("gap $index grows by an equal share of $extra", share, (after - before).value, 1f)
-        }
+        assertTrue("premise: the hero stretches (${short.card.height} -> ${tall.card.height})", tall.card.height - short.card.height > 8.dp)
         assertEquals("the header stays on the top padding", (short.glyph.top - short.card.top).value, (tall.glyph.top - tall.card.top).value, 1f)
         assertEquals("the actions stay on the bottom padding", (short.card.bottom - short.next.bottom).value, (tall.card.bottom - tall.next.bottom).value, 1f)
+        assertEquals("best to chips keeps its gap", (short.chips.top - short.best.bottom).value, (tall.chips.top - tall.best.bottom).value, 1f)
+        assertEquals("chips to actions keeps its gap", (short.next.top - short.chipsBottom).value, (tall.next.top - tall.chipsBottom).value, 1f)
+        // The time grows as a layer, which the layout bounds ignore: read what is drawn, from the semantics node.
+        val drawn = composeRule.onNodeWithTag("result.hero.time").fetchSemanticsNode().boundsInRoot
+        val density = composeRule.density.density
+        val drawnCentre = (drawn.top + drawn.bottom) / 2 / density
+        val middle = (tall.glyph.bottom + tall.best.top).value / 2
+        assertEquals("the time is centred between the header and the best line", middle, drawnCentre, 2f)
+        assertTrue("the time grows into the space (${short.time.width} -> ${(drawn.right - drawn.left) / density} wide)", (drawn.right - drawn.left) / density > short.time.width.value * 1.4f)
+        assertTrue("the time stays inside the card (${drawn.right / density} vs ${tall.card.right})", drawn.right / density <= tall.card.right.value - Spacing.lg.value)
     }
 
     @Test
