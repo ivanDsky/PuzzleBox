@@ -7,7 +7,6 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.onAllNodesWithTag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
@@ -70,8 +69,6 @@ internal class LinkedInDataWorld(
     ),
     /** Answers every [GHOSTS] photo; any other address answers nothing, like a photo that could not be fetched. */
     val photos: FakeLinkedInPhotoSource = FakeLinkedInPhotoSource(),
-    /** Flags on: a scenario on another surface (the Ranks hub) names them. */
-    also: List<ReleaseFlag> = emptyList(),
     /** The device clock of the Ranks hub's boards, which says only which days are too old to change; the wall clock when null. */
     ranksClock: Clock? = null,
     /** Bindings that replace the graph's, for what that surface reads from a backend. */
@@ -82,7 +79,6 @@ internal class LinkedInDataWorld(
     private val processes = mutableListOf<KoinApplication>()
 
     val graph: E2eKoinGraph = shellGraph(
-        *also.toTypedArray(),
         overrides = module {
             bindings()
             if (ranksClock != null) factory { ObserveRankWindow(get(), get(), get(), get(), get(), ranksClock) }
@@ -236,7 +232,7 @@ internal fun <T> ShellRobot.awaitEquals(expected: T, read: () -> T) {
     assertEquals(expected, read())
 }
 
-/** Opens the Ranks hub at Zip's board from the row that stands for the board on Zip's page while the hub is on. */
+/** Opens the Ranks hub at Zip's board from the row that stands for the board on Zip's page. */
 internal fun ShellRobot.openZipRanks() {
     tap("summary.rank")
     awaitTag("route.ranks")

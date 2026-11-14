@@ -5,6 +5,12 @@ import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.data.visibility.OwnTier
+import com.ivandsky.puzzlebox.data.visibility.SkippedPosts
+import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
+import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
+import com.ivandsky.puzzlebox.testing.repository.FakeSkippedPosts
+import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.di.linkedInCloudSyncModule
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -111,6 +117,9 @@ class E2eKoinGraph(
         single<MatchLocalRepository> { matchLocal }
         single<MatchResultOutbox> { outbox }
         single<ReleaseFlags> { releaseFlags }
+        // The Ranks hub is always on: a player who chose Board posts every solve, and nothing is skipped.
+        single<VisibilityRepository> { FakeVisibilityRepository(OwnTier.Chosen(VisibilityTier.Board)) }
+        single<SkippedPosts> { FakeSkippedPosts() }
     }
 
     /**

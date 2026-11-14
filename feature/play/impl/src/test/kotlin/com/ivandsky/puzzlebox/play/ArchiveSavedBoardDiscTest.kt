@@ -24,7 +24,6 @@ import com.ivandsky.puzzlebox.domain.PastDayStatus
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
-import com.ivandsky.puzzlebox.domain.linkedin.SavedBoardState
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameCardModel
@@ -70,7 +69,7 @@ class ArchiveSavedBoardDiscTest {
 
     @Before
     fun startGraph() {
-        koin = startGamePageBoardKoin(listOf(game))
+        koin = startGamePageRankKoin(listOf(game))
     }
 
     @After
@@ -116,8 +115,8 @@ class ArchiveSavedBoardDiscTest {
         ObserveArchiveMonth(daily, FakeSavedPlayRepository(), FakeCompletionRepository(), FakeGameCalendar(today))(game, month).first()
     }
 
-    /** The day's view as the day card gets it, over a saved, final board read at 2026-11-04 14:12 UTC. */
-    private fun savedFinalView(on: LocalDate): LinkedInDayView {
+    /** The day's view as the day card gets it, over a saved board read at 2026-11-04 14:12 UTC. */
+    private fun savedBoardView(on: LocalDate): LinkedInDayView {
         linkedIn.emit(
             game,
             on,
@@ -130,11 +129,9 @@ class ArchiveSavedBoardDiscTest {
                 own = LinkedInOwnState.Unknown,
                 ghosts = emptyList(),
                 boardFetchedAtMs = 1_793_801_520_000L,
-                boardComplete = true,
             ),
         )
         val view = runBlocking { ObserveLinkedInDay(linkedIn, FakeGames(listOf(game)).games)(game, on).first() }
-        assertTrue("the fixture really is a saved, final board: ${view.saved}", view.saved.let { it is SavedBoardState.Saved && it.final })
         return view
     }
 
@@ -153,7 +150,7 @@ class ArchiveSavedBoardDiscTest {
                     onBack = null,
                     offline = false,
                     hasLesson = false,
-                    onOpenGameHistory = { _, _ -> },
+                    onOpenRanks = { _, _ -> },
                     linkedIn = LinkedInCardState(boardView, onResume = {}, onRetry = {}, onReconnect = {}),
                 )
             }
@@ -187,7 +184,7 @@ class ArchiveSavedBoardDiscTest {
         val before = discStates(days)
         val textsBefore = calendarTexts()
 
-        boardView.value = savedFinalView(withBoard)
+        boardView.value = savedBoardView(withBoard)
         composeRule.waitForIdle()
 
         assertEquals("the saved board repaints no disc", before, discStates(days))
@@ -200,7 +197,7 @@ class ArchiveSavedBoardDiscTest {
     fun noLinkedInMarkIsDrawnInsideTheCalendar() {
         val days = archiveDays()
         show(days, days.first { it.date == withBoard })
-        boardView.value = savedFinalView(withBoard)
+        boardView.value = savedBoardView(withBoard)
         composeRule.waitForIdle()
 
         composeRule.onAllNodes(
@@ -214,7 +211,7 @@ class ArchiveSavedBoardDiscTest {
     fun theLegendNamesTheFourDiscsAndNoSavedBoard() {
         val days = archiveDays()
         show(days, days.first { it.date == withBoard })
-        boardView.value = savedFinalView(withBoard)
+        boardView.value = savedBoardView(withBoard)
         composeRule.waitForIdle()
 
         val texts = calendarTexts()
@@ -229,7 +226,7 @@ class ArchiveSavedBoardDiscTest {
         val days = archiveDays()
         assertEquals(PastDayStatus.Stored, days.first { it.date == cached }.status)
         show(days, days.first { it.date == withBoard })
-        boardView.value = savedFinalView(withBoard)
+        boardView.value = savedBoardView(withBoard)
         composeRule.waitForIdle()
 
         assertEquals("saved", discState(cached))

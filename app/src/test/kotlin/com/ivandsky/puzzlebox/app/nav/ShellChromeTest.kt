@@ -44,7 +44,7 @@ class ShellChromeTest {
         assertShellActions(shown = true)
 
         tapTab(HistoryRootKey)
-        assertRoute(HISTORY)
+        assertRoute(RANKS)
         assertShellActions(shown = false)
 
         tapTab(CreateKey)
@@ -60,7 +60,7 @@ class ShellChromeTest {
 
     @Test
     fun `a pushed History shows neither`() = shellAt(at(HomeKey, HistoryKey())) {
-        assertRoute(HISTORY)
+        assertRoute(RANKS)
         assertShellActions(shown = false)
     }
 
@@ -168,7 +168,7 @@ class ShellChromeTest {
         const val PROFILE_GEAR = "profile.settings"
         const val ZIP = "zip"
         const val HOME = "route.home"
-        const val HISTORY = "route.history"
+        const val RANKS = "route.ranks"
         const val CREATE = "route.create"
         const val FRIEND = "route.friend"
         const val GAME = "route.game"

@@ -47,7 +47,7 @@ class RanksFriendDayParityTest {
                 ZIP, today,
                 LinkedInDayData(
                     link = LinkState.Connected("member-1"), delta = 0, boardInWindow = true, inFlight = false, lastSync = null,
-                    own = LinkedInOwnState.Unknown, ghosts = connections, boardFetchedAtMs = 1L, owner = null, boardComplete = false,
+                    own = LinkedInOwnState.Unknown, ghosts = connections, boardFetchedAtMs = 1L, owner = null,
                 ),
             )
         }

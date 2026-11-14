@@ -10,6 +10,4 @@ package com.ivandsky.puzzlebox.common.flags
  * @property releaseDefault the value every release build uses; debug builds start from it too.
  */
 enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
-    /** Ranks hub: per-game and Overall daily boards, the calendar as History, the visibility ladder (ADR-0031). */
-    LeaderboardHub(label = "Ranks hub", releaseDefault = true),
 }

@@ -6,7 +6,7 @@ import kotlinx.coroutines.launch
 
 /**
  * Keeps [SubmitDailyReplay] running for the life of the app scope, beside the submit watcher whose accepted posts it
- * follows. The application starts it only with the hub flag on.
+ * follows.
  */
 class DailyReplayPublisher(
     private val publish: SubmitDailyReplay,

@@ -33,7 +33,6 @@ import kotlinx.coroutines.launch
  * attempt's outcome goes to [statuses] (Posting, then Posted, Deferred or Rejected),
  * so the screens can end their Posting line; signed out writes none. A Hidden player posts
  * no new entries (A17), and a solve made while Hidden stays unposted after a switch to Board (kept in [skipped]).
- * [visibility] is null while the hub flag is off, which reads as Board.
  */
 class LeaderboardSubmitWatcher(
     private val records: CompletionRepository,
@@ -42,8 +41,8 @@ class LeaderboardSubmitWatcher(
     private val calendar: GameCalendar,
     private val scope: CoroutineScope,
     private val statuses: SubmitStatusTracker,
-    private val visibility: VisibilityRepository? = null,
-    private val skipped: SkippedPosts? = null,
+    private val visibility: VisibilityRepository,
+    private val skipped: SkippedPosts,
 ) {
 
     private val submitted = java.util.Collections.newSetFromMap(
@@ -91,14 +90,14 @@ class LeaderboardSubmitWatcher(
      * post before a Hidden snapshot arrives could never be taken back.
      */
     private suspend fun postsToBoards(): Boolean {
-        val tier = visibility?.ownTier?.first { it != OwnTier.Unknown }?.effective ?: return true
+        val tier = visibility.ownTier.first { it != OwnTier.Unknown }.effective ?: return true
         return tier.postsToBoards
     }
 
     /** A solve made while Hidden is kept off the boards for good, also once the player moves to Board. */
     private suspend fun remember(uid: String, puzzleRef: String) {
         try {
-            skipped?.add(uid, puzzleRef)
+            skipped.add(uid, puzzleRef)
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
@@ -108,7 +107,7 @@ class LeaderboardSubmitWatcher(
 
     /** Fails closed: a store that cannot answer posts nothing, since an entry can never be taken back. */
     private suspend fun wasSkipped(uid: String, puzzleRef: String): Boolean = try {
-        skipped?.contains(uid, puzzleRef) ?: false
+        skipped.contains(uid, puzzleRef)
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {

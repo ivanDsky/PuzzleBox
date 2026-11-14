@@ -47,7 +47,7 @@ import org.koin.core.parameter.parametersOf
  *
  * The hero's rank row is the one sign-in action. A stored solve with a replay adds the Watch replay row ([ReplaySection]), which hands
  * [onOpenReplay] the replay's key; one without says why there is none. With [linkedIn] on, that rank also gives the place among the player's LinkedIn connections.
- * A non-null [onOpenRanks] replaces the hero's Today chip with a rank chip ("#12 of 340") that calls it with the game and
+ * The hero's chip is a rank chip ("#12 of 340") that calls [onOpenRanks] with the game and
  * the result's day, shown once the rank is known.
  */
 @Composable
@@ -57,8 +57,8 @@ fun ResultRoute(
     onNext: (GameId) -> Unit,
     onDone: () -> Unit,
     onOpenReplay: (ReplayKey) -> Unit,
+    onOpenRanks: (GameId, LocalDate?) -> Unit,
     linkedIn: Boolean = false,
-    onOpenRanks: ((GameId, LocalDate?) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: ResultViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key, linkedIn) })
@@ -107,11 +107,11 @@ private fun ColumnScope.HeroPage(
     onPlayAgain: () -> Unit,
     context: Context,
     onOpenReplay: (ReplayKey) -> Unit,
-    onOpenRanks: ((GameId, LocalDate?) -> Unit)?,
+    onOpenRanks: (GameId, LocalDate?) -> Unit,
 ) {
     val insights by viewModel.heroInsights.collectAsStateWithLifecycle()
     val rank by viewModel.heroRank.collectAsStateWithLifecycle()
-    val chip = if (onOpenRanks == null || state.practice || viewModel.playAgain) {
+    val chip = if (state.practice || viewModel.playAgain) {
         null
     } else {
         remember(rank, key, onOpenRanks) { resultRankChip(rank) { onOpenRanks(GameId(key.gameId), LocalDate.parse(key.day)) } }

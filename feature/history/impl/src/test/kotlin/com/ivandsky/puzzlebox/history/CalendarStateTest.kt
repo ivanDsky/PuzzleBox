@@ -22,22 +22,4 @@ class CalendarStateTest {
     fun `nothing taps before the first emission`() {
         assertFalse(CalendarState(daysWithRows = setOf(today)).canSelect(today))
     }
-
-    @Test
-    fun `history state maps to the calendar's slice`() {
-        val ui = HistoryUiState(
-            calendarDay = today,
-            calendarExpanded = true,
-            earliestDay = today.minusDays(9),
-            selectedDay = today,
-            daysWithRows = setOf(today),
-            gamesPerDay = 2,
-            today = today,
-        )
-
-        assertEquals(
-            CalendarState(today, true, today.minusDays(9), today, emptyMap(), setOf(today), 2, today),
-            ui.toCalendarState(),
-        )
-    }
 }

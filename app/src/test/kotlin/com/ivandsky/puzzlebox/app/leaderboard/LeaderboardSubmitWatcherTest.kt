@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.app.leaderboard
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -11,7 +10,6 @@ import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.koin.android.ext.koin.androidContext
 import android.content.Context
-import org.junit.Assert.assertFalse
 import org.koin.core.annotation.KoinInternalApi
 import org.koin.core.instance.SingleInstanceFactory
 import org.robolectric.util.ReflectionHelpers
@@ -83,6 +81,18 @@ class LeaderboardSubmitWatcherTest {
         isRecord = isRecord,
     )
 
+    /** The watcher over a stored tier of Board, which posts every solve, as most of these cases need. */
+    private fun watcher(
+        records: FakeCompletionRepository,
+        identity: FakeIdentityService,
+        leaderboard: LeaderboardRepository,
+        scope: CoroutineScope,
+        statuses: SubmitStatusTracker,
+    ) = LeaderboardSubmitWatcher(
+        records, identity, leaderboard, calendar, scope, statuses,
+        FakeVisibilityRepository(OwnTier.Chosen(VisibilityTier.Board)), FakeSkippedPosts(),
+    )
+
     private fun scope(scheduler: TestCoroutineScheduler) =
         CoroutineScope(StandardTestDispatcher(scheduler) + Job())
 
@@ -94,7 +104,7 @@ class LeaderboardSubmitWatcherTest {
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
+        watcher(records, identity, leaderboard, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
 
         assertEquals(1, leaderboard.submitted.size)
@@ -113,6 +123,7 @@ class LeaderboardSubmitWatcherTest {
             scope(scheduler),
             SubmitStatusTracker(),
             visibility,
+            FakeSkippedPosts(),
         ).start()
         scheduler.advanceUntilIdle()
         return visibility
@@ -166,7 +177,7 @@ class LeaderboardSubmitWatcherTest {
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
+        watcher(records, identity, leaderboard, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
         assertTrue(leaderboard.submitted.isEmpty()) // A7: signed out = local-only
 
@@ -183,7 +194,7 @@ class LeaderboardSubmitWatcherTest {
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
+        watcher(records, identity, leaderboard, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
 
         // Room re-emits the whole records list on any write.
@@ -207,7 +218,7 @@ class LeaderboardSubmitWatcherTest {
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
+        watcher(records, identity, leaderboard, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
 
         assertTrue(leaderboard.submitted.isEmpty())
@@ -223,7 +234,7 @@ class LeaderboardSubmitWatcherTest {
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
+        watcher(records, identity, leaderboard, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle() // must not throw
 
         assertEquals(1, leaderboard.submitted.size)
@@ -236,7 +247,7 @@ class LeaderboardSubmitWatcherTest {
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
+        watcher(records, identity, leaderboard, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
         assertEquals(1, leaderboard.submitted.size)
 
@@ -262,7 +273,7 @@ class LeaderboardSubmitWatcherTest {
         val scheduler = TestCoroutineScheduler()
         val scope = scope(scheduler)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope, SubmitStatusTracker()).start()
+        watcher(records, identity, leaderboard, scope, SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
         assertEquals(1, attempts) // attempted once, failed
 
@@ -301,14 +312,14 @@ class LeaderboardSubmitWatcherTest {
         val statuses = SubmitStatusTracker()
         val seen = scheduler.statusesSeen(statuses)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), statuses).start()
+        watcher(records, identity, leaderboard, scope(scheduler), statuses).start()
         scheduler.advanceUntilIdle()
 
         assertEquals(1, attempts) // attempted once, failed: nothing posted
         assertEquals(listOf(SubmitStatus.Posting, SubmitStatus.Deferred), seen)
 
         // No setRecords here: a new watcher over the unchanged store still retries.
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), statuses).start()
+        watcher(records, identity, leaderboard, scope(scheduler), statuses).start()
         scheduler.advanceUntilIdle()
 
         assertEquals(listOf(SubmitStatus.Posting, SubmitStatus.Deferred, SubmitStatus.Posting, SubmitStatus.Posted), seen)
@@ -325,7 +336,7 @@ class LeaderboardSubmitWatcherTest {
         val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), SubmitStatusTracker()).start()
+        watcher(records, identity, leaderboard, scope(scheduler), SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
 
         assertEquals(
@@ -340,7 +351,7 @@ class LeaderboardSubmitWatcherTest {
         val identity = FakeIdentityService(initial = Identity("u1", "Ann", null))
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), SubmitStatusTracker()).start()
+        watcher(records, identity, leaderboard, scope(scheduler), SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
         assertEquals(1, leaderboard.submitted.size)
 
@@ -365,7 +376,7 @@ class LeaderboardSubmitWatcherTest {
             nextSubmitResult = { SubmitResult.Err(SubmitError.Rejected("denied")) },
         )
         val scheduler = TestCoroutineScheduler()
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), SubmitStatusTracker()).start()
+        watcher(records, identity, leaderboard, scope(scheduler), SubmitStatusTracker()).start()
         scheduler.advanceUntilIdle()
         records.setRecords(listOf(zipRecord(day, 592), zipRecord(day, 593)))
         scheduler.advanceUntilIdle()
@@ -393,7 +404,7 @@ class LeaderboardSubmitWatcherTest {
         val statuses = SubmitStatusTracker()
         val seen = scheduler.statusesSeen(statuses)
 
-        LeaderboardSubmitWatcher(records, identity, FakeLeaderboardRepository(), calendar, scope(scheduler), statuses).start()
+        watcher(records, identity, FakeLeaderboardRepository(), scope(scheduler), statuses).start()
         scheduler.advanceUntilIdle()
 
         assertEquals(listOf(SubmitStatus.Posting, SubmitStatus.Posted), seen)
@@ -414,7 +425,7 @@ class LeaderboardSubmitWatcherTest {
         val statuses = SubmitStatusTracker()
         val seen = scheduler.statusesSeen(statuses)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), statuses).start()
+        watcher(records, identity, leaderboard, scope(scheduler), statuses).start()
         scheduler.advanceUntilIdle()
         assertEquals(listOf(SubmitStatus.Posting, SubmitStatus.Deferred), seen)
 
@@ -436,7 +447,7 @@ class LeaderboardSubmitWatcherTest {
         val statuses = SubmitStatusTracker()
         val seen = scheduler.statusesSeen(statuses)
 
-        LeaderboardSubmitWatcher(records, identity, leaderboard, calendar, scope(scheduler), statuses).start()
+        watcher(records, identity, leaderboard, scope(scheduler), statuses).start()
         scheduler.advanceUntilIdle()
         records.setRecords(listOf(record(), zipRecord(day.minusDays(1), 591)))
         scheduler.advanceUntilIdle()
@@ -455,7 +466,7 @@ class LeaderboardSubmitWatcherTest {
             nextSubmitResult = { SubmitResult.Err(SubmitError.Rejected("denied")) },
         )
 
-        LeaderboardSubmitWatcher(records, FakeIdentityService(initial = null), leaderboard, calendar, scope(scheduler), statuses).start()
+        watcher(records, FakeIdentityService(initial = null), leaderboard, scope(scheduler), statuses).start()
         scheduler.advanceUntilIdle()
 
         assertEquals(listOf(SubmitStatus.Posting), seen) // the unread default, never written
@@ -529,15 +540,15 @@ class LeaderboardSubmitWatcherTest {
         assertEquals(setOf("zip/2026-10-31/592", "zip/2026-10-31/593"), leaderboard.submitted.map { it.puzzleRef }.toSet())
     }
 
-    /** The watcher as the real graph builds it, over fakes, with the hub flag [on] or off and [own] stored. */
-    private fun graphPostsWith(on: Boolean, own: OwnTier): Int {
+    /** The watcher as the real graph builds it, over fakes, with [own] stored. */
+    private fun graphPostsWith(own: OwnTier): Int {
         val leaderboard = FakeLeaderboardRepository()
         val scheduler = TestCoroutineScheduler()
         val koinApp = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
             modules(
                 PuzzleBoxApplication.appModules + module {
-                    single<ReleaseFlags> { if (on) FakeReleaseFlags(ReleaseFlag.LeaderboardHub) else FakeReleaseFlags() }
+                    single<ReleaseFlags> { FakeReleaseFlags() }
                     single<VisibilityRepository> { FakeVisibilityRepository(own) }
                     single<CompletionRepository> { FakeCompletionRepository(listOf(record())) }
                     single<IdentityService> { FakeIdentityService(initial = Identity("u1", "Ann", null)) }
@@ -557,27 +568,18 @@ class LeaderboardSubmitWatcherTest {
     }
 
     @Test
-    fun `with the hub off a solve posts whatever tier is stored`() {
-        for (own in listOf(OwnTier.Chosen(VisibilityTier.Hidden), OwnTier.Unknown, OwnTier.Unset)) {
-            assertEquals("$own", 1, graphPostsWith(on = false, own = own))
-        }
-    }
-
-    @Test
-    fun `with the hub on a stored Hidden still posts nothing`() {
-        assertEquals(0, graphPostsWith(on = true, own = OwnTier.Chosen(VisibilityTier.Hidden)))
+    fun `a stored Hidden posts nothing`() {
+        assertEquals(0, graphPostsWith(own = OwnTier.Chosen(VisibilityTier.Hidden)))
     }
 
     /**
      * onCreate is the only place the publisher starts, so the real application runs it on a Firebase-initialised context,
-     * with the hub flag [on] or off as the debug build's stored override. Returns whether the publisher was created.
+     * Returns whether the publisher was created.
      */
     @OptIn(KoinInternalApi::class)
-    private fun publisherCreatedAfterStart(on: Boolean): Boolean {
+    private fun publisherCreatedAfterStart(): Boolean {
         val context = RuntimeEnvironment.getApplication()
         initialiseFirebase(context)
-        context.getSharedPreferences("release_flags", Context.MODE_PRIVATE).edit()
-            .putBoolean(ReleaseFlag.LeaderboardHub.name, on).commit()
         val application = PuzzleBoxApplication()
         ReflectionHelpers.callInstanceMethod<Unit>(application, "attachBaseContext", ClassParameter.from(Context::class.java, context))
         application.onCreate()
@@ -604,12 +606,7 @@ class LeaderboardSubmitWatcherTest {
     }
 
     @Test
-    fun `with the hub off the application never starts the publisher`() {
-        assertFalse(publisherCreatedAfterStart(on = false))
-    }
-
-    @Test
-    fun `with the hub on the application starts the publisher`() {
-        assertTrue(publisherCreatedAfterStart(on = true))
+    fun `the application starts the publisher`() {
+        assertTrue(publisherCreatedAfterStart())
     }
 }

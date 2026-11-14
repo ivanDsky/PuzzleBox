@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.e2e.ShellRobot
 import com.ivandsky.puzzlebox.app.e2e.shellGraph
 import com.ivandsky.puzzlebox.app.e2e.shellRobot
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -12,9 +11,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Settings under `ReleaseFlag.LeaderboardHub`, through the real app graph: with the flag off the screen
- * has neither the Visibility section nor the Ranks scope section; with it on it has both. The sections'
- * own behaviour is pinned in the profile module; this pins the app's wiring of the flag to them.
+ * Settings through the real app graph: the screen has the Visibility section and the Ranks scope section. The sections'
+ * own behaviour is pinned in the profile module; this pins the app's wiring of them.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -22,19 +20,14 @@ import org.robolectric.annotation.Config
 class SettingsHubSectionsTest {
 
     @Test
-    fun `with the hub off Settings has no Visibility and no Ranks scope section`() = settings(hub = false) {
-        assertEquals(emptyList<String>(), HUB_SECTIONS.filter { shows(it) })
-    }
-
-    @Test
-    fun `with the hub on Settings has the Visibility and the Ranks scope sections`() = settings(hub = true) {
+    fun `Settings has the Visibility and the Ranks scope sections`() = settings {
         HUB_SECTIONS.forEach { awaitTag(it) }
     }
 
     /** Opens Settings the way a player does (avatar, then Profile's gear) and waits for the section that follows the hub's. */
-    private fun settings(hub: Boolean, block: ShellRobot.() -> Unit) = shellRobot(
-        graph = if (hub) shellGraph(ReleaseFlag.LeaderboardHub) else shellGraph(),
-        destinations = if (hub) ranksTopLevelDestinations else topLevelDestinations,
+    private fun settings(block: ShellRobot.() -> Unit) = shellRobot(
+        graph = shellGraph(),
+        destinations = topLevelDestinations,
     ) {
         tapAvatar()
         tapGear()

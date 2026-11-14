@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.app.nav
 
+import com.ivandsky.puzzlebox.data.visibility.OwnTier
+import kotlinx.coroutines.flow.flowOf
+import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -33,6 +36,7 @@ class LinkedInNavTest {
             homeLayout = HomeLayout.SinglePane,
             playLayout = PlayLayout.SinglePane,
             historyLayout = HistoryLayout.SinglePane,
+            visibility = VisibilitySlot(flowOf(OwnTier.Unset)) {},
         ).invoke(LinkedInLoginKey)
         assertTrue("got ${entry.contentKey}", entry.contentKey.toString().contains(LinkedInLoginKey.toString()))
     }

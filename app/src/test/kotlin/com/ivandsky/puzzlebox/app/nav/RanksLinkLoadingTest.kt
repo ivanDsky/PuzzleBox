@@ -8,10 +8,8 @@ import com.ivandsky.puzzlebox.app.e2e.E2E_TODAY
 import com.ivandsky.puzzlebox.app.e2e.E2eKoinGraph
 import com.ivandsky.puzzlebox.app.e2e.ShellRobot
 import com.ivandsky.puzzlebox.app.e2e.shellRobot
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -27,8 +25,8 @@ class RanksLinkLoadingTest {
 
     private fun open(go: ShellRobot.() -> Unit) = shellRobot(
         puzzleBoxNavigationState(),
-        graph = E2eKoinGraph(E2E_TODAY, releaseFlags = FakeReleaseFlags(ReleaseFlag.LeaderboardHub)),
-        destinations = ranksTopLevelDestinations,
+        graph = E2eKoinGraph(E2E_TODAY),
+        destinations = topLevelDestinations,
     ) {
         go()
         awaitTag("route.ranks")

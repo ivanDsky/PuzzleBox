@@ -124,7 +124,7 @@ class ProcessDeathE2ETest {
             tap(DONE)
 
             assertState(stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey())))
-            assertRoute(HISTORY)
+            assertRoute(RANKS)
         }
 
     @Test
@@ -276,7 +276,7 @@ class ProcessDeathE2ETest {
     private val pastSlot = PlaySlot.Daily(ZipDefinition.id, PAST_DAY)
 
     private companion object {
-        const val HISTORY = "route.history"
+        const val RANKS = "route.ranks"
         const val GAME = "route.game"
         const val RESULT = "route.result"
         const val PLAY_AGAIN = "result.playAgain"

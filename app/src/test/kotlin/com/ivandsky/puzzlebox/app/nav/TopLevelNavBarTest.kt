@@ -57,9 +57,9 @@ class TopLevelNavBarTest {
 
     @Test
     fun `tabs are today, games, history, create in that order`() {
-        assertEquals(listOf("Today", "Games", "History", "Create"), topLevelDestinations.map { it.label })
+        assertEquals(listOf("Today", "Games", "Ranks", "Create"), topLevelDestinations.map { it.label })
         assertEquals(
-            listOf("nav.tab.home", "nav.tab.play", "nav.tab.history", "nav.tab.create"),
+            listOf("nav.tab.home", "nav.tab.play", "nav.tab.ranks", "nav.tab.create"),
             topLevelDestinations.map { it.tag },
         )
         assertEquals(listOf(HomeKey, PlayKey, HistoryRootKey, CreateKey), topLevelDestinations.map { it.key })

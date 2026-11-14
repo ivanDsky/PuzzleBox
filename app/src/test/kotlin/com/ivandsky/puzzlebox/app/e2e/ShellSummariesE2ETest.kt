@@ -21,7 +21,6 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
-import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PuzzleKey
@@ -31,8 +30,6 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -52,11 +49,11 @@ class ShellSummariesE2ETest {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `on a phone Today's rank opens the game's page and its board, back to Games then Today`() = rank(Width.Phone)
+    fun `on a phone Today's rank opens the Ranks hub, back to Today`() = rank()
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `on a tablet Today's rank opens the game's page and its board, back to Today`() = rank(Width.Rail)
+    fun `on a tablet Today's rank opens the Ranks hub, back to Today`() = rank()
 
     @Test
     @Config(qualifiers = PHONE)
@@ -65,14 +62,6 @@ class ShellSummariesE2ETest {
     @Test
     @Config(qualifiers = RAIL)
     fun `on a tablet Today's duels row opens Games on Duels, back to Today`() = duels()
-
-    @Test
-    @Config(qualifiers = PHONE)
-    fun `on a phone the game page's history row opens History on its day, back to the game page`() = history()
-
-    @Test
-    @Config(qualifiers = RAIL)
-    fun `on a tablet the game page's history row opens History on its day, back to the game page`() = history()
 
     @Test
     @Config(qualifiers = PHONE)
@@ -94,27 +83,19 @@ class ShellSummariesE2ETest {
         assertRoute(HOME)
         tapText("See all")
 
-        assertRoute(HISTORY)
+        assertRoute(RANKS)
         assertState(tabAt(HistoryRootKey))
         back()
         assertRoute(HOME)
         assertState(tabAt(HomeKey))
     }
 
-    private fun rank(width: Width) = shellRobot(graph = rankedGraph()) {
+    private fun rank() = shellRobot(graph = rankedGraph()) {
         seedBoards()
         assertRoute(HOME)
         tap(RANK_ROW)
 
-        awaitTag(ZIP_PAGE)
-        awaitTag("daily_board.title")
-        assertState(tabAt(PlayKey))
-        if (width == Width.Phone) {
-            back()
-            assertRoute(LIBRARY)
-            assertFalse("the page closed onto the list", shows(ZIP_PAGE))
-            assertState(tabAt(PlayKey))
-        }
+        assertRoute(RANKS)
         back()
         assertRoute(HOME)
         assertState(tabAt(HomeKey))
@@ -134,21 +115,6 @@ class ShellSummariesE2ETest {
         assertState(tabAt(HomeKey))
     }
 
-    private fun history() = shellRobot {
-        tapTab(PlayKey)
-        tap("library.row.$ZIP")
-        awaitTag(ZIP_PAGE)
-        tap("summary.history")
-
-        assertRoute(HISTORY)
-        assertState(tabAt(PlayKey, HistoryKey(ZIP)))
-        assertTrue("the pushed History has a back icon", shows("history.back"))
-        back()
-        assertRoute(LIBRARY)
-        awaitTag(ZIP_PAGE)
-        assertState(tabAt(PlayKey))
-    }
-
     private fun sweep() = shellRobot(tabAt(PlayKey, todaysResult()), graph = rankedGraph()) {
         seedBoards()
         seedDuelNeedingMe()
@@ -163,7 +129,7 @@ class ShellSummariesE2ETest {
         assertOwnersOnly()
 
         tapTab(HistoryRootKey)
-        assertRoute(HISTORY)
+        assertRoute(RANKS)
         assertOwnersOnly(historyOwner = true)
 
         tapTab(CreateKey)
@@ -240,8 +206,6 @@ class ShellSummariesE2ETest {
 
     private fun todaysResult() = ResultKey(ZIP, E2E_TODAY.toString(), timeMs = TIME_MS, hintsUsed = 0)
 
-    private enum class Width { Phone, Rail }
-
     private companion object {
         const val PHONE = "w411dp-h891dp"
         const val RAIL = "w1280dp-h800dp-land"
@@ -253,12 +217,11 @@ class ShellSummariesE2ETest {
         const val FRIEND = "sam"
         const val FRIEND_NAME = "Sam"
         val DUEL_CODE = checkNotNull(ShareCode.parse("K7Q2MX"))
-        const val ZIP_PAGE = "library.page.$ZIP"
         const val RANK_ROW = "summary.leaderboard"
         const val DUELS_ROW = "summary.duels"
         const val HOME = "route.home"
         const val LIBRARY = "route.library"
-        const val HISTORY = "route.history"
+        const val RANKS = "route.ranks"
         const val CREATE = "route.create"
         const val RESULT = "route.result"
         const val PROFILE = "route.profile"

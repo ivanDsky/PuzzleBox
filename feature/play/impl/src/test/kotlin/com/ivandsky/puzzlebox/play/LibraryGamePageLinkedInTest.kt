@@ -55,7 +55,7 @@ class LibraryGamePageLinkedInTest {
     /** The page always carries the game's board, which a view model builds. */
     @Before
     fun startGraph() {
-        koin = startGamePageBoardKoin(listOf(row.card.game))
+        koin = startGamePageRankKoin(listOf(row.card.game))
     }
 
     @After
@@ -103,7 +103,7 @@ class LibraryGamePageLinkedInTest {
                         onBack = null,
                         offline = false,
                         hasLesson = false,
-                        onOpenGameHistory = { _, _ -> },
+                        onOpenRanks = { _, _ -> },
                         linkedIn = card,
                     )
                 }

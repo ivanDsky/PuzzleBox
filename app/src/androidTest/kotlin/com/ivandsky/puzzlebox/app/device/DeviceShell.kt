@@ -188,7 +188,7 @@ class DeviceShell : TestRule {
 
     companion object {
         const val HOME = "route.home"
-        const val HISTORY = "route.history"
+        const val RANKS = "route.ranks"
         const val LIBRARY = "route.library"
         const val GAME = "route.game"
         const val ZIP = "zip"

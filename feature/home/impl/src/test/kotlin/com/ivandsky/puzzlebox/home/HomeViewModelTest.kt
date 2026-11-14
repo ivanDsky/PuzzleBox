@@ -636,14 +636,13 @@ class HomeViewModelTest {
         )
     }
 
-    private suspend fun TestScope.rankUnder(friends: Boolean, hub: Boolean = true): TodayRank? {
+    private suspend fun TestScope.rankUnder(friends: Boolean): TodayRank? {
         val identity = FakeIdentityService(initial = me)
         val deps = viewModel(
             identity = identity,
             boards = mapOf(twelfth(zip)),
             summariesShown = true,
-            // The app hands the rank no setting to follow with the hub off.
-            friendDay = settingWithFriendP3(identity, friends).takeIf { hub },
+            friendDay = settingWithFriendP3(identity, friends),
         )
         deps.solve(zip, "2026-11-04T08:00:00Z")
         return deps.vm.uiState.value.rank
@@ -657,11 +656,6 @@ class HomeViewModelTest {
     @Test
     fun `with the Global setting the rank is the whole board's`() = runTest {
         assertEquals(TodayRank(zip, "Zip", 12), rankUnder(friends = false))
-    }
-
-    @Test
-    fun `with the hub off the Friends setting leaves the rank the whole board's`() = runTest {
-        assertEquals(TodayRank(zip, "Zip", 12), rankUnder(friends = true, hub = false))
     }
 
     /** A release check stuck on the network: it never answers. */

@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.map
  *
  * With [friendDay] the rank follows the player's Friends/Global setting (F20): in Friends the position and count are
  * the player's place among their friends and connections, as the hub's Friends board has it ([FriendDay.standing]).
- * Global ranks exactly as above; with no setting to follow (the hub's flag off, or a graph built without
+ * Global ranks exactly as above; with no setting to follow (a graph built without
  * [friendDay]) the flow is the one above, untouched.
  */
 class ObserveResultRank(

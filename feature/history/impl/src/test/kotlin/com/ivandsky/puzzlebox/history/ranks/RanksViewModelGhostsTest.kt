@@ -38,7 +38,7 @@ class RanksViewModelGhostsTest {
             LinkedInDayData(
                 link = LinkState.Connected("member-1"), delta = 0, boardInWindow = true, inFlight = false, lastSync = null,
                 own = LinkedInOwnState.Unknown, ghosts = listOf(LinkedInGhost("ref-Cal", "Cal", 70_000, hintFree = true, flawless = false)),
-                boardFetchedAtMs = 1L, owner = null, boardComplete = false,
+                boardFetchedAtMs = 1L, owner = null,
             ),
         )
     }

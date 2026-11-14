@@ -130,7 +130,7 @@ class ShellTabsE2ETest {
             ),
         ),
     ) {
-        assertRoute(HISTORY)
+        assertRoute(RANKS)
         assertChromeFor(rail)
         back()
         assertRoute(HOME)
@@ -151,7 +151,7 @@ class ShellTabsE2ETest {
         assertChromeFor(rail)
 
         tapTab(HistoryRootKey)
-        assertRoute(HISTORY)
+        assertRoute(RANKS)
         assertChromeFor(rail)
 
         tapTab(CreateKey)
@@ -256,7 +256,7 @@ class ShellTabsE2ETest {
         const val CODE = "K7Q2MX"
         const val HOME = "route.home"
         const val LIBRARY = "route.library"
-        const val HISTORY = "route.history"
+        const val RANKS = "route.ranks"
         const val CREATE = "route.create"
         const val FRIEND = "route.friend"
         const val GAME = "route.game"
@@ -266,9 +266,9 @@ class ShellTabsE2ETest {
         val LABELS = listOf(
             "nav.tab.home" to "Today",
             "nav.tab.play" to "Games",
-            "nav.tab.history" to "History",
+            "nav.tab.ranks" to "Ranks",
             "nav.tab.create" to "Create",
         )
-        val ROOTS = listOf(HomeKey to HOME, PlayKey to LIBRARY, HistoryRootKey to HISTORY, CreateKey to CREATE)
+        val ROOTS = listOf(HomeKey to HOME, PlayKey to LIBRARY, HistoryRootKey to RANKS, CreateKey to CREATE)
     }
 }

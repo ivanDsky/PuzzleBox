@@ -61,7 +61,7 @@ class ReachabilityInventoryE2ETest {
         reached(HOME, width)
 
         tapTab(HistoryRootKey)
-        reached(HISTORY, width)
+        reached(RANKS, width)
 
         tapTab(HomeKey)
         tapAvatar()
@@ -149,7 +149,7 @@ class ReachabilityInventoryE2ETest {
         const val TITLE = "From a friend"
         const val ZIP = "zip"
         const val HOME = "route.home"
-        const val HISTORY = "route.history"
+        const val RANKS = "route.ranks"
         const val PROFILE = "route.profile"
         const val CATALOG = "route.catalog"
         const val LIBRARY = "route.library"

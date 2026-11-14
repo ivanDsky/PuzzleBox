@@ -14,9 +14,8 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * The game page's board when it lives in the Ranks hub: one summary row, "You #12 of 340", opening the hub through
- * [onOpen]. It reads the page's own [GamePageBoardViewModel] (same key as [GamePageBoard]), so it adds no read of the
- * board the page already observes. Without a standing to show (signed out, loading, not on the board) the row is
+ * The game page's rank in the Ranks hub: one summary row, "You #12 of 340", opening the hub through
+ * [onOpen]. It reads the game's own [GamePageRankViewModel]. Without a standing to show (signed out, loading, not on the board) the row is
  * just "Leaderboard".
  */
 @Composable
@@ -28,7 +27,7 @@ internal fun GamePageRankRow(
     picked: LocalDate? = null,
     cardDay: LocalDate? = null,
 ) {
-    val viewModel: GamePageBoardViewModel = koinViewModel(key = "board:${game.value}", parameters = { parametersOf(game, linkedIn) })
+    val viewModel: GamePageRankViewModel = koinViewModel(key = "rank:${game.value}", parameters = { parametersOf(game, linkedIn) })
     LaunchedEffect(picked, cardDay) { viewModel.show(picked, cardDay) }
     val state by viewModel.state.collectAsStateWithLifecycle()
     SummaryLinkRow(rankRowText(state), onOpen, modifier.testTag("summary.rank"))
@@ -38,7 +37,7 @@ internal fun GamePageRankRow(
  * "You #12 of 340" from the player's own row on the board the page reads, else "Leaderboard". In Friends scope (F20)
  * the place and the count are the player's among their friends and connections, as the hub's Friends board has them.
  */
-internal fun rankRowText(state: GamePageBoardState): String {
+internal fun rankRowText(state: GamePageRankState): String {
     if (state.amongFriends) return state.standing?.let { "You #${it.place} of ${it.count}" } ?: "Leaderboard"
     val ranked = state.board as? DailyBoardState.Ranked
     val own = ranked?.let { it.pinned ?: it.rows.firstOrNull { row -> row.isSelf } }

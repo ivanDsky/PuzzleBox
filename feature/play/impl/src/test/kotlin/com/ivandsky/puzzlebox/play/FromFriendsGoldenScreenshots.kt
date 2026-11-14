@@ -58,7 +58,7 @@ abstract class FromFriendsGoldenScreenshots(private val layout: PlayLayout, priv
     /** The tablet's first game page carries the game's board, which a view model builds. */
     @Before
     fun startGraph() {
-        koin = startGamePageBoardKoin(STATE.rows.map { it.card.game })
+        koin = startGamePageRankKoin(STATE.rows.map { it.card.game })
     }
 
     @After
@@ -89,7 +89,7 @@ abstract class FromFriendsGoldenScreenshots(private val layout: PlayLayout, priv
                     onRetry = {},
                     onOpenLesson = {},
                     calendar = CalendarActions(),
-                    onOpenGameHistory = { _, _ -> },
+                    onOpenRanks = { _, _ -> },
                     friends = FriendPreviewCards,
                     // The goldens show the shipped-on header: Enter code beside the title.
                     onEnterCode = {},

@@ -14,7 +14,7 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 /**
  * One bar/rail tab; [tag] is the item's test tag, so the bar never names a tab itself.
  * [icon] is the outlined unselected state, [selectedIcon] the filled selected one (N5);
- * both resolve in composition, because a drawable-backed icon (History) has a
+ * both resolve in composition, because a drawable-backed icon has a
  * `@Composable` getter. [tab] is the [Tab] this destination roots, the one join from
  * a [Tab] to its key.
  */
@@ -33,9 +33,6 @@ private val home = TopLevelDestination(
 private val play = TopLevelDestination(
     PlayKey, "Games", { PuzzleIcons.Box }, { PuzzleIcons.BoxFilled }, "nav.tab.play", Tab.Games,
 )
-private val history = TopLevelDestination(
-    HistoryRootKey, "History", { PuzzleIcons.History }, { PuzzleIcons.HistoryFilled }, "nav.tab.history", Tab.History,
-)
 private val ranks = TopLevelDestination(
     HistoryRootKey, "Ranks", { PuzzleIcons.Ranks }, { PuzzleIcons.RanksFilled }, "nav.tab.ranks", Tab.History,
 )
@@ -44,14 +41,8 @@ private val create = TopLevelDestination(
 )
 
 /**
- * The tab set: Today, Games, History, Create. Today and Games keep Home's and Play's keys,
- * icons and tags, and History has an outlined and a filled icon like the others.
+ * The tab set: Today, Games, Ranks, Create (ADR-0027, amended). Ranks took History's slot and keeps
+ * its key and [Tab], so a saved back stack, the placement table and [openOwner] read the same as
+ * they did when the third tab was History.
  */
-internal val topLevelDestinations: List<TopLevelDestination> = listOf(home, play, history, create)
-
-/**
- * The tab set while the leaderboard hub is on (ADR-0027, amended): Ranks takes History's
- * slot. It keeps History's key and [Tab], so a saved back stack, the placement table and
- * [openOwner] read the same under either set; only the label, icons and tag differ.
- */
-internal val ranksTopLevelDestinations: List<TopLevelDestination> = listOf(home, play, ranks, create)
+internal val topLevelDestinations: List<TopLevelDestination> = listOf(home, play, ranks, create)
