@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.sign
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -72,8 +73,9 @@ internal fun swipeAxis(dx: Float, dy: Float, slop: Float): Orientation? = when {
  * One finger's drag, locked to its dominant axis at the touch slop ([swipeAxis]). Horizontal: every
  * event from then until the finger lifts is consumed, so the page's scroll and its pull-to-refresh
  * can neither start nor take the drag over; [onDrag] hears each horizontal delta and [onEnd] the
- * whole horizontal travel and the release velocity (px, px/s). Vertical, or a drag something else
- * consumed first: the gesture is left alone to its end.
+ * whole horizontal travel and the release velocity (px, px/s), or no travel at all when the system
+ * takes the touch away mid-swipe. Vertical, or a drag something else consumed first: the gesture is
+ * left alone to its end.
  */
 private suspend fun PointerInputScope.detectSwipe(onDrag: (Float) -> Unit, onEnd: (dragPx: Float, velocityPx: Float) -> Unit) =
     awaitEachGesture {
@@ -82,30 +84,36 @@ private suspend fun PointerInputScope.detectSwipe(onDrag: (Float) -> Unit, onEnd
         var travel = Offset.Zero
         var dragged = 0f
         var swiping = false
-        while (true) {
-            val event = awaitPointerEvent()
-            val change = event.changes.firstOrNull { it.id == down.id }
-            if (change == null || !change.pressed) break
-            velocity.addPointerInputChange(change)
-            if (!swiping) {
-                if (change.isConsumed) return@awaitEachGesture
-                travel += change.positionChange()
-                when (swipeAxis(travel.x, travel.y, viewConfiguration.touchSlop)) {
-                    Orientation.Horizontal -> swiping = true
-                    Orientation.Vertical -> return@awaitEachGesture
-                    null -> {
-                        // A parent sees the event after this one: ask again once everyone has.
-                        awaitPointerEvent(PointerEventPass.Final)
-                        if (change.isConsumed) return@awaitEachGesture
+        try {
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.id == down.id }
+                if (change == null || !change.pressed) break
+                velocity.addPointerInputChange(change)
+                if (!swiping) {
+                    if (change.isConsumed) return@awaitEachGesture
+                    travel += change.positionChange()
+                    when (swipeAxis(travel.x, travel.y, viewConfiguration.touchSlop)) {
+                        Orientation.Horizontal -> swiping = true
+                        Orientation.Vertical -> return@awaitEachGesture
+                        null -> {
+                            // A parent sees the event after this one: ask again once everyone has.
+                            awaitPointerEvent(PointerEventPass.Final)
+                            if (change.isConsumed) return@awaitEachGesture
+                        }
                     }
                 }
+                if (swiping) {
+                    val dx = change.positionChange().x
+                    dragged += dx
+                    onDrag(dx)
+                    event.changes.forEach { it.consume() }
+                }
             }
-            if (swiping) {
-                val dx = change.positionChange().x
-                dragged += dx
-                onDrag(dx)
-                event.changes.forEach { it.consume() }
-            }
+        } catch (cancelled: CancellationException) {
+            // A cancelled touch (a palm, a system gesture) is no swipe, but the board must not stay leant.
+            if (swiping) onEnd(0f, 0f)
+            throw cancelled
         }
         if (swiping) onEnd(dragged, velocity.calculateVelocity().x)
     }
