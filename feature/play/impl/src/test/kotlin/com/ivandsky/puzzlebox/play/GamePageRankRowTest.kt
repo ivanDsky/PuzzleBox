@@ -5,7 +5,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -26,7 +25,6 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -79,7 +77,10 @@ class GamePageRankRowTest {
         )
     }
 
-    /** The page's graph; [friendOf] binds the hub's Friends/Global setting, stored as [friendsSetting], with that one friend of the player. */
+    /**
+     * The page's graph; [friendOf] binds the hub's Friends/Global setting, stored as [friendsSetting], with that one
+     * friend of the player. Without it the graph is the hub's flag off: the app binds no reader.
+     */
     private fun show(
         identity: FakeIdentityService,
         rows: List<LeaderboardEntry>,
@@ -98,7 +99,7 @@ class GamePageRankRowTest {
                     single<LeaderboardRepository> { FakeLeaderboardRepository(mapOf(LeaderboardRef(game.value, today) to rows)) }
                     single<GoogleIdTokenProvider> { dismissedGoogleSignIn }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
-                    if (friends != null) single { friends }
+                    single { ObserveFriendDay.Binding(friends) }
                 },
                 playModule,
             )
@@ -119,7 +120,6 @@ class GamePageRankRowTest {
         }
         return ObserveFriendDay(
             FakeUserPreferencesRepository(ranksFriendsDefault = friendsSetting),
-            FakeReleaseFlags(ReleaseFlag.LeaderboardHub),
             ObserveFriendUids(matches, identity),
             ObserveLinkedInDay(FakeLinkedInDays(), registry),
         )

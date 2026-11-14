@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.GamePageBoardViewModel
@@ -86,13 +87,14 @@ val playModule = module {
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
     // Same flag-as-parameter rule as the library: a graph without LinkedIn bindings builds the board with it off.
     // CloudSync is bound only with its flag on; unbound, the day card never shows a restoring skeleton.
-    // The Friends/Global reader comes with the domain graph; a graph without it ranks the summary in Global.
+    // The app binds the Friends/Global reader, or none with the hub off; a graph without that binding ranks the
+    // summary in Global too.
     viewModel { params ->
         GamePageBoardViewModel(
             params.get<GameId>(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
             cloudSync = getOrNull(),
-            friendDay = getOrNull(),
+            friendDay = getOrNull<ObserveFriendDay.Binding>()?.reader,
         )
     }
     viewModel { params ->

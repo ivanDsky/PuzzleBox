@@ -1,8 +1,5 @@
 package com.ivandsky.puzzlebox.domain.ranks
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
@@ -18,25 +15,27 @@ import kotlinx.coroutines.flow.flowOf
 
 /**
  * The scope a rank shown outside the hub answers (F20): the player's Friends/Global setting, the one the hub lands
- * on. No flow at all with the hub's flag off: there is no setting to follow, the rank is Global and nothing is read.
- * Otherwise null is Global, and in Friends it is the [FriendDay] to rank one game day among: the friends (listened
- * to only then) and, with LinkedIn on, that day's connections, which are read from the phone only.
+ * on. Null is Global, and in Friends it is the [FriendDay] to rank one game day among: the friends (listened
+ * to only then) and, given [linkedInDay], that day's connections, which are read from the phone only.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveFriendDay(
     private val preferences: UserPreferencesRepository,
-    private val flags: ReleaseFlags,
     private val friendUids: ObserveFriendUids,
-    private val linkedInDay: ObserveLinkedInDay,
+    private val linkedInDay: ObserveLinkedInDay?,
 ) {
 
-    operator fun invoke(game: GameId, day: LocalDate): Flow<FriendDay?>? {
-        if (!flags.isEnabled(ReleaseFlag.LeaderboardHub)) return null
-        // A saved board outlives the flag that read it, so the flag is asked, not the data.
-        val connections: Flow<LinkedInDayView?> = if (flags.isEnabled(ReleaseFlag.LinkedInAccount)) linkedInDay(game, day) else flowOf(null)
+    operator fun invoke(game: GameId, day: LocalDate): Flow<FriendDay?> {
+        val connections: Flow<LinkedInDayView?> = linkedInDay?.invoke(game, day) ?: flowOf(null)
         val board = LeaderboardRef(game.value, day)
         return preferences.ranksFriendsDefault.distinctUntilChanged().flatMapLatest { friends ->
             if (friends) combine(friendUids(), connections) { uids, view -> FriendDay(board, uids, view) } else flowOf(null)
         }
     }
+
+    /**
+     * What the composition root binds for the ranks outside the hub: the [reader] of the setting, or none with the
+     * hub's flag off, when those ranks are Global. Koin cannot bind a null, so the root's answer travels in this.
+     */
+    class Binding(val reader: ObserveFriendDay?)
 }

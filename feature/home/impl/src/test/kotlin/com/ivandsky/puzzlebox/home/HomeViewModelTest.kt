@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.home
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -48,7 +47,6 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.repository.FakeAppReleaseRepository
@@ -624,7 +622,7 @@ class HomeViewModelTest {
     }
 
     /** The Friends/Global setting the rank follows (F20), stored as [friends], with p3 the player's one friend. */
-    private suspend fun settingWithFriendP3(identity: FakeIdentityService, friends: Boolean, hub: Boolean = true): ObserveFriendDay {
+    private suspend fun settingWithFriendP3(identity: FakeIdentityService, friends: Boolean): ObserveFriendDay {
         val matches = FakeMatchRepository().apply { signedInUid = me.uid }
         val code = checkNotNull(ShareCode.parse("AAAAA2"))
         matches.create(MatchDraft(code, 24, Player(me.uid, "Me", null), null, listOf(MatchLeg(LegRef.Daily(zip, day, 1), null)), true, null))
@@ -633,7 +631,6 @@ class HomeViewModelTest {
         matches.signedInUid = me.uid
         return ObserveFriendDay(
             FakeUserPreferencesRepository(ranksFriendsDefault = friends),
-            if (hub) FakeReleaseFlags(ReleaseFlag.LeaderboardHub) else FakeReleaseFlags(),
             ObserveFriendUids(matches, identity),
             ObserveLinkedInDay(FakeLinkedInDays(), TestGames.registry(listOf(zip, tango))),
         )
@@ -645,7 +642,8 @@ class HomeViewModelTest {
             identity = identity,
             boards = mapOf(twelfth(zip)),
             summariesShown = true,
-            friendDay = settingWithFriendP3(identity, friends, hub),
+            // The app hands the rank no setting to follow with the hub off.
+            friendDay = settingWithFriendP3(identity, friends).takeIf { hub },
         )
         deps.solve(zip, "2026-11-04T08:00:00Z")
         return deps.vm.uiState.value.rank

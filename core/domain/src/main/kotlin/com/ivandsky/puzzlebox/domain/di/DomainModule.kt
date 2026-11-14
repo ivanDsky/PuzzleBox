@@ -102,7 +102,8 @@ val domainModule = module {
     }
     factory { ObserveWindowRefresh(network = get()) }
     factory { ObserveLatestSolvedToday(completions = get(), calendar = get(), registry = get()) }
-    factory { ObserveResultRank(leaderboard = get(), registry = get(), friendDay = get()) }
+    // The app decides whether there is a Friends/Global setting to follow; with none the rank is Global.
+    factory { ObserveResultRank(leaderboard = get(), registry = get(), friendDay = get<ObserveFriendDay.Binding>().reader) }
     factory {
         CreateDraft(
             registry = get(),
@@ -129,7 +130,6 @@ val domainModule = module {
     }
     factory { ObserveOverall(identity = get(), completions = get()) }
     factory { ObserveFriendUids(matches = get(), identity = get()) }
-    factory { ObserveFriendDay(preferences = get(), flags = get(), friendUids = get(), linkedInDay = get()) }
     factory { GetPlayerActions(visibility = get(), completions = get()) }
     factory {
         SubmitDailyReplay(
