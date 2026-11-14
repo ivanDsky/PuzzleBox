@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.history.ranks
 
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -29,7 +27,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import kotlin.math.abs
@@ -40,29 +37,18 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
-/** A drag this far across the board (a quarter of its width) commits the swipe. */
-internal const val SWIPE_COMMIT_FRACTION = 0.25f
-
-/** Past the first or last board the content follows the finger this much of the way: a pull that gives, not a page slide. */
-private const val FOLLOW = 0.2f
-
-private val FLING_VELOCITY = 700.dp
-
-/** A drag never has to go further than this to commit, however wide the board is (a tablet's pane). */
-private val COMMIT_DISTANCE = 120.dp
-
 /**
  * How many boards a horizontal drag of [dragPx] released at [velocityPx] (both px, negative = leftwards)
  * walks: one forward for a leftward swipe, one back for a rightward one, none when it is neither a
- * fling ([flingPx]/s) nor a drag of [commitPx] ([SWIPE_COMMIT_FRACTION] of [widthPx] unless the caller
- * caps it). A fling decides by its own direction.
+ * fling ([flingPx]/s) nor a drag of [commitPx] ([MotionTokens.Swipe.CommitFraction] of [widthPx] unless the
+ * caller caps it). A fling decides by its own direction.
  */
 internal fun swipeStep(
     dragPx: Float,
     velocityPx: Float,
     widthPx: Float,
     flingPx: Float,
-    commitPx: Float = widthPx * SWIPE_COMMIT_FRACTION,
+    commitPx: Float = widthPx * MotionTokens.Swipe.CommitFraction,
 ): Int = when {
     abs(velocityPx) >= flingPx -> -sign(velocityPx).toInt()
     abs(dragPx) >= commitPx -> -sign(dragPx).toInt()
@@ -134,8 +120,9 @@ private suspend fun PointerInputScope.detectSwipe(onDrag: (Float) -> Unit, onEnd
  * finger scrubs [scrub] towards the neighbouring board as it goes, a board width for the whole way, and whatever
  * draws from the scrub (the list re-ranking in place, the world behind it) follows it there and back. On release
  * the scrub settles on the board the swipe picked and [onStep] hears how many boards that is from [position]
- * (+1 next, -1 previous); a new drag picks the scrub up wherever it is. A swipe commits at a fling or at a quarter
- * of the width, and never needs more than [COMMIT_DISTANCE].
+ * (+1 next, -1 previous); a new drag picks the scrub up wherever it is. Until then the finger moves the scrub 1:1.
+ * A swipe commits at a light flick or at a quarter of the width, and never needs more than
+ * [MotionTokens.Swipe.CommitCap]; every value is a [MotionTokens.Swipe] token.
  *
  * A drag belongs to one axis from its touch slop on ([swipeAxis]): a mostly-sideways one is the swipe and never
  * scrolls the page or pulls its refresh, a mostly-vertical one is the page's and never moves the board. Nothing
@@ -155,8 +142,8 @@ internal fun BoardSwipe(
     var over by remember { mutableFloatStateOf(0f) }
     var settling by remember { mutableStateOf<Job?>(null) }
     var width by remember { mutableFloatStateOf(0f) }
-    val fling = with(LocalDensity.current) { FLING_VELOCITY.toPx() }
-    val commitCap = with(LocalDensity.current) { COMMIT_DISTANCE.toPx() }
+    val fling = with(LocalDensity.current) { MotionTokens.Swipe.FlingVelocity.toPx() }
+    val commitCap = with(LocalDensity.current) { MotionTokens.Swipe.CommitCap.toPx() }
     val still = rememberReducedMotion()
     val step by rememberUpdatedState(onStep)
     val at by rememberUpdatedState(position)
@@ -181,7 +168,7 @@ internal fun BoardSwipe(
                         }
                     },
                     onEnd = { dragPx, velocityPx ->
-                        val commit = min(width * SWIPE_COMMIT_FRACTION, commitCap)
+                        val commit = min(width * MotionTokens.Swipe.CommitFraction, commitCap)
                         if (still || width <= 0f) {
                             val by = swipeStep(dragPx, velocityPx, width, fling, commit)
                             if (by != 0) step(by)
@@ -193,12 +180,12 @@ internal fun BoardSwipe(
                                 if (target != at) step(target - at)
                             }
                             settling = scope.launch {
-                                animate(over, 0f, animationSpec = spring(MotionTokens.SpringDampingDefault, Spring.StiffnessMediumLow)) { value, _ -> over = value }
+                                animate(over, 0f, animationSpec = MotionTokens.Swipe.Settle) { value, _ -> over = value }
                             }
                         }
                     },
                 )
             }
-            .graphicsLayer { translationX = if (still) 0f else over * FOLLOW },
+            .graphicsLayer { translationX = if (still) 0f else over * MotionTokens.Swipe.EdgeFollow },
     ) { content() }
 }

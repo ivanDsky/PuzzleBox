@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.history.ranks
 
-import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
-import androidx.compose.animation.core.spring
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -14,6 +12,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -151,16 +150,13 @@ internal class BoardScrub(position: Int, private val scope: CoroutineScope) {
         motion?.cancel()
         arriving = arrive
         motion = scope.launch {
-            animate(travel, if (arrive) 1f else 0f, speed, Settle) { value, _ -> travel = value }
+            animate(travel, if (arrive) 1f else 0f, speed, MotionTokens.Swipe.Settle) { value, _ -> travel = value }
             if (arrive) from = to else to = from
             travel = 0f
             if (from != wanted) moveTo(wanted, instant = false)
         }
     }
 }
-
-// Critically damped: the boards settle, they do not bounce.
-private val Settle = spring<Float>(Spring.DampingRatioNoBouncy, Spring.StiffnessMediumLow)
 
 /** The hub's scrub, following [position]: a board picked anywhere (a swipe, the title menu, the tablet's list) morphs to it. */
 @Composable
