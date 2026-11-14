@@ -47,11 +47,8 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # Runs on the default branch only, so setup-gradle writes the Gradle cache here. Without the
-      # key it does not save the configuration cache or build-logic between runs.
+      # Runs on the default branch only, so setup-gradle writes the Gradle cache here.
       - uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Build and unit tests
         run: ./gradlew ${{ matrix.tasks }} --continue -Pgoldens.skip -Pgoldens.pixelCompare=false
@@ -79,8 +76,6 @@ jobs:
           java-version: "17"
 
       - uses: gradle/actions/setup-gradle@v6
-        with:
-          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Check signing secrets
         env:
