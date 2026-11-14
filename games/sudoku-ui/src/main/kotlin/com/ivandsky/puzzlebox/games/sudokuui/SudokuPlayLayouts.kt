@@ -45,7 +45,7 @@ private val PaneGutter: Dp = Spacing.md
  * height of the button row it no longer carries; the side pane keeps the shared chrome.
  * The action bar's Clear is hidden: the keypad (or the TwoPane toolbar) has Sudoku's own.
  * The result hand-off waits for the solve sweep ([SudokuMotionHost]); one per board, so a
- * replay's win hands off again.
+ * play-again's win hands off again.
  */
 @Composable
 internal fun SudokuPlayScreen(

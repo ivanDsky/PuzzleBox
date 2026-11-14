@@ -17,7 +17,7 @@ import java.time.Instant
 
 /**
  * Tango session codec v3 (A19): self-describing version byte, canonical encode, the
- * puzzle riding by value so an in-progress day survives offline replay (Zip precedent).
+ * puzzle riding by value so an in-progress day survives offline play-again (Zip precedent).
  *
  * ```
  * 0   u8    formatVersion = 3
@@ -39,7 +39,7 @@ import java.time.Instant
  * i64 fields are little-endian. A history cell byte is 0 for "empty", else the [TangoCell]
  * wire byte. 0xFF can never be a cell index (boards are at most 11x11, so indices stop at 120),
  * so it marks a Clear; saves without one are byte-identical to before it existed. v2 is the same layout without the key tag (a ref is always a Daily); v1 is v2
- * without the two history lists. Both still decode, so saves and archived replays written
+ * without the two history lists. Both still decode, so saves and archived play-again blobs written
  * before custom boards and before undo keep working.
  */
 object TangoSessionCodec : GameSessionCodec<TangoSession> {

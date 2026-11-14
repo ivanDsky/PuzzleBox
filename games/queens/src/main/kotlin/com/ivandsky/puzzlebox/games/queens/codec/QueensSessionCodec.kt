@@ -18,7 +18,7 @@ import java.time.Instant
 
 /**
  * Queens session codec (zip ZipSessionCodec shape, A19): the puzzle rides BY VALUE so an
- * in-progress day survives offline replay. v4 (ADR-0018, spec A11) tags the ref with its
+ * in-progress day survives offline play-again. v4 (ADR-0018, spec A11) tags the ref with its
  * [PuzzleKey] kind; v3 refs are untagged dailies. v3+ persists the undo/redo COMMAND history
  * and the banked clock; AUTO marks are derived on decode, never stored. v2 blobs still read
  * (snapshots dropped → empty history, elapsed from startedAt→completedAt when won, else 0);

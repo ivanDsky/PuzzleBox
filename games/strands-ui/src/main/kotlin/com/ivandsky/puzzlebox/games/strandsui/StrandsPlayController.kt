@@ -103,7 +103,7 @@ class StrandsPlayController(
 
     override val isComplete: Boolean get() = session?.state?.isComplete == true
 
-    /** Hands the found word to the board once: rotation, re-entry or relayout never replays it. */
+    /** Hands the found word to the board once: rotation, re-entry or relayout never shows it again. */
     fun takeFound(): FoundEvent? = lastFound.also { lastFound = null }
 
     //region input
@@ -170,7 +170,7 @@ class StrandsPlayController(
 
     //endregion
 
-    //region adopt / restore / replay
+    //region adopt / restore / play-again
 
     override fun adoptToday(puzzle: Puzzle, ref: PuzzleRef): Adopt {
         if (puzzle.gameId != StrandsDefinition.id) return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)

@@ -151,7 +151,7 @@ val queensPlugin: GamePlugin<QueensState, QueensSession, QueensRendererModel> =
             }
         },
         refOf = { key -> QueensPuzzleRef(key) },
-        // Replay hand-off: zip's shape — the play state trusts any payload the codec decodes.
+        // Play-again hand-off: zip's shape — the play state trusts any payload the codec decodes.
         playAgainSession = { cached, key ->
             when (val decoded = QueensCodec.decode(cached.payload)) {
                 is DecodeResult.Ok -> DecodeResult.Ok(

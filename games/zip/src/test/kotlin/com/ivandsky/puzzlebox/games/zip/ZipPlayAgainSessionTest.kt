@@ -13,7 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Zip's replay hand-off (ticket 14 → 13): the blob round-trips through Zip's own session
+ * Zip's play-again hand-off (ticket 14 → 13): the blob round-trips through Zip's own session
  * codec with THIS day's identity (ADR-0005 envelope); an unreadable payload never
  * launches (A16).
  */
@@ -40,7 +40,7 @@ class ZipPlayAgainSessionTest {
         val restored = ZipSessionCodec.deserialize(blob!!.session)
         assertTrue("codec must accept the blob", restored is DecodeResult.Ok)
         val zip = (restored as DecodeResult.Ok).value
-        // The ref is the replayed DAY's identity, never today's (ADR-0004/A4 attribution).
+        // The ref is the play-again DAY's identity, never today's (ADR-0004/A4 attribution).
         assertEquals(ZipPuzzleRef(PuzzleKey.Daily(day, 592)), zip.ref)
         assertEquals(original, zip.puzzle)
         assertTrue(!zip.isComplete)
@@ -55,7 +55,7 @@ class ZipPlayAgainSessionTest {
     }
 
     @Test
-    fun `a custom key replays carrying the friend's puzzle identity`() {
+    fun `a custom key plays again carrying the friend's puzzle identity`() {
         val custom = PuzzleKey.Custom("K7Q2MX")
         val blob = SessionBlob.decode(zipPlugin.playAgainSession(envelope(), custom).getOrThrow())
         assertEquals(ZipPuzzleRef(custom), ZipSessionCodec.deserialize(blob!!.session).getOrThrow().ref)

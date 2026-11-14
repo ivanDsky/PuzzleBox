@@ -32,7 +32,7 @@ class SudokuStepperEliminationTest {
     // one intersection here: a row pointing on a two-row box always comes with a claiming.
     private val pointing = Fixture(".".repeat(36), shifted, mapOf(1 to six, 2 to six, 7 to six, 8 to six))
 
-    // The rest are states from the lab replay of lab/sudoku/random12k.json (board id in the name).
+    // The rest are states from the lab rerun of lab/sudoku/random12k.json (board id in the name).
     private val claiming = Fixture("315.6.6..153.5.31..3..45.6352.5...3.", "315462642153254316136245463521521634") // rnd:1182
     private val nakedPair = Fixture("432516.1.423.4..3......41...4..24...", "432516516423641235253164165342324651") // rnd:3150
     private val hiddenPair = Fixture(".56...21.6...61..3..2...6.51..12....", "456231213654561423342516635142124365") // rnd:10787
@@ -191,7 +191,7 @@ class SudokuStepperEliminationTest {
     }
 
     @Test
-    fun `replaying strikes through known reaches a single, reveals only when no rung applies, and solves every fixture`() {
+    fun `re-running strikes through known reaches a single, reveals only when no rung applies, and solves every fixture`() {
         for (fixture in listOf(pointing, claiming, nakedPair, hiddenPair, unlockLater, noneUnlock, fourPointings, triplesOnly)) {
             var board = SudokuBoard.of(fixture.puzzle)
             var known = fixture.known

@@ -24,7 +24,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Offline replay path (queens-06 DoD): body -> extractor -> wire parser -> A13 gate ->
+ * Offline play-again path (queens-06 DoD): body -> extractor -> wire parser -> A13 gate ->
  * canonical codec bytes under gameId=queens — fake-backed, no network. Past days come by
  * number from games-by-id (ADR-0017) over the research's captured by-id bodies.
  */

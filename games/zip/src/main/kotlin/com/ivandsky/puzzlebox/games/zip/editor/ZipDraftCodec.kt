@@ -30,7 +30,7 @@ import java.io.ByteArrayOutputStream
  *     cells = [u8 k][k × u8 cell]
  * ```
  *
- * Each stack keeps its newest [MAX_HISTORY] steps; older ones drop on encode. Decode replays
+ * Each stack keeps its newest [MAX_HISTORY] steps; older ones drop on encode. Decode re-applies
  * board sizes through the stacks, so a step that could not apply to the board it meets is
  * malformed. Unknown versions, sizes, tags and trailing bytes are rejected, never guessed.
  */

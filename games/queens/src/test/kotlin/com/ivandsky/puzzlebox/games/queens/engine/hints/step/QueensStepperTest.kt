@@ -31,8 +31,8 @@ import org.junit.Test
 
 class QueensStepperTest {
 
-    /** One stepper replay from the empty board, applying each step as the player would. */
-    private class Replay(val steps: List<QueensStep>)
+    /** One stepper rerun from the empty board, applying each step as the player would. */
+    private class Rerun(val steps: List<QueensStep>)
 
     private companion object {
         fun text(name: String): String = QueensStepperTest::class.java.getResourceAsStream("/fixtures/$name")!!.readBytes().decodeToString()
@@ -50,7 +50,7 @@ class QueensStepperTest {
             )
         }
 
-        /** 6×6 with two solutions: the ladder stalls on it, so its replay reaches a reveal. */
+        /** 6×6 with two solutions: the ladder stalls on it, so its rerun reaches a reveal. */
         val twoSolutions: QueensPuzzle by lazy {
             val o = Json.parseToJsonElement(text("queens-editor-two-solutions.json")).jsonObject
             QueensPuzzle(size = 6, regions = o.ints("regions")!!, solution = o.ints("solutionA")!!.map(::Cell))
@@ -82,7 +82,7 @@ class QueensStepperTest {
             return start.exclude(board.manual.map { it.idx }.toSet())
         }
 
-        fun replay(puzzle: QueensPuzzle, autoCross: Boolean): Replay {
+        fun rerun(puzzle: QueensPuzzle, autoCross: Boolean): Rerun {
             val solution = puzzle.solution!!.toSet()
             var board = QueensBoard()
             var last: Cell? = null
@@ -92,7 +92,7 @@ class QueensStepperTest {
                 steps += step
                 val open = seeded(puzzle, board, autoCross)
                 when (step) {
-                    QueensStep.Solved -> return Replay(steps)
+                    QueensStep.Solved -> return Rerun(steps)
                     is QueensStep.Deduction -> when (val r = step.result) {
                         is Result.Cross -> {
                             assertTrue("$step", r.cells.isNotEmpty() && r.cells.all { open.isOpen(it.idx) && it !in solution })
@@ -116,12 +116,12 @@ class QueensStepperTest {
             throw AssertionError("replay did not finish")
         }
 
-        /** Each soundness board replayed once for every test that reads it. */
-        val replays: Map<String, Replay> by lazy {
+        /** Each soundness board re-run once for every test that reads it. */
+        val reruns: Map<String, Rerun> by lazy {
             mapOf(
-                "gen-n8-q1" to replay(n8, autoCross = true),
-                "n8N2 auto-cross off" to replay(QueensTestSupport.n8N2Puzzle(), autoCross = false),
-                "two-solutions" to replay(twoSolutions, autoCross = true),
+                "gen-n8-q1" to rerun(n8, autoCross = true),
+                "n8N2 auto-cross off" to rerun(QueensTestSupport.n8N2Puzzle(), autoCross = false),
+                "two-solutions" to rerun(twoSolutions, autoCross = true),
             )
         }
 
@@ -364,7 +364,7 @@ class QueensStepperTest {
         fun only(rung: QueensRung) = QueensLadder(listOf(rung))
         val short = QueensLadder.Stepwise.rungs.single { it is ShortLookAheadRung }
         val long = QueensLadder.Stepwise.rungs.single { it is LongLookAheadRung }
-        // gen-n8-q1 states from its replay. D10: 51 breaks at round 0 with 8 evidence, 35 at round 1 with 6.
+        // gen-n8-q1 states from its rerun. D10: 51 breaks at round 0 with 8 evidence, 35 at round 1 with 6.
         val d10 = board(manual = setOf(0, 1, 2, 3, 7, 9, 11, 13, 14, 17, 19, 20, 25, 26, 30, 31, 40, 42, 47, 48, 52, 56, 57, 60))
         // D11: the round-2 breaks' fewest evidence is 6 (8 and 46); 59 breaks at round 3 with 5.
         val d11 = board(manual = setOf(0, 1, 2, 3, 7, 9, 11, 13, 14, 17, 19, 20, 23, 25, 26, 30, 31, 35, 36, 37, 40, 42, 47, 48, 51, 52, 55, 56, 57, 60, 63))
@@ -377,22 +377,22 @@ class QueensStepperTest {
         assertEquals(Result.Cross(cells(46)), (QueensStepper.next(n8, d11, true, Cell(63), solution, only(long)) as QueensStep.Deduction).result)
     }
 
-    // ---- soundness replays ----
+    // ---- soundness reruns ----
 
     @Test
-    fun `replays from empty reach solved with only sound crosses, last cells and reveals`() {
-        for ((name, r) in replays) {
+    fun `reruns from empty reach solved with only sound crosses, last cells and reveals`() {
+        for ((name, r) in reruns) {
             assertEquals(name, QueensStep.Solved, r.steps.last())
             assertTrue(name, r.steps.dropLast(1).none { it == QueensStep.Solved })
         }
-        assertTrue(replays.getValue("two-solutions").steps.any { it is QueensStep.Reveal })
-        assertFalse(replays.getValue("gen-n8-q1").steps.any { it is QueensStep.Reveal })
+        assertTrue(reruns.getValue("two-solutions").steps.any { it is QueensStep.Reveal })
+        assertFalse(reruns.getValue("gen-n8-q1").steps.any { it is QueensStep.Reveal })
     }
 
     @Test
-    fun `auto-cross off replays step through D0`() {
-        assertTrue(replays.getValue("n8N2 auto-cross off").steps.any { (it as? QueensStep.Deduction)?.unit?.rung == AttackRung })
-        assertTrue(replays.getValue("gen-n8-q1").steps.none { (it as? QueensStep.Deduction)?.unit?.rung == AttackRung })
+    fun `auto-cross off reruns step through D0`() {
+        assertTrue(reruns.getValue("n8N2 auto-cross off").steps.any { (it as? QueensStep.Deduction)?.unit?.rung == AttackRung })
+        assertTrue(reruns.getValue("gen-n8-q1").steps.none { (it as? QueensStep.Deduction)?.unit?.rung == AttackRung })
     }
 
     @Test

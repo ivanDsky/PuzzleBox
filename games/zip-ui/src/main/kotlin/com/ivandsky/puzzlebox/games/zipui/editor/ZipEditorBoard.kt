@@ -129,7 +129,7 @@ private fun CellTags(board: ZipDraft) {
     }
 }
 
-/** A sideways jolt that settles, replayed for each refused number tap. */
+/** A sideways jolt that settles, played again for each refused number tap. */
 @Composable
 private fun shakeOffset(controller: ZipEditorController): Animatable<Float, *> {
     val shaken by controller.shaken.collectAsState()

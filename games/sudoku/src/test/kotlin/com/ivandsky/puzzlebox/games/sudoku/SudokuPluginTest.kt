@@ -80,7 +80,7 @@ class SudokuPluginTest {
     }
 
     @Test
-    fun `replay seeds a fresh session carrying the day's ref`() {
+    fun `play-again seeds a fresh session carrying the day's ref`() {
         val envelope = Puzzle(SudokuGames.MINI.id, SudokuVariants.MINI.id, SudokuCodec.VERSION, payload)
         val key = PuzzleKey.Daily(date, 450)
         val blob = (plugin.playAgainSession(envelope, key) as DecodeResult.Ok).value
@@ -92,7 +92,7 @@ class SudokuPluginTest {
     }
 
     @Test
-    fun `a custom key replays carrying the friend's puzzle identity`() {
+    fun `a custom key plays again carrying the friend's puzzle identity`() {
         val envelope = Puzzle(SudokuGames.MINI.id, SudokuVariants.MINI.id, SudokuCodec.VERSION, payload)
         val custom = PuzzleKey.Custom("K7Q2MX")
         val decoded = SessionBlob.decode((plugin.playAgainSession(envelope, custom) as DecodeResult.Ok).value)!!

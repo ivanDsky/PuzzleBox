@@ -226,7 +226,7 @@ class ZipPlayUiScreenTest {
     }
 
     @Test
-    fun `replay resets to a fresh board and can hand off again`() {
+    fun `play-again resets to a fresh board and can hand off again`() {
         val controller = readyController()
         solve(controller)
         playSolveMoment()

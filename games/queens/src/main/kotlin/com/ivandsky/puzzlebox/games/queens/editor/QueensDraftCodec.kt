@@ -29,7 +29,7 @@ import java.io.ByteArrayOutputStream
  * pre-35 bytes, so every stored draft and the frozen `queens-draft-v1.bin` decode unchanged.
  *
  * Each stack keeps its newest [MAX_HISTORY] steps; older ones drop on encode (undo depth
- * shrinks, the board never changes). Decode replays board sizes through the stacks, so a
+ * shrinks, the board never changes). Decode re-applies board sizes through the stacks, so a
  * step that could not apply to the board it meets is malformed rather than a crash on undo.
  * Unknown versions, sizes, tags and trailing bytes are rejected, never guessed.
  */
