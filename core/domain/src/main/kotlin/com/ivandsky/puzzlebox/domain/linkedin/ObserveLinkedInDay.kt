@@ -24,6 +24,10 @@ class ObserveLinkedInDay(private val days: LinkedInDays, private val registry: G
 
     operator fun invoke(game: GameId, day: LocalDate): Flow<LinkedInDayView> =
         days.observe(game, day).map { it.toView(game, registry) }
+
+    /** Every day of [game] from [from] to [to], both included, each as [invoke] shows it, from one observation. */
+    fun range(game: GameId, from: LocalDate, to: LocalDate): Flow<Map<LocalDate, LinkedInDayView>> =
+        days.observeRange(game, from, to).map { byDay -> byDay.mapValues { (_, day) -> day.toView(game, registry) } }
 }
 
 private fun LinkedInDayData.toView(game: GameId, registry: GameRegistry): LinkedInDayView =

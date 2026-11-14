@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.update
 
 /**
@@ -51,9 +52,26 @@ class FakeLinkedInDays : LinkedInDays {
 
     override fun willRead(game: GameId, day: LocalDate): Boolean = (game to day) !in unread
 
+    private val openedDays = CopyOnWriteArrayList<Pair<GameId, LocalDate>>()
+    private val openedRanges = CopyOnWriteArrayList<Triple<GameId, LocalDate, LocalDate>>()
+
+    /** Every collection of [observe] so far as `(game, day)`, oldest first, recorded when it starts. */
+    val observedDays: List<Pair<GameId, LocalDate>> get() = openedDays.toList()
+
+    /** Every collection of [observeRange] so far as `(game, from, to)`, oldest first, recorded when it starts. */
+    val observedRanges: List<Triple<GameId, LocalDate, LocalDate>> get() = openedRanges.toList()
+
     /** A day never set through [emit] reports an unlinked install that knows nothing. */
     override fun observe(game: GameId, day: LocalDate): Flow<LinkedInDayData> =
-        days.map { it[game to day] ?: UNKNOWN }.distinctUntilChanged()
+        days.map { it[game to day] ?: UNKNOWN }.distinctUntilChanged().onStart { openedDays += game to day }
+
+    /** Every day of the range as [observe] reports it, set through [emit] or not. */
+    override fun observeRange(game: GameId, from: LocalDate, to: LocalDate): Flow<Map<LocalDate, LinkedInDayData>> {
+        val range = generateSequence(from) { it.plusDays(1) }.takeWhile { !it.isAfter(to) }.toList()
+        return days.map { set -> range.associateWith { set[game to it] ?: UNKNOWN } }
+            .distinctUntilChanged()
+            .onStart { openedRanges += Triple(game, from, to) }
+    }
 
     fun emit(game: GameId, day: LocalDate, data: LinkedInDayData) {
         days.update { it + ((game to day) to data) }

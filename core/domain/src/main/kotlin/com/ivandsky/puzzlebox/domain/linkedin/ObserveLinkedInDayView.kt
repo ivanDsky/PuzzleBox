@@ -87,6 +87,9 @@ class ObserveLinkedInDayView(
     /** The view of [target]'s day as the phone holds it. Calls nothing: another collector's [invoke] syncs the day. */
     fun observed(target: Target): Flow<LinkedInDayView> = observe(target.game, target.day)
 
+    /** [observed] for every day of [game] from [from] to [to], both included, as one observation. */
+    fun observedRange(game: GameId, from: LocalDate, to: LocalDate): Flow<Map<LocalDate, LinkedInDayView>> = observe.range(game, from, to)
+
     /** The user asked again (Retry): the same day, one more sync. Does nothing unless a collector is on a day. */
     fun retry() {
         again.update { it + 1 }

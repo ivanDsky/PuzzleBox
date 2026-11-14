@@ -34,6 +34,10 @@ interface GhostDao {
     @Query("SELECT * FROM ghosts WHERE game = :game AND day = :day")
     suspend fun board(game: String, day: String): List<GhostEntity>
 
+    /** The boards of one game from [from] to [to], both included; each day's rows come as [board] gives them. */
+    @Query("SELECT * FROM ghosts WHERE game = :game AND day BETWEEN :from AND :to")
+    suspend fun boardsBetween(game: String, from: String, to: String): List<GhostEntity>
+
     /**
      * The last row read for [memberRef] on any game or day, from the boards [owner] may see (null: all of them);
      * null when none. It stands in for the player's own row on a day whose board names them not.

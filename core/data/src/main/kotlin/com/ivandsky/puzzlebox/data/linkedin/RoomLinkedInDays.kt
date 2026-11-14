@@ -65,9 +65,45 @@ internal class RoomLinkedInDays(
 
     override fun willRead(game: GameId, day: LocalDate): Boolean = daySync.willRead(game, day)
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     override fun observe(game: GameId, day: LocalDate): Flow<LinkedInDayData> {
-        return link.state.flatMapLatest { linked ->
+        return perLink { linked, profileId ->
+            combine(
+                imported(game, day),
+                savedBoards.observe(game, day, profileId),
+                fetches(game, day, profileId),
+                inFlight(game, day, profileId),
+                lastSync(game, day, profileId),
+            ) { import, board, fetches, inFlight, lastSync -> dayData(linked, game, day, import, board, fetches, inFlight, lastSync) }
+            // Room emits again on any write to a table, so a sync of another day would repeat this one.
+        }.distinctUntilChanged()
+    }
+
+    /**
+     * One listener per source for the whole range, where [observe] holds one per day: a game's month is five flows,
+     * not five a day, and a write to a table re-reads it once.
+     */
+    override fun observeRange(game: GameId, from: LocalDate, to: LocalDate): Flow<Map<LocalDate, LinkedInDayData>> {
+        val days = generateSequence(from) { it.plusDays(1) }.takeWhile { !it.isAfter(to) }.toList()
+        if (days.isEmpty()) return flowOf(emptyMap())
+        return perLink { linked, profileId ->
+            combine(
+                imports(game),
+                savedBoards.observe(game, days, profileId),
+                fetches(game, from, to, profileId),
+                inFlight(game, profileId),
+                lastSync(game, profileId),
+            ) { imports, boards, fetches, inFlight, lastSync ->
+                days.associateWith { day ->
+                    dayData(linked, game, day, imports[day], boards.getValue(day), fetches[day].orEmpty(), day in inFlight, lastSync[day])
+                }
+            }
+        }.distinctUntilChanged()
+    }
+
+    /** [read] for the link as it stands and the profile it reads as (null without one), started again when the link changes. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private fun <T> perLink(read: (linked: LinkState, profileId: String?) -> Flow<T>): Flow<T> =
+        link.state.flatMapLatest { linked ->
             // Memory hygiene only: results are keyed by profile, so none can show under another account
             // whether or not this ever saw the link go away.
             if (linked !is LinkState.Connected) syncState.clear()
@@ -76,31 +112,35 @@ internal class RoomLinkedInDays(
                 is LinkState.Connected -> linked.profileId
                 is LinkState.Paused -> linked.profileId
             }
-            combine(
-                imported(game, day),
-                savedBoards.observe(game, day, profileId),
-                fetches(game, day, profileId),
-                inFlight(game, day, profileId),
-                lastSync(game, day, profileId),
-            ) { import, board, fetches, inFlight, lastSync ->
-                // Read on every emission, never watched: a day held open across the game's midnight
-                // keeps its delta until its holder subscribes again.
-                val delta = window.deltaOf(game, day)
-                LinkedInDayData(
-                    link = linked,
-                    delta = delta,
-                    boardInWindow = window.inBoardWindow(delta),
-                    inFlight = inFlight,
-                    lastSync = lastSync,
-                    own = ownState(import, fetches),
-                    ghosts = board.ghosts,
-                    boardFetchedAtMs = board.readAtMs,
-                    owner = board.owner,
-                    boardComplete = board.complete,
-                )
-            }
-            // Room emits again on any write to a table, so a sync of another day would repeat this one.
-        }.distinctUntilChanged()
+            read(linked, profileId)
+        }
+
+    /** One day from its parts, by the one rule both reads share, so a day of a range is the day [observe] reports. */
+    private fun dayData(
+        linked: LinkState,
+        game: GameId,
+        day: LocalDate,
+        import: CompletionRecord?,
+        board: SavedBoardDays.Saved,
+        fetches: List<FetchLogEntity>,
+        inFlight: Boolean,
+        lastSync: LinkedInSync?,
+    ): LinkedInDayData {
+        // Read on every emission, never watched: a day held open across the game's midnight
+        // keeps its delta until its holder subscribes again.
+        val delta = window.deltaOf(game, day)
+        return LinkedInDayData(
+            link = linked,
+            delta = delta,
+            boardInWindow = window.inBoardWindow(delta),
+            inFlight = inFlight,
+            lastSync = lastSync,
+            own = ownState(import, fetches),
+            ghosts = board.ghosts,
+            boardFetchedAtMs = board.readAtMs,
+            owner = board.owner,
+            boardComplete = board.complete,
+        )
     }
 
     /**
@@ -112,6 +152,16 @@ internal class RoomLinkedInDays(
             rows.firstOrNull { it.puzzleRef.gameId == game && (it.puzzleRef.key as? PuzzleKey.Daily)?.date == day }
         }
 
+    /** [imported] for every day of [game] at once, by day. */
+    private fun imports(game: GameId): Flow<Map<LocalDate, CompletionRecord>> =
+        completions.observeImports().map { rows ->
+            buildMap {
+                rows.filter { it.puzzleRef.gameId == game }.forEach { row ->
+                    (row.puzzleRef.key as? PuzzleKey.Daily)?.let { getOrPut(it.date) { row } }
+                }
+            }
+        }
+
     private fun inFlight(game: GameId, day: LocalDate, profileId: String?): Flow<Boolean> =
         if (profileId == null) flowOf(false) else syncState.inFlight(DayKey(profileId, game, day))
 
@@ -120,6 +170,19 @@ internal class RoomLinkedInDays(
 
     private fun fetches(game: GameId, day: LocalDate, profileId: String?): Flow<List<FetchLogEntity>> =
         if (profileId == null) flowOf(emptyList()) else fetchLog.observe(game.value, day.toString(), profileId)
+
+    private fun inFlight(game: GameId, profileId: String?): Flow<Set<LocalDate>> =
+        if (profileId == null) flowOf(emptySet()) else syncState.inFlight(profileId, game)
+
+    private fun lastSync(game: GameId, profileId: String?): Flow<Map<LocalDate, LinkedInSync>> =
+        if (profileId == null) flowOf(emptyMap()) else syncState.lastSync(profileId, game)
+
+    private fun fetches(game: GameId, from: LocalDate, to: LocalDate, profileId: String?): Flow<Map<LocalDate, List<FetchLogEntity>>> =
+        if (profileId == null) {
+            flowOf(emptyMap())
+        } else {
+            fetchLog.observeBetween(game.value, from.toString(), to.toString(), profileId).map { rows -> rows.groupBy { LocalDate.parse(it.day) } }
+        }
 
     private fun ownState(import: CompletionRecord?, fetches: List<FetchLogEntity>): LinkedInOwnState = when {
         import != null -> LinkedInOwnState.Imported(import)
