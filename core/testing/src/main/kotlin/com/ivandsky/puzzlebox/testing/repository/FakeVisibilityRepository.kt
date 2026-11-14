@@ -20,6 +20,9 @@ class FakeVisibilityRepository(initial: OwnTier = OwnTier.Unknown) : VisibilityR
     val setCalls = mutableListOf<VisibilityTier>()
     val lookupCalls = mutableListOf<String>()
 
+    /** False: nobody is signed in, so [setOwnTier] stores nothing and answers false. */
+    var signedIn = true
+
     override val ownTier: Flow<OwnTier> = own.asStateFlow()
 
     /** Simulates a snapshot arriving. */
@@ -32,9 +35,11 @@ class FakeVisibilityRepository(initial: OwnTier = OwnTier.Unknown) : VisibilityR
         others[uid] = tier
     }
 
-    override suspend fun setOwnTier(tier: VisibilityTier) {
+    override suspend fun setOwnTier(tier: VisibilityTier): Boolean {
+        if (!signedIn) return false
         setCalls += tier
         own.value = OwnTier.Chosen(tier)
+        return true
     }
 
     override suspend fun tierOf(uid: String): TierLookup {

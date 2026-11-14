@@ -97,6 +97,21 @@ class SettingsViewModelTest {
     }
 
     @Test
+    fun `a signed-out pick writes nothing and leaves the tier unknown`() = runTest(dispatcher) {
+        val repository = FakeVisibilityRepository().apply { signedIn = false }
+        val vm = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild, slotOf(repository))
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+
+        // A failure thrown into the ViewModel's scope would fail this test when runTest ends.
+        vm.onSelectVisibility(VisibilityTier.Duel)
+        advanceUntilIdle()
+
+        assertEquals(emptyList<VisibilityTier>(), repository.setCalls)
+        assertEquals(OwnTier.Unknown, vm.uiState.value.visibility)
+    }
+
+    @Test
     fun `the section is absent without a slot and a pick touches nothing`() = runTest(dispatcher) {
         val vm = SettingsViewModel(FakeUserPreferencesRepository(), FakeGameOptions(), appBuild)
         backgroundScope.launch { vm.uiState.collect {} }
