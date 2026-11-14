@@ -1,10 +1,8 @@
 package com.ivandsky.puzzlebox.app.nav
 
-import com.ivandsky.puzzlebox.data.visibility.OwnTier
-import kotlinx.coroutines.flow.flowOf
-import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.data.visibility.OwnTier
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.home.HomeLayout
@@ -13,6 +11,8 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.LinkedInLoginKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
+import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
