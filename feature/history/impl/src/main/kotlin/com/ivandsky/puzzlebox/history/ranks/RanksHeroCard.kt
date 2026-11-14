@@ -27,7 +27,8 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 /**
  * The tablet's placement hero card above the board: where the viewer stands on [board] ([standing], big), and the
  * [score] that put them there (null: nothing to say, as with no solve in the window). A place that changes with the
- * board crossfades in place, and so does the score ([DayMorph]); reduced motion shortens the place's fade and swaps the score.
+ * board crossfades in place, and so do the board's name and the score ([DayMorph]); reduced motion shortens the
+ * place's fade and swaps the other two.
  */
 @Composable
 internal fun RanksHeroCard(board: String, standing: Standing, score: String?, modifier: Modifier = Modifier) {
@@ -58,7 +59,9 @@ internal fun RanksHeroCard(board: String, standing: Standing, score: String?, mo
                 }
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Text(board, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.End)
+                DayMorph(board, alignment = Alignment.TopEnd) {
+                    Text(it, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.End)
+                }
                 DayMorph(score ?: standing.hint(), alignment = Alignment.TopEnd) { shown ->
                     Text(
                         shown,

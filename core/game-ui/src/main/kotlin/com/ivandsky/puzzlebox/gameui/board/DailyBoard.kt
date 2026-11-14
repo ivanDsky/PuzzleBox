@@ -31,8 +31,8 @@ private const val MaxGhosts = 20
  * [isToday] says whether the board is today's, so an empty one names the day it shows.
  * [medals] makes the top three places medal rows and [dock] docks the viewer's own row to the edge of what scrolls the
  * board while it is out of view (see [DailyBoardList]). With [onRowClick] another player's official row is tappable and
- * reports its row; a board that passes none has rows that take no tap. With [morphTitle] a new [title] crossfades over the
- * old one ([DayMorph]) instead of replacing it.
+ * reports its row; a board that passes none has rows that take no tap. With [morphText] a new [title] or [caption]
+ * crossfades over the old one ([DayMorph]) instead of replacing it.
  */
 @Composable
 fun DailyBoard(
@@ -48,17 +48,12 @@ fun DailyBoard(
     medals: Boolean = false,
     dock: Boolean = false,
     onRowClick: ((DailyBoardRowModel) -> Unit)? = null,
-    morphTitle: Boolean = false,
+    morphText: Boolean = false,
 ) {
     CompositionLocalProvider(LocalBoardRowClick provides onRowClick) {
         Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            if (morphTitle) DayMorph(title) { Title(it) } else Title(title)
-            Text(
-                caption,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag("daily_board.caption"),
-            )
+            if (morphText) DayMorph(title) { Title(it) } else Title(title)
+            if (morphText) DayMorph(caption) { Caption(it) } else Caption(caption)
             when (state) {
                 DailyBoardState.Loading -> Line("Loading…", "daily_board.loading")
                 DailyBoardState.Unavailable -> Line("Leaderboard unavailable right now.", "daily_board.unavailable")
@@ -75,6 +70,16 @@ fun DailyBoard(
 @Composable
 private fun Title(title: String) {
     Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("daily_board.title"))
+}
+
+@Composable
+private fun Caption(caption: String) {
+    Text(
+        caption,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.testTag("daily_board.caption"),
+    )
 }
 
 @Composable
