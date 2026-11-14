@@ -70,8 +70,8 @@ import org.koin.dsl.module
 import org.koin.dsl.onClose
 
 /**
- * The cloud sync test world (tickets 33, 34 and 35): the real flag-on app graph, with `ReleaseFlag.CloudSync` on (and
- * `LinkedInAccount` too when [linkedIn]), over one shared [space], one [network] and fake identities. Everything the
+ * The cloud sync test world (tickets 33, 34 and 35): the real app graph (cloud sync is always on, and `LinkedInAccount`
+ * too when [linkedIn]), over one shared [space], one [network] and fake identities. Everything the
  * sync touches is the production code: Room, the owner scope, every kind, the engine and the runner. Only the edges are
  * fakes: the cloud space ([FakeCloudSpace] behind a [CloudGate]), the identity and the network.
  *
@@ -211,7 +211,7 @@ internal class CloudSyncWorld(
                 single<CompletionRepository> { get<Koin>(named(DATA)).get() }
                 edges()
             },
-            FakeReleaseFlags(*listOfNotNull(ReleaseFlag.CloudSync, ReleaseFlag.LinkedInAccount.takeIf { linkedIn }).toTypedArray()),
+            FakeReleaseFlags(*listOfNotNull(ReleaseFlag.LinkedInAccount.takeIf { linkedIn }).toTypedArray()),
         )
 
         /** The account that signs in here is the one the cloud authenticates. */
@@ -227,14 +227,14 @@ internal class CloudSyncWorld(
 
         /**
          * Runs [block] against this phone's shell on [state]: the graph starts, the cloud sync loads and its runner
-         * starts as `PuzzleBoxApplication.onCreate` does, all before the UI is drawn, so no screen ever holds the
-         * flag-off owner scope. The graph stops after; the phone's files stay.
+         * starts as `PuzzleBoxApplication.onCreate` does, all before the UI is drawn, so no screen ever holds an owner
+         * scope created too late. The graph stops after; the phone's files stay.
          */
         fun shell(tab: NavKey = PlayKey, block: ShellRobot.() -> Unit) {
             authority.currentIdentity = graph.identity.currentIdentity
             graph.start()
             try {
-                check(PuzzleBoxApplication.loadCloudSync(graph.koin)) { "CloudSync is off" }
+                PuzzleBoxApplication.prepareCloudSync(graph.koin)
                 graph.koin.get<CloudSyncRunner>().start()
                 val robot = ShellRobot(graph, tabAt(tab), topLevelDestinations)
                 val run = object : Statement() {

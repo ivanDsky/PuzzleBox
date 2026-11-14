@@ -29,8 +29,7 @@ import com.ivandsky.puzzlebox.profile.linkedin.LinkedInLoginViewModel.Step
 /**
  * The LinkedIn login, a pushed tool screen: a compact top bar with Back over the body for
  * [step]. The web view exists only while the step is [Step.SignIn], so nothing loads before the
- * warning is accepted. [onBack] also serves both Cancel buttons. [savedToAccount] (cloud sync is on) switches the
- * warning's copy about the connections' boards.
+ * warning is accepted. [onBack] also serves both Cancel buttons.
  */
 @Composable
 internal fun LinkedInLoginScreen(
@@ -40,7 +39,6 @@ internal fun LinkedInLoginScreen(
     onRetry: () -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
-    savedToAccount: Boolean = false,
 ) {
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CompactTopBar(
@@ -60,7 +58,6 @@ internal fun LinkedInLoginScreen(
                 onAccept = onAccept,
                 onCancel = onBack,
                 modifier = Modifier.fillMaxSize(),
-                savedToAccount = savedToAccount,
             )
             Step.SignIn -> LinkedInLoginWebView(onPageFinished = onPageFinished, modifier = Modifier.fillMaxSize())
             Step.Checking -> Checking()

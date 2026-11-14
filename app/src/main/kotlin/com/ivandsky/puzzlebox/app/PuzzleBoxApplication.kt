@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.compete.di.competeModule
 import com.ivandsky.puzzlebox.create.di.createModule
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncRunner
+import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.di.cloudSyncModule
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.di.linkedInCloudSyncModule
@@ -51,9 +52,8 @@ class PuzzleBoxApplication : Application() {
         // A sign-out or erase since the last run left a mark: clear the Firestore disk cache now, before any store
         // touches Firestore (the SDK refuses once started). No mark, no work.
         runBlocking { koin.get<PendingCacheClear>().run() }
-        // The sync graph exists only with CloudSync on, decided once here; it loads before any starter so the owner
-        // scope is the signed-in one from the first row any of them reads.
-        val cloudSync = loadCloudSync(koin)
+        // The owner scope is created before any starter, so it is the signed-in one from the first row any of them reads.
+        prepareCloudSync(koin)
         // The submit hook: record writes are the only leaderboard source; async,
         // eventual, and silent when signed out or offline.
         koin.get<LeaderboardSubmitWatcher>().start()
@@ -63,26 +63,23 @@ class PuzzleBoxApplication : Application() {
         koin.get<MatchResultPoster>().start()
         // Daily replays: an accepted solve's replay goes public only on the Replays tier; absent with the hub flag off.
         if (koin.get<ReleaseFlags>().isEnabled(ReleaseFlag.LeaderboardHub)) koin.get<DailyReplayPublisher>().start()
-        // Cloud sync: the one place that starts runs besides "Sync now"; absent with the flag off.
-        if (cloudSync) koin.get<CloudSyncRunner>().start()
+        // Cloud sync: the one place that starts runs besides "Sync now".
+        koin.get<CloudSyncRunner>().start()
     }
 
     companion object {
         /**
-         * Loads the cloud sync graph into the running [koin] when [ReleaseFlag.CloudSync] is on (plus the LinkedIn boards
-         * kind when [ReleaseFlag.LinkedInAccount] is on too) and returns whether it did. Overrides are allowed because
-         * the graph replaces the no-op owner scope; its eager owner scope is created here. A debug flag change applies
-         * on the next launch, because nothing reads the flags again. Off: nothing is loaded and nothing is bound.
+         * Readies the sync graph that [appModules] already binds: adds the LinkedIn boards kind and saved-board deletion
+         * when [ReleaseFlag.LinkedInAccount] is on, then creates the owner scope, which records the last signed-in uid
+         * from its construction, so it must exist before any starter reads a row. A debug flag change applies on the
+         * next launch, because nothing reads the flag again.
          */
-        fun loadCloudSync(koin: Koin): Boolean {
-            val flags = koin.get<ReleaseFlags>()
-            if (!flags.isEnabled(ReleaseFlag.CloudSync)) return false
-            val modules = if (flags.isEnabled(ReleaseFlag.LinkedInAccount)) listOf(cloudSyncModule, linkedInCloudSyncModule) else listOf(cloudSyncModule)
-            koin.loadModules(modules, allowOverride = true, createEagerInstances = true)
-            return true
+        fun prepareCloudSync(koin: Koin) {
+            if (koin.get<ReleaseFlags>().isEnabled(ReleaseFlag.LinkedInAccount)) koin.loadModules(listOf(linkedInCloudSyncModule))
+            koin.get<OwnerScope>()
         }
 
         val appModules =
-            listOf(commonModule, dataModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, createModule, authModule(R.string.default_web_client_id), profileModule, competeModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule, buildTypeReleaseFlagsModule) + buildTypeGameModules
+            listOf(commonModule, dataModule, cloudSyncModule, firebaseBackendModule, domainModule, homeModule, historyModule, playModule, createModule, authModule(R.string.default_web_client_id), profileModule, competeModule, zipModule, zipUiModule, queensModule, queensUiModule, tangoModule, tangoUiModule, strandsModule, strandsUiModule, miniSudokuModule, miniSudokuUiModule, appModule, buildTypeReleaseFlagsModule) + buildTypeGameModules
     }
 }

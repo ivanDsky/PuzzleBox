@@ -25,11 +25,10 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 /**
- * The cloud sync graph (ADR-0029 decision 5): loaded only when `ReleaseFlag.CloudSync` is on, decided once at app
- * start, and loaded with overrides allowed because it replaces [dataModule]'s no-op [OwnerScope]. With the flag off none
- * of it exists: `getOrNull<CloudSync>()` is null, no kind is registered and no cloud call can be made. The app supplies
- * the `CloudSpace` (the backend module), the `IdentityService`, the `NetworkStatus` and the process `CoroutineScope`
- * (a SupervisorJob scope the engine, the runner and the owner scope launch on).
+ * The cloud sync graph (ADR-0029 decision 5): always part of the app, with the sync engine, the runner, the erase and
+ * the signed-in [OwnerScope] every repository reads through. The app supplies the `CloudSpace` (the backend module), the
+ * `IdentityService`, the `NetworkStatus` and the process `CoroutineScope` (a SupervisorJob scope the engine, the
+ * runner and the owner scope launch on).
  *
  * Every kind is a `SyncedKind` under its own qualifier: Koin keys a definition by type and qualifier, so unqualified
  * lines would replace one another, and `getAll<SyncedKind>()` still collects them all. `linkedInCloudSyncModule` adds
@@ -37,8 +36,8 @@ import org.koin.dsl.module
  */
 val cloudSyncModule = module {
     single<SyncStateStore> { DataStoreSyncStateStore(get()) }
-    // Collects from construction and is the only writer of the last uid, so it is created at start, not at first use.
-    single<OwnerScope>(createdAtStart = true) { SignedInOwnerScope(get<IdentityService>(), get(), get<CoroutineScope>()) }
+    // Collects from construction and is the only writer of the last uid; the app creates it before any starter runs.
+    single<OwnerScope> { SignedInOwnerScope(get<IdentityService>(), get(), get<CoroutineScope>()) }
     single {
         CloudErase(space = get(), kinds = getAll<SyncedKind>(), store = get(), identity = get<IdentityService>())
     }
@@ -64,7 +63,7 @@ val cloudSyncModule = module {
             scope = get<CoroutineScope>(),
         )
     }
-    // The Google row's "N drafts are too big to sync" line; bound only with the flag on.
+    // The Google row's "N drafts are too big to sync" line.
     single<OversizedDrafts> { RoomOversizedDrafts(get<PuzzleBoxDatabase>().draftDao(), get<IdentityService>()) }
     single<SyncedKind>(named("cloud.kind.completions")) {
         val db = get<PuzzleBoxDatabase>()

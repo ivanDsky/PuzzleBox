@@ -28,6 +28,7 @@ import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.FixtureSession
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
@@ -108,6 +109,7 @@ object HistoryTestSupport {
             puzzleDay = puzzleDay,
             loadReplay = loadReplay(games, daily, completions),
             opening = opening,
+            cloudSync = FakeCloudSync(),
         )
     }
 

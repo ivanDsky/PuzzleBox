@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -101,6 +103,7 @@ class GamePageRankRowTest {
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
                     single { ObserveFriendDay.Binding(friends) }
                 },
+                module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
             )
         }

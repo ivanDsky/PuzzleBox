@@ -227,7 +227,7 @@ class RoomCompletionRepositoryOwnerTest {
     }
 
     @Test
-    fun `flag-off scope shows every owner's rows`() = runTest {
+    fun `a scope with no visible owner shows every owner's rows`() = runTest {
         finishAs("A", 90_000)
         finishAs("B", 80_000, PuzzleKey.Daily(day, 593))
 

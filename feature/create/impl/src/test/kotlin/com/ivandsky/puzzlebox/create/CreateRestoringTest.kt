@@ -48,7 +48,7 @@ import org.robolectric.annotation.Config
 /**
  * Create's first-restore state (spec A34): while the cloud's first restore runs the first-time
  * empty state says the drafts are coming back, and so does each tab's own empty card; any other
- * state, or no [CloudSync] at all, keeps today's first-time copy.
+ * state keeps today's first-time copy.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -65,7 +65,7 @@ class CreateRestoringTest {
     private val drafts = FakeDraftRepository()
     private val published = FakePublishedPuzzleRepository()
 
-    private fun show(cloud: CloudSync?) {
+    private fun show(cloud: CloudSync) {
         val games = GameRegistry(listOf(TestGames.plugin(GameId("fake"))))
         startKoin {
             modules(
@@ -166,14 +166,6 @@ class CreateRestoringTest {
     @Test
     fun `an ordinary sync pass keeps the empty state`() {
         show(FakeCloudSync(CloudSyncState.Syncing(firstRestore = false)))
-
-        awaitTag(EMPTY)
-        assertNoTag(RESTORING)
-    }
-
-    @Test
-    fun `no cloud sync bound keeps the empty state`() {
-        show(null)
 
         awaitTag(EMPTY)
         assertNoTag(RESTORING)

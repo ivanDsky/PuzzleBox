@@ -264,6 +264,7 @@ class StrandsArchiveE2ETest {
             modules(
                 commonModule,
                 dataModule,
+                unfilteredOwnerModule,
                 strandsModule,
                 module {
                     single<NytTransport> { transport }

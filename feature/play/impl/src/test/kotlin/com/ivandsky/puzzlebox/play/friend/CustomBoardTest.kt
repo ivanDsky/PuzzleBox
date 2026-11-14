@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.play.friend
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -292,6 +294,7 @@ class CustomBoardTest {
                     factory { LoadPastDay(get(), get()) }
                     factory { loadSolveReplay(get(), get(), get()) }
                 },
+                module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 hubOffFriendDay,
             )

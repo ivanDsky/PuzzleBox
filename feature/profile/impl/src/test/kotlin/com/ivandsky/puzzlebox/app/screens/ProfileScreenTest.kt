@@ -99,7 +99,7 @@ class ProfileScreenTest {
         composeRule.onNodeWithTag("profile-signed-out").assertExists()
         composeRule.onNodeWithText("Sign in with Google").assertExists()
         composeRule.onNodeWithTag("profile-signed-in").assertDoesNotExist()
-        composeRule.onNodeWithText("Sign in with Google to put your times on the leaderboards.").assertExists()
+        composeRule.onNodeWithText("Sign in with Google to put your times on the leaderboards and keep your history on every device.").assertExists()
 
         composeRule.onNodeWithText("Sign in with Google").performScrollTo().performClick()
         assertEquals(1, signInClicks)
@@ -289,7 +289,8 @@ class ProfileScreenTest {
 
         composeRule.onNodeWithText("LinkedIn").assertExists()
         composeRule.onNodeWithText(
-            "Import your own LinkedIn game results and see your connections' times on this phone.",
+            "Import your own LinkedIn game results and see your connections' times. " +
+                "The boards you read are saved to your own PuzzleBox account, readable only by you, and kept after Disconnect.",
         ).assertExists()
         composeRule.onNodeWithTag("profile.linkedin.overflow").assertDoesNotExist()
 

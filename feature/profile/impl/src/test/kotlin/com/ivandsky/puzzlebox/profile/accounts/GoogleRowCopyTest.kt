@@ -26,11 +26,8 @@ class GoogleRowCopyTest {
     private val signedIn = ProfileUiState.Account.SignedIn(Identity("u1", "Ann", null))
     private val signedOut = ProfileUiState.Account.SignedOut()
 
-    private fun setRow(account: ProfileUiState.Account, sync: GoogleSync?, syncCopy: Boolean) {
-        val shown = when (account) {
-            is ProfileUiState.Account.SignedIn -> account.copy(sync = sync)
-            is ProfileUiState.Account.SignedOut -> account.copy(cloudSyncAvailable = syncCopy)
-        }
+    private fun setRow(account: ProfileUiState.Account, sync: GoogleSync?) {
+        val shown = if (account is ProfileUiState.Account.SignedIn) account.copy(sync = sync) else account
         composeRule.setContent {
             PuzzleBoxTheme {
                 GoogleRow(
@@ -46,8 +43,8 @@ class GoogleRowCopyTest {
     }
 
     @Test
-    fun `signed out with cloud sync names keeping history on every device`() {
-        setRow(signedOut, sync = null, syncCopy = true)
+    fun `signed out names keeping history on every device`() {
+        setRow(signedOut, sync = null)
 
         composeRule
             .onNodeWithText("Sign in with Google to put your times on the leaderboards and keep your history on every device.")
@@ -55,23 +52,16 @@ class GoogleRowCopyTest {
     }
 
     @Test
-    fun `signed out without cloud sync keeps today's copy`() {
-        setRow(signedOut, sync = null, syncCopy = false)
-
-        composeRule.onNodeWithText("Sign in with Google to put your times on the leaderboards.").assertExists()
-    }
-
-    @Test
-    fun `signed in with cloud sync says what stays after sign out and that unfinished games stay on the device`() {
-        setRow(signedIn, sync = GoogleSync(GoogleSync.Status.Synced(NOW)), syncCopy = true)
+    fun `signed in and synced says what stays after sign out and that unfinished games stay on the device`() {
+        setRow(signedIn, sync = GoogleSync(GoogleSync.Status.Synced(NOW)))
 
         composeRule.onNodeWithText("Signing out keeps your history on this phone and in your account.").assertExists()
         composeRule.onNodeWithText("Unfinished games stay on this device.").assertExists()
     }
 
     @Test
-    fun `signed in without cloud sync keeps today's copy`() {
-        setRow(signedIn, sync = null, syncCopy = false)
+    fun `signed in while the sync engine is signed out shows no sync notes`() {
+        setRow(signedIn, sync = null)
 
         composeRule.onNodeWithText("Signed in with Google").assertExists()
         composeRule.onNodeWithText("Signing out keeps your history on this phone and in your account.").assertDoesNotExist()
