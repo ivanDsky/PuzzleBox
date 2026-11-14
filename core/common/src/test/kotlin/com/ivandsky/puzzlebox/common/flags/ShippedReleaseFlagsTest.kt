@@ -17,8 +17,8 @@ class ShippedReleaseFlagsTest {
     }
 
     @Test
-    fun `shipped flags exclude FullReplay until its flip ticket`() {
-        assertFalse(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.FullReplay))
+    fun `shipped flags include FullReplay since its flip`() {
+        assertTrue(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.FullReplay))
     }
 
     @Test
