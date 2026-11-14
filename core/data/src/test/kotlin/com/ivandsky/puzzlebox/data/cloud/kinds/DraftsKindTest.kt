@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
@@ -587,6 +588,23 @@ class DraftsKindTest {
         val after = kind.pending(ANN).single()
         assertEquals("Edited", after.fields["name"])
         assertTrue(before.fields != after.fields)
+    }
+
+    @Test
+    fun `an edit to a pending draft changes its stamp and an acknowledgement of another does not`() = runTest {
+        seed("a")
+        seed("b")
+        val first = kind.pendingStamps(ANN).first()
+        assertEquals(setOf("a", "b"), first.keys)
+
+        repository.upsert(draft("a", title = "Edited", updatedAtMs = 5_000L))
+        val edited = kind.pendingStamps(ANN).first()
+        assertEquals(setOf("a", "b"), edited.keys)
+        assertTrue("the edited draft's stamp changed", edited.getValue("a") != first.getValue("a"))
+        assertEquals("the untouched draft's stamp did not", first.getValue("b"), edited.getValue("b"))
+
+        kind.acknowledge(ANN, kind.pending(ANN).filter { it.id == "b" })
+        assertEquals(mapOf("a" to edited.getValue("a")), kind.pendingStamps(ANN).first())
     }
 
     private fun draft(id: String, title: String, updatedAtMs: Long) = Draft(
