@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import java.time.Clock
 import java.time.Instant
@@ -19,6 +20,9 @@ class ComputeStreakTest {
     private val clock = Clock.fixed(Instant.parse("2026-11-10T12:00:00Z"), ZoneOffset.UTC)
     private val registry = TestGames.registry(listOf(GameId("zip")))
     private val streak = ComputeStreak(GetPuzzleDay(registry, clock))
+
+    // The strict rule (flag off) is pinned explicitly: gapped histories break it, and the default flags now freeze them.
+    private val strict = ComputeStreak(GetPuzzleDay(registry, clock), FakeReleaseFlags())
 
     private val today = LocalDate.of(2026, 11, 10)
     private val yesterday = today.minusDays(1)
@@ -40,14 +44,14 @@ class ComputeStreakTest {
 
     @Test
     fun `last solve two days ago is no streak`() {
-        assertEquals(0, streak(listOf(today.minusDays(2), today.minusDays(3))).current)
+        assertEquals(0, strict(listOf(today.minusDays(2), today.minusDays(3))).current)
     }
 
     @Test
     fun `opened but unsolved days are ignored`() {
         // The caller passes only solved days; an opened-unsolved yesterday leaves a gap.
         val solved = listOf(today, today.minusDays(2))
-        assertEquals(1, streak(solved).current)
+        assertEquals(1, strict(solved).current)
     }
 
     @Test
