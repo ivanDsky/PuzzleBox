@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -99,18 +99,16 @@ private fun RanksSignInPromptPreview() {
     RanksPreviewHost { Box(Modifier.padding(Spacing.lg)) { RanksSignInPrompt(RanksSignIn.Idle, onSignIn = {}) } }
 }
 
-// The menu draws in its own popup below the title, so the preview reserves the room it drops into.
+// The menu draws in its own popup below the title, so the host fills the preview for the page to reach under it.
 @PuzzleBoxPreviews
 @Composable
 private fun RanksTitleMenuOpenPreview() {
-    RanksPreviewHost {
-        Box(Modifier.padding(Spacing.lg).height(MENU_ROOM)) {
+    RanksPreviewHost(Modifier.fillMaxSize()) {
+        Box(Modifier.padding(Spacing.lg)) {
             RanksTitleMenu("Overall", MenuPlaces, selected = RanksBoard.Overall, onPick = {}, onHowRanksWork = {}, initiallyExpanded = true)
         }
     }
 }
-
-private val MENU_ROOM = Spacing.xxl * 8
 
 private val MenuPlaces = listOf(
     BoardPlace(RanksBoard.Overall, "Overall", Standing.Place(12)),
