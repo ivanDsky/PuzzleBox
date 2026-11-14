@@ -91,7 +91,11 @@ fun ResultRoute(
     }
 }
 
-/** The hero page: the time, its facts, the streak and week, the time spread and the rank. */
+/**
+ * The hero page: the time, its facts, the streak and week, the time spread and the rank, today's result or a play
+ * again alike. The rank chip beside the time is today's only: on a play again the rank shows in the side card,
+ * labelled as the day's counting solve, never next to this play again's time.
+ */
 @Composable
 private fun ColumnScope.HeroPage(
     key: ResultKey,
@@ -107,7 +111,7 @@ private fun ColumnScope.HeroPage(
 ) {
     val insights by viewModel.heroInsights.collectAsStateWithLifecycle()
     val rank by viewModel.heroRank.collectAsStateWithLifecycle()
-    val chip = if (onOpenRanks == null || state.practice) {
+    val chip = if (onOpenRanks == null || state.practice || viewModel.playAgain) {
         null
     } else {
         remember(rank, key, onOpenRanks) { resultRankChip(rank) { onOpenRanks(GameId(key.gameId), LocalDate.parse(key.day)) } }

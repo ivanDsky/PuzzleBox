@@ -342,6 +342,9 @@ class ResultHeroCopyTest {
         assertEquals("#2", heroRankValue(position = 2, count = 3, topPercent = 67))
         assertEquals("of 3 players today", heroRankSub(3))
         assertEquals("Sign in to see where you rank today.", HERO_SIGN_IN_LINE)
+        assertEquals("of players · your solve that day", heroRankSubPlayAgain(212))
+        assertEquals("of 3 players · your solve that day", heroRankSubPlayAgain(3))
+        assertEquals("Sign in to see where you ranked that day.", HERO_SIGN_IN_PLAY_AGAIN_LINE)
     }
 
     // --- the model -------------------------------------------------------------------------
@@ -536,16 +539,42 @@ class ResultHeroCopyTest {
     }
 
     @Test
-    fun `a play-again hides the pill, streak and rank and keeps the spread`() {
+    fun `a play-again shows the streak, the spread and the rank, but no pill, burst or celebration`() {
         val model = model(facts(verdict = RecordVerdict.NewBest, playAgain = true))
 
         assertNull(model.pill)
-        assertNull(model.streak)
-        assertNull(model.rank)
+        assertEquals("3 day streak", model.streak!!.title)
+        assertEquals(listOf(false, false, false, false, true, true, true), model.streak!!.week.map { it.solved })
         assertNotNull(model.spread)
+        assertEquals(HeroRank.Place("Top 7%", "of players · your solve that day"), model.rank)
         assertEquals("Practice · Best 1:30", model.bestLine)
         assertFalse(model.burst)
         assertFalse(model.celebrate)
+        assertFalse(model.bestImproved)
+    }
+
+    @Test
+    fun `a play-again's rank says it is the counting solve of that day, on a small board too`() {
+        val small = ResultRank.Ranked(position = 2, count = 3, topPercent = 67, withConnections = ResultRank.WithConnections(position = 3, count = 12))
+
+        assertEquals(
+            HeroRank.Place("#2", "of 3 players · your solve that day", connections = "3rd of 12 with connections"),
+            model(facts(playAgain = true, rank = small)).rank,
+        )
+    }
+
+    @Test
+    fun `a signed-out play-again is asked to sign in for the day, and a missing rank hides the row`() {
+        assertEquals(
+            HeroRank.SignIn("Sign in to see where you ranked that day."),
+            model(facts(playAgain = true, rank = ResultRank.SignedOut)).rank,
+        )
+        assertNull(model(facts(playAgain = true, rank = ResultRank.Hidden)).rank)
+    }
+
+    @Test
+    fun `a play-again's streak waits for its data`() {
+        assertNull(model(facts(playAgain = true, insights = null)).streak)
     }
 
     @Test

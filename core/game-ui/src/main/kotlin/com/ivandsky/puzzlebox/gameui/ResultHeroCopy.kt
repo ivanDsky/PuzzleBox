@@ -206,6 +206,9 @@ internal fun heroChartDescription(heading: String, bins: Int, timeMs: Long): Str
 /** The rank row for a signed-out player. */
 internal const val HERO_SIGN_IN_LINE = "Sign in to see where you rank today."
 
+/** The rank row for a signed-out player on a play again: the board is a past day's, so it is not "today". */
+internal const val HERO_SIGN_IN_PLAY_AGAIN_LINE = "Sign in to see where you ranked that day."
+
 /** Below this many players "Top N%" says little, so the row names the place instead. */
 internal const val RANK_PERCENT_MIN_PLAYERS = 10
 
@@ -216,6 +219,13 @@ internal fun heroRankValue(position: Int, count: Int, topPercent: Int): String =
 /** The rank row's sub line: "of players today", naming the board's size for a place. */
 internal fun heroRankSub(count: Int): String =
     if (count >= RANK_PERCENT_MIN_PLAYERS) "of players today" else "of $count players today"
+
+/**
+ * The rank row's sub line on a play again: the place is the player's counting solve of that day, never this play
+ * again's time. "of players · your solve that day", naming the board's size for a place.
+ */
+internal fun heroRankSubPlayAgain(count: Int): String =
+    if (count >= RANK_PERCENT_MIN_PLAYERS) "of players · your solve that day" else "of $count players · your solve that day"
 
 /** The rank row's line for a place among players and LinkedIn connections: "3rd of 12 with connections". */
 internal fun heroRankConnections(position: Int, count: Int): String = "${ordinal(position)} of $count with connections"
