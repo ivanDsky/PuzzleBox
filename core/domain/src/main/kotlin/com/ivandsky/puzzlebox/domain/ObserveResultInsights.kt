@@ -59,7 +59,8 @@ class ObserveResultInsights(
                 },
                 spread = timeSpread(earlier.map { it.second }, solve, order),
                 weekday = weekdaySpread(earlier, day, solve, order),
-                freezes = freezes?.copy(lastSolve = moment),
+                freezes = freezes,
+                moment = moment,
             )
         }.distinctUntilChanged()
     }

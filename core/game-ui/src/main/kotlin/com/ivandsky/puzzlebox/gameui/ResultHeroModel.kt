@@ -153,7 +153,7 @@ private fun streak(insights: ResultInsights, locale: Locale) = HeroStreak(
     sub = insights.freezes?.let(::heroFreezeSub) ?: heroStreakSub(insights.streak),
     week = insights.week.map { HeroWeekDot(weekdayInitial(it.date, locale), it.solved, it.today, it.frozen) },
     freezesHeld = insights.freezes.heldWhileStreak(insights.streak),
-    moment = insights.freezes?.let { freezes -> freezes.lastSolve?.let { heroFreezeMoment(it, freezes.held, locale) } },
+    moment = insights.freezes?.let { freezes -> insights.moment?.let { heroFreezeMoment(it, freezes.held, locale) } },
 )
 
 private fun spread(facts: ResultHeroFacts, insights: ResultInsights, locale: Locale): HeroSpread {

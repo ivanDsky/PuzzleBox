@@ -5,7 +5,7 @@ package com.ivandsky.puzzlebox.domain
  * game, the [WEEK_DAYS] days ending today (oldest first), and the [spread] of this game's
  * times over every day plus the same [weekday]'s own spread. [averageMs] is the average of
  * the game's earlier solves; null on a first solve. [freezes] is null while the StreakFreeze flag is
- * off; its [StreakFreezes.lastSolve] is set only when this very solve spent or earned a freeze.
+ * off. [moment] is set only when this very solve spent or earned a freeze, so Result shows it once.
  */
 data class ResultInsights(
     val streak: Int,
@@ -13,6 +13,7 @@ data class ResultInsights(
     val spread: TimeSpread,
     val weekday: WeekdaySpread,
     val freezes: StreakFreezes? = null,
+    val moment: StreakFreezes.Moment? = null,
 ) {
     val averageMs: Long? get() = spread.averageEarlierMs
 
