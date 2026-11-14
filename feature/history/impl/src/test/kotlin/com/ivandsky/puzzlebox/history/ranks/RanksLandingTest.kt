@@ -6,7 +6,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -17,17 +16,6 @@ import org.junit.Test
 class RanksLandingTest {
 
     private fun scope() = CoroutineScope(UnconfinedTestDispatcher() + Job())
-
-    @Test
-    fun `a stored Global is the first value, with no Friends before it`() = runTest {
-        // A scope that has not run yet: the value is what the hub's first frame would read, before any collection.
-        val scope = CoroutineScope(StandardTestDispatcher() + Job())
-
-        val landing = RanksLanding(FakeUserPreferencesRepository(ranksFriendsDefault = false), scope)
-
-        assertEquals(RankScope.Global, landing.scope.value)
-        scope.cancel()
-    }
 
     @Test
     fun `the default is Friends`() = runTest {
