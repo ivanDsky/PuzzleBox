@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSpace
 import com.ivandsky.puzzlebox.testing.cloud.FakeSyncStateStore
+import com.ivandsky.puzzlebox.testing.network.FakeNetworkStatus
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import java.time.Clock
 import java.time.Instant
@@ -50,6 +51,7 @@ class SyncFailureTest {
     private val space = FakeCloudSpace(identity) { 1_000L }
     private val store = FakeSyncStateStore()
     private val clock = MutableClock(10_000L)
+    private val network = FakeNetworkStatus(initial = false)
     private val log = mutableListOf<String>()
     private val loggingSpace = LoggingSpace(space, log)
 
@@ -64,7 +66,7 @@ class SyncFailureTest {
             override val default = dispatcher
         }
         return SyncedKindsCloudSync(
-            kinds, loggingSpace, store, identity, CloudErase(loggingSpace, kinds, store, identity), clock, dispatchers, scope,
+            kinds, loggingSpace, store, identity, CloudErase(loggingSpace, kinds, store, identity), clock, dispatchers, network, scope,
         )
     }
 
@@ -159,7 +161,8 @@ class SyncFailureTest {
     // offline waits for a trigger
 
     @Test
-    fun `offline schedules nothing and a later trigger syncs`() = runTest {
+    fun `offline with the network down schedules nothing and a later trigger syncs`() = runTest {
+        network.setOnline(false)
         space.failNext(CloudResult.Offline)
         val engine = engine(listOf(kind("completions")))
         engine.syncNow()
@@ -171,6 +174,30 @@ class SyncFailureTest {
         assertEquals(CloudSyncState.Offline(null), engine.state.value)
         engine.syncNow()
         assertEquals(2, pulls)
+        assertEquals(CloudSyncState.Synced(10_000L), engine.state.value)
+    }
+
+    @Test
+    fun `a timeout while the network is up retries on 1, 2, 4 and 8 minutes and shows Offline meanwhile`() = runTest {
+        network.setOnline(true)
+        failures(4, CloudResult.Offline)
+        val engine = engine(listOf(kind("completions")))
+        engine.syncNow()
+        assertEquals(1, pulls)
+
+        var expected = 1
+        for (minutes in listOf(1L, 2L, 4L)) {
+            advance(minutes * MINUTE - 1)
+            assertEquals("just before $minutes min", expected, pulls)
+            advance(1)
+            expected++
+            assertEquals("at $minutes min", expected, pulls)
+            assertEquals(CloudSyncState.Offline(null), engine.state.value)
+        }
+
+        advance(8 * MINUTE)
+
+        assertEquals(5, pulls)
         assertEquals(CloudSyncState.Synced(10_000L), engine.state.value)
     }
 

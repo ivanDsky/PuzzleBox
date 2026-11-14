@@ -11,17 +11,27 @@ class SyncBackoffTest {
     private val minute = 60_000L
 
     @Test
-    fun `offline leads to Offline and waits for a trigger whatever the attempt`() {
+    fun `offline with the network down leads to Offline and waits for a trigger whatever the attempt`() {
         for (attempt in listOf(1, 2, 9)) {
-            val pause = checkNotNull(SyncBackoff.after(CloudResult.Offline, attempt, lastAtMs = 7L))
+            val pause = checkNotNull(SyncBackoff.after(CloudResult.Offline, attempt, lastAtMs = 7L, online = false))
             assertEquals(CloudSyncState.Offline(7L), pause.state)
             assertNull(pause.retryAfterMs)
         }
     }
 
     @Test
+    fun `offline with the network up is a timeout and retries on the doubling delay capped at 30 minutes`() {
+        val minutes = listOf(1L, 2L, 4L, 8L, 16L, 30L, 30L)
+        minutes.forEachIndexed { index, expected ->
+            val pause = checkNotNull(SyncBackoff.after(CloudResult.Offline, index + 1, lastAtMs = 7L, online = true))
+            assertEquals(CloudSyncState.Offline(7L), pause.state)
+            assertEquals("attempt ${index + 1}", expected * minute, pause.retryAfterMs)
+        }
+    }
+
+    @Test
     fun `offline keeps a missing last time as null`() {
-        assertEquals(CloudSyncState.Offline(null), SyncBackoff.after(CloudResult.Offline, 1, null)?.state)
+        assertEquals(CloudSyncState.Offline(null), SyncBackoff.after(CloudResult.Offline, 1, null, online = false)?.state)
     }
 
     @Test
@@ -29,7 +39,7 @@ class SyncBackoffTest {
         val minutes = listOf(1L, 2L, 4L, 8L, 16L, 30L, 30L, 30L)
         for ((reason, result) in listOf(PauseReason.Exhausted to CloudResult.Exhausted, PauseReason.Denied to CloudResult.Denied)) {
             minutes.forEachIndexed { index, expected ->
-                val pause = checkNotNull(SyncBackoff.after(result, attempt = index + 1, lastAtMs = 5L))
+                val pause = checkNotNull(SyncBackoff.after(result, attempt = index + 1, lastAtMs = 5L, online = true))
                 assertEquals(CloudSyncState.Paused(reason, 5L), pause.state)
                 assertEquals("attempt ${index + 1}", expected * minute, pause.retryAfterMs)
             }
@@ -39,19 +49,19 @@ class SyncBackoffTest {
     @Test
     fun `a huge attempt count stays at the cap without overflowing`() {
         for (attempt in listOf(40, 64, 65, 1_000, Int.MAX_VALUE)) {
-            assertEquals(30 * minute, SyncBackoff.after(CloudResult.Denied, attempt, null)?.retryAfterMs)
+            assertEquals(30 * minute, SyncBackoff.after(CloudResult.Denied, attempt, null, online = true)?.retryAfterMs)
         }
     }
 
     @Test
     fun `an attempt below one counts as the first`() {
-        assertEquals(minute, SyncBackoff.after(CloudResult.Exhausted, 0, null)?.retryAfterMs)
+        assertEquals(minute, SyncBackoff.after(CloudResult.Exhausted, 0, null, online = true)?.retryAfterMs)
     }
 
     @Test
     fun `ok and wrong account decide nothing`() {
-        assertNull(SyncBackoff.after(CloudResult.Ok(Unit), 1, 1L))
-        assertNull(SyncBackoff.after(CloudResult.WrongAccount, 1, 1L))
+        assertNull(SyncBackoff.after(CloudResult.Ok(Unit), 1, 1L, online = true))
+        assertNull(SyncBackoff.after(CloudResult.WrongAccount, 1, 1L, online = true))
     }
 
     @Test

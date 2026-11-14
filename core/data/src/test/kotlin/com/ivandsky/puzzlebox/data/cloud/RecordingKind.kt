@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.data.cloud
 
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flow
 
 /**
  * A [SyncedKind] for engine tests: rows live in memory, every call is appended to [events] ("adopt drafts ann",
@@ -50,7 +50,7 @@ internal class RecordingKind(
     /** This kind's calls named [name] ("adopt", "apply", "pending", "acknowledge", "forget"), in order. */
     fun calls(name: String): List<String> = events.filter { it.startsWith("$name $kind ") }
 
-    override fun pendingIds(uid: String): Flow<Set<String>> = emptyFlow()
+    override fun pendingIds(uid: String): Flow<Set<String>> = flow { emit(pendingRowIds.toSet()) }
 
     override suspend fun adopt(uid: String) {
         onCall("adopt")

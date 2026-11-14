@@ -49,6 +49,7 @@ val cloudSyncModule = module {
             erase = get(),
             clock = Clock.systemDefaultZone(),
             dispatchers = get(),
+            network = get<NetworkStatus>(),
             scope = get<CoroutineScope>(),
         )
     }
