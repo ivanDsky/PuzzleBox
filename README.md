@@ -149,12 +149,12 @@ rebased onto the latest `main`:
 ./gradlew assembleDebug test           # module-graph guard, every module's unit tests, :konsist
 ```
 
-Every push to `main` runs the same suite in [`.github/workflows/release.yml`](.github/workflows/release.yml)
-(with `-Pgoldens.pixelCompare=false`), then builds the signed release. It publishes a GitHub
-release only if the tests pass and the `versionName` is new. A red `main` stops merges until a
-revert or fix lands. CI does not compare screenshot pixels (the goldens are recorded on macOS;
-on Linux, `-Pgoldens.pixelCompare=false` also turns off the Tango harness's always-on pixel
-diff), so run the `-Proborazzi.verify=true` command above before you push UI changes.
+Every push to `main` runs the same suite in [`.github/workflows/release.yml`](.github/workflows/release.yml),
+split over two parallel jobs (`assembleDebug testCore` and `testUi`), while a third builds the
+signed release. It publishes a GitHub release only if the tests pass and the `versionName` is new.
+A red `main` stops merges until a revert or fix lands. CI skips the screenshot golden classes
+outside `:app` (`-Pgoldens.skip`: the goldens are recorded on macOS and Linux fonts drift), so run
+the `-Proborazzi.verify=true` command above before you push UI changes.
 
 Unfinished features merge dark behind a `ReleaseFlag` and ship by a flip PR
 ([ADR-0022](docs/adr/0022-trunk-delivery-release-flags.md)). To force a flag on in a debug

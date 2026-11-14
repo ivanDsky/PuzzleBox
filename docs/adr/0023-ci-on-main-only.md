@@ -24,6 +24,15 @@ user, the PR is a place to read the change, not a test gate.
    guard, every module's unit tests, `:app`'s release host tests and `:konsist`), then the
    signed release build and publish. A red test step stops the job before publishing, so a broken
    main never ships a release.
+   *Amendment 2026-11-13:* the run is four jobs. Two test jobs run in parallel and together
+   cover the same suite: `assembleDebug testCore`, and `testUi` (`:app` and `:feature:*`). A
+   `release` job builds and verifies the signed APK beside them. `publish` needs all three, so a
+   red test job still blocks the release. CI skips the golden screenshot classes outside `:app`
+   (`-Pgoldens.skip`). Without pixel comparison on Linux they could only catch a render crash, and
+   they took about 40% of the run. `:app` keeps its goldens (about 80 seconds): with them skipped,
+   the Robolectric native graphics runtime aborted the `:app` test JVM on the Linux runners in 6 of
+   8 runs. A timing experiment on the 4-vCPU runner put the old single
+   job at about 20 minutes worst case, with the CPU saturated (more test forks gained nothing).
 3. **The merge gate is local.** Before an agent merges a slice PR, the full suite
    (`./gradlew assembleDebug test`) must be green on the PR branch rebased onto fresh
    `origin/main`, and the `review-change` fast tier must be clean. A rebase that pulls in new
@@ -64,7 +73,8 @@ user, the PR is a place to read the change, not a test gate.
 - Nothing on GitHub enforces the local gate. It depends on the agent and the user following
   PROFILE's consent ledger. If merges start breaking main, bring back a required check (a
   warm-cache PR check takes about 3.5 minutes; see `.scratch/ci-speed/`).
-- Screenshot goldens are still not pixel-verified on CI (ADR-0022): verify them locally with
+- Screenshot goldens outside `:app` do not run on CI. Before the 2026-11-13 amendment they all ran
+  without pixel comparison (ADR-0022), as `:app`'s still do. Verify them locally with
   `-Proborazzi.verify=true`.
 - A semantic conflict through a file the PR does not touch can now reach main. Example: #109's
   forced-cells test broke after #89 changed `TangoRules`. Main's release run is the backstop,
