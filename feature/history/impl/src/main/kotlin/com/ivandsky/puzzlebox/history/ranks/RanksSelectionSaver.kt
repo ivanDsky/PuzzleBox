@@ -22,6 +22,9 @@ private const val GAME_PREFIX = "game:"
  */
 internal class RanksSelectionSaver(private val handle: SavedStateHandle) {
 
+    /** Whether the handle holds a selection, i.e. the hub is being restored rather than opened fresh. */
+    val hasSaved: Boolean get() = handle.contains(BOARD_KEY)
+
     fun save(selection: RanksSelection) {
         handle[BOARD_KEY] = when (val board = selection.board) {
             RanksBoard.Overall -> OVERALL
