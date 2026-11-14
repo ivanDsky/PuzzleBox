@@ -21,17 +21,22 @@ fun GhostRow(row: GhostRowModel, place: Int?, order: RankOrder, modifier: Modifi
         tags = Tags,
         name = row.name.ifEmpty { "Connection" },
         photo = row.photo,
-        place = place,
-        detail = null,
-        score = row.timeMs?.let { scoreAt(row, order, it) } ?: "time hidden",
+        cells = row.cells(place, order, medals),
         modifier = modifier,
         scoreTime = row.timeMs?.let { time -> ScoreTime(time) { ms -> scoreAt(row, order, ms) } },
         connection = true,
         linkedIn = true,
         muted = row.timeMs == null,
-        medal = if (medals) medalRowOf(place) else null,
     )
 }
+
+/** What this connection's row says at [place] on a board ranked by [order]: the cells that change when the board does. */
+internal fun GhostRowModel.cells(place: Int?, order: RankOrder, medals: Boolean) = RowCells(
+    place = place,
+    detail = null,
+    score = timeMs?.let { scoreAt(this, order, it) } ?: "time hidden",
+    medalRow = medals,
+)
 
 private fun scoreAt(row: GhostRowModel, order: RankOrder, timeMs: Long): String =
     if (row.hintFree) bestScoreText(linkedInScore(timeMs, true), order) else formatDuration(timeMs)

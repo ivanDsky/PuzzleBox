@@ -45,7 +45,8 @@ import java.time.LocalDate
  * A day or window pick keeps the board on screen until the next one answers ([rememberHeldBoard]): only what differs
  * between the two days then changes, each part in place. A held board's rows take no tap, for they are not the picked day's.
  * The whole hub sits in the shown board's world ([RanksWorld]): its accent as a wash and its glyph behind the content,
- * blending to the next board's as the hub moves to it ([BoardScrub]).
+ * blending to the next board's as the hub moves to it ([BoardScrub]). The same scrub moves the board itself: a swipe
+ * (on either layout) or a pick re-ranks the rows in place from the one board to the other ([rememberBoardMorph]).
  */
 @Composable
 internal fun RanksScreen(
@@ -86,9 +87,9 @@ internal fun RanksScreen(
             }
             Box(Modifier.weight(1f)) {
                 if (twoPane) {
-                    RanksTwoPane(shown, onSignIn, Modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, leftScroll, scroll, onRowClick, refreshing, onRefresh, scrub)
+                    RanksTwoPane(shown, onSignIn, Modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, leftScroll, scroll, onRowClick, refreshing, onRefresh, scrub, onSwipe)
                 } else {
-                    RanksPhone(shown, scroll, onSignIn, onSwipe, onPickBoard, onNudgeShown, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, onRowClick, refreshing, onRefresh)
+                    RanksPhone(shown, scrub, scroll, onSignIn, onSwipe, onPickBoard, onNudgeShown, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, onRowClick, refreshing, onRefresh)
                 }
             }
         }
@@ -109,6 +110,7 @@ private fun ReselectToTop(scrolls: List<ScrollState>, onReset: () -> Unit) {
 @Composable
 private fun RanksPhone(
     state: RanksUiState,
+    scrub: BoardScrub,
     scroll: ScrollState,
     onSignIn: () -> Unit,
     onSwipe: (Int) -> Unit,
@@ -139,7 +141,7 @@ private fun RanksPhone(
                     .padding(Spacing.lg),
             ) {
                 RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
-                    RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true })
+                    RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true }, scrub = scrub)
                 }
                 RanksCalendar(state.calendar, state.stats, onShowCalendar, onSelectDay)
                 YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
@@ -148,8 +150,11 @@ private fun RanksPhone(
                     state.position,
                     Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.md).testTag("ranks.dots"),
                     pulseScale = { dotPulseScale(nudge.pulse.value) },
+                    scrub = scrub,
                 )
-                BoardSwipe(onSwipe) { RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick) }
+                BoardSwipe(scrub, state.position, state.boardCount, onSwipe) {
+                    RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick, morph = rememberBoardMorph(state, scrub))
+                }
             }
             SwipeNudgePill(nudgeText(state.places, state.position), nudge, Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.lg))
         }

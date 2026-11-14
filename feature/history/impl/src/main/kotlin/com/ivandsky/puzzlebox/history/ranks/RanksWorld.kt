@@ -10,7 +10,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -96,7 +95,7 @@ private fun BoxScope.GhostGlyph(brand: GameBrand, wide: Boolean, away: () -> Flo
 private fun RanksWorldPreview() {
     PuzzleBoxTheme {
         val brands = listOf(GameBrand.Neutral, GameBrand(AccentSlot.Blue, GameGlyphs.Zip))
-        RanksWorld(brands, remember { BoardScrub(1) }, wide = false, Modifier.fillMaxSize()) {
+        RanksWorld(brands, rememberBoardScrub(1), wide = false, Modifier.fillMaxSize()) {
             Text("Zip · today", Modifier.padding(Spacing.lg), style = MaterialTheme.typography.titleLarge)
         }
     }

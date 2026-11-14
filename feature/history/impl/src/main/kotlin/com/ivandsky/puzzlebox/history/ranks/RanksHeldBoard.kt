@@ -16,14 +16,16 @@ internal const val BOARD_HOLD_CAP_MS = 1_500L
 /**
  * What the hub draws for [next] while [drawn] is on screen. A day or window pick leaves the board loading for a moment:
  * until it answers, [drawn]'s board stays (so its title, rows and note change in one step and the rows re-rank in
- * place instead of the list being torn down), and so does each place that is still loading. Only the same board is
- * held, so a swipe shows the new one at once; everything else is [next]'s. Returns [next] itself when nothing is held.
+ * place instead of the list being torn down), with the boards beside it for a swipe to scrub to, and so does each
+ * place that is still loading. Only the same board is held, so a swipe shows the new one at once; everything else is
+ * [next]'s. Returns [next] itself when nothing is held.
  */
 internal fun heldBoard(drawn: RanksUiState?, next: RanksUiState): RanksUiState {
     if (drawn == null || drawn.position != next.position) return next
     val loading = next.board.state == DailyBoardState.Loading && drawn.board.state != DailyBoardState.Loading
     val places = drawn.places.heldOver(next.places)
-    return if (!loading && places === next.places) next else next.copy(board = if (loading) drawn.board else next.board, places = places)
+    if (!loading && places === next.places) return next
+    return if (loading) next.copy(board = drawn.board, boards = drawn.boards, places = places) else next.copy(places = places)
 }
 
 private fun List<BoardPlace>.heldOver(next: List<BoardPlace>): List<BoardPlace> {
