@@ -86,7 +86,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, S6, S7, P1, P4–P10) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, S7, P1, P4–P11) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
