@@ -488,6 +488,51 @@ class ReplayPlaybackTest {
         assertEquals(19_500L, playback.state.value.positionMs)
 
         playback.advance(500)
+        assertEquals(20_000L, playback.state.value.positionMs)
+
+        playback.advance(3_000)
+        assertEquals(39_000L, playback.state.value.positionMs)
+    }
+
+    @Test
+    fun `a gap after a move is not jumped before the move's animation has played`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.seekTo(20_000)
+        playback.play()
+
+        playback.advance(2_900)
+        assertEquals(22_900L, playback.state.value.positionMs)
+
+        playback.advance(100)
+        assertEquals(39_000L, playback.state.value.positionMs)
+    }
+
+    @Test
+    fun `the dwell is wall time, so it is longer in play time at speed 4`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.setSpeed(4)
+        playback.seekTo(20_000)
+        playback.play()
+
+        playback.advance(2_900)
+        assertEquals(31_600L, playback.state.value.positionMs)
+
+        playback.seekTo(20_000)
+        playback.advance(3_000)
+        assertEquals(39_000L, playback.state.value.positionMs)
+    }
+
+    @Test
+    fun `in a compare the other side's move restarts the dwell`() {
+        val theirsAt22 = ReplayFixtures.timeline(moves = 1, stepMs = 22_000)
+        val playback = ReplayPlayback(slowSolve, theirsAt22)
+        playback.seekTo(24_800)
+        playback.play()
+
+        playback.advance(100)
+        assertEquals(24_900L, playback.state.value.positionMs)
+
+        playback.advance(100)
         assertEquals(39_000L, playback.state.value.positionMs)
     }
 
@@ -568,7 +613,7 @@ class ReplayPlaybackTest {
         playback.play()
         playback.seekTo(1_000)
 
-        playback.advance(16)
+        playback.advance(3_000)
 
         assertEquals(19_000L, playback.state.value.positionMs)
     }
