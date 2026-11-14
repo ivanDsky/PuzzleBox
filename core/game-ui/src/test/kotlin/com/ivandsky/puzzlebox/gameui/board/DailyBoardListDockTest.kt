@@ -58,7 +58,7 @@ class DailyBoardListDockTest {
             scope = rememberCoroutineScope()
             PuzzleBoxTheme(darkTheme = false) {
                 Box(Modifier.height(viewport).verticalScroll(state)) {
-                    DailyBoardList(lines, RankOrder.TimeThenHints, dock = dock)
+                    DailyBoardList(lines, RankOrder.TimeThenHints, style = DailyBoardStyle.defaults(dock = dock))
                 }
             }
         }

@@ -66,9 +66,10 @@ class DailyBoardTest {
     ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
+                val motion = if (animated) DailyBoardStyle.Motion.Animated else DailyBoardStyle.Motion.Static
                 DailyBoard(
                     "Queens · today", order, state, ghosts = ghosts, signIn = { Text("sign-in slot") },
-                    isToday = isToday, animated = animated, medals = medals,
+                    isToday = isToday, style = DailyBoardStyle.defaults(motion = motion, medals = medals),
                 )
             }
         }
