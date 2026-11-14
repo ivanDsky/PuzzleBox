@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.game.replay.MoveKind
 
@@ -17,7 +18,7 @@ internal val MirroredSeekBarHeight = 96.dp
  */
 @Composable
 internal fun ReplayMirroredSeekBar(
-    positionMs: Long,
+    positionMs: () -> Long,
     durationMs: Long,
     mineTicksMs: LongArray?,
     mineKinds: Array<MoveKind>?,
@@ -37,15 +38,16 @@ internal fun ReplayMirroredSeekBar(
     val mineUnplayed = remember(colors) { unplayedKindColors(colors, normal = colors.primary) }
     val theirsPlayed = remember(colors) { kindColors(colors, normal = colors.tertiary) }
     val theirsUnplayed = remember(colors) { unplayedKindColors(colors, normal = colors.tertiary) }
-    ReplayScrubStrip(positionMs, durationMs, onSeek, MirroredSeekBarHeight, modifier) { fraction ->
+    ReplayScrubStrip(positionMs, durationMs, onSeek, MirroredSeekBarHeight, modifier) {
         val axis = size.height / 2
         val room = axis - 4.dp.toPx()
         val offset = 1.dp.toPx()
-        if (mine != null) {
-            drawBarSeries(mine, fraction, axis - offset, room, true, minePlayed, mineUnplayed)
+        val mineShapes = mine?.let { barSeriesShapes(it, size.width, axis - offset, room, up = true) }
+        val theirsShapes = theirs?.let { barSeriesShapes(it, size.width, axis + offset, room, up = false) }
+        val draw: DrawScope.(Float) -> Unit = { fraction ->
+            if (mineShapes != null) drawBarSeries(mineShapes, fraction, minePlayed, mineUnplayed)
+            if (theirsShapes != null) drawBarSeries(theirsShapes, fraction, theirsPlayed, theirsUnplayed)
         }
-        if (theirs != null) {
-            drawBarSeries(theirs, fraction, axis + offset, room, false, theirsPlayed, theirsUnplayed)
-        }
+        draw
     }
 }

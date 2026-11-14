@@ -19,7 +19,10 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -63,9 +66,9 @@ internal val ReplayTransportHeight: Dp = replayControlsHeight(SeekBarHeight)
  */
 @Composable
 fun ReplayTransport(state: ReplayPlaybackState, playback: ReplayPlayback, modifier: Modifier = Modifier) {
-    ReplayControls(state, playback, SeekBarHeight, modifier) {
+    ReplayControls(state, playback, SeekBarHeight, modifier) { positionMs ->
         ReplaySeekBar(
-            positionMs = state.positionMs,
+            positionMs = positionMs,
             durationMs = state.durationMs,
             ticksMs = state.ticksMs,
             tickKinds = state.tickKinds,
@@ -74,7 +77,10 @@ fun ReplayTransport(state: ReplayPlaybackState, playback: ReplayPlayback, modifi
     }
 }
 
-/** The transport's frame around any seek strip of [stripHeight]; [legend] sits at the readout's end. */
+/**
+ * The transport's frame around any seek strip of [stripHeight]; [legend] sits at the readout's end. The strip gets the
+ * playback position as a lambda; [state] may be a stable one whose own position is stale, the position is read from [playback].
+ */
 @Composable
 internal fun ReplayControls(
     state: ReplayPlaybackState,
@@ -82,19 +88,22 @@ internal fun ReplayControls(
     stripHeight: Dp,
     modifier: Modifier = Modifier,
     legend: @Composable () -> Unit = {},
-    strip: @Composable () -> Unit,
+    strip: @Composable (positionMs: () -> Long) -> Unit,
 ) {
+    val live = playback.state.collectAsState()
+    // Only the lambda is passed down: the readout and the strip read the state when they show it, not here.
+    val positionMs = remember(live) { { live.value.positionMs } }
     Column(
         modifier = modifier.fillMaxWidth().height(replayControlsHeight(stripHeight)),
         verticalArrangement = Arrangement.spacedBy(ControlGap),
     ) {
         Row(Modifier.fillMaxWidth().height(ReadoutHeight), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                Readout(state.positionMs, state.durationMs)
+                Readout(positionMs, state.durationMs)
             }
             legend()
         }
-        strip()
+        strip(positionMs)
         Row(Modifier.fillMaxWidth().height(RowHeight), verticalAlignment = Alignment.CenterVertically) {
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
                 SkipIdleButton(state.skipIdle) { playback.setSkipIdle(it) }
@@ -112,11 +121,13 @@ internal fun ReplayControls(
 }
 
 @Composable
-private fun Readout(positionMs: Long, durationMs: Long) {
+private fun Readout(positionMs: () -> Long, durationMs: Long) {
     val colors = MaterialTheme.colorScheme
+    // The text changes once a second at most, so only this text recomposes while the position moves.
+    val position by remember(positionMs) { derivedStateOf { formatDuration(positionMs()) } }
     Text(
         text = buildAnnotatedString {
-            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = colors.onSurface)) { append(formatDuration(positionMs)) }
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = colors.onSurface)) { append(position) }
             withStyle(SpanStyle(color = colors.onSurfaceVariant)) { append(" / ${formatDuration(durationMs)}") }
         },
         style = MaterialTheme.typography.titleLarge.tabular(),

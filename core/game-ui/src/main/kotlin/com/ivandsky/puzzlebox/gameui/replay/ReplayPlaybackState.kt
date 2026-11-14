@@ -23,4 +23,6 @@ class ReplayPlaybackState(
     val lead: Lead?,
     /** False hides every rule-violation mark on the boards. Both sides share it. */
     val showErrors: Boolean,
+    /** The last change of position was a seek, and no frame of play has come since: the frame it landed on rests ([ReplayBoardOptions.animate]). */
+    val seeked: Boolean = false,
 )
