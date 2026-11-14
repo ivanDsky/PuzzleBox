@@ -45,6 +45,10 @@ interface DraftDao {
     @Query("SELECT * FROM drafts WHERE ownerUid = :owner")
     fun observeOwnedBy(owner: String): Flow<List<DraftEntity>>
 
+    /** How many of [owner]'s drafts have a blob of more than [maxBytes] bytes: the ones the sync kind never uploads. */
+    @Query("SELECT COUNT(*) FROM drafts WHERE ownerUid = :owner AND length(blob) > :maxBytes")
+    fun observeOversizedCount(owner: String, maxBytes: Int): Flow<Int>
+
     /**
      * Ids of [owner]'s draft tombstones not yet uploaded, due or not. A change here, like a change to `drafts`,
      * wakes the sync kind; it never reads the rows' content.

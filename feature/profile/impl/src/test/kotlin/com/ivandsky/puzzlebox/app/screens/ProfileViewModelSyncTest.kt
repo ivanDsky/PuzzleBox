@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.app.screens.ProfileUiState.GoogleSync
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeOversizedDrafts
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -61,13 +62,18 @@ class ProfileViewModelSyncTest {
         }
     }
 
-    private fun TestScope.viewModel(cloud: FakeCloudSync?, now: Clock = clock): ProfileViewModel {
+    private fun TestScope.viewModel(
+        cloud: FakeCloudSync?,
+        now: Clock = clock,
+        oversized: FakeOversizedDrafts? = null,
+    ): ProfileViewModel {
         val history = ObserveGameHistory(registry, FakeDailyRepository(), FakeCompletionRepository())
         val vm = ProfileViewModel(
             identityService = FakeIdentityService(initial = Identity("u1", "Ann", null)),
             idTokenProvider = UnavailableGoogleIdTokenProvider,
             observeGameStats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
             cloudSync = cloud,
+            oversizedDrafts = oversized,
             clock = now,
         )
         backgroundScope.launch { vm.uiState.collect {} }
@@ -123,6 +129,32 @@ class ProfileViewModelSyncTest {
 
         cloud.state.value = CloudSyncState.SignedOut
         advanceUntilIdle()
+        assertNull(vm.sync())
+    }
+
+    @Test
+    fun `the oversized draft count follows the drafts and reaches the line`() = runTest(dispatcher) {
+        val oversized = FakeOversizedDrafts(0)
+        val vm = viewModel(FakeCloudSync(CloudSyncState.Synced(atMs = 5_000L)), oversized = oversized)
+        assertEquals(0, vm.sync()?.oversizedDrafts)
+
+        oversized.count.value = 1
+        advanceUntilIdle()
+        assertEquals(GoogleSync(GoogleSync.Status.Synced(5_000L), oversizedDrafts = 1), vm.sync())
+
+        oversized.count.value = 3
+        advanceUntilIdle()
+        assertEquals(3, vm.sync()?.oversizedDrafts)
+
+        oversized.count.value = 0
+        advanceUntilIdle()
+        assertEquals(GoogleSync(GoogleSync.Status.Synced(5_000L)), vm.sync())
+    }
+
+    @Test
+    fun `signed out the oversized count adds no sync line`() = runTest(dispatcher) {
+        val vm = viewModel(FakeCloudSync(CloudSyncState.SignedOut), oversized = FakeOversizedDrafts(2))
+
         assertNull(vm.sync())
     }
 

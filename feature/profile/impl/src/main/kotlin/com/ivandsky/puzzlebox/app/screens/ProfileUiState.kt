@@ -34,12 +34,14 @@ data class ProfileUiState(
 
     /**
      * What the signed-in Google row says about cloud sync: the [status] line, whether a Delete my cloud data call is
-     * running ([erasing]), and why the last one did not finish ([eraseMessage]).
+     * running ([erasing]), why the last one did not finish ([eraseMessage]), and how many of the account's drafts are
+     * too big to sync ([oversizedDrafts]; 0 shows no line).
      */
     data class GoogleSync(
         val status: Status,
         val erasing: Boolean = false,
         val eraseMessage: String? = null,
+        val oversizedDrafts: Int = 0,
     ) {
         sealed interface Status {
             /** The last pass finished at [atMs] (epoch ms). */

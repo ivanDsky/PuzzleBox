@@ -26,7 +26,8 @@ private const val PAUSED_DENIED = "Sync paused · your account was refused, trie
 
 /**
  * The signed-in Google row's sync line: what the engine is doing, with Sync now beside it (idle while a pass is
- * already running or a delete is) and, under it, why the last Delete my cloud data did not finish. [nowMs] only phrases the age.
+ * already running or a delete is) and, under it, how many drafts are too big to sync (no line at 0) and why the last
+ * Delete my cloud data did not finish. [nowMs] only phrases the age.
  */
 @Composable
 internal fun GoogleSyncLine(
@@ -50,6 +51,14 @@ internal fun GoogleSyncLine(
                 enabled = sync.status != GoogleSync.Status.Syncing && !sync.erasing,
             )
         }
+        if (sync.oversizedDrafts > 0) {
+            Text(
+                text = oversizedDraftsText(sync.oversizedDrafts),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("profile.google.sync.drafts"),
+            )
+        }
         sync.eraseMessage?.let { message ->
             Text(
                 text = message,
@@ -68,6 +77,9 @@ private fun syncText(status: GoogleSync.Status, nowMs: Long): String = when (sta
     is GoogleSync.Status.Paused -> pausedText(status.reason)
 }
 
+private fun oversizedDraftsText(count: Int): String =
+    if (count == 1) "1 draft is too big to sync" else "$count drafts are too big to sync"
+
 private fun pausedText(reason: PauseReason): String = when (reason) {
     PauseReason.Exhausted -> PAUSED_EXHAUSTED
     PauseReason.WriteCap -> PAUSED_WRITE_CAP
@@ -78,9 +90,18 @@ private const val PREVIEW_NOW_MS = 1_800_000_000_000L
 private const val PREVIEW_MINUTE_MS = 60_000L
 
 @Composable
-private fun SyncLinePreview(status: GoogleSync.Status, eraseMessage: String? = null, erasing: Boolean = false) {
+private fun SyncLinePreview(
+    status: GoogleSync.Status,
+    eraseMessage: String? = null,
+    erasing: Boolean = false,
+    oversizedDrafts: Int = 0,
+) {
     PuzzleBoxTheme {
-        GoogleSyncLine(GoogleSync(status, erasing = erasing, eraseMessage = eraseMessage), PREVIEW_NOW_MS, onSyncNow = {})
+        GoogleSyncLine(
+            GoogleSync(status, erasing = erasing, eraseMessage = eraseMessage, oversizedDrafts = oversizedDrafts),
+            PREVIEW_NOW_MS,
+            onSyncNow = {},
+        )
     }
 }
 
@@ -108,6 +129,16 @@ internal fun GoogleSyncLinePausedWriteCapPreview() = SyncLinePreview(GoogleSync.
 @PuzzleBoxPreviews
 @Composable
 internal fun GoogleSyncLinePausedDeniedPreview() = SyncLinePreview(GoogleSync.Status.Paused(PauseReason.Denied))
+
+@PuzzleBoxPreviews
+@Composable
+internal fun GoogleSyncLineOneOversizedDraftPreview() =
+    SyncLinePreview(GoogleSync.Status.Synced(PREVIEW_NOW_MS - 2 * PREVIEW_MINUTE_MS), oversizedDrafts = 1)
+
+@PuzzleBoxPreviews
+@Composable
+internal fun GoogleSyncLineOversizedDraftsPreview() =
+    SyncLinePreview(GoogleSync.Status.Synced(PREVIEW_NOW_MS - 2 * PREVIEW_MINUTE_MS), oversizedDrafts = 3)
 
 @PuzzleBoxPreviews
 @Composable

@@ -65,6 +65,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncRunner
+import com.ivandsky.puzzlebox.data.cloud.OversizedDrafts
 import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.cloud.SavedBoardsCloud
 import com.ivandsky.puzzlebox.data.cloud.SignedInOwnerScope
@@ -323,6 +324,7 @@ class DiGraphTest : KoinTest {
             assertFalse(PuzzleBoxApplication.loadCloudSync(koin))
             assertNull(koin.getOrNull<CloudSync>())
             assertNull(koin.getOrNull<CloudSyncRunner>())
+            assertNull(koin.getOrNull<OversizedDrafts>())
             assertNull(koin.getOrNull<SavedBoardsCloud>())
             assertTrue(koin.getAll<SyncedKind>().isEmpty())
             assertEquals("NoOwnerScope", koin.get<OwnerScope>()::class.simpleName)
@@ -340,6 +342,7 @@ class DiGraphTest : KoinTest {
             assertTrue(PuzzleBoxApplication.loadCloudSync(koin))
             assertNotNull(koin.get<CloudSync>())
             assertNotNull(koin.get<CloudSyncRunner>())
+            assertNotNull(koin.get<OversizedDrafts>())
             assertTrue(koin.get<OwnerScope>() is SignedInOwnerScope)
             assertEquals(
                 setOf("completions", "drafts", "published", "received", "replays"),
