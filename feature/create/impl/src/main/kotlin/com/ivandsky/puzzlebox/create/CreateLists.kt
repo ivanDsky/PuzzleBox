@@ -41,7 +41,8 @@ private val ListBottomInset = 56.dp + Spacing.lg * 2
  * The shown tab's list under the Drafts / Published switch, **Cross-fading** on a switch
  * (DurationMedium; ReducedFadeDuration under reduced motion). A tab with nothing in it while
  * the other has items says so: "No drafts" or "Nothing published yet", unless the first cloud
- * restore is still running ([CreateUiState.restoring]), when the tab says they are coming back (A34).
+ * restore is still running ([CreateUiState.restoring]), when the tab says they are coming back (A34);
+ * when the restore ends with items, the card cross-fades into the list the same way.
  */
 @Composable
 internal fun CreateTabContent(
@@ -54,19 +55,18 @@ internal fun CreateTabContent(
 ) {
     val reduced = rememberReducedMotion()
     Crossfade(
-        targetState = state.tab,
-        animationSpec = tween(if (reduced) MotionTokens.ReducedFadeDuration else MotionTokens.DurationMedium),
+        targetState = TabBody(state.tab, state.restoringTab()),
+        animationSpec = tween(createFadeMillis(reduced)),
         label = "createTab",
-    ) { tab ->
+    ) { body ->
         when {
-            tab == CreateUiState.Tab.Published && state.published.isEmpty() && state.restoring -> CreateRestoring()
-            tab == CreateUiState.Tab.Published && state.published.isEmpty() -> EmptyState(
+            body.restoring -> CreateRestoring()
+            body.tab == CreateUiState.Tab.Published && state.published.isEmpty() -> EmptyState(
                 title = "Nothing published yet",
                 message = "A draft can be published once it has exactly one solution (Unique) and you’ve test-solved it.",
                 modifier = Modifier.fillMaxSize().testTag("create.published.empty"),
             )
-            tab == CreateUiState.Tab.Published -> PublishedList(state, onOpenPublished)
-            state.draftCount == 0 && state.restoring -> CreateRestoring()
+            body.tab == CreateUiState.Tab.Published -> PublishedList(state, onOpenPublished)
             state.draftCount == 0 -> EmptyState(
                 title = "No drafts",
                 message = "Everything you started is published. Tap New puzzle to start another.",
@@ -76,6 +76,9 @@ internal fun CreateTabContent(
         }
     }
 }
+
+/** What the crossfade is on: the [tab] shown and whether it is the [restoring] card, so the restored list fades in too. */
+private data class TabBody(val tab: CreateUiState.Tab, val restoring: Boolean)
 
 @Composable
 private fun PublishedList(state: CreateUiState, onOpen: (code: String) -> Unit) {
