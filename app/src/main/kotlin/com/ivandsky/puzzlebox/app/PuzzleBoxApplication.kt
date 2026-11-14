@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
+import com.ivandsky.puzzlebox.backend.firebase.PendingCacheClear
 import com.ivandsky.puzzlebox.backend.firebase.firebaseBackendModule
 import com.ivandsky.puzzlebox.auth.di.authModule
 import com.ivandsky.puzzlebox.common.di.commonModule
@@ -37,6 +38,7 @@ import com.ivandsky.puzzlebox.profile.di.profileModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.Koin
 import org.koin.core.context.startKoin
+import kotlinx.coroutines.runBlocking
 
 class PuzzleBoxApplication : Application() {
 
@@ -46,6 +48,9 @@ class PuzzleBoxApplication : Application() {
             androidContext(this@PuzzleBoxApplication)
             modules(appModules)
         }.koin
+        // A sign-out or erase since the last run left a mark: clear the Firestore disk cache now, before any store
+        // touches Firestore (the SDK refuses once started). No mark, no work.
+        runBlocking { koin.get<PendingCacheClear>().run() }
         // The sync graph exists only with CloudSync on, decided once here; it loads before any starter so the owner
         // scope is the signed-in one from the first row any of them reads.
         val cloudSync = loadCloudSync(koin)
