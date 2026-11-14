@@ -13,7 +13,6 @@ import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.navigation.createEntry
@@ -30,7 +29,6 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
@@ -73,7 +71,6 @@ class NewPuzzleSheetQueensTest {
         // One stored draft keeps the draft list, and its New puzzle button, on screen.
         runBlocking { createDraft(queens, QueensEditor.variants.first()) }
         startKoin {
-            modules(module { single<ReleaseFlags> { FakeReleaseFlags() } })
             modules(
                 module {
                     viewModel {
@@ -88,7 +85,6 @@ class NewPuzzleSheetQueensTest {
                             DefaultDispatcherProvider(),
                             sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
-                            releaseFlags = get(),
                             clock = { NOW },
                         )
                     }

@@ -4,8 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.ShippedReleaseFlags
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.importtext.ImportTextState
 import com.ivandsky.puzzlebox.create.published.UnpublishSession
@@ -49,8 +47,7 @@ import kotlinx.coroutines.launch
  * cancelled when [onCleared] queues the last save. Once a publish lands the draft is
  * read-only (reopened too, while [publishedPuzzles] holds its reserved code): its [ticket] shows, and edits, undo, redo, resize, clear, rename and the publish
  * details change nothing. [unpublish] takes the code down; the draft stays the read-only record
- * of what was published, its ticket struck. The overflow's Import from text ([importText], offered
- * while [importEnabled]) stores a new imported draft and leaves the open one as it is.
+ * of what was published, its ticket struck. The overflow's Import from text ([importText]) stores a new imported draft and leaves the open one as it is.
  */
 class EditorViewModel(
     private val key: EditorKey,
@@ -69,7 +66,6 @@ class EditorViewModel(
     updatePublishState: UpdatePublishState,
     private val preferences: UserPreferencesRepository,
     private val validatePublish: ValidatePublish = ValidatePublish(),
-    releaseFlags: ReleaseFlags = ShippedReleaseFlags,
 ) : ViewModel() {
 
     private val mutableState = MutableStateFlow<EditorUiState>(EditorUiState.Loading)
@@ -133,11 +129,10 @@ class EditorViewModel(
     /** The Size picker's resize and its "Start a blank board?" confirm. */
     internal val resizes = ResizeSession(board = { board }, locked = { published }, apply = history::resize)
 
-    private val studioImport = StudioImport(games, drafts, dispatchers, clock, releaseFlags, viewModelScope)
+    private val studioImport = StudioImport(games, drafts, dispatchers, clock, viewModelScope)
 
     /** The overflow's Import from text sheet; a draft it imports is sent on [importedDrafts]. */
     val importText: ImportTextState = studioImport.text
-    val importEnabled: StateFlow<Boolean> = studioImport.enabled
     val importedDrafts: Flow<String> = studioImport.imported
 
     init {

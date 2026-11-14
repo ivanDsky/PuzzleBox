@@ -47,8 +47,7 @@ import org.robolectric.annotation.GraphicsMode
  * failure kind (malformed with line and column, header, unknown game, unsupported version, too
  * large). The sheet is its own window, so the whole screen is captured, over the Create root
  * it opens from. Then the New puzzle sheet's Import row, the Studio's overflow with Import from
- * text, and the Studio of an imported draft with its Imported chip: all three as they ship once
- * `TextImport` is on. Goldens in `snapshots/import/`.
+ * text, and the Studio of an imported draft with its Imported chip. Goldens in `snapshots/import/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -163,7 +162,6 @@ abstract class ImportGoldenScreenshots(private val layout: PlayLayout, private v
             onDuplicate = {},
             onDelete = {},
             onUndoDelete = {},
-            importEnabled = true,
             importSheet = ui,
         )
     }
