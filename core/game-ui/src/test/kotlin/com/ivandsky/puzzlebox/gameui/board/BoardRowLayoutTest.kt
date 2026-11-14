@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.gameui.board
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.getBoundsInRoot
@@ -116,11 +115,9 @@ class BoardRowLayoutTest {
     fun `with inline marks a row with its mark and its PuzzleBox rank is one line, the same height as a row without`() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalInlineMarks provides true) {
-                    Column {
-                        DailyBoardRow(self.copy(unofficial = true), RankOrder.TimeThenHints, place = 2, showPuzzleBoxRank = true)
-                        GhostRow(ghost, 3, RankOrder.TimeThenHints)
-                    }
+                Column {
+                    DailyBoardRow(self.copy(unofficial = true), RankOrder.TimeThenHints, place = 2, showPuzzleBoxRank = true, inlineMarks = true)
+                    GhostRow(ghost, 3, RankOrder.TimeThenHints, inlineMarks = true)
                 }
             }
         }
@@ -139,9 +136,7 @@ class BoardRowLayoutTest {
         val crowded = self.copy(name = "Maximiliana Featherstonehaugh-Cholmondeley", unofficial = true)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                CompositionLocalProvider(LocalInlineMarks provides true) {
-                    DailyBoardRow(crowded, RankOrder.TimeThenHints, place = 2, showPuzzleBoxRank = true)
-                }
+                DailyBoardRow(crowded, RankOrder.TimeThenHints, place = 2, showPuzzleBoxRank = true, inlineMarks = true)
             }
         }
 
@@ -152,7 +147,11 @@ class BoardRowLayoutTest {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 if (inlineMarks) {
-                    DailyBoardList(listOf(DailyBoardLine.Real(self.copy(unofficial = true), 2)), RankOrder.TimeThenHints, inlineMarks = true)
+                    DailyBoardList(
+                        listOf(DailyBoardLine.Real(self.copy(unofficial = true), 2)),
+                        RankOrder.TimeThenHints,
+                        style = DailyBoardStyle.defaults(inlineMarks = true),
+                    )
                 } else {
                     DailyBoardList(listOf(DailyBoardLine.Real(self.copy(unofficial = true), 2)), RankOrder.TimeThenHints)
                 }

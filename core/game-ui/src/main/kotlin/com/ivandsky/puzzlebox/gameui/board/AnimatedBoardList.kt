@@ -47,6 +47,7 @@ internal fun AnimatedBoardList(
     backdrop: Color,
     modifier: Modifier = Modifier,
     medals: Boolean = false,
+    inlineMarks: Boolean = false,
     landed: Boolean = false,
 ) {
     val rows = remember { BoardRows(landed) }
@@ -58,7 +59,7 @@ internal fun AnimatedBoardList(
             for (item in items) {
                 key(item.key) {
                     CompositionLocalProvider(LocalBoardBackdrop provides backdrop) {
-                        BoardItemSlot(item, item.line, item.pinned, item.present, rows, order, withPuzzleBoxRank, medals)
+                        BoardItemSlot(item, item.line, item.pinned, item.present, rows, order, withPuzzleBoxRank, medals, inlineMarks)
                     }
                 }
             }
@@ -92,6 +93,7 @@ private fun BoardItemSlot(
     order: RankOrder,
     withPuzzleBoxRank: Boolean,
     medals: Boolean,
+    inlineMarks: Boolean,
 ) {
     // An item starts closed and invisible and opens on the first frame, so its arrival is an opening and not a first sight.
     LaunchedEffect(present) {
@@ -115,8 +117,8 @@ private fun BoardItemSlot(
             CompositionLocalProvider(LocalPlaceMotion provides item) {
                 when {
                     line == null -> HorizontalDivider()
-                    pinned -> Box(Modifier.testTag("leaderboard.you")) { BoardLine(line, order, withPuzzleBoxRank, medals) }
-                    else -> BoardLine(line, order, withPuzzleBoxRank, medals)
+                    pinned -> Box(Modifier.testTag("leaderboard.you")) { BoardLine(line, order, withPuzzleBoxRank, medals, inlineMarks) }
+                    else -> BoardLine(line, order, withPuzzleBoxRank, medals, inlineMarks)
                 }
             }
         }
@@ -128,7 +130,13 @@ private fun BoardItemSlot(
  * dock, if it has one (see [DockedSelfRow]).
  */
 @Composable
-internal fun BoardLine(line: DailyBoardLine, order: RankOrder, withPuzzleBoxRank: Boolean, medals: Boolean = false) {
+internal fun BoardLine(
+    line: DailyBoardLine,
+    order: RankOrder,
+    withPuzzleBoxRank: Boolean,
+    medals: Boolean = false,
+    inlineMarks: Boolean = false,
+) {
     when (line) {
         is DailyBoardLine.Real -> DailyBoardRow(
             line.row,
@@ -137,8 +145,9 @@ internal fun BoardLine(line: DailyBoardLine, order: RankOrder, withPuzzleBoxRank
             place = line.place,
             showPuzzleBoxRank = withPuzzleBoxRank,
             medals = medals,
+            inlineMarks = inlineMarks,
         )
-        is DailyBoardLine.Ghost -> GhostRow(line.row, line.place, order, medals = medals)
+        is DailyBoardLine.Ghost -> GhostRow(line.row, line.place, order, medals = medals, inlineMarks = inlineMarks)
     }
 }
 

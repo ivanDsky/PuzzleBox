@@ -71,7 +71,8 @@ class DailyBoardListMotionTest {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                DailyBoardList(lines, RankOrder.TimeThenHints, pinned = pinned, animated = animated)
+                val motion = if (animated) DailyBoardStyle.Motion.Animated else DailyBoardStyle.Motion.Static
+                DailyBoardList(lines, RankOrder.TimeThenHints, pinned = pinned, style = DailyBoardStyle.defaults(motion = motion))
             }
         }
         // The first lines are on show from the start; the rows' own entrance, if any, is played out.
@@ -214,7 +215,7 @@ class DailyBoardListMotionTest {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                DailyBoard(title, RankOrder.TimeThenHints, board, animated = true)
+                DailyBoard(title, RankOrder.TimeThenHints, board, style = DailyBoardStyle.defaults(motion = DailyBoardStyle.Motion.Animated))
             }
         }
         composeRule.mainClock.advanceTimeBy(SETTLED_MS)

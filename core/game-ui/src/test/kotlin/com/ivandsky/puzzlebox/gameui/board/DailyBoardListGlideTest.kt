@@ -63,7 +63,7 @@ class DailyBoardListGlideTest {
             PuzzleBoxTheme(darkTheme = false) {
                 Column(Modifier.fillMaxWidth()) {
                     Box(Modifier.fillMaxWidth().height(CardHeight).background(CardColor).testTag("card"))
-                    DailyBoardList(lines, RankOrder.TimeThenHints, animated = true)
+                    DailyBoardList(lines, RankOrder.TimeThenHints, style = DailyBoardStyle.defaults(motion = DailyBoardStyle.Motion.Animated))
                 }
             }
         }

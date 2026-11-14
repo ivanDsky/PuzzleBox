@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,16 +33,10 @@ private val ChipInset = 2.dp
 private val NameKeeps = 56.dp
 
 /**
- * Tall enough for a name over one small line, so a row with the line and one without are the same size. With
- * [LocalInlineMarks] every row is one line, so every row is this height (the winner's medal row aside).
+ * Tall enough for a name over one small line, so a row with the line and one without are the same size. With inline
+ * marks every row is one line, so every row is this height (the winner's medal row aside).
  */
 internal val BoardRowMinHeight = 64.dp
-
-/**
- * Whether a row's mark and detail are chips beside its name, on the name's line, rather than small lines under it.
- * A board sets it from its own `inlineMarks`; a row drawn outside a board has the lines.
- */
-internal val LocalInlineMarks = staticCompositionLocalOf { false }
 
 /** The test tags of one kind of row: [root] frames it, [part] prefixes its parts and [detail] tags the detail line or chip. */
 internal class BoardRowTags(val root: String, val part: String, val detail: String)
@@ -52,7 +45,7 @@ internal class BoardRowTags(val root: String, val part: String, val detail: Stri
  * The one row every board draws, so a PuzzleBox row and a connection row cannot drift apart: [photo] (or [name]'s
  * initial), then the [cells] that are the row's on this board: its place (null while it is hidden, "100+" beyond the
  * page), [name] with the small mark and detail lines under it when there are any, then the score. With
- * [LocalInlineMarks] the mark and the detail are chips beside the name on the same line instead: the name ellipsizes
+ * [inlineMarks] the mark and the detail are chips beside the name on the same line instead: the name ellipsizes
  * before a chip does, and a chip never makes the row taller. Framed; [self] puts
  * it on the secondary container and [connection] frames it in LinkedIn blue. [linkedIn] puts the LinkedIn dot on the
  * photo. [muted] greys the score, for a time that is hidden. [scoreTime] lets the score count to a new time where the
@@ -74,6 +67,7 @@ internal fun BoardRow(
     connection: Boolean = false,
     linkedIn: Boolean = false,
     muted: Boolean = false,
+    inlineMarks: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
     val content = if (self) scheme.onSecondaryContainer else scheme.onSurface
@@ -108,7 +102,7 @@ internal fun BoardRow(
                 ScrubbedPlace(was, cells, quiet, "${tags.part}.rank", scrub.progress)
             }
         }
-        if (LocalInlineMarks.current) {
+        if (inlineMarks) {
             NameLine(Modifier.weight(1f)) {
                 RowName(name, content, tags)
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {

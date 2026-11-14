@@ -68,7 +68,11 @@ class ScrubbedBoardListTest {
                 if (board == null) {
                     ScrubbedBoardList(parts, medals = false, backdrop = MaterialTheme.colorScheme.background)
                 } else {
-                    DailyBoardList(boardLines(board.state, board.ghosts, board.order), board.order, animated = true)
+                    DailyBoardList(
+                        boardLines(board.state, board.ghosts, board.order),
+                        board.order,
+                        style = DailyBoardStyle.defaults(motion = DailyBoardStyle.Motion.Animated),
+                    )
                 }
             }
         }

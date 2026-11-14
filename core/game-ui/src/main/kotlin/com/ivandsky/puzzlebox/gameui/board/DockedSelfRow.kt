@@ -41,7 +41,8 @@ import kotlin.math.roundToInt
  * view, when [enabled]: a copy of the row laid over the board at that edge, which jumps to the row when tapped. The
  * board is drawn exactly as it is without a dock, and the row in it is the one at its own place, so the dock never
  * changes what the board animates. [board] gets the modifier the board is to carry. Between two boards the dock is
- * the row of [scrub] instead, and stays at the edge it was docked to.
+ * the row of [scrub] instead, and stays at the edge it was docked to. [inlineMarks] is the board's, so the copy is
+ * laid out as the row it copies.
  */
 @Composable
 internal fun DockedSelfRow(
@@ -52,6 +53,7 @@ internal fun DockedSelfRow(
     medals: Boolean,
     animated: Boolean,
     backdrop: Color,
+    inlineMarks: Boolean,
     modifier: Modifier,
     scrub: DockScrub? = null,
     board: @Composable (Modifier) -> Unit,
@@ -64,7 +66,9 @@ internal fun DockedSelfRow(
     Box(modifier.onGloballyPositioned { dock.boardPlaced(it) }) {
         CompositionLocalProvider(LocalSelfRowDock provides dock) { board(Modifier) }
         val row = scrub?.self ?: self
-        if (row != null) Dock(dock, row, scrub?.order ?: order, scrub?.withPuzzleBoxRank ?: withPuzzleBoxRank, medals, animated, backdrop, scrub)
+        if (row != null) {
+            Dock(dock, row, scrub?.order ?: order, scrub?.withPuzzleBoxRank ?: withPuzzleBoxRank, medals, animated, backdrop, inlineMarks, scrub)
+        }
     }
 }
 
@@ -77,6 +81,7 @@ private fun Dock(
     medals: Boolean,
     animated: Boolean,
     backdrop: Color,
+    inlineMarks: Boolean,
     scrub: DockScrub?,
 ) {
     val instant = rememberReducedMotion() || LocalInspectionMode.current
@@ -98,7 +103,7 @@ private fun Dock(
         },
         exit = if (instant) ExitTransition.None else fadeOut(BoardMotion.fadeOut),
     ) {
-        DockBar(self, order, withPuzzleBoxRank, medals, animated, backdrop, scrub) { scope.launch { dock.requester.bringIntoView() } }
+        DockBar(self, order, withPuzzleBoxRank, medals, animated, backdrop, scrub, inlineMarks) { scope.launch { dock.requester.bringIntoView() } }
     }
 }
 
@@ -117,6 +122,7 @@ internal fun DockBar(
     animated: Boolean,
     backdrop: Color,
     scrub: DockScrub? = null,
+    inlineMarks: Boolean = false,
     onJump: () -> Unit,
 ) {
     val place = if (self.row.beyondPage) BeyondPageLabel else "#${self.place}"
@@ -136,7 +142,7 @@ internal fun DockBar(
             LocalBoardBackdrop provides backdrop,
             LocalPlaceMotion provides if (!animated) null else if (still) StillPlaces else DockPlaces,
             LocalRowScrub provides scrub?.was,
-        ) { BoardLine(self, order, withPuzzleBoxRank, medals) }
+        ) { BoardLine(self, order, withPuzzleBoxRank, medals, inlineMarks) }
     }
 }
 

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -195,7 +194,12 @@ internal fun DailyBoardListPreview() = Padded {
 @Composable
 internal fun DailyBoardAnimatedListPreview() = Padded {
     val lines = rankWithGhosts(Rows.take(1) + Rows.drop(2), Ghosts, RankOrder.TimeThenHints)
-    DailyBoardList(lines, RankOrder.TimeThenHints, pinned = DailyBoardLine.Real(Rows[1], place = 5), animated = true)
+    DailyBoardList(
+        lines,
+        RankOrder.TimeThenHints,
+        pinned = DailyBoardLine.Real(Rows[1], place = 5),
+        style = DailyBoardStyle.defaults(motion = DailyBoardStyle.Motion.Animated),
+    )
 }
 
 @PuzzleBoxPreviews
@@ -242,11 +246,21 @@ internal fun DailyBoardMarksPreview() = Padded {
     Column {
         DailyBoardRow(Rows[1].copy(rank = 101, beyondPage = true), RankOrder.TimeThenHints)
         DailyBoardRow(Rows[1].copy(unofficial = true), RankOrder.TimeThenHints, place = 2)
-        CompositionLocalProvider(LocalInlineMarks provides true) {
-            DailyBoardRow(Rows[1].copy(unofficial = true), RankOrder.TimeThenHints, place = 2)
-            DailyBoardRow(Rows[0].copy(name = "Maximiliana Featherstonehaugh"), RankOrder.TimeThenHints, place = 3, showPuzzleBoxRank = true)
-            DailyBoardRow(Rows[1].copy(isSelf = true, unofficial = true), RankOrder.TimeThenHints, place = 4, showPuzzleBoxRank = true)
-        }
+        DailyBoardRow(Rows[1].copy(unofficial = true), RankOrder.TimeThenHints, place = 2, inlineMarks = true)
+        DailyBoardRow(
+            Rows[0].copy(name = "Maximiliana Featherstonehaugh"),
+            RankOrder.TimeThenHints,
+            place = 3,
+            showPuzzleBoxRank = true,
+            inlineMarks = true,
+        )
+        DailyBoardRow(
+            Rows[1].copy(isSelf = true, unofficial = true),
+            RankOrder.TimeThenHints,
+            place = 4,
+            showPuzzleBoxRank = true,
+            inlineMarks = true,
+        )
     }
 }
 
@@ -256,8 +270,12 @@ internal fun DailyBoardMarksPreview() = Padded {
 internal fun DailyBoardMedalsPreview() = Padded {
     val lines = rankWithGhosts(Rows, Ghosts, RankOrder.TimeThenHints)
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        DailyBoardList(lines, RankOrder.TimeThenHints, medals = true)
-        DailyBoardList(lines, RankOrder.TimeThenHints, animated = true, medals = true)
+        DailyBoardList(lines, RankOrder.TimeThenHints, style = DailyBoardStyle.defaults(medals = true))
+        DailyBoardList(
+            lines,
+            RankOrder.TimeThenHints,
+            style = DailyBoardStyle.defaults(motion = DailyBoardStyle.Motion.Animated, medals = true),
+        )
     }
 }
 

@@ -19,6 +19,7 @@ private const val UnofficialMark = "unofficial"
  * The score column says the row's [DailyBoardRowModel.scoreValue] in [order]'s voice; a row [DailyBoardRowModel.beyondPage]
  * reads "100+" for its place and an [DailyBoardRowModel.unofficial] one carries the "unofficial" mark. With [medals] the
  * rows at places 1 to 3 are medal rows (see [MedalRow]); an unofficial row takes no place, so it wears no medal.
+ * With [inlineMarks] the mark and the rank under the name are chips beside it instead.
  * When the board opted into row taps, another player's official row is a button that reports its [row].
  */
 @Composable
@@ -29,6 +30,7 @@ fun DailyBoardRow(
     place: Int = row.rank,
     showPuzzleBoxRank: Boolean = false,
     medals: Boolean = false,
+    inlineMarks: Boolean = false,
 ) {
     val onClick = LocalBoardRowClick.current?.takeIf { row.isTappable() }
     BoardRow(
@@ -40,6 +42,7 @@ fun DailyBoardRow(
         scoreTime = row.scoreValue.scoreTime(order),
         self = row.isSelf,
         linkedIn = row.timeFromLinkedIn,
+        inlineMarks = inlineMarks,
     )
 }
 

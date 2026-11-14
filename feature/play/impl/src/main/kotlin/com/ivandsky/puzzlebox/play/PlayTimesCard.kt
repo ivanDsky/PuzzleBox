@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardList
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardNote
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.gameui.board.dailyBoardListHeight
 import com.ivandsky.puzzlebox.gameui.board.toBoardNote
 import com.ivandsky.puzzlebox.gameui.rankRuleText
@@ -68,9 +69,11 @@ internal fun PlayTimesCard(
                         board.head.map { if (it is DailyBoardLine.Real) it.asYou() else it },
                         board.order ?: RankOrder.TimeThenHints,
                         pinned = board.pinned?.asYou(),
-                        animated = animated,
-                        backdrop = MaterialTheme.colorScheme.surfaceContainerLow,
-                        inlineMarks = inlineMarks,
+                        style = DailyBoardStyle.defaults(
+                            motion = if (animated) DailyBoardStyle.Motion.Animated else DailyBoardStyle.Motion.Static,
+                            backdrop = MaterialTheme.colorScheme.surfaceContainerLow,
+                            inlineMarks = inlineMarks,
+                        ),
                     )
                     ownRowNote(board)?.let {
                         Text(

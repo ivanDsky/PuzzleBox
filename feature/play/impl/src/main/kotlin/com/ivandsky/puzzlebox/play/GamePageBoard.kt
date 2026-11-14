@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.board.DailyBoard
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.gameui.board.dailyBoardTitle
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.friend.SignInPrompt
@@ -54,7 +55,7 @@ internal fun GamePageBoard(
             order = viewModel.order,
             state = state.board,
             ghosts = state.ghosts,
-            animated = linkedIn,
+            style = DailyBoardStyle.defaults(motion = if (linkedIn) DailyBoardStyle.Motion.Animated else DailyBoardStyle.Motion.Static),
             isToday = otherDay == null,
             signIn = {
                 Column(Modifier.testTag("leaderboard.signIn")) {

@@ -103,7 +103,8 @@ class DockScrubTest {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Box(Modifier.height(200.dp).verticalScroll(rememberScrollState())) {
-                    BoardList(lines, resting.order, animated = true, dock = true, scrub = between)
+                    val style = DailyBoardStyle.defaults(motion = DailyBoardStyle.Motion.Animated, dock = true)
+                    BoardList(lines, resting.order, style, scrub = between)
                 }
             }
         }
