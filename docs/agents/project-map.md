@@ -117,7 +117,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   S0 no `@Suppress`, S1 one top-level type per file, S2 file length, S4 composable previews,
   S5 no colour literals, S6 no infinite animation, S7 no system night flag outside theme resolution; P1 package root, P2 dispatchers location,
   P3 ViewModel shape, P4 use-case shape, P5 naming, P6 Koin module location, P7 Android-free
-  pure modules, P8 NavKey payload, P9 every NavKey has a placement row (ADR-0027; `P9NavKeyPlacement`, fixtures under `fixtures/P9/`).
+  pure modules, P8 NavKey payload, P9 every NavKey has a placement row (ADR-0027; `P9NavKeyPlacement`, fixtures under `fixtures/P9/`),
+  P10 LinkedIn account path GET-only (ADR-0028), P11 app Robolectric tests run under `DrainTestApplication` (#850).
 - `tools/puzzle-cli/` (`:tools:puzzle-cli`, pure JVM `application`, ADR-0021; ships nowhere) —
   `PuzzleCli.kt` (`main`, the one file that names games: a `GameRegistry` over every non-UI
   plugin; `validate <file>` / `solve <file>` print one `CliVerdict` JSON line, exit codes in
@@ -629,7 +630,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   can leave it out; it holds no cookie or token column.
 - **Module graph guard** — `checkModuleGraph` (ADR-0008, see Layout) fails the build on a
   forbidden edge; `feature:create:impl` reaches games only through the registries.
-- **Structure rules** — `:konsist` S0–S7 / P1–P9 (see Layout); allowlists only shrink.
+- **Structure rules** — `:konsist` S0–S7 / P1–P11 (see Layout); allowlists only shrink.
 - **Roborazzi** — plugin `puzzlebox.android.roborazzi` (app, designsystem, home, play, create,
   compete, zip-ui, tango-ui, queens-ui, strands-ui, sudoku-ui) unifies the switch: default compares (never fails on drift, never writes goldens),
   `-Proborazzi.verify=true` fails on drift, `-Proborazzi.record=true` records.
@@ -659,7 +660,7 @@ narrower run: `./gradlew assembleDebug testDebugUnitTest :core:game:test :games:
 :games:queens:test :games:tango:test :games:strands:test :games:sudoku:test :core:model:test
 :core:network:test :tools:puzzle-cli:test -Proborazzi.verify=true --continue`.
 
-Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 16 in-module rules (S0–S7 without S3, P1–P9; 130 tests with the
+Structure rules (ADR-0009): `./gradlew :konsist:test` — runs the 18 in-module rules (S0–S7 without S3, P1–P11; 136 tests with the
 census and the engine tests), over the whole repo's sources (not in the count above; reruns
 when any source, build script or allowlist changes).
 
