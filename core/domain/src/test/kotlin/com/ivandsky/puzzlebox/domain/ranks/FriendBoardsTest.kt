@@ -38,7 +38,7 @@ class FriendBoardsTest {
 
     private suspend fun overallOf(boards: RankWindowBoards): List<OverallStandings.Row> {
         val observe = ObserveOverall(FakeIdentityService(initial = Identity("ann", "Ann", null)), FakeCompletionRepository())
-        return (observe(flowOf(boards), RankWindow.Day(day)).drop(1).first() as OverallState.Complete).standings.rows
+        return (observe(flowOf(boards)).drop(1).first() as OverallState.Complete).standings.rows
     }
 
     // Zip: strangers first and third. Tango: a stranger between the two friends who played.

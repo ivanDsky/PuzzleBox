@@ -65,7 +65,7 @@ class RanksReadBudgetTest {
         val viewModel = hub().viewModel()
         collect(viewModel)
 
-        viewModel.select { it.toggleCalendar() }
+        viewModel.select { it.showCalendar(today, expanded = true) }
         viewModel.select { it.setScope(RankScope.Friends) }
         runCurrent()
 
