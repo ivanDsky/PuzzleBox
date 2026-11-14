@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
@@ -53,5 +52,5 @@ private fun ReplayOptInContent(onShare: () -> Unit, onKeepPrivate: () -> Unit) {
 @PuzzleBoxPreviews
 @Composable
 private fun ReplayOptInSheetPreview() {
-    PuzzleBoxTheme { ReplayOptInContent(onShare = {}, onKeepPrivate = {}) }
+    RanksPreviewHost { ReplayOptInContent(onShare = {}, onKeepPrivate = {}) }
 }

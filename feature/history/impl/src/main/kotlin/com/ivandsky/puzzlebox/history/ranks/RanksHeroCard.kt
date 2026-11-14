@@ -24,7 +24,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.MorphCell
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.ScrubCell
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
@@ -136,7 +135,7 @@ private fun HeroPlace(standing: Standing, color: ColorProducer, spoken: Boolean 
 @PuzzleBoxPreviews
 @Composable
 private fun RanksHeroCardPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         val zip = AccentSlot.Blue.colors()
         val overall = AccentSlot.Neutral.colors()
         Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {

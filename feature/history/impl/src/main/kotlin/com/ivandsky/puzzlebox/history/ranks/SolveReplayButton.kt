@@ -22,7 +22,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
@@ -107,7 +106,7 @@ private fun Timeline.summary(): String = "${ReplayCopy.moves(moveTimesMs.size)} 
 @PuzzleBoxPreviews
 @Composable
 private fun SolveReplayButtonPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         val replays = HistoryReplays.Unavailable(ReplayUnavailable.ImportedFromLinkedIn)
         Row(Modifier.padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             SolveReplayButton(replays, onOpen = {}, onCompare = {})
