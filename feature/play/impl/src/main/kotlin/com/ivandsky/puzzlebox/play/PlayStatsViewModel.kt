@@ -14,8 +14,10 @@ import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.PlayStats
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
+import com.ivandsky.puzzlebox.domain.frozenDaysOrEmpty
 import com.ivandsky.puzzlebox.domain.heldWhileStreak
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.weekEnding
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -97,7 +99,7 @@ class PlayStatsViewModel(
         solvedToday = stats.solvedToday,
         gamesToday = stats.gamesToday,
         streak = stats.stats.currentStreak,
-        week = week(stats.streakDays, stats.stats.freezes?.frozenDays.orEmpty(), stats.today),
+        week = week(stats.streakDays, stats.stats.freezes.frozenDaysOrEmpty, stats.today),
         best = stats.stats.best,
         rankOrder = stats.stats.rankOrder,
         averageMs = stats.stats.averageTimeMs,
@@ -115,9 +117,8 @@ class PlayStatsViewModel(
     /** The seven days ending [today], each ringed when it is one of this game's [streakDays], marked when one of its [frozenDays]. */
     private fun week(streakDays: Set<LocalDate>, frozenDays: Set<LocalDate>, today: LocalDate): List<WeekDay> {
         val brand = listOf(brands.brandOf(slot.gameId))
-        return (WEEK_DAYS - 1 downTo 0L).map { back ->
-            val date = today.minusDays(back)
-            WeekDay(date, if (date in streakDays) brand else emptyList(), isToday = back == 0L, frozen = date in frozenDays)
+        return weekEnding(today).map { date ->
+            WeekDay(date, if (date in streakDays) brand else emptyList(), isToday = date == today, frozen = date in frozenDays)
         }
     }
 
@@ -151,6 +152,5 @@ class PlayStatsViewModel(
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
-        const val WEEK_DAYS = 7L
     }
 }
