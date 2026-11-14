@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.game.replay.MoveKind
@@ -86,26 +87,41 @@ internal fun Density.barSeriesShapes(
     )
 }
 
+/** How much of a bar at [left] of [width] the needle at [needleX] has passed: all, none, or the part left of the needle. */
+internal fun playedExtent(left: Float, width: Float, needleX: Float): Float = (needleX - left).coerceIn(0f, width)
+
 /**
- * Draws a laid-out series. Slices up to [fraction] are [played], the rest [unplayed]; both are indexed by [MoveKind] ordinal.
+ * Draws a laid-out series. A bar left of the playhead is [played], one right of it [unplayed], and the bar under it is
+ * split at the needle; both palettes are indexed by [MoveKind] ordinal.
  * Allocates nothing: it runs on every frame the playhead moves.
  */
 internal fun DrawScope.drawBarSeries(shapes: BarSeriesShapes, fraction: Float, played: Array<Color>, unplayed: Array<Color>) {
     val bars = shapes.bars
+    val needleX = fraction * size.width
     for (i in bars.indices) {
         val shape = bars[i]
-        val palette = if ((i + 0.5f) / ACTIVITY_BUCKETS <= fraction) played else unplayed
+        val extent = playedExtent(shape.left, shape.width, needleX)
         val clip = shape.clip
-        if (clip == null) {
-            drawRoundRect(palette[MoveKind.Normal.ordinal], Offset(shape.left, shape.top), Size(shape.width, shape.height), CornerRadius(shape.width / 2))
-            continue
+        if (extent <= 0f || extent >= shape.width) {
+            drawBar(shape, clip, if (extent > 0f) played else unplayed)
+        } else {
+            val split = shape.left + extent
+            clipRect(left = shape.left, top = 0f, right = split, bottom = size.height) { drawBar(shape, clip, played) }
+            clipRect(left = split, top = 0f, right = shape.left + shape.width, bottom = size.height) { drawBar(shape, clip, unplayed) }
         }
-        clipPath(clip) {
-            for (kind in shape.partHeights.indices) {
-                val part = shape.partHeights[kind]
-                if (part == 0f) continue
-                drawRect(palette[kind], Offset(shape.left, shape.partTops[kind]), Size(shape.width, part))
-            }
+    }
+}
+
+private fun DrawScope.drawBar(shape: BarShape, clip: Path?, palette: Array<Color>) {
+    if (clip == null) {
+        drawRoundRect(palette[MoveKind.Normal.ordinal], Offset(shape.left, shape.top), Size(shape.width, shape.height), CornerRadius(shape.width / 2))
+        return
+    }
+    clipPath(clip) {
+        for (kind in shape.partHeights.indices) {
+            val part = shape.partHeights[kind]
+            if (part == 0f) continue
+            drawRect(palette[kind], Offset(shape.left, shape.partTops[kind]), Size(shape.width, part))
         }
     }
 }
