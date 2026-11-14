@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
-import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
+import com.ivandsky.puzzlebox.data.cloud.restoring
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
@@ -25,7 +25,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.shareIn
@@ -127,10 +126,7 @@ class HistoryViewModel(
         .distinctUntilChanged().shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
     // No CloudSync bound (the flag is off) is never restoring.
-    private val restoring: Flow<Boolean> = cloudSync?.state
-        ?.map { it is CloudSyncState.Syncing && it.firstRestore }
-        ?.distinctUntilChanged()
-        ?: flowOf(false)
+    private val restoring: Flow<Boolean> = cloudSync.restoring
 
     val uiState: StateFlow<HistoryUiState> = combine(
         rows,

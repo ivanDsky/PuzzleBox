@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
-import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
+import com.ivandsky.puzzlebox.data.cloud.restoring
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
@@ -98,10 +98,7 @@ internal class GamePageBoardViewModel(
     val order: RankOrder = registry.rankOrderOf(game)
 
     // No CloudSync bound (the flag is off) is never restoring.
-    private val restoring: Flow<Boolean> = cloudSync?.state
-        ?.map { it is CloudSyncState.Syncing && it.firstRestore }
-        ?.distinctUntilChanged()
-        ?: flowOf(false)
+    private val restoring: Flow<Boolean> = cloudSync.restoring
 
     val state: StateFlow<GamePageBoardState> = flow {
         // What the board last said, so a day switch can tell whether a board is on screen to keep.

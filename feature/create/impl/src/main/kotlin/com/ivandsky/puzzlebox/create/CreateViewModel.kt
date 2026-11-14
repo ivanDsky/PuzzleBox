@@ -7,7 +7,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.importtext.ImportTextState
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
-import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
+import com.ivandsky.puzzlebox.data.cloud.restoring
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DRAFT_UNDO_WINDOW_MS
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
@@ -32,10 +32,8 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -115,10 +113,7 @@ class CreateViewModel(
     private var syncing: Job? = null
 
     // No CloudSync bound (the flag is off) is never restoring.
-    private val restoring: Flow<Boolean> = cloudSync?.state
-        ?.map { it is CloudSyncState.Syncing && it.firstRestore }
-        ?.distinctUntilChanged()
-        ?: flowOf(false)
+    private val restoring: Flow<Boolean> = cloudSync.restoring
 
     val uiState: StateFlow<CreateUiState> =
         combine(
