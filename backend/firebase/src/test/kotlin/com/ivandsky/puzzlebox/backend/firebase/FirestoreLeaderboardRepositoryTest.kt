@@ -46,10 +46,10 @@ class FirestoreLeaderboardRepositoryTest {
         val observed = mutableListOf<String>()
         val observedOrders = mutableListOf<RankOrder>()
 
-        /** When set, the listener plays this script instead of the stored docs; null = nothing known yet (empty cache). */
-        var script: Flow<List<Map<String, Any?>>?>? = null
+        /** When set, the listener plays this script instead of the stored docs. */
+        var script: Flow<BoardDocs>? = null
 
-        override fun observeEntries(boardId: String, order: RankOrder): Flow<List<Map<String, Any?>>?> {
+        override fun observeEntries(boardId: String, order: RankOrder): Flow<BoardDocs> {
             observed += boardId
             observedOrders += order
             script?.let { return it }
@@ -67,7 +67,7 @@ class FirestoreLeaderboardRepositoryTest {
                         { (it[order.boardQueryFields()[1]] as? Number)?.toLong() ?: 0L },
                     ),
                 )
-                emit(sorted)
+                emit(BoardDocs(sorted, fromCache = false))
             }
         }
 
@@ -200,9 +200,9 @@ class FirestoreLeaderboardRepositoryTest {
     }
 
     @Test
-    fun `an empty cache snapshot is null, not an empty board, and the server answer follows on the same flow`() = runTest {
+    fun `a snapshot carries whether the cache produced it, and the server answer follows on the same flow`() = runTest {
         val store = FakeStore()
-        val answers = MutableSharedFlow<List<Map<String, Any?>>?>()
+        val answers = MutableSharedFlow<BoardDocs>()
         store.script = answers
         val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
         val seen = mutableListOf<LeaderboardSnapshot?>()
@@ -210,21 +210,12 @@ class FirestoreLeaderboardRepositoryTest {
             repository.observe(board, RankOrder.TimeThenHints).toList(seen)
         }
 
-        answers.emit(null)
-        assertEquals(listOf<LeaderboardSnapshot?>(null), seen)
+        answers.emit(BoardDocs(emptyList(), fromCache = true))
+        answers.emit(BoardDocs(listOf(doc(entry())), fromCache = false))
 
-        answers.emit(emptyList())
-        assertEquals(listOf(null, LeaderboardSnapshot(board, emptyList())), seen)
-    }
-
-    @Test
-    fun `only a snapshot from the cache with no docs reads as nothing known`() {
-        val docs = listOf(doc(entry()))
-
-        assertNull(boardDocs(fromCache = true, docs = emptyList()))
-        assertEquals(emptyList<Map<String, Any?>>(), boardDocs(fromCache = false, docs = emptyList()))
-        assertEquals(docs, boardDocs(fromCache = true, docs = docs))
-        assertEquals(docs, boardDocs(fromCache = false, docs = docs))
+        assertEquals(listOf(true, false), seen.map { it!!.fromCache })
+        assertTrue(seen[0]!!.entries.isEmpty())
+        assertEquals(listOf("u1"), seen[1]!!.entries.map { it.uid })
     }
 
     @Test

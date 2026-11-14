@@ -127,7 +127,8 @@ class ObserveRankWindow(
         var countedRound: Int? = null
         var total: Int? = null
         listen(board, order, ticks).combine(ticks.rounds(), ::Pair).collect { (snapshot, round) ->
-            val entries = snapshot?.entries
+            // An empty answer from the cache says nothing about the board: not known yet, like no snapshot.
+            val entries = snapshot?.entries?.takeUnless { snapshot.fromCache && it.isEmpty() }
             val count = when {
                 entries == null -> null
                 // Below the cap the page is the whole board, so its length is N.

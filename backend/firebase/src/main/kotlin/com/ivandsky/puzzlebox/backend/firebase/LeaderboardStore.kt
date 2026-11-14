@@ -12,17 +12,17 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
+/** One listener answer: the raw docs, and whether the device cache (not the server) produced it. */
+internal data class BoardDocs(val docs: List<Map<String, Any?>>, val fromCache: Boolean)
+
 /**
  * The SDK seam for the leaderboard (design §3): raw Firestore documents in, no
  * exception escaping un-mapped. Everything Firebase-typed stops here.
  */
 internal interface LeaderboardStore {
 
-    /**
-     * Live documents of one board, server-ordered by [order]'s [boardQueryFields]. Null = nothing known yet: an
-     * empty answer from the cache (offline, never loaded) says nothing about the board, so it is not an empty board.
-     */
-    fun observeEntries(boardId: String, order: RankOrder): Flow<List<Map<String, Any?>>?>
+    /** Live documents of one board, server-ordered by [order]'s [boardQueryFields]. */
+    fun observeEntries(boardId: String, order: RankOrder): Flow<BoardDocs>
 
     /**
      * One-shot read of the same query [observeEntries] listens to, from the server only: offline it
@@ -55,7 +55,7 @@ internal class FirestoreLeaderboardStore : LeaderboardStore {
     override suspend fun count(boardId: String): Long =
         entries(boardId).count().get(AggregateSource.SERVER).await().count
 
-    override fun observeEntries(boardId: String, order: RankOrder): Flow<List<Map<String, Any?>>?> = callbackFlow {
+    override fun observeEntries(boardId: String, order: RankOrder): Flow<BoardDocs> = callbackFlow {
         val registration = page(boardId, order)
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
@@ -63,7 +63,10 @@ internal class FirestoreLeaderboardStore : LeaderboardStore {
                     return@addSnapshotListener
                 }
                 trySend(
-                    snapshot?.let { boardDocs(it.metadata.isFromCache, it.documents.map { doc -> doc.data.orEmpty() }) },
+                    BoardDocs(
+                        docs = snapshot?.documents.orEmpty().map { it.data.orEmpty() },
+                        fromCache = snapshot?.metadata?.isFromCache ?: false,
+                    ),
                 )
             }
         awaitClose { registration.remove() }
@@ -91,7 +94,3 @@ internal class FirestoreLeaderboardStore : LeaderboardStore {
         const val MAX_BOARD_SIZE = BoardPage.PAGE_SIZE.toLong()
     }
 }
-
-/** The docs of a board snapshot, or null when an empty answer came from the cache and so proves nothing. */
-internal fun boardDocs(fromCache: Boolean, docs: List<Map<String, Any?>>): List<Map<String, Any?>>? =
-    docs.takeUnless { fromCache && it.isEmpty() }

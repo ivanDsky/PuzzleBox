@@ -34,9 +34,12 @@ internal class FirestoreLeaderboardRepository(
         // A7: signed out = no board, no error — callers show their signed-out state.
         if (currentUid() == null) return flowOf(null)
         return store.observeEntries(board.boardId, order)
-            .map<List<Map<String, Any?>>?, LeaderboardSnapshot?> { docs ->
-                // A7: nothing known yet (empty cache) is a soft null that a later server snapshot replaces.
-                docs?.let { LeaderboardSnapshot(board = board, entries = it.mapNotNull(LeaderboardDocCodec::decode)) }
+            .map<BoardDocs, LeaderboardSnapshot?> { answer ->
+                LeaderboardSnapshot(
+                    board = board,
+                    entries = answer.docs.mapNotNull(LeaderboardDocCodec::decode),
+                    fromCache = answer.fromCache,
+                )
             }
             // Transient listener errors (offline flap) retry with backoff; only when
             // they persist does the flow terminate with the A7 soft null — one hiccup

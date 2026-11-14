@@ -226,6 +226,27 @@ class ObserveRankWindowTest {
     }
 
     @Test
+    fun `an empty answer from the cache is unavailable until the server answers`() = runTest {
+        val board = LeaderboardRef("zip", today)
+        val answers = MutableSharedFlow<LeaderboardSnapshot?>()
+        val cached = object : LeaderboardRepository by leaderboard {
+            override fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?> = answers
+        }
+        val window = collect(
+            ObserveRankWindow(identity, cached, store, registry, calendar, clock)(RankWindow.Day(today), listOf(zip)),
+        )
+
+        answers.emit(LeaderboardSnapshot(board, emptyList(), fromCache = true))
+        assertEquals(BoardLoad.Unavailable(board, RankOrder.TimeThenHints), window.board(board))
+
+        answers.emit(LeaderboardSnapshot(board, entries(board, 1), fromCache = true))
+        assertEquals(BoardLoad.Loaded(board, RankOrder.TimeThenHints, BoardPage(entries(board, 1), 1), final = false), window.board(board))
+
+        answers.emit(LeaderboardSnapshot(board, emptyList()))
+        assertEquals(BoardLoad.Loaded(board, RankOrder.TimeThenHints, BoardPage(emptyList(), 0), final = false), window.board(board))
+    }
+
+    @Test
     fun `a healthy open board keeps its one listener across refreshes`() = runTest {
         val board = LeaderboardRef("zip", today)
         leaderboard.setEntries(board, entries(board, 2))

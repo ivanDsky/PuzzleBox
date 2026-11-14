@@ -72,6 +72,8 @@ data class LeaderboardSnapshot(
     /** Sorted by the board's [RankOrder.entryComparator] — rank is list position. */
     val entries: List<LeaderboardEntry>,
     val formatVersion: Int = FORMAT_VERSION,
+    /** An answer from the device cache, not yet confirmed by the server; an empty one proves nothing about the board. */
+    val fromCache: Boolean = false,
 ) {
     companion object {
         const val FORMAT_VERSION = 1
