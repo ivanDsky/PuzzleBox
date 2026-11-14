@@ -16,7 +16,7 @@ dependencies {
     implementation(projects.core.data)
     // The hub's board asks a signed-out player to sign in, in place.
     implementation(projects.core.auth)
-    // HistoryViewModel resolves per-game names against the app's GameRegistry.
+    // The hub resolves per-game names against the app's GameRegistry.
     implementation(projects.core.game)
     // ADR-0001: history is game-agnostic — play-again sessions come from each game's plugin
     // through LoadPastDay, never a games:* edge.
@@ -25,9 +25,7 @@ dependencies {
     implementation(projects.core.gameUi)
 
     implementation(libs.androidx.lifecycle.runtime.compose)
-    implementation(libs.androidx.paging.compose)
     implementation(libs.kotlinx.coroutines.core)
 
-    testImplementation(libs.androidx.paging.testing)
     testImplementation(projects.core.testing)
 }

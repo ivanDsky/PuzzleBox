@@ -43,7 +43,6 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
-import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.game.DailySource
@@ -53,8 +52,6 @@ import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
-import com.ivandsky.puzzlebox.history.HistoryViewModel
-import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.HomeViewModel
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.GameViewModel
@@ -66,7 +63,6 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncRunner
@@ -78,11 +74,9 @@ import com.ivandsky.puzzlebox.data.cloud.SyncStateStore
 import com.ivandsky.puzzlebox.data.cloud.SyncedKind
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInAccount
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
@@ -257,9 +251,8 @@ class DiGraphTest : KoinTest {
             // without it the first Profile composition throws NoDefinitionFound.
             PuzzleBoxApplication.prepareCloudSync(koin)
             assertNotNull(koin.get<ProfileViewModel> { parametersOf(SavedStateHandle()) })
-            // Home/History routes' koinViewModel() and their domain use cases.
+            // Home route's koinViewModel() and their domain use cases.
             assertNotNull(koin.get<HomeViewModel> { parametersOf(SavedStateHandle()) })
-            assertNotNull(koin.get<HistoryViewModel> { parametersOf(HistoryKey()) })
             assertNotNull(koin.get<ObserveGameHistory>())
             assertNotNull(koin.get<ComputeStreak>())
             assertNotNull(koin.get<ObserveGameStats>())
@@ -321,13 +314,13 @@ class DiGraphTest : KoinTest {
      * binding behind RanksViewModel's thirteen positional `get()`s would otherwise surface only when the hub opens.
      */
     @Test
-    fun `the Ranks hub resolves off the real graph with the hub on`() {
+    fun `the Ranks hub resolves off the real graph`() {
         val koinApp = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
             modules(
                 PuzzleBoxApplication.appModules + module {
                     single<IdentityService> { FakeIdentityService() }
-                    single<ReleaseFlags> { FakeReleaseFlags(ReleaseFlag.LeaderboardHub) }
+                    single<ReleaseFlags> { FakeReleaseFlags() }
                 },
             )
         }
@@ -336,7 +329,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.viewModel("history.ranks.RanksViewModel", SavedStateHandle()))
             assertNotNull(koin.viewModel("history.ranks.PlayerSheetViewModel"))
             assertNotNull(koin.viewModel("history.ranks.ReplayOptInViewModel"))
-            assertNotNull(koin.viewModel("play.GamePageBoardViewModel", GameId("zip")))
+            assertNotNull(koin.viewModel("play.GamePageRankViewModel", GameId("zip")))
             assertNotNull(koin.get<ObserveRankWindow>())
             assertNotNull(koin.get<ObserveOverall>())
             assertNotNull(koin.get<GetPlayerActions>())
@@ -346,31 +339,11 @@ class DiGraphTest : KoinTest {
         }
     }
 
-    /**
-     * The app decides the reader of the Friends/Global setting the ranks outside the hub follow (AppModule). Hub off
-     * there is none: the use cases that would listen for friends and read the connections cannot be built here,
-     * so asking for either fails the test.
-     */
+    /** The app's Friends/Global reader for the ranks outside the hub is always built with the connections (AppModule). */
     @Test
-    fun `with the hub off the ranks outside the hub get no Friends reader`() {
-        val koinApp = startRanks(FakeReleaseFlags()) {
-            factory<ObserveFriendUids> { error("friends were listened for with the hub off") }
-            factory<ObserveLinkedInDay> { error("the connections were read with the hub off") }
-        }
-        try {
-            val koin = koinApp.koin
-            assertNull(koin.get<ObserveFriendDay.Binding>().reader)
-            assertNotNull(koin.get<ObserveResultRank>())
-            assertNotNull(koin.viewModel("play.GamePageBoardViewModel", GameId("zip")))
-        } finally {
-            stopKoin()
-        }
-    }
-
-    @Test
-    fun `with the hub on the Friends reader is built with the connections`() {
+    fun `the Friends reader is built with the connections`() {
         var connections = 0
-        val koinApp = startRanks(FakeReleaseFlags(ReleaseFlag.LeaderboardHub)) {
+        val koinApp = startRanks {
             factory { connections++; ObserveLinkedInDay(days = get(), registry = get()) }
         }
         try {
@@ -381,29 +354,11 @@ class DiGraphTest : KoinTest {
         }
     }
 
-    /** The developer menu flips a flag while the app runs: the next screen opened must see it. */
-    @Test
-    fun `a hub flag flipped while the app runs decides the next Friends reader asked for`() {
-        val on = MutableStateFlow(emptySet<ReleaseFlag>())
-        val koinApp = startRanks(object : ReleaseFlags { override val enabled = on })
-        try {
-            val koin = koinApp.koin
-            assertNull(koin.get<ObserveFriendDay.Binding>().reader)
-            on.value = setOf(ReleaseFlag.LeaderboardHub)
-            assertNotNull(koin.get<ObserveFriendDay.Binding>().reader)
-            on.value = emptySet()
-            assertNull(koin.get<ObserveFriendDay.Binding>().reader)
-        } finally {
-            stopKoin()
-        }
-    }
-
-    private fun startRanks(flags: ReleaseFlags, overrides: Module.() -> Unit = {}) = startKoin {
+    private fun startRanks(overrides: Module.() -> Unit = {}) = startKoin {
         androidContext(RuntimeEnvironment.getApplication())
         modules(
             PuzzleBoxApplication.appModules + module {
                 single<IdentityService> { FakeIdentityService() }
-                single<ReleaseFlags> { flags }
                 overrides()
             },
         )

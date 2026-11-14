@@ -154,8 +154,8 @@ internal fun TopLevelNavBarPreview() {
 internal fun RanksNavBarPreview() {
     PuzzleBoxTheme {
         Column {
-            TopLevelNavBar(selected = HomeKey, onSelect = {}, destinations = ranksTopLevelDestinations)
-            TopLevelNavBar(selected = HistoryRootKey, onSelect = {}, destinations = ranksTopLevelDestinations)
+            TopLevelNavBar(selected = HomeKey, onSelect = {}, destinations = topLevelDestinations)
+            TopLevelNavBar(selected = HistoryRootKey, onSelect = {}, destinations = topLevelDestinations)
         }
     }
 }

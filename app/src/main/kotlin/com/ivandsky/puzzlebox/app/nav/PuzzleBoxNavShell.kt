@@ -50,7 +50,6 @@ import org.koin.compose.koinInject
  * lets Enter code open a duel. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
- * [ranks] (the LeaderboardHub flag, read by the app) makes the History tab's root the Ranks hub and adds Settings' Visibility section.
  * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
  */
 @Composable
@@ -64,12 +63,10 @@ internal fun PuzzleBoxNavShell(
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
-    ranks: Boolean = false,
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
 ) {
-    // Resolved only with the flag on, so flag-off Settings never touches the repository.
-    val visibility = if (ranks) rememberVisibilitySlot(koinInject()) else null
+    val visibility = rememberVisibilitySlot(koinInject())
     val reduceMotion = rememberReducedMotion()
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
@@ -91,7 +88,6 @@ internal fun PuzzleBoxNavShell(
             onCodeDraftTaken = onCodeDraftTaken,
             duels = duels,
             libraryRequests = libraryRequests,
-            ranks = ranks,
             visibility = visibility,
         ).withHintCooldown(),
         shellChrome = shellChrome,

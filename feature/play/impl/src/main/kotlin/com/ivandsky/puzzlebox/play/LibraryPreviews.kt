@@ -105,7 +105,7 @@ private fun PreviewScreen(state: LibraryUiState, layout: PlayLayout) {
                 onRetry = {},
                 onOpenLesson = {},
                 calendar = CalendarActions(),
-                onOpenGameHistory = { _, _ -> },
+                onOpenRanks = { _, _ -> },
                 onEnterCode = {},
             )
         }
@@ -164,13 +164,12 @@ internal fun GamePagePhonePreview() {
                 onBack = {},
                 onOpenLesson = {},
                 board = { PreviewBoard(row.card.name) },
-                onOpenHistory = {},
             )
         }
     }
 }
 
-// Preview: the tablet page: the right column scrolls as one, board and history row before how to play.
+// Preview: the tablet page: the right column scrolls as one, board before how to play.
 @Preview(name = "Tablet", widthDp = 1400, heightDp = 1200)
 @Composable
 internal fun GamePageTabletPreview() {
@@ -185,7 +184,6 @@ internal fun GamePageTabletPreview() {
                 onBack = null,
                 onOpenLesson = {},
                 board = { PreviewBoard(row.card.name) },
-                onOpenHistory = {},
             )
         }
     }

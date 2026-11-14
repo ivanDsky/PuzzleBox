@@ -70,7 +70,7 @@ class ArchiveSavedBoardDiscTest {
 
     @Before
     fun startGraph() {
-        koin = startGamePageBoardKoin(listOf(game))
+        koin = startGamePageRankKoin(listOf(game))
     }
 
     @After
@@ -153,7 +153,7 @@ class ArchiveSavedBoardDiscTest {
                     onBack = null,
                     offline = false,
                     hasLesson = false,
-                    onOpenGameHistory = { _, _ -> },
+                    onOpenRanks = { _, _ -> },
                     linkedIn = LinkedInCardState(boardView, onResume = {}, onRetry = {}, onReconnect = {}),
                 )
             }

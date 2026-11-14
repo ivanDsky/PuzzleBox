@@ -3,10 +3,10 @@ package com.ivandsky.puzzlebox.app.e2e
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.performClick
 import androidx.navigation3.runtime.NavKey
 import androidx.room.Room
 import com.ivandsky.puzzlebox.app.DrainTestApplication
@@ -22,6 +22,7 @@ import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.FetchResult
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.NytTransport
+import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.strandsModule
 import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
@@ -84,24 +85,21 @@ class StrandsArchiveE2ETest {
             openGame(STRANDS)
             awaitStrands(TODAY)
             back()
-            val before = history()
-            assertEquals("an opened, unsolved today makes no streak", "0", before.streak)
-            assertEquals("today's row only", setOf(rowTag(TODAY)), before.rows)
+            val before = streak()
+            assertEquals("an opened, unsolved today makes no streak", "0", before)
 
             // Picking a day on the calendar and going back to today fetches and captures nothing.
             pickDay(BROWSED)
             tap(BACK_TO_TODAY)
             assertEquals("a browsed day is never fetched", 0, requestsFor(BROWSED))
-            assertEquals("browsing adds no History rows", before, history())
+            assertEquals("browsing leaves the streak alone", before, streak())
 
             openPast(PAST)
             awaitStrands(PAST)
             assertEquals("the past day is fetched once", 1, requestsFor(PAST))
             // Immersive play hides the bar (N2): back to the library page before hopping tabs.
             leavePast()
-            val opened = history()
-            assertEquals("…and adjacent to today, still outside the streak", before.streak, opened.streak)
-            assertEquals("the opened day is captured", before.rows + rowTag(PAST), opened.rows)
+            assertEquals("…and adjacent to today, still outside the streak", before, streak())
 
             relaunch()
             offline(TODAY, PAST)
@@ -109,7 +107,7 @@ class StrandsArchiveE2ETest {
             awaitStrands(PAST)
             assertEquals("the reopen reads the cache, not the network", 1, requestsFor(PAST))
             leavePast()
-            assertEquals("the streak and rows are unchanged after the reopen", opened, history())
+            assertEquals("the streak is unchanged after the reopen", before, streak())
         }
 
     @Test
@@ -212,24 +210,9 @@ class StrandsArchiveE2ETest {
         return YearMonth.parse(tag.removePrefix(MONTH))
     }
 
-    private data class HistoryView(val streak: String, val rows: Set<String>)
-
-    /** The History list from Home's "See all": streak count and row tags; returns to the Play tab after. */
-    private fun ShellRobot.history(): HistoryView {
-        tapTab(HomeKey)
-        tapText("See all")
-        awaitTag(STREAK)
-        val count = rule.onNodeWithTag(STREAK, useUnmergedTree = true).performScrollTo().fetchSemanticsNode()
-            .config.getOrNull(SemanticsProperties.Text)!!.first().text
-        val rows = rule.onAllNodes(SemanticsMatcher("a History row") { node ->
-            node.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(ROW_PREFIX) == true
-        }).fetchSemanticsNodes().mapNotNull { it.config.getOrNull(SemanticsProperties.TestTag) }.toSet()
-        back()
-        tapTab(PlayKey)
-        return HistoryView(count, rows)
-    }
-
-    private fun rowTag(day: LocalDate) = "$ROW_PREFIX$STRANDS/$day"
+    /** The Strands streak, as the stats read it (the History stats header showed this count). */
+    private fun ShellRobot.streak(): String =
+        runBlocking { graph.koin.get<ObserveGameStats>()(StrandsDefinition.id).first() }.currentStreak.toString()
 
     private fun serve(vararg days: LocalDate) = days.forEach { day ->
         transport.respond(path(day), FetchResult.Ok(fixture(day)))
@@ -321,8 +304,6 @@ class StrandsArchiveE2ETest {
         const val JUMP = "library.calendar.jump."
         const val PREV = "library.calendar.prev"
         const val NEXT = "library.calendar.next"
-        const val STREAK = "history.stats.streak"
-        const val ROW_PREFIX = "history.row."
         const val SAVE_GAP_MS = 5L
     }
 }

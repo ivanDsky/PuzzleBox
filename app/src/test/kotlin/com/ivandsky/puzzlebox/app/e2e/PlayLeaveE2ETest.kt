@@ -60,7 +60,7 @@ class PlayLeaveE2ETest {
 
         switchTab(HistoryRootKey)
         assertState(inZip.selectTab(HistoryRootKey))
-        assertRoute(HISTORY)
+        assertRoute(RANKS)
         val away = session(live)
         assertNull("clock paused while away", away.runningSince)
         Thread.sleep(AWAY_MS)
@@ -294,7 +294,7 @@ class PlayLeaveE2ETest {
         const val HOME = "route.home"
         const val HUB = "route.library"
         const val GAME = "route.game"
-        const val HISTORY = "route.history"
+        const val RANKS = "route.ranks"
         const val GAME_UP = "game.up"
         const val BOARD_ERROR = "play.error"
         const val HOME_PLAY = "home.today_play"

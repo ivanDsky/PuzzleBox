@@ -229,6 +229,7 @@ class ResultScreenTest {
                         onNext = {},
                         onDone = { done++ },
                         onOpenReplay = {},
+                        onOpenRanks = { _, _ -> },
                     )
                 }
             }
@@ -272,6 +273,7 @@ class ResultScreenTest {
                         onNext = {},
                         onDone = {},
                         onOpenReplay = {},
+                        onOpenRanks = { _, _ -> },
                     )
                 }
             }
@@ -297,6 +299,7 @@ class ResultScreenTest {
                         onNext = { next = it },
                         onDone = { done++ },
                         onOpenReplay = {},
+                        onOpenRanks = { _, _ -> },
                     )
                 }
             }
@@ -312,7 +315,7 @@ class ResultScreenTest {
         }
     }
 
-    private fun withRankedResult(onOpenRanks: ((GameId, LocalDate?) -> Unit)?, resultDay: LocalDate = day, check: () -> Unit) {
+    private fun withRankedResult(onOpenRanks: (GameId, LocalDate?) -> Unit, resultDay: LocalDate = day, check: () -> Unit) {
         val me = Identity(uid = "me", displayName = "Me", photoUrl = null)
         val rows = (1..12).map { rank ->
             LeaderboardEntry(
@@ -351,7 +354,7 @@ class ResultScreenTest {
     }
 
     @Test
-    fun `with the hub on the rank chip replaces Today and opens the hub at the game and day`() {
+    fun `the rank chip replaces Today and opens the hub at the game and day`() {
         val opened = mutableListOf<Pair<GameId, LocalDate?>>()
         withRankedResult(onOpenRanks = { g, d -> opened += g to d }) {
             composeRule.onNodeWithTag("result.hero.chip.today").assertDoesNotExist()
@@ -366,14 +369,6 @@ class ResultScreenTest {
             composeRule.onNodeWithTag("result.hero.chip.rank").assertDoesNotExist()
             composeRule.onNodeWithTag("result.hero.chip.today").assertExists()
             composeRule.onNodeWithTag("result.side.rank").assertExists()
-        }
-    }
-
-    @Test
-    fun `without the hub the Today chip stays and there is no rank chip`() {
-        withRankedResult(onOpenRanks = null) {
-            composeRule.onNodeWithTag("result.hero.chip.rank").assertDoesNotExist()
-            composeRule.onNodeWithTag("result.hero.chip.today").assertExists()
         }
     }
 
@@ -397,6 +392,7 @@ class ResultScreenTest {
                         onNext = { next = it },
                         onDone = {},
                         onOpenReplay = {},
+                        onOpenRanks = { _, _ -> },
                     )
                 }
             }
@@ -442,6 +438,7 @@ class ResultScreenTest {
                         onNext = {},
                         onDone = {},
                         onOpenReplay = {},
+                        onOpenRanks = { _, _ -> },
                     )
                 }
             }
@@ -489,7 +486,7 @@ class ResultScreenTest {
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }
                     single { dismissedGoogleSignIn }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
-                    factory { ObserveResultRank(get(), get(), friendDay = null) } // hub off
+                    factory { ObserveResultRank(get(), get(), friendDay = null) } // no Friends/Global setting
                     factory { ObserveResultInsights(get(), get(), get(), get()) }
                 },
                 module { single<CloudSync> { FakeCloudSync() } },

@@ -66,7 +66,7 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
     /** The tablet's first game page carries the game's board, which a view model builds. */
     @Before
     fun startGraph() {
-        koin = startGamePageBoardKoin(STATE.rows.map { it.card.game })
+        koin = startGamePageRankKoin(STATE.rows.map { it.card.game })
     }
 
     @After
@@ -96,7 +96,7 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
                 onRetry = {},
                 onOpenLesson = {},
                 calendar = CalendarActions(),
-                onOpenGameHistory = { _, _ -> },
+                onOpenRanks = { _, _ -> },
                 friends = FriendPreviewCards,
                 onEnterCode = {},
                 duels = DUELS,

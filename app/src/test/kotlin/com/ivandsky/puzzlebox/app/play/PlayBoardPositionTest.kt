@@ -160,7 +160,7 @@ class PlayBoardPositionTest {
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
-                module { single { ObserveFriendDay.Binding(reader = null) } }, // hub off
+                module { single { ObserveFriendDay.Binding(reader = null) } }, // no Friends/Global setting
             )
         }
     }
@@ -209,7 +209,7 @@ class PlayBoardPositionTest {
                         backStack = navigator.state.currentStack,
                         onBack = { navigator.pop() },
                         entryProvider = entryProvider {
-                            playEntry(navigator, layout, onOpenGameHistory = { _, _ -> })
+                            playEntry(navigator, layout, onOpenRanks = { _, _ -> })
                             entry<ResultKey> { Text("result") }
                         },
                     )

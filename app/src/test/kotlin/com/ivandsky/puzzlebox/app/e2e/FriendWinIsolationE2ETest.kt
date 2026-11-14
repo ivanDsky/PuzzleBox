@@ -130,11 +130,9 @@ class FriendWinIsolationE2ETest {
             awaitTag("home.history_row_${puzzleDay.minusDays(1)}")
             val homeBefore = shownLoadedHome()
 
-            // A fresh process opens on History; the submitters run in it, as the app starts them.
+            // A fresh process opens on Ranks; the submitters run in it, as the app starts them.
             relaunch()
-            assertRoute(HISTORY)
-            awaitTag("history.row.tango/$puzzleDay")
-            val historyBefore = shown(HISTORY)
+            assertRoute(RANKS)
             val readsBefore = dailyReads()
             graph.koin.get<LeaderboardSubmitWatcher>().start()
             graph.koin.get<CustomBoardSubmitter>().start()
@@ -171,8 +169,7 @@ class FriendWinIsolationE2ETest {
             tap(RESULT_DONE)
             assertRoute(FRIEND_CARD)
             tapTab(HomeKey)
-            assertRoute(HISTORY)
-            assertEquals("History is unchanged", historyBefore, shown(HISTORY))
+            assertRoute(RANKS)
             back()
             assertRoute(HOME)
             assertEquals(
@@ -329,7 +326,7 @@ class FriendWinIsolationE2ETest {
 
         const val HOME = "route.home"
         const val HOME_TODAY_SUMMARY = "home.today_summary"
-        const val HISTORY = "route.history"
+        const val RANKS = "route.ranks"
         const val GAME = "route.game"
         const val CUSTOM_RESULT = "route.custom_result"
         const val FRIEND_CARD = "route.friend"

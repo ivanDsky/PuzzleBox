@@ -7,7 +7,7 @@ import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
-import com.ivandsky.puzzlebox.play.GamePageBoardViewModel
+import com.ivandsky.puzzlebox.play.GamePageRankViewModel
 import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.LibraryViewModel
 import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
@@ -85,11 +85,11 @@ val playModule = module {
         )
     }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
-    // Same flag-as-parameter rule as the library: a graph without LinkedIn bindings builds the board with it off.
+    // Same flag-as-parameter rule as the library: a graph without LinkedIn bindings builds the rank row with it off.
     // The restoring state comes from CloudSync, which the data graph always binds.
-    // The app always binds ObserveFriendDay.Binding; its reader is null with the hub off, which ranks Global.
+    // The app always binds ObserveFriendDay.Binding.
     viewModel { params ->
-        GamePageBoardViewModel(
+        GamePageRankViewModel(
             params.get<GameId>(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
             cloudSync = get(),

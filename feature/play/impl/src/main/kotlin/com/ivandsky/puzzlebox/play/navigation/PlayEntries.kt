@@ -46,24 +46,23 @@ import org.koin.compose.koinInject
  * tries a code as one). A duel puzzle's [MatchLegKey] draws its leg's board; Up pops, and a
  * solve, a give up or a puzzle already taken replaces it with its [MatchLegResultKey]. The library
  * acts once on [libraryRequest]'s game page or section and hands it back through [onLibraryRequestTaken].
- * The game page shows its leaderboard and a "Your history" row calling [onOpenGameHistory]; a signed-out
+ * The game page shows its rank as a summary row calling [onOpenRanks] with the game and its day; a signed-out
  * game's side-panel times card carries Google sign-in.
  * A [ReplayKey] draws that solve's replay and a [ReplayCompareKey] two solves' replays side by side; Up pops.
  * A non-null [onReconnectLinkedIn] turns the LinkedIn lines on the game page's day card on and is what its Reconnect opens.
- * A non-null [onOpenRanks] (the Ranks hub is on) turns the game page's board into a summary row calling it with the game
- * and its day, and draws the marks of the play side panel's times as chips beside the name, as the hub's boards do.
+ * [onOpenRanks] also opens the Ranks hub from the Result's rank chip, and the marks of the play side panel's times
+ * draw as chips beside the name, as the hub's boards do.
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
     layout: PlayLayout,
-    onOpenGameHistory: (GameId, LocalDate?) -> Unit,
+    onOpenRanks: (GameId, LocalDate?) -> Unit,
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
     libraryRequest: () -> LibraryRequest? = { null },
     onLibraryRequestTaken: () -> Unit = {},
     onReconnectLinkedIn: (() -> Unit)? = null,
-    onOpenRanks: ((GameId, LocalDate?) -> Unit)? = null,
 ) {
     entry<PlayKey> {
         LibraryRoute(
@@ -75,7 +74,6 @@ fun EntryProviderScope<NavKey>.playEntry(
             duels = duels,
             request = libraryRequest(),
             onRequestTaken = onLibraryRequestTaken,
-            onOpenGameHistory = onOpenGameHistory,
             linkedIn = onReconnectLinkedIn != null,
             onReconnectLinkedIn = onReconnectLinkedIn,
             onOpenRanks = onOpenRanks,
@@ -112,7 +110,7 @@ fun EntryProviderScope<NavKey>.playEntry(
             layout,
             navigator,
             linkedIn = onReconnectLinkedIn != null,
-            boardStyle = DailyBoardStyle.defaults(inlineMarks = onOpenRanks != null),
+            boardStyle = DailyBoardStyle.defaults(inlineMarks = true),
         )
     }
     entry<MatchLegKey> { key ->
@@ -136,13 +134,13 @@ fun EntryProviderScope<NavKey>.playEntry(
  * A slot's result: "Play again" starts a fresh attempt of the same day explicitly
  * ([PlaySessionStore.playAgain]) and replaces the result with its game; Next replaces it
  * with another game's today (17); Up and Done pop.
- * [linkedIn] adds the day's LinkedIn connections to the rank row. A non-null [onOpenRanks] puts the player's rank in a
- * chip that calls it with the game and the result's day.
+ * [linkedIn] adds the day's LinkedIn connections to the rank row. The player's rank is a chip that calls [onOpenRanks]
+ * with the game and the result's day.
  */
 fun EntryProviderScope<NavKey>.resultEntry(
     navigator: Navigator,
+    onOpenRanks: (GameId, LocalDate?) -> Unit,
     linkedIn: Boolean = false,
-    onOpenRanks: ((GameId, LocalDate?) -> Unit)? = null,
 ) {
     entry<ResultKey> { key ->
         val store = koinInject<PlaySessionStore>()

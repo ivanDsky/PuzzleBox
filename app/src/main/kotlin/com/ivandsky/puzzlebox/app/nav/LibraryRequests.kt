@@ -12,7 +12,7 @@ import com.ivandsky.puzzlebox.play.LibraryRequest
 import com.ivandsky.puzzlebox.play.api.PlayKey
 
 /**
- * The one-shot request for Games: a game page or a section, made from another tab. Each verb
+ * The one-shot request for Games: a section, made from another tab. Each verb
  * goes to Games with [openOwner] (so back returns to Today) and then stores the request;
  * Games reads [pending], acts, and calls [take]. [pending] is Compose state, so an entry that
  * reads it recomposes when it changes. The holder is saved ([Saver]), like the code draft.
@@ -20,8 +20,6 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 internal class LibraryRequests(initial: LibraryRequest? = null) {
     var pending: LibraryRequest? by mutableStateOf(initial)
         private set
-
-    fun openGamePage(navigator: Navigator, gameId: String) = open(navigator, LibraryRequest.GamePage(gameId))
 
     fun openGamesSection(navigator: Navigator, tab: GamesTab) = open(navigator, LibraryRequest.Section(tab))
 

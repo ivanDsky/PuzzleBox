@@ -31,10 +31,9 @@ import org.koin.core.parameter.parametersOf
 import java.time.LocalDate
 
 /**
- * The Ranks hub's routes, the successor of [historyEntry]: the tab root [HistoryRootKey] and the pushed [HistoryKey]
- * (a game's link, with a back arrow), which opens the hub at that game and day (A4) where [historyEntry] opens the history
- * browser. The module exports both; the app picks one by flag, so this feature never reads it (A27). Same receiver and
- * parameters as [historyEntry]: [navigator] opens a day's game and its replays from the Your solve row; [layout] picks
+ * The Ranks hub's routes: the tab root [HistoryRootKey] and the pushed [HistoryKey]
+ * (a game's link, with a back arrow), which opens the hub at that game and day (A4).
+ * [navigator] opens a day's game and its replays from the Your solve row; [layout] picks
  * the tablet's two panes. [linkedIn] adds the connections' ghosts to a game's Friends day board, from what the phone
  * holds; off, the hub touches nothing of LinkedIn.
  */

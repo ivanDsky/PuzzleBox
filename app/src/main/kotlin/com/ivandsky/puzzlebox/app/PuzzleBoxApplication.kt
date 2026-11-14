@@ -61,8 +61,8 @@ class PuzzleBoxApplication : Application() {
         koin.get<CustomBoardSubmitter>().start()
         // Duel results: pending posts retry on every app start; idle while the outbox is empty.
         koin.get<MatchResultPoster>().start()
-        // Daily replays: an accepted solve's replay goes public only on the Replays tier; absent with the hub flag off.
-        if (koin.get<ReleaseFlags>().isEnabled(ReleaseFlag.LeaderboardHub)) koin.get<DailyReplayPublisher>().start()
+        // Daily replays: an accepted solve's replay goes public only on the Replays tier.
+        koin.get<DailyReplayPublisher>().start()
         // Cloud sync: the one place that starts runs besides "Sync now".
         koin.get<CloudSyncRunner>().start()
     }

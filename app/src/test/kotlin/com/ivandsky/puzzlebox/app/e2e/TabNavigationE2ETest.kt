@@ -1,10 +1,5 @@
 package com.ivandsky.puzzlebox.app.e2e
 
-import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performScrollToIndex
-import androidx.compose.ui.test.performScrollToNode
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.serialization.NavBackStackSerializer
@@ -13,9 +8,7 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.CatalogKey
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
-import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.create.api.CreateKey
-import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -57,7 +50,7 @@ class TabNavigationE2ETest {
 
             switchTab(HistoryRootKey)
             assertState(inGame.selectTab(HistoryRootKey))
-            assertRoute(HISTORY)
+            assertRoute(RANKS)
 
             tapTab(PlayKey)
             assertState(inGame)
@@ -113,38 +106,10 @@ class TabNavigationE2ETest {
     }
 
     @Test
-    fun `N15 hopping away from a scrolled History keeps its position`() {
-        val graph = E2eKoinGraph(E2E_TODAY).apply {
-            daily.setHistory(ZipDefinition.id, List(HISTORY_DAYS) { ZipPlayFixture.entry(E2E_TODAY.minusDays(it.toLong())) })
-        }
-        val history = stacks(tab = HistoryRootKey)
-        shellRobot(history, graph = graph) {
-            assertState(history)
-            assertRoute(HISTORY)
-            // The stats and weeks cards sit above the rows: wait for the first page by scrolling to it.
-            rule.waitUntil(TIMEOUT_MS) {
-                runCatching { rule.onNodeWithTag("history.list").performScrollToNode(hasTestTag(rowTag(0))) }.isSuccess
-            }
-            rule.onNodeWithTag("history.list").performScrollToIndex(SCROLLED_INDEX)
-            rule.waitForIdle()
-            assertScrolled()
-
-            tapTab(CreateKey)
-            assertState(history.selectTab(CreateKey))
-            assertRoute(CREATE)
-
-            tapTab(HistoryRootKey)
-            assertState(history)
-            assertRoute(HISTORY)
-            assertScrolled()
-        }
-    }
-
-    @Test
     fun `SC13 compact width shows the bottom bar outside play`() {
         listOf(
             stacks(tab = HomeKey) to HOME,
-            stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey())) to HISTORY,
+            stacks(tab = HomeKey, home = listOf(HomeKey, HistoryKey())) to RANKS,
             stacks(tab = PlayKey) to HUB,
             stacks(tab = HomeKey, home = listOf(HomeKey, ProfileKey)) to PROFILE,
             stacks(tab = HomeKey, home = listOf(HomeKey, ProfileKey, CatalogKey)) to CATALOG,
@@ -270,15 +235,6 @@ class TabNavigationE2ETest {
         }
     }
 
-    /** History's list scrolled: the [SCROLLED_INDEX] row shows, the newest row is gone. */
-    private fun ShellRobot.assertScrolled() {
-        awaitTag(rowTag(SCROLLED_ROW))
-        rule.onNodeWithTag(rowTag(SCROLLED_ROW), useUnmergedTree = true).assertIsDisplayed()
-        rule.onNodeWithTag(rowTag(0), useUnmergedTree = true).assertDoesNotExist()
-    }
-
-    private fun rowTag(daysAgo: Int) = "history.row.$ZIP/${E2E_TODAY.minusDays(daysAgo.toLong())}"
-
     private fun stacks(
         tab: NavKey,
         home: List<NavKey> = listOf(HomeKey),
@@ -289,7 +245,7 @@ class TabNavigationE2ETest {
 
     private companion object {
         const val HOME = "route.home"
-        const val HISTORY = "route.history"
+        const val RANKS = "route.ranks"
         const val HUB = "route.library"
         const val GAME = "route.game"
         const val RESULT = "route.result"
@@ -298,10 +254,7 @@ class TabNavigationE2ETest {
         const val CATALOG = "route.catalog"
         const val ZIP = "zip"
         const val QUEENS = "queens"
-        const val HISTORY_DAYS = 40
         // Items 0–2 are the top bar, stats and weeks, so rows start at item 3.
-        const val SCROLLED_INDEX = 15
-        const val SCROLLED_ROW = SCROLLED_INDEX - 3
         const val MAX_SAVED_BYTES = 100_000
         val RESULT_KEY = ResultKey(ZIP, "2026-03-09", timeMs = 1_000L, hintsUsed = 0)
         const val TIMEOUT_MS = 5_000L

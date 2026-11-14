@@ -44,7 +44,7 @@ class ObserveResultRankTest {
         ObserveResultRank(
             ObserveLeaderboard(FakeIdentityService(initial = identity), repo, registry, FakeGameCalendar(day)),
             registry,
-            friendDay = null, // hub off
+            friendDay = null, // no Friends/Global setting
         )(
             tango,
             day,

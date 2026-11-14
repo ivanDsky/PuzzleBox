@@ -33,6 +33,7 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.DayRing
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.time.YearMonth
 import java.time.format.TextStyle
 import java.time.temporal.TemporalAdjusters
@@ -192,4 +193,13 @@ internal fun DayFilterPill(day: LocalDate, today: LocalDate?, onClear: () -> Uni
             Icon(imageVector = PuzzleIcons.Close, contentDescription = "Show all days", modifier = Modifier.size(FilterIcon))
         }
     }
+}
+
+private val DAY_GROUP_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, MMM d")
+
+/** "Today", "Yesterday", or "Sat, Nov 1" — the filter chip's day label. */
+internal fun dayGroupLabel(day: LocalDate, today: LocalDate?): String = when (day) {
+    today -> "Today"
+    today?.minusDays(1) -> "Yesterday"
+    else -> day.format(DAY_GROUP_FORMAT)
 }

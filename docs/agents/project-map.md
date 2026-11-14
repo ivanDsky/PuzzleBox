@@ -73,7 +73,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `ObserveTodaySet` reports any of today's games in progress or a duel needs the player;
   holds the Enter-code draft and the one-shot `LibraryRequests`; the rail carries the avatar), `nav/` the shell
   (ADR-0011, ADR-0027): `TopLevelDestination.kt` (`topLevelDestinations` tab registry: key, label, icon,
-  test tag, `Tab`; the four-tab set Today, Games, History, Create),
+  test tag, `Tab`; the four-tab set Today, Games, Ranks, Create),
   `PuzzleBoxNavigationState.kt` (fresh state, start tab first),
   `RememberNavigator.kt` (`rememberNavigator`, saved under `NAVIGATION_STATE_KEY`
   `"puzzlebox.navigation.v1"`, restored via `reconciledWith`; foreign/undecodable → fresh),
@@ -91,7 +91,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   (`Navigator.openOwner`), `LibraryRequests.kt`, `PlayTabBadge.kt` (`playTabBadged`),
   `ApplyFriendLink.kt`/`FriendLink.kt` (friend and duel links) and `ApplySharedText.kt`/`SharedText.kt`,
   `PuzzleBoxEntryProvider.kt` (route table from every feature's `*Entry`
-  builder plus `CatalogKey`; the flag-on callbacks are passed here), `CatalogKey.kt`, `PuzzleBoxNavKeys.kt` (`puzzleBoxNavKeys`:
+  builder plus `CatalogKey`; the callbacks are passed here), `CatalogKey.kt`, `PuzzleBoxNavKeys.kt` (`puzzleBoxNavKeys`:
   polymorphic `SavedStateConfiguration` over every feature's keys),
   `leaderboard/LeaderboardSubmitWatcher` (auto-submits records when signed in) and
   `leaderboard/CustomBoardSubmitter` (friend puzzle wins),
@@ -138,7 +138,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `PlayKey` (games library), `GameKey(gameId, day?)`, `ResultKey(gameId, day, timeMs, hintsUsed)`,
   `ReplayKey(gameId, kind, day, puzzleNumber, puzzleId, code, legIndex)` (the replay page; `kind` is record, latest, myLeg or theirLeg; build it with `ReplayKey.daily`/`custom`/`leg`),
   `FriendPuzzleKey`, `CustomGameKey`, `CustomResultKey`, `MatchLegKey`, `MatchLegResultKey`;
-  `HistoryKey` and `HistoryRootKey` (the History tab root); `ProfileKey` and `SettingsKey`;
+  `HistoryKey` and `HistoryRootKey` (the Ranks tab root); `ProfileKey` and `SettingsKey`;
   `CreateKey` (Create tab root), `EditorKey(draftId)`, `PublishedPuzzleKey`; compete's `DuelKey`
   and `DuelRevealKey`) and a
   `*NavKeys()` polymorphic registration; serial names keep
@@ -362,7 +362,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `HomeTodaySection` (`HomeTodaySummary` card with `TodayBadge`s + one CTA / rollover countdown)/`HomeStreakSection`/
   `HomeRecentSection`, `HomeLayout` + `homeLayoutFor` pure pane policy. Home is the Today
   tab: `HomeSummaries` (rank callback + `HomeDuelsSummary`) adds the rank and duels `SummaryLinkRow`s, and its recent days link
-  "See all" to the History tab root (`onOpenHistory`).
+  "See all" to the Ranks tab root (`onOpenHistory`).
 - `feature/play/impl/` (`:feature:play:impl`) — the one game-agnostic play surface (ADR-0006,
   ADR-0007; no `games:*` dependency): `PlaySessionStore` (Koin single: one `ActivePlay` per
   `PlaySlot`, `open(GameKey)`/`peek(slot)`/`retain(keys)`/`flush()`, `playable` games, pins a
@@ -376,8 +376,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   two-pane shows the list beside the selected game's `LibraryGamePage` — `ArchiveDayCard` (today, or the
   picked past day → `GameKey(game, day)`), `ArchiveMonthCalendar` (`ArchiveMonthNav` ‹ › + jumps,
   `ArchiveDayDisc` per day from `ObserveArchiveMonth`), `GameStatsCard`, `HowToPlayCard` (rules + Open the lesson); with the
-  app's flag-on arguments it adds `GamePageBoard` (the game's leaderboard: a Today / Yesterday
-  toggle, the top five and the player's own row pinned beneath) and a "Your history" `SummaryLinkRow`; a phone pushes the
+  app's arguments it adds `GamePageRankRow` (the game's rank row, over `GamePageRankViewModel`, opening Ranks); a phone pushes the
   page over the list; a one-shot `LibraryRequest` opens a page or a section), `GameRoute` + `GameViewModel` (one `GameKey`'s board; first-play tutorial
   and How to play via `TutorialGate`), `ResultRoute` + `ResultViewModel` (verdict + previous
   best live, Play again, Next unsolved), duel legs
@@ -385,13 +384,12 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   tagging a leg solve with its match), `friend/` (a friend's puzzle: `FriendsTabBody`,
   `EnterCodeSheet`, `FriendPuzzleRoute`, `CustomResultRoute`), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
   `resultEntry`) and `navigation/GameEntry`.
-- `feature/history/impl/` (`:feature:history:impl`) — `navigation/HistoryEntry` (the pushed
-  `HistoryKey` with a back arrow and the tab root `HistoryRootKey` without one),
-  `HistoryRoute`/`HistoryScreen` with `HistoryListPane`/`HistoryDetailPane` over
-  `HistoryViewModel` (`di/HistoryModule`), `HistoryPaging` (`historyPager`,
-  `HistoryPagingSource`), `HistoryLayout` + `historyLayoutFor`; the All timeline only (A28:
-  streak and stats, week/month calendar, every game's rows; any history key opens it); a
-  history row pushes that day's `GameKey` on the current stack, which resumes the slot or opens its rebuilt board.
+- `feature/history/impl/` (`:feature:history:impl`, the Ranks hub; the module keeps its History name) —
+  `navigation/RanksEntry` (the tab root `HistoryRootKey` and the pushed `HistoryKey`, both open the hub),
+  `ranks/` (`RanksViewModel`, boards, player sheet, replay opt-in; `di/HistoryModule`), the replay
+  compare helpers (`HistoryReplayCompare`, `ReplaySolve`), and the calendar and stats pieces the hub reuses
+  (`HistoryCalendar`, `HistoryStatsHeader`, `HistoryLayout` + `historyLayoutFor`). The History screen and its
+  timeline are deleted.
 - `feature/profile/impl/` (`:feature:profile:impl`) — packages kept from the app:
   `app/screens/` (`ProfileRoute`, `ProfileScreen`, `ProfileViewModel(identityService,
   idTokenProvider, observeGameStats)`: the account from `IdentityService.current` and the
@@ -515,9 +513,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `placementOf` throws for a key with no row. `isImmersive` (`Immersive.kt`) derives only the
   bar-hiding predicate from it. Konsist P9 fails a production `NavKey` without a row. The
   per-key table is never copied into docs.
-- **Tab set** (ADR-0027) — `topLevelDestinations` is the one registry: Today, Games, History, Create.
-  Features never read a flag for it: each entry takes nullable callbacks or a slot, and the app
-  passes them (ADR-0027 §10).
+- **Tab set** (ADR-0027) — `topLevelDestinations` is the one registry: Today, Games, Ranks, Create.
+  Features never read a flag for it: an entry takes a nullable callback or a slot for an optional
+  link, and the app passes it (ADR-0027 §10).
 - **Shell actions and the avatar** (ADR-0027) — `ShellAvatar` (`app/nav/ShellChrome.kt`) is the
   one avatar; it pushes `ProfileKey` with `pushOnce`. The tablet rail shows it at its bottom
   (`TopLevelNavRail` `bottomActions`, 96dp rail). The phone shows it in Today's header only,

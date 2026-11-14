@@ -186,7 +186,7 @@ class LibraryRequestTest {
                 layout = layout,
                 onPlay = { _, _ -> },
                 onOpenCode = {},
-                onOpenGameHistory = { _, _ -> },
+                onOpenRanks = { _, _ -> },
                 duels = duels,
                 request = request,
                 onRequestTaken = { taken++ },

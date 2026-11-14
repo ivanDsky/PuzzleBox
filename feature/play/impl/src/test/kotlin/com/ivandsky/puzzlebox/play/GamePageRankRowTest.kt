@@ -81,7 +81,7 @@ class GamePageRankRowTest {
 
     /**
      * The page's graph; [friendOf] binds the hub's Friends/Global setting, stored as [friendsSetting], with that one
-     * friend of the player. Without it the graph is the hub's flag off: the app binds no reader.
+     * friend of the player. Without it the graph binds no reader.
      */
     private fun show(
         identity: FakeIdentityService,

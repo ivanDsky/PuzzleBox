@@ -86,7 +86,7 @@ internal fun collapsedWeek(
  * [onShowCalendar] reports the day whose week or month to show, and the mode. Shows
  * nothing until the state has a calendar day.
  * [foldable] false drops the header's chevron and its tap; the calendar stays the mode it is given.
- * [foldInPlace] keeps one pager across a fold so the card eases around it (the Ranks hub, behind its flag); false
+ * [foldInPlace] keeps one pager across a fold so the card eases around it (the Ranks hub); false
  * builds a new pager per mode, as the shipped History screen does.
  */
 @Composable

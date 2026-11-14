@@ -4,18 +4,13 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.LoadCustomReplay
 import com.ivandsky.puzzlebox.domain.LoadDailyReplay
 import com.ivandsky.puzzlebox.domain.LoadLegReplay
 import com.ivandsky.puzzlebox.domain.LoadPlayerReplay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
-import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.game.CompletionRecord
-import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameSessionCodec
@@ -25,10 +20,8 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.ScoreModel
-import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
-import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.FixtureSession
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
@@ -85,33 +78,6 @@ object HistoryTestSupport {
     /** Fixed clock: 12:00 UTC Nov 3 2026 is the morning of Nov 3 in LA, so the puzzle day is [TODAY]. */
     val TODAY: LocalDate = LocalDate.of(2026, 11, 3)
     private val clock: Clock = Clock.fixed(Instant.parse("2026-11-03T12:00:00Z"), ZoneOffset.UTC)
-
-    /** History's ViewModel over [daily]/[completions] and the production use cases. */
-    fun viewModel(
-        daily: DailyRepository,
-        completions: CompletionRepository,
-        hintsRanked: Set<GameId> = emptySet(),
-        opening: HistoryKey = HistoryKey(),
-        games: GameRegistry = registry(hintsRanked),
-    ): HistoryViewModel {
-        val observeGameHistory = ObserveGameHistory(games, daily, completions)
-        val puzzleDay = GetPuzzleDay(games, clock)
-        return HistoryViewModel(
-            observeGameHistory = observeGameHistory,
-            observeGameStats = ObserveGameStats(
-                registry = games,
-                observeGameHistory = observeGameHistory,
-                computeStreak = ComputeStreak(puzzleDay = puzzleDay),
-            ),
-            registry = games,
-            // No play UIs: every game reads GameBrand.Neutral.
-            playRegistry = GamePlayRegistry(emptyList()),
-            puzzleDay = puzzleDay,
-            loadReplay = loadReplay(games, daily, completions),
-            opening = opening,
-            cloudSync = FakeCloudSync(),
-        )
-    }
 
     /** The production replay entry over the given stores; the stores nothing here reads stay empty fakes. */
     fun loadReplay(

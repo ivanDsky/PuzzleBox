@@ -49,7 +49,7 @@ import kotlinx.coroutines.flow.transform
 import kotlinx.coroutines.flow.update
 
 /**
- * What [GamePageBoard] draws: the [day] shown (null until the first read is chosen), whether it [isToday] on the
+ * What the game page's rank row reads: the [day] shown (null until the first read is chosen), whether it [isToday] on the
  * game's calendar, and the [board] to draw for it, the top rows with the player's own row pinned under them when
  * it ranks lower. While that day's board has not arrived, [board] is Loading, except that with LinkedIn a board
  * already drawn stays whole (day, rows and ghosts) until the next day is ready: the title and the rows change together.
@@ -60,7 +60,7 @@ import kotlinx.coroutines.flow.update
  * [amongFriends] is true and [standing] is the player's place among their friends and connections, null off the
  * board; the rows stay the whole board's.
  */
-internal data class GamePageBoardState(
+internal data class GamePageRankState(
     val day: LocalDate? = null,
     val isToday: Boolean = true,
     val board: DailyBoardState = DailyBoardState.Loading,
@@ -85,7 +85,7 @@ internal data class GamePageBoardState(
  * A non-null [friendDay] makes the rank summary follow the player's Friends/Global setting (F20); null is Global.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
-internal class GamePageBoardViewModel(
+internal class GamePageRankViewModel(
     private val game: GameId,
     private val leaderboard: ObserveLeaderboard,
     private val calendar: GameCalendar,
@@ -108,12 +108,12 @@ internal class GamePageBoardViewModel(
 
     private val restoring: Flow<Boolean> = cloudSync.restoring
 
-    val state: StateFlow<GamePageBoardState> = flow {
+    val state: StateFlow<GamePageRankState> = flow {
         // What the board last said, so a day switch can tell whether a board is on screen to keep.
-        var said = GamePageBoardState()
+        var said = GamePageRankState()
         emitAll(shown().flatMapLatest { shown -> statesOf(shown, held = said).onEach { said = it } })
     }.combine(restoring) { board, restoring -> if (board.restoring == restoring) board else board.copy(restoring = restoring) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GamePageBoardState())
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), GamePageRankState())
 
     /** How this block's last sign-in went. */
     val signInStatus: StateFlow<BoardSignIn> = signInHolder.status
@@ -142,9 +142,9 @@ internal class GamePageBoardViewModel(
      * replaced in one step; past [HOLD_CAP_MS] the day is named and shows Loading, as when nothing is drawn.
      * Within the day, every change flows through.
      */
-    private fun statesOf(shown: Shown, held: GamePageBoardState): Flow<GamePageBoardState> {
-        val loading = GamePageBoardState(day = shown.day, isToday = shown.isToday)
-        // No setting to follow (the hub's flag off, or no reader bound) is Global.
+    private fun statesOf(shown: Shown, held: GamePageRankState): Flow<GamePageRankState> {
+        val loading = GamePageRankState(day = shown.day, isToday = shown.isToday)
+        // No setting to follow (no reader bound) is Global.
         val scope: Flow<FriendDay?> = friendDay?.invoke(game, shown.day) ?: flowOf(null)
         val days: Flow<HeldDay.Arrived> = combine(leaderboard(game, shown.day), linkedInInput(shown.day), scope) { board, input, friends ->
             val drawn = board.toDailyBoardState()
@@ -189,16 +189,16 @@ internal class GamePageBoardViewModel(
      * this profile's, else the one named like their LinkedIn name, else their LinkedIn row added; the rows follow the
      * times they show, each keeping its PuzzleBox rank.
      */
-    private fun stateOf(shown: Shown, drawn: DailyBoardState, input: LinkedInBoardInput): GamePageBoardState {
+    private fun stateOf(shown: Shown, drawn: DailyBoardState, input: LinkedInBoardInput): GamePageRankState {
         if (drawn !is DailyBoardState.Ranked) {
-            return GamePageBoardState(day = shown.day, isToday = shown.isToday, board = drawn, ghosts = input.ghosts, saved = input.saved)
+            return GamePageRankState(day = shown.day, isToday = shown.isToday, board = drawn, ghosts = input.ghosts, saved = input.saved)
         }
         val ranked = if (input.ghosts.isEmpty() && input.you == null) null else rankWithLinkedIn(drawn.rows, input.ghosts, input.you, order)
         val reals = ranked?.filterIsInstance<DailyBoardLine.Real>()
         val rows = reals?.map { it.row } ?: drawn.rows
         val own = rows.indexOfFirst { it.isSelf }
         val pinned = if (own < TOP_ROWS) null else rows[own]
-        return GamePageBoardState(
+        return GamePageRankState(
             day = shown.day,
             isToday = shown.isToday,
             ghosts = input.ghosts,
@@ -228,7 +228,7 @@ internal class GamePageBoardViewModel(
     /** What one day reads while the board on screen is held for it. */
     private sealed interface HeldDay {
         /** The day's [state] from what has been read, and whether it is [ready] to replace the board on screen. */
-        data class Arrived(val state: GamePageBoardState, val ready: Boolean) : HeldDay
+        data class Arrived(val state: GamePageRankState, val ready: Boolean) : HeldDay
 
         data object CapReached : HeldDay
     }

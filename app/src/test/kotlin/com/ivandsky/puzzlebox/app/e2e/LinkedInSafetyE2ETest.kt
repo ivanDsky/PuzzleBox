@@ -41,7 +41,7 @@ class LinkedInSafetyE2ETest {
             assertRoute(HOME)
             letItSettle()
             tapTab(HistoryRootKey)
-            assertRoute(HISTORY)
+            assertRoute(RANKS)
             letItSettle()
             tapTab(HomeKey)
             assertRoute(HOME)
@@ -70,7 +70,7 @@ class LinkedInSafetyE2ETest {
         assertRoute(HOME)
         letItSettle()
         tapTab(HistoryRootKey)
-        assertRoute(HISTORY)
+        assertRoute(RANKS)
         letItSettle()
         openLinkedInGamePage()
         letItSettle()
@@ -80,7 +80,7 @@ class LinkedInSafetyE2ETest {
 
     private companion object {
         const val HOME = "route.home"
-        const val HISTORY = "route.history"
+        const val RANKS = "route.ranks"
         const val DAY_VIEW_CALLS = 2
         const val OWN_RESULT = "voyagerIdentityDashGameEndPage"
         const val BOARD = "voyagerIdentityDashGameConnectionsEntities"

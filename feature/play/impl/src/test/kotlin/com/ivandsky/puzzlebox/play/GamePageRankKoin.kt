@@ -16,10 +16,10 @@ import org.koin.core.context.stopKoin
 import org.koin.dsl.module
 
 /**
- * Starts a Koin graph that builds the game page's board ([GamePageBoardViewModel]) over empty fakes for [ids].
+ * Starts a Koin graph that builds the game page's board ([GamePageRankViewModel]) over empty fakes for [ids].
  * Close the returned application when the test ends.
  */
-internal fun startGamePageBoardKoin(ids: List<GameId>, today: LocalDate = LocalDate.parse("2026-11-05")): KoinApplication {
+internal fun startGamePageRankKoin(ids: List<GameId>, today: LocalDate = LocalDate.parse("2026-11-05")): KoinApplication {
     stopKoin() // tests share the JVM-global Koin context
     val games = FakeGames(ids).games
     val calendar = FakeGameCalendar(today)
@@ -28,7 +28,7 @@ internal fun startGamePageBoardKoin(ids: List<GameId>, today: LocalDate = LocalD
         modules(
             module {
                 viewModel { (game: GameId) ->
-                    GamePageBoardViewModel(
+                    GamePageRankViewModel(
                         game,
                         ObserveLeaderboard(identity, FakeLeaderboardRepository(emptyMap()), games, calendar),
                         calendar,
@@ -37,7 +37,7 @@ internal fun startGamePageBoardKoin(ids: List<GameId>, today: LocalDate = LocalD
                         dismissedGoogleSignIn,
                         linkedIn = null,
                         cloudSync = FakeCloudSync(),
-                        friendDay = null, // hub off
+                        friendDay = null, // no Friends/Global setting
                     )
                 }
             },
@@ -47,5 +47,5 @@ internal fun startGamePageBoardKoin(ids: List<GameId>, today: LocalDate = LocalD
 
 /** The hub-off binding a play test graph needs when it loads [playModule]: the root's answer is no friend day. */
 internal val hubOffFriendDay = module {
-    single { ObserveFriendDay.Binding(reader = null) } // hub off
+    single { ObserveFriendDay.Binding(reader = null) } // no Friends/Global setting
 }

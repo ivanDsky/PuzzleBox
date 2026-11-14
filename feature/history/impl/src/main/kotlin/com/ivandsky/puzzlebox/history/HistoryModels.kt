@@ -137,3 +137,9 @@ internal fun solvedByDay(rows: List<HistoryDayRow>, order: List<GameId>): Map<Lo
         .sortedBy { rank[it.gameId] ?: Int.MAX_VALUE }
         .groupBy({ it.day }, { it.brand })
 }
+
+/** The newest day first, then capture recency, then game id for a stable tiebreak. */
+internal val HISTORY_ROW_ORDER: Comparator<HistoryDayRow> =
+    compareByDescending<HistoryDayRow> { it.day }
+        .thenByDescending { it.fetchedAtMs }
+        .thenBy { it.gameId.value }

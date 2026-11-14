@@ -45,7 +45,7 @@ class TabSetRestoreE2ETest {
                     stacks = listOf(V1_HOME, V1_PLAY, listOf(HistoryRootKey), V1_CREATE),
                 ),
             )
-            assertRoute(HISTORY)
+            assertRoute(RANKS)
             assertProfileTabGone()
         }
 
@@ -60,7 +60,7 @@ class TabSetRestoreE2ETest {
                     stacks = listOf(V1_HOME, V1_PLAY, listOf(HistoryRootKey), V1_CREATE),
                 ),
             )
-            assertRoute(HISTORY)
+            assertRoute(RANKS)
             assertProfileTabGone()
         }
 
@@ -80,7 +80,7 @@ class TabSetRestoreE2ETest {
 
     private companion object {
         const val HOME = "route.home"
-        const val HISTORY = "route.history"
+        const val RANKS = "route.ranks"
         const val PROFILE_TAB = "nav.tab.profile"
         val V1_HOME = listOf(HomeKey, HistoryKey())
         val V1_PLAY = listOf(PlayKey, HistoryKey("zip"))

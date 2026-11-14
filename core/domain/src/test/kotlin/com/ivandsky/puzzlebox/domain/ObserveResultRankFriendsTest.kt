@@ -39,7 +39,7 @@ import org.koin.dsl.module
 
 /**
  * F20: the rank shown outside the hub follows the player's Friends/Global setting. The app decides the flags, so here
- * its answer is given: the hub off is no reader at all, and LinkedIn off a reader with no connections source.
+ * its answer is given: no reader at all is a rank without the setting, and LinkedIn off a reader with no connections source.
  */
 class ObserveResultRankFriendsTest {
 
@@ -133,7 +133,7 @@ class ObserveResultRankFriendsTest {
     }
 
     @Test
-    fun `with the hub off the rank stays the whole board's whatever the setting`() = runTest {
+    fun `with no reader the rank stays the whole board's whatever the setting`() = runTest {
         befriend("b")
         rank(friendDay = null).test {
             assertEquals(ResultRank.Hidden, awaitItem())
