@@ -614,5 +614,4 @@ so the verdict matches.
     Update PuzzleBox.`
   - Over the cap: `That text is N KB (line L); the limit is 64 KB.`
 
-A share target, to send the text to PuzzleBox from another app, is planned (`ShareTarget` flag)
-but is not in the app yet. Use Import from text.
+Another app can send the text to PuzzleBox from its share sheet: the shared text becomes an import.
