@@ -640,40 +640,114 @@ class ReplayPlaybackTest {
         playback.advance(500)
         assertEquals(20_000L, playback.state.value.positionMs)
 
+        // F26: the move at 20 000 starts the next travel at once; it lasts the 4 700 ms dwell.
         playback.advance(4_700)
-        playback.advance(400)
         assertEquals(39_000L, playback.state.value.positionMs)
     }
 
+    // F26 replaces F23's stand-then-glide (a gap after a move stood for the dwell, then glided 400 ms):
+    // the next two pins are rewritten for it.
     @Test
-    fun `a gap after a move is not jumped before the move's animation has played`() {
+    fun `F26 right after a move the needle travels steadily and arrives when the dwell ends`() {
         val playback = ReplayPlayback(slowSolve, theirs = null)
         playback.seekTo(20_000)
         playback.play()
 
         // The dwell is 4 700 ms: a 24-letter theme word, the longest a published Strands word may be (F23-R1).
-        playback.advance(4_600)
-        assertEquals(24_600L, playback.state.value.positionMs)
+        playback.advance(1)
+        playback.advance(2_349)
+        val mid = playback.state.value.positionMs
+        assertTrue("halfway position $mid", mid in 29_300L..29_700L)
 
-        playback.advance(100)
-        playback.advance(400)
+        playback.advance(2_350)
         assertEquals(39_000L, playback.state.value.positionMs)
     }
 
     @Test
-    fun `the dwell is wall time, so it is longer in play time at speed 2`() {
+    fun `F26 the travel is linear when it is long`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.seekTo(20_000)
+        playback.play()
+        playback.advance(1)
+
+        var last = playback.state.value.positionMs
+        var firstStep = 0L
+        repeat(4) { i ->
+            playback.advance(1_000)
+            val step = playback.state.value.positionMs - last
+            if (i == 0) firstStep = step
+            assertTrue("step $step against first $firstStep", kotlin.math.abs(step - firstStep) <= 2)
+            last += step
+        }
+    }
+
+    @Test
+    fun `F26 no frame changes during a long travel`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.seekTo(20_000)
+        playback.play()
+        playback.advance(1)
+        val session = playback.state.value.mineFrame!!.session
+
+        repeat(9) {
+            playback.advance(500)
+            assertSame(session, playback.state.value.mineFrame!!.session)
+        }
+        assertTrue(playback.state.value.positionMs < 39_000L)
+    }
+
+    @Test
+    fun `F26 the long travel lasts 4700 wall ms at speed 2`() {
         val playback = ReplayPlayback(slowSolve, theirs = null)
         playback.setSpeed(2)
         playback.seekTo(20_000)
         playback.play()
+        playback.advance(1)
 
-        playback.advance(2_900)
-        assertEquals(25_800L, playback.state.value.positionMs)
+        playback.advance(4_698)
+        assertTrue(playback.state.value.positionMs < 39_000L)
 
-        playback.seekTo(20_000)
-        playback.advance(4_700)
-        playback.advance(400)
+        playback.advance(1)
         assertEquals(39_000L, playback.state.value.positionMs)
+    }
+
+    @Test
+    fun `F26 a seek into the middle of a long gap travels in 400 ms`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.seekTo(30_000)
+        playback.play()
+        playback.advance(16)
+
+        playback.advance(399)
+        assertTrue(playback.state.value.positionMs < 39_000L)
+
+        playback.advance(1)
+        assertEquals(39_000L, playback.state.value.positionMs)
+    }
+
+    @Test
+    fun `F26 a gap that playback crosses faster than the travel is just played`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.setSpeed(8)
+        playback.seekTo(20_000)
+        playback.play()
+
+        playback.advance(1)
+        playback.advance(100)
+
+        assertEquals(20_008L + 800L, playback.state.value.positionMs)
+    }
+
+    @Test
+    fun `F26 in a compare the other side's next move bounds the target`() {
+        val theirsAt30 = ReplayFixtures.timeline(moves = 1, stepMs = 30_000)
+        val playback = ReplayPlayback(slowSolve, theirsAt30)
+        playback.seekTo(20_000)
+        playback.play()
+        playback.advance(1)
+
+        playback.advance(4_699)
+        assertEquals(29_000L, playback.state.value.positionMs)
     }
 
     @Test
