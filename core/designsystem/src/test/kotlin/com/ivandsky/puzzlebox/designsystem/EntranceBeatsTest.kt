@@ -43,4 +43,22 @@ class EntranceBeatsTest {
         assertEquals(1_000L, countUpValue(target = 2_000L, progress = 0.5f))
         assertEquals(3_723_000L, countUpValue(target = 3_723_000L, progress = 1f))
     }
+
+    @Test
+    fun `enter scale starts near full size`() {
+        assertEquals(0.95f, MotionTokens.EnterScaleFrom, 0f)
+    }
+
+    @Test
+    fun `beat scale runs from the start scale to full size`() {
+        assertEquals(0.95f, beatScale(fromScale = 0.95f, progress = 0f), 1e-6f)
+        assertEquals(0.975f, beatScale(fromScale = 0.95f, progress = 0.5f), 1e-6f)
+        assertEquals(1f, beatScale(fromScale = 0.95f, progress = 1f), 0f)
+    }
+
+    @Test
+    fun `default start scale never scales`() {
+        assertEquals(1f, beatScale(fromScale = 1f, progress = 0f), 0f)
+        assertEquals(1f, beatScale(fromScale = 1f, progress = 0.4f), 0f)
+    }
 }

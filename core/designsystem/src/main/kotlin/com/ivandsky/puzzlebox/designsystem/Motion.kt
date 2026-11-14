@@ -124,6 +124,9 @@ object MotionTokens {
     const val EnterStaggerCap = 5
     val EnterRise: Dp = 8.dp
 
+    // Enter (scale): a surface settles in from near full size, never from nothing. Reduced: no scale.
+    const val EnterScaleFrom = 0.95f
+
     // ChartMorph: a Results histogram bar travels and rescales (bottom-centre origin) from its
     // nearest old bar over ChartMorphDuration on EasingStandard; bars without a partner scale in.
     // Counts and range labels fade over ChartLabelFade. Reduced: one ReducedFadeDuration fade.

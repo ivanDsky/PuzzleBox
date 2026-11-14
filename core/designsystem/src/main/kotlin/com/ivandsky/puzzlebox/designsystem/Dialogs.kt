@@ -83,7 +83,7 @@ fun AppDialog(
                 .widthIn(max = 380.dp)
                 .fillMaxWidth()
                 .graphicsLayer {
-                    val scale = 0.95f + 0.05f * appear.value
+                    val scale = beatScale(MotionTokens.EnterScaleFrom, appear.value)
                     scaleX = scale
                     scaleY = scale
                     alpha = appear.value
