@@ -69,20 +69,20 @@ class HistoryRestoreMotionTest {
         composeRule.mainClock.advanceTimeBy(SETTLE_MS)
     }
 
-    // The restore ends with the row: the pages land (they load off the main thread, so wait for them) and one frame runs.
+    // The restore ends with the row: the test clock runs frames until the pages have landed (they take a frame, never real
+    // time), then one more frame, so the row is a frame old.
     private fun restore() {
         composeRule.runOnUiThread {
             state = state.copy(restoring = false)
             pages.value = PagingData.from(listOf(row), idle)
         }
-        val deadline = System.nanoTime() + 10_000_000_000L
-        while (System.nanoTime() < deadline) {
+        var frames = 0
+        while (items.itemCount == 0 && frames < MAX_FRAMES) {
+            composeRule.mainClock.advanceTimeByFrame()
             composeRule.waitForIdle()
-            var arrived = false
-            composeRule.runOnUiThread { arrived = items.itemCount > 0 }
-            if (arrived) break
-            Thread.sleep(10)
+            frames++
         }
+        assertTrue("the restored pages landed within $MAX_FRAMES frames", items.itemCount > 0)
         composeRule.mainClock.advanceTimeByFrame()
     }
 
@@ -125,5 +125,6 @@ class HistoryRestoreMotionTest {
     private companion object {
         val DAY: LocalDate = LocalDate.of(2026, 11, 3)
         const val SETTLE_MS = 2_000L
+        const val MAX_FRAMES = 60
     }
 }
