@@ -246,43 +246,64 @@ class RanksViewModelTest {
         assertEquals(today, state.calendar.selectedDay)
     }
 
-    private fun rowsOf(slice: RanksBoardSlice) = (slice.state as DailyBoardState.Ranked).rows
+    private fun rowsOf(slice: RanksBoardSlice) = (slice.state as? DailyBoardState.Ranked)?.rows.orEmpty()
+
+    private fun placed(slice: RanksBoardSlice) = rowsOf(slice).map { it.name to it.rank }
+
+    private fun RanksUiState.standingOn(name: String) = places.single { it.name == name }.standing
 
     @Test
-    fun `Friends keeps the global place and points of the viewer and friends, and drops the rest`() = runTest {
+    fun `Friends ranks Overall among the viewer and friends, points over the friends who played, and Global is as it was`() = runTest {
         val h = hub(mapOf(zipBoard, tangoBoard, queensBoard))
         h.befriend("jonas")
         val viewModel = h.viewModel()
-        viewModel.ranked()
+        assertEquals(listOf("Maya" to 1, "Ann" to 1, "Jonas" to 3), placed(viewModel.ranked()))
 
         viewModel.setScope(RankScope.Friends)
-        val slice = viewModel.uiState.first { it.scope == RankScope.Friends && rowsOf(it.board).size == 2 }.board
+        val friends = viewModel.uiState.first { it.scope == RankScope.Friends && rowsOf(it.board).size == 2 }
 
-        val rows = rowsOf(slice)
-        assertEquals(listOf("Ann", "Jonas"), rows.map { it.name })
-        assertEquals(listOf(1, 3), rows.map { it.rank })
-        assertEquals(BoardRowValue.Points(150.0, 2, atLeast = false), rows[0].scoreValue)
+        // Among friends Ann is alone on Zip and Queens (100 each) and Jonas alone on Tango (100).
+        val rows = rowsOf(friends.board)
+        assertEquals(listOf("Ann" to 1, "Jonas" to 2), placed(friends.board))
+        assertEquals(BoardRowValue.Points(200.0, 2, atLeast = false), rows[0].scoreValue)
         assertEquals(BoardRowValue.Points(100.0, 1, atLeast = false), rows[1].scoreValue)
+        assertEquals(Standing.Place(1), friends.standingOn("Overall"))
+
+        viewModel.setScope(RankScope.Global)
+        val global = viewModel.uiState.first { it.scope == RankScope.Global && rowsOf(it.board).size == 3 }
+        assertEquals(listOf("Maya" to 1, "Ann" to 1, "Jonas" to 3), placed(global.board))
+        assertEquals(BoardRowValue.Points(150.0, 2, atLeast = false), rowsOf(global.board).single { it.isSelf }.scoreValue)
     }
 
     @Test
-    fun `Friends filters a game's rows the same way and Global brings everyone back`() = runTest {
-        val h = hub(mapOf(zipBoard, tangoBoard, queensBoard))
+    fun `Friends numbers a game's rows among the viewer and friends, and Global brings everyone back`() = runTest {
+        val everyone = listOf(entry(ZIP, "zed", "Zed", 50_000), entry(ZIP, "maya", "Maya", 62_000), entry(ZIP, "yan", "Yan", 70_000), entry(ZIP, "u1", "Ann", 75_000))
+        val h = hub(mapOf(ref(ZIP) to everyone))
         h.befriend("maya")
         val viewModel = h.viewModel()
         viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)) }
-        assertEquals(listOf("Maya", "Ann"), rowsOf(viewModel.ranked()).map { it.name })
+        assertEquals(listOf("Zed" to 1, "Maya" to 2, "Yan" to 3, "Ann" to 4), placed(viewModel.ranked()))
 
         viewModel.setScope(RankScope.Friends)
-        viewModel.uiState.first { it.scope == RankScope.Friends }
-        assertEquals(listOf("Maya", "Ann"), rowsOf(viewModel.ranked()).map { it.name })
+        val friends = viewModel.uiState.first { it.scope == RankScope.Friends && rowsOf(it.board).size == 2 }
+        assertEquals(listOf("Maya" to 1, "Ann" to 2), placed(friends.board))
+        assertEquals(Standing.Place(2), friends.standingOn("Zip"))
 
-        val other = hub(mapOf(zipBoard)).viewModel()
-        other.select { it.pickBoard(RanksBoard.Game(ZIP)).setScope(RankScope.Friends) }
-        assertEquals(listOf("Ann"), rowsOf(other.uiState.first { it.scope == RankScope.Friends && it.board.state is DailyBoardState.Ranked }.board).map { it.name })
+        viewModel.setScope(RankScope.Global)
+        val global = viewModel.uiState.first { it.scope == RankScope.Global && rowsOf(it.board).size == 4 }
+        assertEquals(listOf("Zed" to 1, "Maya" to 2, "Yan" to 3, "Ann" to 4), placed(global.board))
+        assertEquals(Standing.Place(4), global.standingOn("Zip"))
+    }
 
-        other.setScope(RankScope.Global)
-        assertEquals(listOf("Maya", "Ann"), rowsOf(other.uiState.first { it.scope == RankScope.Global && rowsOf(it.board).size == 2 }.board).map { it.name })
+    @Test
+    fun `Friends with no friend on the board is the viewer alone at first`() = runTest {
+        val viewModel = hub(mapOf(zipBoard)).viewModel()
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)).setScope(RankScope.Friends) }
+
+        val alone = viewModel.uiState.first { it.scope == RankScope.Friends && it.board.state is DailyBoardState.Ranked }
+
+        assertEquals(listOf("Ann" to 1), placed(alone.board))
+        assertEquals(Standing.Place(1), alone.standingOn("Zip"))
     }
 
     @Test

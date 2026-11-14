@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.map
 
 /**
  * The LinkedIn ghosts of the board on screen (A15), read from what the phone already holds: owner-only local data,
- * so no Firestore read and no sync. Only a game's Day board in Friends scope has any; every other board, and a hub
- * built without LinkedIn ([linkedIn] null), gets none and touches nothing.
+ * so no Firestore read and no sync. Only a game's Day board in Friends scope has any, where each takes a place among
+ * the friends (F18); every other board, and a hub built without LinkedIn ([linkedIn] null), gets none and touches nothing.
  */
 internal class BoardGhosts(private val linkedIn: ObserveLinkedInDayView?) {
 

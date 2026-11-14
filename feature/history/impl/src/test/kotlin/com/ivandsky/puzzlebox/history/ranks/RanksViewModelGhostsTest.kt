@@ -30,8 +30,8 @@ class RanksViewModelGhostsTest {
 
     private fun entry(uid: String, name: String, timeMs: Long) = LeaderboardEntry(uid, name, "zip/$today/1", timeMs, 0, 1_700_000_000_000)
 
-    private fun hub() = RanksTestHub(
-        FakeLeaderboardRepository(mapOf(LeaderboardRef("zip", today) to listOf(entry("maya", "Maya", 62_000), entry("u1", "Ann", 75_000)))),
+    private fun hub(vararg strangers: LeaderboardEntry) = RanksTestHub(
+        FakeLeaderboardRepository(mapOf(LeaderboardRef("zip", today) to strangers.toList() + listOf(entry("maya", "Maya", 62_000), entry("u1", "Ann", 75_000)))),
     ).apply {
         linkedInDays.emit(
             ZIP, today,
@@ -48,15 +48,33 @@ class RanksViewModelGhostsTest {
         return uiState.first { it.scope == scope && it.board.state is DailyBoardState.Ranked && it.board.title.contains("Zip") }.board
     }
 
+    private fun placed(state: DailyBoardState) = (state as DailyBoardState.Ranked).lines!!.map {
+        if (it is DailyBoardLine.Real) it.row.name to it.place else (it as DailyBoardLine.Ghost).let { g -> g.row.name to g.place }
+    }
+
     @Test
     fun `Friends shows the connection among the rows with its shared place, and says so`() = runTest {
         val h = hub()
         h.befriend("maya")
         val card = h.viewModel(linkedIn = true).card(RankScope.Friends)
 
-        val lines = (card.state as DailyBoardState.Ranked).lines!!
-        assertEquals(listOf("Maya" to 1, "Cal" to 2, "Ann" to 3), lines.map { if (it is DailyBoardLine.Real) it.row.name to it.place else (it as DailyBoardLine.Ghost).let { g -> g.row.name to g.place } })
+        assertEquals(listOf("Maya" to 1, "Cal" to 2, "Ann" to 3), placed(card.state))
         assertEquals("with LinkedIn connections", card.note)
+    }
+
+    @Test
+    fun `a connection takes a friend place, and the viewer's place on the board counts it`() = runTest {
+        val h = hub(entry("zed", "Zed", 50_000), entry("yan", "Yan", 55_000))
+        h.befriend("maya")
+        val viewModel = h.viewModel(linkedIn = true)
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)).setScope(RankScope.Friends) }
+
+        val state = viewModel.uiState.first { it.scope == RankScope.Friends && (it.board.state as? DailyBoardState.Ranked)?.lines?.size == 3 }
+
+        // Global has Ann fourth; among friends she is second, and third with the connection ahead of her.
+        assertEquals(listOf("Maya" to 1, "Cal" to 2, "Ann" to 3), placed(state.board.state))
+        assertEquals(listOf("Maya" to 1, "Ann" to 2), (state.board.state as DailyBoardState.Ranked).rows.map { it.name to it.rank })
+        assertEquals(Standing.Place(3), state.places.single { it.name == "Zip" }.standing)
     }
 
     @Test
