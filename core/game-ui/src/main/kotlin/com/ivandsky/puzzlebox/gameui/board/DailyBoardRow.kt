@@ -23,7 +23,7 @@ private const val UnofficialMark = "unofficial"
  * When the board opted into row taps, another player's official row is a button that reports its [row].
  */
 @Composable
-fun DailyBoardRow(
+internal fun DailyBoardRow(
     row: DailyBoardRowModel,
     order: RankOrder,
     modifier: Modifier = Modifier,

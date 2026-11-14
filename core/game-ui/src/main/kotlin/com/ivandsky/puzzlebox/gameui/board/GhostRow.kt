@@ -17,7 +17,7 @@ private val Tags = BoardRowTags("daily_board.ghost", "daily_board.ghost", "daily
  * connection's row is laid out as the rows around it.
  */
 @Composable
-fun GhostRow(
+internal fun GhostRow(
     row: GhostRowModel,
     place: Int?,
     order: RankOrder,

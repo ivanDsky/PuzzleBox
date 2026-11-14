@@ -14,6 +14,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import com.ivandsky.puzzlebox.designsystem.MorphCell
 import com.ivandsky.puzzlebox.designsystem.ScrubCell
+import com.ivandsky.puzzlebox.gameui.board.RollScrub
 import com.ivandsky.puzzlebox.gameui.board.RollingNumber
 
 private val Runs = Regex("[0-9]+|[^0-9]+")
@@ -81,7 +82,7 @@ private fun Parts(line: LineParts, was: LineParts?, progress: (() -> Float)?, st
                         val seen = remember { intArrayOf(1) }
                         val digits = maxOf(seen[0], part.fixedDigits(), old?.fixedDigits() ?: 1)
                         seen[0] = digits
-                        RollingNumber(number, from = old?.number(), progress = progress) {
+                        RollingNumber(number, scrub = old?.number()?.let { from -> progress?.let { RollScrub(from, it) } }) {
                             Word(it.toString().padStart(digits, '0'), style, color)
                         }
                     }
