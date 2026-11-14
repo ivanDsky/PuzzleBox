@@ -53,9 +53,8 @@ class ObserveResultInsights(
             }
             ResultInsights(
                 streak = ledger.current,
-                week = (WEEK_DAYS - 1 downTo 0).map { ago ->
-                    val date = today.minusDays(ago.toLong())
-                    ResultDay(date, solved = date in streakDays, today = date == today, frozen = freezes != null && date in freezes.frozenDays)
+                week = weekEnding(today).map { date ->
+                    ResultDay(date, solved = date in streakDays, today = date == today, frozen = date in freezes.frozenDaysOrEmpty)
                 },
                 spread = timeSpread(earlier.map { it.second }, solve, order),
                 weekday = weekdaySpread(earlier, day, solve, order),

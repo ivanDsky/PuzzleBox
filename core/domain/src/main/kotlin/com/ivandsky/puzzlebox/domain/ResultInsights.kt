@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.domain
 
+import java.time.LocalDate
+
 /**
  * What the Results page shows beside the time for one solve: the streak in days over every
  * game, the [WEEK_DAYS] days ending today (oldest first), and the [spread] of this game's
@@ -23,6 +25,9 @@ data class ResultInsights(
 }
 
 const val WEEK_DAYS = 7
+
+/** The [WEEK_DAYS] days ending [today], oldest first: the one week every streak surface lays out, so they cannot drift apart. */
+fun weekEnding(today: LocalDate): List<LocalDate> = (WEEK_DAYS - 1 downTo 0).map { today.minusDays(it.toLong()) }
 
 /** Earlier same-weekday solves needed before the weekday is the default scope or a ranked weekday. */
 const val WEEKDAY_MIN_EARLIER = 2

@@ -29,3 +29,6 @@ data class StreakFreezes(
  * panel and Result cannot disagree.
  */
 fun StreakFreezes?.heldWhileStreak(streak: Int): Int? = if (this == null || streak <= 0) null else held
+
+/** The days a surface marks frozen; empty while freezes are off, so no caller spells the null case itself. */
+val StreakFreezes?.frozenDaysOrEmpty: Set<LocalDate> get() = this?.frozenDays.orEmpty()
