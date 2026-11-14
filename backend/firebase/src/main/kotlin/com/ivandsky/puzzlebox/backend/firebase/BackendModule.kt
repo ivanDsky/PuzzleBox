@@ -1,5 +1,9 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
+import android.content.Context
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.cloud.CloudSpace
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -21,7 +25,17 @@ import org.koin.dsl.module
  */
 val firebaseBackendModule = module {
     single<AuthGateway> { FirebaseAuthGateway() }
-    single<IdentityService> { FirebaseIdentityService(gateway = get(), scope = get()) }
+    single<CacheClearMark> { PreferencesCacheClearMark(get<Context>()) }
+    single<FirestoreCacheClearer> { SdkFirestoreCacheClearer() }
+    single { PendingCacheClear(mark = get(), clearer = get()) }
+    single<IdentityService> {
+        FirebaseIdentityService(
+            gateway = get(),
+            scope = get(),
+            // Ticket 39 removes this gate: the mark is then always passed.
+            cacheClearMark = if (get<ReleaseFlags>().isEnabled(ReleaseFlag.CloudSync)) get<CacheClearMark>() else null,
+        )
+    }
     single<LeaderboardStore> { FirestoreLeaderboardStore() }
     single<LeaderboardRepository> {
         FirestoreLeaderboardRepository(
