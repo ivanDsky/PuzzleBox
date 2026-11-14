@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.profile.settings.GameOptions
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
+import com.ivandsky.puzzlebox.data.visibility.SkippedPosts
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -56,6 +57,7 @@ val appModule = module {
     // the Result board and the tablet panel.
     single { SubmitStatusTracker() }
     single {
+        val hub = if (get<ReleaseFlags>().isEnabled(ReleaseFlag.LeaderboardHub)) Unit else null
         LeaderboardSubmitWatcher(
             records = get<CompletionRepository>(),
             identityService = get<IdentityService>(),
@@ -63,7 +65,8 @@ val appModule = module {
             calendar = get<GameCalendar>(),
             scope = get<CoroutineScope>(),
             statuses = get<SubmitStatusTracker>(),
-            visibility = if (get<ReleaseFlags>().isEnabled(ReleaseFlag.LeaderboardHub)) get<VisibilityRepository>() else null,
+            visibility = hub?.let { get<VisibilityRepository>() },
+            skipped = hub?.let { get<SkippedPosts>() },
         )
     }
     // Resolved only by the application, which starts it with the hub flag on; flag off, it is never created.
