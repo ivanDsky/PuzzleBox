@@ -1,7 +1,7 @@
 # The one CI workflow (ADR-0023): PRs run no CI and merge without a status check. Every push to
-# main runs the full build + unit tests first; only a green tree builds the release APK, signed
-# with the release key, and publishes it as GitHub release v<versionName>. A versionName that
-# already has a tag publishes nothing. A red run means main is broken: fix forward or revert.
+# main runs the unit tests (two parallel jobs) beside the signed release build. Only when all of
+# them are green does `publish` release the APK as GitHub release v<versionName>. A versionName
+# that already has a tag publishes nothing. A red run means main is broken: fix forward or revert.
 name: Main
 
 on:
@@ -20,10 +20,25 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  # `assembleDebug` also runs checkModuleGraph (ADR-0008) via preBuild. `testCore` and `testUi`
+  # together are `test`: the JVM modules, every Android module's debug unit tests, :app's release
+  # host tests (ReleaseGameModulesTest, ReleaseUpdateChecksTest, ReleaseFlagsBindingTest) and
+  # :konsist (ADR-0009). Screenshot goldens are recorded on macOS and Linux fonts drift, so CI
+  # skips the golden classes (-Pgoldens.skip) outside :app, which keeps them to avoid a Robolectric
+  # native abort; verify them locally with -Proborazzi.verify=true.
+  test:
     # A dispatch from another branch would publish unmerged code as the latest release.
     if: github.ref == 'refs/heads/main'
+    name: test (${{ matrix.shard }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: core
+            tasks: assembleDebug testCore
+          - shard: ui
+            tasks: testUi
     steps:
       - uses: actions/checkout@v7
 
@@ -32,25 +47,40 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # Runs on the default branch only, so setup-gradle writes the Gradle cache here.
+      # Runs on the default branch only, so setup-gradle writes the Gradle cache here. Without the
+      # key it does not save the configuration cache or build-logic between runs.
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
-      # `assembleDebug` also runs checkModuleGraph (ADR-0008) via preBuild. `test` covers the
-      # JVM modules, every Android module's debug unit tests, :app's release host tests
-      # (ReleaseGameModulesTest, ReleaseUpdateChecksTest, ReleaseFlagsBindingTest) and :konsist (ADR-0009).
-      # Screenshot goldens are recorded on macOS: Linux fonts drift, so pixels are not
-      # verified here (the default golden mode only compares: it never fails on drift and never
-      # writes a tracked golden); verify them locally with -Proborazzi.verify=true.
       - name: Build and unit tests
-        run: ./gradlew assembleDebug test --continue -Pgoldens.pixelCompare=false
+        run: ./gradlew ${{ matrix.tasks }} --continue -Pgoldens.skip -Pgoldens.pixelCompare=false
 
       - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: test-reports
+          name: test-reports-${{ matrix.shard }}
           path: "**/build/reports/tests/"
           retention-days: 7
+
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.name }}
+      exists: ${{ steps.version.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - name: Check signing secrets
         env:
@@ -118,14 +148,33 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Publish release
+      - name: Upload release APK
         if: steps.version.outputs.exists == 'false'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-apk
+          path: app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 7
+
+  # A red test shard skips this job, so a broken main never ships a release.
+  publish:
+    needs: [test, release]
+    if: needs.release.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-apk
+
+      - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.name }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ needs.release.outputs.version }}
         run: |
           apk="PuzzleBox-$VERSION.apk"
-          cp app/build/outputs/apk/release/app-release.apk "$apk"
+          mv app-release.apk "$apk"
           notes="Download $apk under Assets and open it; allow installs from your browser if Android asks."
           # Only the first release replaces debug-key builds, which cannot update in place.
           if [ "$(gh release list --limit 1 --json tagName --jq length)" = 0 ]; then
