@@ -2,11 +2,13 @@ package com.ivandsky.puzzlebox.games.strandsui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
@@ -25,13 +27,13 @@ import com.ivandsky.puzzlebox.games.strandsui.chrome.WordSlotLine
 
 /**
  * Strands' read-only replay board: the committed board and the marks live play derives from it
- * (found words, spangram, hint outline), drawn by the live board. No trace, verdict or input. A
- * frame that found one more word than [ReplayFrame.before] plays the live settle or link sweep
+ * (found words, spangram, hint outline), drawn by the live board. No verdict or input. A
+ * frame that found one more word than [ReplayFrame.before] draws its recorded path in letter by letter ([ReplayDrawIn]), then plays the live settle or link sweep
  * on a forward step while the replay plays ([ReplayBoardOptions.animate]); paused, scrubbing, stepping back or under
  * Reduce motion, every frame rests.
  *
  * A frame that added a non-theme word draws the path the player traced for it (the last Submit of [ReplayFrame.moves]), selected, as live
- * play does after the submit: playing, it is set aside (held, then dissolved) on a forward step while playing; at rest it stays selected,
+ * play does after the submit: playing, it is drawn in letter by letter, then set aside (held, then dissolved) on a forward step while playing; at rest it stays selected,
  * so the letters picked can be read.
  *
  * Above the board sits live play's word slot: a frame that submitted a word (a theme word, the
@@ -54,9 +56,22 @@ internal object StrandsReplayBoard : GameReplayBoard {
         val forward = rememberStepsForward(options, frame.atMs)
         val model = remember(session.state) { StrandsRendererModel.of(session.state) }
         val event = remember(session.state, before) { foundEventOf(before, session.state) }
-        // A word that was shown at rest (paused, scrubbed) must not play when the replay resumes on the same frame.
+        val submitPath = remember(session.state, before, frame.moves) { submittedPathOf(before, session.state, frame.moves) }
+        val seq = session.state.found.size + session.state.nonTheme.size
+        // A word that was shown at rest (paused, scrubbed) must not draw in or play when the replay resumes on the same frame.
         var rested by remember { mutableIntStateOf(-1) }
-        SideEffect { if (!forward) rested = event?.seq ?: -1 }
+        SideEffect { if (!forward) rested = if (submitPath != null) seq else -1 }
+        val drawIn = if (forward && rested != seq) submitPath else null
+        // Letters of [drawIn] drawn so far; the set-aside or found animation waits until all are.
+        var drawn by remember(session.state, before, drawIn) { mutableIntStateOf(0) }
+        LaunchedEffect(session.state, before, drawIn) {
+            val path = drawIn ?: return@LaunchedEffect
+            val start = withFrameMillis { it }
+            while (drawn < path.size) {
+                drawn = ReplayDrawIn.lettersAt((withFrameMillis { it } - start).toInt(), path.size)
+            }
+        }
+        val drawing = drawIn != null && drawn < drawIn.size
         val badges = remember(session.state.puzzle, frame.hinted) { hintBadges(session.state.puzzle, frame.hinted) }
         val slot = remember(session.state, before) { submittedSlotOf(before, session.state) }
         val nonTheme = remember(session.state, before, frame.moves) { nonThemePathOf(before, session.state, frame.moves) }
@@ -65,12 +80,12 @@ internal object StrandsReplayBoard : GameReplayBoard {
             WordSlotLine(slot, model.foundCount, model.totalCount, reduceMotion = !forward)
             StrandsBoardContent(
                 model = model,
-                found = event?.takeIf { forward && it.seq != rested },
+                found = event?.takeIf { forward && !drawing && rested != seq },
                 reduceMotion = !forward,
-                // At rest the word stays selected; playing, it leaves as live play's set-aside word does.
-                trace = { if (forward) Trace() else Trace(nonTheme.orEmpty()) },
+                // At rest the word stays selected; playing, it is drawn in letter by letter, then leaves as live play's set-aside word does.
+                trace = { if (forward) Trace(drawIn.orEmpty().take(if (drawing) drawn else 0)) else Trace(nonTheme.orEmpty()) },
                 onTrace = {},
-                traceEnd = { setAside.takeIf { forward } },
+                traceEnd = { setAside.takeIf { forward && !drawing } },
                 // Nothing to touch, so the board shrinks to whatever space it is given.
                 floor = 0.dp,
                 readOnly = true,
@@ -115,6 +130,15 @@ internal fun submittedSlotOf(before: StrandsState?, after: StrandsState): WordSl
  */
 internal fun nonThemePathOf(before: StrandsState?, after: StrandsState, moves: List<ReplayMove>): List<Coord>? {
     if (before == null || after.found.size != before.found.size || after.nonTheme.size != before.nonTheme.size + 1) return null
+    return moves.asReversed().firstNotNullOfOrNull { (StrandsReplayMove.of(it, after.puzzle) as? StrandsReplayMove.Submit)?.path }
+}
+
+/** The path the player traced for the word [after] added to [before] (found or non-theme): the last Submit among [moves]; null for any other step. */
+internal fun submittedPathOf(before: StrandsState?, after: StrandsState, moves: List<ReplayMove>): List<Coord>? {
+    if (before == null) return null
+    val added = after.found.size == before.found.size + 1 && after.nonTheme.size == before.nonTheme.size ||
+        after.found.size == before.found.size && after.nonTheme.size == before.nonTheme.size + 1
+    if (!added) return null
     return moves.asReversed().firstNotNullOfOrNull { (StrandsReplayMove.of(it, after.puzzle) as? StrandsReplayMove.Submit)?.path }
 }
 
