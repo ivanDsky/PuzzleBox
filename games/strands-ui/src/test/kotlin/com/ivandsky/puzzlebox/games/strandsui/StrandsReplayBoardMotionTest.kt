@@ -56,7 +56,7 @@ class StrandsReplayBoardMotionTest {
         val untraced = rig.board()
 
         rig.update(nonThemeStep)
-        val early = rig.frames(3)
+        val early = rig.frames(12)
         assertTrue("the path is on the board as the step lands", early.any { !it.sameAs(untraced) })
 
         assertTrue("the path is gone once it has dissolved", rig.boardAfter(2_000).sameAs(untraced))
@@ -68,12 +68,30 @@ class StrandsReplayBoardMotionTest {
         val untraced = rig.board()
 
         rig.update(nonThemeStep)
-        val held = rig.boardAfter(StrandsMotion.ReplayBonusHoldMs - 100L)
+        // F22: the hold starts once the path is drawn in (shifted by the draw-in).
+        val drawIn = ReplayDrawIn.totalMs(artsPath.size).toLong()
+        val held = rig.boardAfter(drawIn + StrandsMotion.ReplayBonusHoldMs - 100L)
         assertTrue("the path is still selected at about 900 ms", !held.sameAs(untraced))
         assertTrue("and still whole, not dissolving", held.sameAs(rig.boardAfter(0)))
 
         val gone = rig.boardAfter(100L + MotionTokens.DissolveDuration + 200L)
         assertTrue("the path is gone after the hold and the dissolve", gone.sameAs(untraced))
+    }
+
+    @Test
+    fun `playing, a non-theme word is drawn in letter by letter, then set aside with no jump`() {
+        rig.show(bare(), animate = true, referenceTrace = artsPath)
+        val untraced = rig.board()
+        val whole = rig.reference()
+
+        rig.update(nonThemeStep)
+        // Letters join one at a time: some frame has part of the path, neither empty nor whole.
+        val frames = rig.frames(12)
+        assertTrue("a frame shows only part of the path", frames.any { !it.sameAs(untraced) && !it.sameAs(whole) })
+
+        // Past the draw-in, in the hold: the set-aside path looks the same as the drawn one.
+        val held = rig.boardAfter(ReplayDrawIn.totalMs(artsPath.size) + 400L)
+        assertTrue("the held path is the whole one", held.sameAs(whole))
     }
 
     private fun restingStepIsPlain(found: StrandsReplayMove) {

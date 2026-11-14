@@ -64,6 +64,8 @@ internal object StrandsMotion {
     const val BonusHoldMs = 60
     /** The replay board holds a non-theme word's path this long, so the letters picked can be read, before the live dissolve. */
     const val ReplayBonusHoldMs = 1_000
+    /** The replay board draws a submitted word's recorded path in at one letter per this, before its set-aside or found animation. */
+    const val ReplayDrawInLetterMs = 90
     const val ShortHoldMs = 200
     const val RepeatHoldMs = 260
 
