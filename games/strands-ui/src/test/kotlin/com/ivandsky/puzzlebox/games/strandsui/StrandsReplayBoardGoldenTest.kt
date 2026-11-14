@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.strandsui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
@@ -129,7 +131,7 @@ abstract class StrandsReplayBoardGoldenBase(private val widthLabel: String, priv
             }
             CompositionLocalProvider(LocalConfiguration provides config) {
                 PuzzleBoxTheme(darkTheme = dark) {
-                    Box { StrandsReplayBoard.Board(frame, ReplayBoardOptions(animate = false, showErrors = true), Modifier.size(sideDp.dp)) }
+                    Box(Modifier.background(MaterialTheme.colorScheme.background)) { StrandsReplayBoard.Board(frame, ReplayBoardOptions(animate = false, showErrors = true), Modifier.size(sideDp.dp)) }
                 }
             }
         }
