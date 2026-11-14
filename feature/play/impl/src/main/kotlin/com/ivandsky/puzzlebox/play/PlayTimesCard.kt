@@ -31,8 +31,8 @@ import com.ivandsky.puzzlebox.play.friend.SignInPrompt
  * graph yet, so the card does not claim to be friends. The list area always reserves five rows and a pinned one, so
  * loading, notes and the rows share one height. Signed out, loading, unavailable and empty boards show a note in the
  * same area; a solved day whose own row is missing explains why under the rows. With [animated] the rows move,
- * arrive and leave with motion. With [inlineMarks] (the Ranks hub is on) a row's mark and its PuzzleBox rank are
- * chips beside the name, as on the hub's boards; without, they are small lines under it.
+ * arrive and leave with motion. [boardStyle] is the board's look (the Ranks hub's chips beside the name, or plain
+ * lines under it); the card sets its motion and backdrop.
  */
 @Composable
 internal fun PlayTimesCard(
@@ -41,7 +41,7 @@ internal fun PlayTimesCard(
     onSignIn: () -> Unit,
     modifier: Modifier = Modifier,
     animated: Boolean = false,
-    inlineMarks: Boolean = false,
+    boardStyle: DailyBoardStyle = DailyBoardStyle.defaults(),
 ) {
     val board = times as? PlayTimes.Board
     StatsCard(modifier.testTag("play.stats.times")) {
@@ -69,10 +69,9 @@ internal fun PlayTimesCard(
                         board.head.map { if (it is DailyBoardLine.Real) it.asYou() else it },
                         board.order ?: RankOrder.TimeThenHints,
                         pinned = board.pinned?.asYou(),
-                        style = DailyBoardStyle.defaults(
+                        style = boardStyle.copy(
                             motion = if (animated) DailyBoardStyle.Motion.Animated else DailyBoardStyle.Motion.Static,
                             backdrop = MaterialTheme.colorScheme.surfaceContainerLow,
-                            inlineMarks = inlineMarks,
                         ),
                     )
                     ownRowNote(board)?.let {

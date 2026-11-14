@@ -51,6 +51,7 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
@@ -179,7 +180,7 @@ class PlayStatsPanelTest {
             PuzzleBoxTheme(darkTheme = false) {
                 Column {
                     val state by vm.state.collectAsStateWithLifecycle()
-                    PlayStatsPanel(state = state, elapsedMs = { elapsedMs }, signIn = BoardSignIn.Idle, onSignIn = {}, inlineMarks = inlineMarks)
+                    PlayStatsPanel(state = state, elapsedMs = { elapsedMs }, signIn = BoardSignIn.Idle, onSignIn = {}, boardStyle = DailyBoardStyle.defaults(inlineMarks = inlineMarks))
                 }
             }
         }

@@ -36,6 +36,7 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.FreezeCount
 import com.ivandsky.puzzlebox.gameui.WeekStrip
 import com.ivandsky.puzzlebox.gameui.bestScoreText
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 
 private const val NONE = "—"
@@ -46,7 +47,7 @@ private const val NONE = "—"
  * best and average, then today's times on its board ([PlayTimesCard]). [elapsedMs] is
  * read here, so only the panel recomposes on each tick; null (no running board) reads
  * 0:00. Loading values show dashes in the same slots, so nothing moves when data lands.
- * It scrolls when the pane is shorter than the panel. [inlineMarks] is the times card's.
+ * It scrolls when the pane is shorter than the panel. [boardStyle] is the times card's.
  */
 @Composable
 internal fun ColumnScope.PlayStatsPanel(
@@ -54,7 +55,7 @@ internal fun ColumnScope.PlayStatsPanel(
     elapsedMs: () -> Long?,
     signIn: BoardSignIn,
     onSignIn: () -> Unit,
-    inlineMarks: Boolean = false,
+    boardStyle: DailyBoardStyle = DailyBoardStyle.defaults(),
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()).testTag("play.stats"),
@@ -76,7 +77,7 @@ internal fun ColumnScope.PlayStatsPanel(
         }
         TodayProgressCard(state)
         StreakCard(state)
-        PlayTimesCard(state.times, signIn = signIn, onSignIn = onSignIn, animated = state.linkedIn, inlineMarks = inlineMarks)
+        PlayTimesCard(state.times, signIn = signIn, onSignIn = onSignIn, animated = state.linkedIn, boardStyle = boardStyle)
     }
 }
 
