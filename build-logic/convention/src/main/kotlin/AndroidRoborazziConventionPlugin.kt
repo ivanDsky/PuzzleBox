@@ -19,26 +19,32 @@ import org.gradle.process.CommandLineArgumentProvider
  * TestedExtension), so there are no `recordRoborazzi*`/`verifyRoborazzi*` tasks: the plain
  * unit-test task captures, and this plugin selects the mode through system properties.
  *
- * Golden policy — one flag for every module, three modes:
- * - default (no flag): COMPARE — re-capture, write the diff images under `build/` and never
- *   fail on drift or touch a golden. A plain `test` run (the merge gate, on any OS) leaves
- *   the worktree clean.
- * - `-Proborazzi.verify=true` (bare `-Proborazzi.verify` counts as true): VERIFY — fail on
- *   any pixel drift against the committed goldens. The strict local check.
- * - `-Proborazzi.record=true` (bare `-Proborazzi.record` counts as true): RECORD — captures
- *   (re)write the goldens. Only this flag writes into a tracked golden directory.
+ * Golden policy — a golden is either a real gate or not run. One flag family, every module:
+ * - default (no flag): goldens do NOT run. Test classes whose name contains `Golden` or
+ *   `Screenshot` are excluded from every module's test task, so `./gradlew test` (the merge
+ *   gate, ADR-0023) never spends time on a capture that cannot fail.
+ * - `-Proborazzi.verify=true` (bare `-Proborazzi.verify` counts as true): VERIFY — the golden
+ *   classes run and fail on any pixel drift or missing golden against the committed images.
+ *   The only mode that gates a golden.
+ * - `-Proborazzi.record=true` (bare `-Proborazzi.record` counts as true): RECORD — the golden
+ *   classes run and (re)write the goldens. Only this flag writes into a tracked golden
+ *   directory. Record wins when both flags are set.
+ *
+ * Merge gate decision: the local merge gate stays `./gradlew assembleDebug test` and runs no
+ * goldens. Goldens are macOS-recorded and drift on any other OS, so they cannot gate CI, and
+ * a UI ticket's own definition of done runs `-Proborazzi.verify=true` on the modules it
+ * changed (e.g. `./gradlew :games:zip-ui:testDebugUnitTest -Proborazzi.verify=true`); a red
+ * verify there is fixed or re-recorded in that ticket, not discovered later by someone else.
  *
  * Golden locations are owned by each test (e.g. `app/snapshots`, `games/<id>-ui/snapshots`,
  * `games/tango-ui/src/test/resources/goldens`), never by this plugin.
  *
  * Modules whose test harness owns the compare set [RoborazziGoldensExtension.harnessModeProperty]:
- * Roborazzi then always records (to the harness's scratch file) and the unified mode
- * (`record`, `verify` or `compare`) is forwarded to the harness as that system property.
- * `-Pgoldens.pixelCompare=false`
- * (verify on Linux, where the macOS-recorded goldens cannot match) reaches those harnesses
- * as the `goldens.pixelCompare` system property: they skip the pixel diff, nothing else.
- * `-Pgoldens.skip=true` (the CI test jobs) does not run golden test classes, except in `:app`;
- * their class names contain `Golden` or `Screenshot`, which is what the filter matches.
+ * Roborazzi then always records (to the harness's scratch file) and the mode (`record` or
+ * `verify`) is forwarded to the harness as that system property.
+ * `-Pgoldens.pixelCompare=false` (verify on Linux, where the macOS-recorded goldens cannot
+ * match) reaches those harnesses as the `goldens.pixelCompare` system property: they skip the
+ * pixel diff, nothing else. CI runs no golden; see ADR-0023.
  */
 class AndroidRoborazziConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -52,7 +58,7 @@ class AndroidRoborazziConventionPlugin : Plugin<Project> {
                         when {
                             record.orNull?.let { it != "false" } == true -> "record"
                             verify.orNull?.let { it != "false" } == true -> "verify"
-                            else -> "compare"
+                            else -> "off"
                         }
                     },
                 )
@@ -62,15 +68,12 @@ class AndroidRoborazziConventionPlugin : Plugin<Project> {
                 )
             }
 
-            // Bare `-Pgoldens.skip` counts as true. CI skips the goldens: Linux cannot match the
-            // macOS-recorded pixels, so there they only cost runtime. `:app` keeps its goldens: with
-            // them skipped, the Robolectric native graphics runtime aborted the `:app` test JVM on the
-            // Linux runners in most runs (SIGABRT, `JniConstants: Class not found: java/nio/...`), and
-            // with them kept it never did. An early golden capture likely warms that runtime up.
-            val skipGoldens = providers.gradleProperty("goldens.skip").map { it != "false" && path != ":app" }.orElse(false)
+            // Golden classes run only under -Proborazzi.verify or -Proborazzi.record; their class
+            // names contain `Golden` or `Screenshot`, which is what the filter matches.
+            val runGoldens = modeArgs.mode.map { it != "off" }
 
             tasks.withType<Test>().configureEach {
-                if (skipGoldens.get()) {
+                if (!runGoldens.get()) {
                     filter {
                         excludeTestsMatching("*Golden*")
                         excludeTestsMatching("*Screenshot*")
@@ -95,14 +98,14 @@ class AndroidRoborazziConventionPlugin : Plugin<Project> {
 
 abstract class RoborazziGoldensExtension {
     /**
-     * System property the module's own golden harness reads for the mode (`record`,
-     * `verify` or `compare`). Unset (default): Roborazzi itself acts per the unified flag.
+     * System property the module's own golden harness reads for the mode (`record` or
+     * `verify`). Unset (default): Roborazzi itself acts per the unified flag.
      */
     abstract val harnessModeProperty: Property<String>
 }
 
 abstract class RoborazziModeArguments : CommandLineArgumentProvider {
-    /** `record`, `verify` or `compare`. */
+    /** `record`, `verify`, or `off` when neither flag is set (golden classes are not run). */
     @get:Input
     abstract val mode: Property<String>
 
@@ -120,7 +123,7 @@ abstract class RoborazziModeArguments : CommandLineArgumentProvider {
             listOf(
                 "-Droborazzi.test.record=${mode == "record"}",
                 "-Droborazzi.test.verify=${mode == "verify"}",
-                "-Droborazzi.test.compare=${mode == "compare"}",
+                "-Droborazzi.test.compare=false",
             )
         } else {
             listOf(
