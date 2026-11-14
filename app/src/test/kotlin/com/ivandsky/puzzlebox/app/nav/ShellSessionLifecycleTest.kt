@@ -80,6 +80,8 @@ class ShellSessionLifecycleTest {
                     single<SavedPlayRepository> { saved }
                     single<GameCalendar> { FakeGameCalendar(ZipDefinition.cadence.today()) }
                     single<IdentityService> { FakeIdentityService() }
+                    // The saved row is compared as the bare session blob; replay-recording saves have their own tests.
+                    single<com.ivandsky.puzzlebox.common.flags.ReleaseFlags> { com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
                     // Every tutorial seen: this path is about the board; the lessons have their own tests.
                     single<com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository> {
