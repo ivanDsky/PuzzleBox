@@ -1,6 +1,10 @@
 package com.ivandsky.puzzlebox.play.linkedin
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -219,6 +223,22 @@ class SavedBoardLineTest {
 
         composeRule.runOnIdle { current = SavedBoardState.Saved(readAtMs, final = true) }
         composeRule.onNodeWithTag("linkedin.saved_board.mark", useUnmergedTree = true).assertTextEquals("Final")
+    }
+
+    @Test
+    fun aDayWithNoLineAndNoRestoreAddsNoGapInASpacedColumn() {
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Box(Modifier.fillMaxWidth().height(10.dp).testTag("above"))
+                    SavedBoardLine(SavedBoardState.NotYetRead, zone = ZoneOffset.UTC)
+                    Box(Modifier.fillMaxWidth().height(10.dp).testTag("below"))
+                }
+            }
+        }
+
+        // 10dp of sibling and one 16dp gap: the empty line is no child at all, so there is no second gap.
+        assertEquals(26.dp, composeRule.onNodeWithTag("below").getBoundsInRoot().top)
     }
 
     @Test
