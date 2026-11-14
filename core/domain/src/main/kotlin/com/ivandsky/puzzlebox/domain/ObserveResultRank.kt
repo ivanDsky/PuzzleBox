@@ -3,8 +3,11 @@ package com.ivandsky.puzzlebox.domain
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
+import com.ivandsky.puzzlebox.domain.ranks.FriendDay
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.linkedin.linkedInScore
 import com.ivandsky.puzzlebox.game.linkedin.linkedInTimeWins
 import com.ivandsky.puzzlebox.game.linkedin.rankCombined
@@ -23,27 +26,40 @@ import kotlinx.coroutines.flow.map
  *
  * With [connections] (a day's LinkedIn view, read from the phone only) the rank also carries the player's place among
  * the PuzzleBox entries and the connections with a time, ranked by the game's own order.
+ *
+ * With [friendDay] the rank follows the player's Friends/Global setting (F20): in Friends the position and count are
+ * the player's place among their friends and connections, as the hub's Friends board has it ([FriendDay.standing]).
+ * Global ranks exactly as above; with no setting to follow (the hub's flag off, or a graph built without
+ * [friendDay]) the flow is the one above, untouched.
  */
-class ObserveResultRank(private val leaderboard: ObserveLeaderboard, private val registry: GameRegistry) {
+class ObserveResultRank(
+    private val leaderboard: ObserveLeaderboard,
+    private val registry: GameRegistry,
+    private val friendDay: ObserveFriendDay? = null,
+) {
 
     operator fun invoke(game: GameId, day: LocalDate, connections: Flow<LinkedInDayView>? = null): Flow<ResultRank> {
-        val order = registry.rankOrderOf(game).comparator
+        val order = registry.rankOrderOf(game)
         val boards = leaderboard(game, day)
         // Without connections the board alone drives the rank, so its loading state shows as it always did.
         val read: Flow<Pair<TodayLeaderboard, LinkedInDayView?>> = if (connections == null) boards.map { it to null } else combine(boards, connections, ::Pair)
-        return read.map { (board, view) ->
-            when (board) {
-                TodayLeaderboard.SignedOut -> ResultRank.SignedOut
-                is TodayLeaderboard.SignedIn -> when (val state = board.board) {
-                    TodayLeaderboard.Board.Loading, TodayLeaderboard.Board.Unavailable -> ResultRank.Hidden
-                    is TodayLeaderboard.Board.Loaded -> {
-                        val entries = state.snapshot.entries
-                        val index = entries.indexOfFirst { it.uid == board.identity.uid }
-                        if (index < 0) ResultRank.Hidden else ranked(index + 1, entries.size, withConnections(entries, index, view, order))
-                    }
-                }
-            }
-        }.distinctUntilChanged()
+        val scope = friendDay?.invoke(game, day)
+        val ranks = if (scope == null) {
+            read.map { (board, view) -> rankOn(board, view, friends = null, order) }
+        } else {
+            combine(read, scope) { (board, view), friends -> rankOn(board, view, friends, order) }
+        }
+        return ranks.distinctUntilChanged()
+    }
+
+    private fun rankOn(board: TodayLeaderboard, view: LinkedInDayView?, friends: FriendDay?, order: RankOrder): ResultRank {
+        val signedIn = board as? TodayLeaderboard.SignedIn ?: return ResultRank.SignedOut
+        val entries = (signedIn.board as? TodayLeaderboard.Board.Loaded)?.snapshot?.entries ?: return ResultRank.Hidden
+        val uid = signedIn.identity.uid
+        // In Friends the place already counts the connections, so there is no second place to carry.
+        if (friends != null) return friends.standing(entries, uid, order)?.let { ranked(it.place, it.count, null) } ?: ResultRank.Hidden
+        val index = entries.indexOfFirst { it.uid == uid }
+        return if (index < 0) ResultRank.Hidden else ranked(index + 1, entries.size, withConnections(entries, index, view, order.comparator))
     }
 
     private fun ranked(position: Int, count: Int, withConnections: ResultRank.WithConnections?) = ResultRank.Ranked(
