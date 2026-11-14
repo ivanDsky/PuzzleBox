@@ -27,16 +27,17 @@ class ReplayPlayback(
     private val _state = MutableStateFlow(stateAt(durationMs, playing = false, speed = 1, skipIdle = true, showErrors = showErrors))
     val state: StateFlow<ReplayPlaybackState> = _state.asStateFlow()
 
-    // The skip-idle glide in flight: from [glideFromMs] to [glideToMs] (-1 = none), [glideElapsedMs] of GLIDE_MS spent.
+    // The skip-idle travel in flight: from [travelFromMs] to [travelToMs] (-1 = none), [travelElapsedMs] of [travelMs] spent.
     // Wall time, so it ignores the speed. Pause freezes it and play continues it; any jump of the position drops it.
-    private var glideFromMs = 0L
-    private var glideToMs = NO_GLIDE
-    private var glideElapsedMs = 0L
+    private var travelFromMs = 0L
+    private var travelToMs = NO_TRAVEL
+    private var travelMs = 0L
+    private var travelElapsedMs = 0L
 
     /** At the end it starts over from 0. */
     fun play() = change {
         if (it.positionMs == durationMs) {
-            glideToMs = NO_GLIDE
+            travelToMs = NO_TRAVEL
             it.with(positionMs = 0, playing = true)
         } else {
             it.with(playing = true)
@@ -49,7 +50,7 @@ class ReplayPlayback(
     fun setSpeed(x: Int) = change { if (x in SPEEDS) it.with(speed = x) else it }
 
     fun setSkipIdle(on: Boolean) = change {
-        if (!on) glideToMs = NO_GLIDE
+        if (!on) travelToMs = NO_TRAVEL
         it.with(skipIdle = on)
     }
 
@@ -58,13 +59,13 @@ class ReplayPlayback(
 
     /** Pauses on the next tick; past the last tick, on the end. */
     fun nextMove() = change {
-        glideToMs = NO_GLIDE
+        travelToMs = NO_TRAVEL
         it.with(positionMs = ticksMs.firstAbove(it.positionMs) ?: durationMs, playing = false)
     }
 
     /** Pauses on the tick before; before the first tick, on 0. */
     fun previousMove() = change {
-        glideToMs = NO_GLIDE
+        travelToMs = NO_TRAVEL
         it.with(positionMs = ticksMs.lastBelow(it.positionMs) ?: 0L, playing = false)
     }
 
@@ -73,45 +74,41 @@ class ReplayPlayback(
      * The frame a seek lands on is [ReplayPlaybackState.seeked]: it changes the board with no motion, until the next [advance].
      */
     fun seekTo(ms: Long) = change {
-        glideToMs = NO_GLIDE
+        travelToMs = NO_TRAVEL
         val positionMs = ms.coerceIn(0, durationMs)
         it.with(positionMs = positionMs, playing = it.playing && positionMs < durationMs, seeked = it.seeked || positionMs != it.positionMs)
     }
 
     /**
      * A playing replay moves on by [frameDtMs] times the speed and pauses at the end. Paused, nothing moves.
-     * With skip idle on, a gap that [pastIdle] would jump is crossed by a glide of [GLIDE_MS] wall ms instead,
-     * eased out. It ends before the next move, so no board sees a new frame meanwhile.
+     * With skip idle on, a gap that [startTravel] picks is crossed by a steady travel of wall time instead of
+     * being played. It ends 1 s before the next move, so no board sees a new frame meanwhile.
      */
     fun advance(frameDtMs: Long) = change {
         if (!it.playing) return@change it
-        if (glideToMs != NO_GLIDE) return@change glideStep(it, frameDtMs)
+        if (travelToMs != NO_TRAVEL) return@change travelStep(it, frameDtMs)
         val reachedMs = (it.positionMs + frameDtMs * it.speed).coerceAtLeast(0)
         when {
             reachedMs >= durationMs -> it.with(positionMs = durationMs, playing = false, seeked = false)
-            it.skipIdle -> {
-                val targetMs = pastIdle(reachedMs, it.speed)
-                if (targetMs > reachedMs) {
-                    glideFromMs = reachedMs
-                    glideToMs = targetMs
-                    glideElapsedMs = 0
-                }
+            else -> {
+                if (it.skipIdle) startTravel(reachedMs, it.speed)
                 it.with(positionMs = reachedMs, seeked = false)
             }
-            else -> it.with(positionMs = reachedMs, seeked = false)
         }
     }
 
-    private fun glideStep(state: ReplayPlaybackState, frameDtMs: Long): ReplayPlaybackState {
-        glideElapsedMs = minOf(GLIDE_MS, glideElapsedMs + frameDtMs.coerceAtLeast(0))
-        if (glideElapsedMs == GLIDE_MS) {
-            val targetMs = glideToMs
-            glideToMs = NO_GLIDE
+    private fun travelStep(state: ReplayPlaybackState, frameDtMs: Long): ReplayPlaybackState {
+        travelElapsedMs = minOf(travelMs, travelElapsedMs + frameDtMs.coerceAtLeast(0))
+        if (travelElapsedMs == travelMs) {
+            val targetMs = travelToMs
+            travelToMs = NO_TRAVEL
             return state.with(positionMs = targetMs, seeked = false)
         }
-        val left = 1.0 - glideElapsedMs.toDouble() / GLIDE_MS
-        val eased = 1.0 - left * left * left
-        return state.with(positionMs = glideFromMs + ((glideToMs - glideFromMs) * eased).toLong(), seeked = false)
+        val done = travelElapsedMs.toDouble() / travelMs
+        val left = 1.0 - done
+        // Long travels run at constant speed; the short one eases out.
+        val eased = if (travelMs == GLIDE_MS) 1.0 - left * left * left else done
+        return state.with(positionMs = travelFromMs + ((travelToMs - travelFromMs) * eased).toLong(), seeked = false)
     }
 
     private inline fun change(next: (ReplayPlaybackState) -> ReplayPlaybackState) {
@@ -120,16 +117,24 @@ class ReplayPlayback(
     }
 
     /**
-     * [positionMs], or the lead-in of the next move when that move is more than the idle gap away.
-     * Never jumps before the latest move at or before [positionMs] (either side) has had [DWELL_MS]
-     * of wall time, [DWELL_MS] times [speed] of play time, to animate on the board.
+     * Starts a travel from [positionMs] to the lead-in of the next move (either side) when that move is more
+     * than the idle gap away and the travel is faster than playing the gap. The travel lasts [GLIDE_MS], or
+     * longer right after a move: it ends when that move's [DWELL_MS] of wall time is over, so the animation
+     * gets its full time and the needle never stands still. Before the first move it is [GLIDE_MS].
      */
-    private fun pastIdle(positionMs: Long, speed: Int): Long {
-        // After the last move of both sides nothing is left to jump to: the tail plays out.
-        val nextMoveMs = nextMoveAfter(positionMs) ?: return positionMs
+    private fun startTravel(positionMs: Long, speed: Int) {
+        // After the last move of both sides nothing is left to travel to: the tail plays out.
+        val nextMoveMs = nextMoveAfter(positionMs) ?: return
+        if (nextMoveMs - positionMs <= IDLE_GAP_MS) return
+        val targetMs = nextMoveMs - LEAD_IN_MS
         val lastMoveMs = lastMoveAtOrBefore(positionMs)
-        if (lastMoveMs != null && positionMs - lastMoveMs < DWELL_MS * speed) return positionMs
-        return if (nextMoveMs - positionMs > IDLE_GAP_MS) nextMoveMs - LEAD_IN_MS else positionMs
+        val ms = if (lastMoveMs == null) GLIDE_MS else maxOf(GLIDE_MS, DWELL_MS - (positionMs - lastMoveMs) / speed)
+        // Playing the gap takes (target - position) / speed wall ms: travel only when that is longer.
+        if (targetMs - positionMs <= ms * speed) return
+        travelFromMs = positionMs
+        travelToMs = targetMs
+        travelMs = ms
+        travelElapsedMs = 0
     }
 
     private fun lastMoveAtOrBefore(positionMs: Long): Long? {
@@ -183,12 +188,12 @@ class ReplayPlayback(
         const val IDLE_GAP_MS = 6_000L
         const val LEAD_IN_MS = 1_000L
 
-        /** Wall time the needle takes to cross an idle gap (ease-out cubic). */
+        /** Shortest wall time the needle takes to cross an idle gap (ease-out cubic; longer travels are linear). */
         const val GLIDE_MS = 400L
-        const val NO_GLIDE = -1L
+        const val NO_TRAVEL = -1L
 
         /**
-         * Wall time a move's board animation needs before an idle jump may leave it. The worst replay step
+         * Wall time a move's board animation needs; the needle's travel to the next move ends when it is over. The worst replay step
          * is Strands' (the other four games peak at 840 ms), and the worst Strands step is its longest word:
          * a published word is 4..24 letters (`StrandsPublishGates.WORD_LENGTHS`), and a replay step draws the
          * recorded path in at ReplayDrawInLetterMs (90) per letter, then hands over to the word's animation.
