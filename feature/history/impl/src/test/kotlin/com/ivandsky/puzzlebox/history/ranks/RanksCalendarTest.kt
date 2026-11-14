@@ -79,7 +79,7 @@ class RanksCalendarTest {
     )
 
     private fun show(state: RanksUiState, onPlayAgain: (GameId, LocalDate) -> Unit = { _, _ -> }) {
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, onSignIn = {}, onSwipe = {}, onPlayAgain = onPlayAgain) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}, onPlayAgain = onPlayAgain)) } }
     }
 
     private fun state(calendar: CalendarState, yourSolve: YourSolve? = null) =
@@ -128,9 +128,11 @@ class RanksCalendarTest {
             PuzzleBoxTheme {
                 RanksScreen(
                     state(calendar),
-                    onSignIn = {},
-                    onSwipe = {},
-                    onShowCalendar = { day, expanded -> calendar = calendar.copy(shownDay = day, expanded = expanded) },
+                    RanksActions(
+                        onSignIn = {},
+                        onSwipe = {},
+                        onShowCalendar = { day, expanded -> calendar = calendar.copy(shownDay = day, expanded = expanded) },
+                    ),
                 )
             }
         }

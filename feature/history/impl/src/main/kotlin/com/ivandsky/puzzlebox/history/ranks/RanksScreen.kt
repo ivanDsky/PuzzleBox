@@ -2,8 +2,8 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
@@ -22,28 +22,26 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.history.HistoryDayRow
 import com.ivandsky.puzzlebox.history.HistoryLayout
-import com.ivandsky.puzzlebox.history.ReplaySolve
-import com.ivandsky.puzzlebox.model.GameId
-import java.time.LocalDate
 
 /**
- * The Ranks hub as a stack of slots, each reading only its own slice of [state]. The top bar's title is the board menu
- * ([onPickBoard]; its "How ranks work" row opens the [HowRanksWorkSheet]) and its tune icon opens the [TuneSheet]
- * ([onScope], [onWindow]). The calendar (a week strip that expands to the month, [onShowCalendar] / [onSelectDay])
- * leads, then the viewer's solve of the day ([onPlayAgain], [onOpenReplay], [onCompare]), then the board under the page
- * dots; a horizontal swipe anywhere under the calendar, down to the bottom of the screen however short the board is,
- * reports [onSwipe] (+1 next board, -1 previous) and a vertical drag scrolls the hub or pulls its refresh. The first
- * time the hub opens, a hint and the current dot nudge the swipe, then [onNudgeShown]. On
- * [HistoryLayout.TwoPane] the hub is [RanksTwoPane] instead: no title menu, week strip, dots or swipe. [onBack] (a pushed
- * hub, opened from a game's link) adds a back arrow above either layout. A tab reselect scrolls the hub to the top; one
- * more, with it already there, calls [onReset] (A8). With an [onOpenPlayer] a tap on another player's row reports that
- * player; without one rows take no tap. The screen only hosts the sheet of the [playerSheet] its caller has open
- * ([onChallenge], [onClosePlayer]); its Watch tap closes it and reports [onWatchPlayer]. While [replayOptIn], the first
- * ranked solve's question about sharing replays is up, on either layout ([onShareReplays], [onKeepReplaysPrivate]).
+ * The Ranks hub as a stack of slots, each reading only its own slice of [state]; what a tap does is one of [actions].
+ * The top bar's title is the board menu ([RanksActions.onPickBoard]; its "How ranks work" row opens the
+ * [HowRanksWorkSheet]) and its tune icon opens the [TuneSheet] ([RanksActions.onScope], [RanksActions.onWindow]). The
+ * calendar (a week strip that expands to the month, [RanksActions.onShowCalendar] / [RanksActions.onSelectDay]) leads,
+ * then the [RanksBoardStack]: the viewer's solve of the day ([RanksActions.onPlayAgain], [RanksActions.onOpenReplay],
+ * [RanksActions.onCompare]), then the board under the page dots; a horizontal swipe anywhere under the calendar, down
+ * to the bottom of the screen however short the board is, reports [RanksActions.onSwipe] (+1 next board, -1 previous)
+ * and a vertical drag scrolls the hub or pulls its refresh ([refreshing], [RanksActions.onRefresh]). The first time the
+ * hub opens, a hint and the current dot nudge the swipe, then [RanksActions.onNudgeShown]. On [HistoryLayout.TwoPane]
+ * the hub is [RanksTwoPane] instead, around the same stack: no title menu, week strip or dots. [RanksActions.onBack] (a
+ * pushed hub, opened from a game's link) adds a back arrow above either layout. A tab reselect scrolls the hub to the
+ * top; one more, with it already there, calls [RanksActions.onReset] (A8). With a [RanksActions.onOpenPlayer] a tap on
+ * another player's row reports that player; without one rows take no tap. The screen only hosts the sheet of the
+ * [playerSheet] its caller has open ([RanksActions.onChallenge], [RanksActions.onClosePlayer]); its Watch tap closes it
+ * and reports [RanksActions.onWatchPlayer]. While [replayOptIn], the first ranked solve's question about sharing
+ * replays is up, on either layout ([RanksActions.onShareReplays], [RanksActions.onKeepReplaysPrivate]).
  * A day or window pick keeps the board on screen until the next one answers ([rememberHeldBoard]): only what differs
  * between the two days then changes, each part in place. A held board's rows take no tap, for they are not the picked day's.
  * The whole hub sits in the shown board's world ([RanksWorld]): its accent as a wash and its glyph behind the content,
@@ -53,50 +51,31 @@ import java.time.LocalDate
 @Composable
 internal fun RanksScreen(
     state: RanksUiState,
-    onSignIn: () -> Unit,
-    onSwipe: (Int) -> Unit,
+    actions: RanksActions,
     modifier: Modifier = Modifier,
     layout: HistoryLayout = HistoryLayout.SinglePane,
-    onBack: (() -> Unit)? = null,
-    onReset: () -> Unit = {},
-    onPickBoard: (RanksBoard) -> Unit = {},
-    onNudgeShown: () -> Unit = {},
-    onScope: (RankScope) -> Unit = {},
-    onWindow: (RanksSelection.Window) -> Unit = {},
-    onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit = { _, _ -> },
-    onSelectDay: (LocalDate?) -> Unit = {},
-    onPlayAgain: (GameId, LocalDate) -> Unit = { _, _ -> },
-    onOpenReplay: (HistoryDayRow, ReplaySolve) -> Unit = { _, _ -> },
-    onCompare: (HistoryDayRow) -> Unit = {},
-    onWatchPlayer: (PlayerSheetViewModel.Target) -> Unit = {},
     playerSheet: PlayerSheetViewModel.State? = null,
-    onOpenPlayer: ((PlayerSheetViewModel.Target) -> Unit)? = null,
-    onChallenge: (GameId) -> Unit = {},
-    onClosePlayer: () -> Unit = {},
     replayOptIn: Boolean = false,
-    onShareReplays: () -> Unit = {},
-    onKeepReplaysPrivate: () -> Unit = {},
     refreshing: Boolean = false,
-    onRefresh: (() -> Unit)? = null,
 ) {
     val shown = rememberHeldBoard(state)
-    val onRowClick = onOpenPlayer?.takeIf { shown.board === state.board }?.let { open -> { row: DailyBoardRowModel -> open(row.toTarget(state)) } }
+    val onRowClick = actions.onOpenPlayer?.takeIf { shown.board === state.board }?.let { open -> { row: DailyBoardRowModel -> open(row.toTarget(state)) } }
     val scroll = rememberScrollState()
     val leftScroll = rememberScrollState()
     val twoPane = layout == HistoryLayout.TwoPane
-    ReselectToTop(if (twoPane) listOf(leftScroll, scroll) else listOf(scroll), onReset)
+    ReselectToTop(if (twoPane) listOf(leftScroll, scroll) else listOf(scroll), actions.onReset)
     val scrub = rememberBoardScrub(shown.position)
     val brands = remember(shown.places) { shown.places.map { it.brand } }
     RanksWorld(brands, scrub, wide = twoPane, modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            if (onBack != null) {
-                IconButton(onBack, Modifier.testTag("ranks.back")) { Icon(PuzzleIcons.Back, contentDescription = "Back") }
+            if (actions.onBack != null) {
+                IconButton(actions.onBack, Modifier.testTag("ranks.back")) { Icon(PuzzleIcons.Back, contentDescription = "Back") }
             }
             Box(Modifier.weight(1f)) {
                 if (twoPane) {
-                    RanksTwoPane(shown, onSignIn, Modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, leftScroll, scroll, onRowClick, refreshing, onRefresh, scrub, onSwipe)
+                    RanksTwoPane(shown, actions, scrub, leftScroll, scroll, onRowClick, refreshing)
                 } else {
-                    RanksPhone(shown, scrub, scroll, onSignIn, onSwipe, onPickBoard, onNudgeShown, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, onRowClick, refreshing, onRefresh)
+                    RanksPhone(shown, actions, scrub, scroll, onRowClick, refreshing)
                 }
             }
         }
@@ -104,15 +83,15 @@ internal fun RanksScreen(
     playerSheet?.let {
         PlayerSheet(
             it,
-            onChallenge = onChallenge,
-            onDismiss = onClosePlayer,
+            onChallenge = actions.onChallenge,
+            onDismiss = actions.onClosePlayer,
             onWatch = {
-                onClosePlayer()
-                onWatchPlayer(it.target)
+                actions.onClosePlayer()
+                actions.onWatchPlayer(it.target)
             },
         )
     }
-    if (replayOptIn) ReplayOptInSheet(onShare = onShareReplays, onKeepPrivate = onKeepReplaysPrivate)
+    if (replayOptIn) ReplayOptInSheet(onShare = actions.onShareReplays, onKeepPrivate = actions.onKeepReplaysPrivate)
 }
 
 /** Reselecting the tab: the first tap brings every scrolled pane in [scrolls] to its top; with all there already, [onReset]. */
@@ -127,55 +106,39 @@ private fun ReselectToTop(scrolls: List<ScrollState>, onReset: () -> Unit) {
 @Composable
 private fun RanksPhone(
     state: RanksUiState,
+    actions: RanksActions,
     scrub: BoardScrub,
     scroll: ScrollState,
-    onSignIn: () -> Unit,
-    onSwipe: (Int) -> Unit,
-    onPickBoard: (RanksBoard) -> Unit,
-    onNudgeShown: () -> Unit,
-    onScope: (RankScope) -> Unit,
-    onWindow: (RanksSelection.Window) -> Unit,
-    onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
-    onSelectDay: (LocalDate?) -> Unit,
-    onPlayAgain: (GameId, LocalDate) -> Unit,
-    onOpenReplay: (HistoryDayRow, ReplaySolve) -> Unit,
-    onCompare: (HistoryDayRow) -> Unit,
     onRowClick: ((DailyBoardRowModel) -> Unit)?,
     refreshing: Boolean,
-    onRefresh: (() -> Unit)?,
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
     val current = state.places.getOrNull(state.position)
-    val nudge = rememberSwipeNudge(show = state.nudge && !tuning && !howRanksWork, onShown = onNudgeShown)
-    RanksPullToRefresh(refreshing, onRefresh) {
+    val nudge = rememberSwipeNudge(show = state.nudge && !tuning && !howRanksWork, onShown = actions.onNudgeShown)
+    RanksPullToRefresh(refreshing, actions.onRefresh) {
         Box(Modifier.fillMaxSize()) {
             FillRemainingColumn(Modifier.fillMaxSize().testTag("route.ranks").verticalScroll(scroll)) {
                 Column(Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg)) {
                     RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
-                        RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true }, scrub = scrub)
+                        RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, actions.onPickBoard, onHowRanksWork = { howRanksWork = true }, scrub = scrub)
                     }
-                    RanksCalendar(state.calendar, state.stats, onShowCalendar, onSelectDay)
+                    RanksCalendar(state.calendar, state.stats, actions.onShowCalendar, actions.onSelectDay)
                 }
                 // The swipe area: everything under the calendar, and whatever is left of the screen below the board.
-                BoardSwipe(scrub, state.position, state.boardCount, onSwipe, Modifier.fillMaxWidth()) {
-                    Column(Modifier.padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg)) {
-                        YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
-                        PageDots(
-                            state.boardCount,
-                            state.position,
-                            Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.md).testTag("ranks.dots"),
-                            pulseScale = { dotPulseScale(nudge.pulse.value) },
-                            scrub = scrub,
-                        )
-                        RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick, morph = rememberBoardMorph(state, scrub))
-                    }
-                }
+                RanksBoardStack(
+                    state,
+                    scrub,
+                    actions,
+                    onRowClick,
+                    contentPadding = PaddingValues(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
+                    dotsPulse = { dotPulseScale(nudge.pulse.value) },
+                )
             }
             SwipeNudgePill(nudgeText(state.places, state.position), nudge, Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.lg))
         }
     }
-    if (tuning) TuneSheet(state.scope, state.window, onScope, onWindow, onDismiss = { tuning = false })
+    if (tuning) TuneSheet(state.scope, state.window, actions.onScope, actions.onWindow, onDismiss = { tuning = false })
     if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false })
 }
 

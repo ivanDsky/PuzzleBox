@@ -44,11 +44,8 @@ class ReplayOptInSheetTest {
             PuzzleBoxTheme {
                 RanksScreen(
                     hub,
-                    onSignIn = {},
-                    onSwipe = {},
+                    RanksActions(onSignIn = {}, onSwipe = {}, onShareReplays = { answers += "share" }, onKeepReplaysPrivate = { answers += "private" }),
                     replayOptIn = ask,
-                    onShareReplays = { answers += "share" },
-                    onKeepReplaysPrivate = { answers += "private" },
                 )
             }
         }

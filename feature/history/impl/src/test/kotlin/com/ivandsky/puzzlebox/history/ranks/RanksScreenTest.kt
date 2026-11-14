@@ -81,7 +81,7 @@ class RanksScreenTest {
 
     private fun show(state: OverallState, signIn: RanksSignIn = RanksSignIn.Idle, onSignIn: () -> Unit = {}) {
         val slice = RanksBoardSlice("Overall · today", RankOrder.TimeThenHints, state.toDailyBoardState("u1"), "Points", state.boardNote())
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(RanksUiState(slice, signIn), onSignIn, onSwipe = {}) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(RanksUiState(slice, signIn), RanksActions(onSignIn, onSwipe = {})) } }
     }
 
     @Test
@@ -136,12 +136,14 @@ class RanksScreenTest {
             PuzzleBoxTheme {
                 RanksScreen(
                     RanksUiState(slice, position = at, boardCount = 4, yourSolve = yourSolve),
-                    {},
-                    onSwipe = {
-                        at += it
-                        onSwipe(it)
-                    },
-                    onRefresh = onRefresh,
+                    RanksActions(
+                        {},
+                        onSwipe = {
+                            at += it
+                            onSwipe(it)
+                        },
+                        onRefresh = onRefresh,
+                    ),
                 )
             }
         }
@@ -228,7 +230,7 @@ class RanksScreenTest {
     @Test
     fun `a single board shows no dots`() {
         composeRule.setContent {
-            PuzzleBoxTheme { RanksScreen(RanksUiState(RanksBoardSlice("Zip · today", RankOrder.TimeThenHints, DailyBoardState.Loading)), {}, {}) }
+            PuzzleBoxTheme { RanksScreen(RanksUiState(RanksBoardSlice("Zip · today", RankOrder.TimeThenHints, DailyBoardState.Loading)), RanksActions({}, {})) }
         }
 
         assertEquals(0, composeRule.onAllNodesWithTagCount("ranks.dots"))
@@ -388,7 +390,7 @@ class RanksScreenTest {
     @Test
     fun `a picked day that does not answer keeps the drawn board for a second and a half, then says Loading`() {
         var state by mutableStateOf(drawn)
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, {}, {}) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions({}, {})) } }
 
         state = loading
         composeRule.waitForIdle()
@@ -407,7 +409,7 @@ class RanksScreenTest {
     fun `a row of the board kept on screen takes no tap until the picked day answers`() {
         var state by mutableStateOf(drawn)
         val sheet = playerSheet()
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, {}, {}, onOpenPlayer = sheet::open) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions({}, {}, onOpenPlayer = sheet::open)) } }
         composeRule.onNodeWithTag("daily_board.row").assertHasClickAction()
 
         state = loading
@@ -429,7 +431,7 @@ class RanksScreenTest {
         composeRule.setContent {
             PuzzleBoxTheme {
                 val open by sheet.state.collectAsState()
-                RanksScreen(drawn, {}, onSwipe = {}, playerSheet = open, onOpenPlayer = sheet::open)
+                RanksScreen(drawn, RanksActions({}, onSwipe = {}, onOpenPlayer = sheet::open), playerSheet = open)
             }
         }
 

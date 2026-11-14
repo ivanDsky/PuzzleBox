@@ -106,11 +106,8 @@ class RanksTwoPaneTest {
             PuzzleBoxTheme {
                 RanksScreen(
                     state,
-                    onSignIn = {},
-                    onSwipe = { steps += it },
+                    RanksActions(onSignIn = {}, onSwipe = { steps += it }, onPickBoard = onPickBoard, onShowCalendar = onShowCalendar),
                     layout = HistoryLayout.TwoPane,
-                    onPickBoard = onPickBoard,
-                    onShowCalendar = onShowCalendar,
                 )
             }
         }

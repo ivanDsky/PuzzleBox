@@ -256,7 +256,7 @@ class YourSolveRowTest {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 // The hub goes to the board a swipe asks for, and its solve with it, as the view model has it.
-                RanksScreen(RanksUiState(board, position = at, boardCount = 2, yourSolve = solves[at]), onSignIn = {}, onSwipe = { at += it })
+                RanksScreen(RanksUiState(board, position = at, boardCount = 2, yourSolve = solves[at]), RanksActions(onSignIn = {}, onSwipe = { at += it }))
             }
         }
 
