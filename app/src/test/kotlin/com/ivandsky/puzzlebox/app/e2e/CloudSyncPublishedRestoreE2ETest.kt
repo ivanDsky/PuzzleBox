@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.app.e2e
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.e2e.CloudSyncWorld.Device
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -38,9 +39,9 @@ import org.robolectric.annotation.Config
  * and B's Published page opens it, with A's variant and author time, while B's Drafts tab lists only the ordinary draft.
  */
 @RunWith(RobolectricTestRunner::class)
-// Plain Application: the merged manifest's PuzzleBoxApplication would start its own Koin.
+// DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A real phone's height: the read-only board's slot needs room for its grid.
-@Config(sdk = [34], application = android.app.Application::class, qualifiers = "w411dp-h891dp")
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class CloudSyncPublishedRestoreE2ETest {
 
     private val world = CloudSyncWorld()

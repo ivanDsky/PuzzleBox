@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; P11 from the ci-warnings run (#850)
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -74,7 +74,7 @@ returns these findings:
   fixtures are protected files: a worker does not edit them to make a test pass.
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1.
-S0, S6, S7, P3, P4, P7, P8, P9 and P10 have none.
+S0, S6, S7, P3, P4, P7, P8, P9, P10 and P11 have none.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -86,7 +86,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, S6, S7, P1, P4–P10) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, S7, P1, P4–P11) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -382,6 +382,25 @@ The LinkedIn account path is GET-only, with no logging interceptor and no cookie
   other half of the GET-only guarantee.
 - **How to fix:** keep the account interface to `@GET` and build the account client without a
   logger or a jar. A write to LinkedIn is out of scope for the feature (ADR-0028 §1).
+
+## P11
+App Robolectric tests run under `DrainTestApplication` (#850).
+
+- **Scope:** test source sets `test`, `testDebug` and `testRelease` of `:app`. Subjects: classes
+  (nested included) annotated `@RunWith(RobolectricTestRunner::class)` or `@RunWith(AndroidJUnit4::class)`,
+  plain or qualified, with or without `value =`. Other modules and `androidTest` are not judged.
+- **Detection:** the class's own annotations (comments removed) must include a `@Config` whose arguments
+  contain `application = DrainTestApplication::class`, plain or qualified. A missing `@Config`, a `@Config`
+  without `application =`, any other application (`Application::class`, `android.app.Application::class`,
+  a lookalike name) and a `@Config` only on a test method are violations. One violation per file, naming
+  the classes. No allowlist: the real tree is clean.
+- **Why:** Robolectric's post-test looper reset drops the task that a Compose rule's teardown posts on
+  `AndroidUiDispatcher.Main`, which jams Compose for every later test in the same JVM. Only
+  `DrainTestApplication.afterTest` drains the main looper in time. `OpenRanksTest` (#826) slipped through once.
+- **Accepted misses:** other runners (`ParameterizedRobolectricTestRunner`), a base class that carries the
+  `@Config` for its subclasses, and a `@Config` read from `robolectric.properties` are not judged.
+- **How to fix:** put `application = DrainTestApplication::class` in the class-level `@Config`
+  (`import com.ivandsky.puzzlebox.app.DrainTestApplication`).
 
 ## Consequences
 - A structure regression fails `./gradlew :konsist:test` with the rule, the file, a fix hint and
