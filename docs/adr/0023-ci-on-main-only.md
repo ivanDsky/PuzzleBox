@@ -20,7 +20,7 @@ user, the PR is a place to read the change, not a test gate.
    blocked.
 2. **Main is tested after every merge.** `.github/workflows/release.yml` (workflow "Main") runs
    on every push to main. It runs the old pr-check command first
-   (`./gradlew assembleDebug test --continue -Pgoldens.pixelCompare=false`: the module-graph
+   (`./gradlew assembleDebug test --continue`: the module-graph
    guard, every module's unit tests, `:app`'s release host tests and `:konsist`), then the
    signed release build and publish. A red test step stops the job before publishing, so a broken
    main never ships a release.
@@ -31,7 +31,19 @@ user, the PR is a place to read the change, not a test gate.
    (`-Pgoldens.skip`). Without pixel comparison on Linux they could only catch a render crash, and
    they took about 40% of the run. `:app` keeps its goldens (about 80 seconds): with them skipped,
    the Robolectric native graphics runtime aborted the `:app` test JVM on the Linux runners in 6 of
-   8 runs. A timing experiment on the 4-vCPU runner put the old single
+   8 runs.
+   *Amendment 2026-11-14 (audit F5):* the default `test` run no longer runs golden classes in any
+   module, and `-Pgoldens.skip` is gone (one switch: `-Proborazzi.verify` or `-Proborazzi.record`
+   runs them, nothing else does). The old default captured about 1,000 goldens in a mode that
+   could not fail. The local merge gate stays `./gradlew assembleDebug test` and gates no golden:
+   goldens are macOS-recorded, and the owning ticket verifies the UI modules it changed with
+   `-Proborazzi.verify=true` before it merges. `:app` no longer needs a golden to warm up the
+   Robolectric native runtime: `NativeGraphicsWarmUpTest` (draw, pixel readback, `IntBuffer` copy,
+   PNG encode) runs first in the package root and replaces it. Without it, the default `:app` run
+   aborted at `LinkedInGhostIsolationE2ETest` on macOS too (2 of 2 runs); with it, the run is green.
+   [INFERENCE] The fix is unproven on the Linux runners; if `:app` aborts there again, revert to
+   running `:app`'s goldens in record mode on the `ui` shard. The Showkase browser golden test and its 14
+   PNGs are deleted (56 touches in a week for a debug tool). A timing experiment on the 4-vCPU runner put the old single
    job at about 20 minutes worst case, with the CPU saturated (more test forks gained nothing).
 3. **The merge gate is local.** Before an agent merges a slice PR, the full suite
    (`./gradlew assembleDebug test`) must be green on the PR branch rebased onto fresh
@@ -73,9 +85,8 @@ user, the PR is a place to read the change, not a test gate.
 - Nothing on GitHub enforces the local gate. It depends on the agent and the user following
   PROFILE's consent ledger. If merges start breaking main, bring back a required check (a
   warm-cache PR check takes about 3.5 minutes; see `.scratch/ci-speed/`).
-- Screenshot goldens outside `:app` do not run on CI. Before the 2026-11-13 amendment they all ran
-  without pixel comparison (ADR-0022), as `:app`'s still do. Verify them locally with
-  `-Proborazzi.verify=true`.
+- Screenshot goldens gate nothing on CI or in the merge gate. Before the 2026-11-13 amendment they
+  all ran without pixel comparison (ADR-0022). Verify them locally with `-Proborazzi.verify=true`.
 - A semantic conflict through a file the PR does not touch can now reach main. Example: #109's
   forced-cells test broke after #89 changed `TangoRules`. Main's release run is the backstop,
   and §4 (red main stops merges) applies.

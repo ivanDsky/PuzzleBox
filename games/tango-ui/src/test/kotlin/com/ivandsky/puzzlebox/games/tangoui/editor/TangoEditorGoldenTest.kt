@@ -59,7 +59,7 @@ import org.robolectric.annotation.GraphicsMode
  *
  * Every run captures to a scratch file. `-Proborazzi.verify=true` pixel-compares it with the
  * committed image in `src/test/resources/goldens/editor/`; drift or a missing image fails.
- * `-Proborazzi.record=true` rewrites the images; the default run reads and writes none.
+ * `-Proborazzi.record=true` rewrites the images; without either flag the class does not run.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -75,9 +75,6 @@ abstract class TangoEditorGoldenTest(private val device: String) {
 
     @get:Rule
     val rule = createComposeRule()
-
-    private val mode = System.getProperty("tango.golden.mode") ?: "compare"
-    private val pixelCompare = System.getProperty("goldens.pixelCompare") != "false"
 
     @Test fun `empty light`() = empty(dark = false)
     @Test fun `empty dark`() = empty(dark = true)
