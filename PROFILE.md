@@ -49,6 +49,25 @@ off  # user ruling 2026-11-05 (replaces 2026-10-31 `always`): publish the review
 
 ## Consent ledger
 - pre-approved: merge dark slices on green   # user ruling 2026-11-07: agent merges dark/non-behavioral slice PRs on a green LOCAL suite (`./gradlew assembleDebug test` on the rebased branch, ADR-0023) + clean fast review; flip PRs, live changes (migrations, persisted formats, manifest/permissions, dependency/SDK bumps, GitHub Actions version bumps) still wait for the user
+- pre-approved: re-record goldens owned by the module you changed   # never shared/design-system goldens
+- pre-approved: merge order of ready dark slices
+- pre-approved: disk cleanup limited to worktree `build/` dirs and stale merged worktrees   # never ~/.gradle, ~/Library, ~/.android
+- pre-approved: Firebase rules deploys to the dev project only
+- pre-approved: taste picks the user explicitly delegated in the current run
+- pre-approved: versionCode via build_identity
+# never pre-approved, however delegated: flag flip, release, production rules deploy, data deletion, anything public
+
+## Taste rules
+- no large empty space below content
+- dates and stats share one baseline
+- chips in a row share one layout structure
+- tablet uses the app's two-pane convention, never a stretched phone layout
+- rearrangement reuses existing animations, never clear-and-repaint
+- redesigning a surface never removes existing features (write a parity checklist first)
+- leaderboards are the primary content on Ranks surfaces
+- touch targets ≥48dp
+- plain words in UI and status text
+- no design-variant toggles left in Settings after a decision; Debug and Release sections stay separate
 
 ## Testing style
 - runner: ./gradlew :app:testDebugUnitTest   # JVM unit tests against fakes
@@ -65,3 +84,5 @@ off  # user ruling 2026-11-05 (replaces 2026-10-31 `always`): publish the review
 - Tab (<tab host>, <tab address>) supports wireless adb over Tailscale: user opens Developer options → Wireless debugging → "Pair device with pairing code" (code+port rotate EVERY open — pair within seconds of receiving), then `adb connect <tab address>:<debug-port-from-main-screen>`. Paired 2026-11-02, persists.
 - Supervised-process PATH lacks sdk tools: use full path `/Users/ivandsky/Library/Android/sdk/platform-tools/adb`.
 - The tab runs ReVanced microG, not real GMS — Credential Manager Google-ID works ONLY with the type-first + `GoogleIdTokenCredential.createFrom(credential.data)` pattern (4b7b419). `is GoogleIdTokenCredential` checks silently drop microG tokens.
+- User checks on the tablet only — no emulator, no Mac manual testing.
+- APKs ship via ship_apk.py only.
