@@ -41,3 +41,7 @@ internal fun DailyBoardState.friendsOnly(friends: Set<String>): DailyBoardState 
     } else {
         this
     }
+
+/** True for a list of rows holding nobody but the viewer, and no LinkedIn ghost either; empty counts. Any other state is not "alone". */
+internal fun DailyBoardState.isViewerAlone(): Boolean =
+    this is DailyBoardState.Ranked && rows.all { it.isSelf } && lines.orEmpty().all { it is DailyBoardLine.Real }

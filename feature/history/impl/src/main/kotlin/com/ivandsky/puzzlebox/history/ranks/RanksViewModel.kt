@@ -31,7 +31,6 @@ import com.ivandsky.puzzlebox.history.DayReplaysLoader
 import com.ivandsky.puzzlebox.history.HistoryDayRow
 import com.ivandsky.puzzlebox.history.HistoryReplays
 import com.ivandsky.puzzlebox.history.historyRows
-import com.ivandsky.puzzlebox.history.solvedByDay
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Clock
 import java.time.LocalDate
@@ -83,7 +82,8 @@ internal class RanksViewModel(
 ) : ViewModel() {
 
     private val saver = RanksSelectionSaver(savedState)
-    private val _selection = MutableStateFlow(saver.restore(opening, rankBoards(registry)))
+    private val landing = RanksLanding(preferences, viewModelScope)
+    private val _selection = MutableStateFlow(saver.restore(opening.setScope(landing.scope.value), rankBoards(registry)))
     val selection: StateFlow<RanksSelection> = _selection.asStateFlow()
 
     private val signInHolder = RanksSignInHolder(identity, idTokens)
@@ -132,24 +132,7 @@ internal class RanksViewModel(
 
     private val dayReplays = DayReplaysLoader(viewModelScope, loadReplay)
 
-    /** The calendar over local history alone: it renders signed out and offline, and never waits on the network. */
-    private val calendarState: Flow<CalendarState> = combine(
-        history,
-        selection.map { Triple(it.day, it.shownDay, it.calendarExpanded) }.distinctUntilChanged(),
-        today(),
-    ) { rows, (picked, shown, expanded), today ->
-        val earliest = rows.minOfOrNull { it.day }?.coerceAtMost(today) ?: today
-        CalendarState(
-            shownDay = (shown ?: picked ?: today).coerceIn(earliest, today),
-            expanded = expanded,
-            earliestDay = earliest,
-            selectedDay = picked ?: today,
-            solvedByDay = solvedByDay(rows, games),
-            daysWithRows = rows.mapTo(HashSet()) { it.day },
-            gamesPerDay = games.size,
-            today = today,
-        )
-    }
+    private val calendarState: Flow<CalendarState> = calendarStateOf(history, selection, today(), games)
 
     /** The viewer's solve of the game board's day: only on a game's Day board, and only once solved. */
     private val yourSolve: Flow<YourSolve?> = combine(
@@ -207,9 +190,9 @@ internal class RanksViewModel(
         saver.save(_selection.updateAndGet(change))
     }
 
-    /** A second tab reselect: back to the landing choice (A4, A8). */
+    /** A second tab reselect: back to the landing choice, on the player's default scope (A4, A8, F1). */
     fun resetSelection() {
-        select { it.reset() }
+        select { it.reset(landing.scope.value) }
     }
 
     /** The tune sheet's scope pick. */

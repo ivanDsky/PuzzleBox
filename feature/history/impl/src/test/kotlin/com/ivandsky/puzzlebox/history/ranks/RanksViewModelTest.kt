@@ -161,7 +161,7 @@ class RanksViewModelTest {
     fun `reset returns to Overall`() = runTest {
         val viewModel = hub(mapOf(zipBoard, tangoBoard)).viewModel()
         viewModel.select { it.pickBoard(RanksBoard.Game(TANGO)) }
-        viewModel.select { it.reset() }
+        viewModel.select { it.reset(RankScope.Global) }
 
         assertEquals("Overall · today", viewModel.uiState.first { it.board.state is DailyBoardState.Ranked }.board.title)
     }

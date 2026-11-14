@@ -106,6 +106,18 @@ class OfflineUserPreferencesRepositoryTest {
     }
 
     @Test
+    fun `ranks land on Friends until the player picks Global`() = runTest {
+        val repository = newRepository()
+        assertTrue(repository.ranksFriendsDefault.first())
+
+        repository.setRanksFriendsDefault(false)
+        assertFalse(repository.ranksFriendsDefault.first())
+
+        repository.setRanksFriendsDefault(true)
+        assertTrue(repository.ranksFriendsDefault.first())
+    }
+
+    @Test
     fun `the witness auto-shows on first launch`() = runTest {
         assertTrue(newRepository().autoShowWitness.first())
     }

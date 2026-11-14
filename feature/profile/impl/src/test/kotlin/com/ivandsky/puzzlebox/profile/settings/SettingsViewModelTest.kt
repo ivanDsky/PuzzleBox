@@ -107,4 +107,30 @@ class SettingsViewModelTest {
 
         assertNull(vm.uiState.value.visibility)
     }
+
+    @Test
+    fun `the ranks default follows the stored scope and a pick writes it`() = runTest(dispatcher) {
+        val preferences = FakeUserPreferencesRepository()
+        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild, slotOf(FakeVisibilityRepository(OwnTier.Unset)))
+        backgroundScope.launch { vm.uiState.collect {} }
+        advanceUntilIdle()
+        assertEquals(true, vm.uiState.value.ranksFriendsDefault)
+
+        vm.onSetRanksFriendsDefault(false)
+        advanceUntilIdle()
+
+        assertEquals(false, preferences.ranksFriendsDefault.first())
+        assertEquals(false, vm.uiState.value.ranksFriendsDefault)
+    }
+
+    @Test
+    fun `without the slot a ranks pick writes nothing`() = runTest(dispatcher) {
+        val preferences = FakeUserPreferencesRepository()
+        val vm = SettingsViewModel(preferences, FakeGameOptions(), appBuild)
+
+        vm.onSetRanksFriendsDefault(false)
+        advanceUntilIdle()
+
+        assertEquals(true, preferences.ranksFriendsDefault.first())
+    }
 }

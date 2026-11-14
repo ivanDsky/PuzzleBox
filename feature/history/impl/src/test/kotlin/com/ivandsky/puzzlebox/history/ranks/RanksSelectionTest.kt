@@ -98,7 +98,8 @@ class RanksSelectionTest {
             .setScope(RankScope.Friends)
             .toggleCalendar()
 
-        assertEquals(landing, busy.reset())
+        assertEquals(landing, busy.reset(RankScope.Global))
+        assertEquals(landing.setScope(RankScope.Friends), busy.reset(RankScope.Friends))
     }
 
     @Test

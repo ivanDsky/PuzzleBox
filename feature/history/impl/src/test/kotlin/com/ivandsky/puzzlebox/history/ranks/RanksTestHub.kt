@@ -48,11 +48,13 @@ internal class RanksTestHub(
     identity: Identity? = Identity("u1", "Ann", null),
     val registry: GameRegistry = HistoryTestSupport.registry,
     val today: LocalDate = LocalDate.of(2026, 11, 13),
+    /** The player's stored default scope: Global here, so a test names Friends when it means it. */
+    friendsDefault: Boolean = false,
 ) {
     val identity = FakeIdentityService(initial = identity)
     val calendar = FakeGameCalendar(today)
     val completions = FakeCompletionRepository()
-    val preferences = FakeUserPreferencesRepository()
+    val preferences = FakeUserPreferencesRepository(ranksFriendsDefault = friendsDefault)
     val daily = FakeDailyRepository()
     /** What the phone holds of the viewer's LinkedIn days; read only by a [viewModel] built with LinkedIn on. */
     val linkedInDays = FakeLinkedInDays()

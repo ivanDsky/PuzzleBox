@@ -118,6 +118,21 @@ class PuzzleBoxPreferencesDataSourceTest {
     }
 
     @Test
+    fun `the Ranks hub defaults to Friends and a Global pick survives a new data source over the same file`() = runTest {
+        val file = tempFile()
+        val firstScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())
+        val firstProcess = PuzzleBoxPreferencesDataSource(
+            PreferenceDataStoreFactory.create(scope = firstScope) { file },
+        )
+        assertTrue(firstProcess.preferences.first().ranksFriendsDefault)
+
+        firstProcess.setRanksFriendsDefault(false)
+        firstScope.cancel()
+
+        assertFalse(newDataSource(file).preferences.first().ranksFriendsDefault)
+    }
+
+    @Test
     fun `an unset game flag emits its default`() = runTest {
         val dataSource = newDataSource(tempFile())
 

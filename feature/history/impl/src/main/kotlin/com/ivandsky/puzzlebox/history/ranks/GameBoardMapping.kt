@@ -58,9 +58,12 @@ private const val WITH_LINKEDIN = "with LinkedIn connections"
  * A game's board in Friends scope (A6, A15): the connections [input] merge in as on the game page (`rankWithLinkedIn`: a
  * shared place, no PuzzleBox rank, no actions) over the whole board, and only then do the rows narrow to the viewer and
  * [friends], so every place counts everyone ahead of it. The viewer's unofficial row stays out of that ranking and goes back
- * at its own place: it takes none from anyone (A14). Without ghosts this is plain [friendsOnly].
+ * at its own place: it takes none from anyone (A14). Without ghosts this is plain [friendsOnly]. [RanksBoardSlice.friendsAlone] marks a list of the viewer alone.
  */
-internal fun RanksBoardSlice.inFriends(friends: Set<String>, input: BoardGhostInput): RanksBoardSlice {
+internal fun RanksBoardSlice.inFriends(friends: Set<String>, input: BoardGhostInput): RanksBoardSlice =
+    inFriendsList(friends, input).let { it.copy(friendsAlone = it.state.isViewerAlone()) }
+
+private fun RanksBoardSlice.inFriendsList(friends: Set<String>, input: BoardGhostInput): RanksBoardSlice {
     val ranked = state as? DailyBoardState.Ranked
     if (ranked == null || (input.ghosts.isEmpty() && input.you == null)) return copy(state = state.friendsOnly(friends))
     val (unofficial, official) = ranked.rows.partition { it.unofficial }

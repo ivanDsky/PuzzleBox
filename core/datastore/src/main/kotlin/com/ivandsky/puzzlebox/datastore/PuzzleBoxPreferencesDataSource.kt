@@ -20,13 +20,15 @@ data class PuzzleBoxPreferences(
     val autoShowWitness: Boolean,
     /** Whether replay boards mark rule violations; on until switched off. One preference for every replay. */
     val showReplayErrors: Boolean,
+    /** Whether the Ranks hub opens on Friends rather than Global; Friends until switched. */
+    val ranksFriendsDefault: Boolean,
 )
 
 /**
  * Owns the Preferences DataStore keys. Reads tolerate a missing or corrupt value by
  * falling back to [ThemeMode.SYSTEM]; writes store the enum name so the file stays
  * human-readable and forward-compatible. Seen tutorials are one string set of game ids.
- * Auto-show and replay errors are plain booleans, true while the key is absent.
+ * Auto-show, replay errors and the Ranks Friends default are plain booleans, true while the key is absent.
  */
 class PuzzleBoxPreferencesDataSource(
     private val dataStore: DataStore<Preferences>,
@@ -38,6 +40,7 @@ class PuzzleBoxPreferencesDataSource(
             tutorialsSeen = preferences[KEY_TUTORIALS_SEEN].orEmpty().mapTo(mutableSetOf(), ::GameId),
             autoShowWitness = preferences[KEY_AUTO_SHOW_WITNESS] ?: true,
             showReplayErrors = preferences[KEY_SHOW_REPLAY_ERRORS] ?: true,
+            ranksFriendsDefault = preferences[KEY_RANKS_FRIENDS_DEFAULT] ?: true,
         )
     }
 
@@ -59,6 +62,10 @@ class PuzzleBoxPreferencesDataSource(
         dataStore.edit { preferences -> preferences[KEY_SHOW_REPLAY_ERRORS] = on }
     }
 
+    suspend fun setRanksFriendsDefault(friends: Boolean) {
+        dataStore.edit { preferences -> preferences[KEY_RANKS_FRIENDS_DEFAULT] = friends }
+    }
+
     /** A game's own boolean setting; [default] while it was never written. */
     fun gameFlag(game: GameId, name: String, default: Boolean): Flow<Boolean> =
         dataStore.data.map { it[gameFlagKey(game, name)] ?: default }
@@ -74,5 +81,6 @@ class PuzzleBoxPreferencesDataSource(
         val KEY_TUTORIALS_SEEN = stringSetPreferencesKey("tutorials_seen")
         val KEY_AUTO_SHOW_WITNESS = booleanPreferencesKey("auto_show_witness")
         val KEY_SHOW_REPLAY_ERRORS = booleanPreferencesKey("show_replay_errors")
+        val KEY_RANKS_FRIENDS_DEFAULT = booleanPreferencesKey("ranks_friends_default")
     }
 }
