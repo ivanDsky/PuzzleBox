@@ -46,7 +46,7 @@ import org.koin.compose.koinInject
  *
  * [codeDraft] and [onCodeDraftTaken] reach the Play library: a draft opens its code sheet.
  * [libraryRequests] is the one-shot Games request: Games reads its pending value and takes it.
- * [duels] (null with the Competitions flag off) adds the Duels tab and
+ * [duels], when given, adds the Duels tab and
  * lets Enter code open a duel. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
