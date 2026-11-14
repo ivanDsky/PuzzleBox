@@ -21,7 +21,8 @@ import kotlinx.coroutines.flow.map
  * canonical form, instants as epoch ms, [PostState] and [Difficulty.Level] by name; an unknown
  * name reads as [PostState.Pending] or no difficulty. A row whose code no longer parses is skipped.
  * Readers show the rows of [owners]' visible owner plus ownerless ones; [upsert] stamps
- * [OwnerScope.writer]; deleting an owned row also writes its tombstone, due at [clock]'s now.
+ * [OwnerScope.writer] on a row nobody owns, keeps a stored row's owner and leaves a row another
+ * account holds untouched; deleting an owned row also writes its tombstone, due at [clock]'s now.
  */
 internal class RoomReceivedPuzzleRepository(
     private val dao: ReceivedPuzzleDao,
@@ -45,7 +46,13 @@ internal class RoomReceivedPuzzleRepository(
     override suspend fun get(code: ShareCode): ReceivedPuzzle? =
         dao.get(code.value, owners.visible.value)?.toReceivedPuzzle()
 
-    override suspend fun upsert(puzzle: ReceivedPuzzle) = dao.upsert(puzzle.toEntity(owners.writer()))
+    override suspend fun upsert(puzzle: ReceivedPuzzle) {
+        val stored = dao.find(puzzle.code.value)
+        val writer = owners.writer()
+        // Another account's row stays as it is; this account can still open the puzzle without taking the row.
+        if (stored?.ownerUid != null && stored.ownerUid != writer) return
+        dao.upsert(puzzle.toEntity(stored?.ownerUid ?: writer))
+    }
 
     override suspend fun delete(code: ShareCode) = dao.deleteWithTombstone(code.value, clock())
 
