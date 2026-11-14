@@ -327,6 +327,16 @@ class PlayStatsPanelTest {
     }
 
     @Test
+    fun `a broken streak shows no count beside the streak line, not a 0 - F5`() {
+        // Eight missed days outrun the two freezes held, so the game's streak is 0 and its ledger holds 0.
+        val broken = FakeCompletionRepository().apply { setRecords(listOf(record(alpha, day.minusDays(9), 60_000L))) }
+        show(viewModel(completions = broken, flags = FakeReleaseFlags(ReleaseFlag.StreakFreeze)))
+
+        composeRule.onNodeWithTag("play.stats.streak").assertTextContains("No streak yet", substring = true)
+        composeRule.onAllNodesWithContentDescription("freeze", substring = true).assertCountEquals(0)
+    }
+
+    @Test
     fun `with freezes off the streak line shows no count and the strip no frozen day`() {
         show(viewModel())
 

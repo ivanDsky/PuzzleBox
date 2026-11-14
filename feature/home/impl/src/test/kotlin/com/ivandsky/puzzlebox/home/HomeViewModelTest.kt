@@ -244,6 +244,27 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `a live streak carries the held count to the card - F2`() = runTest {
+        val deps = viewModel(flags = FakeReleaseFlags(ReleaseFlag.StreakFreeze))
+        deps.completions.onCompleted(record(zip, day.minusDays(2), timeMs = 40_000L))
+        deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
+
+        assertEquals(1, deps.vm.uiState.value.freezesHeld)
+    }
+
+    @Test
+    fun `a broken streak carries no count to the card, not a 0 - F5`() = runTest {
+        val deps = viewModel(flags = FakeReleaseFlags(ReleaseFlag.StreakFreeze))
+        // Eight missed days outrun the two freezes held, so the streak is 0 and the ledger holds 0.
+        deps.completions.onCompleted(record(zip, day.minusDays(9), timeMs = 40_000L))
+
+        val state = deps.vm.uiState.value
+        assertEquals(0, state.stats.currentStreak)
+        assertEquals(0, state.stats.freezes?.held)
+        assertNull(state.freezesHeld)
+    }
+
+    @Test
     fun `the week's frozen days are the streak's, an archive day frozen and still ringed, a LinkedIn import filling its archived day - A23`() = runTest {
         val deps = viewModel(flags = FakeReleaseFlags(ReleaseFlag.StreakFreeze))
         deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
