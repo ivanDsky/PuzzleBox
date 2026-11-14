@@ -71,7 +71,7 @@ class LinkedInGhostIsolationE2ETest {
 
     private val source = FakeLinkedInAccountSource()
     private val photos = FakeLinkedInPhotoSource()
-    private val world = CloudSyncWorld(linkedIn = true) {
+    private val world = CloudSyncWorld {
         single<LinkedInAccountSource> { source }
         single<LinkedInPhotoSource> { photos }
         single<LinkedInSessionCookies> { FakeLinkedInSessionCookies(sentinelSession) }

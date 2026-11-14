@@ -140,7 +140,11 @@ class DiGraphTest : KoinTest {
     fun `LinkedInDays resolves off the real graph with no cookies override`() {
         val koinApp = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
-            modules(PuzzleBoxApplication.appModules)
+            // LinkedInDays reads through the owner scope, which collects identity; the JVM has no FirebaseApp.
+            modules(
+                PuzzleBoxApplication.appModules +
+                    module { single<IdentityService> { FakeIdentityService() } },
+            )
         }
         try {
             assertNotNull(koinApp.koin.get<LinkedInDays>())
@@ -149,14 +153,19 @@ class DiGraphTest : KoinTest {
         }
     }
 
-    /** Profile's LinkedIn row resolves off the real graph: the summary use case and the flag-on view model. */
+    /** Profile's LinkedIn row resolves off the real graph: the summary use case and the view model. */
     @Test
-    fun `the LinkedIn account summary and the flag-on profile view model resolve`() {
+    fun `the LinkedIn account summary and the profile view model resolve`() {
         val koinApp = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
-            modules(PuzzleBoxApplication.appModules)
+            // The owner scope collects identity; the real service would reach FirebaseAuth, and the JVM has no FirebaseApp.
+            modules(
+                PuzzleBoxApplication.appModules +
+                    module { single<IdentityService> { FakeIdentityService() } },
+            )
         }
         try {
+            PuzzleBoxApplication.prepareCloudSync(koinApp.koin)
             assertNotNull(koinApp.koin.get<ObserveLinkedInAccount>())
             assertNotNull(koinApp.koin.get<ProfileViewModel> { parametersOf(true) })
         } finally {
@@ -246,6 +255,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<GoogleIdTokenProvider>())
             // Regression: ProfileRoute's koinViewModel() needs this definition —
             // without it the first Profile composition throws NoDefinitionFound.
+            PuzzleBoxApplication.prepareCloudSync(koin)
             assertNotNull(koin.get<ProfileViewModel> { parametersOf(SavedStateHandle()) })
             // Home/History routes' koinViewModel() and their domain use cases.
             assertNotNull(koin.get<HomeViewModel> { parametersOf(SavedStateHandle()) })
@@ -338,12 +348,12 @@ class DiGraphTest : KoinTest {
 
     /**
      * The app decides the reader of the Friends/Global setting the ranks outside the hub follow (AppModule). Hub off
-     * there is none, whatever LinkedIn's flag says: the use cases that would listen for friends and read the
-     * connections cannot be built here, so asking for either fails the test.
+     * there is none: the use cases that would listen for friends and read the connections cannot be built here,
+     * so asking for either fails the test.
      */
     @Test
     fun `with the hub off the ranks outside the hub get no Friends reader`() {
-        val koinApp = startRanks(FakeReleaseFlags(ReleaseFlag.LinkedInAccount)) {
+        val koinApp = startRanks(FakeReleaseFlags()) {
             factory<ObserveFriendUids> { error("friends were listened for with the hub off") }
             factory<ObserveLinkedInDay> { error("the connections were read with the hub off") }
         }
@@ -358,21 +368,9 @@ class DiGraphTest : KoinTest {
     }
 
     @Test
-    fun `with the hub on and LinkedIn off the Friends reader is built without the connections`() {
-        val koinApp = startRanks(FakeReleaseFlags(ReleaseFlag.LeaderboardHub)) {
-            factory<ObserveLinkedInDay> { error("the connections were read with LinkedIn off") }
-        }
-        try {
-            assertNotNull(koinApp.koin.get<ObserveFriendDay.Binding>().reader)
-        } finally {
-            stopKoin()
-        }
-    }
-
-    @Test
-    fun `with the hub and LinkedIn on the Friends reader is built with the connections`() {
+    fun `with the hub on the Friends reader is built with the connections`() {
         var connections = 0
-        val koinApp = startRanks(FakeReleaseFlags(ReleaseFlag.LeaderboardHub, ReleaseFlag.LinkedInAccount)) {
+        val koinApp = startRanks(FakeReleaseFlags(ReleaseFlag.LeaderboardHub)) {
             factory { connections++; ObserveLinkedInDay(days = get(), registry = get()) }
         }
         try {
@@ -430,34 +428,15 @@ class DiGraphTest : KoinTest {
         }
     }
 
-    /** Without LinkedInAccount: the five app-database kinds, the engine and the runner; no boards kind, no saved-board deletion. */
+    /** The five app-database kinds and the boards kind are bound, and saved boards can be deleted everywhere. */
     @Test
-    fun `the sync graph resolves without the LinkedIn kinds`() {
+    fun `the boards kind and saved-board deletion are bound`() {
         val koinApp = startCloud()
         try {
             val koin = koinApp.koin
             PuzzleBoxApplication.prepareCloudSync(koin)
-            assertNotNull(koin.get<CloudSync>())
-            assertNotNull(koin.get<CloudSyncRunner>())
             assertNotNull(koin.get<OversizedDrafts>())
             assertTrue(koin.get<OwnerScope>() is SignedInOwnerScope)
-            assertEquals(
-                setOf("completions", "drafts", "published", "received", "replays"),
-                koin.getAll<SyncedKind>().map { it.kind }.toSet(),
-            )
-            assertNull(koin.getOrNull<SavedBoardsCloud>())
-        } finally {
-            stopKoin()
-        }
-    }
-
-    /** With LinkedInAccount on: the boards kind joins and saved boards can be deleted everywhere. */
-    @Test
-    fun `with LinkedInAccount on the boards kind and saved-board deletion are bound`() {
-        val koinApp = startCloud(ReleaseFlag.LinkedInAccount)
-        try {
-            val koin = koinApp.koin
-            PuzzleBoxApplication.prepareCloudSync(koin)
             assertEquals(
                 listOf("boards", "completions", "drafts", "published", "received", "replays"),
                 koin.getAll<SyncedKind>().map { it.kind }.sorted(),
@@ -488,12 +467,12 @@ class DiGraphTest : KoinTest {
         }
     }
 
-    private fun startCloud(vararg flags: ReleaseFlag, identity: FakeIdentityService = FakeIdentityService()) = startKoin {
+    private fun startCloud(identity: FakeIdentityService = FakeIdentityService()) = startKoin {
         androidContext(RuntimeEnvironment.getApplication())
         modules(
             PuzzleBoxApplication.appModules + module {
                 single<IdentityService> { identity }
-                single<ReleaseFlags> { FakeReleaseFlags(*flags) }
+                single<ReleaseFlags> { FakeReleaseFlags() }
             },
         )
     }

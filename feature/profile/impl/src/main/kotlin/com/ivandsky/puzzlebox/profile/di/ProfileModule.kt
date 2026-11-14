@@ -32,8 +32,7 @@ val profileModule: Module = module {
             observeAccount = if (linkedIn) get() else null,
             cloudSync = get(),
             oversizedDrafts = get(),
-            // Bound only with the LinkedIn switch on; unbound, the LinkedIn row offers no Delete saved boards.
-            savedBoardsCloud = getOrNull<SavedBoardsCloud>(),
+            savedBoardsCloud = get(),
         )
     }
     // The parameter is the app's VisibilitySlot; without it Settings has no Visibility section.

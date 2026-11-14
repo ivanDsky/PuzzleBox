@@ -55,8 +55,7 @@ import java.time.LocalDate
  * hides what is owned elsewhere, the game page draws its board, the tablet times card signs
  * in in place, and Profile has its own back and a gear to Settings.
  *
- * [linkedIn] turns on the LinkedIn entry points (the game page's reconnect and Profile's
- * connect), both opening [LinkedInLoginKey]; off, those entries stay hidden.
+ * The LinkedIn entry points (the game page's reconnect and Profile's connect) both open [LinkedInLoginKey].
  *
  * [ranks] (the LeaderboardHub flag, which only the app reads) makes [HistoryRootKey] the Ranks
  * hub and a pushed [HistoryKey] opens it at that game and day; off, they are History's root and browser.
@@ -73,7 +72,6 @@ internal fun puzzleBoxEntryProvider(
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
     libraryRequests: LibraryRequests = LibraryRequests(),
-    linkedIn: Boolean = false,
     ranks: Boolean = false,
     visibility: VisibilitySlot? = null,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
@@ -95,7 +93,7 @@ internal fun puzzleBoxEntryProvider(
         onOpenHistory = { navigator.openOwner(HistoryRootKey) },
     )
     if (ranks) {
-        ranksEntry(navigator, historyLayout, linkedIn)
+        ranksEntry(navigator, historyLayout, linkedIn = true)
     } else {
         historyEntry(navigator, historyLayout)
     }
@@ -108,10 +106,10 @@ internal fun puzzleBoxEntryProvider(
         onCodeDraftTaken = onCodeDraftTaken,
         duels = duels,
         onOpenGameHistory = openRanks(navigator),
-        onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) }.takeIf { linkedIn },
+        onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) },
         onOpenRanks = openRanks(navigator).takeIf { ranks },
     )
-    resultEntry(navigator, linkedIn = linkedIn, onOpenRanks = openRanks(navigator).takeIf { ranks })
+    resultEntry(navigator, linkedIn = true, onOpenRanks = openRanks(navigator).takeIf { ranks })
     createEntry(navigator)
     editorEntry(navigator, playLayout)
     publishedPuzzleEntry(navigator, playLayout)
@@ -120,7 +118,7 @@ internal fun puzzleBoxEntryProvider(
         onOpenCatalog = { navigator.push(CatalogKey) },
         onBack = back,
         onOpenSettings = { navigator.pushOnce(SettingsKey) },
-        onOpenLinkedInLogin = { navigator.pushOnce(LinkedInLoginKey) }.takeIf { linkedIn },
+        onOpenLinkedInLogin = { navigator.pushOnce(LinkedInLoginKey) },
         debugSections = { DebugSettingsSlot(openGame = { navigator.pushOnce(GameKey(it)) }) },
         visibility = visibility,
     )

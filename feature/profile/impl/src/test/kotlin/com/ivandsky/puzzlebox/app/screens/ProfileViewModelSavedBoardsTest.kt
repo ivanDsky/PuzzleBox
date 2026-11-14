@@ -48,7 +48,7 @@ class ProfileViewModelSavedBoardsTest {
         override suspend fun idToken(activityContext: Context): GoogleIdToken = GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.OTHER)
     }
 
-    private fun TestScope.viewModel(cloud: FakeCloudSync, boards: FakeSavedBoardsCloud?): ProfileViewModel {
+    private fun TestScope.viewModel(cloud: FakeCloudSync, boards: FakeSavedBoardsCloud): ProfileViewModel {
         val history = ObserveGameHistory(registry, FakeDailyRepository(), FakeCompletionRepository())
         val vm = ProfileViewModel(
             identityService = FakeIdentityService(initial = Identity("u1", "Ann", null)),
@@ -64,16 +64,6 @@ class ProfileViewModelSavedBoardsTest {
     }
 
     private fun ProfileViewModel.boards(): LinkedInBoards = uiState.value.linkedInBoards
-
-    @Test
-    fun `without the saved-boards binding the LinkedIn row offers no delete and the action does nothing`() = runTest(dispatcher) {
-        val vm = viewModel(FakeCloudSync(CloudSyncState.SignedOut), null)
-
-        vm.onDeleteSavedBoards()
-        advanceUntilIdle()
-
-        assertEquals(LinkedInBoards(canDelete = false), vm.boards())
-    }
 
     @Test
     fun `cloud boards offer delete`() = runTest(dispatcher) {

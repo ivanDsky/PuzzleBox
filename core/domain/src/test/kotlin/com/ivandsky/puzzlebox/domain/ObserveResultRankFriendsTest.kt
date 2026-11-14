@@ -59,8 +59,7 @@ class ObserveResultRankFriendsTest {
         mapOf(LeaderboardRef("tango", day) to listOf(entry("a", 30), entry("b", 40), entry("me", 50), entry("c", 60))),
     )
 
-    private fun setting(linkedIn: Boolean = false) =
-        ObserveFriendDay(preferences, ObserveFriendUids(matches, identity), ObserveLinkedInDay(days, registry).takeIf { linkedIn })
+    private fun setting() = ObserveFriendDay(preferences, ObserveFriendUids(matches, identity), ObserveLinkedInDay(days, registry))
 
     /** The rank as [domainModule] builds it, given the app's answer [friendDay]. */
     private fun rank(friendDay: ObserveFriendDay?) = koinApplication {
@@ -114,19 +113,9 @@ class ObserveResultRankFriendsTest {
     fun `Friends ranks the player among friends and the connections with a time`() = runTest {
         befriend("b")
         connection(seconds = 20)
-        rank(setting(linkedIn = true)).test {
+        rank(setting()).test {
             // The connection, then b, then me: a and c are no friends and the hidden time takes no place.
             assertEquals(ResultRank.Ranked(position = 3, count = 3, topPercent = 100), lastRanked())
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `Friends with LinkedIn off ranks among friends only`() = runTest {
-        befriend("b")
-        connection(seconds = 20)
-        rank(setting()).test {
-            assertEquals(ResultRank.Ranked(position = 2, count = 2, topPercent = 100), lastRanked())
             cancelAndIgnoreRemainingEvents()
         }
     }

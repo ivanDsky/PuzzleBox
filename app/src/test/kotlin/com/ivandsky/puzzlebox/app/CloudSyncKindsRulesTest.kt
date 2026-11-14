@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.app
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.cloud.SyncedKind
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
@@ -37,7 +36,7 @@ class CloudSyncKindsRulesTest {
             modules(
                 PuzzleBoxApplication.appModules + module {
                     single<IdentityService> { FakeIdentityService() }
-                    single<ReleaseFlags> { FakeReleaseFlags(ReleaseFlag.LinkedInAccount) }
+                    single<ReleaseFlags> { FakeReleaseFlags() }
                 },
             )
         }

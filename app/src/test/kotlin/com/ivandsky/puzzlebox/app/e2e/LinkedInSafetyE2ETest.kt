@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import org.junit.After
@@ -14,7 +13,7 @@ import org.robolectric.annotation.Config
 
 /**
  * When the app may ask LinkedIn anything, over the app's own graph with the real account adapter aimed at a
- * local server: never with the feature off, never before the player has consented, and with a consent only
+ * local server: never before the player has consented, and with a consent only
  * for a day the player is looking at. The session store holds a session in every case, so nothing but the
  * gate under test stands between the shell and a request.
  */
@@ -29,25 +28,14 @@ class LinkedInSafetyE2ETest {
     fun closeTheWire() = wire.close()
 
     @Test
-    fun withTheFlagOffNothingIsRead() {
-        val graph = linkedInGraph(wire)
-        shellRobot(graph = graph) {
-            // Linked and signed in: the strongest setup that must still do nothing.
-            graph.connectLinkedIn()
-            walkEveryScreen()
-            assertEquals("requests with the feature off", 0, wire.requestCount)
-        }
-    }
-
-    @Test
-    fun withNoConsentNothingIsRead() = shellRobot(graph = linkedInGraph(wire, ReleaseFlag.LinkedInAccount)) {
+    fun withNoConsentNothingIsRead() = shellRobot(graph = linkedInGraph(wire)) {
         walkEveryScreen()
         assertEquals("requests before the player has consented", 0, wire.requestCount)
     }
 
     @Test
     fun withConsentOnlyADayViewReads() {
-        val graph = linkedInGraph(wire, ReleaseFlag.LinkedInAccount)
+        val graph = linkedInGraph(wire)
         shellRobot(graph = graph) {
             graph.connectLinkedIn()
             assertRoute(HOME)

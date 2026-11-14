@@ -7,7 +7,6 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.isRoot
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
@@ -87,7 +86,7 @@ class LinkedInSentinelE2ETest {
 
     @Test
     fun theSessionNeverLeavesTheAccountRequest() {
-        val graph = linkedInGraph(wire, ReleaseFlag.LinkedInAccount) {
+        val graph = linkedInGraph(wire) {
             single<FeedTransport> { linkedInFeedTransport(anon.url("/").toString(), get<Json>()) }
         }
         shellRobot(graph = graph) {

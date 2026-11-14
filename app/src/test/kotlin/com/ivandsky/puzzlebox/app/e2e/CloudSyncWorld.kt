@@ -10,7 +10,6 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.cloud.CloudDoc
 import com.ivandsky.puzzlebox.data.cloud.CloudResult
 import com.ivandsky.puzzlebox.data.cloud.CloudSpace
@@ -70,8 +69,8 @@ import org.koin.dsl.module
 import org.koin.dsl.onClose
 
 /**
- * The cloud sync test world (tickets 33, 34 and 35): the real app graph (cloud sync is always on, and `LinkedInAccount`
- * too when [linkedIn]), over one shared [space], one [network] and fake identities. Everything the
+ * The cloud sync test world (tickets 33, 34 and 35): the real app graph (cloud sync and the LinkedIn boards are
+ * always on), over one shared [space], one [network] and fake identities. Everything the
  * sync touches is the production code: Room, the owner scope, every kind, the engine and the runner. Only the edges are
  * fakes: the cloud space ([FakeCloudSpace] behind a [CloudGate]), the identity and the network.
  *
@@ -82,7 +81,6 @@ import org.koin.dsl.onClose
  * together. [edges] adds a test's own bindings last in every device's graph, so they win. [close] after the run.
  */
 internal class CloudSyncWorld(
-    private val linkedIn: Boolean = false,
     private val edges: Module.() -> Unit = {},
 ) : AutoCloseable {
 
@@ -211,7 +209,7 @@ internal class CloudSyncWorld(
                 single<CompletionRepository> { get<Koin>(named(DATA)).get() }
                 edges()
             },
-            FakeReleaseFlags(*listOfNotNull(ReleaseFlag.LinkedInAccount.takeIf { linkedIn }).toTypedArray()),
+            FakeReleaseFlags(),
         )
 
         /** The account that signs in here is the one the cloud authenticates. */

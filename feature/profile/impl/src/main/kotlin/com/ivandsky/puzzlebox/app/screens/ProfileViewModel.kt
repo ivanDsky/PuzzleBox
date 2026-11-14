@@ -53,11 +53,11 @@ private const val DELETE_BOARDS_FAILED_MESSAGE = "Couldn't delete your saved boa
 /**
  * Profile's state holder (A20): the account read from [IdentityService.current], the sign-in
  * flow's own progress/outcome while signed out, and the player's overall `playingSince`
- * ([ObserveGameStats]). With a [link] and [observeAccount] (the LinkedIn switch is on) it also follows the LinkedIn
+ * ([ObserveGameStats]). With a [link] and [observeAccount] it also follows the LinkedIn
  * row and carries its Resume and Disconnect. The activity context the credential sheet needs (I2) is passed per
  * call and never stored. It carries the Google row's sync line, Sync now and Delete my cloud data from [cloudSync],
- * and counts the drafts too big to sync from [oversizedDrafts]. With a [savedBoardsCloud] (the LinkedIn switch is on)
- * it carries the LinkedIn row's Delete saved boards. [nowMs] is the clock for the update times; it ticks each minute
+ * and counts the drafts too big to sync from [oversizedDrafts]. It carries the LinkedIn row's Delete saved
+ * boards from [savedBoardsCloud]. [nowMs] is the clock for the update times; it ticks each minute
  * while something collects it, so a Profile that is not on screen does not.
  */
 class ProfileViewModel(
@@ -68,7 +68,7 @@ class ProfileViewModel(
     observeAccount: ObserveLinkedInAccount? = null,
     private val cloudSync: CloudSync,
     private val oversizedDrafts: OversizedDrafts,
-    private val savedBoardsCloud: SavedBoardsCloud? = null,
+    private val savedBoardsCloud: SavedBoardsCloud,
     private val clock: Clock = Clock.systemUTC(),
 ) : ViewModel() {
 
@@ -87,7 +87,7 @@ class ProfileViewModel(
         sync: ProfileUiState.GoogleSync? = null,
     ): ProfileUiState.Account = identity?.let { ProfileUiState.Account.SignedIn(it, sync) } ?: prompt
 
-    // Null while the feature is off: nothing LinkedIn is observed, and the row stays out of the state.
+    // Null without a link: nothing LinkedIn is observed, and the row stays out of the state.
     private val linkedIn: Flow<LinkedInRowState?> =
         if (link == null || observeAccount == null) {
             flowOf(null)
@@ -105,7 +105,7 @@ class ProfileViewModel(
         }
 
     private val boards: Flow<ProfileUiState.LinkedInBoards> =
-        boardsDelete.map { ProfileUiState.LinkedInBoards(savedBoardsCloud != null, it.running, it.message) }
+        boardsDelete.map { ProfileUiState.LinkedInBoards(true, it.running, it.message) }
 
     val uiState: StateFlow<ProfileUiState> =
         combine(identityService.current, signIn, observeGameStats(), linkedIn, combine(sync, boards, ::Pair)) {
@@ -178,7 +178,6 @@ class ProfileViewModel(
 
     /** Deletes the saved boards here and in the account; a refusal stays on the LinkedIn row as its message. */
     fun onDeleteSavedBoards() {
-        val savedBoardsCloud = savedBoardsCloud ?: return
         if (boardsDelete.value.running) return
         boardsDelete.value = Deletion(running = true)
         viewModelScope.launch {
