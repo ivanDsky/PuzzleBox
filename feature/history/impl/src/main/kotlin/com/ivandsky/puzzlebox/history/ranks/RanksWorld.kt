@@ -19,7 +19,6 @@ import androidx.compose.ui.graphics.lerp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -87,7 +86,7 @@ private fun BoxScope.GhostGlyph(brand: GameBrand, wide: Boolean, away: () -> Flo
 @PuzzleBoxPreviews
 @Composable
 private fun RanksWorldPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         val brands = listOf(GameBrand.Neutral, GameBrand(AccentSlot.Blue, GameGlyphs.Zip))
         RanksWorld(brands, rememberBoardScrub(1), wide = false, Modifier.fillMaxSize()) {
             Text("Zip · today", Modifier.padding(Spacing.lg), style = MaterialTheme.typography.titleLarge)
