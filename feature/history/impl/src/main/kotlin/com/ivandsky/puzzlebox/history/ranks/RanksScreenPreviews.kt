@@ -1,7 +1,9 @@
 package com.ivandsky.puzzlebox.history.ranks
 
 import android.content.res.Configuration
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.domain.GameStats
@@ -171,7 +173,7 @@ private val TabletPlaces = listOf(
 
 @Composable
 private fun Tablet(state: RanksUiState) {
-    RanksPreviewHost {
+    RanksPreviewHost(Modifier.fillMaxSize()) {
         RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), layout = HistoryLayout.TwoPane)
     }
 }
@@ -180,15 +182,15 @@ private fun Tablet(state: RanksUiState) {
 private const val TabWidth = 1480
 private const val TabHeight = 924
 
-@Preview(name = "Tab S9 Ultra Light", widthDp = TabWidth, heightDp = TabHeight, showBackground = true)
-@Preview(name = "Tab S9 Ultra Dark", widthDp = TabWidth, heightDp = TabHeight, showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Tab S9 Ultra Light", widthDp = TabWidth, heightDp = TabHeight)
+@Preview(name = "Tab S9 Ultra Dark", widthDp = TabWidth, heightDp = TabHeight, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun RanksTwoPanePreview() = Tablet(
     RanksUiState(ZipSlice, position = 1, boardCount = TabletPlaces.size, calendar = Week.copy(expanded = true), stats = Stats, places = TabletPlaces),
 )
 
-@Preview(name = "Tab S9 Ultra Light", widthDp = TabWidth, heightDp = TabHeight, showBackground = true)
-@Preview(name = "Tab S9 Ultra Dark", widthDp = TabWidth, heightDp = TabHeight, showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Tab S9 Ultra Light", widthDp = TabWidth, heightDp = TabHeight)
+@Preview(name = "Tab S9 Ultra Dark", widthDp = TabWidth, heightDp = TabHeight, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun RanksTwoPaneOverallPreview() = Tablet(
     RanksUiState(
@@ -200,8 +202,8 @@ private fun RanksTwoPaneOverallPreview() = Tablet(
     ),
 )
 
-@Preview(name = "Tab S9 Ultra Light", widthDp = TabWidth, heightDp = TabHeight, showBackground = true)
-@Preview(name = "Tab S9 Ultra Dark", widthDp = TabWidth, heightDp = TabHeight, showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Preview(name = "Tab S9 Ultra Light", widthDp = TabWidth, heightDp = TabHeight)
+@Preview(name = "Tab S9 Ultra Dark", widthDp = TabWidth, heightDp = TabHeight, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun RanksTwoPanePastDayPreview() = Tablet(
     RanksUiState(ZipSlice, position = 1, boardCount = TabletPlaces.size, calendar = Week.copy(expanded = true), stats = Stats, yourSolve = PreviewYourSolve, places = TabletPlaces),
