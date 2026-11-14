@@ -88,7 +88,7 @@ private fun WeekStripDay(day: WeekDay, total: Int, ringSize: Dp, ringStroke: Dp,
                 Box(Modifier.size(disc).background(ice.container, CircleShape), contentAlignment = Alignment.Center) {
                     Icon(
                         imageVector = PuzzleIcons.Snowflake,
-                        contentDescription = "Frozen",
+                        contentDescription = FrozenLabel,
                         modifier = Modifier.size(disc * FROZEN_GLYPH_FRACTION),
                         tint = ice.onContainer,
                     )
