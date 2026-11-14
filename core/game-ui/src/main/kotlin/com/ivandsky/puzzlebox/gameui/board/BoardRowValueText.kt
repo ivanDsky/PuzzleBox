@@ -16,7 +16,7 @@ fun boardRowValueText(value: BoardRowValue, order: RankOrder): String = when (va
     is BoardRowValue.Points -> pointsText(value)
 }
 
-/** The small chip beside a row's name that its [value] adds, if any: the number of games a points total counts. */
+/** The small line under a row's name that its [value] adds, if any: the number of games a points total counts. */
 fun boardRowValueDetail(value: BoardRowValue): String? = when (value) {
     is BoardRowValue.Points -> if (value.games == 1) "1 game" else "${value.games} games"
     is BoardRowValue.Timed, is BoardRowValue.Average -> null

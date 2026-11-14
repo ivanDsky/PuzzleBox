@@ -55,6 +55,7 @@ internal fun RanksBoardSlot(
             onRowClick = onRowClick.takeIf { morph == null },
             backdrop = MaterialTheme.colorScheme.surface.copy(alpha = WORLD_SURFACE_ALPHA),
             morph = morph?.board,
+            inlineMarks = true,
         )
         if (morph == null) {
             if (slice.friendsAlone) RanksFriendsHint(UnderBoard)

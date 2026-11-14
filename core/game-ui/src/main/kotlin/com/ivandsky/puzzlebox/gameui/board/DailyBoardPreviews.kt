@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -232,16 +233,20 @@ internal fun DailyBoardRowValuesPreview() = Padded {
     }
 }
 
-// A player past the board's top reads "100+"; a device-only result sits at its place with the "unofficial" chip. The
-// chips are beside the name, which gives way to them, so a row with both is as tall as one with none.
+// A player past the board's top reads "100+"; a device-only result sits at its place with the "unofficial" mark. With
+// a board's inline marks the marks are chips beside the name, which gives way to them, so a row with both is as tall
+// as one with none.
 @PuzzleBoxPreviews
 @Composable
 internal fun DailyBoardMarksPreview() = Padded {
     Column {
         DailyBoardRow(Rows[1].copy(rank = 101, beyondPage = true), RankOrder.TimeThenHints)
         DailyBoardRow(Rows[1].copy(unofficial = true), RankOrder.TimeThenHints, place = 2)
-        DailyBoardRow(Rows[0].copy(name = "Maximiliana Featherstonehaugh"), RankOrder.TimeThenHints, place = 3, showPuzzleBoxRank = true)
-        DailyBoardRow(Rows[1].copy(isSelf = true, unofficial = true), RankOrder.TimeThenHints, place = 4, showPuzzleBoxRank = true)
+        CompositionLocalProvider(LocalInlineMarks provides true) {
+            DailyBoardRow(Rows[1].copy(unofficial = true), RankOrder.TimeThenHints, place = 2)
+            DailyBoardRow(Rows[0].copy(name = "Maximiliana Featherstonehaugh"), RankOrder.TimeThenHints, place = 3, showPuzzleBoxRank = true)
+            DailyBoardRow(Rows[1].copy(isSelf = true, unofficial = true), RankOrder.TimeThenHints, place = 4, showPuzzleBoxRank = true)
+        }
     }
 }
 

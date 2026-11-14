@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.gameui.board
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.getBoundsInRoot
@@ -94,7 +95,7 @@ class BoardRowLayoutTest {
     }
 
     @Test
-    fun `a PuzzleBox row and a connection row are the same size`() {
+    fun `a row with a second line and one without are the same size`() {
         show(showPuzzleBoxRank = false)
         val plain = composeRule.onAllNodesWithTag("daily_board.row")[0].getBoundsInRoot()
         val connection = composeRule.onNodeWithTag("daily_board.ghost").getBoundsInRoot()
@@ -105,12 +106,21 @@ class BoardRowLayoutTest {
     }
 
     @Test
-    fun `a row with its mark and its PuzzleBox rank is one line, the same height as a row without`() {
+    fun `a row with its PuzzleBox rank line is the same height as without`() {
+        show(showPuzzleBoxRank = true)
+        val withLine = composeRule.onAllNodesWithTag("daily_board.row")[0].getBoundsInRoot().height
+        composeRule.onNodeWithTag("daily_board.ghost").assertHeightIsEqualTo(withLine)
+    }
+
+    @Test
+    fun `with inline marks a row with its mark and its PuzzleBox rank is one line, the same height as a row without`() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                Column {
-                    DailyBoardRow(self.copy(unofficial = true), RankOrder.TimeThenHints, place = 2, showPuzzleBoxRank = true)
-                    GhostRow(ghost, 3, RankOrder.TimeThenHints)
+                CompositionLocalProvider(LocalInlineMarks provides true) {
+                    Column {
+                        DailyBoardRow(self.copy(unofficial = true), RankOrder.TimeThenHints, place = 2, showPuzzleBoxRank = true)
+                        GhostRow(ghost, 3, RankOrder.TimeThenHints)
+                    }
                 }
             }
         }
@@ -124,8 +134,38 @@ class BoardRowLayoutTest {
         }
     }
 
+    private fun showList(inlineMarks: Boolean) {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                if (inlineMarks) {
+                    DailyBoardList(listOf(DailyBoardLine.Real(self.copy(unofficial = true), 2)), RankOrder.TimeThenHints, inlineMarks = true)
+                } else {
+                    DailyBoardList(listOf(DailyBoardLine.Real(self.copy(unofficial = true), 2)), RankOrder.TimeThenHints)
+                }
+            }
+        }
+    }
+
     @Test
-    fun `a connection row has the LinkedIn dot and no chip, a PuzzleBox row has no dot`() {
+    fun `a list that does not ask for inline marks keeps a row's mark on a line under its name`() {
+        showList(inlineMarks = false)
+        val name = composeRule.onNodeWithTag("daily_board.row.name").getBoundsInRoot()
+        val mark = composeRule.onNodeWithTag("daily_board.row.mark").getBoundsInRoot()
+
+        assertTrue("the mark $mark is under the name $name", mark.top >= name.bottom && mark.left == name.left)
+    }
+
+    @Test
+    fun `a list with inline marks puts a row's mark beside its name`() {
+        showList(inlineMarks = true)
+        val name = composeRule.onNodeWithTag("daily_board.row.name").getBoundsInRoot()
+        val mark = composeRule.onNodeWithTag("daily_board.row.mark").getBoundsInRoot()
+
+        assertTrue("the mark $mark is beside the name $name", mark.left >= name.right && mark.top >= name.top && mark.bottom <= name.bottom)
+    }
+
+    @Test
+    fun `a connection row has the LinkedIn dot and no second line, a PuzzleBox row has no dot`() {
         showLinkedInRows()
 
         composeRule.onNodeWithTag("daily_board.ghost.linkedin_dot").assertExists()

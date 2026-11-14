@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -12,8 +13,10 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
@@ -30,17 +33,27 @@ private val ChipInset = 2.dp
 // What a long name keeps of its line when the chips beside it would take it all; the chips give way past that.
 private val NameKeeps = 56.dp
 
-/** Every row's height (the winner's medal row aside): a row is one line, so one with chips and one without are the same size. */
+/**
+ * Tall enough for a name over one small line, so a row with the line and one without are the same size. With
+ * [LocalInlineMarks] every row is one line, so every row is this height (the winner's medal row aside).
+ */
 internal val BoardRowMinHeight = 64.dp
 
-/** The test tags of one kind of row: [root] frames it, [part] prefixes its parts and [detail] tags the detail chip. */
+/**
+ * Whether a row's mark and detail are chips beside its name, on the name's line, rather than small lines under it.
+ * A board sets it from its own `inlineMarks`; a row drawn outside a board has the lines.
+ */
+internal val LocalInlineMarks = staticCompositionLocalOf { false }
+
+/** The test tags of one kind of row: [root] frames it, [part] prefixes its parts and [detail] tags the detail line or chip. */
 internal class BoardRowTags(val root: String, val part: String, val detail: String)
 
 /**
  * The one row every board draws, so a PuzzleBox row and a connection row cannot drift apart: [photo] (or [name]'s
  * initial), then the [cells] that are the row's on this board: its place (null while it is hidden, "100+" beyond the
- * page), [name] with the small mark and detail chips beside it on the same line when there are any (the name
- * ellipsizes before a chip does, and a chip never makes the row taller), then the score. Framed; [self] puts
+ * page), [name] with the small mark and detail lines under it when there are any, then the score. With
+ * [LocalInlineMarks] the mark and the detail are chips beside the name on the same line instead: the name ellipsizes
+ * before a chip does, and a chip never makes the row taller. Framed; [self] puts
  * it on the secondary container and [connection] frames it in LinkedIn blue. [linkedIn] puts the LinkedIn dot on the
  * photo. [muted] greys the score, for a time that is hidden. [scoreTime] lets the score count to a new time where the
  * board moves. A medal row wears its tint over whatever the row sits on and keeps its own minimum height.
@@ -95,18 +108,19 @@ internal fun BoardRow(
                 ScrubbedPlace(was, cells, quiet, "${tags.part}.rank", scrub.progress)
             }
         }
-        NameLine(Modifier.weight(1f)) {
-            Text(
-                name,
-                style = MaterialTheme.typography.bodyLarge,
-                color = content,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.testTag("${tags.part}.name"),
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                RowCell(was.mark, cells.mark, scrub) { Chip(it, self, "${tags.part}.mark") }
-                RowCell(was.detail, cells.detail, scrub) { Chip(it, self, tags.detail) }
+        if (LocalInlineMarks.current) {
+            NameLine(Modifier.weight(1f)) {
+                RowName(name, content, tags)
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    RowCell(was.mark, cells.mark, scrub) { Chip(it, self, "${tags.part}.mark") }
+                    RowCell(was.detail, cells.detail, scrub) { Chip(it, self, tags.detail) }
+                }
+            }
+        } else {
+            Column(Modifier.weight(1f)) {
+                RowName(name, content, tags)
+                RowCell(was.mark, cells.mark, scrub) { SmallLine(it, quiet, "${tags.part}.mark") }
+                RowCell(was.detail, cells.detail, scrub) { SmallLine(it, quiet, tags.detail) }
             }
         }
         RowCell(was.score, cells.score, scrub, Alignment.CenterEnd) {
@@ -119,6 +133,24 @@ internal fun BoardRow(
             )
         }
     }
+}
+
+@Composable
+private fun RowName(name: String, color: Color, tags: BoardRowTags) {
+    Text(
+        name,
+        style = MaterialTheme.typography.bodyLarge,
+        color = color,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.testTag("${tags.part}.name"),
+    )
+}
+
+// The small line under the name; nothing when the row has none.
+@Composable
+private fun SmallLine(text: String?, color: Color, tag: String) {
+    if (text != null) Text(text, style = MaterialTheme.typography.labelSmall, color = color, modifier = Modifier.testTag(tag))
 }
 
 // The name and the chips beside it ([content]'s two children, in that order) on one line as tall as the name alone.

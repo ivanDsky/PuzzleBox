@@ -46,7 +46,7 @@ private const val NONE = "—"
  * best and average, then today's times on its board ([PlayTimesCard]). [elapsedMs] is
  * read here, so only the panel recomposes on each tick; null (no running board) reads
  * 0:00. Loading values show dashes in the same slots, so nothing moves when data lands.
- * It scrolls when the pane is shorter than the panel.
+ * It scrolls when the pane is shorter than the panel. [inlineMarks] is the times card's.
  */
 @Composable
 internal fun ColumnScope.PlayStatsPanel(
@@ -54,6 +54,7 @@ internal fun ColumnScope.PlayStatsPanel(
     elapsedMs: () -> Long?,
     signIn: BoardSignIn,
     onSignIn: () -> Unit,
+    inlineMarks: Boolean = false,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()).testTag("play.stats"),
@@ -75,7 +76,7 @@ internal fun ColumnScope.PlayStatsPanel(
         }
         TodayProgressCard(state)
         StreakCard(state)
-        PlayTimesCard(state.times, signIn = signIn, onSignIn = onSignIn, animated = state.linkedIn)
+        PlayTimesCard(state.times, signIn = signIn, onSignIn = onSignIn, animated = state.linkedIn, inlineMarks = inlineMarks)
     }
 }
 

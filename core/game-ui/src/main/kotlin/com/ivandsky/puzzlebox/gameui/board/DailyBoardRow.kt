@@ -13,11 +13,11 @@ private const val UnofficialMark = "unofficial"
 
 /**
  * One ranked [row] at [place] in the board's one ranking, drawn as every board row is; the signed-in player's own row
- * stands out on the secondary container. [showPuzzleBoxRank] adds the row's own PuzzleBox rank as a chip beside the name, which
+ * stands out on the secondary container. [showPuzzleBoxRank] adds the row's own PuzzleBox rank under the name, which
  * differs from [place] once LinkedIn connections take places among the rows; a row added from LinkedIn has none.
  * A row whose time came from LinkedIn carries the LinkedIn dot on its photo.
  * The score column says the row's [DailyBoardRowModel.scoreValue] in [order]'s voice; a row [DailyBoardRowModel.beyondPage]
- * reads "100+" for its place and an [DailyBoardRowModel.unofficial] one carries the "unofficial" chip. With [medals] the
+ * reads "100+" for its place and an [DailyBoardRowModel.unofficial] one carries the "unofficial" mark. With [medals] the
  * rows at places 1 to 3 are medal rows (see [MedalRow]); an unofficial row takes no place, so it wears no medal.
  * When the board opted into row taps, another player's official row is a button that reports its [row].
  */
