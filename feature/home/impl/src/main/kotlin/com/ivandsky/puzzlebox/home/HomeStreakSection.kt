@@ -62,7 +62,7 @@ internal fun HomeStreakSection(
                     color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.weight(1f, fill = false),
                 )
-                stats.freezes?.let { FreezeCount(held = it.held) }
+                if (stats.currentStreak > 0) stats.freezes?.let { FreezeCount(held = it.held) }
             }
             WeekStrip(days = week, total = total, modifier = Modifier.testTag("home.week"))
         }
