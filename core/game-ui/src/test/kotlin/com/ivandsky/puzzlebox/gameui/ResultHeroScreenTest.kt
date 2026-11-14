@@ -135,8 +135,19 @@ class ResultHeroScreenTest {
      * The hero card, a chip, and the action row's Next button and Share icon. The chip's tag sits inside the tile's
      * vertical padding, so its drawn tile ends [Spacing.sm] below [chips].
      */
-    private data class HeroParts(val card: DpRect, val chips: DpRect, val next: DpRect, val share: DpRect) {
+    private data class HeroParts(
+        val card: DpRect,
+        val chips: DpRect,
+        val next: DpRect,
+        val share: DpRect,
+        val glyph: DpRect,
+        val time: DpRect,
+        val best: DpRect,
+    ) {
         val chipsBottom: Dp get() = chips.bottom + Spacing.sm
+
+        /** The four gaps between the stacked blocks: glyph to time, time to best, best to chips, chips to actions. */
+        val gaps: List<Dp> get() = listOf(time.top - glyph.bottom, best.top - time.bottom, chips.top - best.bottom, next.top - chipsBottom)
     }
 
     private fun heroParts(): HeroParts = HeroParts(
@@ -144,6 +155,9 @@ class ResultHeroScreenTest {
         chips = composeRule.onNodeWithTag("result.hero.chip.today").getUnclippedBoundsInRoot(),
         next = composeRule.onNodeWithTag("result.next").getUnclippedBoundsInRoot(),
         share = composeRule.onNodeWithTag("result.share").getUnclippedBoundsInRoot(),
+        glyph = composeRule.onNodeWithTag("result.hero.glyph").getUnclippedBoundsInRoot(),
+        time = composeRule.onNodeWithTag("result.hero.time").getUnclippedBoundsInRoot(),
+        best = composeRule.onNodeWithTag("result.hero.best").getUnclippedBoundsInRoot(),
     )
 
     @Test
@@ -163,8 +177,8 @@ class ResultHeroScreenTest {
     }
 
     @Test
-    fun tablet_keeps_the_hero_chips_where_they_were_when_the_side_card_grows_taller() {
-        // Same hero body beside a shorter side card (nothing stretches) and then a taller one (the actions drop away).
+    fun tablet_spreads_the_hero_blocks_evenly_down_the_card_when_the_side_card_grows_taller() {
+        // Same hero beside a shorter side card (nothing stretches) and then a taller one (the spare height is shared out).
         var sideTall by mutableStateOf(false)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
@@ -181,8 +195,14 @@ class ResultHeroScreenTest {
         sideTall = true
         composeRule.waitForIdle()
         val tall = heroParts()
-        assertTrue("premise: the hero stretches (${short.card.height} -> ${tall.card.height})", tall.card.height > short.card.height)
-        assertEquals("chips offset in the card", (short.chips.top - short.card.top).value, (tall.chips.top - tall.card.top).value, 1f)
+        val extra = tall.card.height - short.card.height
+        assertTrue("premise: the hero stretches (${short.card.height} -> ${tall.card.height})", extra > 8.dp)
+        val share = extra.value / short.gaps.size
+        short.gaps.zip(tall.gaps).forEachIndexed { index, (before, after) ->
+            assertEquals("gap $index grows by an equal share of $extra", share, (after - before).value, 1f)
+        }
+        assertEquals("the header stays on the top padding", (short.glyph.top - short.card.top).value, (tall.glyph.top - tall.card.top).value, 1f)
+        assertEquals("the actions stay on the bottom padding", (short.card.bottom - short.next.bottom).value, (tall.card.bottom - tall.next.bottom).value, 1f)
     }
 
     @Test

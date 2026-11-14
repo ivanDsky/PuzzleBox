@@ -72,8 +72,9 @@ private val BurstOrigin = Offset(0.3f, 0.5f)
  * once and skips the pulse, burst and sweep band; a preview shows the end state.
  * [wide] sets the 96 sp time of a wide container over the phone's 76 sp.
  * [actions] is the action row, entering on its beat; null draws none. The row sits [Spacing.lg] under the
- * chips, and when the card is stretched taller than its content (a taller side card beside it) it is pinned to
- * the card's bottom padding instead, the body staying at the top. [contentModifier] is applied to the content,
+ * chips. When the card is stretched taller than its content (a taller side card beside it) the spare height is
+ * shared equally among the gaps between the blocks: the header stays on the top padding and the actions rest on
+ * the bottom padding. [contentModifier] is applied to the content,
  * padding included, so the screen can give it a minimum height; [onContentHeight] gets the height the content
  * takes unstretched (body, gap and actions, plus padding), which never depends on that minimum.
  */
@@ -110,56 +111,58 @@ internal fun ResultHeroCard(
             padding = if (wide) Spacing.xl else Spacing.lg,
             modifier = contentModifier,
             onNaturalHeight = onContentHeight,
-            body = {
-                Column {
-                    HeroHeader(model, brand)
-                    Box(Modifier.padding(top = Spacing.xl, bottom = Spacing.sm).resultBeat(ResultBeats.Time)) {
-                        if (model.burst) {
-                            NewBestBurst(
-                                trigger = celebrated,
-                                colors = listOf(accent.accent, MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.primary),
-                                modifier = Modifier.matchParentSize(),
-                                origin = BurstOrigin,
-                            )
-                        }
-                        val shown = rememberCountUp(model.timeMs, delayMs = ResultBeats.DelaysMs[ResultBeats.Time])
-                        Text(
-                            text = formatDuration(shown),
-                            style = resultHeroTimeStyle(wide, hourPlus = model.timeMs >= HOUR_MS),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            softWrap = false,
-                            modifier = Modifier.timePulse(celebrated).testTag("result.hero.time"),
-                        )
-                    }
-                    model.bestLine?.let { line ->
-                        Text(
-                            text = line,
-                            style = MaterialTheme.typography.bodyLarge.tabular(),
-                            color = if (model.bestImproved) accent.accent else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.resultBeat(ResultBeats.Supporting, 1).testTag("result.hero.best"),
-                        )
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    ) {
-                        model.chips.forEachIndexed { index, chip ->
-                            HeroChipTile(chip, Modifier.weight(1f).resultBeat(ResultBeats.Blocks, index))
-                        }
-                    }
+        ) {
+            HeroHeader(model, brand)
+            Box(Modifier.padding(top = Spacing.xl, bottom = Spacing.sm).resultBeat(ResultBeats.Time)) {
+                if (model.burst) {
+                    NewBestBurst(
+                        trigger = celebrated,
+                        colors = listOf(accent.accent, MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.primary),
+                        modifier = Modifier.matchParentSize(),
+                        origin = BurstOrigin,
+                    )
                 }
-            },
-            actions = actions?.let { row -> { Box(Modifier.resultBeat(ResultBeats.Actions)) { row() } } },
-        )
+                val shown = rememberCountUp(model.timeMs, delayMs = ResultBeats.DelaysMs[ResultBeats.Time])
+                Text(
+                    text = formatDuration(shown),
+                    style = resultHeroTimeStyle(wide, hourPlus = model.timeMs >= HOUR_MS),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier.timePulse(celebrated).testTag("result.hero.time"),
+                )
+            }
+            model.bestLine?.let { line ->
+                Text(
+                    text = line,
+                    style = MaterialTheme.typography.bodyLarge.tabular(),
+                    color = if (model.bestImproved) accent.accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.resultBeat(ResultBeats.Supporting, 1).testTag("result.hero.best"),
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                model.chips.forEachIndexed { index, chip ->
+                    HeroChipTile(chip, Modifier.weight(1f).resultBeat(ResultBeats.Blocks, index))
+                }
+            }
+            if (actions != null) {
+                Box(Modifier.padding(top = Spacing.lg).resultBeat(ResultBeats.Actions)) { actions() }
+            }
+        }
     }
 }
 
 /**
- * The hero's content: [body] at the top and [actions] [Spacing.lg] under it, all inside [padding]. Given more height
- * than that (the card's minimum, from [modifier]) the extra goes between the two and the actions rest on the bottom padding.
+ * The hero's content: its blocks (the header, the time, the best line when there is one, the chips and the actions
+ * when there are any, each a single child of [content]) stacked top to bottom inside [padding], each keeping the
+ * spacing its own padding gives it. Given more height than that (the card's minimum, from [modifier]) the extra is
+ * shared equally among the gaps between consecutive blocks: the first block stays on the top padding and the last (the
+ * actions, when there are any) rests on the bottom padding. With no spare height the blocks sit as in a plain column.
  *
- * Both are measured free of the incoming minimum height, so the natural height, passed to [onNaturalHeight] with the
+ * Blocks are measured free of the incoming minimum height, so the natural height, passed to [onNaturalHeight] with the
  * padding, is the same however tall the card is stretched and the screen can set the minimum from it without a loop.
  * The report is made here because the stretched node's own size is no longer the natural one for `onSizeChanged` to see;
  * writing the same height again is a no-op for the screen's state, so only a real change relays out the cards.
@@ -169,30 +172,25 @@ private fun HeroContent(
     padding: Dp,
     modifier: Modifier,
     onNaturalHeight: ((Int) -> Unit)?,
-    body: @Composable () -> Unit,
-    actions: (@Composable () -> Unit)?,
+    content: @Composable () -> Unit,
 ) {
-    Layout(
-        content = {
-            body()
-            actions?.invoke()
-        },
-        modifier = modifier,
-    ) { measurables, constraints ->
+    Layout(content = content, modifier = modifier) { measurables, constraints ->
         val pad = padding.roundToPx()
-        val inner = constraints.offset(horizontal = -2 * pad, vertical = -2 * pad)
-        val free = inner.copy(minHeight = 0)
-        val bodyPlaceable = measurables[0].measure(free)
-        val actionsPlaceable = measurables.getOrNull(1)?.measure(free)
-        val actionsHeight = actionsPlaceable?.height ?: 0
-        val gap = if (actionsPlaceable == null) 0 else Spacing.lg.roundToPx()
-        val natural = bodyPlaceable.height + gap + actionsHeight + 2 * pad
+        val free = constraints.offset(horizontal = -2 * pad, vertical = -2 * pad).copy(minHeight = 0)
+        val blocks = measurables.map { it.measure(free) }
+        val natural = blocks.sumOf { it.height } + 2 * pad
         onNaturalHeight?.invoke(natural)
-        val width = constraints.constrainWidth(maxOf(bodyPlaceable.width, actionsPlaceable?.width ?: 0) + 2 * pad)
+        val width = constraints.constrainWidth(blocks.maxOf { it.width } + 2 * pad)
         val height = constraints.constrainHeight(natural)
+        val extra = (height - natural).coerceAtLeast(0)
+        val gaps = blocks.size - 1
         layout(width, height) {
-            bodyPlaceable.place(pad, pad)
-            actionsPlaceable?.place(pad, height - pad - actionsHeight)
+            var y = pad
+            blocks.forEachIndexed { index, block ->
+                // Cumulative rounding: the gaps differ by a pixel at most and the last block lands on the bottom padding.
+                block.place(pad, y + if (gaps == 0) 0 else extra * index / gaps)
+                y += block.height
+            }
         }
     }
 }
