@@ -32,7 +32,7 @@
 
 ## Deploy targets (in order; empty list = build-only)
 - local: ./gradlew :app:assembleDebug
-- release: .github/workflows/release.yml  # workflow "Main": push to main → full build + unit tests, then (green only) signed release APK on GitHub releases; local release builds sign with the release key via ~/.gradle/gradle.properties
+- release: .github/workflows/release.yml  # workflow "Main": push to main → two parallel test jobs (assembleDebug testCore, testUi; goldens skipped outside :app) beside the signed release build; publish to GitHub releases only when all are green; local release builds sign with the release key via ~/.gradle/gradle.properties
 # releases run in one queue; a 3rd quick merge replaces the 2nd's pending run (that version is skipped; next run releases HEAD — re-dispatch from main to publish now)
 # debug installs are com.ivandsky.puzzlebox.debug ("PuzzleBox Dev") beside the release app com.ivandsky.puzzlebox
 - tailscale: ivandsky.github
