@@ -27,14 +27,18 @@ class GoogleRowCopyTest {
     private val signedOut = ProfileUiState.Account.SignedOut()
 
     private fun setRow(account: ProfileUiState.Account, sync: GoogleSync?, syncCopy: Boolean) {
+        val shown = when (account) {
+            is ProfileUiState.Account.SignedIn -> account.copy(sync = sync)
+            is ProfileUiState.Account.SignedOut -> account.copy(cloudSyncAvailable = syncCopy)
+        }
         composeRule.setContent {
             PuzzleBoxTheme {
                 GoogleRow(
-                    account = account,
+                    account = shown,
                     onSignIn = {},
                     onSignOut = {},
-                    sync = sync,
-                    syncCopy = syncCopy,
+                    onSyncNow = {},
+                    onDeleteCloudData = {},
                     nowMs = NOW,
                 )
             }

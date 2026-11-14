@@ -81,6 +81,9 @@ class ProfileScreenTest {
                     onBack = onBack,
                     onOpenSettings = onOpenSettings,
                     nowMs = NOW,
+                    onSyncNow = {},
+                    onDeleteCloudData = {},
+                    onDeleteSavedBoards = {},
                     onConnectLinkedIn = if (linkedInOn) ({ linkedInTaps += "connect" }) else null,
                     onResumeLinkedIn = { linkedInTaps += "resume" },
                     onDisconnectLinkedIn = { linkedInTaps += "disconnect" },
@@ -210,6 +213,9 @@ class ProfileScreenTest {
                             onBack = {},
                             onOpenSettings = {},
                             nowMs = NOW,
+                            onSyncNow = {},
+                            onDeleteCloudData = {},
+                            onDeleteSavedBoards = {},
                         )
                     }
                     Box(Modifier.weight(1f).fillMaxHeight()) {

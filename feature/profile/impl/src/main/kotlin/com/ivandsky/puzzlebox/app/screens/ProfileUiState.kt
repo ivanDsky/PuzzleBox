@@ -9,27 +9,29 @@ import java.time.LocalDate
  * Profile (A20): the [account] (Google sign-in, A6) and the date the player [playingSince]
  * (their first solve; null before it). Signed out is a first-class, clearly-prompted state
  * (A7/A15) — nothing else in the app is gated on identity. [linkedIn] is the LinkedIn row; null while the
- * feature is off or before the link has reported. [sync] is the Google row's cloud-sync line; null while cloud sync
- * is off or nobody is signed in. [linkedInBoards] is the LinkedIn row's cloud-boards side; null while neither cloud
- * sync nor cloud boards are on.
+ * feature is off or before the link has reported. The Google row's cloud-sync side lives on the [account]: a
+ * signed-in player carries the sync line ([Account.SignedIn.sync], null while cloud sync is off), a signed-out one
+ * says whether cloud sync is on ([Account.SignedOut.cloudSyncAvailable]). [linkedInBoards] is the LinkedIn row's
+ * cloud-boards side; null while neither cloud sync nor cloud boards are on.
  */
 data class ProfileUiState(
     val account: Account = Account.SignedOut(),
     val playingSince: LocalDate? = null,
     val linkedIn: LinkedInRowState? = null,
-    val sync: GoogleSync? = null,
     val linkedInBoards: LinkedInBoards? = null,
 ) {
     /**
      * What the LinkedIn row says about saved boards: whether they are [savedToAccount] (cloud sync is on), whether
      * Delete saved boards is offered ([canDelete]), whether one is running ([deleting]), and why the last one did not
-     * finish ([deleteMessage]).
+     * finish ([deleteMessage]). [googleSignedIn] false makes a connected row whose boards are meant for the account ask
+     * the player to sign in.
      */
     data class LinkedInBoards(
         val savedToAccount: Boolean,
         val canDelete: Boolean,
         val deleting: Boolean = false,
         val deleteMessage: String? = null,
+        val googleSignedIn: Boolean = true,
     )
 
     /**
@@ -58,15 +60,20 @@ data class ProfileUiState(
     }
 
     sealed interface Account {
-        /** The sign-in prompt; [signingIn] while the credential flow runs, then its outcome copy. */
+        /**
+         * The sign-in prompt; [signingIn] while the credential flow runs, then its outcome copy. [cloudSyncAvailable]
+         * (cloud sync is on) makes the prompt name keeping the history on every device.
+         */
         data class SignedOut(
             val signingIn: Boolean = false,
             val signInMessage: String? = null,
+            val cloudSyncAvailable: Boolean = false,
         ) : Account
 
-        /** The player, signed in. */
+        /** The player, signed in; [sync] is the Google row's cloud-sync line, null while cloud sync is off. */
         data class SignedIn(
             val identity: Identity,
+            val sync: GoogleSync? = null,
         ) : Account
     }
 }

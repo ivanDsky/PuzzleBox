@@ -40,13 +40,13 @@ class GoogleSyncLineTest {
         syncNowClicks = 0
         deleteClicks = 0
         signOutClicks = 0
+        val shown = if (account is ProfileUiState.Account.SignedIn) account.copy(sync = sync) else account
         composeRule.setContent {
             PuzzleBoxTheme {
                 GoogleRow(
-                    account = account,
+                    account = shown,
                     onSignIn = {},
                     onSignOut = { signOutClicks++ },
-                    sync = sync,
                     nowMs = NOW,
                     onSyncNow = { syncNowClicks++ },
                     onDeleteCloudData = { deleteClicks++ },
@@ -117,7 +117,16 @@ class GoogleSyncLineTest {
         assertEquals(PauseReason.entries.toSet(), lines.keys)
         val sync = mutableStateOf(GoogleSync(GoogleSync.Status.Paused(PauseReason.Exhausted)))
         composeRule.setContent {
-            PuzzleBoxTheme { GoogleRow(account = signedIn, onSignIn = {}, onSignOut = {}, sync = sync.value, nowMs = NOW) }
+            PuzzleBoxTheme {
+                GoogleRow(
+                    account = signedIn.copy(sync = sync.value),
+                    onSignIn = {},
+                    onSignOut = {},
+                    onSyncNow = {},
+                    onDeleteCloudData = {},
+                    nowMs = NOW,
+                )
+            }
         }
 
         lines.forEach { (reason, line) ->
@@ -142,7 +151,14 @@ class GoogleSyncLineTest {
         val restoration = StateRestorationTester(composeRule)
         restoration.setContent {
             PuzzleBoxTheme {
-                GoogleRow(account = signedIn, onSignIn = {}, onSignOut = {}, sync = GoogleSync(GoogleSync.Status.Synced(NOW)), nowMs = NOW)
+                GoogleRow(
+                    account = signedIn.copy(sync = GoogleSync(GoogleSync.Status.Synced(NOW))),
+                    onSignIn = {},
+                    onSignOut = {},
+                    onSyncNow = {},
+                    onDeleteCloudData = {},
+                    nowMs = NOW,
+                )
             }
         }
         composeRule.onNodeWithTag("profile.google.overflow").performClick()

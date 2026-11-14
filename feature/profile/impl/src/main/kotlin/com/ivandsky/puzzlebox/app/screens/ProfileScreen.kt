@@ -20,6 +20,8 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.profile.ProfileAvatar
 import com.ivandsky.puzzlebox.profile.ProfileHeader
 import com.ivandsky.puzzlebox.profile.accounts.AccountsSection
+import com.ivandsky.puzzlebox.profile.accounts.GoogleActions
+import com.ivandsky.puzzlebox.profile.accounts.LinkedInActions
 
 /**
  * Profile (A20): the top bar (back icon at the left, [onOpenSettings] gear at the right),
@@ -34,13 +36,13 @@ internal fun ProfileContent(
     onBack: () -> Unit,
     onOpenSettings: () -> Unit,
     nowMs: Long,
+    onSyncNow: () -> Unit,
+    onDeleteCloudData: () -> Unit,
+    onDeleteSavedBoards: () -> Unit,
     modifier: Modifier = Modifier,
     onConnectLinkedIn: (() -> Unit)? = null,
     onResumeLinkedIn: () -> Unit = {},
     onDisconnectLinkedIn: () -> Unit = {},
-    onSyncNow: () -> Unit = {},
-    onDeleteCloudData: () -> Unit = {},
-    onDeleteSavedBoards: () -> Unit = {},
 ) {
     val account = state.account
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -73,17 +75,10 @@ internal fun ProfileContent(
             AccountsSection(
                 account = account,
                 linkedIn = state.linkedIn,
-                nowMs = nowMs,
-                onSignIn = onSignIn,
-                onSignOut = onSignOut,
-                onConnectLinkedIn = onConnectLinkedIn,
-                onResumeLinkedIn = onResumeLinkedIn,
-                onDisconnectLinkedIn = onDisconnectLinkedIn,
-                sync = state.sync,
-                onSyncNow = onSyncNow,
-                onDeleteCloudData = onDeleteCloudData,
                 boards = state.linkedInBoards,
-                onDeleteSavedBoards = onDeleteSavedBoards,
+                nowMs = nowMs,
+                google = GoogleActions(onSignIn, onSignOut, onSyncNow, onDeleteCloudData),
+                linkedInActions = LinkedInActions(onConnectLinkedIn, onResumeLinkedIn, onDisconnectLinkedIn, onDeleteSavedBoards),
             )
         }
     }

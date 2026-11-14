@@ -53,26 +53,24 @@ private const val UNFINISHED_COPY = "Unfinished games stay on this device."
 
 /**
  * The Google account row: signed in it says so with Sign out beside it; signed out it explains the sign-in and
- * carries the button in its extra line, with a failure message right under it. With cloud sync on ([sync] given)
- * the signed-in row adds the sync line, what stays after Sign out and that unfinished games stay on this device (A35),
- * and an overflow holding Delete my cloud data behind its confirm; without it the row is exactly the plain one.
- * [syncCopy] (cloud sync is bound; [sync] is null while signed out) makes the signed-out explanation name keeping the
- * history on every device. [nowMs] only phrases the sync age.
+ * carries the button in its extra line, with a failure message right under it. With cloud sync on (the signed-in
+ * [account] carries a sync line) the row adds that line, what stays after Sign out and that unfinished games stay on
+ * this device (A35), and an overflow holding Delete my cloud data behind its confirm; without it the row is exactly
+ * the plain one. A signed-out account with cloud sync available makes the explanation name keeping the history on
+ * every device. [nowMs] only phrases the sync age.
  */
 @Composable
 internal fun GoogleRow(
     account: ProfileUiState.Account,
     onSignIn: () -> Unit,
     onSignOut: () -> Unit,
+    onSyncNow: () -> Unit,
+    onDeleteCloudData: () -> Unit,
     modifier: Modifier = Modifier,
-    sync: ProfileUiState.GoogleSync? = null,
-    syncCopy: Boolean = sync != null,
     nowMs: Long = 0L,
-    onSyncNow: () -> Unit = {},
-    onDeleteCloudData: () -> Unit = {},
 ) {
     when (account) {
-        is ProfileUiState.Account.SignedIn -> AccountRow(
+        is ProfileUiState.Account.SignedIn -> account.sync.let { sync -> AccountRow(
             lead = { GoogleMark() },
             title = "Google",
             sub = "Signed in with Google",
@@ -88,11 +86,11 @@ internal fun GoogleRow(
                 }
             },
             extra = sync?.let { { GoogleSyncExtra(it, nowMs, onSyncNow) } },
-        )
+        ) }
         is ProfileUiState.Account.SignedOut -> AccountRow(
             lead = { GoogleMark() },
             title = "Google",
-            sub = if (syncCopy) SIGN_IN_SYNC_COPY else SIGN_IN_COPY,
+            sub = if (account.cloudSyncAvailable) SIGN_IN_SYNC_COPY else SIGN_IN_COPY,
             modifier = modifier.testTag("profile-signed-out"),
             extra = {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -182,17 +180,21 @@ private fun GoogleMark() {
 }
 
 private const val PREVIEW_NOW_MS = 1_800_000_000_000L
-private val PreviewSignedIn = ProfileUiState.Account.SignedIn(Identity(uid = "u1", displayName = "Ann", photoUrl = null))
+private val PreviewIdentity = Identity(uid = "u1", displayName = "Ann", photoUrl = null)
 
 @PuzzleBoxPreviews
 @Composable
 internal fun GoogleRowSyncedPreview() {
     PuzzleBoxTheme {
         GoogleRow(
-            account = PreviewSignedIn,
+            account = ProfileUiState.Account.SignedIn(
+                PreviewIdentity,
+                ProfileUiState.GoogleSync(ProfileUiState.GoogleSync.Status.Synced(PREVIEW_NOW_MS - 120_000L)),
+            ),
             onSignIn = {},
             onSignOut = {},
-            sync = ProfileUiState.GoogleSync(ProfileUiState.GoogleSync.Status.Synced(PREVIEW_NOW_MS - 120_000L)),
+            onSyncNow = {},
+            onDeleteCloudData = {},
             nowMs = PREVIEW_NOW_MS,
         )
     }
@@ -203,13 +205,17 @@ internal fun GoogleRowSyncedPreview() {
 internal fun GoogleRowEraseOfflinePreview() {
     PuzzleBoxTheme {
         GoogleRow(
-            account = PreviewSignedIn,
+            account = ProfileUiState.Account.SignedIn(
+                PreviewIdentity,
+                ProfileUiState.GoogleSync(
+                    ProfileUiState.GoogleSync.Status.Offline,
+                    eraseMessage = "You're offline. Try again when you're connected.",
+                ),
+            ),
             onSignIn = {},
             onSignOut = {},
-            sync = ProfileUiState.GoogleSync(
-                ProfileUiState.GoogleSync.Status.Offline,
-                eraseMessage = "You're offline. Try again when you're connected.",
-            ),
+            onSyncNow = {},
+            onDeleteCloudData = {},
             nowMs = PREVIEW_NOW_MS,
         )
     }

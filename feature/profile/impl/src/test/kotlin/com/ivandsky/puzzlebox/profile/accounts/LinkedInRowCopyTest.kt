@@ -37,8 +37,8 @@ class LinkedInRowCopyTest {
                     onConnect = {},
                     onResume = {},
                     onDisconnect = {},
-                    boards = boards,
-                    googleSignedIn = googleSignedIn,
+                    onDeleteSavedBoards = {},
+                    boards = boards?.copy(googleSignedIn = googleSignedIn),
                 )
             }
         }
