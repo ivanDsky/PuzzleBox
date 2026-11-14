@@ -55,7 +55,7 @@ class BoardRowOpacityTest {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Box(Modifier.fillMaxWidth().background(Behind)) {
-                    DailyBoardList(lines, RankOrder.TimeThenHints, animated = true)
+                    DailyBoardList(lines, RankOrder.TimeThenHints, style = DailyBoardStyle.defaults(motion = DailyBoardStyle.Motion.Animated))
                 }
             }
         }

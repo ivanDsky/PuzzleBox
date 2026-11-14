@@ -36,7 +36,9 @@ class DailyBoardListTest {
 
     private fun show(lines: List<DailyBoardLine>, pinned: DailyBoardLine.Real? = null, medals: Boolean = false) {
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) { DailyBoardList(lines, RankOrder.TimeThenHints, pinned = pinned, medals = medals) }
+            PuzzleBoxTheme(darkTheme = false) {
+                DailyBoardList(lines, RankOrder.TimeThenHints, pinned = pinned, style = DailyBoardStyle.defaults(medals = medals))
+            }
         }
     }
 

@@ -42,7 +42,13 @@ internal fun Modifier.frostedOut(progress: () -> Float): Modifier = frosted { 1f
  * clipped. The list says nothing to assistive tech while it is between two boards.
  */
 @Composable
-internal fun ScrubbedBoardList(parts: MorphParts, medals: Boolean, backdrop: Color, modifier: Modifier = Modifier) {
+internal fun ScrubbedBoardList(
+    parts: MorphParts,
+    medals: Boolean,
+    backdrop: Color,
+    modifier: Modifier = Modifier,
+    inlineMarks: Boolean = false,
+) {
     val items = remember(parts) { ScrubItems(parts.from, parts.to) }
     val progress = parts.progress
     Layout(
@@ -54,7 +60,7 @@ internal fun ScrubbedBoardList(parts: MorphParts, medals: Boolean, backdrop: Col
                 LocalPlaceMotion provides StillPlaces,
             ) {
                 for (item in items.all) {
-                    key(item.part.key) { ScrubSlot(item, medals, progress) }
+                    key(item.part.key) { ScrubSlot(item, medals, inlineMarks, progress) }
                 }
             }
         },
@@ -83,7 +89,7 @@ internal fun ScrubbedBoardList(parts: MorphParts, medals: Boolean, backdrop: Col
 }
 
 @Composable
-private fun ScrubSlot(item: ScrubItem, medals: Boolean, progress: () -> Float) {
+private fun ScrubSlot(item: ScrubItem, medals: Boolean, inlineMarks: Boolean, progress: () -> Float) {
     val frost = when {
         item.both -> Modifier
         item.to >= 0 -> Modifier.frosted { (progress() - Half) / Half }
@@ -97,7 +103,7 @@ private fun ScrubSlot(item: ScrubItem, medals: Boolean, progress: () -> Float) {
                     old?.let { RowScrub(it.line.cells(it.order, it.withPuzzleBoxRank, medals), progress) }
                 }
                 CompositionLocalProvider(LocalRowScrub provides scrub) {
-                    BoardLine(part.line, part.order, part.withPuzzleBoxRank, medals)
+                    BoardLine(part.line, part.order, part.withPuzzleBoxRank, medals, inlineMarks)
                 }
             }
             BoardPart.Divider -> HorizontalDivider()

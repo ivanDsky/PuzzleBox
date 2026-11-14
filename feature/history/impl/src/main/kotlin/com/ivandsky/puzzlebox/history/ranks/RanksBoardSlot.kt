@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.designsystem.ScrubCell
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.board.DailyBoard
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.gameui.rankRuleText
 import kotlin.math.roundToInt
 
@@ -47,15 +48,17 @@ internal fun RanksBoardSlot(
             state = slice.state,
             modifier = Modifier.testTag("ranks.board"),
             signIn = { RanksSignInPrompt(signIn, onSignIn) },
-            animated = true,
-            morphText = true,
             caption = slice.caption ?: rankRuleText(slice.order),
-            medals = true,
-            dock = true,
             onRowClick = onRowClick.takeIf { morph == null },
-            backdrop = MaterialTheme.colorScheme.surface.copy(alpha = WORLD_SURFACE_ALPHA),
-            morph = morph?.board,
-            inlineMarks = true,
+            style = DailyBoardStyle.defaults(
+                motion = morph?.let { DailyBoardStyle.Motion.Morphing(it.board) } ?: DailyBoardStyle.Motion.Animated,
+                backdrop = MaterialTheme.colorScheme.surface.copy(alpha = WORLD_SURFACE_ALPHA),
+                filledRows = true,
+                medals = true,
+                dock = true,
+                morphText = true,
+                inlineMarks = true,
+            ),
         )
         if (morph == null) {
             if (slice.friendsAlone) RanksFriendsHint(UnderBoard)
