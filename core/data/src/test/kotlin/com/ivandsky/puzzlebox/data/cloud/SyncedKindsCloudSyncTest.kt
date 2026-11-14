@@ -552,7 +552,7 @@ class SyncedKindsCloudSyncTest {
             assertEquals(RestoreSummary(mapOf("drafts" to 1)), awaitItem())
         }
         assertFalse(store.restoreShown(ANN))
-        assertEquals(CloudSyncState.Paused(PauseReason.Exhausted, null), engine.state.value)
+        assertEquals(CloudSyncState.Paused(PauseReason.Local, null), engine.state.value)
     }
 
     @Test
