@@ -78,7 +78,7 @@ internal fun RanksHeroCard(
     ) {
         HeroStanding(was?.standing, face.standing, progress, color)
         Column(Modifier.weight(1f)) {
-            HeroCell(was?.board, face.board, progress) {
+            FrostCell(was?.board, face.board, progress) {
                 BasicText(it, style = MaterialTheme.typography.titleMedium, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             RollingLine(
@@ -131,12 +131,6 @@ private fun HeroPlace(standing: Standing, color: ColorProducer, spoken: Boolean 
         color = color,
         maxLines = 1,
     )
-}
-
-/** A line of the card: [now] at rest, frosting over what it was; between two boards, [was] frosted into [now] by [progress]. */
-@Composable
-private fun HeroCell(was: String?, now: String, progress: () -> Float, content: @Composable (String) -> Unit) {
-    if (was == null) MorphCell(now, content = content) else ScrubCell(was, now, progress, content = content)
 }
 
 @PuzzleBoxPreviews
