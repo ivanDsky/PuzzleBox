@@ -12,8 +12,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ivandsky.puzzlebox.app.MainActivity
 import com.ivandsky.puzzlebox.app.e2e.E2E_TODAY
 import com.ivandsky.puzzlebox.app.e2e.E2eKoinGraph
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -22,17 +20,14 @@ import org.junit.runner.RunWith
 import org.junit.runners.model.Statement
 
 /**
- * A real `ACTION_SEND` intent carrying a Zip notation text starts [MainActivity] with
- * `ShareTarget` on, and the app lands on the Studio of an imported draft whose verdict pill
+ * A real `ACTION_SEND` intent carrying a Zip notation text starts [MainActivity] and
+ * the app lands on the Studio of an imported draft whose verdict pill
  * says Unique (spec A3, A28; runs in the device check, M5-19).
  */
 @RunWith(AndroidJUnit4::class)
 class ShareTargetDeviceTest {
 
-    private val graph = E2eKoinGraph(
-        E2E_TODAY,
-        releaseFlags = FakeReleaseFlags(ReleaseFlag.ShareTarget),
-    )
+    private val graph = E2eKoinGraph(E2E_TODAY)
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
     @Before

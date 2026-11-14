@@ -146,7 +146,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `NAVIGATION_STATE_KEY` (ADR-0011).
 - `core/common/` (`:core:common`) — `DispatcherProvider` seam (+ `DefaultDispatcherProvider`),
   `AppResult`/`AppError` and `resultOf` convention (typed errors, never thrown surprises),
-  `flags/` `ReleaseFlag` enum (TextImport, ShareTarget, Competitions, LinkedInAccount) + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022), Koin `commonModule`.
+  `flags/` `ReleaseFlag` enum (TextImport, Competitions, LinkedInAccount) + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022), Koin `commonModule`.
 - `core/data/` (`:core:data`) — game-agnostic repositories: `DailyRepository` →
   `OfflineFirstDailyRepository` (`today(game)`/`cached(game, day)`/`observeHistory(game)`,
   by-date `day(game, day)` → `DailyDay` (cache first; on a miss fetches and persists only for an
@@ -472,10 +472,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   root; back at a non-start root returns to the start tab; back at the start root exits
   (ADR-0011). Bottom bar on compact widths, rail on expanded-width landscape
   (`homeLayoutFor`/`playLayoutFor`/`historyLayoutFor`); the rail also carries the avatar.
-- Share target (`ShareTarget` flag, debug builds only): the debug manifest
-  (`app/src/debug/AndroidManifest.xml`) adds a plain-text `SEND` intent filter to
-  `MainActivity`; M5-22 moves it to the main manifest. `MainActivity` (new intent or fresh
-  start, gated by the flag) → `SharedText.of` → `SharedTextStore.put` → `PuzzleBoxApp`'s
+- Share target: the main manifest gives `MainActivity` a plain-text `SEND` intent filter.
+  `MainActivity` (new intent or fresh start) → `SharedText.of` → `SharedTextStore.put` → `PuzzleBoxApp`'s
   `pendingShare` → `Navigator.applySharedText()` (select Create, pop to its root, from any
   tab) → the Create root's `CreateViewModel.importSharedText` takes the text and imports it
   while RESUMED.

@@ -44,6 +44,14 @@
                 <data android:pathPrefix="/p/" />
                 <data android:pathPrefix="/m/" />
             </intent-filter>
+            <!-- Plain-text shares (a puzzle's notation) reach MainActivity as an import. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:mimeType="text/plain" />
+            </intent-filter>
         </activity>
     </application>
 

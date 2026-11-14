@@ -16,17 +16,5 @@
         <activity
             android:name="androidx.activity.ComponentActivity"
             android:exported="true" />
-        <!-- ShareTarget (M5-10-b): plain-text shares reach MainActivity in debug builds
-             only; it merges into the main manifest's activity. M5-22 moves this filter to
-             the main manifest, so release APKs stay out of the share sheet until then. -->
-        <activity android:name=".MainActivity">
-            <intent-filter>
-                <action android:name="android.intent.action.SEND" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-
-                <data android:mimeType="text/plain" />
-            </intent-filter>
-        </activity>
     </application>
 </manifest>
