@@ -13,11 +13,12 @@ internal object SyncBackoff {
 
     /**
      * The pause after [failure] as the [attempt]th consecutive one (1 is the first). [lastAtMs] is the last successful
-     * pass, or null. `Offline` waits for a trigger; `Exhausted` and `Denied` retry after 1 min, doubling to 30 min.
-     * `Ok` and `WrongAccount` are no failure of the cloud, so they decide nothing (null).
+     * pass, or null. `Offline` while the network is down ([online] false) waits for a trigger; while the network is up
+     * it is a call that timed out, shows `Offline` and retries like `Exhausted` and `Denied` do: after 1 min, doubling
+     * to 30 min. `Ok` and `WrongAccount` are no failure of the cloud, so they decide nothing (null).
      */
-    fun after(failure: CloudResult<*>, attempt: Int, lastAtMs: Long?): Pause? = when (failure) {
-        CloudResult.Offline -> Pause(CloudSyncState.Offline(lastAtMs), retryAfterMs = null)
+    fun after(failure: CloudResult<*>, attempt: Int, lastAtMs: Long?, online: Boolean): Pause? = when (failure) {
+        CloudResult.Offline -> Pause(CloudSyncState.Offline(lastAtMs), if (online) delayMs(attempt) else null)
         CloudResult.Exhausted -> Pause(CloudSyncState.Paused(PauseReason.Exhausted, lastAtMs), delayMs(attempt))
         CloudResult.Denied -> Pause(CloudSyncState.Paused(PauseReason.Denied, lastAtMs), delayMs(attempt))
         is CloudResult.Ok, CloudResult.WrongAccount -> null

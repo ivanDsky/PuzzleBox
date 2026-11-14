@@ -19,6 +19,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.shadows.ShadowLog
 
 /**
  * The runner's trigger table (ticket 15) on a virtual clock: each trigger starts one run, a burst of pending changes
@@ -271,5 +272,18 @@ class CloudSyncRunnerTest {
         pass(2_000)
 
         assertEquals(3, calls)
+    }
+
+    @Test
+    fun `a failed run logs the exception class and never its message`() = runTest {
+        val failing = object : CloudSync by engine {
+            override suspend fun syncNow() = error("secret li_at token")
+        }
+        start(failing)
+
+        val logs = ShadowLog.getLogsForTag("CloudSyncRunner")
+
+        assertTrue(logs.any { it.msg.contains("IllegalStateException") })
+        assertTrue(logs.none { it.msg.contains("secret") })
     }
 }
