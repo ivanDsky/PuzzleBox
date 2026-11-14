@@ -14,8 +14,8 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 /**
- * The LinkedIn side of cloud sync: loaded with [cloudSyncModule], and only when `ReleaseFlag.LinkedInAccount` is also
- * on. It adds the boards kind to the `SyncedKind` list and binds the saved-board deletion the LinkedIn row resolves
+ * The LinkedIn side of cloud sync: loaded after [cloudSyncModule] by the app, and only when `ReleaseFlag.LinkedInAccount`
+ * is on. It adds the boards kind to the `SyncedKind` list and binds the saved-board deletion the LinkedIn row resolves
  * with `getOrNull<SavedBoardsCloud>()`. Both take the one [LinkedInStoreLock] single `dataModule` binds, the lock the
  * day sync and the disconnect wipe already hold, so a cloud pass never interleaves with them.
  */

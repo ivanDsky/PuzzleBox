@@ -55,10 +55,9 @@ private const val DELETE_BOARDS_FAILED_MESSAGE = "Couldn't delete your saved boa
  * flow's own progress/outcome while signed out, and the player's overall `playingSince`
  * ([ObserveGameStats]). With a [link] and [observeAccount] (the LinkedIn switch is on) it also follows the LinkedIn
  * row and carries its Resume and Disconnect. The activity context the credential sheet needs (I2) is passed per
- * call and never stored. With a [cloudSync] (the CloudSync switch is on) it also carries the Google row's sync line,
- * Sync now and Delete my cloud data, and the LinkedIn row's saved-to-your-account copy; with [oversizedDrafts] the
- * sync line also counts the drafts too big to sync. With a [savedBoardsCloud] it
- * carries the LinkedIn row's Delete saved boards. [nowMs] is the clock for the update times; it ticks each minute
+ * call and never stored. It carries the Google row's sync line, Sync now and Delete my cloud data from [cloudSync],
+ * and counts the drafts too big to sync from [oversizedDrafts]. With a [savedBoardsCloud] (the LinkedIn switch is on)
+ * it carries the LinkedIn row's Delete saved boards. [nowMs] is the clock for the update times; it ticks each minute
  * while something collects it, so a Profile that is not on screen does not.
  */
 class ProfileViewModel(
@@ -67,8 +66,8 @@ class ProfileViewModel(
     observeGameStats: ObserveGameStats,
     private val link: LinkedInLink? = null,
     observeAccount: ObserveLinkedInAccount? = null,
-    private val cloudSync: CloudSync? = null,
-    private val oversizedDrafts: OversizedDrafts? = null,
+    private val cloudSync: CloudSync,
+    private val oversizedDrafts: OversizedDrafts,
     private val savedBoardsCloud: SavedBoardsCloud? = null,
     private val clock: Clock = Clock.systemUTC(),
 ) : ViewModel() {
@@ -86,8 +85,7 @@ class ProfileViewModel(
         identity: Identity?,
         prompt: ProfileUiState.Account.SignedOut,
         sync: ProfileUiState.GoogleSync? = null,
-    ): ProfileUiState.Account =
-        identity?.let { ProfileUiState.Account.SignedIn(it, sync) } ?: prompt.copy(cloudSyncAvailable = cloudSync != null)
+    ): ProfileUiState.Account = identity?.let { ProfileUiState.Account.SignedIn(it, sync) } ?: prompt
 
     // Null while the feature is off: nothing LinkedIn is observed, and the row stays out of the state.
     private val linkedIn: Flow<LinkedInRowState?> =
@@ -100,23 +98,14 @@ class ProfileViewModel(
     private val erase = MutableStateFlow(Deletion())
     private val boardsDelete = MutableStateFlow(Deletion())
 
-    // Null while the feature is off: the Google row is exactly today's.
+    // Null while the engine reports signed out: there is no sync line to show.
     private val sync: Flow<ProfileUiState.GoogleSync?> =
-        if (cloudSync == null) {
-            flowOf(null)
-        } else {
-            combine(cloudSync.state, erase, oversizedDrafts?.count ?: flowOf(0)) { state, erase, oversized ->
-                state.toSync(erase, oversized)
-            }
+        combine(cloudSync.state, erase, oversizedDrafts.count) { state, erase, oversized ->
+            state.toSync(erase, oversized)
         }
 
-    // Null while neither switch is on: the LinkedIn row is exactly today's.
-    private val boards: Flow<ProfileUiState.LinkedInBoards?> =
-        if (cloudSync == null && savedBoardsCloud == null) {
-            flowOf(null)
-        } else {
-            boardsDelete.map { ProfileUiState.LinkedInBoards(cloudSync != null, savedBoardsCloud != null, it.running, it.message) }
-        }
+    private val boards: Flow<ProfileUiState.LinkedInBoards> =
+        boardsDelete.map { ProfileUiState.LinkedInBoards(savedBoardsCloud != null, it.running, it.message) }
 
     val uiState: StateFlow<ProfileUiState> =
         combine(identityService.current, signIn, observeGameStats(), linkedIn, combine(sync, boards, ::Pair)) {
@@ -125,7 +114,7 @@ class ProfileViewModel(
                 account(identity, prompt, sync),
                 stats.playingSince,
                 row,
-                boards?.copy(googleSignedIn = identity != null),
+                boards.copy(googleSignedIn = identity != null),
             )
         }.stateIn(
             scope = viewModelScope,
@@ -169,14 +158,12 @@ class ProfileViewModel(
 
     /** Runs a sync pass now; the line follows the engine's state. */
     fun onSyncNow() {
-        val cloudSync = cloudSync ?: return
         erase.update { it.copy(message = null) }
         viewModelScope.launch { cloudSync.syncNow() }
     }
 
     /** Wipes the account's cloud space (the engine then signs out); a refusal stays on the row as its message. */
     fun onDeleteCloudData() {
-        val cloudSync = cloudSync ?: return
         if (erase.value.running) return
         erase.value = Deletion(running = true)
         viewModelScope.launch {

@@ -63,9 +63,9 @@ class ProfileViewModelSyncTest {
     }
 
     private fun TestScope.viewModel(
-        cloud: FakeCloudSync?,
+        cloud: FakeCloudSync,
         now: Clock = clock,
-        oversized: FakeOversizedDrafts? = null,
+        oversized: FakeOversizedDrafts = FakeOversizedDrafts(),
     ): ProfileViewModel {
         val history = ObserveGameHistory(registry, FakeDailyRepository(), FakeCompletionRepository())
         val vm = ProfileViewModel(
@@ -82,17 +82,6 @@ class ProfileViewModelSyncTest {
     }
 
     private fun ProfileViewModel.sync(): GoogleSync? = (uiState.value.account as? ProfileUiState.Account.SignedIn)?.sync
-
-    @Test
-    fun `with cloud sync off nothing sync is in the state and the actions do nothing`() = runTest(dispatcher) {
-        val vm = viewModel(null)
-
-        vm.onSyncNow()
-        vm.onDeleteCloudData()
-        advanceUntilIdle()
-
-        assertNull(vm.sync())
-    }
 
     @Test
     fun `signed out of cloud sync carries no sync line`() = runTest(dispatcher) {

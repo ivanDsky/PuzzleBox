@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.app.play
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -176,6 +178,7 @@ class RealGamesPlayRouteTest {
                 },
                 // The app's real use-case wiring, so the hub gets every use case it asks for.
                 domainModule,
+                module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 module { single { ObserveFriendDay.Binding(reader = null) } }, // hub off
             )

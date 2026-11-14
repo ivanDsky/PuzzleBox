@@ -27,7 +27,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * History's first-restore state (spec A34): while the cloud's first restore runs the empty
- * list says history is coming back; any other state, or no [CloudSync] at all, keeps today's
+ * list says history is coming back; any other state keeps today's
  * first-time empty copy.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -38,7 +38,7 @@ class HistoryRestoringTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun setContent(cloud: CloudSync?) {
+    private fun setContent(cloud: CloudSync) {
         val registry = HistoryTestSupport.registry
         val daily = FakeDailyRepository()
         val completions = FakeCompletionRepository(emptyList())
@@ -101,14 +101,6 @@ class HistoryRestoringTest {
     @Test
     fun `an ordinary sync pass keeps the empty state`() {
         setContent(FakeCloudSync(CloudSyncState.Syncing(firstRestore = false)))
-
-        awaitTag("history.empty")
-        assertNoTag("history.restoring")
-    }
-
-    @Test
-    fun `no cloud sync bound keeps the empty state`() {
-        setContent(null)
 
         awaitTag("history.empty")
         assertNoTag("history.restoring")

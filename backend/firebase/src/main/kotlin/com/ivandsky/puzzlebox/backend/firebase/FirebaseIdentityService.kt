@@ -21,13 +21,13 @@ import kotlinx.coroutines.flow.stateIn
  * Firebase Auth implementation of the identity seam (A6). All Firebase exceptions are
  * mapped to typed [AuthError]s HERE, before the seam — none ever cross it (design §3).
  * Lazily shared: nothing touches the Firebase SDK until the first subscriber needs the
- * identity, so graph construction stays side-effect free. With a [cacheClearMark], sign-out (and so erase, which ends
- * in it) leaves the Firestore disk cache to be cleared at the next cold start; null leaves sign-out as it always was.
+ * identity, so graph construction stays side-effect free. Sign-out (and so erase, which ends in it) marks the
+ * [cacheClearMark], so the Firestore disk cache is cleared at the next cold start.
  */
 internal class FirebaseIdentityService(
     private val gateway: AuthGateway,
     scope: CoroutineScope,
-    private val cacheClearMark: CacheClearMark? = null,
+    private val cacheClearMark: CacheClearMark,
 ) : IdentityService {
 
     override val current: StateFlow<Identity?> = gateway.authState()
@@ -60,7 +60,7 @@ internal class FirebaseIdentityService(
 
     override suspend fun signOut() {
         // Marked first: a kill between the two still leaves the cache to be cleared at the next start.
-        cacheClearMark?.mark()
+        cacheClearMark.mark()
         gateway.signOut()
     }
 }

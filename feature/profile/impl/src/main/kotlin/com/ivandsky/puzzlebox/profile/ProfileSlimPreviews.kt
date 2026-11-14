@@ -33,7 +33,7 @@ private val UnknownSummary = LinkedInAccountView(null, null, 0, 0, 0, emptyList(
 private fun SlimProfile(
     account: ProfileUiState.Account,
     linkedIn: LinkedInRowState? = null,
-    boards: ProfileUiState.LinkedInBoards? = null,
+    boards: ProfileUiState.LinkedInBoards = ProfileUiState.LinkedInBoards(canDelete = false),
     sync: ProfileUiState.GoogleSync? = null,
 ) {
     // The sync line belongs to the signed-in player; a signed-out one has none.
@@ -95,16 +95,16 @@ internal fun ProfileLinkedInReconnectPreview() = SlimProfile(
 internal fun ProfileLinkedInSavedToAccountPreview() = SlimProfile(
     SignedIn,
     LinkedInRowState.NotConnected,
-    ProfileUiState.LinkedInBoards(savedToAccount = true, canDelete = true),
+    ProfileUiState.LinkedInBoards(canDelete = true),
     SyncedLine,
 )
 
 @PuzzleBoxPreviews
 @Composable
 internal fun ProfileLinkedInSignInHintPreview() = SlimProfile(
-    ProfileUiState.Account.SignedOut(cloudSyncAvailable = true),
+    ProfileUiState.Account.SignedOut(),
     LinkedInRowState.Connected(KnownSummary),
-    ProfileUiState.LinkedInBoards(savedToAccount = true, canDelete = true, googleSignedIn = false),
+    ProfileUiState.LinkedInBoards(canDelete = true, googleSignedIn = false),
 )
 
 @PuzzleBoxPreviews
@@ -113,7 +113,6 @@ internal fun ProfileLinkedInDeleteBoardsOfflinePreview() = SlimProfile(
     SignedIn,
     LinkedInRowState.Connected(KnownSummary),
     ProfileUiState.LinkedInBoards(
-        savedToAccount = true,
         canDelete = true,
         deleteMessage = "You're offline. Try again when you're connected.",
     ),
@@ -125,7 +124,7 @@ internal fun ProfileLinkedInDeleteBoardsOfflinePreview() = SlimProfile(
 internal fun ProfileSlimSyncedPreview() = SlimProfile(
     SignedIn,
     LinkedInRowState.Connected(KnownSummary),
-    ProfileUiState.LinkedInBoards(savedToAccount = true, canDelete = true),
+    ProfileUiState.LinkedInBoards(canDelete = true),
     SyncedLine,
 )
 
@@ -136,7 +135,6 @@ internal fun ProfileSlimWorstCasePreview() = SlimProfile(
     SignedIn,
     LinkedInRowState.Connected(KnownSummary),
     ProfileUiState.LinkedInBoards(
-        savedToAccount = true,
         canDelete = true,
         deleteMessage = "You're offline. Try again when you're connected.",
     ),

@@ -501,7 +501,9 @@ service cloud.firestore {
             || (kind == 'replays' && validReplayDoc(d)));
       }
 
-      // One document per month, `yyyy-MM`, or `yyyy-MM-n` once the month overflows. A record is named by
+      // Eight documents per month, `yyyy-MM-1000` to `yyyy-MM-1007`: a record's sync id picks its bucket, so every
+      // device names the same document. Documents the first scheme wrote, `yyyy-MM` and `yyyy-MM-n` for n below 1000,
+      // are still read and kept, and the pattern below still admits them. A record is named by
       // its completion's sync id (32 lowercase hex). The rules language cannot walk a map's values, so a
       // record's own fields stay bounded by the doc cap of 1000 records and Firestore's own document size
       // limit; the keys, which it can join into one string, are checked here.

@@ -37,16 +37,15 @@ internal fun restoreWelcomeText(summary: RestoreSummary): String? {
 
 /**
  * The one-time "Welcome back" message (A33): every summary [restored] emits that has something to welcome shows one message, queued behind one
- * still showing, and never again, since the engine emits a summary once per account per device. [restored] is null
- * while cloud sync is not bound, and then nothing is shown. A rotation may cut the message showing short; it never
- * repeats it.
+ * still showing, and never again, since the engine emits a summary once per account per device. A rotation may cut
+ * the message showing short; it never repeats it.
  */
 @Composable
-internal fun RestoreWelcome(restored: Flow<RestoreSummary>?, modifier: Modifier = Modifier) {
+internal fun RestoreWelcome(restored: Flow<RestoreSummary>, modifier: Modifier = Modifier) {
     val snackbar = remember { SnackbarHostState() }
     LaunchedEffect(restored) {
         // One launch per summary: showSnackbar suspends until its message is gone, and the host queues them.
-        restored?.collect { summary ->
+        restored.collect { summary ->
             restoreWelcomeText(summary)?.let { text -> launch { snackbar.showSnackbar(text) } }
         }
     }

@@ -25,17 +25,16 @@ private const val AcceptLabel = "Accept and continue"
 private const val CancelLabel = "Cancel"
 private const val Bullet = "•"
 
-// With cloud sync on, the connections' boards are no longer phone-only: the warning says where they go and who reads them.
-private const val BoardsOnPhone = "Your connections' times stay on this phone and are never uploaded."
+// The connections' boards are not phone-only: the warning says where they go and who reads them.
 private const val BoardsInAccount =
     "Your connections' boards are saved to your own PuzzleBox account while you're signed in with Google. " +
         "Only you can read them, and they are kept after Disconnect."
 
-private fun points(savedToAccount: Boolean) = listOf(
+private val points = listOf(
     "Reading your results this way is not allowed by LinkedIn's User Agreement (§8.2). " +
         "LinkedIn could limit or close your account. The risk is yours.",
     "It only reads. PuzzleBox never posts, submits or changes anything on LinkedIn.",
-    if (savedToAccount) BoardsInAccount else BoardsOnPhone,
+    BoardsInAccount,
     "Your LinkedIn password is typed into LinkedIn's own page; PuzzleBox never sees it. " +
         "The login stays in this phone's web view.",
     "Disconnect clears this phone's login. It does not sign you out of LinkedIn anywhere else.",
@@ -43,16 +42,15 @@ private fun points(savedToAccount: Boolean) = listOf(
 
 /**
  * The warning shown before every LinkedIn connect: the user-agreement breach and the four facts
- * about what PuzzleBox does and does not do, then Accept or Cancel. With cloud sync on ([savedToAccount]) the
- * fact about the connections' boards says they are saved to the player's own account instead of staying on the
- * phone. Stateless and side-effect free; no web view exists until the player taps Accept.
+ * about what PuzzleBox does and does not do, then Accept or Cancel. The fact about the connections' boards says
+ * they are saved to the player's own account. Stateless and side-effect free; no web view exists until the player
+ * taps Accept.
  */
 @Composable
 internal fun LinkedInRiskWarning(
     onAccept: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
-    savedToAccount: Boolean = false,
 ) {
     Column(
         modifier = modifier
@@ -67,7 +65,7 @@ internal fun LinkedInRiskWarning(
             color = MaterialTheme.colorScheme.onSurface,
         )
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            points(savedToAccount).forEach { Point(it) }
+            points.forEach { Point(it) }
         }
         PrimaryButton(
             text = AcceptLabel,
@@ -103,13 +101,5 @@ private fun Point(text: String) {
 internal fun LinkedInRiskWarningPreview() {
     PuzzleBoxTheme {
         LinkedInRiskWarning(onAccept = {}, onCancel = {})
-    }
-}
-
-@PuzzleBoxPreviews
-@Composable
-internal fun LinkedInRiskWarningSavedToAccountPreview() {
-    PuzzleBoxTheme {
-        LinkedInRiskWarning(onAccept = {}, onCancel = {}, savedToAccount = true)
     }
 }

@@ -109,7 +109,7 @@ class HistoryViewModel(
     private val playRegistry: GamePlayRegistry,
     private val puzzleDay: GetPuzzleDay,
     private val loadReplay: LoadSolveReplay,
-    cloudSync: CloudSync? = null,
+    cloudSync: CloudSync,
     opening: HistoryKey = HistoryKey(),
 ) : ViewModel() {
 
@@ -125,7 +125,6 @@ class HistoryViewModel(
         .map { merged -> historyRows(merged, registry, playRegistry, currentYear = puzzleDay().year) }
         .distinctUntilChanged().shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
-    // No CloudSync bound (the flag is off) is never restoring.
     private val restoring: Flow<Boolean> = cloudSync.restoring
 
     val uiState: StateFlow<HistoryUiState> = combine(

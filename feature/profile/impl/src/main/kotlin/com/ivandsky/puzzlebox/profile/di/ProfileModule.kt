@@ -30,16 +30,15 @@ val profileModule: Module = module {
             observeGameStats = get(),
             link = if (linkedIn) get() else null,
             observeAccount = if (linkedIn) get() else null,
-            // Bound only with the CloudSync switch on; unbound is today's Google row.
-            cloudSync = getOrNull<CloudSync>(),
-            oversizedDrafts = getOrNull<OversizedDrafts>(),
+            cloudSync = get(),
+            oversizedDrafts = get(),
+            // Bound only with the LinkedIn switch on; unbound, the LinkedIn row offers no Delete saved boards.
             savedBoardsCloud = getOrNull<SavedBoardsCloud>(),
         )
     }
     // The parameter is the app's VisibilitySlot; without it Settings has no Visibility section.
     viewModel { params -> SettingsViewModel(preferences = get(), games = get(), appBuild = get(), visibility = params.getOrNull()) }
-    // Bound only with the CloudSync switch on; it makes the risk warning say the boards are saved to the account.
-    viewModel { LinkedInLoginViewModel(createLink = get(), cookies = get(), savedToAccount = getOrNull<CloudSync>() != null) }
+    viewModel { LinkedInLoginViewModel(createLink = get(), cookies = get()) }
     // Both providers are lambdas, so resolving this neither starts the web view provider nor reads a cookie.
     single<LinkedInSessionCookies> { WebViewLinkedInSession({ CookieManager.getInstance() }, { WebSettings.getDefaultUserAgent(get()) }, get()) }
 }

@@ -35,7 +35,7 @@ class DeleteSavedBoardsDialogTest {
         composeRule.setContent { PuzzleBoxTheme { DeleteSavedBoardsDialog(onConfirm = { confirms++ }, onCancel = { cancels++ }) } }
     }
 
-    private fun setRow(boards: LinkedInBoards?) {
+    private fun setRow(boards: LinkedInBoards) {
         composeRule.setContent {
             PuzzleBoxTheme {
                 LinkedInRow(
@@ -86,7 +86,7 @@ class DeleteSavedBoardsDialogTest {
 
     @Test
     fun `the overflow asks first and deletes only on Delete`() {
-        setRow(LinkedInBoards(savedToAccount = true, canDelete = true))
+        setRow(LinkedInBoards(canDelete = true))
         composeRule.onNodeWithTag("profile.linkedin.delete-boards.dialog").assertDoesNotExist()
 
         openDeleteBoards()
@@ -102,7 +102,7 @@ class DeleteSavedBoardsDialogTest {
 
     @Test
     fun `cancelling the confirm deletes nothing`() {
-        setRow(LinkedInBoards(savedToAccount = true, canDelete = true))
+        setRow(LinkedInBoards(canDelete = true))
 
         openDeleteBoards()
         composeRule.onNodeWithTag("profile.linkedin.delete-boards.cancel").performClick()
@@ -113,7 +113,7 @@ class DeleteSavedBoardsDialogTest {
 
     @Test
     fun `delete saved boards is not offered while one is running`() {
-        setRow(LinkedInBoards(savedToAccount = true, canDelete = true, deleting = true))
+        setRow(LinkedInBoards(canDelete = true, deleting = true))
 
         composeRule.onNodeWithTag("profile.linkedin.overflow").performClick()
 
@@ -121,18 +121,8 @@ class DeleteSavedBoardsDialogTest {
     }
 
     @Test
-    fun `without cloud boards the overflow offers Disconnect only`() {
-        setRow(boards = null)
-
-        composeRule.onNodeWithTag("profile.linkedin.overflow").performClick()
-
-        composeRule.onNodeWithTag("profile.linkedin.disconnect").assertExists()
-        composeRule.onNodeWithTag("profile.linkedin.delete-boards").assertDoesNotExist()
-    }
-
-    @Test
-    fun `cloud sync alone without cloud boards offers no delete`() {
-        setRow(LinkedInBoards(savedToAccount = true, canDelete = false))
+    fun `without cloud boards the overflow offers no delete`() {
+        setRow(LinkedInBoards(canDelete = false))
 
         composeRule.onNodeWithTag("profile.linkedin.overflow").performClick()
 

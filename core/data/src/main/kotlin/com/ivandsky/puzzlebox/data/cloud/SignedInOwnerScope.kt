@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
 
 /**
- * The flag-on scope: the signed-in uid, else the last one that signed in here, so signing out keeps showing the
+ * The owner scope: the signed-in uid, else the last one that signed in here, so signing out keeps showing the
  * account's rows. Nothing is shown unfiltered while the last uid is still being read.
  * This is the only writer of the last uid; the sync engine reads it. It collects from [scope], which the owner of
  * this instance (the app's process scope) controls.
