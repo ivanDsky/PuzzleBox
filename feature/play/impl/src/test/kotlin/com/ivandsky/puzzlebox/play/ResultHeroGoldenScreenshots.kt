@@ -136,6 +136,7 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             streak: Int = 3,
             weekdayEarlier: List<BestScore> = earlier.take(1),
             freezes: StreakFreezes? = null,
+            moment: StreakFreezes.Moment? = null,
         ) = ResultInsights(
             streak = streak,
             week = (6 downTo 0).map { back ->
@@ -146,6 +147,7 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             spread = timeSpread(earlier, current, order),
             weekday = WeekdaySpread(TODAY.dayOfWeek, timeSpread(weekdayEarlier, current, order), fastest = false),
             freezes = freezes,
+            moment = moment,
         )
 
         fun facts(
@@ -163,6 +165,7 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             primary: ResultPrimaryAction = ResultPrimaryAction.Next(GameId("tango"), "Tango"),
             weekdayEarlier: List<BestScore> = earlier.take(1),
             freezes: StreakFreezes? = null,
+            moment: StreakFreezes.Moment? = null,
         ) = ResultHeroFacts(
             timeMs = timeMs,
             hintsUsed = hints,
@@ -176,7 +179,7 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
             dateLine = "Today · Sat 7 Nov",
             doneToday = doneToday,
             total = 3,
-            insights = insights(BestScore(timeMs, hints), earlier, order, streak, weekdayEarlier, freezes),
+            insights = insights(BestScore(timeMs, hints), earlier, order, streak, weekdayEarlier, freezes, moment),
             rank = rank,
             primary = primary,
         )
@@ -216,8 +219,9 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
                 held = 2,
                 frozenDays = setOf(TODAY.minusDays(2)),
                 daysToNext = 4,
-                lastSolve = StreakFreezes.Moment(TODAY, spent = listOf(TODAY.minusDays(2)), earned = false),
+                lastSolve = null,
             ),
+            moment = StreakFreezes.Moment(TODAY, spent = listOf(TODAY.minusDays(2)), earned = false),
         )
         val SIXTY = facts(timeMs = 100_000L, earlier = SPREAD_60, weekdayEarlier = emptyList())
     }
