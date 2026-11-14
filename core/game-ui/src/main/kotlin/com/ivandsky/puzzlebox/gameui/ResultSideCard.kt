@@ -142,9 +142,7 @@ private fun StreakBlock(streak: HeroStreak, accent: Color) {
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false).testTag("result.side.streak"),
                     )
-                    if (streak.freezesHeld != null && streak.days > 0) {
-                        FreezeCount(streak.freezesHeld, Modifier.testTag("result.side.streak.freezes"))
-                    }
+                    streak.freezesHeld?.let { FreezeCount(it, Modifier.testTag("result.side.streak.freezes")) }
                 }
                 Text(
                     text = streak.sub,

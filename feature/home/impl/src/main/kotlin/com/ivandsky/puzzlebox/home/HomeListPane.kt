@@ -78,7 +78,7 @@ internal fun ListPane(
             // Two-pane shows the streak in the detail pane instead.
             if (showStreak) {
                 StaggeredItem(1) {
-                    HomeStreakSection(stats = state.stats, week = state.week, total = state.today.size)
+                    HomeStreakSection(stats = state.stats, freezesHeld = state.freezesHeld, week = state.week, total = state.today.size)
                 }
             }
             // The summaries sit under the streak, one line each, only when there is something to say.
