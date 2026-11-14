@@ -14,11 +14,15 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.domain.ResultRank
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -108,6 +112,69 @@ class ResultHeroScreenTest {
         composeRule.onNodeWithTag("result.side.chip").performClick()
         composeRule.waitForIdle()
         assertCardsEqualHeight()
+    }
+
+    /**
+     * The hero card, a chip, and the action row's Next button and Share icon. The chip's tag sits inside the tile's
+     * vertical padding, so its drawn tile ends [Spacing.sm] below [chips].
+     */
+    private data class HeroParts(val card: DpRect, val chips: DpRect, val next: DpRect, val share: DpRect) {
+        val chipsBottom: Dp get() = chips.bottom + Spacing.sm
+    }
+
+    private fun heroParts(): HeroParts = HeroParts(
+        card = composeRule.onNodeWithTag("result.hero.card").getUnclippedBoundsInRoot(),
+        chips = composeRule.onNodeWithTag("result.hero.chip.today").getUnclippedBoundsInRoot(),
+        next = composeRule.onNodeWithTag("result.next").getUnclippedBoundsInRoot(),
+        share = composeRule.onNodeWithTag("result.share").getUnclippedBoundsInRoot(),
+    )
+
+    @Test
+    fun tablet_pins_the_actions_to_the_hero_card_bottom_when_the_side_card_is_the_taller() {
+        setContent(1280, 800)
+        val parts = heroParts()
+        val (card, _, next, share) = parts
+        // The 1280 dp pane is a wide hero column: 24 dp card padding. The 48 dp Share icon is centred in the row of the
+        // taller Next button, so it ends a few dp above the row's bottom.
+        val inset = (next.height - share.height) / 2
+        assertTrue(
+            "share bottom ${share.bottom} must lie within ${Spacing.xl + 1.dp} (+$inset centring) of the card bottom ${card.bottom}",
+            card.bottom - share.bottom <= Spacing.xl + 1.dp + inset,
+        )
+        assertEquals("the row rests on the card padding", (card.bottom - Spacing.xl).value, next.bottom.value, 1f)
+        assertTrue("the row ${next.top} must stay below the chips ${parts.chipsBottom}", next.top >= parts.chipsBottom + Spacing.lg - 1.dp)
+    }
+
+    @Test
+    fun tablet_keeps_the_hero_chips_where_they_were_when_the_side_card_grows_taller() {
+        // Same hero body beside a shorter side card (nothing stretches) and then a taller one (the actions drop away).
+        var sideTall by mutableStateOf(false)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                val facts = heroSampleFacts(rank = if (sideTall) heroSampleFacts().rank else ResultRank.Hidden)
+                ResultHeroScreen(
+                    facts = facts,
+                    modifier = Modifier.requiredSize(1280.dp, 800.dp),
+                    brand = brand,
+                    actions = { ResultHeroActions(facts.primary, onPrimary = {}, onShare = {}, onPlayAgain = {}) },
+                )
+            }
+        }
+        val short = heroParts()
+        sideTall = true
+        composeRule.waitForIdle()
+        val tall = heroParts()
+        assertTrue("premise: the hero stretches (${short.card.height} -> ${tall.card.height})", tall.card.height > short.card.height)
+        assertEquals("chips offset in the card", (short.chips.top - short.card.top).value, (tall.chips.top - tall.card.top).value, 1f)
+    }
+
+    @Test
+    fun tablet_keeps_the_actions_a_gap_under_the_chips_when_the_side_card_is_the_shorter() {
+        setContent(1280, 800, facts = heroSampleFacts(playAgain = true))
+        val parts = heroParts()
+        val (card, _, next) = parts
+        assertEquals("the row sits Spacing.lg under the chips", (parts.chipsBottom + Spacing.lg).value, next.top.value, 1f)
+        assertEquals("the row sits on the card padding", (card.bottom - Spacing.xl).value, next.bottom.value, 1f)
     }
 
     @Test
