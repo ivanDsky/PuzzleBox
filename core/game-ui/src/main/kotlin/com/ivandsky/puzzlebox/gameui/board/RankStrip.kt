@@ -16,6 +16,9 @@ internal class RankStrip(val cells: List<Int>, val start: Int, val end: Int) {
 
     /** The number nearest the middle when the column is [offset] cells down it. */
     fun centre(offset: Float): Int = cells[offset.roundToInt().coerceIn(0, cells.lastIndex)]
+
+    /** How far down the column the roll is when it is [progress] of the way from the old place to the new. */
+    fun offsetAt(progress: Float): Float = start + (end - start) * progress
 }
 
 /** Every place from [from] to [to] when they are at most seven apart, otherwise eight evenly spaced ones. */

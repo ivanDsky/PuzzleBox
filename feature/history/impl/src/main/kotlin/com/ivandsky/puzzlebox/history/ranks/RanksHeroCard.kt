@@ -12,18 +12,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorProducer
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.util.lerp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.MorphCell
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -32,10 +29,7 @@ import com.ivandsky.puzzlebox.designsystem.ScrubCell
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.tabular
-import kotlin.math.roundToInt
-
-// A place past the rows the board reads ranks after every place on them.
-private const val BEYOND_RANK = 101
+import com.ivandsky.puzzlebox.gameui.board.RollingNumber
 
 /**
  * What the hero card says of one board: the [board]'s name, where the viewer stands on it ([standing]) and the
@@ -55,10 +49,11 @@ internal data class HeroFace(val board: String, val standing: Standing, val scor
  * wears the board's accent: [container] fills it and [ink] colours its text, both read while drawing, so a card
  * between two boards blends their colours without recomposing.
  *
- * At rest a text that changes frosts over in place ([MorphCell]; reduced motion swaps it). Between two boards the card
- * is given the one it leaves as [was] and how far along it is as [progress] (0 to 1, read only where the card is
- * laid out and drawn): the place rolls from the old one to the new, the better of the two coming from above, and the
- * name and the score frost from one to the other ([ScrubCell]), all as far as [progress] says, so they follow a finger.
+ * At rest a change plays on a clock: a place rolls to the new place through the places between them, the numbers of
+ * the score roll ([RollingLine]) and a text that changes frosts over in place ([MorphCell]); reduced motion swaps them.
+ * Between two boards the card is given the one it leaves as [was] and how far along it is as [progress] (0 to 1, read
+ * only where the card is laid out and drawn): the same rolls and frosts then go as far as [progress] says, so they
+ * follow a finger, and the card lands without moving again.
  */
 @Composable
 internal fun RanksHeroCard(
@@ -80,23 +75,48 @@ internal fun RanksHeroCard(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        if (was == null) {
-            MorphCell(face.standing, identity = { it.label() }) { HeroPlace(it, color) }
-        } else {
-            RollingPlace(was.standing, face.standing, progress, color)
-        }
+        HeroStanding(was?.standing, face.standing, progress, color)
         Column(Modifier.weight(1f)) {
             HeroCell(was?.board, face.board, progress) {
                 BasicText(it, style = MaterialTheme.typography.titleMedium, color = color, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            HeroCell(was?.line(), face.line(), progress) {
-                BasicText(it, Modifier.testTag("ranks.hero.score"), style = MaterialTheme.typography.bodyLarge.tabular(), color = color)
+            RollingLine(
+                face.line(),
+                MaterialTheme.typography.bodyLarge.tabular(),
+                color,
+                Modifier.testTag("ranks.hero.score"),
+                was?.line(),
+                progress,
+            )
+        }
+    }
+}
+
+/**
+ * Where the viewer stands: [now] at rest, and between two boards [was] on its way to [now], [progress] of the way. A
+ * place that becomes another place rolls through the places between them, the better one from above
+ * ([RollingNumber]); a standing that is no place on either side ("100+", loading, none) frosts over.
+ */
+@Composable
+private fun HeroStanding(was: Standing?, now: Standing, progress: () -> Float, color: ColorProducer) {
+    if (was != null && was != now && !(was is Standing.Place && now is Standing.Place)) {
+        ScrubCell(was, now, progress) { HeroPlace(it, color, spoken = it == now) }
+    } else {
+        MorphCell(now, identity = { if (it is Standing.Place) Standing.Place::class else it }) { layer ->
+            // A layer that is a place is the place of this frame: it rolls there, and is not drawn a frame late.
+            val shown = if (layer is Standing.Place && now is Standing.Place) now else layer
+            if (shown is Standing.Place) {
+                RollingNumber(shown.place, from = (was as? Standing.Place)?.place, progress = progress) {
+                    HeroPlace(Standing.Place(it), color, spoken = it == shown.place)
+                }
+            } else {
+                HeroPlace(shown, color)
             }
         }
     }
 }
 
-/** The big place; [spoken] false keeps it from a screen reader and a test (the one rolling out). */
+/** The big place; [spoken] false keeps it from a screen reader and a test (one that is leaving or rolling past). */
 @Composable
 private fun HeroPlace(standing: Standing, color: ColorProducer, spoken: Boolean = true) {
     BasicText(
@@ -110,42 +130,6 @@ private fun HeroPlace(standing: Standing, color: ColorProducer, spoken: Boolean 
         color = color,
         maxLines = 1,
     )
-}
-
-/**
- * The place on its way from [from] to [to], [progress] of the way: one rolls out of the cell as the other rolls in,
- * the better place from above, and the cell is as wide as the two are between them. Only [to] is read out.
- */
-@Composable
-private fun RollingPlace(from: Standing, to: Standing, progress: () -> Float, color: ColorProducer) {
-    if (from.label() == to.label()) {
-        HeroPlace(to, color)
-        return
-    }
-    val down = if (to.rank() < from.rank()) 1 else -1
-    Layout(
-        content = {
-            HeroPlace(from, color, spoken = false)
-            HeroPlace(to, color)
-        },
-        modifier = Modifier.clipToBounds(),
-    ) { measurables, constraints ->
-        val loose = constraints.copy(minWidth = 0, minHeight = 0)
-        val leaving = measurables[0].measure(loose)
-        val arriving = measurables[1].measure(loose)
-        val at = progress().coerceIn(0f, 1f)
-        val height = maxOf(leaving.height, arriving.height)
-        layout(lerp(leaving.width, arriving.width, at), height) {
-            leaving.place(0, (down * at * height).roundToInt())
-            arriving.place(0, (-down * (1f - at) * height).roundToInt())
-        }
-    }
-}
-
-private fun Standing.rank(): Int = when (this) {
-    is Standing.Place -> place
-    Standing.Beyond -> BEYOND_RANK
-    else -> Int.MAX_VALUE
 }
 
 /** A line of the card: [now] at rest, frosting over what it was; between two boards, [was] frosted into [now] by [progress]. */
@@ -164,7 +148,7 @@ private fun RanksHeroCardPreview() {
             RanksHeroCard(HeroFace("Zip", Standing.Place(3), "1:15 · 1 hint"), { zip.container }, { zip.onContainer })
             RanksHeroCard(HeroFace("Overall", Standing.Place(12), "1,240 pts"), { overall.container }, { overall.onContainer })
             RanksHeroCard(HeroFace("Tango", Standing.None, null), { overall.container }, { overall.onContainer })
-            // Halfway from Zip to Overall.
+            // Halfway from Zip to Overall: the place mid-roll, the name and the score mid-frost.
             RanksHeroCard(
                 HeroFace("Overall", Standing.Place(12), "1,240 pts"),
                 { zip.container },

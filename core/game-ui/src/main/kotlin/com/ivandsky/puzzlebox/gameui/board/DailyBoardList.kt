@@ -8,6 +8,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -53,8 +54,9 @@ fun DailyBoardList(
 
 /**
  * [DailyBoardList], and what [DailyBoard] needs of it besides: a list that has just [landed] from between two boards
- * shows its rows at once, for they are already on screen, and while the board is between two it draws [scrubbed] in
- * the list's place (and under its dock) instead of [lines].
+ * shows its rows at once, for they are already on screen, and while the board is between two ([scrub]) it draws the
+ * two as one in the list's place instead of [lines] (see [ScrubbedBoardList]), and its dock is the viewer's row on its
+ * way from the one to the other (see [DockScrub]).
  */
 @Composable
 internal fun BoardList(
@@ -67,13 +69,14 @@ internal fun BoardList(
     medals: Boolean = false,
     dock: Boolean = false,
     landed: Boolean = false,
-    scrubbed: (@Composable (Modifier) -> Unit)? = null,
+    scrub: MorphParts? = null,
 ) {
     val withPuzzleBoxRank = (lines + listOfNotNull(pinned)).placesDifferFromPuzzleBox()
-    val self = pinned ?: lines.firstNotNullOfOrNull { line -> (line as? DailyBoardLine.Real)?.takeIf { it.row.isSelf } }
-    DockedSelfRow(dock, self, order, withPuzzleBoxRank, medals, animated, backdrop, modifier) { boardModifier ->
-        if (scrubbed != null) {
-            scrubbed(boardModifier)
+    val self = if (scrub != null) null else pinned ?: lines.firstNotNullOfOrNull { line -> (line as? DailyBoardLine.Real)?.takeIf { it.row.isSelf } }
+    val dockScrub = if (scrub != null && dock) remember(scrub, medals) { scrub.dock(medals) } else null
+    DockedSelfRow(dock, self, order, withPuzzleBoxRank, medals, animated, backdrop, modifier, dockScrub) { boardModifier ->
+        if (scrub != null) {
+            ScrubbedBoardList(scrub, medals, backdrop, boardModifier)
         } else if (animated && !(rememberReducedMotion() || LocalInspectionMode.current)) {
             AnimatedBoardList(lines, pinned, order, withPuzzleBoxRank, backdrop, boardModifier, medals, landed)
         } else if (lines.isNotEmpty() || pinned != null) {
