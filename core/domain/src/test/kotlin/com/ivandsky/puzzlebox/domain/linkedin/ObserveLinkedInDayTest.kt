@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import java.time.LocalDate
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -271,5 +272,19 @@ class ObserveLinkedInDayTest {
         val shown = shownOf(data(own = imported(60_000, hints = 1), ghosts = listOf(hinted, clean)))
 
         assertEquals(if (cleanIsBetter) listOf(clean, hinted) else listOf(hinted, clean), shown.ghosts)
+    }
+
+    @Test
+    fun `a range shows each of its days as that day alone is shown`() = runTest {
+        val slowFirst = listOf(ghost(1, 70_000), ghost(2, 50_000))
+        days.emit(zip, day, data(ghosts = slowFirst))
+        days.emit(zip, day.plusDays(1), data(link = LinkState.Paused("me", Kind.SessionExpired), boardFetchedAtMs = null))
+        val range = listOf(day.minusDays(1), day, day.plusDays(1))
+
+        val shown = observeLinkedInDay.range(zip, range.first(), range.last()).first()
+
+        assertEquals(range.associateWith { observeLinkedInDay(zip, it).first() }, shown)
+        assertEquals(LinkedInBoardView.Shown(slowFirst.reversed()), shown.getValue(day).board)
+        assertEquals(unknown, shown.getValue(day.minusDays(1)))
     }
 }

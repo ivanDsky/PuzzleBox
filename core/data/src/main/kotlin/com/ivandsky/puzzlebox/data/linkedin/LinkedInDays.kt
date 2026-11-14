@@ -25,4 +25,10 @@ interface LinkedInDays {
      * changes. Reads local state only and never asks LinkedIn, so collecting it is always safe.
      */
     fun observe(game: GameId, day: LocalDate): Flow<LinkedInDayData>
+
+    /**
+     * [observe] for every day of [game] from [from] to [to], both included, as one observation: each day reports
+     * what its own [observe] would, and a change to any of them emits the days again. No day when [to] is before [from].
+     */
+    fun observeRange(game: GameId, from: LocalDate, to: LocalDate): Flow<Map<LocalDate, LinkedInDayData>>
 }

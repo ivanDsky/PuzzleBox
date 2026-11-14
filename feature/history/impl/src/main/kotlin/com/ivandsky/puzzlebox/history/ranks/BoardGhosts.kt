@@ -69,10 +69,17 @@ internal class BoardGhosts(private val linkedIn: ObserveLinkedInDayView?) {
         }.mapNotNull { it }.map { it.counted }
     }
 
+    /** One range a game from its first day to its last, so a month costs as many listeners as a day does. */
     private fun daysOf(linkedIn: ObserveLinkedInDayView, refs: List<LeaderboardRef>): Flow<Map<LeaderboardRef, LinkedInDayView>> {
         // Combining nothing never emits.
         if (refs.isEmpty()) return flowOf(emptyMap())
-        return combine(refs.map { linkedIn.observed(ObserveLinkedInDayView.Target(GameId(it.gameId), it.day)) }) { views -> refs.zip(views).toMap() }
+        val ranges = refs.groupBy({ it.gameId }, { it.day }).map { (game, days) ->
+            linkedIn.observedRange(GameId(game), days.min(), days.max()).map { game to it }
+        }
+        return combine(ranges) { games ->
+            val byGame = games.toMap()
+            refs.associateWith { byGame.getValue(it.gameId).getValue(it.day) }
+        }
     }
 
     private fun RanksScopedBoards.Scoped.toCounted(days: Map<LeaderboardRef, LinkedInDayView>, viewerUid: String?): Counted {

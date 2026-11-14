@@ -13,6 +13,10 @@ interface FetchLogDao {
     @Query("SELECT * FROM fetch_log WHERE game = :game AND day = :day AND profileId = :profileId")
     fun observe(game: String, day: String, profileId: String): Flow<List<FetchLogEntity>>
 
+    /** [observe] for every day of one game from [from] to [to], both included. */
+    @Query("SELECT * FROM fetch_log WHERE game = :game AND day BETWEEN :from AND :to AND profileId = :profileId")
+    fun observeBetween(game: String, from: String, to: String, profileId: String): Flow<List<FetchLogEntity>>
+
     /** When [profileId] last had anything read, across every game day; null when nothing was. */
     @Query("SELECT MAX(fetchedAtMs) FROM fetch_log WHERE profileId = :profileId")
     fun observeLastFetchedAt(profileId: String): Flow<Long?>
