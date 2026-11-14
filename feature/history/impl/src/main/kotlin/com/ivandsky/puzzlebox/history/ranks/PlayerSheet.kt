@@ -23,7 +23,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ranks.PlayerActions
@@ -57,7 +56,7 @@ internal fun PlayerSheet(
 }
 
 @Composable
-private fun PlayerSheetContent(state: PlayerSheetViewModel.State, onChallenge: (GameId) -> Unit, onWatch: (() -> Unit)?) {
+internal fun PlayerSheetContent(state: PlayerSheetViewModel.State, onChallenge: (GameId) -> Unit, onWatch: (() -> Unit)?) {
     val actions = state.actions
     Column(
         Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.xl),
@@ -162,7 +161,7 @@ private val PreviewTarget = PlayerSheetViewModel.Target("maya", "Maya", Standing
 @PuzzleBoxPreviews
 @Composable
 private fun PlayerSheetOpenPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         PlayerSheetContent(
             PlayerSheetViewModel.State(
                 PreviewTarget,
@@ -178,7 +177,7 @@ private fun PlayerSheetOpenPreview() {
 @PuzzleBoxPreviews
 @Composable
 private fun PlayerSheetSentPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         PlayerSheetContent(
             PlayerSheetViewModel.State(PreviewTarget, PlayerActions(Challenge.Private, Watch.Unavailable), challenge = ChallengeStatus.Sent("Maya")),
             onChallenge = {},

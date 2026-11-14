@@ -25,7 +25,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import kotlin.math.min
@@ -91,7 +90,7 @@ internal fun MenuRow(index: Int, reduced: Boolean, modifier: Modifier, content: 
 @PuzzleBoxPreviews
 @Composable
 private fun BoardItemPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         Box(Modifier.padding(Spacing.lg)) {
             BoardItem(BoardPlace(RanksBoard.Overall, "Overall", Standing.Place(12)), selected = true, index = 0, reduced = false) {}
         }

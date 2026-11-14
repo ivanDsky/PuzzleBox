@@ -20,7 +20,6 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.util.lerp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
@@ -113,7 +112,7 @@ private fun RollingStrip(strip: RankStrip, value: Int, offset: () -> Float, modi
 // Preview — Studio tooling only. The number at rest, and halfway from place 3 to place 12.
 @PuzzleBoxPreviews
 @Composable
-private fun RollingNumberPreview() = PuzzleBoxTheme {
+private fun RollingNumberPreview() = BoardPreviewHost {
     val style = MaterialTheme.typography.displaySmall.tabular()
     Row(Modifier.padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         RollingNumber(12) { Text("#$it", style = style) }

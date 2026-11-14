@@ -19,7 +19,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.R
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.PlayerAvatar
@@ -66,7 +65,7 @@ internal fun BoardAvatar(
 
 @PuzzleBoxPreviews
 @Composable
-internal fun BoardAvatarPreview() = PuzzleBoxTheme {
+internal fun BoardAvatarPreview() = BoardPreviewHost {
     val ring = MaterialTheme.colorScheme.surface
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         BoardAvatar("Maya", null, "preview", DuelTone.Them, ring, linkedIn = false, modifier = Modifier.padding(Spacing.sm))

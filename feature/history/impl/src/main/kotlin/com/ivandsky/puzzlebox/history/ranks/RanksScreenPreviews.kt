@@ -4,7 +4,6 @@ import android.content.res.Configuration
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
@@ -46,7 +45,7 @@ private fun Hub(slice: RanksBoardSlice, signIn: RanksSignIn = RanksSignIn.Idle) 
 
 @Composable
 private fun Hub(state: RanksUiState) {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}))
     }
 }
@@ -172,7 +171,7 @@ private val TabletPlaces = listOf(
 
 @Composable
 private fun Tablet(state: RanksUiState) {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), layout = HistoryLayout.TwoPane)
     }
 }

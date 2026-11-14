@@ -29,7 +29,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -151,7 +150,7 @@ private val PreviewSelf = DailyBoardLine.Real(DailyBoardRowModel(41, "You", 188_
 // The docked row as it lies over the board at the top and at the bottom; the scrolling it follows needs a device.
 @PuzzleBoxPreviews
 @Composable
-private fun DockedSelfRowPreview() = PuzzleBoxTheme {
+private fun DockedSelfRowPreview() = BoardPreviewHost {
     Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         DockBar(PreviewSelf, RankOrder.TimeThenHints, false, false, false, MaterialTheme.colorScheme.background) {}
         DockBar(PreviewSelf, RankOrder.TimeThenHints, false, true, true, MaterialTheme.colorScheme.background) {}

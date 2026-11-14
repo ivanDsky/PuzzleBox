@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import androidx.compose.runtime.Composable
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.domain.ranks.PlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Challenge
@@ -19,13 +18,9 @@ private val Target = PlayerSheetViewModel.Target("maya", "Maya", Standing.Place(
 
 @Composable
 private fun Sheet(actions: PlayerActions, challenge: ChallengeStatus = ChallengeStatus.Idle, onWatch: (() -> Unit)? = null) {
-    PuzzleBoxTheme {
-        PlayerSheet(
-            PlayerSheetViewModel.State(Target, actions, games = listOf(Zip), challenge = challenge),
-            onChallenge = {},
-            onDismiss = {},
-            onWatch = onWatch,
-        )
+    RanksPreviewHost {
+        // The sheet's content: the modal wrapper around it is a window, which a preview draws as nothing.
+        PlayerSheetContent(PlayerSheetViewModel.State(Target, actions, games = listOf(Zip), challenge = challenge), onChallenge = {}, onWatch = onWatch)
     }
 }
 

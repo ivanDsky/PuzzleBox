@@ -34,7 +34,6 @@ import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.pressScale
@@ -124,7 +123,7 @@ private val PreviewPlaces = listOf(
 @PuzzleBoxPreviews
 @Composable
 private fun RanksTitleMenuPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         Box(Modifier.padding(Spacing.lg)) {
             RanksTitleMenu("Overall", PreviewPlaces, selected = RanksBoard.Overall, onPick = {}, onHowRanksWork = {})
         }

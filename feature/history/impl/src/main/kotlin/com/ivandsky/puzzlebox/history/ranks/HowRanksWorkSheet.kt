@@ -18,7 +18,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /** The scoring rule in one sentence (A10). */
@@ -68,7 +67,7 @@ private fun HowRanksWork() {
 @PuzzleBoxPreviews
 @Composable
 private fun HowRanksWorkPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         HowRanksWork()
     }
 }

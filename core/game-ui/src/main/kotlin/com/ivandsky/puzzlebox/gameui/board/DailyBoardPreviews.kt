@@ -4,13 +4,13 @@ import android.content.res.Configuration
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.RankOrder
 
@@ -36,8 +36,8 @@ private val Ghosts = listOf(
 )
 
 @Composable
-private fun Padded(content: @Composable () -> Unit) {
-    PuzzleBoxTheme { Box(Modifier.padding(Spacing.md)) { content() } }
+private fun Padded(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    BoardPreviewHost(modifier) { Box(Modifier.padding(Spacing.md)) { content() } }
 }
 
 @Composable
@@ -282,13 +282,13 @@ internal fun DailyBoardMedalsPreview() = Padded {
 @Preview(name = "Tablet light", device = TabletSpec, showBackground = true)
 @Preview(name = "Tablet dark", device = TabletSpec, uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
 @Composable
-internal fun DailyBoardTabletPreview() = Padded {
+internal fun DailyBoardTabletPreview() = Padded(Modifier.fillMaxSize()) {
     DailyBoard(dailyBoardTitle("Queens"), RankOrder.TimeThenHints, DailyBoardState.Ranked(Rows, DailyBoardNote.Posting))
 }
 
 @Preview(name = "Tablet Strands light", device = TabletSpec, showBackground = true)
 @Preview(name = "Tablet Strands dark", device = TabletSpec, uiMode = Configuration.UI_MODE_NIGHT_YES, showBackground = true)
 @Composable
-internal fun DailyBoardStrandsTabletPreview() = Padded {
+internal fun DailyBoardStrandsTabletPreview() = Padded(Modifier.fillMaxSize()) {
     DailyBoard(dailyBoardTitle("Strands"), RankOrder.HintsThenTime, DailyBoardState.Ranked(StrandsRows))
 }
