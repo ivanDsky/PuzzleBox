@@ -32,7 +32,7 @@ val firebaseBackendModule = module {
         FirebaseIdentityService(
             gateway = get(),
             scope = get(),
-            // Ticket 39 removes this gate: the mark is then always passed.
+            // CloudSync on: sign-out marks the Firestore cache for clearing at the next start; off: it does not.
             cacheClearMark = if (get<ReleaseFlags>().isEnabled(ReleaseFlag.CloudSync)) get<CacheClearMark>() else null,
         )
     }

@@ -25,8 +25,8 @@ import kotlinx.coroutines.flow.map
 /**
  * Saved LinkedIn boards as the synced kind `boards` (ADR-0029 decisions 1 and 8): one doc per
  * `{game}_{day}_{profileKey}`, `{formatVersion, game, day, profileKey, readAtMs, complete, rows}` with every key from
- * [BoardDocKeys]. A row carries name, time and flags, and for a connection their LinkedIn member id as `ref` (user-check
- * F1, so a restored board keeps its avatars and row identity); never a photo, never the reading profile's own id, never
+ * [BoardDocKeys]. A row carries name, time and flags, and for a connection their LinkedIn member id as `ref`, so a
+ * restored board keeps its avatars and row identity; never a photo, never the reading profile's own id, never
  * a name stand-in, and no session value exists in these tables to leak. The ids stay in the account's owner-only space.
  *
  * A board is pending while its `uploadedFingerprint` is null: the ghost writer clears it on every rewrite. An
@@ -36,7 +36,7 @@ import kotlinx.coroutines.flow.map
  * [adopt], [apply], [acknowledge] and [forget] each take [LinkedInStoreLock] once, from outside, and never nest it. A restore keeps one board per
  * (game, day) by [BoardMerge], and marks the day read in the fetch log of the linked profile when the restored board
  * is that profile's and its day is at least 2 days before the game's today, so no LinkedIn call is spent re-reading a
- * fixed day (A26, amended by user-check F2). Today and yesterday get no mark, so the in-window flow reads them live
+ * fixed day (A26). Today and yesterday get no mark, so the in-window flow reads them live
  * once. A restored connection keeps its `ref` as the ghost `memberRef`; a row without one, or whose ref an earlier row
  * already took, gets a stable stand-in made from its name, and the board's own profile a stand-in id made from its key,
  * until the day is read again.

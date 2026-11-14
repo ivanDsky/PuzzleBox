@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
+import android.util.Log
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.FirebaseFirestoreException.Code
@@ -80,14 +81,22 @@ internal class FirestoreCloudSpace(
     }
 }
 
+private const val TAG = "FirestoreCloudSpace"
+
 private fun Exception.toCloudFailure(): CloudResult<Nothing> = when {
     this is FirebaseNetworkException -> CloudResult.Offline
     this is FirebaseFirestoreException -> when (code) {
         Code.RESOURCE_EXHAUSTED -> CloudResult.Exhausted
         Code.UNAVAILABLE, Code.DEADLINE_EXCEEDED, Code.ABORTED, Code.INTERNAL -> CloudResult.Offline
-        else -> CloudResult.Denied
+        else -> denied(code.name)
     }
 
     // A failure no retry can fix (refused, malformed, a value that is not plain) pauses sync as a refusal.
-    else -> CloudResult.Denied
+    else -> denied(null)
+}
+
+/** A refusal; the log names the exception class and the Firestore code, never the message or a payload. */
+private fun Exception.denied(code: String?): CloudResult<Nothing> {
+    Log.w(TAG, "write or read refused: ${javaClass.name}" + (code?.let { ", code $it" } ?: ""))
+    return CloudResult.Denied
 }
