@@ -43,7 +43,7 @@ class RanksTitleMenuTest {
         onPick: (RanksBoard) -> Unit = {},
         onNudgeShown: () -> Unit = {},
     ) {
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, onSignIn = {}, onSwipe = {}, onPickBoard = onPick, onNudgeShown = onNudgeShown) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}, onPickBoard = onPick, onNudgeShown = onNudgeShown)) } }
     }
 
     @Test

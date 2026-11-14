@@ -47,7 +47,7 @@ private fun Hub(slice: RanksBoardSlice, signIn: RanksSignIn = RanksSignIn.Idle) 
 @Composable
 private fun Hub(state: RanksUiState) {
     PuzzleBoxTheme {
-        RanksScreen(state, onSignIn = {}, onSwipe = {})
+        RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}))
     }
 }
 
@@ -173,7 +173,7 @@ private val TabletPlaces = listOf(
 @Composable
 private fun Tablet(state: RanksUiState) {
     PuzzleBoxTheme {
-        RanksScreen(state, onSignIn = {}, onSwipe = {}, layout = HistoryLayout.TwoPane)
+        RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), layout = HistoryLayout.TwoPane)
     }
 }
 

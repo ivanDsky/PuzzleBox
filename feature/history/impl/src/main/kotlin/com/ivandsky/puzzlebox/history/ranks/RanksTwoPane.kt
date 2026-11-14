@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -36,14 +35,9 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.gameui.board.boardRowValueText
-import com.ivandsky.puzzlebox.history.HistoryDayRow
-import com.ivandsky.puzzlebox.history.ReplaySolve
-import com.ivandsky.puzzlebox.model.GameId
-import java.time.LocalDate
 
 private const val LIST_WEIGHT = 0.4f
 private const val BOARD_WEIGHT = 0.6f
@@ -54,32 +48,22 @@ private val ICON = 20.dp
  * The Ranks hub on a tablet: the left pane holds the full month with the lifetime stats under it and the game list
  * (Overall first, the viewer's place on each); the right pane holds the top bar (the board's name and the tune icon),
  * the placement hero card, Your solve for a past day and the board. A pick in the list re-ranks the board in place, and
- * so does a swipe anywhere under the top bar, down to the bottom of the pane ([onSwipe], as on the phone), so there is
- * no title menu, week strip or dots here. The
+ * so does a swipe anywhere under the top bar, down to the bottom of the pane ([RanksActions.onSwipe], as on the phone:
+ * the same [RanksBoardStack]), so there is no title menu, week strip or dots here. The
  * calendar is always the month: the shared calendar's fold-to-week is turned back into a month at the door
- * ([onShowCalendar] only ever hears `expanded = true`). The hero card wears the shown board's accent; it, the board's
- * title and the board itself go to the next board's with the [scrub].
+ * ([RanksActions.onShowCalendar] only ever hears `expanded = true`). The hero card wears the shown board's accent; it,
+ * the board's title and the board itself go to the next board's with the [scrub].
  */
 @Composable
 internal fun RanksTwoPane(
     state: RanksUiState,
-    onSignIn: () -> Unit,
+    actions: RanksActions,
+    scrub: BoardScrub,
+    leftScroll: ScrollState,
+    rightScroll: ScrollState,
+    onRowClick: ((DailyBoardRowModel) -> Unit)?,
+    refreshing: Boolean,
     modifier: Modifier = Modifier,
-    onPickBoard: (RanksBoard) -> Unit = {},
-    onScope: (RankScope) -> Unit = {},
-    onWindow: (RanksSelection.Window) -> Unit = {},
-    onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit = { _, _ -> },
-    onSelectDay: (LocalDate?) -> Unit = {},
-    onPlayAgain: (GameId, LocalDate) -> Unit = { _, _ -> },
-    onOpenReplay: (HistoryDayRow, ReplaySolve) -> Unit = { _, _ -> },
-    onCompare: (HistoryDayRow) -> Unit = {},
-    leftScroll: ScrollState = rememberScrollState(),
-    rightScroll: ScrollState = rememberScrollState(),
-    onRowClick: ((DailyBoardRowModel) -> Unit)? = null,
-    refreshing: Boolean = false,
-    onRefresh: (() -> Unit)? = null,
-    scrub: BoardScrub = rememberBoardScrub(state.position),
-    onSwipe: (Int) -> Unit = {},
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
@@ -102,10 +86,10 @@ internal fun RanksTwoPane(
             Modifier.weight(LIST_WEIGHT).fillMaxHeight().verticalScroll(leftScroll).testTag("ranks.leftpane"),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            RanksCalendar(state.calendar.copy(expanded = true), state.stats, { day, _ -> onShowCalendar(day, true) }, onSelectDay, foldable = false)
-            GameList(state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true })
+            RanksCalendar(state.calendar.copy(expanded = true), state.stats, { day, _ -> actions.onShowCalendar(day, true) }, actions.onSelectDay, foldable = false)
+            GameList(state.places, current?.board, actions.onPickBoard, onHowRanksWork = { howRanksWork = true })
         }
-        RanksPullToRefresh(refreshing, onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight()) {
+        RanksPullToRefresh(refreshing, actions.onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight()) {
             FillRemainingColumn(Modifier.fillMaxSize().verticalScroll(rightScroll).testTag("ranks.rightpane")) {
                 RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
                     BoardScrubCell(scrub, state.position, state.board.title, Modifier.padding(start = Spacing.sm), at = { state.sliceAt(it)?.title }) { title ->
@@ -117,25 +101,21 @@ internal fun RanksTwoPane(
                         )
                     }
                 }
-                BoardSwipe(scrub, state.position, state.boardCount, onSwipe, Modifier.fillMaxWidth()) {
-                    Column {
-                        // The pane's one gap between its parts: Your solve brings its own under it, and is nothing when there is none.
-                        RanksHeroCard(
-                            face = heroFace(if (between) target else state.position),
-                            container = { scrub.blend(containers, plain.surfaceContainerHigh) },
-                            ink = { scrub.blend(inks, plain.onSurface) },
-                            modifier = Modifier.padding(vertical = Spacing.md),
-                            was = heroFace(scrub.from).takeIf { between },
-                            progress = { scrub.progress },
-                        )
-                        YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
-                        RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick, morph = rememberBoardMorph(state, scrub))
-                    }
+                RanksBoardStack(state, scrub, actions, onRowClick) {
+                    // The pane's one gap between its parts: Your solve brings its own under it, and is nothing when there is none.
+                    RanksHeroCard(
+                        face = heroFace(if (between) target else state.position),
+                        container = { scrub.blend(containers, plain.surfaceContainerHigh) },
+                        ink = { scrub.blend(inks, plain.onSurface) },
+                        modifier = Modifier.padding(vertical = Spacing.md),
+                        was = heroFace(scrub.from).takeIf { between },
+                        progress = { scrub.progress },
+                    )
                 }
             }
         }
     }
-    if (tuning) TuneSheet(state.scope, state.window, onScope, onWindow, onDismiss = { tuning = false })
+    if (tuning) TuneSheet(state.scope, state.window, actions.onScope, actions.onWindow, onDismiss = { tuning = false })
     if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false })
 }
 
