@@ -11,7 +11,7 @@ a new feature where it belongs (Duels landed as a Games sub-tab by local choice)
 ADR-0011 fixed how navigation moves (one immutable `NavigationState`, one stack per tab). It says nothing about *where
 content lives*. This ADR adds that. The reducer, its verbs and its invariants stay as ADR-0011 has them. The tab set
 becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag was removed); Profile stops being a tab.
-*(Amended 2026-11-13: with the `LeaderboardHub` flag on the set is Today · Games · Ranks · Create, §2.)*
+*(Amended 2026-11-13: the set is Today · Games · Ranks · Create, §2; the hub's release flag that gated it is deleted.)*
 
 ## Decision
 1. **One owner.** Each content type has one owner screen. Every other screen shows at most one summary row for it, and
@@ -42,13 +42,9 @@ becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag w
    the three rows above that name it; the game page, Result and Today keep one summary row each. The tab keeps its
    root key (`HistoryRootKey`) and its `Tab` value (`Tab.History`): only the label, the icons and the test tag
    (`nav.tab.ranks`) change, so the placement table, saved navigation and "go to owner" read the same under either
-   tab set. The hub is dark behind the `LeaderboardHub` flag, and the rows describe the flag-on target. With the flag
-   off the tab reads History, History owns lifetime stats (its header) and the timeline, and the game page owns the
-   daily leaderboards (Today/Yesterday; the top five, with the player's own row pinned beneath when it ranks lower).
-   The app reads the flag at one site, once per launch and unsaved, and passes `ranks: Boolean` to the route table
-   (§10), which registers the hub's entry or History's for the root key, never both. So a flip lands on the next
-   launch, tab and root together, and saved navigation restores under it. A pushed `HistoryKey` opens the History
-   screen in both states until the hub serves it.
+   tab set. The hub shipped behind a release flag; the flag, the History screen and the game-page board are
+   deleted, so the tab always reads Ranks and the route table registers only the hub's entry for the root key. A pushed
+   `HistoryKey` opens the hub at that game.
 3. **Chrome types.** Every `NavKey` has one of two:
    - **Bar** shows the tab bar (rail on expanded width). Tab roots, pushed lists and details, Profile, Settings, the
      Studio and editor, and Catalog are `Bar`.
@@ -124,4 +120,4 @@ becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag w
   the NavV2 flag was on (shipped in 0.24.0; the flag was removed).
 - Navigation state restores as ADR-0011 §4 says: `NAVIGATION_STATE_KEY` stays `v1`, no shipped serial name is
   retired, old bundles reconcile (the Profile stack is dropped, the History stack is added fresh).
-- When the flag is deleted, cleanup removes the null or default branches and the flag-off tab set.
+- *(Done for the hub flag: the flag-off branches and tab set are deleted. `DuelsSlot`-style nullable slots for other features stay.)*

@@ -4,7 +4,7 @@ import android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
 import android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.GAME
-import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.HISTORY
+import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.RANKS
 import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.LIBRARY
 import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.ZIP
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -30,7 +30,7 @@ class RotationDeviceTest {
     fun rotationMidGameKeepsTabsStacksAndBoardAndSwapsBarAndRail() = with(shell) {
         rotate(SCREEN_ORIENTATION_PORTRAIT)
         tapText(SEE_ALL)
-        assertRoute(HISTORY)
+        assertRoute(RANKS)
         assertBottomBar()
         tapTab(PlayKey)
         openGame(ZIP)
@@ -53,11 +53,11 @@ class RotationDeviceTest {
         assertSelectedTab(PlayKey)
         assertBottomBar()
         tapTab(HomeKey)
-        assertRoute(HISTORY)
+        assertRoute(RANKS)
 
         rotate(SCREEN_ORIENTATION_LANDSCAPE)
 
-        assertRoute(HISTORY)
+        assertRoute(RANKS)
         assertSelectedTab(HomeKey)
         assertRail()
     }

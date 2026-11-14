@@ -139,7 +139,7 @@ class HomeRouteTest {
                     single<MatchLocalRepository> { FakeMatchLocalRepository() }
                     single<GameCalendar> { FakeGameCalendar(today) }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
-                    // The app's answer with the hub off, as the flags above are: no Friends/Global reader (F20).
+                    // A graph with no Friends/Global reader (F20).
                     single { ObserveFriendDay.Binding(null) }
                     single<GamePlayRegistry> { GamePlayRegistry(emptyList()) }
                     // Resume also checks for an update: by default no release known, so no pill.

@@ -10,8 +10,7 @@ import com.ivandsky.puzzlebox.app.e2e.LinkedInDataWorld.Companion.GHOSTS
 import com.ivandsky.puzzlebox.app.e2e.LinkedInDataWorld.Companion.ZIP
 import com.ivandsky.puzzlebox.app.e2e.LinkedInDataWorld.Companion.zipRefKey
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
-import com.ivandsky.puzzlebox.app.nav.ranksTopLevelDestinations
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.FinalBoardStore
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
@@ -51,7 +50,7 @@ class LinkedInGhostFriendsE2ETest {
 
     // The viewer has picked a visibility tier: the hub's submit watcher holds a result back until the tier is known, and an
     // unset one would put the opt-in sheet over the board.
-    private val world = LinkedInDataWorld(also = listOf(ReleaseFlag.LeaderboardHub), ranksClock = NOW) {
+    private val world = LinkedInDataWorld(ranksClock = NOW) {
         single<FinalBoardStore> { finalBoards }
         single<VisibilityRepository> { FakeVisibilityRepository(OwnTier.Chosen(VisibilityTier.Board)) }
     }
@@ -154,7 +153,7 @@ class LinkedInGhostFriendsE2ETest {
     }
 
     private fun onZipPage(block: ShellRobot.() -> Unit) {
-        shellRobot(graph = world.graph, destinations = ranksTopLevelDestinations) {
+        shellRobot(graph = world.graph, destinations = topLevelDestinations) {
             runBlocking { world.connect() }
             openZipPage()
             awaitSynced(today)

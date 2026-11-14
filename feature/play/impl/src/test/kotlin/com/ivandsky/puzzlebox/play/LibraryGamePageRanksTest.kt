@@ -57,7 +57,7 @@ class LibraryGamePageRanksTest {
 
     @Before
     fun startGraph() {
-        koin = startGamePageBoardKoin(listOf(row.card.game))
+        koin = startGamePageRankKoin(listOf(row.card.game))
     }
 
     @After
@@ -65,7 +65,7 @@ class LibraryGamePageRanksTest {
         koin?.close()
     }
 
-    private fun show(onOpenRanks: ((GameId, LocalDate?) -> Unit)?) {
+    private fun show(onOpenRanks: (GameId, LocalDate?) -> Unit) {
         composeRule.setContent {
             PuzzleBoxTheme {
                 LibraryGamePage(
@@ -80,7 +80,6 @@ class LibraryGamePageRanksTest {
                     onBack = null,
                     offline = false,
                     hasLesson = false,
-                    onOpenGameHistory = { _, _ -> },
                     onOpenRanks = onOpenRanks,
                 )
             }
@@ -88,19 +87,11 @@ class LibraryGamePageRanksTest {
     }
 
     @Test
-    fun `with the hub on the summary row replaces the board and opens the hub at the game and day`() {
+    fun `the summary row stands for the board and opens the hub at the game and day`() {
         val opened = mutableListOf<Pair<GameId, LocalDate?>>()
         show { game, day -> opened += game to day }
         composeRule.onNodeWithTag("daily_board.title").assertDoesNotExist()
-        composeRule.onNodeWithTag("summary.history").assertDoesNotExist()
         composeRule.onNodeWithTag("summary.rank").performScrollTo().performClick()
         composeRule.runOnIdle { assertEquals(listOf(GameId("zip") to today), opened) }
-    }
-
-    @Test
-    fun `without the callback the page keeps its board and has no summary row`() {
-        show(onOpenRanks = null)
-        composeRule.onNodeWithTag("summary.rank").assertDoesNotExist()
-        composeRule.onNodeWithTag("summary.history").performScrollTo().assertExists()
     }
 }

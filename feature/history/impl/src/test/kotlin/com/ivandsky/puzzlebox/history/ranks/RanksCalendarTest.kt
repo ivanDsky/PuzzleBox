@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.history.ranks
 
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -21,14 +20,12 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.history.CalendarState
-import com.ivandsky.puzzlebox.history.HistoryCalendar
 import com.ivandsky.puzzlebox.history.HistoryDayRow
 import com.ivandsky.puzzlebox.history.HistoryReplays
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -141,26 +138,5 @@ class RanksCalendarTest {
         openMonth()
 
         assertEquals(folded, pager())
-    }
-
-    @Test
-    fun `History's calendar still builds a new pager for the month`() {
-        var calendar by mutableStateOf(week)
-        composeRule.setContent {
-            PuzzleBoxTheme {
-                // As History's list calls it: fold arguments left at their defaults.
-                HistoryCalendar(
-                    state = calendar,
-                    onShowCalendar = { day, expanded -> calendar = calendar.copy(shownDay = day, expanded = expanded) },
-                    onSelectDay = {},
-                    cardColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                )
-            }
-        }
-        val folded = pager()
-
-        openMonth()
-
-        assertNotEquals(folded, pager())
     }
 }

@@ -129,6 +129,7 @@ class RealGamesResultRouteTest {
                         onNext = {},
                         onDone = {},
                         onOpenReplay = {},
+                        onOpenRanks = { _, _ -> },
                     )
                 }
             }
@@ -167,6 +168,7 @@ class RealGamesResultRouteTest {
                         onNext = {},
                         onDone = {},
                         onOpenReplay = {},
+                        onOpenRanks = { _, _ -> },
                     )
                 }
             }
@@ -226,7 +228,7 @@ class RealGamesResultRouteTest {
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }
                     single<GoogleIdTokenProvider> { DismissedGoogleIdTokenProvider }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
-                    factory { ObserveResultRank(get(), get(), friendDay = null) } // hub off
+                    factory { ObserveResultRank(get(), get(), friendDay = null) } // no Friends/Global setting
                     factory { ObserveResultInsights(get(), get(), get(), get()) }
                     // Tutorial seen: this path is about the result; the lessons have their own tests.
                     single<UserPreferencesRepository> {
@@ -235,7 +237,7 @@ class RealGamesResultRouteTest {
                 },
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
-                module { single { ObserveFriendDay.Binding(reader = null) } }, // hub off
+                module { single { ObserveFriendDay.Binding(reader = null) } }, // no Friends/Global setting
             )
         }
     }

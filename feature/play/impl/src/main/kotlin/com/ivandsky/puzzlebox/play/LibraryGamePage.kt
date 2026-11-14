@@ -19,10 +19,8 @@ import kotlinx.coroutines.launch
  * [row]'s page in the library: its day card and its month calendar. [page] is the selected
  * game's calendar (another game's is ignored) and [month] the one it asked for (null = today's);
  * on the phone a picked day scrolls the page up to the day card. [onBack] is the phone's back row.
- * The page carries the game's leaderboard and a "Your history" row calling [onOpenGameHistory]
- * with the game and its picked day (null: today).
- * A non-null [onOpenRanks] (the Ranks hub is on) replaces the board with one "You #12 of 340" row calling it with the game and
- * the day the page shows, and drops the "Your history" row, the rank row being the one entry; null keeps the board and the row.
+ * The page carries the game's rank as one "You #12 of 340" row calling [onOpenRanks] with the game and
+ * the day the page shows (the picked day, else the card's own).
  * A non-null [linkedIn] puts the LinkedIn sync chip on the day card, which collects its state while it is shown.
  */
 @Composable
@@ -38,9 +36,8 @@ internal fun LibraryGamePage(
     onBack: (() -> Unit)?,
     offline: Boolean,
     hasLesson: Boolean,
-    onOpenGameHistory: (GameId, LocalDate?) -> Unit,
+    onOpenRanks: (GameId, LocalDate?) -> Unit,
     linkedIn: LinkedInCardState? = null,
-    onOpenRanks: ((GameId, LocalDate?) -> Unit)? = null,
 ) {
     val game = row.card.game
     val shown = page?.takeIf { it.game == game }
@@ -96,18 +93,13 @@ internal fun LibraryGamePage(
         scroll = scroll,
         // The board shows the day the day card shows: the picked day, else the card's own latest day.
         board = {
-            if (onOpenRanks == null) {
-                GamePageBoard(game, linkedIn = linkedIn != null, picked = past?.date, cardDay = row.cardDay)
-            } else {
-                GamePageRankRow(
-                    game,
-                    onOpen = { onOpenRanks(game, past?.date ?: row.cardDay) },
-                    linkedIn = linkedIn != null,
-                    picked = past?.date,
-                    cardDay = row.cardDay,
-                )
-            }
+            GamePageRankRow(
+                game,
+                onOpen = { onOpenRanks(game, past?.date ?: row.cardDay) },
+                linkedIn = linkedIn != null,
+                picked = past?.date,
+                cardDay = row.cardDay,
+            )
         },
-        onOpenHistory = if (onOpenRanks == null) ({ onOpenGameHistory(game, past?.date) }) else null,
     )
 }

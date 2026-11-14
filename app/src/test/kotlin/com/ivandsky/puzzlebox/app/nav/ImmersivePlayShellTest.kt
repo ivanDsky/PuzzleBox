@@ -95,14 +95,14 @@ class ImmersivePlayShellTest {
 
     /** Every tab item is on screen once: the bar shows. */
     private fun assertBarShown(on: NavigationState) {
-        ranksTopLevelDestinations.forEach { destination ->
+        topLevelDestinations.forEach { destination ->
             assertEquals("${destination.tag} on $on", 1, tabNodes(destination))
         }
     }
 
     /** No tab item is on screen: the bar is hidden. */
     private fun assertBarHidden(on: NavigationState) {
-        ranksTopLevelDestinations.forEach { destination ->
+        topLevelDestinations.forEach { destination ->
             assertEquals("${destination.tag} on $on", 0, tabNodes(destination))
         }
     }

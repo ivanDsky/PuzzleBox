@@ -44,7 +44,7 @@ class TabReselectE2ETest {
         assertRoute(HOME)
         scrollTodayDown()
         push(HistoryKey())
-        assertRoute(HISTORY)
+        assertRoute(RANKS)
 
         tapTab(HomeKey)
 
@@ -66,6 +66,6 @@ class TabReselectE2ETest {
 
     private companion object {
         const val HOME = "route.home"
-        const val HISTORY = "route.history"
+        const val RANKS = "route.ranks"
     }
 }

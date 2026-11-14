@@ -182,7 +182,6 @@ class RoomLinkedInDaysObserveTest {
                 synced.ghosts.toSet(),
             )
             assertEquals(now, synced.boardFetchedAtMs)
-            assertTrue(synced.boardComplete)
 
             // The board was read and is the player's own record: a disconnect keeps it, saved by the same read.
             link.disconnect()

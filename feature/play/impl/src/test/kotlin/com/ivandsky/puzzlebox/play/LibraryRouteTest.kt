@@ -169,7 +169,7 @@ class LibraryRouteTest {
         composeRule.setContent {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
                 PuzzleBoxTheme(darkTheme = false) {
-                    LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) }, onOpenCode = {}, onOpenGameHistory = { _, _ -> })
+                    LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) }, onOpenCode = {}, onOpenRanks = { _, _ -> })
                 }
             }
         }
@@ -376,7 +376,7 @@ class LibraryRouteTest {
                     onRetry = {},
                     onOpenLesson = {},
                     calendar = CalendarActions(),
-                    onOpenGameHistory = { _, _ -> },
+                    onOpenRanks = { _, _ -> },
                 )
             }
         }
@@ -431,50 +431,5 @@ class LibraryRouteTest {
         awaitTag("library.day_card.day.$yesterday")
         tap("library.play")
         assertEquals(listOf(zip to yesterday), played)
-    }
-
-    private fun setBoardContent(layout: PlayLayout, onOpenGameHistory: (GameId, LocalDate?) -> Unit = { _, _ -> }) {
-        composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) {
-                LibraryRoute(
-                    layout = layout,
-                    onPlay = { _, _ -> },
-                    onOpenCode = {},
-                    onOpenGameHistory = onOpenGameHistory,
-                )
-            }
-        }
-    }
-
-    private fun openAlphaPage(layout: PlayLayout) {
-        if (layout == PlayLayout.SinglePane) {
-            awaitTag("library.list")
-        } else {
-            awaitTag("library.page.zip")
-        }
-        tap("library.row.alpha")
-        awaitTag("library.page.alpha")
-    }
-
-    @Test
-    fun `the tablet page shows the board, the history row and how to play under them`() {
-        setBoardContent(PlayLayout.TwoPane)
-        openAlphaPage(PlayLayout.TwoPane)
-        awaitTag("daily_board.title")
-        awaitTag("summary.history")
-        val history = composeRule.onNodeWithTag("summary.history").getUnclippedBoundsInRoot()
-        val howTo = composeRule.onNodeWithTag("library.howto").getUnclippedBoundsInRoot()
-        assertTrue("how to play sits under the history row", howTo.top >= history.bottom)
-        composeRule.onNodeWithTag("summary.history").assertHeightIsEqualTo(56.dp)
-    }
-
-    @Test
-    fun `tapping the history row opens the page's game with no picked day once`() {
-        val opened = mutableListOf<Pair<GameId, LocalDate?>>()
-        setBoardContent(PlayLayout.SinglePane, onOpenGameHistory = { game, day -> opened += game to day })
-        openAlphaPage(PlayLayout.SinglePane)
-        composeRule.onNodeWithTag("summary.history").performScrollTo()
-        tap("summary.history")
-        assertEquals(listOf<Pair<GameId, LocalDate?>>(alpha to null), opened)
     }
 }

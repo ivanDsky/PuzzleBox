@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.SummaryLinkRow
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -39,8 +38,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
  * scrolling column under a back button ([onBack]; null hides it). [offline] adds the
  * offline pill; [hasLesson] false hides "Open the lesson" ([onOpenLesson]). [scroll] is
  * the phone column's, so picking a day can bring the day card back into view. The [board]
- * (the game's leaderboard) goes under the stats card and a "Your history" row ([onOpenHistory]; null, the Ranks hub on, hides it)
- * under it, before how to play. The tablet's right column scrolls as one so how to play keeps
+ * (the game's rank row) goes under the stats card, before how to play. The tablet's right column scrolls as one so how to play keeps
  * its place under them.
  */
 @Composable
@@ -52,7 +50,6 @@ internal fun GamePage(
     onBack: (() -> Unit)?,
     onOpenLesson: () -> Unit,
     board: @Composable () -> Unit,
-    onOpenHistory: (() -> Unit)?,
     modifier: Modifier = Modifier,
     offline: Boolean = false,
     hasLesson: Boolean = true,
@@ -76,8 +73,8 @@ internal fun GamePage(
                     verticalArrangement = Arrangement.spacedBy(Spacing.lg),
                 ) {
                     EnterFade(2, reduced) { GameStatsCard(row) }
-                    // The right column scrolls as one: stats, board, history, then how to play at its own height.
-                    EnterFade(3, reduced) { PageTail(Spacing.lg, board, onOpenHistory, row, hasLesson, onOpenLesson) }
+                    // The right column scrolls as one: stats, board, then how to play at its own height.
+                    EnterFade(3, reduced) { PageTail(Spacing.lg, board, row, hasLesson, onOpenLesson) }
                 }
             }
         }
@@ -102,24 +99,22 @@ internal fun GamePage(
             EnterFade(0, reduced) { dayCard() }
             EnterFade(1, reduced) { calendar() }
             EnterFade(2, reduced) { GameStatsCard(row) }
-            EnterFade(3, reduced) { PageTail(Spacing.md, board, onOpenHistory, row, hasLesson, onOpenLesson) }
+            EnterFade(3, reduced) { PageTail(Spacing.md, board, row, hasLesson, onOpenLesson) }
         }
     }
 }
 
-/** The board, the history row and how to play, which enter as one beat. */
+/** The board and how to play, which enter as one beat. */
 @Composable
 private fun PageTail(
     spacing: Dp,
     board: @Composable () -> Unit,
-    onOpenHistory: (() -> Unit)?,
     row: LibraryRowModel,
     hasLesson: Boolean,
     onOpenLesson: () -> Unit,
 ) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(spacing)) {
         board()
-        onOpenHistory?.let { SummaryLinkRow("Your history", it, Modifier.testTag("summary.history")) }
         HowToPlayCard(row, hasLesson, onOpenLesson)
     }
 }

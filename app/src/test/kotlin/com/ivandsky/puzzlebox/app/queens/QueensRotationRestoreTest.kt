@@ -147,7 +147,7 @@ class QueensRotationRestoreTest {
                 NavDisplay(
                     backStack = navigator.state.currentStack,
                     onBack = { navigator.pop() },
-                    entryProvider = entryProvider { playEntry(navigator, PlayLayout.SinglePane, onOpenGameHistory = { _, _ -> }) },
+                    entryProvider = entryProvider { playEntry(navigator, PlayLayout.SinglePane, onOpenRanks = { _, _ -> }) },
                 )
             }
         }

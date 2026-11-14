@@ -107,9 +107,11 @@ class LinkedInGhostIsolationE2ETest {
             // Shown first, so the checks below are about data that really arrived.
             openZipPage()
             awaitSynced(today)
-            awaitLooper { textsUnder("daily_board.ghost.name").toSet() == names }
             pickDay(older)
             awaitSynced(older)
+            awaitLooper { shows("summary.rank") }
+            // The hub's board shows the connections too.
+            openZipRanks()
             awaitLooper { textsUnder("daily_board.ghost.name").toSet() == names }
 
             graph.koin.get<LeaderboardSubmitWatcher>().start()
@@ -169,6 +171,8 @@ class LinkedInGhostIsolationE2ETest {
             runBlocking { link().connect(PROFILE_ID, CONSENT_AT_MS) }
             openZipPage()
             awaitSynced(today)
+            awaitLooper { shows("summary.rank") }
+            openZipRanks()
             awaitLooper { textsUnder("daily_board.ghost.name").toSet() == names }
 
             // Tier Replays and opted in before the solve, so the solve below is published at Posted.

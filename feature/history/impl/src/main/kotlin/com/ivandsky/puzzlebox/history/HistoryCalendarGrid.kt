@@ -11,9 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -24,8 +22,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.PillShape
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -41,7 +37,6 @@ import java.util.Locale
 // Inside DayRing's 17dp inner edge, so a 2dp sliver separates the disc from the ring.
 private val DayDisc = 30.dp
 private val WeekdayGap = Spacing.xs
-private val FilterIcon = 16.dp
 private const val DIMMED = 0.38f
 
 /** The Monday that starts [day]'s week. */
@@ -169,27 +164,6 @@ private fun CalendarDay(
                 fontWeight = if (date == today && !selected) FontWeight.Bold else null,
                 color = if (selected) colors.surface else colors.onSurface,
             )
-        }
-    }
-}
-
-/** The list's day filter: the day's name and a ✕; tapping it shows every day again. */
-@Composable
-internal fun DayFilterPill(day: LocalDate, today: LocalDate?, onClear: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        onClick = onClear,
-        modifier = modifier.testTag("history.day_filter"),
-        shape = PillShape,
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
-    ) {
-        Row(
-            modifier = Modifier.padding(start = Spacing.md, end = Spacing.sm, top = Spacing.xs, bottom = Spacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-        ) {
-            Text(text = dayGroupLabel(day, today), style = MaterialTheme.typography.labelLarge)
-            Icon(imageVector = PuzzleIcons.Close, contentDescription = "Show all days", modifier = Modifier.size(FilterIcon))
         }
     }
 }

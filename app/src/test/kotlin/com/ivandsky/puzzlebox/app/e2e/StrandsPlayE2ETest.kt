@@ -125,15 +125,6 @@ class StrandsPlayE2ETest {
 
             val record = runBlocking { strandsRecords() }.single()
             assertEquals("the record keeps the solve's hints", 2, record.hints)
-
-            switchTab(HomeKey)
-            tapText("See all")
-            awaitTag(HISTORY_ROW)
-            // The captured row exists from the opening; only the solve's record swaps its
-            // "Keep going" pill for the time and hints.
-            rule.onNodeWithTag("history.unfinished.$STRANDS/$TODAY", useUnmergedTree = true).assertDoesNotExist()
-            rule.onNode(hasTestTag(HISTORY_ROW) and hasAnyDescendant(hasText("2 hints")), useUnmergedTree = true)
-                .assertExists()
         }
 
     @Test
@@ -268,7 +259,6 @@ class StrandsPlayE2ETest {
         const val HINT_DIALOG_DISMISS = "strands.hint_dialog_dismiss"
         const val RESULT = "route.result"
         const val RESULT_SCREEN = "result.hero.screen"
-        val HISTORY_ROW = "history.row.$STRANDS/$TODAY"
 
         fun path(vararg cells: Pair<Int, Int>) = cells.map { (r, c) -> Coord(r, c) }
 

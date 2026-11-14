@@ -1,10 +1,6 @@
 package com.ivandsky.puzzlebox.app.e2e
 
-import androidx.compose.ui.test.hasAnyDescendant
-import androidx.compose.ui.test.hasTestTag
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performScrollToNode
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
@@ -143,12 +139,6 @@ class OfficialLegE2ETest {
         val after = awaitReads(archiveDay)
         assertNotEquals("the archive progress moved", before.archive, after.archive)
         assertEquals("stats and archive progress move exactly as solo solves", soloReads().copy(history = after.history), after)
-
-        // The History browser shows both duel days as such.
-        tap(RESULT_UP)
-        tapTab(HomeKey)
-        assertRoute(HISTORY)
-        listOf(today, archiveDay).forEach { assertDuelPill(it) }
 
         // Checked last, after the walk: a late submit of the out-of-window day has had every chance to land.
         assertEquals(
@@ -317,17 +307,6 @@ class OfficialLegE2ETest {
         rule.waitUntil(ms + TIMEOUT_MS) { System.currentTimeMillis() - since >= ms }
     }
 
-    /** Scrolls History's list to [day]'s Zip row once it shows, and checks it carries the duel pill. */
-    private fun ShellRobot.assertDuelPill(day: LocalDate) {
-        val key = "${ZIP.value}/$day"
-        rule.waitUntil(TIMEOUT_MS) {
-            runCatching { rule.onNodeWithTag(HISTORY_LIST).performScrollToNode(hasTestTag("history.row.$key")) }.isSuccess
-        }
-        // The row's own pill, as the user reads it: the duel and its opponent, not the history data behind it.
-        rule.onNode(hasTestTag("history.duel.$key") and hasAnyDescendant(hasText("Solved in a duel vs $OPPONENT")), useUnmergedTree = true)
-            .assertExists()
-    }
-
     /** The reads History, Home and Profile render, once [day]'s solve shows in them. */
     private fun ShellRobot.awaitReads(day: LocalDate): Reads {
         rule.waitUntil(TIMEOUT_MS) { reads().history.any { it.gameId == ZIP && it.day == day && it.record != null } }
@@ -382,8 +361,6 @@ class OfficialLegE2ETest {
 
         const val GAME_ROUTE = "route.game"
         const val RESULT_ROUTE = "route.result"
-        const val HISTORY = "route.history"
-        const val HISTORY_LIST = "history.list"
         const val RESULT_UP = "result.up"
         const val RESULT_NEXT = "result.next"
         const val PLAY_AGAIN = "result.playAgain"

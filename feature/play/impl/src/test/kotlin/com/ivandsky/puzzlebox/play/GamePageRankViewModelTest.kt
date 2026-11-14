@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.data.cloud.CloudSyncState
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
@@ -17,7 +16,6 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
-import com.ivandsky.puzzlebox.domain.linkedin.SavedBoardState
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
@@ -31,7 +29,6 @@ import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
@@ -56,7 +53,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /** The board shows the day card's day, or the picked one over it; with LinkedIn the title and the rows change together, once the new day is ready. */
-class GamePageBoardViewModelTest {
+class GamePageRankViewModelTest {
 
     @get:Rule
     val main = MainDispatcherRule()
@@ -102,9 +99,9 @@ class GamePageBoardViewModelTest {
 
     /** Built inside the test: its scope takes the main dispatcher the rule installs when the test starts. */
     private val viewModel by lazy {
-        GamePageBoardViewModel(
+        GamePageRankViewModel(
             game, ObserveLeaderboard(identity, repository, registry, calendar), calendar, registry, identity,
-            dismissedGoogleSignIn, linkedIn = null, cloudSync = FakeCloudSync(), friendDay = null, // hub off
+            dismissedGoogleSignIn, linkedIn = null, friendDay = null, // no Friends/Global setting
         )
     }
 
@@ -127,9 +124,9 @@ class GamePageBoardViewModelTest {
     private fun holder() = ObserveLinkedInDayView(observeLinkedIn, syncLinkedIn, FakeLinkedInLink(), phone)
 
     /** A board with LinkedIn on. */
-    private fun linkedInModel() = GamePageBoardViewModel(
+    private fun linkedInModel() = GamePageRankViewModel(
         game, ObserveLeaderboard(identity, repository, registry, calendar), calendar, registry, identity,
-        dismissedGoogleSignIn, linkedIn = holder(), cloudSync = FakeCloudSync(), friendDay = null, // hub off
+        dismissedGoogleSignIn, linkedIn = holder(), friendDay = null, // no Friends/Global setting
     )
 
     private fun ghost(name: String, timeMs: Long?, hintFree: Boolean = true, photoPath: String? = null) =
@@ -142,7 +139,6 @@ class GamePageBoardViewModelTest {
         fetchedAtMs: Long? = 1L,
         own: LinkedInOwnState = LinkedInOwnState.Unknown,
         owner: LinkedInOwner? = null,
-        complete: Boolean = false,
     ) = LinkedInDayData(
         link = LinkState.Connected("member-1"),
         delta = 0,
@@ -153,7 +149,6 @@ class GamePageBoardViewModelTest {
         ghosts = ghosts,
         boardFetchedAtMs = fetchedAtMs,
         owner = owner,
-        boardComplete = complete,
     )
 
     private fun after(ms: Long) {
@@ -161,7 +156,7 @@ class GamePageBoardViewModelTest {
         settle()
     }
 
-    /** A collector standing in for the screen: [GamePageBoardViewModel.state] only runs while observed. */
+    /** A collector standing in for the screen: [GamePageRankViewModel.state] only runs while observed. */
     private val screen = CoroutineScope(main.testDispatcher + Job())
 
     @After
@@ -178,33 +173,6 @@ class GamePageBoardViewModelTest {
         assertEquals(yesterday, viewModel.state.value.day)
         assertFalse(viewModel.state.value.isToday)
         assertEquals(DailyBoardState.Ranked(listOf(row("Yest1"))), viewModel.state.value.board)
-    }
-
-    @Test
-    fun `the board follows the cloud's first restore and is never restoring without one`() {
-        val cloud = FakeCloudSync(CloudSyncState.Syncing(firstRestore = true))
-        val restoring = GamePageBoardViewModel(
-            game, ObserveLeaderboard(identity, repository, registry, calendar), calendar, registry, identity,
-            dismissedGoogleSignIn, linkedIn = null, cloudSync = cloud, friendDay = null, // hub off
-        )
-        restoring.state.launchIn(screen)
-        viewModel.state.launchIn(screen)
-        settle()
-
-        assertTrue(restoring.state.value.restoring)
-        assertFalse(viewModel.state.value.restoring)
-
-        cloud.state.value = CloudSyncState.Syncing(firstRestore = false)
-        settle()
-        assertFalse(restoring.state.value.restoring)
-
-        cloud.state.value = CloudSyncState.Syncing(firstRestore = true)
-        settle()
-        assertTrue(restoring.state.value.restoring)
-
-        cloud.state.value = CloudSyncState.Synced(atMs = 1L)
-        settle()
-        assertFalse(restoring.state.value.restoring)
     }
 
     @Test
@@ -331,36 +299,6 @@ class GamePageBoardViewModelTest {
     }
 
     @Test
-    fun `the board says whether its day is saved, never saved or not yet read - A36`() {
-        val model = linkedInModel()
-        model.state.launchIn(screen)
-
-        days.emit(game, today, dayData(emptyList(), fetchedAtMs = null))
-        settle()
-        assertEquals(SavedBoardState.NotYetRead, model.state.value.saved)
-
-        days.emit(game, today, dayData(emptyList(), inWindow = false, fetchedAtMs = null))
-        settle()
-        assertEquals(SavedBoardState.NeverSaved, model.state.value.saved)
-
-        days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L)), fetchedAtMs = 7_000L))
-        settle()
-        assertEquals(SavedBoardState.Saved(7_000L, final = false), model.state.value.saved)
-
-        days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L)), inWindow = false, fetchedAtMs = 9_000L, complete = true))
-        settle()
-        assertEquals(SavedBoardState.Saved(9_000L, final = true), model.state.value.saved)
-    }
-
-    @Test
-    fun `without LinkedIn the board is never saved`() {
-        viewModel.state.launchIn(screen)
-        settle()
-
-        assertEquals(SavedBoardState.NotYetRead, viewModel.state.value.saved)
-    }
-
-    @Test
     fun `the board never syncs LinkedIn for any day`() {
         days.emit(game, today, dayData(listOf(ghost("Ada", 61_000L))))
         days.emit(game, yesterday, dayData(listOf(ghost("Bo", 62_000L))))
@@ -404,8 +342,8 @@ class GamePageBoardViewModelTest {
     }
 
     /** Every state the board reaches once collected, in order, as the screen would have drawn them. */
-    private fun drawn(model: GamePageBoardViewModel): MutableList<GamePageBoardState> {
-        val seen = mutableListOf<GamePageBoardState>()
+    private fun drawn(model: GamePageRankViewModel): MutableList<GamePageRankState> {
+        val seen = mutableListOf<GamePageRankState>()
         model.state.onEach { seen += it }.launchIn(screen)
         return seen
     }
@@ -502,8 +440,8 @@ class GamePageBoardViewModelTest {
         val seen = drawn(model)
         settle()
 
-        assertEquals(GamePageBoardState(day = past, isToday = false), model.state.value)
-        assertEquals(listOf(GamePageBoardState(), GamePageBoardState(day = past, isToday = false)), seen)
+        assertEquals(GamePageRankState(day = past, isToday = false), model.state.value)
+        assertEquals(listOf(GamePageRankState(), GamePageRankState(day = past, isToday = false)), seen)
     }
 
     @Test
@@ -677,7 +615,7 @@ class GamePageBoardViewModelTest {
         is DailyBoardLine.Ghost -> place
     }
 
-    private fun rowsOf(model: GamePageBoardViewModel) = (model.state.value.board as DailyBoardState.Ranked).rows
+    private fun rowsOf(model: GamePageRankViewModel) = (model.state.value.board as DailyBoardState.Ranked).rows
 
     private fun settle() = main.testDispatcher.scheduler.runCurrent()
 

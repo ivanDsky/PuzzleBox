@@ -180,7 +180,7 @@ class RealGamesPlayRouteTest {
                 domainModule,
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
-                module { single { ObserveFriendDay.Binding(reader = null) } }, // hub off
+                module { single { ObserveFriendDay.Binding(reader = null) } }, // no Friends/Global setting
             )
         }
     }
@@ -193,7 +193,7 @@ class RealGamesPlayRouteTest {
                 backStack = navigator.state.currentStack,
                 onBack = { navigator.pop() },
                 entryProvider = entryProvider {
-                    playEntry(navigator, PlayLayout.SinglePane, onOpenGameHistory = { _, _ -> })
+                    playEntry(navigator, PlayLayout.SinglePane, onOpenRanks = { _, _ -> })
                     entry<ResultKey> { Text("result") }
                 },
             )

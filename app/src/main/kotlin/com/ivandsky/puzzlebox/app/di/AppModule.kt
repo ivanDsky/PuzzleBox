@@ -32,9 +32,6 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.games.queensui.QueensSettings
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuHighlightSettings
 import com.ivandsky.puzzlebox.profile.settings.GameOptions
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.visibility.SkippedPosts
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import kotlinx.coroutines.CoroutineScope
@@ -57,7 +54,6 @@ val appModule = module {
     // the Result board and the tablet panel.
     single { SubmitStatusTracker() }
     single {
-        val hub = if (get<ReleaseFlags>().isEnabled(ReleaseFlag.LeaderboardHub)) Unit else null
         LeaderboardSubmitWatcher(
             records = get<CompletionRepository>(),
             identityService = get<IdentityService>(),
@@ -65,27 +61,19 @@ val appModule = module {
             calendar = get<GameCalendar>(),
             scope = get<CoroutineScope>(),
             statuses = get<SubmitStatusTracker>(),
-            visibility = hub?.let { get<VisibilityRepository>() },
-            skipped = hub?.let { get<SkippedPosts>() },
+            visibility = get<VisibilityRepository>(),
+            skipped = get<SkippedPosts>(),
         )
     }
-    // Resolved only by the application, which starts it with the hub flag on; flag off, it is never created.
     single { DailyReplayPublisher(publish = get<SubmitDailyReplay>(), scope = get<CoroutineScope>()) }
-    // The ranks outside the hub (Home, Result, the play summary) follow its Friends/Global setting only with the hub
-    // on: off, there is no setting to follow, so it is not read, no friends are listened to and every rank is Global.
-    // A factory, so a flag flipped in the developer menu applies to the next screen opened.
+    // The ranks outside the hub (Home, Result, the play summary) follow its Friends/Global setting.
     factory {
-        val flags = get<ReleaseFlags>()
         ObserveFriendDay.Binding(
-            if (flags.isEnabled(ReleaseFlag.LeaderboardHub)) {
-                ObserveFriendDay(
-                    preferences = get<UserPreferencesRepository>(),
-                    friendUids = get<ObserveFriendUids>(),
-                    linkedInDay = get<ObserveLinkedInDay>(),
-                )
-            } else {
-                null
-            },
+            ObserveFriendDay(
+                preferences = get<UserPreferencesRepository>(),
+                friendUids = get<ObserveFriendUids>(),
+                linkedInDay = get<ObserveLinkedInDay>(),
+            ),
         )
     }
     // Friend puzzle wins post to their own boards, never through the daily watcher.

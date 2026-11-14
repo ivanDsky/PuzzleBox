@@ -23,6 +23,4 @@ data class LinkedInDayData(
     val boardFetchedAtMs: Long?,
     /** The player's own row of the board this phone read for the day; null until a board that names them was read. */
     val owner: LinkedInOwner? = null,
-    /** Whether the day's saved board was read after the day's end, so it is final; false while none is saved. */
-    val boardComplete: Boolean = false,
 )
