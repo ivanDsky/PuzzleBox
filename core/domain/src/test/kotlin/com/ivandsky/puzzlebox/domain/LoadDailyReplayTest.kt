@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.domain
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.SolveReplayRef.Latest
 import com.ivandsky.puzzlebox.domain.SolveReplayRef.Record
@@ -124,10 +125,15 @@ class LoadDailyReplayTest {
 
     @Test
     fun `a failing read gives null`() = runTest {
-        val load = entry(completions = ThrowingCompletionRepository(IllegalStateException("store down")))
+        val logged = mutableListOf<Throwable>()
+        val load = entry(
+            completions = ThrowingCompletionRepository(IllegalStateException("store down")),
+            failures = { _, _, cause -> logged += cause },
+        )
 
         assertNull(load(Record(puzzle)))
         assertNull(load(Latest(puzzle)))
+        assertEquals(listOf("store down", "store down"), logged.map { it.message })
     }
 
     @Test
@@ -192,6 +198,7 @@ class LoadDailyReplayTest {
         completions: CompletionRepository = FakeCompletionRepository(),
         cached: Boolean = true,
         registered: GameId = game,
+        failures: FailureLog = FailureLog { _, _, _ -> },
     ): LoadSolveReplay {
         val daily = FakeDailyRepository().apply {
             if (cached) setCached(registered, day, TestGames.puzzle(registered))
@@ -221,6 +228,7 @@ class LoadDailyReplayTest {
             player = LoadPlayerReplay(FakeDailyReplayRepository(), daily),
             completions = completions,
             dispatchers = InlineDispatcherProvider,
+            failures = failures,
         )
     }
 
