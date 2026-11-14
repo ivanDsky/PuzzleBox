@@ -60,9 +60,10 @@ private fun RanksRoute(
     key: String?,
     onBack: (() -> Unit)?,
 ) {
-    val viewModel = koinViewModel<RanksViewModel>(key = key, parameters = { parametersOf(linkedIn, opening) })
-    val playerSheet = koinViewModel<PlayerSheetViewModel>(key = key)
-    val replayOptIn = koinViewModel<ReplayOptInViewModel>(key = key)
+    // One key per class: a ViewModelStore keeps a key's last ViewModel only, so a shared key made each new one clear the one before it.
+    val viewModel = koinViewModel<RanksViewModel>(key = key?.let { "$it/ranks" }, parameters = { parametersOf(linkedIn, opening) })
+    val playerSheet = koinViewModel<PlayerSheetViewModel>(key = key?.let { "$it/playerSheet" })
+    val replayOptIn = koinViewModel<ReplayOptInViewModel>(key = key?.let { "$it/replayOptIn" })
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val refreshing by viewModel.refreshing.collectAsStateWithLifecycle()
     val context = LocalContext.current

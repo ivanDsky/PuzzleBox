@@ -45,6 +45,7 @@ class SettingsScreenTest {
     private val sudokuPeer = mutableListOf<Boolean>()
     private val sudokuSameDigit = mutableListOf<Boolean>()
     private val tiers = mutableListOf<VisibilityTier>()
+    private val ranksFriends = mutableListOf<Boolean>()
     private var backClicks = 0
     private var catalogClicks = 0
 
@@ -62,6 +63,7 @@ class SettingsScreenTest {
                     onSetSudokuPeerHighlight = { sudokuPeer += it },
                     onSetSudokuSameDigitHighlight = { sudokuSameDigit += it },
                     onSelectVisibility = { tiers += it },
+                    onSetRanksFriendsDefault = { ranksFriends += it },
                     onBack = { backClicks++ },
                     onOpenCatalog = if (showCatalog) ({ catalogClicks++ }) else null,
                     debugSections = debugSections,
@@ -118,6 +120,25 @@ class SettingsScreenTest {
         setContent()
 
         composeRule.onNodeWithTag("settings.visibility").assertDoesNotExist()
+    }
+
+    @Test
+    fun `the ranks default marks the stored scope and a tap reports the tapped one`() {
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", visibility = OwnTier.Unset, ranksFriendsDefault = true))
+
+        composeRule.onNodeWithTag("settings.ranks.friends").performScrollTo().assertIsSelected()
+        composeRule.onNodeWithTag("settings.ranks.global").assertIsNotSelected()
+
+        composeRule.onNodeWithTag("settings.ranks.global").performScrollTo().performClick()
+
+        assertEquals(listOf(false), ranksFriends)
+    }
+
+    @Test
+    fun `no ranks section without the visibility state`() {
+        setContent()
+
+        composeRule.onNodeWithTag("settings.ranks").assertDoesNotExist()
     }
 
     @Test

@@ -92,6 +92,7 @@ class LibraryGamePageRanksTest {
         val opened = mutableListOf<Pair<GameId, LocalDate?>>()
         show { game, day -> opened += game to day }
         composeRule.onNodeWithTag("daily_board.title").assertDoesNotExist()
+        composeRule.onNodeWithTag("summary.history").assertDoesNotExist()
         composeRule.onNodeWithTag("summary.rank").performScrollTo().performClick()
         composeRule.runOnIdle { assertEquals(listOf(GameId("zip") to today), opened) }
     }
@@ -100,5 +101,6 @@ class LibraryGamePageRanksTest {
     fun `without the callback the page keeps its board and has no summary row`() {
         show(onOpenRanks = null)
         composeRule.onNodeWithTag("summary.rank").assertDoesNotExist()
+        composeRule.onNodeWithTag("summary.history").performScrollTo().assertExists()
     }
 }

@@ -28,4 +28,9 @@ interface UserPreferencesRepository {
     val showReplayErrors: Flow<Boolean>
 
     suspend fun setShowReplayErrors(on: Boolean)
+
+    /** Whether the Ranks hub opens on Friends (true, until switched) or Global; a restored selection still wins. */
+    val ranksFriendsDefault: Flow<Boolean>
+
+    suspend fun setRanksFriendsDefault(friends: Boolean)
 }

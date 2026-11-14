@@ -30,8 +30,13 @@ internal class SettingsViewModel(
         combine(games.queensAutoCross, games.sudokuPeerHighlight, games.sudokuSameDigitHighlight, ::GamesSectionState)
 
     val uiState: StateFlow<SettingsUiState> =
-        combine(preferences.themeMode, gamesSection, visibility?.ownTier ?: flowOf(null)) { mode, gamesState, ownTier ->
-            SettingsUiState(themeMode = mode, versionName = appBuild.versionName, games = gamesState, visibility = ownTier)
+        combine(
+            preferences.themeMode,
+            gamesSection,
+            visibility?.ownTier ?: flowOf(null),
+            preferences.ranksFriendsDefault,
+        ) { mode, gamesState, ownTier, ranksFriends ->
+            SettingsUiState(themeMode = mode, versionName = appBuild.versionName, games = gamesState, visibility = ownTier, ranksFriendsDefault = ranksFriends)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -47,6 +52,12 @@ internal class SettingsViewModel(
     fun onSelectVisibility(tier: VisibilityTier) {
         val slot = visibility ?: return
         viewModelScope.launch { slot.onSelect(tier) }
+    }
+
+    /** Ranks: the scope every hub landing opens on. Only with the [visibility] slot, which is what the flag builds. */
+    fun onSetRanksFriendsDefault(friends: Boolean) {
+        if (visibility == null) return
+        viewModelScope.launch { preferences.setRanksFriendsDefault(friends) }
     }
 
     /** Games: written to the store the in-game overflow toggle reads, so the board shows it next time it opens. */

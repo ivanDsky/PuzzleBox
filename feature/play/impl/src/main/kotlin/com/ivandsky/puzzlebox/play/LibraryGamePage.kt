@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
  * The page carries the game's leaderboard and a "Your history" row calling [onOpenGameHistory]
  * with the game and its picked day (null: today).
  * A non-null [onOpenRanks] (the Ranks hub is on) replaces the board with one "You #12 of 340" row calling it with the game and
- * the day the page shows; null keeps the board.
+ * the day the page shows, and drops the "Your history" row, the rank row being the one entry; null keeps the board and the row.
  * A non-null [linkedIn] puts the LinkedIn sync chip on the day card, which collects its state while it is shown.
  */
 @Composable
@@ -108,6 +108,6 @@ internal fun LibraryGamePage(
                 )
             }
         },
-        onOpenHistory = { onOpenGameHistory(game, past?.date) },
+        onOpenHistory = if (onOpenRanks == null) ({ onOpenGameHistory(game, past?.date) }) else null,
     )
 }

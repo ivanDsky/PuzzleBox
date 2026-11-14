@@ -39,7 +39,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
  * scrolling column under a back button ([onBack]; null hides it). [offline] adds the
  * offline pill; [hasLesson] false hides "Open the lesson" ([onOpenLesson]). [scroll] is
  * the phone column's, so picking a day can bring the day card back into view. The [board]
- * (the game's leaderboard) goes under the stats card and a "Your history" row ([onOpenHistory])
+ * (the game's leaderboard) goes under the stats card and a "Your history" row ([onOpenHistory]; null, the Ranks hub on, hides it)
  * under it, before how to play. The tablet's right column scrolls as one so how to play keeps
  * its place under them.
  */
@@ -52,7 +52,7 @@ internal fun GamePage(
     onBack: (() -> Unit)?,
     onOpenLesson: () -> Unit,
     board: @Composable () -> Unit,
-    onOpenHistory: () -> Unit,
+    onOpenHistory: (() -> Unit)?,
     modifier: Modifier = Modifier,
     offline: Boolean = false,
     hasLesson: Boolean = true,
@@ -112,14 +112,14 @@ internal fun GamePage(
 private fun PageTail(
     spacing: Dp,
     board: @Composable () -> Unit,
-    onOpenHistory: () -> Unit,
+    onOpenHistory: (() -> Unit)?,
     row: LibraryRowModel,
     hasLesson: Boolean,
     onOpenLesson: () -> Unit,
 ) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(spacing)) {
         board()
-        SummaryLinkRow("Your history", onOpenHistory, Modifier.testTag("summary.history"))
+        onOpenHistory?.let { SummaryLinkRow("Your history", it, Modifier.testTag("summary.history")) }
         HowToPlayCard(row, hasLesson, onOpenLesson)
     }
 }
