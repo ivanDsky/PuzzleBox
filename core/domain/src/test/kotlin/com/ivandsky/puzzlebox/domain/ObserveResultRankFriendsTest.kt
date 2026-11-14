@@ -2,10 +2,12 @@ package com.ivandsky.puzzlebox.domain
 
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
@@ -14,13 +16,14 @@ import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.Player
+import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -31,8 +34,13 @@ import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.koin.dsl.koinApplication
+import org.koin.dsl.module
 
-/** F20: the rank shown outside the hub follows the player's Friends/Global setting, behind the hub's flag. */
+/**
+ * F20: the rank shown outside the hub follows the player's Friends/Global setting. The app decides the flags, so here
+ * its answer is given: the hub off is no reader at all, and LinkedIn off a reader with no connections source.
+ */
 class ObserveResultRankFriendsTest {
 
     private val tango = GameId("tango")
@@ -51,11 +59,22 @@ class ObserveResultRankFriendsTest {
         mapOf(LeaderboardRef("tango", day) to listOf(entry("a", 30), entry("b", 40), entry("me", 50), entry("c", 60))),
     )
 
-    private fun rank(vararg flags: ReleaseFlag) = ObserveResultRank(
-        ObserveLeaderboard(identity, repo, registry, FakeGameCalendar(day)),
-        registry,
-        ObserveFriendDay(preferences, FakeReleaseFlags(*flags), ObserveFriendUids(matches, identity), ObserveLinkedInDay(days, registry)),
-    )(tango, day)
+    private fun setting(linkedIn: Boolean = false) =
+        ObserveFriendDay(preferences, ObserveFriendUids(matches, identity), ObserveLinkedInDay(days, registry).takeIf { linkedIn })
+
+    /** The rank as [domainModule] builds it, given the app's answer [friendDay]. */
+    private fun rank(friendDay: ObserveFriendDay?) = koinApplication {
+        modules(
+            domainModule,
+            module {
+                single<IdentityService> { identity }
+                single<LeaderboardRepository> { repo }
+                single<GameRegistry> { registry }
+                single<GameCalendar> { FakeGameCalendar(day) }
+                single { ObserveFriendDay.Binding(friendDay) }
+            },
+        )
+    }.koin.get<ObserveResultRank>()(tango, day)
 
     private suspend fun befriend(uid: String) {
         val code = checkNotNull(ShareCode.parse("AAAAA2"))
@@ -95,7 +114,7 @@ class ObserveResultRankFriendsTest {
     fun `Friends ranks the player among friends and the connections with a time`() = runTest {
         befriend("b")
         connection(seconds = 20)
-        rank(ReleaseFlag.LeaderboardHub, ReleaseFlag.LinkedInAccount).test {
+        rank(setting(linkedIn = true)).test {
             // The connection, then b, then me: a and c are no friends and the hidden time takes no place.
             assertEquals(ResultRank.Ranked(position = 3, count = 3, topPercent = 100), lastRanked())
             cancelAndIgnoreRemainingEvents()
@@ -106,7 +125,7 @@ class ObserveResultRankFriendsTest {
     fun `Friends with LinkedIn off ranks among friends only`() = runTest {
         befriend("b")
         connection(seconds = 20)
-        rank(ReleaseFlag.LeaderboardHub).test {
+        rank(setting()).test {
             assertEquals(ResultRank.Ranked(position = 2, count = 2, topPercent = 100), lastRanked())
             cancelAndIgnoreRemainingEvents()
         }
@@ -116,7 +135,7 @@ class ObserveResultRankFriendsTest {
     fun `Global ranks on the whole board and a switch to Friends re-ranks`() = runTest {
         befriend("b")
         preferences.setRanksFriendsDefault(false)
-        rank(ReleaseFlag.LeaderboardHub).test {
+        rank(setting()).test {
             assertEquals(ResultRank.Ranked(position = 3, count = 4, topPercent = 75), lastRanked())
             preferences.setRanksFriendsDefault(true)
             assertEquals(ResultRank.Ranked(position = 2, count = 2, topPercent = 100), lastRanked())
@@ -127,7 +146,7 @@ class ObserveResultRankFriendsTest {
     @Test
     fun `with the hub off the rank stays the whole board's whatever the setting`() = runTest {
         befriend("b")
-        rank().test {
+        rank(friendDay = null).test {
             assertEquals(ResultRank.Hidden, awaitItem())
             assertEquals(ResultRank.Ranked(position = 3, count = 4, topPercent = 75), awaitItem())
             expectNoEvents()
