@@ -294,6 +294,8 @@ class CustomResultViewModelTest {
             finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH },
             calendar = calendar,
             dispatchers = testDispatchers(dispatcher),
+            // The write gate is under test, not the recorder: the sealing wrapper above supplies the replay.
+            flags = FakeReleaseFlags(),
         )
     }
 
