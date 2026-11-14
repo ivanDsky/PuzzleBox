@@ -45,7 +45,7 @@ import kotlinx.coroutines.launch
  *
  * Session persistence (R-4): every committed session reaches
  * [PlayEnvironment.onSessionChanged] as codec bytes, including the initial session of a
- * fresh adopt/replay so a process death before the first move still restores.
+ * fresh adopt/play-again so a process death before the first move still restores.
  * The move is in [PlayEnvironment.moveLog] before those bytes leave, so a saved session and a
  * saved log agree.
  *
@@ -136,7 +136,7 @@ class QueensPlayController(
             is DecodeResult.Err -> null
         }
 
-    /** A fresh holder per board (adopt, restore, replay); the old one's search in flight is dropped first, so it can
+    /** A fresh holder per board (adopt, restore, play-again); the old one's search in flight is dropped first, so it can
      *  neither show nor save the old session after the swap (A10). */
     private fun boardFor(session: QueensSession): QueensBoardState {
         board?.stepHints?.reset()
@@ -156,7 +156,7 @@ class QueensPlayController(
         env.onSessionChanged(QueensSessionCodec.serialize(session))
     }
 
-    /** Result's "Play again" parity (zip replay): a fresh session of the same puzzle with
+    /** Result's "Play again" parity (zip play-again): a fresh session of the same puzzle with
      *  a fresh clock window open — the next win is a new transition and emits again (A4). */
     override fun playAgain() {
         val current = board?.session ?: return
@@ -192,7 +192,7 @@ class QueensPlayController(
      * The board's hook on every committed session, BEFORE it is stored and the win record
      * built: the win folds the running window into the banked [QueensSession.elapsedMs]
      * so the frozen result and the record carry the real duration. The window itself is
-     * opened by adopt/restore/replay/foreground, never by a move.
+     * opened by adopt/restore/play-again/foreground, never by a move.
      */
     private fun settle(next: QueensSession): QueensSession =
         if (next.isComplete) foldRunning(next) else next

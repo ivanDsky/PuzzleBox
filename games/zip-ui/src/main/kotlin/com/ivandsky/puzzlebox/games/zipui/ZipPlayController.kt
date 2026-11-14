@@ -61,7 +61,7 @@ class ZipPlayController(
 
     /** Hint telemetry (user, 2026-11-02): one event per accepted press — the trace head
      *  when the user asked and the cell the hint placed. In-memory this session;
-     *  persistence is a future call. Cleared on replay (fresh session, fresh log). */
+     *  persistence is a future call. Cleared on play-again (fresh session, fresh log). */
     val hintHistory = mutableStateListOf<HintEvent>()
 
     var nowMs by mutableStateOf(0L)

@@ -46,7 +46,7 @@ class TangoStepperTest {
         "0=1 1=7 3x4 4x5 4x10 6x7 22=28 25x31 27x28 28x34 30x31 31=32", "000000000000000000020000000000000000",
     )
 
-    /** d5 mid-replay: COUNT_SQUEEZE forces 24 from {12, 18} and 8 from three cells, both at distance 0 without a last move. */
+    /** d5 mid-rerun: COUNT_SQUEEZE forces 24 from {12, 18} and 8 from three cells, both at distance 0 without a last move. */
     private val d5Squeezes = "112212210021020000020000010000122100"
     private val d8 = Example(
         TangoStepRung.LINE_OPTIONS, "S..................................M", "SMMSMSMMSMSSSSMMSMSMSSMMMSMSMSMSSMSM",
@@ -236,7 +236,7 @@ class TangoStepperTest {
     }
 
     @Test
-    fun `replaying fixture boards from the givens only ever names the solution and ends solved`() {
+    fun `re-running fixture boards from the givens only ever names the solution and ends solved`() {
         val boards = catalog.map { it.puzzle to it.solution } +
             (TangoTestSupport.sample to TangoTestSupport.solution) +
             (0L until 20L).map { TangoBoardGenerator.boards(6, it).minimal }.map { it to requireNotNull(TangoUniqueness.solve(it)) } +
@@ -262,7 +262,7 @@ class TangoStepperTest {
     }
 
     @Test
-    fun `replaying without a solution deduces only solution values`() {
+    fun `re-running without a solution deduces only solution values`() {
         for (ex in catalog.filter { it.rung != null }) {
             val g = ex.givens.toMutableList()
             var step = TangoStepper.next(ex.puzzle, g, null, null)

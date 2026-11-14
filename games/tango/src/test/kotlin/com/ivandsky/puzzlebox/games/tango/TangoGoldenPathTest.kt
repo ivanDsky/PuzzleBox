@@ -80,7 +80,7 @@ class TangoGoldenPathTest {
     @Test
     fun `completion is stamped exactly once`() {
         val completed = playSolution(freshSession())
-        val replayed = completed.withMove(TangoMove(2, TangoCell.MOON), now.plusSeconds(60))
-        assertEquals(completed.completedAt, replayed.completedAt)
+        val rerun = completed.withMove(TangoMove(2, TangoCell.MOON), now.plusSeconds(60))
+        assertEquals(completed.completedAt, rerun.completedAt)
     }
 }

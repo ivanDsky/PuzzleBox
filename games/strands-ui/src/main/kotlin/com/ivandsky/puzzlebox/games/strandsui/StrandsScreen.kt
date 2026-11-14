@@ -62,7 +62,7 @@ internal fun StrandsPlayScreen(
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // Keyed on completion, so a replay's next win hands off again.
+    // Keyed on completion, so a play-again's next win hands off again.
     LaunchedEffect(controller.isComplete) {
         val solved = controller.session?.takeIf { it.state.isComplete } ?: return@LaunchedEffect
         onSolved(solved.elapsedMs, solved.state.hintsUsed)

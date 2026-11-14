@@ -13,7 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * [SudokuStepper] replayed over the Mini Sudoku corpus (catalog SC1, SC2; `sudoku-deductions.md`).
+ * [SudokuStepper] re-run over the Mini Sudoku corpus (catalog SC1, SC2; `sudoku-deductions.md`).
  *
  * Real boards: 454 LinkedIn Mini Sudoku dailies, #1 (2025-08-12) to #454 (2026-11-08), taken from
  * linkedinzip.solutions (same data as awa.games) on 2026-11-08 and cross-checked against
@@ -32,14 +32,14 @@ class SudokuCorpusTest {
     @Serializable
     private data class GeneratedBoard(val id: String, val givens: String, val solution: String)
 
-    /** What one board's replay placed and struck, so the corpus tests can assert the rung counts. */
-    private class Replay(var placements: Int = 0, var eliminations: Int = 0, var reveals: Int = 0)
+    /** What one board's rerun placed and struck, so the corpus tests can assert the rung counts. */
+    private class Rerun(var placements: Int = 0, var eliminations: Int = 0, var reveals: Int = 0)
 
     @Test
-    fun `real boards replay to Solved with one placement per empty cell and no elimination or reveal`() {
+    fun `real boards rerun to Solved with one placement per empty cell and no elimination or reveal`() {
         var placements = 0
         for (board in realBoards()) {
-            val tally = replay(board.id, puzzleOf(board.givens, board.solution))
+            val tally = rerun(board.id, puzzleOf(board.givens, board.solution))
             assertEquals("${board.id}: eliminations", 0, tally.eliminations)
             assertEquals("${board.id}: reveals", 0, tally.reveals)
             placements += tally.placements
@@ -53,11 +53,11 @@ class SudokuCorpusTest {
     }
 
     @Test
-    fun `generated boards replay to Solved with no unsound step, and an elimination and a reveal both fire`() {
+    fun `generated boards rerun to Solved with no unsound step, and an elimination and a reveal both fire`() {
         var eliminations = 0
         var reveals = 0
         for (board in generatedBoards()) {
-            val tally = replay(board.id, puzzleOf(board.givens, board.solution))
+            val tally = rerun(board.id, puzzleOf(board.givens, board.solution))
             eliminations += tally.eliminations
             reveals += tally.reveals
         }
@@ -87,9 +87,9 @@ class SudokuCorpusTest {
      * strikes to [known], and `lastMove` follows the last placed cell. Every step must be sound and must
      * advance the board; the board must reach [SudokuStep.Solved] within its cells plus 40 iterations.
      */
-    private fun replay(id: String, puzzle: SudokuPuzzle): Replay {
+    private fun rerun(id: String, puzzle: SudokuPuzzle): Rerun {
         val solution = puzzle.solution
-        val tally = Replay()
+        val tally = Rerun()
         val known = HashMap<Int, Int>()
         var board = SudokuBoard.of(puzzle)
         var lastMove: Int? = null

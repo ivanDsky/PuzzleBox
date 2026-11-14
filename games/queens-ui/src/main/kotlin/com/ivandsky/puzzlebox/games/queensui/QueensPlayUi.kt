@@ -167,7 +167,7 @@ private fun BoxScope.BoardArea(
                 framed = completedAt
             }
             // Win → result route (Zip's handoff): ONE hand-off per completion, after the
-            // solve frame, keyed on the completedAt instance so a replay hands off again.
+            // solve frame, keyed on the completedAt instance so a play-again hands off again.
             PlaySolveFrame(
                 brand = QueensBrand,
                 solved = framed,

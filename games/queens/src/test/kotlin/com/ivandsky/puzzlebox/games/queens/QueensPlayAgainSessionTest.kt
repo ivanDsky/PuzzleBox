@@ -11,7 +11,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-/** Queens' replay hand-off: the blob round-trips through its own session codec with the day's identity. */
+/** Queens' play-again hand-off: the blob round-trips through its own session codec with the day's identity. */
 class QueensPlayAgainSessionTest {
 
     private val day: LocalDate = LocalDate.of(2026, 11, 1)
@@ -34,7 +34,7 @@ class QueensPlayAgainSessionTest {
     }
 
     @Test
-    fun `a custom key replays carrying the friend's puzzle identity`() {
+    fun `a custom key plays again carrying the friend's puzzle identity`() {
         val cached = Puzzle(QueensDefinition.id, queensVariantId(4), QueensCodec.VERSION, QueensCodec.encode(QueensTestSupport.n4Puzzle()))
         val custom = PuzzleKey.Custom("K7Q2MX")
 

@@ -34,7 +34,7 @@ class StrandsPluginTest {
     }
 
     @Test
-    fun `replay hands off a fresh session carrying the day`() {
+    fun `play-again hands off a fresh session carrying the day`() {
         val key = PuzzleKey.Daily(day, 977)
         val blob = SessionBlob.decode(strandsPlugin.playAgainSession(envelope, key).getOrNull()!!)!!
         assertEquals(StrandsDefinition.id, blob.game)
@@ -45,7 +45,7 @@ class StrandsPluginTest {
     }
 
     @Test
-    fun `a custom key replays carrying the friend's puzzle identity`() {
+    fun `a custom key plays again carrying the friend's puzzle identity`() {
         val custom = PuzzleKey.Custom("K7Q2MX")
         val blob = SessionBlob.decode(strandsPlugin.playAgainSession(envelope, custom).getOrNull()!!)!!
         assertEquals(StrandsPuzzleRef(custom), StrandsSessionCodec.deserialize(blob.session).getOrNull()?.ref)

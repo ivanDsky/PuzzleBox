@@ -38,7 +38,7 @@ import java.io.ByteArrayOutputStream
  * The command tags joined v1 without a bump: a ReplaceDraft-only history writes exactly its
  * earlier bytes, so every stored draft and the frozen `tango-draft-v1.bin` decode unchanged.
  *
- * Each stack keeps its newest [MAX_HISTORY] steps; older ones drop on encode. Decode replays
+ * Each stack keeps its newest [MAX_HISTORY] steps; older ones drop on encode. Decode re-applies
  * board sizes through the stacks, so a step that could not apply to the board it meets is
  * malformed. Unknown versions, sizes, tags, off-board cells or edges and trailing bytes are
  * rejected, never guessed.
@@ -84,8 +84,8 @@ object TangoDraftCodec {
         val done = readSteps(cursor, sized) ?: return malformed("malformed undo history")
         val undone = readSteps(cursor, sized) ?: return malformed("malformed redo history")
         if (cursor.pos != bytes.size) return malformed("${bytes.size - cursor.pos} trailing bytes")
-        if (!replays(done, draft.n, backward = true)) return malformed("undo history does not fit the board")
-        if (!replays(undone, draft.n, backward = false)) return malformed("redo history does not fit the board")
+        if (!reapplies(done, draft.n, backward = true)) return malformed("undo history does not fit the board")
+        if (!reapplies(undone, draft.n, backward = false)) return malformed("redo history does not fit the board")
         return DecodeResult.Ok(DraftState(draft, CommandHistory(done, undone)))
     }
 
@@ -160,7 +160,7 @@ object TangoDraftCodec {
         return TangoDraft(n, givens, markers.canonicalMarkers())
     }
 
-    /** Command cells and edges are checked later by [replays], against the board each step meets. */
+    /** Command cells and edges are checked later by [reapplies], against the board each step meets. */
     private fun readSteps(cursor: Cursor, sized: Boolean): List<Command<TangoDraft>>? {
         val count = cursor.u16() ?: return null
         if (count > MAX_HISTORY) return null // before allocating anything proportional to it
@@ -212,11 +212,11 @@ object TangoDraftCodec {
     private class Optional<T : Any>(val value: T?)
 
     /**
-     * Walks [steps] in replay order from the current board's [n]: done newest-first ([backward]),
+     * Walks [steps] in re-apply order from the current board's [n]: done newest-first ([backward]),
      * undone next-redo-first. A replace must start on the size it meets and moves to its other
      * end; a cell or marker step must lie on the board it meets.
      */
-    private fun replays(steps: List<Command<TangoDraft>>, n: Int, backward: Boolean): Boolean {
+    private fun reapplies(steps: List<Command<TangoDraft>>, n: Int, backward: Boolean): Boolean {
         var current = n
         for (step in steps.asReversed()) {
             when (step) {
