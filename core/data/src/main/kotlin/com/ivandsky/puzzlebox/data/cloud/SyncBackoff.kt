@@ -24,6 +24,10 @@ internal object SyncBackoff {
         is CloudResult.Ok, CloudResult.WrongAccount -> null
     }
 
+    /** The pause after a run failed on this phone as the [attempt]th consecutive failure: retried like `Exhausted`. */
+    fun local(attempt: Int, lastAtMs: Long?): Pause =
+        Pause(CloudSyncState.Paused(PauseReason.Local, lastAtMs), delayMs(attempt))
+
     /** The pause once the daily write cap is reached: resume at [retryAfterMs], the start of the next day. */
     fun capped(lastAtMs: Long?, retryAfterMs: Long): Pause =
         Pause(CloudSyncState.Paused(PauseReason.WriteCap, lastAtMs), retryAfterMs)

@@ -10,4 +10,7 @@ enum class PauseReason {
 
     /** This device hit its own daily write cap. */
     WriteCap,
+
+    /** A run failed on this phone (a Room or DataStore error), not in the cloud. */
+    Local,
 }

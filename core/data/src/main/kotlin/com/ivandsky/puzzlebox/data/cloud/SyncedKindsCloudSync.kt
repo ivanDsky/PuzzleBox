@@ -40,7 +40,7 @@ import kotlinx.coroutines.withContext
  * A run that ends `Ok` with some kind still reporting pending ids (a row edited while it was pending or uploading)
  * is followed by exactly one more run, so the edit never waits for another trigger. Runs execute on [scope], so they
  * outlive the caller that asked for them. A run, or one kind's turn in it, that throws anything but a cancellation (a
- * Room or DataStore failure) is logged by class only and fails like an `Exhausted` answer: [CloudSyncState.Paused] and
+ * Room or DataStore failure) is logged by class only and pauses as [PauseReason.Local] with
  * the normal retry, the other kinds still run. [syncNow] never throws except for its own cancellation. The engine only reads the last uid; `SignedInOwnerScope` writes it.
  *
  * [state] is [CloudSyncState.SignedOut] only while nobody is signed in: a signed-in engine starts at
@@ -181,14 +181,14 @@ class SyncedKindsCloudSync(
         }
     }
 
-    /** [block]'s stop, or an `Exhausted` stop when it threw anything but a cancellation, logging the class only. */
+    /** [block]'s stop, or [SyncRun.Stop.Local] when it threw anything but a cancellation, logging the class only. */
     private suspend fun guarded(block: suspend () -> SyncRun.Stop?): SyncRun.Stop? = try {
         block()
     } catch (e: CancellationException) {
         throw e
     } catch (e: Throwable) {
         warn("sync run failed: ${e.javaClass.simpleName}")
-        SyncRun.Stop.Cloud(CloudResult.Exhausted)
+        SyncRun.Stop.Local
     }
 
     /** The state after a finished run: [Synced][CloudSyncState.Synced] on success, else [stop]'s pause (null: keep the old state). */
@@ -199,7 +199,7 @@ class SyncedKindsCloudSync(
         }
         val attempt = failures + 1
         val pause = run.pause(stop, attempt, lastSynced?.takeIf { it.first == uid }?.second, online) ?: return null
-        if (pause.retryAfterMs != null && stop is SyncRun.Stop.Cloud) failures = attempt
+        if (pause.retryAfterMs != null && stop !is SyncRun.Stop.WriteCap) failures = attempt
         pause.retryAfterMs?.let { wait ->
             retry = scope.launch(dispatchers.default) {
                 delay(wait)

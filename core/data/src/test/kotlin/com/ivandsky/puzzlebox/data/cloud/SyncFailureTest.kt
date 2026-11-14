@@ -321,11 +321,14 @@ class SyncFailureTest {
     /** What escaped to the scope's handler: the app scope has none, so anything here would crash the process. */
     private val escaped = mutableListOf<Throwable>()
 
-    /** The scope's job; a test cancels it last, or runTest would run a pause's retries on virtual time without end. */
-    private val appJob = SupervisorJob()
-
+    /**
+     * A process scope with no handler of its own but the one recording into [escaped]. It hangs off `backgroundScope`, so
+     * its retries end with the test even when an assertion fails; otherwise runTest would run a pause's retries on
+     * virtual time without end.
+     */
     private fun TestScope.appScope() = CoroutineScope(
-        StandardTestDispatcher(testScheduler) + appJob + CoroutineExceptionHandler { _, e -> escaped += e },
+        backgroundScope.coroutineContext + SupervisorJob(backgroundScope.coroutineContext[Job]) +
+            CoroutineExceptionHandler { _, e -> escaped += e },
     )
 
     @Test
@@ -337,7 +340,7 @@ class SyncFailureTest {
 
         engine.syncNow()
 
-        assertEquals(CloudSyncState.Paused(PauseReason.Exhausted, null), engine.state.value)
+        assertEquals(CloudSyncState.Paused(PauseReason.Local, null), engine.state.value)
         assertEquals(listOf("drafts0"), space.docs(ANN, "drafts").map { it.id })
         assertEquals(listOf("completions0"), completions.pendingRowIds)
         assertTrue(escaped.isEmpty())
@@ -349,7 +352,6 @@ class SyncFailureTest {
         assertEquals(listOf("completions0"), space.docs(ANN, "completions").map { it.id })
         assertEquals(CloudSyncState.Synced(10_000L), engine.state.value)
         assertTrue(escaped.isEmpty())
-        appJob.cancel()
     }
 
     @Test
@@ -362,7 +364,7 @@ class SyncFailureTest {
 
         engine.syncNow()
 
-        assertEquals(CloudSyncState.Paused(PauseReason.Exhausted, null), engine.state.value)
+        assertEquals(CloudSyncState.Paused(PauseReason.Local, null), engine.state.value)
         assertNull(store.cursor(ANN, "completions"))
         assertEquals(listOf("drafts0"), space.docs(ANN, "drafts").map { it.id })
         completions.onCall = {}
@@ -372,7 +374,6 @@ class SyncFailureTest {
         assertEquals(listOf("g9"), completions.rows)
         assertEquals(CloudSyncState.Synced(10_000L), engine.state.value)
         assertTrue(escaped.isEmpty())
-        appJob.cancel()
     }
 
     @Test
@@ -387,12 +388,22 @@ class SyncFailureTest {
         advance(MINUTE)
 
         assertTrue(escaped.isEmpty())
-        assertEquals(CloudSyncState.Paused(PauseReason.Exhausted, null), engine.state.value)
+        assertEquals(CloudSyncState.Paused(PauseReason.Local, null), engine.state.value)
         completions.onCall = {}
         advance(2 * MINUTE)
         assertEquals(CloudSyncState.Synced(10_000L), engine.state.value)
         assertTrue(escaped.isEmpty())
-        appJob.cancel()
+    }
+
+    @Test
+    fun `a cloud answer of exhausted still pauses as exhausted, not as a local failure`() = runTest {
+        space.failNext(CloudResult.Exhausted)
+        val engine = engine(listOf(kind("completions", rows = 1)), appScope())
+
+        engine.syncNow()
+
+        assertEquals(CloudSyncState.Paused(PauseReason.Exhausted, null), engine.state.value)
+        assertTrue(warnings.isEmpty())
     }
 
     @Test
@@ -407,7 +418,6 @@ class SyncFailureTest {
 
         assertTrue(escaped.isEmpty())
         assertFalse(engine.state.value is CloudSyncState.Syncing)
-        appJob.cancel()
     }
 
     // no failure changes persisted state
