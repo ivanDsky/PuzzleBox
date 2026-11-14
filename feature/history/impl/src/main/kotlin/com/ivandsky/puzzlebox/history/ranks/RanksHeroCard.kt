@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
+import com.ivandsky.puzzlebox.designsystem.DayMorph
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -26,7 +27,7 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 /**
  * The tablet's placement hero card above the board: where the viewer stands on [board] ([standing], big), and the
  * [score] that put them there (null: nothing to say, as with no solve in the window). A place that changes with the
- * board crossfades in place; reduced motion shortens the fade.
+ * board crossfades in place, and so does the score ([DayMorph]); reduced motion shortens the place's fade and swaps the score.
  */
 @Composable
 internal fun RanksHeroCard(board: String, standing: Standing, score: String?, modifier: Modifier = Modifier) {
@@ -58,12 +59,14 @@ internal fun RanksHeroCard(board: String, standing: Standing, score: String?, mo
             }
             Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(board, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.End)
-                Text(
-                    score ?: standing.hint(),
-                    style = MaterialTheme.typography.titleMedium.tabular(),
-                    textAlign = TextAlign.End,
-                    modifier = Modifier.testTag("ranks.hero.score"),
-                )
+                DayMorph(score ?: standing.hint(), alignment = Alignment.TopEnd) { shown ->
+                    Text(
+                        shown,
+                        style = MaterialTheme.typography.titleMedium.tabular(),
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.testTag("ranks.hero.score"),
+                    )
+                }
             }
         }
     }

@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
+import com.ivandsky.puzzlebox.designsystem.DayMorph
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -30,7 +31,8 @@ private const val MaxGhosts = 20
  * [isToday] says whether the board is today's, so an empty one names the day it shows.
  * [medals] makes the top three places medal rows and [dock] docks the viewer's own row to the edge of what scrolls the
  * board while it is out of view (see [DailyBoardList]). With [onRowClick] another player's official row is tappable and
- * reports its row; a board that passes none has rows that take no tap.
+ * reports its row; a board that passes none has rows that take no tap. With [morphTitle] a new [title] crossfades over the
+ * old one ([DayMorph]) instead of replacing it.
  */
 @Composable
 fun DailyBoard(
@@ -46,10 +48,11 @@ fun DailyBoard(
     medals: Boolean = false,
     dock: Boolean = false,
     onRowClick: ((DailyBoardRowModel) -> Unit)? = null,
+    morphTitle: Boolean = false,
 ) {
     CompositionLocalProvider(LocalBoardRowClick provides onRowClick) {
         Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("daily_board.title"))
+            if (morphTitle) DayMorph(title) { Title(it) } else Title(title)
             Text(
                 caption,
                 style = MaterialTheme.typography.labelMedium,
@@ -67,6 +70,11 @@ fun DailyBoard(
             }
         }
     }
+}
+
+@Composable
+private fun Title(title: String) {
+    Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.testTag("daily_board.title"))
 }
 
 @Composable

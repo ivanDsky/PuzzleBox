@@ -13,7 +13,8 @@ import com.ivandsky.puzzlebox.gameui.rankRuleText
 /**
  * The board slot: [slice] drawn by the shipped board kit. Rows move as they re-rank (the first
  * load climbs into place), the top three are medals, and the viewer's own row docks to the edge
- * while it scrolls out of view. With [onRowClick] another player's row is tappable. Signed out, [signIn] and [onSignIn] fill the board in place.
+ * while it scrolls out of view. A title that changes (another day or board) crossfades in place.
+ * With [onRowClick] another player's row is tappable. Signed out, [signIn] and [onSignIn] fill the board in place.
  */
 @Composable
 internal fun RanksBoardSlot(
@@ -31,6 +32,7 @@ internal fun RanksBoardSlot(
             modifier = Modifier.testTag("ranks.board"),
             signIn = { RanksSignInPrompt(signIn, onSignIn) },
             animated = true,
+            morphTitle = true,
             caption = slice.caption ?: rankRuleText(slice.order),
             medals = true,
             dock = true,
