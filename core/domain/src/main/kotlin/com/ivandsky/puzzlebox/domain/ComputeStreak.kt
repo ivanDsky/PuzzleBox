@@ -36,9 +36,19 @@ class ComputeStreak(
      * The freeze rule replayed forward once: over the solved days, then up to today. Nothing
      * about freezes is stored, so a day that arrives late simply replays differently. Gaps are
      * measured, never walked, so the cost follows the solve count, not the calendar span.
+     * Days after today (clock skew, another zone) feed no freeze number, as the strict streak
+     * ignores them; [Replay.ledger]'s best still counts them, like the strict best.
      * Flag-blind: [invoke] owns the gate.
      */
     internal fun replay(solvedDays: Collection<LocalDate>): Replay {
+        val today = puzzleDay()
+        val upToToday = solvedDays.filter { it <= today }
+        val replay = walk(upToToday, today)
+        if (upToToday.size == solvedDays.size) return replay
+        return replay.copy(ledger = replay.ledger.copy(best = walk(solvedDays, today).ledger.best))
+    }
+
+    private fun walk(solvedDays: Collection<LocalDate>, today: LocalDate): Replay {
         var current = 0
         var best = 0
         var held = 0
@@ -82,7 +92,7 @@ class ComputeStreak(
             lastSolve = StreakFreezes.Moment(day, spent, earned)
         }
         // Today bounds the gap from outside: open with no solve, it is never a miss.
-        lastSolve?.let { miss(it.day, puzzleDay()) }
+        lastSolve?.let { miss(it.day, today) }
 
         val daysToNext = if (held == MAX_FREEZES) null else ladderLength(step) - run
         return Replay(StreakLedger(current, best, StreakFreezes(held, frozenDays, daysToNext, lastSolve)), step, run)
