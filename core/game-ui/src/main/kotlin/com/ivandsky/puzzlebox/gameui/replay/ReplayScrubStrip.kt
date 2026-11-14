@@ -26,14 +26,14 @@ import androidx.compose.ui.semantics.setProgress
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-private val KnobRadius = 4.dp
+internal val KnobRadius = 4.dp
 private val PlayheadWidth = 2.dp
 
 /**
  * The draggable strip every replay seek bar is built on: the whole strip taps and drags, a playhead crosses it,
  * and it reads as a slider to a screen reader. [positionMs] is read only in the draw and semantics phases, so a
  * moving playhead redraws the strip and recomposes nothing. [bars] runs once per size, in the cache scope, to lay
- * the activity out; the draw lambda it returns draws it under the playhead, given the played fraction of the replay,
+ * the activity out; the draw lambda it returns draws it under the playhead, given the x the playhead is drawn at (the bars split their fill there),
  * and must not allocate.
  */
 @Composable
@@ -43,7 +43,7 @@ internal fun ReplayScrubStrip(
     onSeek: (Long) -> Unit,
     height: Dp,
     modifier: Modifier = Modifier,
-    bars: CacheDrawScope.() -> DrawScope.(playedFraction: Float) -> Unit,
+    bars: CacheDrawScope.() -> DrawScope.(needleX: Float) -> Unit,
 ) {
     val playheadColor = MaterialTheme.colorScheme.onSurface
     val seek by rememberUpdatedState(onSeek)
@@ -78,15 +78,18 @@ internal fun ReplayScrubStrip(
                 onDrawBehind {
                     val clamped = positionMs().coerceIn(0, durationMs.coerceAtLeast(0))
                     val fraction = if (durationMs > 0) clamped.toFloat() / durationMs else 0f
-                    drawBars(fraction)
                     // The playhead rides a track inset by the knob radius so the knob stays whole at both ends.
-                    val x = knob + (size.width - 2 * knob) * fraction
+                    val x = needleX(size.width, knob, fraction)
+                    drawBars(x)
                     drawRoundRect(color = playheadColor, topLeft = Offset(x - headWidth / 2, 0f), size = headSize, cornerRadius = headCorner)
                     drawCircle(playheadColor, knob, Offset(x, knob))
                 }
             },
     )
 }
+
+/** Where the playhead is drawn for a [fraction] of the replay on a strip [width] wide; the one source of truth for the needle x. */
+internal fun needleX(width: Float, inset: Float, fraction: Float): Float = inset + (width - 2 * inset) * fraction
 
 private fun msAt(x: Float, width: Int, inset: Float, durationMs: Long): Long =
     ((x - inset) / (width - 2 * inset) * durationMs).toLong().coerceIn(0, durationMs)
