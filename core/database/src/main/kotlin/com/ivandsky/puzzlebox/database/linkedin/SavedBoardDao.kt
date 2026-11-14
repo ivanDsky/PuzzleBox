@@ -15,6 +15,10 @@ interface SavedBoardDao {
     @Query("SELECT * FROM saved_boards WHERE game = :game AND day = :day")
     suspend fun get(game: String, day: String): SavedBoardEntity?
 
+    /** The saved boards of one game from [from] to [to], both included. */
+    @Query("SELECT * FROM saved_boards WHERE game = :game AND day BETWEEN :from AND :to")
+    suspend fun between(game: String, from: String, to: String): List<SavedBoardEntity>
+
     /** Every saved board of every owner, in (game, day) order. */
     @Query("SELECT * FROM saved_boards ORDER BY game, day")
     suspend fun all(): List<SavedBoardEntity>

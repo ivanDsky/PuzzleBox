@@ -35,6 +35,16 @@ internal class LinkedInSyncState {
     /** How the last sync of [key] in this process ended, or null before the first. */
     fun lastSync(key: DayKey): Flow<LinkedInSync?> = results.map { it[key] }.distinctUntilChanged()
 
+    /** [inFlight] for every day of [game] at once: the days [profileId] has a sync running for. */
+    fun inFlight(profileId: String, game: GameId): Flow<Set<LocalDate>> =
+        claims.map { running -> running.keys.filter { it.profileId == profileId && it.game == game }.mapTo(mutableSetOf()) { it.day } }
+            .distinctUntilChanged()
+
+    /** [lastSync] for every day of [game] at once; a day [profileId] has not synced in this process has no entry. */
+    fun lastSync(profileId: String, game: GameId): Flow<Map<LocalDate, LinkedInSync>> =
+        results.map { ended -> ended.filterKeys { it.profileId == profileId && it.game == game }.mapKeys { (key, _) -> key.day } }
+            .distinctUntilChanged()
+
     /**
      * Runs [sync] unless one is already running for [key]; then waits for that one's result instead, so
      * a day viewed from two places at once is asked of LinkedIn once.

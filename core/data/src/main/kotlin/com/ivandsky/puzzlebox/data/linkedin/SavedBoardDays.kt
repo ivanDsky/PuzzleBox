@@ -49,14 +49,51 @@ internal class SavedBoardDays(
             combine(stored, avatars.present) { rows, photos -> rows.toSaved(photos) }
         }.distinctUntilChanged()
 
+    /**
+     * [observe] for every day of [days] (consecutive, oldest first, at least one) at once: one listener, and a
+     * write re-reads each table once for the lot where one [observe] per day would re-read it once per day.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    fun observe(game: GameId, days: List<LocalDate>, linkedProfileId: String?): Flow<Map<LocalDate, Saved>> =
+        ownerScope.visible.flatMapLatest { visibleOwner ->
+            val stored = db.invalidationTracker.createFlow("saved_boards", "ghosts")
+                .map { read(game, days, linkedProfileId, visibleOwner) }
+                .distinctUntilChanged()
+            combine(stored, avatars.present) { byDay, photos -> byDay.mapValues { (_, rows) -> rows.toSaved(photos) } }
+        }.distinctUntilChanged()
+
     private suspend fun read(game: GameId, day: LocalDate, linkedProfileId: String?, visibleOwner: String?): Stored {
         val board = savedBoards.get(game.value, day.toString())?.takeIf { it.isVisibleTo(visibleOwner) }
-        val profileId = board?.profileId ?: linkedProfileId
         val rows = if (board == null) emptyList() else ghosts.board(game.value, day.toString())
+        return stored(board, rows, linkedProfileId) { ghosts.newestOf(it, visibleOwner) }
+    }
+
+    private suspend fun read(game: GameId, days: List<LocalDate>, linkedProfileId: String?, visibleOwner: String?): Map<LocalDate, Stored> {
+        val (from, to) = days.first().toString() to days.last().toString()
+        val boards = savedBoards.between(game.value, from, to).filter { it.isVisibleTo(visibleOwner) }.associateBy { it.day }
+        val rows = if (boards.isEmpty()) emptyMap() else ghosts.boardsBetween(game.value, from, to).groupBy { it.day }
+        // Asked once per profile, not once per day: most days of a range have no row of the player.
+        val newest = mutableMapOf<String, GhostEntity?>()
+        return days.associateWith { day ->
+            val board = boards[day.toString()]
+            stored(board, if (board == null) emptyList() else rows[day.toString()].orEmpty(), linkedProfileId) { profileId ->
+                if (profileId !in newest) newest[profileId] = ghosts.newestOf(profileId, visibleOwner)
+                newest[profileId]
+            }
+        }
+    }
+
+    /** One day as the tables hold it: [board] is the day's visible board, [rows] its ghosts, both empty without one. */
+    private suspend fun stored(
+        board: SavedBoardEntity?,
+        rows: List<GhostEntity>,
+        linkedProfileId: String?,
+        newestOf: suspend (profileId: String) -> GhostEntity?,
+    ): Stored {
+        val profileId = board?.profileId ?: linkedProfileId
         // The player's name and photo belong to the account, so a day whose board holds no row of them (a past board
         // is never read again) shows the newest row of their profile, from any game and day.
-        val own = rows.firstOrNull { it.memberRef == profileId }
-            ?: profileId?.let { ghosts.newestOf(it, visibleOwner) }
+        val own = rows.firstOrNull { it.memberRef == profileId } ?: profileId?.let { newestOf(it) }
         return Stored(board, profileId, rows, own)
     }
 
