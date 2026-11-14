@@ -14,5 +14,5 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     LinkedInAccount(label = "LinkedIn: account results + connections", releaseDefault = true),
 
     /** Ranks hub: per-game and Overall daily boards, the calendar as History, the visibility ladder (ADR-0031). */
-    LeaderboardHub(label = "Ranks hub", releaseDefault = false),
+    LeaderboardHub(label = "Ranks hub", releaseDefault = true),
 }
