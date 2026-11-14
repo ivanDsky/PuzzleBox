@@ -14,7 +14,6 @@ import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.PlayStats
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
-import com.ivandsky.puzzlebox.domain.frozenDaysOrEmpty
 import com.ivandsky.puzzlebox.domain.heldWhileStreak
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.weekEnding
@@ -99,12 +98,12 @@ class PlayStatsViewModel(
         solvedToday = stats.solvedToday,
         gamesToday = stats.gamesToday,
         streak = stats.stats.currentStreak,
-        week = week(stats.streakDays, stats.stats.freezes.frozenDaysOrEmpty, stats.today),
+        week = week(stats.streakDays, stats.stats.freezes?.frozenDays.orEmpty(), stats.today),
         best = stats.stats.best,
         rankOrder = stats.stats.rankOrder,
         averageMs = stats.stats.averageTimeMs,
         times = times(stats.board, stats.solved, post, input),
-        freezesHeld = stats.stats.freezes.heldWhileStreak(stats.stats.currentStreak),
+        freezesHeld = stats.stats.freezes?.heldWhileStreak(stats.stats.currentStreak),
     )
 
     /** The signed-in player's post to the slot's daily board; null when none is observed. */

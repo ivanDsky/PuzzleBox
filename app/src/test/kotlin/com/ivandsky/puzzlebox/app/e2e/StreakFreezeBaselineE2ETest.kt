@@ -11,7 +11,6 @@ import androidx.compose.ui.test.hasTextExactly
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.play.QueensPlayFixture
 import com.ivandsky.puzzlebox.app.play.TangoPlayFixture
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
@@ -32,7 +31,6 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -41,7 +39,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The streak freeze the user approved (repro R2–R7, dark theme), pinned through the real app shell with the flag on.
+ * The streak freeze the user approved (repro R2–R7, dark theme), pinned through the real app shell.
  * Today is Fri Nov 20 and every daily game was solved each day of a 40-day run before a scenario's gap, so 4
  * freezes are held when the gap opens. Tablet (rail) shows the Home pane, the Result side card and the Tango panel;
  * the phone card is pinned on its own. Each test reads rendered nodes only, so it holds however the streak is derived.
@@ -138,7 +136,7 @@ class StreakFreezeBaselineE2ETest {
         }
 
     private fun graphWith(records: List<CompletionRecord>) =
-        E2eKoinGraph(TODAY, releaseFlags = FakeReleaseFlags(ReleaseFlag.StreakFreeze)).apply { this.records.setRecords(records) }
+        E2eKoinGraph(TODAY).apply { this.records.setRecords(records) }
 
     /** The Home tab on a graph whose 40-day run ends [lastSolved]. */
     private fun homePane(lastSolved: LocalDate, block: ShellRobot.() -> Unit) =

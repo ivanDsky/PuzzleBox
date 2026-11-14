@@ -15,17 +15,4 @@ class WeekEndingTest {
         )
         assertEquals(WEEK_DAYS, weekEnding(today).size)
     }
-
-    @Test
-    fun `no freezes reads as no frozen days`() {
-        assertEquals(emptySet<LocalDate>(), (null as StreakFreezes?).frozenDaysOrEmpty)
-    }
-
-    @Test
-    fun `held freezes read as their frozen days`() {
-        val day = LocalDate.of(2026, 3, 2)
-        val freezes = StreakFreezes(held = 1, frozenDays = setOf(day), daysToNext = 3, lastSolve = null)
-
-        assertEquals(setOf(day), freezes.frozenDaysOrEmpty)
-    }
 }

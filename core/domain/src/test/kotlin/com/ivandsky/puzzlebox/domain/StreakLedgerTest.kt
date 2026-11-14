@@ -1,10 +1,7 @@
 package com.ivandsky.puzzlebox.domain
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.domain.StreakFreezes.Moment
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import java.time.Clock
 import java.time.Instant
@@ -16,14 +13,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * The streak-freeze rule as [ComputeStreak.invoke] replays it with `StreakFreeze` on: the spec's
- * golden table row by row, its edges, and the day-by-day walk the gap-jumping pass must equal.
- * With the flag off the ledger is the strict streak and carries no freezes.
+ * The streak-freeze rule as [ComputeStreak.invoke] replays it: the spec's golden table row by
+ * row, its edges, and the day-by-day walk the gap-jumping pass must equal.
  */
 class StreakLedgerTest {
 
     private val registry = TestGames.registry(listOf(GameId("zip")))
-    private val freezeOn = FakeReleaseFlags(ReleaseFlag.StreakFreeze)
 
     // The golden table's history: day 1 is Jan 1; solved 1–7, 9–85, 88–115 and 121.
     private val goldenSolved = (1..7) + (9..85) + (88..115) + 121
@@ -33,11 +28,9 @@ class StreakLedgerTest {
     private fun dayNumber(day: LocalDate): Int = ChronoUnit.DAYS.between(day(1), day).toInt() + 1
 
     // TestGames' puzzle zone is UTC, so noon UTC sits inside the puzzle day.
-    private fun streakOn(today: LocalDate, flags: ReleaseFlags = freezeOn): ComputeStreak =
-        streakAt(today.atTime(12, 0).toInstant(ZoneOffset.UTC), flags)
+    private fun streakOn(today: LocalDate): ComputeStreak = streakAt(today.atTime(12, 0).toInstant(ZoneOffset.UTC))
 
-    private fun streakAt(now: Instant, flags: ReleaseFlags = freezeOn): ComputeStreak =
-        ComputeStreak(GetPuzzleDay(registry, Clock.fixed(now, ZoneOffset.UTC)), flags)
+    private fun streakAt(now: Instant): ComputeStreak = ComputeStreak(GetPuzzleDay(registry, Clock.fixed(now, ZoneOffset.UTC)))
 
     /** One golden-table row; [frozen] and the day arguments are the table's day numbers. */
     private data class Row(
@@ -56,7 +49,7 @@ class StreakLedgerTest {
         val streak = streakOn(day(today))
         val ledger = streak(solved)
         val replay = streak.replay(solved)
-        val freezes = checkNotNull(ledger.freezes)
+        val freezes = ledger.freezes
         return Row(
             streak = ledger.current,
             held = freezes.held,
@@ -69,7 +62,7 @@ class StreakLedgerTest {
     }
 
     private fun goldenMoment(solvedThrough: Int, today: Int = solvedThrough): Moment? =
-        streakOn(day(today))(goldenSolved.filter { it <= solvedThrough }.map(::day)).freezes?.lastSolve
+        streakOn(day(today))(goldenSolved.filter { it <= solvedThrough }.map(::day)).freezes.lastSolve
 
     @Test
     fun `no solves is an empty ledger seven days from a freeze`() {
@@ -198,7 +191,7 @@ class StreakLedgerTest {
         val without = streak(listOf(today.minusDays(1)))
 
         assertEquals(1, withFuture.current)
-        assertEquals(2, checkNotNull(withFuture.freezes).held)
+        assertEquals(2, withFuture.freezes.held)
         assertEquals(emptySet<LocalDate>(), withFuture.freezes.frozenDays)
         assertEquals(without.freezes, withFuture.freezes)
     }
@@ -222,20 +215,6 @@ class StreakLedgerTest {
         val spent = StreakFreezes(held = 1, frozenDays = setOf(day(3)), daysToNext = 7, lastSolve = moment)
         assertEquals(StreakLedger(current = 2, best = 2, freezes = open), lastSecondOfDay3)
         assertEquals(StreakLedger(current = 2, best = 2, freezes = spent), firstSecondOfDay4)
-    }
-
-    @Test
-    fun `flag off equals the strict streak on generated day sets and carries no freezes`() {
-        val today = day(400)
-        val streak = streakOn(today, FakeReleaseFlags())
-        val random = Random(20261112)
-        repeat(GENERATED_SETS) {
-            val solved = generatedDays(random, today)
-            val strict = StreakLedger(current = strictCurrent(solved, today), best = strictBest(solved), freezes = null)
-            assertEquals("solved $solved", strict, streak(solved))
-            assertEquals(strict.current, streak(solved).current)
-            assertEquals(strict.best, streak(solved).best)
-        }
     }
 
     @Test
@@ -282,7 +261,7 @@ class StreakLedgerTest {
     fun `a gap is jumped, never walked day by day`() {
         val ledger = streakOn(day(1))(listOf(LocalDate.MIN, day(1)))
         assertEquals(1, ledger.current)
-        assertEquals(0, ledger.freezes?.held)
+        assertEquals(0, ledger.freezes.held)
     }
 
     /** Up to 400 days ending today, solved at a density from nearly never to nearly always; a few land after today. */
@@ -293,38 +272,14 @@ class StreakLedgerTest {
         return past + future
     }
 
-    /** Every number but best reads only the days up to today; best walks them all, like the strict best. */
+    /** Every number but best reads only the days up to today; best walks them all. */
     private fun expectedReplay(solved: List<LocalDate>, today: LocalDate): ComputeStreak.Replay {
         val bounded = dayByDayWalk(solved.filter { it <= today }.toSet(), today)
         val best = dayByDayWalk(solved.toSet(), maxOf(today, solved.maxOrNull() ?: today)).ledger.best
         return bounded.copy(ledger = bounded.ledger.copy(best = best))
     }
 
-    // The pre-freeze algorithm, copied as it was before the ledger: the flag-off oracle.
-    private fun strictCurrent(solvedDays: Collection<LocalDate>, today: LocalDate): Int {
-        val solved = solvedDays.toHashSet()
-        var day = if (today in solved) today else today.minusDays(1)
-        var streak = 0
-        while (day in solved) {
-            streak++
-            day = day.minusDays(1)
-        }
-        return streak
-    }
-
-    private fun strictBest(solvedDays: Collection<LocalDate>): Int {
-        var best = 0
-        var run = 0
-        var previous: LocalDate? = null
-        for (day in solvedDays.toSortedSet()) {
-            run = if (previous != null && day == previous.plusDays(1)) run + 1 else 1
-            best = maxOf(best, run)
-            previous = day
-        }
-        return best
-    }
-
-    /** The rule as the player lives it, one calendar day at a time (A5): the flag-on oracle. */
+    /** The rule as the player lives it, one calendar day at a time (A5): the oracle. */
     private fun dayByDayWalk(solved: Set<LocalDate>, today: LocalDate): ComputeStreak.Replay {
         var current = 0
         var best = 0

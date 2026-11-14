@@ -24,11 +24,8 @@ data class StreakFreezes(
 }
 
 /**
- * The freeze count a surface shows, null to show none: null while freezes are off, and null at a
- * [streak] of 0, where a count beside "no streak" reads as noise (F5). One rule so Home, the play
- * panel and Result cannot disagree.
+ * The freeze count a surface shows, null to show none: null at a [streak] of 0, where a count
+ * beside "no streak" reads as noise (F5). One rule so Home, the play panel and Result cannot
+ * disagree.
  */
-fun StreakFreezes?.heldWhileStreak(streak: Int): Int? = if (this == null || streak <= 0) null else held
-
-/** The days a surface marks frozen; empty while freezes are off, so no caller spells the null case itself. */
-val StreakFreezes?.frozenDaysOrEmpty: Set<LocalDate> get() = this?.frozenDays.orEmpty()
+fun StreakFreezes.heldWhileStreak(streak: Int): Int? = if (streak <= 0) null else held

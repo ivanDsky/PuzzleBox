@@ -20,7 +20,6 @@ import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
-import com.ivandsky.puzzlebox.domain.frozenDaysOrEmpty
 import com.ivandsky.puzzlebox.domain.heldWhileStreak
 import com.ivandsky.puzzlebox.domain.playTarget
 import com.ivandsky.puzzlebox.game.BestScore
@@ -205,9 +204,9 @@ class HomeViewModel(
                 puzzleDay = day,
                 playTarget = if (entries == null) seedTarget else entries.playTarget(),
                 stats = stats,
-                week = homeWeek(days, endingOn = day, stats.freezes.frozenDaysOrEmpty, registryOrder, brands),
+                week = homeWeek(days, endingOn = day, stats.freezes?.frozenDays.orEmpty(), registryOrder, brands),
                 rolloverAt = nextRollover(),
-                freezesHeld = stats.freezes.heldWhileStreak(stats.currentStreak),
+                freezesHeld = stats.freezes?.heldWhileStreak(stats.currentStreak),
             )
         }.combine(updateUrl) { state, url -> state.copy(updateUrl = url) }
             .combine(rank) { state, rank -> state.copy(rank = rank) }

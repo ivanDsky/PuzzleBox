@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
 import app.cash.turbine.test
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -14,7 +12,6 @@ import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.Ref
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
@@ -45,12 +42,10 @@ class ObserveGameStatsTest {
     private val completions = FakeCompletionRepository()
     private val daily = FakeDailyRepository()
 
-    private val freezeOn = FakeReleaseFlags(ReleaseFlag.StreakFreeze)
-
-    private fun stats(game: GameId? = null, flags: ReleaseFlags = FakeReleaseFlags()) = ObserveGameStats(
+    private fun stats(game: GameId? = null) = ObserveGameStats(
         registry,
         ObserveGameHistory(registry, daily, completions),
-        ComputeStreak(GetPuzzleDay(registry, clock), flags),
+        ComputeStreak(GetPuzzleDay(registry, clock)),
     )(game)
 
     /** [game]'s solve [daysAgo] days before today; a null [puzzleNumber] is a practice play. */
@@ -79,6 +74,14 @@ class ObserveGameStatsTest {
         ),
     )
 
+    /** The freezes of an unbroken run of [days] solved days ending today: the two starting freezes, none spent or earned. */
+    private fun freshRun(days: Int) = StreakFreezes(
+        held = 2,
+        frozenDays = emptySet(),
+        daysToNext = 7 - days,
+        lastSolve = StreakFreezes.Moment(today, spent = emptyList(), earned = false),
+    )
+
     @Test
     fun `no solves is zeros and no times`() = runTest {
         assertEquals(
@@ -91,6 +94,7 @@ class ObserveGameStatsTest {
                 playingSince = null,
                 best = null,
                 rankOrder = RankOrder.TimeThenHints,
+                freezes = StreakFreezes(held = 0, frozenDays = emptySet(), daysToNext = 7, lastSolve = null),
             ),
             stats().first(),
         )
@@ -111,14 +115,21 @@ class ObserveGameStatsTest {
 
         assertEquals(
             GameStats(
-                currentStreak = 2,
-                bestStreak = 3,
+                currentStreak = 5,
+                bestStreak = 5,
                 solved = 5,
                 hintFree = 3,
                 averageTimeMs = 50_000L,
                 playingSince = today.minusDays(5),
                 best = BestScore(timeMs = 20_000L, hints = 1),
                 rankOrder = RankOrder.TimeThenHints,
+                // The missed day 2 spends one of the two starting freezes; the 3-day run before it is not carried.
+                freezes = StreakFreezes(
+                    held = 1,
+                    frozenDays = setOf(today.minusDays(2)),
+                    daysToNext = 5,
+                    lastSolve = StreakFreezes.Moment(today, spent = emptyList(), earned = false),
+                ),
             ),
             stats().first(),
         )
@@ -230,6 +241,7 @@ class ObserveGameStatsTest {
                 playingSince = today.minusDays(1),
                 best = BestScore(timeMs = 20_000L, hints = 1),
                 rankOrder = RankOrder.TimeThenHints,
+                freezes = freshRun(days = 1),
             ),
             stats().first(),
         )
@@ -255,6 +267,7 @@ class ObserveGameStatsTest {
                 playingSince = today.minusDays(1),
                 best = BestScore(timeMs = 20_000L, hints = 1),
                 rankOrder = RankOrder.TimeThenHints,
+                freezes = freshRun(days = 2),
             ),
             stats().first(),
         )
@@ -282,6 +295,7 @@ class ObserveGameStatsTest {
                 playingSince = today.minusDays(1),
                 best = BestScore(timeMs = 20_000L, hints = 1),
                 rankOrder = RankOrder.TimeThenHints,
+                freezes = freshRun(days = 2),
             ),
             stats().first(),
         )
@@ -301,6 +315,7 @@ class ObserveGameStatsTest {
             playingSince = today.minusDays(1),
             best = BestScore(timeMs = 20_000L, hints = 1),
             rankOrder = RankOrder.TimeThenHints,
+            freezes = freshRun(days = 2),
         )
 
         completions.onCompleted(import)
@@ -329,49 +344,9 @@ class ObserveGameStatsTest {
                 playingSince = today.minusDays(1),
                 best = BestScore(timeMs = 20_000L, hints = 1),
                 rankOrder = RankOrder.TimeThenHints,
+                freezes = freshRun(days = 2),
             ),
             stats().first(),
-        )
-    }
-
-    @Test
-    fun `flag off carries no freezes`() = runTest {
-        completions.setRecords(listOf(solve(alpha, daysAgo = 0, time = 30_000L)))
-
-        assertNull(stats().first().freezes)
-    }
-
-    @Test
-    fun `with freezes a missed day holds the streak and shows frozen`() = runTest {
-        completions.setRecords(
-            listOf(
-                solve(alpha, daysAgo = 0, time = 30_000L),
-                solve(alpha, daysAgo = 1, time = 60_000L, hints = 2),
-                // A gap at day 2, then an older three-day run.
-                solve(alpha, daysAgo = 3, time = 90_000L),
-                solve(alpha, daysAgo = 4, time = 20_000L, hints = 1),
-                solve(alpha, daysAgo = 5, time = 50_000L),
-            ),
-        )
-
-        assertEquals(
-            GameStats(
-                currentStreak = 5,
-                bestStreak = 5,
-                solved = 5,
-                hintFree = 3,
-                averageTimeMs = 50_000L,
-                playingSince = today.minusDays(5),
-                best = BestScore(timeMs = 20_000L, hints = 1),
-                rankOrder = RankOrder.TimeThenHints,
-                freezes = StreakFreezes(
-                    held = 1,
-                    frozenDays = setOf(today.minusDays(2)),
-                    daysToNext = 5,
-                    lastSolve = StreakFreezes.Moment(today, spent = emptyList(), earned = false),
-                ),
-            ),
-            stats(flags = freezeOn).first(),
         )
     }
 
@@ -385,7 +360,7 @@ class ObserveGameStatsTest {
             ),
         )
 
-        val stats = stats(flags = freezeOn).first()
+        val stats = stats().first()
 
         assertEquals(1, stats.currentStreak)
         assertEquals(1, stats.bestStreak)
@@ -411,7 +386,7 @@ class ObserveGameStatsTest {
             ),
         )
 
-        stats(flags = freezeOn).test {
+        stats().test {
             val held = awaitItem()
             assertEquals(3, held.currentStreak)
             assertEquals(setOf(today.minusDays(2)), held.freezes?.frozenDays)
@@ -441,7 +416,7 @@ class ObserveGameStatsTest {
         // Day 2 was opened from the archive: solved, but no streak day.
         archive(alpha, daysAgo = 2)
 
-        stats(flags = freezeOn).test {
+        stats().test {
             val archived = awaitItem()
             assertEquals(4, archived.solved)
             assertEquals(3, archived.currentStreak)
@@ -462,7 +437,7 @@ class ObserveGameStatsTest {
         completions.setRecords((0L..6L).map { solve(alpha, daysAgo = it, time = 30_000L) })
         archive(alpha, daysAgo = 6)
 
-        stats(flags = freezeOn).test {
+        stats().test {
             val archived = awaitItem()
             assertEquals(7, archived.solved)
             assertEquals(6, archived.currentStreak)
