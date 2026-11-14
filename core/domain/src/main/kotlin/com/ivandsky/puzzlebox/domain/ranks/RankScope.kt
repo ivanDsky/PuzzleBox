@@ -1,7 +1,8 @@
 package com.ivandsky.puzzlebox.domain.ranks
 
 /**
- * Which players a board list shows (A6). [Friends] only filters the list: points and N always
- * come from the global board, so a player's Overall points match in both scopes.
+ * Whom a board ranks. [Global] is everyone on it. [Friends] ranks the viewer and their friends among themselves
+ * (F18, which replaces A6's filter): places run 1..n and N is the friends who played, so a player's points and
+ * Overall place differ between the scopes. See [amongFriends].
  */
 enum class RankScope { Global, Friends }

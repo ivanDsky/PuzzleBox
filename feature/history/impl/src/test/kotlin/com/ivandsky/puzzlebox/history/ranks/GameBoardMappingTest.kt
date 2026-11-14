@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
+import com.ivandsky.puzzlebox.domain.ranks.amongFriends
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.board.BoardRowValue
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
@@ -201,9 +202,10 @@ class GameBoardMappingTest {
 
     private fun ghost(name: String, timeMs: Long?, hintFree: Boolean = true) = GhostRowModel("ref-$name", name, timeMs, hintFree)
 
+    /** The Friends card as the hub builds it (F18): the board among the viewer and [friends], then the ghosts over it. */
     private fun friendsCard(input: BoardGhostInput, friends: Set<String>, board: RankWindowBoards): RanksBoardSlice {
-        val state = board.toGameBoardState(TANGO, RankOrder.TimeThenHints, Window.Day, "u1")
-        return RanksBoardSlice("Tango", RankOrder.TimeThenHints, state).inFriends(friends, input)
+        val state = board.amongFriends(friends + "u1").toGameBoardState(TANGO, RankOrder.TimeThenHints, Window.Day, "u1")
+        return RanksBoardSlice("Tango", RankOrder.TimeThenHints, state).inFriends(input)
     }
 
     private fun lines(slice: RanksBoardSlice) = (slice.state as DailyBoardState.Ranked).lines!!
@@ -236,27 +238,28 @@ class GameBoardMappingTest {
     }
 
     @Test
-    fun `friends keep the whole board's places while the ghost counts among them`() {
+    fun `a ghost takes a friend place, the friends numbered among themselves`() {
         val slice = friendsCard(BoardGhostInput(listOf(ghost("Cal", 64_000, hintFree = false))), setOf("ria"), caseFive)
 
-        assertEquals(listOf("Cal" to 3, "Ria" to 4, "U1" to 5), lines(slice).map(::named))
-        assertEquals(listOf("ria", "u1"), (slice.state as DailyBoardState.Ranked).rows.map { it.playerId })
+        assertEquals(listOf("Cal" to 1, "Ria" to 2, "U1" to 3), lines(slice).map(::named))
+        assertEquals(listOf("ria" to 1, "u1" to 2), rows(slice.state).map { it.playerId to it.rank })
     }
 
     @Test
     fun `a hidden-time ghost has no place and goes last`() {
         val slice = friendsCard(BoardGhostInput(listOf(ghost("Cal", null))), setOf("sam"), caseFive)
 
-        assertEquals(listOf("Sam" to 1, "U1" to 4, "Cal" to null), lines(slice).map(::named))
+        assertEquals(listOf("Sam" to 1, "U1" to 2, "Cal" to null), lines(slice).map(::named))
     }
 
     @Test
-    fun `no ghosts is the plain friends board with no note`() {
-        val slice = friendsCard(BoardGhostInput.None, setOf("sam"), caseFive)
+    fun `no ghosts is the plain friends board, numbered among friends, with no note`() {
+        val slice = friendsCard(BoardGhostInput.None, setOf("sam", "gwen"), caseFive)
 
-        assertEquals(listOf("sam", "u1"), rows(slice.state).map { it.playerId })
+        assertEquals(listOf("sam" to 1, "u1" to 2, "gwen" to 3), rows(slice.state).map { it.playerId to it.rank })
         assertNull((slice.state as DailyBoardState.Ranked).lines)
         assertNull(slice.note)
+        assertEquals(false, slice.friendsAlone)
     }
 
     @Test
@@ -264,7 +267,7 @@ class GameBoardMappingTest {
         val base = lateBoard.toGameBoardState(ZIP, RankOrder.TimeThenHints, Window.Day, "nora")
         val row = lateBoard.unofficialRow(ZIP, RankOrder.TimeThenHints, nora, listOf(historyRow(255))) { false }
         val slice = RanksBoardSlice("Zip", RankOrder.TimeThenHints, base.withUnofficialRow(row))
-            .inFriends(setOf("lia", "max", "you", "gwen", "omar"), BoardGhostInput(listOf(ghost("Cal", 255))))
+            .inFriends(BoardGhostInput(listOf(ghost("Cal", 255))))
 
         assertEquals(
             listOf("Lia" to 1, "Nora" to 2, "Cal" to 2, "Max" to 3, "You" to 4, "Gwen" to 5, "Omar" to 6),
