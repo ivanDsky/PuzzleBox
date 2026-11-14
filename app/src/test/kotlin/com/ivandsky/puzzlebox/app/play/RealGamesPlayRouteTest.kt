@@ -33,6 +33,7 @@ import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.di.domainModule
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
@@ -176,6 +177,7 @@ class RealGamesPlayRouteTest {
                 // The app's real use-case wiring, so the hub gets every use case it asks for.
                 domainModule,
                 playModule,
+                module { single { ObserveFriendDay.Binding(reader = null) } }, // hub off
             )
         }
     }

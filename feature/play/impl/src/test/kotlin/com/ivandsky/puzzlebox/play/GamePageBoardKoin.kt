@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -34,9 +35,15 @@ internal fun startGamePageBoardKoin(ids: List<GameId>, today: LocalDate = LocalD
                         identity,
                         dismissedGoogleSignIn,
                         linkedIn = null,
+                        friendDay = null, // hub off
                     )
                 }
             },
         )
     }
+}
+
+/** The hub-off binding a play test graph needs when it loads [playModule]: the root's answer is no friend day. */
+internal val hubOffFriendDay = module {
+    single { ObserveFriendDay.Binding(reader = null) } // hub off
 }

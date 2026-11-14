@@ -152,6 +152,7 @@ class LibraryRouteTest {
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
                 },
                 playModule,
+                hubOffFriendDay,
             )
         }
     }
