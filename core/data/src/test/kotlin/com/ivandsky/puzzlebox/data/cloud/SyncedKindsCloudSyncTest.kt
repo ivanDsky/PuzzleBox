@@ -69,6 +69,7 @@ class SyncedKindsCloudSyncTest {
     private val clock = MutableClock(10_000L)
     private val network = FakeNetworkStatus(initial = false)
     private val log = mutableListOf<String>()
+    private val warnings = mutableListOf<String>()
     private val loggingSpace = LoggingSpace(space, log)
 
     private fun kind(name: String) = RecordingKind(name, events = log)
@@ -86,6 +87,7 @@ class SyncedKindsCloudSyncTest {
         }
         return SyncedKindsCloudSync(
             kinds, loggingSpace, syncState, identity, CloudErase(loggingSpace, kinds, syncState, identity), clock, dispatchers, network, scope,
+            warnings::add,
         )
     }
 
@@ -546,10 +548,11 @@ class SyncedKindsCloudSyncTest {
         val engine = engine(listOf(kind("drafts")), failing)
 
         engine.restored.test {
-            runCatching { engine.syncNow() }
+            engine.syncNow()
             assertEquals(RestoreSummary(mapOf("drafts" to 1)), awaitItem())
         }
         assertFalse(store.restoreShown(ANN))
+        assertEquals(CloudSyncState.Paused(PauseReason.Exhausted, null), engine.state.value)
     }
 
     @Test

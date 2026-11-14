@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.data.cloud
 
+import android.util.Log
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.network.NetworkStatus
@@ -38,7 +39,9 @@ import kotlinx.coroutines.withContext
  * dies with the process, and any trigger runs sooner and replaces it. A failure changes no row, marker or cursor.
  * A run that ends `Ok` with some kind still reporting pending ids (a row edited while it was pending or uploading)
  * is followed by exactly one more run, so the edit never waits for another trigger. Runs execute on [scope], so they
- * outlive the caller that asked for them. The engine only reads the last uid; `SignedInOwnerScope` writes it.
+ * outlive the caller that asked for them. A run, or one kind's turn in it, that throws anything but a cancellation (a
+ * Room or DataStore failure) is logged by class only and fails like an `Exhausted` answer: [CloudSyncState.Paused] and
+ * the normal retry, the other kinds still run. [syncNow] never throws except for its own cancellation. The engine only reads the last uid; `SignedInOwnerScope` writes it.
  *
  * [state] is [CloudSyncState.SignedOut] only while nobody is signed in: a signed-in engine starts at
  * [CloudSyncState.Syncing], the pass the app start is about to run.
@@ -53,6 +56,7 @@ class SyncedKindsCloudSync(
     private val dispatchers: DispatcherProvider,
     private val network: NetworkStatus,
     private val scope: CoroutineScope,
+    private val warn: (String) -> Unit = { Log.w(TAG, it) },
 ) : CloudSync {
 
     private val mutex = Mutex()
@@ -123,7 +127,8 @@ class SyncedKindsCloudSync(
                 run.completeExceptionally(e)
                 throw e
             } catch (e: Throwable) {
-                run.completeExceptionally(e)
+                warn("sync run failed: ${e.javaClass.simpleName}")
+                run.complete(Unit)
             }
         }
     }
@@ -148,7 +153,7 @@ class SyncedKindsCloudSync(
         var stop: SyncRun.Stop? = null
         var online = false
         try {
-            stop = execute(run, uid)
+            stop = guarded { execute(run, uid) }
             if (stop is SyncRun.Stop.Cloud && stop.result == CloudResult.Offline) online = network.online.first()
             finished = true
         } finally {
@@ -166,7 +171,24 @@ class SyncedKindsCloudSync(
     /** True while some kind still has pending ids for the signed-in account. */
     private suspend fun hasPending(): Boolean {
         val uid = identity.current.value?.uid ?: return false
-        return kinds.any { kind -> kind.pendingIds(uid).firstOrNull()?.isNotEmpty() == true }
+        return try {
+            kinds.any { kind -> kind.pendingIds(uid).firstOrNull()?.isNotEmpty() == true }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            warn("sync pending check failed: ${e.javaClass.simpleName}")
+            false
+        }
+    }
+
+    /** [block]'s stop, or an `Exhausted` stop when it threw anything but a cancellation, logging the class only. */
+    private suspend fun guarded(block: suspend () -> SyncRun.Stop?): SyncRun.Stop? = try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        warn("sync run failed: ${e.javaClass.simpleName}")
+        SyncRun.Stop.Cloud(CloudResult.Exhausted)
     }
 
     /** The state after a finished run: [Synced][CloudSyncState.Synced] on success, else [stop]'s pause (null: keep the old state). */
@@ -196,7 +218,7 @@ class SyncedKindsCloudSync(
         }
         var worst: SyncRun.Stop? = null
         for (kind in kinds) {
-            val stop = sync(run, kind) ?: continue
+            val stop = guarded { sync(run, kind) } ?: continue
             if (stop.perKind) {
                 worst = run.worse(worst, stop)
             } else {
@@ -218,8 +240,14 @@ class SyncedKindsCloudSync(
     }
 
     /** True while [uid]'s first restore on this device has not finished: some kind still has no cursor. */
-    private suspend fun firstRestore(uid: String): Boolean =
+    private suspend fun firstRestore(uid: String): Boolean = try {
         !store.restoreShown(uid) && kinds.any { store.cursor(uid, it.kind) == null }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        warn("sync restore check failed: ${e.javaClass.simpleName}")
+        false
+    }
 
     /**
      * After an account's first full run: emits what came back, if anything did, then marks the restore shown. The
@@ -231,5 +259,9 @@ class SyncedKindsCloudSync(
         if (store.restoreShown(uid)) return
         if (counts.isNotEmpty()) restoreEvents.send(RestoreSummary(counts))
         store.markRestoreShown(uid)
+    }
+
+    private companion object {
+        const val TAG = "SyncedKindsCloudSync"
     }
 }
