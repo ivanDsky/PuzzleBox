@@ -11,6 +11,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
@@ -32,7 +33,9 @@ private const val MaxGhosts = 20
  * [medals] makes the top three places medal rows and [dock] docks the viewer's own row to the edge of what scrolls the
  * board while it is out of view (see [DailyBoardList]). With [onRowClick] another player's official row is tappable and
  * reports its row; a board that passes none has rows that take no tap. With [morphText] a new [title] or [caption]
- * crossfades over the old one ([DayMorph]) instead of replacing it.
+ * crossfades over the old one ([DayMorph]) instead of replacing it. [backdrop] is the colour every row that is not
+ * the viewer's own is filled with, for a board that sits on something other than the theme's background; it may be
+ * see-through. Null leaves the rows as the list draws them.
  */
 @Composable
 fun DailyBoard(
@@ -49,8 +52,10 @@ fun DailyBoard(
     dock: Boolean = false,
     onRowClick: ((DailyBoardRowModel) -> Unit)? = null,
     morphText: Boolean = false,
+    backdrop: Color? = null,
 ) {
-    CompositionLocalProvider(LocalBoardRowClick provides onRowClick) {
+    val rowsOn = backdrop ?: MaterialTheme.colorScheme.background
+    CompositionLocalProvider(LocalBoardRowClick provides onRowClick, LocalBoardBackdrop provides (backdrop ?: LocalBoardBackdrop.current)) {
         Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             if (morphText) DayMorph(title) { Title(it) } else Title(title)
             if (morphText) DayMorph(caption) { Caption(it) } else Caption(caption)
@@ -58,10 +63,10 @@ fun DailyBoard(
                 DailyBoardState.Loading -> Line("Loading…", "daily_board.loading")
                 DailyBoardState.Unavailable -> Line("Leaderboard unavailable right now.", "daily_board.unavailable")
                 DailyBoardState.SignedOut -> {
-                    DailyBoardList(rankWithGhosts(emptyList(), ghosts, order), order, animated = animated, medals = medals, dock = dock)
+                    DailyBoardList(rankWithGhosts(emptyList(), ghosts, order), order, animated = animated, backdrop = rowsOn, medals = medals, dock = dock)
                     signIn?.invoke()
                 }
-                is DailyBoardState.Ranked -> Ranked(state, ghosts, order, animated, isToday, medals, dock)
+                is DailyBoardState.Ranked -> Ranked(state, ghosts, order, animated, isToday, medals, dock, rowsOn)
             }
         }
     }
@@ -91,6 +96,7 @@ private fun Ranked(
     isToday: Boolean,
     medals: Boolean,
     dock: Boolean,
+    backdrop: Color,
 ) {
     val lines = remember(state, ghosts, order) { (state.lines ?: rankWithGhosts(state.rows, ghosts, order)).capGhosts() }
     if (lines.isEmpty()) {
@@ -102,6 +108,7 @@ private fun Ranked(
         order,
         pinned = state.pinned?.let { DailyBoardLine.Real(it, state.pinnedPlace ?: it.rank) },
         animated = animated,
+        backdrop = backdrop,
         medals = medals,
         dock = dock,
     )

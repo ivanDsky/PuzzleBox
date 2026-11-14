@@ -12,11 +12,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ButtonDefaults
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
@@ -24,9 +25,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.PillShape
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
@@ -36,7 +36,6 @@ import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.history.HistoryDayRow
-import com.ivandsky.puzzlebox.history.HistoryReplaySection
 import com.ivandsky.puzzlebox.history.HistoryReplays
 import com.ivandsky.puzzlebox.history.ReplaySolve
 import com.ivandsky.puzzlebox.model.GameId
@@ -49,11 +48,10 @@ internal data class YourSolve(
     val playUi: GamePlayUi?,
 )
 
-private val ButtonHeight = 48.dp
-
 /**
- * A compact row under the calendar: the time and hints of [solve], Play again, and the day's replays (Watch replay;
- * with two different solves, both and the compare). It is local data, so it shows signed out and offline.
+ * A compact row under the calendar, one line: the time and hints of [solve], then two icon buttons, the day's replays
+ * (Watch replay; with two different solves, a menu of both and the compare, see [SolveReplayButton]) and Play again.
+ * It is local data, so it shows signed out and offline.
  * It eases in and out with the day (a fade and a size change; none under reduced motion); null shows nothing.
  */
 @Composable
@@ -94,36 +92,37 @@ private fun SolveCard(
     val row = solve.row
     val record = row.record ?: return
     val accent = row.brand.accent.colors()
+    // The one place that reads replayBoard here: a game with no replay board shows no way into a replay.
+    val replays = solve.replays.takeIf { solve.playUi?.replayBoard != null } ?: HistoryReplays.Hidden
     OutlinedCard(
         modifier = Modifier.fillMaxWidth().padding(bottom = Spacing.md).testTag("ranks.yoursolve"),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.outlinedCardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
-        Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                GameGlyph(brand = row.brand, size = GameGlyphSize.Chip)
-                Column(Modifier.weight(1f)) {
-                    Text("Your solve", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Text(
-                        text = "${formatDuration(record.time)} · ${hintsText(record.hints)}",
-                        style = MaterialTheme.typography.titleMedium.tabular(),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.testTag("ranks.yoursolve.score"),
-                    )
+        Row(
+            Modifier.padding(start = Spacing.md, top = Spacing.sm, end = Spacing.sm, bottom = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            GameGlyph(brand = row.brand, size = GameGlyphSize.Chip)
+            Column(Modifier.weight(1f).padding(start = Spacing.xs)) {
+                Text("Your solve", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    text = "${formatDuration(record.time)} · ${hintsText(record.hints)}",
+                    style = MaterialTheme.typography.titleMedium.tabular(),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.testTag("ranks.yoursolve.score"),
+                )
+                replays.unavailableText()?.let {
+                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
-                FilledTonalButton(
-                    onClick = { onPlayAgain(row.gameId, row.day) },
-                    shape = PillShape,
-                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = accent.container, contentColor = accent.onContainer),
-                    modifier = Modifier.heightIn(min = ButtonHeight).testTag("ranks.yoursolve.playagain"),
-                ) { Text("Play again", style = MaterialTheme.typography.labelLarge) }
             }
-            HistoryReplaySection(
-                replays = solve.replays,
-                ui = solve.playUi,
-                onOpen = { onOpenReplay(row, it) },
-                onCompare = { onCompare(row) },
-            )
+            SolveReplayButton(replays, onOpen = { onOpenReplay(row, it) }, onCompare = { onCompare(row) })
+            FilledTonalIconButton(
+                onClick = { onPlayAgain(row.gameId, row.day) },
+                colors = IconButtonDefaults.filledTonalIconButtonColors(containerColor = accent.container, contentColor = accent.onContainer),
+                modifier = Modifier.size(SolveButtonSize).testTag("ranks.yoursolve.playagain"),
+            ) { Icon(PuzzleIcons.Retry, contentDescription = "Play again") }
         }
     }
 }

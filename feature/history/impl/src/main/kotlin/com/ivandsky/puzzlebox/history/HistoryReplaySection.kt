@@ -35,10 +35,10 @@ class HistoryReplayHost(
     }
 }
 
-private const val FIRST_SOLVE = "First solve"
-private const val LATEST = "Latest"
-private const val COMPARE = "Compare"
-private const val COMPARE_DESCRIPTION = "Compare first solve with latest"
+internal const val FIRST_SOLVE = "First solve"
+internal const val LATEST = "Latest"
+internal const val COMPARE = "Compare"
+internal const val COMPARE_DESCRIPTION = "Compare first solve with latest"
 
 /** The compare of [row]'s two solves: the latest is "mine" (the primary side), the first solve the other. */
 internal fun historyCompareKey(row: HistoryDayRow): ReplayCompareKey {
