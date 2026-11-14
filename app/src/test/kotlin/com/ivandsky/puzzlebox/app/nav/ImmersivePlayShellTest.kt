@@ -95,14 +95,14 @@ class ImmersivePlayShellTest {
 
     /** Every tab item is on screen once: the bar shows. */
     private fun assertBarShown(on: NavigationState) {
-        topLevelDestinations.forEach { destination ->
+        ranksTopLevelDestinations.forEach { destination ->
             assertEquals("${destination.tag} on $on", 1, tabNodes(destination))
         }
     }
 
     /** No tab item is on screen: the bar is hidden. */
     private fun assertBarHidden(on: NavigationState) {
-        topLevelDestinations.forEach { destination ->
+        ranksTopLevelDestinations.forEach { destination ->
             assertEquals("${destination.tag} on $on", 0, tabNodes(destination))
         }
     }
@@ -119,8 +119,8 @@ class ImmersivePlayShellTest {
         fun step(shown: Boolean, move: Navigator.() -> Unit) = move to shown
         listOf(
             step(true) {}, // Home
-            step(true) { push(HistoryKey()) },
-            step(false) { push(GameKey(ZIP)) }, // a History play-again on Home's stack
+            step(true) { push(HistoryKey(ZIP)) }, // a Ranks board on Home's stack, as the hub's entry points push it
+            step(false) { push(GameKey(ZIP)) }, // a play-again on that stack
             step(true) { selectTab(PlayKey) }, // the hub
             step(false) { push(GameKey(ZIP)) },
             step(false) { replaceTop(RESULT) },
