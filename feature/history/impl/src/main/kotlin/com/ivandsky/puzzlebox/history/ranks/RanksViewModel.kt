@@ -121,7 +121,7 @@ internal class RanksViewModel(
         viewer,
         selection.map { it.window }.distinctUntilChanged(),
     ) { window, answered, overall, me, kind ->
-        boardPlaces(boards, registry, overall, answered?.takeIf { (of, _) -> of == window }?.second, kind, me?.uid)
+        boardPlaces(boards, registry, playRegistry::brandOf, overall, answered?.takeIf { (of, _) -> of == window }?.second, kind, me?.uid)
     }.distinctUntilChanged()
 
     private val nudge: Flow<Boolean> = preferences.tutorialSeen(SWIPE_NUDGE).map { !it }
