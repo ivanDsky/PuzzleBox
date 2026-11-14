@@ -117,7 +117,7 @@ private fun StreakCard(state: PlayStatsState) {
                 // The count pill keeps its width when the no-streak line wraps in a narrow pane.
                 modifier = Modifier.weight(1f, fill = false).testTag("play.stats.streak"),
             )
-            state.freezesHeld?.let { FreezeCount(it) }
+            if ((state.streak ?: 0) > 0) state.freezesHeld?.let { FreezeCount(it) }
         }
         WeekStrip(days = state.week, total = 1, modifier = Modifier.padding(top = Spacing.sm).testTag("play.stats.week"))
         Row(Modifier.padding(top = Spacing.sm)) {

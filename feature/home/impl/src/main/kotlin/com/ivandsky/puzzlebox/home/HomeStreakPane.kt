@@ -155,7 +155,7 @@ private fun BigStreakRow(stats: GameStats) {
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
-                stats.freezes?.let { FreezeCount(held = it.held) }
+                if (stats.currentStreak > 0) stats.freezes?.let { FreezeCount(held = it.held) }
             }
             Text(
                 text = "Best ${grouped(stats.bestStreak)}",
