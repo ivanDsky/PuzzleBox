@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
@@ -85,6 +86,8 @@ internal fun collapsedWeek(
  * [onShowCalendar] reports the day whose week or month to show, and the mode. Shows
  * nothing until the state has a calendar day.
  * [foldable] false drops the header's chevron and its tap; the calendar stays the mode it is given.
+ * [foldInPlace] keeps one pager across a fold so the card eases around it (the Ranks hub, behind its flag); false
+ * builds a new pager per mode, as the shipped History screen does.
  */
 @Composable
 internal fun HistoryCalendar(
@@ -93,6 +96,7 @@ internal fun HistoryCalendar(
     onSelectDay: (LocalDate?) -> Unit,
     cardColor: Color,
     foldable: Boolean = true,
+    foldInPlace: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val shown = state.shownDay ?: return
@@ -130,15 +134,28 @@ internal fun HistoryCalendar(
                 onBack = { onShowCalendar(pages.dayAt(index + 1), expanded) },
                 onForward = { onShowCalendar(pages.dayAt(index - 1), expanded) },
             )
-            CalendarPager(pages, index, expanded, onPage = { onShowCalendar(pages.dayAt(it), expanded) }) { page ->
-                val day = pages.dayAt(page)
-                if (expanded) {
-                    CalendarMonth(YearMonth.from(day), state, onSelectDay)
-                } else {
-                    CalendarWeek(day, state, onSelectDay)
+            if (foldInPlace) {
+                CalendarPager(pages, index, expanded, onPage = { onShowCalendar(pages.dayAt(it), expanded) }) { page ->
+                    CalendarPage(pages.dayAt(page), expanded, state, onSelectDay)
+                }
+            } else {
+                // A new pager per mode: its pages are weeks or months.
+                key(expanded) {
+                    CalendarPager(pages, index, expanded, onPage = { onShowCalendar(pages.dayAt(it), expanded) }) { page ->
+                        CalendarPage(pages.dayAt(page), expanded, state, onSelectDay)
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CalendarPage(day: LocalDate, expanded: Boolean, state: CalendarState, onSelectDay: (LocalDate?) -> Unit) {
+    if (expanded) {
+        CalendarMonth(YearMonth.from(day), state, onSelectDay)
+    } else {
+        CalendarWeek(day, state, onSelectDay)
     }
 }
 
