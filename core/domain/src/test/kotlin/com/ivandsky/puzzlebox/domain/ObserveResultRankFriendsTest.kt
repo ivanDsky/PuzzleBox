@@ -3,20 +3,26 @@ package com.ivandsky.puzzlebox.domain
 import app.cash.turbine.ReceiveTurbine
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchLeg
+import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.Player
-import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
-import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
-import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.domain.di.domainModule
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -28,11 +34,18 @@ import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import org.koin.core.module.Module
+import org.koin.dsl.koinApplication
+import org.koin.dsl.module
 
-/** F20: the rank shown outside the hub follows the player's Friends/Global setting, behind the hub's flag. */
+/**
+ * F20: the rank shown outside the hub follows the player's Friends/Global setting, behind the hub's flag. The rank is
+ * resolved from [domainModule], because the graph decides both flags and the use cases ask neither.
+ */
 class ObserveResultRankFriendsTest {
 
     private val tango = GameId("tango")
@@ -51,11 +64,26 @@ class ObserveResultRankFriendsTest {
         mapOf(LeaderboardRef("tango", day) to listOf(entry("a", 30), entry("b", 40), entry("me", 50), entry("c", 60))),
     )
 
-    private fun rank(vararg flags: ReleaseFlag) = ObserveResultRank(
-        ObserveLeaderboard(identity, repo, registry, FakeGameCalendar(day)),
-        registry,
-        ObserveFriendDay(preferences, FakeReleaseFlags(*flags), ObserveFriendUids(matches, identity), ObserveLinkedInDay(days, registry)),
-    )(tango, day)
+    /** Everything a Friends rank reads beyond the board: the setting, the friends and the connections. */
+    private val friendSources = module {
+        single<UserPreferencesRepository> { preferences }
+        single<MatchRepository> { matches }
+        single<LinkedInDays> { days }
+    }
+
+    private fun rank(vararg flags: ReleaseFlag, sources: Module = friendSources): Flow<ResultRank> = koinApplication {
+        modules(
+            domainModule,
+            module {
+                single<ReleaseFlags> { FakeReleaseFlags(*flags) }
+                single<IdentityService> { identity }
+                single<LeaderboardRepository> { repo }
+                single<GameRegistry> { registry }
+                single<GameCalendar> { FakeGameCalendar(day) }
+            },
+            sources,
+        )
+    }.koin.get<ObserveResultRank>()(tango, day)
 
     private suspend fun befriend(uid: String) {
         val code = checkNotNull(ShareCode.parse("AAAAA2"))
@@ -131,6 +159,14 @@ class ObserveResultRankFriendsTest {
             assertEquals(ResultRank.Hidden, awaitItem())
             assertEquals(ResultRank.Ranked(position = 3, count = 4, topPercent = 75), awaitItem())
             expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `with the hub off the rank is built with no setting, friends or connections to read`() = runTest {
+        rank(sources = module { }).test {
+            assertEquals(ResultRank.Ranked(position = 3, count = 4, topPercent = 75), lastRanked())
+            cancelAndIgnoreRemainingEvents()
         }
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -79,12 +80,16 @@ class GamePageRankRowTest {
         )
     }
 
-    /** The page's graph; [friendOf] binds the hub's Friends/Global setting, stored as [friendsSetting], with that one friend of the player. */
+    /**
+     * The page's graph; [friendOf] binds the hub's Friends/Global setting, stored as [friendsSetting], with that one
+     * friend of the player, and [hub] is the hub's flag the graph is asked for.
+     */
     private fun show(
         identity: FakeIdentityService,
         rows: List<LeaderboardEntry>,
         friendOf: String? = null,
         friendsSetting: Boolean = true,
+        hub: Boolean = true,
         onOpen: () -> Unit = {},
     ) {
         stopKoin() // tests share the JVM-global Koin context
@@ -97,6 +102,7 @@ class GamePageRankRowTest {
                     single<IdentityService> { identity }
                     single<LeaderboardRepository> { FakeLeaderboardRepository(mapOf(LeaderboardRef(game.value, today) to rows)) }
                     single<GoogleIdTokenProvider> { dismissedGoogleSignIn }
+                    single<ReleaseFlags> { if (hub) FakeReleaseFlags(ReleaseFlag.LeaderboardHub) else FakeReleaseFlags() }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
                     if (friends != null) single { friends }
                 },
@@ -119,7 +125,6 @@ class GamePageRankRowTest {
         }
         return ObserveFriendDay(
             FakeUserPreferencesRepository(ranksFriendsDefault = friendsSetting),
-            FakeReleaseFlags(ReleaseFlag.LeaderboardHub),
             ObserveFriendUids(matches, identity),
             ObserveLinkedInDay(FakeLinkedInDays(), registry),
         )
@@ -152,6 +157,12 @@ class GamePageRankRowTest {
     @Test
     fun `on the Global setting the row reads the whole board's place though the player has a friend`() {
         show(FakeIdentityService(me), entries(340, meRank = 12), friendOf = "p3", friendsSetting = false)
+        composeRule.onNodeWithTag("summary.rank").assertTextEquals("You #12 of 340")
+    }
+
+    @Test
+    fun `with the hub off the row reads the whole board's place though the Friends setting is bound`() {
+        show(FakeIdentityService(me), entries(340, meRank = 12), friendOf = "p3", hub = false)
         composeRule.onNodeWithTag("summary.rank").assertTextEquals("You #12 of 340")
     }
 

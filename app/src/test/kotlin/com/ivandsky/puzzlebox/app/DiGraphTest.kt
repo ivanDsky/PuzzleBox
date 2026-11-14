@@ -42,6 +42,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.game.DailySource
@@ -93,6 +94,7 @@ import org.koin.core.annotation.KoinExperimentalAPI
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.parameter.parametersOf
+import org.koin.core.Koin
 import org.koin.core.qualifier.qualifier
 import org.koin.dsl.module
 import org.koin.test.KoinTest
@@ -319,19 +321,46 @@ class DiGraphTest : KoinTest {
         }
         try {
             val koin = koinApp.koin
-            fun viewModel(name: String, vararg params: Any) =
-                koin.get<Any>(Class.forName("com.ivandsky.puzzlebox.$name").kotlin, null) { parametersOf(*params) }
-            assertNotNull(viewModel("history.ranks.RanksViewModel", SavedStateHandle()))
-            assertNotNull(viewModel("history.ranks.PlayerSheetViewModel"))
-            assertNotNull(viewModel("history.ranks.ReplayOptInViewModel"))
-            assertNotNull(viewModel("play.GamePageBoardViewModel", GameId("zip")))
+            assertNotNull(koin.viewModel("history.ranks.RanksViewModel", SavedStateHandle()))
+            assertNotNull(koin.viewModel("history.ranks.PlayerSheetViewModel"))
+            assertNotNull(koin.viewModel("history.ranks.ReplayOptInViewModel"))
+            assertNotNull(koin.viewModel("play.GamePageBoardViewModel", GameId("zip")))
             assertNotNull(koin.get<ObserveRankWindow>())
             assertNotNull(koin.get<ObserveOverall>())
             assertNotNull(koin.get<GetPlayerActions>())
+            assertNotNull(koin.get<ObserveResultRank>())
         } finally {
             stopKoin()
         }
     }
+
+    /**
+     * Hub off, the ranks outside the hub are built with no Friends/Global reader: a reader that cannot be built stands
+     * in for the one that would read the setting and listen for friends.
+     */
+    @Test
+    fun `with the hub off the ranks outside the hub resolve without the Friends reader`() {
+        val koinApp = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(
+                PuzzleBoxApplication.appModules + module {
+                    single<IdentityService> { FakeIdentityService() }
+                    single<ReleaseFlags> { FakeReleaseFlags() }
+                    factory<ObserveFriendDay> { error("the Friends reader was built with the hub off") }
+                },
+            )
+        }
+        try {
+            val koin = koinApp.koin
+            assertNotNull(koin.get<ObserveResultRank>())
+            assertNotNull(koin.viewModel("play.GamePageBoardViewModel", GameId("zip")))
+        } finally {
+            stopKoin()
+        }
+    }
+
+    private fun Koin.viewModel(name: String, vararg params: Any) =
+        get<Any>(Class.forName("com.ivandsky.puzzlebox.$name").kotlin, null) { parametersOf(*params) }
 
     @Test
     fun `a second editor UI for one game fails the registry`() {
