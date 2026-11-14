@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.create
 
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
@@ -73,8 +74,9 @@ private const val DELETED_TITLE_MAX = 28
  *
  * Motion: rows **Fade in** / **Fade out** and slide to new places with a **Layout animation**
  * (MotionTokens medium, EasingStandard) as edits reorder them and the query narrows them; the
- * New puzzle button **Slides** up over the snackbar (DurationMedium, EasingStandard). None of
- * it under reduced motion.
+ * New puzzle button **Slides** up over the snackbar (DurationMedium, EasingStandard); and the
+ * first cloud restore's card **Cross-fades** into the restored lists (see [createFadeMillis]).
+ * None of it under reduced motion.
  */
 @Composable
 fun CreateScreen(
@@ -121,17 +123,29 @@ fun CreateScreen(
                     }
                 },
             )
-            when {
-                state.loading -> Unit
-                state.isEmpty -> CreateEmptyState(
-                    games = state.games,
-                    onStart = onNew,
-                    onImport = onImportOpen.takeIf { importEnabled },
-                    restoring = state.restoring,
-                )
-                else -> {
-                    CreateTabs(state, onTab)
-                    CreateTabContent(state, onOpen, onOpenPublished, onActions = { actionsId = it }, onQuery, onFilter)
+            // Keyed on the restoring card alone: only the first cloud restore's fill-in animates, every other change lands as before.
+            Crossfade(
+                targetState = state.restoringScreen(),
+                animationSpec = tween(createFadeMillis(reducedMotion)),
+                label = "createRestore",
+            ) { restoring ->
+                when {
+                    restoring -> CreateEmptyState(
+                        games = state.games,
+                        onStart = onNew,
+                        onImport = onImportOpen.takeIf { importEnabled },
+                        restoring = true,
+                    )
+                    state.loading -> Unit
+                    state.isEmpty -> CreateEmptyState(
+                        games = state.games,
+                        onStart = onNew,
+                        onImport = onImportOpen.takeIf { importEnabled },
+                    )
+                    else -> Column(Modifier.fillMaxSize()) {
+                        CreateTabs(state, onTab)
+                        CreateTabContent(state, onOpen, onOpenPublished, onActions = { actionsId = it }, onQuery, onFilter)
+                    }
                 }
             }
         }
