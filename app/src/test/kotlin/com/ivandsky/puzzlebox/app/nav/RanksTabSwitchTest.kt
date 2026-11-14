@@ -2,9 +2,11 @@ package com.ivandsky.puzzlebox.app.nav
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.VectorPath
+import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.v2.runComposeUiTest
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.e2e.E2E_TODAY
 import com.ivandsky.puzzlebox.app.e2e.E2eKoinGraph
@@ -139,6 +141,18 @@ class RanksTabSwitchTest {
     @Test
     fun `the Ranks icon swaps to a different glyph when selected`() {
         assertNotEquals(PuzzleIcons.Ranks.pathData(), PuzzleIcons.RanksFilled.pathData())
+    }
+
+    // The glyphs differing is not enough: the tab must hand the bar the outline one unselected and the filled one selected.
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun `the Ranks tab draws the outline mark unselected, the filled mark selected`() = runComposeUiTest {
+        val ranks = ranksTopLevelDestinations.single { it.key == HistoryRootKey }
+        var drawn = emptyList<Any>() to emptyList<Any>()
+        setContent { drawn = ranks.icon().pathData() to ranks.selectedIcon().pathData() }
+        waitForIdle()
+
+        assertEquals(PuzzleIcons.Ranks.pathData() to PuzzleIcons.RanksFilled.pathData(), drawn)
     }
 
     /**

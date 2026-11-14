@@ -2,8 +2,10 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ranks.PlayerActions
@@ -51,5 +53,12 @@ class PlayerSheetWatchTest {
         show(Watch.SolveFirst, onWatch = {})
 
         composeRule.onNodeWithContentDescription("Watch").assertIsNotEnabled()
+    }
+
+    @Test
+    fun `a Watch waiting on the viewer's solve says Solve it first`() {
+        show(Watch.SolveFirst, onWatch = {})
+
+        composeRule.onNodeWithTag("ranks.player.watch.caption").assertTextEquals("Solve it first")
     }
 }

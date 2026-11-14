@@ -79,10 +79,16 @@ class GamePageRankRowTest {
         )
     }
 
-    /** The page's graph; [friendOf] binds the hub's Friends setting with that one friend of the player. */
-    private fun show(identity: FakeIdentityService, rows: List<LeaderboardEntry>, friendOf: String? = null, onOpen: () -> Unit = {}) {
+    /** The page's graph; [friendOf] binds the hub's Friends/Global setting, stored as [friendsSetting], with that one friend of the player. */
+    private fun show(
+        identity: FakeIdentityService,
+        rows: List<LeaderboardEntry>,
+        friendOf: String? = null,
+        friendsSetting: Boolean = true,
+        onOpen: () -> Unit = {},
+    ) {
         stopKoin() // tests share the JVM-global Koin context
-        val friends = friendOf?.let { friendDay(identity, it) }
+        val friends = friendOf?.let { friendDay(identity, it, friendsSetting) }
         startKoin {
             modules(
                 module {
@@ -101,7 +107,7 @@ class GamePageRankRowTest {
         composeRule.waitForIdle()
     }
 
-    private fun friendDay(identity: FakeIdentityService, friend: String): ObserveFriendDay {
+    private fun friendDay(identity: FakeIdentityService, friend: String, friendsSetting: Boolean): ObserveFriendDay {
         val registry = TestGames.registry(listOf(game))
         val matches = FakeMatchRepository().apply { signedInUid = me.uid }
         val code = checkNotNull(ShareCode.parse("AAAAA2"))
@@ -112,7 +118,7 @@ class GamePageRankRowTest {
             matches.signedInUid = me.uid
         }
         return ObserveFriendDay(
-            FakeUserPreferencesRepository(ranksFriendsDefault = true),
+            FakeUserPreferencesRepository(ranksFriendsDefault = friendsSetting),
             FakeReleaseFlags(ReleaseFlag.LeaderboardHub),
             ObserveFriendUids(matches, identity),
             ObserveLinkedInDay(FakeLinkedInDays(), registry),
@@ -141,6 +147,12 @@ class GamePageRankRowTest {
     fun `in Friends the row reads the place among friends, not the whole board's`() {
         show(FakeIdentityService(me), entries(340, meRank = 12), friendOf = "p3")
         composeRule.onNodeWithTag("summary.rank").assertTextEquals("You #2 of 2")
+    }
+
+    @Test
+    fun `on the Global setting the row reads the whole board's place though the player has a friend`() {
+        show(FakeIdentityService(me), entries(340, meRank = 12), friendOf = "p3", friendsSetting = false)
+        composeRule.onNodeWithTag("summary.rank").assertTextEquals("You #12 of 340")
     }
 
     @Test

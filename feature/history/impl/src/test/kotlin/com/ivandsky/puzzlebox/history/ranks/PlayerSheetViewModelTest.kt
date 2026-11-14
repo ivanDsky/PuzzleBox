@@ -113,6 +113,13 @@ class PlayerSheetViewModelTest {
     }
 
     @Test
+    fun `a Replays player's solve stays locked until the viewer solves that puzzle`() = runTest {
+        visibility.putTier("maya", VisibilityTier.Replays)
+
+        assertEquals(PlayerActions.Watch.SolveFirst, opened().actions!!.watch)
+    }
+
+    @Test
     fun `challenge invites the row's player to one puzzle of that game and ends on Sent to the sheet's name`() = runTest {
         opened()
         viewModel.challenge(alpha)
