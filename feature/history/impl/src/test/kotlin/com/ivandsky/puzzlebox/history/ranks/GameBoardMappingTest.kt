@@ -274,4 +274,15 @@ class GameBoardMappingTest {
             lines(slice).map(::named),
         )
     }
+
+    @Test
+    fun `a connection without a picture is still LinkedIn's and opens nothing, marked by the board's photos not its uid`() {
+        val board = boards(loaded(ref(0), entry("sam", 58_000), entry("cal", 62_000)))
+        val slice = RanksBoardSlice("Zip", RankOrder.TimeThenHints, state(board)).inFriendsCounted(mapOf("cal" to null))
+
+        assertEquals(listOf("sam" to false, "cal" to true), rows(slice.state).map { it.playerId to it.fromLinkedIn })
+        assertEquals(true, rows(slice.state).last().timeFromLinkedIn)
+        assertNull(rows(slice.state).last().photo)
+        assertEquals("with LinkedIn connections", slice.note)
+    }
 }

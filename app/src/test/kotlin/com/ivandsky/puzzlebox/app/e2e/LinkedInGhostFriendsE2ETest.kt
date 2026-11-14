@@ -19,7 +19,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.visibility.OwnTier
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
-import com.ivandsky.puzzlebox.domain.ranks.isConnectionUid
+import com.ivandsky.puzzlebox.domain.ranks.connectionUid
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.testing.repository.FakeFinalBoardStore
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
@@ -126,7 +126,7 @@ class LinkedInGhostFriendsE2ETest {
             assertFriendsBoards()
 
             val kept = days.map { day -> runBlocking { finalBoards.get(LeaderboardRef(ZIP, day)) }?.entries.orEmpty().map { it.uid } }
-            assertEquals(emptyList<String>(), (graph.leaderboard.submitted.map { it.uid } + kept.flatten()).filter(::isConnectionUid))
+            assertEquals(emptyList<String>(), (graph.leaderboard.submitted.map { it.uid } + kept.flatten()).filter { it.startsWith(connectionUid("")) })
             // The control: the viewer's result did go out and the boards just counted were kept, so both had the chance.
             assertEquals(listOf(ME.uid), graph.leaderboard.submitted.map { it.uid })
             assertEquals(days.map { listOf(SOL, FAY, ME.uid) }, kept)
