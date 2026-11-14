@@ -190,6 +190,27 @@ class StreakLedgerTest {
     }
 
     @Test
+    fun `a solve after today spends no freeze on today and leaves every number but best alone`() {
+        val today = day(10)
+        val streak = streakOn(today)
+
+        val withFuture = streak(listOf(today.minusDays(1), today.plusDays(1)))
+        val without = streak(listOf(today.minusDays(1)))
+
+        assertEquals(1, withFuture.current)
+        assertEquals(2, checkNotNull(withFuture.freezes).held)
+        assertEquals(emptySet<LocalDate>(), withFuture.freezes.frozenDays)
+        assertEquals(without.freezes, withFuture.freezes)
+    }
+
+    @Test
+    fun `only solves after today leave an empty ledger but for best`() {
+        val ledger = streakOn(day(10))(listOf(day(11), day(12)))
+        val empty = StreakFreezes(held = 0, frozenDays = emptySet(), daysToNext = 7, lastSolve = null)
+        assertEquals(StreakLedger(current = 0, best = 2, freezes = empty), ledger)
+    }
+
+    @Test
     fun `yesterday missed spends at the puzzle-day rollover, today open never does`() {
         val solved = listOf(day(1), day(2))
 
@@ -224,7 +245,7 @@ class StreakLedgerTest {
         val random = Random(20261112)
         repeat(GENERATED_SETS) {
             val solved = generatedDays(random, today)
-            assertEquals("solved $solved", dayByDayWalk(solved.toSet(), today), streak.replay(solved))
+            assertEquals("solved $solved", expectedReplay(solved, today), streak.replay(solved))
         }
     }
 
@@ -264,10 +285,19 @@ class StreakLedgerTest {
         assertEquals(0, ledger.freezes?.held)
     }
 
-    /** Up to 400 days ending today, solved at a density from nearly never to nearly always. */
+    /** Up to 400 days ending today, solved at a density from nearly never to nearly always; a few land after today. */
     private fun generatedDays(random: Random, today: LocalDate): List<LocalDate> {
         val density = DENSITIES.random(random)
-        return (0L until random.nextLong(401)).filter { random.nextDouble() < density }.map(today::minusDays)
+        val past = (0L until random.nextLong(401)).filter { random.nextDouble() < density }.map(today::minusDays)
+        val future = (1L..3L).filter { random.nextDouble() < FUTURE_DENSITY }.map(today::plusDays)
+        return past + future
+    }
+
+    /** Every number but best reads only the days up to today; best walks them all, like the strict best. */
+    private fun expectedReplay(solved: List<LocalDate>, today: LocalDate): ComputeStreak.Replay {
+        val bounded = dayByDayWalk(solved.filter { it <= today }.toSet(), today)
+        val best = dayByDayWalk(solved.toSet(), maxOf(today, solved.maxOrNull() ?: today)).ledger.best
+        return bounded.copy(ledger = bounded.ledger.copy(best = best))
     }
 
     // The pre-freeze algorithm, copied as it was before the ledger: the flag-off oracle.
@@ -349,5 +379,6 @@ class StreakLedgerTest {
     private companion object {
         const val GENERATED_SETS = 500
         val DENSITIES = listOf(0.05, 0.5, 0.8, 0.9, 0.97, 0.995)
+        const val FUTURE_DENSITY = 0.3
     }
 }
