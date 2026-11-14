@@ -6,6 +6,8 @@ import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.FinalBoardStore
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -29,6 +31,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -196,6 +199,43 @@ class ObserveRankWindowTest {
         assertEquals(355, (window.board(board) as BoardLoad.Loaded).page.count)
         assertEquals(2, leaderboard.countCalls)
         assertEquals(5, listeners)
+    }
+
+    @Test
+    fun `an open board whose listener ended degraded is listened to again on the next refresh`() = runTest {
+        val board = LeaderboardRef("zip", today)
+        val attempts = mutableListOf<Int>()
+        val flaky = object : LeaderboardRepository by leaderboard {
+            override fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?> {
+                attempts += attempts.size
+                // The first listener dies past its retries: the repository's terminal null.
+                return if (attempts.size == 1) flowOf(null) else flowOf(LeaderboardSnapshot(board, entries(board, 2)))
+            }
+        }
+        val refresh = MutableSharedFlow<Unit>()
+        val window = collect(
+            ObserveRankWindow(identity, flaky, store, registry, calendar, clock)(RankWindow.Day(today), listOf(zip), refresh),
+        )
+        assertEquals(BoardLoad.Unavailable(board, RankOrder.TimeThenHints), window.board(board))
+
+        refresh.emit(Unit)
+        runCurrent()
+
+        assertEquals(BoardLoad.Loaded(board, RankOrder.TimeThenHints, BoardPage(entries(board, 2), 2), final = false), window.board(board))
+        assertEquals(2, attempts.size)
+    }
+
+    @Test
+    fun `a healthy open board keeps its one listener across refreshes`() = runTest {
+        val board = LeaderboardRef("zip", today)
+        leaderboard.setEntries(board, entries(board, 2))
+        val refresh = MutableSharedFlow<Unit>()
+        collect(observe(RankWindow.Day(today), listOf(zip), refresh))
+
+        repeat(3) { refresh.emit(Unit) }
+        runCurrent()
+
+        assertEquals(listOf(board), leaderboard.observedBoards)
     }
 
     @Test

@@ -10,9 +10,13 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -42,9 +46,13 @@ class FirestoreLeaderboardRepositoryTest {
         val observed = mutableListOf<String>()
         val observedOrders = mutableListOf<RankOrder>()
 
-        override fun observeEntries(boardId: String, order: RankOrder): Flow<List<Map<String, Any?>>> {
+        /** When set, the listener plays this script instead of the stored docs; null = nothing known yet (empty cache). */
+        var script: Flow<List<Map<String, Any?>>?>? = null
+
+        override fun observeEntries(boardId: String, order: RankOrder): Flow<List<Map<String, Any?>>?> {
             observed += boardId
             observedOrders += order
+            script?.let { return it }
             // Errors surface IN the flow, like the real snapshot listener — never eagerly.
             return flow {
                 if (observeFailuresLeft > 0) {
@@ -189,6 +197,34 @@ class FirestoreLeaderboardRepositoryTest {
         val snapshot = repository.observe(board, RankOrder.TimeThenHints).first()!!
 
         assertEquals(listOf("u1", "u5"), snapshot.entries.map { it.uid })
+    }
+
+    @Test
+    fun `an empty cache snapshot is null, not an empty board, and the server answer follows on the same flow`() = runTest {
+        val store = FakeStore()
+        val answers = MutableSharedFlow<List<Map<String, Any?>>?>()
+        store.script = answers
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+        val seen = mutableListOf<LeaderboardSnapshot?>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            repository.observe(board, RankOrder.TimeThenHints).toList(seen)
+        }
+
+        answers.emit(null)
+        assertEquals(listOf<LeaderboardSnapshot?>(null), seen)
+
+        answers.emit(emptyList())
+        assertEquals(listOf(null, LeaderboardSnapshot(board, emptyList())), seen)
+    }
+
+    @Test
+    fun `only a snapshot from the cache with no docs reads as nothing known`() {
+        val docs = listOf(doc(entry()))
+
+        assertNull(boardDocs(fromCache = true, docs = emptyList()))
+        assertEquals(emptyList<Map<String, Any?>>(), boardDocs(fromCache = false, docs = emptyList()))
+        assertEquals(docs, boardDocs(fromCache = true, docs = docs))
+        assertEquals(docs, boardDocs(fromCache = false, docs = docs))
     }
 
     @Test
