@@ -17,11 +17,6 @@ class ShippedReleaseFlagsTest {
     }
 
     @Test
-    fun `shipped flags include FullReplay since its flip`() {
-        assertTrue(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.FullReplay))
-    }
-
-    @Test
     fun `shipped flags exclude CloudSync until its flip ticket`() {
         assertFalse(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.CloudSync))
     }

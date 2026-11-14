@@ -16,8 +16,6 @@ import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import com.ivandsky.puzzlebox.common.di.commonModule
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.MatchRepository
@@ -78,7 +76,6 @@ import com.ivandsky.puzzlebox.play.api.playNavKeys
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -229,12 +226,10 @@ class CustomResultViewModelTest {
     /** [LoadSolveReplay] over this test's stores; the fixture game opens a real timeline. */
     private fun loadReplay(
         games: GameRegistry,
-        flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
         dispatchers: DispatcherProvider = InlineDispatcherProvider,
     ): LoadSolveReplay {
         val loadShared = LoadSharedPuzzle(games, FakeSharedPuzzleRepository(), received, { Budget.Unlimited }, { Instant.EPOCH })
         return LoadSolveReplay(
-            flags = flags,
             games = games,
             daily = LoadDailyReplay(completions, FakeDailyRepository()),
             custom = LoadCustomReplay(completions, received, loadShared),
@@ -248,7 +243,6 @@ class CustomResultViewModelTest {
     /** A solve of the replay-capable fixture game's friend puzzle, observed as the screen would. */
     private fun observedReplay(
         timeMs: Long = FIXTURE_TIME_MS,
-        flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
         board: GameReplayBoard? = ReplayBoard,
         store: PlaySessionStore = checkNotNull(koin).koin.get(),
         dispatchers: DispatcherProvider = InlineDispatcherProvider,
@@ -259,7 +253,7 @@ class CustomResultViewModelTest {
         val viewModel = CustomResultViewModel(
             CustomResultKey(fixture.value, code.value, timeMs, 0), completions, received, fixtureGames,
             GamePlayRegistry(listOf(fixtureUi)),
-            koin.get(), store, koin.get(), loadReplay(fixtureGames, flags, dispatchers),
+            koin.get(), store, koin.get(), loadReplay(fixtureGames, dispatchers),
         )
         screen.launch { viewModel.state.collect {} }
         main.testDispatcher.scheduler.runCurrent()
@@ -270,15 +264,16 @@ class CustomResultViewModelTest {
         runBlocking { received.upsert(puzzle().copy(gameId = fixture, variant = TestGames.variant(fixture))) }
     }
 
-    /** A real store over the fixture game: its play's record write seals [replay], as a recording play's would. */
+    /** A real store over the fixture game: its play's record write seals [replay] in place of the recorded log. */
     private fun liveStore(): PlaySessionStore {
         val dispatcher = main.testDispatcher
         val lane = WriteLane()
         val saved = FakeSavedPlayRepository()
         val calendar = FakeGameCalendar(LocalDate.parse("2026-11-04"))
+        // The write gate is under test, not the recorder: the wrapper seals the fixture's own replay in place of the recorded one.
         val sealing = object : CompletionRepository by completions {
             override suspend fun onCompleted(record: CompletionRecord, replay: SolveReplay?) =
-                completions.onCompleted(record, replay ?: this@CustomResultViewModelTest.replay)
+                completions.onCompleted(record, this@CustomResultViewModelTest.replay)
         }
         return PlaySessionStore(
             games = fixtureGames,
@@ -294,8 +289,6 @@ class CustomResultViewModelTest {
             finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH },
             calendar = calendar,
             dispatchers = testDispatchers(dispatcher),
-            // The write gate is under test, not the recorder: the sealing wrapper above supplies the replay.
-            flags = FakeReleaseFlags(),
         )
     }
 
@@ -430,13 +423,6 @@ class CustomResultViewModelTest {
         solvedFixture(timeMs = FIXTURE_TIME_MS + 1)
 
         assertEquals(ReplaySectionState.Hidden, observedReplay().state.value.replay)
-    }
-
-    @Test
-    fun `flag off keeps the replay section hidden`() {
-        solvedFixture()
-
-        assertEquals(ReplaySectionState.Hidden, observedReplay(flags = FakeReleaseFlags()).state.value.replay)
     }
 
     @Test

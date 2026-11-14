@@ -92,7 +92,7 @@ class MoveLog private constructor(private var journal: Journal?) {
     }
 
     companion object {
-        /** The void state from the start: steps only, snapshot and seal are always null. Flag off, tutorials. */
+        /** The void state from the start: steps only, snapshot and seal are always null. A game without a replay member, tutorials. */
         fun off(): MoveLog = MoveLog(journal = null)
 
         /** Records from move zero. */

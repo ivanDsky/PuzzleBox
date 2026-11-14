@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.FinishLeg
@@ -27,7 +25,6 @@ import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -47,7 +44,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -75,10 +71,7 @@ class WinSealsReplayTest {
     private val calendar = FakeGameCalendar(day)
     private val lane = WriteLane()
 
-    private val on = FakeReleaseFlags(ReleaseFlag.FullReplay)
-    private val off = FakeReleaseFlags()
-
-    private fun store(flags: ReleaseFlags, completions: FakeCompletionRepository) = PlaySessionStore(
+    private fun store(completions: FakeCompletionRepository) = PlaySessionStore(
         games = withReplay,
         ui = GamePlayRegistry(listOf(capture)),
         opening = SlotOpening(
@@ -92,7 +85,6 @@ class WinSealsReplayTest {
         finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH },
         calendar = calendar,
         dispatchers = testDispatchers(dispatcher),
-        flags = flags,
     )
 
     /** One placement the log records, then the game publishes the session. */
@@ -119,10 +111,10 @@ class WinSealsReplayTest {
     }
 
     @Test
-    fun `flag on stores a replay that ends solved at the record's time`() {
+    fun `stores a replay that ends solved at the record's time`() {
         val completions = FakeCompletionRepository()
 
-        store(on, completions).open(key)!!.solve()
+        store(completions).open(key)!!.solve()
 
         val replay = checkNotNull(completions.latest())
         val timeline = replay.timeline()
@@ -133,40 +125,18 @@ class WinSealsReplayTest {
     }
 
     @Test
-    fun `flag on leaves the record as the fake game reported it`() {
+    fun `leaves the record as the fake game reported it`() {
         val completions = FakeCompletionRepository()
 
-        store(on, completions).open(key)!!.solve()
+        store(completions).open(key)!!.solve()
 
         assertEquals(listOf(FakeController.record(ref)), completions.records())
-    }
-
-    @Test
-    fun `flag off stores the record alone`() {
-        val completions = FakeCompletionRepository()
-
-        store(off, completions).open(key)!!.solve()
-
-        assertNull(completions.latest())
-        assertEquals(listOf(FakeController.record(ref)), completions.records())
-    }
-
-    @Test
-    fun `the record's time, hints and stats are the same with the flag on and off`() {
-        val withFlag = FakeCompletionRepository()
-        val without = FakeCompletionRepository()
-
-        store(on, withFlag).open(key)!!.solve()
-        store(off, without).open(key)!!.solve()
-
-        assertEquals(without.records(), withFlag.records())
-        assertNotNull(withFlag.latest())
     }
 
     @Test
     fun `a failed write retried stores the replay sealed at the win`() {
         val completions = FakeCompletionRepository().apply { fail = true }
-        val play = store(on, completions).open(key)!!
+        val play = store(completions).open(key)!!
         play.solve()
         assertTrue(play.record.value.writeFailed)
         assertNull(completions.latest())
@@ -187,7 +157,7 @@ class WinSealsReplayTest {
         runBlocking { saved.save(slot, SessionBlob.encode(game, FakeController.encode(moves = 1, complete = false, ref = ref)), elapsedMs = 0L) }
         val completions = FakeCompletionRepository()
 
-        val play = store(on, completions).open(key)!!
+        val play = store(completions).open(key)!!
         (play.controller as FakeController).win()
 
         assertNull(completions.latest())
@@ -197,7 +167,7 @@ class WinSealsReplayTest {
     @Test
     fun `play again after a win records its own replay`() {
         val completions = FakeCompletionRepository()
-        val play = store(on, completions).open(key)!!
+        val play = store(completions).open(key)!!
         play.solve()
         val first = checkNotNull(completions.latest())
 
@@ -222,7 +192,7 @@ class WinSealsReplayTest {
         session = ReplayFixtures.initial(total = 2).copy(placed = 1)
         val completions = FakeCompletionRepository()
 
-        val play = store(on, completions).open(MatchLegKey(LEG_CODE, 0, game.value))!!
+        val play = store(completions).open(MatchLegKey(LEG_CODE, 0, game.value))!!
         play.place(10_000)
         (play.controller as FakeController).win()
 

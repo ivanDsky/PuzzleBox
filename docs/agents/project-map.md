@@ -368,7 +368,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `PlaySlot`, `open(GameKey)`/`peek(slot)`/`retain(keys)`/`flush()`, `playable` games, pins a
   null-day key to today on first open; `SolvedDays` holds which days are solved, `OpenDecision`
   what opening a key shows), `ActivePlay` (controller, board/record flows, record
-  write, A10 verdict, slot saves with elapsed ms), `SlotOpening` (saved row → today's fetch → past-day replay build
+  write, A10 verdict, slot saves with elapsed ms), `SlotOpening` (saved row → today's fetch → past-day rebuilt board
   → Unavailable; undecodable row deleted), `SlotWriter` (per-slot 300 ms trailing-throttle
   saves, `discard` on solve), `WriteLane` (one Mutex-ordered lane for every saved-play I/O),
   `LibraryRoute` + `LibraryViewModel` (the Games screen: `GamesTabs` pills over `GamesTab`
@@ -391,7 +391,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `HistoryViewModel` (`di/HistoryModule`), `HistoryPaging` (`historyPager`,
   `HistoryPagingSource`), `HistoryLayout` + `historyLayoutFor`; the All timeline only (A28:
   streak and stats, week/month calendar, every game's rows; any history key opens it); a
-  history row pushes that day's `GameKey` on the current stack, which resumes or replays the slot.
+  history row pushes that day's `GameKey` on the current stack, which resumes the slot or opens its rebuilt board.
 - `feature/profile/impl/` (`:feature:profile:impl`) — packages kept from the app:
   `app/screens/` (`ProfileRoute`, `ProfileScreen`, `ProfileViewModel(identityService,
   idTokenProvider, observeGameStats)`: the account from `IdentityService.current` and the
@@ -546,8 +546,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - **Solve replay** (ADR-0030) — `GamePlugin.replay` (`GameReplay`, `core:game`) and `GamePlayUi.replayBoard`
   (`GameReplayBoard`, `core:game-ui`) are the two optional per-game seams. `LoadSolveReplay(SolveReplayRef)`
   (`core:domain`) is the one read entry; `ReplayKey` and `ReplayCompareKey` (`feature:play:api`) are the one
-  replay and the one compare destination, ids only. `ReleaseFlag.FullReplay` gates recording (`PlaySessionStore`)
-  and reading (`LoadSolveReplay`).
+  replay and the one compare destination, ids only. Recording (`PlaySessionStore`) and reading (`LoadSolveReplay`)
+  have no flag; a game records when its plugin ships a `replay` member.
 - **Hint seams** (ADR-0025) — `HintModeSource` (`core:game-ui`) hands each controller
   `HintMode.Legacy` or
   `Stepwise`: Queens, Tango and Mini Sudoku pass `Stepwise` at registration, Classic Sudoku keeps `Legacy`, and

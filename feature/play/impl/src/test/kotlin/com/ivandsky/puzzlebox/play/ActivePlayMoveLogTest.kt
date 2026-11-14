@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchLeg
@@ -32,7 +30,6 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -58,7 +55,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Which move log a play gets (D1, D6): the flag decides whether a play records at all, the
+ * Which move log a play gets (D1, D6): a game with a replay member records, the
  * slot's origin decides whether its log starts fresh or continues a saved one. A log is read
  * through its snapshot: null for a void log, bytes for a recording one.
  */
@@ -84,7 +81,7 @@ class ActivePlayMoveLogTest {
     private val calendar = FakeGameCalendar(day)
     private val lane = WriteLane()
 
-    private fun store(flags: ReleaseFlags, games: GameRegistry = withReplay) = PlaySessionStore(
+    private fun store(games: GameRegistry = withReplay) = PlaySessionStore(
         games = games,
         ui = registry,
         opening = SlotOpening(
@@ -98,11 +95,7 @@ class ActivePlayMoveLogTest {
         finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH },
         calendar = calendar,
         dispatchers = testDispatchers(dispatcher),
-        flags = flags,
     )
-
-    private val on = FakeReleaseFlags(ReleaseFlag.FullReplay)
-    private val off = FakeReleaseFlags()
 
     /** The log the board's controller was created with, after one setting move. */
     private fun snapshotOf(play: ActivePlay): ByteArray? {
@@ -112,50 +105,43 @@ class ActivePlayMoveLogTest {
     }
 
     @Test
-    fun `flag off records nothing`() {
-        val play = store(off).open(key)!!
-
-        assertNull(snapshotOf(play))
-    }
-
-    @Test
-    fun `flag on starts a fresh log on a fresh board`() {
-        val play = store(on).open(key)!!
+    fun `starts a fresh log on a fresh board`() {
+        val play = store().open(key)!!
 
         assertNotNull(snapshotOf(play))
     }
 
     @Test
-    fun `flag on starts a fresh log on a past day's build`() {
+    fun `starts a fresh log on a past day's build`() {
         daily.setCached(game, yesterday, TestGames.puzzle(game))
 
-        val play = store(on).open(GameKey(game.value, yesterday.toString()))!!
+        val play = store().open(GameKey(game.value, yesterday.toString()))!!
 
         assertNotNull(snapshotOf(play))
     }
 
     @Test
-    fun `flag on resumes a saved play with a void log`() {
+    fun `resumes a saved play with a void log`() {
         runBlocking {
             saved.save(PlaySlot.Daily(game, day), SessionBlob.encode(game, FakeController.encode(2, false, TestGames.Ref(game, PuzzleKey.Daily(day, 7)))), elapsedMs = 0L)
         }
 
-        val play = store(on).open(key)!!
+        val play = store().open(key)!!
 
         assertEquals(2, (play.controller as FakeController).moves)
         assertNull(snapshotOf(play))
     }
 
     @Test
-    fun `flag on gives a game without a replay member the off log`() {
-        val play = store(on, games = fakes.games).open(key)!!
+    fun `a game without a replay member gets the off log`() {
+        val play = store(games = fakes.games).open(key)!!
 
         assertNull(snapshotOf(play))
     }
 
     @Test
     fun `play again starts a new fresh log over the same puzzle`() {
-        val play = store(on).open(key)!!
+        val play = store().open(key)!!
         val first = ui.logOf(play.controller)
         (play.controller as FakeController).win()
 
@@ -171,8 +157,8 @@ class ActivePlayMoveLogTest {
     }
 
     @Test
-    fun `play again with the flag off keeps the controller and its off log`() {
-        val play = store(off).open(key)!!
+    fun `play again of a game without a replay member keeps the controller and its off log`() {
+        val play = store(games = fakes.games).open(key)!!
         val before = play.controller
         (before as FakeController).win()
 
@@ -183,7 +169,7 @@ class ActivePlayMoveLogTest {
     }
 
     @Test
-    fun `flag on starts a fresh log on a duel leg's build`() {
+    fun `starts a fresh log on a duel leg's build`() {
         val code = checkNotNull(ShareCode.parse("M8T3VQ"))
         daily.setCached(game, yesterday, TestGames.puzzle(game))
         runBlocking {
@@ -200,14 +186,14 @@ class ActivePlayMoveLogTest {
             )
         }
 
-        val play = store(on).open(MatchLegKey(code.value, 0, game.value))!!
+        val play = store().open(MatchLegKey(code.value, 0, game.value))!!
 
         assertNotNull(snapshotOf(play))
     }
 
     @Test
     fun `play again whose puzzle the game now rejects ends unavailable`() {
-        val play = store(on).open(key)!!
+        val play = store().open(key)!!
         (play.controller as FakeController).win()
         fakes[game].rejectWith = "untrusted"
 
@@ -223,7 +209,7 @@ class ActivePlayMoveLogTest {
             saved.save(PlaySlot.Daily(game, day), SessionBlob.encode(game, FakeController.encode(2, true, ref, elapsedMs = BANKED_MS)), elapsedMs = BANKED_MS)
         }
         ui.settingOnRestore = SETTING
-        val play = store(on).open(key)!!
+        val play = store().open(key)!!
 
         play.playAgain()
         val log = ui.logOf(play.controller)

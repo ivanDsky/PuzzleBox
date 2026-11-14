@@ -80,7 +80,7 @@ class ShellSessionLifecycleTest {
                     single<SavedPlayRepository> { saved }
                     single<GameCalendar> { FakeGameCalendar(ZipDefinition.cadence.today()) }
                     single<IdentityService> { FakeIdentityService() }
-                    // The saved row is compared as the bare session blob; replay-recording saves have their own tests.
+                    // Every other flag stays off: this path is about the board, not the gated surfaces.
                     single<com.ivandsky.puzzlebox.common.flags.ReleaseFlags> { com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
                     // Every tutorial seen: this path is about the board; the lessons have their own tests.
@@ -127,8 +127,10 @@ class ShellSessionLifecycleTest {
         }
     }
 
-    private fun latestBlob(play: ActivePlay): ByteArray =
-        SessionBlob.encode(ZipDefinition.id, (play.controller as ZipPlayController).persist()!!)
+    /** The session bytes the controller would save now, as the saved row's envelope carries them beside any replay log. */
+    private fun latestSession(play: ActivePlay): ByteArray = (play.controller as ZipPlayController).persist()!!
+
+    private fun savedSession(play: ActivePlay): ByteArray = SessionBlob.decode(saved.rows.getValue(play.slot))!!.session
 
     @Test
     fun `popping a mid-game zip saves its row`() {
@@ -140,7 +142,7 @@ class ShellSessionLifecycleTest {
 
         composeRule.runOnIdle {
             assertEquals(listOf(PlayKey), navigator.state.currentStack)
-            assertArrayEquals(latestBlob(play), saved.rows[play.slot])
+            assertArrayEquals(latestSession(play), savedSession(play))
         }
     }
 
@@ -156,6 +158,6 @@ class ShellSessionLifecycleTest {
         shadowOf(Looper.getMainLooper()).idle()
 
         // The stop folds the clock (ON_PAUSE) before flushing, so the row is the folded session.
-        assertArrayEquals(latestBlob(play), saved.rows[play.slot])
+        assertArrayEquals(latestSession(play), savedSession(play))
     }
 }
