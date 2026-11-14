@@ -1,6 +1,6 @@
 package com.ivandsky.puzzlebox.data.cloud
 
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Per-account sync bookkeeping that never enters a backup (ADR-0029 decision 7). A uid's values are invisible to
@@ -12,8 +12,8 @@ interface SyncStateStore {
 
     suspend fun setCursor(uid: String, kind: String, cursorMs: Long)
 
-    /** The uid that last signed in on this install, or null on a fresh one. Survives [forget]. */
-    val lastUid: StateFlow<String?>
+    /** The uid that last signed in on this install, or null on a fresh one; emits again on every change. Survives [forget]. */
+    val lastUid: Flow<String?>
 
     /** Called only by `SignedInOwnerScope`; the engine reads [lastUid] and never writes it. */
     suspend fun setLastUid(uid: String)

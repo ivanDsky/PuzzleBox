@@ -21,7 +21,7 @@ class SignedInOwnerScope(
 
     override val visible: StateFlow<String?> = combine(identity.current, store.lastUid) { signedIn, last ->
         signedIn?.uid ?: last
-    }.stateIn(scope, SharingStarted.Eagerly, identity.current.value?.uid ?: store.lastUid.value)
+    }.stateIn(scope, SharingStarted.Eagerly, identity.current.value?.uid)
 
     init {
         scope.launch {

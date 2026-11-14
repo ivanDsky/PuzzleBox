@@ -1,24 +1,18 @@
 package com.ivandsky.puzzlebox.data.cloud
 
 import com.ivandsky.puzzlebox.datastore.SyncStateDataSource
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 /**
- * The sync state over its own DataStore file. [lastUid] is a StateFlow, so it needs a value before anyone
- * collects: it is read once here, blocking for that single small file read, because a wrong null would make
- * a signed-out player look like a fresh install. This store is the only writer of the file, so later writes
- * update the flow directly, after they are persisted.
+ * The sync state over its own DataStore file. Nothing is read at construction: [lastUid] is the file's own flow, so
+ * the first read happens when someone collects it, and a write shows up in it only after it is persisted.
  */
 internal class DataStoreSyncStateStore(
     private val source: SyncStateDataSource,
 ) : SyncStateStore {
 
-    private val last = MutableStateFlow(runBlocking { source.lastUid.first() })
-
-    override val lastUid: StateFlow<String?> = last
+    override val lastUid: Flow<String?> = source.lastUid.distinctUntilChanged()
 
     override suspend fun cursor(uid: String, kind: String): Long? = source.cursor(uid, kind)
 
@@ -28,7 +22,6 @@ internal class DataStoreSyncStateStore(
 
     override suspend fun setLastUid(uid: String) {
         source.setLastUid(uid)
-        last.value = uid
     }
 
     override suspend fun restoreShown(uid: String): Boolean = source.restoreShown(uid)
