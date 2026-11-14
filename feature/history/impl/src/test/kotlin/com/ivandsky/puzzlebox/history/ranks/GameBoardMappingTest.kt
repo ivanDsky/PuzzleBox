@@ -5,6 +5,10 @@ import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
+import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
+import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayStatus
+import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.domain.ranks.BoardLoad
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.domain.ranks.amongFriends
@@ -13,7 +17,6 @@ import com.ivandsky.puzzlebox.gameui.board.BoardRowValue
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
-import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
 import com.ivandsky.puzzlebox.history.HistoryDayRow
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.TANGO
@@ -200,12 +203,20 @@ class GameBoardMappingTest {
         assertEquals(true, row()?.unofficial)
     }
 
-    private fun ghost(name: String, timeMs: Long?, hintFree: Boolean = true) = GhostRowModel("ref-$name", name, timeMs, hintFree)
+    private fun connection(name: String, timeMs: Long?, hintFree: Boolean = true) = LinkedInGhost("ref-$name", name, timeMs, hintFree, flawless = false)
 
-    /** The Friends card as the hub builds it (F18): the board among the viewer and [friends], then the ghosts over it. */
-    private fun friendsCard(input: BoardGhostInput, friends: Set<String>, board: RankWindowBoards): RanksBoardSlice {
-        val state = board.amongFriends(friends + "u1").toGameBoardState(TANGO, RankOrder.TimeThenHints, Window.Day, "u1")
-        return RanksBoardSlice("Tango", RankOrder.TimeThenHints, state).inFriends(input)
+    /** [board]'s one day among [players] as the hub holds it in Friends for [viewer], with [connections] saved for that day. */
+    private fun friendsDay(board: RankWindowBoards.Boards, players: Set<String>, viewer: String, connections: List<LinkedInGhost>): BoardGhosts.Counted {
+        val saved = LinkedInDayView(LinkedInDayStatus.Idle, LinkedInBoardView.Shown(connections))
+        val days = if (connections.isEmpty()) emptyMap() else mapOf(board.boards.single().board to saved)
+        return BoardGhosts.Counted(board.amongFriends(players), board.amongFriends(players, days, viewer), days)
+    }
+
+    /** The Friends card as the hub builds it (F18): the board among the viewer and [friends], with the day's [connections] counted on it. */
+    private fun friendsCard(connections: List<LinkedInGhost>, friends: Set<String>, board: RankWindowBoards.Boards): RanksBoardSlice {
+        val day = friendsDay(board, friends + "u1", "u1", connections)
+        val state = day.plain.toGameBoardState(TANGO, RankOrder.TimeThenHints, Window.Day, "u1")
+        return RanksBoardSlice("Tango", RankOrder.TimeThenHints, state).inFriends(day, TANGO, "u1")
     }
 
     private fun lines(slice: RanksBoardSlice) = (slice.state as DailyBoardState.Ranked).lines!!
@@ -228,7 +239,7 @@ class GameBoardMappingTest {
 
     @Test
     fun `case 5 the card puts the ghost among the rows by time and says so`() {
-        val slice = friendsCard(BoardGhostInput(listOf(ghost("Cal", 64_000, hintFree = false))), setOf("sam", "lia", "ria", "gwen"), caseFive)
+        val slice = friendsCard(listOf(connection("Cal", 64_000, hintFree = false)), setOf("sam", "lia", "ria", "gwen"), caseFive)
 
         assertEquals(
             listOf("Sam" to 1, "Lia" to 2, "Cal" to 3, "Ria" to 4, "U1" to 5, "Gwen" to 6),
@@ -239,7 +250,7 @@ class GameBoardMappingTest {
 
     @Test
     fun `a ghost takes a friend place, the friends numbered among themselves`() {
-        val slice = friendsCard(BoardGhostInput(listOf(ghost("Cal", 64_000, hintFree = false))), setOf("ria"), caseFive)
+        val slice = friendsCard(listOf(connection("Cal", 64_000, hintFree = false)), setOf("ria"), caseFive)
 
         assertEquals(listOf("Cal" to 1, "Ria" to 2, "U1" to 3), lines(slice).map(::named))
         assertEquals(listOf("ria" to 1, "u1" to 2), rows(slice.state).map { it.playerId to it.rank })
@@ -247,14 +258,14 @@ class GameBoardMappingTest {
 
     @Test
     fun `a hidden-time ghost has no place and goes last`() {
-        val slice = friendsCard(BoardGhostInput(listOf(ghost("Cal", null))), setOf("sam"), caseFive)
+        val slice = friendsCard(listOf(connection("Cal", null)), setOf("sam"), caseFive)
 
         assertEquals(listOf("Sam" to 1, "U1" to 2, "Cal" to null), lines(slice).map(::named))
     }
 
     @Test
     fun `no ghosts is the plain friends board, numbered among friends, with no note`() {
-        val slice = friendsCard(BoardGhostInput.None, setOf("sam", "gwen"), caseFive)
+        val slice = friendsCard(emptyList(), setOf("sam", "gwen"), caseFive)
 
         assertEquals(listOf("sam" to 1, "u1" to 2, "gwen" to 3), rows(slice.state).map { it.playerId to it.rank })
         assertNull((slice.state as DailyBoardState.Ranked).lines)
@@ -264,10 +275,10 @@ class GameBoardMappingTest {
 
     @Test
     fun `the unofficial row stays out of the ghost ranking and takes no place from anyone`() {
-        val base = lateBoard.toGameBoardState(ZIP, RankOrder.TimeThenHints, Window.Day, "nora")
+        val day = friendsDay(lateBoard, setOf("lia", "max", "you", "gwen", "omar"), "nora", listOf(connection("Cal", 255)))
+        val base = day.plain.toGameBoardState(ZIP, RankOrder.TimeThenHints, Window.Day, "nora")
         val row = lateBoard.unofficialRow(ZIP, RankOrder.TimeThenHints, nora, listOf(historyRow(255))) { false }
-        val slice = RanksBoardSlice("Zip", RankOrder.TimeThenHints, base.withUnofficialRow(row))
-            .inFriends(BoardGhostInput(listOf(ghost("Cal", 255))))
+        val slice = RanksBoardSlice("Zip", RankOrder.TimeThenHints, base.withUnofficialRow(row)).inFriends(day, ZIP, "nora")
 
         assertEquals(
             listOf("Lia" to 1, "Nora" to 2, "Cal" to 2, "Max" to 3, "You" to 4, "Gwen" to 5, "Omar" to 6),

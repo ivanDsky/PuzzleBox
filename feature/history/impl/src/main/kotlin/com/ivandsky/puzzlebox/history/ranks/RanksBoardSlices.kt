@@ -67,8 +67,8 @@ internal class RanksBoardSlices(
     }
 
     /**
-     * A game's Day board in Friends keeps its connections as ghost lines over the friends ([inFriends]); a Week or
-     * Month and Overall are ranked with the connections among their rows ([inFriendsCounted]).
+     * A game's Day board in Friends draws its connections as ghost lines among the friends ([inFriends]); a Week or
+     * Month and Overall draw them as rows ([inFriendsCounted]). Every place is the counted boards' own.
      */
     private fun slicesOf(
         kind: RanksSelection.Window,
@@ -89,7 +89,7 @@ internal class RanksBoardSlices(
                     val slice = game(board.id, kind, day, if (oneDay) inWindow?.plain else inWindow?.counted, me, rows)
                     when {
                         !friends -> slice
-                        oneDay -> slice.inFriends(inWindow?.ghostInput(board.id) ?: BoardGhostInput.None)
+                        oneDay -> slice.inFriends(inWindow, board.id, me?.uid)
                         else -> slice.inFriendsCounted(photos)
                     }
                 }
