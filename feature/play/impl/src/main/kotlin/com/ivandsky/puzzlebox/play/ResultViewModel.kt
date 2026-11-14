@@ -97,7 +97,8 @@ data class ResultUiState(
  * result (a play again) offers Done from the first frame. The read flows run only while the
  * screen is observed (plus a 5 s grace), so a day change is re-read.
  *
- * [heroInsights], [heroRank] and [playAgain] feed the hero page.
+ * [heroInsights], [heroRank] and [playAgain] feed the hero page. A day's result shows the same side card whether
+ * it is today's or a play again: the streak, the time spread and the rank.
  *
  * The replay is read from the stored completion, never from the live play: it shows once the solve is stored (the live
  * play's [ActivePlay.Record.stored], or after process death a stored row with this solve's time and hints), and never
@@ -188,18 +189,21 @@ class ResultViewModel internal constructor(
 
     /**
      * The hero page's streak, week and time spread; null until read, and for a practice puzzle.
-     * Today's solve counts, a play again's does not.
+     * Today's solve counts toward the streak and week; a play again's does not, so a play again shows the
+     * player's current streak and week as the history stands, with no freeze moment.
      */
     val heroInsights: StateFlow<ResultInsights?> =
         insights(slot.gameId, slot.day, BestScore(key.timeMs, key.hintsUsed), counted = today)
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     /**
-     * The hero page's rank on today's board; hidden for a play again, which has no board to read. With [linkedIn] on, the
-     * day's connections already on the phone fold into it; the day is only observed here, never fetched.
+     * The hero page's rank on the slot's day's board: today's, or for a play again the replayed past day's. A
+     * play again's rank is the player's counting solve of that day, not this play again's time, and stays
+     * [ResultRank.Hidden] while the player is not on that day's board. With [linkedIn] on, the day's connections
+     * already on the phone fold into it; the day is only observed here, never fetched.
      */
     val heroRank: StateFlow<ResultRank> =
-        (if (today) rank(slot.gameId, slot.day, connections = linkedIn?.invoke(slot.gameId, slot.day)) else flowOf(ResultRank.Hidden))
+        rank(slot.gameId, slot.day, connections = linkedIn?.invoke(slot.gameId, slot.day))
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ResultRank.Hidden)
 
     /** The rank row's Google button: [activityContext] hosts Google's account picker, and is not kept. */

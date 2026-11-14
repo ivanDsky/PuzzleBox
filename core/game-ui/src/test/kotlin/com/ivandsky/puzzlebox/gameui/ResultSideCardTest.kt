@@ -257,12 +257,14 @@ class ResultSideCardTest {
     }
 
     @Test
-    fun `a play-again shows the spread but no streak and no rank row`() {
-        setContent(heroSampleModel(verdict = RecordVerdict.PlayAgain, playAgain = true))
+    fun `a play-again draws the same three blocks, the rank labelled as the day's counting solve`() {
+        val model = heroSampleModel(verdict = RecordVerdict.PlayAgain, playAgain = true)
+        setContent(model)
 
         composeRule.onNodeWithTag("result.side.chart").assertIsDisplayed()
-        composeRule.onNodeWithTag("result.side.streak").assertDoesNotExist()
-        composeRule.onNodeWithTag("result.side.rank").assertDoesNotExist()
+        composeRule.onNodeWithTag("result.side.streak").assertIsDisplayed()
+        composeRule.onNodeWithTag("result.side.rank").assertIsDisplayed()
+        composeRule.onAllNodesWithText("of players · your solve that day").assertCountEquals(1)
     }
 
     @Test

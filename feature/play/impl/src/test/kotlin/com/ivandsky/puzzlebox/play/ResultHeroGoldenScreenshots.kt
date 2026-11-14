@@ -204,7 +204,7 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
         )
         val PLAY_AGAIN = facts(
             verdict = RecordVerdict.PlayAgain, timeMs = 131_000L, hints = 2, previous = BestScore(118_000L, 0),
-            playAgain = true, rank = ResultRank.Hidden, primary = ResultPrimaryAction.Done,
+            playAgain = true, primary = ResultPrimaryAction.Done,
         )
 
         /** The weekday scope opens: three earlier Saturdays among twelve solves. */

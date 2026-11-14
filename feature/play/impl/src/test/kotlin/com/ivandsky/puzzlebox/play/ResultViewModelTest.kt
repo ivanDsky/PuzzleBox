@@ -343,6 +343,19 @@ class ResultViewModelTest {
     }
 
     @Test
+    fun `a play again's streak is the current one, and its own day never fills today`() {
+        val yesterday = day.minusDays(1)
+        completions.setRecords(listOf(record(70_000L, 0, date = yesterday), record(80_000L, 0, date = day.minusDays(2), game = beta)))
+
+        val insights = vm(key.copy(day = yesterday.toString())).heroObserved().heroInsights.value!!
+
+        assertEquals(2, insights.streak)
+        assertFalse(insights.week.last().solved)
+        assertTrue(insights.week.last().today)
+        assertNull(insights.moment)
+    }
+
+    @Test
     fun `a practice puzzle has no insights`() {
         daily.setHistory(alpha, listOf(DailyEntry(alpha, day, null, "alpha/v1", 0L)))
         assertNull(vm().heroObserved().heroInsights.value)
@@ -360,19 +373,17 @@ class ResultViewModelTest {
         LinkedInGhost("ref-$name", name, seconds?.let { it * 1_000L }, hintFree = true, flawless = false)
 
     /** The slot day's connections board as read from LinkedIn and held on the phone. */
-    private fun cachedConnections(vararg ghosts: LinkedInGhost) = linkedInDays.emit(
-        alpha,
-        day,
-        LinkedInDayData(
-            link = LinkState.Connected("me"),
-            delta = 0,
-            boardInWindow = true,
-            inFlight = false,
-            lastSync = null,
-            own = LinkedInOwnState.Unknown,
-            ghosts = ghosts.toList(),
-            boardFetchedAtMs = 1L,
-        ),
+    private fun cachedConnections(vararg ghosts: LinkedInGhost) = linkedInDays.emit(alpha, day, connections(*ghosts))
+
+    private fun connections(vararg ghosts: LinkedInGhost) = LinkedInDayData(
+        link = LinkState.Connected("me"),
+        delta = 0,
+        boardInWindow = true,
+        inFlight = false,
+        lastSync = null,
+        own = LinkedInOwnState.Unknown,
+        ghosts = ghosts.toList(),
+        boardFetchedAtMs = 1L,
     )
 
     private fun playersAt(vararg seconds: Pair<String, Int>) =
@@ -441,11 +452,17 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `a play again shows no rank even with cached connections`() {
-        cachedConnections(ghost("Ada", 20))
-        val playAgain = key.copy(day = day.minusDays(1).toString())
+    fun `a play again's rank is read from that day's board, with its cached connections`() {
+        val yesterday = day.minusDays(1)
+        leaderboard.setEntries(LeaderboardRef(alpha.value, yesterday), listOf(entry("a", 30), entry(ME.uid, 40)))
+        linkedInDays.emit(alpha, yesterday, connections(ghost("Ada", 20)))
 
-        assertEquals(ResultRank.Hidden, vm(playAgain, identity = ME, linkedIn = true).heroObserved().heroRank.value)
+        val rank = vm(key.copy(day = yesterday.toString()), identity = ME, linkedIn = true).heroObserved().heroRank.value
+
+        assertEquals(
+            ResultRank.Ranked(position = 2, count = 2, topPercent = 100, withConnections = ResultRank.WithConnections(position = 3, count = 3)),
+            rank,
+        )
     }
 
     @Test
@@ -454,11 +471,28 @@ class ResultViewModelTest {
     }
 
     @Test
-    fun `a play again reads no board and shows no rank`() {
-        val playAgain = key.copy(day = day.minusDays(1).toString())
-        val vm = vm(playAgain, identity = ME).heroObserved()
-        assertEquals(ResultRank.Hidden, vm.heroRank.value)
-        assertTrue(leaderboard.observedBoards.isEmpty())
+    fun `a play again reads that day's board, not today's`() {
+        val yesterday = day.minusDays(1)
+        leaderboard.setEntries(LeaderboardRef(alpha.value, yesterday), listOf(entry(ME.uid, 40), entry("a", 50)))
+        leaderboard.setEntries(LeaderboardRef(alpha.value, day), listOf(entry("a", 30), entry(ME.uid, 60)))
+
+        val vm = vm(key.copy(day = yesterday.toString()), identity = ME).heroObserved()
+
+        assertEquals(ResultRank.Ranked(position = 1, count = 2, topPercent = 50), vm.heroRank.value)
+        assertEquals(listOf(LeaderboardRef(alpha.value, yesterday)), leaderboard.observedBoards.distinct())
+    }
+
+    @Test
+    fun `a play again on a day the player is not on the board shows no rank`() {
+        val yesterday = day.minusDays(1)
+        leaderboard.setEntries(LeaderboardRef(alpha.value, yesterday), listOf(entry("a", 30)))
+
+        assertEquals(ResultRank.Hidden, vm(key.copy(day = yesterday.toString()), identity = ME).heroObserved().heroRank.value)
+    }
+
+    @Test
+    fun `a signed-out play again offers sign in`() {
+        assertEquals(ResultRank.SignedOut, vm(key.copy(day = day.minusDays(1).toString())).heroObserved().heroRank.value)
     }
 
     private fun entry(uid: String, seconds: Int) =
