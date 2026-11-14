@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.play.friend
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -172,6 +174,7 @@ class CustomResultViewModelTest {
                     factory { LoadPastDay(get(), get()) }
                     factory { loadSolveReplay(get(), get(), get()) }
                 },
+                module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 hubOffFriendDay,
             )

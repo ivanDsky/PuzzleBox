@@ -1,9 +1,6 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
 import android.content.Context
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.cloud.CloudSpace
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -32,8 +29,7 @@ val firebaseBackendModule = module {
         FirebaseIdentityService(
             gateway = get(),
             scope = get(),
-            // CloudSync on: sign-out marks the Firestore cache for clearing at the next start; off: it does not.
-            cacheClearMark = if (get<ReleaseFlags>().isEnabled(ReleaseFlag.CloudSync)) get<CacheClearMark>() else null,
+            cacheClearMark = get(),
         )
     }
     single<LeaderboardStore> { FirestoreLeaderboardStore() }

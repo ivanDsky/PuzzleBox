@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
@@ -54,7 +55,7 @@ class ObserveCustomRecordsTest {
     @Test
     fun `room observeCustom emits only that puzzle's rows`() = runTest {
         val registry = TestGames.registry(listOf(queens, tango))
-        val repository = RoomCompletionRepository(db, db.completionDao(), db.completionReplayDao(), registry, clock = { nowMs })
+        val repository = RoomCompletionRepository(db, db.completionDao(), db.completionReplayDao(), registry, FakeOwnerScope(), clock = { nowMs })
         val rows = assertContract(repository)
         val record = rows.last()
         assertTrue(record.isRecord)

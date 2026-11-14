@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import android.content.Context
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
@@ -113,6 +115,7 @@ class GamePageBoardTest {
                     factory { SyncLinkedInDay(get<FakeLinkedInDays>(), 500) }
                     factory { ObserveLinkedInDayView(get(), get(), get(), get<FakeLinkedInDays>()) }
                 },
+                module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 hubOffFriendDay,
             )

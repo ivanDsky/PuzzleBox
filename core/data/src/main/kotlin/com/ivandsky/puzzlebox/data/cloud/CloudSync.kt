@@ -4,8 +4,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * The engine API features call (ADR-0029 decisions 3 and 9). Feature Koin modules resolve `getOrNull<CloudSync>()`;
- * null (flag off) means today's UI exactly.
+ * The engine API features call (ADR-0029 decisions 3 and 9). Feature Koin modules resolve it with `get()`.
  */
 interface CloudSync {
     val state: StateFlow<CloudSyncState>

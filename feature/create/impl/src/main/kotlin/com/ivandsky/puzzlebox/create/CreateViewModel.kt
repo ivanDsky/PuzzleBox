@@ -77,7 +77,7 @@ class CreateViewModel(
     private val sharedText: SharedTextStore,
     private val clock: () -> Instant,
     private val nanoTime: () -> Long = System::nanoTime,
-    cloudSync: CloudSync? = null,
+    cloudSync: CloudSync,
 ) : ViewModel() {
 
     private val editorGames: List<CreateUiState.NewGame> = editors.ids.mapNotNull { id ->
@@ -107,7 +107,6 @@ class CreateViewModel(
     private var creating: Job? = null
     private var syncing: Job? = null
 
-    // No CloudSync bound (the flag is off) is never restoring.
     private val restoring: Flow<Boolean> = cloudSync.restoring
 
     val uiState: StateFlow<CreateUiState> =

@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.di
 
 import com.ivandsky.puzzlebox.common.di.commonModule
+import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
@@ -9,6 +10,7 @@ import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.game.FakeDailySource
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
@@ -49,6 +51,7 @@ class DataModuleGraphTest : KoinTest {
             single { TestGames.registry(listOf(alpha)) }
             single { FakeDailySource(alpha) } bind DailySource::class
             single<LinkedInSessionCookies> { FakeLinkedInSessionCookies(null) }
+            single<OwnerScope> { FakeOwnerScope() }
         }
         val koinApp = koinApplication {
             androidContext(RuntimeEnvironment.getApplication())
@@ -75,6 +78,7 @@ class DataModuleGraphTest : KoinTest {
             single { TestGames.registry(listOf(alpha)) }
             single { FakeDailySource(alpha) } bind DailySource::class
             single<LinkedInSessionCookies> { FakeLinkedInSessionCookies(null) }
+            single<OwnerScope> { FakeOwnerScope() }
         }
         val koinApp = koinApplication {
             androidContext(RuntimeEnvironment.getApplication())

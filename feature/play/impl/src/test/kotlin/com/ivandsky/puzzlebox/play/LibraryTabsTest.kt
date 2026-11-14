@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -126,6 +128,7 @@ class LibraryTabsTest {
                     factory { ObserveArchiveProgress(get(), get(), get()) }
                     factory { ObserveArchiveMonth(get(), get(), get(), get()) }
                 },
+                module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 hubOffFriendDay,
             )

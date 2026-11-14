@@ -66,7 +66,7 @@ class ResumeSolveE2ETest {
                 val registry = get<GameRegistry>()
                 koinApplication {
                     androidContext(RuntimeEnvironment.getApplication())
-                    modules(dataModule, module { single { registry } })
+                    modules(dataModule, unfilteredOwnerModule, module { single { registry } })
                 }.also(processes::add).koin
             }
             single<SavedPlayRepository> { get<Koin>(named(ROOM)).get() }

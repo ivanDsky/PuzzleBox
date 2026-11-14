@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.withTransaction
-import com.ivandsky.puzzlebox.data.cloud.NoOwnerScope
 import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
 import com.ivandsky.puzzlebox.data.model.toModel
@@ -36,7 +35,7 @@ internal class RoomCompletionRepository(
     private val dao: CompletionDao,
     private val replayDao: CompletionReplayDao,
     private val registry: GameRegistry,
-    private val owner: OwnerScope = NoOwnerScope,
+    private val owner: OwnerScope,
     private val policy: FirstWinPolicy = FirstWinPolicy(),
     private val clock: () -> Long = System::currentTimeMillis,
 ) : CompletionRepository {

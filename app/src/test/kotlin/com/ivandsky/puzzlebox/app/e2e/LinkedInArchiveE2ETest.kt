@@ -178,7 +178,7 @@ class LinkedInArchiveE2ETest {
             koinApplication {
                 androidContext(RuntimeEnvironment.getApplication())
                 modules(
-                    commonModule, dataModule, domainModule, zipModule, queensModule, tangoModule, miniSudokuModule,
+                    commonModule, dataModule, unfilteredOwnerModule, domainModule, zipModule, queensModule, tangoModule, miniSudokuModule,
                     module {
                         single { transport }
                         single { db }

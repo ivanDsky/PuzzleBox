@@ -85,7 +85,7 @@ internal class FriendWorld(flags: List<ReleaseFlag> = emptyList()) {
                 val registry = get<GameRegistry>()
                 koinApplication {
                     androidContext(RuntimeEnvironment.getApplication())
-                    modules(dataModule, module { single { registry } })
+                    modules(dataModule, unfilteredOwnerModule, module { single { registry } })
                 }.also { room = it }.koin.get()
             }
         },

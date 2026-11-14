@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.performScrollTo
@@ -151,6 +153,7 @@ class LibraryRouteTest {
                     single<GoogleIdTokenProvider> { dismissedGoogleSignIn }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
                 },
+                module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 hubOffFriendDay,
             )

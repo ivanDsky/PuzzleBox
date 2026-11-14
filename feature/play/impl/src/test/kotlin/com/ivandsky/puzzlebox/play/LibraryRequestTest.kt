@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
@@ -165,6 +167,7 @@ class LibraryRequestTest {
                     single<GoogleIdTokenProvider> { dismissedGoogleSignIn }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
                 },
+                module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 hubOffFriendDay,
             )

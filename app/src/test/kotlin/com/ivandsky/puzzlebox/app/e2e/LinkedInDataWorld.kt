@@ -96,7 +96,7 @@ internal class LinkedInDataWorld(
                 val registry = get<GameRegistry>()
                 koinApplication {
                     androidContext(RuntimeEnvironment.getApplication())
-                    modules(dataModule, module { single { registry } })
+                    modules(dataModule, unfilteredOwnerModule, module { single { registry } })
                 }.also(processes::add).koin
             }
             single<CompletionRepository> { get<Koin>(named(ROOM)).get() }

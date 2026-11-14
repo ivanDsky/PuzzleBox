@@ -82,7 +82,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -431,31 +430,13 @@ class DiGraphTest : KoinTest {
         }
     }
 
-    /** Flag off: the sync graph is not loaded, so nothing resolves it and the owner scope stays the no-op one. */
+    /** Without LinkedInAccount: the five app-database kinds, the engine and the runner; no boards kind, no saved-board deletion. */
     @Test
-    fun `with CloudSync off no cloud sync is bound and the owner scope is NoOwnerScope`() {
-        val koinApp = startCloud(ReleaseFlag.LinkedInAccount)
+    fun `the sync graph resolves without the LinkedIn kinds`() {
+        val koinApp = startCloud()
         try {
             val koin = koinApp.koin
-            assertFalse(PuzzleBoxApplication.loadCloudSync(koin))
-            assertNull(koin.getOrNull<CloudSync>())
-            assertNull(koin.getOrNull<CloudSyncRunner>())
-            assertNull(koin.getOrNull<OversizedDrafts>())
-            assertNull(koin.getOrNull<SavedBoardsCloud>())
-            assertTrue(koin.getAll<SyncedKind>().isEmpty())
-            assertEquals("NoOwnerScope", koin.get<OwnerScope>()::class.simpleName)
-        } finally {
-            stopKoin()
-        }
-    }
-
-    /** CloudSync alone: the five app-database kinds, the engine and the runner; no boards kind, no saved-board deletion. */
-    @Test
-    fun `with CloudSync on the sync graph resolves without the LinkedIn kinds`() {
-        val koinApp = startCloud(ReleaseFlag.CloudSync)
-        try {
-            val koin = koinApp.koin
-            assertTrue(PuzzleBoxApplication.loadCloudSync(koin))
+            PuzzleBoxApplication.prepareCloudSync(koin)
             assertNotNull(koin.get<CloudSync>())
             assertNotNull(koin.get<CloudSyncRunner>())
             assertNotNull(koin.get<OversizedDrafts>())
@@ -470,13 +451,13 @@ class DiGraphTest : KoinTest {
         }
     }
 
-    /** Both flags: the boards kind joins and saved boards can be deleted everywhere. */
+    /** With LinkedInAccount on: the boards kind joins and saved boards can be deleted everywhere. */
     @Test
-    fun `with CloudSync and LinkedInAccount on the boards kind and saved-board deletion are bound`() {
-        val koinApp = startCloud(ReleaseFlag.CloudSync, ReleaseFlag.LinkedInAccount)
+    fun `with LinkedInAccount on the boards kind and saved-board deletion are bound`() {
+        val koinApp = startCloud(ReleaseFlag.LinkedInAccount)
         try {
             val koin = koinApp.koin
-            assertTrue(PuzzleBoxApplication.loadCloudSync(koin))
+            PuzzleBoxApplication.prepareCloudSync(koin)
             assertEquals(
                 listOf("boards", "completions", "drafts", "published", "received", "replays"),
                 koin.getAll<SyncedKind>().map { it.kind }.sorted(),
@@ -492,14 +473,14 @@ class DiGraphTest : KoinTest {
         }
     }
 
-    /** SignedInOwnerScope starts collecting at construction, so the graph must create it before any starter runs. */
+    /** SignedInOwnerScope starts collecting at construction, so the app creates it before any starter runs. */
     @Test
     fun `the signed-in owner scope is created at start so the last uid is recorded from launch`() {
         val identity = FakeIdentityService(initial = Identity(uid = "u1", displayName = "One", photoUrl = null))
-        val koinApp = startCloud(ReleaseFlag.CloudSync, identity = identity)
+        val koinApp = startCloud(identity = identity)
         try {
-            assertTrue(PuzzleBoxApplication.loadCloudSync(koinApp.koin))
-            // Nobody resolved OwnerScope: only an eager binding can have written the uid.
+            PuzzleBoxApplication.prepareCloudSync(koinApp.koin)
+            // Nobody resolved OwnerScope: only the app's start step can have written the uid.
             val last = runBlocking { withTimeout(10_000) { koinApp.koin.get<SyncStateStore>().lastUid.first { it == "u1" } } }
             assertEquals("u1", last)
         } finally {

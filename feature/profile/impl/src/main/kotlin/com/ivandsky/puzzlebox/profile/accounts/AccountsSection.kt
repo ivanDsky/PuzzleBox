@@ -17,14 +17,14 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 /**
  * Profile's Accounts: Google first, then LinkedIn in one card. The LinkedIn row is drawn only when the feature is
  * on ([LinkedInActions.onConnect] given) and the link has reported a [linkedIn] state; the two accounts are
- * independent. The Google row carries cloud sync when [account] says so; the LinkedIn row carries the saved-boards
- * copy and Delete saved boards only when [boards] is given.
+ * independent. The Google row carries its sync line when [account] has one; the LinkedIn row carries Delete saved
+ * boards only when [boards] offers it.
  */
 @Composable
 internal fun AccountsSection(
     account: ProfileUiState.Account,
     linkedIn: LinkedInRowState?,
-    boards: ProfileUiState.LinkedInBoards?,
+    boards: ProfileUiState.LinkedInBoards,
     nowMs: Long,
     google: GoogleActions,
     linkedInActions: LinkedInActions,

@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.play.navigation
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -119,6 +121,7 @@ class GameEntryTest {
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     factory { LoadPastDay(get(), get()) }
                 },
+                module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 hubOffFriendDay,
             )

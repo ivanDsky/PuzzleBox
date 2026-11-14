@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.app.play
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
@@ -156,6 +158,7 @@ class PlayBoardPositionTest {
                     single<IdentityService> { FakeIdentityService() }
                     single<GoogleIdTokenProvider> { CancelledGoogleIdTokenProvider }
                 },
+                module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 module { single { ObserveFriendDay.Binding(reader = null) } }, // hub off
             )

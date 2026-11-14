@@ -1,10 +1,7 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
 import com.google.firebase.auth.FirebaseUser
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
@@ -20,8 +17,8 @@ import org.koin.dsl.koinApplication
 import org.koin.dsl.module
 
 /**
- * Sign-out leaves a pending clear for the next start only with [ReleaseFlag.CloudSync] on, through the real backend
- * module binding; the start-up step then consumes it once. Flag off, sign-out writes nothing.
+ * Sign-out leaves a pending clear for the next start, through the real backend module binding; the start-up step then
+ * consumes it once.
  */
 class SignOutCacheClearTest {
 
@@ -48,11 +45,10 @@ class SignOutCacheClearTest {
         app?.close()
     }
 
-    private fun graph(flags: ReleaseFlags): KoinApplication = koinApplication {
+    private fun graph(): KoinApplication = koinApplication {
         modules(
             firebaseBackendModule,
             module {
-                single<ReleaseFlags> { flags }
                 single<CoroutineScope> { CoroutineScope(Job()) }
                 single<AuthGateway> { gateway }
                 single<CacheClearMark> { mark }
@@ -61,8 +57,8 @@ class SignOutCacheClearTest {
     }.also { app = it }
 
     @Test
-    fun `sign-out with the flag on leaves a pending clear and the next start consumes it once`() {
-        val koin = graph(FakeReleaseFlags(ReleaseFlag.CloudSync)).koin
+    fun `sign-out leaves a pending clear and the next start consumes it once`() {
+        val koin = graph().koin
         val clearer = FakeFirestoreCacheClearer()
 
         runBlocking { koin.get<IdentityService>().signOut() }
@@ -73,17 +69,6 @@ class SignOutCacheClearTest {
         runBlocking { startup.run() }
         runBlocking { startup.run() }
         assertEquals(1, clearer.clears)
-        assertFalse(mark.pending)
-    }
-
-    @Test
-    fun `sign-out with the flag off writes nothing`() {
-        val koin = graph(FakeReleaseFlags()).koin
-
-        runBlocking { koin.get<IdentityService>().signOut() }
-
-        assertEquals(1, gateway.signOuts)
-        assertEquals(0, mark.writes)
         assertFalse(mark.pending)
     }
 }

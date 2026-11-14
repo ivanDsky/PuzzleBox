@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
@@ -133,6 +135,7 @@ class LibraryFromFriendsTest {
                     factory { ObserveArchiveProgress(get(), get(), get()) }
                     factory { ObserveArchiveMonth(get(), get(), get(), get()) }
                 },
+                module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 hubOffFriendDay,
             )

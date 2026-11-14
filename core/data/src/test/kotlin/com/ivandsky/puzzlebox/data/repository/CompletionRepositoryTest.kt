@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -51,7 +52,7 @@ class CompletionRepositoryTest {
             .allowMainThreadQueries()
             .setQueryExecutor(RoomQueryThread.executor)
             .build()
-        repository = RoomCompletionRepository(db, db.completionDao(), db.completionReplayDao(), TestGames.registry(listOf(alpha)), clock = { nowMs })
+        repository = RoomCompletionRepository(db, db.completionDao(), db.completionReplayDao(), TestGames.registry(listOf(alpha)), FakeOwnerScope(), clock = { nowMs })
     }
 
     @After

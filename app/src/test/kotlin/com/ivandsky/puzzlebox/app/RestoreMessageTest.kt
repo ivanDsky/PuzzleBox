@@ -14,7 +14,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** A33: the first full restore on a device shows "Welcome back" once; with no cloud sync bound the shell shows nothing. */
+/** A33: the first full restore on a device shows "Welcome back" once. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
 class RestoreMessageTest {
@@ -28,7 +28,7 @@ class RestoreMessageTest {
         mapOf("completions" to games, "drafts" to drafts, "boards" to boardDays, "published" to published),
     )
 
-    private fun setShell(restored: kotlinx.coroutines.flow.Flow<RestoreSummary>?) {
+    private fun setShell(restored: kotlinx.coroutines.flow.Flow<RestoreSummary>) {
         composeRule.setContent { PuzzleBoxTheme { RestoreWelcome(restored) } }
     }
 
@@ -99,15 +99,6 @@ class RestoreMessageTest {
 
         composeRule.mainClock.advanceTimeBy(10_000)
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag("shell.restore.welcome").assertDoesNotExist()
-    }
-
-    @Test
-    fun `with no cloud sync nothing is shown`() {
-        setShell(null)
-        cloud.emitRestored(counts(games = 12, drafts = 3, boardDays = 7))
-        composeRule.waitForIdle()
-
         composeRule.onNodeWithTag("shell.restore.welcome").assertDoesNotExist()
     }
 }

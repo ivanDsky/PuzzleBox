@@ -57,6 +57,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.navigation.navKeySavedStateConfiguration
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -396,6 +397,7 @@ class CreatePublishedTabTest {
                             sharedText = FakeSharedTextStore(),
                             syncSolves = SyncSolvesCounts(published, boards, clock = { NOW }),
                             clock = { NOW },
+                            cloudSync = FakeCloudSync(),
                         ).also { create = it }
                     }
                     viewModel { (key: PublishedPuzzleKey) ->

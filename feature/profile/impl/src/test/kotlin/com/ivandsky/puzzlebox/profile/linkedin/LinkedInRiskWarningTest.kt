@@ -63,7 +63,7 @@ class LinkedInRiskWarningTest {
         listOf(
             "§8.2",
             "only reads",
-            "never uploaded",
+            "saved to your own PuzzleBox account",
             "never sees it",
             "does not sign you out",
         ).forEach { phrase ->

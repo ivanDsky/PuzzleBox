@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.app.play
 
+import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -231,6 +233,7 @@ class RealGamesResultRouteTest {
                         FakeUserPreferencesRepository(seen = setOf(ZipDefinition.id))
                     }
                 },
+                module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 module { single { ObserveFriendDay.Binding(reader = null) } }, // hub off
             )

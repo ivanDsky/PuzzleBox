@@ -74,7 +74,7 @@ class FirebaseIdentityServiceTest {
     }
 
     private fun signIn(gateway: FakeAuthGateway): AuthResult {
-        val service = FirebaseIdentityService(gateway, CoroutineScope(Job()))
+        val service = FirebaseIdentityService(gateway, CoroutineScope(Job()), FakeCacheClearMark())
         return kotlinx.coroutines.runBlocking { service.signInWithGoogleIdToken("token-1") }
     }
 
@@ -181,7 +181,7 @@ class FirebaseIdentityServiceTest {
         val scheduler = StandardTestDispatcher().scheduler
         val scope = CoroutineScope(SupervisorJob() + StandardTestDispatcher(scheduler))
         val gateway = FakeAuthGateway()
-        val service = FirebaseIdentityService(gateway, scope)
+        val service = FirebaseIdentityService(gateway, scope, FakeCacheClearMark())
         val collector = scope.launch { service.current.collect {} }
         scheduler.advanceUntilIdle()
 

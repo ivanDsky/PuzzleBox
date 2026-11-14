@@ -77,7 +77,7 @@ class FriendResumeE2ETest {
             single<SavedPlayRepository> {
                 koinApplication {
                     androidContext(RuntimeEnvironment.getApplication())
-                    modules(dataModule)
+                    modules(dataModule, unfilteredOwnerModule)
                 }.also(processes::add).koin.get()
             }
         },

@@ -65,7 +65,7 @@ class CreateProcessDeathE2ETest {
             single<DraftRepository> {
                 koinApplication {
                     androidContext(RuntimeEnvironment.getApplication())
-                    modules(dataModule)
+                    modules(dataModule, unfilteredOwnerModule)
                 }.also(processes::add).koin.get()
             }
         },

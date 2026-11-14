@@ -32,8 +32,6 @@ import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 private val TileSize = 40.dp
 private val PhotoSize = 44.dp
 private val GlyphSize = 26.dp
-private const val NOT_CONNECTED_SUB =
-    "Import your own LinkedIn game results and see your connections' times on this phone."
 private const val NOT_CONNECTED_SYNC_SUB =
     "Import your own LinkedIn game results and see your connections' times. " +
         "The boards you read are saved to your own PuzzleBox account, readable only by you, and kept after Disconnect."
@@ -43,10 +41,10 @@ private const val NO_NAME = "LinkedIn account"
 /**
  * The LinkedIn account row. Stateless: it draws [state] and reports taps. Connect and Reconnect share [onConnect]
  * (the risk warning and login are the caller's); a paused link that needs a reconnect offers Reconnect, not
- * Resume, since resuming a rejected session would only pause again. [nowMs] only phrases the update time. With cloud
- * boards on ([boards] given) the copy says the boards are saved to the account, a connected row whose Google account
- * is signed out ([ProfileUiState.LinkedInBoards.googleSignedIn] false) asks to sign in, and the overflow may offer
- * Delete saved boards ([onDeleteSavedBoards]); without it the row is exactly the plain one.
+ * Resume, since resuming a rejected session would only pause again. [nowMs] only phrases the update time. The copy
+ * says the boards are saved to the account, a connected row whose Google account is signed out
+ * ([ProfileUiState.LinkedInBoards.googleSignedIn] false) asks to sign in, and the overflow may offer Delete saved
+ * boards ([onDeleteSavedBoards]) when [boards] allows it.
  */
 @Composable
 internal fun LinkedInRow(
@@ -56,22 +54,22 @@ internal fun LinkedInRow(
     onResume: () -> Unit,
     onDisconnect: () -> Unit,
     onDeleteSavedBoards: () -> Unit,
+    boards: ProfileUiState.LinkedInBoards,
     modifier: Modifier = Modifier,
-    boards: ProfileUiState.LinkedInBoards? = null,
 ) {
     val row = modifier.testTag("profile.linkedin")
     val overflow: @Composable () -> Unit = {
         LinkedInOverflow(
             onDisconnect = onDisconnect,
-            onDeleteSavedBoards = if (boards?.canDelete == true) onDeleteSavedBoards else null,
-            deleteEnabled = boards?.deleting != true,
+            onDeleteSavedBoards = if (boards.canDelete) onDeleteSavedBoards else null,
+            deleteEnabled = !boards.deleting,
         )
     }
     when (state) {
         LinkedInRowState.NotConnected -> AccountRow(
             lead = { Image(painterResource(R.drawable.ic_linkedin_dot), contentDescription = null, modifier = Modifier.size(TileSize)) },
             title = "LinkedIn",
-            sub = if (boards?.savedToAccount == true) NOT_CONNECTED_SYNC_SUB else NOT_CONNECTED_SUB,
+            sub = NOT_CONNECTED_SYNC_SUB,
             modifier = row,
             extra = { LinkedInConnectButton("Connect LinkedIn", onConnect, Modifier.fillMaxWidth().testTag("profile.linkedin.connect")) },
         )
@@ -113,7 +111,7 @@ internal fun LinkedInRow(
 }
 
 @Composable
-private fun StatsAndBoards(summary: LinkedInAccountView, nowMs: Long, boards: ProfileUiState.LinkedInBoards?) {
+private fun StatsAndBoards(summary: LinkedInAccountView, nowMs: Long, boards: ProfileUiState.LinkedInBoards) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         StatsLine(summary, nowMs)
         BoardsLines(boards)
@@ -122,9 +120,8 @@ private fun StatsAndBoards(summary: LinkedInAccountView, nowMs: Long, boards: Pr
 
 /** Under the stats: the sign-in hint while boards are meant for the account but nobody is signed in, and why a Delete saved boards did not finish. */
 @Composable
-private fun BoardsLines(boards: ProfileUiState.LinkedInBoards?) {
-    if (boards == null) return
-    if (boards.savedToAccount && !boards.googleSignedIn) {
+private fun BoardsLines(boards: ProfileUiState.LinkedInBoards) {
+    if (!boards.googleSignedIn) {
         Text(
             text = SIGN_IN_HINT,
             style = MaterialTheme.typography.bodySmall,

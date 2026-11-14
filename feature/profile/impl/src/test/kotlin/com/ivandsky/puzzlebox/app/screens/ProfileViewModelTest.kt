@@ -29,6 +29,8 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.profile.accounts.LinkedInRowState
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeOversizedDrafts
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccount
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
@@ -95,6 +97,8 @@ class ProfileViewModelTest {
             observeGameStats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
             link = link,
             observeAccount = link?.let { ObserveLinkedInAccount(stored, completions, GetPuzzleDay(registry, clock), registry) },
+            cloudSync = FakeCloudSync(),
+            oversizedDrafts = FakeOversizedDrafts(),
         )
         // The state is observed only while subscribed (the route's lifecycle collector).
         backgroundScope.launch { vm.uiState.collect {} }

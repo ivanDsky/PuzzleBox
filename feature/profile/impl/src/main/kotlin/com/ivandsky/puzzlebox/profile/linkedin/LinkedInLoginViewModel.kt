@@ -25,8 +25,6 @@ private const val REJECTED_MESSAGE = "LinkedIn didn't accept the check. Try agai
 internal class LinkedInLoginViewModel(
     private val createLink: CreateLinkedInLink,
     private val cookies: LinkedInSessionCookies,
-    /** Whether cloud sync is on, so the risk warning says the connections' boards are saved to the player's account. */
-    val savedToAccount: Boolean = false,
 ) : ViewModel() {
 
     sealed interface Step {

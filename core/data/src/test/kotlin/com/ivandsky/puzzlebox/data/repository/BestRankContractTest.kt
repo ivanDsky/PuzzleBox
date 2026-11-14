@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import androidx.room.Room
+import com.ivandsky.puzzlebox.testing.cloud.FakeOwnerScope
 import com.ivandsky.puzzlebox.testing.room.RoomQueryThread
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.game.BestScore
@@ -54,7 +55,7 @@ class BestRankContractTest {
     @Test
     fun `room best follows each game's rank order`() = runTest {
         val registry = GameRegistry(orders.map { (game, order) -> plugin(game, order) })
-        assertContract(RoomCompletionRepository(db, db.completionDao(), db.completionReplayDao(), registry))
+        assertContract(RoomCompletionRepository(db, db.completionDao(), db.completionReplayDao(), registry, FakeOwnerScope()))
     }
 
     @Test
@@ -82,7 +83,7 @@ class BestRankContractTest {
     @Test
     fun `room best never counts a custom completion`() = runTest {
         val registry = GameRegistry(listOf(TestGames.plugin(queens)))
-        assertCustomExcluded(RoomCompletionRepository(db, db.completionDao(), db.completionReplayDao(), registry))
+        assertCustomExcluded(RoomCompletionRepository(db, db.completionDao(), db.completionReplayDao(), registry, FakeOwnerScope()))
     }
 
     @Test

@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
+import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -203,6 +204,7 @@ class EditorAutosaveTest {
         sharedText = FakeSharedTextStore(),
         syncSolves = SyncSolvesCounts(FakePublishedPuzzleRepository(), FakeCustomBoardRepository(), clock = { NOW }),
         clock = { NOW },
+        cloudSync = FakeCloudSync(),
     )
 
     private fun factoryOf(vm: EditorViewModel) = object : ViewModelProvider.Factory {

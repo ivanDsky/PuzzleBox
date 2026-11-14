@@ -63,7 +63,6 @@ import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.map
-import org.koin.compose.getKoin
 import org.koin.compose.koinInject
 
 /**
@@ -144,9 +143,7 @@ fun PuzzleBoxApp(
     )
     val expanded = layout == HomeLayout.TwoPane
     val identityService = koinInject<IdentityService>()
-    // Null while cloud sync is not bound (its flag is off): the shell then shows no restore message.
-    val koin = getKoin()
-    val cloudSync = remember(koin) { koin.getOrNull<CloudSync>() }
+    val cloudSync = koinInject<CloudSync>()
     val destinations = if (ranks) ranksTopLevelDestinations else topLevelDestinations
     val selected = navigator.state.tab
     val top = navigator.state.currentStack.last()
@@ -236,7 +233,7 @@ fun PuzzleBoxApp(
             }
             // The one-time "Welcome back" after an account's first restore (A33), above the chrome.
             RestoreWelcome(
-                restored = cloudSync?.restored,
+                restored = cloudSync.restored,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(contentPadding),
             )
         }

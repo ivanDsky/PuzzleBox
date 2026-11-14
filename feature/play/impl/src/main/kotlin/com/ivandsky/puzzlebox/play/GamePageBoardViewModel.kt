@@ -81,7 +81,7 @@ internal data class GamePageBoardState(
  * Sign-in goes through one [BoardSignInHolder], so the page's board signs in without leaving.
  * A non-null [linkedIn] adds that day's LinkedIn ghosts, only ever read from what the phone holds: the day card's
  * own collection already syncs the day it shows, so the board never asks LinkedIn anything. Null touches nothing of LinkedIn.
- * A non-null [cloudSync] says when the first restore runs; null (the flag is off) never restores.
+ * [cloudSync] says when the first restore runs.
  * A non-null [friendDay] makes the rank summary follow the player's Friends/Global setting (F20); null is Global.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -93,7 +93,7 @@ internal class GamePageBoardViewModel(
     identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
     private val linkedIn: ObserveLinkedInDayView?,
-    cloudSync: CloudSync? = null,
+    cloudSync: CloudSync,
     private val friendDay: ObserveFriendDay?,
 ) : ViewModel() {
 
@@ -106,7 +106,6 @@ internal class GamePageBoardViewModel(
     /** The game's own rank rule. */
     val order: RankOrder = registry.rankOrderOf(game)
 
-    // No CloudSync bound (the flag is off) is never restoring.
     private val restoring: Flow<Boolean> = cloudSync.restoring
 
     val state: StateFlow<GamePageBoardState> = flow {

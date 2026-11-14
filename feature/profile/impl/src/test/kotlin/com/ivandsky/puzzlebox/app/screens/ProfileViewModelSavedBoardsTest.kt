@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
+import com.ivandsky.puzzlebox.testing.cloud.FakeOversizedDrafts
 import com.ivandsky.puzzlebox.testing.cloud.FakeSavedBoardsCloud
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -47,13 +48,14 @@ class ProfileViewModelSavedBoardsTest {
         override suspend fun idToken(activityContext: Context): GoogleIdToken = GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.OTHER)
     }
 
-    private fun TestScope.viewModel(cloud: FakeCloudSync?, boards: FakeSavedBoardsCloud?): ProfileViewModel {
+    private fun TestScope.viewModel(cloud: FakeCloudSync, boards: FakeSavedBoardsCloud?): ProfileViewModel {
         val history = ObserveGameHistory(registry, FakeDailyRepository(), FakeCompletionRepository())
         val vm = ProfileViewModel(
             identityService = FakeIdentityService(initial = Identity("u1", "Ann", null)),
             idTokenProvider = UnavailableGoogleIdTokenProvider,
             observeGameStats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
             cloudSync = cloud,
+            oversizedDrafts = FakeOversizedDrafts(),
             savedBoardsCloud = boards,
         )
         backgroundScope.launch { vm.uiState.collect {} }
@@ -61,30 +63,23 @@ class ProfileViewModelSavedBoardsTest {
         return vm
     }
 
-    private fun ProfileViewModel.boards(): LinkedInBoards? = uiState.value.linkedInBoards
+    private fun ProfileViewModel.boards(): LinkedInBoards = uiState.value.linkedInBoards
 
     @Test
-    fun `with neither cloud binding the LinkedIn row carries nothing and the action does nothing`() = runTest(dispatcher) {
-        val vm = viewModel(null, null)
+    fun `without the saved-boards binding the LinkedIn row offers no delete and the action does nothing`() = runTest(dispatcher) {
+        val vm = viewModel(FakeCloudSync(CloudSyncState.SignedOut), null)
 
         vm.onDeleteSavedBoards()
         advanceUntilIdle()
 
-        assertNull(vm.boards())
-    }
-
-    @Test
-    fun `cloud sync alone says saved to the account and offers no delete`() = runTest(dispatcher) {
-        val vm = viewModel(FakeCloudSync(CloudSyncState.SignedOut), null)
-
-        assertEquals(LinkedInBoards(savedToAccount = true, canDelete = false), vm.boards())
+        assertEquals(LinkedInBoards(canDelete = false), vm.boards())
     }
 
     @Test
     fun `cloud boards offer delete`() = runTest(dispatcher) {
         val vm = viewModel(FakeCloudSync(CloudSyncState.Synced(1L)), FakeSavedBoardsCloud())
 
-        assertEquals(LinkedInBoards(savedToAccount = true, canDelete = true), vm.boards())
+        assertEquals(LinkedInBoards(canDelete = true), vm.boards())
     }
 
     @Test
@@ -96,7 +91,7 @@ class ProfileViewModelSavedBoardsTest {
         advanceUntilIdle()
 
         assertEquals(1, cloud.deleteEverywhereCalls)
-        assertEquals(LinkedInBoards(savedToAccount = true, canDelete = true), vm.boards())
+        assertEquals(LinkedInBoards(canDelete = true), vm.boards())
     }
 
     @Test
@@ -107,24 +102,24 @@ class ProfileViewModelSavedBoardsTest {
         vm.onDeleteSavedBoards()
         advanceUntilIdle()
 
-        assertEquals("You're offline. Try again when you're connected.", vm.boards()?.deleteMessage)
+        assertEquals("You're offline. Try again when you're connected.", vm.boards().deleteMessage)
 
         cloud.result = CloudResult.Ok(Unit)
         vm.onDeleteSavedBoards()
         advanceUntilIdle()
 
         assertEquals(2, cloud.deleteEverywhereCalls)
-        assertNull(vm.boards()?.deleteMessage)
+        assertNull(vm.boards().deleteMessage)
     }
 
     @Test
     fun `a refused delete gets the generic failure line`() = runTest(dispatcher) {
         val cloud = FakeSavedBoardsCloud().apply { result = CloudResult.Denied }
-        val vm = viewModel(null, cloud)
+        val vm = viewModel(FakeCloudSync(), cloud)
 
         vm.onDeleteSavedBoards()
         advanceUntilIdle()
 
-        assertEquals(LinkedInBoards(savedToAccount = false, canDelete = true, deleteMessage = "Couldn't delete your saved boards. Try again later."), vm.boards())
+        assertEquals(LinkedInBoards(canDelete = true, deleteMessage = "Couldn't delete your saved boards. Try again later."), vm.boards())
     }
 }

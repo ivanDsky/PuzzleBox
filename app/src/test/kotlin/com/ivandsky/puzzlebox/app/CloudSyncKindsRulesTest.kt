@@ -37,12 +37,12 @@ class CloudSyncKindsRulesTest {
             modules(
                 PuzzleBoxApplication.appModules + module {
                     single<IdentityService> { FakeIdentityService() }
-                    single<ReleaseFlags> { FakeReleaseFlags(ReleaseFlag.CloudSync, ReleaseFlag.LinkedInAccount) }
+                    single<ReleaseFlags> { FakeReleaseFlags(ReleaseFlag.LinkedInAccount) }
                 },
             )
         }
         try {
-            assertTrue(PuzzleBoxApplication.loadCloudSync(koinApp.koin))
+            PuzzleBoxApplication.prepareCloudSync(koinApp.koin)
             val bound = koinApp.koin.getAll<SyncedKind>().map { it.kind }
             val inRules = rulesKinds()
             assertEquals("a kind is bound twice", bound.distinct(), bound)
