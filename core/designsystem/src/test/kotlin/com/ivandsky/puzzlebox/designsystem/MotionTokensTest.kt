@@ -110,20 +110,20 @@ class MotionTokensTest {
     // The swipe's feel is the one the user approved on a device: these pin the numbers, so a change is a decision.
     @Test
     fun `a released swipe settles on the soft spring, to a distance nobody sees`() {
-        assertEquals(Spring.StiffnessLow, MotionTokens.Swipe.SettleStiffness, 0f)
-        assertEquals(0.002f, MotionTokens.Swipe.SettleThreshold, 0f)
+        assertEquals(Spring.StiffnessLow, SwipeMotion.SettleStiffness, 0f)
+        assertEquals(0.002f, SwipeMotion.SettleThreshold, 0f)
     }
 
     @Test
     fun `a swipe commits at a quarter of the board, 120 dp at most, or a flick of 300 dp a second`() {
-        assertEquals(0.25f, MotionTokens.Swipe.CommitFraction, 0f)
-        assertEquals(120.dp, MotionTokens.Swipe.CommitCap)
-        assertEquals(300.dp, MotionTokens.Swipe.FlingVelocity)
+        assertEquals(0.25f, SwipeMotion.CommitFraction, 0f)
+        assertEquals(120.dp, SwipeMotion.CommitCap)
+        assertEquals(300.dp, SwipeMotion.FlingVelocity)
     }
 
     @Test
     fun `past the first or last board the content follows the finger a fifth of the way`() {
-        assertEquals(0.2f, MotionTokens.Swipe.EdgeFollow, 0f)
+        assertEquals(0.2f, SwipeMotion.EdgeFollow, 0f)
     }
 
     private companion object {
