@@ -23,6 +23,16 @@ import kotlin.math.abs
 // A part on only one of the two boards frosts out over the first half of the way and in over the second.
 private const val Half = 0.5f
 
+/** The parts of the two boards of [morph], each as [BoardFace.parts] gives them, and how far from the one to the other the board is. */
+internal class MorphParts(morph: BoardMorph, isToday: Boolean) {
+    val from: List<BoardPart> = morph.from.parts(isToday)
+    val to: List<BoardPart> = morph.to.parts(isToday)
+    val progress: () -> Float = morph.progress
+}
+
+/** Frosts out what only the board being left has, over the first half of the way to the other. */
+internal fun Modifier.frostedOut(progress: () -> Float): Modifier = frosted { 1f - progress() / Half }
+
 // One part of the two boards drawn as one: its place in each board's order, -1 on a board it is not on. [part] is the
 // arriving board's when it is on both, and [was] the one it was on the board it leaves.
 private class ScrubItem(val part: BoardPart, val was: BoardPart?, val from: Int, val to: Int) {
@@ -76,20 +86,20 @@ private class ScrubItems(from: List<BoardPart>, to: List<BoardPart>) {
 }
 
 /**
- * The two boards of [morph] drawn as one list, as far from the one to the other as it says (see [BoardMorph]). A part
- * on both is one item: it travels from where the one board has it to where the other does, over the parts it passes,
- * and a row among them rolls its place and frosts its other cells over on the way (see [RowScrub]). A part on only one
- * board stays where that board has it and frosts out over the first half of the way or in over the second. The list
- * is as tall as the board it is nearer to, in proportion. [isToday] words an empty board's message.
+ * The two boards of a morph, [parts], drawn as one list, as far from the one to the other as it says (see [BoardMorph]).
+ * A part on both is one item: it travels from where the one board has it to where the other does, over the parts it
+ * passes, and a row among them rolls its place and frosts its other cells over on the way (see [RowScrub]). A part on
+ * only one board stays where that board has it and frosts out over the first half of the way or in over the second.
+ * The list is as tall as the board it is nearer to, in proportion.
  *
  * The progress is read where the list is laid out and drawn only: a frame of the scrub moves layers and, when the two
  * boards differ in height, re-lays the list out without measuring a row again. Nothing is recomposed and nothing is
  * clipped. The list says nothing to assistive tech while it is between two boards.
  */
 @Composable
-internal fun ScrubbedBoardList(morph: BoardMorph, isToday: Boolean, medals: Boolean, backdrop: Color, modifier: Modifier = Modifier) {
-    val items = remember(morph, isToday) { ScrubItems(morph.from.parts(isToday), morph.to.parts(isToday)) }
-    val progress = morph.progress
+internal fun ScrubbedBoardList(parts: MorphParts, medals: Boolean, backdrop: Color, modifier: Modifier = Modifier) {
+    val items = remember(parts) { ScrubItems(parts.from, parts.to) }
+    val progress = parts.progress
     Layout(
         content = {
             // No row here reports to the dock, and none rolls or counts on its own clock: the scrub is the clock.
@@ -129,7 +139,7 @@ private fun ScrubSlot(item: ScrubItem, medals: Boolean, progress: () -> Float) {
     val frost = when {
         item.both -> Modifier
         item.to >= 0 -> Modifier.frosted { (progress() - Half) / Half }
-        else -> Modifier.frosted { 1f - progress() / Half }
+        else -> Modifier.frostedOut(progress)
     }
     Box(frost.padding(top = Spacing.sm)) {
         when (val part = item.part) {
