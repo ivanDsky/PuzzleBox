@@ -6,6 +6,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -19,13 +21,15 @@ class RanksLandingTest {
     private fun scope() = CoroutineScope(UnconfinedTestDispatcher() + Job())
 
     @Test
-    fun `a stored Global is the first value, with no Friends before it`() = runTest {
-        // A scope that has not run yet: the value is what the hub's first frame would read, before any collection.
+    fun `a stored Global is read off the calling thread, Friends until it loads`() = runTest {
+        // A scope that has not run yet: nothing blocks to read the store, so the value is the placeholder.
         val scope = CoroutineScope(StandardTestDispatcher() + Job())
 
         val landing = RanksLanding(FakeUserPreferencesRepository(ranksFriendsDefault = false), scope)
+        assertEquals(RankScope.Friends, landing.scope.value)
 
-        assertEquals(RankScope.Global, landing.scope.value)
+        scope.launch { }.also { testScheduler.advanceUntilIdle() }
+        assertEquals(RankScope.Global, landing.stored.first())
         scope.cancel()
     }
 

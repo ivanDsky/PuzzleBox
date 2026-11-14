@@ -44,6 +44,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
 
@@ -78,8 +80,18 @@ internal class RanksViewModel(
 
     private val saver = RanksSelectionSaver(savedState)
     private val landing = RanksLanding(preferences, viewModelScope)
-    private val _selection = MutableStateFlow(saver.restore(opening.setScope(landing.scope.value), rankBoards(registry)))
+    private val _selection = MutableStateFlow(saver.restore(opening, rankBoards(registry)))
     val selection: StateFlow<RanksSelection> = _selection.asStateFlow()
+
+    init {
+        // A fresh hub lands on the stored default once it has loaded; a restored selection keeps its own scope.
+        if (!saver.hasSaved) {
+            viewModelScope.launch {
+                val stored = landing.stored.first()
+                _selection.update { it.setScope(stored) }
+            }
+        }
+    }
 
     private val signInHolder = RanksSignInHolder(identity, idTokens)
     private val viewer = identity.current
