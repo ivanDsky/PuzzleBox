@@ -26,12 +26,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.constrainHeight
+import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.offset
 import com.ivandsky.puzzlebox.designsystem.NewBestBurst
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -66,8 +71,11 @@ private val BurstOrigin = Offset(0.3f, 0.5f)
  * the count-up lands, and a new best adds the burst. Reduced motion fades everything at
  * once and skips the pulse, burst and sweep band; a preview shows the end state.
  * [wide] sets the 96 sp time of a wide container over the phone's 76 sp.
- * [actions] is the action row, entering on its beat; null draws none. [contentModifier] is applied to the
- * content column inside the card, before its padding, so the screen can measure the content's own height.
+ * [actions] is the action row, entering on its beat; null draws none. The row sits [Spacing.lg] under the
+ * chips, and when the card is stretched taller than its content (a taller side card beside it) it is pinned to
+ * the card's bottom padding instead, the body staying at the top. [contentModifier] is applied to the content,
+ * padding included, so the screen can give it a minimum height; [onContentHeight] gets the height the content
+ * takes unstretched (body, gap and actions, plus padding), which never depends on that minimum.
  */
 @Composable
 internal fun ResultHeroCard(
@@ -77,6 +85,7 @@ internal fun ResultHeroCard(
     wide: Boolean = false,
     actions: (@Composable () -> Unit)? = null,
     contentModifier: Modifier = Modifier,
+    onContentHeight: ((Int) -> Unit)? = null,
 ) {
     val accent = brand.accent.colors()
     val shape = MaterialTheme.shapes.large
@@ -97,46 +106,93 @@ internal fun ResultHeroCard(
         modifier = modifier.fillMaxWidth().solveSweep(sweep, accent.accent, shape).testTag("result.hero.card"),
         shape = shape,
     ) {
-        Column(contentModifier.padding(if (wide) Spacing.xl else Spacing.lg)) {
-            HeroHeader(model, brand)
-            Box(Modifier.padding(top = Spacing.xl, bottom = Spacing.sm).resultBeat(ResultBeats.Time)) {
-                if (model.burst) {
-                    NewBestBurst(
-                        trigger = celebrated,
-                        colors = listOf(accent.accent, MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.primary),
-                        modifier = Modifier.matchParentSize(),
-                        origin = BurstOrigin,
-                    )
+        HeroContent(
+            padding = if (wide) Spacing.xl else Spacing.lg,
+            modifier = contentModifier,
+            onNaturalHeight = onContentHeight,
+            body = {
+                Column {
+                    HeroHeader(model, brand)
+                    Box(Modifier.padding(top = Spacing.xl, bottom = Spacing.sm).resultBeat(ResultBeats.Time)) {
+                        if (model.burst) {
+                            NewBestBurst(
+                                trigger = celebrated,
+                                colors = listOf(accent.accent, MaterialTheme.colorScheme.tertiary, MaterialTheme.colorScheme.primary),
+                                modifier = Modifier.matchParentSize(),
+                                origin = BurstOrigin,
+                            )
+                        }
+                        val shown = rememberCountUp(model.timeMs, delayMs = ResultBeats.DelaysMs[ResultBeats.Time])
+                        Text(
+                            text = formatDuration(shown),
+                            style = resultHeroTimeStyle(wide, hourPlus = model.timeMs >= HOUR_MS),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.timePulse(celebrated).testTag("result.hero.time"),
+                        )
+                    }
+                    model.bestLine?.let { line ->
+                        Text(
+                            text = line,
+                            style = MaterialTheme.typography.bodyLarge.tabular(),
+                            color = if (model.bestImproved) accent.accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.resultBeat(ResultBeats.Supporting, 1).testTag("result.hero.best"),
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    ) {
+                        model.chips.forEachIndexed { index, chip ->
+                            HeroChipTile(chip, Modifier.weight(1f).resultBeat(ResultBeats.Blocks, index))
+                        }
+                    }
                 }
-                val shown = rememberCountUp(model.timeMs, delayMs = ResultBeats.DelaysMs[ResultBeats.Time])
-                Text(
-                    text = formatDuration(shown),
-                    style = resultHeroTimeStyle(wide, hourPlus = model.timeMs >= HOUR_MS),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    softWrap = false,
-                    modifier = Modifier.timePulse(celebrated).testTag("result.hero.time"),
-                )
-            }
-            model.bestLine?.let { line ->
-                Text(
-                    text = line,
-                    style = MaterialTheme.typography.bodyLarge.tabular(),
-                    color = if (model.bestImproved) accent.accent else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.resultBeat(ResultBeats.Supporting, 1).testTag("result.hero.best"),
-                )
-            }
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = Spacing.lg),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                model.chips.forEachIndexed { index, chip ->
-                    HeroChipTile(chip, Modifier.weight(1f).resultBeat(ResultBeats.Blocks, index))
-                }
-            }
-            if (actions != null) {
-                Box(Modifier.padding(top = Spacing.lg).resultBeat(ResultBeats.Actions)) { actions() }
-            }
+            },
+            actions = actions?.let { row -> { Box(Modifier.resultBeat(ResultBeats.Actions)) { row() } } },
+        )
+    }
+}
+
+/**
+ * The hero's content: [body] at the top and [actions] [Spacing.lg] under it, all inside [padding]. Given more height
+ * than that (the card's minimum, from [modifier]) the extra goes between the two and the actions rest on the bottom padding.
+ *
+ * Both are measured free of the incoming minimum height, so the natural height, passed to [onNaturalHeight] with the
+ * padding, is the same however tall the card is stretched and the screen can set the minimum from it without a loop.
+ * The report is made here because the stretched node's own size is no longer the natural one for `onSizeChanged` to see;
+ * writing the same height again is a no-op for the screen's state, so only a real change relays out the cards.
+ */
+@Composable
+private fun HeroContent(
+    padding: Dp,
+    modifier: Modifier,
+    onNaturalHeight: ((Int) -> Unit)?,
+    body: @Composable () -> Unit,
+    actions: (@Composable () -> Unit)?,
+) {
+    Layout(
+        content = {
+            body()
+            actions?.invoke()
+        },
+        modifier = modifier,
+    ) { measurables, constraints ->
+        val pad = padding.roundToPx()
+        val inner = constraints.offset(horizontal = -2 * pad, vertical = -2 * pad)
+        val free = inner.copy(minHeight = 0)
+        val bodyPlaceable = measurables[0].measure(free)
+        val actionsPlaceable = measurables.getOrNull(1)?.measure(free)
+        val actionsHeight = actionsPlaceable?.height ?: 0
+        val gap = if (actionsPlaceable == null) 0 else Spacing.lg.roundToPx()
+        val natural = bodyPlaceable.height + gap + actionsHeight + 2 * pad
+        onNaturalHeight?.invoke(natural)
+        val width = constraints.constrainWidth(maxOf(bodyPlaceable.width, actionsPlaceable?.width ?: 0) + 2 * pad)
+        val height = constraints.constrainHeight(natural)
+        layout(width, height) {
+            bodyPlaceable.place(pad, pad)
+            actionsPlaceable?.place(pad, height - pad - actionsHeight)
         }
     }
 }
