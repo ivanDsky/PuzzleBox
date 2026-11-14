@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play.navigation
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
@@ -106,7 +107,13 @@ fun EntryProviderScope<NavKey>.playEntry(
         )
     }
     entry<GameKey> { key ->
-        GameEntry(key, layout, navigator, linkedIn = onReconnectLinkedIn != null, inlineMarks = onOpenRanks != null)
+        GameEntry(
+            key,
+            layout,
+            navigator,
+            linkedIn = onReconnectLinkedIn != null,
+            boardStyle = DailyBoardStyle.defaults(inlineMarks = onOpenRanks != null),
+        )
     }
     entry<MatchLegKey> { key ->
         GameRoute(

@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.GameLoading
@@ -20,7 +21,7 @@ import org.koin.compose.koinInject
  * place (back lands on the game's origin, as after a solve), otherwise its board. The
  * store decides ([PlaySessionStore.decide], then [PlaySessionStore.completedResult] for a
  * solved day with no live play) before anything opens the board, so a finished day is never
- * reset by being opened; playing again is Result's "Play again". [inlineMarks] is the board's
+ * reset by being opened; playing again is Result's "Play again". [boardStyle] is the board's
  * side panel's (see [GameRoute]).
  */
 @Composable
@@ -29,7 +30,7 @@ internal fun GameEntry(
     layout: PlayLayout,
     navigator: Navigator,
     linkedIn: Boolean = false,
-    inlineMarks: Boolean = false,
+    boardStyle: DailyBoardStyle = DailyBoardStyle.defaults(),
 ) {
     val store = koinInject<PlaySessionStore>()
     // Frame 0 decides from what the store holds; only a solved day with no live play, or a
@@ -50,7 +51,7 @@ internal fun GameEntry(
                 navigator.replaceTop(ResultKey(slot.gameId.value, day.toString(), timeMs, hintsUsed))
             },
             linkedIn = linkedIn,
-            inlineMarks = inlineMarks,
+            boardStyle = boardStyle,
         )
         is OpenDecision.Finished -> {
             GameLoading(onBack = { navigator.pop() })
