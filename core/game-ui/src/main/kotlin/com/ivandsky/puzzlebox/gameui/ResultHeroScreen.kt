@@ -29,8 +29,8 @@ private val TwoColumnWidth = 760.dp
 /** The widest the content grows; a wider pane centres it. */
 private val ContentMaxWidth = 1040.dp
 
-/** The widest a single column grows; a wider phone-shaped pane centres it. */
-private val SingleColumnMaxWidth = 600.dp
+/** The widest a single column grows, and the widest a Watch replay row grows; a wider phone-shaped pane centres it. */
+val ResultColumnMaxWidth = 600.dp
 
 /** The hero time's 96 sp step applies from a hero column this wide. */
 private val HeroWideWidth = 520.dp
@@ -72,7 +72,7 @@ fun ResultHeroScreen(
         val pagePadding = if (compact) Spacing.lg else Spacing.xxl
         val twoColumns = hasSide && maxWidth >= TwoColumnWidth
         val gap = if (compact) Spacing.md else Spacing.lg
-        val contentWidth = minOf(maxWidth - pagePadding * 2, if (twoColumns) ContentMaxWidth else SingleColumnMaxWidth)
+        val contentWidth = minOf(maxWidth - pagePadding * 2, if (twoColumns) ContentMaxWidth else ResultColumnMaxWidth)
         val heroWidth = if (twoColumns) columnWidth(contentWidth, gap) else contentWidth
         val wide = heroWidth >= HeroWideWidth
         Column(
@@ -87,7 +87,7 @@ fun ResultHeroScreen(
             verticalArrangement = if (compact) Arrangement.Top else Arrangement.Center,
         ) {
             Column(
-                modifier = Modifier.widthIn(max = if (twoColumns) ContentMaxWidth else SingleColumnMaxWidth).fillMaxWidth(),
+                modifier = Modifier.widthIn(max = if (twoColumns) ContentMaxWidth else ResultColumnMaxWidth).fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(gap),
             ) {
                 if (onRetryWrite != null) WriteFailedRow(onRetryWrite)
