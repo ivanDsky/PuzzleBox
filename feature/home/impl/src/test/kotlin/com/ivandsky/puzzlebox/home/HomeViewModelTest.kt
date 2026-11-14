@@ -642,7 +642,7 @@ class HomeViewModelTest {
             identity = identity,
             boards = mapOf(twelfth(zip)),
             summariesShown = true,
-            // The graph hands the rank no setting to follow with the hub off.
+            // The app hands the rank no setting to follow with the hub off.
             friendDay = settingWithFriendP3(identity, friends).takeIf { hub },
         )
         deps.solve(zip, "2026-11-04T08:00:00Z")

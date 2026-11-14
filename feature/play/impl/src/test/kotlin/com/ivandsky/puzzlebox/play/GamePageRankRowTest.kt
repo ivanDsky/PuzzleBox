@@ -5,8 +5,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -27,7 +25,6 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -82,14 +79,13 @@ class GamePageRankRowTest {
 
     /**
      * The page's graph; [friendOf] binds the hub's Friends/Global setting, stored as [friendsSetting], with that one
-     * friend of the player, and [hub] is the hub's flag the graph is asked for.
+     * friend of the player. Without it the graph is the hub's flag off: the app binds no reader.
      */
     private fun show(
         identity: FakeIdentityService,
         rows: List<LeaderboardEntry>,
         friendOf: String? = null,
         friendsSetting: Boolean = true,
-        hub: Boolean = true,
         onOpen: () -> Unit = {},
     ) {
         stopKoin() // tests share the JVM-global Koin context
@@ -102,9 +98,8 @@ class GamePageRankRowTest {
                     single<IdentityService> { identity }
                     single<LeaderboardRepository> { FakeLeaderboardRepository(mapOf(LeaderboardRef(game.value, today) to rows)) }
                     single<GoogleIdTokenProvider> { dismissedGoogleSignIn }
-                    single<ReleaseFlags> { if (hub) FakeReleaseFlags(ReleaseFlag.LeaderboardHub) else FakeReleaseFlags() }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
-                    if (friends != null) single { friends }
+                    single { ObserveFriendDay.Binding(friends) }
                 },
                 playModule,
             )
@@ -157,12 +152,6 @@ class GamePageRankRowTest {
     @Test
     fun `on the Global setting the row reads the whole board's place though the player has a friend`() {
         show(FakeIdentityService(me), entries(340, meRank = 12), friendOf = "p3", friendsSetting = false)
-        composeRule.onNodeWithTag("summary.rank").assertTextEquals("You #12 of 340")
-    }
-
-    @Test
-    fun `with the hub off the row reads the whole board's place though the Friends setting is bound`() {
-        show(FakeIdentityService(me), entries(340, meRank = 12), friendOf = "p3", hub = false)
         composeRule.onNodeWithTag("summary.rank").assertTextEquals("You #12 of 340")
     }
 

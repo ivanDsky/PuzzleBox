@@ -43,6 +43,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.game.DailySource
@@ -77,6 +78,7 @@ import com.ivandsky.puzzlebox.data.cloud.SyncStateStore
 import com.ivandsky.puzzlebox.data.cloud.SyncedKind
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInAccount
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
@@ -95,6 +97,7 @@ import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.parameter.parametersOf
 import org.koin.core.Koin
+import org.koin.core.module.Module
 import org.koin.core.qualifier.qualifier
 import org.koin.dsl.module
 import org.koin.test.KoinTest
@@ -335,28 +338,78 @@ class DiGraphTest : KoinTest {
     }
 
     /**
-     * Hub off, the ranks outside the hub are built with no Friends/Global reader: a reader that cannot be built stands
-     * in for the one that would read the setting and listen for friends.
+     * The app decides the reader of the Friends/Global setting the ranks outside the hub follow (AppModule). Hub off
+     * there is none, whatever LinkedIn's flag says: the use cases that would listen for friends and read the
+     * connections cannot be built here, so asking for either fails the test.
      */
     @Test
-    fun `with the hub off the ranks outside the hub resolve without the Friends reader`() {
-        val koinApp = startKoin {
-            androidContext(RuntimeEnvironment.getApplication())
-            modules(
-                PuzzleBoxApplication.appModules + module {
-                    single<IdentityService> { FakeIdentityService() }
-                    single<ReleaseFlags> { FakeReleaseFlags() }
-                    factory<ObserveFriendDay> { error("the Friends reader was built with the hub off") }
-                },
-            )
+    fun `with the hub off the ranks outside the hub get no Friends reader`() {
+        val koinApp = startRanks(FakeReleaseFlags(ReleaseFlag.LinkedInAccount)) {
+            factory<ObserveFriendUids> { error("friends were listened for with the hub off") }
+            factory<ObserveLinkedInDay> { error("the connections were read with the hub off") }
         }
         try {
             val koin = koinApp.koin
+            assertNull(koin.get<ObserveFriendDay.Binding>().reader)
             assertNotNull(koin.get<ObserveResultRank>())
             assertNotNull(koin.viewModel("play.GamePageBoardViewModel", GameId("zip")))
         } finally {
             stopKoin()
         }
+    }
+
+    @Test
+    fun `with the hub on and LinkedIn off the Friends reader is built without the connections`() {
+        val koinApp = startRanks(FakeReleaseFlags(ReleaseFlag.LeaderboardHub)) {
+            factory<ObserveLinkedInDay> { error("the connections were read with LinkedIn off") }
+        }
+        try {
+            assertNotNull(koinApp.koin.get<ObserveFriendDay.Binding>().reader)
+        } finally {
+            stopKoin()
+        }
+    }
+
+    @Test
+    fun `with the hub and LinkedIn on the Friends reader is built with the connections`() {
+        var connections = 0
+        val koinApp = startRanks(FakeReleaseFlags(ReleaseFlag.LeaderboardHub, ReleaseFlag.LinkedInAccount)) {
+            factory { connections++; ObserveLinkedInDay(days = get(), registry = get()) }
+        }
+        try {
+            assertNotNull(koinApp.koin.get<ObserveFriendDay.Binding>().reader)
+            assertEquals(1, connections)
+        } finally {
+            stopKoin()
+        }
+    }
+
+    /** The developer menu flips a flag while the app runs: the next screen opened must see it. */
+    @Test
+    fun `a hub flag flipped while the app runs decides the next Friends reader asked for`() {
+        val on = MutableStateFlow(emptySet<ReleaseFlag>())
+        val koinApp = startRanks(object : ReleaseFlags { override val enabled = on })
+        try {
+            val koin = koinApp.koin
+            assertNull(koin.get<ObserveFriendDay.Binding>().reader)
+            on.value = setOf(ReleaseFlag.LeaderboardHub)
+            assertNotNull(koin.get<ObserveFriendDay.Binding>().reader)
+            on.value = emptySet()
+            assertNull(koin.get<ObserveFriendDay.Binding>().reader)
+        } finally {
+            stopKoin()
+        }
+    }
+
+    private fun startRanks(flags: ReleaseFlags, overrides: Module.() -> Unit = {}) = startKoin {
+        androidContext(RuntimeEnvironment.getApplication())
+        modules(
+            PuzzleBoxApplication.appModules + module {
+                single<IdentityService> { FakeIdentityService() }
+                single<ReleaseFlags> { flags }
+                overrides()
+            },
+        )
     }
 
     private fun Koin.viewModel(name: String, vararg params: Any) =

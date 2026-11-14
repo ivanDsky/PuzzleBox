@@ -32,4 +32,10 @@ class ObserveFriendDay(
             if (friends) combine(friendUids(), connections) { uids, view -> FriendDay(board, uids, view) } else flowOf(null)
         }
     }
+
+    /**
+     * What the composition root binds for the ranks outside the hub: the [reader] of the setting, or none with the
+     * hub's flag off, when those ranks are Global. Koin cannot bind a null, so the root's answer travels in this.
+     */
+    class Binding(val reader: ObserveFriendDay?)
 }

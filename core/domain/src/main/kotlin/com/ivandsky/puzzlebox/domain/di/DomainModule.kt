@@ -1,8 +1,5 @@
 package com.ivandsky.puzzlebox.domain.di
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
@@ -60,8 +57,7 @@ import org.koin.dsl.module
  * [com.ivandsky.puzzlebox.game.GameRegistry], except [SyncTodayPuzzles] — a single, so
  * every surface reads the same failed fetches. Today's leaderboard day is the device's
  * local date, read when the board (re)starts. A new draft's id (blank or copied) is a random
- * UUID and its timestamp the wall clock. A duel's draw shuffles with [Random.Default]. The hub and
- * LinkedIn flags are decided here, when a use case is built, so no use case reads a flag.
+ * UUID and its timestamp the wall clock. A duel's draw shuffles with [Random.Default].
  */
 val domainModule = module {
     factory {
@@ -106,11 +102,8 @@ val domainModule = module {
     }
     factory { ObserveWindowRefresh(network = get()) }
     factory { ObserveLatestSolvedToday(completions = get(), calendar = get(), registry = get()) }
-    factory {
-        // Hub off, there is no Friends/Global setting to follow: the rank is Global and nothing more is read.
-        val friendDay: ObserveFriendDay? = if (get<ReleaseFlags>().isEnabled(ReleaseFlag.LeaderboardHub)) get() else null
-        ObserveResultRank(leaderboard = get(), registry = get(), friendDay = friendDay)
-    }
+    // The app decides whether there is a Friends/Global setting to follow; with none the rank is Global.
+    factory { ObserveResultRank(leaderboard = get(), registry = get(), friendDay = get<ObserveFriendDay.Binding>().reader) }
     factory {
         CreateDraft(
             registry = get(),
@@ -137,11 +130,6 @@ val domainModule = module {
     }
     factory { ObserveOverall(identity = get(), completions = get()) }
     factory { ObserveFriendUids(matches = get(), identity = get()) }
-    factory {
-        // A saved board outlives the flag that read it, so the flag is asked, not the data.
-        val linkedInDay: ObserveLinkedInDay? = if (get<ReleaseFlags>().isEnabled(ReleaseFlag.LinkedInAccount)) get() else null
-        ObserveFriendDay(preferences = get(), friendUids = get(), linkedInDay = linkedInDay)
-    }
     factory { GetPlayerActions(visibility = get(), completions = get()) }
     factory {
         SubmitDailyReplay(

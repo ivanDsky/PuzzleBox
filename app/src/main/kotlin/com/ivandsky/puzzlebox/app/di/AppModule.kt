@@ -10,6 +10,9 @@ import com.ivandsky.puzzlebox.app.match.AndroidNetworkStatus
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -19,6 +22,7 @@ import com.ivandsky.puzzlebox.data.network.NetworkStatus
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.GameSettingsRepository
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -64,6 +68,24 @@ val appModule = module {
     }
     // Resolved only by the application, which starts it with the hub flag on; flag off, it is never created.
     single { DailyReplayPublisher(publish = get<SubmitDailyReplay>(), scope = get<CoroutineScope>()) }
+    // The ranks outside the hub (Home, Result, the play summary) follow its Friends/Global setting only with the hub
+    // on: off, there is no setting to follow, so it is not read, no friends are listened to and every rank is Global.
+    // A factory, so a flag flipped in the developer menu applies to the next screen opened.
+    factory {
+        val flags = get<ReleaseFlags>()
+        ObserveFriendDay.Binding(
+            if (flags.isEnabled(ReleaseFlag.LeaderboardHub)) {
+                ObserveFriendDay(
+                    preferences = get<UserPreferencesRepository>(),
+                    friendUids = get<ObserveFriendUids>(),
+                    // A saved board outlives the flag that read it, so the flag is asked, not the data.
+                    linkedInDay = if (flags.isEnabled(ReleaseFlag.LinkedInAccount)) get<ObserveLinkedInDay>() else null,
+                )
+            } else {
+                null
+            },
+        )
+    }
     // Friend puzzle wins post to their own boards, never through the daily watcher.
     single {
         CustomBoardSubmitter(
