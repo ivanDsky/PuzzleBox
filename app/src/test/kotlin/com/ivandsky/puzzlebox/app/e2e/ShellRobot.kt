@@ -99,11 +99,12 @@ internal fun shellRobot(
     today: LocalDate = E2E_TODAY,
     graph: E2eKoinGraph = E2eKoinGraph(today),
     destinations: List<TopLevelDestination> = topLevelDestinations,
+    darkTheme: Boolean = false,
     block: ShellRobot.() -> Unit,
 ) {
     graph.start()
     try {
-        val robot = ShellRobot(graph, state, destinations)
+        val robot = ShellRobot(graph, state, destinations, darkTheme)
         val run = object : Statement() {
             override fun evaluate() {
                 robot.launch()
@@ -143,6 +144,7 @@ class ShellRobot internal constructor(
     val graph: E2eKoinGraph,
     private val initial: NavigationState,
     private val destinations: List<TopLevelDestination>,
+    private val darkTheme: Boolean = false,
 ) {
     val rule = createAndroidComposeRule<ComponentActivity>()
 
@@ -178,7 +180,7 @@ class ShellRobot internal constructor(
         val swapping = remember(parent) { SwappingRegistry(parent) }
         registry = swapping
         CompositionLocalProvider(LocalSaveableStateRegistry provides swapping) {
-            PuzzleBoxTheme(darkTheme = false) {
+            PuzzleBoxTheme(darkTheme = darkTheme) {
                 PuzzleBoxApp(
                     windowWidthSizeClass = calculateWindowSizeClass(rule.activity).widthSizeClass,
                     navigator = rememberNavigator(initial).also { navigator = it },
