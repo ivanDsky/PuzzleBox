@@ -41,6 +41,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
 import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
@@ -101,7 +102,7 @@ val domainModule = module {
     }
     factory { ObserveWindowRefresh(network = get()) }
     factory { ObserveLatestSolvedToday(completions = get(), calendar = get(), registry = get()) }
-    factory { ObserveResultRank(leaderboard = get(), registry = get()) }
+    factory { ObserveResultRank(leaderboard = get(), registry = get(), friendDay = get()) }
     factory {
         CreateDraft(
             registry = get(),
@@ -128,6 +129,7 @@ val domainModule = module {
     }
     factory { ObserveOverall(identity = get(), completions = get()) }
     factory { ObserveFriendUids(matches = get(), identity = get()) }
+    factory { ObserveFriendDay(preferences = get(), flags = get(), friendUids = get(), linkedInDay = get()) }
     factory { GetPlayerActions(visibility = get(), completions = get()) }
     factory {
         SubmitDailyReplay(

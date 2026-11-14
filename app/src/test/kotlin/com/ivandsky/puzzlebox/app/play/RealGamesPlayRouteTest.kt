@@ -155,6 +155,8 @@ class RealGamesPlayRouteTest {
                     single<MatchResultOutbox> { FakeMatchResultOutbox() }
                     single<IdentityService> { FakeIdentityService() }
                     single<com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository> { com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository(emptyMap()) }
+                    // The game page's rank summary follows the Friends/Global setting (F20); its reader holds the phone's LinkedIn days.
+                    single<com.ivandsky.puzzlebox.data.linkedin.LinkedInDays> { com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays() }
                     single<com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider> {
                         object : com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider {
                             override suspend fun idToken(activityContext: android.content.Context) =

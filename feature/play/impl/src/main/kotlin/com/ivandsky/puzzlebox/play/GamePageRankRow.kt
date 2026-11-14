@@ -34,8 +34,12 @@ internal fun GamePageRankRow(
     SummaryLinkRow(rankRowText(state), onOpen, modifier.testTag("summary.rank"))
 }
 
-/** "You #12 of 340" from the player's own row on the board the page reads, else "Leaderboard". */
+/**
+ * "You #12 of 340" from the player's own row on the board the page reads, else "Leaderboard". In Friends scope (F20)
+ * the place and the count are the player's among their friends and connections, as the hub's Friends board has them.
+ */
 internal fun rankRowText(state: GamePageBoardState): String {
+    if (state.amongFriends) return state.standing?.let { "You #${it.place} of ${it.count}" } ?: "Leaderboard"
     val ranked = state.board as? DailyBoardState.Ranked
     val own = ranked?.let { it.pinned ?: it.rows.firstOrNull { row -> row.isSelf } }
     return if (own == null) "Leaderboard" else "You #${own.rank} of ${state.entries}"
