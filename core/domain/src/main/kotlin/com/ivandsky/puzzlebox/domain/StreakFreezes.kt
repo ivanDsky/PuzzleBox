@@ -6,6 +6,8 @@ import java.time.LocalDate
  * The freeze side of a streak. Derived from the solved days on every replay and never stored, so
  * [frozenDays] are provisional: a day that arrives later (an import, a sync) can unfreeze them.
  * [daysToNext] is null at the cap of 5 [held], where a finished ladder step banks nothing.
+ * [lastSolve] is only what the replay found for the newest solved day; the moment one Result shows
+ * is [ResultInsights.moment], which also needs that solve to be the day's first counted one.
  */
 data class StreakFreezes(
     val held: Int,

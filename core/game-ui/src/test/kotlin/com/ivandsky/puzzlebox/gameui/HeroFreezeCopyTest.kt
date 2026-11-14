@@ -99,8 +99,7 @@ class HeroFreezeCopyTest {
     @Test
     fun `a moment puts its line on the streak card`() {
         val facts = heroSampleFacts(streak = 3)
-        val lastSolve = moment(spent = listOf(tuesday))
-        val insights = facts.insights!!.copy(freezes = StreakFreezes(1, emptySet(), 2, lastSolve))
+        val insights = facts.insights!!.copy(freezes = freezes(held = 1, daysToNext = 2), moment = moment(spent = listOf(tuesday)))
         assertEquals("Streak freeze used for Tue · 1 left", resultHeroModel(facts.copy(insights = insights), Locale.US).streak!!.moment)
     }
 

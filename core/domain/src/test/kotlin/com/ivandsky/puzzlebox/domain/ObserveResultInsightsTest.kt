@@ -284,7 +284,7 @@ class ObserveResultInsightsTest {
         assertEquals(2, result.streak)
         val freezes = result.freezes!!
         assertEquals(setOf(yesterday), freezes.frozenDays)
-        assertEquals(StreakFreezes.Moment(today, spent = listOf(yesterday), earned = false), freezes.lastSolve)
+        assertEquals(StreakFreezes.Moment(today, spent = listOf(yesterday), earned = false), result.moment)
         assertEquals(listOf(false, false, false, false, true, false, true), result.week.map { it.solved })
         assertEquals(listOf(false, false, false, false, false, true, false), result.week.map { it.frozen })
         assertTrue(result.week.none { it.solved && it.frozen })
@@ -306,7 +306,7 @@ class ObserveResultInsightsTest {
         completions.setRecords((1L..6L).map { record(alpha, it, 60_000L) })
         daily.addEntry(captured(alpha, 0))
 
-        val moment = insights(alpha, 0, now, counted = true, flags = freezeOn).first()!!.freezes!!.lastSolve
+        val moment = insights(alpha, 0, now, counted = true, flags = freezeOn).first()!!.moment
 
         assertEquals(StreakFreezes.Moment(today, spent = emptyList(), earned = true), moment)
     }
@@ -315,10 +315,10 @@ class ObserveResultInsightsTest {
     fun `a solve that spent and earned nothing has no moment`() = runTest {
         daily.addEntry(captured(alpha, 0))
 
-        val freezes = insights(alpha, 0, now, counted = true, flags = freezeOn).first()!!.freezes!!
+        val result = insights(alpha, 0, now, counted = true, flags = freezeOn).first()!!
 
-        assertEquals(2, freezes.held)
-        assertNull(freezes.lastSolve)
+        assertEquals(2, result.freezes!!.held)
+        assertNull(result.moment)
     }
 
     @Test
@@ -326,10 +326,10 @@ class ObserveResultInsightsTest {
         completions.setRecords(listOf(record(alpha, 0, now.timeMs), record(alpha, 2, 60_000L)))
         daily.addEntry(captured(alpha, 0))
 
-        val freezes = insights(alpha, 0, now, counted = false, flags = freezeOn).first()!!.freezes!!
+        val result = insights(alpha, 0, now, counted = false, flags = freezeOn).first()!!
 
-        assertNull(freezes.lastSolve)
-        assertEquals(setOf(today.minusDays(1)), freezes.frozenDays)
+        assertNull(result.moment)
+        assertEquals(setOf(today.minusDays(1)), result.freezes!!.frozenDays)
     }
 
     @Test
@@ -339,7 +339,7 @@ class ObserveResultInsightsTest {
 
         val result = insights(alpha, 0, now, counted = true, flags = freezeOn).first()!!
 
-        assertNull(result.freezes!!.lastSolve)
+        assertNull(result.moment)
         assertTrue(result.week[5].frozen)
     }
 
