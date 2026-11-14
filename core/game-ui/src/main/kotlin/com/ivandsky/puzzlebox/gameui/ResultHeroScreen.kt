@@ -50,7 +50,8 @@ private const val SIDE_WEIGHT = 1f
  * Layout by measured width: under 760 dp one column, hero then side; from 760 dp two
  * columns weighted 1.1 to 1 with 32 dp page padding, the content capped at 1040 dp. The hero
  * time takes its 96 sp step once the hero column is 520 dp. In two columns both cards are
- * as tall as the taller one, each keeping its content at the top; one column never stretches.
+ * as tall as the taller one; one column never stretches. A stretched side card keeps its content at the top;
+ * a stretched hero card keeps its body there and pins the actions to its bottom padding.
  * The cards report their content's own height and are given the larger of the two as a minimum
  * height, so a content change (the chart's scope switch) moves both. This replaces an intrinsic-height
  * row, which the chart's constraint-reading layout cannot answer. A pane under 480 dp tall
@@ -106,8 +107,9 @@ fun ResultHeroScreen(
                     val equalHeight = Modifier.minHeightPx { maxOf(heroHeight.intValue, sideHeight.intValue) }
                     Row(horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top) {
                         ResultHeroCard(
-                            model, brand, Modifier.weight(HERO_WEIGHT).then(equalHeight), wide, actions,
-                            contentModifier = Modifier.reportContentHeight { heroHeight.intValue = it },
+                            model, brand, Modifier.weight(HERO_WEIGHT), wide, actions,
+                            contentModifier = equalHeight,
+                            onContentHeight = { heroHeight.intValue = it },
                         )
                         ResultSideCard(
                             model, brand, onSignIn, Modifier.weight(SIDE_WEIGHT).then(equalHeight), wide,
