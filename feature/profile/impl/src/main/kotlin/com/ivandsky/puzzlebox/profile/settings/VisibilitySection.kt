@@ -24,11 +24,13 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
  * The Settings Visibility block: the four-step ladder, each step saying what it opens; the effective tier of [own] is
- * selected (none while [OwnTier.Unknown]). Stateless: it reports the tapped tier.
+ * selected. While [OwnTier.Unknown] (signed out, or the stored tier not read yet) none is selected and the steps are
+ * shown disabled: there is no tier to change yet. Stateless: it reports the tapped tier.
  */
 @Composable
 internal fun VisibilitySection(own: OwnTier, onSelect: (VisibilityTier) -> Unit, modifier: Modifier = Modifier) {
     val selected = own.effective
+    val known = own != OwnTier.Unknown
     Column(
         modifier = modifier.fillMaxWidth().testTag("settings.visibility"),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -36,24 +38,24 @@ internal fun VisibilitySection(own: OwnTier, onSelect: (VisibilityTier) -> Unit,
         SectionTitle("Visibility")
         Column(Modifier.selectableGroup()) {
             VisibilityTier.entries.forEach { tier ->
-                VisibilityRow(tier, selected = tier == selected, onClick = { onSelect(tier) })
+                VisibilityRow(tier, selected = tier == selected, enabled = known, onClick = { onSelect(tier) })
             }
         }
     }
 }
 
 @Composable
-private fun VisibilityRow(tier: VisibilityTier, selected: Boolean, onClick: () -> Unit) {
+private fun VisibilityRow(tier: VisibilityTier, selected: Boolean, enabled: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = MinRowHeight)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+            .selectable(selected = selected, enabled = enabled, role = Role.RadioButton, onClick = onClick)
             .testTag("settings.visibility.${tier.storageName}"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
-        RadioButton(selected = selected, onClick = null)
+        RadioButton(selected = selected, onClick = null, enabled = enabled)
         Column {
             Text(text = tier.title(), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
             Text(

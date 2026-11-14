@@ -10,6 +10,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
@@ -113,6 +114,17 @@ class SettingsScreenTest {
         VisibilityTier.entries.forEach {
             composeRule.onNodeWithTag("settings.visibility.${it.storageName}").performScrollTo().assertIsNotSelected()
         }
+    }
+
+    @Test
+    fun `an unloaded tier ignores taps`() {
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", visibility = OwnTier.Unknown))
+
+        VisibilityTier.entries.forEach {
+            composeRule.onNodeWithTag("settings.visibility.${it.storageName}").performScrollTo().performClick().assertIsNotEnabled()
+        }
+
+        assertEquals(emptyList<VisibilityTier>(), tiers)
     }
 
     @Test
