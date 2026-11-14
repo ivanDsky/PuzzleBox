@@ -16,9 +16,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     /** PuzzleBox as an Android share target for plain text. */
     ShareTarget(label = "Share text to PuzzleBox", releaseDefault = false),
 
-    /** Competitions: async 1v1 duels between friends; live since 0.26.0. */
-    Competitions(label = "Competitions: 1v1 duels", releaseDefault = true),
-
     /** LinkedIn account: imports the player's own results and shows connections as ghost rows (ADR-0028). Live. */
     LinkedInAccount(label = "LinkedIn: account results + connections", releaseDefault = true),
 

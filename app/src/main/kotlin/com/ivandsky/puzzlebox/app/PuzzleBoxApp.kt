@@ -44,7 +44,6 @@ import com.ivandsky.puzzlebox.app.nav.ranksTopLevelDestinations
 import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.Competitions
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag.LeaderboardHub
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
@@ -83,7 +82,7 @@ import org.koin.compose.koinInject
  * A [pendingLink] (a tapped share link's URI) lands on the back stack in the composition
  * that first sees it, so a cold start draws the friend's card on its first frame; then
  * [onLinkApplied]. A link whose code doesn't parse opens Play's code sheet holding its text.
- * A duel link (`/m/`) opens the duel screen when the Competitions flag is on.
+ * A duel link (`/m/`) opens the duel screen.
  * A [pendingShare] (shared text waiting in the store, which `MainActivity` filled) shows
  * Create's root the same way, then [onShareApplied]; the root imports the text.
  * With the LeaderboardHub flag on the third tab is Ranks ([ranksTopLevelDestinations]) and its
@@ -104,7 +103,6 @@ fun PuzzleBoxApp(
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
     val libraryRequests = rememberLibraryRequests()
     val releaseFlags = koinInject<ReleaseFlags>()
-    val competitions = Competitions in releaseFlags.enabled.collectAsStateWithLifecycle().value
     // Navigation3 keeps a stack's entries until the stack changes, so a flip mid-run would
     // rename the tab over History's still-showing root; the tab and the root flip together
     // on the next launch instead.
@@ -112,7 +110,7 @@ fun PuzzleBoxApp(
     if (pendingLink != null) {
         remember(pendingLink) {
             FriendLink.of(pendingLink)?.let { link ->
-                navigator.applyFriendLink(link, competitions)
+                navigator.applyFriendLink(link)
                 if (link is FriendLink.Invalid) codeDraft = link.text
             }
         }
@@ -156,20 +154,16 @@ fun PuzzleBoxApp(
     val anyInProgress by remember(todaySet) {
         todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)
-    val duels = if (competitions) {
-        remember(navigator) {
-            DuelsSlot(
-                content = { listState ->
-                    DuelsTab(onOpenDuel = navigator::pushOnce, onOpenReveal = navigator::pushOnce, listState = listState)
-                },
-                needYou = { rememberDuelsNeedYou() },
-                onOpenDuel = navigator::pushOnce,
-            )
-        }
-    } else {
-        null
+    val duels = remember(navigator) {
+        DuelsSlot(
+            content = { listState ->
+                DuelsTab(onOpenDuel = navigator::pushOnce, onOpenReveal = navigator::pushOnce, listState = listState)
+            },
+            needYou = { rememberDuelsNeedYou() },
+            onOpenDuel = navigator::pushOnce,
+        )
     }
-    val badged = playTabBadged(anyInProgress, duelsNeedYou = duels?.needYou?.invoke() ?: 0)
+    val badged = playTabBadged(anyInProgress, duelsNeedYou = duels.needYou())
     // A tap on the selected tab at its root is a reducer no-op, so the shell spots it here
     // and tells the roots; the tap still goes through selectTab.
     val tabReselect = remember { MutableSharedFlow<Unit>(extraBufferCapacity = 1) }
