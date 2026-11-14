@@ -16,6 +16,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,6 +33,7 @@ import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.maxContentWidth
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -40,7 +43,8 @@ private val DAY_GROUP_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("E
  * History's list column (spec A18, A28): the All stats and week/month calendar, then
  * every game's paged rows grouped under a day label. A day picked on the calendar swaps
  * the pages for that day's rows from the state, under a pill that clears it. Nothing
- * played yet shows only the empty state.
+ * played yet shows only the empty state; a history that was restoring fills in with the
+ * list's insert motion ([restoreMotion]) when the restore ends with rows.
  */
 @Composable
 internal fun ListPane(
@@ -55,6 +59,11 @@ internal fun ListPane(
     modifier: Modifier = Modifier,
 ) {
     val empty = days.loadState.refresh is LoadState.NotLoading && days.itemCount == 0
+    // A history that showed the first restore's card fills in with the insert motion once it ends; others never move.
+    val seen = remember { mutableStateOf(state.restoring) }
+    LaunchedEffect(state.restoring) { if (state.restoring) seen.value = true }
+    val restored = seen.value
+    val reduced = rememberReducedMotion()
     val listState = rememberLazyListState()
     OnTabReselect { listState.animateScrollToItem(0) }
     LazyColumn(
@@ -86,7 +95,7 @@ internal fun ListPane(
             }
         }
         if (empty) {
-            emptyItem(cardColor, restoring = state.restoring)
+            emptyItem(cardColor, restoring = state.restoring, restored = restored, reduced = reduced)
             return@LazyColumn
         }
         // Stats and the calendar are always items 1 and 2 (rows start at 3), filled once they load.
@@ -95,7 +104,7 @@ internal fun ListPane(
                 HistoryStatsHeader(
                     stats = stats,
                     cardColor = cardColor,
-                    modifier = Modifier.padding(horizontal = Spacing.lg),
+                    modifier = restoreMotion(restored, reduced).padding(horizontal = Spacing.lg),
                 )
             }
         }
@@ -105,7 +114,7 @@ internal fun ListPane(
                 onShowCalendar = onShowCalendar,
                 onSelectDay = onSelectDay,
                 cardColor = cardColor,
-                modifier = Modifier.padding(horizontal = Spacing.lg),
+                modifier = restoreMotion(restored, reduced).padding(horizontal = Spacing.lg),
             )
         }
         state.selectedDay?.let { day ->
@@ -150,7 +159,7 @@ internal fun ListPane(
         ) { index ->
             val row = days[index] ?: return@items
             Column(
-                modifier = Modifier.padding(horizontal = Spacing.lg),
+                modifier = restoreMotion(restored, reduced).padding(horizontal = Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 // A day's first row carries its label; peek never triggers a page load.
@@ -175,11 +184,14 @@ internal fun ListPane(
     }
 }
 
-/** The tab's "Nothing here yet" card; while the first cloud [restoring] runs, the history is coming back instead (A34). */
-private fun LazyListScope.emptyItem(cardColor: Color, restoring: Boolean) {
+/**
+ * The tab's "Nothing here yet" card; while the first cloud [restoring] runs, the history is coming back instead (A34),
+ * and a [restored] history's card fades out with the [restoreMotion] as its rows fill in.
+ */
+private fun LazyListScope.emptyItem(cardColor: Color, restoring: Boolean, restored: Boolean, reduced: Boolean) {
     item(key = "empty") {
         Surface(
-            modifier = Modifier
+            modifier = restoreMotion(restored, reduced)
                 .fillMaxWidth()
                 .padding(horizontal = Spacing.lg, vertical = Spacing.xl),
             shape = MaterialTheme.shapes.large,
