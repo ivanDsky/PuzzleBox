@@ -6,7 +6,6 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
@@ -121,7 +120,7 @@ class ShellSummariesE2ETest {
         assertState(tabAt(HomeKey))
     }
 
-    private fun duels() = shellRobot(graph = shellGraph(ReleaseFlag.Competitions)) {
+    private fun duels() = shellRobot(graph = shellGraph()) {
         seedDuelNeedingMe()
         assertRoute(HOME)
         tap(DUELS_ROW)
@@ -150,7 +149,7 @@ class ShellSummariesE2ETest {
         assertState(tabAt(PlayKey))
     }
 
-    private fun sweep() = shellRobot(tabAt(PlayKey, todaysResult()), graph = rankedGraph(ReleaseFlag.Competitions)) {
+    private fun sweep() = shellRobot(tabAt(PlayKey, todaysResult()), graph = rankedGraph()) {
         seedBoards()
         seedDuelNeedingMe()
         assertRoute(RESULT)
@@ -199,14 +198,14 @@ class ShellSummariesE2ETest {
     }
 
     /** Today's Zip daily solved, signed out. */
-    private fun solvedGraph(vararg also: ReleaseFlag) = shellGraph(*also).apply {
+    private fun solvedGraph() = shellGraph().apply {
         records.setRecords(
             listOf(CompletionRecord(ZipPuzzleRef(PuzzleKey.Daily(E2E_TODAY, ZIP_NUMBER)), TIME_MS, 0, RecordStats(1, "{}"))),
         )
     }
 
     /** [solvedGraph], signed in: Today's rank row then needs only the board. */
-    private fun rankedGraph(vararg also: ReleaseFlag) = solvedGraph(*also).apply {
+    private fun rankedGraph() = solvedGraph().apply {
         identity.currentIdentity = Identity(uid = ME, displayName = ME_NAME, photoUrl = null)
     }
 

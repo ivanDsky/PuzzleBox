@@ -5,7 +5,6 @@ import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -32,7 +31,6 @@ import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.ActivePlay
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -56,7 +54,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class DuelFlowE2ETest {
 
-    private val graph = E2eKoinGraph(E2E_TODAY, releaseFlags = FakeReleaseFlags(ReleaseFlag.Competitions))
+    private val graph = E2eKoinGraph(E2E_TODAY)
 
     @Test
     fun aCreatedDuelReachesTheRevealAndThenTheSummary() = duel {

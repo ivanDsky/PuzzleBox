@@ -7,11 +7,6 @@ import org.junit.Test
 class ShippedReleaseFlagsTest {
 
     @Test
-    fun `shipped flags include Competitions since its flip`() {
-        assertTrue(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.Competitions))
-    }
-
-    @Test
     fun `shipped flags include LinkedInAccount`() {
         assertTrue(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.LinkedInAccount))
     }

@@ -8,7 +8,6 @@ import androidx.compose.ui.test.performScrollToNode
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -52,7 +51,6 @@ import com.ivandsky.puzzlebox.play.ActivePlay
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import java.time.Instant
 import java.time.LocalDate
@@ -109,7 +107,6 @@ class OfficialLegE2ETest {
             }
             single<CompletionRepository> { get<Koin>(named(ROOM)).get() }
         },
-        releaseFlags = FakeReleaseFlags(ReleaseFlag.Competitions),
     )
 
     /** The app's puzzle day: the streak counts back from it, so the duel's puzzles sit on it. */

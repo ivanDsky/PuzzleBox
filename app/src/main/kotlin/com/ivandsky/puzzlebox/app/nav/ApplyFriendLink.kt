@@ -11,12 +11,11 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
  *
  * - A code pushes its card once; when that card is already on Play's stack (the friend is
  *   mid-puzzle) selecting Play is the whole move, since a key appears once per stack.
- * - A match pushes its duel once the same way; with [matchesEnabled] off it changes nothing.
+ * - A match pushes its duel once the same way.
  * - Invalid text returns Play to its root, the library that hosts the code sheet; a board
  *   popped on the way saves like any other.
  */
-internal fun Navigator.applyFriendLink(link: FriendLink, matchesEnabled: Boolean) {
-    if (link is FriendLink.Match && !matchesEnabled) return
+internal fun Navigator.applyFriendLink(link: FriendLink) {
     if (state.tab != PlayKey) selectTab(PlayKey)
     when (link) {
         is FriendLink.Code -> {

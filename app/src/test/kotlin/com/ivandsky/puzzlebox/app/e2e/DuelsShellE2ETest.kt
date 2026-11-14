@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.CreateResult
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -14,10 +13,8 @@ import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.time.Instant
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -25,40 +22,25 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The shell's Competitions wiring over the real app: with the flag off Games has no Duels tab and Play carries no
- * dot for a duel waiting on the player; with it on the tab is there and the dot shows.
+ * The shell's duels wiring over the real app: Games has the Duels tab and Play carries the dot for a duel waiting on
+ * the player.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
-class DuelsShellFlagE2ETest {
+class DuelsShellE2ETest {
 
     @Test
-    fun withTheFlagOffGamesHasNoDuelsTabAndPlayCarriesNoDot() = shellRobot(graph = graph(FakeReleaseFlags())) {
+    fun gamesHasTheDuelsTabAndPlayCarriesTheDot() = shellRobot(graph = E2eKoinGraph(E2E_TODAY)) {
         seedDuelNeedingMe()
-        rule.waitForIdle()
-        assertFalse("Play carries no dot for the duel", shows(PLAY_BADGE))
+        awaitTag(PLAY_BADGE)
 
         tapTab(PlayKey)
-        awaitTag("route.library")
-        awaitTag("library.row.${ZipDefinition.id.value}")
-        assertFalse("Games has no Duels tab", shows("library.tab.duels"))
+        awaitTag("library.tab.duels")
+        assertTrue("Games has the Duels tab", shows("library.tab.duels"))
+        tapTab(HomeKey)
+        assertTrue("Play still carries the dot elsewhere", shows(PLAY_BADGE))
     }
-
-    @Test
-    fun withTheFlagOnGamesHasTheDuelsTabAndPlayCarriesTheDot() =
-        shellRobot(graph = graph(FakeReleaseFlags(ReleaseFlag.Competitions))) {
-            seedDuelNeedingMe()
-            awaitTag(PLAY_BADGE)
-
-            tapTab(PlayKey)
-            awaitTag("library.tab.duels")
-            assertTrue("Games has the Duels tab", shows("library.tab.duels"))
-            tapTab(HomeKey)
-            assertTrue("Play still carries the dot elsewhere", shows(PLAY_BADGE))
-        }
-
-    private fun graph(flags: FakeReleaseFlags) = E2eKoinGraph(E2E_TODAY, releaseFlags = flags)
 
     /** A friend's duel inviting the player: one duel needs them. */
     private fun ShellRobot.seedDuelNeedingMe() = runBlocking {
