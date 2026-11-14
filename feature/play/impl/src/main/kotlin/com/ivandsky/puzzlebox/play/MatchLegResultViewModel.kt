@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapLatest
@@ -109,7 +110,7 @@ internal class MatchLegResultViewModel(
 
     /**
      * One read once my result is queued: the outbox row is enqueued with its replay already attached (tickets 73, 74), so
-     * a later read would find nothing new.
+     * a later read would find nothing new. It starts Hidden, so the page never waits for the decode.
      */
     private val replay: Flow<ReplaySectionState> = if (code == null || match == null) {
         flowOf(ReplaySectionState.Hidden)
@@ -117,6 +118,7 @@ internal class MatchLegResultViewModel(
         match.map(::queuedGame)
             .distinctUntilChanged()
             .mapLatest { game -> game?.let { replayOf(code, it) } ?: ReplaySectionState.Hidden }
+            .onStart { emit(ReplaySectionState.Hidden) }
     }
 
     val state: StateFlow<MatchLegResultState> = combine(

@@ -59,6 +59,8 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlin.coroutines.CoroutineContext
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -176,16 +178,25 @@ class MatchLegResultViewModelTest {
         server.signedInUid = ann.uid
     }
 
-    private fun page(leg: Int = 0, timeMs: Long = 60_000, hints: Int = 1, gaveUp: Boolean = false): MatchLegResultViewModel {
+    private fun page(
+        leg: Int = 0,
+        timeMs: Long = 60_000,
+        hints: Int = 1,
+        gaveUp: Boolean = false,
+        decode: DispatcherProvider = testDispatchers(dispatcher),
+    ): MatchLegResultViewModel {
         val observe = ObserveMatch(server, outbox, FakeMatchLocalRepository(), identity, games) { Instant.EPOCH }
         val key = MatchLegResultKey(code.value, leg, if (gaveUp) 0 else timeMs, if (gaveUp) 0 else hints, gaveUp)
-        return MatchLegResultViewModel(key, store, observe, games, uis, loadReplay()).also { vm ->
+        return MatchLegResultViewModel(key, store, observe, games, uis, loadReplay(decode = decode)).also { vm ->
             screen.launch { vm.state.collect {} }
             dispatcher.scheduler.runCurrent()
         }
     }
 
-    private fun loadReplay(flags: FakeReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay)): LoadSolveReplay {
+    private fun loadReplay(
+        flags: FakeReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
+        decode: DispatcherProvider = testDispatchers(dispatcher),
+    ): LoadSolveReplay {
         val received = FakeReceivedPuzzleRepository()
         val loadShared = LoadSharedPuzzle(games, FakeSharedPuzzleRepository(), received, { Budget.Unlimited }, { Instant.EPOCH })
         val completions = FakeCompletionRepository()
@@ -197,8 +208,21 @@ class MatchLegResultViewModelTest {
             leg = LoadLegReplay(matches, outbox, identity, daily, received, loadShared),
             player = LoadPlayerReplay(FakeDailyReplayRepository(), daily),
             completions = completions,
-            dispatchers = testDispatchers(dispatcher),
+            dispatchers = decode,
         )
+    }
+
+    /** Holds every piece of work sent to it until [release]: a decode that stays suspended. */
+    private class GatedDispatcher : CoroutineDispatcher() {
+        private val held = ArrayList<Runnable>()
+        private var open = false
+        override fun dispatch(context: CoroutineContext, block: Runnable) {
+            if (open) block.run() else held += block
+        }
+        fun release() {
+            open = true
+            held.toList().also { held.clear() }.forEach { it.run() }
+        }
     }
 
     private fun MatchLegResultViewModel.ready() = state.value as MatchLegResultState.Ready
@@ -362,6 +386,24 @@ class MatchLegResultViewModelTest {
         dispatcher.scheduler.runCurrent()
         assertTrue(vm.ready().replay is ReplaySectionState.Ready)
         assertEquals(1, replayLookups)
+    }
+
+    @Test
+    fun thePageIsReadyWhileTheReplayDecodeIsStillSuspended() {
+        duel()
+        myRow(2, replay = ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES))
+        val gate = GatedDispatcher()
+        val vm = page(leg = 2, decode = object : DispatcherProvider {
+            override val main = dispatcher
+            override val io = dispatcher
+            override val default: CoroutineDispatcher = gate
+        })
+
+        assertEquals(ReplaySectionState.Hidden, vm.ready().replay)
+
+        gate.release()
+        dispatcher.scheduler.runCurrent()
+        assertTrue(vm.ready().replay is ReplaySectionState.Ready)
     }
 
     @Test

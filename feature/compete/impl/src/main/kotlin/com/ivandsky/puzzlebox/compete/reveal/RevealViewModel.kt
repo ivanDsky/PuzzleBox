@@ -180,7 +180,7 @@ internal class RevealViewModel(
         }
         race = next
         val summary = duelSummary(view.match, plan, view.outcome, zone, locale)
-        val compareLegs = if (withoutReplay == null) emptySet() else comparableLegs(view) - withoutReplay
+        val compareLegs = if (withoutReplay == null || !loadReplay.enabled) emptySet() else comparableLegs(view) - withoutReplay
         return RevealUiState.Running(view.match, next.plan, next.start, next.rerun, summary, compareLegs)
     }
 

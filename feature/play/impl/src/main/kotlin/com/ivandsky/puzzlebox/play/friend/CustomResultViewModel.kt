@@ -38,6 +38,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -183,7 +184,7 @@ internal class CustomResultViewModel(
             } else {
                 ReplaySectionState.Hidden
             }
-        }
+        }.onStart { emit(ReplaySectionState.Hidden) }
     }
 
     /** [records] newest first; the row that stands is the record row, else the oldest. */
