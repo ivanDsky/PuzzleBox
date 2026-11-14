@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.domain.ranks
 
 import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
-import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.game.BestScore
@@ -18,29 +17,14 @@ private const val CONNECTION_UID = "linkedin:"
 fun connectionUid(memberRef: String): String = CONNECTION_UID + memberRef
 
 /**
- * These Friends boards ([amongFriends]) with the LinkedIn [days] the phone has saved counted on them (F21): every
- * loaded board that has a saved day takes it in ([BoardPage.withConnections]). Ranking the result with [rankBoard],
- * [overall] or [gameWindowStandings] then places the connections among the friends, and N counts them. Local data
- * only: nothing is read, and a board without a saved day is as it was.
- */
-fun RankWindowBoards.withConnections(days: Map<LeaderboardRef, LinkedInDayView>, viewerUid: String?): RankWindowBoards {
-    if (this !is RankWindowBoards.Boards || days.isEmpty()) return this
-    return RankWindowBoards.Boards(
-        boards.map { load ->
-            val day = days[load.board]
-            if (load is BoardLoad.Loaded && day != null) load.copy(page = load.page.withConnections(day, viewerUid)) else load
-        },
-    )
-}
-
-/**
  * One board's entries with a LinkedIn [day] merged in by the rule of the Day board (`linkedInTimeWins`): a connection
  * with a time is one more entry under its [connectionUid]; a hidden time takes no place and is not counted; a
  * connection named like an entry is that same player, so the entry takes the connection's time and the connection is
  * not added; the viewer's own import replaces their time only on an entry they really have. Entries come first, so on
- * a tie the PuzzleBox entry is listed before the connection.
+ * a tie the PuzzleBox entry is listed before the connection. Internal: a board takes connections only as a step of
+ * [friendBoard], after it is narrowed to the friends.
  */
-fun BoardPage.withConnections(day: LinkedInDayView, viewerUid: String?): BoardPage {
+internal fun BoardPage.withConnections(day: LinkedInDayView, viewerUid: String?): BoardPage {
     val ghosts = (day.board as? LinkedInBoardView.Shown)?.ghosts.orEmpty()
     val self = entries.indexOfFirst { it.uid == viewerUid }.takeIf { it >= 0 }
     val own = day.ownScore.takeIf { self != null }

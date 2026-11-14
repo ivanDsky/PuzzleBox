@@ -37,7 +37,7 @@ private const val OVERALL_CAPTION = "Points from every game's board. Higher is b
 internal class RanksBoardSlices(
     private val boards: List<RanksBoard>,
     private val window: Flow<RankWindow>,
-    private val scopedBoards: (RankScope) -> Flow<Pair<RankWindow, RankWindowBoards>?>,
+    private val scopedBoards: (RankScope) -> Flow<Pair<RankWindow, RanksScopedBoards.Scoped>?>,
     private val observeOverall: ObserveOverall,
     private val viewer: Flow<Identity?>,
     private val history: Flow<List<HistoryDayRow>>,
