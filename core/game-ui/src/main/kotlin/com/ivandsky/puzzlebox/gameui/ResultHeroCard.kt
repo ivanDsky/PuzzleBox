@@ -26,17 +26,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.constrainHeight
-import androidx.compose.ui.unit.constrainWidth
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.offset
 import com.ivandsky.puzzlebox.designsystem.NewBestBurst
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -72,11 +67,11 @@ private val BurstOrigin = Offset(0.3f, 0.5f)
  * once and skips the pulse, burst and sweep band; a preview shows the end state.
  * [wide] sets the 96 sp time of a wide container over the phone's 76 sp.
  * [actions] is the action row, entering on its beat; null draws none. The row sits [Spacing.lg] under the
- * chips. When the card is stretched taller than its content (a taller side card beside it) the spare height is
- * shared equally among the gaps between the blocks: the header stays on the top padding and the actions rest on
- * the bottom padding. [contentModifier] is applied to the content,
+ * chips. When the card is stretched taller than its content (a taller side card beside it) it falls into three
+ * zones: the header on the top padding, the best line, chips and actions grouped on the bottom padding, and the
+ * time between them, grown to fill the spare height. [contentModifier] is applied to the content,
  * padding included, so the screen can give it a minimum height; [onContentHeight] gets the height the content
- * takes unstretched (body, gap and actions, plus padding), which never depends on that minimum.
+ * takes unstretched (time at its own size, plus padding), which never depends on that minimum.
  */
 @Composable
 internal fun ResultHeroCard(
@@ -109,11 +104,13 @@ internal fun ResultHeroCard(
     ) {
         HeroContent(
             padding = if (wide) Spacing.xl else Spacing.lg,
+            timeGapTop = Spacing.xl,
+            timeGapBottom = Spacing.sm,
             modifier = contentModifier,
             onNaturalHeight = onContentHeight,
         ) {
             HeroHeader(model, brand)
-            Box(Modifier.padding(top = Spacing.xl, bottom = Spacing.sm).resultBeat(ResultBeats.Time)) {
+            Box(Modifier.resultBeat(ResultBeats.Time)) {
                 if (model.burst) {
                     NewBestBurst(
                         trigger = celebrated,
@@ -150,46 +147,6 @@ internal fun ResultHeroCard(
             }
             if (actions != null) {
                 Box(Modifier.padding(top = Spacing.lg).resultBeat(ResultBeats.Actions)) { actions() }
-            }
-        }
-    }
-}
-
-/**
- * The hero's content: its blocks (the header, the time, the best line when there is one, the chips and the actions
- * when there are any, each a single child of [content]) stacked top to bottom inside [padding], each keeping the
- * spacing its own padding gives it. Given more height than that (the card's minimum, from [modifier]) the extra is
- * shared equally among the gaps between consecutive blocks: the first block stays on the top padding and the last (the
- * actions, when there are any) rests on the bottom padding. With no spare height the blocks sit as in a plain column.
- *
- * Blocks are measured free of the incoming minimum height, so the natural height, passed to [onNaturalHeight] with the
- * padding, is the same however tall the card is stretched and the screen can set the minimum from it without a loop.
- * The report is made here because the stretched node's own size is no longer the natural one for `onSizeChanged` to see;
- * writing the same height again is a no-op for the screen's state, so only a real change relays out the cards.
- */
-@Composable
-private fun HeroContent(
-    padding: Dp,
-    modifier: Modifier,
-    onNaturalHeight: ((Int) -> Unit)?,
-    content: @Composable () -> Unit,
-) {
-    Layout(content = content, modifier = modifier) { measurables, constraints ->
-        val pad = padding.roundToPx()
-        val free = constraints.offset(horizontal = -2 * pad, vertical = -2 * pad).copy(minHeight = 0)
-        val blocks = measurables.map { it.measure(free) }
-        val natural = blocks.sumOf { it.height } + 2 * pad
-        onNaturalHeight?.invoke(natural)
-        val width = constraints.constrainWidth(blocks.maxOf { it.width } + 2 * pad)
-        val height = constraints.constrainHeight(natural)
-        val extra = (height - natural).coerceAtLeast(0)
-        val gaps = blocks.size - 1
-        layout(width, height) {
-            var y = pad
-            blocks.forEachIndexed { index, block ->
-                // Cumulative rounding: the gaps differ by a pixel at most and the last block lands on the bottom padding.
-                block.place(pad, y + if (gaps == 0) 0 else extra * index / gaps)
-                y += block.height
             }
         }
     }
