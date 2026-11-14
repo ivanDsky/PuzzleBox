@@ -230,6 +230,7 @@ class CustomResultViewModelTest {
     private fun loadReplay(
         games: GameRegistry,
         flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
+        dispatchers: DispatcherProvider = InlineDispatcherProvider,
     ): LoadSolveReplay {
         val loadShared = LoadSharedPuzzle(games, FakeSharedPuzzleRepository(), received, { Budget.Unlimited }, { Instant.EPOCH })
         return LoadSolveReplay(
@@ -240,7 +241,7 @@ class CustomResultViewModelTest {
             leg = LoadLegReplay(FakeMatchRepository(), FakeMatchResultOutbox(), FakeIdentityService(), FakeDailyRepository(), received, loadShared),
             player = LoadPlayerReplay(FakeDailyReplayRepository(), FakeDailyRepository()),
             completions = completions,
-            dispatchers = InlineDispatcherProvider,
+            dispatchers = dispatchers,
         )
     }
 
@@ -250,6 +251,7 @@ class CustomResultViewModelTest {
         flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
         board: GameReplayBoard? = ReplayBoard,
         store: PlaySessionStore = checkNotNull(koin).koin.get(),
+        dispatchers: DispatcherProvider = InlineDispatcherProvider,
     ): CustomResultViewModel {
         storeFixturePuzzle()
         fixtureUi.replayBoard = board
@@ -257,7 +259,7 @@ class CustomResultViewModelTest {
         val viewModel = CustomResultViewModel(
             CustomResultKey(fixture.value, code.value, timeMs, 0), completions, received, fixtureGames,
             GamePlayRegistry(listOf(fixtureUi)),
-            koin.get(), store, koin.get(), loadReplay(fixtureGames, flags),
+            koin.get(), store, koin.get(), loadReplay(fixtureGames, flags, dispatchers),
         )
         screen.launch { viewModel.state.collect {} }
         main.testDispatcher.scheduler.runCurrent()
@@ -354,6 +356,38 @@ class CustomResultViewModelTest {
         assertFalse(play.record.value.stored)
         assertTrue(play.record.value.writeFailed)
         assertEquals(ReplaySectionState.Hidden, viewModel.state.value.replay)
+    }
+
+    @Test
+    fun `the page draws its standing while the replay decode is still suspended`() {
+        solvedFixture()
+        val gate = GatedDispatcher()
+        val ui = main.testDispatcher
+        val viewModel = observedReplay(dispatchers = object : DispatcherProvider {
+            override val main = ui
+            override val io = ui
+            override val default: CoroutineDispatcher = gate
+        })
+
+        assertEquals(CustomStanding.Record, viewModel.state.value.standing)
+        assertEquals(ReplaySectionState.Hidden, viewModel.state.value.replay)
+
+        gate.release()
+        main.testDispatcher.scheduler.runCurrent()
+        assertTrue(viewModel.state.value.replay is ReplaySectionState.Ready)
+    }
+
+    /** Holds every piece of work sent to it until [release]: a decode that stays suspended. */
+    private class GatedDispatcher : CoroutineDispatcher() {
+        private val held = ArrayList<Runnable>()
+        private var open = false
+        override fun dispatch(context: CoroutineContext, block: Runnable) {
+            if (open) block.run() else held += block
+        }
+        fun release() {
+            open = true
+            held.toList().also { held.clear() }.forEach { it.run() }
+        }
     }
 
     @Test
