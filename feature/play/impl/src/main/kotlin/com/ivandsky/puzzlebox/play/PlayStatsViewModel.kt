@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.inSubmitWindow
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.PlayStats
 import com.ivandsky.puzzlebox.domain.TodayLeaderboard
+import com.ivandsky.puzzlebox.domain.heldWhileStreak
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -101,7 +102,7 @@ class PlayStatsViewModel(
         rankOrder = stats.stats.rankOrder,
         averageMs = stats.stats.averageTimeMs,
         times = times(stats.board, stats.solved, post, input),
-        freezesHeld = stats.stats.freezes?.held,
+        freezesHeld = stats.stats.freezes.heldWhileStreak(stats.stats.currentStreak),
     )
 
     /** The signed-in player's post to the slot's daily board; null when none is observed. */

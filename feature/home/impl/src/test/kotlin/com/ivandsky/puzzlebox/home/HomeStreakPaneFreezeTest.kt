@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.StreakFreezes
+import com.ivandsky.puzzlebox.domain.heldWhileStreak
 import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.Instant
 import java.time.LocalDate
@@ -70,6 +71,7 @@ class HomeStreakPaneFreezeTest {
             stats = stats,
             week = emptyList(),
             rolloverAt = Instant.EPOCH,
+            freezesHeld = freezes.heldWhileStreak(streak),
         )
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent { PuzzleBoxTheme { HomeStreakPane(state = state, modifier = Modifier.width(768.dp)) } }
