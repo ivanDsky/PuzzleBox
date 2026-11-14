@@ -6,10 +6,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,10 +13,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorProducer
-import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
@@ -106,17 +100,13 @@ private fun RanksSignInPromptPreview() {
     PuzzleBoxTheme { Box(Modifier.padding(Spacing.lg)) { RanksSignInPrompt(RanksSignIn.Idle, onSignIn = {}) } }
 }
 
-// The menu draws in its own popup below the title, so the preview reserves the room it drops into. Its rows are the title
-// menu's own ([BoardItem], the "How ranks work" row); the title keeps its open state to itself.
+// The menu draws in its own popup below the title, so the preview reserves the room it drops into.
 @PuzzleBoxPreviews
 @Composable
 private fun RanksTitleMenuOpenPreview() {
     PuzzleBoxTheme {
         Box(Modifier.padding(Spacing.lg).height(MENU_ROOM)) {
-            Box {
-                Text("Overall", style = MaterialTheme.typography.titleLarge)
-                AppDropdownMenu(expanded = true, onDismissRequest = {}) { TitleMenuRows() }
-            }
+            RanksTitleMenu("Overall", MenuPlaces, selected = RanksBoard.Overall, onPick = {}, onHowRanksWork = {}, initiallyExpanded = true)
         }
     }
 }
@@ -130,17 +120,6 @@ private val MenuPlaces = listOf(
     BoardPlace(RanksBoard.Game(GameId("queens")), "Queens", Standing.None),
     BoardPlace(RanksBoard.Game(GameId("strands")), "Strands", Standing.Pending),
 )
-
-@Composable
-private fun ColumnScope.TitleMenuRows() {
-    MenuPlaces.forEachIndexed { index, place -> BoardItem(place, selected = index == 0, index = index, reduced = false) {} }
-    HorizontalDivider(Modifier.padding(vertical = Spacing.xs), color = MaterialTheme.colorScheme.outlineVariant)
-    DropdownMenuItem(
-        text = { Text("How ranks work", style = MaterialTheme.typography.bodyLarge) },
-        leadingIcon = { Icon(PuzzleIcons.HowTo, contentDescription = null, modifier = Modifier.size(RanksMetrics.IconSize)) },
-        onClick = {},
-    )
-}
 
 @PuzzleBoxPreviews
 @Composable
