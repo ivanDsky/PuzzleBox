@@ -22,7 +22,7 @@ import kotlinx.coroutines.flow.transformLatest
 private const val DRAFTS = "drafts"
 
 /** The rules cap a draft document's blob here (ADR-0029 A9); a bigger draft is never uploaded, so it cannot trip a `Denied`. */
-private const val MAX_BLOB_BYTES = 65_536
+internal const val MAX_BLOB_BYTES = 65_536
 
 /**
  * Drafts as a synced kind (ADR-0029 A6, A17): one doc per draft id, `{formatVersion, gameId, variant,
