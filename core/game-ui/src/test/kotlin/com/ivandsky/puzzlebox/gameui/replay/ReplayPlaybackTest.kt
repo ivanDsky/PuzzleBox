@@ -468,11 +468,160 @@ class ReplayPlaybackTest {
     }
 
     @Test
+    fun `F24 the skip idle jump glides, between start and target at 200 ms and on the target from 400 ms`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.play()
+        playback.advance(16)
+        assertEquals(16L, playback.state.value.positionMs)
+
+        playback.advance(200)
+        val mid = playback.state.value.positionMs
+        assertTrue("mid-glide position $mid", mid > 16L && mid < 19_000L)
+
+        playback.advance(200)
+        assertEquals(19_000L, playback.state.value.positionMs)
+        assertTrue(playback.state.value.playing)
+    }
+
+    @Test
+    fun `F24 the glide eases out and never steps back`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.play()
+        playback.advance(16)
+        var last = playback.state.value.positionMs
+        var firstStep = 0L
+        var lastStep = 0L
+        repeat(8) { i ->
+            playback.advance(50)
+            val now = playback.state.value.positionMs
+            assertTrue(now > last)
+            if (i == 0) firstStep = now - last
+            lastStep = now - last
+            last = now
+        }
+        assertEquals(19_000L, last)
+        assertTrue("first step $firstStep, last step $lastStep", firstStep > lastStep)
+    }
+
+    @Test
+    fun `F24 no frame changes during the glide`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.play()
+        playback.advance(16)
+        val session = playback.state.value.mineFrame!!.session
+
+        repeat(8) {
+            playback.advance(50)
+            assertSame(session, playback.state.value.mineFrame!!.session)
+        }
+        assertEquals(19_000L, playback.state.value.positionMs)
+    }
+
+    @Test
+    fun `F24 a seek mid-glide lands exactly on the target and drops the glide`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.play()
+        playback.advance(16)
+        playback.advance(200)
+
+        playback.seekTo(5_000)
+        assertEquals(5_000L, playback.state.value.positionMs)
+
+        playback.advance(100)
+        assertEquals(5_100L, playback.state.value.positionMs)
+    }
+
+    @Test
+    fun `F24 next and previous move mid-glide jump at once`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.play()
+        playback.advance(16)
+        playback.advance(200)
+
+        playback.nextMove()
+        assertEquals(20_000L, playback.state.value.positionMs)
+        assertFalse(playback.state.value.playing)
+
+        playback.play()
+        playback.advance(16)
+        playback.advance(200)
+        playback.previousMove()
+        assertEquals(20_000L, playback.state.value.positionMs)
+    }
+
+    @Test
+    fun `F24 pause freezes the glide and play continues it`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.play()
+        playback.advance(16)
+        playback.advance(100)
+        val frozen = playback.state.value.positionMs
+
+        playback.pause()
+        playback.advance(1_000)
+        assertEquals(frozen, playback.state.value.positionMs)
+
+        playback.play()
+        playback.advance(300)
+        assertEquals(19_000L, playback.state.value.positionMs)
+    }
+
+    @Test
+    fun `F24 skip idle turned off mid-glide plays on at normal speed from there`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.play()
+        playback.advance(16)
+        playback.advance(100)
+        val at = playback.state.value.positionMs
+
+        playback.setSkipIdle(false)
+        playback.advance(100)
+
+        assertEquals(at + 100, playback.state.value.positionMs)
+    }
+
+    @Test
+    fun `F24 the glide lasts 400 wall ms at any speed`() {
+        val playback = ReplayPlayback(slowSolve, theirs = null)
+        playback.setSpeed(8)
+        playback.play()
+        playback.advance(16)
+        assertEquals(128L, playback.state.value.positionMs)
+
+        playback.advance(200)
+        val mid = playback.state.value.positionMs
+        assertTrue("mid-glide position $mid", mid > 128L && mid < 19_000L)
+
+        playback.advance(200)
+        assertEquals(19_000L, playback.state.value.positionMs)
+    }
+
+    @Test
+    fun `F24 a compare glides on the shared clock to the nearer next move of either side`() {
+        val theirsAt12 = ReplayFixtures.timeline(moves = 2, stepMs = 12_000)
+        val playback = ReplayPlayback(slowSolve, theirsAt12)
+        playback.play()
+        playback.advance(16)
+        val sessionMine = playback.state.value.mineFrame!!.session
+        val sessionTheirs = playback.state.value.theirsFrame!!.session
+
+        playback.advance(200)
+        val mid = playback.state.value.positionMs
+        assertTrue("mid-glide position $mid", mid > 16L && mid < 11_000L)
+        assertSame(sessionMine, playback.state.value.mineFrame!!.session)
+        assertSame(sessionTheirs, playback.state.value.theirsFrame!!.session)
+
+        playback.advance(200)
+        assertEquals(11_000L, playback.state.value.positionMs)
+    }
+
+    @Test
     fun `skip idle jumps a 20 s gap to one second before the next move`() {
         val playback = ReplayPlayback(slowSolve, theirs = null)
         playback.play()
 
         playback.advance(16)
+        playback.advance(400)
 
         assertEquals(19_000L, playback.state.value.positionMs)
         assertTrue(playback.state.value.playing)
@@ -483,6 +632,7 @@ class ReplayPlaybackTest {
         val playback = ReplayPlayback(slowSolve, theirs = null)
         playback.play()
         playback.advance(16)
+        playback.advance(400)
 
         playback.advance(500)
         assertEquals(19_500L, playback.state.value.positionMs)
@@ -491,6 +641,7 @@ class ReplayPlaybackTest {
         assertEquals(20_000L, playback.state.value.positionMs)
 
         playback.advance(4_700)
+        playback.advance(400)
         assertEquals(39_000L, playback.state.value.positionMs)
     }
 
@@ -505,6 +656,7 @@ class ReplayPlaybackTest {
         assertEquals(24_600L, playback.state.value.positionMs)
 
         playback.advance(100)
+        playback.advance(400)
         assertEquals(39_000L, playback.state.value.positionMs)
     }
 
@@ -520,6 +672,7 @@ class ReplayPlaybackTest {
 
         playback.seekTo(20_000)
         playback.advance(4_700)
+        playback.advance(400)
         assertEquals(39_000L, playback.state.value.positionMs)
     }
 
@@ -534,6 +687,7 @@ class ReplayPlaybackTest {
         assertEquals(26_600L, playback.state.value.positionMs)
 
         playback.advance(100)
+        playback.advance(400)
         assertEquals(39_000L, playback.state.value.positionMs)
     }
 
@@ -560,6 +714,7 @@ class ReplayPlaybackTest {
         assertEquals(16L, playback.state.value.positionMs)
 
         playback.advance(16)
+        playback.advance(400)
         assertEquals(19_000L, playback.state.value.positionMs)
     }
 
@@ -581,6 +736,7 @@ class ReplayPlaybackTest {
         playback.play()
 
         playback.advance(16)
+        playback.advance(400)
 
         assertEquals(19_000L, playback.state.value.positionMs)
     }
@@ -615,6 +771,7 @@ class ReplayPlaybackTest {
         playback.seekTo(1_000)
 
         playback.advance(4_700)
+        playback.advance(400)
 
         assertEquals(19_000L, playback.state.value.positionMs)
     }

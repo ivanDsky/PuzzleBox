@@ -27,9 +27,20 @@ class ReplayPlayback(
     private val _state = MutableStateFlow(stateAt(durationMs, playing = false, speed = 1, skipIdle = true, showErrors = showErrors))
     val state: StateFlow<ReplayPlaybackState> = _state.asStateFlow()
 
+    // The skip-idle glide in flight: from [glideFromMs] to [glideToMs] (-1 = none), [glideElapsedMs] of GLIDE_MS spent.
+    // Wall time, so it ignores the speed. Pause freezes it and play continues it; any jump of the position drops it.
+    private var glideFromMs = 0L
+    private var glideToMs = NO_GLIDE
+    private var glideElapsedMs = 0L
+
     /** At the end it starts over from 0. */
     fun play() = change {
-        if (it.positionMs == durationMs) it.with(positionMs = 0, playing = true) else it.with(playing = true)
+        if (it.positionMs == durationMs) {
+            glideToMs = NO_GLIDE
+            it.with(positionMs = 0, playing = true)
+        } else {
+            it.with(playing = true)
+        }
     }
 
     fun pause() = change { it.with(playing = false) }
@@ -37,18 +48,23 @@ class ReplayPlayback(
     /** 1, 2, 4 or 8. Any other value is ignored. */
     fun setSpeed(x: Int) = change { if (x in SPEEDS) it.with(speed = x) else it }
 
-    fun setSkipIdle(on: Boolean) = change { it.with(skipIdle = on) }
+    fun setSkipIdle(on: Boolean) = change {
+        if (!on) glideToMs = NO_GLIDE
+        it.with(skipIdle = on)
+    }
 
     /** Hides or shows every rule-violation mark; the position and the clock stay. */
     fun setShowErrors(on: Boolean) = change { it.with(showErrors = on) }
 
     /** Pauses on the next tick; past the last tick, on the end. */
     fun nextMove() = change {
+        glideToMs = NO_GLIDE
         it.with(positionMs = ticksMs.firstAbove(it.positionMs) ?: durationMs, playing = false)
     }
 
     /** Pauses on the tick before; before the first tick, on 0. */
     fun previousMove() = change {
+        glideToMs = NO_GLIDE
         it.with(positionMs = ticksMs.lastBelow(it.positionMs) ?: 0L, playing = false)
     }
 
@@ -57,19 +73,45 @@ class ReplayPlayback(
      * The frame a seek lands on is [ReplayPlaybackState.seeked]: it changes the board with no motion, until the next [advance].
      */
     fun seekTo(ms: Long) = change {
+        glideToMs = NO_GLIDE
         val positionMs = ms.coerceIn(0, durationMs)
         it.with(positionMs = positionMs, playing = it.playing && positionMs < durationMs, seeked = it.seeked || positionMs != it.positionMs)
     }
 
-    /** A playing replay moves on by [frameDtMs] times the speed and pauses at the end. Paused, nothing moves. */
+    /**
+     * A playing replay moves on by [frameDtMs] times the speed and pauses at the end. Paused, nothing moves.
+     * With skip idle on, a gap that [pastIdle] would jump is crossed by a glide of [GLIDE_MS] wall ms instead,
+     * eased out. It ends before the next move, so no board sees a new frame meanwhile.
+     */
     fun advance(frameDtMs: Long) = change {
         if (!it.playing) return@change it
+        if (glideToMs != NO_GLIDE) return@change glideStep(it, frameDtMs)
         val reachedMs = (it.positionMs + frameDtMs * it.speed).coerceAtLeast(0)
         when {
             reachedMs >= durationMs -> it.with(positionMs = durationMs, playing = false, seeked = false)
-            it.skipIdle -> it.with(positionMs = pastIdle(reachedMs, it.speed), seeked = false)
+            it.skipIdle -> {
+                val targetMs = pastIdle(reachedMs, it.speed)
+                if (targetMs > reachedMs) {
+                    glideFromMs = reachedMs
+                    glideToMs = targetMs
+                    glideElapsedMs = 0
+                }
+                it.with(positionMs = reachedMs, seeked = false)
+            }
             else -> it.with(positionMs = reachedMs, seeked = false)
         }
+    }
+
+    private fun glideStep(state: ReplayPlaybackState, frameDtMs: Long): ReplayPlaybackState {
+        glideElapsedMs = minOf(GLIDE_MS, glideElapsedMs + frameDtMs.coerceAtLeast(0))
+        if (glideElapsedMs == GLIDE_MS) {
+            val targetMs = glideToMs
+            glideToMs = NO_GLIDE
+            return state.with(positionMs = targetMs, seeked = false)
+        }
+        val left = 1.0 - glideElapsedMs.toDouble() / GLIDE_MS
+        val eased = 1.0 - left * left * left
+        return state.with(positionMs = glideFromMs + ((glideToMs - glideFromMs) * eased).toLong(), seeked = false)
     }
 
     private inline fun change(next: (ReplayPlaybackState) -> ReplayPlaybackState) {
@@ -140,6 +182,10 @@ class ReplayPlayback(
         val SPEEDS = intArrayOf(1, 2, 4, 8)
         const val IDLE_GAP_MS = 6_000L
         const val LEAD_IN_MS = 1_000L
+
+        /** Wall time the needle takes to cross an idle gap (ease-out cubic). */
+        const val GLIDE_MS = 400L
+        const val NO_GLIDE = -1L
 
         /**
          * Wall time a move's board animation needs before an idle jump may leave it. The worst replay step
