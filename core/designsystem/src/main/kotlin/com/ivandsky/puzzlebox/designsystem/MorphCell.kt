@@ -1,8 +1,11 @@
-package com.ivandsky.puzzlebox.play
+package com.ivandsky.puzzlebox.designsystem
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -19,8 +22,6 @@ import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.semantics
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
@@ -28,7 +29,7 @@ import kotlinx.coroutines.launch
  * How much of a [MorphCell] layer shows, 0 to 1. Opacity is invisible to semantics otherwise, and a host test has no
  * pixels to read it from.
  */
-internal val MorphAlpha = SemanticsPropertyKey<Float>("MorphAlpha")
+val MorphAlpha = SemanticsPropertyKey<Float>("MorphAlpha")
 
 /**
  * Draws [content] for [value] and, when [value] changes, morphs to the new one in place: the old layer fades and blurs
@@ -42,7 +43,7 @@ internal val MorphAlpha = SemanticsPropertyKey<Float>("MorphAlpha")
  * and starts the next. Reduced motion swaps at once.
  */
 @Composable
-internal fun <T> MorphCell(
+fun <T> MorphCell(
     value: T,
     modifier: Modifier = Modifier,
     identity: (T) -> Any? = { it },
@@ -111,3 +112,12 @@ private class MorphLayers<T>(first: T) {
 }
 
 private val Arriving = tween<Float>(MotionTokens.DayMorphIn, MotionTokens.DayMorphDelay, MotionTokens.EasingEase)
+
+// Preview — Studio tooling only. The cell at rest (a preview never animates): one value's text.
+@PuzzleBoxPreviews
+@Composable
+internal fun MorphCellPreview() {
+    PuzzleBoxTheme {
+        MorphCell("Zip #214", Modifier.padding(Spacing.md)) { Text(it, style = MaterialTheme.typography.titleMedium) }
+    }
+}
