@@ -16,14 +16,11 @@ data class FriendDay(val board: LeaderboardRef, val friends: Set<String>, val co
     data class Standing(val place: Int, val count: Int)
 
     /**
-     * Where [viewerUid] stands on the day's [entries] as the hub's Friends board ranks them: the entries narrowed to
-     * the viewer and their friends ([amongFriends]), the connections merged in ([withConnections]) and the lot ranked
-     * by [rankBoard]. Null when the viewer has no entry on the board.
+     * Where [viewerUid] stands on the day's [entries] as the hub's Friends board ranks them ([rankFriendBoard], the
+     * pipeline the hub's boards are built through). Null when the viewer has no entry on the board.
      */
     fun standing(entries: List<LeaderboardEntry>, viewerUid: String, order: RankOrder): Standing? {
-        val among = BoardPage(entries, entries.size).amongFriends(friends + viewerUid)
-        val counted = if (connections == null) among else among.withConnections(connections, viewerUid)
-        val ranked = rankBoard(board, counted.entries, order, counted.count)
+        val ranked = rankFriendBoard(board, BoardPage(entries, entries.size), order, friends + viewerUid, connections, viewerUid)
         return ranked.rows.firstOrNull { it.entry.uid == viewerUid }?.let { Standing(it.rank, ranked.n) }
     }
 }

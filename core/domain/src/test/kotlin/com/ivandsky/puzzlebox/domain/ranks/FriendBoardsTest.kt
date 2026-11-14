@@ -4,6 +4,10 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
+import com.ivandsky.puzzlebox.domain.linkedin.LinkedInBoardView
+import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayStatus
+import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -102,6 +106,28 @@ class FriendBoardsTest {
         assertEquals(boards.boards.take(2), among.take(2))
         assertEquals(loaded(zip, final = true), among[2])
         assertEquals(RankWindowBoards.SignedOut, RankWindowBoards.SignedOut.amongFriends(friends))
+    }
+
+    @Test
+    fun `an entry point reports the viewer's place on the hub's Friends day board`() {
+        // Strangers first and third; a connection between Bea and the viewer, and one whose time is hidden.
+        val entries = listOf(entry("sam", zip, 10), entry("bea", zip, 20), entry("tom", zip, 30), entry("ann", zip, 40), entry("cy", zip, 50))
+        val connections = LinkedInDayView(
+            LinkedInDayStatus.Idle,
+            LinkedInBoardView.Shown(
+                listOf(
+                    LinkedInGhost("ref-dee", "Dee", 25, hintFree = true, flawless = false),
+                    LinkedInGhost("ref-eve", "Eve", null, hintFree = true, flawless = false),
+                ),
+            ),
+        )
+
+        val hub = ranked(RankWindowBoards.Boards(listOf(loaded(zip, *entries.toTypedArray()))).amongFriends(friends, mapOf(zip to connections), "ann")).single()
+        val reported = FriendDay(zip, friends - "ann", connections).standing(entries, "ann", order)
+
+        assertEquals(listOf("bea" to 1, connectionUid("ref-dee") to 2, "ann" to 3, "cy" to 4), hub.rows.map { it.entry.uid to it.rank })
+        assertEquals(FriendDay.Standing(place = 3, count = 4), reported)
+        assertEquals(FriendDay.Standing(hub.rows.single { it.entry.uid == "ann" }.rank, hub.n), reported)
     }
 
     private companion object {
