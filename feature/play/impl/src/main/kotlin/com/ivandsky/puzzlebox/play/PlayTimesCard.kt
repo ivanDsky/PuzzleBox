@@ -31,8 +31,8 @@ import com.ivandsky.puzzlebox.play.friend.SignInPrompt
  * graph yet, so the card does not claim to be friends. The list area always reserves five rows and a pinned one, so
  * loading, notes and the rows share one height. Signed out, loading, unavailable and empty boards show a note in the
  * same area; a solved day whose own row is missing explains why under the rows. With [animated] the rows move,
- * arrive and leave with motion. [boardStyle] is the board's look (the Ranks hub's chips beside the name or plain lines under it); the card
- * sets its motion and backdrop.
+ * arrive and leave with motion. [boardStyle] is the board's look (the Ranks hub's chips beside the name, or plain
+ * lines under it); the card sets its motion and backdrop.
  */
 @Composable
 internal fun PlayTimesCard(
