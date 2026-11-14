@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -27,9 +26,9 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.Stamp
+import com.ivandsky.puzzlebox.designsystem.TonalIconButton
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.game.BestScore
@@ -129,10 +128,12 @@ internal fun PlayAgainLine(previousBest: BestScore?, rankOrder: RankOrder) {
 }
 
 /**
- * The result's actions: the primary, then Share (tag `result.share`) and "Play again"
- * (`result.playAgain`, null hides it) side by side as tonal pills. The primary is
- * "Next: <game>" (`result.next`) or a play-again's Done (`result.done`); once every daily is
- * solved the [ResultCountdown] to [rolloverAt] stands in its place.
+ * The result's actions, in one row: the primary takes the width the icons leave, and the two
+ * 48 dp icon buttons follow it, [Spacing.sm] apart and centred on the row's height (the countdown is taller than 48 dp).
+ * The primary is "Next: <game>" (`result.next`) or a play-again's Done (`result.done`); once every
+ * daily is solved the [ResultCountdown] to [rolloverAt] stands in its place. Then come Share
+ * (tag `result.share`) and, unless [onPlayAgain] is null, Play again (`result.playAgain`), both
+ * tonal icon buttons that name themselves "Share" and "Play again" for TalkBack and a long-press tooltip.
  */
 @Composable
 internal fun ResultActions(
@@ -143,11 +144,12 @@ internal fun ResultActions(
     rolloverAt: Instant?,
     modifier: Modifier = Modifier,
 ) {
-    Column(
+    Row(
         modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        val fill = Modifier.fillMaxWidth()
+        val fill = Modifier.weight(1f)
         when (primary) {
             is ResultPrimaryAction.Next -> PrimaryButton(
                 text = "Next: ${primary.name}",
@@ -161,19 +163,19 @@ internal fun ResultActions(
                 modifier = fill.testTag("result.done"),
             )
         }
-        Row(fill, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            SecondaryButton(
-                text = "Share",
-                onClick = onShare,
-                modifier = Modifier.weight(1f).testTag("result.share"),
+        TonalIconButton(
+            icon = PuzzleIcons.Share,
+            contentDescription = "Share",
+            onClick = onShare,
+            modifier = Modifier.testTag("result.share"),
+        )
+        onPlayAgain?.let {
+            TonalIconButton(
+                icon = PuzzleIcons.Retry,
+                contentDescription = "Play again",
+                onClick = it,
+                modifier = Modifier.testTag("result.playAgain"),
             )
-            onPlayAgain?.let {
-                SecondaryButton(
-                    text = "Play again",
-                    onClick = it,
-                    modifier = Modifier.weight(1f).testTag("result.playAgain"),
-                )
-            }
         }
     }
 }
