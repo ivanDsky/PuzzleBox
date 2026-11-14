@@ -4,8 +4,6 @@ import android.content.Context
 import android.graphics.Color
 import android.provider.Settings
 import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.graphics.Color as ComposeColor
-import androidx.compose.ui.graphics.toArgb
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -26,12 +24,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
-import com.ivandsky.puzzlebox.designsystem.MedalBronze
-import com.ivandsky.puzzlebox.designsystem.MedalGold
-import com.ivandsky.puzzlebox.designsystem.MedalSilver
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.RankOrder
-import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -102,21 +96,16 @@ class DailyBoardListMotionTest {
         hasTestTag("daily_board.row.rank") and hasAnyAncestor(hasTestTag("daily_board.row") and hasAnyDescendant(hasText(player))),
     )
 
-    // Whether the player's place cell shows a disc of this colour anywhere.
-    private fun showsMedal(player: String, medal: ComposeColor): Boolean {
-        val image = rank(player).captureToImage().asAndroidBitmap()
-        val want = medal.toArgb()
-        for (x in 0 until image.width) for (y in 0 until image.height) {
-            val pixel = image.getPixel(x, y)
-            if (abs(Color.red(pixel) - Color.red(want)) <= 2 &&
-                abs(Color.green(pixel) - Color.green(want)) <= 2 &&
-                abs(Color.blue(pixel) - Color.blue(want)) <= 2
-            ) return true
-        }
-        return false
+    // The disc is tagged for tests; clearAndSetSemantics on the cell hides it from the merged tree, so read the unmerged one.
+    private fun showsMedal(player: String, medal: String): Boolean {
+        val cell = composeRule.onNode(
+            hasTestTag("daily_board.row.rank") and hasAnyAncestor(hasTestTag("daily_board.row") and hasAnyDescendant(hasText(player))),
+            useUnmergedTree = true,
+        ).fetchSemanticsNode()
+        return hasAnyDescendant(hasTestTag("leaderboard.medal.$medal")).matches(cell)
     }
 
-    private fun showsAnyMedal(player: String) = listOf(MedalGold, MedalSilver, MedalBronze).any { showsMedal(player, it) }
+    private fun showsAnyMedal(player: String) = listOf(GOLD, SILVER, BRONZE).any { showsMedal(player, it) }
 
     @Test
     fun `a row whose place changes slides there instead of jumping`() {
@@ -345,7 +334,7 @@ class DailyBoardListMotionTest {
         settle()
         assertEquals("bo is gone once it has shrunk out", 0, count("bo"))
         assertEquals("ei arrived", 1, count("ei"))
-        assertTrue("di has its gold once it has moved", showsMedal("di", MedalGold))
+        assertTrue("di has its gold once it has moved", showsMedal("di", GOLD))
         assertFalse("ei is fourth: no medal", showsAnyMedal("ei"))
     }
 
@@ -395,9 +384,9 @@ class DailyBoardListMotionTest {
         change { lines = ranked("di", "ada", "bo", "cy") }
         settle()
 
-        assertTrue("di entered the podium: gold", showsMedal("di", MedalGold))
-        assertTrue("ada is second: silver", showsMedal("ada", MedalSilver))
-        assertTrue("bo is third: bronze", showsMedal("bo", MedalBronze))
+        assertTrue("di entered the podium: gold", showsMedal("di", GOLD))
+        assertTrue("ada is second: silver", showsMedal("ada", SILVER))
+        assertTrue("bo is third: bronze", showsMedal("bo", BRONZE))
         assertFalse("cy left the podium", showsAnyMedal("cy"))
     }
 
@@ -408,19 +397,19 @@ class DailyBoardListMotionTest {
         change { lines = ranked("ada", "bo", "cy") }
         settle()
 
-        assertTrue(showsMedal("cy", MedalBronze))
+        assertTrue(showsMedal("cy", BRONZE))
     }
 
     @Test
     fun `reduced motion lands the final place and the medal at once`() {
         show(ranked("ada", "bo", "cy", "di"), reducedMotion = true)
-        assertTrue("the medals are there from the start", showsMedal("ada", MedalGold))
+        assertTrue("the medals are there from the start", showsMedal("ada", GOLD))
 
         change { lines = ranked("di", "ada", "bo", "cy") }
 
         rank("di").assertTextEquals("1")
-        assertTrue("di has its gold at once", showsMedal("di", MedalGold))
-        assertTrue(showsMedal("ada", MedalSilver))
+        assertTrue("di has its gold at once", showsMedal("di", GOLD))
+        assertTrue(showsMedal("ada", SILVER))
         assertFalse("cy has no medal at once", showsAnyMedal("cy"))
     }
 
@@ -435,6 +424,10 @@ class DailyBoardListMotionTest {
     private companion object {
         // The slowest glide: the last staggered row, after the entrance delay, on a spring that settles in ~1.2 s.
         const val SETTLED_MS = 4_000L
+
+        const val GOLD = "gold"
+        const val SILVER = "silver"
+        const val BRONZE = "bronze"
 
         const val STAGGER_MS = 70L
         const val ARRIVAL_MS = 200L

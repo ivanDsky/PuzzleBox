@@ -39,6 +39,13 @@ private fun medalFill(place: Int): Color? = when (place) {
     else -> null
 }
 
+// For tests: the disc names its medal, so a test asks whether a row wears one without reading pixels.
+private fun medalTag(place: Int): String = when (place) {
+    1 -> "leaderboard.medal.gold"
+    2 -> "leaderboard.medal.silver"
+    else -> "leaderboard.medal.bronze"
+}
+
 private fun medalInk(place: Int): Color = when (place) {
     1 -> MedalGoldInk
     2 -> MedalSilverInk
@@ -79,7 +86,7 @@ internal fun RankPlace(place: Int?, quiet: Color, tag: String, beyondPage: Boole
 internal fun RankCell(place: Int, quiet: Color, modifier: Modifier = Modifier, medal: Boolean = true) {
     val fill = if (medal) medalFill(place) else null
     Box(modifier.size(RankCellSize), contentAlignment = Alignment.Center) {
-        if (fill != null) Box(Modifier.size(DiscSize).background(fill, CircleShape))
+        if (fill != null) Box(Modifier.size(DiscSize).background(fill, CircleShape).testTag(medalTag(place)))
         Text(
             "$place",
             style = MaterialTheme.typography.labelLarge.tabular().let {
