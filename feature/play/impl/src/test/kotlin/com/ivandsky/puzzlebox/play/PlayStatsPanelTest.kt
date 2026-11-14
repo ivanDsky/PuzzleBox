@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -18,6 +19,7 @@ import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasTestTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
@@ -32,9 +34,6 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
-import com.ivandsky.puzzlebox.designsystem.MedalBronze
-import com.ivandsky.puzzlebox.designsystem.MedalGold
-import com.ivandsky.puzzlebox.designsystem.MedalSilver
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
@@ -429,16 +428,20 @@ class PlayStatsPanelTest {
         assertTrue("the line $line is under the name $name", line.top >= name.bottom && line.left == name.left)
     }
 
-    private fun placeCell(row: Int) = composeRule.onAllNodesWithTag("daily_board.row.rank")[row]
+    private fun placeCell(row: Int) = composeRule.onAllNodesWithTag("daily_board.row.rank", useUnmergedTree = true)[row]
+
+    // The disc is tagged for tests; the cell's merged semantics hide it, hence the unmerged tree above.
+    private fun SemanticsNodeInteraction.wearsMedal(medal: String) =
+        hasAnyDescendant(hasTestTag("leaderboard.medal.$medal")).matches(fetchSemanticsNode())
 
     @Test
     fun `with LinkedIn on the podium places are medals`() {
         cachedConnections()
         show(viewModel(linkedIn = true))
 
-        assertTrue(placeCell(0).showsMedal(MedalGold))
-        assertTrue(placeCell(1).showsMedal(MedalSilver))
-        assertTrue(placeCell(2).showsMedal(MedalBronze))
+        assertTrue(placeCell(0).wearsMedal("gold"))
+        assertTrue(placeCell(1).wearsMedal("silver"))
+        assertTrue(placeCell(2).wearsMedal("bronze"))
     }
 
     @Test
@@ -446,8 +449,8 @@ class PlayStatsPanelTest {
         show(viewModel(linkedIn = false))
 
         placeCell(0).assertTextEquals("1")
-        listOf(MedalGold, MedalSilver, MedalBronze).forEach { medal ->
-            (0..2).forEach { row -> assertFalse("row $row has a $medal medal", placeCell(row).showsMedal(medal)) }
+        listOf("gold", "silver", "bronze").forEach { medal ->
+            (0..2).forEach { row -> assertFalse("row $row has a $medal medal", placeCell(row).wearsMedal(medal)) }
         }
     }
 

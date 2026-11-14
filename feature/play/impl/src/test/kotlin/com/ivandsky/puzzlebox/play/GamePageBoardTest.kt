@@ -1,8 +1,10 @@
 package com.ivandsky.puzzlebox.play
 
 import android.content.Context
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -19,9 +21,6 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
-import com.ivandsky.puzzlebox.designsystem.MedalBronze
-import com.ivandsky.puzzlebox.designsystem.MedalGold
-import com.ivandsky.puzzlebox.designsystem.MedalSilver
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
@@ -226,16 +225,20 @@ class GamePageBoardTest {
         composeRule.onNodeWithTag("daily_board.empty").assertTextEquals("No one is on today's board yet.")
     }
 
-    private fun placeCell(row: Int) = composeRule.onAllNodesWithTag("daily_board.row.rank")[row]
+    private fun placeCell(row: Int) = composeRule.onAllNodesWithTag("daily_board.row.rank", useUnmergedTree = true)[row]
+
+    // The disc is tagged for tests; the cell's merged semantics hide it, hence the unmerged tree above.
+    private fun SemanticsNodeInteraction.wearsMedal(medal: String) =
+        hasAnyDescendant(hasTestTag("leaderboard.medal.$medal")).matches(fetchSemanticsNode())
 
     @Test
     fun `with LinkedIn on the podium places are medals`() {
         show(FakeIdentityService(me), repository(today to entries("P", 4)), linkedIn = true)
         composeRule.waitForIdle()
 
-        assertTrue(placeCell(0).showsMedal(MedalGold))
-        assertTrue(placeCell(1).showsMedal(MedalSilver))
-        assertTrue(placeCell(2).showsMedal(MedalBronze))
+        assertTrue(placeCell(0).wearsMedal("gold"))
+        assertTrue(placeCell(1).wearsMedal("silver"))
+        assertTrue(placeCell(2).wearsMedal("bronze"))
     }
 
     @Test
@@ -244,8 +247,8 @@ class GamePageBoardTest {
         composeRule.waitForIdle()
 
         placeCell(0).assertTextEquals("1")
-        listOf(MedalGold, MedalSilver, MedalBronze).forEach { medal ->
-            (0..2).forEach { row -> assertFalse("row $row has a $medal medal", placeCell(row).showsMedal(medal)) }
+        listOf("gold", "silver", "bronze").forEach { medal ->
+            (0..2).forEach { row -> assertFalse("row $row has a $medal medal", placeCell(row).wearsMedal(medal)) }
         }
     }
 
