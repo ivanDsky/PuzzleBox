@@ -18,7 +18,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,7 +62,8 @@ private sealed interface Slot {
  * days LinkedIn serves or one never saved, shows a skeleton in the line's place, since the restore may bring its
  * board back and "Not saved" would claim otherwise (A34). When the restore ends the skeleton fades out into the line
  * (MotionTokens medium on the standard easing) and the slot eases its height, so the card does not jump; reduced
- * motion shortens that to its plain fade and snaps the height. The line's own states and copy are unchanged.
+ * motion shortens that to its plain fade and snaps the height. A day that never shows a line or the skeleton composes
+ * nothing, so a spaced parent adds no gap for it. The line's own states and copy are unchanged.
  */
 @Composable
 internal fun SavedBoardLine(
@@ -74,6 +78,11 @@ internal fun SavedBoardLine(
         line == null -> Slot.Empty
         else -> Slot.Line(line)
     }
+    // A day that has shown nothing so far adds no node, so a parent's spacing sees no child. Once a skeleton or a line
+    // has shown, the slot stays so the skeleton can ease its height away.
+    var shownOnce by remember { mutableStateOf(slot != Slot.Empty) }
+    if (slot != Slot.Empty) shownOnce = true
+    if (!shownOnce) return
     val reduced = rememberReducedMotion()
     val duration = if (reduced) MotionTokens.ReducedFadeDuration else MotionTokens.DurationMedium
     AnimatedContent(
