@@ -71,6 +71,40 @@ class ReceivedPuzzleRepositoryContractTest(private val adapter: String) : Receiv
         assertEquals(listOf(code("ABC123")), repository.observeAll().first().map { it.code })
     }
 
+    @Test
+    fun `upsert of a code another account holds leaves that row unchanged`() = runTest {
+        assumeTrue(adapter == ROOM)
+        val dao = database().receivedPuzzleDao()
+        val owners = FakeOwnerScope(visible = "uid-a", writer = "uid-a")
+        val room = RoomReceivedPuzzleRepository(dao, owners)
+        room.upsert(received("ABC123", postState = PostState.Posted, postAttempts = 2))
+
+        owners.visibleOwner = "uid-b"
+        owners.writerUid = "uid-b"
+        room.upsert(received("ABC123", postState = PostState.Pending, postAttempts = 0))
+
+        val kept = requireNotNull(dao.find("ABC123"))
+        assertEquals("uid-a", kept.ownerUid)
+        assertEquals("Posted", kept.postState)
+        assertEquals(2, kept.postAttempts)
+        assertEquals(emptyList<String>(), dao.pendingUpload("uid-b").map { it.code })
+        assertEquals(listOf("ABC123"), dao.pendingUpload("uid-a").map { it.code })
+        assertNull(room.get(code("ABC123")))
+    }
+
+    @Test
+    fun `upsert of a code the same account holds keeps its owner`() = runTest {
+        assumeTrue(adapter == ROOM)
+        val dao = database().receivedPuzzleDao()
+        val owners = FakeOwnerScope(visible = "uid-a", writer = "uid-a")
+        val room = RoomReceivedPuzzleRepository(dao, owners)
+        room.upsert(received("ABC123", postState = PostState.Pending, postAttempts = 0))
+        room.upsert(received("ABC123", postState = PostState.Posted, postAttempts = 1))
+
+        assertEquals("uid-a", dao.find("ABC123")?.ownerUid)
+        assertEquals(PostState.Posted, room.get(code("ABC123"))?.postState)
+    }
+
     private fun database(): PuzzleBoxDatabase = db ?: Room
         .inMemoryDatabaseBuilder(RuntimeEnvironment.getApplication(), PuzzleBoxDatabase::class.java)
         .allowMainThreadQueries()
