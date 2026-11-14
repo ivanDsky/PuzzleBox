@@ -66,7 +66,7 @@ private val Week = CalendarState(
 
 private val Stats = GameStats(4, 9, 31, 22, 95_000L, Today.minusDays(40), best = null, rankOrder = RankOrder.TimeThenHints)
 
-private val Solve = YourSolve(
+internal val PreviewYourSolve = YourSolve(
     row = HistoryDayRow(
         day = Yesterday,
         puzzleNumber = 594,
@@ -160,7 +160,7 @@ private fun RanksMonthWithStatsPreview() = Hub(RanksUiState(ZipSlice, calendar =
 
 @PuzzleBoxPreviews
 @Composable
-private fun RanksYourSolvePreview() = Hub(RanksUiState(ZipSlice, calendar = Week, stats = Stats, yourSolve = Solve))
+private fun RanksYourSolvePreview() = Hub(RanksUiState(ZipSlice, calendar = Week, stats = Stats, yourSolve = PreviewYourSolve))
 
 private val TabletPlaces = listOf(
     BoardPlace(RanksBoard.Overall, "Overall", Standing.Place(4)),
@@ -205,5 +205,5 @@ private fun RanksTwoPaneOverallPreview() = Tablet(
 @Preview(name = "Tab S9 Ultra Dark", widthDp = TabWidth, heightDp = TabHeight, showBackground = true, uiMode = Configuration.UI_MODE_NIGHT_YES)
 @Composable
 private fun RanksTwoPanePastDayPreview() = Tablet(
-    RanksUiState(ZipSlice, position = 1, boardCount = TabletPlaces.size, calendar = Week.copy(expanded = true), stats = Stats, yourSolve = Solve, places = TabletPlaces),
+    RanksUiState(ZipSlice, position = 1, boardCount = TabletPlaces.size, calendar = Week.copy(expanded = true), stats = Stats, yourSolve = PreviewYourSolve, places = TabletPlaces),
 )

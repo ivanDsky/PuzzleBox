@@ -46,7 +46,7 @@ import com.ivandsky.puzzlebox.model.GameId
  * the [scrub] is between the two when there is one ([BoardScrubCell]). A tap drops a menu of every board in [places]
  * with the viewer's place on each (a pick reports [onPick]; the board re-ranks in place) and a "How ranks work" row
  * ([onHowRanksWork]). The menu grows out of the title and its rows rise in one after another; reduced motion drops
- * the travel and keeps the fades.
+ * the travel and keeps the fades. [initiallyExpanded] opens the menu at first composition, for previews.
  */
 @Composable
 internal fun RanksTitleMenu(
@@ -57,8 +57,9 @@ internal fun RanksTitleMenu(
     onHowRanksWork: () -> Unit,
     modifier: Modifier = Modifier,
     scrub: BoardScrub? = null,
+    initiallyExpanded: Boolean = false,
 ) {
-    var open by rememberSaveable { mutableStateOf(false) }
+    var open by rememberSaveable { mutableStateOf(initiallyExpanded) }
     val reduced = rememberReducedMotion()
     val interaction = remember { MutableInteractionSource() }
     val turn by animateFloatAsState(
