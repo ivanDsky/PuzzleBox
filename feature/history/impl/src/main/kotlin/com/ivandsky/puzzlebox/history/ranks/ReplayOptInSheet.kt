@@ -21,7 +21,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
  * The first ranked solve's question: share replays with the players you allow, or keep them private. The copy promises
- * only future solves (A20) and names Settings as the way back. [onDismiss] (swipe away, scrim) is a "keep private".
+ * only future solves and names Settings as the way back. [onDismiss] (swipe away, scrim) is a "keep private".
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

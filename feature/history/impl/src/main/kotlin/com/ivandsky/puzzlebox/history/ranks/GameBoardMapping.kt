@@ -20,7 +20,7 @@ import kotlin.math.roundToInt
 /**
  * One game's board out of the hub's shared window boards (null = no answer for this window yet),
  * so a swipe to a game reads nothing of its own. A day ranks that day's entries by [order]; a week
- * or month ranks each player by the average over the days they played (A36). Rows are keyed by
+ * or month ranks each player by the average over the days they played. Rows are keyed by
  * player uid, so the same list re-ranks when the board changes.
  */
 internal fun RankWindowBoards?.toGameBoardState(game: GameId, order: RankOrder, kind: Window, selfUid: String?): DailyBoardState {
@@ -56,11 +56,11 @@ internal fun RankWindowBoards?.gameBoardNote(game: GameId, kind: Window): String
 private const val WITH_LINKEDIN = "with LinkedIn connections"
 
 /**
- * A game's Day board in Friends scope (F18, A15). Its rows are the viewer and their friends ranked among themselves;
- * every line's place is the one the same day has on [boards]' counted board, which the domain's Friends pipeline built
- * (`friendBoard`) and [toGameBoardState] ranks, so it is the place an entry point shows. A connection is drawn as a
- * ghost line (a shared place, no PuzzleBox rank, no actions) and a friend keeps the rank they have among friends. The
- * viewer's unofficial row stays out of that ranking and goes back at its own place: it takes none from anyone (A14).
+ * A game's Day board in Friends scope: the viewer and their friends ranked among themselves. Every line's place is the
+ * one the same day has on [boards]' counted board, which the domain's Friends pipeline built (`friendBoard`) and
+ * [toGameBoardState] ranks, so it is the place an entry point shows. A connection is a ghost line (a shared place, no
+ * PuzzleBox rank, no actions); a friend keeps the rank they have among friends. The viewer's unofficial row stays out
+ * of that ranking and keeps its own place, taking none from anyone.
  * [RanksBoardSlice.friendsAlone] marks a list of the viewer alone.
  */
 internal fun RanksBoardSlice.inFriends(boards: BoardGhosts.Counted?, game: GameId, selfUid: String?): RanksBoardSlice =
@@ -96,7 +96,7 @@ private fun DailyBoardRowModel.shownAs(counted: DailyBoardRowModel, you: LinkedI
 }
 
 /**
- * A Friends board whose rows already rank the connections among the friends (F21): a game's Week or Month, and
+ * A Friends board whose rows already rank the connections among the friends: a game's Week or Month, and
  * Overall. A connection's row is the one whose uid is a key of [photos] (every counted connection has a key, its picture
  * possibly null): it is marked as LinkedIn's (its dot and picture, no player to open) and the board
  * says so beside whatever it already notes. [RanksBoardSlice.friendsAlone] is as on [inFriends]: a connection is company.

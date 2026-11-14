@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * The replay opt-in prompt (A16, A20): [show] is true while the sheet should be up, which is only when the player's tier
+ * The replay opt-in prompt: [show] is true while the sheet should be up, which is only when the player's tier
  * was never chosen ([OwnTier.Unset]; [OwnTier.Unknown] fails closed, so a cold start never flashes it) and the hub shows
  * their official ranked row ([rankedRow]). Either answer writes a tier, which is what keeps it from coming back; [answered]
  * also hides it at once, before the write lands.
@@ -34,7 +34,7 @@ internal class ReplayOptInViewModel(private val visibility: VisibilityRepository
         ranked.value = present
     }
 
-    /** "Share my replays": future solves only (A20). */
+    /** "Share my replays": future solves only. */
     fun share() = answer(VisibilityTier.Replays)
 
     /** "Keep private", and a dismissal: the default tier, written so the choice is on record. */

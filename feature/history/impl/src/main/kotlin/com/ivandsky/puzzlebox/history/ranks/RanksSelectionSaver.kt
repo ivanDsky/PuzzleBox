@@ -16,7 +16,7 @@ private const val OVERALL = "overall"
 private const val GAME_PREFIX = "game:"
 
 /**
- * The [SavedStateHandle] codec for [RanksSelection] (A8): every pick as a plain string or boolean, so the
+ * The [SavedStateHandle] codec for [RanksSelection]: every pick as a plain string or boolean, so the
  * handle's bundle takes it. A null day is stored as absent and restores as null, which keeps the
  * midnight rollover.
  */
