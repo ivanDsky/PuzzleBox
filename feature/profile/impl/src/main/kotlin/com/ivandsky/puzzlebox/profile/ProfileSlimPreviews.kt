@@ -25,6 +25,8 @@ private val KnownSummary = LinkedInAccountView(
     updatedAtMs = PREVIEW_NOW_MS - 12 * PREVIEW_MINUTE_MS,
 )
 
+private val SyncedLine = ProfileUiState.GoogleSync(ProfileUiState.GoogleSync.Status.Synced(PREVIEW_NOW_MS - 2 * PREVIEW_MINUTE_MS))
+
 private val UnknownSummary = LinkedInAccountView(null, null, 0, 0, 0, emptyList(), null)
 
 @Composable
@@ -32,15 +34,21 @@ private fun SlimProfile(
     account: ProfileUiState.Account,
     linkedIn: LinkedInRowState? = null,
     boards: ProfileUiState.LinkedInBoards? = null,
+    sync: ProfileUiState.GoogleSync? = null,
 ) {
+    // The sync line belongs to the signed-in player; a signed-out one has none.
+    val shown = if (sync != null && account is ProfileUiState.Account.SignedIn) account.copy(sync = sync) else account
     PuzzleBoxTheme {
         ProfileContent(
-            state = ProfileUiState(account = account, playingSince = LocalDate.of(2026, 3, 1), linkedIn = linkedIn, linkedInBoards = boards),
+            state = ProfileUiState(account = shown, playingSince = LocalDate.of(2026, 3, 1), linkedIn = linkedIn, linkedInBoards = boards),
             onSignIn = {},
             onSignOut = {},
             onBack = {},
             onOpenSettings = {},
             nowMs = PREVIEW_NOW_MS,
+            onSyncNow = {},
+            onDeleteCloudData = {},
+            onDeleteSavedBoards = {},
             onConnectLinkedIn = linkedIn?.let { {} },
         )
     }
@@ -88,14 +96,15 @@ internal fun ProfileLinkedInSavedToAccountPreview() = SlimProfile(
     SignedIn,
     LinkedInRowState.NotConnected,
     ProfileUiState.LinkedInBoards(savedToAccount = true, canDelete = true),
+    SyncedLine,
 )
 
 @PuzzleBoxPreviews
 @Composable
 internal fun ProfileLinkedInSignInHintPreview() = SlimProfile(
-    ProfileUiState.Account.SignedOut(),
+    ProfileUiState.Account.SignedOut(cloudSyncAvailable = true),
     LinkedInRowState.Connected(KnownSummary),
-    ProfileUiState.LinkedInBoards(savedToAccount = true, canDelete = true),
+    ProfileUiState.LinkedInBoards(savedToAccount = true, canDelete = true, googleSignedIn = false),
 )
 
 @PuzzleBoxPreviews
@@ -107,5 +116,33 @@ internal fun ProfileLinkedInDeleteBoardsOfflinePreview() = SlimProfile(
         savedToAccount = true,
         canDelete = true,
         deleteMessage = "You're offline. Try again when you're connected.",
+    ),
+    SyncedLine,
+)
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ProfileSlimSyncedPreview() = SlimProfile(
+    SignedIn,
+    LinkedInRowState.Connected(KnownSummary),
+    ProfileUiState.LinkedInBoards(savedToAccount = true, canDelete = true),
+    SyncedLine,
+)
+
+// The tallest real card: the sync line with its erase message and drafts note, the Google notes, and the LinkedIn row with its board line.
+@PuzzleBoxPreviews
+@Composable
+internal fun ProfileSlimWorstCasePreview() = SlimProfile(
+    SignedIn,
+    LinkedInRowState.Connected(KnownSummary),
+    ProfileUiState.LinkedInBoards(
+        savedToAccount = true,
+        canDelete = true,
+        deleteMessage = "You're offline. Try again when you're connected.",
+    ),
+    ProfileUiState.GoogleSync(
+        ProfileUiState.GoogleSync.Status.Offline,
+        eraseMessage = "You're offline. Try again when you're connected.",
+        oversizedDrafts = 3,
     ),
 )

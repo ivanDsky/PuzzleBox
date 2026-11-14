@@ -82,8 +82,12 @@ class ProfileViewModel(
 
     private val signIn = MutableStateFlow(ProfileUiState.Account.SignedOut())
 
-    private fun account(identity: Identity?, prompt: ProfileUiState.Account.SignedOut): ProfileUiState.Account =
-        identity?.let { ProfileUiState.Account.SignedIn(it) } ?: prompt
+    private fun account(
+        identity: Identity?,
+        prompt: ProfileUiState.Account.SignedOut,
+        sync: ProfileUiState.GoogleSync? = null,
+    ): ProfileUiState.Account =
+        identity?.let { ProfileUiState.Account.SignedIn(it, sync) } ?: prompt.copy(cloudSyncAvailable = cloudSync != null)
 
     // Null while the feature is off: nothing LinkedIn is observed, and the row stays out of the state.
     private val linkedIn: Flow<LinkedInRowState?> =
@@ -117,7 +121,12 @@ class ProfileViewModel(
     val uiState: StateFlow<ProfileUiState> =
         combine(identityService.current, signIn, observeGameStats(), linkedIn, combine(sync, boards, ::Pair)) {
             identity, prompt, stats, row, (sync, boards) ->
-            ProfileUiState(account(identity, prompt), stats.playingSince, row, sync, boards)
+            ProfileUiState(
+                account(identity, prompt, sync),
+                stats.playingSince,
+                row,
+                boards?.copy(googleSignedIn = identity != null),
+            )
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
