@@ -52,7 +52,7 @@ import kotlinx.coroutines.launch
  * derived from it, slice by slice.
  *
  * The window's boards are read once, here: every listener the hub holds hangs off [reads]
- * (A23), and Overall and each game's board are projections of it in either scope, so a swipe between boards
+ * and Overall and each game's board are projections of it in either scope, so a swipe between boards
  * or a scope change attaches and fetches nothing.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -132,8 +132,8 @@ internal class RanksViewModel(
 
     /**
      * Every board as its slot draws it in the picked scope, with that scope: the one a swipe scrubs to is already
-     * there, and the scope the hub names is always the one its boards and places answer (F18). In Friends they carry
-     * the LinkedIn connections the phone holds (F21).
+     * there, and the scope the hub names is always the one its boards and places answer. In Friends they carry
+     * the LinkedIn connections the phone holds.
      */
     private val scoped: Flow<Pair<RankScope, List<RanksBoardSlice>>> = selection.map { Triple(it.window, it.day, it.scope) }.distinctUntilChanged()
         .flatMapLatest { (kind, day, scope) -> slices.observe(kind, day, scope).map { scope to it } }
@@ -159,7 +159,7 @@ internal class RanksViewModel(
         saver.save(_selection.updateAndGet(change))
     }
 
-    /** A second tab reselect: back to the landing choice, on the player's default scope (A4, A8, F1). */
+    /** A second tab reselect: back to the landing choice, on the player's default scope. */
     fun resetSelection() {
         select { it.reset(landing.scope.value) }
     }

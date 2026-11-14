@@ -13,7 +13,7 @@ import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** The board's signed-out state, in place (A3): boards are read only when signed in, everything else on the screen is local. */
+/** The board's signed-out state, in place: boards are read only when signed in, everything else on the screen is local. */
 @Composable
 internal fun RanksSignInPrompt(signIn: RanksSignIn, onSignIn: () -> Unit, modifier: Modifier = Modifier) {
     Column(

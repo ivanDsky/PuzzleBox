@@ -12,7 +12,7 @@ import com.ivandsky.puzzlebox.history.CalendarState
  * of [boardCount] boards is where the swipe stands. The [calendar] and the month's [stats] come from local
  * history alone, so they never wait on the network or a sign-in; [yourSolve] is the viewer's own solve of the board's day.
  * [scope] and [window] are the tune sheet's picks the board already answers: in Friends every board and place is among
- * the viewer and their friends (F18). [places] is the viewer's place on every board, as the boards show it, for the
+ * the viewer and their friends. [places] is the viewer's place on every board, as the boards show it, for the
  * title menu; [nudge] says the one-time swipe hint has not been shown yet. [boards] is every board's
  * slice in swipe order ([board] is the one at [position]), there for a swipe to scrub to; empty when only [board] is known.
  */

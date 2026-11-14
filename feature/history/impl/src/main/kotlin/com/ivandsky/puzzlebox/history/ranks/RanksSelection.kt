@@ -34,12 +34,12 @@ internal data class RanksSelection(
     }
 
     companion object {
-        /** A link's landing (A4): [board] at [day], null for today; the calendar shows the week holding it. */
+        /** A link's landing: [board] at [day], null for today; the calendar shows the week holding it. */
         fun opening(board: RanksBoard, day: LocalDate?) = RanksSelection(board = board, day = day, shownDay = day)
     }
 
     /**
-     * A link's landing as the hub takes it (A4, ticket 42): a board the registry does not list opens Overall at the same day;
+     * A link's landing as the hub takes it: a board the registry does not list opens Overall at the same day;
      * a game's day that is that game's puzzle today becomes null, the same rule as [pickFromCalendar], so the board follows rollover.
      */
     fun landing(boards: List<RanksBoard>, todayOf: (GameId) -> LocalDate?): RanksSelection {
@@ -67,6 +67,6 @@ internal data class RanksSelection(
 
     fun setScope(scope: RankScope) = copy(scope = scope)
 
-    /** Back to the landing choice: Overall, today, the player's default [scope] (A4, F1). The calendar folds too. */
+    /** Back to the landing choice: Overall, today, the player's default [scope]. The calendar folds too. */
     fun reset(scope: RankScope) = RanksSelection(scope = scope)
 }

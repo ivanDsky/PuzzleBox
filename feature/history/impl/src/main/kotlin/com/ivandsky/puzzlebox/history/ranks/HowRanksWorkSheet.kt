@@ -21,11 +21,11 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** The scoring rule in one sentence (A10). */
+/** The scoring rule in one sentence. */
 internal const val RANKS_RULE =
     "Each board scores you by place, 100 points for first and fewer the more players are ahead of you, and Overall adds those scores up."
 
-/** The lead word of each line, then what it says: how a board orders, what Overall sums, and the unofficial and 100+ cases (A9, A11, A14, A36). */
+/** The lead word of each line, then what it says: how a board orders, what Overall sums, and the unofficial and 100+ cases. */
 private val Rules = listOf(
     "Per game" to "fastest time wins and fewer hints break a tie. Strands ranks hints first.",
     "Overall" to "your scores from every game's board in the window. Players with the same total share a place.",

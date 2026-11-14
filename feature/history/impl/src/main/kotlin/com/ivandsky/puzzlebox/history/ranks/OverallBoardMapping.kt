@@ -8,7 +8,7 @@ import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 
 /**
- * The Overall result as the kit's board (A11, A12). The viewer's row is a normal row, marked
+ * The Overall result as the kit's board. The viewer's row is a normal row, marked
  * [DailyBoardRowModel.isSelf] so the board can dock it. A truncated total is a lower bound (≥)
  * and a place past the page cap reads 100+. The caveat that a result is partial or offline is the
  * board's [boardNote]: the kit's note enum has no room for "k of n".
@@ -22,7 +22,7 @@ internal fun OverallState.toDailyBoardState(selfUid: String?): DailyBoardState =
     is OverallState.Offline -> standings?.let { DailyBoardState.Ranked(it.toRows(selfUid)) } ?: DailyBoardState.Unavailable
 }
 
-/** What to say under the Overall rows: how complete they are. Null when they are all there is to say (A12). */
+/** What to say under the Overall rows: how complete they are. Null when they are all there is to say. */
 internal fun OverallState.boardNote(): String? = when (this) {
     is OverallState.Partial -> "$loaded of $total boards"
     is OverallState.Offline -> standings?.let { "Offline — showing boards saved on this phone" }
