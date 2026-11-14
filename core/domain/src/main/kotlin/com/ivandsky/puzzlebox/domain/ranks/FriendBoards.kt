@@ -12,12 +12,13 @@ fun RankWindowBoards.amongFriends(players: Set<String>): RankWindowBoards = when
     RankWindowBoards.SignedOut -> this
     is RankWindowBoards.Boards -> RankWindowBoards.Boards(
         boards.map { load ->
-            if (load is BoardLoad.Loaded) {
-                val kept = load.page.entries.filter { it.uid in players }
-                load.copy(page = BoardPage(kept, kept.size))
-            } else {
-                load
-            }
+            if (load is BoardLoad.Loaded) load.copy(page = load.page.amongFriends(players)) else load
         },
     )
+}
+
+/** One board's page as the Friends scope ranks it: only the entries of [players], and as long as what is left. */
+fun BoardPage.amongFriends(players: Set<String>): BoardPage {
+    val kept = entries.filter { it.uid in players }
+    return BoardPage(kept, kept.size)
 }

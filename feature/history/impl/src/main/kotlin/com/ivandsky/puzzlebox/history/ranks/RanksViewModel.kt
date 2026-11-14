@@ -82,7 +82,6 @@ internal class RanksViewModel(
     val selection: StateFlow<RanksSelection> = _selection.asStateFlow()
 
     private val signInHolder = RanksSignInHolder(identity, idTokens)
-    private val ghosts = BoardGhosts(linkedIn)
     private val viewer = identity.current
     private val boards = rankBoards(registry)
     private val games: List<GameId> = boards.filterIsInstance<RanksBoard.Game>().map { it.id }
@@ -129,25 +128,15 @@ internal class RanksViewModel(
 
     private val local = combine(calendarState, observeGameStats(), yourSolve, nudge, ::Local)
 
-    /** The LinkedIn ghosts of every board, in the boards' order: read only on a game's Day board in Friends scope. */
-    private val ghostInputs: Flow<List<BoardGhostInput>> = combine(selection.map { it.scope }.distinctUntilChanged(), window) { scope, window -> scope to window }
-        .flatMapLatest { (scope, window) -> combine(boards.map { ghosts.observe(it, scope, window) }) { it.toList() } }
-
-    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry)
+    private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, BoardGhosts(linkedIn))
 
     /**
      * Every board as its slot draws it in the picked scope, with that scope: the one a swipe scrubs to is already
-     * there, and the scope the hub names is always the one its boards and places answer (F18).
+     * there, and the scope the hub names is always the one its boards and places answer (F18). In Friends they carry
+     * the LinkedIn connections the phone holds (F21).
      */
     private val scoped: Flow<Pair<RankScope, List<RanksBoardSlice>>> = selection.map { Triple(it.window, it.day, it.scope) }.distinctUntilChanged()
-        .flatMapLatest { (kind, day, scope) ->
-            val drawn = slices.observe(kind, day, scope)
-            if (scope == RankScope.Global) {
-                drawn.map { scope to it }
-            } else {
-                combine(drawn, ghostInputs) { slices, inputs -> scope to slices.mapIndexed { index, slice -> slice.inFriends(inputs[index]) } }
-            }
-        }
+        .flatMapLatest { (kind, day, scope) -> slices.observe(kind, day, scope).map { scope to it } }
 
     val uiState: StateFlow<RanksUiState> = combine(
         scoped,

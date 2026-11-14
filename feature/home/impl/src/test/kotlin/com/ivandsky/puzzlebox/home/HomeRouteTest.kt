@@ -16,6 +16,8 @@ import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
+import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -23,6 +25,7 @@ import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.data.update.AppRelease
 import com.ivandsky.puzzlebox.data.update.AppReleaseRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -46,13 +49,16 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.repository.FakeAppReleaseRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.LocalDate
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -138,6 +144,10 @@ class HomeRouteTest {
                     single<MatchLocalRepository> { FakeMatchLocalRepository() }
                     single<GameCalendar> { FakeGameCalendar(today) }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
+                    // The rank row follows the Friends/Global setting (F20), so its reader is part of the graph.
+                    single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
+                    single<MatchRepository> { FakeMatchRepository() }
+                    single<LinkedInDays> { FakeLinkedInDays() }
                     single<GamePlayRegistry> { GamePlayRegistry(emptyList()) }
                     // Resume also checks for an update: by default no release known, so no pill.
                     single<AppReleaseRepository> { releases }

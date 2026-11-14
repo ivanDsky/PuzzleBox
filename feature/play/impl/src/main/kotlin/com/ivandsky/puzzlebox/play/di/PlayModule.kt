@@ -86,11 +86,13 @@ val playModule = module {
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }
     // Same flag-as-parameter rule as the library: a graph without LinkedIn bindings builds the board with it off.
     // CloudSync is bound only with its flag on; unbound, the day card never shows a restoring skeleton.
+    // The Friends/Global reader comes with the domain graph; a graph without it ranks the summary in Global.
     viewModel { params ->
         GamePageBoardViewModel(
             params.get<GameId>(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
             cloudSync = getOrNull(),
+            friendDay = getOrNull(),
         )
     }
     viewModel { params ->

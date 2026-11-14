@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.domain.ranks.GameWindowStandings
 import com.ivandsky.puzzlebox.domain.ranks.RankWindowBoards
 import com.ivandsky.puzzlebox.domain.ranks.RankedBoard
 import com.ivandsky.puzzlebox.domain.ranks.gameWindowStandings
+import com.ivandsky.puzzlebox.domain.ranks.isConnectionUid
 import com.ivandsky.puzzlebox.domain.ranks.rankBoard
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.board.BoardRowValue
@@ -72,6 +73,20 @@ private fun RanksBoardSlice.withGhosts(input: BoardGhostInput): RanksBoardSlice 
     val lines = unofficial.fold(rankWithLinkedIn(official, input.ghosts, you, order)) { merged, row -> merged.withUnofficialLine(row) }
     val merged = DailyBoardState.Ranked(rows = lines.filterIsInstance<DailyBoardLine.Real>().map { it.row }, lines = lines)
     return copy(state = merged, note = WITH_LINKEDIN.takeIf { input.ghosts.isNotEmpty() })
+}
+
+/**
+ * A Friends board whose rows already rank the connections among the friends (F21): a game's Week or Month, and
+ * Overall. A connection's row is marked as LinkedIn's (its dot and [photos] picture, no player to open) and the board
+ * says so beside whatever it already notes. [RanksBoardSlice.friendsAlone] is as on [inFriends]: a connection is company.
+ */
+internal fun RanksBoardSlice.inFriendsCounted(photos: Map<String, String?>): RanksBoardSlice {
+    val ranked = state as? DailyBoardState.Ranked
+    if (ranked == null || ranked.rows.none { isConnectionUid(it.playerId) }) return copy(friendsAlone = state.isViewerAlone())
+    val rows = ranked.rows.map { row ->
+        if (isConnectionUid(row.playerId)) row.copy(fromLinkedIn = true, timeFromLinkedIn = true, photo = photos[row.playerId]) else row
+    }
+    return copy(state = ranked.copy(rows = rows), note = listOfNotNull(note, WITH_LINKEDIN).joinToString(" · "))
 }
 
 private fun RankedBoard.Row.toRow(selfUid: String?) = DailyBoardRowModel(
