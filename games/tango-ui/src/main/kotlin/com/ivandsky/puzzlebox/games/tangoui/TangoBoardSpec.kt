@@ -82,6 +82,9 @@ object TangoBoardSpec {
     /** Guide ghost beside a wrong glyph: a corner badge, fraction of the cell box. */
     const val ghostBadgeFraction: Float = 0.4f
 
+    /** Replay hint badge inset from the cell's top-right corner, fraction of the cell box. */
+    const val replayHintInsetFraction: Float = 0.08f
+
     /** Editor edge hit band: half-width across a line, fraction of pitch. */
     const val editEdgeBandAcrossFraction: Float = 0.22f
 
