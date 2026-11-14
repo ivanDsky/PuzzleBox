@@ -22,8 +22,9 @@ import kotlinx.coroutines.flow.transformLatest
  * Unavailable and the device is online, on one exponential backoff for the whole window (not one
  * per board). A pull or a reconnect restarts that schedule; going offline pauses it.
  *
- * Open boards recover through Firestore's own listeners; a tick only re-reads Final boards and
- * re-counts capped open ones, so a window of Loaded boards costs nothing per pull.
+ * Open boards recover through Firestore's own listeners; a tick re-reads Final boards, re-counts capped
+ * open ones and re-attaches an open listener that ended degraded, so a window of Loaded boards costs
+ * nothing per pull.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveWindowRefresh(

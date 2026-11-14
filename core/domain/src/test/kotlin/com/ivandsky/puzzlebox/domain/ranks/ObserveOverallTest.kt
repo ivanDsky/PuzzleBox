@@ -188,6 +188,20 @@ class ObserveOverallTest {
     }
 
     @Test
+    fun `a board offline with nothing cached beside an empty loaded board is Partial, never Empty`() = runTest {
+        val leaderboard = FakeLeaderboardRepository()
+        leaderboard.setEntries(ref(tango), emptyList()) // zip stays null: the repository's answer for an empty cache
+        val registry = TestGames.registry(listOf(zip, tango))
+        val window = ObserveRankWindow(identity, leaderboard, FakeFinalBoardStore(), registry, FakeGameCalendar(day))
+
+        val state = observe(window(this@ObserveOverallTest.window, listOf(zip, tango))).drop(1).first()
+
+        val partial = state as OverallState.Partial
+        assertEquals(1, partial.loaded)
+        assertEquals(2, partial.total)
+    }
+
+    @Test
     fun `collecting adds no listener, fetch or count beyond the shared window flow`() = runTest {
         val zipBoard = ref(zip)
         val leaderboard = FakeLeaderboardRepository()
