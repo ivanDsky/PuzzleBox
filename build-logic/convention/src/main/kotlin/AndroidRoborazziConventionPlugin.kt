@@ -37,6 +37,8 @@ import org.gradle.process.CommandLineArgumentProvider
  * `-Pgoldens.pixelCompare=false`
  * (verify on Linux, where the macOS-recorded goldens cannot match) reaches those harnesses
  * as the `goldens.pixelCompare` system property: they skip the pixel diff, nothing else.
+ * `-Pgoldens.skip=true` (the CI test jobs) does not run golden test classes, except in `:app`;
+ * their class names contain `Golden` or `Screenshot`, which is what the filter matches.
  */
 class AndroidRoborazziConventionPlugin : Plugin<Project> {
     override fun apply(target: Project) {
@@ -60,7 +62,20 @@ class AndroidRoborazziConventionPlugin : Plugin<Project> {
                 )
             }
 
+            // Bare `-Pgoldens.skip` counts as true. CI skips the goldens: Linux cannot match the
+            // macOS-recorded pixels, so there they only cost runtime. `:app` keeps its goldens: with
+            // them skipped, the Robolectric native graphics runtime aborted the `:app` test JVM on the
+            // Linux runners in most runs (SIGABRT, `JniConstants: Class not found: java/nio/...`), and
+            // with them kept it never did. An early golden capture likely warms that runtime up.
+            val skipGoldens = providers.gradleProperty("goldens.skip").map { it != "false" && path != ":app" }.orElse(false)
+
             tasks.withType<Test>().configureEach {
+                if (skipGoldens.get()) {
+                    filter {
+                        excludeTestsMatching("*Golden*")
+                        excludeTestsMatching("*Screenshot*")
+                    }
+                }
                 jvmArgumentProviders.add(modeArgs)
                 // The golden tests read `<module>/snapshots/` through `user.dir`, which Gradle cannot
                 // see; undeclared, a changed golden PNG is served FROM-CACHE as a stale green.
