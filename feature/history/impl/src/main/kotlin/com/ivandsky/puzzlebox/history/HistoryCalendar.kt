@@ -95,9 +95,9 @@ internal fun HistoryCalendar(
     onShowCalendar: (day: LocalDate, expanded: Boolean) -> Unit,
     onSelectDay: (LocalDate?) -> Unit,
     cardColor: Color,
+    modifier: Modifier = Modifier,
     foldable: Boolean = true,
     foldInPlace: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     val shown = state.shownDay ?: return
     val today = state.today ?: return
