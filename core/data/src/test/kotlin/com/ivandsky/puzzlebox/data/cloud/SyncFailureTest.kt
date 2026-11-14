@@ -10,8 +10,10 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -53,11 +55,13 @@ class SyncFailureTest {
     private val clock = MutableClock(10_000L)
     private val network = FakeNetworkStatus(initial = false)
     private val log = mutableListOf<String>()
+    private val warnings = mutableListOf<String>()
     private val loggingSpace = LoggingSpace(space, log)
 
     private fun TestScope.engine(
         kinds: List<SyncedKind>,
         scope: CoroutineScope = backgroundScope,
+        store: SyncStateStore = this@SyncFailureTest.store,
     ): SyncedKindsCloudSync {
         val dispatcher = StandardTestDispatcher(testScheduler)
         val dispatchers = object : DispatcherProvider {
@@ -67,6 +71,7 @@ class SyncFailureTest {
         }
         return SyncedKindsCloudSync(
             kinds, loggingSpace, store, identity, CloudErase(loggingSpace, kinds, store, identity), clock, dispatchers, network, scope,
+            warnings::add,
         )
     }
 
@@ -309,6 +314,100 @@ class SyncFailureTest {
         advance(24 * HOUR)
 
         assertEquals(1, pulls)
+    }
+
+    // a thrown run
+
+    /** What escaped to the scope's handler: the app scope has none, so anything here would crash the process. */
+    private val escaped = mutableListOf<Throwable>()
+
+    /** The scope's job; a test cancels it last, or runTest would run a pause's retries on virtual time without end. */
+    private val appJob = SupervisorJob()
+
+    private fun TestScope.appScope() = CoroutineScope(
+        StandardTestDispatcher(testScheduler) + appJob + CoroutineExceptionHandler { _, e -> escaped += e },
+    )
+
+    @Test
+    fun `a kind that throws in pending pauses the run, spares the other kinds and retries`() = runTest {
+        val completions = kind("completions", rows = 1)
+        val drafts = kind("drafts", rows = 1)
+        completions.onCall = { if (it == "pending") error("disk full") }
+        val engine = engine(listOf(completions, drafts), appScope())
+
+        engine.syncNow()
+
+        assertEquals(CloudSyncState.Paused(PauseReason.Exhausted, null), engine.state.value)
+        assertEquals(listOf("drafts0"), space.docs(ANN, "drafts").map { it.id })
+        assertEquals(listOf("completions0"), completions.pendingRowIds)
+        assertTrue(escaped.isEmpty())
+        assertEquals(listOf("sync run failed: IllegalStateException"), warnings)
+        completions.onCall = {}
+
+        advance(MINUTE)
+
+        assertEquals(listOf("completions0"), space.docs(ANN, "completions").map { it.id })
+        assertEquals(CloudSyncState.Synced(10_000L), engine.state.value)
+        assertTrue(escaped.isEmpty())
+        appJob.cancel()
+    }
+
+    @Test
+    fun `a kind that throws in apply keeps its cursor, spares the other kinds and retries`() = runTest {
+        space.put(ANN, "completions", listOf(CloudDoc("g9", mapOf("n" to 1L))))
+        val completions = kind("completions")
+        val drafts = kind("drafts", rows = 1)
+        completions.onCall = { if (it == "apply") error("disk full") }
+        val engine = engine(listOf(completions, drafts), appScope())
+
+        engine.syncNow()
+
+        assertEquals(CloudSyncState.Paused(PauseReason.Exhausted, null), engine.state.value)
+        assertNull(store.cursor(ANN, "completions"))
+        assertEquals(listOf("drafts0"), space.docs(ANN, "drafts").map { it.id })
+        completions.onCall = {}
+
+        advance(MINUTE)
+
+        assertEquals(listOf("g9"), completions.rows)
+        assertEquals(CloudSyncState.Synced(10_000L), engine.state.value)
+        assertTrue(escaped.isEmpty())
+        appJob.cancel()
+    }
+
+    @Test
+    fun `a retry whose run throws does not escape the scope and keeps backing off`() = runTest {
+        space.failNext(CloudResult.Denied)
+        val completions = kind("completions", rows = 1)
+        completions.onCall = { if (it == "pending") error("disk full") }
+        val engine = engine(listOf(completions), appScope())
+        engine.syncNow()
+        assertEquals(CloudSyncState.Paused(PauseReason.Denied, null), engine.state.value)
+
+        advance(MINUTE)
+
+        assertTrue(escaped.isEmpty())
+        assertEquals(CloudSyncState.Paused(PauseReason.Exhausted, null), engine.state.value)
+        completions.onCall = {}
+        advance(2 * MINUTE)
+        assertEquals(CloudSyncState.Synced(10_000L), engine.state.value)
+        assertTrue(escaped.isEmpty())
+        appJob.cancel()
+    }
+
+    @Test
+    fun `a store read that throws at start or in a run does not escape the scope`() = runTest {
+        val failing = object : SyncStateStore by store {
+            override suspend fun restoreShown(uid: String): Boolean = error("datastore")
+        }
+        val engine = engine(listOf(kind("completions")), appScope(), failing)
+        runCurrent()
+
+        engine.syncNow()
+
+        assertTrue(escaped.isEmpty())
+        assertFalse(engine.state.value is CloudSyncState.Syncing)
+        appJob.cancel()
     }
 
     // no failure changes persisted state
