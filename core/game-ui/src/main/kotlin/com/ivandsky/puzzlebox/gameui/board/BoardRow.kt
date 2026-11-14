@@ -23,11 +23,13 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.LinkedInBlue
+import com.ivandsky.puzzlebox.designsystem.LocalDarkTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
 
 private val FrameWidth = 1.dp
 private val ChipInset = 2.dp
+private const val SilverPlace = 2
 
 // What a long name keeps of its line when the chips beside it would take it all; the chips give way past that.
 private val NameKeeps = 56.dp
@@ -75,6 +77,8 @@ internal fun BoardRow(
     val base = if (self) scheme.secondaryContainer else LocalBoardBackdrop.current
     val scrub = LocalRowScrub.current
     val was = scrub?.from ?: cells
+    // In dark the silver tint lands on the same grey as the chip's own container, so that row's chips are lifted a step.
+    val lifted = LocalDarkTheme.current && cells.medal != null && cells.place == SilverPlace
     Row(
         modifier = modifier
             .testTag(tags.root)
@@ -106,8 +110,8 @@ internal fun BoardRow(
             NameLine(Modifier.weight(1f)) {
                 RowName(name, content, tags)
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                    RowCell(was.mark, cells.mark, scrub) { Chip(it, self, "${tags.part}.mark") }
-                    RowCell(was.detail, cells.detail, scrub) { Chip(it, self, tags.detail) }
+                    RowCell(was.mark, cells.mark, scrub) { Chip(it, self, lifted, "${tags.part}.mark") }
+                    RowCell(was.detail, cells.detail, scrub) { Chip(it, self, lifted, tags.detail) }
                 }
             }
         } else {
@@ -169,7 +173,7 @@ private fun NameLine(modifier: Modifier, content: @Composable () -> Unit) {
 
 // One of the row's small marks as a chip; nothing when the row has none. The viewer's own row is tinted, so its chip sits on the plain surface.
 @Composable
-private fun Chip(text: String?, self: Boolean, tag: String) {
+private fun Chip(text: String?, self: Boolean, lifted: Boolean, tag: String) {
     if (text == null) return
     val scheme = MaterialTheme.colorScheme
     Text(
@@ -180,7 +184,7 @@ private fun Chip(text: String?, self: Boolean, tag: String) {
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier
             .testTag(tag)
-            .background(if (self) scheme.surface else scheme.surfaceContainerHighest, MaterialTheme.shapes.extraSmall)
+            .background(if (self) scheme.surface else if (lifted) scheme.surfaceBright else scheme.surfaceContainerHighest, MaterialTheme.shapes.extraSmall)
             .padding(horizontal = Spacing.xs, vertical = ChipInset),
     )
 }

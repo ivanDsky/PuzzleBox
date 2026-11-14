@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -93,6 +94,7 @@ class RanksTwoPaneTest {
         onPickBoard: (RanksBoard) -> Unit = {},
         onShowCalendar: (LocalDate, Boolean) -> Unit = { _, _ -> },
         yourSolve: YourSolve? = null,
+        places: List<BoardPlace> = this.places,
     ) {
         val state = RanksUiState(
             RanksBoardSlice("Zip · today", RankOrder.TimeThenHints, DailyBoardState.Ranked(rows)),
@@ -237,5 +239,25 @@ class RanksTwoPaneTest {
 
         assertEquals(12.dp, bounds("ranks.yoursolve").top - bounds("ranks.hero").bottom)
         assertEquals(12.dp, bounds("ranks.board").top - bounds("ranks.yoursolve").bottom)
+    }
+
+    @Test
+    fun `the game list sits one 8 dp gap under the calendar and stats`() {
+        show()
+
+        assertEquals(8.dp, bounds("ranks.list").top - bounds("ranks.calendar").bottom)
+    }
+
+    @Test
+    fun `a long game list runs to the screen's bottom edge and scrolls its last row fully into view, 16 dp above it`() {
+        val many = places + (1..8).map { BoardPlace(RanksBoard.Game(GameId("g$it")), "Game $it", Standing.None) }
+        show(places = many)
+
+        composeRule.onNodeWithTag("ranks.leftpane").performTouchInput { swipeUp() }
+        composeRule.waitForIdle()
+
+        assertEquals(bounds("route.ranks").bottom, bounds("ranks.leftpane").bottom)
+        assertEquals(bounds("ranks.leftpane").bottom - 16.dp, bounds("ranks.list").bottom)
+        composeRule.onNodeWithTag("ranks.list.how").assertIsDisplayed()
     }
 }
