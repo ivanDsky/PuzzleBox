@@ -7,5 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 internal object NoOwnerScope : OwnerScope {
     override val visible: StateFlow<String?> = MutableStateFlow(null)
 
+    override suspend fun visibleNow(): String? = null
+
     override fun writer(): String? = null
 }
