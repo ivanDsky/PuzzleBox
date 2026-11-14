@@ -19,3 +19,19 @@ appProject.tasks.withType<Test>().configureEach {
         },
     )
 }
+
+// CI runs the unit tests as two parallel jobs (ADR-0023): `testUi` covers :app and :feature:*,
+// `testCore` every other module. `test` still runs them all.
+listOf("testUi" to true, "testCore" to false).forEach { (name, ui) ->
+    tasks.register(name) {
+        group = "verification"
+        description = "Runs the unit tests of " + if (ui) ":app and :feature:*." else "every module outside :app and :feature:*."
+        dependsOn(
+            provider {
+                subprojects
+                    .filter { (it.path == ":app" || it.path.startsWith(":feature:")) == ui && "test" in it.tasks.names }
+                    .map { it.tasks.named("test") }
+            },
+        )
+    }
+}

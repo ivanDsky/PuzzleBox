@@ -633,7 +633,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - **Structure rules** — `:konsist` S0–S7 / P1–P11 (see Layout); allowlists only shrink.
 - **Roborazzi** — plugin `puzzlebox.android.roborazzi` (app, designsystem, home, play, create,
   compete, zip-ui, tango-ui, queens-ui, strands-ui, sudoku-ui) unifies the switch: default compares (never fails on drift, never writes goldens),
-  `-Proborazzi.verify=true` fails on drift, `-Proborazzi.record=true` records.
+  `-Proborazzi.verify=true` fails on drift, `-Proborazzi.record=true` records, and
+  `-Pgoldens.skip=true` (CI) does not run the golden classes (names containing `Golden` or `Screenshot`)
+  outside `:app`; `:app` keeps them, because skipping them there made the Robolectric native runtime abort the test JVM on CI.
   Committed goldens sit in each module's `snapshots/` directory: `app/snapshots/`
   (`ShowkaseBrowserScreenshotTest` and the Studio authoring shots), `core/designsystem/snapshots/`
   (`SpotlightOverlayGoldenTest` and the cooldown ring), `feature/compete/impl/snapshots/`
@@ -655,7 +657,8 @@ modules run `test`. The merge gate (ADR-0023) is
 
 `./gradlew assembleDebug test`
 
-which runs every module's unit tests, `:core:auth` and `:feature:compete:impl` included. A
+which runs every module's unit tests, `:core:auth` and `:feature:compete:impl` included. The
+same tests split in two: `testUi` (`:app`, `:feature:*`) and `testCore` (every other module). A
 narrower run: `./gradlew assembleDebug testDebugUnitTest :core:game:test :games:zip:test
 :games:queens:test :games:tango:test :games:strands:test :games:sudoku:test :core:model:test
 :core:network:test :tools:puzzle-cli:test -Proborazzi.verify=true --continue`.
