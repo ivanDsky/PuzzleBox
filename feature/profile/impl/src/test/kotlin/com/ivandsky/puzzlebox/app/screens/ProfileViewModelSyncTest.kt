@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.app.screens.ProfileUiState.GoogleSync
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.cloud.FakeOversizedDrafts
+import com.ivandsky.puzzlebox.testing.cloud.FakeSavedBoardsCloud
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -74,6 +75,7 @@ class ProfileViewModelSyncTest {
             observeGameStats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
             cloudSync = cloud,
             oversizedDrafts = oversized,
+            savedBoardsCloud = FakeSavedBoardsCloud(),
             clock = now,
         )
         backgroundScope.launch { vm.uiState.collect {} }

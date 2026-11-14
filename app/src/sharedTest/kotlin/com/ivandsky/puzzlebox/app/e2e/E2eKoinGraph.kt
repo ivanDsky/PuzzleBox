@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.di.linkedInCloudSyncModule
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
@@ -112,12 +113,15 @@ class E2eKoinGraph(
         single<ReleaseFlags> { releaseFlags }
     }
 
-    /** Starts a fresh graph, replacing any graph still running. */
+    /**
+     * Starts a fresh graph, replacing any graph still running. It carries the LinkedIn cloud bindings the app adds at
+     * start (`prepareCloudSync`), which nothing here resolves until a screen asks, so no owner scope is created.
+     */
     fun start() {
         stopKoin()
         started = startKoin {
             androidContext(ApplicationProvider.getApplicationContext<Context>())
-            modules(PuzzleBoxApplication.appModules + fakes + overrides)
+            modules(PuzzleBoxApplication.appModules + linkedInCloudSyncModule + fakes + overrides)
         }.koin
     }
 

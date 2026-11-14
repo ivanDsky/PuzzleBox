@@ -10,9 +10,6 @@ package com.ivandsky.puzzlebox.common.flags
  * @property releaseDefault the value every release build uses; debug builds start from it too.
  */
 enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
-    /** LinkedIn account: imports the player's own results and shows connections as ghost rows (ADR-0028). Live. */
-    LinkedInAccount(label = "LinkedIn: account results + connections", releaseDefault = true),
-
     /** Ranks hub: per-game and Overall daily boards, the calendar as History, the visibility ladder (ADR-0031). */
     LeaderboardHub(label = "Ranks hub", releaseDefault = true),
 }

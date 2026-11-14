@@ -81,8 +81,7 @@ val appModule = module {
                 ObserveFriendDay(
                     preferences = get<UserPreferencesRepository>(),
                     friendUids = get<ObserveFriendUids>(),
-                    // A saved board outlives the flag that read it, so the flag is asked, not the data.
-                    linkedInDay = if (flags.isEnabled(ReleaseFlag.LinkedInAccount)) get<ObserveLinkedInDay>() else null,
+                    linkedInDay = get<ObserveLinkedInDay>(),
                 )
             } else {
                 null

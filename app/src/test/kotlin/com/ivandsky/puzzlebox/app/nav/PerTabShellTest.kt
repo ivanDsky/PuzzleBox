@@ -79,7 +79,7 @@ class PerTabShellTest {
     @Before
     fun startGraph() {
         stopKoin()
-        startKoin {
+        val koinApp = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
             modules(
                 PuzzleBoxApplication.appModules + module {
@@ -92,6 +92,7 @@ class PerTabShellTest {
                 },
             )
         }
+        PuzzleBoxApplication.prepareCloudSync(koinApp.koin)
     }
 
     @After

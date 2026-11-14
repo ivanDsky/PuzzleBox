@@ -6,11 +6,6 @@ import org.junit.Test
 class ShippedReleaseFlagsTest {
 
     @Test
-    fun `shipped flags include LinkedInAccount`() {
-        assertTrue(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.LinkedInAccount))
-    }
-
-    @Test
     fun `shipped flags include LeaderboardHub`() {
         assertTrue(ShippedReleaseFlags.enabled.value.contains(ReleaseFlag.LeaderboardHub))
     }

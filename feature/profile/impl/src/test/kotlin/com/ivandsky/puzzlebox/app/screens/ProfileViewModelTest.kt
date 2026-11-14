@@ -31,6 +31,7 @@ import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.profile.accounts.LinkedInRowState
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import com.ivandsky.puzzlebox.testing.cloud.FakeOversizedDrafts
+import com.ivandsky.puzzlebox.testing.cloud.FakeSavedBoardsCloud
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccount
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
@@ -99,6 +100,7 @@ class ProfileViewModelTest {
             observeAccount = link?.let { ObserveLinkedInAccount(stored, completions, GetPuzzleDay(registry, clock), registry) },
             cloudSync = FakeCloudSync(),
             oversizedDrafts = FakeOversizedDrafts(),
+            savedBoardsCloud = FakeSavedBoardsCloud(),
         )
         // The state is observed only while subscribed (the route's lifecycle collector).
         backgroundScope.launch { vm.uiState.collect {} }
