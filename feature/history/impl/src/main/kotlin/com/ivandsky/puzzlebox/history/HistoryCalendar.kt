@@ -19,8 +19,10 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -84,6 +86,8 @@ internal fun collapsedWeek(
  * [onShowCalendar] reports the day whose week or month to show, and the mode. Shows
  * nothing until the state has a calendar day.
  * [foldable] false drops the header's chevron and its tap; the calendar stays the mode it is given.
+ * [foldInPlace] keeps one pager across a fold so the card eases around it (the Ranks hub, behind its flag); false
+ * builds a new pager per mode, as the shipped History screen does.
  */
 @Composable
 internal fun HistoryCalendar(
@@ -92,6 +96,7 @@ internal fun HistoryCalendar(
     onSelectDay: (LocalDate?) -> Unit,
     cardColor: Color,
     foldable: Boolean = true,
+    foldInPlace: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val shown = state.shownDay ?: return
@@ -129,18 +134,28 @@ internal fun HistoryCalendar(
                 onBack = { onShowCalendar(pages.dayAt(index + 1), expanded) },
                 onForward = { onShowCalendar(pages.dayAt(index - 1), expanded) },
             )
-            // A new pager per mode: its pages are weeks or months.
-            key(expanded) {
-                CalendarPager(pages, index, onPage = { onShowCalendar(pages.dayAt(it), expanded) }) { page ->
-                    val day = pages.dayAt(page)
-                    if (expanded) {
-                        CalendarMonth(YearMonth.from(day), state, onSelectDay)
-                    } else {
-                        CalendarWeek(day, state, onSelectDay)
+            if (foldInPlace) {
+                CalendarPager(pages, index, expanded, onPage = { onShowCalendar(pages.dayAt(it), expanded) }) { page ->
+                    CalendarPage(pages.dayAt(page), expanded, state, onSelectDay)
+                }
+            } else {
+                // A new pager per mode: its pages are weeks or months.
+                key(expanded) {
+                    CalendarPager(pages, index, expanded, onPage = { onShowCalendar(pages.dayAt(it), expanded) }) { page ->
+                        CalendarPage(pages.dayAt(page), expanded, state, onSelectDay)
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CalendarPage(day: LocalDate, expanded: Boolean, state: CalendarState, onSelectDay: (LocalDate?) -> Unit) {
+    if (expanded) {
+        CalendarMonth(YearMonth.from(day), state, onSelectDay)
+    } else {
+        CalendarWeek(day, state, onSelectDay)
     }
 }
 
@@ -218,11 +233,16 @@ private fun CalendarHeader(
  * Swipeable pages, newest at page 0 and older to its left (reverse layout), so a newly
  * loaded older page adds on without moving the shown one. The arrows drive it through
  * [index]; a settled swipe to another page reports it through [onPage].
+ *
+ * It is one pager for both modes, so a fold only changes what its pages hold and the card eases to the new height
+ * around it. A page number means another week or month once [expanded] changes, so the pager lands on the new
+ * [index] at once, before it is drawn again, instead of scrolling there through pages of the wrong kind.
  */
 @Composable
 private fun CalendarPager(
     pages: CalendarPages,
     index: Int,
+    expanded: Boolean,
     onPage: (Int) -> Unit,
     content: @Composable (Int) -> Unit,
 ) {
@@ -231,9 +251,18 @@ private fun CalendarPager(
     val reducedMotion = rememberReducedMotion()
     val shownIndex by rememberUpdatedState(index)
     val report by rememberUpdatedState(onPage)
+    // The mode the pager's pages were last laid out in; not state, for nothing draws from it.
+    val mode = remember { booleanArrayOf(expanded) }
+    val folded = mode[0] != expanded
+    SideEffect {
+        if (folded) {
+            mode[0] = expanded
+            pagerState.requestScrollToPage(index)
+        }
+    }
     LaunchedEffect(index) {
         if (pagerState.currentPage != index) {
-            if (reducedMotion) pagerState.scrollToPage(index) else pagerState.animateScrollToPage(index)
+            if (reducedMotion || folded) pagerState.scrollToPage(index) else pagerState.animateScrollToPage(index)
         }
     }
     LaunchedEffect(pagerState) {

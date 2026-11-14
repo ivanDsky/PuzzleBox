@@ -26,12 +26,13 @@ internal class BoardItem(
     var pinned: Boolean,
     var present: Boolean,
     override val arrived: Boolean = false,
+    shownAtOnce: Boolean = false,
 ) : PlaceMotion {
     override val animated: Boolean get() = true
     override var delayMs = 0
 
-    val open = Animatable(0f)
-    val alpha = Animatable(0f)
+    val open = Animatable(if (shownAtOnce) 1f else 0f)
+    val alpha = Animatable(if (shownAtOnce) 1f else 0f)
     val slide = Animatable(0f)
 
     // Where the item was last placed, and where it was drawn when its last move began, for the next move to start from.
@@ -91,7 +92,7 @@ internal class BoardItem(
  * one, plus the ones that have just left, kept in place until their exit has played so there is something to close.
  * Kept across recompositions by the list.
  */
-internal class BoardRows {
+internal class BoardRows(private val landed: Boolean = false) {
     private var items = emptyList<BoardItem>()
 
     // Set once the board has shown rows: from then on a row that joins it is an arrival, the first list's rows are not.
@@ -112,7 +113,7 @@ internal class BoardRows {
                 it.line = line
                 it.pinned = isPinned
                 it.present = true
-            } ?: BoardItem(key, line, isPinned, present = true, arrived = shown)
+            } ?: BoardItem(key, line, isPinned, present = true, arrived = shown, shownAtOnce = landed && !shown)
         }
         lines.forEachIndexed { index, line -> take(keys[index], line, isPinned = false) }
         if (pinned != null) {

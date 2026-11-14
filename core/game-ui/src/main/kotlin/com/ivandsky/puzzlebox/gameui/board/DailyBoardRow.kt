@@ -30,25 +30,29 @@ fun DailyBoardRow(
     showPuzzleBoxRank: Boolean = false,
     medals: Boolean = false,
 ) {
-    val value = row.scoreValue
     val onClick = LocalBoardRowClick.current?.takeIf { row.isTappable() }
     BoardRow(
         tags = if (row.isSelf) SelfTags else Tags,
         name = row.name.ifEmpty { "Player" },
         photo = row.photo,
-        place = place,
-        detail = if (showPuzzleBoxRank && !row.fromLinkedIn) "#${row.rank} on PuzzleBox" else boardRowValueDetail(value),
-        score = boardRowValueText(value, order),
+        cells = row.cells(place, order, showPuzzleBoxRank, medals),
         modifier = if (onClick == null) modifier else modifier.clickable(role = Role.Button) { onClick(row) },
-        scoreTime = value.scoreTime(order),
+        scoreTime = row.scoreValue.scoreTime(order),
         self = row.isSelf,
         linkedIn = row.timeFromLinkedIn,
-        mark = if (row.unofficial) UnofficialMark else null,
-        beyondPage = row.beyondPage,
-        medal = if (medals && !row.beyondPage && !row.unofficial) medalRowOf(place) else null,
-        placeMedal = !row.unofficial,
     )
 }
+
+/** What this row says at [place] on a board ranked by [order]: the cells that change when the board does. */
+internal fun DailyBoardRowModel.cells(place: Int, order: RankOrder, showPuzzleBoxRank: Boolean, medals: Boolean) = RowCells(
+    place = place,
+    detail = if (showPuzzleBoxRank && !fromLinkedIn) "#$rank on PuzzleBox" else boardRowValueDetail(scoreValue),
+    score = boardRowValueText(scoreValue, order),
+    mark = if (unofficial) UnofficialMark else null,
+    beyondPage = beyondPage,
+    medalRow = medals && !beyondPage && !unofficial,
+    placeMedal = !unofficial,
+)
 
 // A row of someone else on the official board: not mine, not a device-only result, not my LinkedIn time.
 private fun DailyBoardRowModel.isTappable() = !isSelf && !unofficial && !fromLinkedIn && playerId.isNotEmpty()

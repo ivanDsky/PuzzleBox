@@ -48,11 +48,34 @@ fun DailyBoardList(
     medals: Boolean = false,
     dock: Boolean = false,
 ) {
+    BoardList(lines, order, modifier, pinned, animated, backdrop, medals, dock)
+}
+
+/**
+ * [DailyBoardList], and what [DailyBoard] needs of it besides: a list that has just [landed] from between two boards
+ * shows its rows at once, for they are already on screen, and while the board is between two it draws [scrubbed] in
+ * the list's place (and under its dock) instead of [lines].
+ */
+@Composable
+internal fun BoardList(
+    lines: List<DailyBoardLine>,
+    order: RankOrder,
+    modifier: Modifier = Modifier,
+    pinned: DailyBoardLine.Real? = null,
+    animated: Boolean = false,
+    backdrop: Color = MaterialTheme.colorScheme.background,
+    medals: Boolean = false,
+    dock: Boolean = false,
+    landed: Boolean = false,
+    scrubbed: (@Composable (Modifier) -> Unit)? = null,
+) {
     val withPuzzleBoxRank = (lines + listOfNotNull(pinned)).placesDifferFromPuzzleBox()
     val self = pinned ?: lines.firstNotNullOfOrNull { line -> (line as? DailyBoardLine.Real)?.takeIf { it.row.isSelf } }
     DockedSelfRow(dock, self, order, withPuzzleBoxRank, medals, animated, backdrop, modifier) { boardModifier ->
-        if (animated && !(rememberReducedMotion() || LocalInspectionMode.current)) {
-            AnimatedBoardList(lines, pinned, order, withPuzzleBoxRank, backdrop, boardModifier, medals)
+        if (scrubbed != null) {
+            scrubbed(boardModifier)
+        } else if (animated && !(rememberReducedMotion() || LocalInspectionMode.current)) {
+            AnimatedBoardList(lines, pinned, order, withPuzzleBoxRank, backdrop, boardModifier, medals, landed)
         } else if (lines.isNotEmpty() || pinned != null) {
             // The podium's medals belong to the LinkedIn account's board; here they are drawn at once, with no roll or flip.
             CompositionLocalProvider(LocalPlaceMotion provides if (animated) StillPlaces else null) {

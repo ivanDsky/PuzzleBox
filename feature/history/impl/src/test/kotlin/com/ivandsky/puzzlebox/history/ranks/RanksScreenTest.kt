@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.history.ranks
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -90,10 +93,22 @@ class RanksScreenTest {
         composeRule.onNodeWithTag("ranks.signIn.failed").assertIsDisplayed()
     }
 
+    // The hub goes to the board a swipe asks for, as the view model has it: the next swipe starts from there.
     private fun showSwiping(position: Int = 1, onRefresh: (() -> Unit)? = null, onSwipe: (Int) -> Unit) {
         val slice = RanksBoardSlice("Zip · today", RankOrder.TimeThenHints, DailyBoardState.Ranked(listOf(DailyBoardRowModel(1, "Maya", 62_000L, 0, false, playerId = "maya"))))
+        var at by mutableIntStateOf(position)
         composeRule.setContent {
-            PuzzleBoxTheme { RanksScreen(RanksUiState(slice, position = position, boardCount = 4), {}, onSwipe, onRefresh = onRefresh) }
+            PuzzleBoxTheme {
+                RanksScreen(
+                    RanksUiState(slice, position = at, boardCount = 4),
+                    {},
+                    onSwipe = {
+                        at += it
+                        onSwipe(it)
+                    },
+                    onRefresh = onRefresh,
+                )
+            }
         }
     }
 
