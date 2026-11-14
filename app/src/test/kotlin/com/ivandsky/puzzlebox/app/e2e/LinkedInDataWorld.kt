@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ranks.ObserveRankWindow
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
@@ -36,6 +37,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccountSource
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
+import java.time.Clock
 import java.time.Duration
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -70,6 +72,8 @@ internal class LinkedInDataWorld(
     val photos: FakeLinkedInPhotoSource = FakeLinkedInPhotoSource(),
     /** Flags on besides the LinkedIn account's: a scenario on another surface (the Ranks hub) names them. */
     also: List<ReleaseFlag> = emptyList(),
+    /** The device clock of the Ranks hub's boards, which says only which days are too old to change; the wall clock when null. */
+    ranksClock: Clock? = null,
     /** Bindings that replace the graph's, for what that surface reads from a backend. */
     bindings: Module.() -> Unit = {},
 ) : AutoCloseable {
@@ -82,6 +86,7 @@ internal class LinkedInDataWorld(
         *also.toTypedArray(),
         overrides = module {
             bindings()
+            if (ranksClock != null) factory { ObserveRankWindow(get(), get(), get(), get(), get(), ranksClock) }
             single<LinkedInAccountSource> { source }
             single<LinkedInPhotoSource> { photos }
             single<LinkedInSessionCookies> { cookies }

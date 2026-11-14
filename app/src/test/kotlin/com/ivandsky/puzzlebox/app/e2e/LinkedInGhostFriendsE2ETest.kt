@@ -23,7 +23,9 @@ import com.ivandsky.puzzlebox.domain.ranks.isConnectionUid
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.testing.repository.FakeFinalBoardStore
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
+import java.time.Clock
 import java.time.LocalDate
+import java.time.ZoneOffset
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -49,7 +51,7 @@ class LinkedInGhostFriendsE2ETest {
 
     // The viewer has picked a visibility tier: the hub's submit watcher holds a result back until the tier is known, and an
     // unset one would put the opt-in sheet over the board.
-    private val world = LinkedInDataWorld(also = listOf(ReleaseFlag.LeaderboardHub)) {
+    private val world = LinkedInDataWorld(also = listOf(ReleaseFlag.LeaderboardHub), ranksClock = NOW) {
         single<FinalBoardStore> { finalBoards }
         single<VisibilityRepository> { FakeVisibilityRepository(OwnTier.Chosen(VisibilityTier.Board)) }
     }
@@ -216,6 +218,13 @@ class LinkedInGhostFriendsE2ETest {
         const val FAY = "uid-fay"
         const val SOL = "uid-sol"
         const val NOTE = "with LinkedIn connections"
+
+        /**
+         * The device clock of every case: noon UTC a week after the scripted today, a Wednesday mid-month. The hub takes its
+         * days from the scripted calendar and asks this clock only which boards are too old to change, so on any run date the
+         * four played days are closed, fetched once and kept.
+         */
+        val NOW: Clock = Clock.fixed(E2E_TODAY.plusDays(7).atTime(12, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC)
 
         /** Looper steps a tap gets to open a sheet before the test says it opened none. */
         const val SETTLE_STEPS = 20
