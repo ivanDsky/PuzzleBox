@@ -57,7 +57,7 @@ internal class RoomDraftRepository(
         .map { it?.toDraft() }
         .distinctUntilChanged()
 
-    override suspend fun get(id: String): Draft? = dao.get(id, owners.visible.value)?.toDraft()
+    override suspend fun get(id: String): Draft? = dao.get(id, owners.visibleNow())?.toDraft()
 
     override suspend fun upsert(draft: Draft) {
         db.withTransaction {
