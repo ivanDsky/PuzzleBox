@@ -170,7 +170,7 @@ class RanksViewModelTest {
     fun `select applies the selection's own transition`() = runTest {
         val viewModel = hub().viewModel()
 
-        viewModel.select { it.toggleCalendar() }
+        viewModel.select { it.showCalendar(today, expanded = true) }
 
         assertTrue(viewModel.selection.value.calendarExpanded)
     }
@@ -182,7 +182,7 @@ class RanksViewModelTest {
         val h = hub(mapOf(LeaderboardRef(ZIP.value, yesterday) to listOf(maya)))
         h.daily.setHistory(ZIP, listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(yesterday)))
         val viewModel = h.viewModel()
-        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)).toggleCalendar() }
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)).showCalendar(today, expanded = true) }
 
         viewModel.selectDay(yesterday)
         val state = viewModel.uiState.first { it.board.state is DailyBoardState.Ranked && it.calendar.selectedDay == yesterday }
@@ -201,7 +201,7 @@ class RanksViewModelTest {
         h.daily.setHistory(ZIP, listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(yesterday)))
         h.completions.setRecords(listOf(HistoryTestSupport.record(yesterday, timeMs = 95_000, hints = 2)))
         val viewModel = h.viewModel()
-        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)).toggleCalendar() }
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)).showCalendar(today, expanded = true) }
 
         viewModel.selectDay(yesterday)
         val state = viewModel.uiState.first { it.stats != null && it.yourSolve != null }

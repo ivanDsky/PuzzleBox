@@ -46,19 +46,11 @@ class RanksSelectionTest {
     @Test
     fun `step keeps everything but the board, and ignores a board that is not listed`() {
         val boards = listOf(RanksBoard.Overall, RanksBoard.Game(ZIP))
-        val picked = landing.setWindow(RanksSelection.Window.Week).toggleCalendar()
+        val picked = landing.setWindow(RanksSelection.Window.Week).copy(calendarExpanded = true)
 
         assertEquals(picked.copy(board = RanksBoard.Game(ZIP)), picked.step(1, boards))
         val unlisted = landing.pickBoard(RanksBoard.Game(QUEENS))
         assertEquals(unlisted, unlisted.step(1, boards))
-    }
-
-    @Test
-    fun `pickDay changes only the day, and null is today again`() {
-        val day = LocalDate.of(2026, 11, 6)
-
-        assertEquals(landing.copy(day = day), landing.pickDay(day))
-        assertEquals(landing, landing.pickDay(day).pickDay(null))
     }
 
     @Test
@@ -73,18 +65,10 @@ class RanksSelectionTest {
     }
 
     @Test
-    fun `toggleCalendar flips the calendar and back`() {
-        val open = landing.toggleCalendar()
-
-        assertEquals(landing.copy(calendarExpanded = true), open)
-        assertEquals(landing, open.toggleCalendar())
-    }
-
-    @Test
     fun `transitions return new values and leave the receiver untouched`() {
         val before = landing.pickBoard(RanksBoard.Game(QUEENS))
 
-        before.pickDay(LocalDate.of(2026, 11, 6)).setScope(RankScope.Friends).toggleCalendar()
+        before.pickFromCalendar(LocalDate.of(2026, 11, 6)).setScope(RankScope.Friends).showCalendar(LocalDate.of(2026, 11, 6), expanded = true)
 
         assertEquals(RanksSelection(board = RanksBoard.Game(QUEENS)), before)
     }
@@ -93,10 +77,10 @@ class RanksSelectionTest {
     fun `reset returns to Overall, today, Global from any selection`() {
         val busy = landing
             .pickBoard(RanksBoard.Game(ZIP))
-            .pickDay(LocalDate.of(2026, 11, 6))
+            .pickFromCalendar(LocalDate.of(2026, 11, 6))
             .setWindow(RanksSelection.Window.Month)
             .setScope(RankScope.Friends)
-            .toggleCalendar()
+            .showCalendar(LocalDate.of(2026, 11, 6), expanded = true)
 
         assertEquals(landing, busy.reset(RankScope.Global))
         assertEquals(landing.setScope(RankScope.Friends), busy.reset(RankScope.Friends))

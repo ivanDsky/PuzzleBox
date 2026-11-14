@@ -70,12 +70,12 @@ class ObserveOverallTest {
 
     private fun boards(vararg loads: BoardLoad) = RankWindowBoards.Boards(loads.toList())
 
-    private suspend fun last(boards: RankWindowBoards): OverallState = observe(flowOf(boards), window).drop(1).first()
+    private suspend fun last(boards: RankWindowBoards): OverallState = observe(flowOf(boards)).drop(1).first()
 
     /** Everything the view emits for [boards], without waiting for a state that is not coming. */
     private suspend fun TestScope.emitted(boards: Flow<RankWindowBoards>): List<OverallState> {
         val seen = mutableListOf<OverallState>()
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { observe(boards, window).toList(seen) }
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { observe(boards).toList(seen) }
         runCurrent()
         return seen
     }
@@ -197,7 +197,7 @@ class ObserveOverallTest {
         shared.first { it is RankWindowBoards.Boards }
         val listeners = leaderboard.observedBoards.size
 
-        val states = List(3) { observe(shared, this@ObserveOverallTest.window).drop(1).first() }
+        val states = List(3) { observe(shared).drop(1).first() }
 
         assertEquals(listOf(zipBoard), leaderboard.observedBoards)
         assertEquals(1, listeners)
