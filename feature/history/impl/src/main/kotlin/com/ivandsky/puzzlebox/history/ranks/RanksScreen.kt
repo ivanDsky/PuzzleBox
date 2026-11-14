@@ -19,7 +19,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -41,9 +40,10 @@ import java.time.LocalDate
  * time the hub opens, a hint and the current dot nudge the swipe, then [onNudgeShown]. On
  * [HistoryLayout.TwoPane] the hub is [RanksTwoPane] instead: no title menu, week strip, dots or swipe. [onBack] (a pushed
  * hub, opened from a game's link) adds a back arrow above either layout. A tab reselect scrolls the hub to the top; one
- * more, with it already there, calls [onReset] (A8). With a [playerSheet] another player's row opens that sheet, which this
- * screen only hosts; without one rows take no tap. Its Watch tap closes it and reports [onWatchPlayer].
- * With a [replayOptIn] the first ranked solve asks about sharing replays, on either layout.
+ * more, with it already there, calls [onReset] (A8). With an [onOpenPlayer] a tap on another player's row reports that
+ * player; without one rows take no tap. The screen only hosts the sheet of the [playerSheet] its caller has open
+ * ([onChallenge], [onClosePlayer]); its Watch tap closes it and reports [onWatchPlayer]. While [replayOptIn], the first
+ * ranked solve's question about sharing replays is up, on either layout ([onShareReplays], [onKeepReplaysPrivate]).
  * A day or window pick keeps the board on screen until the next one answers ([rememberHeldBoard]): only what differs
  * between the two days then changes, each part in place. A held board's rows take no tap, for they are not the picked day's.
  * The whole hub sits in the shown board's world ([RanksWorld]): its accent as a wash and its glyph behind the content,
@@ -69,13 +69,18 @@ internal fun RanksScreen(
     onOpenReplay: (HistoryDayRow, ReplaySolve) -> Unit = { _, _ -> },
     onCompare: (HistoryDayRow) -> Unit = {},
     onWatchPlayer: (PlayerSheetViewModel.Target) -> Unit = {},
-    playerSheet: PlayerSheetViewModel? = null,
-    replayOptIn: ReplayOptInViewModel? = null,
+    playerSheet: PlayerSheetViewModel.State? = null,
+    onOpenPlayer: ((PlayerSheetViewModel.Target) -> Unit)? = null,
+    onChallenge: (GameId) -> Unit = {},
+    onClosePlayer: () -> Unit = {},
+    replayOptIn: Boolean = false,
+    onShareReplays: () -> Unit = {},
+    onKeepReplaysPrivate: () -> Unit = {},
     refreshing: Boolean = false,
     onRefresh: (() -> Unit)? = null,
 ) {
     val shown = rememberHeldBoard(state)
-    val onRowClick = playerSheet?.takeIf { shown.board === state.board }?.let { sheet -> { row: DailyBoardRowModel -> sheet.open(row.toTarget(state)) } }
+    val onRowClick = onOpenPlayer?.takeIf { shown.board === state.board }?.let { open -> { row: DailyBoardRowModel -> open(row.toTarget(state)) } }
     val scroll = rememberScrollState()
     val leftScroll = rememberScrollState()
     val twoPane = layout == HistoryLayout.TwoPane
@@ -96,8 +101,18 @@ internal fun RanksScreen(
             }
         }
     }
-    playerSheet?.let { PlayerSheetHost(it, onWatchPlayer) }
-    replayOptIn?.let { ReplayOptInHost(it, state) }
+    playerSheet?.let {
+        PlayerSheet(
+            it,
+            onChallenge = onChallenge,
+            onDismiss = onClosePlayer,
+            onWatch = {
+                onClosePlayer()
+                onWatchPlayer(it.target)
+            },
+        )
+    }
+    if (replayOptIn) ReplayOptInSheet(onShare = onShareReplays, onKeepPrivate = onKeepReplaysPrivate)
 }
 
 /** Reselecting the tab: the first tap brings every scrolled pane in [scrolls] to its top; with all there already, [onReset]. */
@@ -162,22 +177,6 @@ private fun RanksPhone(
     }
     if (tuning) TuneSheet(state.scope, state.window, onScope, onWindow, onDismiss = { tuning = false })
     if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false })
-}
-
-@Composable
-private fun PlayerSheetHost(viewModel: PlayerSheetViewModel, onWatchPlayer: (PlayerSheetViewModel.Target) -> Unit) {
-    val open by viewModel.state.collectAsStateWithLifecycle()
-    open?.let {
-        PlayerSheet(
-            it,
-            onChallenge = viewModel::challenge,
-            onDismiss = viewModel::close,
-            onWatch = {
-                viewModel.close()
-                onWatchPlayer(it.target)
-            },
-        )
-    }
 }
 
 /** The row as the sheet's target: the board's game (none on Overall) and, on a Day window only, its day (a week or month has no single puzzle). */

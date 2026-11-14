@@ -11,13 +11,10 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -51,15 +48,6 @@ private fun ReplayOptInContent(onShare: () -> Unit, onKeepPrivate: () -> Unit) {
         Button(onShare, Modifier.fillMaxWidth().testTag("ranks.optin.share")) { Text("Share my replays") }
         OutlinedButton(onKeepPrivate, Modifier.fillMaxWidth().testTag("ranks.optin.private")) { Text("Keep private") }
     }
-}
-
-/** Hosts the sheet for [viewModel], feeding it whether [state]'s board shows the viewer's official row. */
-@Composable
-internal fun ReplayOptInHost(viewModel: ReplayOptInViewModel, state: RanksUiState) {
-    val ranked = state.board.state.hasOfficialOwnRow()
-    LaunchedEffect(ranked) { viewModel.rankedRow(ranked) }
-    val show by viewModel.show.collectAsStateWithLifecycle()
-    if (show) ReplayOptInSheet(onShare = viewModel::share, onKeepPrivate = viewModel::keepPrivate)
 }
 
 @PuzzleBoxPreviews

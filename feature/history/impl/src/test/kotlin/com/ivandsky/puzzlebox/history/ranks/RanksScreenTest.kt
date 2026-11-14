@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.history.ranks
 
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -406,7 +407,7 @@ class RanksScreenTest {
     fun `a row of the board kept on screen takes no tap until the picked day answers`() {
         var state by mutableStateOf(drawn)
         val sheet = playerSheet()
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, {}, {}, playerSheet = sheet) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, {}, {}, onOpenPlayer = sheet::open) } }
         composeRule.onNodeWithTag("daily_board.row").assertHasClickAction()
 
         state = loading
@@ -425,7 +426,12 @@ class RanksScreenTest {
     @Test
     fun `a tap on another player's row opens the player sheet on them`() {
         val sheet = playerSheet()
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(drawn, {}, onSwipe = {}, playerSheet = sheet) } }
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                val open by sheet.state.collectAsState()
+                RanksScreen(drawn, {}, onSwipe = {}, playerSheet = open, onOpenPlayer = sheet::open)
+            }
+        }
 
         composeRule.onNodeWithText("Maya").performClick()
 
