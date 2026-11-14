@@ -52,7 +52,7 @@ The two failed post states: rejected because the match had closed, or rejected t
 A completion written from the player's own LinkedIn result, stored with `source = LinkedIn`; it follows first win like any solve.
 
 **Ghost**:
-A LinkedIn connection's row for a day, ranked with the PuzzleBox rows on one combined board when it has a time (hidden times stay unranked); part of a saved board.
+A LinkedIn connection's row for a day. On a Friends board it is ranked with the PuzzleBox rows and takes a friend place when it has a time (hidden times rank last); Global boards hold none. Part of a saved board, and never stored in a shared document.
 
 **Saved board**:
 One LinkedIn connections' board for a game and day, kept on the phone for good and, when signed in, in the player's cloud space; Disconnect keeps it, Delete saved boards removes it.
@@ -125,11 +125,11 @@ The one line on today's Result that says a freeze was used or earned by this sol
 _Avoid_: freeze toast, freeze notification
 
 **Ranks**:
-The top-level tab that replaces History: one leaderboard, re-ranked in place, with your own row in view.
+The top-level tab that replaces History: one leaderboard, re-ranked in place, with your own row in view. It opens on Friends by default; Settings → Ranks switches the default between Friends and Global, and the game-page row, Result chip and Today row follow it.
 _Avoid_: History tab
 
 **Overall**:
-The hub board that sums a player's percentile points across every daily game in a day, week or month window.
+The hub board that sums a player's percentile points across every daily game in a day, week or month window. On Friends the points come from places among the viewer, friends and saved LinkedIn connections; on Global from the whole board.
 _Avoid_: total, global board
 
 **Percentile points**:
