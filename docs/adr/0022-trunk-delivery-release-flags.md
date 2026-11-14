@@ -91,3 +91,6 @@ to merge without being reachable in a release build.
   rollback = flip back.
 - FullReplay flipped to `releaseDefault = true` in 0.29.0 on 2026-11-14.
 - The FullReplay flag was removed, with every branch on it, on 2026-11-14.
+- LeaderboardHub flipped to `releaseDefault = true` in 0.32.0 on 2026-11-14 (#969).
+- The LeaderboardHub flag was removed, with the History screen, the game-page board and every branch on it, on 2026-11-14 (#974).
+- The LinkedInAccount flag was removed, with every branch on it, on 2026-11-14 (#970).
