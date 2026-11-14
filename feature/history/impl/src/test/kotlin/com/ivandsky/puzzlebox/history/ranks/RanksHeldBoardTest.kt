@@ -86,7 +86,7 @@ class RanksHeldBoardTest {
     @Test
     fun `picking a day leaves the board on screen until the day answers, then changes it in place`() {
         var state by mutableStateOf(drawn)
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, {}, {}) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions({}, {})) } }
 
         state = loading
         composeRule.waitForIdle()
@@ -106,7 +106,7 @@ class RanksHeldBoardTest {
     @Test
     fun `a day that does not answer in time says Loading`() {
         var state by mutableStateOf(drawn)
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, {}, {}) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions({}, {})) } }
 
         state = loading
         composeRule.waitForIdle()

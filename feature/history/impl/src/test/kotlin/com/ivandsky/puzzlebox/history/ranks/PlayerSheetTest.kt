@@ -67,12 +67,14 @@ class PlayerSheetTest {
             PuzzleBoxTheme {
                 RanksScreen(
                     hub,
-                    onSignIn = {},
-                    onSwipe = {},
-                    onWatchPlayer = { events += "watch ${it.uid}" },
+                    RanksActions(
+                        onSignIn = {},
+                        onSwipe = {},
+                        onWatchPlayer = { events += "watch ${it.uid}" },
+                        onChallenge = { challenged += it },
+                        onClosePlayer = { events += "close" },
+                    ),
                     playerSheet = sheet,
-                    onChallenge = { challenged += it },
-                    onClosePlayer = { events += "close" },
                 )
             }
         }

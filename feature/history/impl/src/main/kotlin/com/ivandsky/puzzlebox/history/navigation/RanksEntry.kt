@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.history.historyCompareKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel
+import com.ivandsky.puzzlebox.history.ranks.RanksActions
 import com.ivandsky.puzzlebox.history.ranks.RanksBoard
 import com.ivandsky.puzzlebox.history.ranks.ReplayOptInViewModel
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection
@@ -80,33 +81,35 @@ private fun RanksRoute(
     val scope = rememberCoroutineScope()
     RanksScreen(
         state = state,
+        actions = RanksActions(
+            onBack = onBack,
+            onReset = viewModel::resetSelection,
+            onSignIn = { scope.launch { viewModel.signIn(context) } },
+            onSwipe = viewModel::swipe,
+            onPickBoard = viewModel::pickBoard,
+            onNudgeShown = viewModel::markSwipeNudgeSeen,
+            onScope = viewModel::setScope,
+            onWindow = viewModel::setWindow,
+            onShowCalendar = viewModel::showCalendar,
+            onSelectDay = viewModel::selectDay,
+            onPlayAgain = { game, day -> navigator.pushOnce(GameKey(game.value, day.toString())) },
+            onOpenReplay = { row, solve ->
+                navigator.pushOnce(ReplayKey.daily(row.gameId.value, row.day.toString(), row.puzzleNumber, latest = solve == ReplaySolve.Latest))
+            },
+            onCompare = { row -> navigator.pushOnce(historyCompareKey(row)) },
+            onWatchPlayer = { target ->
+                target.board?.let { navigator.pushOnce(ReplayKey.player(it.gameId, it.day.toString(), target.uid, target.name)) }
+            },
+            onOpenPlayer = playerSheet::open,
+            onChallenge = playerSheet::challenge,
+            onClosePlayer = playerSheet::close,
+            onShareReplays = replayOptIn::share,
+            onKeepReplaysPrivate = replayOptIn::keepPrivate,
+            onRefresh = viewModel::refresh,
+        ),
         layout = layout,
-        onBack = onBack,
-        onReset = viewModel::resetSelection,
-        onSignIn = { scope.launch { viewModel.signIn(context) } },
-        onSwipe = viewModel::swipe,
-        onPickBoard = viewModel::pickBoard,
-        onNudgeShown = viewModel::markSwipeNudgeSeen,
-        onScope = viewModel::setScope,
-        onWindow = viewModel::setWindow,
-        onShowCalendar = viewModel::showCalendar,
-        onSelectDay = viewModel::selectDay,
-        onPlayAgain = { game, day -> navigator.pushOnce(GameKey(game.value, day.toString())) },
-        onOpenReplay = { row, solve ->
-            navigator.pushOnce(ReplayKey.daily(row.gameId.value, row.day.toString(), row.puzzleNumber, latest = solve == ReplaySolve.Latest))
-        },
-        onCompare = { row -> navigator.pushOnce(historyCompareKey(row)) },
-        onWatchPlayer = { target ->
-            target.board?.let { navigator.pushOnce(ReplayKey.player(it.gameId, it.day.toString(), target.uid, target.name)) }
-        },
         playerSheet = openPlayer,
-        onOpenPlayer = playerSheet::open,
-        onChallenge = playerSheet::challenge,
-        onClosePlayer = playerSheet::close,
         replayOptIn = askReplays,
-        onShareReplays = replayOptIn::share,
-        onKeepReplaysPrivate = replayOptIn::keepPrivate,
         refreshing = refreshing,
-        onRefresh = viewModel::refresh,
     )
 }
