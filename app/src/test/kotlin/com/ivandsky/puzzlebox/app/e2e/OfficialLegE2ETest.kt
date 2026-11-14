@@ -243,7 +243,7 @@ class OfficialLegE2ETest {
         assertEquals(
             "the solve is queued once, as solved",
             listOf(LegResult(ME, todayLeg.legIndex, result.timeMs, result.hintsUsed, 0L, gaveUp = false) to ResultPostState.Pending),
-            queued.map { it.result.copy(completedAtMs = 0L) to it.state },
+            queued.map { it.result.copy(completedAtMs = 0L, replay = null) to it.state },
         )
         assertEquals("the queued solve is the record's", record.time to record.hints, result.timeMs to result.hintsUsed)
 

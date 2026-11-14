@@ -1,9 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -14,12 +11,11 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.withContext
 
 /**
- * The one read entry of every replay surface (flag gate 2 of 2, D6). Dispatch only: it reads
+ * The one read entry of every replay surface. Dispatch only: it reads
  * no store itself, asks the resolvers in turn, and opens the winning source through its
  * game's plugin, so it never names a session type.
  */
 class LoadSolveReplay(
-    private val flags: ReleaseFlags,
     private val games: GameRegistry,
     private val daily: LoadDailyReplay,
     private val custom: LoadCustomReplay,
@@ -29,15 +25,11 @@ class LoadSolveReplay(
     private val dispatchers: DispatcherProvider,
     private val failures: FailureLog = LogcatFailureLog,
 ) {
-    /** Whether replays are on at all: a surface that says "no replay" asks first, so a flag-off build shows nothing. */
-    val enabled: Boolean get() = flags.isEnabled(ReleaseFlag.FullReplay)
-
     /**
-     * Null = no replay, for any cause (A13). Flag off: always null. The one place a failed load is caught, and logged once;
+     * Null = no replay, for any cause (A13). The one place a failed load is caught, and logged once;
      * the resolvers let failures through. Cancellation still propagates.
      */
     suspend operator fun invoke(ref: SolveReplayRef): Timeline? {
-        if (!flags.isEnabled(ReleaseFlag.FullReplay)) return null
         return try {
             val source = daily(ref) ?: custom(ref) ?: leg(ref) ?: player(ref) ?: return null
             val plugin = games[source.puzzle.gameId] ?: return null
@@ -50,9 +42,8 @@ class LoadSolveReplay(
         }
     }
 
-    /** True when the puzzle's newest solve is its record solve, or it has no solve. Flag off: always true. */
+    /** True when the puzzle's newest solve is its record solve, or it has no solve. */
     suspend fun latestIsRecord(puzzle: PuzzleRef): Boolean {
-        if (!flags.isEnabled(ReleaseFlag.FullReplay)) return true
         return try {
             completions.latestIsRecord(puzzle)
         } catch (e: CancellationException) {

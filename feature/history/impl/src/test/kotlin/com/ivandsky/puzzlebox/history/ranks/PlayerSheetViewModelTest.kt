@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.history.ranks
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
@@ -13,7 +12,6 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel.Challenge
 import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel.Target
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
@@ -62,7 +60,7 @@ class PlayerSheetViewModelTest {
         Random(CODE_SEED),
     )
     private val viewModel = PlayerSheetViewModel(
-        GetPlayerActions(visibility, completions, FakeReleaseFlags(ReleaseFlag.FullReplay)),
+        GetPlayerActions(visibility, completions),
         createMatch,
         registry,
         GamePlayRegistry(emptyList()),

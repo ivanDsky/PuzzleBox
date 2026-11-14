@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.domain.ranks
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Challenge
@@ -10,7 +8,6 @@ import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.PuzzleKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
@@ -19,7 +16,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** Every gate of what the viewer may do with another player: the tier, the failed lookup, the spoiler gate and the replay flag. */
+/** Every gate of what the viewer may do with another player: the tier, the failed lookup and the spoiler gate. */
 class GetPlayerActionsTest {
 
     private val day = LocalDate.parse("2026-11-08")
@@ -72,13 +69,6 @@ class GetPlayerActionsTest {
     }
 
     @Test
-    fun `replays off makes watch unavailable whatever the tier`() = runTest {
-        visibility.putTier("them", VisibilityTier.Replays)
-
-        assertEquals(PlayerActions(Challenge.Allowed, Watch.Unavailable), actions(solved = true, flags = FakeReleaseFlags())("them", board))
-    }
-
-    @Test
     fun `a failed lookup fails closed`() = runTest {
         visibility.failingUids += "them"
 
@@ -94,11 +84,10 @@ class GetPlayerActionsTest {
 
     private fun actions(
         solved: Boolean,
-        flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
         source: CompletionSource = CompletionSource.App,
     ): GetPlayerActions {
         val records = if (solved) listOf(record(source)) else emptyList()
-        return GetPlayerActions(visibility, FakeCompletionRepository(records), flags)
+        return GetPlayerActions(visibility, FakeCompletionRepository(records))
     }
 
     private fun record(source: CompletionSource) = CompletionRecord(

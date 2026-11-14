@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.SolveReplayRef.Latest
@@ -21,7 +19,6 @@ import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.SolveReplay
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.FixtureSession
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
@@ -145,13 +142,6 @@ class LoadDailyReplayTest {
     }
 
     @Test
-    fun `flag off stays null even with a stored replay`() = runTest {
-        val completions = twoSolves(first = shortReplay, second = longReplay)
-
-        assertNull(entry(FakeReleaseFlags(), completions)(Record(puzzle)))
-    }
-
-    @Test
     fun `latestIsRecord is false after a second solve`() = runTest {
         val completions = twoSolves(first = shortReplay, second = longReplay)
         val load = entry(completions = completions)
@@ -194,7 +184,6 @@ class LoadDailyReplayTest {
     )
 
     private fun entry(
-        flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
         completions: CompletionRepository = FakeCompletionRepository(),
         cached: Boolean = true,
         registered: GameId = game,
@@ -213,7 +202,6 @@ class LoadDailyReplayTest {
             clock = { Instant.EPOCH },
         )
         return LoadSolveReplay(
-            flags = flags,
             games = games,
             daily = LoadDailyReplay(completions, daily),
             custom = LoadCustomReplay(completions, received, loadShared),

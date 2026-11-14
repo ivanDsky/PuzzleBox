@@ -89,3 +89,4 @@ to merge without being reachable in a release build.
   players' current streaks and bests may rise on first launch. No persisted format, no migration;
   rollback = flip back.
 - FullReplay flipped to `releaseDefault = true` in 0.29.0 on 2026-11-14.
+- The FullReplay flag was removed, with every branch on it, on 2026-11-14.

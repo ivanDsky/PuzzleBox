@@ -48,6 +48,9 @@ import com.ivandsky.puzzlebox.games.strandsui.chrome.WordSlotLine
 internal object StrandsReplayBoard : GameReplayBoard {
     override val pieces: String get() = "words"
 
+    /** A Strands replay can show no error, so Show errors is hidden on the replay pages. */
+    override val hasErrors: Boolean = false
+
     @Composable
     override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {
         // The frame is game-blind; this board is only reached through Strands' own plugin, so a miss draws nothing.

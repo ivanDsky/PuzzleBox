@@ -56,7 +56,7 @@ class LoadLegReplay(
         return when (leg) {
             is LegRef.Daily -> daily.cachedPuzzle(leg.gameId, leg.day)
             is LegRef.Custom -> {
-        val row = received.get(leg.code) ?: (loadShared(leg.code) as? OpenOutcome.Opened)?.puzzle
+                val row = received.get(leg.code) ?: (loadShared(leg.code) as? OpenOutcome.Opened)?.puzzle
                 row?.takeIf { it.gameId == leg.gameId }
                     ?.let { Puzzle(it.gameId, it.variant, it.sharedFormatVersion, it.puzzleBytes) }
             }

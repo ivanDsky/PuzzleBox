@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.ComputeStreak
@@ -33,7 +32,6 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.friend.signedOutBoard
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -65,7 +63,7 @@ import org.junit.Test
 /**
  * The own result's replay section (ticket 48): it follows the stored completion, never the live play. Hidden while the
  * write is pending or failed, Ready once the row with this solve's time and hints lands with a replay, Unavailable for a
- * stored solve without one, and Hidden with the flag off. A cold result (the row is already stored) is Ready at once.
+ * stored solve without one. A cold result (the row is already stored) is Ready at once.
  */
 class ResultReplaySectionTest {
 
@@ -117,7 +115,6 @@ class ResultReplaySectionTest {
     )
 
     private fun vm(
-        flags: FakeReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
         timeMs: Long = TIME_MS,
         board: GameReplayBoard? = ReplayBoard,
     ): ResultViewModel {
@@ -136,7 +133,7 @@ class ResultReplaySectionTest {
             linkedIn = null,
             board = signedOutBoard(),
             completions = completions,
-            loadReplay = loadSolveReplay(games, daily, completions, flags),
+            loadReplay = loadSolveReplay(games, daily, completions),
         ).also { viewModel ->
             screen.launch { viewModel.state.collect {} }
             dispatcher.scheduler.runCurrent()
@@ -208,20 +205,6 @@ class ResultReplaySectionTest {
         kotlinx.coroutines.runBlocking { completions.onCompleted(solve(source = CompletionSource.LinkedIn), replay = null) }
 
         assertEquals(ReplaySectionState.Unavailable(ReplayUnavailable.ImportedFromLinkedIn), vm().replaySection)
-    }
-
-    @Test
-    fun `flag off stays hidden for a stored solve without a replay`() {
-        kotlinx.coroutines.runBlocking { completions.onCompleted(solve(), replay = null) }
-
-        assertEquals(ReplaySectionState.Hidden, vm(flags = FakeReleaseFlags()).replaySection)
-    }
-
-    @Test
-    fun `flag off stays hidden with the replay stored`() {
-        kotlinx.coroutines.runBlocking { completions.onCompleted(solve(), replay) }
-
-        assertEquals(ReplaySectionState.Hidden, vm(flags = FakeReleaseFlags()).replaySection)
     }
 
     @Test

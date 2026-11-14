@@ -44,7 +44,7 @@ ViewModel (F7).
    `GameKey`/`ResultKey` names that slot; `open(key)`, `peek(slot)`, `retain(keys)` and
    `flush()` are its only API. `SlotOpening` decides where a slot's board comes from: the
    saved row (its `SessionBlob` envelope must name the slot's game and decode, else the row
-   is deleted), then today's fetch, then a past day's replay build. Each slot's `SlotWriter`
+   is deleted), then today's fetch, then a past day's rebuilt board. Each slot's `SlotWriter`
    coalesces saves by trailing throttle (the first change opens a 300 ms window, its end
    writes the latest) into `SavedPlayRepository` (Room `saved_plays`, newest 8 slots); a solve
    discards the row. Saves, deletes and opening reads share one serial `WriteLane`. The shell
@@ -72,4 +72,4 @@ ViewModel (F7).
 - Tests of the play layer run against stand-in games; real-game route coverage lives in
   `app`, the only module that sees every game.
 
-*(Amended 2026-11-12, ADR-0030: `SessionBlob` version 2 carries the in-progress move log beside the session bytes. It is written only when a log exists, so with `ReleaseFlag.FullReplay` off the envelope stays version 1, byte-identical to before; the decoder accepts both. No game session codec changes.)*
+*(Amended 2026-11-12, ADR-0030: `SessionBlob` version 2 carries the in-progress move log beside the session bytes. It is written only when a log exists, so a play with no log keeps the version 1 envelope, byte-identical to before; the decoder accepts both. No game session codec changes.)*

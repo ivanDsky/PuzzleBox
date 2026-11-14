@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.history
 
 import androidx.paging.testing.asSnapshot
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -9,7 +8,6 @@ import com.ivandsky.puzzlebox.game.CompletionSource
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.SolveReplay
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
@@ -485,14 +483,11 @@ class HistoryViewModelTest {
     )
 
     /** One solve per entry, oldest first; the first is the record solve. */
-    private suspend fun replayViewModel(
-        vararg solves: SolveReplay?,
-        flags: FakeReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay),
-    ): HistoryViewModel {
+    private suspend fun replayViewModel(vararg solves: SolveReplay?): HistoryViewModel {
         val completions = FakeCompletionRepository()
         solves.forEachIndexed { index, replay -> completions.onCompleted(solve(isRecord = index == 0), replay) }
         val daily = FakeDailyRepository().apply { setCached(ReplayFixtures.GAME, replayDay, TestGames.puzzle(ReplayFixtures.GAME)) }
-        return HistoryTestSupport.viewModel(daily, completions, flags = flags, games = HistoryTestSupport.replayRegistry)
+        return HistoryTestSupport.viewModel(daily, completions, games = HistoryTestSupport.replayRegistry)
     }
 
     @Test
@@ -511,15 +506,6 @@ class HistoryViewModelTest {
         viewModel.openReplays(replayRow.copy(record = solve(isRecord = true).copy(source = CompletionSource.LinkedIn)))
 
         assertEquals(HistoryReplays.Unavailable(ReplayUnavailable.ImportedFromLinkedIn), viewModel.replays.value.replays)
-    }
-
-    @Test
-    fun `flag off hides the replays of a solve without one`() = runTest {
-        val viewModel = replayViewModel(null, flags = FakeReleaseFlags())
-
-        viewModel.openReplays(replayRow)
-
-        assertEquals(HistoryReplays.Hidden, viewModel.replays.value.replays)
     }
 
     @Test
@@ -575,15 +561,6 @@ class HistoryViewModelTest {
     }
 
     @Test
-    fun `flag off hides the replays of two stored solves`() = runTest {
-        val viewModel = replayViewModel(firstReplay, newerReplay, flags = FakeReleaseFlags())
-
-        viewModel.openReplays(replayRow)
-
-        assertEquals(HistoryReplays.Hidden, viewModel.replays.value.replays)
-    }
-
-    @Test
     fun `closing the detail drops the timelines`() = runTest {
         val viewModel = replayViewModel(firstReplay, newerReplay)
         viewModel.openReplays(replayRow)
@@ -601,7 +578,6 @@ class HistoryViewModelTest {
         val viewModel = HistoryTestSupport.viewModel(
             daily,
             completions,
-            flags = FakeReleaseFlags(ReleaseFlag.FullReplay),
             games = HistoryTestSupport.replayRegistry,
         )
 
@@ -627,7 +603,6 @@ class HistoryViewModelTest {
         val viewModel = HistoryTestSupport.viewModel(
             daily,
             completions,
-            flags = FakeReleaseFlags(ReleaseFlag.FullReplay),
             games = HistoryTestSupport.replayRegistry,
         )
 

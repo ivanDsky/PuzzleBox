@@ -13,7 +13,6 @@ import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import java.time.Clock
@@ -51,7 +50,7 @@ class HistoryRestoringTest {
             registry = registry,
             playRegistry = GamePlayRegistry(emptyList()),
             puzzleDay = puzzleDay,
-            loadReplay = HistoryTestSupport.loadReplay(FakeReleaseFlags(), registry, daily, completions),
+            loadReplay = HistoryTestSupport.loadReplay(registry, daily, completions),
             cloudSync = cloud,
         )
         composeRule.setContent {

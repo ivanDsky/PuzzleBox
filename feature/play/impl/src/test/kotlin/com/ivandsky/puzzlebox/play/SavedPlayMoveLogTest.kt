@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
@@ -25,7 +23,6 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -44,7 +41,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -76,7 +72,7 @@ class SavedPlayMoveLogTest {
     private val calendar = FakeGameCalendar(day)
     private val lane = WriteLane()
 
-    private fun store(flags: ReleaseFlags) = PlaySessionStore(
+    private fun store() = PlaySessionStore(
         games = withReplay,
         ui = registry,
         opening = SlotOpening(
@@ -90,11 +86,7 @@ class SavedPlayMoveLogTest {
         finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH },
         calendar = calendar,
         dispatchers = testDispatchers(dispatcher),
-        flags = flags,
     )
-
-    private val on = FakeReleaseFlags(ReleaseFlag.FullReplay)
-    private val off = FakeReleaseFlags()
 
     /** One committed move of the play: the log records it, then the game publishes the session. */
     private fun ActivePlay.move(atMs: Long) {
@@ -111,20 +103,8 @@ class SavedPlayMoveLogTest {
     private fun savedBlob(): SessionBlob.Decoded = SessionBlob.decode(checkNotNull(saved.rows[slot]))!!
 
     @Test
-    fun `flag off saves the bytes it saved before the log existed`() {
-        val store = store(off)
-        val play = store.open(key)!!
-
-        play.move(atMs = 1_000)
-        assertTrue(store.flush().isCompleted)
-
-        val expected = byteArrayOf(1, 5) + "alpha".encodeToByteArray() + MOVED_ONCE
-        assertArrayEquals(expected, saved.rows[slot])
-    }
-
-    @Test
-    fun `flag on saves a version 2 envelope carrying the log`() {
-        val store = store(on)
+    fun `saves a version 2 envelope carrying the log`() {
+        val store = store()
         val play = store.open(key)!!
 
         play.move(atMs = 1_000)
@@ -137,20 +117,20 @@ class SavedPlayMoveLogTest {
 
     @Test
     fun `save, new store, resume, finish seals the bytes an uninterrupted play seals`() {
-        val uninterrupted = store(on).open(key)!!
+        val uninterrupted = store().open(key)!!
         uninterrupted.move(1_000)
         uninterrupted.move(2_000)
         uninterrupted.move(3_000)
         val expected = checkNotNull(uninterrupted.sealedAt(endMs = 4_000))
         runBlocking { saved.delete(slot) }
 
-        val before = store(on)
+        val before = store()
         val first = before.open(key)!!
         first.move(1_000)
         first.move(2_000)
         assertTrue(before.flush().isCompleted)
 
-        val resumed = store(on).open(key)!!
+        val resumed = store().open(key)!!
         assertEquals(2, (resumed.controller as FakeController).moves)
         resumed.move(3_000)
 
@@ -159,11 +139,11 @@ class SavedPlayMoveLogTest {
 
     @Test
     fun `a resumed play saves the log it continued, version 2`() {
-        val before = store(on)
+        val before = store()
         before.open(key)!!.move(1_000)
         assertTrue(before.flush().isCompleted)
 
-        val after = store(on)
+        val after = store()
         val resumed = after.open(key)!!
         resumed.move(2_000)
         assertTrue(after.flush().isCompleted)
@@ -176,7 +156,7 @@ class SavedPlayMoveLogTest {
         runBlocking {
             saved.save(slot, SessionBlob.encode(game, fakeSession(moves = 2)), elapsedMs = 0L)
         }
-        val store = store(on)
+        val store = store()
 
         val play = store.open(key)!!
         assertEquals(2, (play.controller as FakeController).moves)
@@ -189,31 +169,13 @@ class SavedPlayMoveLogTest {
     }
 
     @Test
-    fun `flag off resume of a version 2 save drops the log and saves version 1`() {
-        val before = store(on)
-        before.open(key)!!.move(1_000)
-        assertTrue(before.flush().isCompleted)
-        assertNotNull(savedBlob().log)
-
-        val after = store(off)
-        val resumed = after.open(key)!!
-        assertEquals(1, (resumed.controller as FakeController).moves)
-        resumed.move(2_000)
-        assertTrue(after.flush().isCompleted)
-
-        assertNull(resumed.sealedAt(endMs = 3_000))
-        assertEquals(1, checkNotNull(saved.rows[slot])[0].toInt())
-        assertEquals("fake|2|false|2026-10-31|7|0", savedBlob().session.decodeToString())
-    }
-
-    @Test
     fun `a save with a log of another game resumes the play with a void log`() {
         val foreign = MoveLog.fresh(TestGames.beta).also { it.setting(ReplayFixtures.replay, ReplayFixtures.initial(total = 10), MOVE, atMs = 0L) }.snapshot()
         runBlocking {
             saved.save(slot, SessionBlob.encode(game, fakeSession(moves = 1), foreign), elapsedMs = 0L)
         }
 
-        val play = store(on).open(key)!!
+        val play = store().open(key)!!
 
         assertEquals(1, (play.controller as FakeController).moves)
         assertNull(play.sealedAt(endMs = 1_000))

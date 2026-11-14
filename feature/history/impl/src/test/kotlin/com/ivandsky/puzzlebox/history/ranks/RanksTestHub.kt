@@ -24,7 +24,6 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeFinalBoardStore
@@ -89,7 +88,7 @@ internal class RanksTestHub(
             observeGameHistory = history,
             observeGameStats = ObserveGameStats(registry, history, ComputeStreak(puzzleDay = GetPuzzleDay(registry, clock))),
             playRegistry = GamePlayRegistry(emptyList()),
-            loadReplay = HistoryTestSupport.loadReplay(FakeReleaseFlags(), registry, daily, completions),
+            loadReplay = HistoryTestSupport.loadReplay(registry, daily, completions),
             identity = this.identity,
             idTokens = object : GoogleIdTokenProvider {
                 override suspend fun idToken(activityContext: Context) = GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.CANCELLED)

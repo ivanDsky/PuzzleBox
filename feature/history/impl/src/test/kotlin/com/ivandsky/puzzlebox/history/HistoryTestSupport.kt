@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.history
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
@@ -29,7 +28,6 @@ import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.FixtureSession
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
@@ -93,7 +91,6 @@ object HistoryTestSupport {
         completions: CompletionRepository,
         hintsRanked: Set<GameId> = emptySet(),
         opening: HistoryKey = HistoryKey(),
-        flags: ReleaseFlags = FakeReleaseFlags(),
         games: GameRegistry = registry(hintsRanked),
     ): HistoryViewModel {
         val observeGameHistory = ObserveGameHistory(games, daily, completions)
@@ -109,14 +106,13 @@ object HistoryTestSupport {
             // No play UIs: every game reads GameBrand.Neutral.
             playRegistry = GamePlayRegistry(emptyList()),
             puzzleDay = puzzleDay,
-            loadReplay = loadReplay(flags, games, daily, completions),
+            loadReplay = loadReplay(games, daily, completions),
             opening = opening,
         )
     }
 
     /** The production replay entry over the given stores; the stores nothing here reads stay empty fakes. */
     fun loadReplay(
-        flags: ReleaseFlags,
         games: GameRegistry,
         daily: DailyRepository,
         completions: CompletionRepository,
@@ -130,7 +126,6 @@ object HistoryTestSupport {
             clock = { Instant.EPOCH },
         )
         return LoadSolveReplay(
-            flags = flags,
             games = games,
             daily = LoadDailyReplay(completions, daily),
             custom = LoadCustomReplay(completions, received, loadShared),

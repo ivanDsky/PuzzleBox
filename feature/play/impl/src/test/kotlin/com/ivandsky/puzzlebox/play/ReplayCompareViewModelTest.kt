@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -11,7 +10,6 @@ import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -64,17 +62,13 @@ class ReplayCompareViewModelTest {
 
     private fun vm(
         key: ReplayCompareKey,
-        flagOn: Boolean = true,
         board: Boolean = true,
         preferences: UserPreferencesRepository = FakeUserPreferencesRepository(),
     ): ReplayCompareViewModel {
         val ui = FakePlayUi(gameId).apply { if (board) replayBoard = ReplayGoldenBoard }
         return ReplayCompareViewModel(
             key = key,
-            loadReplay = loadSolveReplay(
-                games, daily, completions,
-                if (flagOn) FakeReleaseFlags(ReleaseFlag.FullReplay) else FakeReleaseFlags(),
-            ),
+            loadReplay = loadSolveReplay(games, daily, completions),
             games = games,
             ui = GamePlayRegistry(listOf(ui)),
             calendar = FakeGameCalendar(today),
@@ -116,14 +110,6 @@ class ReplayCompareViewModelTest {
     @Test
     fun `neither side stored is none`() {
         assertEquals(ReplayCompareState.None, vm(pair(today, 7)).state.value)
-    }
-
-    @Test
-    fun `flag off is none even with both replays stored`() {
-        store(today, 7)
-        store(yesterday, 6)
-
-        assertEquals(ReplayCompareState.None, vm(pair(today, 7), flagOn = false).state.value)
     }
 
     @Test

@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
@@ -10,7 +9,6 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -59,16 +57,11 @@ class ReplayViewModelTest {
 
     private fun vm(
         key: ReplayKey,
-        flagOn: Boolean = true,
         onDay: LocalDate = today,
         preferences: UserPreferencesRepository = FakeUserPreferencesRepository(),
     ) = ReplayViewModel(
         key = key,
-        loadReplay = loadSolveReplay(
-            games, daily, completions,
-            if (flagOn) FakeReleaseFlags(ReleaseFlag.FullReplay) else FakeReleaseFlags(),
-            replays,
-        ),
+        loadReplay = loadSolveReplay(games, daily, completions, replays = replays),
         games = games,
         ui = GamePlayRegistry(emptyList()),
         calendar = FakeGameCalendar(onDay),
@@ -90,13 +83,6 @@ class ReplayViewModelTest {
     @Test
     fun `no stored replay is none`() {
         assertEquals(ReplayState.None, vm(daily()).state.value)
-    }
-
-    @Test
-    fun `flag off is none even with the replay stored`() {
-        store()
-
-        assertEquals(ReplayState.None, vm(daily(), flagOn = false).state.value)
     }
 
     @Test

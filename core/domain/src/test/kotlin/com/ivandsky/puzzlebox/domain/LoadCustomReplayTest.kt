@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
@@ -38,7 +36,6 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.SolveReplay
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyReplayRepository
@@ -190,16 +187,8 @@ class LoadCustomReplayTest {
         }
     }
 
-    @Test
-    fun `flag off gives null for a custom record`() = runTest {
-        received.upsert(stored())
-        solved(ReplayFixtures.sealed(ReplayFixtures.SHORT_MOVES), isRecord = true)
-
-        assertNull(resolve(Record(ref), FakeReleaseFlags()))
-    }
-
-    private suspend fun resolve(ref: SolveReplayRef, flags: ReleaseFlags = flagsOn()): Timeline? =
-        solveReplay(flags, registry).invoke(ref)
+    private suspend fun resolve(ref: SolveReplayRef): Timeline? =
+        solveReplay(registry).invoke(ref)
 
     private fun assertSameTimeline(expected: Timeline, actual: Timeline?) {
         assertNotNull(actual)
@@ -220,8 +209,7 @@ class LoadCustomReplayTest {
         replay,
     )
 
-    private fun solveReplay(flags: ReleaseFlags, games: GameRegistry) = LoadSolveReplay(
-        flags = flags,
+    private fun solveReplay(games: GameRegistry) = LoadSolveReplay(
         games = games,
         daily = LoadDailyReplay(completions, FakeDailyRepository()),
         custom = custom,
@@ -361,5 +349,3 @@ class LoadCustomReplayTest {
         )
     }
 }
-
-private fun flagsOn(): ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FullReplay)

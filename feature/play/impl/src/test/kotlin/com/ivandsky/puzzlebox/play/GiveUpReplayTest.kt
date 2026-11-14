@@ -1,7 +1,5 @@
 package com.ivandsky.puzzlebox.play
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
@@ -26,7 +24,6 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -71,10 +68,7 @@ class GiveUpReplayTest {
     private val lane = WriteLane()
     private val me = Identity(uid = "me", displayName = "Me", photoUrl = null)
 
-    private val on = FakeReleaseFlags(ReleaseFlag.FullReplay)
-    private val off = FakeReleaseFlags()
-
-    private fun store(flags: ReleaseFlags) = PlaySessionStore(
+    private fun store() = PlaySessionStore(
         games = withReplay,
         ui = GamePlayRegistry(listOf(capture)),
         opening = SlotOpening(
@@ -88,7 +82,6 @@ class GiveUpReplayTest {
         finishLeg = FinishLeg(outbox, FakeIdentityService(me)) { Instant.EPOCH },
         calendar = calendar,
         dispatchers = testDispatchers(dispatcher),
-        flags = flags,
     )
 
     private fun session(placed: Int) = ReplayFixtures.initial(total = 10).copy(placed = placed)
@@ -118,7 +111,7 @@ class GiveUpReplayTest {
     @Test
     fun `a live give-up after three moves queues a replay that ends gave up at the give-up time`() {
         saveLeg(placed = 0, elapsedMs = 0L)
-        val store = store(on)
+        val store = store()
         val play = store.open(legKey)!!
         repeat(3) {
             capture.logOf(play.controller).play(ReplayFixtures.replay, session(it), PLACE, atMs = (it + 1) * 1_000L)
@@ -138,7 +131,7 @@ class GiveUpReplayTest {
     @Test
     fun `a live give-up with zero moves queues a replay of the empty board that ends gave up`() {
         saveLeg(placed = 0, elapsedMs = 0L)
-        val store = store(on)
+        val store = store()
         val play = store.open(legKey)!!
         (play.controller as FakeController).advance(4_000)
 
@@ -153,7 +146,7 @@ class GiveUpReplayTest {
     @Test
     fun `a give-up of a saved play that is not open seals its saved log at the banked play time`() {
         saveLeg(placed = 2, elapsedMs = 30_000L)
-        val store = store(on)
+        val store = store()
 
         runBlocking { store.giveUp(legKey) }
 
@@ -166,7 +159,7 @@ class GiveUpReplayTest {
 
     @Test
     fun `a leg that was never opened queues the loss without a replay`() {
-        runBlocking { store(on).giveUp(legKey) }
+        runBlocking { store().giveUp(legKey) }
 
         assertNull(queuedReplay())
     }
@@ -175,25 +168,9 @@ class GiveUpReplayTest {
     fun `a saved version 1 play queues the loss without a replay`() {
         saveLeg(placed = 2, elapsedMs = 30_000L, log = null)
 
-        runBlocking { store(on).giveUp(legKey) }
+        runBlocking { store().giveUp(legKey) }
 
         assertNull(queuedReplay())
-    }
-
-    @Test
-    fun `flag off queues the loss without a replay, live or saved`() {
-        saveLeg(placed = 2, elapsedMs = 30_000L)
-        runBlocking { store(off).giveUp(legKey) }
-        assertNull(queuedReplay())
-
-        val other = MatchLegKey(LEG_CODE, 1, game.value)
-        val otherSlot = PlaySlot.Leg(game, code.value, legIndex = 1)
-        runBlocking { saved.save(otherSlot, SessionBlob.encode(game, FakeController.encode(1, false, ref), savedLog(1)), elapsedMs = 0L) }
-        val live = store(off)
-        live.open(other)!!
-        runBlocking { live.giveUp(other) }
-        val row = runBlocking { outbox.observe(code).first() }.single { it.result.legIndex == 1 }
-        assertNull(row.result.replay)
     }
 
     /** [inner] with the log each controller was created with kept, so a test can read it. */
