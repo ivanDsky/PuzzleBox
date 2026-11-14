@@ -6,14 +6,14 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 
 /**
- * The module's golden harness (review I6). `tango.golden.mode` is `record`, `verify` or
- * `compare`: record rewrites [golden] from [scratch]; verify fails on a missing golden, a
- * size change or, unless `-Pgoldens.pixelCompare=false`, any differing pixel; compare reads
- * and writes no golden, so a plain run never fails on drift.
+ * The module's golden harness (review I6). `tango.golden.mode` is `record` or `verify`:
+ * record rewrites [golden] from [scratch]; verify fails on a missing golden, a size change
+ * or, unless `-Pgoldens.pixelCompare=false`, any differing pixel. The golden classes do not
+ * run at all without one of the two flags (see AndroidRoborazziConventionPlugin).
  */
 internal object GoldenCompare {
 
-    private val mode = System.getProperty("tango.golden.mode") ?: "compare"
+    private val mode = System.getProperty("tango.golden.mode") ?: "verify"
     private val pixelCompare = System.getProperty("goldens.pixelCompare") != "false"
 
     fun check(golden: File, scratch: File, name: String) {

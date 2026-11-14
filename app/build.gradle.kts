@@ -62,7 +62,7 @@ android {
     }
 
     testOptions {
-        // The ShowkaseBrowserScreenshotTest screenshot suite needs heap headroom.
+        // The Robolectric screenshot and e2e suites need heap headroom.
         unitTests.all { test ->
             test.maxHeapSize = "2g"
             // One graphics mode for every class keeps one Robolectric sandbox per sdk, so the

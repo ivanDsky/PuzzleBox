@@ -136,8 +136,9 @@ Tests:
 ./gradlew check                        # tests, lint and the module-graph guard (checkModuleGraph)
 ```
 
-By default the screenshot tests only compare (diffs go under `build/`; they never fail on drift or
-write a tracked file). `-Proborazzi.verify=true` fails on drift; `-Proborazzi.record=true` records.
+By default no screenshot golden runs: test classes named `*Golden*` or `*Screenshot*` are excluded in
+every module, so `./gradlew test` never writes a tracked file. `-Proborazzi.verify=true` runs them and
+fails on drift; `-Proborazzi.record=true` runs them and records.
 
 ## Contributing
 
@@ -152,9 +153,9 @@ rebased onto the latest `main`:
 Every push to `main` runs the same suite in [`.github/workflows/release.yml`](.github/workflows/release.yml),
 split over two parallel jobs (`assembleDebug testCore` and `testUi`), while a third builds the
 signed release. It publishes a GitHub release only if the tests pass and the `versionName` is new.
-A red `main` stops merges until a revert or fix lands. CI skips the screenshot golden classes
-outside `:app` (`-Pgoldens.skip`: the goldens are recorded on macOS and Linux fonts drift), so run
-the `-Proborazzi.verify=true` command above before you push UI changes.
+A red `main` stops merges until a revert or fix lands. Neither the merge gate nor CI runs the
+screenshot goldens (they are recorded on macOS and Linux fonts drift), so run the
+`-Proborazzi.verify=true` command above on the modules you changed before you push UI changes.
 
 Unfinished features merge dark behind a `ReleaseFlag` and ship by a flip PR
 ([ADR-0022](docs/adr/0022-trunk-delivery-release-flags.md)). To force a flag on in a debug
