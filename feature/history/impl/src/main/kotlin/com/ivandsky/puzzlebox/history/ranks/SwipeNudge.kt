@@ -25,7 +25,6 @@ import androidx.compose.ui.semantics.semantics
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import kotlin.math.PI
@@ -113,7 +112,7 @@ internal fun SwipeNudgePill(text: String?, state: SwipeNudgeState, modifier: Mod
 @PuzzleBoxPreviews
 @Composable
 private fun SwipeNudgePillPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         val state = remember { SwipeNudgeState(pillAt = 1f) }
         SwipeNudgePill("Swipe for Zip ›", state, Modifier.padding(Spacing.lg))
     }

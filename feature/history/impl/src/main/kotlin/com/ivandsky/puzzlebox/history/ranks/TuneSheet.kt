@@ -12,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.SegmentedToggle
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
@@ -73,7 +72,7 @@ private fun TuneChoices(scope: RankScope, window: Window, onScope: (RankScope) -
 @PuzzleBoxPreviews
 @Composable
 private fun TuneChoicesPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         TuneChoices(RankScope.Friends, Window.Week, onScope = {}, onWindow = {})
     }
 }

@@ -4,7 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -14,7 +14,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.ColorProducer
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
-import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
@@ -43,7 +42,7 @@ import com.ivandsky.puzzlebox.model.GameId
 @PuzzleBoxPreviews
 @Composable
 private fun RanksTopBarPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         Box(Modifier.padding(Spacing.lg)) {
             RanksTopBar(label = tuneLabel(RankScope.Friends, RanksSelection.Window.Week), onTune = {}) {
                 Text("Zip", style = MaterialTheme.typography.titleLarge)
@@ -55,7 +54,7 @@ private fun RanksTopBarPreview() {
 @PuzzleBoxPreviews
 @Composable
 private fun PageDotsMidScrubPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         // A finger a little over a third of the way from the second board to the third.
         val scope = rememberCoroutineScope()
         val scrub = remember { BoardScrub(position = 1, scope = scope).also { it.dragBy(delta = -0.4f, count = DOTS) } }
@@ -68,7 +67,7 @@ private const val DOTS = 5
 @PuzzleBoxPreviews
 @Composable
 private fun RollingLineMidRollPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         val ink = MaterialTheme.colorScheme.onSurface
         Box(Modifier.padding(Spacing.lg)) {
             RollingLine(
@@ -85,33 +84,31 @@ private fun RollingLineMidRollPreview() {
 @PuzzleBoxPreviews
 @Composable
 private fun RanksBoardNotePreview() {
-    PuzzleBoxTheme { Box(Modifier.padding(Spacing.lg)) { RanksBoardNote("2 of 5 boards") } }
+    RanksPreviewHost { Box(Modifier.padding(Spacing.lg)) { RanksBoardNote("2 of 5 boards") } }
 }
 
 @PuzzleBoxPreviews
 @Composable
 private fun RanksFriendsHintPreview() {
-    PuzzleBoxTheme { Box(Modifier.padding(Spacing.lg)) { RanksFriendsHint() } }
+    RanksPreviewHost { Box(Modifier.padding(Spacing.lg)) { RanksFriendsHint() } }
 }
 
 @PuzzleBoxPreviews
 @Composable
 private fun RanksSignInPromptPreview() {
-    PuzzleBoxTheme { Box(Modifier.padding(Spacing.lg)) { RanksSignInPrompt(RanksSignIn.Idle, onSignIn = {}) } }
+    RanksPreviewHost { Box(Modifier.padding(Spacing.lg)) { RanksSignInPrompt(RanksSignIn.Idle, onSignIn = {}) } }
 }
 
-// The menu draws in its own popup below the title, so the preview reserves the room it drops into.
+// The menu draws in its own popup below the title, so the host fills the preview for the page to reach under it.
 @PuzzleBoxPreviews
 @Composable
 private fun RanksTitleMenuOpenPreview() {
-    PuzzleBoxTheme {
-        Box(Modifier.padding(Spacing.lg).height(MENU_ROOM)) {
+    RanksPreviewHost(Modifier.fillMaxSize()) {
+        Box(Modifier.padding(Spacing.lg)) {
             RanksTitleMenu("Overall", MenuPlaces, selected = RanksBoard.Overall, onPick = {}, onHowRanksWork = {}, initiallyExpanded = true)
         }
     }
 }
-
-private val MENU_ROOM = Spacing.xxl * 8
 
 private val MenuPlaces = listOf(
     BoardPlace(RanksBoard.Overall, "Overall", Standing.Place(12)),
@@ -124,7 +121,7 @@ private val MenuPlaces = listOf(
 @PuzzleBoxPreviews
 @Composable
 private fun YourSolveRowReplayPreview() {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         Box(Modifier.padding(Spacing.lg)) {
             YourSolveRow(
                 PreviewYourSolve.copy(replays = HistoryReplays.One(PreviewTimeline, ReplaySolve.Record), playUi = PreviewPlayUi),
@@ -151,7 +148,7 @@ private fun SolveReplayButtonHiddenPreview() = ReplayButton(HistoryReplays.Hidde
 // The button is all that shows; the first-and-latest menu is a popup that opens on a tap.
 @Composable
 private fun ReplayButton(replays: HistoryReplays) {
-    PuzzleBoxTheme {
+    RanksPreviewHost {
         Row(Modifier.padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             SolveReplayButton(replays, onOpen = {}, onCompare = {})
         }
