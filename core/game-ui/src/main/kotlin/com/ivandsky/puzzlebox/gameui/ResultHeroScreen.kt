@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -101,7 +102,7 @@ fun ResultHeroScreen(
                     ResultSideCard(model, brand, onSignIn, Modifier, wide)
                 }
                 board?.invoke()
-                replay?.invoke()
+                if (replay != null) Box(Modifier.widthIn(max = heroWidth)) { replay() }
             }
         }
     }
