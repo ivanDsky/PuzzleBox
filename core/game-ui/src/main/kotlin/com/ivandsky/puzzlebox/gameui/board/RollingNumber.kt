@@ -54,9 +54,8 @@ private class RollMemory {
  * one number; the roll is as tall as the tallest cell and as wide as the cells it is between, and clips to that.
  *
  * At rest a new [value] rolls on the board's clock from whatever number is showing. Between two values the caller
- * gives the one it leaves as [from] and how far along it is as [progress] (0 to 1, read only where the roll is laid
- * out, so a frame of it recomposes nothing): the roll then follows [progress], a finger or the spring that settles it,
- * and lands without rolling again. Reduced motion draws [value] alone.
+ * gives a [scrub]: the roll then follows its progress, a finger or the spring that settles it, and lands without
+ * rolling again. Reduced motion draws [value] alone.
  *
  * Only the cell of [value] is left to assistive tech and tests; the ones passing by say nothing.
  */
@@ -64,16 +63,15 @@ private class RollMemory {
 fun RollingNumber(
     value: Int,
     modifier: Modifier = Modifier,
-    from: Int? = null,
-    progress: (() -> Float)? = null,
+    scrub: RollScrub? = null,
     cell: @Composable (Int) -> Unit,
 ) {
     val memory = remember { RollMemory() }
     when {
         rememberReducedMotion() -> Box(modifier) { cell(value) }
-        from != null && progress != null && from != value -> {
-            val strip = remember(from, value) { rankStrip(from, value) }
-            RollingStrip(strip, value, { memory.at(strip, strip.offsetAt(progress())) }, modifier, cell)
+        scrub != null && scrub.from != value -> {
+            val strip = remember(scrub.from, value) { rankStrip(scrub.from, value) }
+            RollingStrip(strip, value, { memory.at(strip, strip.offsetAt(scrub.progress())) }, modifier, cell)
         }
         else -> {
             val roll = remember(value) { memory.next(value) }
@@ -119,6 +117,6 @@ private fun RollingNumberPreview() = PuzzleBoxTheme {
     val style = MaterialTheme.typography.displaySmall.tabular()
     Row(Modifier.padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         RollingNumber(12) { Text("#$it", style = style) }
-        RollingNumber(12, from = 3, progress = { 0.5f }) { Text("#$it", style = style) }
+        RollingNumber(12, scrub = RollScrub(3) { 0.5f }) { Text("#$it", style = style) }
     }
 }

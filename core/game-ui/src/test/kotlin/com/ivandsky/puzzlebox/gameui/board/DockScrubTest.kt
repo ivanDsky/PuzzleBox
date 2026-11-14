@@ -166,7 +166,7 @@ class DockScrubTest {
         var progress by mutableFloatStateOf(0.3f)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                RollingNumber(value, from = from, progress = { progress }) { Text("#$it", Modifier.testTag("number")) }
+                RollingNumber(value, scrub = from?.let { RollScrub(it) { progress } }) { Text("#$it", Modifier.testTag("number")) }
             }
         }
         fun assertSays(text: String) {

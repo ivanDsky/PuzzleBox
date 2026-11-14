@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.designsystem.ScrubCell
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.tabular
+import com.ivandsky.puzzlebox.gameui.board.RollScrub
 import com.ivandsky.puzzlebox.gameui.board.RollingNumber
 
 /**
@@ -106,7 +107,7 @@ private fun HeroStanding(was: Standing?, now: Standing, progress: () -> Float, c
             // A layer that is a place is the place of this frame: it rolls there, and is not drawn a frame late.
             val shown = if (layer is Standing.Place && now is Standing.Place) now else layer
             if (shown is Standing.Place) {
-                RollingNumber(shown.place, from = (was as? Standing.Place)?.place, progress = progress) {
+                RollingNumber(shown.place, scrub = (was as? Standing.Place)?.let { RollScrub(it.place, progress) }) {
                     HeroPlace(Standing.Place(it), color, spoken = it == shown.place)
                 }
             } else {
