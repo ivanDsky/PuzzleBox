@@ -139,7 +139,6 @@ internal class RoomLinkedInDays(
             ghosts = board.ghosts,
             boardFetchedAtMs = board.readAtMs,
             owner = board.owner,
-            boardComplete = board.complete,
         )
     }
 

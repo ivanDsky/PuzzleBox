@@ -46,8 +46,7 @@ class ObserveLinkedInDayTest {
         ghosts: List<LinkedInGhost> = emptyList(),
         boardFetchedAtMs: Long? = fetchedAtMs,
         owner: LinkedInOwner? = null,
-        boardComplete: Boolean = false,
-    ) = LinkedInDayData(link, delta, boardInWindow, inFlight, lastSync, own, ghosts, boardFetchedAtMs, owner, boardComplete)
+    ) = LinkedInDayData(link, delta, boardInWindow, inFlight, lastSync, own, ghosts, boardFetchedAtMs, owner)
 
     private fun ghost(i: Int, timeMs: Long?, hintFree: Boolean = true) =
         LinkedInGhost("member-$i", "Member $i", timeMs, hintFree, flawless = false)

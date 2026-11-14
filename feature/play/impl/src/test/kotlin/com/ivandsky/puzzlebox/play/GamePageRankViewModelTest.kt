@@ -139,7 +139,6 @@ class GamePageRankViewModelTest {
         fetchedAtMs: Long? = 1L,
         own: LinkedInOwnState = LinkedInOwnState.Unknown,
         owner: LinkedInOwner? = null,
-        complete: Boolean = false,
     ) = LinkedInDayData(
         link = LinkState.Connected("member-1"),
         delta = 0,
@@ -150,7 +149,6 @@ class GamePageRankViewModelTest {
         ghosts = ghosts,
         boardFetchedAtMs = fetchedAtMs,
         owner = owner,
-        boardComplete = complete,
     )
 
     private fun after(ms: Long) {

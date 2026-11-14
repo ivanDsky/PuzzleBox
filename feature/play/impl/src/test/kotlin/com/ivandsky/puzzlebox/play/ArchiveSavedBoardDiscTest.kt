@@ -115,8 +115,8 @@ class ArchiveSavedBoardDiscTest {
         ObserveArchiveMonth(daily, FakeSavedPlayRepository(), FakeCompletionRepository(), FakeGameCalendar(today))(game, month).first()
     }
 
-    /** The day's view as the day card gets it, over a saved, final board read at 2026-11-04 14:12 UTC. */
-    private fun savedFinalView(on: LocalDate): LinkedInDayView {
+    /** The day's view as the day card gets it, over a saved board read at 2026-11-04 14:12 UTC. */
+    private fun savedBoardView(on: LocalDate): LinkedInDayView {
         linkedIn.emit(
             game,
             on,
@@ -129,7 +129,6 @@ class ArchiveSavedBoardDiscTest {
                 own = LinkedInOwnState.Unknown,
                 ghosts = emptyList(),
                 boardFetchedAtMs = 1_793_801_520_000L,
-                boardComplete = true,
             ),
         )
         val view = runBlocking { ObserveLinkedInDay(linkedIn, FakeGames(listOf(game)).games)(game, on).first() }
@@ -185,7 +184,7 @@ class ArchiveSavedBoardDiscTest {
         val before = discStates(days)
         val textsBefore = calendarTexts()
 
-        boardView.value = savedFinalView(withBoard)
+        boardView.value = savedBoardView(withBoard)
         composeRule.waitForIdle()
 
         assertEquals("the saved board repaints no disc", before, discStates(days))
@@ -198,7 +197,7 @@ class ArchiveSavedBoardDiscTest {
     fun noLinkedInMarkIsDrawnInsideTheCalendar() {
         val days = archiveDays()
         show(days, days.first { it.date == withBoard })
-        boardView.value = savedFinalView(withBoard)
+        boardView.value = savedBoardView(withBoard)
         composeRule.waitForIdle()
 
         composeRule.onAllNodes(
@@ -212,7 +211,7 @@ class ArchiveSavedBoardDiscTest {
     fun theLegendNamesTheFourDiscsAndNoSavedBoard() {
         val days = archiveDays()
         show(days, days.first { it.date == withBoard })
-        boardView.value = savedFinalView(withBoard)
+        boardView.value = savedBoardView(withBoard)
         composeRule.waitForIdle()
 
         val texts = calendarTexts()
@@ -227,7 +226,7 @@ class ArchiveSavedBoardDiscTest {
         val days = archiveDays()
         assertEquals(PastDayStatus.Stored, days.first { it.date == cached }.status)
         show(days, days.first { it.date == withBoard })
-        boardView.value = savedFinalView(withBoard)
+        boardView.value = savedBoardView(withBoard)
         composeRule.waitForIdle()
 
         assertEquals("saved", discState(cached))
