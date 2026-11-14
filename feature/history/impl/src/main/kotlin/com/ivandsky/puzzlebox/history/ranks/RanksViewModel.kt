@@ -39,12 +39,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.updateAndGet
 import kotlinx.coroutines.launch
@@ -83,12 +84,17 @@ internal class RanksViewModel(
     private val _selection = MutableStateFlow(saver.restore(opening, rankBoards(registry)))
     val selection: StateFlow<RanksSelection> = _selection.asStateFlow()
 
+    /** False until a fresh hub has its stored default scope; a restored selection has nothing to wait for. */
+    private val landed = MutableStateFlow(saver.hasSaved)
+
     init {
-        // A fresh hub lands on the stored default once it has loaded; a restored selection keeps its own scope.
-        if (!saver.hasSaved) {
+        if (!landed.value) {
             viewModelScope.launch {
+                val initial = _selection.value
                 val stored = landing.stored.first()
-                _selection.update { it.setScope(stored) }
+                // A scope picked meanwhile wins over the stored default.
+                _selection.update { if (it == initial) it.setScope(stored) else it }
+                landed.value = true
             }
         }
     }
@@ -147,8 +153,9 @@ internal class RanksViewModel(
      * there, and the scope the hub names is always the one its boards and places answer. In Friends they carry
      * the LinkedIn connections the phone holds.
      */
-    private val scoped: Flow<Pair<RankScope, List<RanksBoardSlice>>> = selection.map { Triple(it.window, it.day, it.scope) }.distinctUntilChanged()
-        .flatMapLatest { (kind, day, scope) -> slices.observe(kind, day, scope).map { scope to it } }
+    private val scoped: Flow<Pair<RankScope, List<RanksBoardSlice>>> = landed.filter { it }.flatMapLatest {
+        selection.map { Triple(it.window, it.day, it.scope) }.distinctUntilChanged()
+    }.flatMapLatest { (kind, day, scope) -> slices.observe(kind, day, scope).map { scope to it } }
 
     val uiState: StateFlow<RanksUiState> = combine(
         scoped,
