@@ -9,7 +9,10 @@ import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.LocalDate
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
@@ -59,6 +62,40 @@ class RanksFriendsDefaultTest {
         val viewModel = hub(friendsDefault = true).viewModel(savedState = handle)
 
         assertEquals(RankScope.Global, viewModel.selection.value.scope)
+    }
+
+    @Test
+    fun `with a stored Global no Friends state is shown before the first loaded one`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val hub = RanksTestHub(
+            FakeLeaderboardRepository(mapOf(LeaderboardRef("zip", today) to listOf(entry("u1", 70_000)))),
+            friendsDefault = false,
+            storedDefaultGate = gate,
+        )
+        val viewModel = hub.viewModel(opening = link)
+        val seen = mutableListOf<RankScope>()
+        val collecting = launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect { if (it.board.state !is DailyBoardState.Loading) seen += it.scope }
+        }
+
+        assertTrue("held in loading while the default is unread", seen.isEmpty())
+        gate.complete(Unit)
+        withTimeout(5_000) { viewModel.uiState.first { it.board.state is DailyBoardState.Ranked } }
+        collecting.cancel()
+
+        assertEquals(RankScope.Global, seen.first())
+        assertFalse(RankScope.Friends in seen)
+    }
+
+    @Test
+    fun `a restored Global selection loads straight into Global with a Friends default`() = runTest {
+        val handle = SavedStateHandle()
+        RanksSelectionSaver(handle).save(RanksSelection(scope = RankScope.Global))
+        val viewModel = hub(friendsDefault = true).viewModel(savedState = handle)
+
+        val loaded = withTimeout(5_000) { viewModel.uiState.first { it.board.state !is DailyBoardState.Loading } }
+
+        assertEquals(RankScope.Global, loaded.scope)
     }
 
     @Test

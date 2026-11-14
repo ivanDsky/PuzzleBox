@@ -37,9 +37,12 @@ import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Clock
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.onStart
 
 /** The hub's view model over fakes the test keeps hold of: counting leaderboard, settable identity and calendar. */
 internal class RanksTestHub(
@@ -49,6 +52,8 @@ internal class RanksTestHub(
     val today: LocalDate = LocalDate.of(2026, 11, 13),
     /** The player's stored default scope: Global here, so a test names Friends when it means it. */
     friendsDefault: Boolean = false,
+    /** When set, the stored default does not arrive until it completes, like a DataStore read that has not returned yet. */
+    private val storedDefaultGate: CompletableDeferred<Unit>? = null,
 ) {
     val identity = FakeIdentityService(initial = identity)
     val calendar = FakeGameCalendar(today)
@@ -93,7 +98,9 @@ internal class RanksTestHub(
             idTokens = object : GoogleIdTokenProvider {
                 override suspend fun idToken(activityContext: Context) = GoogleIdToken.Unavailable(GoogleIdToken.Unavailable.Reason.CANCELLED)
             },
-            preferences = preferences,
+            preferences = object : UserPreferencesRepository by preferences {
+                override val ranksFriendsDefault = preferences.ranksFriendsDefault.onStart { storedDefaultGate?.await() }
+            },
             calendar = calendar,
             registry = registry,
             clock = clock,
