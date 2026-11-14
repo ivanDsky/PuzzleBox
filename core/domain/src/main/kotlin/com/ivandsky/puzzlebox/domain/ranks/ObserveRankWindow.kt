@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
 import com.ivandsky.puzzlebox.data.leaderboard.FinalBoardStore
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.data.leaderboard.entryComparator
 import com.ivandsky.puzzlebox.data.leaderboard.isFinal
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEmpty
@@ -54,7 +56,8 @@ class ObserveRankWindow(
 
     /**
      * Each [refresh] tick re-reads what failed: an Unavailable Final board is fetched again and a
-     * capped open board is re-counted. Listeners are never re-attached. [refresh] is collected
+     * capped open board is re-counted, and an open board whose listener ended degraded (the repository's
+     * terminal null) listens again; a healthy listener is never re-attached. [refresh] is collected
      * once per collection of the result, however many boards the window has.
      */
     operator fun invoke(
@@ -123,8 +126,9 @@ class ObserveRankWindow(
     private fun openBoard(board: LeaderboardRef, order: RankOrder, ticks: Flow<Unit>): Flow<BoardLoad> = flow {
         var countedRound: Int? = null
         var total: Int? = null
-        leaderboard.observe(board, order).combine(ticks.rounds(), ::Pair).collect { (snapshot, round) ->
-            val entries = snapshot?.entries
+        listen(board, order, ticks).combine(ticks.rounds(), ::Pair).collect { (snapshot, round) ->
+            // An empty answer from the cache says nothing about the board: not known yet, like no snapshot.
+            val entries = snapshot?.entries?.takeUnless { snapshot.fromCache && it.isEmpty() }
             val count = when {
                 entries == null -> null
                 // Below the cap the page is the whole board, so its length is N.
@@ -146,6 +150,19 @@ class ObserveRankWindow(
                     BoardLoad.Loaded(board, order, BoardPage(entries, count), final = false)
                 },
             )
+        }
+    }
+
+    /** The board's listener; one that ends degraded (last answer null) is attached again on the next tick. */
+    private fun listen(board: LeaderboardRef, order: RankOrder, ticks: Flow<Unit>): Flow<LeaderboardSnapshot?> = flow {
+        while (true) {
+            var last: LeaderboardSnapshot? = null
+            leaderboard.observe(board, order).collect { snapshot ->
+                last = snapshot
+                emit(snapshot)
+            }
+            if (last != null) return@flow
+            ticks.first()
         }
     }
 

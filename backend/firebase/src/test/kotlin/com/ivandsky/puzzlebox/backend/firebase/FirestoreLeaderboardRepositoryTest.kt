@@ -10,9 +10,13 @@ import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
 import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -42,9 +46,13 @@ class FirestoreLeaderboardRepositoryTest {
         val observed = mutableListOf<String>()
         val observedOrders = mutableListOf<RankOrder>()
 
-        override fun observeEntries(boardId: String, order: RankOrder): Flow<List<Map<String, Any?>>> {
+        /** When set, the listener plays this script instead of the stored docs. */
+        var script: Flow<BoardDocs>? = null
+
+        override fun observeEntries(boardId: String, order: RankOrder): Flow<BoardDocs> {
             observed += boardId
             observedOrders += order
+            script?.let { return it }
             // Errors surface IN the flow, like the real snapshot listener — never eagerly.
             return flow {
                 if (observeFailuresLeft > 0) {
@@ -59,7 +67,7 @@ class FirestoreLeaderboardRepositoryTest {
                         { (it[order.boardQueryFields()[1]] as? Number)?.toLong() ?: 0L },
                     ),
                 )
-                emit(sorted)
+                emit(BoardDocs(sorted, fromCache = false))
             }
         }
 
@@ -189,6 +197,25 @@ class FirestoreLeaderboardRepositoryTest {
         val snapshot = repository.observe(board, RankOrder.TimeThenHints).first()!!
 
         assertEquals(listOf("u1", "u5"), snapshot.entries.map { it.uid })
+    }
+
+    @Test
+    fun `a snapshot carries whether the cache produced it, and the server answer follows on the same flow`() = runTest {
+        val store = FakeStore()
+        val answers = MutableSharedFlow<BoardDocs>()
+        store.script = answers
+        val repository = FirestoreLeaderboardRepository(store, currentUid = { "me" })
+        val seen = mutableListOf<LeaderboardSnapshot?>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            repository.observe(board, RankOrder.TimeThenHints).toList(seen)
+        }
+
+        answers.emit(BoardDocs(emptyList(), fromCache = true))
+        answers.emit(BoardDocs(listOf(doc(entry())), fromCache = false))
+
+        assertEquals(listOf(true, false), seen.map { it!!.fromCache })
+        assertTrue(seen[0]!!.entries.isEmpty())
+        assertEquals(listOf("u1"), seen[1]!!.entries.map { it.uid })
     }
 
     @Test

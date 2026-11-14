@@ -4,6 +4,7 @@ import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -15,6 +16,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import java.time.LocalDate
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -89,6 +91,19 @@ class ObserveLeaderboardTest {
             )
         }
         assertEquals(listOf(boardRef), leaderboard.observedBoards)
+    }
+
+    @Test
+    fun `an empty answer from the cache is still a loaded empty board`() = runTest {
+        val cached = LeaderboardSnapshot(boardRef, emptyList(), fromCache = true)
+        val leaderboard = object : LeaderboardRepository by FakeLeaderboardRepository() {
+            override fun observe(board: LeaderboardRef, order: RankOrder) = flowOf<LeaderboardSnapshot?>(cached)
+        }
+
+        ObserveLeaderboard(FakeIdentityService(initial = ann), leaderboard, registry, calendar)(tango, day).test {
+            awaitItem()
+            assertEquals(TodayLeaderboard.SignedIn(ann, TodayLeaderboard.Board.Loaded(cached)), awaitItem())
+        }
     }
 
     @Test
