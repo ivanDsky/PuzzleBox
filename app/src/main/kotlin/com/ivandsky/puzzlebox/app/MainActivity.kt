@@ -19,9 +19,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 import com.ivandsky.puzzlebox.app.nav.FriendLink
 import com.ivandsky.puzzlebox.app.nav.SharedText
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SharedTextStore
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -32,7 +29,7 @@ import org.koin.core.component.inject
 /**
  * The single activity (singleTask): a tapped share link starts it or, when it is already
  * running, arrives as a new intent; either way the link waits in [pendingLink] until the app
- * has put it on the back stack. A plain-text share (`ShareTarget`) takes the same two doors:
+ * has put it on the back stack. A plain-text share takes the same two doors:
  * its text goes to the [SharedTextStore] and [pendingShare] has the app show the Create root,
  * which imports it. A recreated activity restores its back stack and never re-reads the
  * intent that started it, so the friend's card is pushed and the text imported once.
@@ -42,7 +39,6 @@ class MainActivity : ComponentActivity(), KoinComponent {
 
     private val preferences: UserPreferencesRepository by inject()
 
-    private val releaseFlags: ReleaseFlags by inject()
     private val sharedText: SharedTextStore by inject()
 
     private var pendingLink by mutableStateOf<String?>(null)
@@ -114,11 +110,10 @@ class MainActivity : ComponentActivity(), KoinComponent {
     }
 
     /**
-     * Puts the text [intent] shares in the [SharedTextStore], when `ShareTarget` is on (a
-     * one-shot check); the Create root takes it once it is resumed. True when text was put.
+     * Puts the text [intent] shares in the [SharedTextStore]; the Create root takes it once it
+     * is resumed. True when text was put.
      */
     private fun handOffSharedText(intent: Intent): Boolean {
-        if (!releaseFlags.isEnabled(ReleaseFlag.ShareTarget)) return false
         val text = intent.sharedText() ?: return false
         sharedText.put(text)
         return true

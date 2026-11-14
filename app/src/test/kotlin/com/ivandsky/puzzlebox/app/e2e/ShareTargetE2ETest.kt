@@ -17,7 +17,6 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.MainActivity
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.SharedTextStore
@@ -28,7 +27,6 @@ import com.ivandsky.puzzlebox.games.queens.QueensVariants
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.model.GameId
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Duration
@@ -48,12 +46,12 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
- * A plain-text share over the real activity with `ShareTarget` forced on: the debug manifest
+ * A plain-text share over the real activity: the manifest
  * routes `ACTION_SEND text/plain` to [MainActivity]; a cold start and a warm new intent (from
  * the Play tab) both end on the Studio of an imported draft with the verdict the same board
  * pasted would show (Unique), back returns to the Create root, and recreating the activity
  * afterwards creates no second draft. A task relaunched from Recents does not re-apply its
- * share, and with the flag off a share opens the app on its start tab and creates nothing.
+ * share.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -73,8 +71,8 @@ class ShareTargetE2ETest {
     fun stopGraph() = graph.stop()
 
     @Test
-    fun `the debug manifest routes plain text shares, and only them, to the app`() {
-        startGraph(ReleaseFlag.ShareTarget)
+    fun `the manifest routes plain text shares, and only them, to the app`() {
+        startGraph()
 
         fun handlers(type: String) = context.packageManager
             .queryIntentActivities(Intent(Intent.ACTION_SEND).setType(type), 0)
@@ -86,7 +84,7 @@ class ShareTargetE2ETest {
 
     @Test
     fun `a cold start from a share ends on the Studio of an imported draft`() {
-        startGraph(ReleaseFlag.ShareTarget)
+        startGraph()
         launching(send(UNIQUE)) {
             awaitVerdict()
             assertRoute(EDITOR)
@@ -101,7 +99,7 @@ class ShareTargetE2ETest {
 
     @Test
     fun `a share while the app runs on Play opens the Studio and back returns to Create`() {
-        startGraph(ReleaseFlag.ShareTarget)
+        startGraph()
         // Relaunched from Recents, the share that first started the task is not re-applied.
         launching(fromRecents(send(UNIQUE))) {
             assertRoute(HOME)
@@ -121,7 +119,7 @@ class ShareTargetE2ETest {
 
     @Test
     fun `a share from Play while Create holds a Studio opens the shared draft, not the old one`() {
-        startGraph(ReleaseFlag.ShareTarget)
+        startGraph()
         seedBlankDraft()
         launching(fromRecents(send(UNIQUE))) {
             openSeededStudio()
@@ -142,7 +140,7 @@ class ShareTargetE2ETest {
 
     @Test
     fun `a share while Create shows a Studio opens the shared draft, then back is the Create root`() {
-        startGraph(ReleaseFlag.ShareTarget)
+        startGraph()
         seedBlankDraft()
         launching(fromRecents(send(UNIQUE))) {
             openSeededStudio()
@@ -159,7 +157,7 @@ class ShareTargetE2ETest {
 
     @Test
     fun `recreating the activity after a share creates no second draft`() {
-        startGraph(ReleaseFlag.ShareTarget)
+        startGraph()
         launching(send(UNIQUE)) {
             awaitVerdict()
 
@@ -175,26 +173,13 @@ class ShareTargetE2ETest {
 
     @Test
     fun `a share re-delivered from Recents is not imported`() {
-        startGraph(ReleaseFlag.ShareTarget)
+        startGraph()
         launching(fromRecents(send(UNIQUE))) {
             idle()
 
             assertRoute(HOME)
             assertEquals(emptyMap<String, Any>(), drafts.rows)
             assertNull(store.pending.value)
-        }
-    }
-
-    @Test
-    fun `with ShareTarget off a share opens the start tab and creates nothing`() {
-        startGraph()
-        launching(send(UNIQUE)) {
-            idle()
-
-            assertRoute(HOME)
-            rule.onNodeWithTag("nav.tab.home").assertIsSelected()
-            assertEquals(emptyMap<String, Any>(), drafts.rows)
-            assertNull("nothing waits in the store", store.pending.value)
         }
     }
 
@@ -231,14 +216,13 @@ class ShareTargetE2ETest {
         }
     }
 
-    private fun startGraph(vararg flags: ReleaseFlag) {
+    private fun startGraph() {
         graph = E2eKoinGraph(
             E2E_TODAY,
             overrides = module {
                 single<DraftRepository> { drafts }
                 single<SharedTextStore> { store }
             },
-            releaseFlags = FakeReleaseFlags(*flags),
         )
         graph.start()
     }
