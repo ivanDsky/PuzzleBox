@@ -1,6 +1,26 @@
 package com.ivandsky.puzzlebox.app.leaderboard
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
+import org.koin.android.ext.koin.androidContext
+import android.content.Context
+import org.junit.Assert.assertFalse
+import org.koin.core.annotation.KoinInternalApi
+import org.koin.core.instance.SingleInstanceFactory
+import org.robolectric.util.ReflectionHelpers
+import org.robolectric.util.ReflectionHelpers.ClassParameter
+import org.koin.mp.KoinPlatform
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.dsl.module
+import org.robolectric.RuntimeEnvironment
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -439,5 +459,89 @@ class LeaderboardSubmitWatcherTest {
 
         assertEquals(listOf(SubmitStatus.Posting), seen) // the unread default, never written
         assertTrue(leaderboard.submitted.isEmpty())
+    }
+
+    /** The watcher as the real graph builds it, over fakes, with the hub flag [on] or off and [own] stored. */
+    private fun graphPostsWith(on: Boolean, own: OwnTier): Int {
+        val leaderboard = FakeLeaderboardRepository()
+        val scheduler = TestCoroutineScheduler()
+        val koinApp = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(
+                PuzzleBoxApplication.appModules + module {
+                    single<ReleaseFlags> { if (on) FakeReleaseFlags(ReleaseFlag.LeaderboardHub) else FakeReleaseFlags() }
+                    single<VisibilityRepository> { FakeVisibilityRepository(own) }
+                    single<CompletionRepository> { FakeCompletionRepository(listOf(record())) }
+                    single<IdentityService> { FakeIdentityService(initial = Identity("u1", "Ann", null)) }
+                    single<LeaderboardRepository> { leaderboard }
+                    single<GameCalendar> { calendar }
+                    single<CoroutineScope> { scope(scheduler) }
+                },
+            )
+        }
+        try {
+            koinApp.koin.get<LeaderboardSubmitWatcher>().start()
+            scheduler.advanceUntilIdle()
+        } finally {
+            stopKoin()
+        }
+        return leaderboard.submitted.size
+    }
+
+    @Test
+    fun `with the hub off a solve posts whatever tier is stored`() {
+        for (own in listOf(OwnTier.Chosen(VisibilityTier.Hidden), OwnTier.Unknown, OwnTier.Unset)) {
+            assertEquals("$own", 1, graphPostsWith(on = false, own = own))
+        }
+    }
+
+    @Test
+    fun `with the hub on a stored Hidden still posts nothing`() {
+        assertEquals(0, graphPostsWith(on = true, own = OwnTier.Chosen(VisibilityTier.Hidden)))
+    }
+
+    /**
+     * onCreate is the only place the publisher starts, so the real application runs it on a Firebase-initialised context,
+     * with the hub flag [on] or off as the debug build's stored override. Returns whether the publisher was created.
+     */
+    @OptIn(KoinInternalApi::class)
+    private fun publisherCreatedAfterStart(on: Boolean): Boolean {
+        val context = RuntimeEnvironment.getApplication()
+        initialiseFirebase(context)
+        context.getSharedPreferences("release_flags", Context.MODE_PRIVATE).edit()
+            .putBoolean(ReleaseFlag.LeaderboardHub.name, on).commit()
+        val application = PuzzleBoxApplication()
+        ReflectionHelpers.callInstanceMethod<Unit>(application, "attachBaseContext", ClassParameter.from(Context::class.java, context))
+        application.onCreate()
+        try {
+            return KoinPlatform.getKoin().instanceRegistry.instances.values
+                .filterIsInstance<SingleInstanceFactory<*>>()
+                .first { it.beanDefinition.primaryType == DailyReplayPublisher::class }
+                .isCreated()
+        } finally {
+            stopKoin()
+        }
+    }
+
+    /** :app has no Firebase on its test classpath, and the graph's identity service needs a default app; reflection keeps the build file alone. */
+    private fun initialiseFirebase(context: Context) {
+        val app = Class.forName("com.google.firebase.FirebaseApp")
+        val options = Class.forName("com.google.firebase.FirebaseOptions")
+        if ((app.getMethod("getApps", Context::class.java).invoke(null, context) as List<*>).isNotEmpty()) return
+        val builder = Class.forName("com.google.firebase.FirebaseOptions\$Builder").getConstructor().newInstance()
+        builder.javaClass.getMethod("setApplicationId", String::class.java).invoke(builder, "1:1:android:1")
+        builder.javaClass.getMethod("setApiKey", String::class.java).invoke(builder, "key")
+        val built = builder.javaClass.getMethod("build").invoke(builder)
+        app.getMethod("initializeApp", Context::class.java, options).invoke(null, context, built)
+    }
+
+    @Test
+    fun `with the hub off the application never starts the publisher`() {
+        assertFalse(publisherCreatedAfterStart(on = false))
+    }
+
+    @Test
+    fun `with the hub on the application starts the publisher`() {
+        assertTrue(publisherCreatedAfterStart(on = true))
     }
 }
