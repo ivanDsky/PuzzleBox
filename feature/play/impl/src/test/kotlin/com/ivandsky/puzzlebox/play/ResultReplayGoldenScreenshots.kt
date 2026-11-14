@@ -48,6 +48,8 @@ import com.ivandsky.puzzlebox.play.friend.UnderUpBar
 import com.ivandsky.puzzlebox.play.friend.previewBoardRow
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import java.time.Instant
+import com.ivandsky.puzzlebox.gameui.ResultColumnMaxWidth
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -76,6 +78,8 @@ abstract class ResultReplayGoldenScreenshots(private val device: String) {
     @get:Rule
     val rule = createAndroidComposeRule<ComponentActivity>()
 
+    private fun columnMaxPx() = with(rule.density) { ResultColumnMaxWidth.roundToPx() }
+
     @Test fun `own short light`() = capture("own-short", dark = false) { OwnResult(SHORT) }
     @Test fun `own short dark`() = capture("own-short", dark = true) { OwnResult(SHORT) }
     @Test fun `own long light`() = capture("own-long", dark = false) { OwnResult(LONG) }
@@ -90,6 +94,18 @@ abstract class ResultReplayGoldenScreenshots(private val device: String) {
     @Test fun `leg solved short dark`() = capture("leg-solved-short", dark = true, scrollToReplay = true) { LegResult(SHORT, gaveUp = false) }
     @Test fun `leg solved long light`() = capture("leg-solved-long", dark = false, scrollToReplay = true) { LegResult(LONG, gaveUp = false) }
     @Test fun `leg solved long dark`() = capture("leg-solved-long", dark = true, scrollToReplay = true) { LegResult(LONG, gaveUp = false) }
+
+    /** VX-1, VX-2: the result column and the Watch replay row never outgrow the 600 dp result column, so a tablet centres/caps them. */
+    @Test fun `own result replay row stays in the result column`() {
+        rule.showGolden(dark = false) { UnderUpBar { OwnResult(LONG) } }
+        assertTrue(rule.onNodeWithTag(ReplayTags.WATCH_ROW).fetchSemanticsNode().size.width <= columnMaxPx())
+    }
+
+    @Test fun `gave up leg uses the same column as the solved leg`() {
+        rule.showGolden(dark = false) { UnderUpBar { LegResult(SHORT, gaveUp = true) } }
+        assertTrue(rule.onNodeWithTag("result.next").fetchSemanticsNode().size.width <= columnMaxPx())
+        assertTrue(rule.onNodeWithTag(ReplayTags.WATCH_ROW).fetchSemanticsNode().size.width <= columnMaxPx())
+    }
 
     @Test fun `leg gave up short light`() = capture("leg-gave-up-short", dark = false) { LegResult(SHORT, gaveUp = true) }
     @Test fun `leg gave up short dark`() = capture("leg-gave-up-short", dark = true) { LegResult(SHORT, gaveUp = true) }

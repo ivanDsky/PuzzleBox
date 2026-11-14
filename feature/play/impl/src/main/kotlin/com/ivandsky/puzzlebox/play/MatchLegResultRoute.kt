@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,6 +34,7 @@ import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.domain.MatchState
 import com.ivandsky.puzzlebox.gameui.DuelCompare
 import com.ivandsky.puzzlebox.gameui.DuelSideState
+import com.ivandsky.puzzlebox.gameui.ResultColumnMaxWidth
 import com.ivandsky.puzzlebox.gameui.ResultHeroChip
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySection
@@ -125,10 +127,12 @@ internal fun Ready(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            card()
-            replay?.invoke()
+            Column(Modifier.widthIn(max = ResultColumnMaxWidth).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                card()
+                replay?.invoke()
+            }
         }
     } else {
         ResultHeroScreen(
