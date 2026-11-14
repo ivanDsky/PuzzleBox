@@ -10,7 +10,7 @@ Finished games, drafts, the published list, received puzzles and LinkedIn connec
    - `completions/{yyyy-MM}-{1000..1007}`: `{formatVersion, updatedAt, records: {syncId: record}}`, eight documents per month, the record's own sync id picking the bucket so every device names the same document and none passes the rules' 1,000-record cap (a month would need about 6,000 finishes). Docs the first scheme wrote, `{yyyy-MM}` and `{yyyy-MM}-{n}` for n below 1000 (counted by position among a device's rows), are still read; their records merge by sync id and new records never go into them;
    - `drafts/{draftId}`, `published/{code}`, `received/{code}`: one document each, `deleted: true` is the tombstone;
    - `boards/{game}_{day}_{profileKey}`: one LinkedIn board, `profileKey` a hash of the owner's LinkedIn profile id;
-   - `replays/{syncId}` (last ticket): one replay, fetched only when opened.
+   - `replays/{syncId}`: one replay, restored by the same cursor pull as every other kind (only a replay the History screen can open is stored).
    Every document carries `updatedAt = request.time` (rules enforce it), which is the delta-sync cursor.
 2. **`CloudSpace` is the seam to the backend (core:data port, `:backend:firebase` adapter).** It is kind-agnostic and speaks plain values (`String`, `Long`, `Boolean`, `ByteArray`, lists and maps of them):
    - `changedSince(uid, kind, cursorMs: Long?): CloudResult<List<CloudDoc>>` — server-sourced query `updatedAt >= cursor` (the cursor is epoch milliseconds; null reads everything), never the SDK cache;
