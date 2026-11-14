@@ -114,6 +114,7 @@ class GamePageBoardTest {
                     factory { ObserveLinkedInDayView(get(), get(), get(), get<FakeLinkedInDays>()) }
                 },
                 playModule,
+                hubOffFriendDay,
             )
         }
         composeRule.setContent { PuzzleBoxTheme(darkTheme = false) { GamePageBoard(game, linkedIn = linkedIn, picked = picked, cardDay = cardDay) } }

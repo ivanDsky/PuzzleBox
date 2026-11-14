@@ -478,10 +478,11 @@ class ResultScreenTest {
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }
                     single { dismissedGoogleSignIn }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
-                    factory { ObserveResultRank(get(), get()) }
+                    factory { ObserveResultRank(get(), get(), friendDay = null) } // hub off
                     factory { ObserveResultInsights(get(), get(), get(), get()) }
                 },
                 playModule,
+                hubOffFriendDay,
             )
         }
     }

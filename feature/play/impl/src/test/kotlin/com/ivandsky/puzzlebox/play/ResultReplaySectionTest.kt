@@ -129,7 +129,7 @@ class ResultReplaySectionTest {
             ui = uis,
             games = games,
             insights = ObserveResultInsights(games, history, ComputeStreak(GetPuzzleDay(games, clock)), GetPuzzleDay(games, clock)),
-            rank = ObserveResultRank(ObserveLeaderboard(FakeIdentityService(), FakeLeaderboardRepository(), games, calendar), games),
+            rank = ObserveResultRank(ObserveLeaderboard(FakeIdentityService(), FakeLeaderboardRepository(), games, calendar), games, friendDay = null), // hub off
             linkedIn = null,
             board = signedOutBoard(),
             completions = completions,

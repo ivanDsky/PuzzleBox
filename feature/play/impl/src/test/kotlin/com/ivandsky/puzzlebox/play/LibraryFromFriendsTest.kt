@@ -134,6 +134,7 @@ class LibraryFromFriendsTest {
                     factory { ObserveArchiveMonth(get(), get(), get(), get()) }
                 },
                 playModule,
+                hubOffFriendDay,
             )
         }
     }

@@ -127,6 +127,7 @@ class LibraryTabsTest {
                     factory { ObserveArchiveMonth(get(), get(), get(), get()) }
                 },
                 playModule,
+                hubOffFriendDay,
             )
         }
     }

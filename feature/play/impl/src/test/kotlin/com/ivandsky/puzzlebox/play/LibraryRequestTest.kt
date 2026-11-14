@@ -166,6 +166,7 @@ class LibraryRequestTest {
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
                 },
                 playModule,
+                hubOffFriendDay,
             )
         }
     }

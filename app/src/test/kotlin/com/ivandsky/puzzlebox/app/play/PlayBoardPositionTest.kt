@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -156,6 +157,7 @@ class PlayBoardPositionTest {
                     single<GoogleIdTokenProvider> { CancelledGoogleIdTokenProvider }
                 },
                 playModule,
+                module { single { ObserveFriendDay.Binding(reader = null) } }, // hub off
             )
         }
     }

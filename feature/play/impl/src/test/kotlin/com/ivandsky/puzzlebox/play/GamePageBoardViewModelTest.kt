@@ -104,7 +104,7 @@ class GamePageBoardViewModelTest {
     private val viewModel by lazy {
         GamePageBoardViewModel(
             game, ObserveLeaderboard(identity, repository, registry, calendar), calendar, registry, identity,
-            dismissedGoogleSignIn, linkedIn = null,
+            dismissedGoogleSignIn, linkedIn = null, friendDay = null, // hub off
         )
     }
 
@@ -129,7 +129,7 @@ class GamePageBoardViewModelTest {
     /** A board with LinkedIn on. */
     private fun linkedInModel() = GamePageBoardViewModel(
         game, ObserveLeaderboard(identity, repository, registry, calendar), calendar, registry, identity,
-        dismissedGoogleSignIn, linkedIn = holder(),
+        dismissedGoogleSignIn, linkedIn = holder(), friendDay = null, // hub off
     )
 
     private fun ghost(name: String, timeMs: Long?, hintFree: Boolean = true, photoPath: String? = null) =
@@ -185,7 +185,7 @@ class GamePageBoardViewModelTest {
         val cloud = FakeCloudSync(CloudSyncState.Syncing(firstRestore = true))
         val restoring = GamePageBoardViewModel(
             game, ObserveLeaderboard(identity, repository, registry, calendar), calendar, registry, identity,
-            dismissedGoogleSignIn, linkedIn = null, cloudSync = cloud,
+            dismissedGoogleSignIn, linkedIn = null, cloudSync = cloud, friendDay = null, // hub off
         )
         restoring.state.launchIn(screen)
         viewModel.state.launchIn(screen)

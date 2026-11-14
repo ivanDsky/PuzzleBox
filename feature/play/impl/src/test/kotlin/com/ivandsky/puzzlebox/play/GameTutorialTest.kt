@@ -115,6 +115,7 @@ class GameTutorialTest {
                     factory { LoadPastDay(get(), get()) }
                 },
                 playModule,
+                hubOffFriendDay,
             )
         }
         composeRule.setContent {

@@ -37,6 +37,7 @@ import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.di.playModule
+import com.ivandsky.puzzlebox.play.hubOffFriendDay
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -119,6 +120,7 @@ class GameEntryTest {
                     factory { LoadPastDay(get(), get()) }
                 },
                 playModule,
+                hubOffFriendDay,
             )
         }
     }

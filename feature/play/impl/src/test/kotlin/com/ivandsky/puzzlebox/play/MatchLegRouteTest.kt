@@ -200,6 +200,7 @@ class MatchLegRouteTest {
                     factory { LoadPastDay(get(), get()) }
                 },
                 playModule,
+                hubOffFriendDay,
             )
         }.koin.get()
     }

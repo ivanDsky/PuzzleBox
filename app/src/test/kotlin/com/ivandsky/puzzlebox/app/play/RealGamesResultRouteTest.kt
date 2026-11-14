@@ -37,6 +37,7 @@ import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -223,7 +224,7 @@ class RealGamesResultRouteTest {
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }
                     single<GoogleIdTokenProvider> { DismissedGoogleIdTokenProvider }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
-                    factory { ObserveResultRank(get(), get()) }
+                    factory { ObserveResultRank(get(), get(), friendDay = null) } // hub off
                     factory { ObserveResultInsights(get(), get(), get(), get()) }
                     // Tutorial seen: this path is about the result; the lessons have their own tests.
                     single<UserPreferencesRepository> {
@@ -231,6 +232,7 @@ class RealGamesResultRouteTest {
                     }
                 },
                 playModule,
+                module { single { ObserveFriendDay.Binding(reader = null) } }, // hub off
             )
         }
     }

@@ -159,7 +159,7 @@ class ResultViewModelTest {
             ui = ui,
             games = games,
             insights = ObserveResultInsights(games, history, ComputeStreak(GetPuzzleDay(games, clock)), GetPuzzleDay(games, clock)),
-            rank = ObserveResultRank(observeBoard, games),
+            rank = ObserveResultRank(observeBoard, games, friendDay = null), // hub off
             linkedIn = if (linkedIn) ObserveLinkedInDay(linkedInDays, games) else null,
             board = signedOutBoard(),
             completions = completions,
