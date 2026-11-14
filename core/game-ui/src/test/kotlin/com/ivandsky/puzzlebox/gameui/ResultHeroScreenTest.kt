@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
@@ -12,6 +15,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -39,10 +43,9 @@ class ResultHeroScreenTest {
     private val brand = GameBrand(AccentSlot.Violet, GameGlyphs.Queens)
     private var retried = 0
 
-    private fun setContent(widthDp: Int, heightDp: Int, writeFailed: Boolean = false) {
+    private fun setContent(widthDp: Int, heightDp: Int, writeFailed: Boolean = false, facts: ResultHeroFacts = heroSampleFacts()) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                val facts = heroSampleFacts()
                 ResultHeroScreen(
                     facts = facts,
                     onSignIn = {},
@@ -69,6 +72,73 @@ class ResultHeroScreenTest {
         val hero = composeRule.onNodeWithTag("result.hero.time").getUnclippedBoundsInRoot()
         val side = composeRule.onNodeWithTag("result.side.streak").getUnclippedBoundsInRoot()
         assertTrue("side ${side.left} must sit right of hero ${hero.right}", side.left >= hero.right)
+    }
+
+    private fun assertCardsEqualHeight() {
+        val hero = composeRule.onNodeWithTag("result.hero.card").getUnclippedBoundsInRoot()
+        val side = composeRule.onNodeWithTag("result.side.card").getUnclippedBoundsInRoot()
+        assertEquals("hero ${hero.height} vs side ${side.height}", hero.height.value, side.height.value, 1f)
+    }
+
+    @Test
+    fun tablet_cards_are_equal_height_when_the_side_card_is_the_shorter() {
+        // A play-again has no streak and no rank: the side card is the chart block alone.
+        setContent(1280, 800, facts = heroSampleFacts(playAgain = true))
+        val hero = composeRule.onNodeWithTag("result.hero.card").getUnclippedBoundsInRoot()
+        val verdict = composeRule.onNodeWithTag("result.side.verdict").getUnclippedBoundsInRoot()
+        assertTrue("premise: side content ends at ${verdict.bottom}, inside the hero card (${hero.bottom})", verdict.bottom < hero.bottom)
+        assertCardsEqualHeight()
+    }
+
+    @Test
+    fun tablet_cards_are_equal_height_when_the_side_card_is_the_taller() {
+        setContent(1280, 800)
+        val rank = composeRule.onNodeWithTag("result.side.rank").getUnclippedBoundsInRoot()
+        val share = composeRule.onNodeWithTag("result.share").getUnclippedBoundsInRoot()
+        assertTrue("premise: hero content ends at ${share.bottom}, above the rank row (${rank.bottom})", share.bottom < rank.bottom)
+        assertCardsEqualHeight()
+    }
+
+    @Test
+    fun tablet_cards_stay_equal_height_after_the_chart_scope_switches() {
+        setContent(1280, 800)
+        composeRule.onNodeWithTag("result.side.chip").performClick()
+        composeRule.waitForIdle()
+        assertCardsEqualHeight()
+        composeRule.onNodeWithTag("result.side.chip").performClick()
+        composeRule.waitForIdle()
+        assertCardsEqualHeight()
+    }
+
+    @Test
+    fun tablet_cards_follow_the_taller_down_when_its_content_shrinks() {
+        var withActions by mutableStateOf(true)
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                val facts = heroSampleFacts(playAgain = true)
+                ResultHeroScreen(
+                    facts = facts,
+                    modifier = Modifier.requiredSize(1280.dp, 800.dp),
+                    brand = brand,
+                    actions = if (withActions) ({ ResultHeroActions(facts.primary, onPrimary = {}, onShare = {}, onPlayAgain = {}) }) else null,
+                )
+            }
+        }
+        val tall = composeRule.onNodeWithTag("result.hero.card").getUnclippedBoundsInRoot().height
+        assertCardsEqualHeight()
+        withActions = false
+        composeRule.waitForIdle()
+        val short = composeRule.onNodeWithTag("result.hero.card").getUnclippedBoundsInRoot().height
+        assertTrue("the pair must shrink with its taller card: $tall -> $short", short < tall)
+        assertCardsEqualHeight()
+    }
+
+    @Test
+    fun phone_cards_keep_their_own_heights() {
+        setContent(411, 891)
+        val hero = composeRule.onNodeWithTag("result.hero.card").getUnclippedBoundsInRoot()
+        val side = composeRule.onNodeWithTag("result.side.card").getUnclippedBoundsInRoot()
+        assertTrue("one column must not stretch: hero ${hero.height} side ${side.height}", hero.height != side.height)
     }
 
     @Test

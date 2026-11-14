@@ -7,8 +7,8 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import java.time.Instant
 
 /**
- * The daily result's action row for [ResultHeroScreen]'s `actions` slot: the [primary] action, then Share and,
- * when [onPlayAgain] is given, Play again; with everything solved the countdown to [rolloverAt] stands in for
+ * The daily result's action row for [ResultHeroScreen]'s `actions` slot: the [primary] action, then the Share and,
+ * when [onPlayAgain] is given, Play again icon buttons; with everything solved the countdown to [rolloverAt] stands in for
  * the primary. A null [primary] (not known yet) keeps the row in place, invisible and inert.
  */
 @Composable

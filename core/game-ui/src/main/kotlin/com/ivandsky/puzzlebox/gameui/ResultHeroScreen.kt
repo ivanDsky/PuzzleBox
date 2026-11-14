@@ -10,12 +10,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -45,7 +49,11 @@ private const val SIDE_WEIGHT = 1f
  *
  * Layout by measured width: under 760 dp one column, hero then side; from 760 dp two
  * columns weighted 1.1 to 1 with 32 dp page padding, the content capped at 1040 dp. The hero
- * time takes its 96 sp step once the hero column is 520 dp. A pane under 480 dp tall
+ * time takes its 96 sp step once the hero column is 520 dp. In two columns both cards are
+ * as tall as the taller one, each keeping its content at the top; one column never stretches.
+ * The cards report their content's own height and are given the larger of the two as a minimum
+ * height, so a content change (the chart's scope switch) moves both. This replaces an intrinsic-height
+ * row, which the chart's constraint-reading layout cannot answer. A pane under 480 dp tall
  * top-aligns and tightens; the page scrolls rather than squeezing the actions.
  *
  * [actions] is the hero's action row (the daily result passes [ResultHeroActions]); null draws none.
@@ -93,9 +101,18 @@ fun ResultHeroScreen(
             ) {
                 if (onRetryWrite != null) WriteFailedRow(onRetryWrite)
                 if (twoColumns) {
+                    val heroHeight = remember { mutableIntStateOf(0) }
+                    val sideHeight = remember { mutableIntStateOf(0) }
+                    val equalHeight = Modifier.minHeightPx { maxOf(heroHeight.intValue, sideHeight.intValue) }
                     Row(horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top) {
-                        ResultHeroCard(model, brand, Modifier.weight(HERO_WEIGHT), wide, actions)
-                        ResultSideCard(model, brand, onSignIn, Modifier.weight(SIDE_WEIGHT), wide)
+                        ResultHeroCard(
+                            model, brand, Modifier.weight(HERO_WEIGHT).then(equalHeight), wide, actions,
+                            contentModifier = Modifier.reportContentHeight { heroHeight.intValue = it },
+                        )
+                        ResultSideCard(
+                            model, brand, onSignIn, Modifier.weight(SIDE_WEIGHT).then(equalHeight), wide,
+                            contentModifier = Modifier.reportContentHeight { sideHeight.intValue = it },
+                        )
                     }
                 } else {
                     ResultHeroCard(model, brand, Modifier, wide, actions)
@@ -110,3 +127,17 @@ fun ResultHeroScreen(
 
 /** The width of the hero column in a row of [HERO_WEIGHT] to [SIDE_WEIGHT] split by [gap] over [total]. */
 private fun columnWidth(total: Dp, gap: Dp): Dp = (total - gap) * (HERO_WEIGHT / (HERO_WEIGHT + SIDE_WEIGHT))
+
+/**
+ * Reports the height this content takes when nothing stretches it. The content is measured free of the
+ * minimum height the card passes down (and held at the top of it), so the report never feeds back
+ * into the minimum it helps set.
+ */
+private fun Modifier.reportContentHeight(onHeight: (Int) -> Unit): Modifier =
+    wrapContentHeight(Alignment.Top).onSizeChanged { onHeight(it.height) }
+
+/** At least [px] tall, read at layout time so a change relays out without recomposing. */
+private fun Modifier.minHeightPx(px: () -> Int): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints.copy(minHeight = px().coerceIn(constraints.minHeight, constraints.maxHeight)))
+    layout(placeable.width, placeable.height) { placeable.place(0, 0) }
+}

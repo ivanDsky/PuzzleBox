@@ -66,7 +66,8 @@ private val BurstOrigin = Offset(0.3f, 0.5f)
  * the count-up lands, and a new best adds the burst. Reduced motion fades everything at
  * once and skips the pulse, burst and sweep band; a preview shows the end state.
  * [wide] sets the 96 sp time of a wide container over the phone's 76 sp.
- * [actions] is the action row, entering on its beat; null draws none.
+ * [actions] is the action row, entering on its beat; null draws none. [contentModifier] is applied to the
+ * content column inside the card, before its padding, so the screen can measure the content's own height.
  */
 @Composable
 internal fun ResultHeroCard(
@@ -75,6 +76,7 @@ internal fun ResultHeroCard(
     modifier: Modifier = Modifier,
     wide: Boolean = false,
     actions: (@Composable () -> Unit)? = null,
+    contentModifier: Modifier = Modifier,
 ) {
     val accent = brand.accent.colors()
     val shape = MaterialTheme.shapes.large
@@ -92,10 +94,10 @@ internal fun ResultHeroCard(
         celebrated = true
     }
     OutlinedCard(
-        modifier = modifier.fillMaxWidth().solveSweep(sweep, accent.accent, shape),
+        modifier = modifier.fillMaxWidth().solveSweep(sweep, accent.accent, shape).testTag("result.hero.card"),
         shape = shape,
     ) {
-        Column(Modifier.padding(if (wide) Spacing.xl else Spacing.lg)) {
+        Column(contentModifier.padding(if (wide) Spacing.xl else Spacing.lg)) {
             HeroHeader(model, brand)
             Box(Modifier.padding(top = Spacing.xl, bottom = Spacing.sm).resultBeat(ResultBeats.Time)) {
                 if (model.burst) {
