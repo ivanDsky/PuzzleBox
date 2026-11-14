@@ -29,7 +29,7 @@ fun ReplaySeekBar(
     val unplayed = remember(colors) { unplayedKindColors(colors, normal = colors.onSurfaceVariant) }
     ReplayScrubStrip(positionMs, durationMs, onSeek, SeekBarHeight, modifier) {
         val shapes = barSeriesShapes(counts, size.width, axisY = size.height - 6.dp.toPx(), room = 52.dp.toPx(), up = true)
-        val draw: DrawScope.(Float) -> Unit = { fraction -> drawBarSeries(shapes, fraction, played, unplayed) }
+        val draw: DrawScope.(needleX: Float) -> Unit = { needleX -> drawBarSeries(shapes, needleX, played, unplayed) }
         draw
     }
 }

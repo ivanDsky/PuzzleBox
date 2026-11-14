@@ -92,12 +92,11 @@ internal fun playedExtent(left: Float, width: Float, needleX: Float): Float = (n
 
 /**
  * Draws a laid-out series. A bar left of the playhead is [played], one right of it [unplayed], and the bar under it is
- * split at the needle; both palettes are indexed by [MoveKind] ordinal.
+ * split at [needleX], the x the playhead is drawn at; both palettes are indexed by [MoveKind] ordinal.
  * Allocates nothing: it runs on every frame the playhead moves.
  */
-internal fun DrawScope.drawBarSeries(shapes: BarSeriesShapes, fraction: Float, played: Array<Color>, unplayed: Array<Color>) {
+internal fun DrawScope.drawBarSeries(shapes: BarSeriesShapes, needleX: Float, played: Array<Color>, unplayed: Array<Color>) {
     val bars = shapes.bars
-    val needleX = fraction * size.width
     for (i in bars.indices) {
         val shape = bars[i]
         val extent = playedExtent(shape.left, shape.width, needleX)
