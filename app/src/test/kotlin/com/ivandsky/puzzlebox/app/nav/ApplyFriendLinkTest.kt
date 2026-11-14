@@ -88,13 +88,6 @@ class ApplyFriendLinkTest {
     }
 
     @Test
-    fun `a match link with matches disabled changes nothing`() {
-        val before = stacks(CreateKey, create = listOf(CreateKey, EditorKey("castle")))
-
-        assertEquals(before, before.applying(MATCH, matchesEnabled = false))
-    }
-
-    @Test
     fun `text that is not a code selects Play's root and keeps every other stack`() {
         listOf(
             stacks(HomeKey, home = listOf(HomeKey, HistoryKey())),
@@ -110,8 +103,8 @@ class ApplyFriendLinkTest {
         }
     }
 
-    private fun NavigationState.applying(link: FriendLink, matchesEnabled: Boolean = true): NavigationState =
-        Navigator(this).apply { applyFriendLink(link, matchesEnabled) }.state
+    private fun NavigationState.applying(link: FriendLink): NavigationState =
+        Navigator(this).apply { applyFriendLink(link) }.state
 
     private fun stacks(
         tab: NavKey,

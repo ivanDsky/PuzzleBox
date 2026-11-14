@@ -16,7 +16,6 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.MainActivity
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.CreateResult
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -26,11 +25,9 @@ import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.model.ShareCode
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.time.Instant
 import kotlinx.coroutines.runBlocking
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.Description
 import org.junit.runner.RunWith
@@ -39,8 +36,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * A tapped duel link over the real activity while the app runs: with the Competitions flag on it opens the duel's
- * invite in Play; with it off the link changes nothing.
+ * A tapped duel link over the real activity while the app runs: it opens the duel's invite in Play.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -56,26 +52,18 @@ class DuelLinkE2ETest {
     fun stopGraph() = graph.stop()
 
     @Test
-    fun aDuelLinkOpensTheInviteWhenTheFlagIsOn() = runningWith(FakeReleaseFlags(ReleaseFlag.Competitions)) {
+    fun aDuelLinkOpensTheInvite() = runningWith {
         openLink()
         awaitTag("duel.invite.accept")
         rule.onNodeWithTag("nav.tab.play").assertIsSelected()
     }
 
-    @Test
-    fun aDuelLinkIsIgnoredWhenTheFlagIsOff() = runningWith(FakeReleaseFlags()) {
-        openLink()
-        assertEquals("the app stays where it was", listOf(HOME), routes())
-        rule.onNodeWithTag("nav.tab.home").assertIsSelected()
-        assertEquals("no invite opens", emptyList<String>(), tags().filter { it.startsWith("duel.") })
-    }
-
     /**
      * Runs [block] over [MainActivity] relaunched from Recents on Home (so the start link is not re-applied), with
-     * [flags] and the friend's open duel on the server.
+     * the friend's open duel on the server.
      */
-    private fun runningWith(flags: FakeReleaseFlags, block: () -> Unit) {
-        graph = E2eKoinGraph(E2E_TODAY, releaseFlags = flags)
+    private fun runningWith(block: () -> Unit) {
+        graph = E2eKoinGraph(E2E_TODAY)
         graph.start()
         seedFriendsDuel()
         val intent = view(code.matchLink).addFlags(Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY)

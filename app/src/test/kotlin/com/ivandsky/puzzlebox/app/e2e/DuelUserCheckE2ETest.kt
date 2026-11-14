@@ -14,7 +14,6 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.ClaimResult
 import com.ivandsky.puzzlebox.data.match.LegResult
@@ -36,7 +35,6 @@ import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.ActivePlay
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
@@ -63,7 +61,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class DuelUserCheckE2ETest {
 
-    private val graph = E2eKoinGraph(E2E_TODAY, releaseFlags = FakeReleaseFlags(ReleaseFlag.Competitions))
+    private val graph = E2eKoinGraph(E2E_TODAY)
 
     @Test
     fun theRoundTwoWalkthroughReadsAsTheUserApprovedIt() = duel {
