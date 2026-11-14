@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.domain.ranks
 
+import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
@@ -21,17 +22,21 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDailyReplayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeReplayOptInStamp
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
+import java.io.IOException
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -59,6 +64,7 @@ class SubmitDailyReplayTest {
         override fun withZone(zone: java.time.ZoneId) = this
         override fun instant(): Instant = Instant.ofEpochMilli(nowMs)
     }
+    private val warnings = mutableListOf<Throwable>()
     private val publish = publishWith(stamps)
 
     private fun publishWith(stamp: ReplayOptInStamp) = SubmitDailyReplay(
@@ -70,6 +76,7 @@ class SubmitDailyReplayTest {
         optIns = stamp,
         replays = replays,
         clock = clock,
+        failures = FailureLog { _, _, cause -> warnings += cause },
     )
 
     @Test
@@ -366,6 +373,131 @@ class SubmitDailyReplayTest {
         assertNull(stamps.stamps["u2"])
     }
 
+    @Test
+    fun `a stamp that cannot be written does not end the publisher`() = runTest {
+        val running = backgroundScope.launch { publishWith(UnwritableStamp(stamps))() }
+        runCurrent()
+
+        assertTrue(running.isActive)
+    }
+
+    @Test
+    fun `a stamp that cannot be cleared does not end the publisher`() = runTest {
+        visibility.emitOwn(OwnTier.Chosen(VisibilityTier.Board))
+        val running = backgroundScope.launch { publishWith(UnwritableStamp(stamps))() }
+        runCurrent()
+
+        assertTrue(running.isActive)
+    }
+
+    @Test
+    fun `nothing is published while the stamp is unwritten, even for a solve made after an earlier stamp`() = runTest {
+        stamps.stamps[ME] = SOLVE_MS - 1
+        completions.onCompleted(solve(), firstSolve)
+        backgroundScope.launch { publishWith(UnwritableStamp(stamps))() }
+        runCurrent()
+
+        accept()
+
+        assertEquals(emptyList<Any>(), published())
+    }
+
+    @Test
+    fun `publishing resumes once a stamp write succeeds`() = runTest {
+        visibility.emitOwn(OwnTier.Unset)
+        val store = UnwritableStamp(stamps)
+        backgroundScope.launch { publishWith(store)() }
+        runCurrent()
+
+        store.failing = false
+        visibility.setOwnTier(VisibilityTier.Replays)
+        completions.onCompleted(solve(), firstSolve)
+        accept()
+
+        assertEquals(listOf(board to firstSolve), published())
+    }
+
+    @Test
+    fun `a failed stamp write is reported once`() = runTest {
+        val store = UnwritableStamp(stamps)
+        backgroundScope.launch { publishWith(store)() }
+        runCurrent()
+
+        assertEquals(listOf<Throwable>(store.failure), warnings)
+    }
+
+    @Test
+    fun `cancelling in the middle of a stamp write ends the publisher`() = runTest {
+        assertTrue(cancelMidWrite().isCompleted)
+    }
+
+    @Test
+    fun `a cancelled stamp write is not reported as a failed one`() = runTest {
+        cancelMidWrite()
+
+        assertEquals(emptyList<Throwable>(), warnings)
+    }
+
+    private fun TestScope.cancelMidWrite(): Job {
+        val stuck = StuckStamp(stamps)
+        val running = backgroundScope.launch { publishWith(stuck)() }
+        runCurrent()
+        assertTrue(stuck.writing)
+
+        running.cancel()
+        runCurrent()
+        return running
+    }
+
+    @Test
+    fun `after a failed clear a solve made below Replays stays private when its post is accepted after the next opt-in`() = runTest {
+        optOutWithoutClearing()
+        completions.onCompleted(solve(), firstSolve)
+
+        nowMs = SOLVE_MS + 1_000
+        visibility.setOwnTier(VisibilityTier.Replays)
+        runCurrent()
+        accept()
+
+        assertEquals(emptyList<Any>(), published())
+    }
+
+    @Test
+    fun `after a failed clear a solve whose post was accepted below Replays stays private after the next opt-in`() = runTest {
+        optOutWithoutClearing()
+        completions.onCompleted(solve(), firstSolve)
+        accept()
+
+        nowMs = SOLVE_MS + 1_000
+        visibility.setOwnTier(VisibilityTier.Replays)
+        runCurrent()
+
+        assertEquals(emptyList<Any>(), published())
+    }
+
+    @Test
+    fun `the opt-in after a failed clear is stamped afresh`() = runTest {
+        optOutWithoutClearing()
+
+        nowMs = SOLVE_MS + 1_000
+        visibility.setOwnTier(VisibilityTier.Replays)
+        runCurrent()
+
+        assertEquals(SOLVE_MS + 1_000, stamps.stamps[ME])
+    }
+
+    /** Opts in, then drops below Replays on a store that cannot clear, which leaves the first stamp behind. */
+    private fun TestScope.optOutWithoutClearing() {
+        val store = UnwritableStamp(stamps, failing = false)
+        backgroundScope.launch { publishWith(store)() }
+        runCurrent()
+        store.failing = true
+        visibility.emitOwn(OwnTier.Chosen(VisibilityTier.Board))
+        runCurrent()
+        assertEquals(BEFORE_SOLVE_MS, stamps.stamps[ME])
+        store.failing = false
+    }
+
     private fun TestScope.start() {
         backgroundScope.launch { publish() }
         runCurrent()
@@ -396,5 +528,33 @@ class SubmitDailyReplayTest {
         const val BEFORE_SOLVE_MS = SOLVE_MS - 1_000_000
 
         fun replay(tag: Byte) = checkNotNull(SolveReplay.of(byteArrayOf(tag, 2, 3)))
+    }
+}
+
+/** Reads go to [kept]; writes throw [failure] while [failing], like a disk that has stopped taking them. */
+private class UnwritableStamp(
+    private val kept: ReplayOptInStamp,
+    var failing: Boolean = true,
+) : ReplayOptInStamp by kept {
+    val failure = IOException("stamp store is unwritable")
+
+    override suspend fun markIfAbsent(uid: String, atMs: Long) {
+        if (failing) throw failure
+        kept.markIfAbsent(uid, atMs)
+    }
+
+    override suspend fun clear(uid: String) {
+        if (failing) throw failure
+        kept.clear(uid)
+    }
+}
+
+/** Reads go to [kept]; an opt-in write never returns, like a disk write still under way. */
+private class StuckStamp(private val kept: ReplayOptInStamp) : ReplayOptInStamp by kept {
+    var writing = false
+
+    override suspend fun markIfAbsent(uid: String, atMs: Long) {
+        writing = true
+        awaitCancellation()
     }
 }
