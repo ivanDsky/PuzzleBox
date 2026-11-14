@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -76,17 +77,18 @@ internal fun RanksTwoPane(
         HeroFace(place?.name ?: "Ranks", place?.standing ?: Standing.None, state.sliceAt(board)?.selfScore())
     }
     Row(
-        modifier.fillMaxSize().testTag("route.ranks").padding(Spacing.lg),
+        // No bottom padding on the row: each pane keeps its own, so the left list scrolls to the pane's edge.
+        modifier.fillMaxSize().testTag("route.ranks").padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xl),
     ) {
         Column(
-            Modifier.weight(LIST_WEIGHT).fillMaxHeight().verticalScroll(leftScroll).testTag("ranks.leftpane"),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            Modifier.weight(LIST_WEIGHT).fillMaxHeight().verticalScroll(leftScroll).padding(bottom = Spacing.lg).testTag("ranks.leftpane"),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            RanksCalendar(state.calendar.copy(expanded = true), state.stats, { day, _ -> actions.onShowCalendar(day, true) }, actions.onSelectDay, foldable = false)
+            RanksCalendar(state.calendar.copy(expanded = true), state.stats, { day, _ -> actions.onShowCalendar(day, true) }, actions.onSelectDay, foldable = false, gapBelow = 0.dp)
             GameList(state.places, current?.board, actions.onPickBoard, onHowRanksWork = { howRanksWork = true })
         }
-        RanksPullToRefresh(refreshing, actions.onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight()) {
+        RanksPullToRefresh(refreshing, actions.onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight().padding(bottom = Spacing.lg)) {
             FillRemainingColumn(Modifier.fillMaxSize().verticalScroll(rightScroll).testTag("ranks.rightpane")) {
                 RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
                     BoardScrubCell(scrub, state.position, state.board.title, Modifier.padding(start = Spacing.sm), at = { state.sliceAt(it)?.title }) { title ->
