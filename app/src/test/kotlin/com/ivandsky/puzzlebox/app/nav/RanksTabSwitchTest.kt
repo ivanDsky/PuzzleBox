@@ -2,11 +2,10 @@ package com.ivandsky.puzzlebox.app.nav
 
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.VectorPath
-import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.v2.runComposeUiTest
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.e2e.E2E_TODAY
 import com.ivandsky.puzzlebox.app.e2e.E2eKoinGraph
@@ -26,6 +25,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.dsl.module
@@ -43,6 +43,10 @@ import org.robolectric.annotation.Config
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class RanksTabSwitchTest {
+
+    // Only the icon case composes here; the shell cases bring their own rule inside shellRobot.
+    @get:Rule
+    val composeRule = createComposeRule()
 
     @Test
     fun `with the hub off the third tab reads History and opens the history browser`() = shell(hub = false) {
@@ -144,13 +148,12 @@ class RanksTabSwitchTest {
     }
 
     // The glyphs differing is not enough: the tab must hand the bar the outline one unselected and the filled one selected.
-    @OptIn(ExperimentalTestApi::class)
     @Test
-    fun `the Ranks tab draws the outline mark unselected, the filled mark selected`() = runComposeUiTest {
+    fun `the Ranks tab draws the outline mark unselected, the filled mark selected`() {
         val ranks = ranksTopLevelDestinations.single { it.key == HistoryRootKey }
         var drawn = emptyList<Any>() to emptyList<Any>()
-        setContent { drawn = ranks.icon().pathData() to ranks.selectedIcon().pathData() }
-        waitForIdle()
+        composeRule.setContent { drawn = ranks.icon().pathData() to ranks.selectedIcon().pathData() }
+        composeRule.waitForIdle()
 
         assertEquals(PuzzleIcons.Ranks.pathData() to PuzzleIcons.RanksFilled.pathData(), drawn)
     }

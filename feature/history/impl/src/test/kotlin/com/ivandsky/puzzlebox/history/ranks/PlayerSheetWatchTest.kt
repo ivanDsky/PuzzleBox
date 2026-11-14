@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ranks.PlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Challenge
 import com.ivandsky.puzzlebox.domain.ranks.PlayerActions.Watch
+import com.ivandsky.puzzlebox.history.ranks.PlayerSheetViewModel.Challenge as ChallengeStatus
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -21,7 +22,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The sheet's Watch tile: a tap fires only when the use case allowed it and the host wired it. */
+/** The sheet's tiles as drawn: a Watch tap fires only when the use case allowed it and the host wired it, and a locked or sent tile says so. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -32,8 +33,8 @@ class PlayerSheetWatchTest {
 
     private val target = PlayerSheetViewModel.Target("maya", "Maya", Standing.Place(2), GameId("zip"), LocalDate.of(2026, 11, 13))
 
-    private fun show(watch: Watch, onWatch: (() -> Unit)?) {
-        val state = PlayerSheetViewModel.State(target, PlayerActions(Challenge.Allowed, watch))
+    private fun show(watch: Watch, onWatch: (() -> Unit)?, challenge: Challenge = Challenge.Allowed, status: ChallengeStatus = ChallengeStatus.Idle) {
+        val state = PlayerSheetViewModel.State(target, PlayerActions(challenge, watch), challenge = status)
         composeRule.setContent { PuzzleBoxTheme { PlayerSheet(state, onChallenge = {}, onDismiss = {}, onWatch = onWatch) } }
     }
 
@@ -60,5 +61,26 @@ class PlayerSheetWatchTest {
         show(Watch.SolveFirst, onWatch = {})
 
         composeRule.onNodeWithTag("ranks.player.watch.caption").assertTextEquals("Solve it first")
+    }
+
+    @Test
+    fun `a Watch the player keeps private says Private`() {
+        show(Watch.Private, onWatch = {})
+
+        composeRule.onNodeWithTag("ranks.player.watch.caption").assertTextEquals("Private")
+    }
+
+    @Test
+    fun `a Challenge the player keeps private says Private`() {
+        show(Watch.Private, onWatch = {}, challenge = Challenge.Private)
+
+        composeRule.onNodeWithTag("ranks.player.challenge.caption").assertTextEquals("Private")
+    }
+
+    @Test
+    fun `a sent Challenge says Sent to the player's name`() {
+        show(Watch.Allowed, onWatch = {}, status = ChallengeStatus.Sent("Maya"))
+
+        composeRule.onNodeWithTag("ranks.player.challenge.caption").assertTextEquals("Sent to Maya")
     }
 }
