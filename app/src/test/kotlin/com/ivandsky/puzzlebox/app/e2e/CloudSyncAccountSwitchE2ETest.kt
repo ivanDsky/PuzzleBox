@@ -23,7 +23,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = DrainTestApplication::class)
 class CloudSyncAccountSwitchE2ETest {
 
-    private val world = CloudSyncWorld(linkedIn = true)
+    private val world = CloudSyncWorld()
     private val a = Identity(uid = "uid-a", displayName = "Ada", photoUrl = null)
     private val b = Identity(uid = "uid-b", displayName = "Bea", photoUrl = null)
     private val yesterday = E2E_TODAY.minusDays(1)

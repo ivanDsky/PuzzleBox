@@ -16,17 +16,17 @@ import kotlinx.coroutines.flow.flowOf
 /**
  * The scope a rank shown outside the hub answers (F20): the player's Friends/Global setting, the one the hub lands
  * on. Null is Global, and in Friends it is the [FriendDay] to rank one game day among: the friends (listened
- * to only then) and, given [linkedInDay], that day's connections, which are read from the phone only.
+ * to only then) and that day's connections [linkedInDay], which are read from the phone only.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveFriendDay(
     private val preferences: UserPreferencesRepository,
     private val friendUids: ObserveFriendUids,
-    private val linkedInDay: ObserveLinkedInDay?,
+    private val linkedInDay: ObserveLinkedInDay,
 ) {
 
     operator fun invoke(game: GameId, day: LocalDate): Flow<FriendDay?> {
-        val connections: Flow<LinkedInDayView?> = linkedInDay?.invoke(game, day) ?: flowOf(null)
+        val connections: Flow<LinkedInDayView?> = linkedInDay(game, day)
         val board = LeaderboardRef(game.value, day)
         return preferences.ranksFriendsDefault.distinctUntilChanged().flatMapLatest { friends ->
             if (friends) combine(friendUids(), connections) { uids, view -> FriendDay(board, uids, view) } else flowOf(null)

@@ -41,7 +41,7 @@ import org.robolectric.shadows.ShadowLog
 class CloudSyncSentinelE2ETest {
 
     private val wire = LinkedInWire()
-    private val world = CloudSyncWorld(linkedIn = true) {
+    private val world = CloudSyncWorld {
         single<LinkedInSessionCookies> { FakeLinkedInSessionCookies(sentinelSession) }
         single<LinkedInAccountSource> { linkedInAccountSource(wire.url, get()) }
         single<LinkedInPhotoSource> { wire.photoSource() }

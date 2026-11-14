@@ -18,34 +18,23 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The LinkedIn login route under both flag states, and the stack behaviour its two
- * entry points rely on: a plain push on the current tab, ignored on a double tap, and
+ * The LinkedIn login route, and the stack behaviour its two entry points rely on: a plain push on the current tab, ignored on a double tap, and
  * popped back to the screen that opened it.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
 class LinkedInNavTest {
 
-    private fun provider(navigator: Navigator, linkedIn: Boolean) = puzzleBoxEntryProvider(
-        navigator = navigator,
-        homeLayout = HomeLayout.SinglePane,
-        playLayout = PlayLayout.SinglePane,
-        historyLayout = HistoryLayout.SinglePane,
-        linkedIn = linkedIn,
-    )
-
     @Test
-    fun `the login key resolves with the flag on and off`() {
+    fun `the login key resolves`() {
         val navigator = Navigator(puzzleBoxNavigationState())
-        val on = provider(navigator, linkedIn = true).invoke(LinkedInLoginKey)
-        val off = puzzleBoxEntryProvider(
+        val entry = puzzleBoxEntryProvider(
             navigator = navigator,
             homeLayout = HomeLayout.SinglePane,
             playLayout = PlayLayout.SinglePane,
             historyLayout = HistoryLayout.SinglePane,
         ).invoke(LinkedInLoginKey)
-        assertTrue("flag on: got ${on.contentKey}", on.contentKey.toString().contains(LinkedInLoginKey.toString()))
-        assertTrue("flag off: got ${off.contentKey}", off.contentKey.toString().contains(LinkedInLoginKey.toString()))
+        assertTrue("got ${entry.contentKey}", entry.contentKey.toString().contains(LinkedInLoginKey.toString()))
     }
 
     @Test

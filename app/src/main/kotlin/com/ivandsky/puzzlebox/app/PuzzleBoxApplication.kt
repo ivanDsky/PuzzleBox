@@ -69,13 +69,12 @@ class PuzzleBoxApplication : Application() {
 
     companion object {
         /**
-         * Readies the sync graph that [appModules] already binds: adds the LinkedIn boards kind and saved-board deletion
-         * when [ReleaseFlag.LinkedInAccount] is on, then creates the owner scope, which records the last signed-in uid
-         * from its construction, so it must exist before any starter reads a row. A debug flag change applies on the
-         * next launch, because nothing reads the flag again.
+         * Readies the sync graph that [appModules] already binds: adds the LinkedIn boards kind and saved-board deletion,
+         * then creates the owner scope, which records the last signed-in uid from its construction, so it must exist
+         * before any starter reads a row.
          */
         fun prepareCloudSync(koin: Koin) {
-            if (koin.get<ReleaseFlags>().isEnabled(ReleaseFlag.LinkedInAccount)) koin.loadModules(listOf(linkedInCloudSyncModule))
+            koin.loadModules(listOf(linkedInCloudSyncModule))
             koin.get<OwnerScope>()
         }
 

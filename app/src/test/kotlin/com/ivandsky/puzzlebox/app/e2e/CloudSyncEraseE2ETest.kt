@@ -44,7 +44,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class CloudSyncEraseE2ETest {
 
-    private val world = CloudSyncWorld(linkedIn = true)
+    private val world = CloudSyncWorld()
     private val ada = Identity(uid = "uid-ada", displayName = "Ada", photoUrl = null)
     private val phoneA = world.device("phone-a")
     private val phoneB = world.device("phone-b")
