@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.gameui.board
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -56,11 +54,10 @@ internal fun ScrubbedBoardList(
             // No row here reports to the dock, and none rolls or counts on its own clock: the scrub is the clock.
             CompositionLocalProvider(
                 LocalSelfRowDock provides null,
-                LocalBoardBackdrop provides backdrop,
                 LocalPlaceMotion provides StillPlaces,
             ) {
                 for (item in items.all) {
-                    key(item.part.key) { ScrubSlot(item, medals, inlineMarks, progress) }
+                    key(item.part.key) { ScrubSlot(item, backdrop, medals, inlineMarks, progress) }
                 }
             }
         },
@@ -89,14 +86,15 @@ internal fun ScrubbedBoardList(
 }
 
 @Composable
-private fun ScrubSlot(item: ScrubItem, medals: Boolean, inlineMarks: Boolean, progress: () -> Float) {
+private fun ScrubSlot(item: ScrubItem, backdrop: Color, medals: Boolean, inlineMarks: Boolean, progress: () -> Float) {
     val frost = when {
         item.both -> Modifier
         item.to >= 0 -> Modifier.frosted { (progress() - Half) / Half }
         else -> Modifier.frostedOut(progress)
     }
-    Box(frost.padding(top = Spacing.sm)) {
-        when (val part = item.part) {
+    val part = item.part
+    BoardSlot(backdrop, frost, gap = Spacing.sm, you = (part as? BoardPart.Row)?.line?.let { it is DailyBoardLine.Real && it.row.isSelf } == true) {
+        when (part) {
             is BoardPart.Row -> {
                 val old = item.was as? BoardPart.Row
                 val scrub = remember(old, medals, progress) {

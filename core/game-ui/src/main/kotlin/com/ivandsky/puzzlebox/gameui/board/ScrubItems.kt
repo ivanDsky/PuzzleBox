@@ -63,7 +63,7 @@ internal class ScrubItems(from: List<BoardPart>, to: List<BoardPart>) {
     /** A part on its way is drawn over the ones it passes, the further it goes the higher; one that frosts is under them all. */
     fun depth(index: Int): Float {
         val travel = travel(index)
-        return if (!all[index].both) -1f else if (travel != 0) 1f + abs(travel) else 0f
+        return boardDepth(all[index].both, travel != 0, abs(travel).toFloat())
     }
 
     /** Where part [index] is [progress] of the way from the one board to the other. */

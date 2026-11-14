@@ -1,8 +1,6 @@
 package com.ivandsky.puzzlebox.gameui.board
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -58,9 +56,7 @@ internal fun AnimatedBoardList(
         content = {
             for (item in items) {
                 key(item.key) {
-                    CompositionLocalProvider(LocalBoardBackdrop provides backdrop) {
-                        BoardItemSlot(item, item.line, item.pinned, item.present, rows, order, withPuzzleBoxRank, medals, inlineMarks)
-                    }
+                    BoardItemSlot(item, item.line, item.pinned, item.present, backdrop, rows, order, withPuzzleBoxRank, medals, inlineMarks)
                 }
             }
         },
@@ -75,7 +71,7 @@ internal fun AnimatedBoardList(
                 item.placeAt(y, scope)
                 val placedAt = y
                 // A row on its way is drawn over the rows it passes, a leaving one under all the others.
-                val depth = if (!item.present) -1f else if (item.moving) 1f + item.travel else 0f
+                val depth = boardDepth(item.present, item.moving, item.travel)
                 placeable.placeWithLayer(0, placedAt, depth) { translationY = item.offsetAt(placedAt) }
                 y += placeable.height
             }
@@ -89,6 +85,7 @@ private fun BoardItemSlot(
     line: DailyBoardLine?,
     pinned: Boolean,
     present: Boolean,
+    backdrop: Color,
     rows: BoardRows,
     order: RankOrder,
     withPuzzleBoxRank: Boolean,
@@ -103,24 +100,21 @@ private fun BoardItemSlot(
         item.open.animateTo(target, BoardMotion.open)
         if (!present) rows.drop(item)
     }
-    Box(
+    // The gap sits above the item and is part of it, so it opens and closes with the item instead of
+    // snapping when the item is dropped.
+    BoardSlot(
+        backdrop,
         Modifier
             .graphicsLayer {
                 alpha = item.alpha.value
             }
             .heightOpenedBy { item.open.value }
             .clipToBounds(),
+        gap = Spacing.sm,
+        you = pinned,
     ) {
-        // The gap sits above the item and is part of it, so it opens and closes with the item instead of
-        // snapping when the item is dropped.
-        Box(Modifier.padding(top = Spacing.sm)) {
-            CompositionLocalProvider(LocalPlaceMotion provides item) {
-                when {
-                    line == null -> HorizontalDivider()
-                    pinned -> Box(Modifier.testTag("leaderboard.you")) { BoardLine(line, order, withPuzzleBoxRank, medals, inlineMarks) }
-                    else -> BoardLine(line, order, withPuzzleBoxRank, medals, inlineMarks)
-                }
-            }
+        CompositionLocalProvider(LocalPlaceMotion provides item) {
+            if (line == null) HorizontalDivider() else BoardLine(line, order, withPuzzleBoxRank, medals, inlineMarks)
         }
     }
 }
