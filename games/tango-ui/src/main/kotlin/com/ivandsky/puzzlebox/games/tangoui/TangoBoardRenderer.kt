@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -223,7 +224,10 @@ private fun Cell(
             val badge = Modifier.align(Alignment.TopEnd).fillMaxSize(TangoBoardSpec.ghostBadgeFraction)
             Glyph(answer, if (render?.value == null) Modifier.fillMaxSize() else badge, model.n, TangoBoardSpec.ghostAlpha)
         }
-        if (hinted) ReplayHintBadge(Modifier.align(Alignment.TopEnd))
+        // Inset inside the corner: on the top row a flush badge was cut by the board border.
+        if (hinted) BoxWithConstraints(Modifier.fillMaxSize()) {
+            ReplayHintBadge(Modifier.align(Alignment.TopEnd).padding(maxWidth * TangoBoardSpec.replayHintInsetFraction))
+        }
 
         // Per-cell TalkBack semantics (§9): one focusable node per cell, row-major;
         // givens distinguished by words ("given sun"), not visuals (§2), and neither
