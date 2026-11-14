@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.history.ranks
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
@@ -35,8 +36,9 @@ import java.time.LocalDate
  * ([onPickBoard]; its "How ranks work" row opens the [HowRanksWorkSheet]) and its tune icon opens the [TuneSheet]
  * ([onScope], [onWindow]). The calendar (a week strip that expands to the month, [onShowCalendar] / [onSelectDay])
  * leads, then the viewer's solve of the day ([onPlayAgain], [onOpenReplay], [onCompare]), then the board under the page
- * dots; a horizontal swipe on the board reports [onSwipe] (+1 next board, -1 previous) and a vertical drag scrolls
- * the hub. The first time the hub opens, a hint and the current dot nudge the swipe, then [onNudgeShown]. On
+ * dots; a horizontal swipe anywhere under the calendar, down to the bottom of the screen however short the board is,
+ * reports [onSwipe] (+1 next board, -1 previous) and a vertical drag scrolls the hub or pulls its refresh. The first
+ * time the hub opens, a hint and the current dot nudge the swipe, then [onNudgeShown]. On
  * [HistoryLayout.TwoPane] the hub is [RanksTwoPane] instead: no title menu, week strip, dots or swipe. [onBack] (a pushed
  * hub, opened from a game's link) adds a back arrow above either layout. A tab reselect scrolls the hub to the top; one
  * more, with it already there, calls [onReset] (A8). With a [playerSheet] another player's row opens that sheet, which this
@@ -133,27 +135,26 @@ private fun RanksPhone(
     val nudge = rememberSwipeNudge(show = state.nudge && !tuning && !howRanksWork, onShown = onNudgeShown)
     RanksPullToRefresh(refreshing, onRefresh) {
         Box(Modifier.fillMaxSize()) {
-            Column(
-                Modifier
-                    .fillMaxSize()
-                    .testTag("route.ranks")
-                    .verticalScroll(scroll)
-                    .padding(Spacing.lg),
-            ) {
-                RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
-                    RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true }, scrub = scrub)
+            FillRemainingColumn(Modifier.fillMaxSize().testTag("route.ranks").verticalScroll(scroll)) {
+                Column(Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg)) {
+                    RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
+                        RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, onPickBoard, onHowRanksWork = { howRanksWork = true }, scrub = scrub)
+                    }
+                    RanksCalendar(state.calendar, state.stats, onShowCalendar, onSelectDay)
                 }
-                RanksCalendar(state.calendar, state.stats, onShowCalendar, onSelectDay)
-                YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
-                PageDots(
-                    state.boardCount,
-                    state.position,
-                    Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.md).testTag("ranks.dots"),
-                    pulseScale = { dotPulseScale(nudge.pulse.value) },
-                    scrub = scrub,
-                )
-                BoardSwipe(scrub, state.position, state.boardCount, onSwipe) {
-                    RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick, morph = rememberBoardMorph(state, scrub))
+                // The swipe area: everything under the calendar, and whatever is left of the screen below the board.
+                BoardSwipe(scrub, state.position, state.boardCount, onSwipe, Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg)) {
+                        YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
+                        PageDots(
+                            state.boardCount,
+                            state.position,
+                            Modifier.align(Alignment.CenterHorizontally).padding(bottom = Spacing.md).testTag("ranks.dots"),
+                            pulseScale = { dotPulseScale(nudge.pulse.value) },
+                            scrub = scrub,
+                        )
+                        RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick, morph = rememberBoardMorph(state, scrub))
+                    }
                 }
             }
             SwipeNudgePill(nudgeText(state.places, state.position), nudge, Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.lg))
