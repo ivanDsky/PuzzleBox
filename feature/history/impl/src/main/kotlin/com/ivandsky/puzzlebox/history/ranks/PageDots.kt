@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,14 +20,18 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 private val DOT = 6.dp
 private val DOT_SELECTED = 18.dp
 
 /**
  * Where the swipe stands: one dot per board, the board at [index] drawn as a longer, accent one, which swells
- * to [pulseScale] (read while drawing) for the one-time nudge. Nothing to show for a single board.
+ * to [pulseScale] (read while drawing) for the one-time nudge. A step stretches the new dot and shrinks the old
+ * over [MotionTokens.DurationShort]; reduced motion keeps the colour's fade and drops the stretch. Nothing to
+ * show for a single board.
  */
 @Composable
 internal fun PageDots(count: Int, index: Int, modifier: Modifier = Modifier, pulseScale: () -> Float = { 1f }) {
@@ -41,9 +47,15 @@ internal fun PageDots(count: Int, index: Int, modifier: Modifier = Modifier, pul
 
 @Composable
 private fun Dot(selected: Boolean, pulseScale: () -> Float) {
-    val width = animateDpAsState(if (selected) DOT_SELECTED else DOT, label = "dotWidth")
+    val reduced = rememberReducedMotion()
+    val width = animateDpAsState(
+        if (selected) DOT_SELECTED else DOT,
+        if (reduced) snap() else tween(MotionTokens.DurationShort, easing = MotionTokens.EasingStandard),
+        label = "dotWidth",
+    )
     val color = animateColorAsState(
         if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+        tween(MotionTokens.DurationShort, easing = MotionTokens.EasingStandard),
         label = "dotColor",
     )
     Box(

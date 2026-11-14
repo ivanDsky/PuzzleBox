@@ -90,9 +90,11 @@ class RanksScreenTest {
         composeRule.onNodeWithTag("ranks.signIn.failed").assertIsDisplayed()
     }
 
-    private fun showSwiping(position: Int = 1, onSwipe: (Int) -> Unit) {
+    private fun showSwiping(position: Int = 1, onRefresh: (() -> Unit)? = null, onSwipe: (Int) -> Unit) {
         val slice = RanksBoardSlice("Zip · today", RankOrder.TimeThenHints, DailyBoardState.Ranked(listOf(DailyBoardRowModel(1, "Maya", 62_000L, 0, false, playerId = "maya"))))
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(RanksUiState(slice, position = position, boardCount = 4), {}, onSwipe) } }
+        composeRule.setContent {
+            PuzzleBoxTheme { RanksScreen(RanksUiState(slice, position = position, boardCount = 4), {}, onSwipe, onRefresh = onRefresh) }
+        }
     }
 
     @Test
@@ -116,6 +118,42 @@ class RanksScreenTest {
         }
 
         assertEquals(emptyList<Int>(), steps)
+    }
+
+    @Test
+    fun `a slanted sideways swipe changes the board and pulls no refresh`() {
+        val steps = mutableListOf<Int>()
+        var refreshes = 0
+        showSwiping(onRefresh = { refreshes++ }) { steps += it }
+
+        // 35° off the horizontal, and 300 px down: past the pull's threshold had the page taken it.
+        composeRule.onNodeWithTag("ranks.board").performTouchInput {
+            down(center)
+            repeat(15) { moveBy(Offset(-30f, 21f)) }
+            up()
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(listOf(1), steps)
+        assertEquals(0, refreshes)
+    }
+
+    @Test
+    fun `a pull down that drifts sideways refreshes and leaves the board where it is`() {
+        val steps = mutableListOf<Int>()
+        var refreshes = 0
+        showSwiping(onRefresh = { refreshes++ }) { steps += it }
+
+        composeRule.onNodeWithTag("ranks.board").performTouchInput {
+            down(center)
+            repeat(8) { moveBy(Offset(2f, 30f)) }
+            repeat(10) { moveBy(Offset(40f, 0f)) }
+            up()
+        }
+        composeRule.waitForIdle()
+
+        assertEquals(emptyList<Int>(), steps)
+        assertEquals(1, refreshes)
     }
 
     @Test

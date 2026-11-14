@@ -30,6 +30,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.DayMorph
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -94,12 +95,14 @@ internal fun RanksTwoPane(
                 verticalArrangement = Arrangement.spacedBy(Spacing.md),
             ) {
                 RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
-                    Text(
-                        state.board.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(start = Spacing.sm).testTag("ranks.boardtitle"),
-                    )
+                    DayMorph(state.board.title, Modifier.padding(start = Spacing.sm)) { title ->
+                        Text(
+                            title,
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.testTag("ranks.boardtitle"),
+                        )
+                    }
                 }
                 RanksHeroCard(current?.name ?: "Ranks", current?.standing ?: Standing.None, state.board.selfScore())
                 YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)

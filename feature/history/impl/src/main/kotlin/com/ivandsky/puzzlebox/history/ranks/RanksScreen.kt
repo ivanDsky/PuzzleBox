@@ -41,6 +41,8 @@ import java.time.LocalDate
  * more, with it already there, calls [onReset] (A8). With a [playerSheet] another player's row opens that sheet, which this
  * screen only hosts; without one rows take no tap. Its Watch tap closes it and reports [onWatchPlayer].
  * With a [replayOptIn] the first ranked solve asks about sharing replays, on either layout.
+ * A day or window pick keeps the board on screen until the next one answers ([rememberHeldBoard]): only what differs
+ * between the two days then changes, each part in place. A held board's rows take no tap, for they are not the picked day's.
  */
 @Composable
 internal fun RanksScreen(
@@ -66,7 +68,8 @@ internal fun RanksScreen(
     refreshing: Boolean = false,
     onRefresh: (() -> Unit)? = null,
 ) {
-    val onRowClick = playerSheet?.let { sheet -> { row: DailyBoardRowModel -> sheet.open(row.toTarget(state)) } }
+    val shown = rememberHeldBoard(state)
+    val onRowClick = playerSheet?.takeIf { shown.board === state.board }?.let { sheet -> { row: DailyBoardRowModel -> sheet.open(row.toTarget(state)) } }
     val scroll = rememberScrollState()
     val leftScroll = rememberScrollState()
     val twoPane = layout == HistoryLayout.TwoPane
@@ -77,9 +80,9 @@ internal fun RanksScreen(
         }
         Box(Modifier.weight(1f)) {
             if (twoPane) {
-                RanksTwoPane(state, onSignIn, Modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, leftScroll, scroll, onRowClick, refreshing, onRefresh)
+                RanksTwoPane(shown, onSignIn, Modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, leftScroll, scroll, onRowClick, refreshing, onRefresh)
             } else {
-                RanksPhone(state, scroll, onSignIn, onSwipe, onPickBoard, onNudgeShown, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, onRowClick, refreshing, onRefresh)
+                RanksPhone(shown, scroll, onSignIn, onSwipe, onPickBoard, onNudgeShown, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, onRowClick, refreshing, onRefresh)
             }
         }
     }
