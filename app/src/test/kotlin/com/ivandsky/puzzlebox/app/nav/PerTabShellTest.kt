@@ -134,8 +134,8 @@ class PerTabShellTest {
         composeRule.setContent { Shell() }
         openCatalog()
 
-        tap(HISTORY_TAB)
-        composeRule.onNodeWithTag(HISTORY_TAB).assertIsSelected()
+        tap(RANKS_TAB)
+        composeRule.onNodeWithTag(RANKS_TAB).assertIsSelected()
         tap(HOME_TAB)
 
         composeRule.onNodeWithTag(HOME_TAB).assertIsSelected()
@@ -156,7 +156,7 @@ class PerTabShellTest {
     @Test
     fun `back at a non-start root highlights home`() {
         composeRule.setContent { Shell() }
-        tap(HISTORY_TAB)
+        tap(RANKS_TAB)
 
         pressBack()
 
@@ -257,7 +257,7 @@ class PerTabShellTest {
 
     private companion object {
         const val HOME_TAB = "nav.tab.home"
-        const val HISTORY_TAB = "nav.tab.history"
+        const val RANKS_TAB = "nav.tab.ranks"
         const val CREATE_TAB = "nav.tab.create"
         const val AVATAR = "shell.avatar"
         const val PROFILE_GEAR = "profile.settings"
