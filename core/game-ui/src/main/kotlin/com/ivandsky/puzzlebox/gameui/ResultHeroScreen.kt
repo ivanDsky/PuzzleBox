@@ -51,7 +51,7 @@ private const val SIDE_WEIGHT = 1f
  * columns weighted 1.1 to 1 with 32 dp page padding, the content capped at 1040 dp. The hero
  * time takes its 96 sp step once the hero column is 520 dp. In two columns both cards are
  * as tall as the taller one; one column never stretches. A stretched side card keeps its content at the top;
- * a stretched hero card keeps its body there and pins the actions to its bottom padding.
+ * a stretched hero card spreads its blocks evenly down the card, the header on the top padding and the actions on the bottom one.
  * The cards report their content's own height and are given the larger of the two as a minimum
  * height, so a content change (the chart's scope switch) moves both. This replaces an intrinsic-height
  * row, which the chart's constraint-reading layout cannot answer. A pane under 480 dp tall
