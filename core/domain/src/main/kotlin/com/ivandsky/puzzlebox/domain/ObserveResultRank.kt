@@ -35,7 +35,7 @@ import kotlinx.coroutines.flow.map
 class ObserveResultRank(
     private val leaderboard: ObserveLeaderboard,
     private val registry: GameRegistry,
-    private val friendDay: ObserveFriendDay? = null,
+    private val friendDay: ObserveFriendDay?,
 ) {
 
     operator fun invoke(game: GameId, day: LocalDate, connections: Flow<LinkedInDayView>? = null): Flow<ResultRank> {

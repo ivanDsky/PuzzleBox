@@ -110,6 +110,7 @@ class GameRouteTest {
                     factory { LoadPastDay(get(), get()) }
                 },
                 playModule,
+                hubOffFriendDay,
             )
         }
     }

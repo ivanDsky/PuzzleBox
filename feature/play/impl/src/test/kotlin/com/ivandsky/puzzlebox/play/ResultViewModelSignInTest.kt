@@ -96,7 +96,7 @@ class ResultViewModelSignInTest {
             ui = fakes.registry,
             games = fakes.games,
             insights = ObserveResultInsights(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games, clock)), GetPuzzleDay(fakes.games, clock)),
-            rank = ObserveResultRank(ObserveLeaderboard(identity, FakeLeaderboardRepository(), fakes.games, calendar), fakes.games),
+            rank = ObserveResultRank(ObserveLeaderboard(identity, FakeLeaderboardRepository(), fakes.games, calendar), fakes.games, friendDay = null), // hub off
             linkedIn = null,
             board = FriendPuzzleBoard(FakeCustomBoardRepository(), identity, oneGoogleAccount("token"), ComputeCustomBoard()),
             completions = completions,

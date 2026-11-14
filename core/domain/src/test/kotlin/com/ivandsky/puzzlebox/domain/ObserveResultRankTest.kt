@@ -41,7 +41,11 @@ class ObserveResultRankTest {
     private val days = FakeLinkedInDays()
 
     private fun rank(identity: Identity?, repo: FakeLeaderboardRepository, withConnections: Boolean = false) =
-        ObserveResultRank(ObserveLeaderboard(FakeIdentityService(initial = identity), repo, registry, FakeGameCalendar(day)), registry)(
+        ObserveResultRank(
+            ObserveLeaderboard(FakeIdentityService(initial = identity), repo, registry, FakeGameCalendar(day)),
+            registry,
+            friendDay = null, // hub off
+        )(
             tango,
             day,
             connections = if (withConnections) ObserveLinkedInDay(days, registry)(tango, day) else null,

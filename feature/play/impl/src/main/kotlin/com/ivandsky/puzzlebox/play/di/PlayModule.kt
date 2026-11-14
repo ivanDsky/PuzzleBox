@@ -94,7 +94,7 @@ val playModule = module {
             params.get<GameId>(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
             cloudSync = getOrNull(),
-            friendDay = getOrNull<ObserveFriendDay.Binding>()?.reader,
+            friendDay = get<ObserveFriendDay.Binding>().reader,
         )
     }
     viewModel { params ->

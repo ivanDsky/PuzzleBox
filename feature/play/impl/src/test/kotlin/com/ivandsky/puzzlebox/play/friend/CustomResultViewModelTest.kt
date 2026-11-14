@@ -74,6 +74,7 @@ import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.playNavKeys
 import com.ivandsky.puzzlebox.play.di.playModule
+import com.ivandsky.puzzlebox.play.hubOffFriendDay
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -172,6 +173,7 @@ class CustomResultViewModelTest {
                     factory { loadSolveReplay(get(), get(), get()) }
                 },
                 playModule,
+                hubOffFriendDay,
             )
         }
     }

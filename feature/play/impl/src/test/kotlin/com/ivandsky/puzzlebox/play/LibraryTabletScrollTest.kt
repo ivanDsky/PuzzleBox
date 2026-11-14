@@ -125,6 +125,7 @@ class LibraryTabletScrollTest {
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
                 },
                 playModule,
+                hubOffFriendDay,
             )
         }
     }

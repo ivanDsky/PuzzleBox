@@ -94,7 +94,7 @@ internal class GamePageBoardViewModel(
     idTokens: GoogleIdTokenProvider,
     private val linkedIn: ObserveLinkedInDayView?,
     cloudSync: CloudSync? = null,
-    private val friendDay: ObserveFriendDay? = null,
+    private val friendDay: ObserveFriendDay?,
 ) : ViewModel() {
 
     private val choice = MutableStateFlow(Choice(picked = null, cardDay = null))
