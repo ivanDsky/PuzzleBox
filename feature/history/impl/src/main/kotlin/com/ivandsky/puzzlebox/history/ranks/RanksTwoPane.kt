@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
@@ -54,7 +55,8 @@ private val ICON = 20.dp
  * (Overall first, the viewer's place on each); the right pane holds the top bar (the board's name and the tune icon),
  * the placement hero card, Your solve for a past day and the board. A pick in the list re-ranks the board in place, so
  * there is no title menu, week strip or swipe here. The calendar is always the month: the shared calendar's fold-to-week
- * is turned back into a month at the door ([onShowCalendar] only ever hears `expanded = true`).
+ * is turned back into a month at the door ([onShowCalendar] only ever hears `expanded = true`). The hero card wears the
+ * shown board's accent, blending to the next board's with the [scrub].
  */
 @Composable
 internal fun RanksTwoPane(
@@ -74,10 +76,15 @@ internal fun RanksTwoPane(
     onRowClick: ((DailyBoardRowModel) -> Unit)? = null,
     refreshing: Boolean = false,
     onRefresh: (() -> Unit)? = null,
+    scrub: BoardScrub = rememberBoardScrub(state.position),
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
     val current = state.places.getOrNull(state.position)
+    val accents = state.places.map { it.brand.accent.colors() }
+    val containers = accents.map { it.container }
+    val inks = accents.map { it.onContainer }
+    val plain = MaterialTheme.colorScheme
     Row(
         modifier.fillMaxSize().testTag("route.ranks").padding(Spacing.lg),
         horizontalArrangement = Arrangement.spacedBy(Spacing.xl),
@@ -104,7 +111,13 @@ internal fun RanksTwoPane(
                         )
                     }
                 }
-                RanksHeroCard(current?.name ?: "Ranks", current?.standing ?: Standing.None, state.board.selfScore())
+                RanksHeroCard(
+                    current?.name ?: "Ranks",
+                    current?.standing ?: Standing.None,
+                    state.board.selfScore(),
+                    container = { scrub.blend(containers, plain.surfaceContainerHigh) },
+                    ink = { scrub.blend(inks, plain.onSurface) },
+                )
                 YourSolveRow(state.yourSolve, onPlayAgain, onOpenReplay, onCompare)
                 RanksBoardSlot(state.board, state.signIn, onSignIn, onRowClick = onRowClick)
             }

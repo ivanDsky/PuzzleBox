@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -43,6 +44,8 @@ import java.time.LocalDate
  * With a [replayOptIn] the first ranked solve asks about sharing replays, on either layout.
  * A day or window pick keeps the board on screen until the next one answers ([rememberHeldBoard]): only what differs
  * between the two days then changes, each part in place. A held board's rows take no tap, for they are not the picked day's.
+ * The whole hub sits in the shown board's world ([RanksWorld]): its accent as a wash and its glyph behind the content,
+ * blending to the next board's as the hub moves to it ([BoardScrub]).
  */
 @Composable
 internal fun RanksScreen(
@@ -74,15 +77,19 @@ internal fun RanksScreen(
     val leftScroll = rememberScrollState()
     val twoPane = layout == HistoryLayout.TwoPane
     ReselectToTop(if (twoPane) listOf(leftScroll, scroll) else listOf(scroll), onReset)
-    Column(modifier.fillMaxSize()) {
-        if (onBack != null) {
-            IconButton(onBack, Modifier.testTag("ranks.back")) { Icon(PuzzleIcons.Back, contentDescription = "Back") }
-        }
-        Box(Modifier.weight(1f)) {
-            if (twoPane) {
-                RanksTwoPane(shown, onSignIn, Modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, leftScroll, scroll, onRowClick, refreshing, onRefresh)
-            } else {
-                RanksPhone(shown, scroll, onSignIn, onSwipe, onPickBoard, onNudgeShown, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, onRowClick, refreshing, onRefresh)
+    val scrub = rememberBoardScrub(shown.position)
+    val brands = remember(shown.places) { shown.places.map { it.brand } }
+    RanksWorld(brands, scrub, wide = twoPane, modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            if (onBack != null) {
+                IconButton(onBack, Modifier.testTag("ranks.back")) { Icon(PuzzleIcons.Back, contentDescription = "Back") }
+            }
+            Box(Modifier.weight(1f)) {
+                if (twoPane) {
+                    RanksTwoPane(shown, onSignIn, Modifier, onPickBoard, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, leftScroll, scroll, onRowClick, refreshing, onRefresh, scrub)
+                } else {
+                    RanksPhone(shown, scroll, onSignIn, onSwipe, onPickBoard, onNudgeShown, onScope, onWindow, onShowCalendar, onSelectDay, onPlayAgain, onOpenReplay, onCompare, onRowClick, refreshing, onRefresh)
+                }
             }
         }
     }
