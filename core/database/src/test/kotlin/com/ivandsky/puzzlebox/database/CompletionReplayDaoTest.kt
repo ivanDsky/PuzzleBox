@@ -68,9 +68,9 @@ class CompletionReplayDaoTest {
     fun `one solve is both record and latest`() = runTest {
         solve("a", 10, record = true)
 
-        assertArrayEquals(bytes(10), dao.recordReplay("a"))
-        assertArrayEquals(bytes(10), dao.latestReplay("a"))
-        assertTrue(dao.latestIsRecord("a"))
+        assertArrayEquals(bytes(10), dao.recordReplay("a", null))
+        assertArrayEquals(bytes(10), dao.latestReplay("a", null))
+        assertTrue(dao.latestIsRecord("a", null))
     }
 
     @Test
@@ -78,9 +78,9 @@ class CompletionReplayDaoTest {
         solve("a", 10, record = true)
         solve("a", 20, record = false)
 
-        assertArrayEquals(bytes(10), dao.recordReplay("a"))
-        assertArrayEquals(bytes(20), dao.latestReplay("a"))
-        assertFalse(dao.latestIsRecord("a"))
+        assertArrayEquals(bytes(10), dao.recordReplay("a", null))
+        assertArrayEquals(bytes(20), dao.latestReplay("a", null))
+        assertFalse(dao.latestIsRecord("a", null))
     }
 
     @Test
@@ -89,16 +89,16 @@ class CompletionReplayDaoTest {
         solve("a", 30, record = false)
         solve("a", 20, record = false)
 
-        assertArrayEquals(bytes(10), dao.recordReplay("a"))
-        assertArrayEquals(bytes(30), dao.latestReplay("a"))
-        assertFalse(dao.latestIsRecord("a"))
+        assertArrayEquals(bytes(10), dao.recordReplay("a", null))
+        assertArrayEquals(bytes(30), dao.latestReplay("a", null))
+        assertFalse(dao.latestIsRecord("a", null))
     }
 
     @Test
     fun `puzzle without solves has no replay and counts as latest is record`() = runTest {
-        assertNull(dao.recordReplay("a"))
-        assertNull(dao.latestReplay("a"))
-        assertTrue(dao.latestIsRecord("a"))
+        assertNull(dao.recordReplay("a", null))
+        assertNull(dao.latestReplay("a", null))
+        assertTrue(dao.latestIsRecord("a", null))
     }
 
     @Test
@@ -106,8 +106,8 @@ class CompletionReplayDaoTest {
         solve("a", 10, record = true, withReplay = false)
         solve("a", 20, record = false, withReplay = false)
 
-        assertNull(dao.recordReplay("a"))
-        assertNull(dao.latestReplay("a"))
+        assertNull(dao.recordReplay("a", null))
+        assertNull(dao.latestReplay("a", null))
     }
 
     @Test
@@ -117,11 +117,11 @@ class CompletionReplayDaoTest {
         solve("a", 25, record = false)
         val latest = solve("a", 30, record = false)
 
-        dao.prune("a")
+        dao.prune("a", null)
 
         assertEquals(listOf(record, latest), replayIds("a"))
-        assertArrayEquals(bytes(10), dao.recordReplay("a"))
-        assertArrayEquals(bytes(30), dao.latestReplay("a"))
+        assertArrayEquals(bytes(10), dao.recordReplay("a", null))
+        assertArrayEquals(bytes(30), dao.latestReplay("a", null))
     }
 
     @Test
@@ -129,7 +129,7 @@ class CompletionReplayDaoTest {
         val record = solve("a", 10, record = true)
         solve("a", 5, record = false)
 
-        dao.prune("a")
+        dao.prune("a", null)
 
         assertEquals(listOf(record), replayIds("a"))
     }
@@ -141,7 +141,7 @@ class CompletionReplayDaoTest {
         solve("a", 30, record = false)
         val other = listOf(solve("b", 1, record = true), solve("b", 2, record = false), solve("b", 3, record = false))
 
-        dao.prune("a")
+        dao.prune("a", null)
 
         assertEquals(other, replayIds("b"))
     }
@@ -152,7 +152,7 @@ class CompletionReplayDaoTest {
         solve("a", 20, record = false)
         solve("a", 30, record = false, withReplay = false)
 
-        dao.prune("a")
+        dao.prune("a", null)
 
         assertEquals(listOf(record), replayIds("a"))
     }
@@ -228,5 +228,32 @@ class CompletionReplayDaoTest {
         assertEquals(bare, dao.keptCompletionId("ann", "bare"))
         assertEquals(bare, dao.insertIfAbsent(CompletionReplayEntity(bare, bytes(7), uploaded = true)))
         assertEquals(listOf("rec"), dao.pending("ann").filter { it.syncId in setOf("rec", "bare") }.map { it.syncId })
+    }
+
+    @Test
+    fun `record, latest, latestIsRecord and prune stay per owner`() = runTest {
+        val annRecord = owned("a", 10, record = true, owner = "ann", syncId = "a1")
+        val annMid = owned("a", 30, record = false, owner = "ann", syncId = "a2")
+        val annLast = owned("a", 50, record = false, owner = "ann", syncId = "a3")
+        val bobRecord = owned("a", 20, record = true, owner = "bob", syncId = "b1")
+        val bobMid = owned("a", 25, record = false, owner = "bob", syncId = "b2")
+        val bobLast = owned("a", 40, record = false, owner = "bob", syncId = "b3")
+
+        assertArrayEquals(bytes(10), dao.recordReplay("a", "ann"))
+        assertArrayEquals(bytes(20), dao.recordReplay("a", "bob"))
+        assertArrayEquals(bytes(50), dao.latestReplay("a", "ann"))
+        assertArrayEquals(bytes(40), dao.latestReplay("a", "bob"))
+        assertFalse(dao.latestIsRecord("a", "ann"))
+        assertFalse(dao.latestIsRecord("a", "bob"))
+        assertNull(dao.recordReplay("a", "cat"))
+        assertNull(dao.latestReplay("a", "cat"))
+        assertTrue(dao.latestIsRecord("a", "cat"))
+
+        dao.prune("a", "ann")
+
+        assertEquals(listOf(annRecord, annLast, bobRecord, bobMid, bobLast).sorted(), replayIds("a"))
+        dao.prune("a", "bob")
+        assertEquals(listOf(annRecord, annLast, bobRecord, bobLast).sorted(), replayIds("a"))
+        check(annMid > 0)
     }
 }

@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.Flow
  * The rows a reader sees for owner `:owner` (ADR-0029): its own plus ownerless ones; a null owner means no filter, so
  * every query returns what it did before accounts.
  */
-private const val VISIBLE = "(:owner IS NULL OR ownerUid IS NULL OR ownerUid = :owner)"
+internal const val VISIBLE = "(:owner IS NULL OR ownerUid IS NULL OR ownerUid = :owner)"
 
 /**
  * Records + play-agains store (A4/A5): one isRecord row per puzzleRef; play-agains never purge it. Every read takes the

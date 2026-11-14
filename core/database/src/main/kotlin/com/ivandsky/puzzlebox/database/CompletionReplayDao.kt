@@ -6,7 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
-/** Replays of completions by puzzle; a puzzle keeps only its record solve's and latest solve's after [prune]. */
+/** Replays of completions by puzzle; a puzzle keeps only its record solve's and latest solve's per visible owner after [prune]. */
 @Dao
 interface CompletionReplayDao {
 
@@ -14,35 +14,35 @@ interface CompletionReplayDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(row: CompletionReplayEntity)
 
-    /** Replay of the puzzle's record row (isRecord = 1); null when it has none. */
+    /** Replay of the puzzle's record row (isRecord = 1) among the rows [owner] sees; null when it has none. */
     @Query(
         "SELECT r.replay FROM completion_replays r JOIN completions c ON c.id = r.completionId " +
-            "WHERE c.puzzleRef = :refKey AND c.isRecord = 1 LIMIT 1",
+            "WHERE c.puzzleRef = :refKey AND c.isRecord = 1 AND $VISIBLE LIMIT 1",
     )
-    suspend fun recordReplay(refKey: String): ByteArray?
+    suspend fun recordReplay(refKey: String, owner: String?): ByteArray?
 
-    /** Replay of the puzzle's newest row by completedAtMs; null when it has none. */
+    /** Replay of the newest row by completedAtMs among the rows [owner] sees; null when it has none. */
     @Query(
         "SELECT r.replay FROM completion_replays r WHERE r.completionId = " +
-            "(SELECT id FROM completions WHERE puzzleRef = :refKey ORDER BY completedAtMs DESC, id DESC LIMIT 1)",
+            "(SELECT id FROM completions WHERE puzzleRef = :refKey AND $VISIBLE ORDER BY completedAtMs DESC, id DESC LIMIT 1)",
     )
-    suspend fun latestReplay(refKey: String): ByteArray?
+    suspend fun latestReplay(refKey: String, owner: String?): ByteArray?
 
-    /** True when the puzzle's newest row is its record row, or it has no row. */
+    /** True when the newest row [owner] sees is the record row, or the puzzle has no such row. */
     @Query(
-        "SELECT COALESCE((SELECT isRecord FROM completions WHERE puzzleRef = :refKey " +
+        "SELECT COALESCE((SELECT isRecord FROM completions WHERE puzzleRef = :refKey AND $VISIBLE " +
             "ORDER BY completedAtMs DESC, id DESC LIMIT 1), 1)",
     )
-    suspend fun latestIsRecord(refKey: String): Boolean
+    suspend fun latestIsRecord(refKey: String, owner: String?): Boolean
 
-    /** Deletes the puzzle's replay rows that belong to neither its record row nor its newest row. */
+    /** Deletes the replay rows [owner] sees that belong to neither the puzzle's record row nor its newest row. */
     @Query(
         "DELETE FROM completion_replays WHERE completionId IN " +
-            "(SELECT id FROM completions WHERE puzzleRef = :refKey AND isRecord = 0 " +
-            "AND id <> COALESCE((SELECT id FROM completions WHERE puzzleRef = :refKey " +
+            "(SELECT id FROM completions WHERE puzzleRef = :refKey AND isRecord = 0 AND $VISIBLE " +
+            "AND id <> COALESCE((SELECT id FROM completions WHERE puzzleRef = :refKey AND $VISIBLE " +
             "ORDER BY completedAtMs DESC, id DESC LIMIT 1), -1))",
     )
-    suspend fun prune(refKey: String)
+    suspend fun prune(refKey: String, owner: String?)
 
     /** Cloud ids of [uid]'s completions whose replay is not uploaded, re-emitting when either table changes. */
     @Query(

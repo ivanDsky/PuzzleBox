@@ -4,6 +4,8 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
+import com.ivandsky.puzzlebox.common.log.FailureLog
+import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
@@ -25,11 +27,15 @@ class LoadSolveReplay(
     private val player: LoadPlayerReplay,
     private val completions: CompletionRepository,
     private val dispatchers: DispatcherProvider,
+    private val failures: FailureLog = LogcatFailureLog,
 ) {
     /** Whether replays are on at all: a surface that says "no replay" asks first, so a flag-off build shows nothing. */
     val enabled: Boolean get() = flags.isEnabled(ReleaseFlag.FullReplay)
 
-    /** Null = no replay, for any cause (A13). Flag off: always null. Cancellation still propagates. */
+    /**
+     * Null = no replay, for any cause (A13). Flag off: always null. The one place a failed load is caught, and logged once;
+     * the resolvers let failures through. Cancellation still propagates.
+     */
     suspend operator fun invoke(ref: SolveReplayRef): Timeline? {
         if (!flags.isEnabled(ReleaseFlag.FullReplay)) return null
         return try {
@@ -39,6 +45,7 @@ class LoadSolveReplay(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            failures.warn(TAG, "replay load failed for ${ref::class.simpleName}", e)
             null
         }
     }
@@ -51,7 +58,12 @@ class LoadSolveReplay(
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {
+            failures.warn(TAG, "replay latest-is-record read failed", e)
             true
         }
+    }
+
+    private companion object {
+        const val TAG = "LoadSolveReplay"
     }
 }

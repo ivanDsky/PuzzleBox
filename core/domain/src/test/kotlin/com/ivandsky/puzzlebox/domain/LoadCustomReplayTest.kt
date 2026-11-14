@@ -174,6 +174,7 @@ class LoadCustomReplayTest {
         completions.throwOnRead = true
 
         assertNull(resolve(Record(ref)))
+        assertEquals(listOf("disk full"), logged.map { it.message })
     }
 
     @Test
@@ -235,7 +236,10 @@ class LoadCustomReplayTest {
         player = LoadPlayerReplay(FakeDailyReplayRepository(), FakeDailyRepository()),
         completions = completions,
         dispatchers = InlineDispatcherProvider,
+        failures = { _, _, cause -> logged += cause },
     )
+
+    private val logged = mutableListOf<Throwable>()
 
     private fun stored(gameId: GameId = FIXTURE) = ReceivedPuzzle(
         code = CODE, gameId = gameId, variant = PairEditor.VARIANT, sharedFormatVersion = 1,
