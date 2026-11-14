@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.domain.ranks
 
+import com.ivandsky.puzzlebox.common.log.FailureLog
+import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
@@ -15,6 +17,7 @@ import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Clock
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,9 +36,11 @@ import kotlinx.coroutines.launch
  * this device first saw the tier at Replays, kept in [optIns] and dropped when the tier is seen below Replays; a solve
  * completed before it never publishes, which also holds after a restart re-posts an old solve. No stamp, or a solve
  * without a completion time, fails closed. This use case is the only writer of the stamp, from the same tier flow the
- * publish decision reads, so a decision never runs ahead of its stamp. Each board is decided once per run, and a failed
- * publish waits for the next app start. Only boards in the submit window are followed, because no other post can be
- * accepted and the backend refuses older replays. Runs until cancelled.
+ * publish decision reads, so a decision never runs ahead of its stamp. A stamp write that fails leaves the tier unknown
+ * until a later write succeeds, so nothing is decided on a stamp that was not written or not cleared; a clear that
+ * failed is made up before the next opt-in is stamped, so a solve from the gap never publishes on the old stamp. Each
+ * board is decided once per run, and a failed publish waits for the next app start. Only boards in the submit window
+ * are followed, because no other post can be accepted and the backend refuses older replays. Runs until cancelled.
  */
 class SubmitDailyReplay(
     private val completions: CompletionRepository,
@@ -46,6 +51,7 @@ class SubmitDailyReplay(
     private val optIns: ReplayOptInStamp,
     private val replays: DailyReplayRepository,
     private val clock: Clock = Clock.systemUTC(),
+    private val failures: FailureLog = LogcatFailureLog,
 ) {
     /** A loaded tier of the signed-in player, with its stamp already written. */
     private data class StampedTier(val uid: String, val tier: VisibilityTier)
@@ -64,16 +70,37 @@ class SubmitDailyReplay(
             }
     }
 
-    /** Null while signed out or while the tier is unknown, so nothing reads an unloaded tier as a choice. */
-    private fun stampTiers(scope: CoroutineScope): StateFlow<StampedTier?> =
-        combine(identity.current.map { it?.uid }.distinctUntilChanged(), visibility.ownTier) { uid, own -> uid to own.effective }
+    /**
+     * Null while signed out, while the tier is unknown, or while its stamp could not be written, so nothing reads an
+     * unloaded tier as a choice. The tier is tried again only when it or the player changes.
+     */
+    private fun stampTiers(scope: CoroutineScope): StateFlow<StampedTier?> {
+        val uncleared = HashSet<String>()
+        return combine(identity.current.map { it?.uid }.distinctUntilChanged(), visibility.ownTier) { uid, own -> uid to own.effective }
             .distinctUntilChanged()
-            .map { (uid, tier) ->
-                if (uid == null || tier == null) return@map null
-                if (tier.allowsReplays) optIns.markIfAbsent(uid, clock.millis()) else optIns.clear(uid)
-                StampedTier(uid, tier)
-            }
+            .map { (uid, tier) -> if (uid != null && tier != null && stamp(uid, tier, uncleared)) StampedTier(uid, tier) else null }
             .stateIn(scope, SharingStarted.Eagerly, null)
+    }
+
+    /**
+     * False when the store failed. Thrown from the shared tier flow, the failure would end [invoke] and its caller.
+     * A clear stays owed in [uncleared] until it succeeds: marking over a stamp that outlived its opt-out would keep the
+     * old instant and publish solves made while the tier was below Replays.
+     */
+    private suspend fun stamp(uid: String, tier: VisibilityTier, uncleared: MutableSet<String>): Boolean = try {
+        if (!tier.allowsReplays || uid in uncleared) {
+            uncleared += uid
+            optIns.clear(uid)
+            uncleared -= uid
+        }
+        if (tier.allowsReplays) optIns.markIfAbsent(uid, clock.millis())
+        true
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        failures.warn(TAG, "replay opt-in stamp write failed", e)
+        false
+    }
 
     private suspend fun publishOnceAccepted(
         uid: String,
@@ -91,5 +118,9 @@ class SubmitDailyReplay(
         if (completedAt < optedInAt) return
         val replay = completions.recordReplay(record.puzzleRef) ?: return
         replays.publish(board, replay.toByteArray())
+    }
+
+    private companion object {
+        const val TAG = "SubmitDailyReplay"
     }
 }
