@@ -70,7 +70,7 @@ val domainModule = module {
     factory { GetFeaturedGame(registry = get()) }
     factory { GetPuzzleDay(registry = get()) }
     factory { GetNextRollover(registry = get()) }
-    factory { ComputeStreak(puzzleDay = get(), releaseFlags = get()) }
+    factory { ComputeStreak(puzzleDay = get()) }
     factory { ObserveGameStats(registry = get(), observeGameHistory = get(), computeStreak = get()) }
     factory {
         ObserveResultInsights(

@@ -5,8 +5,8 @@ import java.time.format.TextStyle
 import java.util.Locale
 
 /**
- * The streak card's sub line once freezes are on: the days left to earn the next freeze, or at
- * the cap (no days to count) the freezes held. Replaces [heroStreakSub], which only speaks of the streak.
+ * The streak card's sub line: the days left to earn the next freeze, or at the cap (no days to
+ * count) the freezes held. Replaces [heroStreakSub], which only speaks of the streak.
  */
 internal fun heroFreezeSub(freezes: StreakFreezes): String = when (val days = freezes.daysToNext) {
     null -> "${freezeCountLabel(freezes.held)} held"

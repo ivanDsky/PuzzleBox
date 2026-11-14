@@ -20,8 +20,6 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
@@ -59,7 +57,6 @@ import com.ivandsky.puzzlebox.play.board.BoardSignIn
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.play.friend.oneGoogleAccount
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -121,7 +118,6 @@ class PlayStatsPanelTest {
         slotDay: LocalDate = day,
         idTokens: GoogleIdTokenProvider = dismissedGoogleSignIn,
         linkedIn: Boolean = false,
-        flags: ReleaseFlags = FakeReleaseFlags(),
     ): PlayStatsViewModel {
         val history = ObserveGameHistory(fakes.games, daily, completions)
         val identityService = FakeIdentityService(identity)
@@ -135,7 +131,7 @@ class PlayStatsPanelTest {
                     fakes.games, FakeSavedPlayRepository(), completions, calendar, daily,
                     SyncTodayPuzzles(fakes.games, daily, calendar),
                 ),
-                stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games), flags)),
+                stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games))),
                 history = history,
                 calendar = calendar,
                 leaderboard = ObserveLeaderboard(identityService, leaderboard, fakes.games, calendar),
@@ -330,19 +326,10 @@ class PlayStatsPanelTest {
     fun `a broken streak shows no count beside the streak line, not a 0 - F5`() {
         // Eight missed days outrun the two freezes held, so the game's streak is 0 and its ledger holds 0.
         val broken = FakeCompletionRepository().apply { setRecords(listOf(record(alpha, day.minusDays(9), 60_000L))) }
-        show(viewModel(completions = broken, flags = FakeReleaseFlags(ReleaseFlag.StreakFreeze)))
+        show(viewModel(completions = broken))
 
         composeRule.onNodeWithTag("play.stats.streak").assertTextContains("No streak yet", substring = true)
         composeRule.onAllNodesWithContentDescription("freeze", substring = true).assertCountEquals(0)
-    }
-
-    @Test
-    fun `with freezes off the streak line shows no count and the strip no frozen day`() {
-        show(viewModel())
-
-        composeRule.onNodeWithTag("play.stats.streak").assertTextEquals("2-day streak")
-        composeRule.onAllNodesWithContentDescription("1 freeze").assertCountEquals(0)
-        composeRule.onAllNodesWithContentDescription("Frozen").assertCountEquals(0)
     }
 
     @Test
@@ -350,7 +337,7 @@ class PlayStatsPanelTest {
         val gap = FakeCompletionRepository().apply {
             setRecords(listOf(record(alpha, day.minusDays(3), 60_000L), record(alpha, day.minusDays(1), 60_000L)))
         }
-        show(viewModel(completions = gap, flags = FakeReleaseFlags(ReleaseFlag.StreakFreeze)))
+        show(viewModel(completions = gap))
 
         composeRule.onNodeWithTag("play.stats.streak").assertTextEquals("2-day streak")
         composeRule.onNodeWithContentDescription("1 freeze").assertExists()

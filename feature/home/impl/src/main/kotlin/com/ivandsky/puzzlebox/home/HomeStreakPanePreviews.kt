@@ -89,7 +89,7 @@ internal fun HomeStreakPaneEmptyPreview() {
 
 private val FrozenDay = PaneDay.minusDays(2)
 
-// A streak holding 3 freezes, one spent on FrozenDay: the freeze state the flag adds to the pane.
+// A streak holding 3 freezes, one spent on FrozenDay.
 private fun frozenState(): HomeUiState {
     val freezes = StreakFreezes(held = 3, frozenDays = setOf(FrozenDay), daysToNext = 4, lastSolve = null)
     val stats = GameStats(12, 21, 1_234, 980, 96_000L, LocalDate.of(2025, 3, 14), best = null, rankOrder = RankOrder.TimeThenHints, freezes = freezes)
