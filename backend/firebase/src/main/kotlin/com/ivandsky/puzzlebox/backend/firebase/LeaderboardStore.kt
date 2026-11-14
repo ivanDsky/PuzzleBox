@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.backend.firebase
 import com.google.firebase.firestore.AggregateSource
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreException
+import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.Source
 import com.ivandsky.puzzlebox.data.leaderboard.BoardPage
@@ -10,6 +11,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.tasks.await
 
 /** One listener answer: the raw docs, and whether the device cache (not the server) produced it. */
@@ -56,8 +58,9 @@ internal class FirestoreLeaderboardStore : LeaderboardStore {
         entries(boardId).count().get(AggregateSource.SERVER).await().count
 
     override fun observeEntries(boardId: String, order: RankOrder): Flow<BoardDocs> = callbackFlow {
+        // INCLUDE: the server confirming an unchanged (still empty) board only flips the metadata, and that flip must be seen.
         val registration = page(boardId, order)
-            .addSnapshotListener { snapshot, error ->
+            .addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, error ->
                 if (error != null) {
                     close(error)
                     return@addSnapshotListener
@@ -70,7 +73,7 @@ internal class FirestoreLeaderboardStore : LeaderboardStore {
                 )
             }
         awaitClose { registration.remove() }
-    }
+    }.distinctUntilChanged()
 
     override suspend fun createIfAbsent(
         boardId: String,
