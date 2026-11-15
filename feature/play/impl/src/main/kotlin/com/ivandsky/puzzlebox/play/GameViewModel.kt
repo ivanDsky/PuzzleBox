@@ -23,7 +23,8 @@ import kotlinx.coroutines.launch
  * ViewModel; releasing it is [PlaySessionStore.retain]'s job, never this one's.
  *
  * Tutorials (spec A11) are this entry's, not the store's: a game with lessons whose
- * tutorial [prefs] has not marked seen opens it before the board, and How to play
+ * tutorial [prefs] has not marked seen opens it over the board once that read lands; the
+ * board never waits for the read, so a first play may show one frame first. How to play
  * reopens it over the live play. While it shows, the board's composition is gone, so the
  * play chrome's clock effect has folded the clock; it reopens when the board returns.
  * The lessons run in a sandbox: nothing they do reaches the slot or the records. The open
@@ -52,16 +53,17 @@ class GameViewModel(
 
     private val hasLessons = play?.ui?.tutorial?.isNotEmpty() == true
 
-    private val _tutorial = MutableStateFlow(if (hasLessons) TutorialGate.Checking else TutorialGate.Closed)
+    private val _tutorial = MutableStateFlow<TutorialGate>(TutorialGate.Closed)
     internal val tutorial: StateFlow<TutorialGate> = _tutorial.asStateFlow()
+
+    /** The player has opened or closed the tutorial, so a late first-play read leaves it alone. */
+    private var tutorialTouched = false
 
     init {
         if (play != null && hasLessons) {
             viewModelScope.launch {
                 val seen = prefs.tutorialSeen(play.gameId).first()
-                if (_tutorial.value == TutorialGate.Checking) {
-                    _tutorial.value = if (seen) TutorialGate.Closed else TutorialGate.Open(TutorialSession(play.ui.tutorial))
-                }
+                if (!seen && !tutorialTouched) _tutorial.value = TutorialGate.Open(TutorialSession(play.ui.tutorial))
             }
         }
     }
@@ -71,6 +73,7 @@ class GameViewModel(
     fun howToPlay() {
         val lessons = play?.ui?.tutorial ?: return
         if (lessons.isEmpty() || _tutorial.value is TutorialGate.Open) return
+        tutorialTouched = true
         _tutorial.value = TutorialGate.Open(TutorialSession(lessons))
     }
 
@@ -78,6 +81,7 @@ class GameViewModel(
     fun closeTutorial() {
         val game = play?.gameId ?: return
         if (_tutorial.value !is TutorialGate.Open) return
+        tutorialTouched = true
         _tutorial.value = TutorialGate.Closed
         viewModelScope.launch { prefs.markTutorialSeen(game) }
     }

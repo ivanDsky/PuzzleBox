@@ -43,7 +43,10 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.Instant
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -279,6 +282,49 @@ class GameTutorialTest {
 
         assertEquals(1, backs)
         assertTrue(prefs.seen.isEmpty())
+    }
+
+    @Test
+    fun `the board composes while the tutorial-seen read is pending, and a first play's lessons follow it`() {
+        fakes[alpha].teach(2)
+        val prefs = SlowTutorialUserPreferencesRepository(FakeUserPreferencesRepository())
+        start(prefs)
+
+        composeRule.onNodeWithText("alpha board 0").assertExists()
+        composeRule.onNodeWithTag("tutorial.host").assertDoesNotExist()
+
+        composeRule.runOnIdle { prefs.release.complete(Unit) }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("tutorial.host").assertExists()
+        composeRule.onNodeWithContentDescription("Step 1 of 2").assertExists()
+    }
+
+    @Test
+    fun `a skip during the pending read holds when the read lands unseen`() {
+        fakes[alpha].teach(2)
+        val prefs = SlowTutorialUserPreferencesRepository(FakeUserPreferencesRepository())
+        start(prefs)
+
+        click("play.how_to_play")
+        click("tutorial.skip")
+        composeRule.runOnIdle { prefs.release.complete(Unit) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag("tutorial.host").assertDoesNotExist()
+        composeRule.onNodeWithText("alpha board 0").assertExists()
+        assertEquals(setOf(alpha), prefs.inner.seen)
+    }
+
+    /** Its tutorial-seen read lands only once [release] completes, as a DataStore read on IO does. */
+    private class SlowTutorialUserPreferencesRepository(val inner: FakeUserPreferencesRepository) :
+        UserPreferencesRepository by inner {
+        val release = CompletableDeferred<Unit>()
+
+        override fun tutorialSeen(game: GameId): Flow<Boolean> = flow {
+            val snapshot = inner.tutorialSeen(game).first()
+            release.await()
+            emit(snapshot)
+        }
     }
 
     private companion object {
