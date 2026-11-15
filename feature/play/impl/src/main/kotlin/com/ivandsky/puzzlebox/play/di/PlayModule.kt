@@ -82,6 +82,7 @@ val playModule = module {
         LibraryViewModel(
             get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
+            identity = get(),
         )
     }
     viewModel { (key: GameKey) -> GameViewModel(key, get(), get(), get()) }

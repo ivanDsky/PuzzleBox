@@ -23,6 +23,8 @@ import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
@@ -56,7 +58,9 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -94,6 +98,8 @@ class LibraryViewModelTest {
     private val calendar = FakeGameCalendar(day)
     private val saved = FakeSavedPlayRepository()
     private val prefs = FakeUserPreferencesRepository()
+    private val identity = FakeIdentityService()
+    private val historyOpen = MutableStateFlow(true)
     private val received = FakeReceivedPuzzleRepository()
     private val lane = WriteLane()
     private val sync = SyncTodayPuzzles(fakes.games, daily, calendar)
@@ -129,7 +135,7 @@ class LibraryViewModelTest {
         delete: DeleteReceivedPuzzle = DeleteReceivedPuzzle(received, saved),
         linkedIn: ObserveLinkedInDayView? = null,
     ): LibraryViewModel {
-        val history = ObserveGameHistory(fakes.games, daily, completions)
+        val history = ObserveGameHistory(fakes.games, daily, GatedCompletionRepository(completions, historyOpen))
         return LibraryViewModel(
             store = store,
             todaySet = ObserveTodaySet(fakes.games, saved, completions, calendar, daily, sync),
@@ -147,6 +153,7 @@ class LibraryViewModelTest {
             deleteReceivedPuzzle = delete,
             appScope = CoroutineScope(dispatcher + Job()),
             linkedIn = linkedIn,
+            identity = identity,
         ).also { vm ->
             screen.launch { vm.uiState.collect {} }
             screen.launch { vm.page.collect {} }
@@ -208,6 +215,49 @@ class LibraryViewModelTest {
         vm.select(beta)
         dispatcher.scheduler.runCurrent()
         assertEquals(beta, vm.uiState.value.selected)
+    }
+
+    /** Leaves the library past the stop grace, then returns: every state it emits on the way back. */
+    private fun LibraryViewModel.leaveAndReturn(): List<LibraryUiState> {
+        screen.cancel()
+        dispatcher.scheduler.advanceTimeBy(6_000)
+        val back = CoroutineScope(dispatcher + Job())
+        val seen = mutableListOf<LibraryUiState>()
+        back.launch { uiState.collect { seen += it } }
+        dispatcher.scheduler.runCurrent()
+        back.cancel()
+        return seen
+    }
+
+    private fun solveAlpha() {
+        runBlocking { completions.onCompleted(CompletionRecord(TestGames.Ref(alpha, PuzzleKey.Daily(day, 7)), 30_000L, 0, RecordStats(1, "{}"))) }
+        dispatcher.scheduler.runCurrent()
+    }
+
+    @Test
+    fun `returning after the stop grace shows the held rows while the reads are still pending`() {
+        val vm = observedVm()
+        solveAlpha()
+        historyOpen.value = false
+
+        val seen = vm.leaveAndReturn()
+
+        assertTrue(seen.isNotEmpty())
+        assertTrue(seen.all { state -> state.rows.first { it.card.game == alpha }.stats.solved == 1 })
+    }
+
+    @Test
+    fun `another account signing in shows nothing from the first account's rows while its reads are pending`() {
+        identity.currentIdentity = Identity("ann", "Ann", null)
+        val vm = observedVm()
+        solveAlpha()
+        historyOpen.value = false
+        identity.currentIdentity = Identity("bob", "Bob", null)
+
+        val seen = vm.leaveAndReturn()
+
+        assertTrue(seen.isNotEmpty())
+        assertTrue(seen.all { state -> state.rows.first { it.card.game == alpha }.stats.solved == 0 })
     }
 
     @Test
@@ -542,4 +592,13 @@ class LibraryViewModelTest {
         val A = checkNotNull(ShareCode.parse("K7Q2MX"))
         val B = checkNotNull(ShareCode.parse("B4R9TZ"))
     }
+}
+
+/** [CompletionRepository] whose record stream is silent while [open] is false: a read still in flight. */
+private class GatedCompletionRepository(
+    private val inner: CompletionRepository,
+    private val open: kotlinx.coroutines.flow.StateFlow<Boolean>,
+) : CompletionRepository by inner {
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    override fun observeRecords() = open.flatMapLatest { if (it) inner.observeRecords() else kotlinx.coroutines.flow.emptyFlow() }
 }
