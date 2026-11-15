@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; P11 from the ci-warnings run (#850)
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032)
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -74,7 +74,7 @@ returns these findings:
   fixtures are protected files: a worker does not edit them to make a test pass.
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1.
-S0, S6, S7, P3, P4, P7, P8, P9, P10 and P11 have none.
+S0, S6, S7, P3, P4, P7, P8, P9, P10, P11 and P12 have none.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -86,7 +86,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, S6, S7, P1, P4–P11) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, S7, P1, P4–P12) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -360,7 +360,7 @@ Every navigation key has a row in the placement table (ADR-0027).
   chromes are ADR-0027's.
 
 ## P10
-The LinkedIn account path is GET-only, with no logging interceptor and no cookie jar (ADR-0028).
+The LinkedIn account path is GET-only, with no logging interceptor and no cookie jar (ADR-0028). The one write is governed by ADR-0032 and P12.
 
 - **Scope:** production files of module `:core:network` whose package is
   `com.ivandsky.puzzlebox.network.linkedin`, where every account class lives. Test source sets are
@@ -368,20 +368,47 @@ The LinkedIn account path is GET-only, with no logging interceptor and no cookie
 - **Detection:** matched against the file's code (comments and string contents removed), so a
   comment saying "no cookie jar" is not a hit. One violation per file, with the hints joined by `; `.
   - A non-GET HTTP annotation (`@POST`, `@PUT`, `@PATCH`, `@DELETE`, `@HEAD`, `@OPTIONS`, `@HTTP`) or
-    the matching `retrofit2.http.` import.
+    the matching `retrofit2.http.` import. The one file named `LinkedInPostApi.kt` is skipped for this
+    check alone (ADR-0032); P12 pins what it may contain. Every file, that one included, gets the
+    client-leak check below.
   - `HttpLoggingInterceptor`, `okhttp3.logging`, `.cookieJar(` or `CookieJar`. This also matches a
     harmless `.cookieJar(CookieJar.NO_COOKIES)`: the account client states the absence by not
     mentioning a jar at all. The anonymous client in `Network.kt` uses both and is in another
     package, so it is not judged.
 - **Accepted misses:** an account client built outside the `network.linkedin` package is not
   judged. A non-GET request made without Retrofit annotations (a hand-built OkHttp `Request` with
-  `.post(…)`) is not caught. Logging added through a class other than `HttpLoggingInterceptor` is
-  not caught. An import of `LinkedInAccountSession` outside core/network, core/data, core/testing
+  `.post(…)`) is not caught by P10; P12 catches it. Logging added through a class other than
+  `HttpLoggingInterceptor` is not caught. An import of `LinkedInAccountSession` outside core/network, core/data, core/testing
   and feature/profile/impl is a review rule, not checked, so the cookie-carrying type does not
   spread. The runtime tests of the account adapter (request count, method assertions) are the
   other half of the GET-only guarantee.
 - **How to fix:** keep the account interface to `@GET` and build the account client without a
-  logger or a jar. A write to LinkedIn is out of scope for the feature (ADR-0028 §1).
+  logger or a jar. A write to LinkedIn is allowed only as the post API's one POST (ADR-0032, P12);
+  any other write is a new decision, not an edit of this rule.
+
+## P12
+The LinkedIn post API has one POST, the `updateGameState` server request, and nothing in the package
+builds a write by hand (ADR-0032).
+
+- **Scope:** the same files as P10: production files of module `:core:network` whose package is
+  `com.ivandsky.puzzlebox.network.linkedin`. Test source sets are not scanned. No allowlist: the real
+  tree is clean today, before `LinkedInPostApi.kt` exists.
+- **Detection:** matched against the file's text with comments removed and string contents kept, because
+  the path literal must be visible. One violation per file, with the hints joined by `; `.
+  - A file named `LinkedInPostApi.kt` must have exactly one non-GET annotation (`@POST`, `@PUT`,
+    `@PATCH`, `@DELETE`, `@HEAD`, `@OPTIONS`, `@HTTP`, plain or `retrofit2.http.`-qualified; imports are
+    not annotations), and it must be exactly `@POST("flagship-web/rsc-action/actions/server-request")`.
+    No POST, a second one, another method or another path is a violation. GET annotations are free.
+  - No file in the package, `LinkedInPostApi.kt` included, may hand-build a write: `.post(`, `.put(`,
+    `.patch(`, `.delete(` or `.method(` in the code. The match is by name, with no type resolution, so a
+    `map.put(` in the package is a hit too; write `map[key] = value` instead.
+- **Why:** P10 alone would let any file declare a POST once the exemption exists. P12 makes the exemption
+  one file and the file one path, so a new write to LinkedIn fails the build.
+- **Accepted misses:** a write built by reflection, or an OkHttp `Request` made in another package or
+  module, is not judged. `sduiid` is a `@Query` argument, not part of the path, so a different
+  `sduiid` value is not caught here; the post adapter's runtime tests pin it.
+- **How to fix:** keep the post API to its one `@POST` and let the OkHttp call go through it; do not
+  build a request body method by hand. Another write needs a new ADR that names it.
 
 ## P11
 App Robolectric tests run under `DrainTestApplication` (#850).

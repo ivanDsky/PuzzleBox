@@ -5,7 +5,8 @@ import com.ivandsky.puzzlebox.konsist.core.Violation
 import org.junit.Test
 
 /**
- * P10: the LinkedIn account path is GET-only, with no logging interceptor and no cookie jar.
+ * P10: the LinkedIn account path is GET-only (`LinkedInPostApi.kt` is exempt from that check alone), with no logging interceptor
+ * and no cookie jar.
  * Contract and allowlist rules: ADR-0009 (docs/adr/0009-in-module-structure-rules.md).
  */
 class P10LinkedInAccountGetOnlyTest {
@@ -21,10 +22,11 @@ class P10LinkedInAccountGetOnlyTest {
         RuleCheck.assertFixture(
             P10LinkedInAccountGetOnly,
             "P10",
-            2,
+            4,
             setOf(
                 Violation("$dir/LinkedInAccountApi.kt", null, ""),
                 Violation("$dir/LinkedInAccountNetwork.kt", null, ""),
+                Violation("$dir/leak/LinkedInPostApi.kt", null, ""),
             ),
         )
     }
