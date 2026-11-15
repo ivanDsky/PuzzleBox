@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
@@ -8,6 +10,8 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostState
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInPosts
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.domain.ComputeStreak
@@ -24,11 +28,14 @@ import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
+import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.LinkedInPostButtonState
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
@@ -43,7 +50,9 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.play.friend.signedOutBoard
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInPosts
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -59,8 +68,10 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -98,6 +109,14 @@ class ResultViewModelTest {
     private val completions = FakeCompletionRepository()
     private val leaderboard = FakeLeaderboardRepository()
     private val linkedInDays = FakeLinkedInDays()
+    private val linkedInPosts = FakeLinkedInPosts()
+    private var observedDays = 0
+    private val countedPosts = object : LinkedInPosts by linkedInPosts {
+        override fun observe(game: GameId, day: LocalDate): Flow<LinkedInPostState> {
+            observedDays++
+            return linkedInPosts.observe(game, day)
+        }
+    }
     private val dispatcher = main.testDispatcher
     private val calendar = FakeGameCalendar(day)
     private val saved = FakeSavedPlayRepository()
@@ -146,6 +165,7 @@ class ResultViewModelTest {
         store: PlaySessionStore = this.store,
         identity: Identity? = null,
         linkedIn: Boolean = false,
+        flags: ReleaseFlags? = null,
     ): ResultViewModel {
         val history = ObserveGameHistory(games, daily, completions)
         val observeBoard = ObserveLeaderboard(FakeIdentityService(initial = identity), leaderboard, games, calendar)
@@ -161,6 +181,9 @@ class ResultViewModelTest {
             insights = ObserveResultInsights(games, history, ComputeStreak(GetPuzzleDay(games, clock)), GetPuzzleDay(games, clock)),
             rank = ObserveResultRank(observeBoard, games, friendDay = null), // no Friends/Global setting
             linkedIn = if (linkedIn) ObserveLinkedInDay(linkedInDays, games) else null,
+            releaseFlags = flags,
+            observePost = flags?.let { ObserveLinkedInPost(countedPosts) },
+            submitPost = flags?.let { SubmitLinkedInResult(linkedInPosts) },
             board = signedOutBoard(),
             completions = completions,
             loadReplay = loadSolveReplay(games, daily, completions),
@@ -493,6 +516,111 @@ class ResultViewModelTest {
     @Test
     fun `a signed-out play again offers sign in`() {
         assertEquals(ResultRank.SignedOut, vm(key.copy(day = day.minusDays(1).toString())).heroObserved().heroRank.value)
+    }
+
+    private val postOn = FakeReleaseFlags(ReleaseFlag.LinkedInPush)
+
+    private fun ResultViewModel.postObserved() = apply {
+        screen.launch { linkedInPost.collect {} }
+        dispatcher.scheduler.runCurrent()
+    }
+
+    @Test
+    fun `each post state shows its button state`() {
+        val vm = vm(flags = postOn).postObserved()
+        val expected = mapOf(
+            LinkedInPostState.Ready to LinkedInPostButtonState.Post,
+            LinkedInPostState.Sending to LinkedInPostButtonState.Posting,
+            LinkedInPostState.Posted to LinkedInPostButtonState.Posted,
+            LinkedInPostState.AlreadyOnLinkedIn to LinkedInPostButtonState.AlreadyOnLinkedIn,
+            LinkedInPostState.Unknown to LinkedInPostButtonState.Check,
+            LinkedInPostState.Offline to LinkedInPostButtonState.Retry,
+            LinkedInPostState.Paused to LinkedInPostButtonState.Paused,
+            LinkedInPostState.NotToday to LinkedInPostButtonState.NotToday,
+            LinkedInPostState.Hidden to null,
+        )
+        for ((state, button) in expected) {
+            linkedInPosts.emit(alpha, day, state)
+            dispatcher.scheduler.runCurrent()
+            assertEquals("$state", button, vm.linkedInPost.value)
+        }
+    }
+
+    @Test
+    fun `a tap on Post submits the slot's day once`() {
+        linkedInPosts.emit(alpha, day, LinkedInPostState.Ready)
+        val vm = vm(flags = postOn).postObserved()
+
+        vm.postToLinkedIn()
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(listOf(alpha to day), linkedInPosts.submitCalls)
+    }
+
+    @Test
+    fun `a second tap while the first is sending still submits once`() {
+        linkedInPosts.emit(alpha, day, LinkedInPostState.Ready)
+        linkedInPosts.submitGate = CompletableDeferred()
+        val vm = vm(flags = postOn).postObserved()
+
+        vm.postToLinkedIn()
+        dispatcher.scheduler.runCurrent()
+        vm.postToLinkedIn() // the button still reads Ready: the store has not said Sending yet
+        dispatcher.scheduler.runCurrent()
+        linkedInPosts.emit(alpha, day, LinkedInPostState.Sending)
+        dispatcher.scheduler.runCurrent()
+        vm.postToLinkedIn()
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(1, linkedInPosts.submitCalls.size)
+    }
+
+    @Test
+    fun `a tap on a status line submits nothing`() {
+        for (state in listOf(LinkedInPostState.Sending, LinkedInPostState.Posted, LinkedInPostState.AlreadyOnLinkedIn, LinkedInPostState.Paused, LinkedInPostState.NotToday, LinkedInPostState.Hidden)) {
+            linkedInPosts.emit(alpha, day, state)
+            val vm = vm(flags = postOn).postObserved()
+            vm.postToLinkedIn()
+            dispatcher.scheduler.runCurrent()
+        }
+
+        assertTrue(linkedInPosts.submitCalls.isEmpty())
+    }
+
+    @Test
+    fun `Unknown and Offline taps submit again`() {
+        for (state in listOf(LinkedInPostState.Unknown, LinkedInPostState.Offline)) {
+            linkedInPosts.emit(alpha, day, state)
+            vm(flags = postOn).postObserved().postToLinkedIn()
+            dispatcher.scheduler.runCurrent()
+        }
+
+        assertEquals(2, linkedInPosts.submitCalls.size)
+    }
+
+    @Test
+    fun `with the flag off the button never shows and nothing is subscribed or submitted`() {
+        linkedInPosts.emit(alpha, day, LinkedInPostState.Ready)
+        val vm = vm(flags = FakeReleaseFlags()).postObserved()
+
+        vm.postToLinkedIn()
+        dispatcher.scheduler.runCurrent()
+
+        assertNull(vm.linkedInPost.value)
+        assertEquals(0, observedDays)
+        assertTrue(linkedInPosts.submitCalls.isEmpty())
+    }
+
+    @Test
+    fun `without the LinkedIn bindings the button never shows`() {
+        linkedInPosts.emit(alpha, day, LinkedInPostState.Ready)
+        val vm = vm().postObserved()
+
+        vm.postToLinkedIn()
+        dispatcher.scheduler.runCurrent()
+
+        assertNull(vm.linkedInPost.value)
+        assertTrue(linkedInPosts.submitCalls.isEmpty())
     }
 
     private fun entry(uid: String, seconds: Int) =

@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInPosts
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
@@ -40,6 +41,8 @@ import com.ivandsky.puzzlebox.domain.linkedin.CreateLinkedInLink
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
+import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
@@ -206,6 +209,30 @@ class DiGraphTest : KoinTest {
             assertNotNull(koinApp.koin.get<ObserveLinkedInDay>())
             assertNotNull(koinApp.koin.get<ObserveLinkedInDayView>())
             assertNotNull(koinApp.koin.get<CreateLinkedInLink>())
+        } finally {
+            stopKoin() // close() alone leaves the JVM-global context registered for later tests
+        }
+    }
+
+    /** The result page's Post to LinkedIn: its door, both use cases and the view model that takes them resolve with the LinkedIn parameter on. */
+    @Test
+    fun `the LinkedIn post door and the result view model resolve off the real graph`() {
+        val koinApp = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(
+                PuzzleBoxApplication.appModules +
+                    module {
+                        single<IdentityService> { FakeIdentityService() }
+                        single<LinkedInSessionCookies> { FakeLinkedInSessionCookies(null) }
+                    },
+            )
+        }
+        try {
+            val koin = koinApp.koin
+            assertNotNull(koin.get<LinkedInPosts>())
+            assertNotNull(koin.get<ObserveLinkedInPost>())
+            assertNotNull(koin.get<SubmitLinkedInResult>())
+            assertNotNull(koin.get<ResultViewModel> { parametersOf(ResultKey("zip", "2026-11-04", 12_340L, 0), true) })
         } finally {
             stopKoin() // close() alone leaves the JVM-global context registered for later tests
         }

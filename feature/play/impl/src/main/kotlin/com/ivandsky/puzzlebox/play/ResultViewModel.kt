@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.GetNextRollover
@@ -17,6 +18,8 @@ import com.ivandsky.puzzlebox.domain.SolveReplayRef
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
+import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.domain.nextUnsolved
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -25,6 +28,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.LinkedInPostButtonState
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
@@ -121,6 +125,9 @@ class ResultViewModel internal constructor(
     private val board: FriendPuzzleBoard,
     private val completions: CompletionRepository,
     private val loadReplay: LoadSolveReplay,
+    releaseFlags: ReleaseFlags? = null,
+    observePost: ObserveLinkedInPost? = null,
+    submitPost: SubmitLinkedInResult? = null,
 ) : ViewModel() {
 
     private val slot = PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))
@@ -205,6 +212,14 @@ class ResultViewModel internal constructor(
     val heroRank: StateFlow<ResultRank> =
         rank(slot.gameId, slot.day, connections = linkedIn?.invoke(slot.gameId, slot.day))
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), ResultRank.Hidden)
+
+    private val post = ResultPostButton(viewModelScope, releaseFlags, observePost, submitPost, slot.gameId, slot.day)
+
+    /** The Post to LinkedIn button, null for no button; see [ResultPostButton]. */
+    val linkedInPost: StateFlow<LinkedInPostButtonState?> get() = post.state
+
+    /** The button was tapped. */
+    fun postToLinkedIn() = post.tap()
 
     /** The rank row's Google button: [activityContext] hosts Google's account picker, and is not kept. */
     fun signIn(activityContext: Context) {
