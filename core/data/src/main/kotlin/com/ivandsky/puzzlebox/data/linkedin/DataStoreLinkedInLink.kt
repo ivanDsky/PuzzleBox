@@ -26,6 +26,13 @@ internal class DataStoreLinkedInLink(
 
     override val state: Flow<LinkState> = source.link.map { it.toLinkState() }.distinctUntilChanged()
 
+    override val posting: Flow<Boolean> =
+        source.link.map { it.profileId != null && it.postingConsentAtMs != null }.distinctUntilChanged()
+
+    override suspend fun setPosting(consentAtMs: Long?) {
+        source.setPostingConsent(consentAtMs)
+    }
+
     override suspend fun connect(profileId: String, consentAtMs: Long) {
         source.connect(profileId, consentAtMs)
     }

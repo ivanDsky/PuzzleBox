@@ -26,7 +26,7 @@ import java.util.UUID
 @Config(sdk = [34])
 class LinkedInLinkDataSourceTest {
 
-    private val none = LinkedInLinkPrefs(profileId = null, consentAtMs = null, pauseReason = null)
+    private val none = LinkedInLinkPrefs(profileId = null, consentAtMs = null, pauseReason = null, postingConsentAtMs = null)
 
     private fun tempFile(): File =
         File(
@@ -61,7 +61,7 @@ class LinkedInLinkDataSourceTest {
 
         process(file) { it.connect("profile-1", 1_000L) }
 
-        assertEquals(LinkedInLinkPrefs("profile-1", 1_000L, null), read(file))
+        assertEquals(LinkedInLinkPrefs("profile-1", 1_000L, null, null), read(file))
     }
 
     @Test
@@ -73,7 +73,7 @@ class LinkedInLinkDataSourceTest {
             it.pause("RateLimited")
         }
 
-        assertEquals(LinkedInLinkPrefs("profile-1", 1_000L, "RateLimited"), read(file))
+        assertEquals(LinkedInLinkPrefs("profile-1", 1_000L, "RateLimited", null), read(file))
     }
 
     @Test
@@ -86,7 +86,7 @@ class LinkedInLinkDataSourceTest {
             it.connect("profile-2", 2_000L)
         }
 
-        assertEquals(LinkedInLinkPrefs("profile-2", 2_000L, null), read(file))
+        assertEquals(LinkedInLinkPrefs("profile-2", 2_000L, null, null), read(file))
     }
 
     @Test
@@ -99,20 +99,70 @@ class LinkedInLinkDataSourceTest {
             it.resume()
         }
 
-        assertEquals(LinkedInLinkPrefs("profile-1", 1_000L, null), read(file))
+        assertEquals(LinkedInLinkPrefs("profile-1", 1_000L, null, null), read(file))
     }
 
     @Test
-    fun `clear wipes all three, also after a restart`() = runTest {
+    fun `clear wipes every key, also after a restart`() = runTest {
         val file = tempFile()
 
         process(file) {
             it.connect("profile-1", 1_000L)
             it.pause("RateLimited")
+            it.setPostingConsent(3_000L)
             it.clear()
             assertEquals(none, it.link.first())
         }
 
         assertEquals(none, read(file))
+    }
+
+    @Test
+    fun `posting consent is off by default and survives a restart once given`() = runTest {
+        val file = tempFile()
+
+        process(file) {
+            it.connect("profile-1", 1_000L)
+            assertEquals(null, it.link.first().postingConsentAtMs)
+            it.setPostingConsent(2_000L)
+        }
+
+        assertEquals(LinkedInLinkPrefs("profile-1", 1_000L, null, 2_000L), read(file))
+    }
+
+    @Test
+    fun `posting consent set to null turns it off and keeps the link`() = runTest {
+        val file = tempFile()
+
+        process(file) {
+            it.connect("profile-1", 1_000L)
+            it.setPostingConsent(2_000L)
+            it.setPostingConsent(null)
+        }
+
+        assertEquals(LinkedInLinkPrefs("profile-1", 1_000L, null, null), read(file))
+    }
+
+    @Test
+    fun `posting consent is not stored while no profile is linked`() = runTest {
+        val file = tempFile()
+
+        process(file) { it.setPostingConsent(2_000L) }
+
+        assertEquals(none, read(file))
+    }
+
+    @Test
+    fun `pause and resume leave posting consent alone`() = runTest {
+        val file = tempFile()
+
+        process(file) {
+            it.connect("profile-1", 1_000L)
+            it.setPostingConsent(2_000L)
+            it.pause("Challenge")
+            it.resume()
+        }
+
+        assertEquals(2_000L, read(file).postingConsentAtMs)
     }
 }
