@@ -1,0 +1,135 @@
+package com.ivandsky.puzzlebox.network.linkedin
+
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSession
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInGamePage
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInPost
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInResultPoster
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInSendResult
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
+import java.io.IOException
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.RequestBody
+import okhttp3.ResponseBody
+import retrofit2.Response
+
+/**
+ * Posts the player's result with their session: one request per call, or none when signed out. Never
+ * retries; the caller decides what a failure means. A page the stream cannot be read from, and any
+ * answer but the exact success, is a rejection that pauses the link. Nothing of the session, a request
+ * body or a response body leaves this class except the parsed value.
+ */
+internal class SduiLinkedInResultPoster(
+    private val api: LinkedInPostApi,
+    private val session: LinkedInSessionCookies,
+) : LinkedInResultPoster {
+
+    override suspend fun gamePage(gamePath: String): LinkedInRead<LinkedInGamePage> {
+        val headers = session.current() ?: return LinkedInRead.SignedOut
+        return try {
+            // A session no header can carry is as useless as a refused one: it is a rejection, not a retry.
+            val response = fetchPage(headers, slug(gamePath)) ?: return LinkedInRead.Rejected(Kind.Unexpected)
+            readPage(response)
+        } catch (_: IOException) {
+            // OkHttp reports a cancelled call as an IOException; that is cancellation, not a dead network.
+            currentCoroutineContext().ensureActive()
+            LinkedInRead.Offline
+        }
+    }
+
+    override suspend fun send(post: LinkedInPost, page: LinkedInGamePage): LinkedInSendResult {
+        val headers = session.current() ?: return LinkedInSendResult.SignedOut
+        val body = UpdateGameStateBody.build(post, page).toByteArray().toRequestBody(JSON)
+        val written = AtomicBoolean(false)
+        return try {
+            val response = write(headers, post.gamePath, body, written)
+                ?: return LinkedInSendResult.Rejected(Kind.Unexpected)
+            serverRequestOutcome(response.code(), answer(response))
+        } catch (_: IOException) {
+            currentCoroutineContext().ensureActive()
+            // Once the body is out the write may have landed; before that nothing was sent.
+            if (written.get()) LinkedInSendResult.Unknown else LinkedInSendResult.Offline
+        }
+    }
+
+    /** Null when no request could be built from [headers]; nothing was sent then. */
+    private suspend fun fetchPage(headers: LinkedInAccountSession, slug: String): Response<ResponseBody>? =
+        try {
+            api.gamePage(slug, headers.cookieHeader, headers.csrfToken, headers.userAgent)
+        } catch (_: IllegalArgumentException) {
+            // OkHttp quotes a header value it refuses in its message, and redacts only the cookie. The
+            // exception is dropped, not kept or chained, so the token cannot ride out of here.
+            null
+        }
+
+    /** Null when no request could be built from [headers]; nothing was sent then. */
+    private suspend fun write(
+        headers: LinkedInAccountSession,
+        gamePath: String,
+        body: RequestBody,
+        written: AtomicBoolean,
+    ): Response<ResponseBody>? {
+        val slug = slug(gamePath)
+        return try {
+            api.serverRequest(
+                sduiid = UPDATE_GAME_STATE,
+                cookie = headers.cookieHeader,
+                csrfToken = headers.csrfToken,
+                userAgent = headers.userAgent,
+                referer = "$ORIGIN/${gamePath.trimStart('/')}",
+                anchorPageKey = "d_flagship3_games_${slug}_gameboard",
+                body = body,
+                written = written,
+            )
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+    }
+
+    private fun readPage(response: Response<ResponseBody>): LinkedInRead<LinkedInGamePage> {
+        val code = response.code()
+        if (code != HTTP_OK) {
+            response.errorBody()?.close()
+            response.body()?.close()
+            return LinkedInRead.Rejected(linkedInRejection(code))
+        }
+        val text = response.body()?.let(::capped) ?: return LinkedInRead.Rejected(Kind.Unexpected)
+        val page = SduiGamePageParser.parse(text) ?: return LinkedInRead.Rejected(Kind.Unexpected)
+        return LinkedInRead.Ok(page)
+    }
+
+    /** The body of a 200, or empty: any other status is classified without reading it. */
+    private fun answer(response: Response<ResponseBody>): String {
+        if (response.code() != HTTP_OK) {
+            response.errorBody()?.close()
+            response.body()?.close()
+            return ""
+        }
+        return response.body()?.let(::capped).orEmpty()
+    }
+
+    /** The body as text, or null when it is longer than [BODY_CAP_BYTES]. Always closes the body. */
+    private fun capped(body: ResponseBody): String? = body.use {
+        if (it.contentLength() > BODY_CAP_BYTES) return@use null
+        val source = it.source()
+        // Asking for one byte past the cap buffers it only when the body is over: the cap is never crossed unseen.
+        source.request(BODY_CAP_BYTES + 1)
+        if (source.buffer.size > BODY_CAP_BYTES) null else source.readUtf8()
+    }
+
+    /** `games/zip/` is the `zip` page: the last segment of the game's LinkedIn route. */
+    private fun slug(gamePath: String): String = gamePath.trim('/').substringAfterLast('/')
+
+    private companion object {
+        const val HTTP_OK = 200
+        const val ORIGIN = "https://www.linkedin.com"
+        const val UPDATE_GAME_STATE = "updateGameState"
+        const val BODY_CAP_BYTES = 1_048_576L
+        val JSON = "application/json".toMediaType()
+    }
+}

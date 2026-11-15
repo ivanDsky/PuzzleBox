@@ -86,7 +86,7 @@ internal class VoyagerLinkedInAccountSource(
         if (code != HTTP_OK) {
             response.errorBody()?.close()
             response.body()?.close()
-            return LinkedInRead.Rejected(rejection(code))
+            return LinkedInRead.Rejected(linkedInRejection(code))
         }
         val body = response.body() ?: return LinkedInRead.Rejected(Kind.Unexpected)
         // A login wall or a challenge page answers 200 with HTML.
@@ -98,22 +98,8 @@ internal class VoyagerLinkedInAccountSource(
         return LinkedInRead.Ok(value)
     }
 
-    private fun rejection(code: Int): Kind = when (code) {
-        HTTP_UNAUTHORIZED, HTTP_FORBIDDEN -> Kind.SessionExpired
-        LINKEDIN_BLOCKED, in REDIRECTS -> Kind.Challenge
-        HTTP_TOO_MANY_REQUESTS -> Kind.RateLimited
-        else -> Kind.Unexpected
-    }
-
     private companion object {
         const val HTTP_OK = 200
-        const val HTTP_UNAUTHORIZED = 401
-        const val HTTP_FORBIDDEN = 403
-        const val HTTP_TOO_MANY_REQUESTS = 429
-
-        /** LinkedIn's own status for a request it takes for automation. */
-        const val LINKEDIN_BLOCKED = 999
-        val REDIRECTS = 300..399
         const val CONTENT_TYPE = "Content-Type"
         const val JSON = "json"
     }
