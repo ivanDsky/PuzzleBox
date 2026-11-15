@@ -32,12 +32,20 @@ private const val DISABLED_ALPHA = 0.38f
 
 /**
  * The result's way into the replay: a hairline, then play, "Watch replay" over the move count, and the play time.
- * A [label] sits as a small overline above "Watch replay".
+ * A [label] sits as a small overline above "Watch replay". A false [hairline] leaves the line to a group that draws one
+ * over several rows.
  */
 @Composable
-fun WatchReplayRow(moves: Int, durationMs: Long, onClick: () -> Unit, modifier: Modifier = Modifier, label: String? = null) {
+fun WatchReplayRow(
+    moves: Int,
+    durationMs: Long,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    hairline: Boolean = true,
+) {
     val colors = MaterialTheme.colorScheme
-    WatchReplayRowFrame(modifier, label, ReplayCopy.moves(moves), Modifier.clickable(role = Role.Button, onClick = onClick)) {
+    WatchReplayRowFrame(modifier, label, hairline, ReplayCopy.moves(moves), Modifier.clickable(role = Role.Button, onClick = onClick)) {
         Text(formatDuration(durationMs), style = MaterialTheme.typography.bodyMedium.tabular(), color = colors.onSurfaceVariant)
     }
 }
@@ -47,7 +55,12 @@ fun WatchReplayRow(moves: Int, durationMs: Long, onClick: () -> Unit, modifier: 
  * the move count. Not clickable; TalkBack reads one disabled item.
  */
 @Composable
-internal fun UnavailableWatchReplayRow(reason: ReplayUnavailable, modifier: Modifier = Modifier, label: String? = null) {
+internal fun UnavailableWatchReplayRow(
+    reason: ReplayUnavailable,
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    hairline: Boolean = true,
+) {
     val supporting = when (reason) {
         ReplayUnavailable.ImportedFromLinkedIn -> ReplayCopy.UNAVAILABLE_IMPORTED
         ReplayUnavailable.NotRecorded -> ReplayCopy.UNAVAILABLE
@@ -55,6 +68,7 @@ internal fun UnavailableWatchReplayRow(reason: ReplayUnavailable, modifier: Modi
     WatchReplayRowFrame(
         modifier.semantics(mergeDescendants = true) { disabled() },
         label,
+        hairline,
         supporting,
         Modifier.alpha(DISABLED_ALPHA),
     ) {}
@@ -64,13 +78,14 @@ internal fun UnavailableWatchReplayRow(reason: ReplayUnavailable, modifier: Modi
 private fun WatchReplayRowFrame(
     modifier: Modifier,
     label: String?,
+    hairline: Boolean,
     supporting: String,
     rowModifier: Modifier,
     trailing: @Composable () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     Column(modifier.fillMaxWidth()) {
-        HorizontalDivider(color = colors.outlineVariant)
+        if (hairline) HorizontalDivider(color = colors.outlineVariant)
         Row(
             modifier = rowModifier
                 .fillMaxWidth()

@@ -28,7 +28,7 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
-import com.ivandsky.puzzlebox.gameui.LinkedInPostButtonState
+import com.ivandsky.puzzlebox.gameui.LinkedInPostRowState
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
@@ -216,7 +216,7 @@ class ResultViewModel internal constructor(
     private val post = ResultPostButton(viewModelScope, releaseFlags, observePost, submitPost, slot.gameId, slot.day)
 
     /** The Post to LinkedIn button, null for no button; see [ResultPostButton]. */
-    val linkedInPost: StateFlow<LinkedInPostButtonState?> get() = post.state
+    val linkedInPost: StateFlow<LinkedInPostRowState?> get() = post.state
 
     /** The button was tapped. */
     fun postToLinkedIn() = post.tap()
