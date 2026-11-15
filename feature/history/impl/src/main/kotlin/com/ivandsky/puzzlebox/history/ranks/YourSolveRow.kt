@@ -34,7 +34,6 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
-import com.ivandsky.puzzlebox.gameui.replay.ReplayCopy
 import com.ivandsky.puzzlebox.history.HistoryDayRow
 import com.ivandsky.puzzlebox.history.HistoryReplays
 import com.ivandsky.puzzlebox.history.ReplaySolve
@@ -99,7 +98,7 @@ private fun SolveCard(
             Column(Modifier.weight(1f).padding(start = Spacing.xs)) {
                 // A solve without a replay says so on the label line, so the card keeps one height either way.
                 SolvePart(solve, { it.shownReplays() is HistoryReplays.Unavailable }) { shown ->
-                    val label = if (shown.shownReplays() is HistoryReplays.Unavailable) "Your solve · ${ReplayCopy.NO_REPLAY}" else "Your solve"
+                    val label = if (shown.shownReplays() is HistoryReplays.Unavailable) "Your solve · $NO_REPLAY_SAVED" else "Your solve"
                     Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
                 }
                 RollingLine(
