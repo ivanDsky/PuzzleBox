@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.domain.linkedin
 
 import app.cash.turbine.test
+import com.ivandsky.puzzlebox.data.linkedin.LinkState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInAccountData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
@@ -11,6 +12,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInAccount
+import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import java.time.Clock
 import java.time.Instant
@@ -31,8 +33,9 @@ class ObserveLinkedInAccountTest {
     private val registry = TestGames.registry(listOf(queens, zip, tango))
     private val clock = Clock.fixed(Instant.parse("2026-11-10T12:00:00Z"), ZoneOffset.UTC)
     private val account = FakeLinkedInAccount()
+    private val link = FakeLinkedInLink(LinkState.Connected("me"))
     private val completions = FakeCompletionRepository()
-    private val observe = ObserveLinkedInAccount(account, completions, GetPuzzleDay(registry, clock), registry)
+    private val observe = ObserveLinkedInAccount(account, link, completions, GetPuzzleDay(registry, clock), registry)
 
     private fun record(
         game: GameId,
@@ -53,6 +56,15 @@ class ObserveLinkedInAccountTest {
             LinkedInAccountView(name = null, photoPath = null, connectionsSeen = 0, daysThisWeek = 0, daysTotal = 0, games = emptyList(), updatedAtMs = null),
             observe().first(),
         )
+    }
+
+    @Test
+    fun `posting follows the link and is off until it is turned on`() = runTest {
+        assertEquals(false, observe().first().posting)
+
+        link.setPosting(1_000L)
+
+        assertEquals(true, observe().first().posting)
     }
 
     @Test

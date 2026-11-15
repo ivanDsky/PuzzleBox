@@ -97,7 +97,7 @@ class ProfileViewModelTest {
             idTokenProvider = tokens,
             observeGameStats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
             link = link,
-            observeAccount = link?.let { ObserveLinkedInAccount(stored, completions, GetPuzzleDay(registry, clock), registry) },
+            observeAccount = link?.let { ObserveLinkedInAccount(stored, link, completions, GetPuzzleDay(registry, clock), registry) },
             cloudSync = FakeCloudSync(),
             oversizedDrafts = FakeOversizedDrafts(),
             savedBoardsCloud = FakeSavedBoardsCloud(),

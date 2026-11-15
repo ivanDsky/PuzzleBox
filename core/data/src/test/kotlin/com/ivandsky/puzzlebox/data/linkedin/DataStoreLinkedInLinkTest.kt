@@ -291,4 +291,80 @@ class DataStoreLinkedInLinkTest {
         assertEquals(listOf(ghost), ghosts())
         assertEquals(fetch, fetchLog())
     }
+
+    @Test
+    fun `posting is off by default and for a link that was never turned on`() = runTest {
+        val link = start()
+        assertFalse(link.posting.first())
+
+        link.connect("profile-1", 1_000L)
+
+        assertFalse(link.posting.first())
+    }
+
+    @Test
+    fun `turning posting on persists across a restart and turning it off clears it`() = runTest {
+        val link = start()
+        link.connect("profile-1", 1_000L)
+
+        link.setPosting(2_000L)
+
+        assertTrue(link.posting.first())
+        assertTrue(start().posting.first())
+
+        val again = start()
+        again.setPosting(null)
+        assertFalse(again.posting.first())
+        assertFalse(start().posting.first())
+    }
+
+    @Test
+    fun `posting is not turned on while not connected`() = runTest {
+        val link = start()
+
+        link.setPosting(2_000L)
+
+        assertFalse(link.posting.first())
+        link.connect("profile-1", 3_000L)
+        assertFalse(link.posting.first())
+    }
+
+    @Test
+    fun `a pause and a resume keep posting as chosen`() = runTest {
+        val link = start()
+        link.connect("profile-1", 1_000L)
+        link.setPosting(2_000L)
+
+        link.pause(Kind.Challenge)
+        assertTrue(link.posting.first())
+        link.setPosting(null)
+        link.resume()
+
+        assertFalse(link.posting.first())
+    }
+
+    @Test
+    fun `disconnect turns posting off and the warning is owed again after a reconnect`() = runTest {
+        val link = start()
+        link.connect("profile-1", 1_000L)
+        link.setPosting(2_000L)
+
+        link.disconnect()
+        assertFalse(link.posting.first())
+        link.connect("profile-1", 3_000L)
+
+        assertFalse(link.posting.first())
+        assertNull(source.link.first().postingConsentAtMs)
+    }
+
+    @Test
+    fun `flipping posting does not change the link state`() = runTest {
+        val link = start()
+        link.connect("profile-1", 1_000L)
+        val before = link.state.first()
+
+        link.setPosting(2_000L)
+
+        assertEquals(before, link.state.first())
+    }
 }

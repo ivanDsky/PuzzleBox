@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.datastore
 
 /**
- * The persisted half of the LinkedIn link; all three are null on a fresh install.
+ * The persisted half of the LinkedIn link; all four are null on a fresh install.
  * [pauseReason] is an opaque string the caller chooses, so this module needs no
  * knowledge of what a pause means.
  */
@@ -12,4 +12,6 @@ data class LinkedInLinkPrefs(
     val consentAtMs: Long?,
     /** Why reads are paused, or null while they run. */
     val pauseReason: String?,
+    /** Epoch millis at which the player accepted the posting risk warning; null means posting is off. */
+    val postingConsentAtMs: Long?,
 )

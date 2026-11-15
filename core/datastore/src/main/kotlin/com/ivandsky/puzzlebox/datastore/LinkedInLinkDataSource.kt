@@ -23,6 +23,7 @@ class LinkedInLinkDataSource(
             profileId = preferences[KEY_PROFILE_ID],
             consentAtMs = preferences[KEY_CONSENT_AT_MS],
             pauseReason = preferences[KEY_PAUSE_REASON],
+            postingConsentAtMs = preferences[KEY_POSTING_CONSENT_AT_MS],
         )
     }
 
@@ -45,7 +46,23 @@ class LinkedInLinkDataSource(
         dataStore.edit { preferences -> preferences.remove(KEY_PAUSE_REASON) }
     }
 
-    /** Disconnect: forgets the profile, the consent and any pause. The file holds only these keys. */
+    /**
+     * Turns posting on at [consentAtMs], or off with null. It is a no-op while no profile is linked: posting consent
+     * belongs to a link, so a write racing a disconnect must not outlive the wipe. A fresh [connect] does not clear it
+     * (the file is wiped on disconnect, so a reconnect starts with posting off).
+     */
+    suspend fun setPostingConsent(consentAtMs: Long?) {
+        dataStore.edit { preferences ->
+            if (KEY_PROFILE_ID !in preferences) return@edit
+            if (consentAtMs == null) {
+                preferences.remove(KEY_POSTING_CONSENT_AT_MS)
+            } else {
+                preferences[KEY_POSTING_CONSENT_AT_MS] = consentAtMs
+            }
+        }
+    }
+
+    /** Disconnect: forgets the profile, the consents and any pause. The file holds only these keys. */
     suspend fun clear() {
         dataStore.edit { preferences -> preferences.clear() }
     }
@@ -54,5 +71,6 @@ class LinkedInLinkDataSource(
         val KEY_PROFILE_ID = stringPreferencesKey("linkedin_profile_id")
         val KEY_CONSENT_AT_MS = longPreferencesKey("linkedin_consent_at_ms")
         val KEY_PAUSE_REASON = stringPreferencesKey("linkedin_pause_reason")
+        val KEY_POSTING_CONSENT_AT_MS = longPreferencesKey("linkedin_posting_consent_at_ms")
     }
 }
