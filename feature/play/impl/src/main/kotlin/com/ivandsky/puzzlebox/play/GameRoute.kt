@@ -51,8 +51,8 @@ import org.koin.core.parameter.parametersOf
  * settings. There is no BackHandler (predictive back stays the scene's) and no saveable
  * blob: the store's slot row is what survives process death.
  *
- * A game's first play shows its tutorial before the board, and the bar's How to play
- * reopens it over the live play; Skip or "Let's play" hands back to the board.
+ * A game's first play opens its tutorial in place of the board once the seen-check lands, and
+ * the bar's How to play reopens it over the live play; Skip or "Let's play" hands back to the board.
  * The bar's Up stays, so back leaves the game from a tutorial too. [boardStyle] is the side panel's
  * times' (see [PlayTimesCard]).
  */
@@ -170,7 +170,6 @@ internal fun GameBoard(
             PlayOverflow(play.ui.overflowFor(board.controller) + overflow)
         }
         when (tutorial) {
-            TutorialGate.Checking -> PlayBoardFallback(PlayBoardStatus.Loading, onRetry = {}, tagPrefix = "game")
             is TutorialGate.Open -> TutorialHost(
                 ui = play.ui,
                 session = tutorial.session,
