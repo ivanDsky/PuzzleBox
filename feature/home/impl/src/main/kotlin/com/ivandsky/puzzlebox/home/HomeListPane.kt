@@ -30,7 +30,6 @@ import java.time.format.DateTimeFormatter
 @Composable
 internal fun ListPane(
     state: HomeUiState,
-    onOpenHistory: () -> Unit,
     selectedDay: String?,
     onDayClick: (String) -> Unit,
     selectable: Boolean,
@@ -86,7 +85,6 @@ internal fun ListPane(
             StaggeredItem(3) {
                 HomeRecentSection(
                     days = state.history,
-                    onSeeAll = onOpenHistory,
                     selectedDay = selectedDay,
                     onDayClick = onDayClick,
                     selectable = selectable,

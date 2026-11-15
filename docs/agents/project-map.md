@@ -370,8 +370,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane` stacking
   `HomeTodaySection` (`HomeTodaySummary` card with `TodayBadge`s + one CTA / rollover countdown)/`HomeStreakSection`/
   `HomeRecentSection`, `HomeLayout` (the shell maps `PanePolicy` to it). Home is the Today
-  tab: `HomeSummaries` (rank callback + `HomeDuelsSummary`) adds the rank and duels `SummaryLinkRow`s, and its recent days link
-  "See all" to the Ranks tab root (`onOpenHistory`).
+  tab: `HomeSummaries` (rank callback + `HomeDuelsSummary`) adds the rank and duels `SummaryLinkRow`s; Recent has no link out (its empty state reads "Earlier days will show here").
 - `feature/play/impl/` (`:feature:play:impl`) — the one game-agnostic play surface (ADR-0006,
   ADR-0007; no `games:*` dependency): `PlaySessionStore` (Koin single: one `ActivePlay` per
   `PlaySlot`, `open(GameKey)`/`peek(slot)`/`retain(keys)`/`flush()`, `playable` games, pins a

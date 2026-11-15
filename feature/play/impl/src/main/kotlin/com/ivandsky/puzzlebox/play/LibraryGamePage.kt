@@ -76,6 +76,7 @@ internal fun LibraryGamePage(
                     accent = libraryCardColors(row.card.brand).fill,
                     compact = layout == PlayLayout.SinglePane,
                     onMonth = calendar.onShowMonth,
+                    onToday = calendar.onBackToToday,
                     onPick = { day ->
                         calendar.onPick(day)
                         if (layout == PlayLayout.SinglePane) {

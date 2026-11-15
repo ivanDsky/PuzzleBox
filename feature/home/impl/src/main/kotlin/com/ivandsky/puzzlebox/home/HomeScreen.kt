@@ -23,10 +23,11 @@ internal data class HistoryDay(val isoDay: String, val headline: String, val gam
  * recent days. Single-pane on compact widths; list-detail on expanded,
  * where the streak moves out of the list into the streak & stats pane.
  * Destinations are hoisted to the app shell (ticket 17): [onOpenGame] opens a game (a
- * tile, or the CTA's [HomeUiState.playTarget]; the play restores its save), and
- * [onOpenHistory] opens the full history; [onSelectDay] picks a recent day for the detail pane
- * ([HomeUiState.selectedDay], two-pane only). Game titles render from [state]'s rows, never from a
- * hardcoded id; the header's date is the puzzle roll-over day (A9), never the phone's.
+ * tile, or the CTA's [HomeUiState.playTarget]; the play restores its save). [onSelectDay]
+ * picks a recent day for the detail pane ([HomeUiState.selectedDay], two-pane only); a null
+ * pick clears it. Tapping the picked day again restores the streak pane. Game titles
+ * render from [state]'s rows, never from a hardcoded id; the header's date is the puzzle
+ * roll-over day (A9), never the phone's.
  * A non-null [HomeUiState.updateUrl] shows the Update available pill in the header (spec A7);
  * its tap calls [onOpenUpdate] with that URL. [summaries] adds the rank and duels rows.
  */
@@ -35,8 +36,7 @@ internal fun HomeScreen(
     layout: HomeLayout,
     state: HomeUiState,
     onOpenGame: (GameId) -> Unit,
-    onOpenHistory: () -> Unit,
-    onSelectDay: (String) -> Unit,
+    onSelectDay: (String?) -> Unit,
     summaries: HomeSummaries,
     title: String,
     modifier: Modifier = Modifier,
@@ -47,9 +47,8 @@ internal fun HomeScreen(
             Row(Modifier.fillMaxSize()) {
                 ListPane(
                     state = state,
-                    onOpenHistory = onOpenHistory,
                     selectedDay = state.selectedDay,
-                    onDayClick = onSelectDay,
+                    onDayClick = { day -> onSelectDay(day.takeUnless { it == state.selectedDay }) },
                     selectable = true,
                     showStreak = false,
                     pillBelowHeader = false,
@@ -72,7 +71,6 @@ internal fun HomeScreen(
         } else {
             ListPane(
                 state = state,
-                onOpenHistory = onOpenHistory,
                 selectedDay = null,
                 onDayClick = {},
                 selectable = false,
