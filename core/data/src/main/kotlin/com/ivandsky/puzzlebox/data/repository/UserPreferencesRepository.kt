@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.data.repository
 
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.model.ThemeRead
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -11,6 +12,9 @@ import kotlinx.coroutines.flow.Flow
  */
 interface UserPreferencesRepository {
     val themeMode: Flow<ThemeMode>
+
+    /** [themeMode] that survives a failed read: the default theme with the failure flagged, so startup can release. */
+    val themeRead: Flow<ThemeRead>
 
     suspend fun setThemeMode(mode: ThemeMode)
 

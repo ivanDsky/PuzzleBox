@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.navigation.FirstScreenReady
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -76,6 +78,7 @@ class HomeViewModel(
     observeLatestSolvedToday: ObserveLatestSolvedToday,
     observeResultRank: ObserveResultRank,
     private val savedState: SavedStateHandle,
+    private val firstScreenReady: FirstScreenReady,
 ) : ViewModel() {
 
     // The held values reset when this changes: a sign-in as someone else never shows the first account's.
@@ -173,6 +176,7 @@ class HomeViewModel(
                 if (picked != null && listed == null && state.isLocalStateLoaded) savedState[SELECTED_DAY_KEY] = null
                 state.copy(selectedDay = listed)
             }
+            .onEach { if (it.isLocalStateLoaded) firstScreenReady.markReady() }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000).resettingOnAccountChange(identityService.current.map { it?.uid }),

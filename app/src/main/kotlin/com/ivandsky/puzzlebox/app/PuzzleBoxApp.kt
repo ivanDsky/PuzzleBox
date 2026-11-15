@@ -10,6 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +56,8 @@ import com.ivandsky.puzzlebox.gameui.PanePolicy
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.home.HomeLayout
+import com.ivandsky.puzzlebox.home.api.HomeKey
+import com.ivandsky.puzzlebox.navigation.FirstScreenReady
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.api.PlayKey
@@ -74,6 +77,9 @@ import org.koin.compose.koinInject
  * unpainted ([LocalChromePadding]), so a board covers it as one window and the chrome leaves
  * animated with the page beneath it, never in a one-frame cut: the bar parallaxes with the
  * outgoing page (phone), the rail fades and shifts out early in the lift (tablet).
+ *
+ * The first composition's landing screen (after links, shared text and restore) that is not Home
+ * marks [firstScreenReady] at once; Home's own ViewModel marks it for a Home landing.
  *
  * [windowWidthSizeClass] is no longer read: panes follow the container size via `PanePolicy`
  * (kept only so `MainActivity` stays as it is).
@@ -95,6 +101,7 @@ fun PuzzleBoxApp(
     pendingShare: Boolean = false,
     onShareApplied: () -> Unit = {},
     todaySet: ObserveTodaySet = koinInject(),
+    firstScreenReady: FirstScreenReady = koinInject(),
 ) {
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
     val libraryRequests = rememberLibraryRequests()
@@ -127,6 +134,8 @@ fun PuzzleBoxApp(
     val selected = navigator.state.tab
     val top = navigator.state.currentStack.last()
     val immersive = isImmersive(top)
+    // Home publishes its own readiness once its local state loads; any other landing screen is ready now.
+    LaunchedEffect(Unit) { if (top !is HomeKey) firstScreenReady.markReady() }
     val anyInProgress by remember(todaySet) {
         todaySet().map { entries -> entries.any { it.status is TodayStatus.InProgress } }
     }.collectAsStateWithLifecycle(initialValue = false)
