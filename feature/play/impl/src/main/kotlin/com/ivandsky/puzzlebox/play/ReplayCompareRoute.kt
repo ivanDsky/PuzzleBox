@@ -2,14 +2,11 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.gameui.replay.CompareLayout
@@ -24,8 +21,8 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * The compare of [key]'s two solves, full screen: [CompareLayout.Twin] at Expanded width, [CompareLayout.FlipPeek]
- * below it. No replay on either side (any cause, or a game with no replay board) shows the empty page under the same
+ * The compare of [key]'s two solves, full screen: [CompareLayout.Twin] at Expanded width with room for two boards,
+ * [CompareLayout.FlipPeek] otherwise. No replay on either side (any cause, or a game with no replay board) shows the empty page under the same
  * back bar. Read-only: it only navigates back.
  */
 @Composable
@@ -40,6 +37,7 @@ internal fun ReplayCompareRoute(key: ReplayCompareKey, onBack: () -> Unit, modif
         finalLead = viewModel.finalLead,
         context = viewModel.context,
         widthDp = LocalConfiguration.current.screenWidthDp,
+        heightDp = LocalConfiguration.current.screenHeightDp,
         onBack = onBack,
         showErrors = showErrors,
         onShowErrorsChange = viewModel::setShowErrors,
@@ -47,7 +45,7 @@ internal fun ReplayCompareRoute(key: ReplayCompareKey, onBack: () -> Unit, modif
     )
 }
 
-/** The page of one [ReplayCompareState] at a window [widthDp] wide. */
+/** The page of one [ReplayCompareState] at a window [widthDp] by [heightDp]. */
 @Composable
 internal fun ReplayCompareScreen(
     state: ReplayCompareState,
@@ -56,6 +54,7 @@ internal fun ReplayCompareScreen(
     finalLead: Lead?,
     context: String,
     widthDp: Int,
+    heightDp: Int,
     onBack: () -> Unit,
     showErrors: Boolean,
     onShowErrorsChange: (Boolean) -> Unit,
@@ -66,7 +65,7 @@ internal fun ReplayCompareScreen(
             ReplayCompareState.Loading -> Unit
             is ReplayCompareState.Ready ->
                 if (board != null) {
-                    ReplayComparePage(state.mine, state.theirs, board, names, compareLayoutAt(widthDp), context, onBack, showErrors, onShowErrorsChange, finalLead = finalLead)
+                    ReplayComparePage(state.mine, state.theirs, board, names, compareLayoutFor(widthDp.dp, heightDp.dp), context, onBack, showErrors, onShowErrorsChange, finalLead = finalLead)
                 } else {
                     ReplayEmptyPage(context, onBack)
                 }
@@ -74,8 +73,3 @@ internal fun ReplayCompareScreen(
         }
     }
 }
-
-/** The compare's layout for a window [widthDp] wide: the window size class's own rule, so Twin means Expanded. */
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
-internal fun compareLayoutAt(widthDp: Int): CompareLayout =
-    compareLayoutFor(WindowSizeClass.calculateFromSize(DpSize(widthDp.dp, 0.dp)).widthSizeClass)

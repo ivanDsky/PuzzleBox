@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.VerticalDivider
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,18 +29,6 @@ enum class PlayLayout { SinglePane, TwoPane }
  * fills its pane instead (the `paneCap` [AdaptivePlayScaffold] hands its board).
  */
 val PlayBoardMaxWidth = 552.dp // gate round 3: user asked +15% over the original 480dp
-
-/**
- * The pane decision as a pure function — same policy as home (A12 / ticket 07):
- * two-pane needs Expanded width AND landscape; a portrait pane has no height to share,
- * and medium stays single-pane per Material 3 window-size guidance.
- */
-fun playLayoutFor(widthSizeClass: WindowWidthSizeClass, isLandscape: Boolean): PlayLayout =
-    if (widthSizeClass == WindowWidthSizeClass.Expanded && isLandscape) {
-        PlayLayout.TwoPane
-    } else {
-        PlayLayout.SinglePane
-    }
 
 /**
  * Adaptive play scaffold (F1 §3, A14, A15): the board owns the dominant pane; the side pane
