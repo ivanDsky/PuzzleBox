@@ -33,6 +33,10 @@ interface FetchLogDao {
     @Query("DELETE FROM fetch_log WHERE game = :game AND day = :day AND item = 'Board'")
     suspend fun deleteBoardEntries(game: String, day: String)
 
+    /** Forgets one profile's read of its own result for one game day, so a result posted since is read again. */
+    @Query("DELETE FROM fetch_log WHERE game = :game AND day = :day AND item = 'Own' AND profileId = :profileId")
+    suspend fun deleteOwnEntry(game: String, day: String, profileId: String)
+
     @Query("DELETE FROM fetch_log")
     suspend fun clear()
 }

@@ -16,7 +16,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
  * flows (newest first, live via [addEntry]), cached days ([setCached], read uncounted by
  * [cachedPuzzle]), per-game
  * [archiveRange]s, per-game [puzzleNumber]s ([setPuzzleNumbers]; none by default),
- * per-game [linkedInGameTypeId]s ([setLinkedInGameType]; none by default) and
+ * per-game [linkedInGameTypeId]s ([setLinkedInGameType]; none by default), per-game
+ * [linkedInGamePath]s ([setLinkedInGamePath]; none by default) and
  * per-day scripted [day] outcomes (counted). An unscripted [today]
  * fails loudly — history surfaces are cache-only (A8) and must never fetch. An unscripted
  * [day] mirrors the real read: the [setCached] puzzle (numbered from history) is Ready,
@@ -34,6 +35,7 @@ class FakeDailyRepository : DailyRepository {
     private val dayCallCounts = mutableMapOf<Pair<GameId, LocalDate>, Int>()
     private val puzzleNumbers = mutableMapOf<GameId, (LocalDate) -> Int?>()
     private val linkedInGameTypeIds = mutableMapOf<GameId, Int>()
+    private val linkedInGamePaths = mutableMapOf<GameId, String>()
 
     /** Scripts [game]'s next (and every following) [today] outcome. */
     fun setToday(game: GameId, result: DailyToday) {
@@ -85,6 +87,11 @@ class FakeDailyRepository : DailyRepository {
         if (typeId == null) linkedInGameTypeIds -= game else linkedInGameTypeIds[game] = typeId
     }
 
+    /** Declares [game]'s LinkedIn route ([path] null = none, the default). */
+    fun setLinkedInGamePath(game: GameId, path: String?) {
+        if (path == null) linkedInGamePaths -= game else linkedInGamePaths[game] = path
+    }
+
     override suspend fun today(game: GameId): DailyToday {
         calls[game] = todayCalls(game) + 1
         return todayResults[game] ?: error("no today() scripted for ${game.value} (history is cache-only, A8)")
@@ -109,6 +116,8 @@ class FakeDailyRepository : DailyRepository {
     override fun puzzleNumber(game: GameId, day: LocalDate): Int? = puzzleNumbers[game]?.invoke(day)
 
     override fun linkedInGameTypeId(game: GameId): Int? = linkedInGameTypeIds[game]
+
+    override fun linkedInGamePath(game: GameId): String? = linkedInGamePaths[game]
 
     override suspend fun cachedPuzzle(game: GameId, day: LocalDate): Puzzle? = cachedByDay[game to day]
 

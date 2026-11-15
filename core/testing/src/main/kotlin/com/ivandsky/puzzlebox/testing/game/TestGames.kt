@@ -23,8 +23,13 @@ import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.game.ScoreModel
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlay
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlayValue
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInSolve
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.testing.replay.FixtureSession
+import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -88,6 +93,34 @@ object TestGames {
 
     fun registry(games: List<GameId>): GameRegistry = GameRegistry(games.map(::plugin))
 
+    /**
+     * A game that can post to LinkedIn: [plugin]'s stand-ins plus the fixture replay and [encode] as its LinkedIn
+     * encoder. It is [ReplayFixtures.GAME], the game [ReplayFixtures.sealed] replays are sealed for, and a
+     * puzzle's tag is its piece count: `puzzle(ReplayFixtures.GAME, tag = 12)` opens `ReplayFixtures.sealed(12)`.
+     */
+    fun encoderPlugin(
+        encode: (LinkedInSolve<FixtureSession>) -> LinkedInPlay? = ::placedPlay,
+    ): GamePlugin<Unit, FixtureSession, Model> = GamePlugin(
+        definition = definition(ReplayFixtures.GAME),
+        rules = Rules,
+        session = FixtureSessionCodec,
+        score = FixtureScore,
+        stateOf = { },
+        initialSession = { puzzle -> DecodeResult.Ok(ReplayFixtures.initial(total = puzzle.payload[1].toInt())) },
+        refOf = { key -> Ref(ReplayFixtures.GAME, key) },
+        playAgainSession = { cached, key -> DecodeResult.Ok(playAgainBlob(ReplayFixtures.GAME, cached, key)) },
+        rendererModel = { _, _, _ -> Model },
+        replay = ReplayFixtures.replay,
+        linkedInPlay = encode,
+    )
+
+    /** [encoderPlugin]'s default play: the pieces on the solved board under `placed`, mistake-free. */
+    fun placedPlay(solve: LinkedInSolve<FixtureSession>): LinkedInPlay = LinkedInPlay(
+        states = mapOf("placed" to LinkedInPlayValue.Number(solve.final.placed)),
+        payloadKeys = mapOf("playRecord" to "placed"),
+        mistakeFree = true,
+    )
+
     object Session : GameSession
     object Model : RendererModel
 
@@ -105,6 +138,15 @@ object TestGames {
     private object Score : ScoreModel<Session> {
         override fun completion(session: Session): CompletionRecord? = null
     }
+
+    private object FixtureSessionCodec : GameSessionCodec<FixtureSession> {
+        override fun serialize(session: FixtureSession): ByteArray = ByteArray(0)
+        override fun deserialize(bytes: ByteArray): DecodeResult<FixtureSession> = DecodeResult.Ok(ReplayFixtures.initial(0))
+    }
+
+    private object FixtureScore : ScoreModel<FixtureSession> {
+        override fun completion(session: FixtureSession): CompletionRecord? = null
+    }
 }
 
 /**
@@ -112,7 +154,8 @@ object TestGames {
  * dates. Default fails Unavailable so tests assert the degrade path explicitly.
  * [requestedDates] logs every fetch; [requestedPastDates] only those that came through
  * [fetchPast]. [placeholder] is the stored puzzle this source calls a stand-in, and
- * [puzzleNumbers] its numbering (none by default); [linkedInGameTypeId] its LinkedIn type id (none by default).
+ * [puzzleNumbers] its numbering (none by default); [linkedInGameTypeId] its LinkedIn type id and
+ * [linkedInGamePath] its LinkedIn route (none by default).
  */
 class FakeDailySource(override val gameId: GameId) : DailySource {
 
@@ -124,6 +167,7 @@ class FakeDailySource(override val gameId: GameId) : DailySource {
     var placeholder: Puzzle? = null
     var puzzleNumbers: (LocalDate) -> Int? = { null }
     override var linkedInGameTypeId: Int? = null
+    override var linkedInGamePath: String? = null
 
     override suspend fun fetchDaily(date: LocalDate): FetchResult<DailyFetch> {
         requestedDates += date

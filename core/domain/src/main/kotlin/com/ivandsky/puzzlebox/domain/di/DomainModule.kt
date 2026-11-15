@@ -39,6 +39,8 @@ import com.ivandsky.puzzlebox.domain.linkedin.CreateLinkedInLink
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
+import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
+import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.UpdateLinkedInPosting
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
@@ -173,6 +175,8 @@ val domainModule = module {
     factory { ObserveLinkedInAccount(account = get(), link = get(), completions = get(), puzzleDay = get(), registry = get()) }
     factory { UpdateLinkedInPosting(link = get(), clock = System::currentTimeMillis) }
     factory { CreateLinkedInLink(source = get(), link = get(), daily = get(), registry = get(), clock = System::currentTimeMillis) }
+    factory { ObserveLinkedInPost(posts = get()) }
+    factory { SubmitLinkedInResult(posts = get()) }
     factory { LoadDailyReplay(completions = get(), daily = get()) }
     factory { LoadCustomReplay(completions = get(), received = get(), loadShared = get()) }
     factory {
