@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.ArchiveProgress
@@ -15,6 +16,8 @@ import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.resettingOnAccountChange
+import com.ivandsky.puzzlebox.domain.seededOnce
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.LinkedInDayView
@@ -41,7 +44,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -115,7 +117,11 @@ class LibraryViewModel(
     deleteReceivedPuzzle: DeleteReceivedPuzzle,
     appScope: CoroutineScope,
     internal val linkedIn: ObserveLinkedInDayView?,
+    private val identity: IdentityService,
 ) : ViewModel() {
+
+    // Held rows reset when this changes: a sign-in as someone else never shows the first account's.
+    private fun account(): String? = identity.current.value?.uid
 
     private val seed: List<LibraryRowModel> = store.playable.map { (game, name) ->
         val order = games[game]?.score?.rankOrder ?: RankOrder.TimeThenHints
@@ -156,7 +162,7 @@ class LibraryViewModel(
                 days.firstOrNull { it.gameId == game && it.day == today }?.puzzleNumber?.let { game to it }
             }.toMap()
         }
-        .onStart { emit(emptyMap()) }
+        .seededOnce(emptyMap(), ::account)
 
     private val removal = FriendRemoval(deleteReceivedPuzzle, appScope, store::discard)
 
@@ -172,8 +178,8 @@ class LibraryViewModel(
         combine(
             todaySet(),
             numbers,
-            allStats.onStart { emit(emptyMap()) },
-            allProgress.onStart { emit(emptyMap()) },
+            allStats.seededOnce(emptyMap(), ::account),
+            allProgress.seededOnce(emptyMap(), ::account),
             selected,
         ) { entries, number, stat, prog, pick ->
             val status = entries.associate { it.game to it.status }
@@ -191,7 +197,7 @@ class LibraryViewModel(
             LibraryUiState(rows, pick, offline = rows.any { it.card.status == TodayStatus.Offline })
         }.stateIn(
             viewModelScope,
-            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS).resettingOnAccountChange(identity.current.map { it?.uid }),
             LibraryUiState(seed, selected.value, offline = false),
         )
 
