@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -48,6 +49,20 @@ internal fun ZipBoardDotsFreshPreview() {
     PuzzleBoxTheme {
         // n6 fresh: dots at the A6 proportion, hollow start ring, no trace.
         ZipBoard(zipPreviewModel(6, waypoints = listOf(0, 7, 20, 28, 35)), Modifier.padding(24.dp))
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun ZipCellDecorPreview() {
+    PuzzleBoxTheme {
+        // One traced waypoint cell on its own: the ring and label in the on-path role.
+        ZipCellDecor(
+            model = zipPreviewModel(6, waypoints = listOf(0, 5, 18, 30, 35), path = listOf(0, 6)),
+            row = 0,
+            col = 0,
+            modifier = Modifier.size(64.dp),
+        )
     }
 }
 
