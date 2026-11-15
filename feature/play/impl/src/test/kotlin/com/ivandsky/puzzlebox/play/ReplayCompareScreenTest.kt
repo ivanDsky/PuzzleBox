@@ -13,7 +13,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
-import com.ivandsky.puzzlebox.gameui.replay.CompareLayout
 import com.ivandsky.puzzlebox.gameui.replay.CompareNames
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
@@ -21,7 +20,6 @@ import com.ivandsky.puzzlebox.gameui.replay.ReplayCopy
 import com.ivandsky.puzzlebox.gameui.replay.ReplayFlipTags
 import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -53,22 +51,22 @@ class ReplayCompareScreenTest {
     private fun show(
         state: ReplayCompareState,
         widthDp: Int,
+        heightDp: Int = 800,
         board: GameReplayBoard? = this.board,
         onBack: () -> Unit = {},
     ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                ReplayCompareScreen(state, board, names, finalLead = null, context = "Fixture · Duel", widthDp = widthDp, onBack = onBack, showErrors = true, onShowErrorsChange = {})
+                ReplayCompareScreen(state, board, names, finalLead = null, context = "Fixture · Duel", widthDp = widthDp, heightDp = heightDp, onBack = onBack, showErrors = true, onShowErrorsChange = {})
             }
         }
     }
 
     @Test
-    fun `expanded width is twin and anything narrower is flip peek`() {
-        assertEquals(CompareLayout.Twin, compareLayoutAt(840))
-        assertEquals(CompareLayout.Twin, compareLayoutAt(1280))
-        assertEquals(CompareLayout.FlipPeek, compareLayoutAt(839))
-        assertEquals(CompareLayout.FlipPeek, compareLayoutAt(411))
+    fun `phone landscape stacks the boards`() {
+        show(ready, widthDp = 891, heightDp = 448)
+
+        composeRule.onAllNodesWithTag(ReplayFlipTags.TAB_MINE).assertCountEquals(1)
     }
 
     @Test

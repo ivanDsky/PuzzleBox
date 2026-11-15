@@ -266,7 +266,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `Screen`), `GamePlayController` (+ `PlayClock`/`PlayHints`/`PlayUndo`), `GamePlayRegistry`
   (GameId → `GamePlayUi`; a duplicate id throws), `PlayBoardStatus` + `PlayBoardFallback`,
   `PlayCopy`, `BoardGrid` + `EdgeOverlay`, `DragTrace`, `GridGeometry`, `HintButton`,
-  `TimerBar` + `formatClock`, `PlayScaffold` (`playLayoutFor`), `PlayChrome`, `ResultHeroScreen` (daily result), `ResultScreen` (friend result),
+  `TimerBar` + `formatClock`, `PlayScaffold`, `PanePolicy` (the one two-pane decision from window size in dp), `PlayChrome`, `ResultHeroScreen` (daily result), `ResultScreen` (friend result),
   `CompletionRecordEmitter`. `editor/`: `GameEditorUi` (per-game `sizeLabel`,
   `createController`, `Board`), `GameEditorController` (draft `StateFlow`, `adopt`, overlay
   hooks), `GameEditorRegistry` (GameId → `GameEditorUi`), `EditorOverlay` (witness display).
@@ -282,7 +282,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `PlayBoardPane`, and `ResultHeroActions`/`ResultHeroChip` (the result hero takes action and chip slots).
   `replay/` (ADR-0030): `ReplayPlayback` (the headless state machine: advance by frame time, speed, skip idle,
   seek, step), `ReplayPlayer`/`ReplayPage`, `ReplayCompare`/`ReplayComparePage` with `CompareLayout`
-  (`compareLayoutFor(width)`: `Twin` at Expanded, `FlipPeek` otherwise), `WatchReplayRow` (the result's entry),
+  (`compareLayoutFor(width, height)`: `Twin` at Expanded width with at least 480 dp of height, `FlipPeek` otherwise), `WatchReplayRow` (the result's entry),
   `UnavailableWatchReplayRow` (the disabled row for a solve with no replay), `ReplayHintBadge`, `ShowErrorsToggle` (the top bar's Show errors switch),
   `ReplayLeadLine`, and the per-game `GameReplayBoard` contract.
 - `core/testing/` (`:core:testing`) — test doubles and contract tests, test configurations only (package
@@ -368,7 +368,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   week, `GetNextRollover`, identity, cache-only history teaser via `ObserveGameHistory`;
   `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane` stacking
   `HomeTodaySection` (`HomeTodaySummary` card with `TodayBadge`s + one CTA / rollover countdown)/`HomeStreakSection`/
-  `HomeRecentSection`, `HomeLayout` + `homeLayoutFor` pure pane policy. Home is the Today
+  `HomeRecentSection`, `HomeLayout` (the shell maps `PanePolicy` to it). Home is the Today
   tab: `HomeSummaries` (rank callback + `HomeDuelsSummary`) adds the rank and duels `SummaryLinkRow`s, and its recent days link
   "See all" to the Ranks tab root (`onOpenHistory`).
 - `feature/play/impl/` (`:feature:play:impl`) — the one game-agnostic play surface (ADR-0006,
@@ -396,7 +396,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `navigation/RanksEntry` (the tab root `HistoryRootKey` and the pushed `HistoryKey`, both open the hub),
   `ranks/` (`RanksViewModel`, boards, player sheet, replay opt-in; `di/HistoryModule`), the replay
   compare helpers (`HistoryReplayCompare`, `ReplaySolve`), and the calendar and stats pieces the hub reuses
-  (`HistoryCalendar`, `HistoryStatsHeader`, `HistoryLayout` + `historyLayoutFor`). The History screen and its
+  (`HistoryCalendar`, `HistoryStatsHeader`, `HistoryLayout`, mapped from `PanePolicy`). The History screen and its
   timeline are deleted.
 - `feature/profile/impl/` (`:feature:profile:impl`) — packages kept from the app:
   `app/screens/` (`ProfileRoute`, `ProfileScreen`, `ProfileViewModel(identityService,
@@ -477,7 +477,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   immersive (no bar or rail). Each tab keeps its own stack; reselecting a tab pops it to its
   root; back at a non-start root returns to the start tab; back at the start root exits
   (ADR-0011). Bottom bar on compact widths, rail on expanded-width landscape
-  (`homeLayoutFor`/`playLayoutFor`/`historyLayoutFor`); the rail also carries the avatar.
+  (`PanePolicy.isTwoPane(width, height)` mapped to `HomeLayout`/`PlayLayout`/`HistoryLayout`); the rail also carries the avatar.
 - Share target: the main manifest gives `MainActivity` a plain-text `SEND` intent filter.
   `MainActivity` (new intent or fresh start) → `SharedText.of` → `SharedTextStore.put` → `PuzzleBoxApp`'s
   `pendingShare` → `Navigator.applySharedText()` (select Create, pop to its root, from any
@@ -620,7 +620,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `FakeCompletionRepository`, `FakeIdentityService`, `FakeLeaderboardRepository`,
   `FakeSavedPlayRepository`, `FakeUserPreferencesRepository`, `FakeGameCalendar`, `TestGames`,
   the match fakes, `FakeNetworkStatus`, `FakeGameSettingsRepository` and the `FakeLinkedIn*` set.
-- **Pure layout policies** — `homeLayoutFor`, `playLayoutFor`, `historyLayoutFor`.
+- **Pure layout policy** — `PanePolicy.isTwoPane` in `core/game-ui`.
 - **`Migrations.ALL`** (`core:database`) — every schema change bumps the Room version (now 12),
   commits the schema JSON, and registers a migration (1→2 puzzle_dailies, 2→3 completions,
   3→4 daily_puzzles rebuild, 4→5 drops the legacy daily_puzzles, 5→6 adds saved_plays, 6→7

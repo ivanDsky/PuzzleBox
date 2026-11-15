@@ -51,10 +51,10 @@ import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.TodayStatus
-import com.ivandsky.puzzlebox.gameui.playLayoutFor
-import com.ivandsky.puzzlebox.history.historyLayoutFor
+import com.ivandsky.puzzlebox.gameui.PanePolicy
+import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.home.HomeLayout
-import com.ivandsky.puzzlebox.home.homeLayoutFor
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.api.PlayKey
@@ -74,6 +74,9 @@ import org.koin.compose.koinInject
  * unpainted ([LocalChromePadding]), so a board covers it as one window and the chrome leaves
  * animated with the page beneath it, never in a one-frame cut: the bar parallaxes with the
  * outgoing page (phone), the rail fades and shifts out early in the lift (tablet).
+ *
+ * [windowWidthSizeClass] is no longer read: panes follow the container size via `PanePolicy`
+ * (kept only so `MainActivity` stays as it is).
  *
  * A [pendingLink] (a tapped share link's URI) lands on the back stack in the composition
  * that first sees it, so a cold start draws the friend's card on its first frame; then
@@ -108,28 +111,15 @@ fun PuzzleBoxApp(
         remember { navigator.applySharedText() }
         SideEffect(onShareApplied)
     }
-    // Two-pane needs width AND height: a large tablet in portrait still measures
-    // Expanded by width class, so the orientation comes from the current window
-    // container size. One policy call drives both the nav shape and Home's pane
-    // arrangement, and containerSize keeps a live rotation recomposing without a restart.
-    val isLandscape = with(LocalWindowInfo.current) {
-        containerSize.width > containerSize.height
+    // The single px→dp read site: one PanePolicy decision drives the nav shape and every
+    // screen's pane arrangement. containerSize keeps a live rotation or resize recomposing.
+    val twoPane = with(LocalDensity.current) {
+        val size = LocalWindowInfo.current.containerSize
+        PanePolicy.isTwoPane(size.width.toDp(), size.height.toDp())
     }
-    val layout = homeLayoutFor(
-        widthSizeClass = windowWidthSizeClass,
-        isLandscape = isLandscape,
-    )
-    // Same 07 policy as home, play's own pane shapes (game-ui): two-pane iff expanded
-    // landscape; portrait of any width stays single-pane.
-    val playLayout = playLayoutFor(
-        widthSizeClass = windowWidthSizeClass,
-        isLandscape = isLandscape,
-    )
-    // Same 07 policy for history's list-detail panes.
-    val historyLayout = historyLayoutFor(
-        widthSizeClass = windowWidthSizeClass,
-        isLandscape = isLandscape,
-    )
+    val layout = if (twoPane) HomeLayout.TwoPane else HomeLayout.SinglePane
+    val playLayout = if (twoPane) PlayLayout.TwoPane else PlayLayout.SinglePane
+    val historyLayout = if (twoPane) HistoryLayout.TwoPane else HistoryLayout.SinglePane
     val expanded = layout == HomeLayout.TwoPane
     val identityService = koinInject<IdentityService>()
     val cloudSync = koinInject<CloudSync>()

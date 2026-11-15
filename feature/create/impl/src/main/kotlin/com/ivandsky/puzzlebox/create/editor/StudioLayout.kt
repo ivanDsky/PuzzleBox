@@ -30,8 +30,8 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.EditorOverlay
 
 /**
- * The Studio under its top bar, split by the play policy ([PlayLayout], `playLayoutFor`:
- * Expanded width and landscape). [PlayLayout.SinglePane]: the [board] slot spans the bar to
+ * The Studio under its top bar, split by the play policy ([PlayLayout], `PanePolicy`:
+ * Expanded width, landscape and 480 dp of height). [PlayLayout.SinglePane]: the [board] slot spans the bar to
  * the [toolStrip], with the [actionArea] under it; the verdict card is the pill's. The slot is
  * the full content width and all the height above the strip, not a square: the game sizes its
  * grid square in it and keeps its own rows (Queens' coach line and probe strip) under the grid,

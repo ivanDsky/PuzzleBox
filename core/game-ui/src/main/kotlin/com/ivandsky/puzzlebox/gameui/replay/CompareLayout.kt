@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.gameui.replay
 
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.ui.unit.Dp
+import com.ivandsky.puzzlebox.gameui.PanePolicy
 
 /** How a compare lays out its two boards. */
 enum class CompareLayout {
@@ -12,8 +13,8 @@ enum class CompareLayout {
 }
 
 /**
- * Twin at Expanded width in either orientation: two boards beside each other need the width, not the height.
- * FlipPeek at Compact and Medium.
+ * Twin at expanded width in either orientation, when the window is also tall enough for two boards
+ * ([PanePolicy.MinHeight]); FlipPeek otherwise, so a phone in landscape stacks them.
  */
-fun compareLayoutFor(widthSizeClass: WindowWidthSizeClass): CompareLayout =
-    if (widthSizeClass == WindowWidthSizeClass.Expanded) CompareLayout.Twin else CompareLayout.FlipPeek
+fun compareLayoutFor(width: Dp, height: Dp): CompareLayout =
+    if (width >= PanePolicy.ExpandedMinWidth && height >= PanePolicy.MinHeight) CompareLayout.Twin else CompareLayout.FlipPeek
