@@ -47,6 +47,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.navigation.FirstScreenReady
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
@@ -122,6 +123,7 @@ class HomeViewModelTest {
         savedState: SavedStateHandle = SavedStateHandle(),
         friendDay: ObserveFriendDay? = null,
         historyOpen: StateFlow<Boolean> = MutableStateFlow(true),
+        firstScreenReady: FirstScreenReady = FirstScreenReady(),
     ): Deps {
         val registry = GameRegistry(
             listOf(zip, tango).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
@@ -154,6 +156,7 @@ class HomeViewModelTest {
                 friendDay,
             ),
             savedState = savedState,
+            firstScreenReady = firstScreenReady,
         )
         vm.setSummariesShown(summariesShown)
         if (collect) backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
@@ -207,6 +210,22 @@ class HomeViewModelTest {
             ),
             deps.vm.uiState.value,
         )
+    }
+
+    @Test
+    fun `Home publishes the first-screen signal only once its local state has loaded`() = runTest {
+        val ready = FirstScreenReady()
+        val open = MutableStateFlow(false)
+        val deps = viewModel(collect = false, historyOpen = open, firstScreenReady = ready)
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { deps.vm.uiState.collect {} }
+        assertFalse(deps.vm.uiState.value.isLocalStateLoaded)
+        assertFalse(ready.isReady)
+
+        open.value = true
+
+        assertTrue(deps.vm.uiState.value.isLocalStateLoaded)
+        assertTrue(ready.isReady)
     }
 
     @Test

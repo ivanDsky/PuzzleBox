@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.datastore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.model.ThemeRead
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -47,6 +48,21 @@ class PuzzleBoxPreferencesDataSourceTest {
         val dataSource = newDataSource(tempFile())
 
         assertEquals(ThemeMode.SYSTEM, dataSource.preferences.first().themeMode)
+    }
+
+    @Test
+    fun `a healthy theme read is not flagged as failed`() = runTest {
+        val dataSource = newDataSource(tempFile())
+        dataSource.setThemeMode(ThemeMode.DARK)
+
+        assertEquals(ThemeRead(ThemeMode.DARK, failed = false), dataSource.themeRead.first())
+    }
+
+    @Test
+    fun `an unreadable preferences file reads as the default theme flagged failed`() = runTest {
+        val file = tempFile().apply { writeBytes(ByteArray(64) { 0x7F }) }
+
+        assertEquals(ThemeRead(ThemeMode.SYSTEM, failed = true), newDataSource(file).themeRead.first())
     }
 
     @Test

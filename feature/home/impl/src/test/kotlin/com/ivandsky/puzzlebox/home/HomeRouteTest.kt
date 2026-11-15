@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.home.di.homeModule
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.navigation.FirstScreenReady
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.navigation.navigationState
@@ -145,6 +146,7 @@ class HomeRouteTest {
                     // Resume also checks for an update: by default no release known, so no pill.
                     single<AppReleaseRepository> { releases }
                     single { AppBuild(versionName = "1.0.0", checksForUpdates = true) }
+                    single { FirstScreenReady() }
                 },
                 domainModule,
                 homeModule,

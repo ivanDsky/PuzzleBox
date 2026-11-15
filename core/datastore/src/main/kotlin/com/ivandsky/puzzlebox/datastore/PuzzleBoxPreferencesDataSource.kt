@@ -8,7 +8,10 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.model.ThemeRead
+import java.io.IOException
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 
 /** Everything the app keeps in its Preferences DataStore file. */
@@ -43,6 +46,11 @@ class PuzzleBoxPreferencesDataSource(
             ranksFriendsDefault = preferences[KEY_RANKS_FRIENDS_DEFAULT] ?: true,
         )
     }
+
+    /** The theme alone; a failed read ends as the default theme flagged [ThemeRead.failed] instead of throwing. */
+    val themeRead: Flow<ThemeRead> = dataStore.data
+        .map { ThemeRead(it[KEY_THEME_MODE]?.let(ThemeMode::fromStored) ?: ThemeMode.SYSTEM) }
+        .catch { if (it is IOException) emit(ThemeRead(ThemeMode.SYSTEM, failed = true)) else throw it }
 
     suspend fun setThemeMode(mode: ThemeMode) {
         dataStore.edit { preferences -> preferences[KEY_THEME_MODE] = mode.name }
