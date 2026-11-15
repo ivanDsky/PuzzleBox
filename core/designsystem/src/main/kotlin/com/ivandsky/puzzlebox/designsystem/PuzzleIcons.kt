@@ -185,6 +185,10 @@ object PuzzleIcons {
     /** A drawn duel: `equal`. */
     val Equals: ImageVector
         @Composable get() = ImageVector.vectorResource(R.drawable.ic_equal)
+
+    /** Post a result out: `upload`, an arrow up out of a tray. */
+    val Upload: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_upload)
 }
 
 private const val PREVIEW_COLUMNS = 4
@@ -245,6 +249,7 @@ internal fun PuzzleIconsPreview() {
             "Hourglass" to PuzzleIcons.Hourglass,
             "Clock" to PuzzleIcons.Clock,
             "Equals" to PuzzleIcons.Equals,
+            "Upload" to PuzzleIcons.Upload,
         )
         Column(
             modifier = Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.md),

@@ -35,7 +35,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.LinkedInPostButtonState
+import com.ivandsky.puzzlebox.gameui.LinkedInPostRowState
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
@@ -529,14 +529,14 @@ class ResultViewModelTest {
     fun `each post state shows its button state`() {
         val vm = vm(flags = postOn).postObserved()
         val expected = mapOf(
-            LinkedInPostState.Ready to LinkedInPostButtonState.Post,
-            LinkedInPostState.Sending to LinkedInPostButtonState.Posting,
-            LinkedInPostState.Posted to LinkedInPostButtonState.Posted,
-            LinkedInPostState.AlreadyOnLinkedIn to LinkedInPostButtonState.AlreadyOnLinkedIn,
-            LinkedInPostState.Unknown to LinkedInPostButtonState.Check,
-            LinkedInPostState.Offline to LinkedInPostButtonState.Retry,
-            LinkedInPostState.Paused to LinkedInPostButtonState.Paused,
-            LinkedInPostState.NotToday to LinkedInPostButtonState.NotToday,
+            LinkedInPostState.Ready to LinkedInPostRowState.Post,
+            LinkedInPostState.Sending to LinkedInPostRowState.Posting,
+            LinkedInPostState.Posted to LinkedInPostRowState.Posted,
+            LinkedInPostState.AlreadyOnLinkedIn to LinkedInPostRowState.AlreadyOnLinkedIn,
+            LinkedInPostState.Unknown to LinkedInPostRowState.Check,
+            LinkedInPostState.Offline to LinkedInPostRowState.Retry,
+            LinkedInPostState.Paused to LinkedInPostRowState.Paused,
+            LinkedInPostState.NotToday to LinkedInPostRowState.NotToday,
             LinkedInPostState.Hidden to null,
         )
         for ((state, button) in expected) {
