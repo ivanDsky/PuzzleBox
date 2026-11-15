@@ -111,6 +111,7 @@ private fun ColumnScope.HeroPage(
 ) {
     val insights by viewModel.heroInsights.collectAsStateWithLifecycle()
     val rank by viewModel.heroRank.collectAsStateWithLifecycle()
+    val linkedInPost by viewModel.linkedInPost.collectAsStateWithLifecycle()
     val chip = if (state.practice || viewModel.playAgain) {
         null
     } else {
@@ -146,6 +147,8 @@ private fun ColumnScope.HeroPage(
                 onShare = onShare,
                 onPlayAgain = onPlayAgain,
                 rolloverAt = state.rolloverAt,
+                linkedInPost = linkedInPost,
+                onLinkedInPost = viewModel::postToLinkedIn,
             )
         },
         replay = viewModel.playUi?.let { ui ->
