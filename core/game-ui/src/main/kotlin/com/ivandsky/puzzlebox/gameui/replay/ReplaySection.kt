@@ -20,17 +20,18 @@ import com.ivandsky.puzzlebox.model.GameId
  * The replay section of a result-like screen. The one place that reads ui.replayBoard:
  * Hidden, or a game with no replay board, draws nothing. Ready draws the Watch replay row;
  * [onOpen] opens the replay page, where the player lives. Unavailable draws the same row, disabled, with the reason as its second line.
- * A [label] names which solve the row is, when a screen shows more than one.
+ * A [label] names which solve the row is, when a screen shows more than one. A false [hairline] leaves the line over the
+ * row to the group it sits in.
  */
 @Composable
-fun ReplaySection(state: ReplaySectionState, ui: GamePlayUi, onOpen: () -> Unit, modifier: Modifier = Modifier, label: String? = null) {
+fun ReplaySection(state: ReplaySectionState, ui: GamePlayUi, onOpen: () -> Unit, modifier: Modifier = Modifier, label: String? = null, hairline: Boolean = true) {
     if (ui.replayBoard == null) return
     val capped = modifier.widthIn(max = ResultColumnMaxWidth)
     when (state) {
         ReplaySectionState.Hidden -> Unit
         is ReplaySectionState.Ready ->
-            WatchReplayRow(state.timeline.moveTimesMs.size, state.timeline.endMs, onOpen, capped.testTag(ReplayTags.WATCH_ROW), label)
-        is ReplaySectionState.Unavailable -> UnavailableWatchReplayRow(state.reason, capped.testTag(ReplayTags.UNAVAILABLE), label)
+            WatchReplayRow(state.timeline.moveTimesMs.size, state.timeline.endMs, onOpen, capped.testTag(ReplayTags.WATCH_ROW), label, hairline)
+        is ReplaySectionState.Unavailable -> UnavailableWatchReplayRow(state.reason, capped.testTag(ReplayTags.UNAVAILABLE), label, hairline)
     }
 }
 

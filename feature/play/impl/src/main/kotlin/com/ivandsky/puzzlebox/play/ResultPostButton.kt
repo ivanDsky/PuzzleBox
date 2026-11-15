@@ -5,7 +5,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostState
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
-import com.ivandsky.puzzlebox.gameui.LinkedInPostButtonState
+import com.ivandsky.puzzlebox.gameui.LinkedInPostRowState
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
@@ -39,7 +39,7 @@ internal class ResultPostButton(
 ) {
 
     /** The button, null for no button. Observed only while the screen collects it and the flag is on. */
-    val state: StateFlow<LinkedInPostButtonState?> =
+    val state: StateFlow<LinkedInPostRowState?> =
         if (releaseFlags == null || observePost == null) {
             MutableStateFlow(null)
         } else {
@@ -69,14 +69,14 @@ internal class ResultPostButton(
 }
 
 /** The button each post state shows; Hidden has none. */
-private fun LinkedInPostState.button(): LinkedInPostButtonState? = when (this) {
+private fun LinkedInPostState.button(): LinkedInPostRowState? = when (this) {
     LinkedInPostState.Hidden -> null
-    LinkedInPostState.Ready -> LinkedInPostButtonState.Post
-    LinkedInPostState.Sending -> LinkedInPostButtonState.Posting
-    LinkedInPostState.Posted -> LinkedInPostButtonState.Posted
-    LinkedInPostState.AlreadyOnLinkedIn -> LinkedInPostButtonState.AlreadyOnLinkedIn
-    LinkedInPostState.Unknown -> LinkedInPostButtonState.Check
-    LinkedInPostState.Offline -> LinkedInPostButtonState.Retry
-    LinkedInPostState.Paused -> LinkedInPostButtonState.Paused
-    LinkedInPostState.NotToday -> LinkedInPostButtonState.NotToday
+    LinkedInPostState.Ready -> LinkedInPostRowState.Post
+    LinkedInPostState.Sending -> LinkedInPostRowState.Posting
+    LinkedInPostState.Posted -> LinkedInPostRowState.Posted
+    LinkedInPostState.AlreadyOnLinkedIn -> LinkedInPostRowState.AlreadyOnLinkedIn
+    LinkedInPostState.Unknown -> LinkedInPostRowState.Check
+    LinkedInPostState.Offline -> LinkedInPostRowState.Retry
+    LinkedInPostState.Paused -> LinkedInPostRowState.Paused
+    LinkedInPostState.NotToday -> LinkedInPostRowState.NotToday
 }

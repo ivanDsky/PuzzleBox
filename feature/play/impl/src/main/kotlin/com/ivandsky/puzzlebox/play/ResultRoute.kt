@@ -16,6 +16,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.gameui.ResultBelowCardRows
 import com.ivandsky.puzzlebox.gameui.ResultHeroActions
 import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
@@ -147,13 +149,28 @@ private fun ColumnScope.HeroPage(
                 onShare = onShare,
                 onPlayAgain = onPlayAgain,
                 rolloverAt = state.rolloverAt,
-                linkedInPost = linkedInPost,
-                onLinkedInPost = viewModel::postToLinkedIn,
             )
         },
-        replay = viewModel.playUi?.let { ui ->
+        replay = if (linkedInPost == null && viewModel.playUi == null) {
+            null
+        } else {
             {
-                ReplaySection(state.replay, ui, onOpen = { onOpenReplay(ReplayKey.daily(key.gameId, key.day, state.puzzleNumber, latest = true)) })
+                ResultBelowCardRows(
+                    post = linkedInPost,
+                    time = formatDuration(key.timeMs),
+                    onPost = viewModel::postToLinkedIn,
+                    pending = primary == null,
+                    replay = viewModel.playUi?.let { ui ->
+                        { hairline ->
+                            ReplaySection(
+                                state.replay,
+                                ui,
+                                onOpen = { onOpenReplay(ReplayKey.daily(key.gameId, key.day, state.puzzleNumber, latest = true)) },
+                                hairline = hairline,
+                            )
+                        }
+                    },
+                )
             }
         },
     )
