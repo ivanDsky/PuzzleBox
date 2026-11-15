@@ -11,6 +11,7 @@ import org.junit.runner.RunWith
 
 private const val DRAG_STEPS = 30
 private const val DRAGS = 3
+private const val BOARD_PANE_SHARE = 0.7f
 
 /**
  * Drags a path out of Zip's waypoint 1 toward waypoint 2 on the live board and clears it, three
@@ -45,8 +46,25 @@ class ZipDragBenchmark {
     }
 
     private fun MacrobenchmarkScope.dragOneToTwo() {
-        val one = waitFor(By.text("1")).visibleCenter
-        val two = waitFor(By.text("2")).visibleCenter
+        val one = waypoint("1")
+        val two = waypoint("2")
         device.swipe(arrayOf(Point(one.x, one.y), Point(two.x, one.y), Point(two.x, two.y)), DRAG_STEPS)
+    }
+
+    /**
+     * The centre of the board's waypoint [number]. Two-pane puts a stats panel beside the board
+     * (the board pane is the left 70% of the window, after the rail), and a bare digit there is not
+     * a waypoint, so only a match inside the board pane counts.
+     */
+    private fun MacrobenchmarkScope.waypoint(number: String): Point {
+        val boardRight = if (isTwoPane()) {
+            val rail = railWidthPx()
+            rail + (device.displayWidth - rail) * BOARD_PANE_SHARE
+        } else {
+            device.displayWidth.toFloat()
+        }
+        return poll("the waypoint $number on the board") {
+            device.findObjects(By.text(number)).map { it.visibleCenter }.firstOrNull { it.x < boardRight }
+        }
     }
 }

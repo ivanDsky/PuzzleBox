@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.benchmark
 
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.test.uiautomator.By
+import androidx.test.uiautomator.Until
 import java.util.regex.Pattern
 
 /** The game page's primary button: "Play" for a fresh day, "Keep going" for a started one. */
@@ -13,9 +14,14 @@ private val BoardReady = By.text("Hint")
 private val TutorialSkip = By.text("Skip")
 private val Back = By.desc("Back")
 
-/** From the Games tab's Dailies list: the game's page. Never starts the puzzle. */
+/**
+ * From the Games tab's Dailies list: the game's page. Never starts the puzzle. Two-pane keeps the
+ * previously selected game's page beside the list, with its own Play button, so the page is only
+ * the game's once its name shows a second time: on the card and as the page title.
+ */
 internal fun MacrobenchmarkScope.openGamePage(game: BenchmarkGame) {
     tap(By.text(game.card))
+    if (isTwoPane()) poll("the ${game.card} page beside the list") { device.findObjects(By.text(game.card)).takeIf { it.size >= 2 } }
     waitFor(PlayButton)
 }
 
@@ -25,11 +31,16 @@ internal fun MacrobenchmarkScope.startBoard() {
     waitFor(BoardReady)
 }
 
-/** From a board: the game page, then the Games tab's list. */
+/**
+ * From a board: the game page, then the Games tab's list. Single-pane stacks the page over the list,
+ * so it takes a second Back; two-pane shows the page beside the list and has none. Back is tapped
+ * only once the board is gone: until then the board's own Back is still the one on screen.
+ */
 internal fun MacrobenchmarkScope.leaveGame() {
     tap(Back)
+    device.wait(Until.gone(BoardReady), WAIT_MS)
     waitFor(PlayButton)
-    tap(Back)
+    if (!isTwoPane()) tap(Back)
     waitFor(BenchmarkTab.Games.ready)
 }
 
