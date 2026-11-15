@@ -196,7 +196,10 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   (anonymous session), `LinkedInFeedTransport` implementing `core:game`'s `FeedTransport`;
   the NYT client (ADR-0014): internal `NytApi` + `NytHttpTransport` implementing `core:game`'s
   `NytTransport` (own sessionless client, call timeout); `linkedin/` (`VoyagerQueries`,
-  `VoyagerTodayParser`, `VoyagerOwnResultParser`: the account reads' request shapes and parsers); Koin `networkModule`.
+  `VoyagerTodayParser`, `VoyagerOwnResultParser`: the account reads' request shapes and parsers; `LinkedInSessionClient` +
+  `LinkedInRejection`: the client and status table both account adapters share; `SduiLinkedInResultPoster` over
+  `LinkedInPostApi` (ADR-0032): the game page GET parsed by `SduiGamePageParser`, the one `updateGameState` write built by
+  `UpdateGameStateBody` and classified by `serverRequestOutcome`); Koin `networkModule`.
 - `core/datastore/` (`:core:datastore`) — `PuzzleBoxPreferencesDataSource` over a Preferences
   DataStore (`PuzzleBoxPreferences`); `LinkedInLinkDataSource` over a DataStore file of its own
   (`LinkedInLinkPrefs`: linked profile, consent time, pause latch; nothing secret); Koin `datastoreModule`.

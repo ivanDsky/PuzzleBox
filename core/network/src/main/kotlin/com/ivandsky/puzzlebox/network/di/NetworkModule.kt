@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.FeedTransport
 import com.ivandsky.puzzlebox.game.NytTransport
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPhotoSource
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInResultPoster
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.network.GITHUB_API_BASE_URL
 import com.ivandsky.puzzlebox.network.GitHubReleaseTransport
@@ -14,6 +15,7 @@ import com.ivandsky.puzzlebox.network.NytHttpTransport
 import com.ivandsky.puzzlebox.network.gitHubReleaseTransport
 import com.ivandsky.puzzlebox.network.linkedin.linkedInAccountSource
 import com.ivandsky.puzzlebox.network.linkedin.linkedInPhotoSource
+import com.ivandsky.puzzlebox.network.linkedin.linkedInResultPoster
 import com.ivandsky.puzzlebox.network.linkedInFeedTransport
 import com.ivandsky.puzzlebox.network.retrofit
 import com.ivandsky.puzzlebox.network.sessionlessClient
@@ -31,6 +33,7 @@ val networkModule = module {
     single<FeedTransport> { linkedInFeedTransport(LINKEDIN_BASE_URL, get()) }
     // Anonymous feed transport stays separate; this client carries the player's session cookies.
     single<LinkedInAccountSource> { linkedInAccountSource(LINKEDIN_BASE_URL, get<LinkedInSessionCookies>()) }
+    single<LinkedInResultPoster> { linkedInResultPoster(LINKEDIN_BASE_URL, get<LinkedInSessionCookies>()) }
     // Photos are public files on LinkedIn's image host: their own client, built without the session.
     single<LinkedInPhotoSource> { linkedInPhotoSource() }
     single {
