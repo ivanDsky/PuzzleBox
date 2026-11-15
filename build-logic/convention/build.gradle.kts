@@ -44,6 +44,10 @@ gradlePlugin {
             id = libs.plugins.puzzlebox.android.application.compose.get().pluginId
             implementationClass = "AndroidApplicationComposeConventionPlugin"
         }
+        register("androidBenchmark") {
+            id = libs.plugins.puzzlebox.android.benchmark.get().pluginId
+            implementationClass = "AndroidBenchmarkConventionPlugin"
+        }
         register("androidLibrary") {
             id = libs.plugins.puzzlebox.android.library.asProvider().get().pluginId
             implementationClass = "AndroidLibraryConventionPlugin"

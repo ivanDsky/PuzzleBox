@@ -57,6 +57,14 @@ internal fun forbiddenEdgeReason(from: String, to: String, configuration: String
     return when {
         fromPath[0] == "konsist" -> "konsist reads sources as files; it has no project dependencies"
 
+        // The :benchmark module drives the installed benchmark APK; AGP models that as the
+        // `testedApks` configuration, the one edge it may have (to :app) and the only way in.
+        fromPath[0] == "benchmark" ->
+            if (to == ":app" && configuration == "testedApks") null
+            else "benchmark drives :app as an installed APK; it has no project dependencies"
+
+        toPath[0] == "benchmark" -> "nothing may depend on the measurement module :benchmark"
+
         toPath[0] == "konsist" -> "nothing may depend on the verification module :konsist"
 
         // tools:* (ADR-0021): runnable pure-JVM developer tools that ship nowhere.

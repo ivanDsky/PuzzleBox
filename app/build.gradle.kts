@@ -59,7 +59,24 @@ android {
             )
             signingConfig = signingConfigs.findByName("release")
         }
+        // Release-like and profileable, for :benchmark (Macrobenchmark). Installs beside the user's
+        // release and debug apps as com.ivandsky.puzzlebox.benchmark ("PuzzleBox Bench"), signed
+        // out, with its own Firebase client (src/benchmark/google-services.json). Never measure
+        // the release package: it holds the real account.
+        create("benchmark") {
+            initWith(getByName("release"))
+            applicationIdSuffix = ".benchmark"
+            matchingFallbacks += "release"
+            isDebuggable = false
+            // Measurement-only install: the release key when the machine has it, else the debug key.
+            signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+        }
     }
+
+    // The benchmark build is release-like: it ships release's game modules, flags and update
+    // check, so a measured number is the number a release user gets. (The source set exists once
+    // the build type above is declared.)
+    sourceSets.getByName("benchmark").kotlin.directories.add("src/release/kotlin")
 
     testOptions {
         // The Robolectric screenshot and e2e suites need heap headroom.
