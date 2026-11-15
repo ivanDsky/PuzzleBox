@@ -29,7 +29,7 @@ class RotationDeviceTest {
     @Test
     fun rotationMidGameKeepsTabsStacksAndBoardAndSwapsBarAndRail() = with(shell) {
         rotate(SCREEN_ORIENTATION_PORTRAIT)
-        tapText(SEE_ALL)
+        tap(RANK_ROW)
         assertRoute(RANKS)
         assertBottomBar()
         tapTab(PlayKey)
@@ -63,6 +63,6 @@ class RotationDeviceTest {
     }
 
     private companion object {
-        const val SEE_ALL = "See all"
+        const val RANK_ROW = "summary.leaderboard"
     }
 }

@@ -23,7 +23,6 @@ import org.koin.androidx.compose.koinViewModel
 fun HomeRoute(
     layout: HomeLayout,
     onOpenGame: (GameId) -> Unit,
-    onOpenHistory: () -> Unit,
     summaries: HomeSummaries,
     title: String,
     modifier: Modifier = Modifier,
@@ -44,7 +43,6 @@ fun HomeRoute(
         layout = layout,
         state = uiState,
         onOpenGame = onOpenGame,
-        onOpenHistory = onOpenHistory,
         onSelectDay = viewModel::selectDay,
         summaries = summaries,
         title = title,

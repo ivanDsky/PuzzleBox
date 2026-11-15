@@ -73,6 +73,7 @@ private fun PreviewCalendar(month: YearMonth, picked: LocalDate?, offline: Boole
         accent = MaterialTheme.colorScheme.primary,
         compact = compact,
         onMonth = {},
+        onToday = {},
         onPick = {},
     )
 }

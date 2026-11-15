@@ -84,7 +84,6 @@ private fun HomeToday(layout: HomeLayout) {
                     layout = layout,
                     state = V2State,
                     onOpenGame = {},
-                    onOpenHistory = {},
                     onSelectDay = {},
                     title = "Today",
                     summaries = V2Summaries,

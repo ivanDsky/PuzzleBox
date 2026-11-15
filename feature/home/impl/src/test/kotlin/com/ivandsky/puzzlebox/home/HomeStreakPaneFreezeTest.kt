@@ -108,7 +108,6 @@ class HomeStreakPaneFreezeTest {
                     layout = HomeLayout.SinglePane,
                     state = state,
                     onOpenGame = {},
-                    onOpenHistory = {},
                     onSelectDay = {},
                     summaries = HomeSummaries(onOpenRank = null, duels = null),
                     title = "PuzzleBox",

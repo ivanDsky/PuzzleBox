@@ -61,8 +61,9 @@ internal fun archiveDiscFor(compact: Boolean): Dp = if (compact) 42.dp else 46.d
 /**
  * A game's month calendar (06-a §Month calendar): ‹ [month] › with the archive numbers in
  * it, the "#1" / year / "Today" jumps, Monday-first weekdays, six weeks of [ArchiveDayDisc]s
- * from [days] (the month's archive days) and the legend. ‹ › and the jumps call [onMonth]
- * inside [range] (#1 .. today); a disc calls [onPick]. The ring marks [picked], else today.
+ * from [days] (the month's archive days) and the legend. ‹ › and the "#1" jump call [onMonth]
+ * inside [range] (#1 .. today); the "Today" jump calls [onToday]; a disc calls [onPick]. The ring
+ * marks [picked], else today.
  * [compact] is the phone's smaller disc and row. A month change fades the grid in.
  */
 @Composable
@@ -75,6 +76,7 @@ internal fun ArchiveMonthCalendar(
     accent: Color,
     compact: Boolean,
     onMonth: (YearMonth) -> Unit,
+    onToday: () -> Unit,
     onPick: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -90,7 +92,7 @@ internal fun ArchiveMonthCalendar(
             .testTag("library.calendar"),
     ) {
         Header(nav, month, days, onMonth)
-        Jumps(nav, month, reduced, onMonth)
+        Jumps(nav, month, reduced, onMonth, onToday)
         Row(Modifier.fillMaxWidth().height(20.dp), verticalAlignment = Alignment.CenterVertically) {
             Weekdays.forEach { letter ->
                 Text(
@@ -188,7 +190,7 @@ private fun StepButton(enabled: Boolean, tag: String, flip: Boolean, onClick: ()
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Jumps(nav: ArchiveMonthNav, month: YearMonth, reduced: Boolean, onMonth: (YearMonth) -> Unit) {
+private fun Jumps(nav: ArchiveMonthNav, month: YearMonth, reduced: Boolean, onMonth: (YearMonth) -> Unit, onToday: () -> Unit) {
     FlowRow(
         modifier = Modifier.fillMaxWidth().padding(top = ChipGap, bottom = Spacing.sm),
         horizontalArrangement = Arrangement.spacedBy(ChipGap),
@@ -201,7 +203,9 @@ private fun Jumps(nav: ArchiveMonthNav, month: YearMonth, reduced: Boolean, onMo
                 jumps.lastIndex -> "today"
                 else -> jump.label
             }
-            JumpChip(jump, "library.calendar.jump.$name", reduced) { onMonth(jump.month) }
+            JumpChip(jump, "library.calendar.jump.$name", reduced) {
+                if (index == jumps.lastIndex) onToday() else onMonth(jump.month)
+            }
         }
     }
 }

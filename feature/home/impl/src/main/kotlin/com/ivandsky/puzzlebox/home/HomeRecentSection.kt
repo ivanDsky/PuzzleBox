@@ -17,7 +17,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -28,14 +27,13 @@ import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 
 /**
  * The recent days (A11): one row per day, newest first, each day's games as result chips
- * (glyph + solve time, or "–" when opened but not solved), and "See all" to the full
- * history ([onSeeAll]). In two-pane ([selectable]) a row selects that day for the detail
- * pane ([onDayClick]; [selectedDay] reads selected); single-pane rows are not clickable.
+ * (glyph + solve time, or "–" when opened but not solved). Earlier days only: today is on the
+ * Today card. In two-pane ([selectable]) a row selects that day for the detail pane
+ * ([onDayClick]; [selectedDay] reads selected); single-pane rows are not clickable.
  */
 @Composable
 internal fun HomeRecentSection(
     days: List<HistoryDay>,
-    onSeeAll: () -> Unit,
     selectedDay: String?,
     onDayClick: (String) -> Unit,
     selectable: Boolean,
@@ -45,25 +43,18 @@ internal fun HomeRecentSection(
         modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = "Recent",
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f),
-            )
-            AppTextButton(text = "See all", onClick = onSeeAll)
-        }
+        Text(
+            text = "Recent",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
         OutlinedCard(
             modifier = Modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.large,
         ) {
             if (days.isEmpty()) {
                 EmptyState(
-                    title = "No games yet",
+                    title = "Earlier days will show here",
                     message = "Finished puzzles and scores will appear here.",
                 )
             } else {

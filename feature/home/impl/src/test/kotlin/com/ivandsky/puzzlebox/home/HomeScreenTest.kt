@@ -12,6 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isSelected
@@ -80,7 +81,6 @@ class HomeScreenTest {
                         layout = layout,
                         state = state(today.value, history, playTarget).copy(rank = rank, selectedDay = picked, updateUrl = updateUrl),
                         onOpenGame = onOpenGame,
-                        onOpenHistory = {},
                         onSelectDay = { picked = it },
                         modifier = Modifier,
                         title = title,
@@ -135,6 +135,22 @@ class HomeScreenTest {
 
         composeRule.onNodeWithTag("home.day_detail").assertExists()
         composeRule.onNodeWithTag("home.streak_pane").assertDoesNotExist()
+    }
+
+    @Test
+    fun `tapping the selected recent row again clears the pick and restores the streak pane`() {
+        setContent(
+            HomeLayout.TwoPane,
+            history = listOf(HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))),
+        )
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
+        composeRule.onNodeWithTag("home.day_detail").assertExists()
+
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
+
+        composeRule.onNodeWithTag("home.streak_pane").assertExists()
+        composeRule.onNodeWithTag("home.day_detail").assertDoesNotExist()
+        composeRule.onNodeWithTag("home.history_row_2026-11-03").assertIsNotSelected()
     }
 
     @Test
@@ -274,7 +290,8 @@ class HomeScreenTest {
     fun `history teaser shows the empty state when nothing is cached`() {
         setContent(HomeLayout.SinglePane)
 
-        composeRule.onNodeWithText("No games yet").assertExists()
+        composeRule.onNodeWithText("Earlier days will show here").assertExists()
+        composeRule.onNodeWithText("See all").assertDoesNotExist()
     }
 
     @Test
@@ -285,7 +302,7 @@ class HomeScreenTest {
         )
 
         composeRule.onNodeWithText("October 30").assertExists()
-        composeRule.onNodeWithText("No games yet").assertDoesNotExist()
+        composeRule.onNodeWithText("Earlier days will show here").assertDoesNotExist()
     }
 
     @Test

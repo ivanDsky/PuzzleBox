@@ -421,6 +421,19 @@ class LibraryRouteTest {
     }
 
     @Test
+    fun `the Today chip moves the day card back to today, not only the month - A9`() {
+        val past = today.minusDays(3)
+        daily.setArchiveRange(zip, today.minusDays(30)..today)
+        setContent(PlayLayout.TwoPane)
+        awaitTag("library.calendar.month.2026-11")
+        tap("library.calendar.day.$past")
+        awaitTag("library.day_card.day.$past")
+        tap("library.calendar.jump.today")
+        awaitTag("library.day_card.day.$today")
+        composeRule.onNodeWithTag("library.day_card.day.$past").assertDoesNotExist()
+    }
+
+    @Test
     fun `the last day before today plays from today's month`() {
         daily.setArchiveRange(zip, today.minusDays(30)..today)
         setContent(PlayLayout.TwoPane)

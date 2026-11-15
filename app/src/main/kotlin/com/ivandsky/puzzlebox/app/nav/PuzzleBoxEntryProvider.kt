@@ -46,10 +46,9 @@ import java.time.LocalDate
  * including after process-death restore. A [codeDraft] (a tapped link's text that isn't a
  * code) opens the Play library's code sheet holding it.
  *
- * Each content type has one owner (ADR-0027): Today's rank summary opens the Ranks hub ([openRanks]), its
- * duels summary the Games section through [libraryRequests], and its history teaser the Ranks tab root through
- * [openOwner]; Today hides what is owned elsewhere, the game page shows its rank row, the tablet times card signs
- * in in place, and Profile has its own back and a gear to Settings.
+ * Each content type has one owner (ADR-0027): Today's rank summary opens the Ranks hub ([openRanks]) and its
+ * duels summary the Games section through [libraryRequests]. Today hides what is owned elsewhere; the game page
+ * shows its rank row, the tablet times card signs in in place, and Profile has its own back and a gear to Settings.
  *
  * The LinkedIn entry points (the game page's reconnect and Profile's connect) both open [LinkedInLoginKey].
  *
@@ -81,7 +80,6 @@ internal fun puzzleBoxEntryProvider(
                 )
             },
         ),
-        onOpenHistory = { navigator.openOwner(HistoryRootKey) },
     )
     ranksEntry(navigator, historyLayout, linkedIn = true)
     playEntry(

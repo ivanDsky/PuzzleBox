@@ -68,7 +68,6 @@ class HomeStatTilesTest {
                             rolloverAt = Instant.now().plus(3, ChronoUnit.HOURS),
                         ),
                         onOpenGame = {},
-                        onOpenHistory = {},
                         onSelectDay = {},
                         modifier = Modifier,
                         title = "PuzzleBox",
