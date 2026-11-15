@@ -24,7 +24,7 @@ becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag w
    | Streak + week strip | Today | — |
    | App update available | Today (the existing pill) | — |
    | Lifetime stats (solved, best streak, no-hint, days) | Ranks | — |
-   | History timeline (every past play) | Ranks | Games › game page: "Your history" row; Today: the recent days with "See all" to Ranks' root, and on the tablet the picked day's detail |
+   | History timeline (every past play) | Ranks | Games › game page: "Your history" row; Today: the recent days, and on the tablet the picked day's detail |
    | Per-game stats (solved, hint-free, avg, best) | Games › game page | — |
    | Past-day archive (play a past day) | Games › game page | History detail: "Play this day" action |
    | Daily leaderboards | Ranks | Games › game page: one summary row; Today: "Today's rank: #12 on Zip"; Result: "You: #12 of 340" |

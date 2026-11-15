@@ -110,7 +110,6 @@ class HomeRouteTest {
                 HomeRoute(
                     layout = HomeLayout.SinglePane,
                     onOpenGame = onOpenGame,
-                    onOpenHistory = {},
                     summaries = HomeSummaries(onOpenRank = null, duels = null),
                     title = "Today",
                 )
@@ -210,7 +209,6 @@ class HomeRouteTest {
                 navigator,
                 HomeLayout.SinglePane,
                 summaries = HomeSummaries(onOpenRank = null, duels = null),
-                onOpenHistory = {},
                 title = "Today",
             )
         }
@@ -234,7 +232,7 @@ class HomeRouteTest {
         setContent(daily, FakeCompletionRepository())
 
         // Nothing captured yet: the honest empty state.
-        composeRule.onNodeWithText("No games yet").assertExists()
+        composeRule.onNodeWithText("Earlier days will show here").assertExists()
 
         // A day lands in the compete loop's store (Play fetches/History captures) —
         // the teaser must follow, formatted like the rows the user knows.
@@ -244,14 +242,14 @@ class HomeRouteTest {
             composeRule.onAllNodesWithText("October 31").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("October 31").assertExists()
-        composeRule.onNodeWithText("No games yet").assertDoesNotExist()
+        composeRule.onNodeWithText("Earlier days will show here").assertDoesNotExist()
     }
 
     @Test
     fun `a completion without a captured day surfaces in the teaser - fix round 5 defect C`() = kotlinx.coroutines.test.runTest {
         val completions = FakeCompletionRepository()
         setContent(FakeDailyRepository(), completions)
-        composeRule.onNodeWithText("No games yet").assertExists()
+        composeRule.onNodeWithText("Earlier days will show here").assertExists()
 
         // A solved game writes only its record (no daily capture anywhere) — the teaser
         // must still surface it.
@@ -269,7 +267,7 @@ class HomeRouteTest {
         }
         composeRule.onNodeWithText("November 1").assertExists()
         composeRule.onNodeWithTag("home.history_row_2026-11-01").assertExists()
-        composeRule.onNodeWithText("No games yet").assertDoesNotExist()
+        composeRule.onNodeWithText("Earlier days will show here").assertDoesNotExist()
     }
 
     @Test
@@ -315,7 +313,6 @@ class HomeRouteTest {
                     HomeRoute(
                         layout = HomeLayout.SinglePane,
                         onOpenGame = {},
-                        onOpenHistory = {},
                         summaries = HomeSummaries(onOpenRank = null, duels = null),
                         title = "Today",
                     )
@@ -349,7 +346,6 @@ class HomeRouteTest {
                     HomeRoute(
                         layout = HomeLayout.SinglePane,
                         onOpenGame = {},
-                        onOpenHistory = {},
                         summaries = HomeSummaries(onOpenRank = null, duels = null),
                         title = "Today",
                     )
