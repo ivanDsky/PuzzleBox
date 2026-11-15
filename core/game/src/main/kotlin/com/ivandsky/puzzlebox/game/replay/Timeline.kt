@@ -34,6 +34,12 @@ class Timeline private constructor(
         return frames.frame(clampedMs, ended = clampedMs == endMs)
     }
 
+    /**
+     * The typed board after each tick of [moveTimesMs], parallel to it. Null when [replay] is not the adapter
+     * this timeline was opened with.
+     */
+    internal fun <S : GameSession> boardsOf(replay: GameReplay<S>): List<S>? = frames.boardsFor(replay)
+
     companion object {
         /**
          * A Mistake whose next stamp group lands less than this later may be a transient one the player
