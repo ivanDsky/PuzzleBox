@@ -28,7 +28,8 @@ import com.ivandsky.puzzlebox.history.HistoryLayout
 /**
  * The Ranks hub as a stack of slots, each reading only its own slice of [state]; every tap is reported through [actions].
  * On [HistoryLayout.TwoPane] the hub is [RanksTwoPane] around the same stack, with no title menu, week strip or dots.
- * A day or window pick keeps the held board on screen until the next one answers ([rememberHeldBoard]); a held board takes no tap.
+ * A day or window pick keeps the held board on screen until the next one answers ([rememberHeldBoard]); a held board's
+ * rows open against the day and window it was picked from, not the new pick.
  * The whole hub sits in the shown board's world ([RanksWorld]), which blends to the next board's as the hub moves to it.
  */
 @Composable
@@ -42,7 +43,8 @@ internal fun RanksScreen(
     refreshing: Boolean = false,
 ) {
     val shown = rememberHeldBoard(state)
-    val onRowClick = actions.onOpenPlayer?.takeIf { shown.board === state.board }?.let { open -> { row: DailyBoardRowModel -> open(row.toTarget(state)) } }
+    val source = remember(shown.board) { state }
+    val onRowClick = actions.onOpenPlayer?.let { open -> { row: DailyBoardRowModel -> open(row.toTarget(if (shown.board === state.board) state else source)) } }
     val scroll = rememberScrollState()
     val leftScroll = rememberScrollState()
     val twoPane = layout == HistoryLayout.TwoPane

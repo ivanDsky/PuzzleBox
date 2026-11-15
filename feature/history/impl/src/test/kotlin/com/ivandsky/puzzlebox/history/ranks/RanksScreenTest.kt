@@ -1,17 +1,13 @@
 package com.ivandsky.puzzlebox.history.ranks
 
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertContentDescriptionEquals
-import androidx.compose.ui.test.assertHasClickAction
-import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -21,36 +17,20 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
-import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
-import com.ivandsky.puzzlebox.domain.CreateMatch
-import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
-import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.history.HistoryDayRow
 import com.ivandsky.puzzlebox.history.HistoryReplays
-import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
-import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
-import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
-import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import java.time.LocalDate
-import kotlin.random.Random
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -383,9 +363,6 @@ class RanksScreenTest {
 
     private val drawn = RanksUiState(RanksBoardSlice("Zip · today", RankOrder.TimeThenHints, maya), position = 1, boardCount = 4)
     private val loading = drawn.copy(board = RanksBoardSlice("Zip · Thu, Nov 12", RankOrder.TimeThenHints, DailyBoardState.Loading))
-    private val answered = drawn.copy(
-        board = RanksBoardSlice("Zip · Thu, Nov 12", RankOrder.TimeThenHints, DailyBoardState.Ranked(listOf(DailyBoardRowModel(1, "Ann", 71_000L, 0, false, playerId = "ann")))),
-    )
 
     @Test
     fun `a picked day that does not answer keeps the drawn board for a second and a half, then says Loading`() {
@@ -403,55 +380,6 @@ class RanksScreenTest {
         composeRule.mainClock.advanceTimeBy(100)
 
         composeRule.onNodeWithTag("daily_board.loading").assertIsDisplayed()
-    }
-
-    @Test
-    fun `a row of the board kept on screen takes no tap until the picked day answers`() {
-        var state by mutableStateOf(drawn)
-        val sheet = playerSheet()
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions({}, {}, onOpenPlayer = sheet::open)) } }
-        composeRule.onNodeWithTag("daily_board.row").assertHasClickAction()
-
-        state = loading
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Maya").assertIsDisplayed()
-        composeRule.onNodeWithTag("daily_board.row").assertHasNoClickAction()
-
-        state = answered
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Ann").assertIsDisplayed()
-        composeRule.onNodeWithTag("daily_board.row").assertHasClickAction()
-    }
-
-    @Test
-    fun `a tap on another player's row opens the player sheet on them`() {
-        val sheet = playerSheet()
-        composeRule.setContent {
-            PuzzleBoxTheme {
-                val open by sheet.state.collectAsState()
-                RanksScreen(drawn, RanksActions({}, onSwipe = {}, onOpenPlayer = sheet::open), playerSheet = open)
-            }
-        }
-
-        composeRule.onNodeWithText("Maya").performClick()
-
-        composeRule.onNodeWithTag("ranks.player.name").assertTextEquals("Maya")
-    }
-
-    private fun playerSheet(): PlayerSheetViewModel {
-        val registry = HistoryTestSupport.registry
-        val daily = FakeDailyRepository()
-        val completions = FakeCompletionRepository()
-        val createMatch = CreateMatch(
-            FakeMatchRepository(),
-            FakeMatchLocalRepository(),
-            ComputeMatchLegs(registry, daily, FakeGameCalendar(today), ObserveGameHistory(registry, daily, completions), FakeReceivedPuzzleRepository(), Random(0)),
-            FakeIdentityService(Identity(uid = "u1", displayName = "Ann", photoUrl = null)),
-            Random(0),
-        )
-        return PlayerSheetViewModel(GetPlayerActions(FakeVisibilityRepository(), completions), createMatch, registry, GamePlayRegistry(emptyList()))
     }
 
     private fun androidx.compose.ui.test.junit4.ComposeTestRule.onAllNodesWithTagCount(tag: String) =

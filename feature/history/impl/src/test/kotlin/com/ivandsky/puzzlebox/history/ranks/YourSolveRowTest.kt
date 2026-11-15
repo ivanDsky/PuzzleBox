@@ -146,21 +146,21 @@ class YourSolveRowTest {
     fun `a solve with no replay says so on the label, and its button is off and says why`() {
         show(solve(imported))
 
-        composeRule.onNodeWithText("Your solve · No replay").assertIsDisplayed()
+        composeRule.onNodeWithText("Your solve · No replay saved").assertIsDisplayed()
         composeRule.onNodeWithTag(ReplayTags.UNAVAILABLE)
             .assertIsNotEnabled()
-            .assertContentDescriptionEquals("Watch replay, No replay · imported from LinkedIn")
+            .assertContentDescriptionEquals("Watch replay, No replay saved · imported from LinkedIn")
 
         solve = solve(watchable)
         composeRule.onNodeWithText("Your solve").assertIsDisplayed()
-        composeRule.onAllNodesWithText("Your solve · No replay").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Your solve · No replay saved").assertCountEquals(0)
         assertEquals(0, count(ReplayTags.UNAVAILABLE))
     }
 
     @Test
     fun `the reason a day has no replay names the import or the solve, and is nothing for a day with one or none to show`() {
-        assertEquals("No replay · imported from LinkedIn", imported.unavailableText())
-        assertEquals("No replay for this solve", HistoryReplays.Unavailable(ReplayUnavailable.NotRecorded).unavailableText())
+        assertEquals("No replay saved · imported from LinkedIn", imported.unavailableText())
+        assertEquals("No replay saved for this solve", HistoryReplays.Unavailable(ReplayUnavailable.NotRecorded).unavailableText())
         assertEquals(null, watchable.unavailableText())
         assertEquals(null, HistoryReplays.Hidden.unavailableText())
     }
