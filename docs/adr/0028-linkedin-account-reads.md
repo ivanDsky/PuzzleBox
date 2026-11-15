@@ -1,6 +1,6 @@
 # ADR-0028 — LinkedIn account reads: opt-in, on view, one call per item
 
-Date: 2026-11-09 · Amended 2026-11-11 (owner rulings: Connect lives in Profile's Accounts list, one combined rank, board motion; cloud-sync ruling: saved boards reach the owner's cloud space, ADR-0029) · Status: accepted · Source: `.scratch/linkedin/spec.md` (A1–A37 and its amendments), spike 08 · Amends ADR-0017 §6 (terms posture), ADR-0012 (streak skips archived rows) and ADR-0027 §2 (owner table)
+Date: 2026-11-09 · Amended 2026-11-11 (owner rulings: Connect lives in Profile's Accounts list, one combined rank, board motion; cloud-sync ruling: saved boards reach the owner's cloud space, ADR-0029) · Amended by ADR-0032 (§1: the game page GET and the one `updateGameState` write) · Status: accepted · Source: `.scratch/linkedin/spec.md` (A1–A37 and its amendments), spike 08 · Amends ADR-0017 §6 (terms posture), ADR-0012 (streak skips archived rows) and ADR-0027 §2 (owner table)
 
 **Amended 2026-11-11.** Owner rulings after hands-on use replace three earlier lines of this ADR. Decisions 1, 6 and 7 below now state the current rule; the amendments sections at the end of the spec hold the owner's words. In short: Connect and Disconnect live in the Accounts list on Profile, and Settings has no LinkedIn section; connections share one combined rank with PuzzleBox rows; the board has no Today/Yesterday switch and follows the day card's day; with the flag on, rows move per person.
 
