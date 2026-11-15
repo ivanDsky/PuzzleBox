@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.domain
 
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.repository.DailyRefresh
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -20,14 +20,14 @@ class SyncTodayPuzzlesTest {
     private val today = LocalDate.of(2026, 11, 4)
     private val calendar = FakeGameCalendar(today)
     private val daily = FakeDailyRepository().apply {
-        setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
-        setToday(beta, DailyToday.Fresh(TestGames.puzzle(beta)))
+        setRefresh(alpha, DailyRefresh.Stored(TestGames.puzzle(alpha)))
+        setRefresh(beta, DailyRefresh.Stored(TestGames.puzzle(beta)))
     }
     private val sync = SyncTodayPuzzles(TestGames.registry(listOf(alpha, beta)), daily, calendar)
 
     @Test
     fun `a failed fetch is recorded for its game only`() = runTest {
-        daily.setToday(alpha, DailyToday.Unavailable(FetchError.Unavailable()))
+        daily.setRefresh(alpha, DailyRefresh.Failed(FetchError.Unavailable()))
 
         sync()
 
@@ -37,8 +37,8 @@ class SyncTodayPuzzlesTest {
     }
 
     @Test
-    fun `a stale cached copy is not a failure`() = runTest {
-        daily.setToday(alpha, DailyToday.Cached(TestGames.puzzle(alpha), FetchError.Unavailable()))
+    fun `a refresh that stores nothing is not a failure`() = runTest {
+        daily.setRefresh(alpha, DailyRefresh.Changed(TestGames.puzzle(alpha, tag = 1)))
 
         sync()
 
@@ -57,10 +57,10 @@ class SyncTodayPuzzlesTest {
 
     @Test
     fun `a later successful fetch clears the failure`() = runTest {
-        daily.setToday(alpha, DailyToday.Unavailable(FetchError.Unavailable()))
+        daily.setRefresh(alpha, DailyRefresh.Failed(FetchError.Unavailable()))
         sync()
 
-        daily.setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
+        daily.setRefresh(alpha, DailyRefresh.Stored(TestGames.puzzle(alpha)))
         sync()
 
         assertEquals(emptySet<GameId>(), sync.failed.value)
@@ -72,7 +72,7 @@ class SyncTodayPuzzlesTest {
         val alphaOnly = object : GameCalendar by calendar {
             override fun today(game: GameId): LocalDate? = if (game == alpha) calendar.today(game) else null
         }
-        daily.setToday(beta, DailyToday.Unavailable(FetchError.Unavailable()))
+        daily.setRefresh(beta, DailyRefresh.Failed(FetchError.Unavailable()))
 
         SyncTodayPuzzles(TestGames.registry(listOf(alpha, beta)), daily, alphaOnly)()
 

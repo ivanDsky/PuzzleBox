@@ -154,6 +154,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `flags/` `ReleaseFlag` enum (empty: no feature in flight) + `ReleaseFlags` reader + `ShippedReleaseFlags` (ADR-0022), Koin `commonModule`.
 - `core/data/` (`:core:data`) — game-agnostic repositories: `DailyRepository` →
   `OfflineFirstDailyRepository` (`today(game)`/`cached(game, day)`/`observeHistory(game)`,
+  `refreshToday(game)` → `DailyRefresh` Stored/Unchanged/Changed/Failed + `replaceToday(game, expected, fresh)`,
   by-date `day(game, day)` → `DailyDay` (cache first; on a miss fetches and persists only for an
   archive-capable source within its range), `archiveRange(game)` (ADR-0012),
   `DailyToday` Fresh/Cached/Unavailable, `DailyEntry`; decodes through `GameRegistry`, fetches
@@ -582,7 +583,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   from `MainActivity` to Create's ViewModel (see Entry points); `FakeSharedTextStore` in
   `core:testing`, one `SharedTextStoreContract`.
 - **Repository interfaces** (`core:data`) — `DailyRepository.today()` is network-first
-  (`DailyToday.Cached` carries the fetch error), `cached()`/`observeHistory()` never touch the
+  (`DailyToday.Cached` carries the fetch error), `refreshToday()` is the one shared fetch per game
+  and day and never overwrites a stored daily (`replaceToday()` does, compare-and-replace),
+  `cached()`/`observeHistory()` never touch the
   network; `CompletionRepository` stamps ADR-0004 first-win semantics via `FirstWinPolicy`
   keyed by `PuzzleRefKeys`; `UserPreferencesRepository` — `themeMode` Flow + setter.
 - **`IdentityService` / `LeaderboardRepository`** (`core:data`, Firebase impl) — identity is a
