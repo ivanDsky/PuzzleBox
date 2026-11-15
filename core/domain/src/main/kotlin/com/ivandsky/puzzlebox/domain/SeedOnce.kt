@@ -5,10 +5,8 @@ import kotlinx.coroutines.flow.SharingCommand
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.transform
 
 /**
  * This flow with a head start for a combine: it emits the last real value it carried while
@@ -21,7 +19,7 @@ fun <T> Flow<T>.seededOnce(seed: T, account: () -> Any?): Flow<T> {
     val source = this
     var held: Pair<Any?, T>? = null
     return flow {
-        emit(held?.takeIf { it.first == account() }?.second ?: seed)
+        emit(held?.takeIf { it.first == null || it.first == account() }?.second ?: seed)
         source.collect { value ->
             held = account() to value
             emit(value)
@@ -39,9 +37,17 @@ fun SharingStarted.resettingOnAccountChange(account: Flow<Any?>): SharingStarted
     return object : SharingStarted {
         override fun command(subscriptionCount: StateFlow<Int>): Flow<SharingCommand> = merge(
             policy.command(subscriptionCount),
-            account.distinctUntilChanged().drop(1).transform {
-                emit(SharingCommand.STOP_AND_RESET_REPLAY_CACHE)
-                if (subscriptionCount.value > 0) emit(SharingCommand.START)
+            // Unknown (null) to known is the cold start, not a switch; known to anything else is.
+            flow {
+                var previous: Any? = null
+                account.distinctUntilChanged().collect { now ->
+                    val before = previous
+                    previous = now
+                    if (before != null) {
+                        emit(SharingCommand.STOP_AND_RESET_REPLAY_CACHE)
+                        if (subscriptionCount.value > 0) emit(SharingCommand.START)
+                    }
+                }
             },
         )
     }

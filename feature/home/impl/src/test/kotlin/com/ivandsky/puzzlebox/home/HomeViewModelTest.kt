@@ -246,6 +246,21 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `the identity becoming known after a cold start does not send Home back to its seed`() = runTest {
+        val identity = FakeIdentityService()
+        val deps = viewModel(identity = identity, collect = false)
+        val seen = mutableListOf<HomeUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { deps.vm.uiState.collect { seen += it } }
+        assertTrue(deps.vm.uiState.value.isLocalStateLoaded)
+        seen.clear()
+
+        identity.currentIdentity = Identity("ann", "Ann", null)
+
+        assertTrue(seen.isNotEmpty())
+        assertTrue(seen.all { it.isLocalStateLoaded })
+    }
+
+    @Test
     fun `signing in as another account shows nothing from the first account while its reads are pending`() = runTest {
         val identity = FakeIdentityService(initial = Identity("ann", "Ann", null))
         val open = MutableStateFlow(true)

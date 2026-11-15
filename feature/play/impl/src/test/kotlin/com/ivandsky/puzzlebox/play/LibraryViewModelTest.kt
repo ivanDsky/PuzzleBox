@@ -56,9 +56,12 @@ import java.time.LocalDate
 import java.time.YearMonth
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
@@ -258,6 +261,23 @@ class LibraryViewModelTest {
 
         assertTrue(seen.isNotEmpty())
         assertTrue(seen.all { state -> state.rows.first { it.card.game == alpha }.stats.solved == 0 })
+    }
+
+    @Test
+    fun `the identity becoming known after a cold start does not reset the rows`() {
+        val vm = observedVm()
+        solveAlpha()
+        val seen = mutableListOf<LibraryUiState>()
+        val watcher = CoroutineScope(dispatcher + Job())
+        watcher.launch { vm.uiState.collect { seen += it } }
+        dispatcher.scheduler.runCurrent()
+        seen.clear()
+
+        identity.currentIdentity = Identity("ann", "Ann", null)
+        dispatcher.scheduler.runCurrent()
+        watcher.cancel()
+
+        assertTrue(seen.all { state -> state.rows.first { it.card.game == alpha }.stats.solved == 1 })
     }
 
     @Test
@@ -597,8 +617,8 @@ class LibraryViewModelTest {
 /** [CompletionRepository] whose record stream is silent while [open] is false: a read still in flight. */
 private class GatedCompletionRepository(
     private val inner: CompletionRepository,
-    private val open: kotlinx.coroutines.flow.StateFlow<Boolean>,
+    private val open: StateFlow<Boolean>,
 ) : CompletionRepository by inner {
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    override fun observeRecords() = open.flatMapLatest { if (it) inner.observeRecords() else kotlinx.coroutines.flow.emptyFlow() }
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observeRecords() = open.flatMapLatest { if (it) inner.observeRecords() else emptyFlow() }
 }
