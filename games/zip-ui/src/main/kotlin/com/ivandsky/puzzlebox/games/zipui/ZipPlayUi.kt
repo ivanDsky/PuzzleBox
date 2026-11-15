@@ -101,7 +101,6 @@ fun ZipPlayScreen(
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val ready = status as? PlayBoardStatus.Ready
     Box(modifier.fillMaxSize()) {
         AdaptivePlayScaffold(
             layout = layout,

@@ -185,6 +185,7 @@ class SudokuBoardState(
 
     /** A setting, not a move: no undo unit and no clock. */
     fun toggleNotesMode() {
+        onInput()
         clearFeedback()
         store(session.withNotesMode(!session.notesMode))
     }

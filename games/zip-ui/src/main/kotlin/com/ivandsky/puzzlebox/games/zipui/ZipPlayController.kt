@@ -106,15 +106,15 @@ class ZipPlayController(
 
     /** The trace edits: each step drops the hint arrow (ticket 28: any input does) and
      *  persists through [commit] like any move. */
-    internal val edits = ZipTraceEdits({ session }, log) { hintArrow = null; commit(it) }
+    internal val edits = ZipTraceEdits({ session }, log, env.onInput) { hintArrow = null; commit(it) }
 
     override val canUndo: Boolean get() = edits.canUndo
 
     override val canRedo: Boolean get() = edits.canRedo
 
-    override fun undo() = edits.undo().also { env.onInput() }
+    override fun undo() = edits.undo()
 
-    override fun redo() = edits.redo().also { env.onInput() }
+    override fun redo() = edits.redo()
 
     //endregion
 

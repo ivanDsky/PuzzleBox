@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.SolveReplay
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -114,13 +115,20 @@ class ActivePlay internal constructor(
     /** The error state's retry: opens the slot again. */
     fun retry() = load()
 
+    private var loading: Job? = null
+
+    /** Returns once the current load, including its refresh behind the board and any swap, has finished. For tests. */
+    suspend fun awaitLoaded() {
+        loading?.join()
+    }
+
     private fun load(controller: GamePlayController) {
         val gen = generation
         resetRecord(ref = null)
         reopen = null
         persistence.disarm()
         _board.value = Board(controller, PlayBoardStatus.Loading)
-        scope.launch {
+        loading = scope.launch {
             val opened = opening.open(slot)
             if (gen != generation) return@launch // superseded; its result is never shown
             val live = when (opened) {

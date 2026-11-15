@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.games.tangoui.TangoPlayController
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
+import com.ivandsky.puzzlebox.games.zipui.ZipPlayUi
 import com.ivandsky.puzzlebox.gameui.DragEvent
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
@@ -134,12 +135,11 @@ class RealGamesBoardSwapTest {
         val (daily, play) = open(spec) { gate = holdRefresh(spec.game) }
         before(play)
         gate.complete(Unit)
-        awaitUntil("${spec.game.value} refresh answered") { daily.todayAnswers(spec.game) == 1 }
+        runBlocking { play.awaitLoaded() }
         if (swapped) {
-            awaitUntil("${spec.game.value} swapped") { spec.shown(play) == spec.revisedPuzzle }
+            assertEquals(spec.revisedPuzzle, spec.shown(play))
             assertSame(spec.revised, storedNow(daily, spec))
         } else {
-            Thread.sleep(SETTLE_MS) // nothing happens to wait on: the answer is in, the swap would follow at once
             assertEquals(spec.storedPuzzle, spec.shown(play))
             assertSame(spec.stored, storedNow(daily, spec))
         }
@@ -147,8 +147,8 @@ class RealGamesBoardSwapTest {
 
     private fun assertFailedKeepsBoard(spec: Spec) {
         val (daily, play) = open(spec) { setRefresh(spec.game, DailyRefresh.Failed(FetchError.Unavailable("offline"))) }
-        awaitUntil("${spec.game.value} refresh answered") { daily.todayAnswers(spec.game) == 1 }
-        Thread.sleep(SETTLE_MS)
+        runBlocking { play.awaitLoaded() }
+        assertEquals(1, daily.todayAnswers(spec.game))
         assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         assertEquals(spec.storedPuzzle, spec.shown(play))
     }
@@ -161,6 +161,7 @@ class RealGamesBoardSwapTest {
     @Test fun `zip keeps a board after a move`() = assertRefresh(zip, zip.move, swapped = false)
     @Test fun `zip keeps a board after an input that logs nothing`() = assertRefresh(zip, zip.unlogged, swapped = false)
     @Test fun `zip swaps after the adopt's session and a clock fold`() = assertRefresh(zip, ::foldClock, swapped = true)
+    @Test fun `zip keeps a board after Clear with nothing drawn`() = assertRefresh(zip, { ZipPlayUi().clearFor(it.controller).clear() }, swapped = false)
     @Test fun `zip shows no banner when the refresh fails`() = assertFailedKeepsBoard(zip)
 
     @Test fun `tango swaps an untouched board to the changed daily`() = assertRefresh(tango, {}, swapped = true)
@@ -188,8 +189,6 @@ class RealGamesBoardSwapTest {
     @Test fun `strands shows no banner when the refresh fails`() = assertFailedKeepsBoard(strands)
 
     private companion object {
-        const val SETTLE_MS = 300L
-
         fun zipRevised() = ZipPlayFixture.puzzle().let { it.copy(board = it.board.copy(waypoints = listOf(Cell(0), Cell(24)))) }
 
         fun tangoRevised() = TangoPlayFixture.puzzle.let { it.copy(givens = it.givens + (2 to TangoPlayFixture.solution[2])) }
