@@ -154,6 +154,8 @@ dependencies {
     implementation(projects.feature.compete.impl)
 
     implementation(libs.androidx.activity.compose)
+    // Ticket 08: the system splash hold (installSplashScreen) that MainActivity keeps on screen.
+    implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.compose.material3.windowsizeclass)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)

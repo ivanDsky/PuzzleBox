@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.app
 
 import android.content.Intent
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -11,18 +12,22 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalView
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.core.view.WindowCompat
+import androidx.lifecycle.lifecycleScope
 import com.ivandsky.puzzlebox.app.nav.FriendLink
 import com.ivandsky.puzzlebox.app.nav.SharedText
 import com.ivandsky.puzzlebox.data.repository.SharedTextStore
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.model.ThemeRead
+import com.ivandsky.puzzlebox.navigation.FirstScreenReady
+import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 
@@ -41,13 +46,32 @@ class MainActivity : ComponentActivity(), KoinComponent {
 
     private val sharedText: SharedTextStore by inject()
 
+    private val firstScreen: FirstScreenReady by inject()
+
+    // Built in onCreate, on the clock the splash's one-second cap is measured on.
+    private lateinit var splashPolicy: SplashReleasePolicy
+
+    // The persisted theme once read; null until then, so nothing composes before it.
+    private var theme by mutableStateOf<ThemeRead?>(null)
+
     private var pendingLink by mutableStateOf<String?>(null)
 
     // A share is waiting in the store and the navigator has yet to select Create for it.
     private var pendingShare by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Installed before super so the system splash is the one the window opens with; it stays
+        // up until the release policy says the first screen is ready.
+        val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
+        splashPolicy = SplashReleasePolicy(firstScreen, nowMillis = SystemClock::elapsedRealtime)
+        splash.setKeepOnScreenCondition { splashKeepsOnScreen(splashPolicy) }
+        lifecycleScope.launch {
+            preferences.themeRead.collect { read ->
+                if (read.failed) splashPolicy.onLocalReadFailed()
+                theme = read
+            }
+        }
         val fresh = savedInstanceState == null
         pendingLink = if (fresh) {
             intent.friendLinkUri()
@@ -61,14 +85,13 @@ class MainActivity : ComponentActivity(), KoinComponent {
         }
         enableEdgeToEdge()
         setContent {
-            // Hold the composition until the persisted theme arrives so a stored dark
-            // theme never flashes light for a frame.
-            val themeMode by preferences.themeMode.collectAsState(initial = null)
+            // Nothing composes before the persisted theme is read, so a stored dark theme never
+            // flashes light; the system splash covers that wait.
             val systemDark = isSystemInDarkTheme()
             val windowSize = calculateWindowSizeClass(this)
 
-            themeMode?.let { mode ->
-                val darkTheme = mode.isDarkTheme(systemDark)
+            theme?.let { read ->
+                val darkTheme = read.mode.isDarkTheme(systemDark)
 
                 // enableEdgeToEdge() above follows the SYSTEM dark mode, but the app can
                 // force the opposite, so the system bars must follow the RESOLVED
@@ -140,3 +163,9 @@ private fun ThemeMode.isDarkTheme(systemDark: Boolean): Boolean = when (this) {
     ThemeMode.LIGHT -> false
     ThemeMode.DARK -> true
 }
+
+/**
+ * The system splash is kept exactly while the release policy keeps the first screen unready:
+ * the same predicate the policy answers, so the splash releases on the same three signals.
+ */
+internal fun splashKeepsOnScreen(policy: SplashReleasePolicy): Boolean = policy.keepSplash()

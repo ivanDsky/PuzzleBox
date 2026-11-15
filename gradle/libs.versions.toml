@@ -3,6 +3,8 @@ agp = "9.5.0"
 # Matches the Kotlin compiler embedded in AGP's built-in Kotlin support.
 kotlin = "2.2.10"
 activityCompose = "1.13.0"
+# Ticket 08: the system splash hold (installSplashScreen); compat library for API 23+.
+coreSplashscreen = "1.2.0"
 lifecycle = "2.10.0"
 composeBom = "2026.09.00"
 # material-icons-core is upstream-FROZEN at 1.7.8 (the compose BOM no longer carries a
@@ -61,6 +63,7 @@ uiautomator = "2.4.1"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
 androidx-lifecycle-viewmodel-navigation3 = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-navigation3", version.ref = "lifecycle" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }

@@ -2,4 +2,10 @@
     <style name="Theme.PuzzleBox" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/puzzlebox_launch_background</item>
     </style>
+    <!-- The system splash the activity keeps up until the first screen is ready (ticket 08); it hands
+         over to Theme.PuzzleBox, which stays the window theme after the splash. -->
+    <style name="Theme.PuzzleBox.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/puzzlebox_launch_background</item>
+        <item name="postSplashScreenTheme">@style/Theme.PuzzleBox</item>
+    </style>
 </resources>
