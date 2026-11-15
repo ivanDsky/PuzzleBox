@@ -72,10 +72,3 @@ Restore anything you changed on the device afterwards.
 module records today. Run it with
 `-Pandroid.testInstrumentationRunnerArguments.class=com.ivandsky.puzzlebox.benchmark.BaselineProfileGenerator`
 and pull the profile from the same additional-output directory.
-
-## Known quirk
-
-`./gradlew :app:tasks --all` fails with "Compose Preview ... Unit tests are disabled for this variant
-('benchmark')". AGP creates a Compose Preview task for every build type and wants host tests on
-each; the benchmark variant has none on purpose. `./gradlew :app:tasks` and every build, test and
-benchmark task are unaffected.

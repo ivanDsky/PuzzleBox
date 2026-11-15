@@ -62,9 +62,9 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 `feature:*` → `games:*`; `feature:*:api` → anything but `:core:navigation`/`:core:model`;
 `feature:a:impl` → `feature:b:impl`; `games:*` → `feature:*`; `games:x` → `games:y` except
 `games:x-ui` → `games:x`. Two more arms guard the verification module `:konsist` (ADR-0009):
-`:konsist` → any module, and any module → `:konsist` (test configurations too). Two more arms guard
-the Macrobenchmark module `:benchmark`: its only edge is `:app` through `testedApks`, and nothing depends on it. Two more arms
-guard the `tools` family (ADR-0021): `tools:*` → anything but `:core:game`, a non-UI `games:*`
+`:konsist` → any module, and any module → `:konsist` (test configurations too). Two more arms
+guard the Macrobenchmark module `:benchmark` (ADR-0008): its only edge is `:app` through `testedApks`,
+and nothing depends on it. Two more arms guard the `tools` family (ADR-0021): `tools:*` → anything but `:core:game`, a non-UI `games:*`
 and (test configurations only) `:core:testing`; and any module outside `tools:*` → a tool.
 
 - `app/` (`:app`) — `PuzzleBoxApplication` (starts Koin, then starts `LeaderboardSubmitWatcher`,

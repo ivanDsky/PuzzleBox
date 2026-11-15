@@ -97,7 +97,15 @@ androidComponents {
     beforeVariants(selector().withBuildType("release")) { variant ->
         variant.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]?.enable = true
     }
+    // AGP creates a Compose Preview task for every build type and refuses one without host tests,
+    // which breaks `./gradlew :app:tasks --all`. The benchmark variant gets the host-test variant
+    // for that and nothing more: it has no tests, and its test task is switched off below.
+    beforeVariants(selector().withBuildType("benchmark")) { variant ->
+        variant.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]?.enable = true
+    }
 }
+
+tasks.withType<Test>().matching { it.name == "testBenchmarkUnitTest" }.configureEach { enabled = false }
 
 // The release host-test task exists for the src/testRelease tests alone: the src/test suite needs
 // debug-only dependencies (ui-test-manifest) and runs under testDebugUnitTest.
