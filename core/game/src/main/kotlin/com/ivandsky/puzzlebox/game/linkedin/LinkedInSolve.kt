@@ -1,0 +1,13 @@
+package com.ivandsky.puzzlebox.game.linkedin
+
+import com.ivandsky.puzzlebox.game.GameSession
+import com.ivandsky.puzzlebox.game.replay.MoveKind
+
+/**
+ * A typed solve handed to a game's LinkedIn encoder: the session after each timeline tick, in order
+ * (last = the solved board), and each tick's kind, index-aligned. Order-based bindings (Tango, Queens
+ * solve order) and undo/mistake facts come from here, so game N+1 adds an encoder, not a seam change.
+ */
+class LinkedInSolve<S : GameSession>(val boards: List<S>, val kinds: List<MoveKind>) {
+    val final: S get() = boards.last()
+}
