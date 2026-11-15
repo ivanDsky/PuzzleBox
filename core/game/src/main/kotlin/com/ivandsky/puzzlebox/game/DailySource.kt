@@ -41,6 +41,9 @@ interface DailySource : PuzzleSource {
     /** The LinkedIn Games type id this source serves, or null when it is not a LinkedIn feed. */
     val linkedInGameTypeId: Int? get() = null
 
+    /** The game's LinkedIn route, e.g. `games/zip/`, or null when it is not a LinkedIn feed. */
+    val linkedInGamePath: String? get() = null
+
     /**
      * True when a stored [puzzle] is a stand-in rather than its day's real puzzle (A10):
      * a past day opened by date reads such a row as a cache miss and never serves it.

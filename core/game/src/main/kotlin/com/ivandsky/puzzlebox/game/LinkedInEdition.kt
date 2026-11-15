@@ -21,7 +21,7 @@ import java.time.temporal.ChronoUnit
 class LinkedInEdition(
     val gameTypeId: Int,
     val day1: LocalDate,
-    private val path: String,
+    val path: String,
     private val objectName: String,
 ) {
 

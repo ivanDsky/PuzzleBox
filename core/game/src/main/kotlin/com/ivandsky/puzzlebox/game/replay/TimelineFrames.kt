@@ -40,6 +40,17 @@ internal class TimelineFrames<S : GameSession>(
         return ticks.toTypedArray()
     }
 
+    /** The board after each tick, parallel to [tickTimesMs]; null when [other] is not this timeline's adapter. */
+    @Suppress("UNCHECKED_CAST")
+    fun <T : GameSession> boardsFor(other: GameReplay<T>): List<T>? {
+        if (other !== replay) return null
+        val boards = ArrayList<S>()
+        for (index in moves.indices) {
+            if (index + 1 == moves.size || moves[index + 1].atMs != moves[index].atMs) boards += reach(index + 1).session
+        }
+        return boards as List<T>
+    }
+
     fun frame(tMs: Long, ended: Boolean): ReplayFrame {
         val applied = appliedBy(tMs)
         val board = reach(applied)

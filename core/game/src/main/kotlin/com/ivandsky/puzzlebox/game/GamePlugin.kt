@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.game
 
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.replay.GameReplay
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlay
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInSolve
 import com.ivandsky.puzzlebox.game.replay.Timeline
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.SolveReplay
@@ -33,6 +35,7 @@ interface RendererModel
  * iff its plugin carries one and its UI module binds the matching `GameEditorUi`.
  *
  * [replay] is the game's optional solve-replay adapter (ADR-0008); null hides every replay surface.
+ * [linkedInPlay] is the game's optional LinkedIn play encoder; null means no LinkedIn post for this game.
  *
  * @param P the game's rules state (input to [rules] and [rendererModel])
  * @param S the game's persisted session type
@@ -50,6 +53,7 @@ class GamePlugin<P, S : GameSession, M : RendererModel>(
     val rendererModel: (state: P, hint: Hint?, lastVerdict: MoveVerdict?) -> M,
     val editor: GameEditor<*>? = null,
     val replay: GameReplay<S>? = null,
+    val linkedInPlay: ((solve: LinkedInSolve<S>) -> LinkedInPlay?)? = null,
 ) {
     /**
      * Type-erased replay entry: [S] is in scope here, so no caller casts. Null = no [replay] member, a puzzle
@@ -59,5 +63,19 @@ class GamePlugin<P, S : GameSession, M : RendererModel>(
         val replay = replay ?: return null
         val initial = initialSession(puzzle).getOrNull() ?: return null
         return Timeline.open(definition.id, replay, initial, bytes)
+    }
+
+    /**
+     * Type-erased LinkedIn entry: [S] is in scope, so no caller casts. Folds [bytes] from the puzzle's initial
+     * session through every tick into a [LinkedInSolve] and encodes it. Null = no [linkedInPlay] or [replay]
+     * member, a puzzle this game rejects, bytes that don't decode or fold, or an encoder that declines.
+     * Never throws.
+     */
+    fun linkedInPlayOf(puzzle: Puzzle, bytes: SolveReplay): LinkedInPlay? {
+        val encode = linkedInPlay ?: return null
+        val replay = replay ?: return null
+        val timeline = openTimeline(puzzle, bytes) ?: return null
+        val boards = timeline.boardsOf(replay)?.takeIf { it.isNotEmpty() } ?: return null
+        return encode(LinkedInSolve(boards, timeline.moveKindsAt.asList()))
     }
 }
