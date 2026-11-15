@@ -156,7 +156,7 @@ internal fun GameBoard(
             val clock = board.controller as? PlayClock
             // TwoPane's side panel draws the large live timer in place of this one.
             if (layout != PlayLayout.TwoPane && board.status is PlayBoardStatus.Ready && clock != null) {
-                TimerBar(clock.displayedElapsedMs(), Modifier.width(IntrinsicSize.Max).testTag("play.timer"))
+                TimerBar({ clock.displayedElapsedMs() }, Modifier.width(IntrinsicSize.Max).testTag("play.timer"))
             }
             if (onHowToPlay != null && play.ui.tutorial.isNotEmpty()) {
                 IconButton(onClick = onHowToPlay, modifier = Modifier.testTag("play.how_to_play")) {
