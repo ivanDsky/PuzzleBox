@@ -60,6 +60,8 @@ the build instead of a review.
    - `games:x` → `games:y`, except `games:x-ui` → `games:x`;
    - `:konsist` → any module, and any module → `:konsist`, in every configuration (test
      configurations included);
+   - `:benchmark` → anything but `:app` through AGP's `testedApks` configuration, and any module →
+     `:benchmark` (the Macrobenchmark module drives the installed benchmark APK);
    - any module outside `tools:*` → `tools:*`;
    - `tools:*` → anything but `:core:game`, non-UI `games:*`, and `:core:testing` from test
      configurations.

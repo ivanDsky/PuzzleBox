@@ -56,6 +56,9 @@ mockito = "5.20.0"
 # test JVM, never against the AGP-pinned compiler.
 konsist = "1.0.0-beta.1"
 
+benchmark = "1.5.0"
+uiautomator = "2.4.1"
+
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
 androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
@@ -94,6 +97,8 @@ robolectric = { group = "org.robolectric", name = "robolectric", version.ref = "
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestRunner" }
 androidx-test-ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidxTestExtJunit" }
 androidx-test-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "androidxTestEspresso" }
+androidx-benchmark-macro-junit4 = { group = "androidx.benchmark", name = "benchmark-macro-junit4", version.ref = "benchmark" }
+androidx-test-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
 turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine" }
 androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
 androidx-compose-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
@@ -124,6 +129,7 @@ ksp-gradlePlugin = { group = "com.google.devtools.ksp", name = "com.google.devto
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
+android-test = { id = "com.android.test", version.ref = "agp" }
 # NOTE: puzzlebox.jvm.library applies org.jetbrains.kotlin.jvm VERSION-LESS — AGP 9's
 # built-in Kotlin already carries the plugin on the classpath, and requesting it with a
 # version fails resolution. Same embedded compiler as Android.
@@ -137,6 +143,7 @@ google-services = { id = "com.google.gms.google-services", version.ref = "google
 # Convention plugins (build-logic/convention).
 puzzlebox-android-application = { id = "puzzlebox.android.application" }
 puzzlebox-android-application-compose = { id = "puzzlebox.android.application.compose" }
+puzzlebox-android-benchmark = { id = "puzzlebox.android.benchmark" }
 puzzlebox-android-library = { id = "puzzlebox.android.library" }
 puzzlebox-android-library-compose = { id = "puzzlebox.android.library.compose" }
 puzzlebox-android-feature-api = { id = "puzzlebox.android.feature.api" }
