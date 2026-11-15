@@ -176,7 +176,7 @@ class ActivePlay internal constructor(
                 winRecording.refreshBaseline(resolved)
                 // Only a stored board can still be replaced, and only while no move is logged.
                 if (fetched.refresh != null) persistence.armUntouched(moveLog) else persistence.disarm()
-                PlayBoardStatus.Ready(banner = null)
+                PlayBoardStatus.Ready
             }
         }
     }
@@ -191,7 +191,7 @@ class ActivePlay internal constructor(
         reopen = { it.adoptRestored(session) != null }
         resetRecord(restored.ref)
         if (!controller.isComplete) winRecording.refreshBaseline(restored.ref)
-        return PlayBoardStatus.Ready(banner = null)
+        return PlayBoardStatus.Ready
     }
 
     /** Result's "Play again": a fresh session of the SAME puzzle, always a play-again —
@@ -257,6 +257,7 @@ class ActivePlay internal constructor(
                     }
                 },
                 moveLog = moveLog,
+                onInput = { if (gen == generation) persistence.touch() },
             ),
         )
         return created

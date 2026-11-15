@@ -157,7 +157,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `refreshToday(game)` → `DailyRefresh` Stored/Unchanged/Changed/Failed + `replaceToday(game, expected, fresh)`,
   by-date `day(game, day)` → `DailyDay` (cache first; on a miss fetches and persists only for an
   archive-capable source within its range), `archiveRange(game)` (ADR-0012),
-  `DailyToday` Fresh/Cached/Unavailable, `DailyEntry`; decodes through `GameRegistry`, fetches
+  `DailyEntry`; decodes through `GameRegistry`, fetches
   through every game's `DailySource`), `SavedPlayRepository` → `RoomSavedPlayRepository`
   (one session blob per `PlaySlot`; save prunes to the newest 8 slots in one transaction;
   `observeInProgress`), `calendar/GameCalendar` → `CadenceGameCalendar` (each game's today in
@@ -582,8 +582,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - **`SharedTextStore`** (`core:data`, 00-interfaces §5.2) — in-memory handoff of shared text
   from `MainActivity` to Create's ViewModel (see Entry points); `FakeSharedTextStore` in
   `core:testing`, one `SharedTextStoreContract`.
-- **Repository interfaces** (`core:data`) — `DailyRepository.today()` is network-first
-  (`DailyToday.Cached` carries the fetch error), `refreshToday()` is the one shared fetch per game
+- **Repository interfaces** (`core:data`) — `DailyRepository.cachedPuzzle()` is the store-first
+  read that opens a play (board first, A5), `refreshToday()` is the one shared fetch per game
   and day and never overwrites a stored daily (`replaceToday()` does, compare-and-replace),
   `cached()`/`observeHistory()` never touch the
   network; `CompletionRepository` stamps ADR-0004 first-win semantics via `FirstWinPolicy`

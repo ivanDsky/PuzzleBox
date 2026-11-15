@@ -109,7 +109,7 @@ class PlaySessionStoreTest {
         val resumed = store().open(key)!!
 
         assertNotSame(play, resumed)
-        assertEquals(PlayBoardStatus.Ready(banner = null), resumed.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, resumed.board.value.status)
         assertEquals(2, fakes[alpha].latest.moves)
         assertEquals("resumed from the row, not refetched", 1, daily.todayCalls(alpha))
         assertEquals("the save carries the record identity", "Alpha · #7", resumed.record.value.label)

@@ -96,7 +96,7 @@ class ActivePlayTest {
     @Test
     fun `fresh fetch adopts the ready board with today's identity`() {
         val play = loaded()
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         assertSame(ui.latest, play.controller)
         assertEquals(ref, ui.latest.ref)
         assertEquals(TestGames.puzzle(game).payload.toList(), ui.latest.puzzle!!.payload.toList())
@@ -114,7 +114,7 @@ class ActivePlayTest {
         daily.setCached(game, day, TestGames.puzzle(game))
         daily.setRefresh(game, DailyRefresh.Failed(FetchError.Throttled()))
         val play = loaded()
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         assertEquals(ref, ui.latest.ref)
     }
 
@@ -129,7 +129,7 @@ class ActivePlayTest {
         daily.setToday(game, TestGames.puzzle(game))
         play.load()
         assertEquals(2, daily.todayCalls(game))
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
     }
 
     @Test
@@ -223,7 +223,7 @@ class ActivePlayTest {
         play.playAgain()
         assertEquals(1, ui.latest.playAgains)
         assertNull("the verdict resets until the new write lands", play.record.value.verdict)
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
 
         ui.latest.win()
         assertEquals(2, records().size)
@@ -236,7 +236,7 @@ class ActivePlayTest {
         daily.setRefresh(game, DailyRefresh.Failed(FetchError.Throttled()))
         val play = loaded()
         play.playAgain()
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
     }
 
     @Test
@@ -273,7 +273,7 @@ class ActivePlayTest {
         savedRow(FakeController.envelope(game, moves = 2, day = day).session)
         val play = loaded()
         assertEquals(0, daily.todayCalls(game))
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         assertEquals(2, ui.latest.moves)
         assertEquals("Alpha · #7", play.record.value.label)
 
@@ -286,7 +286,7 @@ class ActivePlayTest {
     fun `a saved completed session shows the win without re-emitting`() {
         savedRow(FakeController.envelope(game, moves = 5, complete = true, day = day).session)
         val play = loaded()
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         assertTrue(play.controller.isComplete)
         assertTrue(records().isEmpty())
         assertNull(play.record.value.verdict)

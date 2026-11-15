@@ -152,7 +152,7 @@ class SlotOpeningCustomTest {
         val key = CustomGameKey(alpha.value, code.value)
 
         val play = checkNotNull(store.open(key))
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         fakes[alpha].latest.move()
         fakes[alpha].latest.win()
 

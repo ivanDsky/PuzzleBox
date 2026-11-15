@@ -149,6 +149,7 @@ class QueensPlayController(
             settle = this::settle,
             mode = hintMode,
             scope = env.scope,
+            onInput = env.onInput,
         )
     }
 

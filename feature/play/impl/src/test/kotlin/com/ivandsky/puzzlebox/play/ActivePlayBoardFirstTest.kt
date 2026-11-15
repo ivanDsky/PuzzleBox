@@ -99,7 +99,7 @@ class ActivePlayBoardFirstTest {
 
         val play = open()
 
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         assertSame(stored, shown(play))
         assertEquals("the refresh has started and is still out", 1, daily.todayCalls(game))
         gate.complete(Unit)
@@ -112,7 +112,7 @@ class ActivePlayBoardFirstTest {
 
         gate.complete(Unit)
 
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         assertSame(revised, shown(play))
         assertSame(revised, storedNow())
     }
@@ -145,13 +145,28 @@ class ActivePlayBoardFirstTest {
         assertSame(revised, storedNow())
     }
 
+    /** The kinds (refused tap, empty undo, hint dialog) are pinned on the real controllers in the app tests. */
+    @Test
+    fun `an input that changes and logs nothing still closes the latch`() {
+        val gate = daily.holdRefresh(game)
+        val play = open()
+        val first = play.controller
+
+        (first as FakeController).inputWithoutMove()
+        gate.complete(Unit)
+
+        assertSame(first, play.controller)
+        assertSame(stored, shown(play))
+        assertSame(stored, storedNow())
+    }
+
     @Test
     fun `a failed refresh with a stored board shows no banner and changes nothing`() {
         daily.setRefresh(game, DailyRefresh.Failed(FetchError.Unavailable("offline")))
 
         val play = open()
 
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         assertSame(stored, shown(play))
         assertSame(stored, storedNow())
     }
@@ -189,7 +204,7 @@ class ActivePlayBoardFirstTest {
 
         gate.complete(Unit)
 
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         assertArrayEquals(revised.payload, shown(play).payload)
         assertEquals("one fetch decided the board; no second refresh", 1, fresh.todayCalls(game))
     }

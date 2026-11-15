@@ -14,9 +14,10 @@ internal class PlayPersistence(private val slot: PlaySlot, private val writer: S
     private var touched = true
 
     /**
-     * True from [armUntouched] until the player first acts. Acting is the move log growing past what the adopt
-     * left in it: the adopt's own session changes and the clock folds change no log, so they never close it.
-     * The log is read here, so a move that emits no session change still closes it. A play whose log is off or
+     * True from [armUntouched] until the player first acts. Acting is any input the controller reports through
+     * [touch] (a refused tap or an undo with nothing to undo changes nothing, so only the controller can say),
+     * or the move log growing past what the adopt left in it. The adopt's own session changes and the clock
+     * folds do neither, so they never close it. A play whose log is off or
      * void cannot tell, so it never counts as untouched.
      */
     val untouched: Boolean
@@ -31,6 +32,11 @@ internal class PlayPersistence(private val slot: PlaySlot, private val writer: S
         baseline = log.snapshot()
         watched = log
         touched = baseline == null
+    }
+
+    /** The player's input reached the controller. */
+    fun touch() {
+        touched = true
     }
 
     /** Stops watching: the next board is a new play. */

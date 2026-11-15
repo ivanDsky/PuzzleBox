@@ -63,9 +63,8 @@ class ZipPlayUiScreenTest {
 
     private fun readyController(
         layout: PlayLayout = PlayLayout.SinglePane,
-        banner: String? = null,
     ): ZipPlayController = adoptedController().also {
-        setContent(it, PlayBoardStatus.Ready(banner), layout)
+        setContent(it, PlayBoardStatus.Ready, layout)
     }
 
     private fun setContent(
@@ -142,14 +141,6 @@ class ZipPlayUiScreenTest {
     }
 
     @Test
-    fun `degraded ready shows the banner but stays playable`() {
-        readyController(banner = "You're offline. Playing today's saved puzzle.")
-        composeRule.onNodeWithTag("play.degrade_banner").assertExists()
-        composeRule.onNodeWithText("You're offline. Playing today's saved puzzle.").assertExists()
-        composeRule.onNodeWithTag("play.board").assertExists()
-    }
-
-    @Test
     fun `hint button counts up and highlights a cell`() {
         val controller = readyController()
         composeRule.onNodeWithTag("play.hint").performClick()
@@ -212,7 +203,7 @@ class ZipPlayUiScreenTest {
         }
         check(controller.isComplete)
         composeRule.mainClock.autoAdvance = false
-        setContent(controller, PlayBoardStatus.Ready(null))
+        setContent(controller, PlayBoardStatus.Ready)
         composeRule.mainClock.advanceTimeBy(16)
         check(solvedFacts != null) { "a solved board waited for a moment it never plays" }
     }
@@ -275,7 +266,7 @@ class ZipPlayUiScreenTest {
             PuzzleBoxTheme {
                 density = LocalDensity.current
                 Box(Modifier.requiredSize(width = 1200.dp, height = 800.dp)) {
-                    ZipPlayScreen(controller, PlayBoardStatus.Ready(null), PlayLayout.SinglePane, sidePanel = null, onRetry = {}, onSolved = { _, _ -> })
+                    ZipPlayScreen(controller, PlayBoardStatus.Ready, PlayLayout.SinglePane, sidePanel = null, onRetry = {}, onSolved = { _, _ -> })
                 }
             }
         }
@@ -302,7 +293,7 @@ class ZipPlayUiScreenTest {
             PuzzleBoxTheme {
                 density = LocalDensity.current
                 Box(Modifier.requiredSize(width = 411.dp, height = 900.dp)) {
-                    ZipPlayScreen(controller, PlayBoardStatus.Ready(null), PlayLayout.SinglePane, sidePanel = null, onRetry = {}, onSolved = { _, _ -> })
+                    ZipPlayScreen(controller, PlayBoardStatus.Ready, PlayLayout.SinglePane, sidePanel = null, onRetry = {}, onSolved = { _, _ -> })
                 }
             }
         }

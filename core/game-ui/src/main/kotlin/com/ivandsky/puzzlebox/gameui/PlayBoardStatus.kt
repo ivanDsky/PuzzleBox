@@ -17,9 +17,8 @@ sealed interface PlayBoardStatus {
      *  only when [retryable] — a day the source says doesn't exist won't appear on retry. */
     data class Unavailable(val message: String, val retryable: Boolean = true) : PlayBoardStatus
 
-    /** Board in hand. [banner] non-null = playing the SAVED puzzle because the fetch
-     *  failed — surfaced as a banner, the board stays playable. */
-    data class Ready(val banner: String?) : PlayBoardStatus
+    /** Board in hand and playable. */
+    data object Ready : PlayBoardStatus
 }
 
 /**

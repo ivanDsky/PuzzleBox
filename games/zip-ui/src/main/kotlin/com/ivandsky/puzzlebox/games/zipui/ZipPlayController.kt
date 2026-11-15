@@ -76,6 +76,7 @@ class ZipPlayController(
     //region input (F2 §7: candidate moves in, authoritative validation here)
 
     fun onDragEvent(event: DragEvent) {
+        env.onInput()
         hintArrow = null // ticket 28: the arrow dies on the next input, always
         val current = session ?: return
         if (current.isComplete) return
@@ -111,9 +112,9 @@ class ZipPlayController(
 
     override val canRedo: Boolean get() = edits.canRedo
 
-    override fun undo() = edits.undo()
+    override fun undo() = edits.undo().also { env.onInput() }
 
-    override fun redo() = edits.redo()
+    override fun redo() = edits.redo().also { env.onInput() }
 
     //endregion
 
@@ -153,6 +154,7 @@ class ZipPlayController(
      * cell with no arrow — a lone cell has no segment direction.
      */
     fun hint() {
+        env.onInput()
         val current = session ?: return
         if (current.isComplete) return
         val puzzle = current.puzzle

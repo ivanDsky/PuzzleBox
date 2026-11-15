@@ -111,7 +111,6 @@ fun ZipPlayScreen(
                 PlayChrome(
                     clock = controller,
                     hints = controller,
-                    banner = ready?.banner,
                     feedback = controller,
                 )
             },

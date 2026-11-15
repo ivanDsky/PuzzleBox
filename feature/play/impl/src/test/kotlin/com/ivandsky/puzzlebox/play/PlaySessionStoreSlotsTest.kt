@@ -137,7 +137,7 @@ class PlaySessionStoreSlotsTest {
         val store = store()
         val first = store.open(key)!!
         runCurrent()
-        assertEquals(PlayBoardStatus.Ready(banner = null), first.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, first.board.value.status)
         fakes[alpha].latest.move()
         fakes[alpha].latest.move()
 
@@ -148,7 +148,7 @@ class PlaySessionStoreSlotsTest {
         val reopened = store.open(key)!!
         runCurrent()
         assertEquals(1, daily.todayCalls(alpha))
-        assertEquals(PlayBoardStatus.Ready(banner = null), reopened.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, reopened.board.value.status)
         assertEquals(2, fakes[alpha].latest.moves)
         assertEquals("the save carries the record identity", first.record.value.label, reopened.record.value.label)
     }

@@ -32,10 +32,15 @@ class FakeDailyRepository : DailyRepository {
 
     private val served = mutableMapOf<GameId, Puzzle>()
     private val failures = mutableMapOf<GameId, FetchError>()
-    private val storedToday = mutableMapOf<GameId, Puzzle>()
+    /** What a refresh stored as today, with the day the play asked for when it did (null: nobody asked, any day). */
+    private class StoredToday(val day: LocalDate?, val puzzle: Puzzle)
+
+    private val storedToday = mutableMapOf<GameId, StoredToday>()
+    private val lastAsked = mutableMapOf<GameId, LocalDate>()
     private val refreshGates = mutableMapOf<GameId, CompletableDeferred<Unit>>()
     private val refreshResults = mutableMapOf<GameId, DailyRefresh>()
     private val calls = mutableMapOf<GameId, Int>()
+    private val answers = mutableMapOf<GameId, Int>()
     private val histories = mutableMapOf<GameId, MutableStateFlow<List<DailyEntry>>>()
     private val cachedByDay = mutableMapOf<Pair<GameId, LocalDate>, Puzzle>()
     private val archiveRanges = mutableMapOf<GameId, ClosedRange<LocalDate>>()
@@ -68,6 +73,9 @@ class FakeDailyRepository : DailyRepository {
 
     /** How many times [refreshToday] ran for [game]. */
     fun todayCalls(game: GameId): Int = calls[game] ?: 0
+
+    /** How many of those refreshes have returned their answer (a held one has not). */
+    fun todayAnswers(game: GameId): Int = answers[game] ?: 0
 
     /** Replaces [game]'s captured days (kept newest first, the repository contract). */
     fun setHistory(game: GameId, entries: List<DailyEntry>) {
@@ -119,20 +127,24 @@ class FakeDailyRepository : DailyRepository {
     override suspend fun refreshToday(game: GameId): DailyRefresh {
         calls[game] = todayCalls(game) + 1
         refreshGates[game]?.await()
+        return answer(game).also { answers[game] = todayAnswers(game) + 1 }
+    }
+
+    private fun answer(game: GameId): DailyRefresh {
         refreshResults[game]?.let { return it }
         failures[game]?.let { return DailyRefresh.Failed(it) }
         val puzzle = served[game] ?: error("no today scripted for ${game.value} (history is cache-only, A8)")
-        val stored = storedToday[game] ?: newestCachedDay(game)?.let(cachedByDay::get)
+        val stored = storedToday[game]?.puzzle ?: newestCachedDay(game)?.let(cachedByDay::get)
         return when {
-            stored == null -> DailyRefresh.Stored(puzzle).also { storedToday[game] = puzzle }
+            stored == null -> DailyRefresh.Stored(puzzle).also { storedToday[game] = StoredToday(lastAsked[game], puzzle) }
             stored == puzzle -> DailyRefresh.Unchanged
             else -> DailyRefresh.Changed(puzzle)
         }
     }
 
     override suspend fun replaceToday(game: GameId, expected: Puzzle, fresh: Puzzle): Boolean {
-        if (storedToday[game] == expected) {
-            storedToday[game] = fresh
+        storedToday[game]?.takeIf { it.puzzle == expected }?.let {
+            storedToday[game] = StoredToday(it.day, fresh)
             return true
         }
         val today = newestCachedDay(game) ?: return false
@@ -166,8 +178,12 @@ class FakeDailyRepository : DailyRepository {
 
     override fun linkedInGamePath(game: GameId): String? = linkedInGamePaths[game]
 
-    override suspend fun cachedPuzzle(game: GameId, day: LocalDate): Puzzle? =
-        cachedByDay[game to day] ?: storedToday[game]
+    /** Day-keyed: a refresh's stored today answers only the day the play asked for before it stored (A5). */
+    override suspend fun cachedPuzzle(game: GameId, day: LocalDate): Puzzle? {
+        lastAsked[game] = day
+        return cachedByDay[game to day]
+            ?: storedToday[game]?.takeIf { it.day == null || it.day == day }?.puzzle
+    }
 
     private fun history(game: GameId): MutableStateFlow<List<DailyEntry>> =
         histories.getOrPut(game) { MutableStateFlow(emptyList()) }

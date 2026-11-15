@@ -4,9 +4,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -22,7 +19,7 @@ import kotlinx.coroutines.delay
 
 /*
  * The play chrome, split core | game (user ruling 2026-11-03): every game shows a title,
- * a clock, a hint control, undo/redo and a degrade banner, so those are CORE — drawn once
+ * a clock, a hint control and undo/redo, so those are CORE — drawn once
  * in game-ui from small seams the game's play state implements. What each seam MEANS is the
  * game's: when its clock starts, what a hint does, what an undo unit is, what Clear wipes
  * ([PlayClear]). A game's own settings (Queens' Auto-cross) ride the top bar's overflow
@@ -115,8 +112,7 @@ fun PlayClockEffects(clock: PlayClock) {
 
 /**
  * The play chrome every game shares beside or under its board: the
- * degrade banner (its copy passed in) and the one reserved
- * caption slot ([PlayCaptionSlot] over [playCaption]: violation > rejection > hint, then the
+ * one reserved caption slot ([PlayCaptionSlot] over [playCaption]: violation > rejection > hint, then the
  * route's [LocalRouteCaption]). The controls are the scaffold's [AdaptivePlayScaffold]
  * actions ([PlayActionBar]); the title, timer, How to play and the overflow live in the
  * route's top bar. [clock] runs the shared clock loop here so the fold follows the game's
@@ -126,7 +122,6 @@ fun PlayClockEffects(clock: PlayClock) {
 fun PlayChrome(
     clock: PlayClock?,
     hints: PlayHints?,
-    banner: String?,
     modifier: Modifier = Modifier,
     feedback: PlayFeedback? = null,
 ) {
@@ -139,23 +134,6 @@ fun PlayChrome(
             .testTag("play.side_panel"),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        banner?.let { message ->
-            Surface(
-                color = MaterialTheme.colorScheme.tertiaryContainer,
-                contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
-                shape = MaterialTheme.shapes.medium,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag("play.degrade_banner"),
-            ) {
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                )
-            }
-        }
-
         PlayCaptionSlot(caption = playCaption(feedback, hints) ?: LocalRouteCaption.current)
     }
 }

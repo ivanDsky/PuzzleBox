@@ -78,13 +78,14 @@ object ZipPlayFixture {
 
 /** 4×4 Queens daily, regions = rows. */
 object QueensPlayFixture {
-    fun envelope(): Puzzle = Puzzle(
+    fun puzzle(solution: List<Int> = listOf(1, 6, 11, 12)): QueensPuzzle =
+        QueensPuzzle(size = 4, regions = List(16) { it / 4 }, solution = solution.map(::QueensCell))
+
+    fun envelope(puzzle: QueensPuzzle = puzzle()): Puzzle = Puzzle(
         gameId = QueensDefinition.id,
         variant = queensVariantId(4),
         formatVersion = QueensCodec.VERSION,
-        payload = QueensCodec.encode(
-            QueensPuzzle(size = 4, regions = List(16) { it / 4 }, solution = listOf(1, 6, 11, 12).map(::QueensCell)),
-        ),
+        payload = QueensCodec.encode(puzzle),
     )
 }
 
@@ -167,7 +168,7 @@ object MiniSudokuPlayFixture {
     )
 
     /** Envelope as DailyRepository hands it to the UI (payload = codec bytes). */
-    fun envelope(): Puzzle = Puzzle(SudokuGames.MINI.id, puzzle.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(puzzle))
+    fun envelope(puzzle: SudokuPuzzle = this.puzzle): Puzzle = Puzzle(SudokuGames.MINI.id, puzzle.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(puzzle))
 }
 
 /**
@@ -192,7 +193,7 @@ object StrandsPlayFixture {
     }
 
     /** Envelope as DailyRepository hands it to the UI (payload = codec bytes). */
-    fun envelope(): Puzzle = StrandsCodec.envelope(puzzle)
+    fun envelope(puzzle: StrandsPuzzle = this.puzzle): Puzzle = StrandsCodec.envelope(puzzle)
 }
 
 /** Scripts [game] on this fake: the [today] puzzle its source serves and its captured days. */

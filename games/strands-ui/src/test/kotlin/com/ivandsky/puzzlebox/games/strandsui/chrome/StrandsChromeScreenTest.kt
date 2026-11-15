@@ -74,7 +74,7 @@ class StrandsChromeScreenTest {
         PuzzleBoxTheme(darkTheme = false) {
             StrandsPlayScreen(
                 controller = controller,
-                status = PlayBoardStatus.Ready(banner = null),
+                status = PlayBoardStatus.Ready,
                 layout = layout,
                 sidePanel = null,
                 onRetry = {},

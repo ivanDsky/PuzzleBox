@@ -96,7 +96,7 @@ abstract class StrandsGoldenTestBase(
                     Surface(color = MaterialTheme.colorScheme.background) {
                         StrandsPlayScreen(
                             controller = controller,
-                            status = PlayBoardStatus.Ready(banner = null),
+                            status = PlayBoardStatus.Ready,
                             layout = layout,
                             sidePanel = null,
                             onRetry = {},
