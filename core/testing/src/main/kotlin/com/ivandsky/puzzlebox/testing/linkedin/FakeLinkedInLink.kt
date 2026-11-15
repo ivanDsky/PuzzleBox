@@ -16,8 +16,16 @@ class FakeLinkedInLink(initial: LinkState = LinkState.NotConnected) : LinkedInLi
 
     private val current = MutableStateFlow(initial)
     private val recorded = CopyOnWriteArrayList<Pair<String, Long>>()
+    private val postings = CopyOnWriteArrayList<Long?>()
+
+    private val postingOn = MutableStateFlow(false)
 
     override val state: Flow<LinkState> = current
+
+    override val posting: Flow<Boolean> = postingOn
+
+    /** Every posting consent time given so far, oldest first; a null is a turn-off. */
+    val postingChanges: List<Long?> get() = postings.toList()
 
     /** Every connect so far as `(profileId, consentAtMs)`, oldest first. */
     val connects: List<Pair<String, Long>> get() = recorded.toList()
@@ -42,7 +50,14 @@ class FakeLinkedInLink(initial: LinkState = LinkState.NotConnected) : LinkedInLi
         current.update { state -> if (state is LinkState.Paused) LinkState.Connected(state.profileId) else state }
     }
 
+    override suspend fun setPosting(consentAtMs: Long?) {
+        if (current.value == LinkState.NotConnected) return
+        postings += consentAtMs
+        postingOn.value = consentAtMs != null
+    }
+
     override suspend fun disconnect() {
         current.value = LinkState.NotConnected
+        postingOn.value = false
     }
 }

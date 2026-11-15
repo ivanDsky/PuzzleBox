@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.domain.linkedin
 
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInAccount
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.WEEK_DAYS
@@ -15,13 +16,14 @@ import kotlinx.coroutines.flow.combine
  */
 class ObserveLinkedInAccount(
     private val account: LinkedInAccount,
+    private val link: LinkedInLink,
     private val completions: CompletionRepository,
     private val puzzleDay: GetPuzzleDay,
     private val registry: GameRegistry,
 ) {
 
     operator fun invoke(): Flow<LinkedInAccountView> =
-        combine(account.observe(), completions.observeImports()) { stored, imports ->
+        combine(account.observe(), completions.observeImports(), link.posting) { stored, imports, posting ->
             // A day is one game on one date; a play-again of the same day, or a re-import, is still one day.
             val days = imports.mapNotNull { record ->
                 val key = record.puzzleRef.key as? PuzzleKey.Daily ?: return@mapNotNull null
@@ -38,6 +40,7 @@ class ObserveLinkedInAccount(
                 daysTotal = days.size,
                 games = registry.all.map { it.definition }.filter { it.id in played }.map { it.displayName },
                 updatedAtMs = stored.lastFetchedAtMs,
+                posting = posting,
             )
         }
 }

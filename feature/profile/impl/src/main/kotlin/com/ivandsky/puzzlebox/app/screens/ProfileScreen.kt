@@ -43,6 +43,7 @@ internal fun ProfileContent(
     onConnectLinkedIn: (() -> Unit)? = null,
     onResumeLinkedIn: () -> Unit = {},
     onDisconnectLinkedIn: () -> Unit = {},
+    onSetLinkedInPosting: (Boolean) -> Unit = {},
 ) {
     val account = state.account
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
@@ -78,7 +79,7 @@ internal fun ProfileContent(
                 boards = state.linkedInBoards,
                 nowMs = nowMs,
                 google = GoogleActions(onSignIn, onSignOut, onSyncNow, onDeleteCloudData),
-                linkedInActions = LinkedInActions(onConnectLinkedIn, onResumeLinkedIn, onDisconnectLinkedIn, onDeleteSavedBoards),
+                linkedInActions = LinkedInActions(onConnectLinkedIn, onResumeLinkedIn, onDisconnectLinkedIn, onDeleteSavedBoards, onSetLinkedInPosting),
             )
         }
     }

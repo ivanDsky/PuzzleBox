@@ -40,6 +40,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
+import com.ivandsky.puzzlebox.domain.linkedin.UpdateLinkedInPosting
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
@@ -169,7 +170,8 @@ val domainModule = module {
     factory { SyncLinkedInDay(days = get()) }
     factory { ObserveLinkedInDay(days = get(), registry = get()) }
     factory { ObserveLinkedInDayView(observe = get(), sync = get(), link = get(), days = get()) }
-    factory { ObserveLinkedInAccount(account = get(), completions = get(), puzzleDay = get(), registry = get()) }
+    factory { ObserveLinkedInAccount(account = get(), link = get(), completions = get(), puzzleDay = get(), registry = get()) }
+    factory { UpdateLinkedInPosting(link = get(), clock = System::currentTimeMillis) }
     factory { CreateLinkedInLink(source = get(), link = get(), daily = get(), registry = get(), clock = System::currentTimeMillis) }
     factory { LoadDailyReplay(completions = get(), daily = get()) }
     factory { LoadCustomReplay(completions = get(), received = get(), loadShared = get()) }

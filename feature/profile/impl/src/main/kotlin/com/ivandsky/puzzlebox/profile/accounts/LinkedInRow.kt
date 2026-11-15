@@ -44,7 +44,8 @@ private const val NO_NAME = "LinkedIn account"
  * Resume, since resuming a rejected session would only pause again. [nowMs] only phrases the update time. The copy
  * says the boards are saved to the account, a connected row whose Google account is signed out
  * ([ProfileUiState.LinkedInBoards.googleSignedIn] false) asks to sign in, and the overflow may offer Delete saved
- * boards ([onDeleteSavedBoards]) when [boards] allows it.
+ * boards ([onDeleteSavedBoards]) when [boards] allows it. A connected or paused row with `postingOffered` also draws the
+ * posting switch, whose new value goes to [onPostingChange].
  */
 @Composable
 internal fun LinkedInRow(
@@ -56,6 +57,7 @@ internal fun LinkedInRow(
     onDeleteSavedBoards: () -> Unit,
     boards: ProfileUiState.LinkedInBoards,
     modifier: Modifier = Modifier,
+    onPostingChange: (Boolean) -> Unit = {},
 ) {
     val row = modifier.testTag("profile.linkedin")
     val overflow: @Composable () -> Unit = {
@@ -79,7 +81,7 @@ internal fun LinkedInRow(
             sub = connectedSub(state.summary),
             modifier = row,
             trailing = overflow,
-            extra = { StatsAndBoards(state.summary, nowMs, boards) },
+            extra = { StatsAndBoards(state.summary, nowMs, boards, state.postingOffered, onPostingChange) },
         )
         is LinkedInRowState.Paused -> AccountRow(
             lead = { LinkedInLead(state.summary) },
@@ -104,6 +106,7 @@ internal fun LinkedInRow(
                         StatsLine(state.summary, nowMs)
                     }
                     BoardsLines(boards)
+                    if (state.postingOffered) LinkedInPostingSwitch(state.summary.posting, onPostingChange)
                 }
             },
         )
@@ -111,10 +114,17 @@ internal fun LinkedInRow(
 }
 
 @Composable
-private fun StatsAndBoards(summary: LinkedInAccountView, nowMs: Long, boards: ProfileUiState.LinkedInBoards) {
+private fun StatsAndBoards(
+    summary: LinkedInAccountView,
+    nowMs: Long,
+    boards: ProfileUiState.LinkedInBoards,
+    postingOffered: Boolean,
+    onPostingChange: (Boolean) -> Unit,
+) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         StatsLine(summary, nowMs)
         BoardsLines(boards)
+        if (postingOffered) LinkedInPostingSwitch(summary.posting, onPostingChange)
     }
 }
 
