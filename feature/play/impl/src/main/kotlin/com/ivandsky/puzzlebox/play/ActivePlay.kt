@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.repository.DailyRefresh
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.PuzzleRef
@@ -105,8 +106,8 @@ class ActivePlay internal constructor(
         winRecording.reset(ref)
     }
 
-    /** Opening → board: a restored session resumes; a Fresh fetch plays; a
-     *  Cached one plays with a degrade banner; Unavailable is the error state; an envelope
+    /** Opening → board: a restored session resumes; a fetched board plays at once, and a stored daily is then
+     *  checked against its source in the background; Unavailable is the error state; an envelope
      *  the game rejects is never playable. */
     fun load() = load(newController())
 
@@ -117,6 +118,7 @@ class ActivePlay internal constructor(
         val gen = generation
         resetRecord(ref = null)
         reopen = null
+        persistence.disarm()
         _board.value = Board(controller, PlayBoardStatus.Loading)
         scope.launch {
             val opened = opening.open(slot)
@@ -134,7 +136,27 @@ class ActivePlay internal constructor(
                 is SlotOpening.Origin.Unavailable -> PlayBoardStatus.Unavailable(opened.message, opened.retryable)
             }
             _board.value = Board(live, status)
+            // Read now, after withLog: a recording game's new controller bumped the generation `gen` was taken at.
+            if (opened is SlotOpening.Origin.Fetched && status is PlayBoardStatus.Ready) refreshBehind(generation, opened)
         }
+    }
+
+    /**
+     * Asks the daily's source whether the stored board still stands, after it shows. A changed puzzle replaces the
+     * stored one and the board only while the player has not acted (a swap under their hands would lose their
+     * moves); a failed or unchanged check says nothing (A16).
+     */
+    private suspend fun refreshBehind(gen: Int, shown: SlotOpening.Origin.Fetched) {
+        val slot = slot as? PlaySlot.Daily ?: return
+        val fresh = (shown.refresh?.invoke() as? DailyRefresh.Changed)?.fresh ?: return
+        if (gen != generation || !persistence.untouched) return
+        if (!opening.replaceToday(gameId, shown.puzzle, fresh)) return
+        val number = opening.puzzleNumberOf(slot)
+        // The player may have moved while the store was written: then the stored puzzle is the new one, the
+        // board stays, and this saved play restores over it on the next open.
+        if (gen != generation || !persistence.untouched) return
+        val live = withLog(controller) { MoveLog.fresh(gameId) }
+        _board.value = Board(live, adopt(live, SlotOpening.Origin.Fetched(fresh, number)))
     }
 
     /** Record identity = game id + day/puzzleNumber (ADR-0004): the slot's day and the
@@ -152,7 +174,9 @@ class ActivePlay internal constructor(
                 reopen = { it.adoptToday(fetched.puzzle, resolved) == Adopt.Adopted }
                 resetRecord(resolved)
                 winRecording.refreshBaseline(resolved)
-                PlayBoardStatus.Ready(fetched.banner)
+                // Only a stored board can still be replaced, and only while no move is logged.
+                if (fetched.refresh != null) persistence.armUntouched(moveLog) else persistence.disarm()
+                PlayBoardStatus.Ready(banner = null)
             }
         }
     }

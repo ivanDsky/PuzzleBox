@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
@@ -55,7 +55,7 @@ class SlotOpeningCustomTest {
     private val otherSlot = PlaySlot.Custom(alpha, other.value)
 
     private val fakes = FakeGames(listOf(alpha))
-    private val daily = FakeDailyRepository().apply { setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha))) }
+    private val daily = FakeDailyRepository().apply { setToday(alpha, TestGames.puzzle(alpha)) }
     private val saved = FakeSavedPlayRepository()
     private val received = FakeReceivedPuzzleRepository()
     private val calendar = FakeGameCalendar(today)
@@ -76,7 +76,7 @@ class SlotOpeningCustomTest {
         assertEquals(TestGames.variant(alpha), origin.puzzle.variant)
         assertArrayEquals(TestGames.puzzle(alpha, tag = 5).payload, origin.puzzle.payload)
         assertNull("a friend's puzzle has no edition number", origin.puzzleNumber)
-        assertNull(origin.banner)
+        assertNull("a friend's puzzle has no refresh to run", origin.refresh)
         assertEquals("never today's fetch", 0, daily.todayCalls(alpha))
     }
 

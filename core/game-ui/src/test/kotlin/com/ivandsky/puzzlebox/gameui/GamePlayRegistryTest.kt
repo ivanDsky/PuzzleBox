@@ -93,7 +93,7 @@ class GamePlayRegistryTest {
             }
         }
         composeRule.onNodeWithTag("fake.loading").assertExists()
-        composeRule.onNodeWithText("Setting up the board…").assertExists()
+        composeRule.onNodeWithText("Getting today's puzzle…").assertExists()
     }
 
     @Test

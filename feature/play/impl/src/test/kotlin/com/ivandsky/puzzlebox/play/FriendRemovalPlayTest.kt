@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
@@ -53,7 +53,7 @@ class FriendRemovalPlayTest {
     private fun TestScope.store(): PlaySessionStore {
         val dispatcher = UnconfinedTestDispatcher(testScheduler)
         val daily = FakeDailyRepository().apply {
-            setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
+            setToday(alpha, TestGames.puzzle(alpha))
         }
         val calendar = FakeGameCalendar(today)
         val lane = WriteLane()

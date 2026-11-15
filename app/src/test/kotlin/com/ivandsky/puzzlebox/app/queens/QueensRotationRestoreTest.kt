@@ -17,7 +17,7 @@ import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.Puzzle
@@ -95,7 +95,7 @@ class QueensRotationRestoreTest {
     private fun startGraph(): FakeDailyRepository {
         // The hub prefetches every game's today on start; Queens gets this test's board.
         val repo = freshDailyForAllGames().apply {
-            setToday(QueensDefinition.id, DailyToday.Fresh(envelope()))
+            setToday(QueensDefinition.id, envelope())
             setHistory(
                 QueensDefinition.id,
                 listOf(DailyEntry(QueensDefinition.id, QueensDefinition.cadence.today(), 42, "queens/n4", 0L)),

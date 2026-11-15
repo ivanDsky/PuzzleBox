@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.repository.DailyDay
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.game.FetchError
@@ -101,7 +101,7 @@ class SlotOpeningLegTest {
     fun aLegNamingTodaysDailyOpensItBeforeTheDayIsCaptured() = runTest {
         createMatch(todayLeg)
         val puzzle = TestGames.puzzle(alpha, tag = 4)
-        daily.setToday(alpha, DailyToday.Fresh(puzzle))
+        daily.setToday(alpha, puzzle)
 
         val origin = opening.open(legSlot()) as SlotOpening.Origin.Built
 

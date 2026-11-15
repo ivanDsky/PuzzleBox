@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.domain
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntries
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
@@ -85,7 +85,7 @@ class FriendWinIsolationTest {
         val calendar = FakeGameCalendar(today)
         val completions = FakeCompletionRepository(records)
         val daily = FakeDailyRepository().apply {
-            games.forEach { setToday(it, DailyToday.Fresh(TestGames.puzzle(it))) }
+            games.forEach { setToday(it, TestGames.puzzle(it)) }
             dailies.forEach { addEntry(DailyEntry(it.puzzleRef.gameId, dayOf(it), NUMBER, TestGames.variant(it.puzzleRef.gameId).value, 0L)) }
         }
         val history = ObserveGameHistory(registry, daily, completions)

@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.play
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetNextRollover
@@ -77,7 +77,7 @@ class ResultReplaySectionTest {
     private val daily = FakeDailyRepository().apply {
         setHistory(game, listOf(DailyEntry(game, day, 7, "fixture/v1", 0L)))
         setCached(game, day, TestGames.puzzle(game))
-        setToday(game, DailyToday.Fresh(TestGames.puzzle(game)))
+        setToday(game, TestGames.puzzle(game))
     }
     private val completions = FakeCompletionRepository()
     private val saved = FakeSavedPlayRepository()

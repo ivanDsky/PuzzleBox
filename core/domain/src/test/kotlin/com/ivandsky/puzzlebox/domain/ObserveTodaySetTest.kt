@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.domain
 
 import app.cash.turbine.test
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.game.PuzzleRef
@@ -39,7 +39,7 @@ class ObserveTodaySetTest {
     private val completions = FakeCompletionRepository()
     private val calendar = FakeGameCalendar(today)
     private val daily = FakeDailyRepository().apply {
-        listOf(alpha, beta, gamma).forEach { setToday(it, DailyToday.Fresh(TestGames.puzzle(it))) }
+        listOf(alpha, beta, gamma).forEach { setToday(it, TestGames.puzzle(it)) }
     }
     private val sync = SyncTodayPuzzles(TestGames.registry(listOf(alpha, beta, gamma)), daily, calendar)
 
@@ -48,7 +48,7 @@ class ObserveTodaySetTest {
 
     /** Today's fetch for [game] finds nothing: no network, no cache. */
     private fun failFetch(game: GameId) {
-        daily.setToday(game, DailyToday.Unavailable(FetchError.Unavailable()))
+        daily.setTodayUnavailable(game, FetchError.Unavailable())
     }
 
     private fun statuses(entries: List<TodayEntry>) = entries.associate { it.game to it.status }
@@ -198,7 +198,7 @@ class ObserveTodaySetTest {
         todaySet(listOf(alpha)).test {
             assertEquals(TodayStatus.Offline, awaitItem().single().status)
 
-            daily.setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
+            daily.setToday(alpha, TestGames.puzzle(alpha))
             sync()
             assertEquals(TodayStatus.NotStarted, awaitItem().single().status)
         }

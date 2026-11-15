@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
@@ -46,8 +46,8 @@ class PlaySessionStoreTest {
 
     private val fakes = FakeGames(listOf(alpha, beta))
     private val daily = FakeDailyRepository().apply {
-        setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
-        setToday(beta, DailyToday.Fresh(TestGames.puzzle(beta)))
+        setToday(alpha, TestGames.puzzle(alpha))
+        setToday(beta, TestGames.puzzle(beta))
         setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L)))
     }
 

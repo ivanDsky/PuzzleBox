@@ -31,7 +31,7 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
@@ -122,8 +122,8 @@ class LibraryRouteTest {
     @Before
     fun setUp() {
         stopKoin() // tests share the JVM-global Koin context
-        daily.setToday(zip, DailyToday.Fresh(TestGames.puzzle(zip)))
-        daily.setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
+        daily.setToday(zip, TestGames.puzzle(zip))
+        daily.setToday(alpha, TestGames.puzzle(alpha))
         koin = startKoin {
             modules(
                 commonModule,
@@ -286,7 +286,7 @@ class LibraryRouteTest {
 
     @Test
     fun `an offline row still opens its page, retries, and the pill shows`() {
-        daily.setToday(alpha, DailyToday.Unavailable(FetchError.Unavailable()))
+        daily.setTodayUnavailable(alpha, FetchError.Unavailable())
         setContent(PlayLayout.SinglePane)
         awaitTag("card.status_mark.offline")
         awaitTag("library.offline")

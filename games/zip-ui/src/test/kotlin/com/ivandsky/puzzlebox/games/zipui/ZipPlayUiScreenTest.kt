@@ -24,7 +24,6 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import java.time.LocalDate
 import kotlin.math.abs
@@ -144,7 +143,7 @@ class ZipPlayUiScreenTest {
 
     @Test
     fun `degraded ready shows the banner but stays playable`() {
-        readyController(banner = degradeBannerMessage(FetchError.Unavailable("offline")))
+        readyController(banner = "You're offline. Playing today's saved puzzle.")
         composeRule.onNodeWithTag("play.degrade_banner").assertExists()
         composeRule.onNodeWithText("You're offline. Playing today's saved puzzle.").assertExists()
         composeRule.onNodeWithTag("play.board").assertExists()
