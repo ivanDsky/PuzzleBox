@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.update.AppRelease
@@ -61,8 +62,14 @@ import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -114,6 +121,7 @@ class HomeViewModelTest {
         summariesShown: Boolean = false,
         savedState: SavedStateHandle = SavedStateHandle(),
         friendDay: ObserveFriendDay? = null,
+        historyOpen: StateFlow<Boolean> = MutableStateFlow(true),
     ): Deps {
         val registry = GameRegistry(
             listOf(zip, tango).map { if (it in hintsRanked) hintsFirst(TestGames.plugin(it)) else TestGames.plugin(it) },
@@ -123,7 +131,7 @@ class HomeViewModelTest {
         val saved = FakeSavedPlayRepository()
         val calendar = FakeGameCalendar(day)
         val sync = SyncTodayPuzzles(registry, daily, calendar)
-        val history = ObserveGameHistory(registry, daily, completions)
+        val history = ObserveGameHistory(registry, daily, GatedCompletionRepository(completions, historyOpen))
         val puzzleDay = GetPuzzleDay(registry, clock)
         val vm = HomeViewModel(
             observeGameHistory = history,
@@ -195,9 +203,78 @@ class HomeViewModelTest {
                 stats = GameStats(0, 0, 0, 0, null, null, best = null, rankOrder = RankOrder.TimeThenHints),
                 week = (6L downTo 0L).map { WeekDay(day.minusDays(it), emptyList(), isToday = it == 0L) },
                 rolloverAt = Instant.parse("2026-11-05T00:00:00Z"),
+                isLocalStateLoaded = false,
             ),
             deps.vm.uiState.value,
         )
+    }
+
+    @Test
+    fun `local state counts as loaded once today, history and stats have each emitted`() = runTest {
+        val deps = viewModel(collect = false)
+        assertFalse(deps.vm.uiState.value.isLocalStateLoaded)
+
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { deps.vm.uiState.collect {} }
+
+        assertTrue(deps.vm.uiState.value.isLocalStateLoaded)
+    }
+
+    /** Leaves Home past the stop grace and returns: every state emitted on the way back. */
+    private fun TestScope.leaveAndReturn(deps: Deps, first: Job): List<HomeUiState> {
+        first.cancel()
+        testScheduler.advanceTimeBy(6_000)
+        val seen = mutableListOf<HomeUiState>()
+        val back = launch(UnconfinedTestDispatcher(testScheduler)) { deps.vm.uiState.collect { seen += it } }
+        testScheduler.runCurrent()
+        back.cancel()
+        return seen
+    }
+
+    @Test
+    fun `returning after the stop grace shows the held values while the local reads are still pending`() = runTest {
+        val open = MutableStateFlow(true)
+        val deps = viewModel(collect = false, historyOpen = open)
+        val first = launch(UnconfinedTestDispatcher(testScheduler)) { deps.vm.uiState.collect {} }
+        deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
+        open.value = false
+
+        val seen = leaveAndReturn(deps, first)
+
+        assertTrue(seen.isNotEmpty())
+        assertTrue(seen.all { it.isLocalStateLoaded && it.stats.solved == 1 })
+        assertTrue(seen.all { it.today.first { row -> row.game == zip }.status == TodayStatus.Solved(36_000L) })
+    }
+
+    @Test
+    fun `the identity becoming known after a cold start does not send Home back to its seed`() = runTest {
+        val identity = FakeIdentityService()
+        val deps = viewModel(identity = identity, collect = false)
+        val seen = mutableListOf<HomeUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { deps.vm.uiState.collect { seen += it } }
+        assertTrue(deps.vm.uiState.value.isLocalStateLoaded)
+        seen.clear()
+
+        identity.currentIdentity = Identity("ann", "Ann", null)
+
+        assertTrue(seen.isNotEmpty())
+        assertTrue(seen.all { it.isLocalStateLoaded })
+    }
+
+    @Test
+    fun `signing in as another account shows nothing from the first account while its reads are pending`() = runTest {
+        val identity = FakeIdentityService(initial = Identity("ann", "Ann", null))
+        val open = MutableStateFlow(true)
+        val deps = viewModel(identity = identity, collect = false, historyOpen = open)
+        val first = launch(UnconfinedTestDispatcher(testScheduler)) { deps.vm.uiState.collect {} }
+        deps.completions.onCompleted(record(zip, day, timeMs = 36_000L))
+        open.value = false
+        identity.currentIdentity = null
+        identity.currentIdentity = Identity("bob", "Bob", null)
+
+        val seen = leaveAndReturn(deps, first)
+
+        assertTrue(seen.isNotEmpty())
+        assertTrue(seen.all { !it.isLocalStateLoaded && it.stats.solved == 0 && it.history.isEmpty() })
     }
 
     @Test
@@ -667,3 +744,12 @@ class HomeViewModelTest {
 /** The CTA continues a saved play: its target is in progress. */
 private val HomeUiState.continues: Boolean
     get() = target?.status is TodayStatus.InProgress
+
+/** [CompletionRepository] whose record stream is silent while [open] is false: a read still in flight. */
+private class GatedCompletionRepository(
+    private val inner: CompletionRepository,
+    private val open: StateFlow<Boolean>,
+) : CompletionRepository by inner {
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observeRecords() = open.flatMapLatest { if (it) inner.observeRecords() else emptyFlow() }
+}

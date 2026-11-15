@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performTouchInput
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
@@ -124,6 +125,7 @@ class LibraryFromFriendsTest {
                     single<ReceivedPuzzleRepository> { received }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
+                    single<IdentityService> { FakeIdentityService() }
                     factory { FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH } }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     single<GameCalendar> { FakeGameCalendar(today) }

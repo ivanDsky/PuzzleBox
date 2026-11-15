@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.home
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
@@ -19,17 +18,15 @@ import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.ResultRank
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.TodayEntry
-import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.heldWhileStreak
 import com.ivandsky.puzzlebox.domain.playTarget
+import com.ivandsky.puzzlebox.domain.resettingOnAccountChange
+import com.ivandsky.puzzlebox.domain.seededOnce
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.model.GameId
-import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -42,57 +39,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-/**
- * Everything Home renders: today's set, the signed-in player, the recent days, and
- * [puzzleDay] — the puzzle roll-over day (A9) the header shows, not the phone's date.
- * [playTarget] is the game the one CTA opens (core:domain's `playTarget`: the first game
- * with an unfinished save, else the first unsolved one, else the first game; before the
- * set lands, the first game). [stats] and [week] feed the streak card (A8): the solved-day
- * numbers and the last 7 puzzle days, oldest first, ending on [puzzleDay]. [freezesHeld] is the count
- * the streak card shows, already ruled by [heldWhileStreak] (null hides it). [rolloverAt] is
- * when the next puzzles land, the CTA's countdown once every game is solved. [updateUrl] is
- * a newer release's page (spec A7), null while none is known. [rank] is the player's place on
- * the game they solved last today, null unless signed in and ranked. [selectedDay]: two-pane's detail day.
- */
-internal data class HomeUiState(
-    val today: List<TodayRow>,
-    val identity: Identity?,
-    val history: List<HistoryDay>,
-    val puzzleDay: LocalDate,
-    val playTarget: GameId?,
-    val stats: GameStats,
-    val week: List<WeekDay>,
-    val rolloverAt: Instant,
-    val freezesHeld: Int? = null,
-    val updateUrl: String? = null,
-    val rank: TodayRank? = null,
-    val selectedDay: String? = null,
-) {
-    /**
-     * One game's Today row (A9, A10): [status] is null until today's set first emits,
-     * [best] until the game's first daily solve; [best] ranks by the game's own [rankOrder].
-     */
-    data class TodayRow(
-        val game: GameId,
-        val displayName: String,
-        val status: TodayStatus?,
-        val brand: GameBrand,
-        val rankOrder: RankOrder,
-        val best: BestScore? = null,
-    )
-
-    /** The row the CTA names; null only for an empty set. */
-    val target: TodayRow?
-        get() = today.firstOrNull { it.game == playTarget }
-
-    /** Every game of today's set is solved: the CTA turns into the countdown. */
-    val allSolved: Boolean
-        get() = today.isNotEmpty() && today.all { it.status is TodayStatus.Solved }
-}
 
 /** [SavedStateHandle] key of the picked day's iso date, so the two-pane detail survives process death. */
 internal const val SELECTED_DAY_KEY = "home.selectedDay"
@@ -118,7 +66,7 @@ class HomeViewModel(
     observeGameHistory: ObserveGameHistory,
     observeGameStats: ObserveGameStats,
     todaySet: ObserveTodaySet,
-    identityService: IdentityService,
+    private val identityService: IdentityService,
     private val registry: GameRegistry,
     private val brands: GamePlayRegistry,
     private val puzzleDay: GetPuzzleDay,
@@ -129,6 +77,9 @@ class HomeViewModel(
     observeResultRank: ObserveResultRank,
     private val savedState: SavedStateHandle,
 ) : ViewModel() {
+
+    // The held values reset when this changes: a sign-in as someone else never shows the first account's.
+    private fun account(): String? = identityService.current.value?.uid
 
     private val updateUrl = MutableStateFlow<String?>(null)
     private val pickedDay: StateFlow<String?> = savedState.getStateFlow(SELECTED_DAY_KEY, null)
@@ -152,13 +103,17 @@ class HomeViewModel(
             flowOf(emptyMap())
         } else {
             combine(seed.map { row -> observeGameStats(row.game).map { row.game to it.best } }) { it.toMap() }
-        }.onStart { emit(emptyMap()) }
+        }.seededOnce(emptyMap(), ::account)
 
     // Before the set lands every row is unknown and the CTA opens the first game.
     private val seedTarget = seed.firstOrNull()?.game
 
     // Seeded (null) so the recent days never wait on today's set (it reads Room and DataStore).
-    private val today: Flow<List<TodayEntry>?> = todaySet().onStart<List<TodayEntry>?> { emit(null) }
+    private val today: Flow<List<TodayEntry>?> = todaySet().seededOnce<List<TodayEntry>?>(null, ::account)
+
+    // Seeded (null) like today, so first load never waits on the slowest local read.
+    private val history: Flow<List<GameHistoryDay>?> = observeGameHistory().seededOnce<List<GameHistoryDay>?>(null, ::account)
+    private val stats: Flow<GameStats?> = observeGameStats().seededOnce<GameStats?>(null, ::account)
 
     // Off until Today draws the summary rows, so a Home without them never reads the leaderboard.
     private val summariesShown = MutableStateFlow(false)
@@ -183,16 +138,18 @@ class HomeViewModel(
                 }
             }
         }
-    }.distinctUntilChanged().onStart { emit(null) }
+    }.distinctUntilChanged().seededOnce(null, ::account)
 
     internal val uiState: StateFlow<HomeUiState> =
         combine(
             today,
-            observeGameHistory(),
-            observeGameStats(),
+            history,
+            stats,
             identityService.current,
             bests,
-        ) { entries, days, stats, identity, best ->
+        ) { entries, held, heldStats, identity, best ->
+            val days = held.orEmpty()
+            val stats = heldStats ?: NO_STATS
             val day = puzzleDay()
             val rows = entries?.map {
                 HomeUiState.TodayRow(it.game, it.displayName, it.status, brands.brandOf(it.game), rankOrderOf(it.game))
@@ -207,17 +164,18 @@ class HomeViewModel(
                 week = homeWeek(days, endingOn = day, stats.freezes?.frozenDays.orEmpty(), registryOrder, brands),
                 rolloverAt = nextRollover(),
                 freezesHeld = stats.freezes?.heldWhileStreak(stats.currentStreak),
+                isLocalStateLoaded = entries != null && held != null && heldStats != null,
             )
         }.combine(updateUrl) { state, url -> state.copy(updateUrl = url) }
             .combine(rank) { state, rank -> state.copy(rank = rank) }
             .combine(pickedDay) { state, picked ->
                 val listed = picked?.takeIf { day -> state.history.any { it.isoDay == day } }
-                if (picked != null && listed == null) savedState[SELECTED_DAY_KEY] = null
+                if (picked != null && listed == null && state.isLocalStateLoaded) savedState[SELECTED_DAY_KEY] = null
                 state.copy(selectedDay = listed)
             }
             .stateIn(
                 scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5_000),
+                started = SharingStarted.WhileSubscribed(5_000).resettingOnAccountChange(identityService.current.map { it?.uid }),
                 initialValue = puzzleDay().let { day ->
                     HomeUiState(
                         today = seed,
@@ -228,6 +186,7 @@ class HomeViewModel(
                         stats = NO_STATS,
                         week = homeWeek(emptyList(), endingOn = day, emptySet(), registryOrder, brands),
                         rolloverAt = nextRollover(),
+                        isLocalStateLoaded = false,
                     )
                 },
             )
