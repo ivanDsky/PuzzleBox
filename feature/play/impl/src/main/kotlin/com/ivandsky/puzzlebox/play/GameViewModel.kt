@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
  * ViewModel; releasing it is [PlaySessionStore.retain]'s job, never this one's.
  *
  * Tutorials (spec A11) are this entry's, not the store's: a game with lessons whose
- * tutorial [prefs] has not marked seen opens it over the board once that read lands; the
+ * tutorial [prefs] has not marked seen opens it in place of the board once that read lands; the
  * board never waits for the read, so a first play may show one frame first. How to play
  * reopens it over the live play. While it shows, the board's composition is gone, so the
  * play chrome's clock effect has folded the clock; it reopens when the board returns.
