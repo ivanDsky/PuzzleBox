@@ -165,4 +165,115 @@ class LinkedInLinkDataSourceTest {
 
         assertEquals(2_000L, read(file).postingConsentAtMs)
     }
+
+    @Test
+    fun `a sending marker survives a restart beside the link`() = runTest {
+        val file = tempFile()
+
+        process(file) {
+            it.connect("profile-1", 1_000L)
+            assertEquals(true, it.markSending("profile-1", "zip/2026-11-05"))
+        }
+
+        assertEquals(
+            LinkedInLinkPrefs("profile-1", 1_000L, null, null, sendingRefs = setOf("zip/2026-11-05")),
+            read(file),
+        )
+    }
+
+    @Test
+    fun `a marker is refused and stores nothing unless its profile is the linked one`() = runTest {
+        val unlinked = tempFile()
+        val other = tempFile()
+
+        process(unlinked) { assertEquals(false, it.markSending("profile-1", "zip/2026-11-05")) }
+        process(other) {
+            it.connect("profile-2", 1_000L)
+            assertEquals(false, it.markSending("profile-1", "zip/2026-11-05"))
+        }
+
+        assertEquals(none, read(unlinked))
+        assertEquals(LinkedInLinkPrefs("profile-2", 1_000L, null, null), read(other))
+    }
+
+    @Test
+    fun `a send settled as posted swaps the marker for a posted ref and leaves other markers`() = runTest {
+        val file = tempFile()
+
+        process(file) {
+            it.connect("profile-1", 1_000L)
+            it.markSending("profile-1", "zip/2026-11-05")
+            it.markSending("profile-1", "queens/2026-11-05")
+            it.settleSend("profile-1", "zip/2026-11-05", posted = true)
+        }
+
+        assertEquals(
+            LinkedInLinkPrefs(
+                "profile-1", 1_000L, null, null,
+                postedRefs = setOf("zip/2026-11-05"),
+                sendingRefs = setOf("queens/2026-11-05"),
+            ),
+            read(file),
+        )
+    }
+
+    @Test
+    fun `a send settled as not posted only drops its marker`() = runTest {
+        val file = tempFile()
+
+        process(file) {
+            it.connect("profile-1", 1_000L)
+            it.markSending("profile-1", "zip/2026-11-05")
+            it.settleSend("profile-1", "zip/2026-11-05", posted = false)
+        }
+
+        assertEquals(LinkedInLinkPrefs("profile-1", 1_000L, null, null), read(file))
+    }
+
+    @Test
+    fun `a send settled for a profile that is not the linked one changes nothing`() = runTest {
+        val file = tempFile()
+
+        process(file) {
+            it.connect("profile-2", 1_000L)
+            it.markSending("profile-2", "zip/2026-11-05")
+            it.settleSend("profile-1", "zip/2026-11-05", posted = true)
+        }
+
+        assertEquals(
+            LinkedInLinkPrefs("profile-2", 1_000L, null, null, sendingRefs = setOf("zip/2026-11-05")),
+            read(file),
+        )
+    }
+
+    @Test
+    fun `connecting another profile drops the post log and the same profile keeps it`() = runTest {
+        val file = tempFile()
+
+        process(file) {
+            it.connect("profile-1", 1_000L)
+            it.markSending("profile-1", "zip/2026-11-05")
+            it.settleSend("profile-1", "queens/2026-11-05", posted = true)
+            it.connect("profile-1", 2_000L)
+            assertEquals(setOf("queens/2026-11-05"), it.link.first().postedRefs)
+            assertEquals(setOf("zip/2026-11-05"), it.link.first().sendingRefs)
+            it.connect("profile-2", 3_000L)
+        }
+
+        assertEquals(LinkedInLinkPrefs("profile-2", 3_000L, null, null), read(file))
+    }
+
+    @Test
+    fun `clear wipes the post log`() = runTest {
+        val file = tempFile()
+
+        process(file) {
+            it.connect("profile-1", 1_000L)
+            it.markSending("profile-1", "zip/2026-11-05")
+            it.settleSend("profile-1", "queens/2026-11-05", posted = true)
+            it.clear()
+        }
+
+        assertEquals(none, read(file))
+    }
 }

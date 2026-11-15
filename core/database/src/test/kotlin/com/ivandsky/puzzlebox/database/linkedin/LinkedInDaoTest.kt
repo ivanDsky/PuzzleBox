@@ -245,4 +245,24 @@ class LinkedInDaoTest {
 
         assertEquals(5_000L, log.observeLastFetchedAt("me").first())
     }
+
+    @Test
+    fun `deleting an own entry forgets only that profile's own read of that game day`() = runTest {
+        log.put(entry("Own", "NotPlayed"))
+        log.put(entry("Board", "Board"))
+        log.put(entry("Own", "NotPlayed", profileId = "someone else"))
+        log.put(entry("Own", "NotPlayed", day = "2026-11-02"))
+        log.put(entry("Own", "NotPlayed", game = "zip"))
+
+        log.deleteOwnEntry("queens", "2026-11-01", "me")
+
+        assertNull(log.get("queens", "2026-11-01", "Own", "me"))
+        assertEquals(entry("Board", "Board"), log.get("queens", "2026-11-01", "Board", "me"))
+        assertEquals(
+            entry("Own", "NotPlayed", profileId = "someone else"),
+            log.get("queens", "2026-11-01", "Own", "someone else"),
+        )
+        assertEquals(entry("Own", "NotPlayed", day = "2026-11-02"), log.get("queens", "2026-11-02", "Own", "me"))
+        assertEquals(entry("Own", "NotPlayed", game = "zip"), log.get("zip", "2026-11-01", "Own", "me"))
+    }
 }

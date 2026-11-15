@@ -462,6 +462,17 @@ class OfflineFirstDailyRepositoryTest {
     }
 
     @Test
+    fun `linkedInGamePath passes the source's route through, null without one`() {
+        alphaSource.linkedInGameTypeId = 6
+        alphaSource.linkedInGamePath = "games/zip/"
+
+        assertEquals("games/zip/", repository.linkedInGamePath(alpha))
+        assertNull(repository.linkedInGamePath(beta))
+        assertNull(repository.linkedInGamePath(GameId("strands")))
+        assertTrue(alphaSource.requestedDates.isEmpty())
+    }
+
+    @Test
     fun `history marks archived only rows fetched after their own day`() = runTest {
         val dao = db.puzzleDailyDao()
         val live = LocalDate.of(2026, 10, 30)

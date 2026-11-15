@@ -12,6 +12,9 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInAvatars
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInCallBudget
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInDays
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInLink
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostFlow
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostLog
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInPosts
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInStoreLock
 import com.ivandsky.puzzlebox.data.linkedin.RoomLinkedInAccount
 import com.ivandsky.puzzlebox.data.linkedin.RoomLinkedInDays
@@ -126,6 +129,14 @@ val dataModule = module {
             link = get(), source = get(), completions = get(), daily = get(), calendar = get(),
             registry = get(), db = get(), budget = get(), avatars = get(), storeLock = get(), ownerScope = get(),
             clock = System::currentTimeMillis,
+        )
+    }
+    // The post runs in the app's scope: it may be on the wire when the result page is left, and must still be recorded.
+    single<LinkedInPosts> {
+        LinkedInPostFlow(
+            link = get(), source = get(), poster = get(), completions = get(), daily = get(), calendar = get(),
+            registry = get(), log = LinkedInPostLog(get()), fetchLog = get(), budget = get(), storeLock = get(),
+            scope = get<CoroutineScope>(),
         )
     }
     single<LinkedInAccount> { RoomLinkedInAccount(link = get(), db = get(), avatars = get(), ownerScope = get()) }

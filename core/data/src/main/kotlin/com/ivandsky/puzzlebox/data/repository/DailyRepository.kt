@@ -71,5 +71,8 @@ interface DailyRepository {
 
     /** [game]'s LinkedIn Games type id from its source, or null for any other game; never touches the network nor the cache. */
     fun linkedInGameTypeId(game: GameId): Int?
+
+    /** [game]'s LinkedIn route from its source, e.g. `games/zip/`, or null for a game that cannot be posted; never touches the network nor the cache. */
+    fun linkedInGamePath(game: GameId): String?
 }
 
