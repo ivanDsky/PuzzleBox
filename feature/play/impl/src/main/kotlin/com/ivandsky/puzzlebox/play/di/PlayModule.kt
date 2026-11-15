@@ -100,8 +100,10 @@ val playModule = module {
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
         )
     }
-    // The flag-as-parameter rule again: with it off the result never touches LinkedIn.
+    // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
+    // read inside the view model (the release flag), so its bindings resolve only on the same parameter.
     viewModel { params ->
+        val linkedIn = params.getOrNull<Boolean>() == true
         ResultViewModel(
             key = params.get<ResultKey>(),
             store = get(),
@@ -113,10 +115,13 @@ val playModule = module {
             games = get(),
             insights = get(),
             rank = get(),
-            linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
+            linkedIn = if (linkedIn) get() else null,
             board = get(),
             completions = get(),
             loadReplay = get(),
+            releaseFlags = if (linkedIn) get() else null,
+            observePost = if (linkedIn) get() else null,
+            submitPost = if (linkedIn) get() else null,
         )
     }
     viewModel { (key: ReplayKey) -> ReplayViewModel(key, get(), get(), get(), get(), get()) }
