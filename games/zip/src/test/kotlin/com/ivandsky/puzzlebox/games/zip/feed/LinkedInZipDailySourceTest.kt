@@ -53,6 +53,12 @@ class LinkedInZipDailySourceTest {
     }
 
     @Test
+    fun `the LinkedIn game route is the Zip edition path the feed requests`() {
+        assertEquals("games/zip/", source(golden()).linkedInGamePath)
+        assertEquals(LinkedInZipDailySource.REQUEST.path, LinkedInZipDailySource.EDITION.path)
+    }
+
+    @Test
     fun `golden payload parses, passes the oracle gate, and stores canonical codec bytes`() = runTest {
         val result = source(golden()).fetchDaily(date)
 
