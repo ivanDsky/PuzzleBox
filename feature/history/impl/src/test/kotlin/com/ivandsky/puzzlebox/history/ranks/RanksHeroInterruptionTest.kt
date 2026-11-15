@@ -137,4 +137,17 @@ class RanksHeroInterruptionTest {
 
         assertAtRest(overall)
     }
+
+    @Test
+    fun `a face that changes again mid-fade, with no scrub, leaves the last face alone`() {
+        face = HeroFace("Zip", Standing.Place(3), "3,917 pts")
+        show()
+
+        face = HeroFace("Zip", Standing.None, null)
+        Snapshot.sendApplyNotifications()
+        composeRule.mainClock.advanceTimeBy(100L)
+        face = HeroFace("Zip", Standing.Pending, null)
+
+        assertAtRest(face)
+    }
 }
