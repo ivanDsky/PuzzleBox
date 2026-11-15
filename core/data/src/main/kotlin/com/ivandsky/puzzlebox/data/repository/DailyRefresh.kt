@@ -8,7 +8,7 @@ sealed interface DailyRefresh {
     /** Nothing was stored; the fetched puzzle is now stored. */
     data class Stored(val puzzle: Puzzle) : DailyRefresh
 
-    /** Fetched equals stored, or a refresh succeeded within the skip window; nothing written. */
+    /** The fetched puzzle, or the one remembered within the skip window, equals the stored one; nothing written. */
     data object Unchanged : DailyRefresh
 
     /** A stored puzzle exists and the fetch differs; NOTHING written. */
