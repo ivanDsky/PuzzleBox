@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.database
 
 import androidx.room.Dao
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Upsert
 import kotlinx.coroutines.flow.Flow
 
@@ -13,6 +14,17 @@ interface PuzzleDailyDao {
 
     @Query("SELECT * FROM puzzle_dailies WHERE gameId = :gameId AND day = :day")
     suspend fun get(gameId: String, day: String): PuzzleDailyEntity?
+
+    /**
+     * One transaction: writes [fresh] over its day's row only while that row equals [expected]
+     * (null = no row); returns the row found.
+     */
+    @Transaction
+    suspend fun compareAndPut(expected: PuzzleDailyEntity?, fresh: PuzzleDailyEntity): PuzzleDailyEntity? {
+        val stored = get(fresh.gameId, fresh.day)
+        if (stored == expected) upsert(fresh)
+        return stored
+    }
 
     /** History listing, newest first, without payload bytes (ADR-0012) — ticket 14 layers Paging3 over this order. */
     @Query("SELECT day, puzzleNumber, variant, fetchedAtMs FROM puzzle_dailies WHERE gameId = :gameId ORDER BY day DESC")

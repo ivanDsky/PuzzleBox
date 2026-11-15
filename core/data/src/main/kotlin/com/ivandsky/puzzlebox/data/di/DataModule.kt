@@ -61,6 +61,7 @@ import org.koin.dsl.module
 import org.koin.dsl.onClose
 
 private val LinkedInPhotoScope = named("data.linkedin_photos.scope")
+private val DailyRefreshScope = named("data.daily_refresh.scope")
 
 /**
  * Game-agnostic data wiring. Games plug in through Koin, never through this module:
@@ -72,6 +73,8 @@ val dataModule = module {
     includes(databaseModule, networkModule, datastoreModule)
     // Per-game "today": the daily fetch and the hub cues share one calendar.
     single<GameCalendar> { CadenceGameCalendar(get()) }
+    // The shared fetch of today's puzzle must outlive the screen that asked for it.
+    single(DailyRefreshScope) { CoroutineScope(get<DispatcherProvider>().io + SupervisorJob()) } onClose { it?.cancel() }
     single<DailyRepository> {
         OfflineFirstDailyRepository(
             sources = getAll<DailySource>().associateBy { it.gameId },
@@ -79,6 +82,7 @@ val dataModule = module {
             dao = get(),
             dispatchers = get(),
             calendar = get(),
+            scope = get(DailyRefreshScope),
         )
     }
     // Records/play-agains store (ADR-0004): the first-win record is enforced here, and
