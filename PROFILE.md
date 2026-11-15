@@ -83,6 +83,8 @@ off  # user ruling 2026-11-05 (replaces 2026-10-31 `always`): publish the review
 ## Device access (Bug C session, 2026-11-02)
 - Tab (<tab host>, <tab address>) supports wireless adb over Tailscale: user opens Developer options → Wireless debugging → "Pair device with pairing code" (code+port rotate EVERY open — pair within seconds of receiving), then `adb connect <tab address>:<debug-port-from-main-screen>`. Paired 2026-11-02, persists.
 - Supervised-process PATH lacks sdk tools: use full path `/Users/ivandsky/Library/Android/sdk/platform-tools/adb`.
+- Phone (<phone host>, Tailscale <phone address>): Pixel 8 Pro, Android 17, 120 Hz, wireless adb over Tailscale, paired 2026-11-15 (persists). Connect: `adb connect <phone address>:<port from Wireless debugging main screen>`; the port changes when wireless debugging restarts — ask the user for it, or find it with a parallel `nc -z` scan of 30000-49999. Used for agent benchmarks and reviews; user checks still run on the tab.
+- Agent measurements never run on the release package `com.ivandsky.puzzlebox` (the user's real account; a 2026-11-15 run left today's daily in progress). Use the benchmark install.
 - The tab runs ReVanced microG, not real GMS — Credential Manager Google-ID works ONLY with the type-first + `GoogleIdTokenCredential.createFrom(credential.data)` pattern (4b7b419). `is GoogleIdTokenCredential` checks silently drop microG tokens.
 - User checks on the tablet only — no emulator, no Mac manual testing.
 - APKs ship via ship_apk.py only.
