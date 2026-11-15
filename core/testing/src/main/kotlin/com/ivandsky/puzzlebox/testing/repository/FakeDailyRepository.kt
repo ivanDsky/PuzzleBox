@@ -134,7 +134,7 @@ class FakeDailyRepository : DailyRepository {
         refreshResults[game]?.let { return it }
         failures[game]?.let { return DailyRefresh.Failed(it) }
         val puzzle = served[game] ?: error("no today scripted for ${game.value} (history is cache-only, A8)")
-        val stored = storedToday[game]?.puzzle ?: newestCachedDay(game)?.let(cachedByDay::get)
+        val stored = storedToday[game]?.puzzle ?: todayKey(game)?.let(cachedByDay::get)
         return when {
             stored == null -> DailyRefresh.Stored(puzzle).also { storedToday[game] = StoredToday(lastAsked[game], puzzle) }
             stored == puzzle -> DailyRefresh.Unchanged
@@ -147,11 +147,15 @@ class FakeDailyRepository : DailyRepository {
             storedToday[game] = StoredToday(it.day, fresh)
             return true
         }
-        val today = newestCachedDay(game) ?: return false
+        val today = todayKey(game) ?: return false
         if (cachedByDay[today] != expected) return false
         cachedByDay[today] = fresh
         return true
     }
+
+    /** The day the play last asked for (the one a refresh is about), else the newest cached day. */
+    private fun todayKey(game: GameId): Pair<GameId, LocalDate>? =
+        lastAsked[game]?.let { game to it } ?: newestCachedDay(game)
 
     private fun newestCachedDay(game: GameId): Pair<GameId, LocalDate>? =
         cachedByDay.keys.filter { it.first == game }.maxByOrNull { it.second }
