@@ -1,36 +1,25 @@
 package com.ivandsky.puzzlebox.app
 
-import com.ivandsky.puzzlebox.navigation.FirstScreenReady
+import java.io.File
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+// The keep-on-screen condition runs inside MainActivity.onCreate, which a JVM test cannot reach
+// without the whole Koin graph and a window. So the wiring is pinned to the source, read the way
+// the other app tests read theirs: Gradle runs tests in the module dir.
 class SplashKeepOnScreenTest {
 
-    private var now = 0L
-    private val firstScreen = FirstScreenReady()
-    private val policy = SplashReleasePolicy(firstScreen, nowMillis = { now })
+    private val source = File("src/main/kotlin/com/ivandsky/puzzlebox/app/MainActivity.kt").readText()
 
     @Test
-    fun `the system splash is kept only while the release policy keeps it`() {
-        assertTrue(splashKeepsOnScreen(policy))
-
-        firstScreen.markReady()
-
-        assertFalse(splashKeepsOnScreen(policy))
+    fun `the system splash is kept exactly while the release policy keeps it`() {
+        assertTrue(Regex("""setKeepOnScreenCondition\s*\{\s*splashPolicy\.keepSplash\(\)\s*\}""").containsMatchIn(source))
     }
 
     @Test
-    fun `the one-second cap releases the system splash through the same check`() {
-        now += SplashReleasePolicy.MAX_HOLD_MILLIS
-
-        assertFalse(splashKeepsOnScreen(policy))
-    }
-
-    @Test
-    fun `a failed local read releases the system splash through the same check`() {
-        policy.onLocalReadFailed()
-
-        assertFalse(splashKeepsOnScreen(policy))
+    fun `the old theme-mode composition hold is gone`() {
+        assertFalse(source.contains("themeMode"))
+        assertFalse(source.contains("collectAsState"))
     }
 }

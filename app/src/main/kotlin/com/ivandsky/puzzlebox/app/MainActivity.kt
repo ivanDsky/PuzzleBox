@@ -65,7 +65,7 @@ class MainActivity : ComponentActivity(), KoinComponent {
         val splash = installSplashScreen()
         super.onCreate(savedInstanceState)
         splashPolicy = SplashReleasePolicy(firstScreen, nowMillis = SystemClock::elapsedRealtime)
-        splash.setKeepOnScreenCondition { splashKeepsOnScreen(splashPolicy) }
+        splash.setKeepOnScreenCondition { splashPolicy.keepSplash() }
         lifecycleScope.launch {
             preferences.themeRead.collect { read ->
                 if (read.failed) splashPolicy.onLocalReadFailed()
@@ -163,9 +163,3 @@ private fun ThemeMode.isDarkTheme(systemDark: Boolean): Boolean = when (this) {
     ThemeMode.LIGHT -> false
     ThemeMode.DARK -> true
 }
-
-/**
- * The system splash is kept exactly while the release policy keeps the first screen unready:
- * the same predicate the policy answers, so the splash releases on the same three signals.
- */
-internal fun splashKeepsOnScreen(policy: SplashReleasePolicy): Boolean = policy.keepSplash()
