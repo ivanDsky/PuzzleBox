@@ -29,6 +29,7 @@ import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
+import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -36,6 +37,7 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
+import com.ivandsky.puzzlebox.history.CalendarState
 import com.ivandsky.puzzlebox.history.HistoryDayRow
 import com.ivandsky.puzzlebox.history.HistoryReplays
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
@@ -406,23 +408,53 @@ class RanksScreenTest {
     }
 
     @Test
-    fun `a row of the board kept on screen takes no tap until the picked day answers`() {
+    fun `a row of the board kept on screen still opens its player while the picked day loads`() {
+        val zipDrawn = drawn.copy(
+            places = listOf(BoardPlace(RanksBoard.Overall, "Overall", Standing.Place(1)), BoardPlace(RanksBoard.Game(GameId("zip")), "Zip", Standing.Place(1))),
+            calendar = CalendarState(selectedDay = today),
+        )
+        var state by mutableStateOf(zipDrawn)
+        val sheet = playerSheet()
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                val open by sheet.state.collectAsState()
+                RanksScreen(state, RanksActions({}, {}, onOpenPlayer = sheet::open), playerSheet = open)
+            }
+        }
+
+        state = zipDrawn.copy(board = loading.board, calendar = CalendarState(selectedDay = today.minusDays(1)))
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText("Maya").performClick()
+
+        composeRule.onNodeWithTag("ranks.player.name").assertTextEquals("Maya")
+        val target = sheet.state.value?.target
+        assertEquals(GameId("zip"), target?.game)
+        assertEquals(today, target?.day)
+    }
+
+    @Test
+    fun `a row tap after a scope change opens the player sheet on the new board`() {
         var state by mutableStateOf(drawn)
         val sheet = playerSheet()
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions({}, {}, onOpenPlayer = sheet::open)) } }
-        composeRule.onNodeWithTag("daily_board.row").assertHasClickAction()
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                val open by sheet.state.collectAsState()
+                RanksScreen(state, RanksActions({}, {}, onOpenPlayer = sheet::open), playerSheet = open)
+            }
+        }
 
-        state = loading
+        state = answered.copy(scope = RankScope.Friends)
         composeRule.waitForIdle()
+        composeRule.onNodeWithText("Ann").performClick()
 
-        composeRule.onNodeWithText("Maya").assertIsDisplayed()
+        composeRule.onNodeWithTag("ranks.player.name").assertTextEquals("Ann")
+    }
+
+    @Test
+    fun `a board whose rows cannot open a player gives its rows no click action`() {
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(drawn, RanksActions({}, {})) } }
+
         composeRule.onNodeWithTag("daily_board.row").assertHasNoClickAction()
-
-        state = answered
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Ann").assertIsDisplayed()
-        composeRule.onNodeWithTag("daily_board.row").assertHasClickAction()
     }
 
     @Test

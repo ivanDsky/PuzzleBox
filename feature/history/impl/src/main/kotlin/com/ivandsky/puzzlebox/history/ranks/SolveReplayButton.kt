@@ -40,17 +40,20 @@ import com.ivandsky.puzzlebox.history.ReplaySolve
 /** An icon button of the solve card: the least a finger can hit. */
 internal val SolveButtonSize = 48.dp
 
+/** The card's and the button's word for a solve with no replay to watch; the card's label says it, the button says why. */
+internal const val NO_REPLAY_SAVED = "No replay saved"
+
 /** Why the day has no replay to watch, as the disabled replay button tells assistive tech; null when it has one or shows none. */
 internal fun HistoryReplays.unavailableText(): String? = when ((this as? HistoryReplays.Unavailable)?.reason) {
-    ReplayUnavailable.ImportedFromLinkedIn -> "${ReplayCopy.NO_REPLAY} · imported from LinkedIn"
-    ReplayUnavailable.NotRecorded -> "${ReplayCopy.NO_REPLAY} for this solve"
+    ReplayUnavailable.ImportedFromLinkedIn -> "$NO_REPLAY_SAVED · imported from LinkedIn"
+    ReplayUnavailable.NotRecorded -> "$NO_REPLAY_SAVED for this solve"
     null -> null
 }
 
 /**
  * The solve card's way into the day's [replays], as one icon button: a tap opens the one replay ([onOpen]); with two
  * different solves it drops a menu of the first solve, the latest and their compare ([onCompare]). A day whose solve
- * has no replay keeps the button, disabled, and it says why ([unavailableText]); the card's label only says "No replay".
+ * has no replay keeps the button, disabled, and it says why ([unavailableText]); the card's label says [NO_REPLAY_SAVED].
  * A day that shows none has no button.
  */
 @Composable
