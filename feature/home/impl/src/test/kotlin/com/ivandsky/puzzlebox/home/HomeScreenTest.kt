@@ -12,10 +12,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsEnabled
-import androidx.compose.ui.test.assertIsNotSelected
-import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
-import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -122,35 +119,6 @@ class HomeScreenTest {
         composeRule.onNodeWithTag("home.week").assertDoesNotExist()
         composeRule.onNodeWithTag("home.badge.zip").assertExists()
         composeRule.onNodeWithTag("home.detail_badge.zip").assertDoesNotExist()
-    }
-
-    @Test
-    fun `tapping a recent day swaps the pane to that day and away from the stats`() {
-        setContent(
-            HomeLayout.TwoPane,
-            history = listOf(HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))),
-        )
-
-        composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
-
-        composeRule.onNodeWithTag("home.day_detail").assertExists()
-        composeRule.onNodeWithTag("home.streak_pane").assertDoesNotExist()
-    }
-
-    @Test
-    fun `tapping the selected recent row again clears the pick and restores the streak pane`() {
-        setContent(
-            HomeLayout.TwoPane,
-            history = listOf(HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))),
-        )
-        composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
-        composeRule.onNodeWithTag("home.day_detail").assertExists()
-
-        composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
-
-        composeRule.onNodeWithTag("home.streak_pane").assertExists()
-        composeRule.onNodeWithTag("home.day_detail").assertDoesNotExist()
-        composeRule.onNodeWithTag("home.history_row_2026-11-03").assertIsNotSelected()
     }
 
     @Test
@@ -287,43 +255,6 @@ class HomeScreenTest {
     }
 
     @Test
-    fun `history teaser shows the empty state when nothing is cached`() {
-        setContent(HomeLayout.SinglePane)
-
-        composeRule.onNodeWithText("Earlier days will show here").assertExists()
-        composeRule.onNodeWithText("See all").assertDoesNotExist()
-    }
-
-    @Test
-    fun `history rows render a formatted headline per day`() {
-        setContent(
-            HomeLayout.TwoPane,
-            history = listOf(HistoryDay("2026-10-30", "October 30", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))),
-        )
-
-        composeRule.onNodeWithText("October 30").assertExists()
-        composeRule.onNodeWithText("Earlier days will show here").assertDoesNotExist()
-    }
-
-    @Test
-    fun `selecting a two-game day on two pane selects exactly that row`() {
-        val twoGames = listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42"), HistoryDay.GameResult("Tango", GameBrand.Neutral, null))
-        setContent(
-            HomeLayout.TwoPane,
-            history = listOf(
-                HistoryDay("2026-11-03", "November 3", twoGames),
-                HistoryDay("2026-11-02", "November 2", twoGames.take(1)),
-                HistoryDay("2026-11-01", "November 1", twoGames.takeLast(1)),
-            ),
-        )
-
-        composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
-
-        composeRule.onAllNodes(isSelected()).assertCountEquals(1)
-        composeRule.onNodeWithTag("home.history_row_2026-11-03").assertIsSelected()
-    }
-
-    @Test
     fun `home has no theme control - N4`() {
         setContent(HomeLayout.SinglePane)
 
@@ -342,26 +273,6 @@ class HomeScreenTest {
         composeRule.runOnIdle { reselect.tryEmit(Unit) }
 
         composeRule.onNodeWithText("PuzzleBox").assertIsDisplayed()
-    }
-
-    @Test
-    fun `phone keeps recent days beside today and the streak`() {
-        val day = HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))
-        setContent(HomeLayout.SinglePane, history = listOf(day))
-
-        composeRule.onNodeWithTag("home.history_row_2026-11-03").assertExists()
-        composeRule.onNodeWithTag("home.today").assertExists()
-        composeRule.onNodeWithTag("home.streak").assertExists()
-    }
-
-    @Test
-    fun `tablet shows a tapped day's detail`() {
-        val day = HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "0:42")))
-        setContent(HomeLayout.TwoPane, history = listOf(day))
-
-        composeRule.onNodeWithTag("home.streak_pane").assertExists()
-        composeRule.onNodeWithTag("home.history_row_2026-11-03").performScrollTo().performClick()
-        composeRule.onNodeWithTag("home.day_detail").assertExists()
     }
 
     private val zipRank = TodayRank(GameId("zip"), "Zip", 12)
@@ -452,7 +363,7 @@ class HomeScreenTest {
         composeRule.onNodeWithTag("summary.duels").assertDoesNotExist()
     }
 
-    private companion object {
+    internal companion object {
         val DAY: LocalDate = LocalDate.of(2026, 11, 4)
 
         /** Registry order. A loading badge shimmers forever: the loading test stops the clock. */

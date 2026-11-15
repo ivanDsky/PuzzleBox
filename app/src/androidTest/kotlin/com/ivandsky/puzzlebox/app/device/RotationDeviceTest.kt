@@ -7,7 +7,7 @@ import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.GAME
 import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.RANKS
 import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.LIBRARY
 import com.ivandsky.puzzlebox.app.device.DeviceShell.Companion.ZIP
-import com.ivandsky.puzzlebox.home.api.HomeKey
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -15,8 +15,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * SC16 (device half): a real orientation change recreates the activity mid-game while two
- * tabs hold non-root stacks (Home → History, Play → Zip). The tab, both stacks and the board
+ * SC16 (device half): a real orientation change recreates the activity mid-game while Play
+ * holds a non-root stack (Play → Zip). The tabs, that stack and the board
  * survive; the board stays immersive (N2) in both shapes, and outside play the window's new
  * width class swaps the bottom bar for the rail.
  */
@@ -29,7 +29,7 @@ class RotationDeviceTest {
     @Test
     fun rotationMidGameKeepsTabsStacksAndBoardAndSwapsBarAndRail() = with(shell) {
         rotate(SCREEN_ORIENTATION_PORTRAIT)
-        tap(RANK_ROW)
+        tapTab(HistoryRootKey)
         assertRoute(RANKS)
         assertBottomBar()
         tapTab(PlayKey)
@@ -52,17 +52,13 @@ class RotationDeviceTest {
         assertRoute(LIBRARY)
         assertSelectedTab(PlayKey)
         assertBottomBar()
-        tapTab(HomeKey)
+        tapTab(HistoryRootKey)
         assertRoute(RANKS)
 
         rotate(SCREEN_ORIENTATION_LANDSCAPE)
 
         assertRoute(RANKS)
-        assertSelectedTab(HomeKey)
+        assertSelectedTab(HistoryRootKey)
         assertRail()
-    }
-
-    private companion object {
-        const val RANK_ROW = "summary.leaderboard"
     }
 }
