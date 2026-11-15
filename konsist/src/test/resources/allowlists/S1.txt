@@ -50,7 +50,7 @@ games/tango-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/tangoui/TangoTapPoli
 games/tango/src/main/kotlin/com/ivandsky/puzzlebox/games/tango/TangoPuzzle.kt 6  # S1
 games/tango/src/main/kotlin/com/ivandsky/puzzlebox/games/tango/engine/TangoMove.kt 2  # S1
 games/tango/src/main/kotlin/com/ivandsky/puzzlebox/games/tango/engine/TangoRules.kt 2  # S1
-games/zip-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/zipui/ZipBoardCells.kt 3  # S1
+games/zip-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/zipui/ZipBoardCells.kt 2  # S1
 games/zip-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/zipui/ZipPlayController.kt 3  # S1
 games/zip-ui/src/main/kotlin/com/ivandsky/puzzlebox/games/zipui/ZipPlayUi.kt 2  # S1
 games/zip/src/main/kotlin/com/ivandsky/puzzlebox/games/zip/ZipPuzzle.kt 6  # S1
