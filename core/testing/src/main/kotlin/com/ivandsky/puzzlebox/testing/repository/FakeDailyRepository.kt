@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.testing.repository
 
 import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.repository.DailyRefresh
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.game.Puzzle
@@ -12,9 +13,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * Scriptable in-memory [DailyRepository] for feature and app tests, keyed by [GameId]
- * like the real one: per-game scripted [today] results (counted), per-game history
- * flows (newest first, live via [addEntry]), cached days ([setCached], read uncounted by
- * [cachedPuzzle]), per-game
+ * like the real one: per-game scripted [today] and [refreshToday] results (counted together),
+ * per-game history flows (newest first, live via [addEntry]), cached days ([setCached], read
+ * uncounted by [cachedPuzzle]; [replaceToday] compares and replaces the game's newest one), per-game
  * [archiveRange]s, per-game [puzzleNumber]s ([setPuzzleNumbers]; none by default),
  * per-game [linkedInGameTypeId]s ([setLinkedInGameType]; none by default), per-game
  * [linkedInGamePath]s ([setLinkedInGamePath]; none by default) and
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 class FakeDailyRepository : DailyRepository {
 
     private val todayResults = mutableMapOf<GameId, DailyToday>()
+    private val refreshResults = mutableMapOf<GameId, DailyRefresh>()
     private val calls = mutableMapOf<GameId, Int>()
     private val histories = mutableMapOf<GameId, MutableStateFlow<List<DailyEntry>>>()
     private val cachedByDay = mutableMapOf<Pair<GameId, LocalDate>, Puzzle>()
@@ -42,7 +44,15 @@ class FakeDailyRepository : DailyRepository {
         todayResults[game] = result
     }
 
-    /** How many times [today] ran for [game]. */
+    /**
+     * Scripts [game]'s next (and every following) [refreshToday] outcome. Unscripted, the refresh follows the
+     * [setToday] script: Fresh is Stored, Cached and Unavailable are Failed.
+     */
+    fun setRefresh(game: GameId, result: DailyRefresh) {
+        refreshResults[game] = result
+    }
+
+    /** How many times [today] or [refreshToday] ran for [game]. */
     fun todayCalls(game: GameId): Int = calls[game] ?: 0
 
     /** Replaces [game]'s captured days (kept newest first, the repository contract). */
@@ -95,6 +105,23 @@ class FakeDailyRepository : DailyRepository {
     override suspend fun today(game: GameId): DailyToday {
         calls[game] = todayCalls(game) + 1
         return todayResults[game] ?: error("no today() scripted for ${game.value} (history is cache-only, A8)")
+    }
+
+    override suspend fun refreshToday(game: GameId): DailyRefresh {
+        val scripted = refreshResults[game] ?: return when (val today = today(game)) {
+            is DailyToday.Fresh -> DailyRefresh.Stored(today.puzzle)
+            is DailyToday.Cached -> DailyRefresh.Failed(today.error)
+            is DailyToday.Unavailable -> DailyRefresh.Failed(today.error)
+        }
+        calls[game] = todayCalls(game) + 1
+        return scripted
+    }
+
+    override suspend fun replaceToday(game: GameId, expected: Puzzle, fresh: Puzzle): Boolean {
+        val today = cachedByDay.keys.filter { it.first == game }.maxByOrNull { it.second } ?: return false
+        if (cachedByDay[today] != expected) return false
+        cachedByDay[today] = fresh
+        return true
     }
 
     override fun observeHistory(game: GameId): Flow<List<DailyEntry>> = history(game)

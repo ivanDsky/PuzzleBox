@@ -48,6 +48,22 @@ interface DailyRepository {
     /** Fetch-today → cache; on any fetch failure degrade to today's cache + the sealed error. */
     suspend fun today(game: GameId): DailyToday
 
+    /**
+     * The one shared refresh of today's puzzle for [game]: concurrent callers wait on the same request, and a
+     * call within ten minutes of a successful fetch makes none and answers from that fetch (so it is still
+     * [DailyRefresh.Changed] while the stored puzzle differs). The fetched puzzle is stored only when none is
+     * stored; a stored daily is never overwritten here, only through [replaceToday]. A cancelled caller stops
+     * waiting; the request goes on for the others.
+     */
+    suspend fun refreshToday(game: GameId): DailyRefresh
+
+    /**
+     * One transaction: replaces today's row with [fresh] only if the stored puzzle still equals [expected].
+     * [fresh] is the puzzle a [DailyRefresh.Changed] carried; any other is refused, so the store only ever
+     * holds what the source served.
+     */
+    suspend fun replaceToday(game: GameId, expected: Puzzle, fresh: Puzzle): Boolean
+
     /** [game]'s captured days, newest first (A8). Never touches the network nor loads payloads. */
     fun observeHistory(game: GameId): Flow<List<DailyEntry>>
 

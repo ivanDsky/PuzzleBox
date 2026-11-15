@@ -20,6 +20,9 @@ import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -51,6 +54,7 @@ class OfflineFirstDailyRepositoryTest {
 
     private val today = LocalDate.of(2026, 10, 31)
     private var nowMs = 1_000L
+    private val scope = CoroutineScope(SupervisorJob())
 
     @Before
     fun setUp() {
@@ -69,6 +73,7 @@ class OfflineFirstDailyRepositoryTest {
         dao = db.puzzleDailyDao(),
         dispatchers = DefaultDispatcherProvider(),
         calendar = FakeGameCalendar(today),
+        scope = scope,
         clock = { nowMs },
     )
 
@@ -88,6 +93,7 @@ class OfflineFirstDailyRepositoryTest {
 
     @After
     fun tearDown() {
+        scope.cancel()
         db.close()
     }
 
