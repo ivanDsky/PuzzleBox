@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.data.repository
 import com.ivandsky.puzzlebox.datastore.PuzzleBoxPreferencesDataSource
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.model.ThemeRead
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -13,6 +14,8 @@ internal class OfflineUserPreferencesRepository(
 ) : UserPreferencesRepository {
 
     override val themeMode: Flow<ThemeMode> = dataSource.preferences.map { it.themeMode }
+
+    override val themeRead: Flow<ThemeRead> = dataSource.themeRead
 
     override suspend fun setThemeMode(mode: ThemeMode) {
         dataSource.setThemeMode(mode)

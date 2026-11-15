@@ -31,6 +31,7 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.games.queensui.QueensSettings
 import com.ivandsky.puzzlebox.games.sudokuui.SudokuHighlightSettings
+import com.ivandsky.puzzlebox.navigation.FirstScreenReady
 import com.ivandsky.puzzlebox.profile.settings.GameOptions
 import com.ivandsky.puzzlebox.data.visibility.SkippedPosts
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
@@ -50,6 +51,8 @@ val appModule = module {
     single<CoroutineScope> {
         CoroutineScope(SupervisorJob() + get<DispatcherProvider>().default)
     } onClose { it?.cancel() }
+    // Home or the shell flips it; the splash policy reads it.
+    single { FirstScreenReady() }
     // The watcher's per-post outcome: one instance, written by the watcher and read by
     // the Result board and the tablet panel.
     single { SubmitStatusTracker() }

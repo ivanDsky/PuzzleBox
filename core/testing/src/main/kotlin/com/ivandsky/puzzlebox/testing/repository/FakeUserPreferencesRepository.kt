@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.testing.repository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
+import com.ivandsky.puzzlebox.model.ThemeRead
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -21,6 +22,7 @@ class FakeUserPreferencesRepository(
     autoShowWitness: Boolean = true,
     showReplayErrors: Boolean = true,
     ranksFriendsDefault: Boolean = true,
+    private val themeReadFails: Boolean = false,
 ) : UserPreferencesRepository {
 
     private val theme = MutableStateFlow(themeMode)
@@ -33,6 +35,8 @@ class FakeUserPreferencesRepository(
     val seen: Set<GameId> get() = seenGames.value
 
     override val themeMode: Flow<ThemeMode> = theme
+
+    override val themeRead: Flow<ThemeRead> = theme.map { ThemeRead(if (themeReadFails) ThemeMode.SYSTEM else it, themeReadFails) }
 
     override suspend fun setThemeMode(mode: ThemeMode) {
         theme.value = mode
