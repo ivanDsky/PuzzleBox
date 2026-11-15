@@ -63,7 +63,8 @@ it): anything → `:app`; `:core:testing` from a non-test configuration; `core:*
 `feature:a:impl` → `feature:b:impl`; `games:*` → `feature:*`; `games:x` → `games:y` except
 `games:x-ui` → `games:x`. Two more arms guard the verification module `:konsist` (ADR-0009):
 `:konsist` → any module, and any module → `:konsist` (test configurations too). Two more arms
-guard the `tools` family (ADR-0021): `tools:*` → anything but `:core:game`, a non-UI `games:*`
+guard the Macrobenchmark module `:benchmark` (ADR-0008): its only edge is `:app` through `testedApks`,
+and nothing depends on it. Two more arms guard the `tools` family (ADR-0021): `tools:*` → anything but `:core:game`, a non-UI `games:*`
 and (test configurations only) `:core:testing`; and any module outside `tools:*` → a tool.
 
 - `app/` (`:app`) — `PuzzleBoxApplication` (starts Koin, then starts `LeaderboardSubmitWatcher`,
@@ -110,6 +111,10 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `ProcessDeathE2ETest`, `ShellTabsE2ETest`, `ShellSummariesE2ETest`,
   `StrandsPlayE2ETest`, `StrandsArchiveE2ETest`, `DuelFlowE2ETest`),
   `nav/PerTabShellTest`, `nav/ShellSessionLifecycleTest`, `nav/PlacementTest`, `nav/ShellChromeTest`.
+- `benchmark/` (`:benchmark`, `puzzlebox.android.benchmark`, `com.android.test`) — Macrobenchmark journeys
+  (startup, game open, tab switch, archive, Ranks, Zip drag) and `BaselineProfileGenerator` against
+  `:app`'s `benchmark` build type (`com.ivandsky.puzzlebox.benchmark`, release-like, profileable, signed
+  out); see `benchmark/README.md`. Never targets the release package.
 - `konsist/` (`:konsist`, test-only `puzzlebox.jvm.library`, no project dependencies) — the
   in-module structure rule suite (ADR-0009): `core/` engine (`SourceTree`, `Allowlist`, `judge`,
   `RuleCheck`, `CensusTest`), `rules/` one `<ID><Name>.kt` + test per rule, resources

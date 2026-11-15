@@ -145,4 +145,21 @@ class ModuleGraphGuardTest {
             forbiddenEdgeReason(":tools:puzzle-cli", ":konsist", "implementation"),
         )
     }
+
+    @Test
+    fun benchmarkMayReachAppOnlyAsTheTestedApk() {
+        assertNull(forbiddenEdgeReason(":benchmark", ":app", "testedApks"))
+        assertEquals(
+            "benchmark drives :app as an installed APK; it has no project dependencies",
+            forbiddenEdgeReason(":benchmark", ":app", "implementation"),
+        )
+        assertEquals(
+            "benchmark drives :app as an installed APK; it has no project dependencies",
+            forbiddenEdgeReason(":benchmark", ":core:model", "implementation"),
+        )
+        assertEquals(
+            "nothing may depend on the measurement module :benchmark",
+            forbiddenEdgeReason(":app", ":benchmark", "implementation"),
+        )
+    }
 }
