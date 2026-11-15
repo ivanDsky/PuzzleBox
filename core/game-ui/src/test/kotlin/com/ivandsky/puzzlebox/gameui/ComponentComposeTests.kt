@@ -25,7 +25,7 @@ class TimerBarTest {
     fun `renders elapsed time counting up`() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                TimerBar(elapsedMs = 65_000, modifier = Modifier.requiredSize(width = 200.dp, height = 40.dp))
+                TimerBar(elapsedMs = { 65_000L }, modifier = Modifier.requiredSize(width = 200.dp, height = 40.dp))
             }
         }
         composeRule.onNodeWithText("1:05").assertExists()
@@ -35,7 +35,7 @@ class TimerBarTest {
     fun `zero elapsed renders 0_00`() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                TimerBar(elapsedMs = 0, modifier = Modifier.requiredSize(width = 200.dp, height = 40.dp))
+                TimerBar(elapsedMs = { 0L }, modifier = Modifier.requiredSize(width = 200.dp, height = 40.dp))
             }
         }
         composeRule.onNodeWithText("0:00").assertExists()
