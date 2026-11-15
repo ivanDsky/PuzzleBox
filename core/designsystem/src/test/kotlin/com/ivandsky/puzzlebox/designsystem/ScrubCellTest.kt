@@ -150,6 +150,31 @@ class ScrubCellTest {
         assertEquals(1f, shown("0:58"), 0f)
     }
 
+    @Test
+    fun `a value that repeats the layer it interrupts leaves no stale layer behind`() {
+        morphing(identity = { it.first() })
+
+        changeTo("b1", afterMs = 100L)
+        changeTo("b2", afterMs = 1_000L)
+
+        assertEquals(0, drawn("1:05"))
+        assertEquals(0, drawn("b1"))
+        assertEquals(1f, shown("b2"), 0f)
+    }
+
+    @Test
+    fun `a morph cancelled halfway by the next one ends on one layer`() {
+        morphing()
+
+        changeTo("0:58", afterMs = 100L)
+        changeTo("0:40", afterMs = 100L)
+        changeTo("1:05", afterMs = 1_000L)
+
+        assertEquals(0, drawn("0:58"))
+        assertEquals(0, drawn("0:40"))
+        assertEquals(1f, shown("1:05"), 0f)
+    }
+
     private fun assertPartly(what: String, opacity: Float) =
         assertTrue("$what is part frosted: $opacity", opacity > 0f && opacity < 1f)
 

@@ -39,8 +39,8 @@ val MorphAlpha = SemanticsPropertyKey<Float>("MorphAlpha")
  * does not move: that is what lets a card keep its unchanged text outside the cells that change.
  *
  * [identity] says when two values are the same layer: values that share it update the layer in place instead of
- * morphing. A change that lands mid-morph turns the layer then arriving into one leaving, from its current opacity,
- * and starts the next. Reduced motion swaps at once.
+ * morphing. A change that lands mid-morph drops the layers still leaving, turns the one arriving into one leaving, from its
+ * current opacity, and starts the next; a value that repeats the arriving layer's identity drops them too. Reduced motion swaps at once.
  */
 @Composable
 fun <T> MorphCell(
@@ -92,6 +92,8 @@ private class MorphLayers<T>(first: T) {
             return
         }
         if (identity(newest.value) == identity(value)) {
+            // Layers a cancelled morph was fading out would otherwise be stranded: nothing is left to finish them.
+            layers.removeAll { it !== newest }
             newest.value = value
             newest.alpha.animateTo(1f, Arriving)
             return
@@ -102,8 +104,12 @@ private class MorphLayers<T>(first: T) {
         coroutineScope {
             leaving.forEach { layer ->
                 launch {
-                    layer.alpha.animateTo(0f, tween(MotionTokens.DayMorphOut, easing = MotionTokens.EasingEase))
-                    layers.remove(layer)
+                    try {
+                        layer.alpha.animateTo(0f, tween(MotionTokens.DayMorphOut, easing = MotionTokens.EasingEase))
+                    } finally {
+                        // A morph the next value cancels must not leave its leaving layer drawn at half opacity.
+                        layers.remove(layer)
+                    }
                 }
             }
             launch { arriving.alpha.animateTo(1f, Arriving) }
