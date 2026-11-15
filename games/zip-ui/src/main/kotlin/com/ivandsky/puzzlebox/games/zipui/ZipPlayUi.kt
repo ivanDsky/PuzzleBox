@@ -192,6 +192,8 @@ private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modi
         controller.clearHintArrow()
     }
     val hooks = remember(puzzle) { ZipDragHooks(puzzle.board) }
+    // Walls never change mid-play; a stable list lets the board skip them on each accepted cell.
+    val walls = remember(puzzle) { zipWallOverlays(model) }
     // Snapshot state read only inside ZipPipes' draw: a moving finger redraws, never recomposes.
     val finger = remember { mutableStateOf<Offset?>(null) }
     val cap = paneCap ?: PlayBoardMaxWidth
@@ -202,7 +204,7 @@ private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modi
             path = model.path.map { GridCell(it / model.n, it % model.n) },
             hooks = hooks,
             onEvent = controller::onDragEvent,
-            edgeOverlays = zipWallOverlays(model),
+            edgeOverlays = walls,
             underlay = { ZipPipes(model, { finger.value }, hooks, animate = !reducedMotion) },
             cellContent = { row, col ->
                 ZipCellDecor(model, row, col, animated = !reducedMotion)
