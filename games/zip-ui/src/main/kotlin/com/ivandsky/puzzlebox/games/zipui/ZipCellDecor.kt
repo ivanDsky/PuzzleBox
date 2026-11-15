@@ -91,7 +91,6 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean) {
     zipCellRecomposeProbe?.invoke(face.idx)
     val idx = face.idx
     val dotFraction = ZipBoardSpec.dotSizeFraction(face.n)
-    val cell = face
     val inPath = face.isOnPath
     val isHint = face.isHint
     val isRejected = face.isRejected
@@ -113,7 +112,7 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean) {
     LaunchedEffect(inPath) {
         val entered = inPath && !wasInPath
         wasInPath = inPath
-        if (animated && entered && cell.isWaypoint) {
+        if (animated && entered && face.isWaypoint) {
             pop.tracePop()
         } else {
             pop.snapTo(1f)
@@ -143,20 +142,20 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean) {
         // settles instantly. Previews render the static state.
         val ringColor = if (inPath) board.waypointDotOnPath else board.waypointDot
         val flash = remember { Animatable(1f) }
-        LaunchedEffect(animated, cell.isNextTarget) {
-            if (animated && cell.isNextTarget) {
+        LaunchedEffect(animated, face.isNextTarget) {
+            if (animated && face.isNextTarget) {
                 flash.snapTo(0f)
                 flash.animateTo(1f, tween(MotionTokens.FlashDuration))
             } else {
                 flash.snapTo(1f)
             }
         }
-        val ringPaint = if (cell.isNextTarget) {
+        val ringPaint = if (face.isNextTarget) {
             lerp(ringColor, board.waypointDotOnPath, flash.value)
         } else {
             ringColor
         }
-        if (cell.isWaypoint) {
+        if (face.isWaypoint) {
             Box(
                 Modifier
                     .fillMaxSize(dotFraction)
@@ -176,7 +175,7 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean) {
                 )
             }
         }
-        cell.label?.let { label ->
+        face.label?.let { label ->
             // Label sized from the dot, not from sp (U1: cap ≈ 0.38 dot Ø), so it scales
             // with the pitch down to n8. Two-digit labels ("10"–"16") fit per U1's glyph
             // widths; any residual overflow is reported, never silently shrunk.
