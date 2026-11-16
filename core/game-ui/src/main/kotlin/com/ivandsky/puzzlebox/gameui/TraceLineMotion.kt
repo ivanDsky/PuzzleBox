@@ -16,8 +16,9 @@ import kotlinx.coroutines.launch
  * last committed cell, or back toward the previous one) moves the end with the finger without
  * a blend, resting on the tail whenever the tip is refused; let go, it returns home over
  * [MotionTokens.Trace.HomeDuration]. A committed backtrack keeps the removed cells in [line]
- * until the end has retracted past them. Each game projects its tip and draws [line] up to the
- * end. Call [step] from the draw phase only, so a running tween redraws the line and
+ * until the end has retracted past them. A frame drawn under a held finger skips every blend:
+ * the end is drawn where the path and tip put it. Each game projects its tip and draws [line]
+ * up to the end. Call [step] from the draw phase only, so a running tween redraws the line and
  * recomposes nothing.
  */
 class TraceLineMotion<C : Any>(private val scope: CoroutineScope) {
@@ -37,8 +38,12 @@ class TraceLineMotion<C : Any>(private val scope: CoroutineScope) {
     var line: List<C> = emptyList()
         private set
 
-    /** How far along [line] the visible end sits this frame. */
-    fun step(path: List<C>, tip: TraceTip<C>? = null, animate: Boolean): Float {
+    /**
+     * How far along [line] the visible end sits this frame. [held] says a finger is on the line:
+     * the end goes straight to its target, since a blend there only puts frames between the
+     * finger and the line (two before a tween moves at all, then its duration).
+     */
+    fun step(path: List<C>, tip: TraceTip<C>? = null, animate: Boolean, held: Boolean = false): Float {
         val previous = drawnPath
         drawnPath = path
         if (path.isEmpty()) {
@@ -62,6 +67,12 @@ class TraceLineMotion<C : Any>(private val scope: CoroutineScope) {
         hadTip = tip != null
 
         val nextLine = path + listOfNotNull(tipCell)
+        if (held) {
+            if (blending()) dropBlend()
+            line = nextLine
+            drawnEnd = target
+            return target
+        }
         val shared = commonPrefix(line, nextLine)
         // A dropped tip cell is a release, not a leftover to retract along.
         val retracting = !releasing && shared == nextLine.size && line.size > nextLine.size
@@ -126,6 +137,13 @@ class TraceLineMotion<C : Any>(private val scope: CoroutineScope) {
             blendPending = false
             blend.animateTo(1f, tween(duration, easing = LinearEasing))
         }
+    }
+
+    // The snap takes the Animatable from a tween still running (or about to start), so the
+    // blend neither resumes when the finger lifts nor keeps redrawing the line meanwhile.
+    private fun dropBlend() {
+        blendPending = false
+        scope.launch { blend.snapTo(1f) }
     }
 }
 

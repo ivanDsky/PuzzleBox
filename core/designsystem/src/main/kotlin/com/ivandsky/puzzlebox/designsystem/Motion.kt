@@ -217,10 +217,12 @@ object MotionTokens {
     // Trace (Zip + Strands): the line end leans from the last committed cell along
     // ONE legal direction toward the finger (never freehand, never into a refused cell) and
     // rests on the cell when the finger points anywhere else; a head disc rides the end.
-    // Cells added grow in along the path and a backtrack retracts along it. Reduced: the tip
+    // Cells added grow in along the path and a backtrack retracts along it, except under a
+    // held finger in Zip, where the end is drawn at the finger at once. Reduced: the tip
     // still leans; no grow, retract or home.
     object Trace {
-        // Closer than this to the tail centre there is no tip, so a resting finger never jitters.
+        // Closer than this to the tail centre a Strands finger makes no tip, so a resting one
+        // never jitters. Zip's tip follows from the centre itself.
         const val TipDeadCells = 0.06f
 
         // The tip tracks the finger's push along its axis 1:1, never past this fraction of the

@@ -17,13 +17,15 @@ import kotlinx.coroutines.CoroutineScope
 
 /**
  * The Zip line's frame state over the shared [TraceLineMotion]: Zip draws the line, its lip
- * and the head on the visible end. [finger] (board px, read in the draw phase) leans the end
- * at a cell [hooks] accepts while the drag runs. Called from the draw phase only: the finger
- * and the Animatables are read there, so a moving finger or a running tween redraws without
- * recomposing the board.
+ * and the head on the visible end. While the drag runs, [finger] (board px, read in the draw
+ * phase) puts the end where [ZipTipAim] projects it on a step [hooks] accepts, on the frame
+ * of the pointer event: a held line is drawn without blends. Called from the draw phase
+ * only: the finger and the Animatables are read there, so a moving finger or a running tween
+ * redraws without recomposing the board.
  */
 internal class ZipLineMotion(scope: CoroutineScope) {
     private val motion = TraceLineMotion<GridCell>(scope)
+    private val aim = ZipTipAim()
     private val stroke = Path()
 
     fun DrawScope.drawTrace(
@@ -40,8 +42,8 @@ internal class ZipLineMotion(scope: CoroutineScope) {
         val pitchX = size.width / n
         val pitchY = size.height / n
         val fingerCells = finger?.let { Offset(it.x / pitchX, it.y / pitchY) }
-        val tip = if (fingerCells != null && hooks != null) zipTip(path, fingerCells, hooks) else null
-        val end = motion.step(path, tip, animate)
+        val tip = hooks?.let { aim.tip(path, fingerCells, it) }
+        val end = motion.step(path, tip, animate, held = finger != null)
         if (path.isEmpty()) return
         val line = motion.line
         fun centre(index: Int): Offset {
