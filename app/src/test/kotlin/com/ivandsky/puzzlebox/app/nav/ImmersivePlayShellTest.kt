@@ -37,6 +37,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
@@ -93,16 +94,20 @@ class ImmersivePlayShellTest {
         }
     }
 
+    /** The app graph's tabs: the bar shows exactly these. */
+    private val tabs: List<TopLevelDestination>
+        get() = GlobalContext.get().get<TabSetSource>().tabSet.destinations
+
     /** Every tab item is on screen once: the bar shows. */
     private fun assertBarShown(on: NavigationState) {
-        topLevelDestinations.forEach { destination ->
+        tabs.forEach { destination ->
             assertEquals("${destination.tag} on $on", 1, tabNodes(destination))
         }
     }
 
     /** No tab item is on screen: the bar is hidden. */
     private fun assertBarHidden(on: NavigationState) {
-        topLevelDestinations.forEach { destination ->
+        tabs.forEach { destination ->
             assertEquals("${destination.tag} on $on", 0, tabNodes(destination))
         }
     }
