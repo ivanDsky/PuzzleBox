@@ -15,6 +15,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -28,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.nav.FriendLink
 import com.ivandsky.puzzlebox.app.nav.LocalChromePadding
+import com.ivandsky.puzzlebox.app.nav.MakeOne
 import com.ivandsky.puzzlebox.app.nav.PuzzleBoxNavShell
 import com.ivandsky.puzzlebox.app.nav.ShellAvatar
 import com.ivandsky.puzzlebox.app.nav.ShellAvatarSize
@@ -45,12 +47,18 @@ import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
 import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
+import com.ivandsky.puzzlebox.create.CustomBody
+import com.ivandsky.puzzlebox.create.api.CreateKey
+import com.ivandsky.puzzlebox.create.api.EditorKey
+import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.TodayStatus
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.PanePolicy
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
@@ -58,6 +66,7 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.FirstScreenReady
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -71,6 +80,9 @@ import org.koin.compose.koinInject
  * [navigator]'s selected tab, so it always names the tab that owns the screen on top, or the
  * tab under the Profile layer while that is open.
  * The Play tab carries a dot while any of today's games is in progress.
+ * Once the tab set has no Create tab, Custom lives in Games: the shell then hands Games its Custom
+ * pill's body ([rememberCustomSlot]) and the Make-one doors their action ([MakeOne]); with a Create
+ * tab it hands neither, so the pill and the doors do not show.
  * Play is immersive: while the screen on top is immersive ([isImmersive]: a
  * board or a result, a duel's leg board or result, or a duel's reveal) neither bar nor rail
  * shows, and back is the way out.
@@ -90,8 +102,9 @@ import org.koin.compose.koinInject
  * that first sees it, so a cold start draws the friend's card on its first frame; then
  * [onLinkApplied]. A link whose code doesn't parse opens Play's code sheet holding its text.
  * A duel link (`/m/`) opens the duel screen.
- * A [pendingShare] (shared text waiting in the store, which `MainActivity` filled) shows
- * Create's root the same way, then [onShareApplied]; the root imports the text.
+ * A [pendingShare] (shared text waiting in the store, which `MainActivity` filled) shows the
+ * screen that lists drafts (Create's root, or Games' Custom once Custom lives in Games) the same
+ * way, then [onShareApplied]; that screen imports the text.
  */
 @Composable
 fun PuzzleBoxApp(
@@ -152,6 +165,10 @@ fun PuzzleBoxApp(
             onOpenDuel = navigator::pushOnce,
         )
     }
+    // The tab set is fixed for the process, so each branch is taken for good.
+    val customInGames = destinations.none { it.key == CreateKey }
+    val custom = if (customInGames) rememberCustomSlot(navigator) else null
+    val makeOne = if (customInGames) rememberMakeOne(navigator) else null
     val badged = playTabBadged(anyInProgress, duelsNeedYou = duels.needYou())
     // A tap on the selected tab at its root is a reducer no-op, so the shell spots it here
     // and tells the roots; the tap still goes through selectTab. With the Profile layer open
@@ -224,6 +241,8 @@ fun PuzzleBoxApp(
                     codeDraft = { codeDraft },
                     onCodeDraftTaken = { codeDraft = null },
                     duels = duels,
+                    custom = custom,
+                    makeOne = makeOne,
                     libraryRequests = libraryRequests,
                 )
             }
@@ -234,4 +253,26 @@ fun PuzzleBoxApp(
             )
         }
     }
+}
+
+/** The Games Custom pill's body: create's drafts and published rows, which open their screens on the current stack. */
+@Composable
+private fun rememberCustomSlot(navigator: Navigator): CustomSlot = remember(navigator) {
+    CustomSlot { listState, friendsEmpty, friends ->
+        CustomBody(
+            listState = listState,
+            friendsEmpty = friendsEmpty,
+            friends = friends,
+            onOpenDraft = { navigator.pushOnce(EditorKey(it)) },
+            onOpenPublished = { navigator.pushOnce(PublishedPuzzleKey(it)) },
+        )
+    }
+}
+
+@Composable
+private fun rememberMakeOne(navigator: Navigator): MakeOne {
+    val createDraft = koinInject<CreateDraft>()
+    val games = koinInject<GameRegistry>()
+    val scope = rememberCoroutineScope()
+    return remember(navigator, createDraft, games, scope) { MakeOne(createDraft, games, scope, navigator) }
 }

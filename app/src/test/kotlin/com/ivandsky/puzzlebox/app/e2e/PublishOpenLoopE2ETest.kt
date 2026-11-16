@@ -4,6 +4,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
 import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.Draft
@@ -40,6 +41,8 @@ import org.robolectric.annotation.Config
  * The sharing loop over the real shell: a signed-in author publishes a ready Queens draft from
  * the Studio and reads its code; a friend enters that code in Play, opens the card, plays the
  * puzzle to the win and lands on its result, whose Done returns to the card, now reading Solved.
+ * With CustomInGames on the author reaches the draft through Games › Custom and leaves the
+ * full-window Studio with Back.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -52,8 +55,8 @@ class PublishOpenLoopE2ETest {
     private val published = FakePublishedPuzzleRepository()
     private val received = FakeReceivedPuzzleRepository()
 
-    private val graph = E2eKoinGraph(
-        E2E_TODAY,
+    private fun graph(vararg flags: ReleaseFlag) = shellGraph(
+        *flags,
         overrides = module {
             single<DraftRepository> { drafts }
             single<SharedPuzzleRepository> { shared }
@@ -63,20 +66,50 @@ class PublishOpenLoopE2ETest {
     )
 
     @Test
-    fun `a published draft opens by its code and its solve lands on its result, then the card reads solved`() = shellRobot(graph = graph) {
+    fun `a published draft opens by its code and its solve lands on its result, then the card reads solved`() =
+        publishOpenLoop(
+            graph(),
+            openDraft = {
+                tapTab(CreateKey)
+                tap("create.draft.row")
+            },
+            toGames = { tapTab(PlayKey) },
+        )
+
+    @Test
+    fun `with CustomInGames on a draft published from Games' Custom opens by its code and its solve lands on its result`() =
+        publishOpenLoop(
+            graph(ReleaseFlag.CustomInGames),
+            openDraft = {
+                tapTab(PlayKey)
+                tap("library.tab.custom")
+                tap("create.draft.row")
+            },
+            toGames = {
+                // The Studio is full-window: Back is the way out, to Custom, which now lists the puzzle.
+                back()
+                assertRoute("route.library")
+                awaitTag("create.published.row")
+            },
+        )
+
+    private fun publishOpenLoop(
+        graph: E2eKoinGraph,
+        openDraft: ShellRobot.() -> Unit,
+        toGames: ShellRobot.() -> Unit,
+    ) = shellRobot(graph = graph) {
         graph.identity.currentIdentity = Identity(uid = AUTHOR, displayName = "Ivan", photoUrl = null)
         shared.signedInUid = AUTHOR
-        seedReadyDraft()
+        seedReadyDraft(graph)
 
-        tapTab(CreateKey)
-        tap("create.draft.row")
+        openDraft()
         awaitTag("create.readiness.ready")
         tap("create.action.publish")
         awaitTag("create.published.code")
         val code = published.rows.keys.single()
         assertEquals("the shared doc is the draft's", TITLE, shared.docs.getValue(code).title)
 
-        tapTab(PlayKey)
+        toGames()
         tap("library.enterCode")
         rule.onNodeWithTag("friend.code.field").performTextInput(code.display)
         tap("friend.code.open")
@@ -105,7 +138,7 @@ class PublishOpenLoopE2ETest {
         assertRoute("route.friend")
     }
 
-    private fun seedReadyDraft() {
+    private fun seedReadyDraft(graph: E2eKoinGraph) {
         val editor = checkNotNull(graph.koin.get<GameRegistry>()[GameId(QUEENS)]?.editor)
         val board = EditorDraft(QueensEditor, DraftState(QueensDraft(SIZE, regions(UNIQUE))))
         runBlocking {

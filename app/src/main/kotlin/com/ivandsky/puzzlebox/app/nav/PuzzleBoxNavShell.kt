@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.history.HistoryLayout
 import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
@@ -51,7 +52,8 @@ import org.koin.compose.koinInject
  * [codeDraft] and [onCodeDraftTaken] reach the Play library: a draft opens its code sheet.
  * [libraryRequests] is the one-shot Games request: Games reads its pending value and takes it.
  * [duels], when given, adds the Duels tab and
- * lets Enter code open a duel. The shell draws the
+ * lets Enter code open a duel. [custom], when given, fills the Games Custom pill, and [makeOne] backs the
+ * Make-one doors on the game page and the Result; both are null until Custom lives in Games. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
  * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
@@ -67,6 +69,8 @@ internal fun PuzzleBoxNavShell(
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
+    custom: CustomSlot? = null,
+    makeOne: MakeOne? = null,
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
@@ -94,6 +98,8 @@ internal fun PuzzleBoxNavShell(
             codeDraft = codeDraft,
             onCodeDraftTaken = onCodeDraftTaken,
             duels = duels,
+            custom = custom,
+            makeOne = makeOne,
             libraryRequests = libraryRequests,
             visibility = visibility,
             tuneDefaults = tuneDefaults,
