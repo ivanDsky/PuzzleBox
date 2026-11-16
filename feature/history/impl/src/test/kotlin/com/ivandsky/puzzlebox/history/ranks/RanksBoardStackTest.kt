@@ -42,7 +42,7 @@ class RanksBoardStackTest {
     )
 
     private fun show(layout: HistoryLayout) {
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), layout = layout) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), layout = layout, tuneDefaults = previewTuneDefaults()) } }
     }
 
     private fun bounds(tag: String) = composeRule.onNodeWithTag(tag).getBoundsInRoot()

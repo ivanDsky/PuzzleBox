@@ -592,10 +592,10 @@ class ShellRobot internal constructor(
         assertTrue("rail hugs the start: $tabs in $window", tabs.first().right <= window.left + window.width / 4)
     }
 
-    /** the avatar (the rail's bottom, or Today's header on a bar), which opens Profile on the current tab. */
+    /** the avatar (the rail's bottom, or Today's header on a bar), which opens Profile in the layer over the current tab. */
     fun tapAvatar() = tap(AVATAR)
 
-    /** Profile's top-right gear, which opens Settings above Profile. */
+    /** Profile's top-right gear, which opens Settings above Profile in the layer. */
     fun tapGear() = tap(PROFILE_GEAR)
 
     /**
@@ -603,7 +603,7 @@ class ShellRobot internal constructor(
      * shows (every screen but the immersive ones); on the bar only Today's root shows it.
      */
     fun assertChromeFor(rail: Boolean) {
-        val top = state.currentStack.last()
+        val top = state.layer.lastOrNull() ?: state.currentStack.last()
         val shown = if (rail) !isImmersive(top) else top == HomeKey
         if (shown) assertChromeActions() else assertNoChromeActions()
         if (shown && rail) {
@@ -619,7 +619,7 @@ class ShellRobot internal constructor(
         assertEquals("avatars (state $state)", 1, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
     }
 
-    /** No avatar shows: immersive play, a bar screen but Today, or the flag off. */
+    /** No avatar shows: immersive play, or a bar screen but Today. */
     fun assertNoChromeActions() {
         assertEquals("avatars (state $state)", 0, rule.onAllNodesWithTag(AVATAR).fetchSemanticsNodes().size)
     }

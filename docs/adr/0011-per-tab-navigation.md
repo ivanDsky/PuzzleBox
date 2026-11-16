@@ -3,7 +3,7 @@
 Date: 2026-11-04 · Status: accepted · Source: navigation-ux run (design-it-twice nav A/B/C and
 play A/B/C, stage-B review rulings) · Supersedes ADR-0010 (kept sessions)
 
-*(Amended 2026-11-09 by ADR-0027: where content lives is decided by one owner per content type, a placement table and chrome types; the tab set becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag was removed). The reducer and its verbs are unchanged. Amended 2026-11-10 by ADR-0027's re-gate fixes: the placement table's chrome is `Bar` or `Immersive`, and the shell draws one avatar through a fourth entry decorator. Amended 2026-11-16 by the nav rethink (`.scratch/nav-rethink/spec.md` N7): the state gains a layer above the tabs with invariant I5 and two verbs (§1–§4). The shell opens Profile in it while the `NavDoors` flag is on.)*
+*(Amended 2026-11-09 by ADR-0027: where content lives is decided by one owner per content type, a placement table and chrome types; the tab set becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag was removed). The reducer and its verbs are unchanged. Amended 2026-11-10 by ADR-0027's re-gate fixes: the placement table's chrome is `Bar` or `Immersive`, and the shell draws one avatar through a fourth entry decorator. Amended 2026-11-16 by the nav rethink (`.scratch/nav-rethink/spec.md` N7): the state gains a layer above the tabs with invariant I5 and two verbs (§1–§4). The shell opens Profile in it (shipped in 0.33.0; the nav-doors flag was removed).)*
 
 ## Context
 Up to 0.8 the app kept one `NavBackStack<NavKey>`: picking a tab reset the stack to that tab's

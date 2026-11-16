@@ -35,10 +35,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -125,16 +122,13 @@ class PlayStatsPanelTest {
         return PlayStatsViewModel(
             slot = PlaySlot.Daily(alpha, slotDay),
             registry = fakes.games,
-            brands = fakes.registry,
             calendar = calendar,
             observePlayStats = ObservePlayStats(
                 todaySet = ObserveTodaySet(
                     fakes.games, FakeSavedPlayRepository(), completions, calendar, daily,
                     SyncTodayPuzzles(fakes.games, daily, calendar),
                 ),
-                stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games))),
                 history = history,
-                calendar = calendar,
                 leaderboard = ObserveLeaderboard(identityService, leaderboard, fakes.games, calendar),
             ),
             posts = posts,
@@ -192,23 +186,15 @@ class PlayStatsPanelTest {
         state: PlayStatsState,
         signIn: BoardSignIn = BoardSignIn.Idle,
         onSignIn: () -> Unit = {},
-        showStreakCard: Boolean = true,
     ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Column {
-                    PlayStatsPanel(state = state, elapsedMs = { null }, signIn = signIn, onSignIn = onSignIn, showStreakCard = showStreakCard)
+                    PlayStatsPanel(state = state, elapsedMs = { null }, signIn = signIn, onSignIn = onSignIn)
                 }
             }
         }
         composeRule.waitForIdle()
-    }
-
-    @Test
-    fun `while the stats load the streak shows a dash, not a zero streak`() {
-        showFrozen(viewModel().state.value)
-
-        composeRule.onNodeWithTag("play.stats.streak").assertTextEquals("—-day streak")
     }
 
     @Test
@@ -288,11 +274,6 @@ class PlayStatsPanelTest {
                 gameName = "Zip",
                 solvedToday = 1,
                 gamesToday = 2,
-                streak = 2,
-                week = emptyList(),
-                best = null,
-                rankOrder = RankOrder.TimeThenHints,
-                averageMs = null,
                 times = PlayTimes.Board(
                     (1..3).map { DailyBoardLine.Real(DailyBoardRowModel(it, "Player $it", it * 10_000L, hints = 0, isSelf = false, playerId = "player-$it"), it) },
                     solved = true,
@@ -311,62 +292,11 @@ class PlayStatsPanelTest {
     }
 
     @Test
-    fun `the panel shows the live timer, today's progress and the game's streak`() {
+    fun `the panel shows the live timer and today's progress`() {
         show(viewModel())
 
         composeRule.onNodeWithTag("play.stats.timer").assertTextEquals("1:23")
         composeRule.onNodeWithTag("play.stats.progress").assertTextContains("1/2", substring = true)
-        composeRule.onNodeWithTag("play.stats.streak").assertTextEquals("2-day streak")
-        composeRule.onNodeWithTag("play.stats.best").assertTextContains("1:00", substring = true)
-        composeRule.onNodeWithTag("play.stats.average").assertTextContains("1:15", substring = true)
-        composeRule.onNodeWithTag("play.stats.week").assertExists()
-    }
-
-    @Test
-    fun `with the streak card off the panel has no streak node and keeps the rest`() {
-        showFrozen(viewModel().state.value, showStreakCard = false)
-
-        composeRule.onAllNodesWithTag("play.stats.streak").assertCountEquals(0)
-        composeRule.onAllNodesWithTag("play.stats.week").assertCountEquals(0)
-        composeRule.onNodeWithTag("play.stats.timer").assertExists()
-        composeRule.onNodeWithTag("play.stats.progress").assertExists()
-    }
-
-    @Test
-    fun `with the streak card on the panel has the streak node`() {
-        showFrozen(viewModel().state.value, showStreakCard = true)
-
-        composeRule.onNodeWithTag("play.stats.streak").assertExists()
-    }
-
-    @Test
-    fun `with freezes held the streak line shows the count beside it`() {
-        showFrozen(viewModel().state.value.copy(streak = 12, freezesHeld = 2))
-
-        composeRule.onNodeWithContentDescription("2 freezes").assertExists()
-        composeRule.onNodeWithTag("play.stats.streak").assertTextEquals("12-day streak")
-    }
-
-    @Test
-    fun `a broken streak shows no count beside the streak line, not a 0 - F5`() {
-        // Eight missed days outrun the two freezes held, so the game's streak is 0 and its ledger holds 0.
-        val broken = FakeCompletionRepository().apply { setRecords(listOf(record(alpha, day.minusDays(9), 60_000L))) }
-        show(viewModel(completions = broken))
-
-        composeRule.onNodeWithTag("play.stats.streak").assertTextContains("No streak yet", substring = true)
-        composeRule.onAllNodesWithContentDescription("freeze", substring = true).assertCountEquals(0)
-    }
-
-    @Test
-    fun `a missed day the game's freeze covered shows frozen on the strip and the held count is left`() {
-        val gap = FakeCompletionRepository().apply {
-            setRecords(listOf(record(alpha, day.minusDays(3), 60_000L), record(alpha, day.minusDays(1), 60_000L)))
-        }
-        show(viewModel(completions = gap))
-
-        composeRule.onNodeWithTag("play.stats.streak").assertTextEquals("2-day streak")
-        composeRule.onNodeWithContentDescription("1 freeze").assertExists()
-        composeRule.onAllNodesWithContentDescription("Frozen").assertCountEquals(1)
     }
 
     @Test
@@ -609,11 +539,6 @@ class PlayStatsPanelTest {
                 gameName = "Zip",
                 solvedToday = null,
                 gamesToday = 2,
-                streak = null,
-                week = emptyList(),
-                best = null,
-                rankOrder = RankOrder.TimeThenHints,
-                averageMs = null,
                 times = PlayTimes.SignedOut,
             ),
             signIn = signIn,

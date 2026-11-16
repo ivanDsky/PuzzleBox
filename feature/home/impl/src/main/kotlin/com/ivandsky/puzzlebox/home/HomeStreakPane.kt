@@ -64,14 +64,14 @@ private val EntranceSlide = 24.dp
  * The tablet detail pane with no day selected (handoff 05-b "Streak & stats pane"): the
  * streak eyebrow and big number, the week strip enlarged and four stat tiles.
  * Everything comes from [state]; nothing new is loaded. [onOpenStreak] and [onOpenDay]
- * make the streak row and each week disc buttons (nav rethink N2, N3); null keeps them plain.
+ * make the streak row and each week disc buttons (nav rethink N2, N3).
  */
 @Composable
 internal fun HomeStreakPane(
     state: HomeUiState,
+    onOpenStreak: () -> Unit,
+    onOpenDay: (String) -> Unit,
     modifier: Modifier = Modifier,
-    onOpenStreak: (() -> Unit)? = null,
-    onOpenDay: ((String) -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     // The pane sits one step off the app background: lifted in dark, paper-white in light.
@@ -103,7 +103,7 @@ internal fun HomeStreakPane(
             ringSize = PaneRing,
             ringStroke = PaneRingStroke,
             modifier = Modifier.testTag("home.pane_week"),
-            onDayClick = onOpenDay?.let { open -> { date -> open(date.toString()) } },
+            onDayClick = { date -> onOpenDay(date.toString()) },
         )
         StatTiles(state.stats)
     }
@@ -132,7 +132,7 @@ private fun Eyebrow(text: String) {
 }
 
 @Composable
-private fun BigStreakRow(stats: GameStats, freezesHeld: Int?, onOpenStreak: (() -> Unit)?) {
+private fun BigStreakRow(stats: GameStats, freezesHeld: Int?, onOpenStreak: () -> Unit) {
     StreakDoor(
         onOpen = onOpenStreak,
         verticalAlignment = Alignment.Bottom,

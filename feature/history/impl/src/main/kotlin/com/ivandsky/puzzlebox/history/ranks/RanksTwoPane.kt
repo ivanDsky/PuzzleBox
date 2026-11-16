@@ -63,7 +63,7 @@ internal fun RanksTwoPane(
     onRowClick: ((DailyBoardRowModel) -> Unit)?,
     refreshing: Boolean,
     modifier: Modifier = Modifier,
-    tuneDefaults: RanksTuneDefaults? = null,
+    tuneDefaults: RanksTuneDefaults,
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
@@ -92,7 +92,7 @@ internal fun RanksTwoPane(
         }
         RanksPullToRefresh(refreshing, actions.onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight().padding(bottom = Spacing.lg)) {
             FillRemainingColumn(Modifier.fillMaxSize().verticalScroll(rightScroll).testTag("ranks.rightpane")) {
-                RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }, onLabel = { tuning = true }.takeIf { actions.tuneLabelOpensSheet }) {
+                RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
                     BoardScrubCell(scrub, state.position, state.board.title, Modifier.padding(start = Spacing.sm), at = { state.sliceAt(it)?.title }) { title ->
                         Text(
                             title,

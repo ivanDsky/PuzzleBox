@@ -59,18 +59,18 @@ private val DayTouchMin = 48.dp
  * day with a solve shows its number in the success text colour. A frozen day swaps the
  * number for a snowflake on an ice disc and keeps its ring segments.
  * Callers build the [WeekDay]s; the strip only draws them. [ringSize] and [ringStroke]
- * enlarge every ring (the tablet streak pane runs 64/5). A non-null [onDayClick] makes each
+ * enlarge every ring (the tablet streak pane runs 64/5). [onDayClick] makes each
  * day a button of at least 48dp that reports its date (a door to that day, tagged
- * `week.day.<ISO date>`); null keeps the strip plain.
+ * `week.day.<ISO date>`).
  */
 @Composable
 fun WeekStrip(
     days: List<WeekDay>,
     total: Int,
+    onDayClick: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     ringSize: Dp = RingSize,
     ringStroke: Dp = RingStroke,
-    onDayClick: ((LocalDate) -> Unit)? = null,
 ) {
     Row(modifier = modifier.fillMaxWidth()) {
         days.forEach { day ->
@@ -85,7 +85,7 @@ private fun WeekStripDay(
     total: Int,
     ringSize: Dp,
     ringStroke: Dp,
-    onDayClick: ((LocalDate) -> Unit)?,
+    onDayClick: (LocalDate) -> Unit,
     modifier: Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -95,18 +95,14 @@ private fun WeekStripDay(
     val numberStyle = if (large) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge
     val cell = modifier.testTag("week.day.${day.date}")
     Column(
-        modifier = if (onDayClick == null) {
-            cell
-        } else {
-            cell
-                .clip(MaterialTheme.shapes.medium)
-                .clickable(
-                    onClickLabel = "Open ranks for ${day.date.format(DayLabel)}",
-                    role = Role.Button,
-                    onClick = { onDayClick(day.date) },
-                )
-                .heightIn(min = DayTouchMin)
-        },
+        modifier = cell
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(
+                onClickLabel = "Open ranks for ${day.date.format(DayLabel)}",
+                role = Role.Button,
+                onClick = { onDayClick(day.date) },
+            )
+            .heightIn(min = DayTouchMin),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
@@ -168,6 +164,7 @@ internal fun WeekStripPreview() {
         WeekStrip(
             days = days,
             total = 3,
+            onDayClick = {},
             modifier = Modifier.background(MaterialTheme.colorScheme.surface).padding(Spacing.md),
         )
     }

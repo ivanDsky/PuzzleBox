@@ -92,7 +92,7 @@ class HomeStreakPaneFreezeTest {
     private fun render(streak: Int, held: Int) {
         val state = state(streak, held)
         composeRule.mainClock.autoAdvance = false
-        composeRule.setContent { PuzzleBoxTheme { HomeStreakPane(state = state, modifier = Modifier.width(768.dp)) } }
+        composeRule.setContent { PuzzleBoxTheme { HomeStreakPane(state = state, onOpenStreak = {}, onOpenDay = {}, modifier = Modifier.width(768.dp)) } }
         // Past the pane's entrance slide.
         composeRule.mainClock.advanceTimeBy(SETTLE_MS)
         composeRule.waitForIdle()
@@ -109,7 +109,7 @@ class HomeStreakPaneFreezeTest {
                     state = state,
                     onOpenGame = {},
                     onSelectDay = {},
-                    summaries = HomeSummaries(onOpenRank = null, duels = null),
+                    summaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}),
                     title = "PuzzleBox",
                 )
             }

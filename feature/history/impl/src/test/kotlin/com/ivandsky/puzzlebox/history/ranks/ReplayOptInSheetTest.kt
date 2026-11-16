@@ -46,6 +46,7 @@ class ReplayOptInSheetTest {
                     hub,
                     RanksActions(onSignIn = {}, onSwipe = {}, onShareReplays = { answers += "share" }, onKeepReplaysPrivate = { answers += "private" }),
                     replayOptIn = ask,
+                    tuneDefaults = previewTuneDefaults(),
                 )
             }
         }

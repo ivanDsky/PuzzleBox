@@ -27,7 +27,6 @@ import com.ivandsky.puzzlebox.designsystem.SegmentedToggle
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.history.RanksTuneDefaults
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -126,13 +125,6 @@ private val MinRowHeight = 48.dp
 @Composable
 private fun TuneDefaultsPreview() {
     RanksPreviewHost {
-        TuneDefaultsBlock(
-            RanksTuneDefaults(
-                ownTier = MutableStateFlow(OwnTier.Chosen(VisibilityTier.Duel)),
-                onSelectTier = {},
-                friendsDefault = MutableStateFlow(true),
-                onSelectFriendsDefault = {},
-            ),
-        )
+        TuneDefaultsBlock(previewTuneDefaults())
     }
 }

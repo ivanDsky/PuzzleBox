@@ -21,23 +21,18 @@ private val DoorMinHeight = 48.dp
 
 /**
  * The streak row (flame, the day count and the freeze count) that the phone card and the
- * tablet pane share. With [onOpen] it is one full-width button of at least 48dp, with a chevron
- * at its trailing edge as its cue, that opens the Ranks calendar (nav rethink N3); with null it is the plain
- * [content] row, as before. The caller's [content] sets the row's look; it is tagged
- * `home.streak_door` only as a button.
+ * tablet pane share: one full-width button of at least 48dp, with a chevron at its trailing edge as its cue,
+ * that calls [onOpen] to open the Ranks calendar (nav rethink N3). The caller's [content] sets the row's look;
+ * the row is tagged `home.streak_door`.
  */
 @Composable
 internal fun StreakDoor(
-    onOpen: (() -> Unit)?,
+    onOpen: () -> Unit,
     modifier: Modifier = Modifier,
     verticalAlignment: Alignment.Vertical = Alignment.CenterVertically,
     horizontalArrangement: Arrangement.Horizontal = Arrangement.Start,
     content: @Composable RowScope.() -> Unit,
 ) {
-    if (onOpen == null) {
-        Row(modifier, horizontalArrangement, verticalAlignment, content)
-        return
-    }
     // The chevron closes the row, so [content] gets its own row that takes what the chevron leaves.
     Row(
         modifier = modifier

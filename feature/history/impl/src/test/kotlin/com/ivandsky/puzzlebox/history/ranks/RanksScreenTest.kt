@@ -61,7 +61,7 @@ class RanksScreenTest {
 
     private fun show(state: OverallState, signIn: RanksSignIn = RanksSignIn.Idle, onSignIn: () -> Unit = {}) {
         val slice = RanksBoardSlice("Overall · today", RankOrder.TimeThenHints, state.toDailyBoardState("u1"), "Points", state.boardNote())
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(RanksUiState(slice, signIn), RanksActions(onSignIn, onSwipe = {})) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(RanksUiState(slice, signIn), RanksActions(onSignIn, onSwipe = {}), tuneDefaults = previewTuneDefaults()) } }
     }
 
     @Test
@@ -124,6 +124,7 @@ class RanksScreenTest {
                         },
                         onRefresh = onRefresh,
                     ),
+                    tuneDefaults = previewTuneDefaults(),
                 )
             }
         }
@@ -210,7 +211,7 @@ class RanksScreenTest {
     @Test
     fun `a single board shows no dots`() {
         composeRule.setContent {
-            PuzzleBoxTheme { RanksScreen(RanksUiState(RanksBoardSlice("Zip · today", RankOrder.TimeThenHints, DailyBoardState.Loading)), RanksActions({}, {})) }
+            PuzzleBoxTheme { RanksScreen(RanksUiState(RanksBoardSlice("Zip · today", RankOrder.TimeThenHints, DailyBoardState.Loading)), RanksActions({}, {}), tuneDefaults = previewTuneDefaults()) }
         }
 
         assertEquals(0, composeRule.onAllNodesWithTagCount("ranks.dots"))
@@ -367,7 +368,7 @@ class RanksScreenTest {
     @Test
     fun `a picked day that does not answer keeps the drawn board for a second and a half, then says Loading`() {
         var state by mutableStateOf(drawn)
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions({}, {})) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, RanksActions({}, {}), tuneDefaults = previewTuneDefaults()) } }
 
         state = loading
         composeRule.waitForIdle()

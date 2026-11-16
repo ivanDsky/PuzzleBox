@@ -44,8 +44,6 @@ import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
 import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
@@ -76,9 +74,6 @@ import org.koin.compose.koinInject
  * board or a result, a duel's leg board or result, or a duel's reveal) neither bar nor rail
  * shows, and back is the way out.
  *
- * This is where [releaseFlags] is read for the nav rethink (`NavDoors`, A2: the one read); the
- * rail's avatar and [PuzzleBoxNavShell] get a plain Boolean.
- *
  * Full-screen motion (polish 04): the chrome sits UNDER the scenes, which leave its strip
  * unpainted ([LocalChromePadding]), so a board covers it as one window and the chrome leaves
  * animated with the page beneath it, never in a one-frame cut: the bar parallaxes with the
@@ -108,7 +103,6 @@ fun PuzzleBoxApp(
     onShareApplied: () -> Unit = {},
     todaySet: ObserveTodaySet = koinInject(),
     firstScreenReady: FirstScreenReady = koinInject(),
-    releaseFlags: ReleaseFlags = koinInject(),
 ) {
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
     val libraryRequests = rememberLibraryRequests()
@@ -138,8 +132,6 @@ fun PuzzleBoxApp(
     val identityService = koinInject<IdentityService>()
     val cloudSync = koinInject<CloudSync>()
     val destinations = topLevelDestinations
-    val flags by releaseFlags.enabled.collectAsStateWithLifecycle()
-    val navDoors = ReleaseFlag.NavDoors in flags
     val selected = navigator.state.tab
     // The screen on top: the Profile layer's when it is open, else the selected tab's.
     val top = navigator.state.visibleKeys.last()
@@ -208,7 +200,7 @@ fun PuzzleBoxApp(
                     badged = badged,
                     destinations = destinations,
                     bottomActions = {
-                        ShellAvatar(navigator, identityService.current, ShellAvatarSize.Rail, profileAsLayer = navDoors)
+                        ShellAvatar(navigator, identityService.current, ShellAvatarSize.Rail)
                     },
                     modifier = Modifier
                         .fillMaxHeight()
@@ -230,7 +222,6 @@ fun PuzzleBoxApp(
                     onCodeDraftTaken = { codeDraft = null },
                     duels = duels,
                     libraryRequests = libraryRequests,
-                    navDoors = navDoors,
                 )
             }
             // The one-time "Welcome back" after an account's first restore (A33), above the chrome.

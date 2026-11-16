@@ -32,9 +32,9 @@ import org.robolectric.annotation.Config
  * is Today, Games, History and Create; the rail carries the avatar once at
  * its bottom on every screen it shows, centres its tabs on the window and gives the avatar a 48dp
  * target below them, the bar carries the avatar only in Today's header and nowhere else; the
- * avatar opens Profile and Profile's gear opens Settings on the current tab (on a bar from Today),
+ * avatar opens Profile and Profile's gear opens Settings in the layer over the current tab (on a bar from Today),
  * and Back returns to the screen left; Dark reaches the preferences store, Settings
- * survives a saved-state restore, and the pushed Profile has no Appearance block.
+ * survives a saved-state restore, and the Profile in the layer has no Appearance block.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -95,11 +95,11 @@ class ShellTabsE2ETest {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `on a phone the pushed Profile has no Appearance block`() = profileHasNoAppearance()
+    fun `on a phone the Profile layer has no Appearance block`() = profileHasNoAppearance()
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `on a tablet the pushed Profile has no Appearance block`() = profileHasNoAppearance()
+    fun `on a tablet the Profile layer has no Appearance block`() = profileHasNoAppearance()
 
     @Test
     @Config(qualifiers = RAIL)
@@ -204,7 +204,7 @@ class ShellTabsE2ETest {
             if (!rail) tapTab(root)
 
             tapAvatar()
-            assertState(tabAt(root, ProfileKey))
+            assertState(tabAt(root).copy(layer = listOf(ProfileKey)))
             assertRoute(PROFILE)
             back()
             assertState(tabAt(root))
@@ -212,10 +212,10 @@ class ShellTabsE2ETest {
 
             tapAvatar()
             tapGear()
-            assertState(tabAt(root, ProfileKey, SettingsKey))
+            assertState(tabAt(root).copy(layer = listOf(ProfileKey, SettingsKey)))
             assertRoute(SETTINGS)
             back()
-            assertState(tabAt(root, ProfileKey))
+            assertState(tabAt(root).copy(layer = listOf(ProfileKey)))
             assertRoute(PROFILE)
             back()
             assertState(tabAt(root))
@@ -244,7 +244,7 @@ class ShellTabsE2ETest {
     private fun profileHasNoAppearance() = shellRobot {
         tapAvatar()
         assertRoute(PROFILE)
-        assertFalse("the pushed Profile shows no Appearance block", shows("profile.appearance"))
+        assertFalse("the Profile layer shows no Appearance block", shows("profile.appearance"))
     }
 
     private enum class Width { Phone, Rail }

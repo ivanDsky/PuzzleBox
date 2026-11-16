@@ -22,7 +22,7 @@ import org.koin.compose.koinInject
  * store decides ([PlaySessionStore.decide], then [PlaySessionStore.completedResult] for a
  * solved day with no live play) before anything opens the board, so a finished day is never
  * reset by being opened; playing again is Result's "Play again". [boardStyle] is the board's
- * side panel's and [showStreakCard] is its streak card's (see [GameRoute]).
+ * side panel's (see [GameRoute]).
  */
 @Composable
 internal fun GameEntry(
@@ -31,7 +31,6 @@ internal fun GameEntry(
     navigator: Navigator,
     linkedIn: Boolean = false,
     boardStyle: DailyBoardStyle = DailyBoardStyle.defaults(),
-    showStreakCard: Boolean = true,
 ) {
     val store = koinInject<PlaySessionStore>()
     // Frame 0 decides from what the store holds; only a solved day with no live play, or a
@@ -53,7 +52,6 @@ internal fun GameEntry(
             },
             linkedIn = linkedIn,
             boardStyle = boardStyle,
-            showStreakCard = showStreakCard,
         )
         is OpenDecision.Finished -> {
             GameLoading(onBack = { navigator.pop() })

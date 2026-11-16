@@ -15,7 +15,6 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.serialization.NavBackStackSerializer
@@ -25,7 +24,6 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -40,11 +38,9 @@ import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
-import com.ivandsky.puzzlebox.profile.api.SettingsKey
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import kotlinx.serialization.PolymorphicSerializer
 import org.junit.After
@@ -90,8 +86,6 @@ class PerTabShellTest {
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
-                    // Per-tab stacks are the pre-NavDoors shell: Profile is pushed on the tab, not layered.
-                    single<ReleaseFlags> { FakeReleaseFlags() }
                 },
             )
         }
@@ -118,11 +112,9 @@ class PerTabShellTest {
         composeRule.waitForIdle()
     }
 
-    /** Today's avatar opens Profile, its gear Settings, and Settings' Developer link the catalog. */
+    /** Pushes the catalog on the current tab's stack. */
     private fun openCatalog() {
-        tap(AVATAR)
-        tap(PROFILE_GEAR)
-        composeRule.onNodeWithTag(CATALOG_LINK).performScrollTo().performClick()
+        composeRule.runOnIdle { navigator.push(CatalogKey) }
         composeRule.waitForIdle()
     }
 
@@ -143,8 +135,7 @@ class PerTabShellTest {
         tap(HOME_TAB)
 
         composeRule.onNodeWithTag(HOME_TAB).assertIsSelected()
-        composeRule.onNodeWithTag(CATALOG_LINK).assertDoesNotExist()
-        assertEquals(listOf<NavKey>(HomeKey, ProfileKey, SettingsKey, CatalogKey), state().currentStack)
+        assertEquals(listOf<NavKey>(HomeKey, CatalogKey), state().currentStack)
     }
 
     @Test
@@ -263,8 +254,6 @@ class PerTabShellTest {
         const val HOME_TAB = "nav.tab.home"
         const val RANKS_TAB = "nav.tab.ranks"
         const val CREATE_TAB = "nav.tab.create"
-        const val AVATAR = "shell.avatar"
-        const val PROFILE_GEAR = "profile.settings"
         const val CATALOG_LINK = "settings.catalog"
     }
 }

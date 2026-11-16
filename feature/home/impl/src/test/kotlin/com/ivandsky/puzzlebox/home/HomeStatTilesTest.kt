@@ -71,7 +71,7 @@ class HomeStatTilesTest {
                         onSelectDay = {},
                         modifier = Modifier,
                         title = "PuzzleBox",
-                        summaries = HomeSummaries(onOpenRank = null, duels = null),
+                        summaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}),
                     )
                 }
             }

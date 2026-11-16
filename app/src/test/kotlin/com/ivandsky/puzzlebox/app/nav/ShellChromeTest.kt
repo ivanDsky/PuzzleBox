@@ -30,8 +30,8 @@ import org.robolectric.annotation.Config
 
 /**
  * On a phone's bar, only Today's header carries the shell's avatar (`shell.avatar`);
- * every other screen carries none. The avatar opens Profile on the current tab and Profile's gear
- * (`profile.settings`) opens Settings above it, so Back returns through Profile to Today. The tablet's rail placement is pinned in the e2e tests.
+ * every other screen carries none, Profile and Settings in the layer above the tabs included. The tablet's rail placement
+ * is pinned in the e2e tests; the avatar's opening and closing the layer in ProfileLayerShellTest.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -78,54 +78,16 @@ class ShellChromeTest {
         }
 
     @Test
-    fun `Profile shows neither`() = shellAt(at(HomeKey, ProfileKey)) {
+    fun `Profile shows neither`() = shellAt(puzzleBoxNavigationState().copy(layer = listOf(ProfileKey))) {
         assertRoute(PROFILE)
         assertShellActions(shown = false)
     }
 
     @Test
-    fun `Settings shows neither`() = shellAt(at(HomeKey, SettingsKey)) {
+    fun `Settings shows neither`() = shellAt(puzzleBoxNavigationState().copy(layer = listOf(ProfileKey, SettingsKey))) {
         assertRoute(SETTINGS)
         assertShellActions(shown = false)
     }
-
-    @Test
-    fun `the avatar opens Profile on the current tab and Back returns to the screen left`() =
-        shellAt {
-            assertRoute(HOME)
-
-            tap(AVATAR)
-
-            assertState(at(HomeKey, ProfileKey))
-            assertRoute(PROFILE)
-
-            back()
-
-            assertState(at(HomeKey))
-            assertRoute(HOME)
-        }
-
-    @Test
-    fun `Profile's gear opens Settings above Profile and Back returns through Profile`() =
-        shellAt {
-            assertRoute(HOME)
-
-            tap(AVATAR)
-            tap(PROFILE_GEAR)
-
-            assertState(at(HomeKey, ProfileKey, SettingsKey))
-            assertRoute(SETTINGS)
-
-            back()
-
-            assertState(at(HomeKey, ProfileKey))
-            assertRoute(PROFILE)
-
-            back()
-
-            assertState(at(HomeKey))
-            assertRoute(HOME)
-        }
 
     @Test
     fun `signed out the avatar is the Profile icon, signed in it draws the player's initial`() = shellAt {
@@ -165,7 +127,6 @@ class ShellChromeTest {
 
     private companion object {
         const val AVATAR = "shell.avatar"
-        const val PROFILE_GEAR = "profile.settings"
         const val ZIP = "zip"
         const val HOME = "route.home"
         const val RANKS = "route.ranks"

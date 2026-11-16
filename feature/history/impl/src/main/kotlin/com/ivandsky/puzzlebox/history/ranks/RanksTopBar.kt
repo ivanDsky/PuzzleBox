@@ -39,14 +39,14 @@ internal fun tuneLabel(scope: RankScope, window: Window): String? = listOfNotNul
 
 /**
  * The hub's bar: the [title] (the board menu) at the start, the active [label] (if any) and the tune icon that calls [onTune] at the end.
- * With [onLabel] the label is a button too, the same as the icon.
+ * The label is a button too, the same as the icon.
  */
 @Composable
-internal fun RanksTopBar(label: String?, onTune: () -> Unit, modifier: Modifier = Modifier, onLabel: (() -> Unit)? = null, title: @Composable () -> Unit) {
+internal fun RanksTopBar(label: String?, onTune: () -> Unit, modifier: Modifier = Modifier, title: @Composable () -> Unit) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         title()
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-            label?.let { TuneLabel(it, onLabel) }
+            label?.let { TuneLabel(it, onTune) }
             IconButton(onClick = onTune, modifier = Modifier.testTag("ranks.tune")) {
                 Icon(TuneIcon, contentDescription = "Tune ranks", tint = MaterialTheme.colorScheme.onSurface)
             }
@@ -54,16 +54,11 @@ internal fun RanksTopBar(label: String?, onTune: () -> Unit, modifier: Modifier 
     }
 }
 
-/** The active [label]: plain text, or with [onClick] a 48 dp pill button with a chevron that says it opens something. */
+/** The active [label] as a 48 dp pill button with a chevron that says it opens something. */
 @Composable
-private fun TuneLabel(label: String, onClick: (() -> Unit)?) {
-    val tag = Modifier.testTag("ranks.tune.label")
-    if (onClick == null) {
-        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = tag)
-        return
-    }
+private fun TuneLabel(label: String, onClick: () -> Unit) {
     Row(
-        tag
+        Modifier.testTag("ranks.tune.label")
             .clip(PillShape)
             .clickable(role = Role.Button, onClickLabel = "Tune ranks", onClick = onClick)
             .defaultMinSize(minHeight = RanksMetrics.TitleMinHeight)

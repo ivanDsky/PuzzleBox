@@ -140,11 +140,15 @@ internal class RanksViewModel(
         if (board !is RanksBoard.Game || kind != RanksSelection.Window.Day) {
             null
         } else {
-            rows.firstOrNull { it.gameId == board.id && it.day == (picked ?: today) && it.record != null }
+            rows.solvedOn(board, picked ?: today)
         }
     }.distinctUntilChanged().onEach(dayReplays::open).flatMapLatest { row ->
         if (row == null) flowOf(null) else dayReplays.replays.map { YourSolve(row, it.of(row), playRegistry[row.gameId]) }
     }
+
+    /** The viewer's solved row of [board]'s game on [day], the one rule behind both Your solve and Play this day. */
+    private fun List<HistoryDayRow>.solvedOn(board: RanksBoard.Game, day: LocalDate): HistoryDayRow? =
+        firstOrNull { it.gameId == board.id && it.day == day && it.record != null }
 
     /** What Play this day opens, if anything: the game board's day when the viewer has no solve of it (see [playThisDay]). */
     private val playThisDay: Flow<PlayThisDay?> = combine(
@@ -153,7 +157,7 @@ internal class RanksViewModel(
         today(),
     ) { rows, (board, kind, picked), today ->
         val day = picked ?: today
-        val solved = board is RanksBoard.Game && rows.any { it.gameId == board.id && it.day == day && it.record != null }
+        val solved = board is RanksBoard.Game && rows.solvedOn(board, day) != null
         playThisDay(board, kind, day, solved, (board as? RanksBoard.Game)?.let { daily.archiveRange(it.id) }, today)
     }.distinctUntilChanged()
 

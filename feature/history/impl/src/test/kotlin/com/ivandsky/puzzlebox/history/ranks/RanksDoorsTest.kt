@@ -37,7 +37,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The Ranks hub's doors (nav rethink N2, N3, N6): the Tune label opens the Tune sheet, the hero card jumps to the
- * viewer's row, and a game's unplayed day offers Play this day. Each is a [RanksActions] switch, off by default.
+ * viewer's row, and a game's unplayed day offers Play this day.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -105,7 +105,7 @@ class RanksDoorsTest {
     )
 
     private fun show(state: RanksUiState, actions: RanksActions, layout: HistoryLayout = HistoryLayout.SinglePane) {
-        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, actions, layout = layout) } }
+        composeRule.setContent { PuzzleBoxTheme { RanksScreen(state, actions, layout = layout, tuneDefaults = previewTuneDefaults()) } }
     }
 
     private val actions = RanksActions(onSignIn = {}, onSwipe = {})
@@ -114,7 +114,7 @@ class RanksDoorsTest {
 
     @Test
     fun `the Tune label opens the Tune sheet and is a 48 dp button`() {
-        show(state(), actions.copy(tuneLabelOpensSheet = true))
+        show(state(), actions)
 
         composeRule.onNodeWithTag("ranks.tune.label").assertHasClickAction()
         assertTrue(composeRule.onNodeWithTag("ranks.tune.label").getBoundsInRoot().let { it.bottom - it.top } >= 48.dp)
@@ -124,16 +124,9 @@ class RanksDoorsTest {
     }
 
     @Test
-    fun `the Tune label is plain text while the door is off`() {
-        show(state(), actions)
-
-        composeRule.onNodeWithTag("ranks.tune.label").assertHasNoClickAction()
-    }
-
-    @Test
     @Config(qualifiers = TWO_PANE)
     fun `on the tablet the Tune label opens the Tune sheet too`() {
-        show(state(), actions.copy(tuneLabelOpensSheet = true), HistoryLayout.TwoPane)
+        show(state(), actions, HistoryLayout.TwoPane)
 
         composeRule.onNodeWithTag("ranks.tune.label").performClick()
 
@@ -145,7 +138,7 @@ class RanksDoorsTest {
     @Test
     @Config(qualifiers = TWO_PANE)
     fun `the hero card jumps the board to the viewer's row`() {
-        show(state(), actions.copy(heroJumpsToRow = true), HistoryLayout.TwoPane)
+        show(state(), actions, HistoryLayout.TwoPane)
         composeRule.onAllNodesWithTag("leaderboard.dock").assertCountEquals(1)
 
         composeRule.onNodeWithTag("ranks.hero").assertHasClickAction()
@@ -158,16 +151,8 @@ class RanksDoorsTest {
 
     @Test
     @Config(qualifiers = TWO_PANE)
-    fun `the hero card is plain while the door is off`() {
-        show(state(), actions, HistoryLayout.TwoPane)
-
-        composeRule.onNodeWithTag("ranks.hero").assertHasNoClickAction()
-    }
-
-    @Test
-    @Config(qualifiers = TWO_PANE)
     fun `the hero card is plain when the viewer has no row`() {
-        show(state(self = false), actions.copy(heroJumpsToRow = true), HistoryLayout.TwoPane)
+        show(state(self = false), actions, HistoryLayout.TwoPane)
 
         composeRule.onNodeWithTag("ranks.hero").assertHasNoClickAction()
     }
@@ -187,21 +172,15 @@ class RanksDoorsTest {
     }
 
     @Test
-    fun `the door off hides Play this day`() {
-        show(state(playThisDay = PlayThisDay(zip, pastDay)), actions)
-        composeRule.onAllNodesWithTag("ranks.playthisday").assertCountEquals(0)
-    }
-
-    @Test
     fun `a day with no offer shows no Play this day`() {
-        show(state(playThisDay = null), actions.copy(onPlayThisDay = { _, _ -> }))
+        show(state(playThisDay = null), actions)
 
         composeRule.onAllNodesWithTag("ranks.playthisday").assertCountEquals(0)
     }
 
     @Test
     fun `a solved day shows Your solve as it does today`() {
-        show(state(yourSolve = solve()), actions.copy(onPlayThisDay = { _, _ -> }))
+        show(state(yourSolve = solve()), actions)
 
         composeRule.onNodeWithTag("ranks.yoursolve").assertIsDisplayed()
         composeRule.onAllNodesWithTag("ranks.playthisday").assertCountEquals(0)
@@ -210,7 +189,7 @@ class RanksDoorsTest {
     @Test
     @Config(qualifiers = TWO_PANE)
     fun `on the tablet an unplayed day offers Play this day under the hero card`() {
-        show(state(playThisDay = PlayThisDay(zip, pastDay)), actions.copy(onPlayThisDay = { _, _ -> }), HistoryLayout.TwoPane)
+        show(state(playThisDay = PlayThisDay(zip, pastDay)), actions, HistoryLayout.TwoPane)
 
         composeRule.onNodeWithTag("ranks.playthisday").assertIsDisplayed()
     }

@@ -1,12 +1,10 @@
 package com.ivandsky.puzzlebox.history.ranks
 
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
-import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -27,7 +25,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The Tune sheet's Defaults block: shown only with a [RanksTuneDefaults] slot, and each pick writes once, sheet still open. */
+/** The Tune sheet's Defaults block: fed by [RanksTuneDefaults], and each pick writes once, sheet still open. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = GOLDEN_PHONE)
@@ -50,7 +48,7 @@ class TuneSheetTest {
         onSelectFriendsDefault = { friendsPicks += it; friendsDefault.value = it },
     )
 
-    private fun show(slot: RanksTuneDefaults?) {
+    private fun show(slot: RanksTuneDefaults) {
         composeRule.setContent {
             PuzzleBoxTheme {
                 TuneSheet(
@@ -117,14 +115,5 @@ class TuneSheetTest {
         VisibilityTier.entries.forEach {
             composeRule.onNodeWithTag("ranks.tune.defaults.tier.${it.storageName}").assertHeightIsAtLeast(48.dp)
         }
-    }
-
-    @Test
-    fun `with no slot the sheet shows no Defaults block`() {
-        show(null)
-
-        composeRule.onNodeWithTag("ranks.tune.sheet").assertIsDisplayed()
-        composeRule.onNodeWithTag("ranks.tune.scope.Friends").assertIsDisplayed()
-        composeRule.onAllNodesWithTag("ranks.tune.defaults").assertCountEquals(0)
     }
 }

@@ -191,7 +191,7 @@ class RanksStateRestoreTest {
         composeRule.setContent {
             PuzzleBoxTheme {
                 CompositionLocalProvider(LocalTabReselect provides reselect) {
-                    RanksScreen(RanksUiState(RanksBoardSlice("Overall · today", RankOrder.TimeThenHints, DailyBoardState.Loading)), RanksActions(onSignIn = {}, onSwipe = {}, onReset = { resets++ }), modifier = Modifier.height(60.dp))
+                    RanksScreen(RanksUiState(RanksBoardSlice("Overall · today", RankOrder.TimeThenHints, DailyBoardState.Loading)), RanksActions(onSignIn = {}, onSwipe = {}, onReset = { resets++ }), modifier = Modifier.height(60.dp), tuneDefaults = previewTuneDefaults())
                 }
             }
         }

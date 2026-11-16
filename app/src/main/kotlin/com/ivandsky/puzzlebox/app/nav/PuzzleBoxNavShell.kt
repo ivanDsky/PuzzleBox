@@ -53,8 +53,7 @@ import org.koin.compose.koinInject
  * lets Enter code open a duel. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
- * Every entry sees [LocalHintCooldown] ([withHintCooldown]). [navDoors] is the nav rethink's `NavDoors` flag as
- * [com.ivandsky.puzzlebox.app.PuzzleBoxApp] read it (A2); the routes below get plain slots.
+ * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
  */
 @Composable
 internal fun PuzzleBoxNavShell(
@@ -67,7 +66,6 @@ internal fun PuzzleBoxNavShell(
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
-    navDoors: Boolean = false,
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
 ) {
@@ -80,8 +78,8 @@ internal fun PuzzleBoxNavShell(
     val state = navigator.state
     LaunchedEffect(state.allKeys) { store.retain(state.allKeys) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { store.flush() }
-    val shellChrome = remember(navigator, identityService, form, navDoors) {
-        shellChromeDecorator(navigator, identityService.current, avatarInTodayHeader = form == NavForm.Phone, profileAsLayer = navDoors)
+    val shellChrome = remember(navigator, identityService, form) {
+        shellChromeDecorator(navigator, identityService.current, avatarInTodayHeader = form == NavForm.Phone)
     }
     val entries = rememberTabEntries(
         state = navigator.state,
@@ -95,7 +93,6 @@ internal fun PuzzleBoxNavShell(
             duels = duels,
             libraryRequests = libraryRequests,
             visibility = visibility,
-            navDoors = navDoors,
             tuneDefaults = tuneDefaults,
         ).withHintCooldown(),
         shellChrome = shellChrome,

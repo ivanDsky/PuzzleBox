@@ -4,7 +4,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertWidthIsAtLeast
-import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -19,7 +18,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** The week strip's per-day door (nav rethink N2): a button only when the caller gives it a tap. */
+/** The week strip's per-day door (nav rethink N2): a button that reports its date. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
 class WeekStripTest {
@@ -30,10 +29,10 @@ class WeekStripTest {
     private val monday = LocalDate.of(2026, 11, 2)
     private val days = (0L until 7L).map { WeekDay(monday.plusDays(it), emptyList(), isToday = it == 2L) }
 
-    private fun setContent(onDayClick: ((LocalDate) -> Unit)?) {
+    private fun setContent(onDayClick: (LocalDate) -> Unit) {
         composeRule.setContent {
             PuzzleBoxTheme {
-                WeekStrip(days = days, total = 3, modifier = Modifier.requiredWidth(392.dp), onDayClick = onDayClick)
+                WeekStrip(days = days, total = 3, onDayClick = onDayClick, modifier = Modifier.requiredWidth(392.dp))
             }
         }
     }
@@ -56,12 +55,5 @@ class WeekStripTest {
             composeRule.onNodeWithTag("week.day.${it.date}").assertHasClickAction()
                 .assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
         }
-    }
-
-    @Test
-    fun `without a tap no day is a button`() {
-        setContent(null)
-
-        days.forEach { composeRule.onNodeWithTag("week.day.${it.date}").assertHasNoClickAction() }
     }
 }
