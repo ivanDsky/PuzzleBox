@@ -5,15 +5,20 @@ import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
+import com.ivandsky.puzzlebox.data.repository.CommunityFilter
+import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.PublishResult
+import com.ivandsky.puzzlebox.data.repository.ReportResult
 import com.ivandsky.puzzlebox.data.repository.SharedFetchResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UnpublishResult
-import com.ivandsky.puzzlebox.testing.contract.SharedPuzzleRepositoryContract
+import com.ivandsky.puzzlebox.testing.contract.SharedPuzzleCommunityContract
 import com.ivandsky.puzzlebox.game.editor.Difficulty
+import java.io.File
 import java.util.Base64
 import java.util.Date
 import kotlinx.coroutines.test.runTest
+import org.json.JSONObject
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -24,16 +29,21 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Runs [SharedPuzzleRepositoryContract] against [FirestoreSharedPuzzleRepository] over a fake
- * [SharedPuzzleStore] that behaves like the server: it stamps `createdAt`, keeps the per-author
- * daily count and refuses writes the rules refuse. Then pins the codec envelope and the mapping
- * of real Firebase exceptions. Robolectric: constructing real Firebase exceptions reaches android.*.
+ * Runs [SharedPuzzleCommunityContract], and so the whole shared-puzzle contract, against
+ * [FirestoreSharedPuzzleRepository] over a fake [SharedPuzzleStore] that behaves like the server:
+ * it stamps `createdAt`, keeps the per-author daily count and refuses the writes, lists and
+ * reports the rules refuse. Then pins the codec envelope, the mapping of real Firebase exceptions
+ * and the index each list query needs.
+ * Robolectric: constructing real Firebase exceptions reaches android.*.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
-class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContract() {
+class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleCommunityContract() {
 
-    /** Server-side view of `puzzles/{code}` and `authors/{uid}`, with a knob to fail every call. */
+    /**
+     * Server-side view of `puzzles/{code}`, its reports and `authors/{uid}`, with a knob to fail
+     * every call. The list and report checks spell the rules' own words, not the client's constants.
+     */
     private class FakeSharedPuzzleStore(
         private val auth: () -> String?,
         private val serverNow: Timestamp,
@@ -42,6 +52,8 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
         val authors = HashMap<String, Map<String, Any?>>()
         var failure: Exception? = null
         var unpublishFailure: Exception? = null
+        val reports = HashSet<Pair<String, String>>()
+        val queries = mutableListOf<CommunityQuery>()
 
         fun write(code: String, fields: Map<String, Any?>) {
             puzzles[code] = fields.mapValues { (_, value) -> if (value == FieldValue.serverTimestamp()) serverNow else value }
@@ -71,22 +83,68 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
             failure?.let { throw it }
             return puzzles[code]
         }
+
+        override suspend fun list(query: CommunityQuery): List<Pair<String, Map<String, Any?>>> {
+            failure?.let { throw it }
+            queries += query
+            val provesTheListRule = query.equalTo.contains("visibility" to "public") &&
+                query.equalTo.contains("unpublished" to false) &&
+                query.limit <= 30
+            if (!provesTheListRule) throw denied("the query can return docs the list rule hides")
+            return puzzles.entries
+                .filter { (_, fields) ->
+                    query.equalTo.all { (field, value) -> fields[field] == value } &&
+                        query.anyOf?.let { (field, values) -> values.any { it == fields[field] } } != false &&
+                        fields.getValue("createdAt") as Timestamp >= query.createdSince
+                }
+                .sortedByDescending { it.value.getValue("createdAt") as Timestamp }
+                .take(query.limit)
+                .map { it.key to it.value }
+        }
+
+        override suspend fun report(code: String, uid: String, fields: Map<String, Any?>) {
+            failure?.let { throw it }
+            val puzzle = puzzles[code]
+            val valid = auth() == uid &&
+                puzzle != null &&
+                puzzle["authorUid"] != uid &&
+                fields == mapOf("formatVersion" to 1, "uid" to uid, "createdAt" to FieldValue.serverTimestamp())
+            // The rules allow create only, so a second write to the same reports/{uid} is refused.
+            if (!valid || !reports.add(code to uid)) throw denied("report refused")
+        }
+
+        private fun denied(message: String) =
+            FirebaseFirestoreException(message, FirebaseFirestoreException.Code.PERMISSION_DENIED)
     }
 
     private var signedIn: String? = null
     private var today = DAY
+    private var now = NOW
     private val serverNow = Timestamp(Date(doc().createdAtMs))
     private val store = FakeSharedPuzzleStore(auth = { signedIn }, serverNow = serverNow)
 
-    override val repository: SharedPuzzleRepository =
-        FirestoreSharedPuzzleRepository(store = store, currentUid = { signedIn }, utcDay = { today })
+    override val repository: SharedPuzzleRepository = FirestoreSharedPuzzleRepository(
+        store = store,
+        currentUid = { signedIn },
+        utcDay = { today },
+        nowMs = { now },
+    )
 
     override fun signInAs(uid: String) {
         signedIn = uid
     }
 
     override suspend fun seed(doc: SharedPuzzleDoc) {
-        store.write(doc.code.value, SharedPuzzleDocCodec.encode(doc))
+        val createdAt = SharedPuzzleDocCodec.FIELD_CREATED_AT to Timestamp(Date(doc.createdAtMs))
+        store.write(doc.code.value, SharedPuzzleDocCodec.encode(doc) + createdAt)
+    }
+
+    override fun goOffline() {
+        store.failure = FirebaseFirestoreException("offline", FirebaseFirestoreException.Code.UNAVAILABLE)
+    }
+
+    override fun setNow(nowMs: Long) {
+        now = nowMs
     }
 
     // ----- codec -----
@@ -281,6 +339,8 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
         assertEquals(PublishResult.Offline, repository.publish(doc()))
         assertEquals(UnpublishResult.Offline, repository.unpublish(code()))
         assertEquals(SharedFetchResult.Offline, repository.fetch(code()))
+        assertEquals(CommunityListResult.Offline, repository.listPublic(CommunityFilter()))
+        assertEquals(ReportResult.Offline, repository.report(code()))
     }
 
     @Test
@@ -291,6 +351,8 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
         assertEquals(PublishResult.Offline, repository.publish(doc()))
         assertEquals(UnpublishResult.Offline, repository.unpublish(code()))
         assertEquals(SharedFetchResult.Offline, repository.fetch(code()))
+        assertEquals(CommunityListResult.Offline, repository.listPublic(CommunityFilter()))
+        assertEquals(ReportResult.Offline, repository.report(code()))
     }
 
     @Test
@@ -300,6 +362,80 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
 
         assertTrue(repository.publish(doc()) is PublishResult.Rejected)
         assertTrue(repository.unpublish(code()) is UnpublishResult.Rejected)
+    }
+
+    @Test
+    fun `a list the server refuses or has no index for is Refused`() = runTest {
+        listOf(
+            FirebaseFirestoreException.Code.PERMISSION_DENIED,
+            FirebaseFirestoreException.Code.FAILED_PRECONDITION,
+        ).forEach {
+            store.failure = FirebaseFirestoreException("refused", it)
+
+            assertEquals(CommunityListResult.Refused, repository.listPublic(CommunityFilter()))
+        }
+    }
+
+    @Test
+    fun `a report that fails for another reason than a denial is Rejected with the reason`() = runTest {
+        signInAs(OTHER)
+        store.failure = FirebaseFirestoreException("bad report", FirebaseFirestoreException.Code.INVALID_ARGUMENT)
+
+        assertEquals(ReportResult.Rejected("bad report"), repository.report(code()))
+    }
+
+    // ----- community list -----
+
+    @Test
+    fun `every filter asks for a query that has a deployed composite index`() = runTest {
+        val filters = listOf(
+            CommunityFilter(),
+            CommunityFilter(gameId = "queens"),
+            CommunityFilter(difficulties = HARD_CHIP),
+            CommunityFilter(gameId = "queens", difficulties = HARD_CHIP),
+        )
+
+        filters.forEach { filter ->
+            repository.listPublic(filter)
+            val query = store.queries.last()
+            val needed = query.equalTo.map { it.first to "ASCENDING" } +
+                listOfNotNull(query.anyOf?.let { it.first to "ASCENDING" }) +
+                ("createdAt" to "DESCENDING")
+
+            assertTrue("no index $needed for $filter", needed in deployedPuzzleIndexes())
+        }
+        assertEquals(4, store.queries.map { it.equalTo.size to (it.anyOf != null) }.distinct().size)
+    }
+
+    @Test
+    fun `difficulties go to the server in their stored words, easiest first`() = runTest {
+        repository.listPublic(CommunityFilter(difficulties = setOf(Difficulty.Level.Expert, Difficulty.Level.Easy)))
+
+        assertEquals("difficulty" to listOf("easy", "expert"), store.queries.single().anyOf)
+    }
+
+    @Test
+    fun `a listed doc that does not parse is left out and the rest are returned`() = runTest {
+        seed(publicDoc("K7Q2MA", ageMs = 2 * HOUR_MS))
+        seed(publicDoc("K7Q2MB", ageMs = 1 * HOUR_MS))
+        store.puzzles["K7Q2MB"] = store.puzzles.getValue("K7Q2MB") - SharedPuzzleDocCodec.FIELD_TITLE
+        store.puzzles["not a code"] = store.puzzles.getValue("K7Q2MA")
+
+        assertEquals(
+            CommunityListResult.Listed(listOf(publicDoc("K7Q2MA", ageMs = 2 * HOUR_MS))),
+            repository.listPublic(CommunityFilter()),
+        )
+    }
+
+    /** Each `puzzles` index in firestore.indexes.json as its fields and their orders. */
+    private fun deployedPuzzleIndexes(): List<List<Pair<String, String>>> {
+        val indexes = JSONObject(File("firestore.indexes.json").readText()).getJSONArray("indexes")
+        return (0 until indexes.length()).map(indexes::getJSONObject)
+            .filter { it.getString("collectionGroup") == "puzzles" && it.getString("queryScope") == "COLLECTION" }
+            .map { index ->
+                val fields = index.getJSONArray("fields")
+                (0 until fields.length()).map(fields::getJSONObject).map { it.getString("fieldPath") to it.getString("order") }
+            }
     }
 
     private companion object {

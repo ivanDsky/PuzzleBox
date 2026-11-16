@@ -39,7 +39,7 @@ internal object SharedPuzzleDocCodec {
     const val FIELD_VISIBILITY = "visibility"
     const val FIELD_DIFFICULTY = "difficulty"
 
-    private const val VISIBILITY_PUBLIC = "public"
+    const val VISIBILITY_PUBLIC = "public"
 
     fun encode(doc: SharedPuzzleDoc): Map<String, Any?> = mapOf(
         FIELD_FORMAT_VERSION to doc.formatVersion,
@@ -93,7 +93,7 @@ internal object SharedPuzzleDocCodec {
         Difficulty.Level.entries.firstOrNull { difficultyName(it) == data[FIELD_DIFFICULTY] }
 
     /** The word stored for [level]; the rules list the same four. */
-    private fun difficultyName(level: Difficulty.Level): String = when (level) {
+    fun difficultyName(level: Difficulty.Level): String = when (level) {
         Difficulty.Level.Easy -> "easy"
         Difficulty.Level.Medium -> "medium"
         Difficulty.Level.Hard -> "hard"

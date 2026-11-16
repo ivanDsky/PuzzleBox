@@ -1,31 +1,41 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
 import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FirebaseFirestoreException
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
+import com.ivandsky.puzzlebox.data.repository.COMMUNITY_LIST_LIMIT
+import com.ivandsky.puzzlebox.data.repository.COMMUNITY_WINDOW_MS
+import com.ivandsky.puzzlebox.data.repository.CommunityFilter
+import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.repository.PublishResult
+import com.ivandsky.puzzlebox.data.repository.ReportResult
 import com.ivandsky.puzzlebox.data.repository.SharedFetchResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UnpublishResult
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.LocalDate
 import java.time.ZoneOffset
+import java.util.Date
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * Firestore implementation of the shared-puzzle seam over `puzzles/{code}` and `authors/{uid}`
- * (ADR-0020). Publish is create-if-absent, so a retry with the same code and content after a lost
- * ack is [PublishResult.Published]; the same code with other content, or one the author has since
- * unpublished, is [PublishResult.CodeTaken]. Every Firebase exception is mapped to a typed result
- * here. The rules stamp the quota with the server's UTC day, so a denied write from a device on
- * another day is [PublishResult.ClockSkew] rather than [PublishResult.Rejected].
+ * Firestore implementation of the shared-puzzle seam over `puzzles/{code}`, its reports and
+ * `authors/{uid}` (ADR-0020). Publish is create-if-absent, so a retry with the same code and
+ * content after a lost ack is [PublishResult.Published]; the same code with other content, or one
+ * the author has since unpublished, is [PublishResult.CodeTaken]. Every Firebase exception is
+ * mapped to a typed result here. The rules stamp the quota with the server's UTC day, so a denied
+ * write from a device on another day is [PublishResult.ClockSkew] rather than
+ * [PublishResult.Rejected].
  */
 internal class FirestoreSharedPuzzleRepository(
     private val store: SharedPuzzleStore,
     private val currentUid: () -> String?,
     private val utcDay: () -> String = { LocalDate.now(ZoneOffset.UTC).toString() },
     private val serverDay: suspend () -> String? = ::firebaseServerDay,
+    private val nowMs: () -> Long = System::currentTimeMillis,
 ) : SharedPuzzleRepository {
 
     override suspend fun publish(doc: SharedPuzzleDoc): PublishResult {
@@ -104,6 +114,65 @@ internal class FirestoreSharedPuzzleRepository(
             return SharedFetchResult.Offline
         } ?: return SharedFetchResult.NotFound
         return SharedPuzzleDocCodec.decode(code, data)
+    }
+
+    override suspend fun listPublic(filter: CommunityFilter): CommunityListResult = try {
+        val listed = store.list(filter.toQuery())
+        // A doc this version cannot read is left out, so one bad doc never empties the list.
+        CommunityListResult.Listed(
+            listed.mapNotNull { (id, fields) ->
+                val code = ShareCode.parse(id) ?: return@mapNotNull null
+                (SharedPuzzleDocCodec.decode(code, fields) as? SharedFetchResult.Found)?.doc
+            },
+        )
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        if (e.isTransient()) CommunityListResult.Offline else CommunityListResult.Refused
+    }
+
+    /**
+     * The rules allow a list only when the query itself keeps to public, still-published puzzles,
+     * at most [COMMUNITY_LIST_LIMIT] of them. Every query is the equalities, then `difficulty in`,
+     * then `createdAt >=` the window's start ordered by `createdAt` descending. Each shape needs
+     * its own composite index on `puzzles` in firestore.indexes.json, every field ascending but
+     * `createdAt`, descending:
+     *
+     * | filter            | index                                                     |
+     * |-------------------|-----------------------------------------------------------|
+     * | none              | visibility, unpublished, createdAt                        |
+     * | game              | visibility, unpublished, gameId, createdAt                |
+     * | difficulty        | visibility, unpublished, difficulty, createdAt            |
+     * | game + difficulty | visibility, unpublished, gameId, difficulty, createdAt    |
+     */
+    private fun CommunityFilter.toQuery() = CommunityQuery(
+        equalTo = listOfNotNull(
+            SharedPuzzleDocCodec.FIELD_VISIBILITY to SharedPuzzleDocCodec.VISIBILITY_PUBLIC,
+            SharedPuzzleDocCodec.FIELD_UNPUBLISHED to false,
+            gameId?.let { SharedPuzzleDocCodec.FIELD_GAME_ID to it },
+        ),
+        anyOf = Difficulty.Level.entries.filter { it in difficulties }.takeIf { it.isNotEmpty() }
+            ?.let { SharedPuzzleDocCodec.FIELD_DIFFICULTY to it.map(SharedPuzzleDocCodec::difficultyName) },
+        createdSince = Timestamp(Date(nowMs() - COMMUNITY_WINDOW_MS)),
+        limit = COMMUNITY_LIST_LIMIT,
+    )
+
+    override suspend fun report(code: ShareCode): ReportResult {
+        // Never sent signed out: the rules need a uid, and their refusal would read as already reported.
+        val uid = currentUid() ?: return ReportResult.SignedOut
+        return try {
+            store.report(code.value, uid, reportFields(uid))
+            ReportResult.Reported
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            when {
+                // A second report, the author's own and a missing puzzle are all one denial.
+                e.isDenied() -> ReportResult.AlreadyReported
+                e.isTransient() -> ReportResult.Offline
+                else -> ReportResult.Rejected(e.message)
+            }
+        }
     }
 }
 

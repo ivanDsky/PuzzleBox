@@ -4,8 +4,10 @@ import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.model.ShareCode
 
 /**
- * The shared-puzzle store (spec 16): publish, unpublish and fetch one document by its share code.
- * Implementations pass `SharedPuzzleRepositoryContract` (core:testing).
+ * The shared-puzzle store (spec 16): publish, unpublish and fetch one document by its share code,
+ * list the public ones and report one (ADR-0020 amendment).
+ * Implementations pass `SharedPuzzleCommunityContract` (core:testing), which runs
+ * `SharedPuzzleRepositoryContract` too.
  */
 interface SharedPuzzleRepository {
     /** Create-if-absent with [SharedPuzzleDoc.code] == draft.reservedCode; an existing doc with authorUid == me counts as success. */
@@ -16,4 +18,17 @@ interface SharedPuzzleRepository {
 
     /** Reads the doc, unpublished or not; a newer [SharedPuzzleDoc.formatVersion] is [SharedFetchResult.UnsupportedVersion]. */
     suspend fun fetch(code: ShareCode): SharedFetchResult
+
+    /**
+     * The public, still-published puzzles created in the last [COMMUNITY_WINDOW_MS] by the device
+     * clock that match [filter]: newest first, at most [COMMUNITY_LIST_LIMIT], no paging. Asked of
+     * the server, never a cache. A doc this version cannot read is left out.
+     */
+    suspend fun listPublic(filter: CommunityFilter): CommunityListResult
+
+    /**
+     * Records the signed-in player's report of [code], once per puzzle and player. Signed out it
+     * is [ReportResult.SignedOut] and nothing is sent.
+     */
+    suspend fun report(code: ShareCode): ReportResult
 }
