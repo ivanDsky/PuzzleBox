@@ -72,6 +72,13 @@ android {
             isDebuggable = false
             // Measurement-only install: the release key when the machine has it, else the debug key.
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            // Profile generation only (-Ppuzzlebox.baselineProfileGeneration, see benchmark/README.md):
+            // an unminified build records the sources' own class and method names. A minified one
+            // records R8's renamed, merged and inlined output, which no release build matches.
+            if (providers.gradleProperty("puzzlebox.baselineProfileGeneration").isPresent) {
+                isMinifyEnabled = false
+                isShrinkResources = false
+            }
         }
     }
 
