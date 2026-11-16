@@ -160,8 +160,19 @@ class ObserveResultNextThingTest {
         val seen = solve(timeMs = 60_000)
 
         assertEquals(ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone), null), seen.first().value)
-        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, passedBea, Moment.FullSetDone), challenge), seen.last().value)
+        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, passedBea, Moment.FullSetDone), challenge, challenge), seen.last().value)
         assertTrue(seen.dropLast(1).none { it.value.nextThing == challenge && passedBea !in it.value.moments })
+        assertEquals("the chain's rung and the Challenge row share one tier read", listOf("ann"), visibility.lookupCalls)
+    }
+
+    @Test
+    fun `the friend to challenge is offered beside the next daily, which never waits for it`() = runTest {
+        scene(betaSolved = false)
+
+        val seen = solve(timeMs = 60_000)
+
+        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, passedBea), NextThing.NextDaily(beta), challenge), seen.last().value)
+        assertEquals(listOf("ann"), visibility.lookupCalls)
     }
 
     @Test
@@ -170,7 +181,7 @@ class ObserveResultNextThingTest {
 
         val last = solve(timeMs = 60_000).last().value
 
-        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, passedBea, Moment.FullSetDone), challenge), last)
+        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, passedBea, Moment.FullSetDone), challenge, challenge), last)
     }
 
     @Test
@@ -179,7 +190,7 @@ class ObserveResultNextThingTest {
 
         val last = solve(timeMs = 60_000).last().value
 
-        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone), challenge), last)
+        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone), challenge, challenge), last)
     }
 
     @Test
@@ -189,7 +200,7 @@ class ObserveResultNextThingTest {
 
         val seen = solve(timeMs = 60_000)
 
-        assertTrue(seen.none { it.value.nextThing is NextThing.ChallengeFriend })
+        assertTrue(seen.none { it.value.nextThing is NextThing.ChallengeFriend || it.value.challenge != null })
         assertEquals(NextThing.DoneForToday(rollover), seen.last().value.nextThing)
         assertTrue("the friend-board moment is not gated on the tier", passedBea in seen.last().value.moments)
     }
@@ -258,6 +269,7 @@ class ObserveResultNextThingTest {
         val seen = solve(timeMs = 60_000, use = observe(slow))
 
         assertEquals(Seen(0, ResultNextThing(listOf(Moment.PersonalBest), NextThing.NextDaily(beta))), seen.last { it.at == 0L })
+        assertNull("a board that never answers offers nobody to challenge", seen.last().value.challenge)
     }
 
     @Test

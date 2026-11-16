@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.visibility.TierLookup
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
+import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.GetNextRollover
@@ -48,9 +49,11 @@ import kotlinx.coroutines.withTimeoutOrNull
  *
  * The flow emits in the order the sources land. The first emission is the moments the phone alone settles; the
  * Friends day board, read once, adds the top-three and passed-a-friend moments when it lands, and the
- * [NextThingChain]'s answer arrives beside it. The board read and each provider are bounded by [timeout], so
- * neither the celebration nor the button waits on the network longer than that; a board that does not answer in
- * time adds no moment and no Challenge. The flow ends when both have settled.
+ * [NextThingChain]'s answer arrives beside it. The friend to challenge (L4) is asked for apart from the chain, so
+ * the Challenge row can stand beside a main button that offers something else, and arrives when the board and that
+ * friend's tier have. The board read and each provider are bounded by [timeout], so neither the celebration nor
+ * the button waits on the network longer than that; a board that does not answer in time adds no moment and no
+ * Challenge. The flow ends when all three have settled.
  *
  * A play again or a practice puzzle earns no moments and gets no next thing: one empty emission, and nothing is
  * read. Signed out, only the local moments and the local rungs come.
@@ -59,7 +62,8 @@ import kotlinx.coroutines.withTimeoutOrNull
  * says, because Challenge needs it (L4); it is never widened to the Global board. It is read once from the server;
  * a read that cannot answer is no board. The solve's own entry may not have reached the board yet, so the player is
  * placed on it at the solve's time, and "before" is the board without them. A friend's tier is read once, only for
- * the friend Challenge would offer, and a read that fails offers nothing (ADR-0031 §15).
+ * the friend Challenge would offer, whether the chain's rung, the row or both ask, and a read that fails offers
+ * nothing (ADR-0031 §15).
  */
 class ObserveResultNextThing(
     private val registry: GameRegistry,
@@ -77,6 +81,9 @@ class ObserveResultNextThing(
     private val failures: FailureLog = LogcatFailureLog,
 ) {
     private val chain = NextThingChain(timeout = timeout, failures = failures)
+
+    /** The Challenge row's own question: the challenge rung alone, under the same time limit and failure rule. */
+    private val challengeRow = NextThingChain(listOf(ChallengeFriendNextThingProvider), timeout, failures)
 
     /**
      * [solve] is the player's time and hints for [game]'s puzzle of [day]. [playAgain] replays a day that is not
@@ -125,11 +132,21 @@ class ObserveResultNextThing(
                     nextRollover = nextRollover(),
                     viewerUid = viewer?.uid,
                     friendBoard = { friendDay.await()?.after },
-                    friendTier = ::tierOf,
+                    friendTier = tierReadOnce(),
                 )
+                launch {
+                    (challengeRow.offer(facts) as? NextThing.ChallengeFriend)?.let { friend -> update { it.copy(challenge = friend) } }
+                }
                 chain.offer(facts)?.let { next -> update { it.copy(nextThing = next) } }
             }
         }
+    }
+
+    /** [tierOf] for one solve: each friend's tier is read once however many ask, and the others wait for that read. */
+    private fun tierReadOnce(): suspend (String) -> VisibilityTier? {
+        val gate = Mutex()
+        val read = mutableMapOf<String, VisibilityTier?>()
+        return { uid -> gate.withLock { if (uid in read) read[uid] else tierOf(uid).also { read[uid] = it } } }
     }
 
     /** What the phone knows of the solve. The solve's own record may not have landed, so its history row is left out and counted here. */
