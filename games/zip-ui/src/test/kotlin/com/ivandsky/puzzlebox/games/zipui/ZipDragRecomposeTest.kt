@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.zipui
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -22,7 +23,6 @@ import com.ivandsky.puzzlebox.games.zip.zipPlugin
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -48,6 +48,7 @@ class ZipDragRecomposeTest {
     private val scope = CoroutineScope(Dispatchers.Unconfined)
     private var lastBytes: ByteArray? = null
     private var shown by mutableStateOf<ZipPlayController?>(null)
+    private var cellComposed: (Int) -> Unit = {}
 
     private fun newController(): ZipPlayController =
         ZipPlayController(PlayEnvironment(scope, { lastBytes = it }, {}))
@@ -60,24 +61,21 @@ class ZipDragRecomposeTest {
         shown = controller
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                shown?.let {
-                    ZipPlayScreen(
-                        controller = it,
-                        status = PlayBoardStatus.Ready,
-                        layout = PlayLayout.SinglePane,
-                        sidePanel = null,
-                        onRetry = {},
-                        onSolved = { _, _ -> },
-                    )
+                CompositionLocalProvider(LocalZipCellComposed provides { cellComposed(it) }) {
+                    shown?.let {
+                        ZipPlayScreen(
+                            controller = it,
+                            status = PlayBoardStatus.Ready,
+                            layout = PlayLayout.SinglePane,
+                            sidePanel = null,
+                            onRetry = {},
+                            onSolved = { _, _ -> },
+                        )
+                    }
                 }
             }
         }
         composeRule.waitForIdle()
-    }
-
-    @After
-    fun clearProbe() {
-        zipCellRecomposeProbe = null
     }
 
     private fun at(width: Int, height: Int, cell: Int) =
@@ -105,7 +103,7 @@ class ZipDragRecomposeTest {
         composeRule.waitForIdle()
 
         val recomposed = mutableListOf<Int>()
-        zipCellRecomposeProbe = { recomposed += it }
+        cellComposed = { recomposed += it }
         composeRule.onNodeWithTag("play.board").performTouchInput { moveTo(at(width, height, 3)) }
         composeRule.waitForIdle()
         composeRule.onNodeWithTag("play.board").performTouchInput { up() }

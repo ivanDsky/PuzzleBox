@@ -19,6 +19,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
@@ -86,12 +87,12 @@ internal data class ZipCellFace(
     val isRejected: Boolean,
 )
 
-/** Test seam: called with the cell index each time [ZipCell] actually recomposes. */
-internal var zipCellRecomposeProbe: ((Int) -> Unit)? = null
+/** Called with the cell index each time [ZipCell] composes; a no-op outside tests, which count cell redraws with it. */
+internal val LocalZipCellComposed = staticCompositionLocalOf<(Int) -> Unit> { {} }
 
 @Composable
 internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean) {
-    zipCellRecomposeProbe?.invoke(face.idx)
+    LocalZipCellComposed.current(face.idx)
     val idx = face.idx
     val dotFraction = ZipBoardSpec.dotSizeFraction(face.n)
     val inPath = face.isOnPath

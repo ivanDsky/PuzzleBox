@@ -11,10 +11,12 @@ import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
+import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.history.CalendarState
 import com.ivandsky.puzzlebox.history.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.history.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.history.HistoryLayout
+import com.ivandsky.puzzlebox.history.HistoryReplays
 import com.ivandsky.puzzlebox.history.settleAndCapture
 import com.ivandsky.puzzlebox.history.showGolden
 import com.ivandsky.puzzlebox.domain.GameStats
@@ -40,6 +42,9 @@ class RanksPhoneGoldenScreenshots : RanksGoldenScreenshots("phone") {
 
     @Test fun `overall light`() = capture("overall", Overall, dark = false)
     @Test fun `overall dark`() = capture("overall", Overall, dark = true)
+
+    @Test fun `no replay light`() = capture("no-replay", NoReplay, dark = false)
+    @Test fun `no replay dark`() = capture("no-replay", NoReplay, dark = true)
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -48,6 +53,9 @@ class RanksPhoneGoldenScreenshots : RanksGoldenScreenshots("phone") {
 class RanksTabletGoldenScreenshots : RanksGoldenScreenshots("tablet") {
     @Test fun `two pane light`() = capture("two-pane", TwoPane, dark = false, HistoryLayout.TwoPane)
     @Test fun `two pane dark`() = capture("two-pane", TwoPane, dark = true, HistoryLayout.TwoPane)
+
+    @Test fun `two pane no replay light`() = capture("two-pane-no-replay", TwoPaneNoReplay, dark = false, HistoryLayout.TwoPane)
+    @Test fun `two pane no replay dark`() = capture("two-pane-no-replay", TwoPaneNoReplay, dark = true, HistoryLayout.TwoPane)
 }
 
 abstract class RanksGoldenScreenshots(private val device: String) {
@@ -138,6 +146,11 @@ abstract class RanksGoldenScreenshots(private val device: String) {
 
         val Overall = RanksUiState(OverallDay, boardCount = Places.size, calendar = Week, stats = Stats, places = Places)
 
+        // A solve imported from LinkedIn has no replay: the Your solve label and the disabled button say so.
+        private val NoReplaySolve = PreviewYourSolve.copy(replays = HistoryReplays.Unavailable(ReplayUnavailable.ImportedFromLinkedIn), playUi = PreviewPlayUi)
+
+        val NoReplay = FriendsDay.copy(yourSolve = NoReplaySolve)
+
         val TwoPane = RanksUiState(
             ZipDay,
             position = 1,
@@ -147,5 +160,7 @@ abstract class RanksGoldenScreenshots(private val device: String) {
             yourSolve = PreviewYourSolve,
             places = Places,
         )
+
+        val TwoPaneNoReplay = TwoPane.copy(yourSolve = NoReplaySolve)
     }
 }
