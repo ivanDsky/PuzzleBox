@@ -67,7 +67,7 @@ class GamePlugin<P, S : GameSession, M : RendererModel>(
 
     /**
      * Type-erased LinkedIn entry: [S] is in scope, so no caller casts. Folds [bytes] from the puzzle's initial
-     * session through every tick into a [LinkedInSolve] and encodes it. Null = no [linkedInPlay] or [replay]
+     * session through every tick into a [LinkedInSolve] (boards, kinds, stamps) and encodes it. Null = no [linkedInPlay] or [replay]
      * member, a puzzle this game rejects, bytes that don't decode or fold, or an encoder that declines.
      * Never throws.
      */
@@ -76,6 +76,6 @@ class GamePlugin<P, S : GameSession, M : RendererModel>(
         val replay = replay ?: return null
         val timeline = openTimeline(puzzle, bytes) ?: return null
         val boards = timeline.boardsOf(replay)?.takeIf { it.isNotEmpty() } ?: return null
-        return encode(LinkedInSolve(boards, timeline.moveKindsAt.asList()))
+        return encode(LinkedInSolve(boards, timeline.moveKindsAt.asList(), timeline.moveTimesMs.asList()))
     }
 }

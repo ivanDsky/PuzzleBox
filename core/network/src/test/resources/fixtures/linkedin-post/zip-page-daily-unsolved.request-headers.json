@@ -1,0 +1,19 @@
+{
+ "accept": "*/*",
+ "accept-language": "en-US,en;q=0.7",
+ "csrf-token": "<redacted>",
+ "referer": "https://www.linkedin.com/games/zip",
+ "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/157.0.0.0 Safari/537.36",
+ "x-li-anchor-page-key": "d_flagship3_search_srp_all",
+ "x-li-application-instance": "<redacted>",
+ "x-li-application-version": "0.2.8598",
+ "x-li-initial-url": "<redacted>",
+ "x-li-layout-tree": "<redacted>",
+ "x-li-page-instance": "<redacted>",
+ "x-li-page-instance-tracking-id": "<redacted>",
+ "x-li-pageforestid": "<redacted>",
+ "x-li-rsc-stream": "true",
+ "x-li-traceparent": "<redacted>",
+ "x-li-tracestate": "<redacted>",
+ "x-li-track": "{\"clientVersion\":\"0.2.8598\",\"mpVersion\":\"0.2.8598\",\"osName\":\"web\",\"timezoneOffset\":0,\"timezone\":\"UTC\",\"deviceFormFactor\":\"DESKTOP\",\"mpName\":\"web\",\"displayDensity\":2,\"displayWidth\":2880,\"displayHeight\":1800}"
+}

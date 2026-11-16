@@ -9,8 +9,9 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInGamePage
  * an RSC bigint, `"$n<digits>"`, or a plain `intValue`.
  *
  * `gameBoardHasWon` is not part of the initial state on a page LinkedIn serves; the web client sets it when
- * the board is won. Whether the player already has a result is read from the page's own completion record
- * instead, and an explicit `gameBoardHasWon` state, if LinkedIn ever serves one, takes precedence.
+ * the board is won. Whether the player already has a result is read from `mostRecentGameState`: a saved play
+ * on a solved page, `"$undefined"` on an unsolved one. The completion attributes are on both, so they are no
+ * signal. An explicit `gameBoardHasWon` state, if LinkedIn ever serves one, takes precedence.
  *
  * Any other state missing or malformed returns null: the page changed shape, so nothing is sent from it.
  */
@@ -26,7 +27,7 @@ internal object SduiGamePageParser {
         return LinkedInGamePage(
             puzzleId = puzzleId,
             profileId = profileId,
-            hasWon = boolean(rsc, HAS_WON) ?: rsc.contains(COMPLETION_RECORD),
+            hasWon = boolean(rsc, HAS_WON) ?: SAVED_PLAY.containsMatchIn(rsc),
             isTutorial = isTutorial,
             totalPlays = totalPlays,
             wins = wins,
@@ -71,5 +72,5 @@ internal object SduiGamePageParser {
     private val WINS = stateOf("gameBoardWinCount")
     private val REQUEST_TIME = stateOf("gameBoardGameRequestTime")
     private val BIGINT = Regex(""""\${'$'}n(-?[0-9]+)"""")
-    private const val COMPLETION_RECORD = "\"\$type\":\"proto.com.linkedin.games.api.player.GameCompletionAttributes\""
+    private val SAVED_PLAY = Regex(""""mostRecentGameState":\{""")
 }

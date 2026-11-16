@@ -14,10 +14,10 @@ class SduiGamePageParserTest {
     }
 
     @Test
-    fun `a page without a completion record is not won`() {
-        val unsolved = page.replace(COMPLETION_TYPE, "\"\$type\":\"proto.test.Other\"")
+    fun `the unsolved daily page parses as not won, though it carries completion attributes`() {
+        val unsolved = LinkedInPostFixtures.text("zip-page-daily-unsolved.rsc")
 
-        assertEquals(false, SduiGamePageParser.parse(unsolved)!!.hasWon)
+        assertEquals(LinkedInPostFixtures.unsolvedDailyPage, SduiGamePageParser.parse(unsolved))
     }
 
     @Test
@@ -62,7 +62,6 @@ class SduiGamePageParserTest {
     }
 
     private companion object {
-        const val COMPLETION_TYPE = "\"\$type\":\"proto.com.linkedin.games.api.player.GameCompletionAttributes\""
         val REQUIRED_STATES = listOf(
             "gameBoardPuzzleId",
             "gameBoardProfileId",

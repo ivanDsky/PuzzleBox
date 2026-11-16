@@ -59,6 +59,7 @@ class GamePluginLinkedInPlayTest {
         assertEquals(listOf(1, 2, 3), solve.boards.map { it.marks })
         assertEquals(listOf(3L, 94L, 2_918L), solve.boards.map { it.trail })
         assertEquals(List(3) { MoveKind.Normal }, solve.kinds)
+        assertEquals(listOf(100L, 400L, 900L), solve.timesMs)
         assertEquals(Session(marks = 3, trail = 2_918, markedAtMs = 900), solve.final)
     }
 
