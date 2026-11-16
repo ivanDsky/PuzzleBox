@@ -28,7 +28,7 @@ class NextThingProvidersTest {
         ),
         friendBoard = { friendBoardOf("ann" to 30_000, "me" to 40_000) },
         friendTier = { VisibilityTier.Duel },
-        history = listOf(GameHistoryDay(beta, TODAY.minusDays(2), puzzleNumber = 300, record = null)),
+        history = listOf(GameHistoryDay(alpha, TODAY.minusDays(2), puzzleNumber = 300, record = null)),
         friendPuzzles = listOf(FriendPuzzleRow(code, alpha, "Knots", "Maya", FriendStatus.New)),
     )
     private val setDone = all.copy(todaySet = listOf(TodayEntry(alpha, "Alpha", TodayStatus.Solved(40_000)), TodayEntry(beta, "Beta", TodayStatus.Solved(50_000))))
@@ -48,7 +48,7 @@ class NextThingProvidersTest {
 
     @Test
     fun `with no friend to challenge a missed day is offered`() = runTest {
-        assertEquals(NextThing.MissedDay(beta, TODAY.minusDays(2)), chain.offer(noFriend))
+        assertEquals(NextThing.MissedDay(alpha, TODAY.minusDays(2)), chain.offer(noFriend))
     }
 
     @Test

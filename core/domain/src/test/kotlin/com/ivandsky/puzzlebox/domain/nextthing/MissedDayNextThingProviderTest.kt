@@ -14,7 +14,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** L3: a missed day is a captured day of the last six with no record. */
+/** L3: a missed day is a captured day of the last six with no record, for the game just solved (alpha here). */
 class MissedDayNextThingProviderTest {
 
     private fun unsolved(game: GameId, daysAgo: Long) = GameHistoryDay(game, TODAY.minusDays(daysAgo), puzzleNumber = 300, record = null)
@@ -29,10 +29,15 @@ class MissedDayNextThingProviderTest {
         MissedDayNextThingProvider.offer(nextThingFacts(history = history.toList()))
 
     @Test
-    fun `the most recent unsolved day is offered, whatever its game`() = runTest {
+    fun `the most recent unsolved day of the game just solved is offered`() = runTest {
         val offer = offer(unsolved(alpha, daysAgo = 5), unsolved(beta, daysAgo = 2), unsolved(alpha, daysAgo = 4))
 
-        assertEquals(NextThing.MissedDay(beta, TODAY.minusDays(2)), offer)
+        assertEquals(NextThing.MissedDay(alpha, TODAY.minusDays(4)), offer)
+    }
+
+    @Test
+    fun `a day missed only for another game is not offered`() = runTest {
+        assertNull(offer(unsolved(beta, daysAgo = 2)))
     }
 
     @Test
@@ -54,6 +59,6 @@ class MissedDayNextThingProviderTest {
 
     @Test
     fun `today's unsolved puzzle is not a missed day`() = runTest {
-        assertNull(offer(unsolved(beta, daysAgo = 0)))
+        assertNull(offer(unsolved(alpha, daysAgo = 0)))
     }
 }
