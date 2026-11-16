@@ -14,7 +14,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     LinkedInPush(label = "Post results to LinkedIn", releaseDefault = false),
 
     /** Flat buttons and cards: no lips, a tint plus a 100 ms scale on press. Read only by the app's root theme (nav-rethink B1). */
-    FlatSurfaces(label = "Flat buttons and cards", releaseDefault = false),
+    FlatSurfaces(label = "Flat buttons and cards", releaseDefault = true),
 
     /**
      * Custom inside Games and a full-screen Studio: Create stops being a tab, Games gets a Custom pill, and the Studio
