@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.games.sudokuui
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudokuui.editor.SudokuEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -11,14 +14,22 @@ import org.koin.core.module.Module
 import org.koin.core.qualifier.qualifier
 import org.koin.dsl.module
 
-/** Mini Sudoku's play UI, qualified by its game id like the plugin binding; its editor UI takes the `<id>.editor` qualifier beside it. */
+/**
+ * Mini Sudoku's play UI, qualified by its game id like the plugin binding; its editor UI takes the `<id>.editor` qualifier beside it.
+ * The mode source reads `HintFirstMove` here (nav-rethink A2), once per controller, so the option never changes mid-play.
+ */
 val miniSudokuUiModule: Module = module {
     single<GamePlayUi>(qualifier = qualifier(SudokuGames.MINI.id.value)) {
         SudokuPlayUi(
             SudokuGames.MINI,
             get<SudokuHighlightSettings>(),
             MiniSudokuBrand,
-            HintModeSource { HintMode.Stepwise(get<DispatcherProvider>().default) },
+            HintModeSource {
+                HintMode.Stepwise(
+                    get<DispatcherProvider>().default,
+                    firstMove = get<ReleaseFlags>().isEnabled(ReleaseFlag.HintFirstMove),
+                )
+            },
         )
     }
     single<GameEditorUi>(qualifier = qualifier("${SudokuGames.MINI.id.value}.editor")) { SudokuEditorUi(SudokuGames.MINI) }

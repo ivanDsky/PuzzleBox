@@ -20,6 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.min
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.sudoku.SudokuBoard
 import com.ivandsky.puzzlebox.games.sudoku.SudokuCell
@@ -75,7 +76,7 @@ private fun givenConflicts(board: SudokuDraft, geometry: SudokuGeometry): Set<In
  */
 @Composable
 internal fun SudokuDiagnosticsLayer(size: Int, diagnostics: SudokuDiagnostics, modifier: Modifier = Modifier) {
-    val frame = gridStrokes(size).box
+    val frame = gridStrokes(size, LocalBoardGeometry.current).box
     val diffTint = LocalBoardColors.current.editorDiffRing.copy(alpha = DIFF_ALPHA)
     val error = MaterialTheme.colorScheme.error
     val faint = MaterialTheme.colorScheme.onSurface.copy(alpha = WITNESS_ALPHA)

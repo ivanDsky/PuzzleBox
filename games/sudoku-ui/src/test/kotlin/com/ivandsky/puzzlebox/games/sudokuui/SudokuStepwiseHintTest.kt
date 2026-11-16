@@ -74,13 +74,17 @@ class SudokuStepwiseHintTest {
     private fun stepwise(
         session: SudokuSession = SudokuSession(ref = null, puzzle = peanut450),
         compute: CoroutineDispatcher = Dispatchers.Unconfined,
+        firstMove: Boolean = false,
     ) = SudokuBoardState(
         initialSession = session,
         now = { Instant.EPOCH },
         settle = { settled++; it },
-        hintMode = HintMode.Stepwise(compute),
+        hintMode = HintMode.Stepwise(compute, firstMove),
         scope = CoroutineScope(Dispatchers.Unconfined),
     )
+
+    private fun SudokuBoardState.targets(): Set<Int> =
+        spotlight?.roles?.filterValues { it == SpotlightRole.TARGET }?.keys.orEmpty()
 
     /** Cell 0 holds a wrong 1 that also clashes with the given 1 at cell 12. */
     private fun withWrongOne(): SudokuBoardState = stepwise().apply {
@@ -124,6 +128,27 @@ class SudokuStepwiseHintTest {
         assertEquals(board, s.session.board)
         assertFalse(s.canUndo)
         assertEquals(1, s.session.hintsUsed)
+    }
+
+    // First move (B4)
+
+    @Test
+    fun `with the mode's first-move option the press lights the forced cell in the open box, not the row's last cell`() {
+        // Row 5 lacks only cell 35; the three 6s leave cell 0 the only home for 6 in the still-empty box 0.
+        val puzzle = SudokuPuzzle(
+            SudokuGames.MINI.variant,
+            grid("...... ...6.. ..6... ...... .6.... 23456."),
+            grid("612345 345612 456123 123456 561234 234561"),
+        )
+        val usual = stepwise(SudokuSession(ref = null, puzzle = puzzle))
+        val firstMove = stepwise(SudokuSession(ref = null, puzzle = puzzle), firstMove = true)
+
+        usual.requestHint()
+        firstMove.requestHint()
+
+        assertEquals(setOf(35), usual.targets())
+        assertEquals(setOf(0), firstMove.targets())
+        assertEquals(1, firstMove.session.hintsUsed)
     }
 
     // Wrong digit: mark only (A4)

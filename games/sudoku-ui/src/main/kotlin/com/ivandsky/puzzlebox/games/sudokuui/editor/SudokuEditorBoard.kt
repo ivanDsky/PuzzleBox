@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
@@ -145,7 +146,7 @@ private fun editorBoardModel(
  */
 @Composable
 private fun SudokuEditorMarks(size: Int, outlined: Set<Int>, hatched: Set<Int>, modifier: Modifier = Modifier) {
-    val frame = gridStrokes(size).box
+    val frame = gridStrokes(size, LocalBoardGeometry.current).box
     val outline = MaterialTheme.colorScheme.onTertiaryContainer
     val stripe = LocalBoardColors.current.editorSplitHatch.copy(alpha = HATCH_ALPHA)
     Column(modifier.padding(frame)) {
