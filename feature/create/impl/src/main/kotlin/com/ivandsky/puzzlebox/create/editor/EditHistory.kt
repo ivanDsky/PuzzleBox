@@ -51,6 +51,13 @@ internal class EditHistory(private val locked: () -> Boolean, private val adopt:
     /** A blank board of the same size as one step. */
     fun clear() = move { it.clear() }
 
+    /** [next], a board built from the current one (Finish), as one step; nothing moves while [locked]. */
+    fun replace(next: EditorDraft<*>) {
+        if (locked()) return
+        moveTo(next)
+        adopt(next)
+    }
+
     /** The board [step] makes of the current draft becomes current and goes to [adopt]; none before [open]. */
     private fun move(step: (EditorDraft<*>) -> EditorDraft<*>?) {
         if (locked()) return

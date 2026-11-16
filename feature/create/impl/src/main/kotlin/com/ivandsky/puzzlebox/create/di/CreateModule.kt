@@ -60,6 +60,7 @@ val createModule: Module = module {
             updatePublishState = get(),
             preferences = get(),
             validatePublish = get(),
+            releaseFlags = get(),
         )
     }
     viewModel { (key: PublishedPuzzleKey) ->

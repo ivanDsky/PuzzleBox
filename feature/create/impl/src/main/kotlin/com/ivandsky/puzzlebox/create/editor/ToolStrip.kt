@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -36,6 +37,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
@@ -54,6 +56,7 @@ private val ToolWidth = 64.dp
 private val ToolHeight = 56.dp
 private val CompactTool = 48.dp
 private val ToolIconSize = 20.dp
+private const val BusyRingProgress = 0.66f
 
 /**
  * The Studio tool strip under the board (prototype 02 A): a card with the studio accent
@@ -61,7 +64,9 @@ private val ToolIconSize = 20.dp
  * exists; Size, showing the open [size] and opening the [SizePopover] over [sizes] (the
  * game's variant table, A5) above the strip, left out when [sizes] holds one size or none
  * (nothing to pick); and Clear. A size pick other than the open one goes to [onResize];
- * Clear goes to [onClear]. Under the tools sits the game's one-line [hint]. Tools give press
+ * Clear goes to [onClear]. A non-null [finish] adds Finish before Clear (E1): disabled, enabled or
+ * busy (a progress ring; a tap cancels) as the slot says; null leaves the strip as it was. The
+ * tools share the row, so on the narrowest phones five of them shrink rather than clip. Under the tools sits the game's one-line [hint]. Tools give press
  * feedback (scale [MotionTokens.PressScale]); reduced motion drops it.
  */
 @Composable
@@ -77,6 +82,7 @@ fun ToolStrip(
     onClear: () -> Unit,
     hint: @Composable (Modifier) -> Unit,
     modifier: Modifier = Modifier,
+    finish: FinishSlot? = null,
 ) {
     var picking by rememberSaveable { mutableStateOf(false) }
     Surface(
@@ -89,8 +95,9 @@ fun ToolStrip(
     ) {
         Column(Modifier.padding(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                IconTool("Undo", PuzzleIcons.Undo, canUndo, onUndo, "create.tool.undo")
-                IconTool("Redo", PuzzleIcons.Redo, canRedo, onRedo, "create.tool.redo")
+                val share = Modifier.weight(1f, fill = false)
+                IconTool("Undo", PuzzleIcons.Undo, canUndo, onUndo, "create.tool.undo", modifier = share)
+                IconTool("Redo", PuzzleIcons.Redo, canRedo, onRedo, "create.tool.redo", modifier = share)
                 if (sizes.size > 1) {
                     Tool(
                         "Size",
@@ -98,11 +105,13 @@ fun ToolStrip(
                         active = picking,
                         onClick = { picking = !picking },
                         tag = "create.tool.size",
+                        modifier = share,
                     ) { ink ->
                         Text(sizeLabel(size), style = MaterialTheme.typography.titleSmall, color = ink, maxLines = 1)
                     }
                 }
-                IconTool("Clear", PuzzleIcons.Clear, enabled = true, onClick = onClear, tag = "create.tool.clear")
+                if (finish != null) FinishTool(finish, share)
+                IconTool("Clear", PuzzleIcons.Clear, enabled = true, onClick = onClear, tag = "create.tool.clear", modifier = share)
             }
             Box(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm)) {
                 hint(Modifier.fillMaxWidth())
@@ -124,9 +133,43 @@ fun ToolStrip(
 }
 
 @Composable
-internal fun IconTool(label: String, icon: ImageVector, enabled: Boolean, onClick: () -> Unit, tag: String, compact: Boolean = false) {
-    Tool(label, enabled, active = false, onClick, tag, compact) { ink ->
+internal fun IconTool(
+    label: String,
+    icon: ImageVector,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    tag: String,
+    compact: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    Tool(label, enabled, active = false, onClick, tag, compact, modifier = modifier) { ink ->
         Icon(icon, contentDescription = null, tint = ink, modifier = Modifier.size(ToolIconSize))
+    }
+}
+
+/** Finish for me: the dice, or while [finish] is busy a progress ring that a tap cancels; a determinate ring under reduced motion. */
+@Composable
+private fun FinishTool(finish: FinishSlot, modifier: Modifier) {
+    val reduced = rememberReducedMotion()
+    Tool(
+        "Finish",
+        enabled = finish.enabled || finish.busy,
+        active = false,
+        onClick = finish.onPress,
+        tag = "create.tool.finish",
+        modifier = modifier,
+        stateDescription = if (finish.busy) "Finishing, tap to cancel" else null,
+    ) { ink ->
+        if (finish.busy) {
+            val ring = Modifier.size(ToolIconSize)
+            if (reduced) {
+                CircularProgressIndicator(progress = { BusyRingProgress }, modifier = ring, color = ink, strokeWidth = 2.dp)
+            } else {
+                CircularProgressIndicator(modifier = ring, color = ink, strokeWidth = 2.dp)
+            }
+        } else {
+            Icon(PuzzleIcons.Dice, contentDescription = null, tint = ink, modifier = Modifier.size(ToolIconSize))
+        }
     }
 }
 
@@ -143,6 +186,8 @@ private fun Tool(
     onClick: () -> Unit,
     tag: String,
     compact: Boolean = false,
+    modifier: Modifier = Modifier,
+    stateDescription: String? = null,
     glyph: @Composable (ink: Color) -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -160,7 +205,7 @@ private fun Tool(
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     Column(
-        modifier = Modifier
+        modifier = modifier
             .size(if (compact) CompactTool else ToolWidth, if (compact) CompactTool else ToolHeight)
             .graphicsLayer {
                 scaleX = scale
@@ -176,6 +221,7 @@ private fun Tool(
                 onClick = onClick,
             )
             .then(if (compact) Modifier.semantics { contentDescription = label } else Modifier)
+            .then(if (stateDescription != null) Modifier.semantics { this.stateDescription = stateDescription } else Modifier)
             .testTag(tag),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
