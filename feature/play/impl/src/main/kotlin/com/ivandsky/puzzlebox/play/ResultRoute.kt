@@ -9,6 +9,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -16,6 +17,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
+import com.ivandsky.puzzlebox.designsystem.LocalEntranceSettled
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.game.VariantId
@@ -99,23 +101,26 @@ fun ResultRoute(
     val onShare = { context.shareText(resultShareText(state.game, state.puzzleNumber, key.timeMs, key.hintsUsed)) }
     val variant by viewModel.playedVariant.collectAsStateWithLifecycle()
     val makeOne = onMakeOneLikeThis?.let { make -> { make(GameId(key.gameId), variant) } }
-    // The column keeps the constraints it had as the root, so the page under the celebration lays out as before.
+    // The column keeps the constraints it had as the root, so the page under the celebration lays out as before;
+    // under one it composes finished, so the celebration lifts off (or is tapped off) a complete page.
     Box(modifier = modifier.testTag("route.result"), propagateMinConstraints = true) {
-        Column {
-            CompactTopBar(
-                // The result card already names the puzzle; the bar only carries Up.
-                title = "",
-                navigationIcon = {
-                    IconButton(onClick = onDone, modifier = Modifier.testTag("result.up")) {
-                        Icon(
-                            imageVector = PuzzleIcons.Back,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-            )
-            HeroPage(key, viewModel, state, primary, next, onPrimary, onShare, onPlayAgain, context, onOpenReplay, onOpenRanks, makeOne, challenge)
+        CompositionLocalProvider(LocalEntranceSettled provides viewModel.celebrated) {
+            Column {
+                CompactTopBar(
+                    // The result card already names the puzzle; the bar only carries Up.
+                    title = "",
+                    navigationIcon = {
+                        IconButton(onClick = onDone, modifier = Modifier.testTag("result.up")) {
+                            Icon(
+                                imageVector = PuzzleIcons.Back,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                )
+                HeroPage(key, viewModel, state, primary, next, onPrimary, onShare, onPlayAgain, context, onOpenReplay, onOpenRanks, makeOne, challenge)
+            }
         }
         if (celebrating) ResultCelebration(viewModel.brand, next.moments, viewModel::celebrationDone, Modifier.matchParentSize())
     }

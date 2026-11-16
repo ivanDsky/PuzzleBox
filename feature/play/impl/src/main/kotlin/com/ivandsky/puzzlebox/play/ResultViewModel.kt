@@ -208,7 +208,10 @@ class ResultViewModel internal constructor(
         else -> nextUnsolved.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
     }
 
-    private val _celebrating = MutableStateFlow(celebration?.take(slot, solve) == true)
+    /** True when this page opened under the solve celebration: it composes finished, with no entrance to play. */
+    internal val celebrated: Boolean = celebration?.take(slot, solve) == true
+
+    private val _celebrating = MutableStateFlow(celebrated)
 
     /** True while the solve celebration plays over the page: only for a solve its board just handed off. */
     internal val celebrating: StateFlow<Boolean> = _celebrating.asStateFlow()

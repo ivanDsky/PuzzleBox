@@ -14,7 +14,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.cos
@@ -72,7 +71,7 @@ fun NewBestBurst(
     origin: Offset = Offset(0.5f, 0.5f),
     seed: Long = 0L,
 ) {
-    val reduced = rememberReducedMotion() || LocalInspectionMode.current
+    val reduced = rememberReducedMotion() || entranceSettled()
     val progress = remember { Animatable(0f) }
     val particles = remember(seed) { burstParticles(seed = seed) }
     LaunchedEffect(trigger, reduced) {

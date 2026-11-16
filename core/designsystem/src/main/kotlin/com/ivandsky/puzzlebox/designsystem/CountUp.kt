@@ -11,7 +11,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalInspectionMode
 
 internal const val COUNT_UP_DURATION_MS = MotionTokens.CountUpDuration
 
@@ -25,7 +24,7 @@ internal fun countUpValue(target: Long, progress: Float): Long = (target * progr
  */
 @Composable
 fun rememberCountUp(target: Long, delayMs: Int = 0, durationMs: Int = COUNT_UP_DURATION_MS): Long {
-    val instant = rememberReducedMotion() || LocalInspectionMode.current
+    val instant = rememberReducedMotion() || entranceSettled()
     val progress = remember(target) { Animatable(if (instant) 1f else 0f) }
     LaunchedEffect(progress, instant) {
         if (instant) {

@@ -3,6 +3,9 @@ package com.ivandsky.puzzlebox.play
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -79,6 +82,10 @@ import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import java.time.Instant
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -96,6 +103,7 @@ import org.robolectric.annotation.GraphicsMode
  * L2 on Result: the celebration is as long as the moments known on the phone make it (a friend-board moment never
  * lengthens it), one tap ends it, and a daily solve's hand-off plays it over a Result that is already drawn.
  */
+@OptIn(ExperimentalCoroutinesApi::class)
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -168,8 +176,56 @@ class ResultCelebrationTest {
     fun `a daily solve plays the celebration over a drawn Result, a tap ends it, and the Challenge row hands back that friend and the game`() {
         val fakes = FakeGames(listOf(alpha, beta))
         startGraph(fakes)
-        var result by mutableStateOf<ResultKey?>(null)
         var challenged: DuelPrefill? = null
+        solveIntoCelebration(fakes) { challenged = it }
+        composeRule.onNodeWithTag("solve.celebration").performClick()
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("solve.celebration").assertDoesNotExist()
+
+        composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("result.challenge").fetchSemanticsNodes().isNotEmpty() }
+        composeRule.onNodeWithTag("result.next").assertExists()
+        composeRule.onNodeWithTag("result.challenge").performScrollTo().performClick()
+        composeRule.runOnIdle { assertEquals(DuelPrefill("ann", "ann", alpha), challenged) }
+    }
+
+    @Test
+    fun `a tap before the next step has loaded shows a settled Result, and the button the frame it loads`() {
+        val fakes = FakeGames(listOf(alpha, beta))
+        val saved = FakeSavedPlayRepository()
+        // Today's set, and with it Result's main button, waits on this gate.
+        val loaded = MutableStateFlow(true)
+        startGraph(
+            fakes,
+            object : SavedPlayRepository by saved {
+                override fun observeInProgress() = loaded.filter { it }.flatMapLatest { saved.observeInProgress() }
+            },
+        )
+        loaded.value = false
+        solveIntoCelebration(fakes)
+
+        composeRule.onNodeWithTag("solve.celebration").performClick()
+        frame()
+        composeRule.onNodeWithTag("solve.celebration").assertDoesNotExist()
+        composeRule.onNodeWithTag("result.hero.time").assertIsDisplayed()
+        composeRule.onNodeWithTag("result.next").assertDoesNotExist()
+        assertEquals("nothing is still entering the frame after the tap", pageAfter(REST_MS), page())
+
+        loaded.value = true
+        var frames = 0
+        while (composeRule.onAllNodesWithTag("result.next").fetchSemanticsNodes().isEmpty()) {
+            check(frames++ < LOAD_FRAMES) { "the main button did not load" }
+            frame()
+        }
+        assertEquals("the main button is drawn in full the frame it loads", pageAfter(REST_MS), page())
+    }
+
+    /**
+     * Plays alpha's daily to its win in [GameRoute], which hands off to [ResultRoute]; returns with the celebration
+     * up. The clock is held from the solve on, so the celebration's own second cannot pass unseen.
+     */
+    private fun solveIntoCelebration(fakes: FakeGames, onChallenge: (DuelPrefill) -> Unit = {}) {
+        var result by mutableStateOf<ResultKey?>(null)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 when (val key = result) {
@@ -186,36 +242,33 @@ class ResultCelebrationTest {
                         onDone = {},
                         onOpenReplay = {},
                         onOpenRanks = { _, _ -> },
-                        onChallenge = { challenged = it },
+                        onChallenge = onChallenge,
                     )
                 }
             }
         }
         composeRule.waitForIdle()
-
-        // The clock is held from the solve on, so the celebration's own second cannot pass unseen.
         composeRule.mainClock.autoAdvance = false
         composeRule.runOnIdle { fakes[alpha].latest.win() }
-        repeat(6) {
-            composeRule.mainClock.advanceTimeByFrame()
-            composeRule.waitForIdle()
-        }
+        repeat(6) { frame() }
         composeRule.onNodeWithTag("solve.celebration").assertExists()
         composeRule.onNodeWithTag("result.hero.screen").assertExists()
-
-        composeRule.onNodeWithTag("solve.celebration").performClick()
-        composeRule.mainClock.autoAdvance = true
-        composeRule.waitForIdle()
-        composeRule.onNodeWithTag("solve.celebration").assertDoesNotExist()
-
-        composeRule.waitUntil(5_000) { composeRule.onAllNodesWithTag("result.challenge").fetchSemanticsNodes().isNotEmpty() }
-        composeRule.onNodeWithTag("result.next").assertExists()
-        composeRule.onNodeWithTag("result.challenge").performScrollTo().performClick()
-        composeRule.runOnIdle { assertEquals(DuelPrefill("ann", "ann", alpha), challenged) }
     }
 
+    private fun frame() {
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.waitForIdle()
+    }
+
+    /** What Result's page draws this frame, as a hash of its pixels. */
+    private fun page(): Int =
+        composeRule.onNodeWithTag("result.hero.screen").captureToImage().toPixelMap().buffer.contentHashCode()
+
+    /** What the page draws now, read back once [ms] have passed: equal to [page] then only if nothing moved. */
+    private fun pageAfter(ms: Long): Int = page().also { composeRule.mainClock.advanceTimeBy(ms) }
+
     /** Result moments on, signed in as "me", with the friend ann (tier duel) ahead on alpha's board today. */
-    private fun startGraph(fakes: FakeGames) {
+    private fun startGraph(fakes: FakeGames, saved: SavedPlayRepository = FakeSavedPlayRepository()) {
         val me = Identity("me", "Me", null)
         val identity = FakeIdentityService(initial = me)
         val daily = FakeDailyRepository().apply {
@@ -245,7 +298,7 @@ class ResultCelebrationTest {
                     single<GamePlayRegistry> { fakes.registry }
                     single<DailyRepository> { daily }
                     single<CompletionRepository> { FakeCompletionRepository() }
-                    single<SavedPlayRepository> { FakeSavedPlayRepository() }
+                    single<SavedPlayRepository> { saved }
                     single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
                     single<HiddenPuzzles> { FakeHiddenPuzzles() }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
@@ -286,5 +339,10 @@ class ResultCelebrationTest {
                 hubOffFriendDay,
             )
         }
+    }
+
+    private companion object {
+        const val REST_MS = 3_000L
+        const val LOAD_FRAMES = 30
     }
 }
