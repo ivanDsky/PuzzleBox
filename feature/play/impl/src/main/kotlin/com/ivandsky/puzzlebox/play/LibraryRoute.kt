@@ -60,6 +60,7 @@ import org.koin.core.parameter.parametersOf
  * A [custom] slot beside the [duels] one makes the tabs Dailies, Duels, Custom ([LibraryScreen]).
  * The game page shows its rank as a summary row that calls [onOpenRanks].
  * With [linkedIn] the day card shows the LinkedIn lines, and [onReconnectLinkedIn] opens its login.
+ * A non-null [onMakeOne] puts "Make one" on each game page.
  */
 @Composable
 internal fun LibraryRoute(
@@ -76,6 +77,7 @@ internal fun LibraryRoute(
     onRequestTaken: () -> Unit = {},
     linkedIn: Boolean = false,
     onReconnectLinkedIn: (() -> Unit)? = null,
+    onMakeOne: ((GameId) -> Unit)? = null,
 ) {
     val viewModel: LibraryViewModel = koinViewModel(parameters = { parametersOf(linkedIn) })
     val registry: GamePlayRegistry = koinInject()
@@ -128,6 +130,7 @@ internal fun LibraryRoute(
             onRequestTaken = onRequestTaken,
             linkedIn = linkedInCard,
             onOpenRanks = onOpenRanks,
+            onMakeOne = onMakeOne,
         )
         FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))
         if (enteringCode) {
@@ -171,7 +174,7 @@ internal fun LibraryRoute(
  * friend puzzles and whose pill counts the ones not played yet. A [request] acts once
  * ([ConsumeLibraryRequest]; a section needs [duels]) and is reported taken ([onRequestTaken]). The game page
  * shows its rank as a summary row that calls [onOpenRanks].
- * A non-null [linkedIn] puts the LinkedIn lines on the page's day card.
+ * A non-null [linkedIn] puts the LinkedIn lines on the page's day card. A non-null [onMakeOne] puts "Make one" on the page.
  */
 @Composable
 internal fun LibraryScreen(
@@ -196,6 +199,7 @@ internal fun LibraryScreen(
     request: LibraryRequest? = null,
     onRequestTaken: () -> Unit = {},
     linkedIn: LinkedInCardState? = null,
+    onMakeOne: ((GameId) -> Unit)? = null,
 ) {
     val listScroll = rememberScrollState()
     val duelsScroll = rememberLazyListState()
@@ -214,7 +218,7 @@ internal fun LibraryScreen(
     fun Page(row: LibraryRowModel, onBack: (() -> Unit)?) = LibraryGamePage(
         row, page, month, layout, calendar, onPlay, onRetry, onOpenLesson, onBack,
         offline = state.offline, hasLesson = hasLesson(row.card.game),
-        onOpenRanks = onOpenRanks, linkedIn = linkedIn,
+        onOpenRanks = onOpenRanks, linkedIn = linkedIn, onMakeOne = onMakeOne,
     )
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()
     var tab by rememberSaveable { mutableStateOf(GamesTab.Dailies) }

@@ -9,7 +9,8 @@ import java.time.Instant
 /**
  * The daily result's action row for [ResultHeroScreen]'s `actions` slot: the [primary] action, then the Share and,
  * when [onPlayAgain] is given, Play again icon buttons; with everything solved the countdown to [rolloverAt] stands in for
- * the primary. A null [primary] (not known yet) keeps the row in place, invisible and inert.
+ * the primary. A null [primary] (not known yet) keeps the row in place, invisible and inert. A non-null
+ * [onMakeOneLikeThis] adds a "Make one like this" button under the row.
  */
 @Composable
 fun ResultHeroActions(
@@ -19,6 +20,7 @@ fun ResultHeroActions(
     onPlayAgain: (() -> Unit)?,
     modifier: Modifier = Modifier,
     rolloverAt: Instant? = null,
+    onMakeOneLikeThis: (() -> Unit)? = null,
 ) {
     val pending = primary == null
     ResultActions(
@@ -28,5 +30,6 @@ fun ResultHeroActions(
         onPlayAgain = onPlayAgain?.let { again -> { if (!pending) again() } },
         rolloverAt = rolloverAt,
         modifier = modifier.then(if (pending) Modifier.alpha(0f).clearAndSetSemantics {} else Modifier),
+        onMakeOneLikeThis = onMakeOneLikeThis?.let { make -> { if (!pending) make() } },
     )
 }

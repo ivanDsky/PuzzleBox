@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.domain.FinishResult
 import com.ivandsky.puzzlebox.domain.LegFinish
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.SessionBlob
+import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.replay.MoveLog
 import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
@@ -200,6 +201,9 @@ class PlaySessionStore internal constructor(
      * included). Null when the slot has neither. Never opens a play.
      */
     internal suspend fun latestSave(slot: PlaySlot): ByteArray? = slots[slot]?.unsavedSession ?: opening.savedRow(slot)
+
+    /** The size [slot]'s puzzle was played at, read from the stored puzzle (so it holds after process death); null when none is stored. */
+    internal suspend fun playedVariant(slot: PlaySlot.Daily): VariantId? = opening.variantOf(slot)
 
     /**
      * Releases every live slot no key in [keys] names: a [GameKey] with a day names that day, a null-day one the slot it pinned,
