@@ -79,4 +79,5 @@ private fun LinkedInPostState.button(): LinkedInPostRowState? = when (this) {
     LinkedInPostState.Offline -> LinkedInPostRowState.Retry
     LinkedInPostState.Paused -> LinkedInPostRowState.Paused
     LinkedInPostState.NotToday -> LinkedInPostRowState.NotToday
+    LinkedInPostState.Tutorial -> LinkedInPostRowState.Tutorial
 }

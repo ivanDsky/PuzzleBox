@@ -92,6 +92,7 @@ class LinkedInPostFlowTest {
             "page: another puzzle" to pageWith { copy(puzzleId = 713) },
             "page: already won" to pageWith { copy(progress = LinkedInProgress.Won) },
             "page: the tutorial" to pageWith { copy(isTutorial = true) },
+            "page: a tutorial that is not the day's puzzle" to pageWith { copy(isTutorial = true, puzzleId = 2) },
         )
 
         val left = cases.mapValues { (_, script) -> submitAfter(script) }
@@ -109,7 +110,8 @@ class LinkedInPostFlowTest {
                 "page: another member's" to nothingSent(LinkedInPostState.Paused, LinkState.Paused("me", Kind.Unexpected)),
                 "page: another puzzle" to nothingSent(LinkedInPostState.NotToday, me),
                 "page: already won" to nothingSent(LinkedInPostState.AlreadyOnLinkedIn, me),
-                "page: the tutorial" to nothingSent(LinkedInPostState.Paused, LinkState.Paused("me", Kind.Unexpected)),
+                "page: the tutorial" to nothingSent(LinkedInPostState.Tutorial, me),
+                "page: a tutorial that is not the day's puzzle" to nothingSent(LinkedInPostState.Tutorial, me),
             ),
             left,
         )

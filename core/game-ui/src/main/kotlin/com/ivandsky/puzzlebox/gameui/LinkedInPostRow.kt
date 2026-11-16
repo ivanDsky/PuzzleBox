@@ -101,7 +101,7 @@ private fun LinkedInPostRowState.look(pressed: Boolean): CircleLook {
             CircleLook(if (pressed && enabled) LinkedInBluePressed else LinkedInBlue, Color.White)
         LinkedInPostRowState.Posted, LinkedInPostRowState.AlreadyOnLinkedIn ->
             CircleLook(colors.surfaceContainerHigh, LocalLinkedInText.current)
-        LinkedInPostRowState.Paused, LinkedInPostRowState.NotToday ->
+        LinkedInPostRowState.Paused, LinkedInPostRowState.NotToday, LinkedInPostRowState.Tutorial ->
             CircleLook(colors.surfaceContainerHigh, colors.onSurfaceVariant)
     }
 }
@@ -114,5 +114,5 @@ private fun LinkedInPostRowState.icon(): ImageVector = when (this) {
     LinkedInPostRowState.Check -> PuzzleIcons.HowTo
     LinkedInPostRowState.Retry -> PuzzleIcons.Retry
     LinkedInPostRowState.Paused -> PuzzleIcons.Hourglass
-    LinkedInPostRowState.NotToday -> PuzzleIcons.Clock
+    LinkedInPostRowState.NotToday, LinkedInPostRowState.Tutorial -> PuzzleIcons.Clock
 }

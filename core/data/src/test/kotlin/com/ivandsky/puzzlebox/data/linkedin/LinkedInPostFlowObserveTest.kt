@@ -200,6 +200,21 @@ class LinkedInPostFlowObserveTest {
     }
 
     @Test
+    fun `a tutorial page is shown after the tap and leaves the link unpaused`() = runTest {
+        val rig = rig()
+        rig.postable()
+        rig.poster.pageReply = LinkedInRead.Ok(LinkedInPostRig.PAGE.copy(isTutorial = true, puzzleId = 2))
+        val seen = buttonOf(rig)
+
+        val result = rig.submit()
+        testScheduler.runCurrent()
+
+        assertEquals(LinkedInPostState.Tutorial, result)
+        assertEquals(listOf(LinkedInPostState.Ready, LinkedInPostState.Sending, LinkedInPostState.Tutorial), seen.toList())
+        assertEquals(LinkState.Connected("me"), rig.link.state.first())
+    }
+
+    @Test
     fun `a post that throws after the marker was stored leaves the day unsure, not sending`() = runTest {
         val rig = rig()
         rig.postable()

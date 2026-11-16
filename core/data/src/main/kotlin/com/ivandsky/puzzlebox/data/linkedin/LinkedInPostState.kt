@@ -27,4 +27,7 @@ sealed interface LinkedInPostState {
 
     /** The day is no longer the game's today, so nothing was sent. */
     data object NotToday : LinkedInPostState
+
+    /** LinkedIn served the account its onboarding tutorial in place of the daily, so nothing was sent and nothing is paused. */
+    data object Tutorial : LinkedInPostState
 }

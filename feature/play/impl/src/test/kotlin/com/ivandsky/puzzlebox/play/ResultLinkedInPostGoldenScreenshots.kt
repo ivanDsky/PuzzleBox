@@ -71,6 +71,9 @@ abstract class ResultLinkedInPostGoldenScreenshots(private val device: String) {
     @Test fun `not today light`() = capture(LinkedInPostRowState.NotToday, "not-today", dark = false)
     @Test fun `not today dark`() = capture(LinkedInPostRowState.NotToday, "not-today", dark = true)
 
+    @Test fun `tutorial light`() = capture(LinkedInPostRowState.Tutorial, "tutorial", dark = false)
+    @Test fun `tutorial dark`() = capture(LinkedInPostRowState.Tutorial, "tutorial", dark = true)
+
     private fun capture(state: LinkedInPostRowState, name: String, dark: Boolean) {
         rule.showGolden(dark) {
             UnderUpBar {
