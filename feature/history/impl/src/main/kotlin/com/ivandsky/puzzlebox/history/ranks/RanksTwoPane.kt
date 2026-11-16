@@ -38,6 +38,7 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.gameui.board.boardRowValueText
+import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 
 private const val LIST_WEIGHT = 0.4f
 private const val BOARD_WEIGHT = 0.6f
@@ -62,6 +63,7 @@ internal fun RanksTwoPane(
     onRowClick: ((DailyBoardRowModel) -> Unit)?,
     refreshing: Boolean,
     modifier: Modifier = Modifier,
+    tuneDefaults: RanksTuneDefaults? = null,
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
@@ -90,7 +92,7 @@ internal fun RanksTwoPane(
         }
         RanksPullToRefresh(refreshing, actions.onRefresh, Modifier.weight(BOARD_WEIGHT).fillMaxHeight().padding(bottom = Spacing.lg)) {
             FillRemainingColumn(Modifier.fillMaxSize().verticalScroll(rightScroll).testTag("ranks.rightpane")) {
-                RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
+                RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }, onLabel = { tuning = true }.takeIf { actions.tuneLabelOpensSheet }) {
                     BoardScrubCell(scrub, state.position, state.board.title, Modifier.padding(start = Spacing.sm), at = { state.sliceAt(it)?.title }) { title ->
                         Text(
                             title,
@@ -100,7 +102,7 @@ internal fun RanksTwoPane(
                         )
                     }
                 }
-                RanksBoardStack(state, scrub, actions, onRowClick) {
+                RanksBoardStack(state, scrub, actions, onRowClick) { jump ->
                     // The pane's one gap between its parts: Your solve brings its own under it, and is nothing when there is none.
                     RanksHeroCard(
                         face = heroFace(if (between) target else state.position),
@@ -109,12 +111,13 @@ internal fun RanksTwoPane(
                         modifier = Modifier.padding(vertical = Spacing.md),
                         was = heroFace(scrub.from).takeIf { between },
                         progress = { scrub.progress },
+                        onClick = jump,
                     )
                 }
             }
         }
     }
-    if (tuning) TuneSheet(state.scope, state.window, actions.onScope, actions.onWindow, onDismiss = { tuning = false })
+    if (tuning) TuneSheet(state.scope, state.window, actions.onScope, actions.onWindow, onDismiss = { tuning = false }, defaults = tuneDefaults)
     if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false })
 }
 

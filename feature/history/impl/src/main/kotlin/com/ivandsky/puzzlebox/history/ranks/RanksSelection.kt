@@ -34,8 +34,9 @@ internal data class RanksSelection(
     }
 
     companion object {
-        /** A link's landing: [board] at [day], null for today; the calendar shows the week holding it. */
-        fun opening(board: RanksBoard, day: LocalDate?) = RanksSelection(board = board, day = day, shownDay = day)
+        /** A link's landing: [board] at [day], null for today; the calendar shows the week holding it, or opens to the month with [calendarExpanded]. */
+        fun opening(board: RanksBoard, day: LocalDate?, calendarExpanded: Boolean = false) =
+            RanksSelection(board = board, day = day, calendarExpanded = calendarExpanded, shownDay = day)
     }
 
     /**

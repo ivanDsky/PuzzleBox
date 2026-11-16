@@ -9,6 +9,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.history.HistoryLayout
+import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 import com.ivandsky.puzzlebox.history.ReplaySolve
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
@@ -36,19 +37,36 @@ import java.time.LocalDate
  * [navigator] opens a day's game and its replays from the Your solve row; [layout] picks
  * the tablet's two panes. [linkedIn] adds the connections' ghosts to a game's Friends day board, from what the phone
  * holds; off, the hub touches nothing of LinkedIn.
+ * A pushed key's [HistoryKey.calendarExpanded] opens the hub's calendar to the month. [playThisDay] adds a play action
+ * to a past day's Your solve, [tuneLabelOpensSheet] makes the bar's tune label open the Tune sheet and [heroJumpsToRow]
+ * makes the tablet's hero card jump to the viewer's row; [tuneDefaults] is the player's defaults the sheet shows. All off
+ * (null) by default.
  */
 fun EntryProviderScope<NavKey>.ranksEntry(
     navigator: Navigator,
     layout: HistoryLayout,
     linkedIn: Boolean = false,
+    playThisDay: Boolean = false,
+    tuneLabelOpensSheet: Boolean = false,
+    heroJumpsToRow: Boolean = false,
+    tuneDefaults: RanksTuneDefaults? = null,
 ) {
-    entry<HistoryRootKey> { RanksRoute(navigator, layout, linkedIn, RanksSelection(), key = null, onBack = null) }
+    entry<HistoryRootKey> {
+        RanksRoute(
+            navigator, layout, linkedIn, RanksSelection(), key = null, onBack = null,
+            playThisDay = playThisDay, tuneLabelOpensSheet = tuneLabelOpensSheet, heroJumpsToRow = heroJumpsToRow, tuneDefaults = tuneDefaults,
+        )
+    }
     entry<HistoryKey> { key ->
         val opening = RanksSelection.opening(
             board = key.gameId?.let { RanksBoard.Game(GameId(it)) } ?: RanksBoard.Overall,
             day = key.day?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
+            calendarExpanded = key.calendarExpanded,
         )
-        RanksRoute(navigator, layout, linkedIn, opening, key = key.toString(), onBack = { navigator.pop() })
+        RanksRoute(
+            navigator, layout, linkedIn, opening, key = key.toString(), onBack = { navigator.pop() },
+            playThisDay = playThisDay, tuneLabelOpensSheet = tuneLabelOpensSheet, heroJumpsToRow = heroJumpsToRow, tuneDefaults = tuneDefaults,
+        )
     }
 }
 
@@ -64,6 +82,10 @@ private fun RanksRoute(
     opening: RanksSelection,
     key: String?,
     onBack: (() -> Unit)?,
+    playThisDay: Boolean,
+    tuneLabelOpensSheet: Boolean,
+    heroJumpsToRow: Boolean,
+    tuneDefaults: RanksTuneDefaults?,
 ) {
     // One key per class: a ViewModelStore keeps a key's last ViewModel only, so a shared key made each new one clear the one before it.
     val viewModel = koinViewModel<RanksViewModel>(key = key?.let { "$it/ranks" }, parameters = { parametersOf(linkedIn, opening) })
@@ -78,6 +100,7 @@ private fun RanksRoute(
     val askReplays by replayOptIn.show.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val playGame = { game: GameId, day: LocalDate -> navigator.pushOnce(GameKey(game.value, day.toString())) }
     RanksScreen(
         state = state,
         actions = RanksActions(
@@ -91,7 +114,8 @@ private fun RanksRoute(
             onWindow = viewModel::setWindow,
             onShowCalendar = viewModel::showCalendar,
             onSelectDay = viewModel::selectDay,
-            onPlayAgain = { game, day -> navigator.pushOnce(GameKey(game.value, day.toString())) },
+            onPlayAgain = playGame,
+            onPlayThisDay = playGame.takeIf { playThisDay },
             onOpenReplay = { row, solve ->
                 navigator.pushOnce(ReplayKey.daily(row.gameId.value, row.day.toString(), row.puzzleNumber, latest = solve == ReplaySolve.Latest))
             },
@@ -105,10 +129,13 @@ private fun RanksRoute(
             onShareReplays = replayOptIn::share,
             onKeepReplaysPrivate = replayOptIn::keepPrivate,
             onRefresh = viewModel::refresh,
+            tuneLabelOpensSheet = tuneLabelOpensSheet,
+            heroJumpsToRow = heroJumpsToRow,
         ),
         layout = layout,
         playerSheet = openPlayer,
         replayOptIn = askReplays,
         refreshing = refreshing,
+        tuneDefaults = tuneDefaults,
     )
 }

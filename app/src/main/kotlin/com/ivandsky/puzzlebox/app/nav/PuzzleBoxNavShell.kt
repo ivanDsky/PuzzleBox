@@ -4,6 +4,7 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -11,10 +12,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.LocalNavLift
 import com.ivandsky.puzzlebox.designsystem.NavLift
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -22,6 +27,7 @@ import com.ivandsky.puzzlebox.gameui.HINT_COOLDOWN
 import com.ivandsky.puzzlebox.gameui.LocalHintCooldown
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
+import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.DuelsSlot
@@ -50,7 +56,8 @@ import org.koin.compose.koinInject
  * lets Enter code open a duel. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
- * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
+ * Every entry sees [LocalHintCooldown] ([withHintCooldown]). The shell is where [releaseFlags] is read for the nav rethink
+ * (`NavDoors`); the routes below get plain slots.
  */
 @Composable
 internal fun PuzzleBoxNavShell(
@@ -65,8 +72,13 @@ internal fun PuzzleBoxNavShell(
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
+    releaseFlags: ReleaseFlags = koinInject(),
 ) {
     val visibility = rememberVisibilitySlot(koinInject())
+    // The one read of `NavDoors` for the nav rethink's slots (A2): every route below gets a Boolean or a slot, never the flag.
+    val flags by releaseFlags.enabled.collectAsStateWithLifecycle()
+    val navDoors = ReleaseFlag.NavDoors in flags
+    val tuneDefaults = rememberRanksTuneDefaults(koinInject(), koinInject())
     val reduceMotion = rememberReducedMotion()
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
@@ -74,8 +86,8 @@ internal fun PuzzleBoxNavShell(
     val state = navigator.state
     LaunchedEffect(state.allKeys) { store.retain(state.allKeys) }
     LifecycleEventEffect(Lifecycle.Event.ON_STOP) { store.flush() }
-    val shellChrome = remember(navigator, identityService, form) {
-        shellChromeDecorator(navigator, identityService.current, avatarInTodayHeader = form == NavForm.Phone)
+    val shellChrome = remember(navigator, identityService, form, navDoors) {
+        shellChromeDecorator(navigator, identityService.current, avatarInTodayHeader = form == NavForm.Phone, profileAsLayer = navDoors)
     }
     val entries = rememberTabEntries(
         state = navigator.state,
@@ -89,6 +101,8 @@ internal fun PuzzleBoxNavShell(
             duels = duels,
             libraryRequests = libraryRequests,
             visibility = visibility,
+            navDoors = navDoors,
+            tuneDefaults = tuneDefaults,
         ).withHintCooldown(),
         shellChrome = shellChrome,
     )
@@ -151,3 +165,9 @@ internal fun ((NavKey) -> NavEntry<NavKey>).withHintCooldown(): (NavKey) -> NavE
 @Composable
 private fun rememberVisibilitySlot(repository: VisibilityRepository): VisibilitySlot =
     remember(repository) { VisibilitySlot(repository.ownTier, repository::setOwnTier) }
+
+@Composable
+private fun rememberRanksTuneDefaults(visibility: VisibilityRepository, preferences: UserPreferencesRepository): RanksTuneDefaults =
+    remember(visibility, preferences) {
+        RanksTuneDefaults(visibility.ownTier, visibility::setOwnTier, preferences.ranksFriendsDefault, preferences::setRanksFriendsDefault)
+    }

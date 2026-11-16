@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.history.ranks
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,14 +31,18 @@ internal fun tuneLabel(scope: RankScope, window: Window): String? = listOfNotNul
     window.name.takeIf { window != Window.Day },
 ).takeIf { it.isNotEmpty() }?.joinToString(" · ")
 
-/** The hub's bar: the [title] (the board menu) at the start, the active [label] (if any) and the tune icon that calls [onTune] at the end. */
+/**
+ * The hub's bar: the [title] (the board menu) at the start, the active [label] (if any) and the tune icon that calls [onTune] at the end.
+ * With [onLabel] the label is a tap target too.
+ */
 @Composable
-internal fun RanksTopBar(label: String?, onTune: () -> Unit, modifier: Modifier = Modifier, title: @Composable () -> Unit) {
+internal fun RanksTopBar(label: String?, onTune: () -> Unit, modifier: Modifier = Modifier, onLabel: (() -> Unit)? = null, title: @Composable () -> Unit) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         title()
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
             label?.let {
-                Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.testTag("ranks.tune.label"))
+                val tag = Modifier.testTag("ranks.tune.label")
+                Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = if (onLabel == null) tag else tag.clickable(onClick = onLabel))
             }
             IconButton(onClick = onTune, modifier = Modifier.testTag("ranks.tune")) {
                 Icon(TuneIcon, contentDescription = "Tune ranks", tint = MaterialTheme.colorScheme.onSurface)

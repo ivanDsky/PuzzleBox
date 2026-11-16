@@ -17,7 +17,7 @@ import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
  * on another player's row; null and rows take no tap.
  *
  * What differs between the two layouts is said here and nowhere else. [contentPadding] insets the content inside the
- * swipe area, so a swipe still starts at the pane's edge. [hero] is drawn above the solve. With [dotsPulse] the page
+ * swipe area, so a swipe still starts at the pane's edge. [hero] is drawn above the solve, given the [jump] a tap on it makes (none yet). With [dotsPulse] the page
  * dots sit between the solve and the board, the current one scaled by it; without, there are no dots.
  */
 @Composable
@@ -29,11 +29,11 @@ internal fun RanksBoardStack(
     modifier: Modifier = Modifier,
     contentPadding: PaddingValues = PaddingValues(),
     dotsPulse: (() -> Float)? = null,
-    hero: (@Composable () -> Unit)? = null,
+    hero: (@Composable (jump: (() -> Unit)?) -> Unit)? = null,
 ) {
     BoardSwipe(scrub, state.position, state.boardCount, actions.onSwipe, modifier.fillMaxWidth()) {
         Column(Modifier.padding(contentPadding)) {
-            hero?.invoke()
+            hero?.invoke(null)
             YourSolveRow(state.yourSolve, actions.onPlayAgain, actions.onOpenReplay, actions.onCompare)
             if (dotsPulse != null) {
                 PageDots(
