@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.gameui
 import android.provider.Settings
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -11,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import java.time.Instant
 import org.junit.After
@@ -43,12 +45,14 @@ class PlaySolveFrameTest {
         Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, scale)
     }
 
-    private fun setFrame() {
+    private fun setFrame(overlayMode: Boolean = false) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) {
-                PlaySolveFrame(brand = GameBrand.Neutral, solved = solved, onHandOff = { handOffs++ }) {
-                    Box(Modifier.size(200.dp))
+            CompositionLocalProvider(LocalSolveCelebrationOverlay provides overlayMode) {
+                PuzzleBoxTheme(darkTheme = false) {
+                    PlaySolveFrame(brand = GameBrand.Neutral, solved = solved, onHandOff = { handOffs++ }) {
+                        Box(Modifier.size(200.dp))
+                    }
                 }
             }
         }
@@ -103,6 +107,32 @@ class PlaySolveFrameTest {
         solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(5_000)
         composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
+        assertEquals(1, handOffs)
+    }
+
+    @Test
+    fun `overlay mode hands off once right after the sweep, with no stamp or hold`() {
+        setFrame(overlayMode = true)
+
+        solve(Instant.ofEpochSecond(1))
+        composeRule.mainClock.advanceTimeBy(16)
+        assertEquals("the sweep still plays first", 0, handOffs)
+
+        composeRule.mainClock.advanceTimeBy(MotionTokens.SweepDuration.toLong())
+        assertEquals(1, handOffs)
+        composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
+
+        composeRule.mainClock.advanceTimeBy(5_000)
+        assertEquals("one solve, one hand-off", 1, handOffs)
+    }
+
+    @Test
+    fun `overlay mode under reduced motion hands off at once`() {
+        setAnimatorScale(0f)
+        setFrame(overlayMode = true)
+
+        solve(Instant.ofEpochSecond(1))
+        composeRule.mainClock.advanceTimeBy(16)
         assertEquals(1, handOffs)
     }
 }
