@@ -22,6 +22,7 @@ import com.ivandsky.puzzlebox.home.HomeSummaries
 import com.ivandsky.puzzlebox.home.navigation.homeEntry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GamesTab
 import com.ivandsky.puzzlebox.play.api.GameKey
@@ -43,7 +44,10 @@ import java.time.LocalDate
  * the Ranks tab; the Ranks hub's rows push the day's game key; Settings' Component catalog row pushes [CatalogKey] on the current
  * tab's stack.
  * The Create tab's New puzzle and its draft rows push that draft's
- * Studio on Create's stack, and its published rows that puzzle's page. Back pops the layer or the current tab's stack
+ * Studio on Create's stack, and its published rows that puzzle's page. Once Custom lives in Games, [custom] fills
+ * the Games Custom pill (its rows push the same two screens on the Games stack) and [makeOne] backs the game
+ * page's Make one (the default size) and the Result's Make one like this (the played size); both are null until
+ * then, and neither door shows. Back pops the layer or the current tab's stack
  * ([Navigator.pop]), including after process-death restore. A [codeDraft] (a tapped link's text that isn't a
  * code) opens the Play library's code sheet holding it.
  *
@@ -70,6 +74,8 @@ internal fun puzzleBoxEntryProvider(
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
+    custom: CustomSlot? = null,
+    makeOne: MakeOne? = null,
     libraryRequests: LibraryRequests = LibraryRequests(),
     visibility: VisibilitySlot,
     tuneDefaults: RanksTuneDefaults,
@@ -89,10 +95,12 @@ internal fun puzzleBoxEntryProvider(
         onLibraryRequestTaken = libraryRequests::take,
         onCodeDraftTaken = onCodeDraftTaken,
         duels = duels,
+        custom = custom,
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) },
         onOpenRanks = openRanks(navigator),
+        onMakeOne = makeOne?.let { make -> { game -> make(game, null) } },
     )
-    resultEntry(navigator, linkedIn = true, onOpenRanks = openRanks(navigator))
+    resultEntry(navigator, linkedIn = true, onOpenRanks = openRanks(navigator), onMakeOneLikeThis = makeOne?.let { it::invoke })
     createEntry(navigator)
     editorEntry(navigator, playLayout)
     publishedPuzzleEntry(navigator, playLayout)

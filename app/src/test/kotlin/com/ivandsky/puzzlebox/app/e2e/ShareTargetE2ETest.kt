@@ -220,19 +220,25 @@ class ShareTargetE2ETest {
     }
 
     @Test
-    fun `with Custom in Games a cold start from a share lands on Games, not a Create tab`() {
+    fun `with Custom in Games a cold start from a share ends on the imported draft's Studio and back is Games' Custom`() {
         startGraph(ReleaseFlag.CustomInGames)
         launching(send(UNIQUE)) {
-            idle()
+            awaitVerdict()
+            assertRoute(EDITOR)
+            assertEquals("one imported draft", 1, drafts.rows.size)
+            assertTrue("flagged imported", drafts.rows.values.single().imported)
+            assertNull("the text was taken", store.pending.value)
 
+            back()
             assertRoute(LIBRARY)
+            awaitTag(CUSTOM_LIST)
             rule.onNodeWithTag("nav.tab.play").assertIsSelected()
             assertEquals(0, rule.onAllNodesWithTag("nav.tab.create").fetchSemanticsNodes().size)
         }
     }
 
     @Test
-    fun `with Custom in Games a share while the app runs on Ranks lands on Games and back returns to Today`() {
+    fun `with Custom in Games a share while the app runs on Ranks opens the Studio on Games and back is Custom, then Today`() {
         startGraph(ReleaseFlag.CustomInGames)
         launching(fromRecents(send(UNIQUE))) {
             assertRoute(HOME)
@@ -240,8 +246,13 @@ class ShareTargetE2ETest {
             assertRoute(RANKS)
 
             deliver(send(UNIQUE))
-            idle()
+            awaitVerdict()
+            assertRoute(EDITOR)
+            assertEquals(1, drafts.rows.size)
+
+            back()
             assertRoute(LIBRARY)
+            awaitTag(CUSTOM_LIST)
             rule.onNodeWithTag("nav.tab.play").assertIsSelected()
 
             back()
@@ -335,6 +346,7 @@ class ShareTargetE2ETest {
         const val CREATE = "route.create"
         const val RANKS = "route.ranks"
         const val EDITOR = "route.editor"
+        const val CUSTOM_LIST = "custom.list"
         const val VERDICT = "create.editor.pill"
         const val SIZE = 5
         const val TIMEOUT_MS = 10_000L

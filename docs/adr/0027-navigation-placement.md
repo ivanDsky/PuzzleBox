@@ -89,7 +89,6 @@ flag is off.)*
      the layer; a tap on the tab under it only closes it. On the tablet the avatar stays visible over the layer, and
      a second tap closes it. A door out of the layer (a summary, a link-in, a game) closes it first.
      Settings is avatar then gear: two taps on the tablet, three on the phone from a tab other than Today.
-     With the flag off the earlier rule holds: Profile is pushed on the current tab's stack and Settings on top of it.
    - Every summary row is one designsystem `SummaryLinkRow` card (56dp minimum height, extra-large corners, a raised
      surface, a chevron): Today's rank and duels rows and the game page's "Your history" row.
      The duels row opens Games at its top, on the Duels section.
