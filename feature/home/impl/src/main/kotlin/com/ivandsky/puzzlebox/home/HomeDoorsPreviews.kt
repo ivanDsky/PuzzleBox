@@ -35,6 +35,7 @@ internal fun HomeDoorsPhonePreview() {
         ) {
             HomeStreakSection(
                 stats = state.stats,
+                loaded = state.isLocalStateLoaded,
                 freezesHeld = state.freezesHeld,
                 week = state.week,
                 total = state.today.size,

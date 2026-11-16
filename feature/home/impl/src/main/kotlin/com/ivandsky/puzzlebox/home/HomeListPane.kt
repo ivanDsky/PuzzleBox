@@ -79,6 +79,7 @@ internal fun ListPane(
                 StaggeredItem(1) {
                     HomeStreakSection(
                         stats = state.stats,
+                        loaded = state.isLocalStateLoaded,
                         freezesHeld = state.freezesHeld,
                         week = state.week,
                         total = state.today.size,
