@@ -24,6 +24,10 @@ internal class LibraryRequests(initial: LibraryRequest? = null) {
     fun openGamesSection(navigator: Navigator, tabSet: TabSet, tab: GamesTab) =
         open(navigator, tabSet, LibraryRequest.Section(tab))
 
+    /** Games' Custom section, for what arrives from outside: shared text, or a link that is no code. */
+    fun openCustom(navigator: Navigator, tabSet: TabSet) =
+        openGamesSection(navigator, tabSet, GamesTab.Custom)
+
     fun take() {
         pending = null
     }

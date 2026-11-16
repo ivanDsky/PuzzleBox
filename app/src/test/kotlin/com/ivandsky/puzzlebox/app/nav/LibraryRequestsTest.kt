@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.nav
 
 import androidx.compose.runtime.saveable.SaverScope
+import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.GamesTab
@@ -26,6 +27,21 @@ class LibraryRequestsTest {
         assertEquals(PlayKey, navigator.state.tab)
         assertEquals(listOf<Any>(PlayKey), navigator.state.currentStack)
         assertEquals(LibraryRequest.Section(GamesTab.Duels), requests.pending)
+        navigator.pop()
+        assertEquals(HomeKey, navigator.state.tab)
+    }
+
+    @Test
+    fun `openCustom with Custom in Games lands on Games root with Custom pending and back returns to Today`() {
+        val navigator = Navigator(puzzleBoxNavigationState(TabSet.CustomInGames.destinations))
+        navigator.push(EditorKey("castle"))
+        val requests = LibraryRequests()
+
+        requests.openCustom(navigator, TabSet.CustomInGames)
+
+        assertEquals(PlayKey, navigator.state.tab)
+        assertEquals(listOf<Any>(PlayKey), navigator.state.currentStack)
+        assertEquals(LibraryRequest.Section(GamesTab.Custom), requests.pending)
         navigator.pop()
         assertEquals(HomeKey, navigator.state.tab)
     }

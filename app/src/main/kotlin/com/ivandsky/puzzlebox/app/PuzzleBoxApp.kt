@@ -107,17 +107,18 @@ fun PuzzleBoxApp(
 ) {
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
     val libraryRequests = rememberLibraryRequests()
+    val tabSet = koinInject<TabSetSource>().tabSet
     if (pendingLink != null) {
         remember(pendingLink) {
             FriendLink.of(pendingLink)?.let { link ->
-                navigator.applyFriendLink(link)
+                navigator.applyFriendLink(link, tabSet, libraryRequests)
                 if (link is FriendLink.Invalid) codeDraft = link.text
             }
         }
         SideEffect(onLinkApplied)
     }
     if (pendingShare) {
-        remember { navigator.applySharedText() }
+        remember { navigator.applySharedText(tabSet, libraryRequests) }
         SideEffect(onShareApplied)
     }
     // The single px→dp read site: one PanePolicy decision drives the nav shape and every
@@ -132,7 +133,6 @@ fun PuzzleBoxApp(
     val expanded = layout == HomeLayout.TwoPane
     val identityService = koinInject<IdentityService>()
     val cloudSync = koinInject<CloudSync>()
-    val tabSet = koinInject<TabSetSource>().tabSet
     val destinations = tabSet.destinations
     val selected = navigator.state.tab
     // The screen on top: the Profile layer's when it is open, else the selected tab's.

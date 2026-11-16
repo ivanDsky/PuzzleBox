@@ -9,12 +9,18 @@ import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.GamesTab
+import com.ivandsky.puzzlebox.play.LibraryRequest
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
-/** The shared-text intake helpers: what a `SEND` share offers, and where it lands (Create's root). */
+/**
+ * The shared-text intake helpers: what a `SEND` share offers, and where it lands: Create's root with
+ * the four tabs, Games' Custom with Custom in Games.
+ */
 class SharedTextTest {
 
     @Test
@@ -81,8 +87,67 @@ class SharedTextTest {
         assertEquals(stacks(CreateKey), covered.applied())
     }
 
-    private fun NavigationState.applied(): NavigationState =
-        Navigator(this).apply { applySharedText() }.state
+    @Test
+    fun `with Custom in Games the text opens Games' root with Custom asked for, from every tab`() {
+        listOf(
+            threeTabs(HomeKey, home = listOf(HomeKey, HistoryKey())),
+            threeTabs(PlayKey),
+            threeTabs(PlayKey, play = listOf(PlayKey, EditorKey("castle"))),
+            threeTabs(HistoryRootKey, history = listOf(HistoryRootKey, HistoryKey())),
+        ).forEach { before ->
+            val requests = LibraryRequests()
+            val after = before.applied(TabSet.CustomInGames, requests)
+
+            assertEquals("from $before", PlayKey, after.tab)
+            assertEquals("from $before", listOf<NavKey>(PlayKey), after.stackOf(PlayKey))
+            assertEquals("from $before", LibraryRequest.Section(GamesTab.Custom), requests.pending)
+            assertEquals(
+                "other stacks kept, from $before",
+                before.stacks - setOf(before.stackOf(PlayKey)),
+                after.stacks - setOf(after.stackOf(PlayKey)),
+            )
+        }
+    }
+
+    @Test
+    fun `with Custom in Games the text closes the layer open over Games`() {
+        val requests = LibraryRequests()
+        val covered = threeTabs(PlayKey).copy(layer = listOf(ProfileKey))
+
+        assertEquals(threeTabs(PlayKey), covered.applied(TabSet.CustomInGames, requests))
+        assertEquals(LibraryRequest.Section(GamesTab.Custom), requests.pending)
+    }
+
+    @Test
+    fun `with Custom in Games back from where the text landed reaches Today`() {
+        val navigator = Navigator(threeTabs(PlayKey, play = listOf(PlayKey, EditorKey("castle"))))
+
+        navigator.applySharedText(TabSet.CustomInGames, LibraryRequests())
+        navigator.pop()
+
+        assertEquals(HomeKey, navigator.state.tab)
+    }
+
+    @Test
+    fun `with the four tabs the text asks for no Games section`() {
+        val requests = LibraryRequests()
+
+        stacks(PlayKey).applied(TabSet.FourTabs, requests)
+
+        assertNull(requests.pending)
+    }
+
+    private fun NavigationState.applied(
+        tabSet: TabSet = TabSet.FourTabs,
+        requests: LibraryRequests = LibraryRequests(),
+    ): NavigationState = Navigator(this).apply { applySharedText(tabSet, requests) }.state
+
+    private fun threeTabs(
+        tab: NavKey,
+        home: List<NavKey> = listOf(HomeKey),
+        play: List<NavKey> = listOf(PlayKey),
+        history: List<NavKey> = listOf(HistoryRootKey),
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, history))
 
     private fun stacks(
         tab: NavKey,
