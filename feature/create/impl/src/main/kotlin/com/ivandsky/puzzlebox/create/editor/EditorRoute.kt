@@ -167,6 +167,8 @@ internal fun EditorRoute(
                                 onAuthorName = viewModel.publish::editAuthorName,
                                 onNote = viewModel.publish::editNote,
                                 onVisibility = viewModel.publish::pickVisibility,
+                                level = LevelChoice.of(held, publish.details.level).takeIf { publish.details.levelOffered },
+                                onLevel = { viewModel.publish.pickLevel(it, held) },
                                 modifier = formModifier,
                                 enabled = !publish.busy,
                                 paired = true,

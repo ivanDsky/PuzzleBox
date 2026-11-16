@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc.Visibility
 import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
 import com.ivandsky.puzzlebox.domain.PublishOutcome
 import com.ivandsky.puzzlebox.domain.ValidatePublishDetails
+import com.ivandsky.puzzlebox.game.editor.Difficulty.Level
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -40,15 +41,13 @@ import kotlinx.coroutines.launch
  * The details (spec A15, A25): the author name and note as typed, checked by [validateDetails]
  * and handed to [storeDetails], the Studio's one writer. A draft with no author name shows the
  * account's display name, which is stored once published or edited; the name the author typed,
- * even an empty one, is never replaced.
+ * even an empty one, is never replaced. The level (96): the author may change the proposed one ([pickLevel],
+ * [PublishLevel]); a pick that differs from the proposal is handed to [storeLevel], the Studio's writer, and the doc carries it, else the proposal.
  *
- * Publishing needs an account. Signed out, [publish] stores nothing and opens the sign-in sheet
- * ([State.signIn]) holding the request; [signIn] asks Google for an ID token, trades it with
- * [identity] and, signed in, fills the author name and runs the held publish with no second tap.
- * [cancelSignIn] drops it. A failed sign-in closes the sheet, drops the request and reports
- * [State.signInFailure]. The backend may still answer SignedOut to a signed-in author (an
- * expired session): the sheet opens once more, and a second SignedOut, right after signing in,
- * is shown as the outcome.
+ * Publishing needs an account. Signed out, [publish] opens the sign-in sheet ([State.signIn]) holding the
+ * request; [signIn] trades Google's ID token with [identity] and, signed in, fills the author name and runs the
+ * held publish. [cancelSignIn] drops it; a failed sign-in reports [State.signInFailure]. An expired session
+ * (SignedOut from the backend) opens the sheet once more; a second one, right after signing in, is the outcome.
  *
  * Confined to the main thread, like the Studio's other holders.
  */
@@ -61,16 +60,15 @@ class PublishSession(
     private val flush: suspend () -> Unit,
     private val reserved: (code: String) -> Unit,
     private val storeDetails: (authorName: String, note: String) -> Unit,
+    private val storeLevel: (Level?) -> Unit,
     flags: ReleaseFlags,
     private val validateDetails: ValidatePublishDetails = ValidatePublishDetails(),
 ) {
 
     /**
-     * [busy] while a publish runs; [outcome] is the last one's, null before the first.
-     * [signedIn] names the Publish action; [signIn] is the open sign-in sheet, null when closed;
-     * [signInFailure] is the last sign-in's failure until it is shown ([dismissSignInFailure]).
-     * [details] are the inline author name and note. [reopened] when the Published outcome came
-     * from opening an already published draft rather than from a publish here.
+     * [busy] while a publish runs; [outcome] is the last one's. [signedIn] names the Publish action; [signIn] is the
+     * open sign-in sheet; [signInFailure] the last sign-in's failure until shown ([dismissSignInFailure]). [details] are
+     * the inline fields. [reopened] when Published came from opening an already published draft.
      */
     data class State(
         val busy: Boolean = false,
@@ -96,13 +94,16 @@ class PublishSession(
 
     /**
      * The author name and note as typed; [blocks] are what keeps them from publishing. [visibility] is the Public or Link
-     * only choice, null while the community flag is off and nothing is offered.
+     * only choice, null while the community flag is off and nothing is offered. [level] is the author's own pick over the
+     * proposal, null to follow it; [levelOffered] when the level can be changed here (FinishForMe on, Public chosen).
      */
     data class Details(
         val authorName: String = "",
         val note: String = "",
         val blocks: List<PublishBlock> = emptyList(),
         val visibility: PublishVisibility.Choice? = null,
+        val level: Level? = null,
+        val levelOffered: Boolean = false,
     )
 
     /** The open sign-in sheet; [signingIn] while Google or the account exchange answers. */
@@ -131,8 +132,13 @@ class PublishSession(
     /** The Public or Link only choice of this open publish; the community flag is read here, once (spec A2). */
     private val visibility = PublishVisibility(flags)
 
+    private val levels = PublishLevel(flags, visibility)
+
     private val mutableState = MutableStateFlow(
-        State(signedIn = identity.current.value != null, details = Details(visibility = visibility.choice)),
+        State(
+            signedIn = identity.current.value != null,
+            details = Details(visibility = visibility.choice, levelOffered = levels.offered),
+        ),
     )
     val state: StateFlow<State> = mutableState.asStateFlow()
 
@@ -148,12 +154,13 @@ class PublishSession(
     /**
      * The stored draft's [authorName] and [note], once it has loaded, and the code it was already
      * [published] under (null when it never was): a published draft reopens published, so it
-     * stays read-only and shows its ticket.
+     * stays read-only and shows its ticket. [level] is the author's kept level pick, null when none.
      */
-    fun open(authorName: String, note: String, published: ShareCode?) {
+    fun open(authorName: String, note: String, published: ShareCode?, level: Level? = null) {
         if (published != null) mutableState.update { it.copy(outcome = PublishOutcome.Published(published), reopened = true) }
         authorTyped = authorName.isNotEmpty()
         stored = authorName to note
+        mutableState.update { it.copy(details = it.details.copy(level = level)) }
         setDetails(authorName, note)
         prefillAuthor(identity.current.value)
     }
@@ -176,7 +183,17 @@ class PublishSession(
     /** The author picked [next]. A published or running publish, a falling-short one awaiting its retry, or no picker (flag off) refuses it. */
     fun pickVisibility(next: Visibility) {
         if (published || mutableState.value.busy || !visibility.pick(next)) return
-        mutableState.update { it.copy(details = it.details.copy(visibility = visibility.choice)) }
+        mutableState.update { it.copy(details = it.details.copy(visibility = visibility.choice, levelOffered = levels.offered)) }
+    }
+
+    /** The author picked [next] over [verdict]'s proposal: kept and stored unless it is the proposal. Refused like the visibility, or with no proposal. */
+    fun pickLevel(next: Level, verdict: Verdict) {
+        val now = mutableState.value
+        if (published || now.busy || !now.details.levelOffered || now.details.visibility?.locked != false) return
+        val pick = (LevelChoice.of(verdict, null) ?: return).pickFor(next)
+        if (pick == now.details.level) return
+        mutableState.update { it.copy(details = it.details.copy(level = pick)) }
+        storeLevel(pick)
     }
 
     /** Publishes [draft] as checked by [verdict], signing in first; a no-op while one runs, the sheet is open or it is published. */
@@ -237,7 +254,7 @@ class PublishSession(
         store()
         scope.launch {
             flush()
-            val outcome = createShared(draftId, request.draft, request.verdict, visibility.sent, ::reserve)
+            val outcome = createShared(draftId, request.draft, request.verdict, visibility.sent, levels.carried(request.verdict, mutableState.value.details.level), ::reserve)
             if (outcome == PublishOutcome.SignedOut && !afterSignIn) {
                 mutableState.update { it.copy(busy = false) }
                 askToSignIn(request)
@@ -279,12 +296,4 @@ class PublishSession(
         stored = next
         storeDetails(next.first, next.second)
     }
-}
-
-private val DailyCapBlock = PublishBlock(PublishBlock.DAILY_CAP)
-
-/** This string trimmed and cut to at most [max] code points, never splitting a character. */
-private fun String.clampedTo(max: Int): String {
-    val trimmed = trim()
-    return if (trimmed.codePointCount(0, trimmed.length) <= max) trimmed else trimmed.substring(0, trimmed.offsetByCodePoints(0, max))
 }
