@@ -63,15 +63,17 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
 
     /**
      * The editor's verdict on this board. Under [GradingMode.Scored] a Unique board that does not
-     * need guessing carries the label of the editor's [ScoredGrader] instead of the legacy one (no
-     * label when the grader ran out of [budget]); an editor without a scored grader, and every
-     * other verdict, is as [GradingMode.Legacy] gives it.
+     * need guessing carries the label of the editor's [ScoredGrader] instead of the legacy one. It
+     * keeps the legacy label when the grader has no grade for it (it ran out of [budget], or could
+     * not walk the board), so a board the legacy analysis labelled never loses its level. An
+     * editor without a scored grader, and every other verdict, is as [GradingMode.Legacy] gives it.
      */
     fun analyze(budget: Budget, grading: GradingMode = GradingMode.Legacy): Verdict {
         val verdict = editor.analyze(state.draft, budget)
         if (grading == GradingMode.Legacy || verdict !is Verdict.Unique || verdict.needsGuessing) return verdict
         val grader = editor.capability<D, ScoredGrader<D>>() ?: return verdict
-        return verdict.copy(difficulty = grader.grade(state.draft, verdict.solution, budget))
+        val scored = grader.grade(state.draft, verdict.solution, budget) ?: return verdict
+        return verdict.copy(difficulty = scored)
     }
 
     /** The game's board gates for this board under [verdict]; empty for a game without any. */

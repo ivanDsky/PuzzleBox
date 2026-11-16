@@ -21,7 +21,7 @@ internal class FakeScoredGrader(private val tries: Int = 9) : GameEditor<List<In
     /** Every board the scored grader was asked about. */
     val graded = mutableListOf<List<Int>>()
 
-    /** Set to make the scored grader run out of budget. */
+    /** Clear to make the scored grader give no grade, as one that ran out of budget or stalled does. */
     var gradeable = true
 
     /** Set to make the legacy analysis say the ladder cannot finish the board. */
