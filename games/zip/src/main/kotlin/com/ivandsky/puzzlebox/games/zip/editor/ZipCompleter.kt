@@ -42,9 +42,13 @@ object ZipCompleter : DraftCompleter<ZipDraft> {
         return if (missing > 0) FinishReadiness.NeedsMore(IncompleteReason(PATH, missing)) else FinishReadiness.Ready
     }
 
-    /** [target] is not aimed for yet: every board is "any" until Zip has its scored grader (94). */
+    /**
+     * With no [target] the first board found, as before Zip had levels. With one, [ZipTargetFinish]
+     * tries for a board at that level and gives the closest it found.
+     */
     override fun complete(draft: ZipDraft, random: Random, budget: Budget, target: Difficulty.Level?): Completion<ZipDraft> {
         if (clash(draft).isNotEmpty()) return Completion.GaveUp
+        if (target != null) return ZipTargetFinish(draft, random, budget, target).completion()
         val path = ZipPathExtension(draft, budget).extend(random) ?: return Completion.GaveUp
         val board = ZipPinnedRepair(draft, path, random, budget).unique() ?: return Completion.GaveUp
         return Completion.Done(board)

@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorNotation
 import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
+import com.ivandsky.puzzlebox.game.editor.ScoredGrader
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.zip.Cell
@@ -29,10 +30,12 @@ import com.ivandsky.puzzlebox.model.GameId
  * keeps the top-left: the path is cut at its first cell outside, waypoints and walls outside
  * are dropped, and the path's ends are numbered again. A unique draft exports through the
  * daily [ZipCodec] with the path as the solution (A10), so test solve plays a real puzzle.
- * [ZipCompleter] finishes a half-built draft (Finish for me, spec E1).
+ * [ZipCompleter] finishes a half-built draft (Finish for me, spec E1), and [ZipScoredGrader]
+ * gives a unique board its scored level (94).
  */
 object ZipEditor : GameEditor<ZipDraft>, DraftResize<ZipDraft>, DraftExport<ZipDraft>,
     DraftCompleter<ZipDraft> by ZipCompleter,
+    ScoredGrader<ZipDraft> by ZipScoredGrader,
     EditorShareCodec<ZipDraft> by ZipShareCodec,
     EditorNotation<ZipDraft> by ZipNotation {
     override val gameId: GameId get() = ZipDefinition.id
