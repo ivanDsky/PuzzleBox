@@ -31,15 +31,17 @@ internal fun journeyCompilation(): CompilationMode =
     }
 
 /**
- * The daily data a journey starts from. Every journey names one, and the README table lists them.
- * Nothing clears the app's data: each state is reached from whatever the last run left.
+ * The daily data a journey starts from. Every run through [journey] has one (default [OnToday]); the
+ * README table lists them. Nothing clears the app's data: each state is reached from whatever the
+ * last run left.
  */
 internal sealed interface DataState {
     /**
-     * Launched to Today and nothing more. The Today launch syncs today's puzzle for every game (the
-     * app's prefetch, when online), so each game's today row is stored. No game is opened here.
+     * Launched to Today and nothing more. The Today launch starts syncing today's puzzle for every
+     * game (the app's prefetch, when online); nothing waits for it, so the sync may still be running.
+     * No game is opened here.
      */
-    data object Cleared : DataState
+    data object OnToday : DataState
 
     /**
      * Launched to Today, then [game] opened with its tutorial skipped: today's puzzle for [game] is
@@ -50,7 +52,7 @@ internal sealed interface DataState {
 
 /** Puts [data] in place once the app is on Today; [setup] runs after it. */
 internal fun MacrobenchmarkScope.prepare(data: DataState) = when (data) {
-    DataState.Cleared -> Unit
+    DataState.OnToday -> Unit
     is DataState.Opened -> skipTutorial(data.game)
 }
 
@@ -61,7 +63,7 @@ internal fun MacrobenchmarkScope.prepare(data: DataState) = when (data) {
  * startup has its own benchmark), so [setup] and [block] each leave the app on the tab they started on.
  */
 internal fun MacrobenchmarkRule.journey(
-    data: DataState = DataState.Cleared,
+    data: DataState = DataState.OnToday,
     compilationMode: CompilationMode = journeyCompilation(),
     metrics: List<Metric> = listOf(FrameTimingMetric()),
     setup: MacrobenchmarkScope.() -> Unit = {},

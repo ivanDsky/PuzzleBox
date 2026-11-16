@@ -44,21 +44,25 @@ internal fun MacrobenchmarkScope.leaveGame() {
     waitFor(BenchmarkTab.Games.ready)
 }
 
+/** How long the board stays up with no tutorial before the tutorial counts as seen. */
+private const val TUTORIAL_SETTLE_MS = 1_000L
+
 /**
  * Plays the first-run tutorial out of the way: a game's first Play shows a tutorial with Skip, then
- * remembers it. Run once per game before measuring, from the Games tab; a game already past its
- * tutorial opens straight to the board.
+ * remembers it. Runs before every measured run, from any tab; a game already past its tutorial opens
+ * straight to the board. The tutorial gate opens only after its seen flag is read, so the board can
+ * show briefly before the tutorial covers it: the board alone counts only once it has stayed up for
+ * [TUTORIAL_SETTLE_MS] with no Skip.
  */
 internal fun MacrobenchmarkScope.skipTutorial(game: BenchmarkGame) {
     selectTab(BenchmarkTab.Games)
     openGamePage(game)
     tap(PlayButton)
-    poll("the ${game.card} board or its tutorial") {
-        when {
-            isShown(BoardReady) -> true
-            else -> device.findObject(TutorialSkip)?.also { it.click() }?.let { true }
-        }
+    val skipped = poll("the ${game.card} board or its tutorial") {
+        device.findObject(TutorialSkip)?.let { it.click(); true }
+            ?: if (isShown(BoardReady)) false else null
     }
+    if (!skipped) device.wait(Until.findObject(TutorialSkip), TUTORIAL_SETTLE_MS)?.click()
     waitFor(BoardReady)
     leaveGame()
     selectTab(BenchmarkTab.Today)
