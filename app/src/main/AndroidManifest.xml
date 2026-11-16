@@ -25,6 +25,7 @@
              reports no IME inset at all. -->
         <activity
             android:name=".MainActivity"
+            android:theme="@style/Theme.PuzzleBox.Starting"
             android:exported="true"
             android:launchMode="singleTask"
             android:windowSoftInputMode="adjustResize">
