@@ -1,9 +1,12 @@
 package com.ivandsky.puzzlebox.app
 
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.app.debug.flags.DebugReleaseFlags
+import com.ivandsky.puzzlebox.app.debug.tuning.DebugPlayTuningSource
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.app.di.FlaggedPlayTuningSource
+import com.ivandsky.puzzlebox.gameui.DeviceClass
 import com.ivandsky.puzzlebox.gameui.PlayTuning
 import com.ivandsky.puzzlebox.gameui.PlayTuningSource
 import org.junit.Assert.assertEquals
@@ -60,6 +63,22 @@ class DebugReleaseFlagsBindingTest {
             koin.get<DebugReleaseFlags>().setOverride(ReleaseFlag.BoardErgonomics, true)
 
             assertEquals(PlayTuning.Starting, koin.get<PlayTuningSource>().tuning.value)
+        } finally {
+            stopKoin()
+        }
+    }
+
+    @Test
+    fun `debug graph's play tuning follows the Settings values live once BoardErgonomics is on`() {
+        val koin = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(PuzzleBoxApplication.appModules)
+        }.koin
+        try {
+            koin.get<DebugReleaseFlags>().setOverride(ReleaseFlag.BoardErgonomics, true)
+            koin.get<DebugPlayTuningSource>().setCap(DeviceClass.Phone, 400.dp)
+
+            assertEquals(PlayTuning.Starting.copy(phoneCap = 400.dp), koin.get<PlayTuningSource>().tuning.value)
         } finally {
             stopKoin()
         }
