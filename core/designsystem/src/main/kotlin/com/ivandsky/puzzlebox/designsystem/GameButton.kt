@@ -47,14 +47,14 @@ private val GameButtonRim: Dp = 2.dp
 private const val DISABLED_FILL_ALPHA = 0.12f
 private const val DISABLED_CONTENT_ALPHA = 0.38f
 
-/** One game button state's face fill, its ink, and the lip under it. */
+/** One game button state's face fill, its ink, and the lip under it; a [neutral] face keeps its rim when flat. */
 @Immutable
-internal data class GameButtonColors(val fill: Color, val content: Color, val lip: Color)
+internal data class GameButtonColors(val fill: Color, val content: Color, val lip: Color, val neutral: Boolean = false)
 
 /** [accent] null is the neutral well on [neutralLip]; a slot fills with its accent on its own lip. */
 internal fun gameButtonColors(accent: GameAccent?, scheme: ColorScheme, neutralLip: Color): GameButtonColors =
     if (accent == null) {
-        GameButtonColors(scheme.surfaceContainerHigh, scheme.onSurface, neutralLip)
+        GameButtonColors(scheme.surfaceContainerHigh, scheme.onSurface, neutralLip, neutral = true)
     } else {
         GameButtonColors(accent.accent, accent.onAccent, accent.lip)
     }
@@ -152,7 +152,7 @@ internal fun GameButtonFace(
             .then(if (describe) Modifier.semantics { contentDescription = label } else Modifier)
             .then(
                 if (flat) {
-                    Modifier.flatFace(interactionSource, reduced, fill, ink, shape)
+                    Modifier.flatFace(interactionSource, reduced, fill, lip.takeIf { colors.neutral }, ink, shape)
                 } else {
                     Modifier.chunkyFace(sink, fill, lip, shape)
                 },
@@ -176,20 +176,23 @@ private fun Modifier.chunkyFace(sink: Dp, fill: Color, lip: Color, shape: Shape)
     .border(GameButtonRim, lip, shape)
 
 /**
- * The flat face (nav-rethink B1): a plain [fill] shape over the whole bounds, no lip, no rim,
- * no sink. A press is the 100 ms scale and the [ink] wash; the wash draws over the label, so it
- * stays [ink] on [fill] and the label cannot lose contrast.
+ * The flat face (nav-rethink B1): a plain [fill] shape over the whole bounds, no lip, no sink.
+ * A neutral face keeps its 2dp [rim] so it still reads as a button on the screen background; an
+ * accent face passes null and stays rimless. A press is the 100 ms scale and the [ink] wash; the
+ * wash draws over the label, so it stays [ink] on [fill] and the label cannot lose contrast.
  */
 @Composable
 private fun Modifier.flatFace(
     interactionSource: MutableInteractionSource,
     reduced: Boolean,
     fill: Color,
+    rim: Color?,
     ink: Color,
     shape: Shape,
 ): Modifier = this
     .pressScale(interactionSource, reduced)
     .background(fill, shape)
+    .then(if (rim != null) Modifier.border(GameButtonRim, rim, shape) else Modifier)
     .pressTint(interactionSource, shape, ink)
 
 // Previews — light + dark in PuzzleBoxTheme: neutral, accent, disabled and the compact

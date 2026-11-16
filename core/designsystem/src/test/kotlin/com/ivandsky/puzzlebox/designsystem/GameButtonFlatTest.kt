@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.designsystem
 
 import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -17,6 +18,7 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,11 +40,15 @@ class GameButtonFlatTest {
     val composeRule = createComposeRule()
 
     private lateinit var teal: GameAccent
+    private var neutralLip = Color.Unspecified
+    private var neutralFill = Color.Unspecified
 
     private fun show(content: @Composable () -> Unit) {
         composeRule.setContent {
             PuzzleBoxTheme(flatSurfaces = true) {
                 teal = AccentSlot.Teal.colors()
+                neutralLip = LocalNeutralLip.current
+                neutralFill = MaterialTheme.colorScheme.surfaceContainerHigh
                 Box(Modifier.background(Color.White)) { content() }
             }
         }
@@ -122,6 +128,65 @@ class GameButtonFlatTest {
         val image = composeRule.onNodeWithTag(BUTTON).captureToImage()
 
         assertEquals(teal.accent, image.toPixelMap()[image.width / 2, 1])
+    }
+
+    @Test
+    fun `flat, a neutral button keeps a 2dp rim in the neutral lip colour and no lip`() {
+        show { GameButton(onClick = {}, icon = PuzzleIcons.Undo, label = "Undo", size = GameButtonSize.Tall, modifier = Modifier.testTag(BUTTON)) }
+        composeRule.waitForIdle()
+
+        val image = composeRule.onNodeWithTag(BUTTON).captureToImage().toPixelMap()
+        val mid = image.width / 2
+
+        assertEquals(64, image.height)
+        assertEquals("top rim", neutralLip, image[mid, 1])
+        assertEquals("bottom rim", neutralLip, image[mid, image.height - 2])
+        assertEquals("the face fill sits inside the rim", neutralFill, image[mid, 3])
+        assertEquals("no lip below the face", neutralFill, image[mid, image.height - 4])
+    }
+
+    @Test
+    fun `flat, a neutral toggle button keeps the rim too`() {
+        show {
+            GameToggleButton(
+                checked = false,
+                onCheckedChange = {},
+                icon = PuzzleIcons.Notes,
+                label = "Notes",
+                accent = AccentSlot.Teal,
+                size = GameButtonSize.Tall,
+                modifier = Modifier.testTag(BUTTON),
+            )
+        }
+        composeRule.waitForIdle()
+
+        val image = composeRule.onNodeWithTag(BUTTON).captureToImage().toPixelMap()
+
+        assertEquals(neutralLip, image[image.width / 2, 1])
+    }
+
+    @Test
+    fun `flat, an accent button has no rim`() {
+        show { GameButton(onClick = {}, icon = PuzzleIcons.Hint, label = "Hint", accent = AccentSlot.Teal, size = GameButtonSize.Tall, modifier = Modifier.testTag(BUTTON)) }
+        composeRule.waitForIdle()
+
+        val image = composeRule.onNodeWithTag(BUTTON).captureToImage().toPixelMap()
+        val mid = image.width / 2
+
+        assertEquals(teal.accent, image[mid, 1])
+        assertEquals(teal.accent, image[mid, 3])
+    }
+
+    @Test
+    fun `flat, a disabled neutral button fades its rim to the muted fill`() {
+        show { GameButton(onClick = {}, icon = PuzzleIcons.Redo, label = "Redo", enabled = false, size = GameButtonSize.Tall, modifier = Modifier.testTag(BUTTON)) }
+        composeRule.waitForIdle()
+
+        val image = composeRule.onNodeWithTag(BUTTON).captureToImage().toPixelMap()
+        val mid = image.width / 2
+
+        assertNotEquals("the rim is gone", neutralLip, image[mid, 1])
+        assertEquals("the rim shows the same wash as the face", image[mid, 3], image[mid, 1])
     }
 
     private companion object {
