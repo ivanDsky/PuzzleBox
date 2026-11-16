@@ -26,7 +26,7 @@ import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
@@ -84,7 +84,7 @@ class GameRouteTest {
     private val key = GameKey(alpha.value)
     private val fakes = FakeGames(listOf(alpha))
     private val daily = FakeDailyRepository().apply {
-        setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
+        setToday(alpha, TestGames.puzzle(alpha))
         setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L)))
     }
     private val calendar = FakeGameCalendar(day)

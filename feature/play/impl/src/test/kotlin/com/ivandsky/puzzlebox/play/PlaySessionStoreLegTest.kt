@@ -78,7 +78,7 @@ class PlaySessionStoreLegTest {
         runCurrent()
 
         assertEquals(PlaySlot.Leg(alpha, legKey.code, legKey.legIndex), play.slot)
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         store.retain(listOf(legKey))
         assertSame(play, store.peek(play.slot))
 

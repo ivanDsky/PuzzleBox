@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.games.zip.ZipSession
 internal class ZipTraceEdits(
     private val session: () -> ZipSession?,
     private val log: ZipMoveLog,
+    private val onInput: () -> Unit,
     private val apply: (ZipSession) -> Unit,
 ) : PlayUndo, PlayClear {
 
@@ -31,6 +32,7 @@ internal class ZipTraceEdits(
     override fun clear() = step(ZipReplayMove.Reset)
 
     private fun step(move: ZipReplayMove) {
+        onInput() // even a step with nothing to move is the player's input
         val current = session() ?: return
         if (current.isComplete) return
         val next = log.record(current, move)

@@ -21,7 +21,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.update.AppRelease
 import com.ivandsky.puzzlebox.data.update.AppReleaseRepository
@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -102,7 +103,7 @@ class HomeRouteTest {
         completions: CompletionRepository,
         saved: SavedPlayRepository = FakeSavedPlayRepository(),
         onOpenGame: (GameId) -> Unit = {},
-        zipToday: DailyToday = DailyToday.Fresh(TestGames.puzzle(GameId("zip"))),
+        zipToday: Puzzle? = TestGames.puzzle(GameId("zip")),
     ) {
         startGraph(daily, completions, saved, zipToday)
         composeRule.setContent {
@@ -121,12 +122,13 @@ class HomeRouteTest {
         daily: FakeDailyRepository,
         completions: CompletionRepository,
         saved: SavedPlayRepository = FakeSavedPlayRepository(),
-        zipToday: DailyToday = DailyToday.Fresh(TestGames.puzzle(GameId("zip"))),
+        zipToday: Puzzle? = TestGames.puzzle(GameId("zip")),
         releases: AppReleaseRepository = FakeAppReleaseRepository(),
     ) {
         val fakeIdentity = FakeIdentityService()
         // Home prefetches today's puzzles on resume: by default a fresh fetch keeps Zip not started.
-        daily.setToday(GameId("zip"), zipToday)
+        if (zipToday != null) daily.setToday(GameId("zip"), zipToday)
+        else daily.setTodayUnavailable(GameId("zip"), FetchError.Unavailable())
         startKoin {
             modules(
                 module {
@@ -173,7 +175,7 @@ class HomeRouteTest {
             daily,
             FakeCompletionRepository(),
             onOpenGame = { played += it },
-            zipToday = DailyToday.Unavailable(FetchError.Unavailable()),
+            zipToday = null,
         )
 
         composeRule.waitUntil(5_000) { daily.todayCalls(GameId("zip")) == 1 }

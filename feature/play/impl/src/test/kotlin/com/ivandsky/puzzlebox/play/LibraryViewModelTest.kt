@@ -7,7 +7,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInSync
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
@@ -93,8 +93,8 @@ class LibraryViewModelTest {
     private val day = LocalDate.parse("2026-11-04")
     private val fakes = FakeGames(listOf(alpha, beta))
     private val daily = FakeDailyRepository().apply {
-        setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
-        setToday(beta, DailyToday.Fresh(TestGames.puzzle(beta)))
+        setToday(alpha, TestGames.puzzle(alpha))
+        setToday(beta, TestGames.puzzle(beta))
     }
     private val completions = FakeCompletionRepository()
     private val dispatcher = main.testDispatcher
@@ -304,7 +304,7 @@ class LibraryViewModelTest {
 
     @Test
     fun `a today that can't load marks the library offline`() {
-        daily.setToday(beta, DailyToday.Unavailable(FetchError.Unavailable()))
+        daily.setTodayUnavailable(beta, FetchError.Unavailable())
         val vm = observedVm()
         vm.syncToday()
         dispatcher.scheduler.runCurrent()

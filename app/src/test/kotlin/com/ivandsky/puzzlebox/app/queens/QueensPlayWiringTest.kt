@@ -18,7 +18,7 @@ import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.today
@@ -103,7 +103,7 @@ class QueensPlayWiringTest {
                     single<DailyRepository> {
                         // The hub prefetches every game's today on start; Queens gets this test's board.
                         freshDailyForAllGames().apply {
-                            setToday(QueensDefinition.id, DailyToday.Fresh(envelope()))
+                            setToday(QueensDefinition.id, envelope())
                             setHistory(
                                 QueensDefinition.id,
                                 listOf(DailyEntry(QueensDefinition.id, QueensDefinition.cadence.today(), 42, "queens/n8", 0L)),

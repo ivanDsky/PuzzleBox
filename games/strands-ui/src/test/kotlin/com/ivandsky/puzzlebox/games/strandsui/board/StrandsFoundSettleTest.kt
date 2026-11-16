@@ -75,7 +75,7 @@ class StrandsFoundSettleTest {
             density = LocalDensity.current.density
             PuzzleBoxTheme(darkTheme = false) {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    StrandsPlayScreen(controller, PlayBoardStatus.Ready(null), PlayLayout.SinglePane, null, {}, { _, _ -> })
+                    StrandsPlayScreen(controller, PlayBoardStatus.Ready, PlayLayout.SinglePane, null, {}, { _, _ -> })
                 }
             }
         }

@@ -113,7 +113,6 @@ fun QueensPlayScreen(
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val ready = status as? PlayBoardStatus.Ready
     Box(modifier.fillMaxSize()) {
         AdaptivePlayScaffold(
             layout = layout,
@@ -123,7 +122,6 @@ fun QueensPlayScreen(
                 PlayChrome(
                     clock = controller,
                     hints = controller,
-                    banner = ready?.banner,
                     feedback = controller,
                 )
             },

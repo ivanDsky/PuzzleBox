@@ -16,7 +16,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.data.update.AppRelease
 import com.ivandsky.puzzlebox.data.update.AppReleaseRepository
 import com.ivandsky.puzzlebox.domain.AppBuild
@@ -478,8 +478,8 @@ class HomeViewModelTest {
     @Test
     fun `syncing today fetches every game and marks the one that cannot load offline - A12`() = runTest {
         val deps = viewModel()
-        deps.daily.setToday(zip, DailyToday.Unavailable(FetchError.Unavailable()))
-        deps.daily.setToday(tango, DailyToday.Fresh(TestGames.puzzle(tango)))
+        deps.daily.setTodayUnavailable(zip, FetchError.Unavailable())
+        deps.daily.setToday(tango, TestGames.puzzle(tango))
 
         deps.vm.syncToday()
 

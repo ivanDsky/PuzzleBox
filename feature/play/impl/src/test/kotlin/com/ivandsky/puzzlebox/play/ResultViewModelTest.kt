@@ -13,7 +13,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPosts
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetNextRollover
@@ -103,7 +103,7 @@ class ResultViewModelTest {
     private val key = ResultKey(alpha.value, day.toString(), FakeController.TIME_MS, 0)
     private val fakes = FakeGames(listOf(alpha, beta))
     private val daily = FakeDailyRepository().apply {
-        setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
+        setToday(alpha, TestGames.puzzle(alpha))
         setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L)))
     }
     private val completions = FakeCompletionRepository()

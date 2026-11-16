@@ -121,7 +121,7 @@ class ShellSessionLifecycleTest {
         }
         return composeRule.runOnIdle {
             val play = store.open(zipKey)!!
-            assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+            assertEquals(PlayBoardStatus.Ready, play.board.value.status)
             (play.controller as ZipPlayController).hint()
             play
         }

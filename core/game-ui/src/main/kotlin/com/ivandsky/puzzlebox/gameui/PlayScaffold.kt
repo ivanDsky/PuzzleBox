@@ -32,7 +32,7 @@ val PlayBoardMaxWidth = 552.dp // gate round 3: user asked +15% over the origina
 
 /**
  * Adaptive play scaffold (F1 §3, A14, A15): the board owns the dominant pane; the side pane
- * carries the game's chrome ([side]: banner and caption). [actions] is the game's control
+ * carries the game's chrome ([side]: the caption). [actions] is the game's control
  * row ([PlayActionBar]). Single pane stacks board, side, then actions at the bottom. Two
  * pane gives the board 70% with [actions] as a toolbar directly above it, as wide as the
  * board's cap, and the side 30%, ending with the route's [sidePanel].

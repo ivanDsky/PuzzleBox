@@ -13,7 +13,7 @@ import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
@@ -63,8 +63,8 @@ abstract class GameTutorialFixture {
     private val day = TestGames.definition(alpha).cadence.today()
     protected val fakes = FakeGames(listOf(alpha, beta))
     private val daily = FakeDailyRepository().apply {
-        setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
-        setToday(beta, DailyToday.Fresh(TestGames.puzzle(beta)))
+        setToday(alpha, TestGames.puzzle(alpha))
+        setToday(beta, TestGames.puzzle(beta))
         setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L)))
     }
     private val completions = FakeCompletionRepository()

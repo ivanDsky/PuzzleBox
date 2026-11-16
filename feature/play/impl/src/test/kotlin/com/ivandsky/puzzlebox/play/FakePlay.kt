@@ -204,6 +204,9 @@ class FakeController(
         publish()
     }
 
+    /** A press that changes nothing and logs nothing: a refused tap, an undo with nothing to undo, a hint dialog. */
+    fun inputWithoutMove() = env.onInput()
+
     /** The win transition: the clock stops, then one completion record for the adopted identity. */
     fun win() {
         windowMs?.let { bankedMs += it }

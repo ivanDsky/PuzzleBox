@@ -70,7 +70,7 @@ interface GamePlayUi {
      * The game's play screen under the route's top bar: the board, its caption and the
      * [PlayChrome] action bar, whose Clear is [clearFor]. [controller] is one this UI
      * created; [status] is the
-     * shared fetch state (Loading / Unavailable / Ready + degrade banner). [sidePanel] is
+     * shared fetch state (Loading / Unavailable / Ready). [sidePanel] is
      * the route's two-pane side content (A15), handed unchanged to [AdaptivePlayScaffold]
      * so no game can drop it. [onSolved] carries the frozen result facts once per
      * completion, after the [PlaySolveFrame] moment, including a restored completed
@@ -92,7 +92,9 @@ interface GamePlayUi {
  * What a controller may call back into: [scope] is the play session's lifetime (it
  * outlives the play entry's composition across the result route), [onSessionChanged]
  * receives the game's session-codec bytes on every committed change, and [onWon] the
- * one completion record of a win transition.
+ * one completion record of a win transition. [onInput] is called on every player input a controller
+ * receives (a move, hint, undo or redo, an accepted or refused tap), whether or not it changes the session,
+ * so the play can tell an untouched board from a played one.
  * [moveLog] records the play for its replay; off for plays that are never replayed (tutorial, test solve).
  */
 class PlayEnvironment(
@@ -100,6 +102,7 @@ class PlayEnvironment(
     val onSessionChanged: (ByteArray) -> Unit,
     val onWon: (CompletionRecord) -> Unit,
     val moveLog: MoveLog = MoveLog.off(),
+    val onInput: () -> Unit = {},
 )
 
 /** A game's live session holder, as the game-agnostic play feature sees it. */

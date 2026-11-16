@@ -111,6 +111,7 @@ class StrandsPlayController(
     fun tap(at: Coord) = onTrace(TraceInput.tap(trace, at))
 
     fun onTrace(step: TraceStep) {
+        env.onInput()
         val current = session ?: return
         if (current.state.isComplete) return
         when (step) {
@@ -151,6 +152,7 @@ class StrandsPlayController(
     }
 
     fun pressHint() {
+        env.onInput()
         val current = session ?: return
         if (current.state.isComplete) return
         when (val hint = StrandsRules.hint(current.state) as StrandsHint) {

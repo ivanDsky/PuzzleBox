@@ -28,10 +28,9 @@ import kotlinx.coroutines.withContext
 /**
  * Cache-first daily for every registered game (A7/A8, ADR-0012). A source may revise the
  * daily before first play: [refreshToday] stores a first fetch and reports a differing one,
- * and only [replaceToday] writes it over the stored row ([today] still overwrites until its
- * callers move). Callers of [refreshToday] share one request per game and day, and a
- * refresh within [REFRESH_SKIP_WINDOW_MS] of a successful fetch answers from that fetch.
- * Failed fetches degrade to the cached row with the sealed error attached. A past day is
+ * and only [replaceToday] writes it over the stored row. Callers of [refreshToday] share one request per game and
+ * day, and a refresh within [REFRESH_SKIP_WINDOW_MS] of a successful fetch answers from that fetch.
+ * A failed refresh stores nothing. A past day is
  * served from cache, and fetched on a miss only when its source declares `archiveSince`:
  * through `fetchPast`
  * before the game's today, `fetchDaily` on it (A5). A past day's row the source calls a
@@ -58,28 +57,6 @@ internal class OfflineFirstDailyRepository(
     private val refreshLock = Mutex()
     private val inFlight = HashMap<Pair<GameId, LocalDate>, Deferred<DailyRefresh>>()
     private val lastFetched = ConcurrentHashMap<GameId, Fetched>()
-
-    override suspend fun today(game: GameId): DailyToday = withContext(dispatchers.io) {
-        val source = sources[game]
-        val day = calendar.today(game)
-        if (source == null || day == null) {
-            return@withContext DailyToday.Unavailable(
-                FetchError.Unavailable("no daily source registered for ${game.value}"),
-            )
-        }
-        when (val fetch = source.fetchDaily(day)) {
-            is FetchResult.Ok -> {
-                lastFetched[game] = Fetched(day, fetch.value, clock())
-                dao.upsert(fetch.value.puzzle.toEntity(fetch.value.ref, clock()))
-                DailyToday.Fresh(fetch.value.puzzle)
-            }
-            is FetchResult.Err -> {
-                val cached = cachedRow(game, day)
-                if (cached != null) DailyToday.Cached(cached, fetch.error)
-                else DailyToday.Unavailable(fetch.error)
-            }
-        }
-    }
 
     override suspend fun refreshToday(game: GameId): DailyRefresh {
         val source = sources[game]

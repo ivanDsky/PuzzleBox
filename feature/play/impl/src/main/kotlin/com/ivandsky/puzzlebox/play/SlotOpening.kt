@@ -5,8 +5,8 @@ import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchRepository
+import com.ivandsky.puzzlebox.data.repository.DailyRefresh
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.data.repository.DailyToday
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.LoadPastDay
@@ -19,8 +19,8 @@ import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
-import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -36,7 +36,8 @@ import kotlinx.coroutines.withContext
  *    decoders the store restores with: the [SessionBlob] envelope must name the slot's
  *    game and the game's session codec must read it. An undecodable row is deleted and
  *    the slot is built fresh, so a corrupt save can never block the board;
- * 2. today's daily fetch, when the slot's day is the game's current day;
+ * 2. today's daily: the stored puzzle at once, with its refresh for the play to run after the board shows;
+ *    with none stored, the one fetch decides between the board and [Origin.Unavailable];
  * 3. a past day opened by date — from the cache, or fetched once for an archive game —
  *    carrying the day's puzzleNumber from the cache so the record identity (ADR-0004)
  *    survives keys that name only game and day;
@@ -67,9 +68,14 @@ internal class SlotOpening(
         /** A session built from a puzzle: past day, duel leg, play again. Never a saved play. Starts a fresh log. */
         class Built(val session: ByteArray) : Origin
 
-        /** A fresh board: today's daily, or a friend's stored puzzle; [banner] is the degrade copy when
-         *  it is a cached fallback; [puzzleNumber] is the day's number from the cache's history (ADR-0004), if any. */
-        class Fetched(val puzzle: Puzzle, val banner: String?, val puzzleNumber: Int?) : Origin
+        /** A fresh board: today's daily, or a friend's stored puzzle; [puzzleNumber] is the day's number from the
+         *  cache's history (ADR-0004), if any. [refresh] is the daily's check against its source, run by the play
+         *  once the board shows; null when the puzzle was just fetched, or is a friend's. */
+        class Fetched(
+            val puzzle: Puzzle,
+            val puzzleNumber: Int?,
+            val refresh: (suspend () -> DailyRefresh)? = null,
+        ) : Origin
 
         /** Nothing to play; [message] is the copy; [retryable] offers Retry (false when the
          *  source has said the day doesn't exist or can't be trusted — retrying won't help). */
@@ -94,7 +100,7 @@ internal class SlotOpening(
         val row = ShareCode.parse(slot.puzzleId)?.let { received.get(it) }
             ?: return Origin.Unavailable(FRIEND_MISSING, retryable = false)
         val puzzle = Puzzle(row.gameId, row.variant, row.sharedFormatVersion, row.puzzleBytes)
-        return Origin.Fetched(puzzle, banner = null, puzzleNumber = null)
+        return Origin.Fetched(puzzle, puzzleNumber = null)
     }
 
     /** The slot's saved row as stored, read through the [lane] after every save queued before it; never deletes. */
@@ -118,11 +124,23 @@ internal class SlotOpening(
         return envelope.game == slot.gameId && plugin.session.deserialize(envelope.session) is DecodeResult.Ok
     }
 
-    private suspend fun fetch(slot: PlaySlot.Daily): Origin = when (val fetched = daily.today(slot.gameId)) {
-        is DailyToday.Fresh -> Origin.Fetched(fetched.puzzle, banner = null, puzzleNumberOf(slot))
-        is DailyToday.Cached -> Origin.Fetched(fetched.puzzle, degradeBannerMessage(fetched.error), puzzleNumberOf(slot))
-        is DailyToday.Unavailable -> Origin.Unavailable(unavailableMessage(fetched.error))
+    private suspend fun fetch(slot: PlaySlot.Daily): Origin {
+        val game = slot.gameId
+        daily.cachedPuzzle(game, slot.day)?.let {
+            return Origin.Fetched(it, puzzleNumberOf(slot), refresh = { daily.refreshToday(game) })
+        }
+        return when (val fetched = daily.refreshToday(game)) {
+            is DailyRefresh.Stored -> Origin.Fetched(fetched.puzzle, puzzleNumberOf(slot))
+            is DailyRefresh.Failed -> Origin.Unavailable(unavailableMessage(fetched.error))
+            // Nothing was stored a moment ago, so another caller stored it meanwhile.
+            else -> daily.cachedPuzzle(game, slot.day)?.let { Origin.Fetched(it, puzzleNumberOf(slot)) }
+                ?: Origin.Unavailable(unavailableMessage(FetchError.Unavailable()))
+        }
     }
+
+    /** Swaps today's stored puzzle for the fresh one a refresh reported, when it is still [expected]. */
+    suspend fun replaceToday(game: GameId, expected: Puzzle, fresh: Puzzle): Boolean =
+        daily.replaceToday(game, expected, fresh)
 
     private suspend fun build(slot: PlaySlot.Daily): Origin =
         pastDay(slot.day, pastDays(slot.gameId, slot.day, puzzleNumberOf(slot)))
@@ -160,11 +178,12 @@ internal class SlotOpening(
         val opened = pastDays(ref.gameId, ref.day, ref.number)
         if (opened != PastDayOutcome.Missing || ref.day != calendar.today(ref.gameId)) return pastDay(ref.day, opened)
         val key = PuzzleKey.Daily(ref.day, ref.number)
-        return when (val fetched = daily.today(ref.gameId)) {
-            is DailyToday.Fresh -> playAgainBuild(plugin, fetched.puzzle, key)
-            is DailyToday.Cached -> playAgainBuild(plugin, fetched.puzzle, key)
-            is DailyToday.Unavailable -> Origin.Unavailable(unavailableMessage(fetched.error))
-        }
+        val stored = daily.cachedPuzzle(ref.gameId, ref.day) ?: when (val fetched = daily.refreshToday(ref.gameId)) {
+            is DailyRefresh.Stored -> fetched.puzzle
+            is DailyRefresh.Failed -> return Origin.Unavailable(unavailableMessage(fetched.error))
+            else -> daily.cachedPuzzle(ref.gameId, ref.day)
+        } ?: return Origin.Unavailable(unavailableMessage(FetchError.Unavailable()))
+        return playAgainBuild(plugin, stored, key)
     }
 
     /** A friend's leg, verified and stored on its first open; later opens read the stored row. */
@@ -187,7 +206,7 @@ internal class SlotOpening(
         }
 
     /** The day's puzzleNumber from the cache's history rows (null when the day has none). */
-    private suspend fun puzzleNumberOf(slot: PlaySlot.Daily): Int? =
+    suspend fun puzzleNumberOf(slot: PlaySlot.Daily): Int? =
         daily.observeHistory(slot.gameId).first().firstOrNull { it.day == slot.day }?.puzzleNumber
 
     private companion object {

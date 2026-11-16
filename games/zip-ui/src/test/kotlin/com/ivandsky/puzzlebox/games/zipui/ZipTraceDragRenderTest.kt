@@ -47,7 +47,7 @@ class ZipTraceDragRenderTest {
         PuzzleBoxTheme(darkTheme = false) {
             ZipPlayScreen(
                 controller = controller,
-                status = PlayBoardStatus.Ready(null),
+                status = PlayBoardStatus.Ready,
                 layout = PlayLayout.SinglePane,
                 sidePanel = null,
                 onRetry = {},

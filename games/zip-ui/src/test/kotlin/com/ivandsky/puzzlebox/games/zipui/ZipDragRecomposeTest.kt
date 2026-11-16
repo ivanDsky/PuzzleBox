@@ -62,7 +62,7 @@ class ZipDragRecomposeTest {
                 shown?.let {
                     ZipPlayScreen(
                         controller = it,
-                        status = PlayBoardStatus.Ready(null),
+                        status = PlayBoardStatus.Ready,
                         layout = PlayLayout.SinglePane,
                         sidePanel = null,
                         onRetry = {},

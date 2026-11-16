@@ -72,7 +72,6 @@ class PlayCaptionSlotTest {
                             PlayChrome(
                                 clock = null,
                                 hints = hints,
-                                banner = null,
                                 feedback = feedback,
                             )
                         },

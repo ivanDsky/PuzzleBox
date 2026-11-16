@@ -2,7 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
@@ -62,7 +62,7 @@ class SavedPlayMoveLogTest {
     private val registry = GamePlayRegistry(listOf(capture))
     private val withReplay = GameRegistry(listOf(replayPlugin()))
     private val daily = FakeDailyRepository().apply {
-        setToday(game, DailyToday.Fresh(TestGames.puzzle(game)))
+        setToday(game, TestGames.puzzle(game))
         setHistory(game, listOf(DailyEntry(game, day, 7, "alpha/v1", 0L)))
     }
 

@@ -1,22 +1,9 @@
 package com.ivandsky.puzzlebox.data.repository
 
-import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
-
-/**
- * UI-state contract for "today's puzzle" of one game (A7/A8). The fetch outcome and the
- * cache are combined so the UI never has to: [Fresh] is a new official daily; [Cached] is
- * today's previously captured puzzle plus the sealed fetch error (banner state, board
- * still playable); [Unavailable] is nothing captured yet.
- */
-sealed interface DailyToday {
-    data class Fresh(val puzzle: Puzzle) : DailyToday
-    data class Cached(val puzzle: Puzzle, val error: FetchError) : DailyToday
-    data class Unavailable(val error: FetchError) : DailyToday
-}
 
 /**
  * One captured day of one game (History rows, streak/analytics teaser data). [archived]
@@ -34,7 +21,7 @@ data class DailyEntry(
 
 /**
  * The daily compete loop's data for every registered game, keyed by [GameId]. Every
- * fetched day is cached in Room. Today is fetched with cache degrade (A7); a past day is
+ * fetched day is cached in Room. Today is refreshed in the background over its stored puzzle (A7); a past day is
  * read by date (ADR-0012): cache first, and fetched on a miss only when the game's
  * source declares an archive (`DailySource.archiveSince`); without one, past days stay
  * cache-only (A8).
@@ -44,9 +31,6 @@ data class DailyEntry(
  * (ADR-0004), this repository never owns scores.
  */
 interface DailyRepository {
-
-    /** Fetch-today → cache; on any fetch failure degrade to today's cache + the sealed error. */
-    suspend fun today(game: GameId): DailyToday
 
     /**
      * The one shared refresh of today's puzzle for [game]: concurrent callers wait on the same request, and a

@@ -21,7 +21,7 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.play.script
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.game.FetchResult
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.games.strands.Coord
@@ -220,7 +220,7 @@ class StrandsPlayE2ETest {
         val envelope = (fetched as FetchResult.Ok).value.puzzle
         daily.script(
             StrandsDefinition.id,
-            DailyToday.Fresh(envelope),
+            envelope,
             history = listOf(DailyEntry(StrandsDefinition.id, TODAY, StrandsNumber.of(TODAY), StrandsDefinition.VARIANT.value, 0L)),
         )
     }

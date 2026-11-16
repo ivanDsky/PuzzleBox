@@ -19,7 +19,7 @@ import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
@@ -97,7 +97,7 @@ class LibraryTabletScrollTest {
     @Before
     fun setUp() {
         stopKoin() // tests share the JVM-global Koin context
-        ids.forEach { daily.setToday(it, DailyToday.Fresh(TestGames.puzzle(it))) }
+        ids.forEach { daily.setToday(it, TestGames.puzzle(it)) }
         koin = startKoin {
             modules(
                 commonModule,
