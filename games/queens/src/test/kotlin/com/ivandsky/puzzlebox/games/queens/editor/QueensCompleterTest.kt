@@ -153,13 +153,18 @@ class QueensCompleterTest {
     }
 
     @Test
-    fun `a full board with two answers gives up`() {
-        assertEquals(Completion.GaveUp, QueensCompleter.complete(QueensDraft(4, TWO_ANSWERS), Random(1), Budget.Unlimited))
+    fun `a full board with two answers is repainted in one cell`() {
+        val draft = QueensDraft(4, TWO_ANSWERS)
+
+        val done = (QueensCompleter.complete(draft, Random(1), Budget.Unlimited) as Completion.Done).draft
+
+        assertEquals(1, draft.regions.indices.count { draft.regions[it] != done.regions[it] })
+        assertEquals(false, (QueensDraftAnalyzer.analyze(done, Budget.Unlimited) as Verdict.Unique).needsGuessing)
     }
 
     @Test
-    fun `a draft no repaint can make unique gives up`() {
-        assertEquals(Completion.GaveUp, QueensCompleter.complete(STILL_TWO_ANSWERS, Random(1), Budget.Unlimited))
+    fun `a full board with no answer near it gives up`() {
+        assertEquals(Completion.GaveUp, QueensCompleter.complete(NO_ANSWER, Random(1), Budget.Unlimited))
     }
 
     @Test
@@ -213,6 +218,12 @@ class QueensCompleterTest {
 
         /** [TWO_ANSWERS] with the corner unpainted: no answer has a queen there, so both always fit. */
         val STILL_TWO_ANSWERS = QueensDraft(4, listOf(QueensDraft.UNPAINTED) + TWO_ANSWERS.drop(1))
+
+        /**
+         * Four one-cell regions in the top row, where one queen fits: no answer, and none within
+         * three recoloured cells, the most the repaint searches with no answer to start from.
+         */
+        val NO_ANSWER = QueensDraft(5, listOf(0, 1, 2, 3) + List(21) { 4 })
 
         /**
          * Sizes 4..10, two boards each, cut twice. "minimum": a generated board cut down to the

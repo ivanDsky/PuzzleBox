@@ -36,13 +36,24 @@ internal class QueensPinnedGrowth(private val draft: QueensDraft, private val bu
 
     /** A fully painted board with exactly one answer, or null when stuck or out of budget. */
     fun attempt(random: Random): QueensDraft? {
+        val (reg, seats) = fill(random) ?: return null
+        val isQueen = BooleanArray(n * n).also { for (queen in seats) it[queen] = true }
+        return if (repair(reg, seats, isQueen, random)) QueensDraft(n, reg.toList(), draft.crowns) else null
+    }
+
+    /**
+     * Steps 1 to 4, the board before any repair: every cell painted, with the queen cell of
+     * each region. The queens are one of its answers, maybe one of several. [QueensRepaint]
+     * starts from it. Null when the pieces cannot be joined or seated.
+     */
+    fun fill(random: Random): Pair<IntArray, IntArray>? {
         val reg = draft.regions.toIntArray()
         if (!join(reg, random)) return null
         val seats = placement.seats(reg, random) ?: return null
         val isQueen = BooleanArray(n * n).also { for (queen in seats) it[queen] = true }
         if (!seat(reg, seats, isQueen, random)) return null
         grow(reg, random)
-        return if (repair(reg, seats, isQueen, random)) QueensDraft(n, reg.toList(), draft.crowns) else null
+        return reg to seats
     }
 
     private fun join(reg: IntArray, random: Random): Boolean {

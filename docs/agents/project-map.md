@@ -323,9 +323,12 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `QueensEditor` domain): `QueensDraft` + `QueensDraftCommand` + `QueensDraftCodec`,
   `QueensDraftAnalyzer` (verdict), `QueensPublishGates`, `QueensContiguity`, `QueensCrowns`,
   `QueensClashLocator`, `QueensAnswerFit`; `QueensCompleter` (Finish for me: readiness, the
-  per-size started-regions minimum, budgeted `complete`) over the internal `QueensPinnedGrowth`
-  (one attempt: join, seat, grow, repair), `QueensPinnedPlacement` (a queen per region that every
-  painted region can reach) and `QueensPinnedSearch` (fast answer count for the repair loop).
+  per-size started-regions minimum, budgeted `complete`: fill, else repaint, else move a crown)
+  over the internal `QueensPinnedGrowth` (one attempt: join, seat, grow, repair),
+  `QueensPinnedPlacement` (a queen per region that every painted region can reach),
+  `QueensPinnedSearch` (fast answer count for the repair loop) and `QueensRepaint` (recolours
+  the fewest painted cells it finds when no fill has one answer: an exact search up to three
+  cells on a full board, then a descent).
   `QueensGenerator` (random unique boards) is production code with no production caller yet.
 - `games/strands/` (`:games:strands`, pure JVM) — `strandsPlugin` + `strandsModule` (binds
   `NytStrandsDailySource(NytTransport)` as `DailySource`, `archiveSince` = `StrandsNumber.EPOCH`);
