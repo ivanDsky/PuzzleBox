@@ -12,4 +12,7 @@ package com.ivandsky.puzzlebox.common.flags
 enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     /** Post a PuzzleBox solve of today's LinkedIn daily to the player's LinkedIn account (ADR-0032). Experimental. */
     LinkedInPush(label = "Post results to LinkedIn", releaseDefault = false),
+
+    /** Nav rethink M1: Today's summaries open Ranks, Ranks gets its Tune and hero doors, and Profile becomes a layer. */
+    NavDoors(label = "Tappable summaries, Ranks doors and Profile layer", releaseDefault = false),
 }

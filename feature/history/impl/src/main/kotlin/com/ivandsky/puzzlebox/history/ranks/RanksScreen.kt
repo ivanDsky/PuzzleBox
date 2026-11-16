@@ -24,12 +24,14 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.history.HistoryLayout
+import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 
 /**
  * The Ranks hub as a stack of slots, each reading only its own slice of [state]; every tap is reported through [actions].
  * On [HistoryLayout.TwoPane] the hub is [RanksTwoPane] around the same stack, with no title menu, week strip or dots.
  * A day or window pick keeps the held board on screen until the next one answers ([rememberHeldBoard]); a held board's
  * rows open against the day and window it was picked from, not the new pick.
+ * [tuneDefaults] is handed to the Tune sheet.
  * The whole hub sits in the shown board's world ([RanksWorld]), which blends to the next board's as the hub moves to it.
  */
 @Composable
@@ -41,6 +43,7 @@ internal fun RanksScreen(
     playerSheet: PlayerSheetViewModel.State? = null,
     replayOptIn: Boolean = false,
     refreshing: Boolean = false,
+    tuneDefaults: RanksTuneDefaults? = null,
 ) {
     val shown = rememberHeldBoard(state)
     val source = remember(shown.board) { state }
@@ -58,9 +61,9 @@ internal fun RanksScreen(
             }
             Box(Modifier.weight(1f)) {
                 if (twoPane) {
-                    RanksTwoPane(shown, actions, scrub, leftScroll, scroll, onRowClick, refreshing)
+                    RanksTwoPane(shown, actions, scrub, leftScroll, scroll, onRowClick, refreshing, tuneDefaults = tuneDefaults)
                 } else {
-                    RanksPhone(shown, actions, scrub, scroll, onRowClick, refreshing)
+                    RanksPhone(shown, actions, scrub, scroll, onRowClick, refreshing, tuneDefaults)
                 }
             }
         }
@@ -96,6 +99,7 @@ private fun RanksPhone(
     scroll: ScrollState,
     onRowClick: ((DailyBoardRowModel) -> Unit)?,
     refreshing: Boolean,
+    tuneDefaults: RanksTuneDefaults?,
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
@@ -105,7 +109,7 @@ private fun RanksPhone(
         Box(Modifier.fillMaxSize()) {
             FillRemainingColumn(Modifier.fillMaxSize().testTag("route.ranks").verticalScroll(scroll)) {
                 Column(Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg)) {
-                    RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
+                    RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }, onLabel = { tuning = true }.takeIf { actions.tuneLabelOpensSheet }) {
                         RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, actions.onPickBoard, onHowRanksWork = { howRanksWork = true }, scrub = scrub)
                     }
                     RanksCalendar(state.calendar, state.stats, actions.onShowCalendar, actions.onSelectDay)
@@ -123,7 +127,7 @@ private fun RanksPhone(
             SwipeNudgePill(nudgeText(state.places, state.position), nudge, Modifier.align(Alignment.BottomCenter).padding(bottom = Spacing.lg))
         }
     }
-    if (tuning) TuneSheet(state.scope, state.window, actions.onScope, actions.onWindow, onDismiss = { tuning = false })
+    if (tuning) TuneSheet(state.scope, state.window, actions.onScope, actions.onWindow, onDismiss = { tuning = false }, defaults = tuneDefaults)
     if (howRanksWork) HowRanksWorkSheet(onDismiss = { howRanksWork = false })
 }
 

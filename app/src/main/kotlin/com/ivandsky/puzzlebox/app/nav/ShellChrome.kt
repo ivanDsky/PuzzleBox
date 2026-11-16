@@ -30,7 +30,8 @@ import kotlinx.coroutines.flow.StateFlow
  * The shell's chrome (ADR-0027): the avatar ([ShellAvatar], → Profile), pushed on the
  * current tab, in one fixed place. With [avatarInTodayHeader] Today's header draws it;
  * otherwise the rail carries it at its bottom and no header does.
- * Settings is reached from Profile's own gear. Everything else passes through unchanged.
+ * Settings is reached from Profile's own gear. Everything else passes through unchanged. [profileAsLayer] is the nav
+ * rethink's Profile-as-a-layer switch, off until its slice reads it.
  *
  * On the tablet it is still installed, as a pass-through: the decorator list, and with it every
  * entry's composition, stays stable when the layout switches between phone and tablet.
@@ -43,6 +44,7 @@ internal fun shellChromeDecorator(
     navigator: Navigator,
     identity: StateFlow<Identity?>,
     avatarInTodayHeader: Boolean,
+    profileAsLayer: Boolean = false,
 ): NavEntryDecorator<NavKey> {
     val actions: @Composable RowScope.() -> Unit = {
         ShellAvatar(navigator, identity, ShellAvatarSize.Header)

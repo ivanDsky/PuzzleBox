@@ -15,12 +15,13 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.SegmentedToggle
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
+import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 
 /**
  * The tune sheet: who the board ranks ([scope], Global or Friends) and over what span ([window], a day, the
  * week or the month of the picked day). A tap reports through [onScope] / [onWindow] and the sheet stays open,
- * so the board behind it can be watched changing; [onDismiss] closes it.
+ * so the board behind it can be watched changing; [onDismiss] closes it. [defaults], when given, is the player's own defaults to show.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,6 +32,7 @@ internal fun TuneSheet(
     onWindow: (Window) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    defaults: RanksTuneDefaults? = null,
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("ranks.tune.sheet")) {
         TuneChoices(scope, window, onScope, onWindow)

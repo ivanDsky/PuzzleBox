@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.create.navigation.publishedPuzzleEntry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.history.HistoryLayout
+import com.ivandsky.puzzlebox.history.RanksTuneDefaults
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.history.navigation.ranksEntry
@@ -55,6 +56,10 @@ import java.time.LocalDate
  * [HistoryRootKey] is the Ranks hub and a pushed [HistoryKey] opens it at that game and day. Today's rank row,
  * the game page's rank summary row and Result's rank chip all push that [HistoryKey] ([openRanks]).
  * [visibility] backs Settings' Visibility section.
+ *
+ * [navDoors] is the `NavDoors` flag as the shell reads it (A2: no route or composable reads a flag): on, Today's day and
+ * streak summaries open the hub ([homeSummaries]), Play hides its streak card and the hub's Ranks doors open, with
+ * [tuneDefaults] for its Tune sheet; off, every slot stays null or at its default.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -66,22 +71,24 @@ internal fun puzzleBoxEntryProvider(
     duels: DuelsSlot? = null,
     libraryRequests: LibraryRequests = LibraryRequests(),
     visibility: VisibilitySlot,
+    navDoors: Boolean = false,
+    tuneDefaults: RanksTuneDefaults? = null,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(
         navigator,
         homeLayout,
         title = topLevelDestinations.first { it.key == HomeKey }.label,
-        summaries = HomeSummaries(
-            onOpenRank = { game -> openRanks(navigator)(game, null) },
-            duels = duels?.let {
-                HomeDuelsSummary(
-                    onOpen = { libraryRequests.openGamesSection(navigator, GamesTab.Duels) },
-                    needYou = it.needYou,
-                )
-            },
-        ),
+        summaries = homeSummaries(navigator, navDoors, duels, libraryRequests),
     )
-    ranksEntry(navigator, historyLayout, linkedIn = true)
+    ranksEntry(
+        navigator,
+        historyLayout,
+        linkedIn = true,
+        playThisDay = navDoors,
+        tuneLabelOpensSheet = navDoors,
+        heroJumpsToRow = navDoors,
+        tuneDefaults = tuneDefaults.takeIf { navDoors },
+    )
     playEntry(
         navigator,
         playLayout,
@@ -92,6 +99,7 @@ internal fun puzzleBoxEntryProvider(
         duels = duels,
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) },
         onOpenRanks = openRanks(navigator),
+        showStreakCard = !navDoors,
     )
     resultEntry(navigator, linkedIn = true, onOpenRanks = openRanks(navigator))
     createEntry(navigator)
@@ -115,3 +123,24 @@ internal fun puzzleBoxEntryProvider(
  */
 internal fun openRanks(navigator: Navigator): (GameId, LocalDate?) -> Unit =
     { game, day -> navigator.pushOnce(HistoryKey(game.value, day?.toString())) }
+
+/**
+ * What Today opens: the rank row the hub at that game, the duels row the Games section. With [navDoors] the day summary
+ * opens the hub on Overall at that ISO day and the streak summary opens it with the calendar expanded; off, both are null.
+ */
+internal fun homeSummaries(
+    navigator: Navigator,
+    navDoors: Boolean,
+    duels: DuelsSlot?,
+    libraryRequests: LibraryRequests,
+): HomeSummaries = HomeSummaries(
+    onOpenRank = { game -> openRanks(navigator)(game, null) },
+    duels = duels?.let {
+        HomeDuelsSummary(
+            onOpen = { libraryRequests.openGamesSection(navigator, GamesTab.Duels) },
+            needYou = it.needYou,
+        )
+    },
+    onOpenDay = { day: String -> navigator.pushOnce(HistoryKey(gameId = null, day = day)) }.takeIf { navDoors },
+    onOpenStreak = { navigator.pushOnce(HistoryKey(calendarExpanded = true)) }.takeIf { navDoors },
+)

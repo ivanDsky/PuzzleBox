@@ -50,6 +50,7 @@ import org.koin.compose.koinInject
  * game's side-panel times card carries Google sign-in.
  * A [ReplayKey] draws that solve's replay and a [ReplayCompareKey] two solves' replays side by side; Up pops.
  * A non-null [onReconnectLinkedIn] turns the LinkedIn lines on the game page's day card on and is what its Reconnect opens.
+ * [showStreakCard] false hides the library's streak card; the nav rethink turns it off once Today owns the streak.
  * [onOpenRanks] also opens the Ranks hub from the Result's rank chip, and the marks of the play side panel's times
  * draw as chips beside the name, as the hub's boards do.
  */
@@ -63,6 +64,7 @@ fun EntryProviderScope<NavKey>.playEntry(
     libraryRequest: () -> LibraryRequest? = { null },
     onLibraryRequestTaken: () -> Unit = {},
     onReconnectLinkedIn: (() -> Unit)? = null,
+    showStreakCard: Boolean = true,
 ) {
     entry<PlayKey> {
         LibraryRoute(
