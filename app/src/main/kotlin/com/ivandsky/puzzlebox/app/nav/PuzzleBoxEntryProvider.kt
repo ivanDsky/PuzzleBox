@@ -6,6 +6,7 @@ import androidx.navigation3.runtime.entryProvider
 import com.ivandsky.puzzlebox.app.CatalogScreen
 import com.ivandsky.puzzlebox.app.DebugSettingsSlot
 import com.ivandsky.puzzlebox.compete.navigation.competeEntry
+import com.ivandsky.puzzlebox.create.TestSolvePlaySlot
 import com.ivandsky.puzzlebox.create.navigation.createEntry
 import com.ivandsky.puzzlebox.create.navigation.editorEntry
 import com.ivandsky.puzzlebox.create.navigation.publishedPuzzleEntry
@@ -25,6 +26,7 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GamesTab
+import com.ivandsky.puzzlebox.play.SandboxPlay
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.play.navigation.resultEntry
@@ -59,7 +61,7 @@ import java.time.LocalDate
  *
  * [HistoryRootKey] is the Ranks hub and a pushed [HistoryKey] opens it at that game and day. Today's rank row,
  * the game page's rank summary row and Result's rank chip all push that [HistoryKey] ([openRanks]).
- * [visibility] backs Settings' Visibility section.
+ * [visibility] backs Settings' Visibility section. The Studio's test solve can open on the play screen ([TestSolveOnPlay]).
  *
  * Today's day and streak summaries open the hub ([homeSummaries]), and the hub takes [tuneDefaults] for its Tune sheet.
  * Profile's own pages (Settings, the LinkedIn login, the catalog) stack on Profile inside the layer above the tabs
@@ -108,7 +110,7 @@ internal fun puzzleBoxEntryProvider(
         onChallenge = { prefill -> libraryRequests.openChallenge(navigator, tabSet, prefill) },
     )
     createEntry(navigator)
-    editorEntry(navigator, playLayout)
+    editorEntry(navigator, playLayout, testSolvePlay = TestSolveOnPlay)
     publishedPuzzleEntry(navigator, playLayout)
     val back: () -> Unit = { navigator.pop() }
     profileEntry(
@@ -121,6 +123,14 @@ internal fun puzzleBoxEntryProvider(
     )
     competeEntry(navigator, playLayout)
     entry<CatalogKey> { CatalogScreen() }
+}
+
+/**
+ * The Studio's test solve on the play feature's regular play screen: create and play share no edge (ADR-0008), so
+ * the shell hands one the other's screen. Whether a test solve uses it is the Studio view model's call.
+ */
+private val TestSolveOnPlay = TestSolvePlaySlot { ui, controller, title, label, layout, onBack, onSolved, modifier ->
+    SandboxPlay(ui, controller, title, label, layout, onBack, onSolved, modifier)
 }
 
 /**

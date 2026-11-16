@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ivandsky.puzzlebox.create.TestSolvePlaySlot
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.importtext.ImportSheet
 import com.ivandsky.puzzlebox.create.importtext.ImportSheetActions
@@ -38,8 +39,9 @@ import org.koin.core.parameter.parametersOf
  * it too, then reports the draft's id to [onDelete], which leaves the Studio and deletes it with Undo.
  * The verdict card hosts the game's fix list over the draft's board blocks (`publishBlocks`);
  * a fix's Select closes the card so the selection shows. Test solve (Unique boards of games that
- * export puzzles) replaces the Studio with the [TestSolveScreen] sandbox on the game's real play
- * board until its Back; a board edit that invalidates the test shows the toast whose Undo brings
+ * export puzzles) replaces the Studio with the [TestSolveHost] until it closes: the board-only
+ * [TestSolveScreen] sandbox, or the game's regular play screen through [testSolvePlay] where the
+ * view model says so. A board edit that invalidates the test shows the toast whose Undo brings
  * the board back to the tested layout. On a phone the passed test's publish details take the
  * tools' [ToolSlot] until Edit board, which holds until the author takes the details back (a passed
  * test that clears and comes back keeps it; a test solve finished from it opens the details); the
@@ -66,6 +68,7 @@ internal fun EditorRoute(
     importedPending: Boolean,
     onImportedShown: () -> Unit,
     modifier: Modifier = Modifier,
+    testSolvePlay: TestSolvePlaySlot? = null,
 ) {
     val viewModel: EditorViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -75,6 +78,7 @@ internal fun EditorRoute(
     val saving by viewModel.saving.collectAsStateWithLifecycle()
     val sandbox by viewModel.testSolve.sandbox.collectAsStateWithLifecycle()
     val passed by viewModel.testSolve.passed.collectAsStateWithLifecycle()
+    val regularTestSolve by viewModel.finish.regularTestSolve.collectAsStateWithLifecycle()
     val testCleared by viewModel.testSolve.cleared.collectAsStateWithLifecycle()
     val publish by viewModel.publish.state.collectAsStateWithLifecycle()
     val cardOpen by viewModel.verdictCard.open.collectAsStateWithLifecycle()
@@ -106,14 +110,7 @@ internal fun EditorRoute(
             LaunchedEffect(newPass) { if (newPass != null) editBoard = false }
             val detailsReady = detailsOpen(held, passed, publish)
             sandbox?.let { open ->
-                // Its own node under the route's, so both the route's and the screen's tags survive.
-                Box(routeModifier.fillMaxSize()) {
-                    TestSolveScreen(
-                        result = open.result,
-                        onBack = viewModel.testSolve::close,
-                        board = { boardModifier -> open.ui.Board(open.controller, boardModifier) },
-                    )
-                }
+                TestSolveHost(open, title, layout, regularTestSolve, testSolvePlay, viewModel.testSolve::close, routeModifier)
             } ?: StudioScreen(
                 title = title,
                 subtitle = ready.subtitle,

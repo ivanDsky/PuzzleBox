@@ -13,7 +13,9 @@ import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraftPath
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsEditor
 import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
+import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.play.PlaySessionStore
 
 /**
  * An 8×6 Strands board, "Autumn walk in the woods": seven theme words and a spangram the
@@ -60,14 +62,19 @@ object StrandsWoods : FriendGame("Strands") {
         ),
     )
 
-    override fun ShellRobot.solve(slot: PlaySlot.Custom) {
-        awaitBoard(slot)
+    override fun ShellRobot.play(live: () -> GamePlayController?) {
+        awaitBoard(live)
         (THEME + SPANGRAM).forEach { (_, cells) -> drag(cells) }
     }
 
     /** [slot]'s controller once its session has loaded and the board shows. */
-    fun ShellRobot.awaitBoard(slot: PlaySlot.Custom): StrandsPlayController =
-        awaitController<StrandsPlayController>(slot) { it.session != null }.also { awaitTag(BOARD) }
+    fun ShellRobot.awaitBoard(slot: PlaySlot.Custom): StrandsPlayController {
+        val store = graph.koin.get<PlaySessionStore>()
+        return awaitBoard { store.peek(slot)?.controller }
+    }
+
+    private fun ShellRobot.awaitBoard(live: () -> GamePlayController?): StrandsPlayController =
+        awaitController<StrandsPlayController>(live) { it.session != null }.also { awaitTag(BOARD) }
 
     /** Taps each letter of [cells], then the last one again: the double-tap submit. */
     fun ShellRobot.tapWord(cells: List<Coord>) {

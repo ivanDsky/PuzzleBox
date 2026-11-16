@@ -10,6 +10,7 @@ import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.create.CreateRoute
 import com.ivandsky.puzzlebox.create.CreateViewModel
+import com.ivandsky.puzzlebox.create.TestSolvePlaySlot
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
@@ -39,8 +40,9 @@ fun EntryProviderScope<NavKey>.createEntry(navigator: Navigator) {
  * Studio's place; so does Import from text, which first leaves a notice on the Create root's
  * view model for the new Studio's toast, so back goes to the Create root, not the draft
  * imported from; Delete pops to the Create root, which deletes the draft and offers Undo.
+ * [testSolvePlay] is the regular play screen a test solve can open on; without one it stays board-only.
  */
-fun EntryProviderScope<NavKey>.editorEntry(navigator: Navigator, layout: PlayLayout) {
+fun EntryProviderScope<NavKey>.editorEntry(navigator: Navigator, layout: PlayLayout, testSolvePlay: TestSolvePlaySlot? = null) {
     entry<EditorKey> { key ->
         val create = rememberCreateViewModel()
         val notice by create.importedNotice.collectAsStateWithLifecycle()
@@ -59,6 +61,7 @@ fun EntryProviderScope<NavKey>.editorEntry(navigator: Navigator, layout: PlayLay
             },
             importedPending = notice == key.draftId,
             onImportedShown = { create.consumeImportedNotice(key.draftId) },
+            testSolvePlay = testSolvePlay,
         )
     }
 }

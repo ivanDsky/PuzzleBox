@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.play
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -14,35 +16,56 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextOverflow
 import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.PlayOverflowItem
 
-/** The play top bar: Up, the game's [glyph] and [title], then the play [actions]. */
+/**
+ * The play top bar: Up, the game's [glyph] and [title], then the play [actions]. With a [label] the title is a name
+ * and what the screen is: [title] keeps to one line and is cut with an ellipsis when the bar is short, and [label]
+ * follows it whole.
+ */
 @Composable
 internal fun PlayTopBar(
     title: String,
     pastDay: Boolean,
     onBack: () -> Unit,
+    label: String? = null,
     glyph: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    CompactTopBar(
-        title = title,
-        modifier = if (pastDay) Modifier.testTag("game.past_day") else Modifier,
-        navigationIcon = {
-            IconButton(onClick = onBack, modifier = Modifier.testTag("game.up")) {
-                Icon(
-                    imageVector = PuzzleIcons.Back,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            glyph()
-        },
-        actions = actions,
-    )
+    val modifier = if (pastDay) Modifier.testTag("game.past_day") else Modifier
+    val navigationIcon: @Composable () -> Unit = {
+        IconButton(onClick = onBack, modifier = Modifier.testTag("game.up")) {
+            Icon(
+                imageVector = PuzzleIcons.Back,
+                contentDescription = "Back",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        glyph()
+    }
+    if (label == null) {
+        CompactTopBar(title = title, modifier = modifier, navigationIcon = navigationIcon, actions = actions)
+    } else {
+        CompactTopBar(title = { LabelledTitle(title, label) }, modifier = modifier, navigationIcon = navigationIcon, actions = actions)
+    }
+}
+
+/** [name] on one line, cut with an ellipsis when the row is short, then [label], never cut. A blank [name] leaves [label] alone. */
+@Composable
+private fun RowScope.LabelledTitle(name: String, label: String) {
+    Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        val style = MaterialTheme.typography.titleLarge
+        val color = MaterialTheme.colorScheme.onSurface
+        if (name.isNotBlank()) {
+            Text(name, Modifier.weight(1f, fill = false), color = color, maxLines = 1, overflow = TextOverflow.Ellipsis, style = style)
+        }
+        Text(if (name.isBlank()) label else "· $label", color = color, maxLines = 1, softWrap = false, style = style)
+    }
 }
 
 /**
