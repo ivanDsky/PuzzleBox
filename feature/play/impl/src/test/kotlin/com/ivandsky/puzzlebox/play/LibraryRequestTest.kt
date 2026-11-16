@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -18,6 +19,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -116,14 +118,33 @@ class LibraryRequestTest {
     private var tick by mutableIntStateOf(0)
 
     private val slot = DuelsSlot(
-        content = { Text("duels body", Modifier.testTag(DUELS_BODY)) },
+        content = { _, _, _ -> Text("duels body", Modifier.testTag(DUELS_BODY)) },
+        needYou = { 0 },
+        onOpenDuel = {},
+    )
+
+    /** What the body of [prefillSlot] was handed, one entry per prefill it took. */
+    private val takenPrefills = mutableListOf<DuelPrefill>()
+
+    /** A Duels body that shows the prefill it is handed (or none) and takes it at once, as New duel will. */
+    private val prefillSlot = DuelsSlot(
+        content = { _, prefill, onTaken ->
+            Text(prefill?.friendName ?: "no prefill", Modifier.testTag(PREFILL))
+            Text("duels body", Modifier.testTag(DUELS_BODY))
+            LaunchedEffect(prefill) {
+                if (prefill != null) {
+                    takenPrefills += prefill
+                    onTaken()
+                }
+            }
+        },
         needYou = { 0 },
         onOpenDuel = {},
     )
 
     /** A Duels body that is a long list of its own, laid out on the state Games hands it. */
     private val scrollingSlot = DuelsSlot(
-        content = { state ->
+        content = { state, _, _ ->
             LazyColumn(Modifier.testTag(DUELS_LIST), state = state) {
                 items(DUEL_COUNT) { Text("duel $it", Modifier.testTag(duelTag(it)).height(48.dp)) }
             }
@@ -274,7 +295,86 @@ class LibraryRequestTest {
         assertEquals(1, taken)
     }
 
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    fun `a challenge request shows Duels, closes an open page and hands the prefill to the body`() {
+        setContent(PlayLayout.SinglePane, duels = prefillSlot)
+        awaitTag("library.row.alpha")
+        tap("library.row.alpha")
+        awaitTag("library.page.alpha")
+
+        request = LibraryRequest.Challenge(ADA_IN_ALPHA)
+        awaitTag(DUELS_BODY)
+        awaitGone("library.page.alpha")
+        composeRule.onNodeWithTag("library.tab.duels").assertIsSelected()
+        composeRule.waitForIdle()
+        assertEquals(listOf(ADA_IN_ALPHA), takenPrefills)
+        assertEquals(1, taken)
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    fun `a taken prefill is handed to the body once, not again on a recomposition, a tab round trip or a restore`() {
+        val restoration = StateRestorationTester(composeRule)
+        request = LibraryRequest.Challenge(ADA_IN_ALPHA)
+        restoration.setContent(content(PlayLayout.SinglePane, duels = prefillSlot))
+        awaitTag(DUELS_BODY)
+        composeRule.waitForIdle()
+        assertEquals(1, takenPrefills.size)
+
+        tick++
+        tap("library.tab.dailies")
+        awaitTag("library.list")
+        tap("library.tab.duels")
+        awaitTag(DUELS_BODY)
+        composeRule.onNodeWithTag(PREFILL).assertTextEquals("no prefill")
+
+        restoration.emulateSavedInstanceStateRestore()
+        awaitTag(DUELS_BODY)
+        composeRule.waitForIdle()
+        assertEquals(listOf(ADA_IN_ALPHA), takenPrefills)
+        assertEquals(1, taken)
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    fun `a prefill nobody has taken yet is still pending after a restore`() {
+        val restoration = StateRestorationTester(composeRule)
+        val holding = DuelsSlot(
+            content = { _, prefill, _ -> Text(prefill?.friendName ?: "no prefill", Modifier.testTag(PREFILL)) },
+            needYou = { 0 },
+            onOpenDuel = {},
+        )
+        request = LibraryRequest.Challenge(ADA_IN_ALPHA)
+        restoration.setContent(content(PlayLayout.SinglePane, duels = holding))
+        awaitTag(PREFILL)
+        composeRule.onNodeWithTag(PREFILL).assertTextEquals("Ada")
+
+        restoration.emulateSavedInstanceStateRestore()
+        awaitTag(PREFILL)
+        composeRule.onNodeWithTag(PREFILL).assertTextEquals("Ada")
+        assertEquals(1, taken)
+    }
+
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    fun `without a Duels slot a challenge request changes nothing and is taken`() {
+        setContent(PlayLayout.SinglePane)
+        awaitTag("library.row.alpha")
+        tap("library.row.alpha")
+        awaitTag("library.page.alpha")
+
+        request = LibraryRequest.Challenge(ADA_IN_ALPHA)
+        composeRule.waitForIdle()
+
+        assertEquals(1, taken)
+        composeRule.onNodeWithTag("library.page.alpha").assertExists()
+        composeRule.onNodeWithTag("library.tab.duels").assertDoesNotExist()
+    }
+
     private companion object {
+        const val PREFILL = "fake.duels.prefill"
+        val ADA_IN_ALPHA = DuelPrefill(friendUid = "uid-ada", friendName = "Ada", game = TestGames.alpha)
         const val DUELS_BODY = "fake.duels.body"
         const val DUELS_LIST = "fake.duels.list"
         const val DUEL_COUNT = 30

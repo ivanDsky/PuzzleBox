@@ -158,7 +158,7 @@ class LibraryTabsTest {
     private var needYou by mutableIntStateOf(0)
 
     private val slot = DuelsSlot(
-        content = { Text("duels body", Modifier.testTag(DUELS_BODY)) },
+        content = { _, _, _ -> Text("duels body", Modifier.testTag(DUELS_BODY)) },
         needYou = { needYou },
         onOpenDuel = {},
     )
@@ -291,7 +291,7 @@ class LibraryTabsTest {
         val legs = listOf(MatchLeg(LegRef.Daily(zip, today, 1), authorUid = null))
         runBlocking { matches.create(MatchDraft(A, 24, Player(ANN, "Ann", null), invitedUid = null, legs, includeFriends = false, rematchOf = null)) }
         setContent(
-            duels = DuelsSlot(content = {}, needYou = { 0 }, onOpenDuel = { openedDuels.add(it) }),
+            duels = DuelsSlot(content = { _, _, _ -> }, needYou = { 0 }, onOpenDuel = { openedDuels.add(it) }),
             custom = CustomSlot { _, _, _ -> Text("custom body", Modifier.testTag(CUSTOM_BODY)) },
         )
         awaitTag("library.tab.custom")

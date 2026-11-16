@@ -127,7 +127,7 @@ class LibraryReselectTest {
 
 /** A Duels body that is a long list of its own, laid out on the state the list hands it. */
 private val scrollingDuels = DuelsSlot(
-    content = { state ->
+    content = { state, _, _ ->
         LazyColumn(Modifier.testTag("duels.list"), state = state) {
             items(30) { Text("duel $it", Modifier.height(48.dp)) }
         }

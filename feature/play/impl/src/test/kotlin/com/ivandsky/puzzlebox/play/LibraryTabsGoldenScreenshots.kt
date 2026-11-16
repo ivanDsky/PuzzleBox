@@ -126,7 +126,7 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
 
         /** A stand-in for the compete module's tab: a few cards in a list of its own; the host owns the side inset. */
         val DUELS = DuelsSlot(
-            content = {
+            content = { _, _, _ ->
                 Column(
                     Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
