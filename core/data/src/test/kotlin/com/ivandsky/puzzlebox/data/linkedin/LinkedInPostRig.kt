@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInGamePage
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInProgress
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlay
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlayValue
@@ -141,7 +142,7 @@ internal class LinkedInPostRig(
         val PAGE = LinkedInGamePage(
             puzzleId = 712,
             profileId = "me",
-            hasWon = false,
+            progress = LinkedInProgress.Fresh,
             isTutorial = false,
             totalPlays = 40,
             wins = 38,

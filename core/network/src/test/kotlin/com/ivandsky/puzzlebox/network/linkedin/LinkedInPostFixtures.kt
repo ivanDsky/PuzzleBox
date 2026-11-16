@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInOpening
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlay
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlayValue
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPost
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInProgress
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonArray
@@ -47,7 +48,7 @@ internal object LinkedInPostFixtures {
     val capturePage = LinkedInGamePage(
         puzzleId = 1,
         profileId = "ACoAAFAKEPROFILE0000000000000000000000000",
-        hasWon = false,
+        progress = LinkedInProgress.Fresh,
         isTutorial = true,
         totalPlays = 0,
         wins = 0,
@@ -58,7 +59,7 @@ internal object LinkedInPostFixtures {
     val dailyPage = LinkedInGamePage(
         puzzleId = 608,
         profileId = "ACoAAFAKEPROFILE0000000000000000000000000",
-        hasWon = true,
+        progress = LinkedInProgress.Won,
         isTutorial = false,
         totalPlays = 597,
         wins = 597,
@@ -66,7 +67,10 @@ internal object LinkedInPostFixtures {
     )
 
     /** What the unsolved daily page fixture serves: #609, yesterday's totals, request time 0. */
-    val unsolvedDailyPage = dailyPage.copy(puzzleId = 609, hasWon = false)
+    val unsolvedDailyPage = dailyPage.copy(puzzleId = 609, progress = LinkedInProgress.Fresh)
+
+    /** The derived in-progress page: the unsolved one after an accepted save, plays 598. */
+    val inProgressDailyPage = unsolvedDailyPage.copy(progress = LinkedInProgress.Started, totalPlays = 598)
 
     val dailyWinRequest: JsonObject get() = Json.parseToJsonElement(text("zip-update-game-state-daily-win.request.json")).jsonObject
 

@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.network.linkedin
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSession
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInGamePage
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPost
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInProgress
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInResultPoster
@@ -22,7 +23,7 @@ import retrofit2.Response
 
 /**
  * Posts the player's result with their session: a page read is one request; a send is the opening play and then
- * the win when the game has an opening, else the win alone, and nothing at all when signed out. A send stops at an
+ * the win when the game has an opening and the page holds no saved play, else the win alone, and nothing at all when signed out. A send stops at an
  * opening that is not `Posted` and returns it. Never retries; the caller decides what a failure means. A page
  * the stream cannot be read from, and any answer but the exact success, is a rejection that pauses the link. Nothing of the session, a request
  * body or a response body leaves this class except the parsed value.
@@ -48,7 +49,8 @@ internal class SduiLinkedInResultPoster(
 
     override suspend fun send(post: LinkedInPost, page: LinkedInGamePage): LinkedInSendResult {
         val headers = session.current() ?: return LinkedInSendResult.SignedOut
-        val opening = UpdateGameStateBody.opening(post, page)
+        // A page that already holds a saved play is what the web client reloads to after a failed win: it sends the win alone.
+        val opening = if (page.progress == LinkedInProgress.Started) null else UpdateGameStateBody.opening(post, page)
         if (opening != null) {
             val opened = write(headers, post, opening)
             if (opened != LinkedInSendResult.Posted) return opened

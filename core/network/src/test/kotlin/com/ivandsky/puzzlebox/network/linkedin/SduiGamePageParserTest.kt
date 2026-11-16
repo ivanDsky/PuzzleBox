@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.network.linkedin
 
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInProgress
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -14,21 +15,50 @@ class SduiGamePageParserTest {
     }
 
     @Test
-    fun `the unsolved daily page parses as not won, though it carries completion attributes`() {
+    fun `the unsolved daily page is Fresh, though it carries completion attributes`() {
         val unsolved = LinkedInPostFixtures.text("zip-page-daily-unsolved.rsc")
 
         assertEquals(LinkedInPostFixtures.unsolvedDailyPage, SduiGamePageParser.parse(unsolved))
     }
 
     @Test
-    fun `an explicit gameBoardHasWon state wins over the completion record`() {
-        val explicit = page.replace(
+    fun `the derived in-progress page is Started with the plays after the save`() {
+        val saved = LinkedInPostFixtures.text("zip-page-daily-in-progress.derived.rsc")
+
+        assertEquals(LinkedInPostFixtures.inProgressDailyPage, SduiGamePageParser.parse(saved))
+    }
+
+    @Test
+    fun `an explicit gameBoardHasWon true is Won on any page`() {
+        val unsolved = LinkedInPostFixtures.text("zip-page-daily-unsolved.rsc")
+        val explicit = unsolved.replace(
             "{\"key\":{\"key\":{\"value\":{\"\$case\":\"id\",\"id\":\"gameBoardUndoDisabled\"}}}",
-            "{\"key\":{\"key\":{\"value\":{\"\$case\":\"id\",\"id\":\"gameBoardHasWon\"}}},\"value\":{\"\$case\":\"booleanValue\",\"booleanValue\":false}}," +
+            "{\"key\":{\"key\":{\"value\":{\"\$case\":\"id\",\"id\":\"gameBoardHasWon\"}}},\"value\":{\"\$case\":\"booleanValue\",\"booleanValue\":true}}," +
                 "{\"key\":{\"key\":{\"value\":{\"\$case\":\"id\",\"id\":\"gameBoardUndoDisabled\"}}}",
         )
 
-        assertEquals(false, SduiGamePageParser.parse(explicit)!!.hasWon)
+        assertEquals(LinkedInProgress.Won, SduiGamePageParser.parse(explicit)!!.progress)
+    }
+
+    @Test
+    fun `a saved state of an unknown kind is Won`() {
+        val unknown = page.replace("\"\$case\":\"trailGameState\",\"trailGameState\"", "\"\$case\":\"gridGameState\",\"gridGameState\"")
+
+        assertEquals(LinkedInProgress.Won, SduiGamePageParser.parse(unknown)!!.progress)
+    }
+
+    @Test
+    fun `a saved trail with every cell is Won and one short is Started`() {
+        val saved = LinkedInPostFixtures.text("zip-page-daily-in-progress.derived.rsc")
+        fun withCells(count: Int) = saved.replace("\"cells\":[7,8]", "\"cells\":[" + (0 until count).joinToString(",") + "]")
+
+        assertEquals(LinkedInProgress.Won, SduiGamePageParser.parse(withCells(36))!!.progress)
+        assertEquals(LinkedInProgress.Started, SduiGamePageParser.parse(withCells(35))!!.progress)
+    }
+
+    @Test
+    fun `a page with no saved-state field is drift`() {
+        assertNull(SduiGamePageParser.parse(page.replace("mostRecentGameState", "renamedState")))
     }
 
     @Test

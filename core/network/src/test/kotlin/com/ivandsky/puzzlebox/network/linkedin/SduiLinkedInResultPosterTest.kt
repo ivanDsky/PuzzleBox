@@ -171,6 +171,18 @@ class SduiLinkedInResultPosterTest {
     }
 
     @Test
+    fun `a page that holds a saved play gets the win alone`() = runBlocking {
+        val server = server(rsc(winResponse), rsc(winResponse))
+        val post = LinkedInPostFixtures.dailyPost()
+        val page = LinkedInPostFixtures.inProgressDailyPage
+
+        assertEquals(LinkedInSendResult.Posted, server.poster().send(post, page))
+
+        assertEquals(1, server.requestCount)
+        assertEquals(UpdateGameStateBody.build(post, page), server.takeRequest().body.readUtf8())
+    }
+
+    @Test
     fun `an opening that is not Posted is returned and no win is sent`() {
         val outcomes = mapOf(
             status(409) to LinkedInSendResult.AlreadyPlayed,
