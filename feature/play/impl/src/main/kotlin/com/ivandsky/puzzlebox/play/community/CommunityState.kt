@@ -1,0 +1,37 @@
+package com.ivandsky.puzzlebox.play.community
+
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.play.board.BoardSignIn
+
+/** What the New today list shows below its filters. */
+internal sealed interface CommunityPhase {
+    data object Loading : CommunityPhase
+
+    /** [rows] newest first; empty when nothing new was published today (or every one is hidden here). */
+    data class Loaded(val rows: List<CommunityRowModel>) : CommunityPhase
+
+    /** The server was not reached; Retry asks again. */
+    data object Offline : CommunityPhase
+
+    /** The server was reached and refused the read; Retry asks again. */
+    data object Refused : CommunityPhase
+}
+
+/** A line for the snackbar; [id] tells two equal lines apart so the second shows too. */
+internal data class CommunityNotice(val id: Int, val message: String)
+
+/**
+ * The New today section. With [enabled] false (the community flag is off) nothing shows and nothing loads. [game] and
+ * [difficulty] are the chips picked (null is All, and no difficulty chip); [signInPrompt] is the sign-in dialog a
+ * signed-out Report opens, with [signIn] saying how the last try went.
+ */
+internal data class CommunityState(
+    val enabled: Boolean,
+    val games: List<GameChoice> = emptyList(),
+    val game: GameId? = null,
+    val difficulty: DifficultyChoice? = null,
+    val phase: CommunityPhase = CommunityPhase.Loading,
+    val signInPrompt: Boolean = false,
+    val signIn: BoardSignIn = BoardSignIn.Idle,
+    val notice: CommunityNotice? = null,
+)
