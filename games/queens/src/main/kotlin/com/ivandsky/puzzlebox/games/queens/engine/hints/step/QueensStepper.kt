@@ -17,11 +17,21 @@ import kotlin.math.max
  * move, else the cheapest [QueensLadder.Stepwise] proof, else a reveal. Pure and bounded: the
  * solution comes from the caller (null when it could not be computed), so nothing here
  * searches. Without a solution only rule breaks are mistakes and nothing is revealed.
+ *
+ * With `firstMove` a press points at a real choice while one exists (B4): the cheapest proof off the
+ * ladder's [QueensLadder.obvious] rungs that tells more than those rungs give by themselves, and only
+ * then an obvious one. Every other answer is the same.
  */
 object QueensStepper {
 
-    fun next(puzzle: QueensPuzzle, board: QueensBoard, autoCross: Boolean, lastMove: Cell?, solution: Set<Cell>?): QueensStep =
-        next(puzzle, board, autoCross, lastMove, solution, QueensLadder.Stepwise)
+    fun next(
+        puzzle: QueensPuzzle,
+        board: QueensBoard,
+        autoCross: Boolean,
+        lastMove: Cell?,
+        solution: Set<Cell>?,
+        firstMove: Boolean = false,
+    ): QueensStep = next(puzzle, board, autoCross, lastMove, solution, QueensLadder.Stepwise, firstMove)
 
     internal fun next(
         puzzle: QueensPuzzle,
@@ -30,6 +40,7 @@ object QueensStepper {
         lastMove: Cell?,
         solution: Set<Cell>?,
         ladder: QueensLadder,
+        firstMove: Boolean = false,
     ): QueensStep {
         val queens = board.queens.mapTo(HashSet(board.queens.size * 2)) { it.idx }
         // A manual mark may sit hidden under a queen; only visible crosses are entries.
@@ -42,7 +53,15 @@ object QueensStepper {
         // Auto-cross off stands the queens bare, so D0 lists the crosses the player still owes.
         val seeded = if (autoCross) QueensCandidates.start(puzzle, queens) else QueensCandidates(puzzle.size, queens, emptySet())
         val candidates = seeded.exclude(crosses)
-        deduction(puzzle, candidates, ladder, lastMove)?.let { return it }
+        if (firstMove) {
+            val (obvious, others) = ladder.rungs.partition { it in ladder.obvious }
+            // What the player knows: a cell a queen attacks is ruled out, crossed or not, so no other rung proves it again.
+            val known = if (autoCross) candidates else QueensCandidates.start(puzzle, queens).exclude(crosses)
+            deduction(puzzle, known, others, lastMove, glance(puzzle, known, obvious))?.let { return it }
+            deduction(puzzle, candidates, obvious, lastMove)?.let { return it }
+        } else {
+            deduction(puzzle, candidates, ladder.rungs, lastMove)?.let { return it }
+        }
         if (onSolution == null) return QueensStep.Unavailable
         // Unreachable: entries are all correct here and the board is unsolved, so an open off-solution cell remains.
         return reveal(puzzle, candidates, lastMove, onSolution) ?: QueensStep.Unavailable
@@ -81,18 +100,48 @@ object QueensStepper {
     }
 
     /**
-     * The lowest rung with any proof among its simplest ones; within it the smallest evidence, then
+     * [known] after everything the [obvious] rungs give, one deduction after another: what the player
+     * reads off the board without a hint. Each round settles a cell, so the cell count bounds it.
+     */
+    private fun glance(puzzle: QueensPuzzle, known: QueensCandidates, obvious: List<QueensRung>): QueensCandidates {
+        var state = known
+        repeat(puzzle.cellCount) {
+            val next = obvious.firstNotNullOfOrNull { rung -> rung.step(puzzle, state)?.takeIf { settles(state, it) } } ?: return state
+            state = when (next) {
+                is QueensDeduction.Place -> state.place(puzzle, next.cell)
+                is QueensDeduction.Exclude -> state.exclude(next.cells)
+            }
+        }
+        return state
+    }
+
+    /** Whether [deduction] settles a cell still open in [state]. */
+    private fun settles(state: QueensCandidates, deduction: QueensDeduction): Boolean = when (deduction) {
+        is QueensDeduction.Place -> state.isOpen(deduction.cell)
+        is QueensDeduction.Exclude -> deduction.cells.any(state::isOpen)
+    }
+
+    /**
+     * The lowest of [rungs] with any proof among its simplest ones; within it the smallest evidence, then
      * the changed cell nearest [lastMove], then that cell, then the rung's own order (A6). One
      * [QueensRung.Press] per call, so the rungs share work on this state and nothing outlives it.
+     * With a [glance], a proof that settles no cell still open in it is passed over: it repeats the obvious.
      */
-    private fun deduction(puzzle: QueensPuzzle, candidates: QueensCandidates, ladder: QueensLadder, lastMove: Cell?): QueensStep.Deduction? {
+    private fun deduction(
+        puzzle: QueensPuzzle,
+        candidates: QueensCandidates,
+        rungs: List<QueensRung>,
+        lastMove: Cell?,
+        glance: QueensCandidates? = null,
+    ): QueensStep.Deduction? {
         val n = puzzle.size
         val nearest = compareBy<Int>({ chebyshev(n, it, lastMove) }, { it })
         val press = QueensRung.Press()
-        for (rung in ladder.rungs) {
+        for (rung in rungs) {
             var best: QueensProof? = null
             var bestKey = Long.MAX_VALUE
             for (proof in rung.simplestSteps(puzzle, candidates, press)) {
+                if (glance != null && !settles(glance, proof.deduction)) continue
                 val near = when (val d = proof.deduction) {
                     is QueensDeduction.Place -> d.cell
                     is QueensDeduction.Exclude -> d.cells.minWith(nearest)

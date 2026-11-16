@@ -40,21 +40,26 @@ import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
 
-/** Queens' one play registration (ADR-0001): its controller, its board and its play screen. */
+/**
+ * Queens' one play registration (ADR-0001): its controller, its board and its play screen. [hintMode] is asked once
+ * per board opened, so a hint option changed in between applies to the next board (A20).
+ */
 class QueensPlayUi(
     private val settings: QueensSettings,
-    private val hintMode: HintMode.Stepwise,
+    private val hintMode: () -> HintMode.Stepwise,
 ) : GamePlayUi {
+    constructor(settings: QueensSettings, hintMode: HintMode.Stepwise) : this(settings, { hintMode })
+
     override val gameId: GameId get() = QueensDefinition.id
 
     override val brand: GameBrand get() = QueensBrand
 
     override fun createController(env: PlayEnvironment): GamePlayController =
-        QueensPlayController(env, settings, hintMode = hintMode)
+        QueensPlayController(env, settings, hintMode = hintMode())
 
     /** A lesson teaches the rules with Auto-cross on, whatever the player chose for their own puzzles. */
     override fun createLessonController(env: PlayEnvironment): GamePlayController =
-        QueensPlayController(env, settings = null, hintMode = hintMode)
+        QueensPlayController(env, settings = null, hintMode = hintMode())
 
     override val tutorial: List<TutorialStep> get() = QueensTutorial.steps
 
