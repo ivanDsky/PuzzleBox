@@ -1,9 +1,10 @@
 package com.ivandsky.puzzlebox.games.queens.editor
 
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
-/** Half-painted drafts cut from generated unique boards: the completer's test and measurement input. */
+/** Half-painted drafts cut from finished boards: the completer's test and measurement input. */
 object QueensDraftCuts {
     /**
      * [started] random regions of [board], each painted as a connected blob that stays inside the
@@ -24,6 +25,38 @@ object QueensDraftCuts {
             blob(n, piece.toSet(), start, target, random).forEach { regions[it] = region }
         }
         return QueensDraft(n, regions, crowned)
+    }
+
+    /**
+     * [board] as an author leaves it part-way: cells are unpainted one at a time until [share] of
+     * the board is left, and no region's paint falls apart or vanishes. With [crowned], every
+     * queen of the board's solution is an answer crown and its cell stays painted.
+     */
+    fun painted(board: QueensPuzzle, share: Double, crowned: Boolean, random: Random): QueensDraft {
+        val n = board.size
+        val crowns = if (crowned) checkNotNull(board.solution) { "the board carries no solution" }.map { it.idx }.toSet() else emptySet()
+        val regions = board.regions.toMutableList()
+        var left = n * n
+        val keep = (share * n * n).roundToInt()
+        while (left > keep) {
+            val cell = regions.indices.shuffled(random).firstOrNull { it !in crowns && spare(n, regions, it) } ?: break
+            regions[cell] = QueensDraft.UNPAINTED
+            left--
+        }
+        return QueensDraft(n, regions, crowns)
+    }
+
+    /** [cell] is painted, and the cells of its region around it stay joined to each other without it. */
+    private fun spare(n: Int, regions: List<Int>, cell: Int): Boolean {
+        val region = regions[cell]
+        val around = neighbours(cell, n).filter { regions[it] == region }
+        if (region == QueensDraft.UNPAINTED || around.isEmpty()) return false
+        val seen = hashSetOf(cell, around[0])
+        val queue = ArrayDeque(listOf(around[0]))
+        while (queue.isNotEmpty()) {
+            neighbours(queue.removeFirst(), n).filter { regions[it] == region && seen.add(it) }.forEach(queue::addLast)
+        }
+        return seen.containsAll(around)
     }
 
     /** The 4-connected cells of [from]'s region that hold [from]: generated regions may be split. */
