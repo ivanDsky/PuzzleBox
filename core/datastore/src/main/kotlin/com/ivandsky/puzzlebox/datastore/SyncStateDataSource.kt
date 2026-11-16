@@ -79,7 +79,15 @@ class SyncStateDataSource(
         dataStore.edit { it[key] = it[key].orEmpty() + puzzleRef }
     }
 
-    /** Drops [uid]'s cursors and restore flag. The last uid, the write counter, the replay opt-in instant and the skipped posts stay. */
+    /** The share codes of puzzles the player reported, for this device alone; a file without the key reads as empty. */
+    suspend fun hiddenPuzzles(): Set<String> = dataStore.data.first()[KEY_HIDDEN_PUZZLES].orEmpty()
+
+    /** Adds [code] to the hidden puzzles; the read and the write are one edit. */
+    suspend fun addHiddenPuzzle(code: String) {
+        dataStore.edit { it[KEY_HIDDEN_PUZZLES] = it[KEY_HIDDEN_PUZZLES].orEmpty() + code }
+    }
+
+    /** Drops [uid]'s cursors and restore flag. The last uid, the write counter, the replay opt-in instant, the skipped posts and the hidden puzzles stay. */
     suspend fun forget(uid: String) {
         val cursorPrefix = cursorPrefix(uid)
         val restoreKey = restoreKey(uid)
@@ -92,6 +100,7 @@ class SyncStateDataSource(
 
     private companion object {
         val KEY_LAST_UID = stringPreferencesKey("last_uid")
+        val KEY_HIDDEN_PUZZLES = stringSetPreferencesKey("hidden_puzzles")
 
         // URLEncoder never emits '/', so a separator '/' keeps (uid, kind) pairs unambiguous.
         fun encoded(uid: String): String = URLEncoder.encode(uid, "UTF-8")
