@@ -29,6 +29,8 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
  *   notes toggle alone as an icon-only pencil key the digits' height in the fourth column.
  * Notes fills with the game's accent while on (A14).
  * Clear is one undoable command, so it needs no confirm; a solved board turns the actions off.
+ * Under a play tuning [showClear] is false: Clear moved to the shared control row, so the Row
+ * is Notes and Erase, and the Column splits its height between those two.
  * Switching notes morphs the digit keys one by one outward from the toggle (SudokuDigitKey).
  * The editor draws the digits alone ([showActions] false: its own tools row has Erase and
  * Clear, and Notes means nothing for givens), tags each key `digitTag(d)` and reads each
@@ -46,6 +48,7 @@ fun SudokuKeypad(
     actionHeight: Dp = SudokuSizing.keyMin,
     actions: SudokuKeypadActions = SudokuKeypadActions.Row,
     showActions: Boolean = true,
+    showClear: Boolean = true,
     placed: List<Int>? = null,
     digitTag: ((Int) -> String)? = null,
 ) {
@@ -54,7 +57,7 @@ fun SudokuKeypad(
     val gap = SudokuSizing.keyGap
     val editable = !model.solved
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val keyWidth = SudokuSizing.digitKeyWidth(maxWidth, rows, actions)
+        val keyWidth = SudokuSizing.digitKeyWidth(maxWidth, rows, actions, showClear)
         val digits: @Composable () -> Unit = {
             DigitBlock(model, actions, Modifier.width(keyWidth).height(keyHeight), reducedMotion, placed, digitTag, onDigit)
         }
@@ -67,17 +70,21 @@ fun SudokuKeypad(
                     val action = Modifier.weight(1f).height(actionHeight)
                     NotesToggle(model.notesMode, editable, onToggleNotes, action)
                     EraseButton(editable, onErase, action)
-                    ClearButton(onClear, action)
+                    if (showClear) ClearButton(onClear, action)
                 }
             }
         } else {
-            val columnWidth = SudokuSizing.actionColumnWidth(maxWidth, rows, actions)
+            val columnWidth = SudokuSizing.actionColumnWidth(maxWidth, rows, actions, showClear)
             Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
                 digits()
                 Column(Modifier.width(columnWidth), verticalArrangement = Arrangement.spacedBy(gap)) {
                     if (actions == SudokuKeypadActions.NotesColumn) {
                         val key = Modifier.fillMaxWidth().height(keyHeight * rows + gap * (rows - 1)).testTag("sudoku.notes_key")
                         NotesToggle(model.notesMode, editable, onToggleNotes, key, GameButtonSize.Compact)
+                    } else if (!showClear) {
+                        val tile = Modifier.fillMaxWidth().height((keyHeight * rows + gap * (rows - 1) - gap) / 2)
+                        NotesToggle(model.notesMode, editable, onToggleNotes, tile, GameButtonSize.Compact)
+                        EraseButton(editable, onErase, tile, GameButtonSize.Compact)
                     } else {
                         val tile = Modifier.fillMaxWidth().height(keyHeight)
                         NotesToggle(model.notesMode, editable, onToggleNotes, tile, GameButtonSize.Compact)
