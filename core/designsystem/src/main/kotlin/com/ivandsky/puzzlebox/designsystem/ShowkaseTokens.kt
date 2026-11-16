@@ -134,6 +134,14 @@ internal val ShowkasePathTrace: Color = DarkBoardTokens.pathTrace
 internal val ShowkaseBoardSelection: Color = DarkBoardTokens.boardSelection
 @ShowkaseColor(name = "boardRegion", group = "Board")
 internal val ShowkaseBoardRegion: Color = DarkBoardTokens.boardRegion
+@ShowkaseColor(name = "boardInk", group = "Board")
+internal val ShowkaseBoardInk: Color = DarkBoardTokens.boardInk
+@ShowkaseColor(name = "boardTarget", group = "Board")
+internal val ShowkaseBoardTarget: Color = DarkBoardTokens.boardTarget
+@ShowkaseColor(name = "readableBoardGridLine", group = "Board")
+internal val ShowkaseReadableBoardGridLine: Color = ReadableDarkBoardTokens.boardGridLine
+@ShowkaseColor(name = "readableBoardWall", group = "Board")
+internal val ShowkaseReadableBoardWall: Color = ReadableDarkBoardTokens.boardWall
 
 // Game accent slots (AccentTokens.kt, spec A1), dark values — the app-default look;
 // the AccentSlots preview shows both modes.
