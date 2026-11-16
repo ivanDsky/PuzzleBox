@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import com.ivandsky.puzzlebox.data.model.Draft
+import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc.Visibility
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -50,7 +51,8 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * says Google fills it. Fields are disabled while not [enabled] (a publish runs). [paired] sets
  * the title and the author side by side, for a short slot; an [action] heads the form, at the
  * end of its "Publish details" row, after the [history] (Undo and Redo, reachable here while the
- * tools are away); the row tells it to be `compact` when too narrow for its full form. The game's own [fields] close the form.
+ * tools are away); the row tells it to be `compact` when too narrow for its full form. With [Details.visibility][PublishSession.Details.visibility]
+ * set (community flag on), the Public or Link only picker ([onVisibility]) comes before the game's own [fields], which close the form.
  *
  * Motion: the note row **Expands** in with a **Fade** (EnterDuration on the emphasized
  * decelerate curve); under reduced motion it only fades.
@@ -69,6 +71,7 @@ fun PublishDetails(
     paired: Boolean = false,
     action: (@Composable (compact: Boolean) -> Unit)? = null,
     history: (@Composable () -> Unit)? = null,
+    onVisibility: (Visibility) -> Unit = {},
     fields: @Composable (Modifier) -> Unit = {},
 ) {
     var renaming by rememberSaveable { mutableStateOf(false) }
@@ -146,6 +149,7 @@ fun PublishDetails(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+        details.visibility?.let { PublishVisibilityPicker(it, onVisibility, enabled = enabled) }
         fields(Modifier.fillMaxWidth())
     }
     if (renaming) {

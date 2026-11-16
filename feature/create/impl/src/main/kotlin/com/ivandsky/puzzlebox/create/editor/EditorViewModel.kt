@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.ShippedReleaseFlags
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.importtext.ImportTextState
 import com.ivandsky.puzzlebox.create.published.UnpublishSession
@@ -121,6 +122,7 @@ class EditorViewModel(
         flush = { autosave.flush() },
         reserved = { code -> lastStored = lastStored?.copy(reservedCode = code)?.also(autosave::offer) },
         storeDetails = { authorName, note -> lastStored?.let { write(it.copy(authorName = authorName, note = note)) } },
+        flags = releaseFlags ?: ShippedReleaseFlags,
     )
 
     /** The published draft's share ticket; null until a publish lands. */

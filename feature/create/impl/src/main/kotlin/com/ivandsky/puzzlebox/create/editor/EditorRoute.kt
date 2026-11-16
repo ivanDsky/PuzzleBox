@@ -169,6 +169,7 @@ internal fun EditorRoute(
                                 onRollTitle = viewModel.meta::rollCodename,
                                 onAuthorName = viewModel.publish::editAuthorName,
                                 onNote = viewModel.publish::editNote,
+                                onVisibility = viewModel.publish::pickVisibility,
                                 modifier = formModifier,
                                 enabled = !publish.busy,
                                 paired = true,
