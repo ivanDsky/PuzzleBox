@@ -15,9 +15,11 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
  *   mid-puzzle) selecting Play is the whole move, since a key appears once per stack.
  * - A match pushes its duel once the same way.
  * - Invalid text returns Play to its root, the library that hosts the code sheet; a board
- *   popped on the way saves like any other.
+ *   popped on the way saves like any other. Without a Create tab in [tabSet] (Custom in Games)
+ *   it also asks Games for its Custom section ([LibraryRequests.openCustom]), where Enter code
+ *   lives.
  */
-internal fun Navigator.applyFriendLink(link: FriendLink) {
+internal fun Navigator.applyFriendLink(link: FriendLink, tabSet: TabSet, libraryRequests: LibraryRequests) {
     if (state.tab != PlayKey || state.layer.isNotEmpty()) selectTab(PlayKey)
     when (link) {
         is FriendLink.Code -> {
@@ -29,6 +31,8 @@ internal fun Navigator.applyFriendLink(link: FriendLink) {
             if (duel !in state.currentStack) pushOnce(duel)
         }
         // Reselecting the selected tab pops it to its root.
-        is FriendLink.Invalid -> if (state.currentStack.size > 1) selectTab(PlayKey)
+        is FriendLink.Invalid ->
+            if (!tabSet.hasCreateTab) libraryRequests.openCustom(this, tabSet)
+            else if (state.currentStack.size > 1) selectTab(PlayKey)
     }
 }

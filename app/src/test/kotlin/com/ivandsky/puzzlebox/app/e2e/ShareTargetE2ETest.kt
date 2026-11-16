@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.v2.AndroidComposeTestRule as v2AndroidComposeTestRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -17,6 +18,7 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.platform.app.InstrumentationRegistry
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.MainActivity
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.SharedTextStore
@@ -28,6 +30,7 @@ import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedTextStore
 import java.time.Duration
 import java.time.Instant
@@ -216,13 +219,44 @@ class ShareTargetE2ETest {
         }
     }
 
-    private fun startGraph() {
+    @Test
+    fun `with Custom in Games a cold start from a share lands on Games, not a Create tab`() {
+        startGraph(ReleaseFlag.CustomInGames)
+        launching(send(UNIQUE)) {
+            idle()
+
+            assertRoute(LIBRARY)
+            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+            assertEquals(0, rule.onAllNodesWithTag("nav.tab.create").fetchSemanticsNodes().size)
+        }
+    }
+
+    @Test
+    fun `with Custom in Games a share while the app runs on Ranks lands on Games and back returns to Today`() {
+        startGraph(ReleaseFlag.CustomInGames)
+        launching(fromRecents(send(UNIQUE))) {
+            assertRoute(HOME)
+            tap("nav.tab.ranks")
+            assertRoute(RANKS)
+
+            deliver(send(UNIQUE))
+            idle()
+            assertRoute(LIBRARY)
+            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+
+            back()
+            assertRoute(HOME)
+        }
+    }
+
+    private fun startGraph(vararg flags: ReleaseFlag) {
         graph = E2eKoinGraph(
             E2E_TODAY,
             overrides = module {
                 single<DraftRepository> { drafts }
                 single<SharedTextStore> { store }
             },
+            releaseFlags = FakeReleaseFlags(*flags),
         )
         graph.start()
     }
@@ -299,6 +333,7 @@ class ShareTargetE2ETest {
         const val HOME = "route.home"
         const val LIBRARY = "route.library"
         const val CREATE = "route.create"
+        const val RANKS = "route.ranks"
         const val EDITOR = "route.editor"
         const val VERDICT = "create.editor.pill"
         const val SIZE = 5
