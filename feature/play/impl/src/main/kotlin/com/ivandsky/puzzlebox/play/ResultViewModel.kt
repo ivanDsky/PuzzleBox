@@ -25,6 +25,7 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
+import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -49,6 +50,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
@@ -193,6 +195,10 @@ class ResultViewModel internal constructor(
 
     /** True for a past day's result: a play again counts nothing. */
     val playAgain: Boolean = !today
+
+    /** The size this solve was played at, read once from the stored puzzle; null until read, or when none is stored (the game's default size). */
+    val playedVariant: StateFlow<VariantId?> = flow { emit(store.playedVariant(slot)) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /**
      * The hero page's streak, week and time spread; null until read, and for a practice puzzle.

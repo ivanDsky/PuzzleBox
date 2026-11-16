@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
  * The page carries the game's rank as one "You #12 of 340" row calling [onOpenRanks] with the game and
  * the day the page shows (the picked day, else the card's own).
  * A non-null [linkedIn] puts the LinkedIn sync chip on the day card, which collects its state while it is shown.
+ * A non-null [onMakeOne] puts a "Make one" button on the page, handing back this page's game.
  */
 @Composable
 internal fun LibraryGamePage(
@@ -38,6 +39,7 @@ internal fun LibraryGamePage(
     hasLesson: Boolean,
     onOpenRanks: (GameId, LocalDate?) -> Unit,
     linkedIn: LinkedInCardState? = null,
+    onMakeOne: ((GameId) -> Unit)? = null,
 ) {
     val game = row.card.game
     val shown = page?.takeIf { it.game == game }
@@ -102,5 +104,6 @@ internal fun LibraryGamePage(
                 cardDay = row.cardDay,
             )
         },
+        onMakeOne = onMakeOne?.let { make -> { make(game) } },
     )
 }

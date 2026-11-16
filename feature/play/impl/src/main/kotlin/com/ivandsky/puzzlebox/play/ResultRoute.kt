@@ -17,6 +17,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.ResultBelowCardRows
 import com.ivandsky.puzzlebox.gameui.ResultHeroActions
 import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
@@ -51,6 +52,9 @@ import org.koin.core.parameter.parametersOf
  * [onOpenReplay] the replay's key; one without says why there is none. With [linkedIn] on, that rank also gives the place among the player's LinkedIn connections.
  * The hero's chip is a rank chip ("#12 of 340") that calls [onOpenRanks] with the game and
  * the result's day, shown once the rank is known.
+ *
+ * A non-null [onMakeOneLikeThis] adds a "Make one like this" button to the actions: it hands back the game and the size
+ * the player just played (null when that is not known, meaning the game's default size). With none, the button is absent.
  */
 @Composable
 fun ResultRoute(
@@ -61,6 +65,7 @@ fun ResultRoute(
     onOpenReplay: (ReplayKey) -> Unit,
     onOpenRanks: (GameId, LocalDate?) -> Unit,
     linkedIn: Boolean = false,
+    onMakeOneLikeThis: ((GameId, VariantId?) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val viewModel: ResultViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key, linkedIn) })
@@ -75,6 +80,8 @@ fun ResultRoute(
         }
     }
     val onShare = { context.shareText(resultShareText(state.game, state.puzzleNumber, key.timeMs, key.hintsUsed)) }
+    val variant by viewModel.playedVariant.collectAsStateWithLifecycle()
+    val makeOne = onMakeOneLikeThis?.let { make -> { make(GameId(key.gameId), variant) } }
     Column(modifier = modifier.testTag("route.result")) {
         CompactTopBar(
             // The result card already names the puzzle; the bar only carries Up.
@@ -89,7 +96,7 @@ fun ResultRoute(
                 }
             },
         )
-        HeroPage(key, viewModel, state, primary, onPrimary, onShare, onPlayAgain, context, onOpenReplay, onOpenRanks)
+        HeroPage(key, viewModel, state, primary, onPrimary, onShare, onPlayAgain, context, onOpenReplay, onOpenRanks, makeOne)
     }
 }
 
@@ -110,6 +117,7 @@ private fun ColumnScope.HeroPage(
     context: Context,
     onOpenReplay: (ReplayKey) -> Unit,
     onOpenRanks: (GameId, LocalDate?) -> Unit,
+    onMakeOneLikeThis: (() -> Unit)?,
 ) {
     val insights by viewModel.heroInsights.collectAsStateWithLifecycle()
     val rank by viewModel.heroRank.collectAsStateWithLifecycle()
@@ -149,6 +157,7 @@ private fun ColumnScope.HeroPage(
                 onShare = onShare,
                 onPlayAgain = onPlayAgain,
                 rolloverAt = state.rolloverAt,
+                onMakeOneLikeThis = onMakeOneLikeThis,
             )
         },
         replay = if (linkedInPost == null && viewModel.playUi == null) {

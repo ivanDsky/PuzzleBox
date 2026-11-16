@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -26,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.Stamp
 import com.ivandsky.puzzlebox.designsystem.TonalIconButton
@@ -134,6 +136,7 @@ internal fun PlayAgainLine(previousBest: BestScore?, rankOrder: RankOrder) {
  * daily is solved the [ResultCountdown] to [rolloverAt] stands in its place. Then come Share
  * (tag `result.share`) and, unless [onPlayAgain] is null, Play again (`result.playAgain`), both
  * tonal icon buttons that name themselves "Share" and "Play again" for TalkBack and a long-press tooltip.
+ * A non-null [onMakeOneLikeThis] adds a plain "Make one like this" button (`result.makeOne`) under the row.
  */
 @Composable
 internal fun ResultActions(
@@ -143,9 +146,26 @@ internal fun ResultActions(
     onPlayAgain: (() -> Unit)?,
     rolloverAt: Instant?,
     modifier: Modifier = Modifier,
+    onMakeOneLikeThis: (() -> Unit)? = null,
+) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        ActionRow(primary, onPrimary, onShare, onPlayAgain, rolloverAt)
+        onMakeOneLikeThis?.let { make ->
+            SecondaryButton(text = "Make one like this", onClick = make, modifier = Modifier.fillMaxWidth().testTag("result.makeOne"))
+        }
+    }
+}
+
+@Composable
+private fun ActionRow(
+    primary: ResultPrimaryAction,
+    onPrimary: () -> Unit,
+    onShare: () -> Unit,
+    onPlayAgain: (() -> Unit)?,
+    rolloverAt: Instant?,
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {

@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play.navigation
 
 import androidx.navigation3.runtime.EntryProviderScope
 import androidx.navigation3.runtime.NavKey
+import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.model.GameId
@@ -53,7 +54,7 @@ import org.koin.compose.koinInject
  * A [ReplayKey] draws that solve's replay and a [ReplayCompareKey] two solves' replays side by side; Up pops.
  * A non-null [onReconnectLinkedIn] turns the LinkedIn lines on the game page's day card on and is what its Reconnect opens.
  * [onOpenRanks] also opens the Ranks hub from the Result's rank chip, and the marks of the play side panel's times
- * draw as chips beside the name, as the hub's boards do.
+ * draw as chips beside the name, as the hub's boards do. A non-null [onMakeOne] adds "Make one" to each game page.
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -66,6 +67,7 @@ fun EntryProviderScope<NavKey>.playEntry(
     libraryRequest: () -> LibraryRequest? = { null },
     onLibraryRequestTaken: () -> Unit = {},
     onReconnectLinkedIn: (() -> Unit)? = null,
+    onMakeOne: ((GameId) -> Unit)? = null,
 ) {
     entry<PlayKey> {
         LibraryRoute(
@@ -81,6 +83,7 @@ fun EntryProviderScope<NavKey>.playEntry(
             linkedIn = onReconnectLinkedIn != null,
             onReconnectLinkedIn = onReconnectLinkedIn,
             onOpenRanks = onOpenRanks,
+            onMakeOne = onMakeOne,
         )
     }
     entry<FriendPuzzleKey> { key ->
@@ -139,12 +142,14 @@ fun EntryProviderScope<NavKey>.playEntry(
  * ([PlaySessionStore.playAgain]) and replaces the result with its game; Next replaces it
  * with another game's today (17); Up and Done pop.
  * [linkedIn] adds the day's LinkedIn connections to the rank row. The player's rank is a chip that calls [onOpenRanks]
- * with the game and the result's day.
+ * with the game and the result's day. A non-null [onMakeOneLikeThis] adds "Make one like this" to the result, handing back
+ * the game and the size just played (null: the game's default).
  */
 fun EntryProviderScope<NavKey>.resultEntry(
     navigator: Navigator,
     onOpenRanks: (GameId, LocalDate?) -> Unit,
     linkedIn: Boolean = false,
+    onMakeOneLikeThis: ((GameId, VariantId?) -> Unit)? = null,
 ) {
     entry<ResultKey> { key ->
         val store = koinInject<PlaySessionStore>()
@@ -159,6 +164,7 @@ fun EntryProviderScope<NavKey>.resultEntry(
             onOpenReplay = { navigator.pushOnce(it) },
             linkedIn = linkedIn,
             onOpenRanks = onOpenRanks,
+            onMakeOneLikeThis = onMakeOneLikeThis,
         )
     }
 }

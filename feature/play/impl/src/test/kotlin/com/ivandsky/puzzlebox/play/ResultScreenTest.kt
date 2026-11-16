@@ -40,8 +40,10 @@ import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.today
+import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
@@ -312,6 +314,73 @@ class ResultScreenTest {
             composeRule.runOnIdle { assertEquals(TestGames.beta, next) }
         } finally {
             koin.close()
+        }
+    }
+
+    /** Renders [ResultRoute] for [resultDay]'s solve with [onMakeOneLikeThis], over a graph whose cache holds [cached]. */
+    private fun withMakeOne(
+        onMakeOneLikeThis: ((GameId, VariantId?) -> Unit)?,
+        cached: Puzzle? = null,
+        resultDay: LocalDate = day,
+        check: () -> Unit,
+    ) {
+        val daily = FakeDailyRepository().apply { cached?.let { setCached(game, resultDay, it) } }
+        val koin = startGraph(FakeGames(listOf(game)), daily)
+        try {
+            composeRule.setContent {
+                PuzzleBoxTheme(darkTheme = false) {
+                    ResultRoute(
+                        key = ResultKey(game.value, resultDay.toString(), 12_340, 0),
+                        onPlayAgain = {},
+                        onNext = {},
+                        onDone = {},
+                        onOpenReplay = {},
+                        onOpenRanks = { _, _ -> },
+                        onMakeOneLikeThis = onMakeOneLikeThis,
+                    )
+                }
+            }
+            composeRule.waitForIdle()
+            check()
+        } finally {
+            koin.close()
+        }
+    }
+
+    @Test
+    fun `Make one like this hands back the game and the size the player just played`() {
+        val played = Puzzle(game, VariantId("alpha/n9"), 1, TestGames.puzzle(game).payload)
+        val made = mutableListOf<Pair<GameId, VariantId?>>()
+        withMakeOne({ g, v -> made += g to v }, cached = played) {
+            composeRule.onNodeWithTag("result.makeOne").performScrollTo().performClick()
+            composeRule.runOnIdle { assertEquals(listOf(game to VariantId("alpha/n9")), made) }
+        }
+    }
+
+    @Test
+    fun `a past day's play again hands back that day's size`() {
+        val played = Puzzle(game, VariantId("alpha/n5"), 1, TestGames.puzzle(game).payload)
+        val made = mutableListOf<Pair<GameId, VariantId?>>()
+        withMakeOne({ g, v -> made += g to v }, cached = played, resultDay = day.minusDays(1)) {
+            composeRule.onNodeWithTag("result.makeOne").performScrollTo().performClick()
+            composeRule.runOnIdle { assertEquals(listOf(game to VariantId("alpha/n5")), made) }
+        }
+    }
+
+    @Test
+    fun `with the played size gone Make one like this hands back no size, the game's default`() {
+        val made = mutableListOf<Pair<GameId, VariantId?>>()
+        withMakeOne({ g, v -> made += g to v }) {
+            composeRule.onNodeWithTag("result.makeOne").performScrollTo().performClick()
+            composeRule.runOnIdle { assertEquals(listOf<Pair<GameId, VariantId?>>(game to null), made) }
+        }
+    }
+
+    @Test
+    fun `with no handler the result has no Make one like this`() {
+        withMakeOne(onMakeOneLikeThis = null) {
+            composeRule.onNodeWithTag("result.hero.screen").assertExists()
+            composeRule.onNodeWithTag("result.makeOne").assertDoesNotExist()
         }
     }
 
