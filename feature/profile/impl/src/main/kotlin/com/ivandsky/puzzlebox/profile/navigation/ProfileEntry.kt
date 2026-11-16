@@ -12,7 +12,8 @@ import com.ivandsky.puzzlebox.profile.settings.SettingsRoute
 import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
 
 /**
- * Profile's route (pushed on the current tab) and the pages it opens. [onBack] is the back
+ * Profile's route and the pages it opens. Where they sit is the shell's choice, made through
+ * the callbacks: in the layer above the tabs, or pushed on the current tab. [onBack] is the back
  * icon of Profile and Settings and closes the LinkedIn login; [onOpenSettings] is Profile's gear.
  * Settings uses [onOpenCatalog], the component catalog, an app-owned deep page, and [debugSections], the app's debug tools
  * (shown only in debuggable builds).
