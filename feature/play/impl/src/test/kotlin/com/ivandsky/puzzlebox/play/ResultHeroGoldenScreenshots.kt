@@ -117,7 +117,7 @@ abstract class ResultHeroGoldenScreenshots(private val device: String) {
         )
     }
 
-    private companion object {
+    internal companion object {
         val BRAND = GameBrand(AccentSlot.Violet, GameGlyphs.Queens)
         val STRANDS_BRAND = GameBrand(AccentSlot.Teal, GameGlyphs.Queens)
 

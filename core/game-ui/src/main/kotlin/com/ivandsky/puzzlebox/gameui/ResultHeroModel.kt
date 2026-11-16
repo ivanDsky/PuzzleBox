@@ -71,7 +71,9 @@ internal sealed interface HeroRank {
  * What the Results hero page shows, derived once from the facts, so the cards only draw.
  * A null [pill], [bestLine], [streak], [spread] or [rank] hides that element. [bestImproved]
  * paints the best line in the game's accent (a new best); [celebrate] is the entrance's
- * pulse; [burst] adds the burst (a new best only).
+ * pulse; [burst] adds the burst (a new best only). [moments] are the moment card's rows, strongest first, at most
+ * three, none for a practice puzzle or a play again; [challenge] is the Challenge row's friend, none when the
+ * [primary] already is that challenge.
  */
 internal data class ResultHeroModel(
     val title: String,
@@ -87,6 +89,8 @@ internal data class ResultHeroModel(
     val celebrate: Boolean,
     val burst: Boolean,
     val primary: ResultPrimaryAction?,
+    val moments: List<HeroMoment>,
+    val challenge: ResultPrimaryAction.ChallengeFriend?,
 )
 
 /**
@@ -132,6 +136,8 @@ internal fun resultHeroModel(
         celebrate = counts && (verdict == RecordVerdict.NewBest || verdict == RecordVerdict.FirstSolve),
         burst = counts && verdict == RecordVerdict.NewBest,
         primary = facts.primary,
+        moments = if (counts) heroMoments(facts.moments) else emptyList(),
+        challenge = visibleChallenge(facts.primary, facts.challenge),
     )
 }
 
