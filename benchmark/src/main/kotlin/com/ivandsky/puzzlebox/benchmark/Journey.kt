@@ -13,8 +13,8 @@ private const val JOURNEY_ITERATIONS = 5
 
 /**
  * The default compilation: Partial with the profile used when the APK has one. The benchmark build
- * ships none until the S-01 fix lands, so today this warms up, then compiles what ran; once a
- * profile ships, the same tests measure it with no edit.
+ * ships the committed baseline profile, so this compiles it after the warmup; a run with
+ * `-Ppuzzlebox.baselineProfileGeneration` has no R8, so never measure with it.
  */
 internal fun partialCompilation(): CompilationMode =
     CompilationMode.Partial(baselineProfileMode = BaselineProfileMode.UseIfAvailable, warmupIterations = 3)

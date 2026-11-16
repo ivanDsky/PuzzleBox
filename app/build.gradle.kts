@@ -1,3 +1,5 @@
+import java.util.zip.ZipFile
+
 plugins {
     alias(libs.plugins.puzzlebox.android.application.compose)
     alias(libs.plugins.puzzlebox.android.roborazzi)
@@ -70,6 +72,13 @@ android {
             isDebuggable = false
             // Measurement-only install: the release key when the machine has it, else the debug key.
             signingConfig = signingConfigs.findByName("release") ?: signingConfigs.getByName("debug")
+            // Profile generation only (-Ppuzzlebox.baselineProfileGeneration, see benchmark/README.md):
+            // an unminified build records the sources' own class and method names. A minified one
+            // records R8's renamed, merged and inlined output, which no release build matches.
+            if (providers.gradleProperty("puzzlebox.baselineProfileGeneration").orNull == "true") {
+                isMinifyEnabled = false
+                isShrinkResources = false
+            }
         }
     }
 
@@ -102,6 +111,45 @@ androidComponents {
     // for that and nothing more: it has no tests, and its test task is switched off below.
     beforeVariants(selector().withBuildType("benchmark")) { variant ->
         variant.hostTests[com.android.build.api.variant.HostTestBuilder.UNIT_TEST_TYPE]?.enable = true
+    }
+    onVariants(selector().withBuildType("release")) { variant ->
+        tasks.register<CheckBaselineProfile>("checkReleaseBaselineProfile") {
+            group = "verification"
+            description = "Fails when the committed Baseline Profile is missing or has no app rule, or the release APK has no baseline.prof."
+            apkDirectory.set(variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.APK))
+            profileSource.from(layout.projectDirectory.file("src/main/baseline-prof.txt"))
+        }
+    }
+}
+
+// The release APK must ship our app/src/main/baseline-prof.txt as assets/dexopt/baseline.prof. The APK
+// alone proves nothing: AGP also merges the profiles that Compose and other libraries bundle, so
+// dropping ours still leaves a baseline.prof behind. The check therefore needs both the committed
+// source (with rules for our own package) and a profile in the APK. A missing profile otherwise
+// only shows up as slower first launches. It depends on the APK, so this also builds it:
+// ./gradlew :app:checkReleaseBaselineProfile
+abstract class CheckBaselineProfile : DefaultTask() {
+    @get:InputDirectory
+    abstract val apkDirectory: DirectoryProperty
+
+    @get:InputFiles
+    abstract val profileSource: ConfigurableFileCollection
+
+    @TaskAction
+    fun verify() {
+        val source = profileSource.singleFile
+        check(source.isFile) { "Baseline Profile source ${source.name} is missing; regenerate it (benchmark/README.md)." }
+        check(source.useLines { lines -> lines.any { "com/ivandsky/puzzlebox" in it } }) {
+            "${source.name} has no rule for com.ivandsky.puzzlebox; regenerate it (benchmark/README.md)."
+        }
+        val apks = apkDirectory.get().asFile.walkTopDown().filter { it.extension == "apk" }.toList()
+        check(apks.isNotEmpty()) { "No release APK under ${apkDirectory.get().asFile}; run :app:assembleRelease." }
+        apks.forEach { apk ->
+            ZipFile(apk).use { zip ->
+                val entry = zip.getEntry("assets/dexopt/baseline.prof")
+                check(entry != null && entry.size > 0) { "${apk.name} has no assets/dexopt/baseline.prof." }
+            }
+        }
     }
 }
 
@@ -156,6 +204,8 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     // Ticket 08: the system splash hold (installSplashScreen) that MainActivity keeps on screen.
     implementation(libs.androidx.core.splashscreen)
+    // Installs the committed Baseline Profile (assets/dexopt/baseline.prof) at first launch.
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.compose.material3.windowsizeclass)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)

@@ -24,7 +24,7 @@ journey names.
 | `ArchiveBenchmark` | calendar day taps and month arrows | `OnToday` | frame timing |
 | `RanksBenchmark` | open, Who/When sheet, day arrows, board swipes | `OnToday` | frame timing |
 | `ZipDragBenchmark` | drag from 1 toward 2 on the board, Clear, three times | `Opened(Zip)` | frame timing |
-| `BaselineProfileGenerator` | cold start, tabs, every game board | no data state: the install's data, so class order in the run matters | writes a profile; nothing is committed |
+| `BaselineProfileGenerator` | cold start, tabs, every game board | no data state: the install's data, so class order in the run matters | writes a profile; `app/src/main/baseline-prof.txt` is its filtered copy |
 
 Frame timing reports `frameDurationCpuMs` and `frameOverrunMs` as P50, P90, P99. No journey finishes
 a puzzle. Selectors are text and content descriptions; the app has no benchmark test tags.
@@ -100,8 +100,41 @@ Restore anything you changed on the device afterwards.
 
 ## Baseline profile
 
-`BaselineProfileGenerator` is wired and runs, but no profile is committed and `:app` has no
-`profileinstaller`: shipping it is a later fix, so its delta is measured against the numbers this
-module records today. Run it with
-`-Pandroid.testInstrumentationRunnerArguments.class=com.ivandsky.puzzlebox.benchmark.BaselineProfileGenerator`
-and pull the profile from the same additional-output directory.
+`app/src/main/baseline-prof.txt` is the committed profile and `:app` ships it: AGP compiles it into
+the release APK as `assets/dexopt/baseline.prof`, and `androidx.profileinstaller` installs it on
+first launch where Play has not. The `androidx.baselineprofile` Gradle plugin stays off: it adds
+build types without the `.benchmark` suffix that carry the real release id.
+
+`./gradlew :app:checkReleaseBaselineProfile` builds the release APK and fails when the committed
+profile is missing or has no rule for `com.ivandsky.puzzlebox`, or when the APK carries no
+`baseline.prof`. The APK half alone cannot catch a dropped profile: the libraries' own profiles
+still fill it. `baseline-prof.txt` is generated data, exempt from the 300-line file limit.
+
+Regenerate once per release, after the startup and game-open paths settle, on the benchmark package
+only (never `com.ivandsky.puzzlebox` or `.debug`), with the device awake and unlocked:
+
+```
+ANDROID_SERIAL=<serial> ./gradlew :benchmark:connectedBenchmarkAndroidTest \
+  -Ppuzzlebox.baselineProfileGeneration=true \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.ivandsky.puzzlebox.benchmark.BaselineProfileGenerator
+```
+
+`puzzlebox.baselineProfileGeneration` builds the benchmark install without R8: the recorded rules then
+carry the sources' class and method names, which the release build's R8 maps to its own. Without it they
+name R8's renamed and merged output, which matches no release build. Never pass it to a measuring run.
+Gradle installs the benchmark build fresh and removes it afterwards. The generator writes
+`BaselineProfileGenerator_generate-startup-prof.txt`
+next to the benchmark results in `benchmark/build/outputs/connected_android_test_additional_output/`;
+if Gradle did not copy it, pull it from
+`/sdcard/Android/media/com.ivandsky.puzzlebox.macrobenchmark/additional_test_output/`.
+
+Drop the platform's own classes (`android/`, `java/`, `javax/`, `dalvik/`, `libcore/`, `sun/`; the
+app's dex holds no such rules), keep the rest (the app's `com.ivandsky.puzzlebox` rules and the
+libraries it loads), and commit the result as `app/src/main/baseline-prof.txt`:
+
+```
+grep -v -E '^[HSP]*L(android|java|javax|dalvik|libcore|sun|org/json|org/w3c|org/xml)/' \
+  <pulled>-startup-prof.txt > app/src/main/baseline-prof.txt
+```
+
+The rules are hit-sets, not a recording of this commit: a stale profile only costs first-launch speed.
