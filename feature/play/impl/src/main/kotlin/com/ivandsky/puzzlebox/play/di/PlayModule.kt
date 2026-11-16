@@ -1,12 +1,16 @@
 package com.ivandsky.puzzlebox.play.di
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.domain.DeleteReceivedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.play.CelebrationOnResult
 import com.ivandsky.puzzlebox.play.GamePageRankViewModel
 import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.LibraryViewModel
@@ -101,8 +105,13 @@ val playModule = module {
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
         )
     }
+    // Read once per graph, so the board's route and Result agree on where the celebration plays; without
+    // ReleaseFlags it is off.
+    single { CelebrationOnResult(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ResultMoments) == true) }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
     // read inside the view model (the release flag), so its bindings resolve only on the same parameter.
+    // Result moments read the same flags without LinkedIn: a graph without ReleaseFlags builds Result with them
+    // off, and the next-thing use case is resolved only when the view model first asks for it.
     viewModel { params ->
         val linkedIn = params.getOrNull<Boolean>() == true
         ResultViewModel(
@@ -120,9 +129,11 @@ val playModule = module {
             board = get(),
             completions = get(),
             loadReplay = get(),
-            releaseFlags = if (linkedIn) get() else null,
+            releaseFlags = if (linkedIn) get() else getOrNull(),
             observePost = if (linkedIn) get() else null,
             submitPost = if (linkedIn) get() else null,
+            nextThing = inject(),
+            celebration = get(),
         )
     }
     viewModel { (key: ReplayKey) -> ReplayViewModel(key, get(), get(), get(), get(), get()) }

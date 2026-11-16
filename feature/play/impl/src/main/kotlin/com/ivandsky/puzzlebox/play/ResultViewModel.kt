@@ -3,7 +3,9 @@ package com.ivandsky.puzzlebox.play
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.GetNextRollover
@@ -14,16 +16,15 @@ import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.ResultInsights
 import com.ivandsky.puzzlebox.domain.ResultRank
-import com.ivandsky.puzzlebox.domain.SolveReplayRef
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
+import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.domain.nextUnsolved
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.game.PuzzleRef
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -33,7 +34,6 @@ import com.ivandsky.puzzlebox.gameui.LinkedInPostRowState
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySectionState
-import com.ivandsky.puzzlebox.gameui.replay.ReplayUnavailable
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
@@ -46,14 +46,13 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.runningFold
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -106,10 +105,12 @@ data class ResultUiState(
  * [heroInsights], [heroRank] and [playAgain] feed the hero page. A day's result shows the same side card whether
  * it is today's or a play again: the streak, the time spread and the rank.
  *
- * The replay is read from the stored completion, never from the live play: it shows once the solve is stored (the live
- * play's [ActivePlay.Record.stored], or after process death a stored row with this solve's time and hints), and never
- * while the write is pending or failed. A game with no replay board skips the load. [loadReplay] answers null for no
- * replay, so a stored solve without one shows [ReplaySectionState.Unavailable] instead of the row.
+ * The Watch replay row is [ResultReplayRow]'s; a game with no replay board skips the load.
+ *
+ * With Result moments on ([releaseFlags]), today's solve asks [nextThing] once for its moments, next thing and
+ * Challenge friend ([nextFacts], see [resultNextFacts]) and [primary] is that next thing; off, [nextThing] is never
+ * built and everything above holds as written. [celebrating] is true for the one Result its board handed the solve to
+ * ([CelebrationOnResult]).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResultViewModel internal constructor(
@@ -125,19 +126,21 @@ class ResultViewModel internal constructor(
     rank: ObserveResultRank,
     linkedIn: ObserveLinkedInDay?,
     private val board: FriendPuzzleBoard,
-    private val completions: CompletionRepository,
-    private val loadReplay: LoadSolveReplay,
+    completions: CompletionRepository,
+    loadReplay: LoadSolveReplay,
     releaseFlags: ReleaseFlags? = null,
     observePost: ObserveLinkedInPost? = null,
     submitPost: SubmitLinkedInResult? = null,
+    nextThing: Lazy<ObserveResultNextThing>? = null,
+    celebration: CelebrationOnResult? = null,
 ) : ViewModel() {
-
     private val slot = PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))
     private val solve = ActivePlay.Solve(key.timeMs, key.hintsUsed)
     private val live: ActivePlay? = store.peek(slot)
     private val liveHoldsSolve = live != null && live.record.value.solve == solve
     private val names: Map<GameId, String> = store.playable.toMap()
     private val today: Boolean = calendar.today(slot.gameId) == slot.day
+    private val replayRow = ResultReplayRow(completions, loadReplay, solve, live.takeIf { liveHoldsSolve })
 
     val brand: GameBrand = ui.brandOf(slot.gameId)
 
@@ -163,7 +166,7 @@ class ResultViewModel internal constructor(
     private val replay: Flow<ReplaySectionState> = dayRow
         .map { day -> day?.let { games[slot.gameId]?.refOf?.invoke(PuzzleKey.Daily(slot.day, it.puzzleNumber)) } }
         .distinctUntilChanged()
-        .flatMapLatest { ref -> if (ref == null || playUi?.replayBoard == null) flowOf(ReplaySectionState.Hidden) else replayOf(ref) }
+        .flatMapLatest { ref -> if (ref == null || playUi?.replayBoard == null) flowOf(ReplaySectionState.Hidden) else replayRow.of(ref) }
 
     val state: StateFlow<ResultUiState> = combine(
         record,
@@ -182,16 +185,38 @@ class ResultViewModel internal constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), record.value)
 
-    val primary: StateFlow<ResultPrimaryAction?> =
-        if (today) {
-            playableToday.map { set ->
-                set.nextUnsolved(after = slot.gameId)
-                    ?.let { next -> ResultPrimaryAction.Next(next, set.first { it.game == next }.displayName) }
-                    ?: ResultPrimaryAction.AllDone
-            }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
-        } else {
-            MutableStateFlow(ResultPrimaryAction.Done)
+    /** Today's rule without the moments: the next unsolved game the store can play, or AllDone. */
+    private val nextUnsolved: Flow<ResultPrimaryAction> = playableToday.map { set ->
+        set.nextUnsolved(after = slot.gameId)
+            ?.let { next -> ResultPrimaryAction.Next(next, set.first { it.game == next }.displayName) }
+            ?: ResultPrimaryAction.AllDone
+    }
+
+    /** Null unless Result moments are on and this is today's solve: then nothing of the next thing is built or read. */
+    private val moments: Flow<ResultNextFacts>? =
+        nextThing?.takeIf { today && releaseFlags?.isEnabled(ReleaseFlag.ResultMoments) == true }?.let { observe ->
+            resultNextFacts(observe.value, slot, solve, live.takeIf { liveHoldsSolve }, dayRow, nextUnsolved, games::displayName)
         }
+
+    /** The moment card, the next thing and the Challenge row's friend; empty for good with the moments off. */
+    internal val nextFacts: StateFlow<ResultNextFacts> =
+        moments?.stateIn(viewModelScope, SharingStarted.Lazily, ResultNextFacts()) ?: MutableStateFlow(ResultNextFacts())
+
+    val primary: StateFlow<ResultPrimaryAction?> = when {
+        !today -> MutableStateFlow(ResultPrimaryAction.Done)
+        moments != null -> nextFacts.map { it.primary }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+        else -> nextUnsolved.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+    }
+
+    private val _celebrating = MutableStateFlow(celebration?.take(slot, solve) == true)
+
+    /** True while the solve celebration plays over the page: only for a solve its board just handed off. */
+    internal val celebrating: StateFlow<Boolean> = _celebrating.asStateFlow()
+
+    /** The celebration ended, by its timer or a tap. */
+    internal fun celebrationDone() {
+        _celebrating.value = false
+    }
 
     /** True for a past day's result: a play again counts nothing. */
     val playAgain: Boolean = !today
@@ -234,40 +259,6 @@ class ResultViewModel internal constructor(
 
     fun retryRecordWrite() {
         live?.takeIf { it.record.value.solve == solve }?.retryRecordWrite()
-    }
-
-    /**
-     * True once this solve is stored. A live play that holds the solve says so itself ([ActivePlay.Record.stored]);
-     * the time and hints match against the stored rows is only the cold case (no live play, after process death), where
-     * no write signal exists. It must not decide the live case: an older row with the same time and hints would show
-     * the row before the new write lands.
-     */
-    private fun storedOf(ref: PuzzleRef): Flow<Boolean> =
-        if (liveHoldsSolve) {
-            live!!.record.map { it.solve == solve && it.stored }.runningFold(false) { seen, now -> seen || now }
-        } else {
-            combine(completions.observeRecords(), completions.observePlayAgains(ref)) { records, again ->
-                (records + again).any { it.puzzleRef == ref && it.time == solve.timeMs && it.hints == solve.hints }
-            }
-        }
-
-    /** The row once [storedOf] says this solve is stored; the replay is read from that completion, never the live play. */
-    private fun replayOf(ref: PuzzleRef): Flow<ReplaySectionState> =
-        storedOf(ref)
-            .distinctUntilChanged()
-            .mapLatest { stored ->
-                if (!stored) {
-                    ReplaySectionState.Hidden
-                } else {
-                    loadReplay(SolveReplayRef.Latest(ref))?.let(ReplaySectionState::Ready) ?: unavailableOf(ref)
-                }
-            }
-
-    /** A stored solve with no replay says so, naming a LinkedIn import. */
-    private suspend fun unavailableOf(ref: PuzzleRef): ReplaySectionState {
-        val stored = completions.observeRecords().first() + completions.observePlayAgains(ref).first()
-        val source = stored.firstOrNull { it.puzzleRef == ref && it.time == solve.timeMs && it.hints == solve.hints }?.source
-        return ReplaySectionState.Unavailable(source?.let(ReplayUnavailable::of) ?: ReplayUnavailable.NotRecorded)
     }
 
     /** This solve's facts while the play holds it; after a play again or another solve, the

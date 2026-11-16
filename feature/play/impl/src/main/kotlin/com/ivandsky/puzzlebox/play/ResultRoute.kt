@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.play
 
 import android.content.Context
 import android.content.Intent
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.material3.Icon
@@ -26,6 +27,7 @@ import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.replay.ReplaySection
 import com.ivandsky.puzzlebox.gameui.resultShareText
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.LocalDate
@@ -55,6 +57,11 @@ import org.koin.core.parameter.parametersOf
  *
  * A non-null [onMakeOneLikeThis] adds a "Make one like this" button to the actions: it hands back the game and the size
  * the player just played (null when that is not known, meaning the game's default size). With none, the button is absent.
+ *
+ * With Result moments on, the view model's [ResultViewModel.nextFacts] add the moment card and the Challenge row, and
+ * the primary may be any next thing: Challenge (the row too) hands [onChallenge] the friend and this game, a missed
+ * day hands [onOpenDay] its game and day, and a friend's or a community puzzle hands [onOpenPuzzle] its code. A
+ * solve handed off from its board plays [ResultCelebration] over the page, which draws and loads beneath it.
  */
 @Composable
 fun ResultRoute(
@@ -66,41 +73,51 @@ fun ResultRoute(
     onOpenRanks: (GameId, LocalDate?) -> Unit,
     linkedIn: Boolean = false,
     onMakeOneLikeThis: ((GameId, VariantId?) -> Unit)? = null,
+    onChallenge: (DuelPrefill) -> Unit = {},
+    onOpenDay: (GameId, LocalDate) -> Unit = { _, _ -> },
+    onOpenPuzzle: (ShareCode) -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val viewModel: ResultViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key, linkedIn) })
     val state by viewModel.state.collectAsStateWithLifecycle()
     val primary by viewModel.primary.collectAsStateWithLifecycle()
+    val next by viewModel.nextFacts.collectAsStateWithLifecycle()
+    val celebrating by viewModel.celebrating.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val challenge = { friend: ResultPrimaryAction.ChallengeFriend -> onChallenge(DuelPrefill(friend.uid, friend.name, GameId(key.gameId))) }
     val onPrimary = {
         when (val action = primary) {
             is ResultPrimaryAction.Next -> onNext(action.gameId)
             ResultPrimaryAction.AllDone, ResultPrimaryAction.Done -> onDone()
-            // The view model offers none of these until the next-thing mapping (ticket 36) supplies them.
-            is ResultPrimaryAction.ChallengeFriend, is ResultPrimaryAction.MissedDay,
-            is ResultPrimaryAction.FriendPuzzle, is ResultPrimaryAction.CommunityPuzzle,
-            -> Unit
+            is ResultPrimaryAction.ChallengeFriend -> challenge(action)
+            is ResultPrimaryAction.MissedDay -> onOpenDay(action.gameId, action.day)
+            is ResultPrimaryAction.FriendPuzzle -> onOpenPuzzle(action.code)
+            is ResultPrimaryAction.CommunityPuzzle -> onOpenPuzzle(action.code)
             null -> Unit
         }
     }
     val onShare = { context.shareText(resultShareText(state.game, state.puzzleNumber, key.timeMs, key.hintsUsed)) }
     val variant by viewModel.playedVariant.collectAsStateWithLifecycle()
     val makeOne = onMakeOneLikeThis?.let { make -> { make(GameId(key.gameId), variant) } }
-    Column(modifier = modifier.testTag("route.result")) {
-        CompactTopBar(
-            // The result card already names the puzzle; the bar only carries Up.
-            title = "",
-            navigationIcon = {
-                IconButton(onClick = onDone, modifier = Modifier.testTag("result.up")) {
-                    Icon(
-                        imageVector = PuzzleIcons.Back,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            },
-        )
-        HeroPage(key, viewModel, state, primary, onPrimary, onShare, onPlayAgain, context, onOpenReplay, onOpenRanks, makeOne)
+    // The column keeps the constraints it had as the root, so the page under the celebration lays out as before.
+    Box(modifier = modifier.testTag("route.result"), propagateMinConstraints = true) {
+        Column {
+            CompactTopBar(
+                // The result card already names the puzzle; the bar only carries Up.
+                title = "",
+                navigationIcon = {
+                    IconButton(onClick = onDone, modifier = Modifier.testTag("result.up")) {
+                        Icon(
+                            imageVector = PuzzleIcons.Back,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+            )
+            HeroPage(key, viewModel, state, primary, next, onPrimary, onShare, onPlayAgain, context, onOpenReplay, onOpenRanks, makeOne, challenge)
+        }
+        if (celebrating) ResultCelebration(viewModel.brand, next.moments, viewModel::celebrationDone, Modifier.matchParentSize())
     }
 }
 
@@ -115,6 +132,7 @@ private fun ColumnScope.HeroPage(
     viewModel: ResultViewModel,
     state: ResultUiState,
     primary: ResultPrimaryAction?,
+    next: ResultNextFacts,
     onPrimary: () -> Unit,
     onShare: () -> Unit,
     onPlayAgain: () -> Unit,
@@ -122,6 +140,7 @@ private fun ColumnScope.HeroPage(
     onOpenReplay: (ReplayKey) -> Unit,
     onOpenRanks: (GameId, LocalDate?) -> Unit,
     onMakeOneLikeThis: (() -> Unit)?,
+    onChallenge: (ResultPrimaryAction.ChallengeFriend) -> Unit,
 ) {
     val insights by viewModel.heroInsights.collectAsStateWithLifecycle()
     val rank by viewModel.heroRank.collectAsStateWithLifecycle()
@@ -148,6 +167,8 @@ private fun ColumnScope.HeroPage(
             insights = insights,
             rank = rank,
             primary = primary,
+            moments = next.moments,
+            challenge = next.challenge,
         ),
         onSignIn = { viewModel.signIn(context) },
         modifier = Modifier.weight(1f),
@@ -161,6 +182,8 @@ private fun ColumnScope.HeroPage(
                 onShare = onShare,
                 onPlayAgain = onPlayAgain,
                 rolloverAt = state.rolloverAt,
+                challenge = next.challenge,
+                onChallenge = next.challenge?.let { friend -> { onChallenge(friend) } },
                 onMakeOneLikeThis = onMakeOneLikeThis,
             )
         },
