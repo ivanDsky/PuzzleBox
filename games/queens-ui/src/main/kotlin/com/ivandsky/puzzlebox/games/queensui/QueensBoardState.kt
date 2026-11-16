@@ -97,7 +97,7 @@ class QueensBoardState(
 
     internal val stepHints: StepHints<QueensStep, QueensSpotlightMapper.Key> =
         // A newly counted hint: no clearHint on the way, so the Spotlight stays.
-        StepHints(mode, scope, QueensStepGame({ session }), { session.hintsUsed }, { commit(QueensReplayMove.Hint) })
+        StepHints(mode, scope, QueensStepGame({ session }, mode.firstMove), { session.hintsUsed }, { commit(QueensReplayMove.Hint) })
 
     private var erasing = false
     private var eraseRunOpen = false

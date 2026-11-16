@@ -19,10 +19,12 @@ import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
  * would accuse a queen that is right in another. No solution or several is null, and the stepper then accuses only
  * rule breaks and never reveals. A budget spent before a second solution turns up keeps the stored solution (null when
  * none is stored), so a hard board judges as it did before the search ran. Main-confined except the compute block,
- * which only reads the snapshot and the memo. [solve] is a seam for tests.
+ * which only reads the snapshot and the memo. [firstMove] is the hint mode's option (B4), fixed for the board's life.
+ * [solve] is a seam for tests.
  */
 internal class QueensStepGame(
     private val session: () -> QueensSession,
+    private val firstMove: Boolean = false,
     solve: (QueensPuzzle) -> Set<Cell>? = { QueensSessionStep.boundedSolution(it) },
 ) : StepHints.Game<QueensStep, QueensSpotlightMapper.Key> {
 
@@ -30,7 +32,7 @@ internal class QueensStepGame(
 
     override fun capture(): () -> QueensStep {
         val current = session()
-        return { QueensSessionStep.next(current, solutionOf(current.puzzle)) }
+        return { QueensSessionStep.next(current, solutionOf(current.puzzle), firstMove) }
     }
 
     override fun keyOf(step: QueensStep): QueensSpotlightMapper.Key? = QueensSpotlightMapper.keyOf(step)

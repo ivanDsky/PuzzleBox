@@ -5,11 +5,16 @@ import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 /**
  * The Queens hint ladder (spec A9). [rungs] run easiest first; their list order is the
  * difficulty order, so the hardest rung a run needs is the last-indexed one it used.
+ * [obvious] names the rungs whose deductions a player sees at a glance; a first-move hint
+ * shows them only when no other rung proves more than they give (B4).
  */
-class QueensLadder(rungs: List<QueensRung>) {
+class QueensLadder(rungs: List<QueensRung>, obvious: Set<QueensRung> = emptySet()) {
 
     /** The rungs, easiest first; a defensive copy, so the ladder cannot change after construction. */
     val rungs: List<QueensRung> = rungs.toList()
+
+    /** The rungs a first-move hint skips while another proves more than they give; a defensive copy. */
+    val obvious: Set<QueensRung> = obvious.toSet()
 
     /** Lowest rung first; restart from the first rung after every deduction. */
     fun run(puzzle: QueensPuzzle, placed: Set<Int> = emptySet()): QueensLadderRun {
@@ -46,13 +51,17 @@ class QueensLadder(rungs: List<QueensRung>) {
         private val cheap: List<QueensRung> =
             listOf(LineLockRung, SharedNeighboursRung, PigeonholeRung, LineGroupPigeonholeRung, SqueezeRung, LeftoverQueenRung)
 
-        /** The step-hint ladder: catalog rungs D0–D11 in difficulty order. */
+        /**
+         * The step-hint ladder: catalog rungs D0–D11 in difficulty order. An attacked cell (D0) and a
+         * unit with one cell left (D1) are what the board already shows, so they are the obvious ones.
+         */
         val Stepwise: QueensLadder = QueensLadder(
             listOf(
                 AttackRung, SinglesRung, LineLockRung, SharedNeighboursRung, PigeonholeRung,
                 LineGroupPigeonholeRung, LeftoverQueenRung, SqueezeRung, CountSqueezeRung,
                 ShortLookAheadRung(cheap), LongLookAheadRung(cheap),
             ),
+            obvious = setOf(AttackRung, SinglesRung),
         )
     }
 }

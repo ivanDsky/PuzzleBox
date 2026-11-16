@@ -25,6 +25,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.LocalDarkTheme
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 
@@ -45,10 +46,10 @@ internal fun QueensCell(
     val n = model.n
     val dark = LocalDarkTheme.current
     val fill = QueensRegionPalette.fill(model.regions[idx], dark)
-    val onSurface = MaterialTheme.colorScheme.onSurface
+    val boardInk = LocalBoardColors.current.boardInk
     val scrim = MaterialTheme.colorScheme.scrim
-    val ink = remember(model.regions[idx], dark) {
-        QueensRegionPalette.onInkFor(fill, onSurface, scrim)
+    val ink = remember(model.regions[idx], dark, boardInk) {
+        QueensRegionPalette.onInkFor(fill, boardInk, scrim)
     }
     val error = MaterialTheme.colorScheme.error
     val reducedMotion = LocalQueensReducedMotion.current

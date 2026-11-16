@@ -138,3 +138,31 @@ internal fun QueensBoardExpandedPreview() {
         QueensPlayBoard(previewState(queens = listOf(1), manual = listOf(15)), Modifier.fillMaxWidth())
     }
 }
+
+/** An 8×8 board of uneven regions, two of them one cell, so walls turn corners and end against the outline. */
+private fun walledPuzzle() = com.ivandsky.puzzlebox.games.queens.QueensPuzzle(
+    size = 8,
+    regions = listOf(
+        0, 4, 1, 1, 1, 1, 2, 2,
+        4, 4, 1, 2, 1, 1, 2, 2,
+        4, 4, 2, 2, 2, 2, 2, 2,
+        4, 4, 4, 4, 4, 3, 4, 4,
+        5, 5, 4, 5, 4, 4, 4, 5,
+        6, 5, 5, 5, 5, 5, 5, 5,
+        6, 6, 6, 6, 6, 6, 6, 6,
+        6, 6, 7, 7, 7, 7, 7, 7,
+    ),
+    solution = listOf(0, 12, 23, 29, 34, 46, 49, 59).map(::Cell),
+)
+
+@PuzzleBoxPreviews
+@Composable
+internal fun QueensBoardReadablePreview() {
+    // B3: the readable board theme. Region borders and the outline are walls; two queens and their crosses in ink.
+    val session = listOf(0, 29).fold(QueensSession(ref = null, puzzle = walledPuzzle()).withCrossToggled(Cell(56), previewT0)) { acc, cell ->
+        acc.withQueenPlaced(Cell(cell), previewT0)
+    }
+    PuzzleBoxTheme(readableBoard = true) {
+        QueensPlayBoard(previewBoardState(session), Modifier.fillMaxWidth())
+    }
+}
