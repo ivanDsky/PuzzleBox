@@ -13,6 +13,11 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPosts
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
+import com.ivandsky.puzzlebox.data.match.LegRef
+import com.ivandsky.puzzlebox.data.match.MatchDraft
+import com.ivandsky.puzzlebox.data.match.MatchLeg
+import com.ivandsky.puzzlebox.data.match.Player
+import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.FinishLeg
@@ -31,6 +36,10 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.domain.moments.Moment
+import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
+import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.editor.Budget
@@ -44,6 +53,8 @@ import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
 import com.ivandsky.puzzlebox.gameui.board.rankWithGhosts
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
@@ -63,6 +74,8 @@ import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
+import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
+import kotlinx.coroutines.runBlocking
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -166,6 +179,7 @@ class ResultViewModelTest {
         identity: Identity? = null,
         linkedIn: Boolean = false,
         flags: ReleaseFlags? = null,
+        celebration: CelebrationOnResult? = null,
     ): ResultViewModel {
         val history = ObserveGameHistory(games, daily, completions)
         val observeBoard = ObserveLeaderboard(FakeIdentityService(initial = identity), leaderboard, games, calendar)
@@ -187,6 +201,8 @@ class ResultViewModelTest {
             board = signedOutBoard(),
             completions = completions,
             loadReplay = loadSolveReplay(games, daily, completions),
+            nextThing = lazy { nextThing(games) },
+            celebration = celebration,
         )
     }
 
@@ -621,6 +637,157 @@ class ResultViewModelTest {
 
         assertNull(vm.linkedInPost.value)
         assertTrue(linkedInPosts.submitCalls.isEmpty())
+    }
+
+    private val matches = FakeMatchRepository().apply { signedInUid = ME.uid }
+    private val visibility = FakeVisibilityRepository()
+    private var nextThingsBuilt = 0
+    private val momentsOn = FakeReleaseFlags(ReleaseFlag.ResultMoments)
+    private val ann = ResultPrimaryAction.ChallengeFriend("ann", "ann")
+
+    /** The real next-thing use case over this test's fakes, signed in as [ME]; counted, since only the flag may ask for it. */
+    private fun nextThing(games: GameRegistry): ObserveResultNextThing {
+        nextThingsBuilt++
+        val identity = FakeIdentityService(initial = ME)
+        return ObserveResultNextThing(
+            registry = games,
+            identity = identity,
+            history = ObserveGameHistory(games, daily, completions),
+            todaySet = todaySet,
+            friendPuzzles = ObserveFriendPuzzles(FakeReceivedPuzzleRepository(), saved, completions, games),
+            friendUids = ObserveFriendUids(matches, identity),
+            leaderboard = leaderboard,
+            visibility = visibility,
+            computeStreak = ComputeStreak(GetPuzzleDay(games, clock)),
+            puzzleDay = GetPuzzleDay(games, clock),
+            nextRollover = GetNextRollover(games, clock),
+            failures = { _, _, cause -> throw cause },
+        )
+    }
+
+    /**
+     * A slower best stands from yesterday, and the friend ann (tier duel) is ahead on today's board. That best is
+     * already under the 45 s mark the solve is under, so the solve is a best and not a first sub-X.
+     */
+    private fun slowerBestAndAnnAhead(betaSolved: Boolean) {
+        val yesterday = record(FakeController.TIME_MS + 2_000, 0, date = day.minusDays(1))
+        completions.setRecords(listOfNotNull(yesterday, record(FakeController.TIME_MS, 0, game = beta).takeIf { betaSolved }))
+        val code = checkNotNull(ShareCode.parse("AAAAA2"))
+        runBlocking {
+            matches.create(MatchDraft(code, 24, Player(ME.uid, "me", null), null, listOf(MatchLeg(LegRef.Daily(alpha, day, 7), null)), true, null))
+            matches.signedInUid = "ann"
+            matches.claim(code, Player("ann", "ann", null))
+            matches.signedInUid = ME.uid
+        }
+        leaderboard.setEntries(LeaderboardRef(alpha.value, day), listOf(entry("ann", 30)))
+        visibility.putTier("ann", VisibilityTier.Duel)
+    }
+
+    @Test
+    fun `with moments on a hint-free best with a duel-tier friend above shows the moments, Challenge as primary and the Challenge row's friend`() {
+        slowerBestAndAnnAhead(betaSolved = true)
+        solveLive()
+
+        val vm = vm(flags = momentsOn).observed()
+
+        assertEquals(listOf(Moment.PersonalBest, Moment.FullSetDone), vm.nextFacts.value.moments)
+        assertEquals(ann, vm.primary.value)
+        assertEquals(ann, vm.nextFacts.value.challenge)
+    }
+
+    @Test
+    fun `with moments off the same solve shows today's primary, no moments and no challenge, and the next thing is never asked for`() {
+        slowerBestAndAnnAhead(betaSolved = true)
+        solveLive()
+
+        val vm = vm(flags = FakeReleaseFlags()).observed()
+
+        assertEquals(ResultPrimaryAction.AllDone, vm.primary.value)
+        assertEquals(ResultNextFacts(), vm.nextFacts.value)
+        assertEquals(0, nextThingsBuilt)
+    }
+
+    @Test
+    fun `with moments on the next daily stays the primary and the friend is offered beside it`() {
+        slowerBestAndAnnAhead(betaSolved = false)
+        solveLive()
+
+        val vm = vm(flags = momentsOn).observed()
+
+        assertEquals(ResultPrimaryAction.Next(beta, fakes.games.displayName(beta)), vm.primary.value)
+        assertEquals(ann, vm.nextFacts.value.challenge)
+        assertEquals(listOf(Moment.PersonalBest), vm.nextFacts.value.moments)
+    }
+
+    @Test
+    fun `with moments on a result with no live play claims no personal best and still gets its next thing`() {
+        slowerBestAndAnnAhead(betaSolved = true)
+
+        val vm = vm(flags = momentsOn).observed()
+
+        assertEquals(listOf(Moment.FullSetDone), vm.nextFacts.value.moments)
+        assertEquals(ann, vm.primary.value)
+    }
+
+    @Test
+    fun `with moments on the next thing waits for the record write, so a best still being written is celebrated`() {
+        slowerBestAndAnnAhead(betaSolved = true)
+        val write = CompletableDeferred<Unit>().also { completions.writeGate = it }
+        solveLive()
+        val vm = vm(flags = momentsOn).observed()
+        assertEquals(ResultNextFacts(), vm.nextFacts.value)
+
+        write.complete(Unit)
+        dispatcher.scheduler.runCurrent()
+
+        assertTrue(Moment.PersonalBest in vm.nextFacts.value.moments)
+    }
+
+    @Test
+    fun `with moments on a play again still offers Done and earns nothing`() {
+        slowerBestAndAnnAhead(betaSolved = true)
+
+        val vm = vm(key.copy(day = day.minusDays(1).toString()), flags = momentsOn).observed()
+
+        assertEquals(ResultPrimaryAction.Done, vm.primary.value)
+        assertEquals(ResultNextFacts(), vm.nextFacts.value)
+        assertEquals(0, nextThingsBuilt)
+    }
+
+    @Test
+    fun `with moments on a practice puzzle keeps today's next unsolved game and earns nothing`() {
+        slowerBestAndAnnAhead(betaSolved = false)
+        daily.setHistory(alpha, listOf(DailyEntry(alpha, day, null, "alpha/v1", 0L)))
+        solveLive()
+
+        val vm = vm(flags = momentsOn).observed()
+
+        assertEquals(ResultPrimaryAction.Next(beta, fakes.games.displayName(beta)), vm.primary.value)
+        assertEquals(ResultNextFacts(primary = vm.primary.value), vm.nextFacts.value)
+    }
+
+    @Test
+    fun `the celebration plays once for the solve that was handed off, and never for a result opened again`() {
+        val celebration = CelebrationOnResult(enabled = true)
+        val solve = ActivePlay.Solve(key.timeMs, key.hintsUsed)
+        celebration.arm(PlaySlot.Daily(alpha, day), solve)
+
+        val first = vm(celebration = celebration)
+        assertTrue(first.celebrating.value)
+        first.celebrationDone()
+        assertFalse(first.celebrating.value)
+
+        assertFalse("the same result opened again", vm(celebration = celebration).celebrating.value)
+    }
+
+    @Test
+    fun `no celebration for another solve's result, nor when the celebration is not on Result`() {
+        val armed = CelebrationOnResult(enabled = true).apply { arm(PlaySlot.Daily(beta, day), ActivePlay.Solve(key.timeMs, key.hintsUsed)) }
+        assertFalse(vm(celebration = armed).celebrating.value)
+
+        val off = CelebrationOnResult(enabled = false).apply { arm(PlaySlot.Daily(alpha, day), ActivePlay.Solve(key.timeMs, key.hintsUsed)) }
+        assertFalse(vm(celebration = off).celebrating.value)
+        assertFalse(vm().celebrating.value)
     }
 
     private fun entry(uid: String, seconds: Int) =

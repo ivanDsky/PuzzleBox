@@ -146,7 +146,8 @@ fun EntryProviderScope<NavKey>.playEntry(
  * with the game and the result's day. A non-null [onMakeOneLikeThis] adds "Make one like this" to the result, handing back
  * the game and the size just played (null: the game's default). [onChallenge] is what Result's Challenge row and
  * primary call with the friend to challenge and the game ([DuelPrefill]); the app answers it by opening Games' Duels tab
- * with that prefill. No route calls it yet.
+ * with that prefill. A missed day and a friend's or community puzzle replace the result with that day's or that
+ * puzzle's board, as Next does.
  */
 fun EntryProviderScope<NavKey>.resultEntry(
     navigator: Navigator,
@@ -169,6 +170,9 @@ fun EntryProviderScope<NavKey>.resultEntry(
             linkedIn = linkedIn,
             onOpenRanks = onOpenRanks,
             onMakeOneLikeThis = onMakeOneLikeThis,
+            onChallenge = onChallenge,
+            onOpenDay = { game, day -> navigator.replaceTop(GameKey(game.value, day.toString())) },
+            onOpenPuzzle = { code -> navigator.replaceTop(FriendPuzzleKey(code.value)) },
         )
     }
 }

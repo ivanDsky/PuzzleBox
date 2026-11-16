@@ -44,6 +44,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDayView
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
+import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveOverall
@@ -361,6 +362,7 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<ObserveOverall>())
             assertNotNull(koin.get<GetPlayerActions>())
             assertNotNull(koin.get<ObserveResultRank>())
+            assertNotNull(koin.get<ObserveResultNextThing>())
         } finally {
             stopKoin()
         }
