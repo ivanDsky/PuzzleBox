@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.DraftCompleter
 import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftResize
 import com.ivandsky.puzzlebox.game.editor.DraftState
@@ -28,8 +29,10 @@ import com.ivandsky.puzzlebox.model.GameId
  * keeps the top-left: the path is cut at its first cell outside, waypoints and walls outside
  * are dropped, and the path's ends are numbered again. A unique draft exports through the
  * daily [ZipCodec] with the path as the solution (A10), so test solve plays a real puzzle.
+ * [ZipCompleter] finishes a half-built draft (Finish for me, spec E1).
  */
 object ZipEditor : GameEditor<ZipDraft>, DraftResize<ZipDraft>, DraftExport<ZipDraft>,
+    DraftCompleter<ZipDraft> by ZipCompleter,
     EditorShareCodec<ZipDraft> by ZipShareCodec,
     EditorNotation<ZipDraft> by ZipNotation {
     override val gameId: GameId get() = ZipDefinition.id
