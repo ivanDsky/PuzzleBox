@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -24,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.EmptyState
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -90,9 +88,7 @@ private fun PublishedList(state: CreateUiState, onOpen: (code: String) -> Unit) 
         modifier = Modifier.fillMaxSize().maxContentWidth().testTag("create.published.list"),
         contentPadding = PaddingValues(bottom = ListBottomInset),
     ) {
-        items(state.published, key = { it.code.value }) { row ->
-            PublishedRow(row = row, onOpen = { onOpen(row.code.value) }, modifier = rowMotion(reducedMotion))
-        }
+        publishedRows(state.published, reducedMotion, onOpen)
     }
 }
 
@@ -113,14 +109,7 @@ private fun DraftList(
         contentPadding = PaddingValues(bottom = ListBottomInset),
     ) {
         if (state.searchVisible) searchItems(state, onQuery, onFilter)
-        items(state.drafts, key = { it.id }) { row ->
-            DraftRow(
-                row = row,
-                onOpen = { onOpen(row.id) },
-                onActions = { onActions(row.id) },
-                modifier = rowMotion(reducedMotion),
-            )
-        }
+        draftRows(state.drafts, reducedMotion, onOpen, onActions)
         if (state.drafts.isEmpty()) {
             item(key = "no-match") {
                 Text(
@@ -186,10 +175,3 @@ private fun LazyListScope.searchItems(state: CreateUiState, onQuery: (String) ->
         }
     }
 }
-
-/** Rows **Fade in** / **Fade out** and slide to new places (MotionTokens medium, EasingStandard); none under reduced motion. */
-private fun LazyItemScope.rowMotion(reduced: Boolean): Modifier = Modifier.animateItem(
-    fadeInSpec = if (reduced) null else tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard),
-    placementSpec = if (reduced) null else tween(MotionTokens.DurationMedium, easing = MotionTokens.EasingStandard),
-    fadeOutSpec = if (reduced) null else tween(MotionTokens.DurationShort, easing = MotionTokens.EasingStandard),
-)

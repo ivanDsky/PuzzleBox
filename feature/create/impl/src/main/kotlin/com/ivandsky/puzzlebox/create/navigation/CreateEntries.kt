@@ -25,8 +25,7 @@ import org.koin.androidx.viewmodel.ext.android.getViewModel
  */
 fun EntryProviderScope<NavKey>.createEntry(navigator: Navigator) {
     entry<CreateKey> {
-        val activity = createOwner()
-        val viewModel = remember(activity) { activity.createViewModel() }
+        val viewModel = rememberCreateViewModel()
         CreateRoute(
             viewModel = viewModel,
             onOpen = { draftId -> navigator.pushOnce(EditorKey(draftId)) },
@@ -43,8 +42,7 @@ fun EntryProviderScope<NavKey>.createEntry(navigator: Navigator) {
  */
 fun EntryProviderScope<NavKey>.editorEntry(navigator: Navigator, layout: PlayLayout) {
     entry<EditorKey> { key ->
-        val activity = createOwner()
-        val create = remember(activity) { activity.createViewModel() }
+        val create = rememberCreateViewModel()
         val notice by create.importedNotice.collectAsStateWithLifecycle()
         EditorRoute(
             key = key,
@@ -77,13 +75,14 @@ fun EntryProviderScope<NavKey>.publishedPuzzleEntry(navigator: Navigator, layout
     }
 }
 
-@Composable
-private fun createOwner(): ComponentActivity = checkNotNull(LocalActivity.current as? ComponentActivity) {
-    "The Create entries run in a ComponentActivity"
-}
-
 /**
- * The one [CreateViewModel], held by the activity's ViewModelStore rather than an entry's:
- * 22's 5 s delete Undo must outlive the Editor entry that deletes, and both entries reach it here.
+ * The one [CreateViewModel], held by the activity's ViewModelStore rather than an entry's: 22's 5 s delete Undo must
+ * outlive the Editor entry that deletes, and both entries and the Custom list reach it here.
  */
-private fun ComponentActivity.createViewModel(): CreateViewModel = getViewModel()
+@Composable
+internal fun rememberCreateViewModel(): CreateViewModel {
+    val activity = checkNotNull(LocalActivity.current as? ComponentActivity) {
+        "The Create entries run in a ComponentActivity"
+    }
+    return remember(activity) { activity.getViewModel() }
+}

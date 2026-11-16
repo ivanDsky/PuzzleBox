@@ -28,12 +28,7 @@ internal fun CreateRoute(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val importSheet by viewModel.importText.ui.collectAsStateWithLifecycle()
-    val open by rememberUpdatedState(onOpen)
-    LaunchedEffect(viewModel) { viewModel.created.collect { open(it) } }
-    val lifecycle = LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(viewModel, lifecycle) {
-        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) { viewModel.importSharedText() }
-    }
+    CreateEffects(viewModel, onOpen)
     CreateScreen(
         state = state,
         onNew = viewModel::newPuzzle,
@@ -50,4 +45,20 @@ internal fun CreateRoute(
         onImportOpen = viewModel.importText::open,
         importActions = remember(viewModel) { ImportSheetActions.of(viewModel.importText) },
     )
+}
+
+/**
+ * What both Create roots (the Create tab and the Custom list) do over the one [viewModel] while they show: each draft
+ * it stores, a new one or an imported one, is reported once to [onOpen]; and while the root is resumed, the text
+ * another app shared is imported ([CreateViewModel.importSharedText]). Only one root may show at a time: a stored
+ * draft's id goes to a single collector.
+ */
+@Composable
+internal fun CreateEffects(viewModel: CreateViewModel, onOpen: (draftId: String) -> Unit) {
+    val open by rememberUpdatedState(onOpen)
+    LaunchedEffect(viewModel) { viewModel.created.collect { open(it) } }
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(viewModel, lifecycle) {
+        lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) { viewModel.importSharedText() }
+    }
 }
