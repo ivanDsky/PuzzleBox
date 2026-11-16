@@ -1,5 +1,4 @@
 package com.ivandsky.puzzlebox.app.nav
-
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
@@ -26,6 +25,7 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -44,6 +44,7 @@ import com.ivandsky.puzzlebox.profile.api.SettingsKey
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import kotlinx.serialization.PolymorphicSerializer
 import org.junit.After
@@ -89,6 +90,8 @@ class PerTabShellTest {
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
+                    // Per-tab stacks are the pre-NavDoors shell: Profile is pushed on the tab, not layered.
+                    single<ReleaseFlags> { FakeReleaseFlags() }
                 },
             )
         }

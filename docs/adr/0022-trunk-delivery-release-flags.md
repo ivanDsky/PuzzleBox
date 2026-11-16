@@ -94,3 +94,4 @@ to merge without being reachable in a release build.
 - LeaderboardHub flipped to `releaseDefault = true` in 0.32.0 on 2026-11-14 (#969).
 - The LeaderboardHub flag was removed, with the History screen, the game-page board and every branch on it, on 2026-11-14 (#974).
 - The LinkedInAccount flag was removed, with every branch on it, on 2026-11-14 (#970).
+- NavDoors flipped to `releaseDefault = true` in 0.33.0 on 2026-11-16 (nav-rethink M1, PRs #1002–#1009; user check ok on 0.32.0-nav-rethink.1).
