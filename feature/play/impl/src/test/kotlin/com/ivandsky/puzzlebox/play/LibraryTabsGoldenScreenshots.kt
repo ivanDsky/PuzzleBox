@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -43,7 +44,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The Games screen with a Duels slot, phone and tablet, light and dark: each of the three
- * tabs selected in turn, with a stand-in Duels body and a need-you count on its pill.
+ * tabs selected in turn, with a stand-in Duels body and a need-you count on its pill. With a
+ * Custom slot too: the Custom tab selected, a stand-in list around the friend puzzles.
  * Goldens in `snapshots/tabs/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -83,7 +85,10 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
     @Test fun `duels light`() = capture("tabs-duels", GamesTab.Duels, dark = false)
     @Test fun `duels dark`() = capture("tabs-duels", GamesTab.Duels, dark = true)
 
-    private fun capture(name: String, tab: GamesTab, dark: Boolean) {
+    @Test fun `custom light`() = capture("tabs-custom", GamesTab.Custom, dark = false, custom = CUSTOM)
+    @Test fun `custom dark`() = capture("tabs-custom", GamesTab.Custom, dark = true, custom = CUSTOM)
+
+    private fun capture(name: String, tab: GamesTab, dark: Boolean, custom: CustomSlot? = null) {
         rule.showGolden(dark) {
             LibraryScreen(
                 state = STATE,
@@ -97,9 +102,11 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
                 onOpenLesson = {},
                 calendar = CalendarActions(),
                 onOpenRanks = { _, _ -> },
-                friends = FriendPreviewCards,
+                // With the slot: one in progress and one new, so the pill carries its count and the slot's rows below stay in the frame.
+                friends = if (custom == null) FriendPreviewCards else listOf(FriendPreviewCards[0], FriendPreviewCards[3]),
                 onEnterCode = {},
                 duels = DUELS,
+                custom = custom,
             )
         }
         rule.mainClock.advanceTimeBy(SETTLE_MS)
@@ -134,6 +141,17 @@ abstract class LibraryTabsGoldenScreenshots(private val layout: PlayLayout, priv
             needYou = { 3 },
             onOpenDuel = {},
         )
+
+        /** A stand-in for the create module's list: heads and rows that pad their own sides, the friend puzzles between them. */
+        val CUSTOM = CustomSlot { state, _, friends ->
+            LazyColumn(Modifier.fillMaxSize(), state = state) {
+                item { Text("Continue", Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.lg, bottom = Spacing.sm), style = MaterialTheme.typography.titleLarge) }
+                items(2) { Text("Draft ${it + 1}", Modifier.fillMaxWidth().height(72.dp).padding(Spacing.lg)) }
+                friends()
+                item { Text("Published by you", Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.lg, bottom = Spacing.sm), style = MaterialTheme.typography.titleLarge) }
+                items(2) { Text("Published ${it + 1}", Modifier.fillMaxWidth().height(72.dp).padding(Spacing.lg)) }
+            }
+        }
 
         fun row(id: String, name: String, brand: GameBrand, status: TodayStatus?, total: Int, solved: Int): LibraryRowModel {
             val start = TODAY.minusDays(total - 1L)

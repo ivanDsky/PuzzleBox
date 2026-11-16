@@ -58,6 +58,55 @@ internal fun GamesTabs(content: @Composable RowScope.() -> Unit) {
 }
 
 /**
+ * The Games pills for [tabs], left to right, [selected] the chosen one; a tap calls [onSelect].
+ * Friends carries [friendCount], Duels the red [duelsNeedYou] badge, and Custom [customCount],
+ * the friend puzzles not played yet; a count of none draws nothing.
+ */
+@Composable
+internal fun GamesTabRow(
+    tabs: List<GamesTab>,
+    selected: GamesTab,
+    onSelect: (GamesTab) -> Unit,
+    friendCount: Int,
+    duelsNeedYou: Int,
+    customCount: Int,
+) {
+    GamesTabs {
+        tabs.forEach { tab ->
+            val chosen = tab == selected
+            val onClick = { onSelect(tab) }
+            when (tab) {
+                GamesTab.Dailies -> GamesTabPill("Dailies", chosen, onClick, "library.tab.dailies")
+                GamesTab.Friends -> GamesTabPill("Friends", chosen, onClick, "library.tab.friends", trailing = plainCount(friendCount))
+                GamesTab.Duels -> GamesTabPill(
+                    "Duels",
+                    chosen,
+                    onClick,
+                    "library.tab.duels",
+                    description = if (duelsNeedYou > 0) "Duels, $duelsNeedYou need you" else null,
+                    trailing = { TabCountBadge(duelsNeedYou, Modifier.testTag("library.tab.duels.count")) },
+                )
+                GamesTab.Custom -> GamesTabPill(
+                    "Custom",
+                    chosen,
+                    onClick,
+                    "library.tab.custom",
+                    description = if (customCount > 0) "Custom, $customCount new from friends" else null,
+                    trailing = plainCount(customCount, Modifier.testTag("library.tab.custom.count")),
+                )
+            }
+        }
+    }
+}
+
+/** A pill's quiet trailing count: the number in the pill's own tone, or no slot at all for none. */
+private fun plainCount(count: Int, modifier: Modifier = Modifier): (@Composable () -> Unit)? = count.takeIf { it > 0 }?.let { n ->
+    {
+        Text(n.toString(), modifier, style = MaterialTheme.typography.labelLarge.tabular(), color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+/**
  * One tab: [label] then an optional [trailing] slot (the count); [tag] is its test tag. The trailing
  * slot is part of the pill's tap, and a [description] is the pill's whole accessibility name
  * (e.g. "Duels, 3 need you"). The pill is at least 48dp tall.
@@ -147,5 +196,13 @@ internal fun GamesTabsPreview() {
                 GamesTabPill("Library", selected = false, onClick = {}, tag = "preview.library")
             }
         }
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun GamesTabRowPreview() {
+    PuzzleBoxTheme {
+        Surface { GamesTabRow(gamesTabs(custom = true), GamesTab.Custom, onSelect = {}, friendCount = 0, duelsNeedYou = 2, customCount = 1) }
     }
 }

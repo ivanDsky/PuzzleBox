@@ -19,12 +19,18 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.match.LegRef
+import com.ivandsky.puzzlebox.data.match.MatchDraft
+import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.MatchRepository
+import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -68,6 +74,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -83,7 +90,8 @@ import org.robolectric.annotation.Config
  * The Games screen's tabs: with no Duels slot the screen is the single list with its From
  * friends carousel; with one it shows Dailies, Friends and Duels, Dailies first, each tab
  * swapping the body below the pinned pills, the third carrying the slot's need-you count,
- * and the chosen tab surviving a recreation.
+ * and the chosen tab surviving a recreation. With a Custom slot too, the header's Enter code
+ * still opens a code that names a duel.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp")
@@ -99,6 +107,7 @@ class LibraryTabsTest {
     private val received = FakeReceivedPuzzleRepository()
     private val saved = FakeSavedPlayRepository()
     private val completions = FakeCompletionRepository()
+    private val matches = FakeMatchRepository().apply { signedInUid = ANN }
     private val today = LocalDate.parse("2026-11-04")
 
     private var koin: KoinApplication? = null
@@ -120,7 +129,7 @@ class LibraryTabsTest {
                     single<SavedPlayRepository> { saved }
                     single<ReceivedPuzzleRepository> { received }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
-                    single<MatchRepository> { FakeMatchRepository() }
+                    single<MatchRepository> { matches }
                     single<IdentityService> { FakeIdentityService() }
                     factory { FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH } }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
@@ -154,13 +163,20 @@ class LibraryTabsTest {
         onOpenDuel = {},
     )
 
-    private fun content(duels: DuelsSlot?): @Composable () -> Unit = {
+    private fun content(duels: DuelsSlot?, custom: CustomSlot? = null): @Composable () -> Unit = {
         PuzzleBoxTheme(darkTheme = false) {
-            LibraryRoute(layout = PlayLayout.SinglePane, onPlay = { _, _ -> }, onOpenCode = {}, onOpenRanks = { _, _ -> }, duels = duels)
+            LibraryRoute(
+                layout = PlayLayout.SinglePane,
+                onPlay = { _, _ -> },
+                onOpenCode = {},
+                onOpenRanks = { _, _ -> },
+                duels = duels,
+                custom = custom,
+            )
         }
     }
 
-    private fun setContent(duels: DuelsSlot?) = composeRule.setContent(content(duels))
+    private fun setContent(duels: DuelsSlot?, custom: CustomSlot? = null) = composeRule.setContent(content(duels, custom))
 
     private fun count(tag: String): Int =
         composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().size
@@ -269,6 +285,32 @@ class LibraryTabsTest {
         composeRule.onNodeWithTag("library.row.zip").assertDoesNotExist()
     }
 
+    @Test
+    fun withACustomSlotTheHeadersEnterCodeStillOpensADuelCode() {
+        val openedDuels = ArrayList<DuelKey>()
+        val legs = listOf(MatchLeg(LegRef.Daily(zip, today, 1), authorUid = null))
+        runBlocking { matches.create(MatchDraft(A, 24, Player(ANN, "Ann", null), invitedUid = null, legs, includeFriends = false, rematchOf = null)) }
+        setContent(
+            duels = DuelsSlot(content = {}, needYou = { 0 }, onOpenDuel = { openedDuels.add(it) }),
+            custom = CustomSlot { _, _, _ -> Text("custom body", Modifier.testTag(CUSTOM_BODY)) },
+        )
+        awaitTag("library.tab.custom")
+        composeRule.onNodeWithTag("library.tab.custom").performClick()
+        awaitTag(CUSTOM_BODY)
+
+        composeRule.onNodeWithTag("library.enterCode").performClick()
+        awaitTag("friend.code.field")
+        composeRule.onNodeWithTag("friend.code.field", useUnmergedTree = true).performTextInput(A.value)
+        composeRule.onNodeWithTag("friend.code.open", useUnmergedTree = true).performClick()
+
+        // The check comes back on the main looper, which only an idle wait runs.
+        composeRule.waitUntil(5_000L) {
+            composeRule.waitForIdle()
+            openedDuels.isNotEmpty()
+        }
+        assertEquals(listOf(DuelKey(A.value)), openedDuels)
+    }
+
     private fun puzzle(code: ShareCode) = ReceivedPuzzle(
         code = code,
         gameId = zip,
@@ -290,6 +332,8 @@ class LibraryTabsTest {
 
     private companion object {
         const val DUELS_BODY = "fake.duels.body"
+        const val CUSTOM_BODY = "fake.custom.body"
+        const val ANN = "ann"
         val A = checkNotNull(ShareCode.parse("K7Q2MX"))
     }
 }
