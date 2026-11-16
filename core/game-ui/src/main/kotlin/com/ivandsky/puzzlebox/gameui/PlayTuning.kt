@@ -39,16 +39,16 @@ data class PlayTuning(
 
     companion object {
         /**
-         * The values the user chose on the S9 Ultra (nav-rethink ticket 56): the phone keeps today's 552 dp, tablet boards
-         * are at most 600 dp in portrait and in landscape and at most 72 dp per cell, and landscape controls sit in a
-         * side column. The shipped source emits it; the debug source starts from it and resets to it.
+         * The values the user chose on the S9 Ultra (nav-rethink ticket 56, widened by ticket 57c): the phone keeps today's
+         * 552 dp, tablet boards are at most 640 dp in portrait and in landscape and at most 80 dp per cell, and landscape
+         * controls sit in a side column. The shipped source emits it; the debug source starts from it and resets to it.
          */
         val Shipped = PlayTuning(
             phoneCap = 552.dp,
-            tabletPortraitCap = 600.dp,
-            tabletLandscapeCap = 600.dp,
+            tabletPortraitCap = 640.dp,
+            tabletLandscapeCap = 640.dp,
             landscapeControls = LandscapeControls.SideColumn,
-            tabletCellCap = 72.dp,
+            tabletCellCap = 80.dp,
         )
 
         /** The values before the ergonomics check: no cell cap, landscape fills the pane. The reference the layout tests and goldens are recorded under. */

@@ -77,7 +77,7 @@ class PlayTuningTest {
     @Test
     fun `Shipped holds the chosen values`() {
         assertEquals(
-            PlayTuning(552.dp, 600.dp, 600.dp, LandscapeControls.SideColumn, tabletCellCap = 72.dp),
+            PlayTuning(552.dp, 640.dp, 640.dp, LandscapeControls.SideColumn, tabletCellCap = 80.dp),
             PlayTuning.Shipped,
         )
     }

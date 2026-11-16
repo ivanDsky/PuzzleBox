@@ -249,7 +249,7 @@ class PlayScaffoldLayoutTest {
         assertRowDirectlyUnderBoard(side = 360.dp - PlayBoardInset * 2)
     }
 
-    /** The user's choices (ticket 56): 552 / 600 / 600 dp caps, a 72 dp tablet cell cap, controls in the side column. */
+    /** The user's choices (ticket 56, widened by ticket 57c): 552 / 640 / 640 dp caps, an 80 dp tablet cell cap, controls in the side column. */
     private val shipped = ShippedPlayTuningSource.tuning.value!!
 
     @Test
@@ -272,18 +272,18 @@ class PlayScaffoldLayoutTest {
 
     @Test
     @Config(qualifiers = "w800dp-h1280dp")
-    fun `a 6 by 6 board on a shipped portrait tablet is 432 dp`() {
+    fun `a 6 by 6 board on a shipped portrait tablet is 480 dp`() {
         setScreen(PlayLayout.SinglePane, 800, 1280, tuning = shipped, gridColumns = 6)
 
-        assertRowDirectlyUnderBoard(side = 432.dp)
+        assertRowDirectlyUnderBoard(side = 480.dp)
     }
 
     @Test
     @Config(qualifiers = "w800dp-h1280dp")
-    fun `a 9 by 9 board on a shipped portrait tablet is 600 dp`() {
+    fun `a 9 by 9 board on a shipped portrait tablet is 640 dp`() {
         setScreen(PlayLayout.SinglePane, 800, 1280, tuning = shipped, gridColumns = 9)
 
-        assertRowDirectlyUnderBoard(side = 600.dp)
+        assertRowDirectlyUnderBoard(side = 640.dp)
     }
 
     @Test
@@ -291,7 +291,7 @@ class PlayScaffoldLayoutTest {
     fun `a portrait tablet with no grid columns keeps the class cap`() {
         setScreen(PlayLayout.SinglePane, 800, 1280, tuning = shipped)
 
-        assertRowDirectlyUnderBoard(side = 600.dp)
+        assertRowDirectlyUnderBoard(side = 640.dp)
     }
 
     @Test
@@ -307,11 +307,11 @@ class PlayScaffoldLayoutTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp")
-    fun `a 6 by 6 board on a shipped landscape tablet is 432 dp with the controls in the side column`() {
+    fun `a 6 by 6 board on a shipped landscape tablet is 480 dp with the controls in the side column`() {
         setScreen(PlayLayout.TwoPane, 1280, 800, tuning = shipped, gridColumns = 6)
         val board = bounds("board")
 
-        assertEquals("board width", 432f, board.width.value, 0.5f)
+        assertEquals("board width", 480f, board.width.value, 0.5f)
         controlTags.map(::bounds).forEach { control ->
             assertEquals("$control beside board $board", (board.right + PlayBoardInset).value, control.left.value, 0.5f)
         }
@@ -319,11 +319,11 @@ class PlayScaffoldLayoutTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp")
-    fun `a 9 by 9 board on a shipped landscape tablet is 600 dp with the controls in the side column`() {
+    fun `a 9 by 9 board on a shipped landscape tablet is 640 dp with the controls in the side column`() {
         setScreen(PlayLayout.TwoPane, 1280, 800, tuning = shipped, gridColumns = 9)
         val board = bounds("board")
 
-        assertEquals("board width", 600f, board.width.value, 0.5f)
+        assertEquals("board width", 640f, board.width.value, 0.5f)
         controlTags.map(::bounds).forEach { control ->
             assertEquals("$control beside board $board", (board.right + PlayBoardInset).value, control.left.value, 0.5f)
         }
