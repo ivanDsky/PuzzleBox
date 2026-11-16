@@ -9,8 +9,7 @@ import java.time.LocalDate
 /**
  * What the hub's taps, swipes and sheets do, the same on the phone and the tablet; the route turns each into a view
  * model call or a push. A null one means the hub has no such control: no back arrow, no row taps, no pull to refresh.
- * [onPlayThisDay], [tuneLabelOpensSheet] and [heroJumpsToRow] are the nav rethink's doors: Play this day on a game's unplayed day,
- * the Tune label as a button, the hero card jumping to the viewer's row; each is off (null, false) unless the route turns it on.
+ * [onPlayThisDay] is the Play this day button on a game's unplayed day.
  */
 internal data class RanksActions(
     val onSignIn: () -> Unit,
@@ -33,7 +32,5 @@ internal data class RanksActions(
     val onShareReplays: () -> Unit = {},
     val onKeepReplaysPrivate: () -> Unit = {},
     val onRefresh: (() -> Unit)? = null,
-    val onPlayThisDay: ((GameId, LocalDate) -> Unit)? = null,
-    val tuneLabelOpensSheet: Boolean = false,
-    val heroJumpsToRow: Boolean = false,
+    val onPlayThisDay: (GameId, LocalDate) -> Unit = { _, _ -> },
 )

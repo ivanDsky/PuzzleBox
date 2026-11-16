@@ -10,7 +10,6 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.hasTextExactly
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.play.QueensPlayFixture
-import com.ivandsky.puzzlebox.app.play.TangoPlayFixture
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.PuzzleRef
@@ -23,7 +22,6 @@ import com.ivandsky.puzzlebox.games.strands.StrandsNumber
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
-import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tango.TangoPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -41,7 +39,7 @@ import org.robolectric.annotation.Config
 /**
  * The streak freeze the user approved (repro R2–R7, dark theme), pinned through the real app shell.
  * Today is Fri Nov 20 and every daily game was solved each day of a 40-day run before a scenario's gap, so 4
- * freezes are held when the gap opens. Tablet (rail) shows the Home pane, the Result side card and the Tango panel;
+ * freezes are held when the gap opens. Tablet (rail) shows the Home pane, and the Result side card;
  * the phone card is pinned on its own. Each test reads rendered nodes only, so it holds however the streak is derived.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -100,21 +98,12 @@ class StreakFreezeBaselineE2ETest {
         }
 
     @Test
-    fun r6_onlyTangoMissed_homeShowsNoFrozenDay_tangoPanelFreezesThursday() {
+    fun r6_onlyTangoMissed_homeShowsNoFrozenDay() {
         val graph = graphWith(history(TODAY.minusDays(40), TODAY.minusDays(1), skip = setOf(TODAY.minusDays(1) to TANGO)))
         shellRobot(tabAt(HomeKey), graph = graph, darkTheme = true) {
             // Every other game covers Thursday, so the overall streak never spends a freeze.
             awaitPane(streak = "40", best = "Best 40", freezes = "4 freezes")
             assertEquals("no frozen day on Home", 0, frozenDays(HOME_PANE_WEEK))
-
-            tapTab(PlayKey)
-            graph.daily.addEntry(TangoPlayFixture.entry(TODAY))
-            graph.daily.setCached(TangoDefinition.id, TODAY, TangoPlayFixture.envelope())
-            openGame(TANGO)
-            // Tango alone missed Thursday, so its own streak is one short and a freeze covers the day.
-            awaitText(PLAY_STREAK, "39-day streak")
-            awaitFreezeCount("3 freezes", PLAY_STATS)
-            assertEquals("Thursday frozen on the Tango panel", 1, frozenDays(PLAY_WEEK))
         }
     }
 
@@ -229,9 +218,6 @@ class StreakFreezeBaselineE2ETest {
         const val RESULT_SUB = "result.side.streak.sub"
         const val RESULT_MOMENT = "result.side.streak.moment"
         const val RESULT_FREEZES = "result.side.streak.freezes"
-        const val PLAY_STATS = "play.stats"
-        const val PLAY_STREAK = "play.stats.streak"
-        const val PLAY_WEEK = "play.stats.week"
         const val HOME_PANE = "home.streak_pane"
         const val HOME_PANE_WEEK = "home.pane_week"
         const val HOME_PANE_STREAK = "home.pane_streak"

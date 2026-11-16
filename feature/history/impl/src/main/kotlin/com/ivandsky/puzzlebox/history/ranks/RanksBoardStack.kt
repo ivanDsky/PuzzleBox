@@ -26,8 +26,8 @@ import kotlinx.coroutines.launch
  *
  * What differs between the two layouts is said here and nowhere else. [contentPadding] insets the content inside the
  * swipe area, so a swipe still starts at the pane's edge. [hero] is drawn above the solve, given the [jump] a tap on it
- * makes: to the viewer's row on the board, or none unless [RanksActions.heroJumpsToRow] is set and the board has a row.
- * Where Your solve would show for a day the viewer has not played, [RanksActions.onPlayThisDay] (when set) puts a Play
+ * makes: to the viewer's row on the board, or none when the board has no row of theirs.
+ * Where Your solve would show for a day the viewer has not played, [RanksActions.onPlayThisDay] puts a Play
  * this day button. With [dotsPulse] the page dots sit between the solve and the board, the current one scaled by it;
  * without, there are no dots.
  */
@@ -44,16 +44,15 @@ internal fun RanksBoardStack(
 ) {
     val selfRow = remember { SelfRowJump() }
     val scope = rememberCoroutineScope()
-    val jump: (() -> Unit)? = if (actions.heroJumpsToRow && state.board.state.hasOwnRow()) ({ scope.launch { selfRow.request() } }) else null
+    val jump: (() -> Unit)? = if (state.board.state.hasOwnRow()) ({ scope.launch { selfRow.request() } }) else null
     BoardSwipe(scrub, state.position, state.boardCount, actions.onSwipe, modifier.fillMaxWidth()) {
         CompositionLocalProvider(LocalSelfRowJump provides selfRow) {
             Column(Modifier.padding(contentPadding)) {
                 hero?.invoke(jump)
                 YourSolveRow(state.yourSolve, actions.onPlayAgain, actions.onOpenReplay, actions.onCompare)
                 val playThisDay = state.playThisDay
-                val onPlayThisDay = actions.onPlayThisDay
-                if (playThisDay != null && onPlayThisDay != null) {
-                    PlayThisDayRow(playThisDay, state.places.getOrNull(state.position)?.brand?.accent ?: AccentSlot.Neutral, onPlayThisDay)
+                if (playThisDay != null) {
+                    PlayThisDayRow(playThisDay, state.places.getOrNull(state.position)?.brand?.accent ?: AccentSlot.Neutral, actions.onPlayThisDay)
                 }
                 if (dotsPulse != null) {
                     PageDots(

@@ -11,16 +11,15 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * What Today shows of content owned elsewhere (ADR-0027): one summary row each, with a
- * chevron, that reports its tap. A null field means that row is not offered.
+ * chevron, that reports its tap. A null [onOpenRank] or [duels] means that row is not offered.
  * [onOpenRank] gets the game of the rank row; the duels row shows only above zero [duels].
- * [onOpenDay] (an ISO day) and [onOpenStreak] are the nav rethink's doors from the day and streak summaries, null
- * (no tap) until offered.
+ * [onOpenDay] (an ISO day) and [onOpenStreak] are the doors to Ranks from the day and streak summaries.
  */
 class HomeSummaries(
     val onOpenRank: ((GameId) -> Unit)?,
     val duels: HomeDuelsSummary?,
-    val onOpenDay: ((String) -> Unit)? = null,
-    val onOpenStreak: (() -> Unit)? = null,
+    val onOpenDay: (String) -> Unit,
+    val onOpenStreak: () -> Unit,
 )
 
 /** The player's place on the board of the game they solved last today; [position] is 1-based. */

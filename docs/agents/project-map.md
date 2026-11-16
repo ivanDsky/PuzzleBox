@@ -268,7 +268,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   (GameId → `GamePlayUi`; a duplicate id throws), `PlayBoardStatus` + `PlayBoardFallback`,
   `PlayCopy`, `BoardGrid` + `EdgeOverlay`, `DragTrace`, `GridGeometry`, `HintButton`,
   `TimerBar` + `formatClock`, `PlayScaffold`, `PanePolicy` (the one two-pane decision from window size in dp), `PlayChrome`, `ResultHeroScreen` (daily result), `ResultScreen` (friend result),
-  `CompletionRecordEmitter`. `editor/`: `GameEditorUi` (per-game `sizeLabel`,
+  `CompletionRecordEmitter`, `board/SelfRowJump` (a request the hero card sends the day board to scroll to the viewer's row). `editor/`: `GameEditorUi` (per-game `sizeLabel`,
   `createController`, `Board`), `GameEditorController` (draft `StateFlow`, `adopt`, overlay
   hooks), `GameEditorRegistry` (GameId → `GameEditorUi`), `EditorOverlay` (witness display).
   `hint/` (ADR-0025, the one stepwise press flow; never interprets a step): `StepHints<S, K>`
@@ -370,7 +370,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `di/HomeModule`), `HomeScreen` with `HomeListPane`/`HomeDetailPane` stacking
   `HomeTodaySection` (`HomeTodaySummary` card with `TodayBadge`s + one CTA / rollover countdown)/`HomeStreakSection`/
   `HomeRecentSection`, `HomeLayout` (the shell maps `PanePolicy` to it). Home is the Today
-  tab: `HomeSummaries` (rank callback + `HomeDuelsSummary`) adds the rank and duels `SummaryLinkRow`s; Recent has no link out (its empty state reads "Earlier days will show here").
+  tab: `HomeSummaries` (rank callback + `HomeDuelsSummary` + the required `onOpenDay` and `onOpenStreak`) adds the rank and duels `SummaryLinkRow`s; `HomeStreakDoor` is the streak card's row into Ranks, and each Recent row and a day's detail open that day in Ranks.
 - `feature/play/impl/` (`:feature:play:impl`) — the one game-agnostic play surface (ADR-0006,
   ADR-0007; no `games:*` dependency): `PlaySessionStore` (Koin single: one `ActivePlay` per
   `PlaySlot`, `open(GameKey)`/`peek(slot)`/`retain(keys)`/`flush()`, `playable` games, pins a
@@ -392,10 +392,10 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   (`MatchLegRoute`/`MatchLegViewModel`, `MatchLegResultRoute`, `LegCompletionRepository`
   tagging a leg solve with its match), `friend/` (a friend's puzzle: `FriendsTabBody`,
   `EnterCodeSheet`, `FriendPuzzleRoute`, `CustomResultRoute`), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
-  `resultEntry`) and `navigation/GameEntry`.
+  `resultEntry`) and `navigation/GameEntry`; `GameStatsPanel` is the tablet side panel's content (`PlayStatsPanel`: timer, today's progress and the day board).
 - `feature/history/impl/` (`:feature:history:impl`, the Ranks hub; the module keeps its History name) —
   `navigation/RanksEntry` (the tab root `HistoryRootKey` and the pushed `HistoryKey`, both open the hub),
-  `ranks/` (`RanksViewModel`, boards, player sheet, replay opt-in; `di/HistoryModule`), the replay
+  `ranks/` (`RanksViewModel`, boards, player sheet, replay opt-in, `PlayThisDayRow` on a game's unplayed day, the Tune sheet with `TuneDefaultsBlock`; `di/HistoryModule`), `RanksTuneDefaults` (the player's defaults the app shell hands the Tune sheet), the replay
   compare helpers (`HistoryReplayCompare`, `ReplaySolve`), and the calendar and stats pieces the hub reuses
   (`HistoryCalendar`, `HistoryStatsHeader`, `HistoryLayout`, mapped from `PanePolicy`). The History screen and its
   timeline are deleted.

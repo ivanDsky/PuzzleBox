@@ -9,7 +9,6 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -17,7 +16,7 @@ import org.robolectric.annotation.Config
 
 /**
  * Today's rank row, the game page's summary row and Result's rank chip all push the hub's [HistoryKey] for a game and day;
- * with `NavDoors` on, Today's day and streak summaries push it too (Overall at the day; the calendar open).
+ * Today's day and streak summaries push it too (Overall at the day; the calendar open).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], application = DrainTestApplication::class)
@@ -57,20 +56,13 @@ class OpenRanksTest {
     }
 
     @Test
-    fun `with NavDoors on Today's day opens Overall at the day and its streak opens the calendar`() {
+    fun `Today's day opens Overall at the day and its streak opens the calendar`() {
         val navigator = navigator()
-        val summaries = homeSummaries(navigator, navDoors = true, duels = null, libraryRequests = LibraryRequests())
-        summaries.onOpenDay!!("2026-11-05")
+        val summaries = homeSummaries(navigator, duels = null, libraryRequests = LibraryRequests())
+        summaries.onOpenDay("2026-11-05")
         assertEquals(HistoryKey(null, "2026-11-05"), navigator.state.currentStack.last())
         navigator.pop()
-        summaries.onOpenStreak!!()
+        summaries.onOpenStreak()
         assertEquals(HistoryKey(calendarExpanded = true), navigator.state.currentStack.last())
-    }
-
-    @Test
-    fun `with NavDoors off Today's day and streak slots are empty`() {
-        val summaries = homeSummaries(navigator(), navDoors = false, duels = null, libraryRequests = LibraryRequests())
-        assertNull(summaries.onOpenDay)
-        assertNull(summaries.onOpenStreak)
     }
 }

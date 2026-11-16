@@ -16,7 +16,6 @@ import com.ivandsky.puzzlebox.app.e2e.ShellRobot
 import com.ivandsky.puzzlebox.app.e2e.shellGraph
 import com.ivandsky.puzzlebox.app.e2e.shellRobot
 import com.ivandsky.puzzlebox.app.e2e.tabAt
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
@@ -29,9 +28,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Profile as a layer above the tabs, in the real shell with `NavDoors` on: the avatar opens it over the
+ * Profile as a layer above the tabs, in the real shell: the avatar opens it over the
  * current tab, Profile's gear stacks Settings inside it, Back leaves a page at a time, and a tab tap closes it.
- * No tab's stack ever holds Profile. The old pushed form (the flag off) stays pinned by ShellChromeTest.
+ * No tab's stack ever holds Profile.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -131,7 +130,7 @@ class ProfileLayerShellTest {
     }
 
     private fun layerShell(state: NavigationState = TODAY, block: ShellRobot.() -> Unit) =
-        shellRobot(state = state, graph = shellGraph(ReleaseFlag.NavDoors), block = block)
+        shellRobot(state = state, graph = shellGraph(), block = block)
 
     private fun ShellRobot.todayHeader(): SemanticsNodeInteraction = rule.onNode(TODAY_HEADER)
 

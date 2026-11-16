@@ -4,7 +4,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.data.visibility.OwnTier
+import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.history.RanksTuneDefaults
+import kotlinx.coroutines.flow.MutableStateFlow
 
 /**
  * The hub's previews' one host: the theme on a surface of the screen's background colour, so a dark preview draws on a dark
@@ -16,3 +20,11 @@ internal fun RanksPreviewHost(modifier: Modifier = Modifier, content: @Composabl
         Surface(modifier, color = MaterialTheme.colorScheme.background, content = content)
     }
 }
+
+/** The Tune sheet's defaults for a preview or a test: a chosen Duel tier, the hub landing on Friends, writes ignored. */
+internal fun previewTuneDefaults() = RanksTuneDefaults(
+    ownTier = MutableStateFlow(OwnTier.Chosen(VisibilityTier.Duel)),
+    onSelectTier = {},
+    friendsDefault = MutableStateFlow(true),
+    onSelectFriendsDefault = {},
+)

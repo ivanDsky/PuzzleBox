@@ -29,8 +29,8 @@ import com.ivandsky.puzzlebox.gameui.GameGlyphSize
  * The recent days (A11): one row per day, newest first, each day's games as result chips
  * (glyph + solve time, or "–" when opened but not solved). Earlier days only: today is on the
  * Today card. In two-pane ([selectable]) a row selects that day for the detail pane
- * ([onDayClick]; [selectedDay] reads selected). A single-pane row is a button only when [onOpenDay] is
- * offered (nav rethink N2): it reports the ISO day to open in Ranks. Result chips stay plain.
+ * ([onDayClick]; [selectedDay] reads selected). A single-pane row is a button
+ * too (nav rethink N2): it reports the ISO day to open in Ranks through [onOpenDay]. Result chips stay plain.
  */
 @Composable
 internal fun HomeRecentSection(
@@ -38,8 +38,8 @@ internal fun HomeRecentSection(
     selectedDay: String?,
     onDayClick: (String) -> Unit,
     selectable: Boolean,
+    onOpenDay: (String) -> Unit,
     modifier: Modifier = Modifier,
-    onOpenDay: ((String) -> Unit)? = null,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -65,11 +65,7 @@ internal fun HomeRecentSection(
                         RecentRow(
                             day = day,
                             selected = selectable && day.isoDay == selectedDay,
-                            onClick = when {
-                                selectable -> { { onDayClick(day.isoDay) } }
-                                onOpenDay != null -> { { onOpenDay(day.isoDay) } }
-                                else -> null
-                            },
+                            onClick = { if (selectable) onDayClick(day.isoDay) else onOpenDay(day.isoDay) },
                         )
                     }
                 }
@@ -82,30 +78,24 @@ internal fun HomeRecentSection(
 private fun RecentRow(
     day: HistoryDay,
     selected: Boolean,
-    onClick: (() -> Unit)?,
+    onClick: () -> Unit,
 ) {
     val tagged = Modifier
         .fillMaxWidth()
         .testTag("home.history_row_${day.isoDay}")
     val color = if (selected) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent
-    if (onClick != null) {
-        Surface(
-            selected = selected,
-            onClick = onClick,
-            modifier = tagged,
-            shape = MaterialTheme.shapes.small,
-            color = color,
-        ) { RecentRowContent(day, chevron = true) }
-    } else {
-        Surface(modifier = tagged, shape = MaterialTheme.shapes.small, color = color) {
-            RecentRowContent(day, chevron = false)
-        }
-    }
+    Surface(
+        selected = selected,
+        onClick = onClick,
+        modifier = tagged,
+        shape = MaterialTheme.shapes.small,
+        color = color,
+    ) { RecentRowContent(day) }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun RecentRowContent(day: HistoryDay, chevron: Boolean) {
+private fun RecentRowContent(day: HistoryDay) {
     Row(
         modifier = Modifier.padding(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
@@ -127,13 +117,11 @@ private fun RecentRowContent(day: HistoryDay, chevron: Boolean) {
                 day.games.forEach { ResultChip(it) }
             }
         }
-        if (chevron) {
-            Icon(
-                imageVector = PuzzleIcons.Chevron,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Icon(
+            imageVector = PuzzleIcons.Chevron,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

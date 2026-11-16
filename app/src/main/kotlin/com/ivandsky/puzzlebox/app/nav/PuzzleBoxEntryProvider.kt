@@ -57,11 +57,9 @@ import java.time.LocalDate
  * the game page's rank summary row and Result's rank chip all push that [HistoryKey] ([openRanks]).
  * [visibility] backs Settings' Visibility section.
  *
- * [navDoors] is the `NavDoors` flag as the shell reads it (A2: no route or composable reads a flag): on, Today's day and
- * streak summaries open the hub ([homeSummaries]), Play hides its streak card and the hub's Ranks doors open, with
- * [tuneDefaults] for its Tune sheet, and Profile's own pages (Settings, the LinkedIn login, the catalog) stack on Profile
- * inside the layer above the tabs ([Navigator.pushLayer]); off, every slot stays null or at its default and those pages
- * are pushed on the current tab.
+ * Today's day and streak summaries open the hub ([homeSummaries]), and the hub takes [tuneDefaults] for its Tune sheet.
+ * Profile's own pages (Settings, the LinkedIn login, the catalog) stack on Profile inside the layer above the tabs
+ * ([Navigator.pushLayer]).
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -73,24 +71,15 @@ internal fun puzzleBoxEntryProvider(
     duels: DuelsSlot? = null,
     libraryRequests: LibraryRequests = LibraryRequests(),
     visibility: VisibilitySlot,
-    navDoors: Boolean = false,
-    tuneDefaults: RanksTuneDefaults? = null,
+    tuneDefaults: RanksTuneDefaults,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
     homeEntry(
         navigator,
         homeLayout,
         title = topLevelDestinations.first { it.key == HomeKey }.label,
-        summaries = homeSummaries(navigator, navDoors, duels, libraryRequests),
+        summaries = homeSummaries(navigator, duels, libraryRequests),
     )
-    ranksEntry(
-        navigator,
-        historyLayout,
-        linkedIn = true,
-        playThisDay = navDoors,
-        tuneLabelOpensSheet = navDoors,
-        heroJumpsToRow = navDoors,
-        tuneDefaults = tuneDefaults.takeIf { navDoors },
-    )
+    ranksEntry(navigator, historyLayout, linkedIn = true, tuneDefaults = tuneDefaults)
     playEntry(
         navigator,
         playLayout,
@@ -101,7 +90,6 @@ internal fun puzzleBoxEntryProvider(
         duels = duels,
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) },
         onOpenRanks = openRanks(navigator),
-        showStreakCard = !navDoors,
     )
     resultEntry(navigator, linkedIn = true, onOpenRanks = openRanks(navigator))
     createEntry(navigator)
@@ -109,12 +97,10 @@ internal fun puzzleBoxEntryProvider(
     publishedPuzzleEntry(navigator, playLayout)
     val back: () -> Unit = { navigator.pop() }
     profileEntry(
-        onOpenCatalog = { if (navDoors) navigator.pushLayer(CatalogKey) else navigator.push(CatalogKey) },
+        onOpenCatalog = { navigator.pushLayer(CatalogKey) },
         onBack = back,
-        onOpenSettings = { if (navDoors) navigator.pushLayer(SettingsKey) else navigator.pushOnce(SettingsKey) },
-        onOpenLinkedInLogin = {
-            if (navDoors) navigator.pushLayer(LinkedInLoginKey) else navigator.pushOnce(LinkedInLoginKey)
-        },
+        onOpenSettings = { navigator.pushLayer(SettingsKey) },
+        onOpenLinkedInLogin = { navigator.pushLayer(LinkedInLoginKey) },
         debugSections = { DebugSettingsSlot(openGame = { navigator.pushOnce(GameKey(it)) }) },
         visibility = visibility,
     )
@@ -129,12 +115,11 @@ internal fun openRanks(navigator: Navigator): (GameId, LocalDate?) -> Unit =
     { game, day -> navigator.pushOnce(HistoryKey(game.value, day?.toString())) }
 
 /**
- * What Today opens: the rank row the hub at that game, the duels row the Games section. With [navDoors] the day summary
- * opens the hub on Overall at that ISO day and the streak summary opens it with the calendar expanded; off, both are null.
+ * What Today opens: the rank row the hub at that game, the duels row the Games section, the day summary the hub on
+ * Overall at that ISO day and the streak summary the hub with the calendar expanded.
  */
 internal fun homeSummaries(
     navigator: Navigator,
-    navDoors: Boolean,
     duels: DuelsSlot?,
     libraryRequests: LibraryRequests,
 ): HomeSummaries = HomeSummaries(
@@ -145,6 +130,6 @@ internal fun homeSummaries(
             needYou = it.needYou,
         )
     },
-    onOpenDay = { day: String -> navigator.pushOnce(HistoryKey(gameId = null, day = day)) }.takeIf { navDoors },
-    onOpenStreak = { navigator.pushOnce(HistoryKey(calendarExpanded = true)) }.takeIf { navDoors },
+    onOpenDay = { day: String -> navigator.pushOnce(HistoryKey(gameId = null, day = day)) },
+    onOpenStreak = { navigator.pushOnce(HistoryKey(calendarExpanded = true)) },
 )

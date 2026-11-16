@@ -66,7 +66,7 @@ class HomeScreenTest {
         onOpenGame: (GameId) -> Unit = {},
         reselect: SharedFlow<Unit> = MutableSharedFlow(),
         rank: TodayRank? = null,
-        summaries: HomeSummaries = HomeSummaries(onOpenRank = null, duels = null),
+        summaries: HomeSummaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}),
         title: String = "PuzzleBox",
         updateUrl: String? = null,
     ) {
@@ -301,7 +301,7 @@ class HomeScreenTest {
         setContent(
             HomeLayout.SinglePane,
             rank = zipRank,
-            summaries = HomeSummaries(onOpenRank = { opened = it }, duels = null),
+            summaries = HomeSummaries(onOpenRank = { opened = it }, duels = null, onOpenDay = {}, onOpenStreak = {}),
         )
 
         composeRule.onNodeWithTag("summary.leaderboard").performScrollTo().assert(hasText("Today's rank: #12 on Zip"))
@@ -312,13 +312,13 @@ class HomeScreenTest {
 
     @Test
     fun `rank row is absent without a callback`() {
-        setContent(HomeLayout.SinglePane, rank = zipRank, summaries = HomeSummaries(null, HomeDuelsSummary({}, { 1 })))
+        setContent(HomeLayout.SinglePane, rank = zipRank, summaries = HomeSummaries(null, HomeDuelsSummary({}, { 1 }), {}, {}))
         composeRule.onNodeWithTag("summary.leaderboard").assertDoesNotExist()
     }
 
     @Test
     fun `rank row is absent when the state has no rank`() {
-        setContent(HomeLayout.SinglePane, rank = null, summaries = HomeSummaries({}, HomeDuelsSummary({}, { 1 })))
+        setContent(HomeLayout.SinglePane, rank = null, summaries = HomeSummaries({}, HomeDuelsSummary({}, { 1 }), {}, {}))
         composeRule.onNodeWithTag("summary.leaderboard").assertDoesNotExist()
     }
 
@@ -327,7 +327,7 @@ class HomeScreenTest {
         var taps = 0
         setContent(
             HomeLayout.SinglePane,
-            summaries = HomeSummaries(onOpenRank = null, duels = HomeDuelsSummary(onOpen = { taps++ }, needYou = { 2 })),
+            summaries = HomeSummaries(onOpenRank = null, duels = HomeDuelsSummary(onOpen = { taps++ }, needYou = { 2 }), onOpenDay = {}, onOpenStreak = {}),
         )
 
         composeRule.onNodeWithTag("summary.duels").performScrollTo().assert(hasText("2 duels need you"))
@@ -338,14 +338,14 @@ class HomeScreenTest {
 
     @Test
     fun `duels row reads singular for one`() {
-        setContent(HomeLayout.SinglePane, summaries = HomeSummaries(null, HomeDuelsSummary({}, { 1 })))
+        setContent(HomeLayout.SinglePane, summaries = HomeSummaries(null, HomeDuelsSummary({}, { 1 }), {}, {}))
 
         composeRule.onNodeWithTag("summary.duels").performScrollTo().assert(hasText("1 duel needs you"))
     }
 
     @Test
     fun `rank and duels rows are 56dp tall`() {
-        setContent(HomeLayout.SinglePane, rank = zipRank, summaries = HomeSummaries({}, HomeDuelsSummary({}, { 2 })))
+        setContent(HomeLayout.SinglePane, rank = zipRank, summaries = HomeSummaries({}, HomeDuelsSummary({}, { 2 }), {}, {}))
 
         composeRule.onNodeWithTag("summary.leaderboard").performScrollTo().assertHeightIsEqualTo(56.dp)
         composeRule.onNodeWithTag("summary.duels").performScrollTo().assertHeightIsEqualTo(56.dp)
@@ -353,13 +353,13 @@ class HomeScreenTest {
 
     @Test
     fun `duels row is absent for zero`() {
-        setContent(HomeLayout.SinglePane, summaries = HomeSummaries(null, HomeDuelsSummary({}, { 0 })))
+        setContent(HomeLayout.SinglePane, summaries = HomeSummaries(null, HomeDuelsSummary({}, { 0 }), {}, {}))
         composeRule.onNodeWithTag("summary.duels").assertDoesNotExist()
     }
 
     @Test
     fun `duels row is absent when no count is offered`() {
-        setContent(HomeLayout.SinglePane, summaries = HomeSummaries(null, null))
+        setContent(HomeLayout.SinglePane, summaries = HomeSummaries(null, null, {}, {}))
         composeRule.onNodeWithTag("summary.duels").assertDoesNotExist()
     }
 

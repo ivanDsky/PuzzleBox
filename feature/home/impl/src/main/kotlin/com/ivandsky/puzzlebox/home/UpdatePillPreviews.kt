@@ -69,7 +69,7 @@ private fun HomeWithUpdate(layout: HomeLayout) {
             state = PillState,
             onOpenGame = {},
             onSelectDay = {},
-            summaries = HomeSummaries(onOpenRank = null, duels = null),
+            summaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}),
             title = "PuzzleBox",
         )
     }

@@ -51,7 +51,7 @@ class HomeScreenRecentTest {
                         onSelectDay = { picked = it },
                         modifier = Modifier,
                         title = "PuzzleBox",
-                        summaries = HomeSummaries(onOpenRank = null, duels = null),
+                        summaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}),
                     )
                 }
             }

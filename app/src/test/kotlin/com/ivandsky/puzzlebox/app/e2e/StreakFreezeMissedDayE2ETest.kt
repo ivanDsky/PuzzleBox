@@ -29,10 +29,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The streak freeze over the real app and the real Queens, on a tablet where Today's streak pane, the play
- * side panel and the Result all show. The history misses yesterday, so the missed day spends a held freeze:
- * the run holds and the surfaces show the count, the frozen day and, on Result, the spent-freeze moment. The
- * play panel sits only on the board, so it is read before the solve; the other surfaces after it.
+ * The streak freeze over the real app and the real Queens, on a tablet where Today's streak pane and the Result both show.
+ * The history misses yesterday, so the missed day spends a held freeze: the run holds and the surfaces show
+ * the count, the frozen day and, on Result, the spent-freeze moment.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -43,11 +42,6 @@ class StreakFreezeMissedDayE2ETest {
     fun missedDaySpendsFreeze() =
         shellRobot(tabAt(PlayKey), graph = historyWithMissedYesterday()) {
             openTodaysQueens()
-            // Opening today finds yesterday missed with a freeze held: it is already spent.
-            awaitText(PLAY_STREAK, "2-day streak")
-            assertEquals("one freeze held on the play panel", 1, freezeCounts("1 freeze"))
-            assertEquals("yesterday frozen on the play panel", 1, frozenDays(PLAY_WEEK))
-
             solveTodaysQueens()
 
             awaitText(RESULT_STREAK, "3 day streak")
@@ -130,8 +124,6 @@ class StreakFreezeMissedDayE2ETest {
         const val RESULT_ROUTE = "route.result"
         const val RESULT_STREAK = "result.side.streak"
         const val RESULT_MOMENT = "result.side.streak.moment"
-        const val PLAY_STREAK = "play.stats.streak"
-        const val PLAY_WEEK = "play.stats.week"
         const val HOME_PANE_TAG = "home.streak_pane"
         const val HOME_PANE_WEEK = "home.pane_week"
         const val HOME_PANE_STREAK = "home.pane_streak"

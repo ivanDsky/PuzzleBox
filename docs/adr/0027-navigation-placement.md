@@ -60,7 +60,7 @@ becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag w
    - A summary tap switches to the owner's tab and resets it to its root. Back from that root returns to Today.
    - Every summary targets an owner's tab root. Routing to an owner that is pushed on a tab (not a root) lands with its
      first caller.
-   - *(Amended 2026-11-16, nav rethink N7; dark behind the `NavDoors` flag until it ships.)* Profile and Settings sit
+   - *(Amended 2026-11-16, nav rethink N7; shipped in 0.33.0; the nav-doors flag was removed.)* Profile and Settings sit
      in a layer above the tabs, not on the current tab's stack. The avatar opens the layer at Profile, over whatever
      the current tab shows, and no tab's stack ever holds Profile, so it cannot reappear when the user comes back to
      a tab. Settings opens from the gear at Profile's top right and sits on top of Profile inside the layer, so Back

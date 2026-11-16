@@ -22,7 +22,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -30,15 +29,15 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 /**
  * Expanded-width detail pane: streak & stats until a recent day is selected, then that day.
  * [onOpenStreak] and [onOpenDay] (an ISO day) are the doors to Ranks from the streak pane and from
- * the day's link (nav rethink N2-N4); null keeps each plain.
+ * the day's link (nav rethink N2-N4).
  */
 @Composable
 internal fun DetailPane(
     selected: HistoryDay?,
     state: HomeUiState,
+    onOpenStreak: () -> Unit,
+    onOpenDay: (String) -> Unit,
     modifier: Modifier = Modifier,
-    onOpenStreak: (() -> Unit)? = null,
-    onOpenDay: ((String) -> Unit)? = null,
 ) {
     val risePx = with(LocalDensity.current) { MotionTokens.MixTabRise.roundToPx() }
     val background = MaterialTheme.colorScheme.background
@@ -74,7 +73,7 @@ internal fun DetailPane(
 @Composable
 private fun DayDetail(
     day: HistoryDay,
-    onOpenDay: ((String) -> Unit)?,
+    onOpenDay: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -95,21 +94,11 @@ private fun DayDetail(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (onOpenDay != null) {
-            // Ranks owns the history: it offers "Play this day" for a game not played yet.
-            OutlinedButton(
-                onClick = { onOpenDay(day.isoDay) },
-                modifier = Modifier.heightIn(min = 48.dp).testTag("home.day_open_ranks"),
-            ) { Text("See this day in Ranks") }
-        } else {
-            Text(
-                text = "You can play this day again from History.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = Spacing.xl),
-            )
-        }
+        // Ranks owns the history: it offers "Play this day" for a game not played yet.
+        OutlinedButton(
+            onClick = { onOpenDay(day.isoDay) },
+            modifier = Modifier.heightIn(min = 48.dp).testTag("home.day_open_ranks"),
+        ) { Text("See this day in Ranks") }
         Spacer(Modifier.weight(1f))
     }
 }

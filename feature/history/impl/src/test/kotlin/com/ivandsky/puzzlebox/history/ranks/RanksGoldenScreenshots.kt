@@ -57,7 +57,7 @@ abstract class RanksGoldenScreenshots(private val device: String) {
 
     internal fun capture(name: String, state: RanksUiState, dark: Boolean, layout: HistoryLayout = HistoryLayout.SinglePane) {
         rule.showGolden(dark) {
-            RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), layout = layout)
+            RanksScreen(state, RanksActions(onSignIn = {}, onSwipe = {}), layout = layout, tuneDefaults = previewTuneDefaults())
         }
         rule.settleAndCapture("ranks", name, device, dark)
     }

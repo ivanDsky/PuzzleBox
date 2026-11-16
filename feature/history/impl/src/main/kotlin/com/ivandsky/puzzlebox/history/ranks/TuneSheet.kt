@@ -24,8 +24,8 @@ import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 /**
  * The tune sheet: who the board ranks ([scope], Global or Friends) and over what span ([window], a day, the
  * week or the month of the picked day). A tap reports through [onScope] / [onWindow] and the sheet stays open,
- * so the board behind it can be watched changing; [onDismiss] closes it. With [defaults] a Defaults block sits under
- * them ([TuneDefaultsBlock]); without it the sheet offers only Who and When.
+ * so the board behind it can be watched changing; [onDismiss] closes it. [defaults] is the Defaults block under
+ * them ([TuneDefaultsBlock]).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,11 +35,11 @@ internal fun TuneSheet(
     onScope: (RankScope) -> Unit,
     onWindow: (Window) -> Unit,
     onDismiss: () -> Unit,
+    defaults: RanksTuneDefaults,
     modifier: Modifier = Modifier,
-    defaults: RanksTuneDefaults? = null,
 ) {
-    // The taller sheet opens whole instead of half way, so the Defaults block is not cut off.
-    val state = rememberModalBottomSheetState(skipPartiallyExpanded = defaults != null)
+    // The sheet opens whole instead of half way, so the Defaults block is not cut off.
+    val state = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("ranks.tune.sheet"), sheetState = state) {
         TuneChoices(scope, window, onScope, onWindow, defaults)
     }
@@ -51,7 +51,7 @@ private fun TuneChoices(
     window: Window,
     onScope: (RankScope) -> Unit,
     onWindow: (Window) -> Unit,
-    defaults: RanksTuneDefaults?,
+    defaults: RanksTuneDefaults,
 ) {
     Column(
         Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
@@ -80,7 +80,7 @@ private fun TuneChoices(
             tag = { "ranks.tune.window.${it.name}" },
             modifier = Modifier.fillMaxWidth(),
         )
-        if (defaults != null) TuneDefaultsBlock(defaults)
+        TuneDefaultsBlock(defaults)
     }
 }
 
@@ -88,6 +88,6 @@ private fun TuneChoices(
 @Composable
 private fun TuneChoicesPreview() {
     RanksPreviewHost {
-        TuneChoices(RankScope.Friends, Window.Week, onScope = {}, onWindow = {}, defaults = null)
+        TuneChoices(RankScope.Friends, Window.Week, onScope = {}, onWindow = {}, defaults = previewTuneDefaults())
     }
 }

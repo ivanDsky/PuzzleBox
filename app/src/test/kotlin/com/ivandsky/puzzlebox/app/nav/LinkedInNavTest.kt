@@ -37,6 +37,7 @@ class LinkedInNavTest {
             playLayout = PlayLayout.SinglePane,
             historyLayout = HistoryLayout.SinglePane,
             visibility = VisibilitySlot(flowOf(OwnTier.Unset)) {},
+            tuneDefaults = testTuneDefaults(),
         ).invoke(LinkedInLoginKey)
         assertTrue("got ${entry.contentKey}", entry.contentKey.toString().contains(LinkedInLoginKey.toString()))
     }

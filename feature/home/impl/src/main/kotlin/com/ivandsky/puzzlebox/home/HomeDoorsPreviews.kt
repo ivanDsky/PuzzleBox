@@ -23,7 +23,7 @@ private val DoorsRecent = listOf(
     HistoryDay("2026-11-03", "November 3", listOf(HistoryDay.GameResult("Zip", GameBrand.Neutral, "1:05"))),
 )
 
-// Preview: the phone streak card and Recent rows with the NavDoors callbacks set, at the 360 dp floor.
+// Preview: the phone streak card and Recent rows with the doors to Ranks, at the 360 dp floor.
 @PuzzleBoxPreviews
 @Composable
 internal fun HomeDoorsPhonePreview() {

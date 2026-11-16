@@ -111,7 +111,7 @@ class HomeRouteTest {
                 HomeRoute(
                     layout = HomeLayout.SinglePane,
                     onOpenGame = onOpenGame,
-                    summaries = HomeSummaries(onOpenRank = null, duels = null),
+                    summaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}),
                     title = "Today",
                 )
             }
@@ -210,7 +210,7 @@ class HomeRouteTest {
             homeEntry(
                 navigator,
                 HomeLayout.SinglePane,
-                summaries = HomeSummaries(onOpenRank = null, duels = null),
+                summaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}),
                 title = "Today",
             )
         }
@@ -315,7 +315,7 @@ class HomeRouteTest {
                     HomeRoute(
                         layout = HomeLayout.SinglePane,
                         onOpenGame = {},
-                        summaries = HomeSummaries(onOpenRank = null, duels = null),
+                        summaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}),
                         title = "Today",
                     )
                 }
@@ -348,7 +348,7 @@ class HomeRouteTest {
                     HomeRoute(
                         layout = HomeLayout.SinglePane,
                         onOpenGame = {},
-                        summaries = HomeSummaries(onOpenRank = null, duels = null),
+                        summaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}),
                         title = "Today",
                     )
                 }

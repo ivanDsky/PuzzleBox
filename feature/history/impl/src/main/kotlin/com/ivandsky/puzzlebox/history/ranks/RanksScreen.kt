@@ -43,7 +43,7 @@ internal fun RanksScreen(
     playerSheet: PlayerSheetViewModel.State? = null,
     replayOptIn: Boolean = false,
     refreshing: Boolean = false,
-    tuneDefaults: RanksTuneDefaults? = null,
+    tuneDefaults: RanksTuneDefaults,
 ) {
     val shown = rememberHeldBoard(state)
     val source = remember(shown.board) { state }
@@ -99,7 +99,7 @@ private fun RanksPhone(
     scroll: ScrollState,
     onRowClick: ((DailyBoardRowModel) -> Unit)?,
     refreshing: Boolean,
-    tuneDefaults: RanksTuneDefaults?,
+    tuneDefaults: RanksTuneDefaults,
 ) {
     var tuning by rememberSaveable { mutableStateOf(false) }
     var howRanksWork by rememberSaveable { mutableStateOf(false) }
@@ -109,7 +109,7 @@ private fun RanksPhone(
         Box(Modifier.fillMaxSize()) {
             FillRemainingColumn(Modifier.fillMaxSize().testTag("route.ranks").verticalScroll(scroll)) {
                 Column(Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg)) {
-                    RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }, onLabel = { tuning = true }.takeIf { actions.tuneLabelOpensSheet }) {
+                    RanksTopBar(tuneLabel(state.scope, state.window), onTune = { tuning = true }) {
                         RanksTitleMenu(current?.name ?: "Ranks", state.places, current?.board, actions.onPickBoard, onHowRanksWork = { howRanksWork = true }, scrub = scrub)
                     }
                     RanksCalendar(state.calendar, state.stats, actions.onShowCalendar, actions.onSelectDay)

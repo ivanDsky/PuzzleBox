@@ -69,7 +69,7 @@ internal fun HomeStreakPanePreview() {
     val stats = GameStats(12, 21, 1_234, 980, 96_000L, LocalDate.of(2025, 3, 14), best = null, rankOrder = RankOrder.TimeThenHints)
     PuzzleBoxTheme {
         Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.sm)) {
-            HomeStreakPane(state = paneState(PaneRows, stats), modifier = Modifier.width(768.dp))
+            HomeStreakPane(state = paneState(PaneRows, stats), onOpenStreak = {}, onOpenDay = {}, modifier = Modifier.width(768.dp))
         }
     }
 }
@@ -82,7 +82,7 @@ internal fun HomeStreakPaneEmptyPreview() {
     val rows = PaneRows.map { it.copy(best = null, status = TodayStatus.NotStarted) }
     PuzzleBoxTheme {
         Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.sm)) {
-            HomeStreakPane(state = paneState(rows, stats).copy(week = paneState(rows, stats).week.map { it.copy(solved = emptyList()) }), modifier = Modifier.width(768.dp))
+            HomeStreakPane(state = paneState(rows, stats).copy(week = paneState(rows, stats).week.map { it.copy(solved = emptyList()) }), onOpenStreak = {}, onOpenDay = {}, modifier = Modifier.width(768.dp))
         }
     }
 }
@@ -106,7 +106,7 @@ internal fun frozenState(): HomeUiState {
 internal fun HomeStreakPaneFrozenPreview() {
     PuzzleBoxTheme {
         Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.sm)) {
-            HomeStreakPane(state = frozenState(), modifier = Modifier.width(768.dp))
+            HomeStreakPane(state = frozenState(), onOpenStreak = {}, onOpenDay = {}, modifier = Modifier.width(768.dp))
         }
     }
 }
@@ -118,7 +118,7 @@ internal fun HomeStreakCardFrozenPreview() {
     val state = frozenState()
     PuzzleBoxTheme {
         Box(Modifier.background(MaterialTheme.colorScheme.background).padding(Spacing.lg).width(360.dp)) {
-            HomeStreakSection(stats = state.stats, freezesHeld = state.freezesHeld, week = state.week, total = state.today.size)
+            HomeStreakSection(stats = state.stats, freezesHeld = state.freezesHeld, week = state.week, total = state.today.size, onOpenStreak = {}, onOpenDay = {})
         }
     }
 }

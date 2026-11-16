@@ -110,6 +110,7 @@ class RanksTwoPaneTest {
                     state,
                     RanksActions(onSignIn = {}, onSwipe = { steps += it }, onPickBoard = onPickBoard, onShowCalendar = onShowCalendar),
                     layout = HistoryLayout.TwoPane,
+                    tuneDefaults = previewTuneDefaults(),
                 )
             }
         }
@@ -157,8 +158,8 @@ class RanksTwoPaneTest {
     fun `the hero card gives the viewer's place on the shown board and their score`() {
         show()
 
-        composeRule.onNodeWithTag("ranks.hero.place").assertTextEquals("#2")
-        composeRule.onNodeWithTag("ranks.hero.score").assertIsDisplayed()
+        composeRule.onNodeWithTag("ranks.hero.place", useUnmergedTree = true).assertTextEquals("#2")
+        composeRule.onNodeWithTag("ranks.hero.score", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag("ranks.hero").assertIsDisplayed()
     }
 
@@ -166,7 +167,7 @@ class RanksTwoPaneTest {
     fun `a board with no place says so in the hero card`() {
         show(position = 2)
 
-        composeRule.onNodeWithTag("ranks.hero.place").assertTextEquals("—")
+        composeRule.onNodeWithTag("ranks.hero.place", useUnmergedTree = true).assertTextEquals("—")
     }
 
     @Test
