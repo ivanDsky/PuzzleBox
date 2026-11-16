@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.Completion
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.DraftCompleter
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
@@ -83,11 +84,15 @@ open class FakeGameEditor(
  * [FakeGameEditor] with the Finish for me capability (E1): a board with marks is Ready, a blank
  * one needs more, and a completion keeps every mark and adds one to nine from the injected
  * [Random] (so the marks stay a byte). Tests swap [readinessOf] and [completionOf] for a
- * completer that gives up, blocks until its budget is spent or counts its calls.
+ * completer that gives up, blocks until its budget is spent or counts its calls; [targets] holds
+ * the level each call was asked for.
  */
-class FakeDraftCompleter(
+open class FakeDraftCompleter(
     gameId: GameId = GameId("fake"),
 ) : FakeGameEditor(gameId), DraftCompleter<TestDraft> {
+
+    /** The level every [complete] was asked to aim for, in call order; null is "any". */
+    val targets = mutableListOf<Difficulty.Level?>()
 
     /** Every board [complete] was asked to finish, in call order: the author's pieces each time. */
     val completed = mutableListOf<TestDraft>()
@@ -102,8 +107,9 @@ class FakeDraftCompleter(
 
     override fun readiness(draft: TestDraft): FinishReadiness = readinessOf(draft)
 
-    override fun complete(draft: TestDraft, random: Random, budget: Budget): Completion<TestDraft> {
+    override fun complete(draft: TestDraft, random: Random, budget: Budget, target: Difficulty.Level?): Completion<TestDraft> {
         completed += draft
+        targets += target
         return completionOf(draft, random, budget)
     }
 }

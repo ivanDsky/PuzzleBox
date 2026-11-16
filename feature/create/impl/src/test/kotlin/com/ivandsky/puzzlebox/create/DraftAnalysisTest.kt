@@ -5,7 +5,9 @@ import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.GameEditor
+import com.ivandsky.puzzlebox.game.editor.GradingMode
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -31,8 +33,9 @@ class DraftAnalysisTest {
     val mainRule = MainDispatcherRule()
 
     private val fake = FakeGameEditor(GameId("fake"))
+    private val scored = FakeScoredGrader(GameId("scored"))
     private val bare = GameId("bare")
-    private val games = GameRegistry(listOf(withEditor(fake), TestGames.plugin(bare)))
+    private val games = GameRegistry(listOf(withEditor(fake), withEditor(scored), TestGames.plugin(bare)))
 
     private val lanes = object : DispatcherProvider {
         override val main: CoroutineDispatcher = mainRule.testDispatcher
@@ -88,6 +91,25 @@ class DraftAnalysisTest {
         assertTrue(orphan.stamp() in analysis.verdicts.value)
         assertNull(analysis.verdicts.value.getValue(orphan.stamp()))
         assertTrue(fake.analyzed.isEmpty())
+    }
+
+    @Test
+    fun `a chip is graded by score when asked, the legacy way otherwise`() = runTest(mainRule.testDispatcher) {
+        scored.levelOf = { Difficulty.Level.Expert }
+        val row = draft("s", minutesAgo = 1, marks = 4, game = scored.gameId)
+
+        val byScore = DraftAnalysis(backgroundScope, games, lanes, grading = { GradingMode.Scored })
+        byScore.analyzeNew(listOf(row))
+        runCurrent()
+        assertEquals(
+            Difficulty(Difficulty.Level.Expert, score = 4, hardestRung = null),
+            (byScore.verdicts.value.getValue(row.stamp()) as Verdict.Unique).difficulty,
+        )
+
+        val legacy = DraftAnalysis(backgroundScope, games, lanes)
+        legacy.analyzeNew(listOf(row))
+        runCurrent()
+        assertNull((legacy.verdicts.value.getValue(row.stamp()) as Verdict.Unique).difficulty)
     }
 
     private fun Draft.stamp() = DraftStamp(id, updatedAt)

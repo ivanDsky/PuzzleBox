@@ -3,6 +3,9 @@ package com.ivandsky.puzzlebox.create.editor
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.create.TestDraft
 import com.ivandsky.puzzlebox.create.FakeGameEditor
+import com.ivandsky.puzzlebox.create.FakeScoredGrader
+import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.game.editor.GradingMode
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import kotlin.coroutines.CoroutineContext
@@ -90,6 +93,25 @@ class VerdictPipelineTest {
         runCurrent()
         assertEquals(listOf(true), onDefault)
         assertEquals(Verdict.Unique(Solution(listOf(3))), pipeline.verdict.value)
+    }
+
+    @Test
+    fun `a Unique board is graded by score when the Studio asks, the legacy way otherwise`() = runTest {
+        val scored = FakeScoredGrader().apply { levelOf = { Difficulty.Level.Hard } }
+        var mode = GradingMode.Scored
+        val pipeline = VerdictPipeline(backgroundScope, lanes(), { testScheduler.currentTime * NANOS_PER_MS }, grading = { mode })
+
+        pipeline.submit(scored.draft(3))
+        settle()
+        assertEquals(
+            Difficulty(Difficulty.Level.Hard, score = 3, hardestRung = null),
+            (pipeline.verdict.value as Verdict.Unique).difficulty,
+        )
+
+        mode = GradingMode.Legacy
+        pipeline.recheck(scored.draft(3))
+        settle()
+        assertEquals("each solve asks again", null, (pipeline.verdict.value as Verdict.Unique).difficulty)
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.tango.editor
 
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.Completion
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.DraftCompleter
 import com.ivandsky.puzzlebox.game.editor.FinishReadiness
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
@@ -47,9 +48,10 @@ object TangoCompleter : DraftCompleter<TangoDraft> {
 
     /**
      * GaveUp when no grid holds the pieces, which includes givens that break a rule
-     * ([TangoPinnedFill] refuses them before it searches), or once [budget] is spent.
+     * ([TangoPinnedFill] refuses them before it searches), or once [budget] is spent. [target] is not
+     * aimed for yet: every board is "any" until Tango has its scored grader (93).
      */
-    override fun complete(draft: TangoDraft, random: Random, budget: Budget): Completion<TangoDraft> {
+    override fun complete(draft: TangoDraft, random: Random, budget: Budget, target: Difficulty.Level?): Completion<TangoDraft> {
         val answer = TangoPinnedFill.fill(puzzle(draft, draft.givens), random, budget) ?: return Completion.GaveUp
         val givens = draft.givens.toMutableMap()
         while (true) {

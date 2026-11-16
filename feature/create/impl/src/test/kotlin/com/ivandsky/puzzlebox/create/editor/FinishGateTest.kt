@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -43,8 +44,10 @@ class FinishGateTest {
             scope = CoroutineScope(dispatcher + Job()),
             dispatchers = lanes,
             random = Random(1),
+            choice = FinishLevelChoice(),
             board = { pieces },
             verdict = { verdict },
+            settled = MutableStateFlow(Verdict.Checking),
             locked = { locked },
             land = { landed += it },
         )

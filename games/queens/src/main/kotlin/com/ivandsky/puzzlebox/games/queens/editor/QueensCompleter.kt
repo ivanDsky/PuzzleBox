@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.queens.editor
 
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.Completion
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.DraftCompleter
 import com.ivandsky.puzzlebox.game.editor.FinishReadiness
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
@@ -59,7 +60,8 @@ object QueensCompleter : DraftCompleter<QueensDraft> {
         return if (missing > 0) FinishReadiness.NeedsMore(IncompleteReason(STARTED, missing)) else FinishReadiness.Ready
     }
 
-    override fun complete(draft: QueensDraft, random: Random, budget: Budget): Completion<QueensDraft> {
+    /** [target] is not aimed for yet: every board is "any" until Queens has its scored grader (91). */
+    override fun complete(draft: QueensDraft, random: Random, budget: Budget, target: Difficulty.Level?): Completion<QueensDraft> {
         if (QueensCrowns.conflicts(draft).isNotEmpty()) return Completion.GaveUp
         val board = finish(draft, random, budget) ?: recrowned(draft, random, budget) ?: return Completion.GaveUp
         return Completion.Done(board)

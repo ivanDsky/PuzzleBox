@@ -15,9 +15,21 @@ interface DraftCompleter<D : Any> {
     fun readiness(draft: D): FinishReadiness
 
     /**
-     * A completion of [draft]: every piece the author placed is kept, and the board is only ever
-     * returned when its analysis is Unique (and, on the ladder games, not needs-guessing). Polls
-     * [budget] in its loop; [Completion.GaveUp] when it is spent or no completion was found.
+     * A completion of [draft]: the board is only ever returned when its analysis is Unique (and, on
+     * the ladder games, not needs-guessing). Polls [budget] in its loop; [Completion.GaveUp] when it
+     * is spent, or the search ended, with no such board found.
+     *
+     * [target] is the level the author asked for (90); null is "any", the first board found. A
+     * completer aims for the target within [budget] (see [FinishBudget]), grading each board it
+     * finds on the scale of its [ScoredGrader]. When it cannot hit the target it returns the
+     * closest graded board it found as [Completion.Done], never [Completion.GaveUp] just for
+     * missing the level; the caller sees the miss in the board's scored verdict.
+     * [ClosestCompletion] holds that rule.
+     *
+     * Every piece the author placed is kept, with one exception (63b): a Queens board painted by
+     * hand, full or nearly full, often has no unique completion that keeps every painted cell, so
+     * Queens may repaint cells the author painted and, when no answer can hold every crown, move a
+     * crown along its row.
      */
-    fun complete(draft: D, random: Random, budget: Budget): Completion<D>
+    fun complete(draft: D, random: Random, budget: Budget, target: Difficulty.Level? = null): Completion<D>
 }

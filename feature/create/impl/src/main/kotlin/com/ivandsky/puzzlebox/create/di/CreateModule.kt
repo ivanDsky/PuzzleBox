@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.create.CreateViewModel
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.create.editor.EditorViewModel
+import com.ivandsky.puzzlebox.create.editor.FinishLevelChoice
 import com.ivandsky.puzzlebox.create.published.PublishedPuzzleViewModel
 import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
 import com.ivandsky.puzzlebox.domain.SyncSolvesCounts
@@ -34,7 +35,9 @@ private val DraftSaves = named("create.draftSaves")
 val createModule: Module = module {
     // Process lifetime on main, like Play's slot writes: leaving the Studio never cancels its last save.
     single(DraftSaves) { CoroutineScope(SupervisorJob() + get<DispatcherProvider>().main) } onClose { it?.cancel() }
-    viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), get(), get(), syncSolves = get(), sharedText = get(), clock = { Instant.now() }, cloudSync = get()) }
+    viewModel { CreateViewModel(get(), get(), get(), get(), get(), get(), get(), get(), syncSolves = get(), sharedText = get(), clock = { Instant.now() }, cloudSync = get(), releaseFlags = get()) }
+    // The Finish level the author last chose (90): one for the process, so every Studio opens its picker on it.
+    single { FinishLevelChoice() }
     factory { SyncSolvesCounts(published = get(), boards = get(), clock = { Instant.now() }) }
     factory {
         CreateSharedPuzzle(
@@ -61,6 +64,7 @@ val createModule: Module = module {
             preferences = get(),
             validatePublish = get(),
             releaseFlags = get(),
+            finishLevel = get(),
         )
     }
     viewModel { (key: PublishedPuzzleKey) ->
