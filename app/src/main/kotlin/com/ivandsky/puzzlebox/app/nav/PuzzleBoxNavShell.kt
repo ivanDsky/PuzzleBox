@@ -47,6 +47,7 @@ import org.koin.compose.koinInject
  * and saves; at activity stop it [PlaySessionStore.flush]es every live play, so a pending
  * throttled save is never lost.
  *
+ * [tabSet] is the app graph's tab set: the canvas and the owner doors read placement through it.
  * [codeDraft] and [onCodeDraftTaken] reach the Play library: a draft opens its code sheet.
  * [libraryRequests] is the one-shot Games request: Games reads its pending value and takes it.
  * [duels], when given, adds the Duels tab and
@@ -58,6 +59,7 @@ import org.koin.compose.koinInject
 @Composable
 internal fun PuzzleBoxNavShell(
     navigator: Navigator,
+    tabSet: TabSet,
     homeLayout: HomeLayout,
     playLayout: PlayLayout,
     historyLayout: HistoryLayout,
@@ -85,6 +87,7 @@ internal fun PuzzleBoxNavShell(
         state = navigator.state,
         entryProvider = puzzleBoxEntryProvider(
             navigator = navigator,
+            tabSet = tabSet,
             homeLayout = homeLayout,
             playLayout = playLayout,
             historyLayout = historyLayout,
@@ -96,6 +99,7 @@ internal fun PuzzleBoxNavShell(
             tuneDefaults = tuneDefaults,
         ).withHintCooldown(),
         shellChrome = shellChrome,
+        placement = tabSet.placement,
     )
     val motion = remember { mutableStateOf(NavMotion.Idle) }
     // The board that lifted in last: only it shrinks back into a card on its pop.

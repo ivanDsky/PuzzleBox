@@ -7,6 +7,7 @@ import androidx.navigation3.runtime.serialization.NavBackStackSerializer
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import com.ivandsky.puzzlebox.app.nav.Home
+import com.ivandsky.puzzlebox.app.nav.PlacementDelta
 import com.ivandsky.puzzlebox.app.nav.Tab
 import com.ivandsky.puzzlebox.app.nav.TopLevelDestination
 import com.ivandsky.puzzlebox.app.nav.placementOf
@@ -55,7 +56,7 @@ class NavKeySavedStateTest {
         )
     }
 
-    private fun homeTab(key: NavKey): Tab? = when (val home = placementOf(key).home) {
+    private fun homeTab(key: NavKey): Tab? = when (val home = placementOf(key, PlacementDelta.None).home) {
         is Home.TabRoot -> home.tab
         is Home.PushedOn -> home.tab
         Home.Shell, Home.DebugOnly -> null

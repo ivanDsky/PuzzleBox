@@ -21,7 +21,7 @@ class LibraryRequestsTest {
         val navigator = todayNavigator()
         val requests = LibraryRequests()
 
-        requests.openGamesSection(navigator, GamesTab.Duels)
+        requests.openGamesSection(navigator, TabSet.FourTabs, GamesTab.Duels)
 
         assertEquals(PlayKey, navigator.state.tab)
         assertEquals(listOf<Any>(PlayKey), navigator.state.currentStack)
@@ -33,7 +33,7 @@ class LibraryRequestsTest {
     @Test
     fun `take clears the pending request`() {
         val requests = LibraryRequests()
-        requests.openGamesSection(todayNavigator(), GamesTab.Duels)
+        requests.openGamesSection(todayNavigator(), TabSet.FourTabs, GamesTab.Duels)
 
         requests.take()
 

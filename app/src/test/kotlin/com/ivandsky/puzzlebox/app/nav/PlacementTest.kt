@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.app.nav
 
 import androidx.navigation3.runtime.NavKey
+import com.ivandsky.puzzlebox.app.PlacementSamples
+import com.ivandsky.puzzlebox.create.api.EditorKey
+import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
@@ -112,8 +115,24 @@ class PlacementTest {
     }
 
     @Test
+    fun `every registered key resolves under both flag states, and only the Studio and the published page move`() {
+        val keys = PlacementSamples.everyRow()
+        assertEquals("a registered key has no sample to resolve", registeredKeyClasses(), keys.map { it::class }.toSet())
+        val base = keys.associate { it::class to placements.getValue(it::class) }
+
+        assertEquals(base, keys.associate { it::class to placementOf(it, PlacementDelta.None) })
+        assertEquals(
+            base + mapOf(
+                EditorKey::class to Placement(Home.PushedOn(Tab.Games), Chrome.Immersive),
+                PublishedPuzzleKey::class to Placement(Home.PushedOn(Tab.Games), Chrome.Bar),
+            ),
+            keys.associate { it::class to placementOf(it, customInGamesPlacement) },
+        )
+    }
+
+    @Test
     fun `a key without a row fails with a message that names it`() {
-        val failure = assertThrows(IllegalStateException::class.java) { placementOf(NoRow) }
+        val failure = assertThrows(IllegalStateException::class.java) { placementOf(NoRow, PlacementDelta.None) }
 
         assertTrue(
             "expected the message to name NoRow, got: ${failure.message}",

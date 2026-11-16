@@ -21,14 +21,15 @@ internal class LibraryRequests(initial: LibraryRequest? = null) {
     var pending: LibraryRequest? by mutableStateOf(initial)
         private set
 
-    fun openGamesSection(navigator: Navigator, tab: GamesTab) = open(navigator, LibraryRequest.Section(tab))
+    fun openGamesSection(navigator: Navigator, tabSet: TabSet, tab: GamesTab) =
+        open(navigator, tabSet, LibraryRequest.Section(tab))
 
     fun take() {
         pending = null
     }
 
-    private fun open(navigator: Navigator, request: LibraryRequest) {
-        navigator.openOwner(PlayKey)
+    private fun open(navigator: Navigator, tabSet: TabSet, request: LibraryRequest) {
+        navigator.openOwner(PlayKey, tabSet)
         pending = request
     }
 

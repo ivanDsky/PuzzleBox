@@ -466,7 +466,7 @@ class NavTransitionsTest {
                                 entryProvider = { key ->
                                     NavEntry(key) {
                                         val color = if (key == PAGE_A) Color.Blue else Color.Red
-                                        SceneCanvas(entryKey = null) {
+                                        SceneCanvas(entryKey = null, placement = PlacementDelta.None) {
                                             Box(Modifier.fillMaxSize().background(color).testTag(tagOf(key)))
                                         }
                                     }

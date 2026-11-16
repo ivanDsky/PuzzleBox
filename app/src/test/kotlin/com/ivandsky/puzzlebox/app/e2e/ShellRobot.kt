@@ -47,12 +47,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.nav.NAVIGATION_STATE_KEY
+import com.ivandsky.puzzlebox.app.nav.TabSetSource
 import com.ivandsky.puzzlebox.app.nav.TopLevelDestination
 import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
-import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -87,18 +87,19 @@ import org.robolectric.Shadows.shadowOf
 /**
  * Runs [block] against the real app shell — [PuzzleBoxApp], its Navigator, NavDisplay and
  * every feature entry — over [graph] (the production Koin modules with fakes on the
- * edges), starting at [state]. The width class comes from the real window, so a row's
- * `@Config(qualifiers = …)` picks bar or rail. [destinations] is the tab set the shell
- * shows. The caller's test class runs on Robolectric with [DrainTestApplication]
+ * edges), starting at [state], or at the shell's own fresh state when null. The width class
+ * comes from the real window, so a row's `@Config(qualifiers = …)` picks bar or rail.
+ * [destinations] is the tab set the robot expects on screen: the graph's own ([TabSetSource])
+ * when null. The caller's test class runs on Robolectric with [DrainTestApplication]
  * (`@Config(application = DrainTestApplication::class)`): a plain `Application`, so the merged
  * manifest's application never starts a second Koin, that also idles the main looper after every
  * test, before Robolectric's looper reset drops Compose's pending dispatch.
  */
 internal fun shellRobot(
-    state: NavigationState = puzzleBoxNavigationState(),
+    state: NavigationState? = null,
     today: LocalDate = E2E_TODAY,
     graph: E2eKoinGraph = E2eKoinGraph(today),
-    destinations: List<TopLevelDestination> = topLevelDestinations,
+    destinations: List<TopLevelDestination>? = null,
     darkTheme: Boolean = false,
     flatSurfaces: Boolean = false,
     block: ShellRobot.() -> Unit,
@@ -143,11 +144,14 @@ internal fun tabAt(tab: NavKey, vararg pushed: NavKey): NavigationState {
  */
 class ShellRobot internal constructor(
     val graph: E2eKoinGraph,
-    private val initial: NavigationState,
-    private val destinations: List<TopLevelDestination>,
+    private val initial: NavigationState?,
+    destinations: List<TopLevelDestination>?,
     private val darkTheme: Boolean = false,
     private val flatSurfaces: Boolean = false,
 ) {
+    // The started graph's tab set: the one the shell under test resolves.
+    private val tabSet = graph.koin.get<TabSetSource>().tabSet
+    private val destinations = destinations ?: tabSet.destinations
     val rule = createAndroidComposeRule<ComponentActivity>()
 
     private val restoration = StateRestorationTester(rule)
@@ -185,7 +189,7 @@ class ShellRobot internal constructor(
             PuzzleBoxTheme(darkTheme = darkTheme, flatSurfaces = flatSurfaces) {
                 PuzzleBoxApp(
                     windowWidthSizeClass = calculateWindowSizeClass(rule.activity).widthSizeClass,
-                    navigator = rememberNavigator(initial).also { navigator = it },
+                    navigator = (if (initial != null) rememberNavigator(initial) else rememberNavigator()).also { navigator = it },
                 )
             }
         }
@@ -606,7 +610,7 @@ class ShellRobot internal constructor(
      */
     fun assertChromeFor(rail: Boolean) {
         val top = state.layer.lastOrNull() ?: state.currentStack.last()
-        val shown = if (rail) !isImmersive(top) else top == HomeKey
+        val shown = if (rail) !isImmersive(top, tabSet.placement) else top == HomeKey
         if (shown) assertChromeActions() else assertNoChromeActions()
         if (shown && rail) {
             val avatar = rule.onNodeWithTag(AVATAR).fetchSemanticsNode().boundsInRoot
@@ -683,7 +687,7 @@ class ShellRobot internal constructor(
 
     /** Immersive play, as the shell decides it: the selected tab's top is immersive ([isImmersive]). */
     private val NavigationState.immersive: Boolean
-        get() = isImmersive(currentStack.last())
+        get() = isImmersive(currentStack.last(), tabSet.placement)
 
     private companion object {
         const val TIMEOUT_MS = 5_000L

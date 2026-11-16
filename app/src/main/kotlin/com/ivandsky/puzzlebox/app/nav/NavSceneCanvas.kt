@@ -40,7 +40,7 @@ internal val LocalChromePadding = compositionLocalOf { PaddingValues(0.dp) }
 internal val LocalNavMotion = compositionLocalOf<State<NavMotion>> { mutableStateOf(NavMotion.Idle) }
 
 /**
- * Every nav scene's canvas. An immersive scene ([isImmersive]: a board or a result, a duel's
+ * Every nav scene's canvas. An immersive scene ([isImmersive] under [placement]: a board or a result, a duel's
  * leg board or result, or a duel's reveal) is full-window and opaque, insetting only its
  * content; a board is also the target its card
  * lifts into. Any other scene paints opaque inside [LocalChromePadding] only. While this scene
@@ -48,7 +48,7 @@ internal val LocalNavMotion = compositionLocalOf<State<NavMotion>> { mutableStat
  * start during a slide, the whole window during a lift.
  */
 @Composable
-internal fun SceneCanvas(entryKey: Any?, content: @Composable () -> Unit) {
+internal fun SceneCanvas(entryKey: Any?, placement: PlacementDelta, content: @Composable () -> Unit) {
     val scope = LocalNavAnimatedContentScope.current
     val motion by LocalNavMotion.current
     val transition = scope.transition
@@ -58,7 +58,7 @@ internal fun SceneCanvas(entryKey: Any?, content: @Composable () -> Unit) {
     ) { state -> if (state == EnterExitState.Visible) 1f else 0f }
     val scrim = MaterialTheme.colorScheme.scrim
     val background = MaterialTheme.colorScheme.background
-    val immersive = (entryKey as? NavKey)?.let { isImmersive(it) } == true
+    val immersive = (entryKey as? NavKey)?.let { isImmersive(it, placement) } == true
     Box(
         Modifier
             .fillMaxSize()

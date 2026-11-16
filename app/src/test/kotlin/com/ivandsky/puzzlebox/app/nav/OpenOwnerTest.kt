@@ -56,7 +56,7 @@ class OpenOwnerTest {
     fun `back from the owner root reaches Today`() {
         val navigator = Navigator(stacks(PlayKey, play = listOf(PlayKey, GameKey("zip"))))
 
-        navigator.openOwner(HistoryRootKey)
+        navigator.openOwner(HistoryRootKey, TabSet.FourTabs)
         navigator.pop()
 
         assertEquals(HomeKey, navigator.state.tab)
@@ -106,7 +106,7 @@ class OpenOwnerTest {
     }
 
     private fun NavigationState.opening(key: NavKey): NavigationState =
-        Navigator(this).apply { openOwner(key) }.state
+        Navigator(this).apply { openOwner(key, TabSet.FourTabs) }.state
 
     private fun stacks(
         tab: NavKey,

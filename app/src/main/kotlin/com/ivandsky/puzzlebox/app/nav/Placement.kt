@@ -104,9 +104,12 @@ internal val placementRows: List<PlacementRow> = listOf(
 /** [placementRows] by key class. */
 internal val placements: Map<KClass<out NavKey>, Placement> = placementRows.associate { it.key to it.placement }
 
-/** [key]'s row; a key without one is a programming error. */
-internal fun placementOf(key: NavKey): Placement =
-    checkNotNull(placements[key::class]) {
+/**
+ * [key]'s placement: [delta]'s override when it moves the key, else the key's base row. A key without a base row
+ * is a programming error.
+ */
+internal fun placementOf(key: NavKey, delta: PlacementDelta): Placement =
+    delta[key::class] ?: checkNotNull(placements[key::class]) {
         "${key::class.qualifiedName} has no placement row. Add a PlacementRow to placementRows in " +
             "app/src/main/kotlin/com/ivandsky/puzzlebox/app/nav/Placement.kt (see docs/adr/0027-navigation-placement.md)."
     }

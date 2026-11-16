@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.app.nav.PuzzleBoxNavShell
 import com.ivandsky.puzzlebox.app.nav.ShellAvatar
 import com.ivandsky.puzzlebox.app.nav.ShellAvatarSize
 import com.ivandsky.puzzlebox.app.nav.TabRef
+import com.ivandsky.puzzlebox.app.nav.TabSetSource
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavBar
 import com.ivandsky.puzzlebox.app.nav.TopLevelNavRail
 import com.ivandsky.puzzlebox.app.nav.applyFriendLink
@@ -40,10 +41,8 @@ import com.ivandsky.puzzlebox.app.nav.chromeMotion
 import com.ivandsky.puzzlebox.app.nav.chromePadding
 import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.app.nav.playTabBadged
-import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
-import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
 import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
@@ -66,7 +65,9 @@ import kotlinx.coroutines.flow.map
 import org.koin.compose.koinInject
 
 /**
- * The app shell: tab bar (or rail) beneath [PuzzleBoxNavShell]. The highlight is the
+ * The app shell: tab bar (or rail) beneath [PuzzleBoxNavShell]. The tabs and the placement that
+ * goes with them are the app graph's tab set ([TabSetSource]), which the default [navigator]
+ * starts from too. The highlight is the
  * [navigator]'s selected tab, so it always names the tab that owns the screen on top, or the
  * tab under the Profile layer while that is open.
  * The Play tab carries a dot while any of today's games is in progress.
@@ -96,7 +97,7 @@ import org.koin.compose.koinInject
 fun PuzzleBoxApp(
     windowWidthSizeClass: WindowWidthSizeClass,
     modifier: Modifier = Modifier,
-    navigator: Navigator = rememberNavigator(puzzleBoxNavigationState()),
+    navigator: Navigator = rememberNavigator(),
     pendingLink: String? = null,
     onLinkApplied: () -> Unit = {},
     pendingShare: Boolean = false,
@@ -131,11 +132,12 @@ fun PuzzleBoxApp(
     val expanded = layout == HomeLayout.TwoPane
     val identityService = koinInject<IdentityService>()
     val cloudSync = koinInject<CloudSync>()
-    val destinations = topLevelDestinations
+    val tabSet = koinInject<TabSetSource>().tabSet
+    val destinations = tabSet.destinations
     val selected = navigator.state.tab
     // The screen on top: the Profile layer's when it is open, else the selected tab's.
     val top = navigator.state.visibleKeys.last()
-    val immersive = isImmersive(top)
+    val immersive = isImmersive(top, tabSet.placement)
     // Home publishes its own readiness once its local state loads; any other landing screen is ready now.
     LaunchedEffect(Unit) { if (top !is HomeKey) firstScreenReady.markReady() }
     val anyInProgress by remember(todaySet) {
@@ -214,6 +216,7 @@ fun PuzzleBoxApp(
             ) {
                 PuzzleBoxNavShell(
                     navigator = navigator,
+                    tabSet = tabSet,
                     homeLayout = layout,
                     playLayout = playLayout,
                     historyLayout = historyLayout,
