@@ -76,6 +76,7 @@ class ZipPlayController(
     //region input (F2 §7: candidate moves in, authoritative validation here)
 
     fun onDragEvent(event: DragEvent) {
+        env.onInput()
         hintArrow = null // ticket 28: the arrow dies on the next input, always
         val current = session ?: return
         if (current.isComplete) return
@@ -105,7 +106,7 @@ class ZipPlayController(
 
     /** The trace edits: each step drops the hint arrow (ticket 28: any input does) and
      *  persists through [commit] like any move. */
-    internal val edits = ZipTraceEdits({ session }, log) { hintArrow = null; commit(it) }
+    internal val edits = ZipTraceEdits({ session }, log, env.onInput) { hintArrow = null; commit(it) }
 
     override val canUndo: Boolean get() = edits.canUndo
 
@@ -153,6 +154,7 @@ class ZipPlayController(
      * cell with no arrow — a lone cell has no segment direction.
      */
     fun hint() {
+        env.onInput()
         val current = session ?: return
         if (current.isComplete) return
         val puzzle = current.puzzle

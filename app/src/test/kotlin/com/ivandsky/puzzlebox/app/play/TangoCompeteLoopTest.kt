@@ -6,7 +6,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntries
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
@@ -66,7 +66,7 @@ class TangoCompeteLoopTest {
         val completions = FakeCompletionRepository()
         val daily = FakeDailyRepository().script(
             TangoDefinition.id,
-            DailyToday.Fresh(TangoPlayFixture.envelope()),
+            TangoPlayFixture.envelope(),
             listOf(TangoPlayFixture.entry(TangoDefinition.cadence.today())),
         )
         val fakes = module {

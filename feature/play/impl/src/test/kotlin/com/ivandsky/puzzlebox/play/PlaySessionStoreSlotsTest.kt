@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
@@ -82,8 +82,8 @@ class PlaySessionStoreSlotsTest {
 
     private val fakes = FakeGames(listOf(alpha, beta))
     private val daily = FakeDailyRepository().apply {
-        setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
-        setToday(beta, DailyToday.Fresh(TestGames.puzzle(beta)))
+        setToday(alpha, TestGames.puzzle(alpha))
+        setToday(beta, TestGames.puzzle(beta))
         setHistory(alpha, listOf(DailyEntry(alpha, today, 7, "alpha/v1", 0L)))
     }
     private val saved = FakeSavedPlayRepository()
@@ -137,7 +137,7 @@ class PlaySessionStoreSlotsTest {
         val store = store()
         val first = store.open(key)!!
         runCurrent()
-        assertEquals(PlayBoardStatus.Ready(banner = null), first.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, first.board.value.status)
         fakes[alpha].latest.move()
         fakes[alpha].latest.move()
 
@@ -148,7 +148,7 @@ class PlaySessionStoreSlotsTest {
         val reopened = store.open(key)!!
         runCurrent()
         assertEquals(1, daily.todayCalls(alpha))
-        assertEquals(PlayBoardStatus.Ready(banner = null), reopened.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, reopened.board.value.status)
         assertEquals(2, fakes[alpha].latest.moves)
         assertEquals("the save carries the record identity", first.record.value.label, reopened.record.value.label)
     }

@@ -21,7 +21,7 @@ import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
@@ -208,7 +208,7 @@ class ResultScreenTest {
     fun `result route reads its slot's live play`() {
         val fakes = FakeGames(listOf(game))
         val daily = FakeDailyRepository().apply {
-            setToday(game, DailyToday.Fresh(TestGames.puzzle(game)))
+            setToday(game, TestGames.puzzle(game))
             setHistory(game, listOf(DailyEntry(game, day, 7, "alpha/v1", 0L)))
         }
         val koin = startGraph(fakes, daily)
@@ -422,7 +422,7 @@ class ResultScreenTest {
     /** Renders [ResultRoute] for [resultDay] on an official puzzle (history seeded for today and yesterday), then runs [check]. */
     private fun withResult(resultDay: LocalDate, check: () -> Unit) {
         val daily = FakeDailyRepository().apply {
-            setToday(game, DailyToday.Fresh(TestGames.puzzle(game)))
+            setToday(game, TestGames.puzzle(game))
             setHistory(
                 game,
                 listOf(DailyEntry(game, day, 7, "alpha/v1", 0L), DailyEntry(game, day.minusDays(1), 6, "alpha/v1", 0L)),

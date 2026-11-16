@@ -82,7 +82,7 @@ class PlayScaffoldLayoutTest {
                             Box(size.testTag("board"))
                         }
                     },
-                    side = { PlayChrome(clock = null, hints = Hints, banner = null) },
+                    side = { PlayChrome(clock = null, hints = Hints) },
                     actions = { PlayActionBar(Undo, Hints, clear = null, accent = AccentSlot.Teal) },
                     sidePanel = slot,
                 )

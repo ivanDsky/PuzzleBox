@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.create.api.CreateKey
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.gameui.DragEvent
@@ -136,7 +136,7 @@ class PlayLeaveE2ETest {
     @Test
     fun `N22 offline with no cache Play today shows the fallback, retries, and back returns to Home`() {
         val offline = E2eKoinGraph(E2E_TODAY).apply {
-            daily.setToday(ZipDefinition.id, DailyToday.Unavailable(FetchError.Unavailable()))
+            daily.setTodayUnavailable(ZipDefinition.id, FetchError.Unavailable())
         }
         shellRobot(graph = offline) {
             tap(HOME_PLAY)
@@ -144,7 +144,7 @@ class PlayLeaveE2ETest {
             assertRoute(GAME)
             awaitTag(BOARD_ERROR)
 
-            graph.daily.setToday(ZipDefinition.id, DailyToday.Fresh(ZipPlayFixture.envelope()))
+            graph.daily.setToday(ZipDefinition.id, ZipPlayFixture.envelope())
             rule.onNodeWithText(TRY_AGAIN).performScrollTo().performClick()
             awaitZip()
 

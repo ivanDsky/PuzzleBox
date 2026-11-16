@@ -181,7 +181,7 @@ abstract class SudokuGoldenScenes(private val widthLabel: String) {
                     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         ui.Screen(
                             controller = controller,
-                            status = PlayBoardStatus.Ready(banner = null),
+                            status = PlayBoardStatus.Ready,
                             layout = layout,
                             sidePanel = null,
                             onRetry = {},

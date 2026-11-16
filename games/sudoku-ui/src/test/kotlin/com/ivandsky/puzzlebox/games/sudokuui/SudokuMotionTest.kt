@@ -165,7 +165,7 @@ class SudokuMotionTest {
                 CompositionLocalProvider(LocalHapticFeedback provides haptics) {
                     ui.Screen(
                         controller = controller,
-                        status = PlayBoardStatus.Ready(banner = null),
+                        status = PlayBoardStatus.Ready,
                         layout = PlayLayout.SinglePane,
                         sidePanel = null,
                         onRetry = {},

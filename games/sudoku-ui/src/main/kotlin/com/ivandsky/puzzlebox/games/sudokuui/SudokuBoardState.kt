@@ -58,6 +58,8 @@ class SudokuBoardState(
     // Read when the model is built, so a toggle repaints the board without rebuilding the state.
     private val peerHighlight: () -> Boolean = { true },
     private val sameDigitHighlight: () -> Boolean = { true },
+    /** Every player input, whether or not it changes the board (see [PlayEnvironment.onInput]). */
+    private val onInput: () -> Unit = {},
 ) {
 
     var session by mutableStateOf(initialSession)
@@ -139,6 +141,7 @@ class SudokuBoardState(
     //region input
 
     fun select(idx: Int) {
+        onInput()
         if (session.isComplete || idx !in 0 until session.board.geometry.cellCount) return
         clearFeedback()
         selected = idx
@@ -146,6 +149,7 @@ class SudokuBoardState(
 
     /** A note in notes mode, otherwise an entry; refused on a Given. */
     fun input(digit: Int) {
+        onInput()
         clearFeedback()
         val idx = selected ?: return
         if (rejectsGiven(idx)) return
@@ -154,6 +158,7 @@ class SudokuBoardState(
 
     /** Removes the selected cell's value if it has one, otherwise its notes. */
     fun erase() {
+        onInput()
         clearFeedback()
         val idx = selected ?: return
         if (rejectsGiven(idx)) return
@@ -161,22 +166,26 @@ class SudokuBoardState(
     }
 
     fun clear() {
+        onInput()
         clearFeedback()
         commit(SudokuReplayMove.Clear)
     }
 
     fun undo() {
+        onInput()
         clearFeedback()
         commit(SudokuReplayMove.Undo)
     }
 
     fun redo() {
+        onInput()
         clearFeedback()
         commit(SudokuReplayMove.Redo)
     }
 
     /** A setting, not a move: no undo unit and no clock. */
     fun toggleNotesMode() {
+        onInput()
         clearFeedback()
         store(session.withNotesMode(!session.notesMode))
     }
@@ -186,6 +195,7 @@ class SudokuBoardState(
     //region hints
 
     fun requestHint() {
+        onInput()
         if (session.isComplete) return
         rejection = null
         stepHints?.let {

@@ -102,9 +102,9 @@ class OfflineFirstDailyRepositoryTest {
         alphaSource.nextPuzzle = TestGames.puzzle(alpha)
         alphaSource.nextPuzzleNumber = 600
 
-        val result = repository.today(alpha)
+        val result = repository.refreshToday(alpha)
 
-        assertTrue(result is DailyToday.Fresh)
+        assertTrue(result is DailyRefresh.Stored)
         assertEquals(today, alphaSource.requestedDates.single())
         val dao = db.puzzleDailyDao()
         assertEquals(1, dao.count("alpha"))
@@ -118,67 +118,10 @@ class OfflineFirstDailyRepositoryTest {
     }
 
     @Test
-    fun `refetch the same day overwrites the row`() = runTest {
-        alphaSource.nextPuzzle = TestGames.puzzle(alpha)
-        repository.today(alpha)
-        nowMs = 2_000L
+    fun `a game without a registered source fails its refresh and is never cached`() = runTest {
+        val result = repository.refreshToday(GameId("strands"))
 
-        val result = repository.today(alpha)
-
-        assertTrue(result is DailyToday.Fresh)
-        assertEquals(1, db.puzzleDailyDao().count("alpha"))
-        assertEquals(2_000L, db.puzzleDailyDao().get("alpha", today.toString())!!.fetchedAtMs)
-    }
-
-    @Test
-    fun `fetch failure with cache degrades to Cached plus the sealed error`() = runTest {
-        alphaSource.nextPuzzle = TestGames.puzzle(alpha)
-        repository.today(alpha)
-        alphaSource.nextPuzzle = null
-        alphaSource.nextError = FetchError.Unavailable("offline")
-
-        val result = repository.today(alpha)
-
-        result as DailyToday.Cached
-        assertTrue(result.error is FetchError.Unavailable)
-        assertEquals(alpha, result.puzzle.gameId)
-        assertEquals(1, db.puzzleDailyDao().count("alpha"))
-    }
-
-    @Test
-    fun `untrusted fetch degrades to Cached and keeps the trusted row (I1)`() = runTest {
-        alphaSource.nextPuzzle = TestGames.puzzle(alpha)
-        repository.today(alpha)
-
-        // A source-level trust gate surfaces as Untrusted; the repo must degrade to the
-        // saved copy with the sealed error and never let the payload overwrite the row.
-        alphaSource.nextPuzzle = null
-        alphaSource.nextError = FetchError.Untrusted("daily is not uniquely solvable")
-        nowMs = 2_000L
-
-        val result = repository.today(alpha)
-
-        result as DailyToday.Cached
-        assertTrue(result.error is FetchError.Untrusted)
-        assertEquals(1, db.puzzleDailyDao().count("alpha"))
-        assertEquals(1_000L, db.puzzleDailyDao().get("alpha", today.toString())!!.fetchedAtMs)
-    }
-
-    @Test
-    fun `fetch failure without cache is Unavailable`() = runTest {
-        alphaSource.nextError = FetchError.Throttled("100 s cooldown")
-
-        val result = repository.today(alpha)
-
-        assertTrue(result is DailyToday.Unavailable && result.error is FetchError.Throttled)
-        assertEquals(0, db.puzzleDailyDao().count("alpha"))
-    }
-
-    @Test
-    fun `a game without a registered source is Unavailable and never cached`() = runTest {
-        val result = repository.today(GameId("strands"))
-
-        assertTrue(result is DailyToday.Unavailable && result.error is FetchError.Unavailable)
+        assertTrue(result is DailyRefresh.Failed && result.error is FetchError.Unavailable)
         assertEquals(DailyDay.NotCaptured, repository.day(GameId("strands"), today))
     }
 
@@ -202,19 +145,15 @@ class OfflineFirstDailyRepositoryTest {
     fun `games are isolated - history and cache never cross game ids`() = runTest {
         alphaSource.nextPuzzle = TestGames.puzzle(alpha, tag = 1)
         betaSource.nextPuzzle = TestGames.puzzle(beta, tag = 2)
-        repository.today(alpha)
-        repository.today(beta)
+        repository.refreshToday(alpha)
+        repository.refreshToday(beta)
 
         assertEquals(alpha, (repository.day(alpha, today) as DailyDay.Ready).puzzle.gameId)
         assertEquals(beta, (repository.day(beta, today) as DailyDay.Ready).puzzle.gameId)
         assertEquals(listOf(alpha), repository.observeHistory(alpha).first().map { it.gameId })
         assertEquals(listOf(beta), repository.observeHistory(beta).first().map { it.gameId })
 
-        // A failure for one game degrades to ITS cache only.
         db.puzzleDailyDao().count("beta").let { assertEquals(1, it) }
-        betaSource.nextPuzzle = null
-        val degraded = repository.today(beta) as DailyToday.Cached
-        assertEquals(2.toByte(), degraded.puzzle.payload[1])
     }
 
     @Test
@@ -222,7 +161,7 @@ class OfflineFirstDailyRepositoryTest {
         assertEquals(DailyDay.NotCaptured, repository.day(alpha, today))
 
         alphaSource.nextPuzzle = TestGames.puzzle(alpha)
-        repository.today(alpha)
+        repository.refreshToday(alpha)
 
         assertEquals(alpha, (repository.day(alpha, today) as DailyDay.Ready).puzzle.gameId)
         assertEquals(DailyDay.NotCaptured, repository.day(alpha, LocalDate.of(2020, 1, 1)))
@@ -355,7 +294,7 @@ class OfflineFirstDailyRepositoryTest {
     fun `today's live path never calls fetchPast`() = runTest {
         alphaSource.nextPuzzle = TestGames.puzzle(alpha)
 
-        archiveRepository().today(alpha)
+        archiveRepository().refreshToday(alpha)
 
         assertEquals(listOf(today), alphaSource.requestedDates)
         assertTrue(alphaSource.requestedPastDates.isEmpty())

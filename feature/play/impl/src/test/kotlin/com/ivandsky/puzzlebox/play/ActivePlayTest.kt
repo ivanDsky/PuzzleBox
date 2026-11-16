@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.play
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.repository.DailyRefresh
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
@@ -12,7 +12,6 @@ import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.RecordVerdict
-import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
@@ -57,7 +56,7 @@ class ActivePlayTest {
     private val fakes = FakeGames(listOf(game))
     private val ui get() = fakes[game]
     private val daily = FakeDailyRepository().apply {
-        setToday(game, DailyToday.Fresh(TestGames.puzzle(game)))
+        setToday(game, TestGames.puzzle(game))
         setHistory(game, listOf(DailyEntry(game, day, 7, "alpha/v1", 0L)))
     }
     private val completions = FakeCompletionRepository()
@@ -97,7 +96,7 @@ class ActivePlayTest {
     @Test
     fun `fresh fetch adopts the ready board with today's identity`() {
         val play = loaded()
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         assertSame(ui.latest, play.controller)
         assertEquals(ref, ui.latest.ref)
         assertEquals(TestGames.puzzle(game).payload.toList(), ui.latest.puzzle!!.payload.toList())
@@ -111,26 +110,26 @@ class ActivePlayTest {
     }
 
     @Test
-    fun `cached degrade plays the saved puzzle with the banner`() {
-        val error = FetchError.Throttled()
-        daily.setToday(game, DailyToday.Cached(TestGames.puzzle(game), error))
+    fun `a stored puzzle whose refresh failed plays with no banner`() {
+        daily.setCached(game, day, TestGames.puzzle(game))
+        daily.setRefresh(game, DailyRefresh.Failed(FetchError.Throttled()))
         val play = loaded()
-        assertEquals(PlayBoardStatus.Ready(banner = degradeBannerMessage(error)), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         assertEquals(ref, ui.latest.ref)
     }
 
     @Test
     fun `unavailable with nothing captured is a retryable error and retry refetches`() {
         val error = FetchError.Unavailable("offline")
-        daily.setToday(game, DailyToday.Unavailable(error))
+        daily.setTodayUnavailable(game, error)
         val play = loaded()
         assertEquals(PlayBoardStatus.Unavailable(unavailableMessage(error)), play.board.value.status)
         assertNull(ui.latest.puzzle)
 
-        daily.setToday(game, DailyToday.Fresh(TestGames.puzzle(game)))
+        daily.setToday(game, TestGames.puzzle(game))
         play.load()
         assertEquals(2, daily.todayCalls(game))
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
     }
 
     @Test
@@ -224,7 +223,7 @@ class ActivePlayTest {
         play.playAgain()
         assertEquals(1, ui.latest.playAgains)
         assertNull("the verdict resets until the new write lands", play.record.value.verdict)
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
 
         ui.latest.win()
         assertEquals(2, records().size)
@@ -232,12 +231,12 @@ class ActivePlayTest {
     }
 
     @Test
-    fun `play again keeps the degrade banner`() {
-        val error = FetchError.Throttled()
-        daily.setToday(game, DailyToday.Cached(TestGames.puzzle(game), error))
+    fun `play again keeps the board ready without a banner`() {
+        daily.setCached(game, day, TestGames.puzzle(game))
+        daily.setRefresh(game, DailyRefresh.Failed(FetchError.Throttled()))
         val play = loaded()
         play.playAgain()
-        assertEquals(PlayBoardStatus.Ready(banner = degradeBannerMessage(error)), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
     }
 
     @Test
@@ -274,7 +273,7 @@ class ActivePlayTest {
         savedRow(FakeController.envelope(game, moves = 2, day = day).session)
         val play = loaded()
         assertEquals(0, daily.todayCalls(game))
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         assertEquals(2, ui.latest.moves)
         assertEquals("Alpha · #7", play.record.value.label)
 
@@ -287,7 +286,7 @@ class ActivePlayTest {
     fun `a saved completed session shows the win without re-emitting`() {
         savedRow(FakeController.envelope(game, moves = 5, complete = true, day = day).session)
         val play = loaded()
-        assertEquals(PlayBoardStatus.Ready(banner = null), play.board.value.status)
+        assertEquals(PlayBoardStatus.Ready, play.board.value.status)
         assertTrue(play.controller.isComplete)
         assertTrue(records().isEmpty())
         assertNull(play.record.value.verdict)

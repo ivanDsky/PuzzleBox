@@ -79,7 +79,7 @@ class SudokuPlayUiTest {
             PuzzleBoxTheme {
                 game.Screen(
                     controller = controller,
-                    status = PlayBoardStatus.Ready(banner = null),
+                    status = PlayBoardStatus.Ready,
                     layout = layout,
                     sidePanel = null,
                     onRetry = {},

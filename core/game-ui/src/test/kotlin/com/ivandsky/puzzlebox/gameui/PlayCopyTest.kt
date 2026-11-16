@@ -20,7 +20,7 @@ class PlayCopyTest {
     }
 
     private val everyString: List<String> =
-        everyError.flatMap { listOf(unavailableMessage(it), degradeBannerMessage(it)) } + BROKEN_PUZZLE_MESSAGE
+        everyError.map { unavailableMessage(it) } + BROKEN_PUZZLE_MESSAGE
 
     @Test
     fun `no player-facing copy names LinkedIn or rate limiting`() {

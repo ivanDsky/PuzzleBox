@@ -69,6 +69,8 @@ class QueensBoardState(
     private val settle: (QueensSession) -> QueensSession = { it },
     mode: HintMode.Stepwise,
     scope: CoroutineScope,
+    /** Every player input, whether or not it changes the board (see [PlayEnvironment.onInput]). */
+    private val onInput: () -> Unit = {},
 ) {
 
     var session by mutableStateOf(initialSession)
@@ -112,6 +114,7 @@ class QueensBoardState(
     //region input
 
     fun onTap(idx: Int) {
+        onInput()
         val current = session
         if (current.isComplete) return
         val cell = Cell(idx)
@@ -137,6 +140,7 @@ class QueensBoardState(
 
     /** The swipe's first cell decides its mode: on a cross it erases, anywhere else it paints. */
     fun onDragStart(idx: Int) {
+        onInput()
         val current = session
         erasing = idx in 0 until current.puzzle.cellCount && current.markAt(Cell(idx)) != null &&
             Cell(idx) !in current.queens
@@ -174,12 +178,14 @@ class QueensBoardState(
 
     /** A12: one command reverted; its auto-fill side effects revert with it. */
     fun undo() {
+        onInput()
         clearHint()
         commit(QueensReplayMove.Undo)
     }
 
     /** Re-apply the most recently undone command. */
     fun redo() {
+        onInput()
         clearHint()
         commit(QueensReplayMove.Redo)
     }
@@ -189,6 +195,7 @@ class QueensBoardState(
 
     /** A press runs one Spotlight step; it never places a queen or cross (A1). A won board's step is Solved, which shows nothing. */
     fun requestHint() {
+        onInput()
         stepHints.press()
     }
 
@@ -210,6 +217,7 @@ class QueensBoardState(
 
     /** Clear (fix round 6): wipe queens + AUTO + MANUAL marks as ONE undo unit. */
     fun clearBoard() {
+        onInput()
         clearHint()
         lastRemovedQueen = null
         lastPlacedQueen = null

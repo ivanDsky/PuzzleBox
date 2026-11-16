@@ -43,7 +43,7 @@ class TangoPlayClearTest {
             PuzzleBoxTheme {
                 TangoPlayScreen(
                     controller = controller,
-                    status = PlayBoardStatus.Ready(null),
+                    status = PlayBoardStatus.Ready,
                     layout = layout,
                     sidePanel = null,
                     onRetry = {},

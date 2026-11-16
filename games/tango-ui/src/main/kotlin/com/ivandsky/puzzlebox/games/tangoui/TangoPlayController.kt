@@ -94,11 +94,13 @@ class TangoPlayController(
      * step computed from the last composed model repeated the first and no-opped).
      */
     fun onTap(idx: Int) {
+        env.onInput()
         val model = rendererModel() ?: return
         TangoTapPolicy.onTap(model, idx).forEach(::onPlacement)
     }
 
     fun onPlacement(placement: TangoPlacement) {
+        env.onInput()
         lastRejection = null // next input clears the violation verdict (Zip hintArrow discipline)
         stepHints.inputMade()
         settle.arm()
@@ -145,6 +147,7 @@ class TangoPlayController(
      * out the settle window while ones it removes vanish at once. The clock is not rewound.
      */
     private fun stepHistory(move: TangoReplayMove) {
+        env.onInput()
         val current = session ?: return
         stepHints.inputMade() // any history press is input, even one with nothing to move (A10)
         val next = moveLog.record(current, move)
@@ -206,6 +209,7 @@ class TangoPlayController(
 
     /** Hint (spec hints bullet, Zip parity): the ONE counted hint per new step; it places nothing (A1). */
     override fun requestHint() {
+        env.onInput()
         val current = session ?: return
         if (current.isComplete) return
         clock.resume() // a hint is play

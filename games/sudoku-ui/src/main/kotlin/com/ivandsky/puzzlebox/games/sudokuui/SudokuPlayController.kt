@@ -139,6 +139,7 @@ class SudokuPlayController(
             scope = env.scope,
             peerHighlight = { peerHighlight },
             sameDigitHighlight = { sameDigitHighlight },
+            onInput = env.onInput,
         )
     }
 

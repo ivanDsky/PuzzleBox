@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.app.play
 
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.game.Puzzle
@@ -78,13 +78,14 @@ object ZipPlayFixture {
 
 /** 4×4 Queens daily, regions = rows. */
 object QueensPlayFixture {
-    fun envelope(): Puzzle = Puzzle(
+    fun puzzle(solution: List<Int> = listOf(1, 6, 11, 12)): QueensPuzzle =
+        QueensPuzzle(size = 4, regions = List(16) { it / 4 }, solution = solution.map(::QueensCell))
+
+    fun envelope(puzzle: QueensPuzzle = puzzle()): Puzzle = Puzzle(
         gameId = QueensDefinition.id,
         variant = queensVariantId(4),
         formatVersion = QueensCodec.VERSION,
-        payload = QueensCodec.encode(
-            QueensPuzzle(size = 4, regions = List(16) { it / 4 }, solution = listOf(1, 6, 11, 12).map(::QueensCell)),
-        ),
+        payload = QueensCodec.encode(puzzle),
     )
 }
 
@@ -167,7 +168,7 @@ object MiniSudokuPlayFixture {
     )
 
     /** Envelope as DailyRepository hands it to the UI (payload = codec bytes). */
-    fun envelope(): Puzzle = Puzzle(SudokuGames.MINI.id, puzzle.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(puzzle))
+    fun envelope(puzzle: SudokuPuzzle = this.puzzle): Puzzle = Puzzle(SudokuGames.MINI.id, puzzle.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(puzzle))
 }
 
 /**
@@ -192,13 +193,13 @@ object StrandsPlayFixture {
     }
 
     /** Envelope as DailyRepository hands it to the UI (payload = codec bytes). */
-    fun envelope(): Puzzle = StrandsCodec.envelope(puzzle)
+    fun envelope(puzzle: StrandsPuzzle = this.puzzle): Puzzle = StrandsCodec.envelope(puzzle)
 }
 
-/** Scripts [game] on this fake: its [today] outcome and its captured days. */
+/** Scripts [game] on this fake: the [today] puzzle its source serves and its captured days. */
 fun FakeDailyRepository.script(
     game: GameId,
-    today: DailyToday,
+    today: Puzzle,
     history: List<DailyEntry> = emptyList(),
 ): FakeDailyRepository = apply {
     setToday(game, today)
@@ -207,13 +208,13 @@ fun FakeDailyRepository.script(
 
 /** A daily repository serving every game's fixture fresh (the route default). */
 fun freshDailyForAllGames(): FakeDailyRepository = FakeDailyRepository()
-    .script(ZipDefinition.id, DailyToday.Fresh(ZipPlayFixture.envelope()))
-    .script(TangoDefinition.id, DailyToday.Fresh(TangoPlayFixture.envelope()))
-    .script(QueensDefinition.id, DailyToday.Fresh(QueensPlayFixture.envelope()))
-    .script(SudokuGames.MINI.id, DailyToday.Fresh(MiniSudokuPlayFixture.envelope()))
+    .script(ZipDefinition.id, ZipPlayFixture.envelope())
+    .script(TangoDefinition.id, TangoPlayFixture.envelope())
+    .script(QueensDefinition.id, QueensPlayFixture.envelope())
+    .script(SudokuGames.MINI.id, MiniSudokuPlayFixture.envelope())
     // The debug-only 9x9 (ADR-0015): the hub's sync asks every registered game for today.
-    .script(SudokuGames.CLASSIC.id, DailyToday.Fresh(classicSudokuEnvelope()))
-    .script(StrandsDefinition.id, DailyToday.Fresh(StrandsPlayFixture.envelope()))
+    .script(SudokuGames.CLASSIC.id, classicSudokuEnvelope())
+    .script(StrandsDefinition.id, StrandsPlayFixture.envelope())
 
 /** The bundled 9x9 board as DailyRepository hands it to the UI. */
 private fun classicSudokuEnvelope(): Puzzle =

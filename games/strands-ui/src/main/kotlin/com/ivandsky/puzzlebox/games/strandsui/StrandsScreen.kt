@@ -44,7 +44,7 @@ import com.ivandsky.puzzlebox.games.strandsui.chrome.FoundWordsList
 /**
  * The Strands play screen (A37). On a phone one column stacks the theme card, the header
  * line, the word slot, the board and the hint row under it (counter and Hint, as on NYT),
- * then the shared chrome (banner and caption; title, clock and How to play are in the
+ * then the shared chrome (the caption; title, clock and How to play are in the
  * route's top bar). On a tablet the board pane keeps only
  * the board and its hint row, so the board takes the pane's full height; the theme card,
  * header line, word slot and the found-words list move into the side panel under the shared
@@ -212,7 +212,7 @@ private fun PuzzleChrome(controller: StrandsPlayController, header: StrandsHeade
 }
 
 /**
- * The shared chrome (the degrade banner and caption; the title, clock and How to play sit
+ * The shared chrome (the caption; the title, clock and How to play sit
  * in the route's top bar); [withChrome] (a tablet) adds the puzzle's chrome and the
  * found-words list under it.
  */
@@ -229,7 +229,6 @@ private fun SidePanel(
         PlayChrome(
             clock = controller,
             hints = null,
-            banner = ready?.banner,
         )
         if (header != null) {
             Column(Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md)) {

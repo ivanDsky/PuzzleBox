@@ -2,13 +2,12 @@ package com.ivandsky.puzzlebox.play
 
 import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
-import com.ivandsky.puzzlebox.data.repository.DailyToday
+import com.ivandsky.puzzlebox.data.repository.DailyRefresh
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.editor.Budget
-import com.ivandsky.puzzlebox.gameui.degradeBannerMessage
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
@@ -62,7 +61,7 @@ class SlotOpeningTest {
     fun `a valid save is restored before the network`() = runTest {
         val blob = SessionBlob.encode(alpha, byteArrayOf(1, 2, 3))
         saved.save(todaySlot, blob, elapsedMs = 0L)
-        daily.setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
+        daily.setToday(alpha, TestGames.puzzle(alpha))
 
         val origin = opening.open(todaySlot)
 
@@ -74,7 +73,7 @@ class SlotOpeningTest {
     fun `an undecodable save is deleted and today is fetched`() = runTest {
         saved.save(todaySlot, byteArrayOf(7, 7), elapsedMs = 0L)
         val puzzle = TestGames.puzzle(alpha)
-        daily.setToday(alpha, DailyToday.Fresh(puzzle))
+        daily.setToday(alpha, puzzle)
 
         val origin = opening.open(todaySlot) as SlotOpening.Origin.Fetched
 
@@ -85,26 +84,35 @@ class SlotOpeningTest {
     @Test
     fun `a save naming another game is undecodable for the slot`() = runTest {
         saved.save(todaySlot, SessionBlob.encode(TestGames.beta, byteArrayOf(1)), elapsedMs = 0L)
-        daily.setToday(alpha, DailyToday.Fresh(TestGames.puzzle(alpha)))
+        daily.setToday(alpha, TestGames.puzzle(alpha))
 
         assertTrue(opening.open(todaySlot) is SlotOpening.Origin.Fetched)
         assertTrue(saved.rows.isEmpty())
     }
 
     @Test
-    fun `today is fetched fresh or from the cache with its banner`() = runTest {
-        val fresh = TestGames.puzzle(alpha, tag = 1)
-        daily.setToday(alpha, DailyToday.Fresh(fresh))
-        val fetched = opening.open(todaySlot) as SlotOpening.Origin.Fetched
-        assertSame(fresh, fetched.puzzle)
-        assertNull(fetched.banner)
+    fun `a stored today opens at once without asking the source and carries its refresh`() = runTest {
+        val storedPuzzle = TestGames.puzzle(alpha, tag = 1)
+        daily.setCached(alpha, today, storedPuzzle)
+        daily.setToday(alpha, TestGames.puzzle(alpha, tag = 2))
 
-        val cached = TestGames.puzzle(alpha, tag = 2)
-        val offline = FetchError.Unavailable("offline")
-        daily.setToday(alpha, DailyToday.Cached(cached, offline))
-        val degraded = opening.open(todaySlot) as SlotOpening.Origin.Fetched
-        assertSame(cached, degraded.puzzle)
-        assertEquals(degradeBannerMessage(offline), degraded.banner)
+        val fetched = opening.open(todaySlot) as SlotOpening.Origin.Fetched
+
+        assertSame(storedPuzzle, fetched.puzzle)
+        assertEquals(0, daily.todayCalls(alpha))
+        assertTrue(fetched.refresh!!() is DailyRefresh.Changed)
+    }
+
+    @Test
+    fun `an unstored today is fetched once and opens with no refresh left to run`() = runTest {
+        val fresh = TestGames.puzzle(alpha, tag = 1)
+        daily.setToday(alpha, fresh)
+
+        val fetched = opening.open(todaySlot) as SlotOpening.Origin.Fetched
+
+        assertSame(fresh, fetched.puzzle)
+        assertNull(fetched.refresh)
+        assertEquals(1, daily.todayCalls(alpha))
     }
 
     @Test
@@ -128,7 +136,7 @@ class SlotOpeningTest {
     @Test
     fun `offline without a cache is unavailable`() = runTest {
         val offline = FetchError.Unavailable("offline")
-        daily.setToday(alpha, DailyToday.Unavailable(offline))
+        daily.setTodayUnavailable(alpha, offline)
 
         val origin = opening.open(todaySlot) as SlotOpening.Origin.Unavailable
 
