@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -40,7 +41,7 @@ import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 
-private val PillMinHeight = 40.dp
+private val PillMinHeight = 48.dp
 private val BadgeSize = 18.dp
 private const val BADGE_CAP = 9
 
@@ -55,7 +56,11 @@ internal fun GamesTabs(content: @Composable RowScope.() -> Unit) {
     )
 }
 
-/** One tab: [label] then an optional [trailing] slot (the count); [tag] is its test tag. */
+/**
+ * One tab: [label] then an optional [trailing] slot (the count); [tag] is its test tag. The trailing
+ * slot is part of the pill's tap, and a [description] is the pill's whole accessibility name
+ * (e.g. "Duels, 3 need you"). The pill is at least 48dp tall.
+ */
 @Composable
 internal fun GamesTabPill(
     label: String,
@@ -63,6 +68,7 @@ internal fun GamesTabPill(
     onClick: () -> Unit,
     tag: String,
     modifier: Modifier = Modifier,
+    description: String? = null,
     trailing: (@Composable () -> Unit)? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
@@ -80,6 +86,7 @@ internal fun GamesTabPill(
             .clip(PillShape)
             .semantics(mergeDescendants = true) {
                 role = Role.Tab
+                description?.let { contentDescription = it }
                 this.selected = selected
             }
             .clickable(interactionSource = interaction, indication = null, role = Role.Tab, onClick = onClick)

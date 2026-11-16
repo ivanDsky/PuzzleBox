@@ -123,6 +123,7 @@ private fun TabbedList(
             onTab(next)
         }
     }
+    val duelsNeedYou = duels.needYou()
     Column(modifier.testTag("library.list"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Box(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier) { ListHeader(headerAction) }
         Box(sides) {
@@ -144,7 +145,8 @@ private fun TabbedList(
                     tab == GamesTab.Duels,
                     { select(GamesTab.Duels) },
                     "library.tab.duels",
-                    trailing = { TabCountBadge(duels.needYou(), Modifier.testTag("library.tab.duels.count")) },
+                    description = if (duelsNeedYou > 0) "Duels, $duelsNeedYou need you" else null,
+                    trailing = { TabCountBadge(duelsNeedYou, Modifier.testTag("library.tab.duels.count")) },
                 )
             }
         }

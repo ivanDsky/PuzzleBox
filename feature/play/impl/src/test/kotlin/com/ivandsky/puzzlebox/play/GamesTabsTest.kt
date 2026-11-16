@@ -2,11 +2,14 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.model.ShareCode
 import org.junit.Assert.assertEquals
@@ -39,6 +42,21 @@ class GamesTabsTest {
         composeRule.onNodeWithTag("tab.on").assertIsSelected().performClick()
         composeRule.onNodeWithTag("tab.off").assertIsNotSelected()
         assertEquals(1, clicks)
+    }
+
+    @Test
+    fun tabPillIsAtLeast48dpTallAndNamesItselfWhenGivenADescription() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                GamesTabs {
+                    GamesTabPill("Duels", selected = false, onClick = {}, tag = "tab.named", description = "Duels, 3 need you", trailing = { TabCountBadge(3) })
+                    GamesTabPill("Library", selected = false, onClick = {}, tag = "tab.plain")
+                }
+            }
+        }
+
+        composeRule.onNodeWithTag("tab.named").assertHeightIsAtLeast(48.dp).assertContentDescriptionEquals("Duels, 3 need you")
+        composeRule.onNodeWithTag("tab.plain").assertHeightIsAtLeast(48.dp)
     }
 
     @Test

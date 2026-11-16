@@ -10,6 +10,8 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.StateRestorationTester
@@ -17,6 +19,7 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
@@ -216,6 +219,39 @@ class LibraryTabsTest {
 
         needYou = 0
         awaitGone("library.tab.duels.count")
+    }
+
+    @Test
+    fun tappingTheDuelsCountBadgeSelectsTheDuelsTab() {
+        needYou = 3
+        setContent(slot)
+        awaitTag("library.tab.duels.count")
+
+        composeRule.onNodeWithTag("library.tab.duels.count", useUnmergedTree = true).performClick()
+
+        awaitTag(DUELS_BODY)
+        composeRule.onNodeWithTag("library.tab.duels").assertIsSelected()
+    }
+
+    @Test
+    fun duelsPillNamesItsCountForAccessibility() {
+        needYou = 3
+        setContent(slot)
+        awaitTag("library.tab.duels.count")
+
+        composeRule.onNodeWithTag("library.tab.duels").assertContentDescriptionEquals("Duels, 3 need you")
+
+        needYou = 12
+        composeRule.onNodeWithTag("library.tab.duels").assertContentDescriptionEquals("Duels, 12 need you")
+    }
+
+    @Test
+    fun everyGamesPillIsAtLeast48dpTall() {
+        needYou = 1
+        setContent(slot)
+        awaitTag("library.tab.duels.count")
+
+        listOf("dailies", "friends", "duels").forEach { composeRule.onNodeWithTag("library.tab.$it").assertHeightIsAtLeast(48.dp) }
     }
 
     @Test

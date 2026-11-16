@@ -47,7 +47,8 @@ private const val NONE = "—"
  * best and average, then today's times on its board ([PlayTimesCard]). [elapsedMs] is
  * read here, so only the panel recomposes on each tick; null (no running board) reads
  * 0:00. Loading values show dashes in the same slots, so nothing moves when data lands.
- * It scrolls when the pane is shorter than the panel. [boardStyle] is the times card's.
+ * It scrolls when the pane is shorter than the panel. [boardStyle] is the times card's. [showStreakCard]
+ * false leaves the streak card out; the cross-game streak is on Today then.
  */
 @Composable
 internal fun ColumnScope.PlayStatsPanel(
@@ -56,6 +57,7 @@ internal fun ColumnScope.PlayStatsPanel(
     signIn: BoardSignIn,
     onSignIn: () -> Unit,
     boardStyle: DailyBoardStyle = DailyBoardStyle.defaults(),
+    showStreakCard: Boolean = true,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().weight(1f, fill = false).verticalScroll(rememberScrollState()).testTag("play.stats"),
@@ -76,7 +78,7 @@ internal fun ColumnScope.PlayStatsPanel(
             )
         }
         TodayProgressCard(state)
-        StreakCard(state)
+        if (showStreakCard) StreakCard(state)
         PlayTimesCard(state.times, signIn = signIn, onSignIn = onSignIn, animated = state.linkedIn, boardStyle = boardStyle)
     }
 }

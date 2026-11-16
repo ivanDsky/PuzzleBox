@@ -1,9 +1,7 @@
 package com.ivandsky.puzzlebox.play
 
-import android.content.Context
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.width
@@ -54,7 +52,7 @@ import org.koin.core.parameter.parametersOf
  * A game's first play opens its tutorial in place of the board once the seen-check lands, and
  * the bar's How to play reopens it over the live play; Skip or "Let's play" hands back to the board.
  * The bar's Up stays, so back leaves the game from a tutorial too. [boardStyle] is the side panel's
- * times' (see [PlayTimesCard]).
+ * times' (see [PlayTimesCard]); [showStreakCard] false leaves the streak card out of that panel.
  */
 @Composable
 internal fun GameRoute(
@@ -65,6 +63,7 @@ internal fun GameRoute(
     linkedIn: Boolean = false,
     modifier: Modifier = Modifier,
     boardStyle: DailyBoardStyle = DailyBoardStyle.defaults(),
+    showStreakCard: Boolean = true,
 ) {
     val viewModel: GameViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val pastDay by viewModel.pastDay.collectAsStateWithLifecycle()
@@ -82,6 +81,7 @@ internal fun GameRoute(
         overflow = emptyList(),
         linkedIn = linkedIn,
         modifier = modifier,
+        showStreakCard = showStreakCard,
     )
 }
 
@@ -116,7 +116,7 @@ internal fun GameRoute(
 /** One live [play]'s top bar and board, behind the [tutorial] gate; How to play shows
  *  when [onHowToPlay] is given and the game has lessons, and the route's [overflow] items
  *  follow the game's own in the bar's menu. [linkedIn] ranks the day's LinkedIn connections into the side panel's times
- *  and [boardStyle] is how their board looks (see [PlayTimesCard]). */
+ *  and [boardStyle] is how their board looks (see [PlayTimesCard]); [showStreakCard] is the panel's (see [PlayStatsPanel]). */
 @Composable
 internal fun GameBoard(
     play: ActivePlay?,
@@ -131,6 +131,7 @@ internal fun GameBoard(
     modifier: Modifier,
     linkedIn: Boolean = false,
     boardStyle: DailyBoardStyle = DailyBoardStyle.defaults(),
+    showStreakCard: Boolean = true,
 ) {
     Column(modifier = modifier.testTag("route.game")) {
         if (play == null) {
@@ -184,8 +185,8 @@ internal fun GameBoard(
                 }
                 val clock = (board.controller as? PlayClock)?.takeIf { board.status is PlayBoardStatus.Ready }
                 val activityContext = LocalContext.current
-                val sidePanel = remember(stats, clock, activityContext, boardStyle) {
-                    stats?.let { statsPanel(it, clock, activityContext, boardStyle) }
+                val sidePanel = remember(stats, clock, activityContext, boardStyle, showStreakCard) {
+                    stats?.let { statsPanel(it, clock, activityContext, boardStyle, showStreakCard) }
                 }
                 play.ui.Screen(
                     controller = board.controller,
@@ -199,27 +200,6 @@ internal fun GameBoard(
             }
         }
     }
-}
-
-/**
- * The tablet side panel's content: [PlayStatsPanel] over [stats], under the game's
- * chrome, timing it off [clock] (null while the board isn't ready).
- */
-private fun statsPanel(
-    stats: PlayStatsViewModel,
-    clock: PlayClock?,
-    activityContext: Context,
-    boardStyle: DailyBoardStyle,
-): @Composable ColumnScope.() -> Unit = {
-    val state by stats.state.collectAsStateWithLifecycle()
-    val signIn by stats.signIn.collectAsStateWithLifecycle()
-    PlayStatsPanel(
-        state,
-        elapsedMs = { clock?.displayedElapsedMs() },
-        signIn = signIn,
-        onSignIn = { stats.signIn(activityContext) },
-        boardStyle = boardStyle,
-    )
 }
 
 /** The game's frame while its open is still being decided: the top bar over the loading board. */

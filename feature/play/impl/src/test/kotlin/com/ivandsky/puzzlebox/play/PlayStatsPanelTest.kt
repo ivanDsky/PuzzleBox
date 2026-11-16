@@ -188,10 +188,17 @@ class PlayStatsPanelTest {
     }
 
     /** The panel over [state] as given, frozen: what it draws before any source has emitted. */
-    private fun showFrozen(state: PlayStatsState, signIn: BoardSignIn = BoardSignIn.Idle, onSignIn: () -> Unit = {}) {
+    private fun showFrozen(
+        state: PlayStatsState,
+        signIn: BoardSignIn = BoardSignIn.Idle,
+        onSignIn: () -> Unit = {},
+        showStreakCard: Boolean = true,
+    ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                Column { PlayStatsPanel(state = state, elapsedMs = { null }, signIn = signIn, onSignIn = onSignIn) }
+                Column {
+                    PlayStatsPanel(state = state, elapsedMs = { null }, signIn = signIn, onSignIn = onSignIn, showStreakCard = showStreakCard)
+                }
             }
         }
         composeRule.waitForIdle()
@@ -313,6 +320,23 @@ class PlayStatsPanelTest {
         composeRule.onNodeWithTag("play.stats.best").assertTextContains("1:00", substring = true)
         composeRule.onNodeWithTag("play.stats.average").assertTextContains("1:15", substring = true)
         composeRule.onNodeWithTag("play.stats.week").assertExists()
+    }
+
+    @Test
+    fun `with the streak card off the panel has no streak node and keeps the rest`() {
+        showFrozen(viewModel().state.value, showStreakCard = false)
+
+        composeRule.onAllNodesWithTag("play.stats.streak").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("play.stats.week").assertCountEquals(0)
+        composeRule.onNodeWithTag("play.stats.timer").assertExists()
+        composeRule.onNodeWithTag("play.stats.progress").assertExists()
+    }
+
+    @Test
+    fun `with the streak card on the panel has the streak node`() {
+        showFrozen(viewModel().state.value, showStreakCard = true)
+
+        composeRule.onNodeWithTag("play.stats.streak").assertExists()
     }
 
     @Test
