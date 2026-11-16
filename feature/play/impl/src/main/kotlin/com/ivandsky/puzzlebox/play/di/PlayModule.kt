@@ -79,7 +79,7 @@ val playModule = module {
             dispatchers = dispatchers,
         )
     }
-    factory { ObserveFriendPuzzles(received = get(), saved = get(), completions = get(), registry = get()) }
+    factory { ObserveFriendPuzzles(received = get(), saved = get(), completions = get(), registry = get(), hidden = get()) }
     factory { DeleteReceivedPuzzle(received = get(), saved = get()) }
     // The flag arrives as the parameter, so a graph without LinkedIn bindings builds the library with it off.
     viewModel { params ->

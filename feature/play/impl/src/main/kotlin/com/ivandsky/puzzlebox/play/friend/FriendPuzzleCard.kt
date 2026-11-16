@@ -49,12 +49,19 @@ import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
  * the note, the size and difficulty chips (difficulty only when the local re-check graded
  * it, "Taken down · still plays" once the author took it down, popping in on the stamp's
  * spring when the card's recheck finds it), the author's time and hints beside yours once solved, the code with Copy, the one
- * primary action, [onAction], and under it the [BoardPreview], whose sign-in is [onSignIn].
+ * primary action, [onAction], and under it the [BoardPreview], whose sign-in is [onSignIn]. A ⋮ beside the title offers
+ * Report ([onReport]) when [FriendCard.canReport].
  * Sections rise in with the Enter stagger the first time the code's card is shown; under
  * reduced motion they only fade. On a wide window the card keeps to one centred column.
  */
 @Composable
-internal fun FriendPuzzleCard(card: FriendCard, onAction: () -> Unit, onSignIn: () -> Unit, modifier: Modifier = Modifier) {
+internal fun FriendPuzzleCard(
+    card: FriendCard,
+    onAction: () -> Unit,
+    onSignIn: () -> Unit,
+    modifier: Modifier = Modifier,
+    onReport: () -> Unit = {},
+) {
     val reduced = rememberReducedMotion()
     val entrance = rememberCardEntrance(card.puzzle.code)
     val accent = card.brand.accent.colors()
@@ -62,14 +69,17 @@ internal fun FriendPuzzleCard(card: FriendCard, onAction: () -> Unit, onSignIn: 
     Column(modifier.maxContentWidth().padding(horizontal = Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         Enter(entrance, 0, reduced) { FriendCardHead(card, reduced) }
         Enter(entrance, 1, reduced) {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text(
-                    text = puzzle.title,
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.testTag("friend.card.title"),
-                )
-                Byline(puzzle.authorName, accent.container, accent.onContainer)
+            Row(verticalAlignment = Alignment.Top) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text(
+                        text = puzzle.title,
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.testTag("friend.card.title"),
+                    )
+                    Byline(puzzle.authorName, accent.container, accent.onContainer)
+                }
+                if (card.canReport) FriendCardMenu(onReport)
             }
         }
         if (puzzle.note.isNotBlank()) Enter(entrance, 2, reduced) { Note(puzzle.note, accent.accent) }

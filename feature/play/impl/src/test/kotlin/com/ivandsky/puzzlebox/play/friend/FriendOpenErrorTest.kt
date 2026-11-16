@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.OpenOutcome
+import com.ivandsky.puzzlebox.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
@@ -31,6 +32,8 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.FakeGames
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
+import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
@@ -342,6 +345,8 @@ class FriendOpenErrorTest {
         editors = GameEditorRegistry(emptyList()),
         dispatchers = now,
         board = signedOutBoard(),
+        flags = FakeReleaseFlags(),
+        reportPuzzle = ReportPuzzle(shared, FakeHiddenPuzzles()),
     )
 
     private fun publish(gameId: String = game.value, formatVersion: Int = SharedPuzzleDoc.FORMAT_VERSION) {

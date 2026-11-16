@@ -116,7 +116,7 @@ class ObserveResultCommunityNextThingTest {
         identity = identity,
         history = ObserveGameHistory(registry, daily, completions),
         todaySet = ObserveTodaySet(registry, FakeSavedPlayRepository(), completions, FakeGameCalendar(TODAY), daily, SyncTodayPuzzles(registry, daily, FakeGameCalendar(TODAY))),
-        friendPuzzles = ObserveFriendPuzzles(received, FakeSavedPlayRepository(), completions, registry),
+        friendPuzzles = ObserveFriendPuzzles(received, FakeSavedPlayRepository(), completions, registry, hidden),
         friendUids = ObserveFriendUids(FakeMatchRepository().apply { signedInUid = me.uid }, identity),
         leaderboard = FakeLeaderboardRepository(),
         visibility = FakeVisibilityRepository(),
