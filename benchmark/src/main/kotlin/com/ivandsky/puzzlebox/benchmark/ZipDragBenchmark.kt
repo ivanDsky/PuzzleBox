@@ -53,16 +53,11 @@ class ZipDragBenchmark {
 
     /**
      * The centre of the board's waypoint [number]. Two-pane puts a stats panel beside the board
-     * (the board pane is the left 70% of the window, after the rail), and a bare digit there is not
-     * a waypoint, so only a match inside the board pane counts.
+     * (the board pane is the left 70% of the window; the game page is immersive, so no rail), and a
+     * bare digit there is not a waypoint, so only a match inside the board pane counts.
      */
     private fun MacrobenchmarkScope.waypoint(number: String): Point {
-        val boardRight = if (isTwoPane()) {
-            val rail = railWidthPx()
-            rail + (device.displayWidth - rail) * BOARD_PANE_SHARE
-        } else {
-            device.displayWidth.toFloat()
-        }
+        val boardRight = if (isTwoPane()) device.displayWidth * BOARD_PANE_SHARE else device.displayWidth.toFloat()
         return poll("the waypoint $number on the board") {
             device.findObjects(By.text(number)).map { it.visibleCenter }.firstOrNull { it.x < boardRight }
         }

@@ -31,7 +31,7 @@ a puzzle. Selectors are text and content descriptions; the app has no benchmark 
 
 ## Run
 
-The phone must be awake and unlocked (`Stay awake` on, charging) and on its home screen.
+The device must be awake and unlocked (`Stay awake` on, charging) and on its home screen.
 
 ```
 ./gradlew :app:assembleBenchmark
@@ -41,7 +41,7 @@ The phone must be awake and unlocked (`Stay awake` on, charging) and on its home
 With more than one device attached, name one: `ANDROID_SERIAL=<serial> ./gradlew ...`. For the
 Pixel 8 Pro that is its wireless-debugging address (`adb connect 100.92.178.105:<port>`; the port
 changes when wireless debugging restarts). The Galaxy Tab S9 Ultra needs the same, with its own
-serial. The Tab is a two-pane layout (Expanded width, 840 dp, in landscape: the app's own rule, which
+serial. The Tab is a two-pane layout (840 dp wide, wider than tall, at least 480 dp tall: the app's own rule, which
 `isTwoPane()` in `Navigation.kt` repeats), and the journeys run on both layouts unchanged:
 
 - Tabs: the label is looked for in the rail as well as the bar.
@@ -68,7 +68,7 @@ One class or test: `-Pandroid.testInstrumentationRunnerArguments.class=com.ivand
 (add `#coldPartial` for one test).
 
 Smoke check (correctness only): add `-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true`.
-Each journey runs once, with no compilation and no measurement, which proves the selectors and
+Each journey runs one iteration, with no compilation and no result files (it still traces), which proves the selectors and
 navigation on a layout without waiting for a full run.
 
 ## Read the results

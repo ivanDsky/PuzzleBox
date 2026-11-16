@@ -8,22 +8,27 @@ import androidx.test.uiautomator.By
 private const val BAR_TOP_SHARE = 0.88
 private const val RAIL_WIDTH_DP = 96
 
-/** The app's own rule (HomeLayout): two panes at Expanded width, 840 dp, held in landscape. */
+/** The app's own rule (core/game-ui PanePolicy): two panes at 840 dp wide, wider than tall, at least 480 dp tall. */
 private const val EXPANDED_WIDTH_DP = 840
+private const val MIN_HEIGHT_DP = 480
 
 private fun displayDensity(): Float =
     InstrumentationRegistry.getInstrumentation().targetContext.resources.displayMetrics.density
 
 /** The two-pane rail's width in pixels. */
-internal fun railWidthPx(): Float = RAIL_WIDTH_DP * displayDensity()
+private fun railWidthPx(): Float = RAIL_WIDTH_DP * displayDensity()
 
 /**
  * True when the app shows its two-pane layout: a rail for the tabs, and a list beside its detail
  * on Games and Ranks. Journeys branch on this where the two layouts differ: there is no Back on a
  * game page that sits beside its list, and Ranks has no board dots.
  */
-internal fun MacrobenchmarkScope.isTwoPane(): Boolean =
-    device.displayWidth > device.displayHeight && device.displayWidth / displayDensity() >= EXPANDED_WIDTH_DP
+internal fun MacrobenchmarkScope.isTwoPane(): Boolean {
+    val density = displayDensity()
+    return device.displayWidth > device.displayHeight &&
+        device.displayWidth / density >= EXPANDED_WIDTH_DP &&
+        device.displayHeight / density >= MIN_HEIGHT_DP
+}
 
 /** Selects [tab] and waits for its root to compose. Safe when it is already selected. */
 internal fun MacrobenchmarkScope.selectTab(tab: BenchmarkTab) {
