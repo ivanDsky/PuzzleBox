@@ -20,10 +20,13 @@ import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 
 /**
  * A ring traced around a [GameButton]'s face as it sits while disabled (sunk by the lip depth,
- * so the face fills the bounds below the lip strip), in [accent], from top centre clockwise,
+ * so the face fills the bounds below the lip strip; with [LocalFlatSurfaces] on there is no lip
+ * and the face is the whole bounds), in [accent], from top centre clockwise,
  * that fills as [progress] (0..1) goes up: a cooldown the button waits out. [progress] null draws
  * nothing and adds nothing. It is read in the draw phase only, so a running fill redraws without
  * recomposing; the trace, its measure and the stroke are built once per size, and each frame
@@ -32,12 +35,13 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 @Composable
 fun Modifier.cooldownRing(progress: (() -> Float)?, accent: AccentSlot): Modifier {
     if (progress == null) return this
-    return cooldownRing(progress, accent.colors().accent, MaterialTheme.shapes.medium)
+    val lipDepth = if (LocalFlatSurfaces.current) 0.dp else GameButtonLipDepth
+    return cooldownRing(progress, accent.colors().accent, MaterialTheme.shapes.medium, lipDepth)
 }
 
-private fun Modifier.cooldownRing(progress: () -> Float, color: Color, shape: Shape): Modifier = drawWithCache {
+private fun Modifier.cooldownRing(progress: () -> Float, color: Color, shape: Shape, lipDepth: Dp): Modifier = drawWithCache {
     val stroke = Stroke(width = Spacing.xs.toPx(), cap = StrokeCap.Round)
-    val lip = GameButtonLipDepth.toPx()
+    val lip = lipDepth.toPx()
     val face = Size(size.width, (size.height - lip).coerceAtLeast(0f))
     val measure = PathMeasure().apply { setPath(ringTrace(shape.createOutline(face, layoutDirection, this@drawWithCache), stroke.width / 2, lip), false) }
     val length = measure.length

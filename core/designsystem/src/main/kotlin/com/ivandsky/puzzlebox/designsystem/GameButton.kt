@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
@@ -118,6 +119,7 @@ private fun <T> gameButtonSpec(reduced: Boolean): AnimationSpec<T> =
  * [describe] names it [label] when no visible label does. The sink is the press feedback
  * (MotionTokens: Press, chunky); fill, ink and lip ride the same spring. Reduced motion makes
  * both instant. The rim draws over [content], so a fill reaching the edge sits inside it.
+ * With [LocalFlatSurfaces] on the lip, rim and sink are gone: see [flatFace].
  */
 @Composable
 internal fun GameButtonFace(
@@ -136,6 +138,7 @@ internal fun GameButtonFace(
     // One spring for sink and all three colours so enable/disable lands as a single motion.
     val dpSpec = remember(reduced) { gameButtonSpec<Dp>(reduced) }
     val colorSpec = remember(reduced) { gameButtonSpec<Color>(reduced) }
+    val flat = LocalFlatSurfaces.current
     val sink by animateDpAsState(if (pressed || !enabled) GameButtonLipDepth else 0.dp, dpSpec, label = "game-button-sink")
     val target = gameButtonTarget(colors, enabled, scheme)
     val fill by animateColorAsState(target.fill, colorSpec, label = "game-button-fill")
@@ -144,23 +147,50 @@ internal fun GameButtonFace(
     val shape = MaterialTheme.shapes.medium
     Box(
         modifier = modifier
-            .heightIn(min = size.minHeight)
+            .heightIn(min = size.minHeight(flat))
             .widthIn(min = ButtonMinHeight)
             .then(if (describe) Modifier.semantics { contentDescription = label } else Modifier)
-            .drawBehind {
-                val depth = GameButtonLipDepth.toPx()
-                val face = Size(this.size.width, this.size.height - depth)
-                translate(top = depth) { drawOutline(shape.createOutline(face, layoutDirection, this), lip) }
-            }
-            .padding(bottom = GameButtonLipDepth)
-            .graphicsLayer { translationY = sink.toPx() }
-            .background(fill, shape)
-            .border(GameButtonRim, lip, shape),
+            .then(
+                if (flat) {
+                    Modifier.flatFace(interactionSource, reduced, fill, ink, shape)
+                } else {
+                    Modifier.chunkyFace(sink, fill, lip, shape)
+                },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         content(ink)
     }
 }
+
+/** The chunky face: the lip underneath, the face sunk into it by [sink], rimmed in [lip]. */
+private fun Modifier.chunkyFace(sink: Dp, fill: Color, lip: Color, shape: Shape): Modifier = this
+    .drawBehind {
+        val depth = GameButtonLipDepth.toPx()
+        val face = Size(size.width, size.height - depth)
+        translate(top = depth) { drawOutline(shape.createOutline(face, layoutDirection, this), lip) }
+    }
+    .padding(bottom = GameButtonLipDepth)
+    .graphicsLayer { translationY = sink.toPx() }
+    .background(fill, shape)
+    .border(GameButtonRim, lip, shape)
+
+/**
+ * The flat face (nav-rethink B1): a plain [fill] shape over the whole bounds, no lip, no rim,
+ * no sink. A press is the 100 ms scale and the [ink] wash; the wash draws over the label, so it
+ * stays [ink] on [fill] and the label cannot lose contrast.
+ */
+@Composable
+private fun Modifier.flatFace(
+    interactionSource: MutableInteractionSource,
+    reduced: Boolean,
+    fill: Color,
+    ink: Color,
+    shape: Shape,
+): Modifier = this
+    .pressScale(interactionSource, reduced)
+    .background(fill, shape)
+    .pressTint(interactionSource, shape, ink)
 
 // Previews — light + dark in PuzzleBoxTheme: neutral, accent, disabled and the compact
 // icon-only tile at rest; the sink is touch-driven, so interactive mode shows it.
