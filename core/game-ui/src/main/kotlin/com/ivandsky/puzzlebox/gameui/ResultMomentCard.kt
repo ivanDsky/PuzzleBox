@@ -38,9 +38,10 @@ private val RowMinHeight = 32.dp
 private val RowIconSize: Dp = 20.dp
 
 /**
- * The moment card (L1, tag `result.moments`): one card under the hero with a row per [moments] entry, strongest first
+ * The moment card (L1, tag `result.moments`): one card under the hero (above the side card on two panes) with a row per [moments] entry, strongest first
  * (tags `result.moment.0`, `result.moment.1`, ...). With no moments it draws nothing and takes no room, [gap] included,
- * so a Result without moments is laid out as it was. [gap] is the space kept above the card.
+ * so a Result without moments is laid out as it was. [gap] is the space kept above the card, or below it when
+ * [gapBelow] (the card sits first in the two-pane side column).
  *
  * The rows of the first draw are simply there (the card itself lands with the hero's blocks beat). A moment that
  * arrives later, a friend-board one, slides in: the card grows by a row and the row fades in. Reduced motion skips the
@@ -52,6 +53,7 @@ internal fun ResultMomentCard(
     brand: GameBrand,
     modifier: Modifier = Modifier,
     gap: Dp = Spacing.lg,
+    gapBelow: Boolean = false,
 ) {
     ResultMomentHapticsEffect(moments.firstOrNull()?.moment)
     val reduced = rememberReducedMotion()
@@ -65,7 +67,7 @@ internal fun ResultMomentCard(
     ) {
         OutlinedCard(
             modifier = Modifier
-                .padding(top = gap)
+                .padding(top = if (gapBelow) 0.dp else gap, bottom = if (gapBelow) gap else 0.dp)
                 .fillMaxWidth()
                 .then(if (shownOnFirstDraw) Modifier.resultBeat(ResultBeats.Blocks) else Modifier)
                 .testTag("result.moments"),
