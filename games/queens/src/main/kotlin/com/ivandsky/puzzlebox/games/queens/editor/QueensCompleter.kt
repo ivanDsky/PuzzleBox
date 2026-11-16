@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.queens.editor
 
 import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.ClosestCompletion
 import com.ivandsky.puzzlebox.game.editor.Completion
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.DraftCompleter
@@ -28,6 +29,10 @@ import kotlin.random.Random
  *    recolours as few painted cells as it finds. The crowns still stay.
  * 3. Move a crown: only when no answer can hold every crown, the fewest crowns that must go
  *    move along their rows to the answer's queens.
+ *
+ * With a target level (91) the fill goes on past its first board: every board it finds is graded
+ * by [QueensScoredGrader] and the first at the target is returned, else the closest found. The
+ * repaint is not steered: it keeps as much of the author's paint as it can, at whatever level.
  */
 object QueensCompleter : DraftCompleter<QueensDraft> {
     /** [FinishReadiness.NeedsMore] reason; IncompleteReason.count = regions the author still has to start. */
@@ -49,6 +54,14 @@ object QueensCompleter : DraftCompleter<QueensDraft> {
      */
     private const val PINNED_ATTEMPTS = 192
 
+    /**
+     * Fills tried per cell of the board for a target level, once one of the first
+     * [PINNED_ATTEMPTS] has finished: a bigger board has more fills to look through. The Studio's
+     * budget ends the search sooner on a large board; this ends it under an unlimited one, and
+     * on a small board whose fills cannot reach the level. Set from `QueensScoredMeasurement`.
+     */
+    private const val TARGET_ATTEMPTS_PER_CELL = 128
+
     fun minimumStarted(size: Int): Int = MIN_STARTED_BY_SIZE[size - QueensVariants.MIN_SIZE]
 
     /** Blocked on clashing crowns ([QueensCrowns.conflicts]); NeedsMore below [minimumStarted]. */
@@ -60,33 +73,46 @@ object QueensCompleter : DraftCompleter<QueensDraft> {
         return if (missing > 0) FinishReadiness.NeedsMore(IncompleteReason(STARTED, missing)) else FinishReadiness.Ready
     }
 
-    /** [target] is not aimed for yet: every board is "any" until Queens has its scored grader (91). */
+    /**
+     * [target] null is "any": the first finished board, as before levels. Otherwise the first board
+     * at [target], or the closest one found when the tries or [budget] run out.
+     */
     override fun complete(draft: QueensDraft, random: Random, budget: Budget, target: Difficulty.Level?): Completion<QueensDraft> {
         if (QueensCrowns.conflicts(draft).isNotEmpty()) return Completion.GaveUp
-        val board = finish(draft, random, budget) ?: recrowned(draft, random, budget) ?: return Completion.GaveUp
+        val board = finish(draft, random, budget, target) ?: recrowned(draft, random, budget, target) ?: return Completion.GaveUp
         return Completion.Done(board)
     }
 
     /** [draft] finished with every crown where it is: by a fill when one works, else by a repaint. */
-    private fun finish(draft: QueensDraft, random: Random, budget: Budget): QueensDraft? {
+    private fun finish(draft: QueensDraft, random: Random, budget: Budget, target: Difficulty.Level?): QueensDraft? {
         val growth = QueensPinnedGrowth(draft, budget)
         if (QueensDraft.UNPAINTED in draft.regions) {
-            repeat(PINNED_ATTEMPTS) {
-                if (budget.exhausted()) return null
+            val closest = ClosestCompletion<QueensDraft>(target)
+            for (attempt in 0 until if (target == null) PINNED_ATTEMPTS else TARGET_ATTEMPTS_PER_CELL * draft.regions.size) {
+                if (budget.exhausted()) return closest.board()
+                // A draft no fill has finished by now is one for the repaint, target or not.
+                if (attempt == PINNED_ATTEMPTS && closest.board() == null) break
                 val board = growth.attempt(Random(random.nextLong()))
-                if (board != null && finishable(board, budget)) return board
+                if (board != null && finishable(board, budget) && closest.offer(board, target?.let { level(board, budget) })) return board
             }
+            closest.board()?.let { return it }
         }
         val repaint = QueensRepaint(draft, budget) { finishable(QueensDraft(draft.size, it.toList()), budget) }
         return repaint.repaint(growth, random)?.let { QueensDraft(draft.size, it.toList(), draft.crowns) }
     }
+
+    private fun ClosestCompletion<QueensDraft>.board(): QueensDraft? = (completion() as? Completion.Done)?.draft
+
+    /** The scored level of a finishable [board]; null when [budget] ran out while grading it. */
+    private fun level(board: QueensDraft, budget: Budget): Difficulty.Level? =
+        QueensScoredGrader.grade(QueensPuzzle(board.size, board.regions), budget)?.level
 
     /**
      * [draft] finished with the fewest crowns moved: one given up, then two, and so on, each
      * moved along its row to the queen of the finished board's answer. A choice of crowns that
      * no answer can hold is skipped without a repaint.
      */
-    private fun recrowned(draft: QueensDraft, random: Random, budget: Budget): QueensDraft? {
+    private fun recrowned(draft: QueensDraft, random: Random, budget: Budget, target: Difficulty.Level?): QueensDraft? {
         val crowns = draft.crowns.shuffled(random)
         for (gone in 1..crowns.size) {
             for (first in 0 until if (gone == crowns.size) 1 else crowns.size) {
@@ -94,7 +120,7 @@ object QueensCompleter : DraftCompleter<QueensDraft> {
                 val kept = crowns.toSet() - List(gone) { crowns[(first + it) % crowns.size] }.toSet()
                 val relaxed = draft.copy(crowns = kept)
                 if (QueensPinnedGrowth(relaxed, budget).fill(Random(random.nextLong())) == null) continue
-                val board = finish(relaxed, random, budget) ?: continue
+                val board = finish(relaxed, random, budget, target) ?: continue
                 val answer = QueensSearch.solutions(QueensPuzzle(board.size, board.regions), limit = 1).single().map { it.idx }
                 val moved = draft.crowns.mapTo(LinkedHashSet()) { crown -> answer.single { it / draft.size == crown / draft.size } }
                 return board.copy(crowns = moved)

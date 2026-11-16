@@ -53,10 +53,14 @@ class ScoredGradingTest {
     }
 
     @Test
-    fun `a scored grader that runs out of budget leaves no label, not a legacy one on another scale`() {
+    fun `a scored grader that cannot grade the board keeps the legacy label`() {
         editor.gradeable = false
+        val board = editor.draft(5, 5, 5)
 
-        assertNull(editor.draft(5, 5, 5).analyze(Budget.Unlimited, GradingMode.Scored).difficulty())
+        val verdict = board.analyze(Budget.Unlimited, GradingMode.Scored)
+
+        assertEquals(listOf(listOf(5, 5, 5)), editor.graded)
+        assertEquals(legacy, verdict.difficulty())
     }
 
     @Test

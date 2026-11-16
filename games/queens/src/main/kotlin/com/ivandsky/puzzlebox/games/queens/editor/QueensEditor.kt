@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.game.editor.EditorNotation
 import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
+import com.ivandsky.puzzlebox.game.editor.ScoredGrader
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.Cell
@@ -27,12 +28,14 @@ import com.ivandsky.puzzlebox.model.GameId
  * on the unpainted count; the variant table is the shipped sizes 4..12 (A5). A unique draft
  * exports through the daily [QueensCodec] (A10), so test solve plays a real puzzle, and it
  * shares as board-only [QueensShareCodec] bytes the recipient re-solves. [QueensCompleter]
- * finishes a half-painted draft (Finish for me, spec E1).
+ * finishes a half-painted draft (Finish for me, spec E1), and [QueensScoredGrader] labels a
+ * board by the score of its solve where the Studio asks for scored grading (91).
  */
 object QueensEditor :
     GameEditor<QueensDraft>,
     DraftExport<QueensDraft>,
     DraftCompleter<QueensDraft> by QueensCompleter,
+    ScoredGrader<QueensDraft> by QueensScoredGrader,
     EditorShareCodec<QueensDraft> by QueensShareCodec,
     EditorNotation<QueensDraft> by QueensNotation {
     override val gameId: GameId get() = QueensDefinition.id

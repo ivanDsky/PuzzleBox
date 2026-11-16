@@ -15,7 +15,7 @@ interface ScoredGrader<D : Any> {
     /**
      * The scored difficulty of [draft], a board whose analysis is Unique with [solution] and does
      * not need guessing. Polls [budget] in its loop; null when it is spent, and the board then
-     * shows no level.
+     * keeps its legacy label ([EditorDraft.analyze]).
      */
     fun grade(draft: D, solution: Solution, budget: Budget): Difficulty?
 }
