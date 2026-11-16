@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
+import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.domain.AppBuild
@@ -31,11 +32,13 @@ import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
+import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveResultInsights
 import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.linkedin.CreateLinkedInLink
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInAccount
@@ -273,6 +276,10 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<IdentityService>())
             assertNotNull(koin.get<LeaderboardRepository>())
             assertNotNull(koin.get<SharedPuzzleRepository>())
+            // The community use cases and the hide set they share (inert until the Community screens call them).
+            assertNotNull(koin.get<HiddenPuzzles>())
+            assertNotNull(koin.get<ListCommunityPuzzles>())
+            assertNotNull(koin.get<ReportPuzzle>())
             assertNotNull(koin.get<CustomBoardRepository>())
             assertNotNull(koin.get<GoogleIdTokenProvider>())
             // Regression: ProfileRoute's koinViewModel() needs this definition —

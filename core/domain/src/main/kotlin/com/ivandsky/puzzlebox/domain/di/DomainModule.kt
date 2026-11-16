@@ -32,6 +32,8 @@ import com.ivandsky.puzzlebox.domain.ObserveResultRank
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.RecordRevealSeen
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
+import com.ivandsky.puzzlebox.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.domain.ValidatePublish
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
@@ -152,6 +154,8 @@ val domainModule = module {
     factory { RecordRevealSeen(local = get(), clock = { Instant.now() }) }
     factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
     factory { ValidatePublish() }
+    factory { ListCommunityPuzzles(shared = get(), hidden = get(), identity = get(), clock = System::currentTimeMillis) }
+    factory { ReportPuzzle(shared = get(), hidden = get()) }
     factory {
         ObservePlayStats(
             todaySet = get(),

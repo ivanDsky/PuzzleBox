@@ -265,7 +265,7 @@ Use cases in `:core:domain` start with a verb and have one public `operator fun 
   objects, except data classes, data objects, enum classes, sealed classes and declarations in a
   `di` package.
 - **Detection:** the name must start with one of Get, Observe, Compute, Submit, Save, Load, Delete,
-  Update, Create, Sync, Validate, Record, Start, Finish, followed by an uppercase letter. The
+  Update, Create, Sync, Validate, Record, Start, Finish, Import, List, Report, followed by an uppercase letter. The
   declaration must have exactly one public function named `invoke`, and that function must be an
   `operator fun`. An extra public non-operator `invoke` overload is a violation.
 - **Accepted misses:** only `operator fun invoke` counts as the entry point; a use case with a
