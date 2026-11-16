@@ -1,10 +1,12 @@
 package com.ivandsky.puzzlebox.games.zip.editor
 
+import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.Wall
+import com.ivandsky.puzzlebox.games.zip.ZipBoard
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
 import kotlin.random.Random
 
-/** Half-built drafts cut from generated unique boards: the completer's test and measurement input. */
+/** Half-built drafts, cut from generated unique boards or walked on a blank one: the completer's test and measurement input. */
 object ZipDraftCuts {
     /**
      * The first [length] cells of [board]'s path as the author's stroke, with [marks] of its
@@ -23,6 +25,19 @@ object ZipDraftCuts {
         val numbers = board.board.waypoints.map { it.idx }
         val kept = numbers.drop(1).dropLast(1).shuffled(random).take(inner).toSet() + numbers.first() + numbers.last()
         return ZipDraft(board.board.n, walls(board, walls, random), emptyList(), numbers.filter { it in kept })
+    }
+
+    /** A random self-avoiding walk of [length] cells on a blank board, stroked as the editor does. */
+    fun walked(size: Int, length: Int, random: Random): ZipDraft {
+        val blank = ZipDraft(size, emptySet(), emptyList(), emptyList())
+        val board = ZipBoard(size, emptySet(), emptyList())
+        while (true) {
+            val path = arrayListOf(random.nextInt(size * size))
+            while (path.size < length) {
+                path += board.neighbors(Cell(path.last())).map { it.idx }.filter { it !in path }.randomOrNull(random) ?: break
+            }
+            if (path.size == length) return blank.stroke(path).apply(blank)
+        }
     }
 
     /** [count] of the board's walls. Sorted first: a wall's hash, and so the set's order, changes from run to run. */
