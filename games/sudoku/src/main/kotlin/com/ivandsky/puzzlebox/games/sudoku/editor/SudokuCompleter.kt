@@ -23,7 +23,8 @@ import kotlin.random.Random
  * one full grid that agrees with the givens; every added given is a digit of that grid. Givens
  * go first where two solutions differ, until one is left, then on a cell the ladder cannot
  * reach, until it finishes the board. A board is returned only then, which is what
- * [SudokuDraftAnalyzer] calls Unique and not needs-guessing.
+ * [SudokuDraftAnalyzer] calls Unique and not needs-guessing. Asked for a level, it hands
+ * that board to [SudokuTargetFinish] to tune.
  */
 object SudokuCompleter : DraftCompleter<SudokuDraft> {
     /** [FinishReadiness.NeedsMore] reason; IncompleteReason.count = givens the author still has to place. */
@@ -58,8 +59,12 @@ object SudokuCompleter : DraftCompleter<SudokuDraft> {
         return if (missing > 0) FinishReadiness.NeedsMore(IncompleteReason(GIVENS, missing)) else FinishReadiness.Ready
     }
 
-    /** [target] is not aimed for yet: every board is "any" until Sudoku has its scored grader (92). */
-    override fun complete(draft: SudokuDraft, random: Random, budget: Budget, target: Difficulty.Level?): Completion<SudokuDraft> {
+    /** With no [target] the first board found, as before levels; with one, the board [SudokuTargetFinish] tunes to it (92). */
+    override fun complete(draft: SudokuDraft, random: Random, budget: Budget, target: Difficulty.Level?): Completion<SudokuDraft> =
+        if (target == null) first(draft, random, budget) else SudokuTargetFinish.complete(draft, target, random, budget)
+
+    /** The first board the ladder finishes, whatever its level. */
+    internal fun first(draft: SudokuDraft, random: Random, budget: Budget): Completion<SudokuDraft> {
         val geometry = geometryOf(draft)
         val grid = SudokuRandomFill.fill(geometry, draft.givens, random, budget) ?: return Completion.GaveUp
         val givens = draft.givens.toIntArray()
