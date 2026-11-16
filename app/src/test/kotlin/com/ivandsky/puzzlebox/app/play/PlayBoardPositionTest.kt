@@ -152,7 +152,7 @@ class PlayBoardPositionTest {
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository(seen = games.toSet()) }
                     // The tablet side panel's stats: signed out, so no board is read.
                     factory {
-                        ObservePlayStats(get(), get(), get(), get(), ObserveLeaderboard(FakeIdentityService(), FakeLeaderboardRepository(), get(), get()))
+                        ObservePlayStats(get(), get(), ObserveLeaderboard(FakeIdentityService(), FakeLeaderboardRepository(), get(), get()))
                     }
                     single { SubmitStatusTracker() }
                     single<IdentityService> { FakeIdentityService() }

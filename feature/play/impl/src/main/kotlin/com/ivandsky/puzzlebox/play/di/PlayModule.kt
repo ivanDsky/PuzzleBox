@@ -97,7 +97,7 @@ val playModule = module {
     }
     viewModel { params ->
         PlayStatsViewModel(
-            params.get<PlaySlot>(), get(), get(), get(), get(), get(), get(), get(),
+            params.get<PlaySlot>(), get(), get(), get(), get(), get(), get(),
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
         )
     }

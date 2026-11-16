@@ -35,10 +35,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwner
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.domain.ComputeStreak
-import com.ivandsky.puzzlebox.domain.GetPuzzleDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
-import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -125,16 +122,13 @@ class PlayStatsPanelTest {
         return PlayStatsViewModel(
             slot = PlaySlot.Daily(alpha, slotDay),
             registry = fakes.games,
-            brands = fakes.registry,
             calendar = calendar,
             observePlayStats = ObservePlayStats(
                 todaySet = ObserveTodaySet(
                     fakes.games, FakeSavedPlayRepository(), completions, calendar, daily,
                     SyncTodayPuzzles(fakes.games, daily, calendar),
                 ),
-                stats = ObserveGameStats(fakes.games, history, ComputeStreak(GetPuzzleDay(fakes.games))),
                 history = history,
-                calendar = calendar,
                 leaderboard = ObserveLeaderboard(identityService, leaderboard, fakes.games, calendar),
             ),
             posts = posts,
@@ -280,11 +274,6 @@ class PlayStatsPanelTest {
                 gameName = "Zip",
                 solvedToday = 1,
                 gamesToday = 2,
-                streak = 2,
-                week = emptyList(),
-                best = null,
-                rankOrder = RankOrder.TimeThenHints,
-                averageMs = null,
                 times = PlayTimes.Board(
                     (1..3).map { DailyBoardLine.Real(DailyBoardRowModel(it, "Player $it", it * 10_000L, hints = 0, isSelf = false, playerId = "player-$it"), it) },
                     solved = true,
@@ -550,11 +539,6 @@ class PlayStatsPanelTest {
                 gameName = "Zip",
                 solvedToday = null,
                 gamesToday = 2,
-                streak = null,
-                week = emptyList(),
-                best = null,
-                rankOrder = RankOrder.TimeThenHints,
-                averageMs = null,
                 times = PlayTimes.SignedOut,
             ),
             signIn = signIn,

@@ -8,7 +8,6 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardSnapshot
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitResult
-import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -40,9 +39,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The tablet play side panel's data for one slot (A15): today's set progress, the game's
- * stats and streak days, its board, and whether the slot is solved. The test games' zone
- * is UTC, so the puzzle day at the fixed clock is Nov 10.
+ * The tablet play side panel's data for one slot (A15): today's set progress, its board, and whether the slot is solved. The puzzle day is Nov 10.
  */
 class ObservePlayStatsTest {
 
@@ -65,9 +62,7 @@ class ObservePlayStatsTest {
                 registry, FakeSavedPlayRepository(), completions, calendar, daily,
                 SyncTodayPuzzles(registry, daily, calendar),
             ),
-            stats = ObserveGameStats(registry, history, ComputeStreak(GetPuzzleDay(registry, clock))),
             history = history,
-            calendar = calendar,
             leaderboard = ObserveLeaderboard(FakeIdentityService(initial = ann), leaderboard, registry, calendar),
         )(slot)
     }
@@ -81,7 +76,7 @@ class ObservePlayStatsTest {
     )
 
     @Test
-    fun `the local stats arrive while the board is still loading`() = runTest {
+    fun `the set progress arrives while the board is still loading`() = runTest {
         completions.setRecords(listOf(solve(alpha, daysAgo = 1), solve(alpha, daysAgo = 2), solve(beta, daysAgo = 0)))
         val silent = object : LeaderboardRepository {
             override fun observe(board: LeaderboardRef, order: RankOrder): Flow<LeaderboardSnapshot?> = emptyFlow()
@@ -94,26 +89,7 @@ class ObservePlayStatsTest {
 
         assertEquals(1, stats.solvedToday)
         assertEquals(2, stats.gamesToday)
-        assertEquals(2, stats.stats.currentStreak)
-        assertEquals(today, stats.today)
         assertEquals(TodayLeaderboard.SignedIn(ann, TodayLeaderboard.Board.Loading), stats.board)
-    }
-
-    @Test
-    fun `streak days are this game's numbered, non-archived solves`() = runTest {
-        completions.setRecords(
-            listOf(
-                solve(alpha, daysAgo = 1),
-                solve(alpha, daysAgo = 2),
-                // Practice and another game's solves never ring this game's strip.
-                solve(alpha, daysAgo = 3, puzzleNumber = null),
-                solve(beta, daysAgo = 4),
-            ),
-        )
-        // Two days ago was opened from the archive (A23): a solve, never a streak day.
-        daily.addEntry(DailyEntry(alpha, today.minusDays(2), 98, "v", clock.millis(), archived = true))
-
-        assertEquals(setOf(today.minusDays(1)), observe().first().streakDays)
     }
 
     @Test

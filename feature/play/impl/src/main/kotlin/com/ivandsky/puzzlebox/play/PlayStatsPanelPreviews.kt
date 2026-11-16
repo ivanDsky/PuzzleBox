@@ -8,35 +8,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.data.leaderboard.SubmitStatus
-import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardLine
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardRowModel
 import com.ivandsky.puzzlebox.gameui.board.GhostRowModel
-import com.ivandsky.puzzlebox.gameui.WeekDay
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
-import java.time.LocalDate
-
-private val PreviewToday = LocalDate.parse("2026-11-06")
-private val PreviewBrand = GameBrand.Neutral.copy(accent = AccentSlot.Blue)
 
 // A 30% side pane on a 1280dp-wide tablet.
 private val PreviewPaneWidth = 384.dp
-
-private fun previewWeek(solvedBack: Set<Long>, frozenBack: Set<Long> = emptySet()): List<WeekDay> = (6L downTo 0L).map { back ->
-    WeekDay(
-        PreviewToday.minusDays(back),
-        if (back in solvedBack) listOf(PreviewBrand) else emptyList(),
-        isToday = back == 0L,
-        frozen = back in frozenBack,
-    )
-}
 
 private fun real(place: Int, name: String, timeMs: Long, hints: Int = 0, you: Boolean = false, rank: Int = place) =
     DailyBoardLine.Real(DailyBoardRowModel(rank, name, timeMs, hints, isSelf = you, playerId = name), place)
@@ -48,11 +31,6 @@ private val Loaded = PlayStatsState(
     gameName = "Zip",
     solvedToday = 2,
     gamesToday = 5,
-    streak = 12,
-    week = previewWeek(setOf(1, 2, 3, 4, 5, 6)),
-    best = BestScore(41_000L, 0),
-    rankOrder = RankOrder.TimeThenHints,
-    averageMs = 58_000L,
     times = PlayTimes.Board(
         listOf("Mia", "Jonas", "Priya", "Alexandria-Charlotte Whitfield", "Tom", "Sam", "Ivan", "Lee")
             .mapIndexed { index, name -> real(index + 1, name, 30_000L + index * 9_000L, you = name == "Ivan") },
@@ -62,10 +40,6 @@ private val Loaded = PlayStatsState(
 
 private val Loading = Loaded.copy(
     solvedToday = null,
-    streak = null,
-    week = previewWeek(emptySet()),
-    best = null,
-    averageMs = null,
     times = PlayTimes.Loading,
 )
 
@@ -82,21 +56,13 @@ private fun PanelPreview(state: PlayStatsState, elapsedMs: Long?) {
 @Composable
 internal fun PlayStatsPanelLoadedPreview() = PanelPreview(Loaded, elapsedMs = 31_000L)
 
-/** A missed day a freeze covered, and the held count beside the streak line. */
-@PuzzleBoxPreviews
-@Composable
-internal fun PlayStatsPanelFreezesPreview() = PanelPreview(
-    Loaded.copy(week = previewWeek(setOf(1, 2, 4, 5, 6), frozenBack = setOf(3)), freezesHeld = 2),
-    elapsedMs = 31_000L,
-)
-
 @PuzzleBoxPreviews
 @Composable
 internal fun PlayStatsPanelLoadingPreview() = PanelPreview(Loading, elapsedMs = null)
 
 @PuzzleBoxPreviews
 @Composable
-internal fun PlayStatsPanelSignedOutPreview() = PanelPreview(Loaded.copy(streak = 0, times = PlayTimes.SignedOut), elapsedMs = 31_000L)
+internal fun PlayStatsPanelSignedOutPreview() = PanelPreview(Loaded.copy(times = PlayTimes.SignedOut), elapsedMs = 31_000L)
 
 private val OthersOnly = (Loaded.times as PlayTimes.Board).rows.map { line ->
     if (line is DailyBoardLine.Real) line.copy(row = line.row.copy(isSelf = false)) else line
@@ -146,7 +112,6 @@ internal fun PlayStatsPanelConnectionsPreview() = PanelPreview(
 @Composable
 internal fun PlayStatsPanelHintsFirstPreview() = PanelPreview(
     Loaded.copy(
-        rankOrder = RankOrder.HintsThenTime,
         times = (Loaded.times as PlayTimes.Board).let { board ->
             board.copy(
                 rows = board.rows.mapIndexed { index, line -> if (line is DailyBoardLine.Real) line.copy(row = line.row.copy(hints = index / 2)) else line },

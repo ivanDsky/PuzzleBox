@@ -153,9 +153,7 @@ val domainModule = module {
     factory {
         ObservePlayStats(
             todaySet = get(),
-            stats = get(),
             history = get(),
-            calendar = get(),
             leaderboard = get(),
         )
     }
