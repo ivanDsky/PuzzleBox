@@ -169,12 +169,12 @@ class PlayStatsPanelTest {
     /** The [part] inside the row tagged [row], whatever else on the card shares its tag. */
     private fun inRow(row: String, part: String) = hasTestTag(part) and hasAnyAncestor(hasTestTag(row))
 
-    private fun show(vm: PlayStatsViewModel, elapsedMs: Long? = 83_000L, inlineMarks: Boolean = false) {
+    private fun show(vm: PlayStatsViewModel, elapsedMs: Long? = 83_000L, inlineMarks: Boolean = false, showTimer: Boolean = true) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 Column {
                     val state by vm.state.collectAsStateWithLifecycle()
-                    PlayStatsPanel(state = state, elapsedMs = { elapsedMs }, signIn = BoardSignIn.Idle, onSignIn = {}, boardStyle = DailyBoardStyle.defaults(inlineMarks = inlineMarks))
+                    PlayStatsPanel(state = state, elapsedMs = { elapsedMs }, signIn = BoardSignIn.Idle, onSignIn = {}, showTimer = showTimer, boardStyle = DailyBoardStyle.defaults(inlineMarks = inlineMarks))
                 }
             }
         }
@@ -296,6 +296,14 @@ class PlayStatsPanelTest {
         show(viewModel())
 
         composeRule.onNodeWithTag("play.stats.timer").assertTextEquals("1:23")
+        composeRule.onNodeWithTag("play.stats.progress").assertTextContains("1/2", substring = true)
+    }
+
+    @Test
+    fun `told to hide the timer, the panel draws progress but no timer`() {
+        show(viewModel(), showTimer = false)
+
+        composeRule.onNodeWithTag("play.stats.timer").assertDoesNotExist()
         composeRule.onNodeWithTag("play.stats.progress").assertTextContains("1/2", substring = true)
     }
 

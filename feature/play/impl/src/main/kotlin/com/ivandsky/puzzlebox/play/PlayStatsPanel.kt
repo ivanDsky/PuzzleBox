@@ -38,6 +38,7 @@ private const val NONE = "—"
  * read here, so only the panel recomposes on each tick; null (no running board) reads
  * 0:00. Loading values show dashes in the same slots, so nothing moves when data lands.
  * It scrolls when the pane is shorter than the panel. [boardStyle] is the times card's. The streak is on Today.
+ * With a play tuning the timer is in the top bar, so [showTimer] is false and the panel draws no timer.
  */
 @Composable
 internal fun ColumnScope.PlayStatsPanel(
@@ -45,6 +46,7 @@ internal fun ColumnScope.PlayStatsPanel(
     elapsedMs: () -> Long?,
     signIn: BoardSignIn,
     onSignIn: () -> Unit,
+    showTimer: Boolean = true,
     boardStyle: DailyBoardStyle = DailyBoardStyle.defaults(),
 ) {
     Column(
@@ -57,13 +59,15 @@ internal fun ColumnScope.PlayStatsPanel(
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(
-                formatDuration(elapsedMs() ?: 0L),
-                style = MaterialTheme.typography.displayLarge.tabular(),
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                modifier = Modifier.testTag("play.stats.timer"),
-            )
+            if (showTimer) {
+                Text(
+                    formatDuration(elapsedMs() ?: 0L),
+                    style = MaterialTheme.typography.displayLarge.tabular(),
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    modifier = Modifier.testTag("play.stats.timer"),
+                )
+            }
         }
         TodayProgressCard(state)
         PlayTimesCard(state.times, signIn = signIn, onSignIn = onSignIn, animated = state.linkedIn, boardStyle = boardStyle)
