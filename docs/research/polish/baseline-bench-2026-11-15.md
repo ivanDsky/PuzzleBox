@@ -4,7 +4,7 @@
 
 Device: Samsung Galaxy Tab S9 Ultra (SM-X910), Android 16, build samsung/gts9uwifixx/gts9uwifi:16/BP4A.251205.006/X910XXS6EZI2:user/release-keys. Display 1848x2960, default mode 120 Hz (renderFrameRate 120.00001; supported 120/60/30), so the frame budget is 8.3 ms. Battery: 25% at the start of the successful run (41% at the end), AC powered, screen awake and unlocked, Stay awake on. A first attempt was rejected by Macrobenchmark with LOW-BATTERY (24%); it ran again once the tab reached 25%.
 
-Target: `:app` benchmark build (`com.ivandsky.puzzlebox.benchmark`), origin/main ecad45b7d, command `ANDROID_SERIAL=<tab address> ./gradlew :benchmark:connectedBenchmarkAndroidTest`. Only the tab was targeted; the release and debug packages were not touched. 5 iterations per journey, 10 per startup; journeys use CompilationMode None, startup runs Partial and None. Total run 54 min.
+Target: `:app` benchmark build (`com.ivandsky.puzzlebox.benchmark`), origin/main ecad45b7d, command `ANDROID_SERIAL=<tab serial> ./gradlew :benchmark:connectedBenchmarkAndroidTest`. Only the tab was targeted; the release and debug packages were not touched. 5 iterations per journey, 10 per startup; journeys use CompilationMode None, startup runs Partial and None. Total run 54 min.
 
 ## Result: 6 of 17 tests passed, 11 failed
 

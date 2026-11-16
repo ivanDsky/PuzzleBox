@@ -35,9 +35,9 @@
 - release: .github/workflows/release.yml  # workflow "Main": push to main → two parallel test jobs (assembleDebug testCore, testUi; no goldens in the default run) beside the signed release build; publish to GitHub releases only when all are green; local release builds sign with the release key via ~/.gradle/gradle.properties
 # releases run in one queue; a 3rd quick merge replaces the 2nd's pending run (that version is skipped; next run releases HEAD — re-dispatch from main to publish now)
 # debug installs are com.ivandsky.puzzlebox.debug ("PuzzleBox Dev") beside the release app com.ivandsky.puzzlebox
-- tailscale: <tailnet>
-  - device: <tab host> @ <tab address>  # verified 2026-11-01 (only Android node on tailnet)
-  - logs: wireless adb over tailscale, already paired: `adb connect <tab address>:<port from Wireless debugging>`  # verified 2026-11-05
+- tailscale: wireless adb over the user's tailnet; tailnet name, device names and addresses live in the gitignored `PROFILE.local.md` (this repo is public: never commit addresses, ports, serials or tailnet names)
+  - device: Galaxy Tab S9 Ultra
+  - logs: wireless adb, already paired: `adb connect <tab address>:<port from Wireless debugging>`  # verified 2026-11-05
 # - firebase: <project id>  # activate once the Firebase project is created; deliver moves off tailscale then
 
 ## Review site publish
@@ -81,9 +81,9 @@ off  # user ruling 2026-11-05 (replaces 2026-10-31 `always`): publish the review
 - Firebase: Auth Google-sign-in-only (no email/password); leaderboard / 1v1 backend decided at spec
 
 ## Device access (Bug C session, 2026-11-02)
-- Tab (<tab host>, <tab address>) supports wireless adb over Tailscale: user opens Developer options → Wireless debugging → "Pair device with pairing code" (code+port rotate EVERY open — pair within seconds of receiving), then `adb connect <tab address>:<debug-port-from-main-screen>`. Paired 2026-11-02, persists.
+- Tab supports wireless adb: user opens Developer options → Wireless debugging → "Pair device with pairing code" (code+port rotate EVERY open — pair within seconds of receiving), then `adb connect <tab address>:<debug-port-from-main-screen>`. Paired 2026-11-02, persists.
 - Supervised-process PATH lacks sdk tools: use full path `/Users/ivandsky/Library/Android/sdk/platform-tools/adb`.
-- Phone (<phone host>, Tailscale <phone address>): Pixel 8 Pro, Android 17, 120 Hz, wireless adb over Tailscale, paired 2026-11-15 (persists). Connect: `adb connect <phone address>:<port from Wireless debugging main screen>`; the port changes when wireless debugging restarts — ask the user for it, or find it with a parallel `nc -z` scan of 30000-49999. Used for agent benchmarks and reviews; user checks still run on the tab.
+- Phone: Pixel 8 Pro, Android 17, 120 Hz, wireless adb, paired 2026-11-15 (persists). Connect: `adb connect <phone address>:<port from Wireless debugging main screen>`; the port changes when wireless debugging restarts — ask the user for it, or find it with a parallel `nc -z` scan of 30000-49999. Used for agent benchmarks and reviews; user checks still run on the tab.
 - Agent measurements never run on the release package `com.ivandsky.puzzlebox` (the user's real account; a 2026-11-15 run left today's daily in progress). Use the benchmark install.
 - The tab runs ReVanced microG, not real GMS — Credential Manager Google-ID works ONLY with the type-first + `GoogleIdTokenCredential.createFrom(credential.data)` pattern (4b7b419). `is GoogleIdTokenCredential` checks silently drop microG tokens.
 - User checks on the tablet only — no emulator, no Mac manual testing.
