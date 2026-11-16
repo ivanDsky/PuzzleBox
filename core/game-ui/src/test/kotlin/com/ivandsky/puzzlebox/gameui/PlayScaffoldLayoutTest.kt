@@ -84,6 +84,7 @@ class PlayScaffoldLayoutTest {
         height: Int,
         boardSize: Dp? = null,
         tuning: PlayTuning? = null,
+        gridColumns: Int? = null,
         hints: PlayHints = Hints,
         slot: @Composable ColumnScope.() -> Unit = { Text("stats", Modifier.testTag("slot")) },
     ) {
@@ -94,6 +95,7 @@ class PlayScaffoldLayoutTest {
                 CompositionLocalProvider(LocalPlayTuning provides tuning) {
                     AdaptivePlayScaffold(
                         layout = layout,
+                        gridColumns = gridColumns,
                         modifier = Modifier.requiredSize(width.dp, height.dp),
                         // Honours the cap the way Tango's and Zip's boards do.
                         board = { paneCap ->
@@ -245,6 +247,94 @@ class PlayScaffoldLayoutTest {
         setScreen(PlayLayout.SinglePane, 360, 800, tuning = PlayTuning.Starting)
 
         assertRowDirectlyUnderBoard(side = 360.dp - PlayBoardInset * 2)
+    }
+
+    /** The user's choices (ticket 56): 552 / 600 / 600 dp caps, a 72 dp tablet cell cap, controls in the side column. */
+    private val shipped = ShippedPlayTuningSource.tuning.value!!
+
+    @Test
+    @Config(qualifiers = "w360dp-h800dp")
+    fun `the shipped tuning leaves the phone board as wide as the starting one`() {
+        setScreen(PlayLayout.SinglePane, 360, 800, tuning = shipped, gridColumns = 6)
+
+        assertEquals(PlayTuning.Starting.phoneCap, shipped.phoneCap)
+        assertRowDirectlyUnderBoard(side = 360.dp - PlayBoardInset * 2)
+    }
+
+    @Test
+    @Config(qualifiers = "w360dp-h800dp")
+    fun `the cell cap is off on the phone`() {
+        // 40 dp x 6 = 240 dp would bind below the 312 dp cap if it applied.
+        setScreen(PlayLayout.SinglePane, 360, 800, tuning = caps.copy(tabletCellCap = 40.dp), gridColumns = 6)
+
+        assertRowDirectlyUnderBoard(side = 312.dp)
+    }
+
+    @Test
+    @Config(qualifiers = "w800dp-h1280dp")
+    fun `a 6 by 6 board on a shipped portrait tablet is 432 dp`() {
+        setScreen(PlayLayout.SinglePane, 800, 1280, tuning = shipped, gridColumns = 6)
+
+        assertRowDirectlyUnderBoard(side = 432.dp)
+    }
+
+    @Test
+    @Config(qualifiers = "w800dp-h1280dp")
+    fun `a 9 by 9 board on a shipped portrait tablet is 600 dp`() {
+        setScreen(PlayLayout.SinglePane, 800, 1280, tuning = shipped, gridColumns = 9)
+
+        assertRowDirectlyUnderBoard(side = 600.dp)
+    }
+
+    @Test
+    @Config(qualifiers = "w800dp-h1280dp")
+    fun `a portrait tablet with no grid columns keeps the class cap`() {
+        setScreen(PlayLayout.SinglePane, 800, 1280, tuning = shipped)
+
+        assertRowDirectlyUnderBoard(side = 600.dp)
+    }
+
+    @Test
+    @Config(qualifiers = "w800dp-h1280dp")
+    fun `the caption lines up with a cell capped board`() {
+        setScreen(PlayLayout.SinglePane, 800, 1280, tuning = shipped, gridColumns = 6)
+        val board = bounds("board")
+        val caption = bounds("play.caption_slot")
+
+        assertEquals("caption $caption starts with board $board", board.left.value, caption.left.value, 0.5f)
+        assertEquals("caption $caption ends with board $board", board.right.value, caption.right.value, 0.5f)
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp")
+    fun `a 6 by 6 board on a shipped landscape tablet is 432 dp with the controls in the side column`() {
+        setScreen(PlayLayout.TwoPane, 1280, 800, tuning = shipped, gridColumns = 6)
+        val board = bounds("board")
+
+        assertEquals("board width", 432f, board.width.value, 0.5f)
+        controlTags.map(::bounds).forEach { control ->
+            assertEquals("$control beside board $board", (board.right + PlayBoardInset).value, control.left.value, 0.5f)
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp")
+    fun `a 9 by 9 board on a shipped landscape tablet is 600 dp with the controls in the side column`() {
+        setScreen(PlayLayout.TwoPane, 1280, 800, tuning = shipped, gridColumns = 9)
+        val board = bounds("board")
+
+        assertEquals("board width", 600f, board.width.value, 0.5f)
+        controlTags.map(::bounds).forEach { control ->
+            assertEquals("$control beside board $board", (board.right + PlayBoardInset).value, control.left.value, 0.5f)
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp")
+    fun `a cell cap applies to a landscape tablet that has no class cap`() {
+        setScreen(PlayLayout.TwoPane, 1280, 800, tuning = PlayTuning.Starting.copy(tabletCellCap = 64.dp), gridColumns = 6)
+
+        assertRowDirectlyUnderBoard(side = 384.dp)
     }
 
     @Test

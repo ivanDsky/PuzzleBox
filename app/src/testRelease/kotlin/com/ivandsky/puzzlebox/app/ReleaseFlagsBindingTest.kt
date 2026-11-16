@@ -44,7 +44,7 @@ class ReleaseFlagsBindingTest {
         }.koin
         try {
             assertTrue(koin.get<PlayTuningSource>() is FlaggedPlayTuningSource)
-            assertEquals(PlayTuning.Starting.takeIf { ReleaseFlag.BoardErgonomics.releaseDefault }, koin.get<PlayTuningSource>().tuning.value)
+            assertEquals(PlayTuning.Shipped.takeIf { ReleaseFlag.BoardErgonomics.releaseDefault }, koin.get<PlayTuningSource>().tuning.value)
         } finally {
             stopKoin()
         }

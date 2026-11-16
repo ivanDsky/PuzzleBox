@@ -22,8 +22,8 @@ class DebugPlayTuningSourceTest {
     private fun source() = DebugPlayTuningSource(context)
 
     @Test
-    fun `a fresh source holds the starting values`() {
-        assertEquals(PlayTuning.Starting, source().tuning.value)
+    fun `a fresh source holds the shipped values`() {
+        assertEquals(PlayTuning.Shipped, source().tuning.value)
     }
 
     @Test
@@ -32,7 +32,7 @@ class DebugPlayTuningSourceTest {
 
         source.setCap(DeviceClass.Phone, 400.dp)
 
-        assertEquals(PlayTuning.Starting.copy(phoneCap = 400.dp), source.tuning.value)
+        assertEquals(PlayTuning.Shipped.copy(phoneCap = 400.dp), source.tuning.value)
     }
 
     @Test
@@ -41,7 +41,7 @@ class DebugPlayTuningSourceTest {
 
         source.setCap(DeviceClass.TabletPortrait, 720.dp)
 
-        assertEquals(PlayTuning.Starting.copy(tabletPortraitCap = 720.dp), source.tuning.value)
+        assertEquals(PlayTuning.Shipped.copy(tabletPortraitCap = 720.dp), source.tuning.value)
     }
 
     @Test
@@ -50,16 +50,16 @@ class DebugPlayTuningSourceTest {
 
         source.setCap(DeviceClass.TabletLandscape, 640.dp)
 
-        assertEquals(PlayTuning.Starting.copy(tabletLandscapeCap = 640.dp), source.tuning.value)
+        assertEquals(PlayTuning.Shipped.copy(tabletLandscapeCap = 640.dp), source.tuning.value)
     }
 
     @Test
     fun `the landscape controls switch changes only the placement`() {
         val source = source()
 
-        source.setLandscapeControls(LandscapeControls.SideColumn)
+        source.setLandscapeControls(LandscapeControls.UnderBoard)
 
-        assertEquals(PlayTuning.Starting.copy(landscapeControls = LandscapeControls.SideColumn), source.tuning.value)
+        assertEquals(PlayTuning.Shipped.copy(landscapeControls = LandscapeControls.UnderBoard), source.tuning.value)
     }
 
     @Test
@@ -69,10 +69,52 @@ class DebugPlayTuningSourceTest {
 
         source.fillTabletLandscapePane()
         assertNull(source.tuning.value.tabletLandscapeCap)
-        assertEquals(PlayTuning.Starting.phoneCap, source.tuning.value.phoneCap)
+        assertEquals(PlayTuning.Shipped.phoneCap, source.tuning.value.phoneCap)
 
         source.setCap(DeviceClass.TabletLandscape, 600.dp)
         assertEquals(600.dp, source.tuning.value.tabletLandscapeCap)
+    }
+
+    @Test
+    fun `the tablet cell cap changes only itself`() {
+        val source = source()
+
+        source.setTabletCellCap(96.dp)
+
+        assertEquals(PlayTuning.Shipped.copy(tabletCellCap = 96.dp), source.tuning.value)
+    }
+
+    @Test
+    fun `the tablet cell cap is held to 40 to 120 dp`() {
+        val source = source()
+
+        source.setTabletCellCap(8.dp)
+        assertEquals(40.dp, source.tuning.value.tabletCellCap)
+
+        source.setTabletCellCap(500.dp)
+        assertEquals(120.dp, source.tuning.value.tabletCellCap)
+        assertEquals(120.dp, source().tuning.value.tabletCellCap)
+    }
+
+    @Test
+    fun `a null tablet cell cap turns it off and survives a new source`() {
+        val source = source()
+        source.setTabletCellCap(72.dp)
+
+        source.setTabletCellCap(null)
+
+        assertNull(source.tuning.value.tabletCellCap)
+        assertNull(source().tuning.value.tabletCellCap)
+    }
+
+    @Test
+    fun `a stored tablet cell cap survives a new source and is clamped on read`() {
+        source().setTabletCellCap(88.dp)
+        assertEquals(88.dp, source().tuning.value.tabletCellCap)
+
+        context.getSharedPreferences("play_tuning", android.content.Context.MODE_PRIVATE)
+            .edit().putInt("tablet_cell_cap_dp", 5000).commit()
+        assertEquals(120.dp, source().tuning.value.tabletCellCap)
     }
 
     @Test
@@ -81,11 +123,12 @@ class DebugPlayTuningSourceTest {
             setCap(DeviceClass.Phone, 400.dp)
             setCap(DeviceClass.TabletPortrait, 720.dp)
             setCap(DeviceClass.TabletLandscape, 640.dp)
-            setLandscapeControls(LandscapeControls.SideColumn)
+            setLandscapeControls(LandscapeControls.UnderBoard)
+            setTabletCellCap(96.dp)
         }
 
         assertEquals(
-            PlayTuning(400.dp, 720.dp, 640.dp, LandscapeControls.SideColumn),
+            PlayTuning(400.dp, 720.dp, 640.dp, LandscapeControls.UnderBoard, tabletCellCap = 96.dp),
             source().tuning.value,
         )
     }
@@ -108,8 +151,8 @@ class DebugPlayTuningSourceTest {
         source.setCap(DeviceClass.TabletPortrait, 2000.dp)
         source.setCap(DeviceClass.TabletLandscape, -8.dp)
 
-        assertEquals(PlayTuning(240.dp, 960.dp, 240.dp, LandscapeControls.UnderBoard), source.tuning.value)
-        assertEquals(PlayTuning(240.dp, 960.dp, 240.dp, LandscapeControls.UnderBoard), source().tuning.value)
+        assertEquals(PlayTuning(240.dp, 960.dp, 240.dp, LandscapeControls.SideColumn, tabletCellCap = 72.dp), source.tuning.value)
+        assertEquals(PlayTuning(240.dp, 960.dp, 240.dp, LandscapeControls.SideColumn, tabletCellCap = 72.dp), source().tuning.value)
     }
 
     @Test
@@ -117,19 +160,20 @@ class DebugPlayTuningSourceTest {
         context.getSharedPreferences("play_tuning", android.content.Context.MODE_PRIVATE)
             .edit().putInt("phone_cap_dp", 5000).putInt("tablet_portrait_cap_dp", 1).commit()
 
-        assertEquals(PlayTuning.Starting.copy(phoneCap = 960.dp, tabletPortraitCap = 240.dp), source().tuning.value)
+        assertEquals(PlayTuning.Shipped.copy(phoneCap = 960.dp, tabletPortraitCap = 240.dp), source().tuning.value)
     }
 
     @Test
-    fun `reset puts every value back to starting, in memory and in the preferences`() {
+    fun `reset puts every value back to the shipped ones, in memory and in the preferences`() {
         val source = source()
         source.setCap(DeviceClass.Phone, 400.dp)
         source.setCap(DeviceClass.TabletLandscape, 640.dp)
-        source.setLandscapeControls(LandscapeControls.SideColumn)
+        source.setLandscapeControls(LandscapeControls.UnderBoard)
+        source.setTabletCellCap(null)
 
         source.reset()
 
-        assertEquals(PlayTuning.Starting, source.tuning.value)
-        assertEquals(PlayTuning.Starting, source().tuning.value)
+        assertEquals(PlayTuning.Shipped, source.tuning.value)
+        assertEquals(PlayTuning.Shipped, source().tuning.value)
     }
 }

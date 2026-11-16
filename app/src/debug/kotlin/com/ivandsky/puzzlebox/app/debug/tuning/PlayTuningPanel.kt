@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -26,10 +27,13 @@ import org.koin.compose.koinInject
 
 private const val DEFAULT_LANDSCAPE_CAP_DP = 552
 
+/** The stepper buttons keep the 48 dp touch target; IconButton alone is 40 dp. */
+private val STEPPER_BUTTON = 48.dp
+
 /**
  * Settings' Play tuning section (nav-rethink B6): a board cap stepper per device class, Fill the pane for the tablet
- * landscape cap, the landscape controls switch and Reset. Every change goes through [source] and reaches an open play
- * screen live. The values apply only while BoardErgonomics is on. Debug only: release compiles none of this.
+ * landscape cap, a tablet cell cap stepper with an off state, the landscape controls switch and Reset (back to [com.ivandsky.puzzlebox.gameui.PlayTuning.Shipped]). Every change
+ * goes through [source] and reaches an open play screen live. The values apply only while BoardErgonomics is on. Debug only: release compiles none of this.
  */
 @Composable
 internal fun PlayTuningPanel(
@@ -62,6 +66,25 @@ internal fun PlayTuningPanel(
         SwitchRow("Fill the pane (tablet landscape)", "tuning.fill", landscapeCap == null) { fill ->
             if (fill) source.fillTabletLandscapePane() else source.setCap(DeviceClass.TabletLandscape, DEFAULT_LANDSCAPE_CAP_DP.dp)
         }
+        val cellCap = tuning.tabletCellCap
+        if (cellCap == null) {
+            Text(
+                "Tablet cell cap: off",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        } else {
+            CapStepper(
+                "Tablet cell cap",
+                "cell",
+                cellCap,
+                min = DebugPlayTuningSource.MIN_CELL_CAP_DP,
+                max = DebugPlayTuningSource.MAX_CELL_CAP_DP,
+            ) { source.setTabletCellCap(it) }
+        }
+        SwitchRow("Tablet cell cap on", "tuning.cellCap", cellCap != null) { on ->
+            source.setTabletCellCap(if (on) DebugPlayTuningSource.DEFAULT_CELL_CAP_DP.dp else null)
+        }
         SwitchRow(
             "Landscape controls in a side column",
             "tuning.sideColumn",
@@ -74,7 +97,14 @@ internal fun PlayTuningPanel(
 }
 
 @Composable
-private fun CapStepper(label: String, id: String, cap: Dp, onCap: (Dp) -> Unit) {
+private fun CapStepper(
+    label: String,
+    id: String,
+    cap: Dp,
+    min: Int = DebugPlayTuningSource.MIN_CAP_DP,
+    max: Int = DebugPlayTuningSource.MAX_CAP_DP,
+    onCap: (Dp) -> Unit,
+) {
     Row(
         modifier = Modifier.fillMaxWidth().testTag("tuning.$id"),
         verticalAlignment = Alignment.CenterVertically,
@@ -83,8 +113,8 @@ private fun CapStepper(label: String, id: String, cap: Dp, onCap: (Dp) -> Unit) 
         Text(label, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
         IconButton(
             onClick = { onCap(cap - DebugPlayTuningSource.STEP_DP.dp) },
-            enabled = cap.value > DebugPlayTuningSource.MIN_CAP_DP,
-            modifier = Modifier.semantics { contentDescription = "Smaller $label" }.testTag("tuning.$id.less"),
+            enabled = cap.value > min,
+            modifier = Modifier.size(STEPPER_BUTTON).semantics { contentDescription = "Smaller $label" }.testTag("tuning.$id.less"),
         ) { Text("−", style = MaterialTheme.typography.titleLarge) }
         Text(
             "${cap.value.toInt()} dp",
@@ -94,8 +124,8 @@ private fun CapStepper(label: String, id: String, cap: Dp, onCap: (Dp) -> Unit) 
         )
         IconButton(
             onClick = { onCap(cap + DebugPlayTuningSource.STEP_DP.dp) },
-            enabled = cap.value < DebugPlayTuningSource.MAX_CAP_DP,
-            modifier = Modifier.semantics { contentDescription = "Larger $label" }.testTag("tuning.$id.more"),
+            enabled = cap.value < max,
+            modifier = Modifier.size(STEPPER_BUTTON).semantics { contentDescription = "Larger $label" }.testTag("tuning.$id.more"),
         ) { Text("+", style = MaterialTheme.typography.titleLarge) }
     }
 }

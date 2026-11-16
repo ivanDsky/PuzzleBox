@@ -12,11 +12,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /**
- * Debug builds' play tuning (nav-rethink B6): the board caps and the landscape controls placement a developer tunes
- * on a device. Values persist in SharedPreferences like the other debug settings (:app declares no DataStore) and
- * [tuning] emits on every change, so an open play screen follows live. A value never stored is [PlayTuning.Starting]'s;
- * caps are held to [MIN_CAP_DP]..[MAX_CAP_DP]. The flag-aware source wraps this one as its base, so the values apply
- * only while BoardErgonomics is on. Release compiles none of this.
+ * Debug builds' play tuning (nav-rethink B6): the board caps, the tablet cell cap and the landscape controls placement
+ * a developer tunes on a device. Values persist in SharedPreferences like the other debug settings (:app declares no
+ * DataStore) and [tuning] emits on every change, so an open play screen follows live. A value never stored is
+ * [PlayTuning.Shipped]'s, so a fresh debug build shows the chosen values; caps are held to [MIN_CAP_DP]..[MAX_CAP_DP]
+ * and the cell cap to [MIN_CELL_CAP_DP]..[MAX_CELL_CAP_DP]. The flag-aware source wraps this one as its base, so the
+ * values apply only while BoardErgonomics is on. Release compiles none of this.
  */
 internal class DebugPlayTuningSource(context: Context) : PlayTuningSource {
 
@@ -45,25 +46,33 @@ internal class DebugPlayTuningSource(context: Context) : PlayTuningSource {
         state.value = state.value.copy(tabletLandscapeCap = null)
     }
 
+    /** Sets the tablet cell cap to [cap] clamped to [MIN_CELL_CAP_DP]..[MAX_CELL_CAP_DP]; null turns it off. */
+    fun setTabletCellCap(cap: Dp?) {
+        val clamped = cap?.value?.coerceIn(MIN_CELL_CAP_DP.toFloat(), MAX_CELL_CAP_DP.toFloat())?.dp
+        prefs.edit().putInt(KEY_TABLET_CELL_CAP, clamped?.value?.toInt() ?: CELL_CAP_OFF).apply()
+        state.value = state.value.copy(tabletCellCap = clamped)
+    }
+
     fun setLandscapeControls(controls: LandscapeControls) {
         prefs.edit().putString(KEY_LANDSCAPE_CONTROLS, controls.name).apply()
         state.value = state.value.copy(landscapeControls = controls)
     }
 
-    /** Forgets every stored value: back to [PlayTuning.Starting]. */
+    /** Forgets every stored value: back to [PlayTuning.Shipped]. */
     fun reset() {
         prefs.edit().clear().apply()
-        state.value = PlayTuning.Starting
+        state.value = PlayTuning.Shipped
     }
 
     private fun read(): PlayTuning {
-        val start = PlayTuning.Starting
+        val start = PlayTuning.Shipped
         return PlayTuning(
             phoneCap = readCap(DeviceClass.Phone, start.phoneCap) ?: start.phoneCap,
             tabletPortraitCap = readCap(DeviceClass.TabletPortrait, start.tabletPortraitCap) ?: start.tabletPortraitCap,
             tabletLandscapeCap = readCap(DeviceClass.TabletLandscape, start.tabletLandscapeCap),
             landscapeControls = LandscapeControls.entries
                 .firstOrNull { it.name == prefs.getString(KEY_LANDSCAPE_CONTROLS, null) } ?: start.landscapeControls,
+            tabletCellCap = readCellCap(start.tabletCellCap),
         )
     }
 
@@ -77,6 +86,16 @@ internal class DebugPlayTuningSource(context: Context) : PlayTuningSource {
         }
     }
 
+    /** The stored tablet cell cap, [CELL_CAP_OFF] as null, else [default] when nothing is stored. */
+    private fun readCellCap(default: Dp?): Dp? {
+        val stored = prefs.getInt(KEY_TABLET_CELL_CAP, NOT_STORED)
+        return when (stored) {
+            NOT_STORED -> default
+            CELL_CAP_OFF -> null
+            else -> stored.toFloat().coerceIn(MIN_CELL_CAP_DP.toFloat(), MAX_CELL_CAP_DP.toFloat()).dp
+        }
+    }
+
     private fun capKey(deviceClass: DeviceClass): String = when (deviceClass) {
         DeviceClass.Phone -> "phone_cap_dp"
         DeviceClass.TabletPortrait -> "tablet_portrait_cap_dp"
@@ -87,9 +106,14 @@ internal class DebugPlayTuningSource(context: Context) : PlayTuningSource {
         const val MIN_CAP_DP = 240
         const val MAX_CAP_DP = 960
         const val STEP_DP = 8
+        const val MIN_CELL_CAP_DP = 40
+        const val MAX_CELL_CAP_DP = 120
+        const val DEFAULT_CELL_CAP_DP = 72
 
         private const val PREFERENCES_FILE = "play_tuning"
         private const val KEY_LANDSCAPE_CONTROLS = "landscape_controls"
+        private const val KEY_TABLET_CELL_CAP = "tablet_cell_cap_dp"
+        private const val CELL_CAP_OFF = -1
         private const val NOT_STORED = Int.MIN_VALUE
         private const val FILL_THE_PANE = -1
 

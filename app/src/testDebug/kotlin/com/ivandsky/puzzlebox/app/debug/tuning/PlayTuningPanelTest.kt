@@ -3,10 +3,13 @@ package com.ivandsky.puzzlebox.app.debug.tuning
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.DeviceClass
@@ -14,6 +17,7 @@ import com.ivandsky.puzzlebox.gameui.LandscapeControls
 import com.ivandsky.puzzlebox.gameui.PlayTuning
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,7 +26,8 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [34], application = DrainTestApplication::class)
+// Tall enough for every row, Reset included: the panel does not scroll by itself.
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w360dp-h1000dp")
 class PlayTuningPanelTest {
 
     @get:Rule
@@ -41,7 +46,7 @@ class PlayTuningPanelTest {
 
         composeRule.onNodeWithTag("tuning.phone.value").assertTextEquals("560 dp")
         assertEquals(
-            PlayTuning.Starting.copy(phoneCap = 560.dp, tabletPortraitCap = 544.dp),
+            PlayTuning.Shipped.copy(phoneCap = 560.dp, tabletPortraitCap = 592.dp),
             source.tuning.value,
         )
     }
@@ -60,14 +65,59 @@ class PlayTuningPanelTest {
     @Test
     fun `the tablet landscape stepper is gone while the pane is filled and Fill the pane toggles it`() {
         show()
+        composeRule.onNodeWithTag("tuning.tabletLandscape.value").assertTextEquals("600 dp")
+
+        composeRule.onNodeWithTag("tuning.fill").performClick()
         composeRule.onNodeWithTag("tuning.tabletLandscape").assertDoesNotExist()
+        assertNull(source.tuning.value.tabletLandscapeCap)
 
         composeRule.onNodeWithTag("tuning.fill").performClick()
         composeRule.onNodeWithTag("tuning.tabletLandscape.value").assertTextEquals("552 dp")
         assertEquals(552.dp, source.tuning.value.tabletLandscapeCap)
+    }
 
-        composeRule.onNodeWithTag("tuning.fill").performClick()
-        assertNull(source.tuning.value.tabletLandscapeCap)
+    @Test
+    fun `the tablet cell cap stepper is gone while the cap is off and its switch turns it back on at 72 dp`() {
+        show()
+        composeRule.onNodeWithTag("tuning.cell.value").assertTextEquals("72 dp")
+
+        composeRule.onNodeWithTag("tuning.cellCap").performClick()
+        assertNull(source.tuning.value.tabletCellCap)
+        composeRule.onNodeWithTag("tuning.cell").assertDoesNotExist()
+
+        composeRule.onNodeWithTag("tuning.cellCap").performClick()
+        composeRule.onNodeWithTag("tuning.cell.value").assertTextEquals("72 dp")
+        assertEquals(72.dp, source.tuning.value.tabletCellCap)
+    }
+
+    @Test
+    fun `the tablet cell cap stepper moves by 8 dp and stops at 40 and 120`() {
+        source.setTabletCellCap(72.dp)
+        show()
+
+        composeRule.onNodeWithTag("tuning.cell.more").performClick()
+        composeRule.onNodeWithTag("tuning.cell.value").assertTextEquals("80 dp")
+        assertEquals(80.dp, source.tuning.value.tabletCellCap)
+
+        composeRule.onNodeWithTag("tuning.cell.less").performClick().performClick()
+        assertEquals(64.dp, source.tuning.value.tabletCellCap)
+
+        source.setTabletCellCap(40.dp)
+        composeRule.onNodeWithTag("tuning.cell.less").assertIsNotEnabled()
+        source.setTabletCellCap(120.dp)
+        composeRule.onNodeWithTag("tuning.cell.more").assertIsNotEnabled()
+        composeRule.onNodeWithTag("tuning.cell.less").assertIsEnabled()
+    }
+
+    @Test
+    fun `the tablet cell cap stepper buttons are 48 dp touch targets`() {
+        source.setTabletCellCap(72.dp)
+        show()
+
+        listOf("tuning.cell.less", "tuning.cell.more").forEach { tag ->
+            val bounds = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+            assertTrue("$tag $bounds", bounds.width >= 48.dp && bounds.height >= 48.dp)
+        }
     }
 
     @Test
@@ -76,18 +126,19 @@ class PlayTuningPanelTest {
 
         composeRule.onNodeWithTag("tuning.sideColumn").performClick()
 
-        assertEquals(LandscapeControls.SideColumn, source.tuning.value.landscapeControls)
+        assertEquals(LandscapeControls.UnderBoard, source.tuning.value.landscapeControls)
     }
 
     @Test
-    fun `reset puts every value back to starting`() {
+    fun `reset puts every value back to the shipped ones`() {
         source.setCap(DeviceClass.Phone, 400.dp)
         source.setCap(DeviceClass.TabletLandscape, 640.dp)
-        source.setLandscapeControls(LandscapeControls.SideColumn)
+        source.setLandscapeControls(LandscapeControls.UnderBoard)
+        source.setTabletCellCap(null)
         show()
 
         composeRule.onNodeWithTag("tuning.reset").performClick()
 
-        assertEquals(PlayTuning.Starting, source.tuning.value)
+        assertEquals(PlayTuning.Shipped, source.tuning.value)
     }
 }

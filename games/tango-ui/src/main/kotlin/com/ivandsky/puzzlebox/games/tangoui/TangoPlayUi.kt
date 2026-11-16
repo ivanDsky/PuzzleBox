@@ -89,6 +89,7 @@ fun TangoPlayScreen(
     Box(modifier.fillMaxSize()) {
         AdaptivePlayScaffold(
             layout = layout,
+            gridColumns = controller.session?.puzzle?.n,
             modifier = Modifier.fillMaxSize(),
             board = { paneCap -> TangoBoardArea(controller, status, paneCap, onRetry, onSolved) },
             side = {
