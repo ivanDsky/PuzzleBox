@@ -1,5 +1,6 @@
 plugins {
     alias(libs.plugins.puzzlebox.android.library.compose)
+    alias(libs.plugins.puzzlebox.android.roborazzi)
 }
 
 android {

@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -23,25 +26,30 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 enum class PlayLayout { SinglePane, TwoPane }
 
 /**
- * A4 board cap in a single pane: the widest the play board may render. It is a MAX, not a
- * fixed size — phones keep near-full width under the pane's standard margins, and a
- * shorter pane shrinks the board further so the grid aspect stays exact. A two-pane board
- * fills its pane instead (the `paneCap` [AdaptivePlayScaffold] hands its board).
+ * A4 board cap in a single pane with no [PlayTuning]: the widest the play board may render.
+ * It is a MAX, not a fixed size — phones keep near-full width under the pane's standard
+ * margins, and a shorter pane shrinks the board further so the grid aspect stays exact.
+ * Everywhere else the cap is the `paneCap` [AdaptivePlayScaffold] hands its board.
  */
 val PlayBoardMaxWidth = 552.dp // gate round 3: user asked +15% over the original 480dp
 
 /**
- * Adaptive play scaffold (F1 §3, A14, A15): the board owns the dominant pane; the side pane
- * carries the game's chrome ([side]: the caption). [actions] is the game's control
- * row ([PlayActionBar]). Single pane stacks board, side, then actions at the bottom. Two
- * pane gives the board 70% with [actions] as a toolbar directly above it, as wide as the
- * board's cap, and the side 30%, ending with the route's [sidePanel].
+ * Adaptive play scaffold (F1 §3, A14, A15; nav-rethink B5, B6): the board owns the dominant
+ * pane; the side pane carries the game's chrome ([side]: the caption). [actions] is the game's
+ * controls ([PlayActionBar]). Two panes give the board 70% and the side 30%, ending with the
+ * route's [sidePanel]: the route's content under the game's chrome (A15: the live stats). It
+ * gets the height the chrome leaves, so it should scroll when taller. Null, or a single
+ * pane, shows nothing.
  *
- * [board] gets its `paneCap`: in two panes the board pane's side under the toolbar, less
- * the [PlayBoardPane] insets and side gutters; null in a single pane, where each game keeps
- * its own cap. [sidePanel] is the route's content under the game's chrome (A15: the live
- * stats); it gets the height the chrome leaves, so it should scroll when taller. Null, or
- * a single pane, shows nothing.
+ * Under a [PlayTuning] ([LocalPlayTuning]) the board keeps to its device class's cap and
+ * [actions] sit directly under it, as wide as the board, in every window; a single pane puts
+ * [side] below them. A two-pane tuning set to [LandscapeControls.SideColumn] stacks them in
+ * a column to the board's right instead. [board] gets its `paneCap`: the smaller of that cap
+ * and what its pane leaves beside the controls ([ControlsBoardPane]).
+ *
+ * With no tuning a single pane stacks board, [side], then [actions] at the bottom, and its
+ * `paneCap` is null: each game keeps its own cap. Two panes put [actions] in a toolbar
+ * directly above the board, as wide as its `paneCap`: the board pane's side under the toolbar.
  */
 @Composable
 fun AdaptivePlayScaffold(
@@ -52,19 +60,39 @@ fun AdaptivePlayScaffold(
     actions: (@Composable () -> Unit)? = null,
     sidePanel: (@Composable ColumnScope.() -> Unit)?,
 ) {
+    val tuning = LocalPlayTuning.current
     when (layout) {
-        PlayLayout.SinglePane -> Column(modifier.fillMaxSize()) {
-            Box(Modifier.fillMaxWidth().weight(1f)) { board(null) }
-            if (side != null) {
-                Box(Modifier.fillMaxWidth(), content = side)
+        PlayLayout.SinglePane -> if (tuning == null) {
+            Column(modifier.fillMaxSize()) {
+                Box(Modifier.fillMaxWidth().weight(1f)) { board(null) }
+                if (side != null) {
+                    Box(Modifier.fillMaxWidth(), content = side)
+                }
+                if (actions != null) {
+                    Box(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm)) { actions() }
+                }
             }
-            if (actions != null) {
-                Box(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm)) { actions() }
+        } else {
+            // One centred group: the board, its controls, then the caption.
+            Column(modifier.fillMaxSize(), Arrangement.Center, Alignment.CenterHorizontally) {
+                val cap = tuning.boardCapFor(singlePaneDeviceClass())
+                ControlsBoardPane(actions, board, cap, sideColumn = false, Modifier.fillMaxWidth().weight(1f, fill = false))
+                if (side != null) {
+                    // No wider than the capped board and its gutters, so the caption starts where the board does.
+                    val boardWidth = if (cap != null) Modifier.widthIn(max = cap + PlayBoardInset * 2) else Modifier
+                    Box(boardWidth.fillMaxWidth(), content = side)
+                }
             }
         }
 
         PlayLayout.TwoPane -> Row(modifier.fillMaxSize()) {
-            ToolbarBoardPane(actions, board, Modifier.weight(BOARD_PANE_SHARE).fillMaxHeight())
+            val boardPane = Modifier.weight(BOARD_PANE_SHARE).fillMaxHeight()
+            if (tuning == null) {
+                ToolbarBoardPane(actions, board, boardPane)
+            } else {
+                val cap = tuning.boardCapFor(DeviceClass.TabletLandscape)
+                ControlsBoardPane(actions, board, cap, tuning.landscapeControls == LandscapeControls.SideColumn, boardPane)
+            }
             VerticalDivider()
             Column(Modifier.weight(1f - BOARD_PANE_SHARE).fillMaxHeight().testTag("play.side_pane")) {
                 if (side != null) {
@@ -82,6 +110,17 @@ fun AdaptivePlayScaffold(
             }
         }
     }
+}
+
+/**
+ * The single pane's device class, from the window the app picks its panes from. A single
+ * pane the two-pane rule would have split still takes the single-pane tablet cap.
+ */
+@Composable
+private fun singlePaneDeviceClass(): DeviceClass {
+    val window = LocalWindowInfo.current.containerSize
+    val deviceClass = with(LocalDensity.current) { deviceClassFor(window.width.toDp(), window.height.toDp()) }
+    return if (deviceClass == DeviceClass.TabletLandscape) DeviceClass.TabletPortrait else deviceClass
 }
 
 private const val BOARD_PANE_SHARE = 0.7f

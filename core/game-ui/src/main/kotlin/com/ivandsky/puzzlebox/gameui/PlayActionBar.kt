@@ -5,11 +5,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameButton
 import com.ivandsky.puzzlebox.designsystem.GameButtonSize
@@ -20,13 +23,23 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.cooldownRing
 
 /**
+ * True where the scaffold stacks the controls in a column beside the board (a landscape
+ * tablet's side column); [PlayActionBar] reads it, so a game passes the same bar everywhere.
+ */
+internal val LocalPlayControlsVertical = staticCompositionLocalOf { false }
+
+/** The side column's one width: fixed, so a growing hint count never resizes the board beside it. */
+private val ControlsColumnWidth = 96.dp
+
+/**
  * The action bar every game shares (A14, A15): Undo · Redo · Hint · Clear, each a tall
  * chunky [GameButton] sharing the row equally. Hint fills with the game's [accent]; the
  * rest stay neutral. The hint half is CORE only as far as the button and the running
  * count ([hintsUsed], the session's A3 count); what a press does is the game's.
  * [onClear] null hides Clear (Sudoku keeps its own in the keypad); Clear is never disabled,
- * the rest are always shown, disabled when they cannot act. Games pass it as [AdaptivePlayScaffold]'s actions: under the caption on
- * a phone, a toolbar above the board on a landscape tablet.
+ * the rest are always shown, disabled when they cannot act. Games pass it as
+ * [AdaptivePlayScaffold]'s actions, which places it (see there). Under
+ * [LocalPlayControlsVertical] the same buttons stack in a column [ControlsColumnWidth] wide.
  */
 @Composable
 internal fun PlayActionBar(
@@ -42,12 +55,7 @@ internal fun PlayActionBar(
     hintsUsed: Int = 0,
     hintRing: (() -> Float)? = null,
 ) {
-    Row(
-        modifier.fillMaxWidth().testTag("play.action_bar"),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        val action = Modifier.weight(1f)
+    val buttons: @Composable (Modifier) -> Unit = { action ->
         GameButton(onUndo, PuzzleIcons.Undo, "Undo", action.testTag("play.undo"), canUndo, size = GameButtonSize.Tall)
         GameButton(onRedo, PuzzleIcons.Redo, "Redo", action.testTag("play.redo"), canRedo, size = GameButtonSize.Tall)
         GameButton(
@@ -61,6 +69,20 @@ internal fun PlayActionBar(
         )
         if (onClear != null) {
             GameButton(onClear, PuzzleIcons.Clear, "Clear", action.testTag("play.clear"), size = GameButtonSize.Tall)
+        }
+    }
+    if (LocalPlayControlsVertical.current) {
+        val column = modifier.width(ControlsColumnWidth).testTag("play.action_bar")
+        Column(column, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            buttons(Modifier.fillMaxWidth())
+        }
+    } else {
+        Row(
+            modifier.fillMaxWidth().testTag("play.action_bar"),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            buttons(Modifier.weight(1f))
         }
     }
 }
