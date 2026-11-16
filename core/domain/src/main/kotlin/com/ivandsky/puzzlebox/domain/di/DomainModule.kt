@@ -43,6 +43,7 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.domain.linkedin.SyncLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.UpdateLinkedInPosting
+import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.domain.ranks.GetPlayerActions
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
@@ -107,6 +108,7 @@ val domainModule = module {
     factory { ObserveLatestSolvedToday(completions = get(), calendar = get(), registry = get()) }
     // The app decides whether there is a Friends/Global setting to follow; with none the rank is Global.
     factory { ObserveResultRank(leaderboard = get(), registry = get(), friendDay = get<ObserveFriendDay.Binding>().reader) }
+    factory { ObserveResultNextThing(registry = get(), identity = get(), history = get(), todaySet = get(), friendPuzzles = get(), friendUids = get(), leaderboard = get(), visibility = get(), computeStreak = get(), puzzleDay = get(), nextRollover = get()) }
     factory {
         CreateDraft(
             registry = get(),
