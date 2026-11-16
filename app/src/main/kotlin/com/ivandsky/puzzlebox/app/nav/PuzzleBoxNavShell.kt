@@ -4,7 +4,6 @@ import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -12,12 +11,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.ui.NavDisplay
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.LocalNavLift
@@ -37,12 +33,13 @@ import com.ivandsky.puzzlebox.play.PlaySessionStore
 import org.koin.compose.koinInject
 
 /**
- * Hosts [NavDisplay] over [navigator]'s visible per-tab entries (decorated by
- * [rememberTabEntries]); every move takes its [NavMotion] from [navMotion] (NavTransitions.kt)
+ * Hosts [NavDisplay] over [navigator]'s visible entries, the tabs' and the layer's above them
+ * (decorated by [rememberTabEntries]); every move takes its [NavMotion] from [navMotion] (NavTransitions.kt)
  * for the window's [NavForm], gated by the live reduce-motion flag, and publishes it to the
  * scenes' scrims ([LocalNavMotion]). On the tablet form a push of a game whose card is on
  * screen lifts out of that card ([NavLift]), and its pop shrinks back into it. System back is
- * [Navigator.pop]: it pops the current tab, returns a Games/History/Create root to Today, and at the
+ * [Navigator.pop]: it pops the layer while that is open, else the current tab, returns a
+ * Games/History/Create root to Today, and at the
  * Home root returns false so the back press falls through and the app exits.
  *
  * Play lifetime: whenever the stacks change the shell hands every key they
@@ -56,8 +53,8 @@ import org.koin.compose.koinInject
  * lets Enter code open a duel. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
- * Every entry sees [LocalHintCooldown] ([withHintCooldown]). The shell is where [releaseFlags] is read for the nav rethink
- * (`NavDoors`); the routes below get plain slots.
+ * Every entry sees [LocalHintCooldown] ([withHintCooldown]). [navDoors] is the nav rethink's `NavDoors` flag as
+ * [com.ivandsky.puzzlebox.app.PuzzleBoxApp] read it (A2); the routes below get plain slots.
  */
 @Composable
 internal fun PuzzleBoxNavShell(
@@ -70,14 +67,11 @@ internal fun PuzzleBoxNavShell(
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
+    navDoors: Boolean = false,
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
-    releaseFlags: ReleaseFlags = koinInject(),
 ) {
     val visibility = rememberVisibilitySlot(koinInject())
-    // The one read of `NavDoors` for the nav rethink's slots (A2): every route below gets a Boolean or a slot, never the flag.
-    val flags by releaseFlags.enabled.collectAsStateWithLifecycle()
-    val navDoors = ReleaseFlag.NavDoors in flags
     val tuneDefaults = rememberRanksTuneDefaults(koinInject(), koinInject())
     val reduceMotion = rememberReducedMotion()
     val layoutDirection = LocalLayoutDirection.current

@@ -53,7 +53,10 @@ internal sealed interface Home {
     /** Pushed on [tab]'s stack. */
     data class PushedOn(val tab: Tab) : Home
 
-    /** Belongs to the shell, pushed on the current tab: Profile and Settings. */
+    /**
+     * Belongs to the shell, not to a tab: Profile and Settings. They open in the layer above
+     * the tabs, or are pushed on the current tab while the layer is off.
+     */
     data object Shell : Home
 
     /** Exists in debug builds only. */

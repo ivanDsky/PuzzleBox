@@ -13,6 +13,8 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.FirstScreenReady
+import com.ivandsky.puzzlebox.navigation.NavigationState
+import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import kotlinx.coroutines.flow.emptyFlow
@@ -45,7 +47,11 @@ class FirstScreenReadyShellTest {
         graph?.stop()
     }
 
-    private fun launch(link: String? = null, localReadsNeverFinish: Boolean = false): FirstScreenReady {
+    private fun launch(
+        link: String? = null,
+        localReadsNeverFinish: Boolean = false,
+        state: NavigationState = puzzleBoxNavigationState(),
+    ): FirstScreenReady {
         val started = E2eKoinGraph(
             E2E_TODAY,
             overrides = module {
@@ -59,7 +65,12 @@ class FirstScreenReadyShellTest {
         val ready = started.koin.get<FirstScreenReady>()
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                PuzzleBoxApp(windowWidthSizeClass = WindowWidthSizeClass.Compact, pendingLink = link, firstScreenReady = ready)
+                PuzzleBoxApp(
+                    windowWidthSizeClass = WindowWidthSizeClass.Compact,
+                    navigator = rememberNavigator(state),
+                    pendingLink = link,
+                    firstScreenReady = ready,
+                )
             }
         }
         composeRule.waitForIdle()
@@ -69,6 +80,13 @@ class FirstScreenReadyShellTest {
     @Test
     fun `a friend-link launch publishes at first composition without waiting for Home`() {
         val ready = launch(link = "${ShareCode.LINK_PREFIX}K7Q2MX", localReadsNeverFinish = true)
+
+        assertTrue(ready.isReady)
+    }
+
+    @Test
+    fun `a launch onto the Profile layer over Today publishes at first composition without waiting for Home`() {
+        val ready = launch(state = puzzleBoxNavigationState().copy(layer = listOf(ProfileKey)), localReadsNeverFinish = true)
 
         assertTrue(ready.isReady)
     }

@@ -14,7 +14,7 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 import kotlin.random.Random
 
-/** Tab-and-stacks transitions, invariants and the back preview, as a pure value. */
+/** Tab-and-stacks transitions, the layer above the tabs, invariants and the back preview, as a pure value. */
 class NavigationStateTest {
 
     @Serializable @SerialName("Home")
@@ -28,6 +28,14 @@ class NavigationStateTest {
 
     @Serializable @SerialName("Extra")
     private data object Extra : NavKey
+
+    /** A layer's first page (the app's Profile). */
+    @Serializable @SerialName("Me")
+    private data object Me : NavKey
+
+    /** A page opened on top of [Me] inside the layer (the app's Settings). */
+    @Serializable @SerialName("Gear")
+    private data object Gear : NavKey
 
     @Serializable @SerialName("Page")
     private data class Page(val id: Int) : NavKey {
@@ -43,6 +51,8 @@ class NavigationStateTest {
                 subclass(Play::class)
                 subclass(Profile::class)
                 subclass(Extra::class)
+                subclass(Me::class)
+                subclass(Gear::class)
                 subclass(Page::class)
             }
         }
@@ -152,14 +162,27 @@ class NavigationStateTest {
             { NavigationState(Home, listOf(listOf(Home), listOf(Home, Page(1)))) },
             { NavigationState(Extra, listOf(listOf(Home), listOf(Play))) },
             { NavigationState(Home, listOf(listOf(Home, Play), listOf(Play))) },
+            { NavigationState(Home, listOf(listOf(Home), listOf(Play)), layer = listOf(Me, Play)) },
+            { NavigationState(Home, listOf(listOf(Home), listOf(Play, Me)), layer = listOf(Me)) },
         ).forEach { assertThrows(IllegalArgumentException::class.java) { it() } }
     }
 
     @Test
     fun `state round-trips through serialization`() {
         val state = fresh.push(Page(1)).selectTab(Play).push(Page(2))
+        val layered = state.openLayer(Me).pushLayer(Gear)
 
         assertEquals(state, json.decodeFromString<NavigationState>(json.encodeToString(state)))
+        assertEquals(layered, json.decodeFromString<NavigationState>(json.encodeToString(layered)))
+    }
+
+    @Test
+    fun `a state saved before the layer existed decodes with an empty layer`() {
+        val old = """{"tab":{"type":"Play"},"stacks":[[{"type":"Home"}],[{"type":"Play"},{"type":"Page","id":1}]]}"""
+
+        val state = json.decodeFromString<NavigationState>(old)
+
+        assertEquals(NavigationState(Play, listOf(listOf(Home), listOf(Play, Page(1))), layer = emptyList()), state)
     }
 
     @Test
@@ -170,6 +193,8 @@ class NavigationStateTest {
             """{"tab":{"type":"Home"},"stacks":[[{"type":"Home"}],[{"type":"Home"}]]}""",
             """{"tab":{"type":"Extra"},"stacks":[[{"type":"Home"}]]}""",
             """{"tab":{"type":"Home"},"stacks":[[{"type":"Home"},{"type":"Play"}],[{"type":"Play"}]]}""",
+            """{"tab":{"type":"Home"},"stacks":[[{"type":"Home"}],[{"type":"Play"}]],"layer":[{"type":"Play"}]}""",
+            """{"tab":{"type":"Home"},"stacks":[[{"type":"Home"},{"type":"Me"}]],"layer":[{"type":"Me"}]}""",
         ).forEach { encoded ->
             assertThrows(IllegalArgumentException::class.java) { json.decodeFromString<NavigationState>(encoded) }
         }
@@ -201,6 +226,120 @@ class NavigationStateTest {
         assertEquals("Home[Home] **Play**[Play, Page(1)] Profile[Profile]", fresh.selectTab(Play).push(Page(1)).toString())
     }
 
+    // ---- the layer above the tabs ----
+
+    @Test
+    fun `openLayer covers the tabs and touches no stack`() {
+        val under = fresh.selectTab(Play).push(Page(1))
+
+        assertEquals(NavigationState(Play, under.stacks, layer = listOf(Me)), under.openLayer(Me))
+    }
+
+    @Test
+    fun `pushLayer stacks a key on the layer, once per double tap`() {
+        val state = fresh.openLayer(Me).pushLayer(Gear)
+
+        assertEquals(NavigationState(Home, fresh.stacks, layer = listOf(Me, Gear)), state)
+        assertSame(state, state.pushLayer(Gear))
+    }
+
+    @Test
+    fun `a tab root cannot enter the layer`() {
+        assertThrows(IllegalArgumentException::class.java) { fresh.openLayer(Play) }
+        assertThrows(IllegalArgumentException::class.java) { fresh.openLayer(Me).pushLayer(Play) }
+    }
+
+    @Test
+    fun `a key the layer takes leaves the stack it was on`() {
+        val state = fresh.push(Me).selectTab(Play).push(Gear).openLayer(Me).pushLayer(Gear)
+
+        assertEquals(NavigationState(Play, fresh.stacks, layer = listOf(Me, Gear)), state)
+    }
+
+    @Test
+    fun `selecting another tab with the layer open leaves an empty layer on that tab`() {
+        val open = fresh.push(Page(1)).openLayer(Me).pushLayer(Gear)
+
+        assertEquals(NavigationState(Play, open.stacks), open.selectTab(Play))
+    }
+
+    @Test
+    fun `selecting the tab under the layer closes the layer and keeps that tab's stack`() {
+        val under = fresh.push(Page(1))
+
+        assertEquals(under, under.openLayer(Me).selectTab(Home))
+    }
+
+    @Test
+    fun `push closes the layer and lands on the tab under it`() {
+        val state = fresh.selectTab(Play).openLayer(Me).pushLayer(Gear).push(Page(1))
+
+        assertEquals(fresh.selectTab(Play).push(Page(1)), state)
+    }
+
+    @Test
+    fun `pushOnce of the key already under the layer only closes the layer`() {
+        val under = fresh.push(Page(1))
+
+        assertEquals(under, under.openLayer(Me).pushOnce(Page(1)))
+    }
+
+    @Test
+    fun `back from Settings then Profile returns to the screen under the layer`() {
+        val under = fresh.selectTab(Play).push(Page(1))
+
+        val profile = under.openLayer(Me).pushLayer(Gear).pop()
+
+        assertEquals(under.openLayer(Me), profile)
+        assertEquals(under, profile?.pop())
+    }
+
+    @Test
+    fun `replaceTop swaps the layer's top while the layer is open`() {
+        val state = fresh.push(Page(1)).openLayer(Me).pushLayer(Gear).replaceTop(Page(2))
+
+        assertEquals(listOf<NavKey>(Me, Page(2)), state.layer)
+        assertEquals(listOf<NavKey>(Home, Page(1)), state.currentStack)
+        assertSame(state, state.replaceTop(Page(2)))
+    }
+
+    @Test
+    fun `the layer is visible on top, counted in all keys and printed last`() {
+        val state = fresh.push(Page(1)).selectTab(Play).openLayer(Me).pushLayer(Gear)
+
+        assertEquals(listOf<NavKey>(Home, Page(1), Play, Me, Gear), state.visibleKeys)
+        assertEquals(setOf<NavKey>(Home, Page(1), Play, Profile, Me, Gear), state.allKeys)
+        assertEquals("Home[Home, Page(1)] **Play**[Play] Profile[Profile] Layer[Me, Gear]", state.toString())
+    }
+
+    @Test
+    fun `reconciling keeps the layer when the tab set is unchanged`() {
+        val restored = fresh.selectTab(Play).push(Page(1)).openLayer(Me).pushLayer(Gear)
+
+        assertEquals(restored, restored.reconciledWith(fresh))
+    }
+
+    @Test
+    fun `reconciling keeps the layer when the tab set changes`() {
+        val restored = fresh.selectTab(Profile).openLayer(Me).pushLayer(Gear)
+
+        val state = restored.reconciledWith(navigationState(Home, Play, Extra))
+
+        assertEquals(
+            NavigationState(Home, listOf(listOf(Home), listOf(Play), listOf(Extra)), layer = listOf(Me, Gear)),
+            state,
+        )
+    }
+
+    @Test
+    fun `reconciling drops the layer when one of its keys became a tab root`() {
+        val restored = fresh.selectTab(Play).openLayer(Me).pushLayer(Gear)
+
+        val state = restored.reconciledWith(navigationState(Home, Play, Gear))
+
+        assertEquals(NavigationState(Play, listOf(listOf(Home), listOf(Play), listOf(Gear))), state)
+    }
+
     @Test
     fun `a non-null pop removes exactly the last visible key, for every state in a random walk`() {
         val random = Random(seed = 42)
@@ -210,11 +349,13 @@ class NavigationStateTest {
             if (popped != null) {
                 assertEquals("step $step from $state", state.visibleKeys.dropLast(1), popped.visibleKeys)
             }
-            state = when (random.nextInt(5)) {
+            state = when (random.nextInt(7)) {
                 0 -> state.selectTab(state.tabs.random(random))
                 1 -> state.push(Page(random.nextInt(4)))
                 2 -> state.pushOnce(Page(random.nextInt(4)))
                 3 -> state.replaceTop(Page(random.nextInt(4)))
+                4 -> state.openLayer(Page(random.nextInt(4)))
+                5 -> state.pushLayer(Page(random.nextInt(4)))
                 else -> popped ?: state
             }
         }

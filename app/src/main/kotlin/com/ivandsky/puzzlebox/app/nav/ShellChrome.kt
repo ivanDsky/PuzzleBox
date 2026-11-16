@@ -27,11 +27,11 @@ import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import kotlinx.coroutines.flow.StateFlow
 
 /**
- * The shell's chrome (ADR-0027): the avatar ([ShellAvatar], → Profile), pushed on the
- * current tab, in one fixed place. With [avatarInTodayHeader] Today's header draws it;
- * otherwise the rail carries it at its bottom and no header does.
- * Settings is reached from Profile's own gear. Everything else passes through unchanged. [profileAsLayer] is the nav
- * rethink's Profile-as-a-layer switch, off until its slice reads it.
+ * The shell's chrome (ADR-0027): the avatar ([ShellAvatar], → Profile) in one fixed place.
+ * With [avatarInTodayHeader] Today's header draws it; otherwise the rail carries it at its
+ * bottom and no header does.
+ * Settings is reached from Profile's own gear. Everything else passes through unchanged. With [profileAsLayer] (the nav
+ * rethink, `NavDoors`) the avatar opens Profile as the layer above the tabs; without it Profile is pushed on the current tab.
  *
  * On the tablet it is still installed, as a pass-through: the decorator list, and with it every
  * entry's composition, stays stable when the layout switches between phone and tablet.
@@ -47,7 +47,7 @@ internal fun shellChromeDecorator(
     profileAsLayer: Boolean = false,
 ): NavEntryDecorator<NavKey> {
     val actions: @Composable RowScope.() -> Unit = {
-        ShellAvatar(navigator, identity, ShellAvatarSize.Header)
+        ShellAvatar(navigator, identity, ShellAvatarSize.Header, profileAsLayer)
     }
     return NavEntryDecorator { entry ->
         val key = entry.metadata[ENTRY_KEY]
@@ -59,16 +59,20 @@ internal fun shellChromeDecorator(
     }
 }
 
-/** The shell's one avatar: collects [identity] and pushes Profile on the current tab. */
+/**
+ * The shell's one avatar: collects [identity] and goes to Profile. With [profileAsLayer] a tap
+ * opens or closes the layer ([toggleProfileLayer]); without it Profile is pushed on the current tab.
+ */
 @Composable
 internal fun ShellAvatar(
     navigator: Navigator,
     identity: StateFlow<Identity?>,
     size: ShellAvatarSize,
+    profileAsLayer: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val current by identity.collectAsStateWithLifecycle()
-    AvatarButton(current, navigator::openProfile, size, modifier)
+    AvatarButton(current, if (profileAsLayer) navigator::toggleProfileLayer else navigator::openProfile, size, modifier)
 }
 
 /**
@@ -81,6 +85,15 @@ internal fun Navigator.openProfile() {
     } else {
         push(ProfileKey)
     }
+}
+
+/**
+ * The avatar's verb with Profile as a layer: opens the layer at Profile, or, when the layer is
+ * open (the rail's avatar stays visible over it), closes it from any depth, back on the screen
+ * under it. Selecting the current tab is the reducer's close: it never pops that tab.
+ */
+internal fun Navigator.toggleProfileLayer() {
+    if (state.layer.isEmpty()) openLayer(ProfileKey) else selectTab(state.tab)
 }
 
 /** Where the avatar sits: the header's is a touch larger than the 24dp icons beside it; the rail's matches its larger tabs. */

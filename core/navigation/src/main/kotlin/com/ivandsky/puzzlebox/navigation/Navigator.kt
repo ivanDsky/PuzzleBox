@@ -8,25 +8,26 @@ import androidx.navigation3.runtime.NavKey
 
 /**
  * The app's one navigation surface: observable [state] over the pure [NavigationState]
- * reducer, one back stack per tab.
+ * reducer, one back stack per tab and a layer above them.
  *
  * Feature entries receive a Navigator, never the state's stacks, and each verb applies the
  * reducer verb of the same name. Every rule (reselect pops to the root, back at a non-start
- * root selects the start tab, roots can't be pushed) lives in [NavigationState].
+ * root selects the start tab, roots can't be pushed, a tab tap or a push closes the layer)
+ * lives in [NavigationState].
  */
 @Stable
 class Navigator(initial: NavigationState) {
 
-    /** The current tab and stacks; snapshot state, so readers recompose on every move. */
+    /** The current tab, stacks and layer; snapshot state, so readers recompose on every move. */
     var state: NavigationState by mutableStateOf(initial)
         private set
 
-    /** Selects [tab]; reselecting the current tab pops it to its root. */
+    /** Selects [tab] and closes the layer; reselecting the current tab with no layer open pops it to its root. */
     fun selectTab(tab: NavKey) {
         state = state.selectTab(tab)
     }
 
-    /** Pushes [key] on the current tab's stack. */
+    /** Pushes [key] on the current tab's stack, closing the layer first. */
     fun push(key: NavKey) {
         state = state.push(key)
     }
@@ -37,8 +38,9 @@ class Navigator(initial: NavigationState) {
     }
 
     /**
-     * Back: pops the current stack, or at a non-start root selects the start tab. Returns
-     * false, leaving [state] unchanged, at the start root, where the app exits.
+     * Back: pops the layer while it is open, else the current stack, or at a non-start root
+     * selects the start tab. Returns false, leaving [state] unchanged, at the start root,
+     * where the app exits.
      */
     fun pop(): Boolean {
         val next = state.pop() ?: return false
@@ -46,8 +48,18 @@ class Navigator(initial: NavigationState) {
         return true
     }
 
-    /** Replaces the current stack's top key; a no-op at a root. */
+    /** Replaces the top key of the layer while it is open, else of the current stack; a no-op at a root. */
     fun replaceTop(key: NavKey) {
         state = state.replaceTop(key)
+    }
+
+    /** Opens the layer above the tabs at [key], replacing any pages it held. */
+    fun openLayer(key: NavKey) {
+        state = state.openLayer(key)
+    }
+
+    /** Pushes [key] on top of the layer; a double tap on a page already on top is ignored. */
+    fun pushLayer(key: NavKey) {
+        state = state.pushLayer(key)
     }
 }

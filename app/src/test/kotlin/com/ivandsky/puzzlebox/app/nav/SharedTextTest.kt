@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -71,6 +72,13 @@ class SharedTextTest {
         val before = stacks(CreateKey, create = listOf(CreateKey, EditorKey("castle")))
 
         assertEquals(stacks(CreateKey), before.applied())
+    }
+
+    @Test
+    fun `the text closes the layer open over Create's root`() {
+        val covered = stacks(CreateKey).copy(layer = listOf(ProfileKey))
+
+        assertEquals(stacks(CreateKey), covered.applied())
     }
 
     private fun NavigationState.applied(): NavigationState =

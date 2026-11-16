@@ -43,6 +43,8 @@ import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
+import com.ivandsky.puzzlebox.profile.api.ProfileKey
+import com.ivandsky.puzzlebox.profile.api.SettingsKey
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -182,6 +184,28 @@ class NavTransitionsTest {
         assertEquals(NavMotion(NavMotionKind.Rise, pop = false, durationMillis = 220, easing = MotionTokens.EasingStandard), motion)
         assertEquals(0f, motion.scrimAlpha)
         assertEquals(NavMotionKind.Rise, navMotion(playRoot, homeRoot, pop = true, reduceMotion = false, NavForm.Tablet).kind)
+    }
+
+    // ---- pins: the layer above the tabs ----
+
+    @Test
+    fun `opening and closing the layer moves like a tab switch, on the phone and the tablet`() {
+        assertEquals(
+            navMotion(homeRoot, playRoot, pop = false, reduceMotion = false, NavForm.Phone),
+            navMotion(game, layerProfile, pop = false, reduceMotion = false, NavForm.Phone),
+        )
+        assertEquals(NavMotionKind.FadeThrough, navMotion(layerSettings, homeRoot, pop = true, reduceMotion = false, NavForm.Phone).kind)
+        assertEquals(NavMotionKind.Rise, navMotion(playRoot, layerProfile, pop = false, reduceMotion = false, NavForm.Tablet).kind)
+        assertEquals(NavMotionKind.Rise, navMotion(layerProfile, playRoot, pop = true, reduceMotion = false, NavForm.Tablet).kind)
+    }
+
+    @Test
+    fun `a page inside the layer moves like a push on one tab`() {
+        assertEquals(
+            navMotion(playRoot, game, pop = false, reduceMotion = false, NavForm.Phone),
+            navMotion(layerProfile, layerSettings, pop = false, reduceMotion = false, NavForm.Phone),
+        )
+        assertEquals(NavMotionKind.Axis, navMotion(layerSettings, layerProfile, pop = true, reduceMotion = false, NavForm.Tablet).kind)
     }
 
     // ---- pins: reduced and predictive ----
@@ -522,11 +546,13 @@ class NavTransitionsTest {
         const val SETTLE_MILLIS = 3_000L
         const val EPS = 0.5f
 
-        fun entry(owner: NavKey, key: NavKey): Map<String, Any> = mapOf(OWNER_TAB to owner, ENTRY_KEY to key)
+        fun entry(owner: Any, key: NavKey): Map<String, Any> = mapOf(OWNER_TAB to owner, ENTRY_KEY to key)
 
         val homeRoot = entry(HomeKey, HomeKey)
         val playRoot = entry(PlayKey, PlayKey)
         val game = entry(PlayKey, GameKey("zip"))
+        val layerProfile = entry(LAYER_OWNER, ProfileKey)
+        val layerSettings = entry(LAYER_OWNER, SettingsKey)
         val result = entry(PlayKey, ResultKey(gameId = "zip", day = "2026-03-09", timeMs = 61_000, hintsUsed = 0))
     }
 }

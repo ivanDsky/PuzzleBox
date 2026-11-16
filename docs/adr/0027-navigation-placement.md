@@ -1,6 +1,6 @@
 # ADR-0027 — Navigation placement: one owner per content type
 
-Date: 2026-11-09 · Status: accepted · Source: `.scratch/nav-ia/spec.md` (A1–A19) · Amended by ADR-0028 (§2 owner table gains the row "LinkedIn connection | Profile (Accounts list) | —") · Amended 2026-11-10 by the re-gate fixes F1–F8 (§2, §3, §4, §11, §12) · Amended 2026-11-13 by the leaderboard hub (`.scratch/leaderboard-hub/spec.md` A1, A33: §2 owner table, Ranks owns daily leaderboards, the history timeline and lifetime stats)
+Date: 2026-11-09 · Status: accepted · Source: `.scratch/nav-ia/spec.md` (A1–A19) · Amended by ADR-0028 (§2 owner table gains the row "LinkedIn connection | Profile (Accounts list) | —") · Amended 2026-11-10 by the re-gate fixes F1–F8 (§2, §3, §4, §11, §12) · Amended 2026-11-13 by the leaderboard hub (`.scratch/leaderboard-hub/spec.md` A1, A33: §2 owner table, Ranks owns daily leaderboards, the history timeline and lifetime stats) · Amended 2026-11-16 by the nav rethink (`.scratch/nav-rethink/spec.md` N7: §4, §12, Profile and Settings sit in a layer above the tabs)
 
 ## Context
 The app grew screen by screen. Stats show on five screens, boards on four and the week strip on two, so no screen is
@@ -60,16 +60,23 @@ becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag w
    - A summary tap switches to the owner's tab and resets it to its root. Back from that root returns to Today.
    - Every summary targets an owner's tab root. Routing to an owner that is pushed on a tab (not a root) lands with its
      first caller.
-   - The avatar opens Profile, pushed on the current tab's stack, so back returns to where the user was. Settings opens
-     from the gear at Profile's top right and is pushed on top of Profile, so Back from Settings returns to Profile.
+   - *(Amended 2026-11-16, nav rethink N7; dark behind the `NavDoors` flag until it ships.)* Profile and Settings sit
+     in a layer above the tabs, not on the current tab's stack. The avatar opens the layer at Profile, over whatever
+     the current tab shows, and no tab's stack ever holds Profile, so it cannot reappear when the user comes back to
+     a tab. Settings opens from the gear at Profile's top right and sits on top of Profile inside the layer, so Back
+     from Settings returns to Profile and Back from Profile returns to the screen under the layer. Any tab tap closes
+     the layer; a tap on the tab under it only closes it. On the tablet the avatar stays visible over the layer, and
+     a second tap closes it. A door out of the layer (a summary, a link-in, a game) closes it first.
      Settings is avatar then gear: two taps on the tablet, three on the phone from a tab other than Today.
+     With the flag off the earlier rule holds: Profile is pushed on the current tab's stack and Settings on top of it.
    - Every summary row is one designsystem `SummaryLinkRow` card (56dp minimum height, extra-large corners, a raised
      surface, a chevron): Today's rank and duels rows and the game page's "Your history" row.
      The duels row opens Games at its top, on the Duels section.
    - Profile's content starts at the same padding as Settings' (`Spacing.lg`) under the same top bar.
    - Link-ins land as before: friend link → Games, shared text → Create, update link → browser.
    - "Go to owner" composes existing reducer verbs (`selectTab` again at a non-root resets, then `push`), as shared text
-     does. ADR-0011's `NavigationState` is unchanged.
+     does. *(Amended 2026-11-16.)* ADR-0011's `NavigationState` gains the layer (its §1, §2); the tab verbs close an
+     open layer on the way.
 5. **Badge rule.** Only an owner's tab carries a dot, and only for state that needs the user.
 6. **Tab-label rule.** A tab label names the content it owns. There are at most five tabs.
 7. **Tag convention.** The owner renders `<type>.*` test tags. A non-owner renders at most one `summary.<type>` row, for
@@ -100,7 +107,8 @@ becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag w
 
 12. **The per-key table lives only in code.** `app/src/main/kotlin/com/ivandsky/puzzlebox/app/nav/Placement.kt` holds one
     row per `NavKey`: its home (tab root of T, pushed on T, the shell, or debug-only) and its chrome (`Bar` or
-    `Immersive`). Only the bar-hiding predicate (`isImmersive`) derives from it; where the avatar sits is the shell's
+    `Immersive`). A shell key (Profile, Settings) belongs to no tab: it opens in the layer above the tabs (§4).
+    Only the bar-hiding predicate (`isImmersive`) derives from the table; where the avatar sits is the shell's
     rule (§3), not a table column. This ADR never copies the table. A Konsist rule (P9, ADR-0009 conventions)
     fails when a production `NavKey` has no row, and its failure text links this ADR.
 
@@ -120,4 +128,7 @@ becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag w
   the NavV2 flag was on (shipped in 0.24.0; the flag was removed).
 - Navigation state restores as ADR-0011 §4 says: `NAVIGATION_STATE_KEY` stays `v1`, no shipped serial name is
   retired, old bundles reconcile (the Profile stack is dropped, the History stack is added fresh).
+- *(Amended 2026-11-16, nav rethink N7.)* Profile and Settings live in the layer above the tabs, so Back from Profile
+  always returns to the screen under the layer and a tab never comes back showing Profile. A bundle saved before the
+  layer existed restores with it closed.
 - *(Done for the hub flag: the flag-off branches and tab set are deleted. `DuelsSlot`-style nullable slots for other features stay.)*
