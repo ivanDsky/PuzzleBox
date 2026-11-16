@@ -34,19 +34,18 @@ class ArchiveBenchmark {
         repeat(MONTH_STEPS) { tap(By.desc("Previous month")) }
         tapDay(0)
         repeat(MONTH_STEPS) { tap(By.desc("Next month")) }
-        // Back to the Games list and Today, so every run and the next setup start the same.
-        tap(By.desc("Back"))
+        // Back to the Games list and Today, so every run and the next setup start the same. Two-pane
+        // shows the page beside the list: no Back, and the list is already there.
+        if (!isTwoPane()) tap(By.desc("Back"))
         waitFor(BenchmarkTab.Games.ready)
         selectTab(BenchmarkTab.Today)
     }
 
-    /** Taps the [n]th day disc on screen, retrying when a recomposition swaps the node under it. */
+    /** Taps the [n]th day disc on screen; [poll] finds it again when a recomposition swaps the node under it. */
     private fun MacrobenchmarkScope.tapDay(n: Int) {
         poll("a calendar day disc") {
-            runCatching {
-                val discs = device.findObjects(DayDisc)
-                discs.getOrNull(n % discs.size.coerceAtLeast(1))?.also { it.click() }
-            }.getOrNull()
+            val discs = device.findObjects(DayDisc)
+            discs.getOrNull(n % discs.size.coerceAtLeast(1))?.also { it.click() }
         }
     }
 }
