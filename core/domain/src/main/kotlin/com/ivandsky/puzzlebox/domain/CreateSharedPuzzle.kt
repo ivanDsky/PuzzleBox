@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.data.repository.PublishResult
 import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.game.editor.encodeShare
@@ -21,6 +22,9 @@ import kotlin.random.Random
  * goes out as a shared document with the solution stripped, once it and its stored author name
  * and note pass their checks. Its code is reserved on the draft before the network call, so a
  * retry after a lost answer reuses it and finds its own document.
+ *
+ * [visibility] is the author's choice for the community list. A [SharedPuzzleDoc.Visibility.Public] doc carries the
+ * [verdict]'s difficulty label; a link only doc is written exactly as before the choice existed, with neither new field.
  *
  * The draft has one writer, the caller's: a code this use case picks (none reserved yet, or a
  * taken one replaced) is handed to `reserve`, which returns once the draft holds it, so a save
@@ -43,6 +47,7 @@ class CreateSharedPuzzle(
         draftId: String,
         draft: EditorDraft<*>,
         verdict: Verdict,
+        visibility: SharedPuzzleDoc.Visibility,
         reserve: suspend (code: ShareCode) -> Unit,
     ): PublishOutcome {
         val stored = drafts.get(draftId) ?: return PublishOutcome.Rejected("no draft $draftId")
@@ -55,7 +60,7 @@ class CreateSharedPuzzle(
         var regenerations = 0
         while (true) {
             val code = checkNotNull(ShareCode.parse(checkNotNull(row.reservedCode)))
-            val doc = row.toDoc(code, uid, shareVersion, payload)
+            val doc = row.toDoc(code, uid, shareVersion, payload, visibility, verdict)
             when (val result = shared.publish(doc)) {
                 is PublishResult.Published -> {
                     published.upsert(row.toListing(result.code, doc.createdAtMs))
@@ -82,7 +87,14 @@ class CreateSharedPuzzle(
         return copy(reservedCode = code.value)
     }
 
-    private fun Draft.toDoc(code: ShareCode, uid: String, shareVersion: Int, payload: ByteArray): SharedPuzzleDoc {
+    private fun Draft.toDoc(
+        code: ShareCode,
+        uid: String,
+        shareVersion: Int,
+        payload: ByteArray,
+        visibility: SharedPuzzleDoc.Visibility,
+        verdict: Verdict,
+    ): SharedPuzzleDoc {
         val test = checkNotNull(testSolve)
         return SharedPuzzleDoc(
             code = code,
@@ -99,6 +111,8 @@ class CreateSharedPuzzle(
             authorHints = test.hints,
             createdAtMs = clock().toEpochMilli(),
             unpublished = false,
+            visibility = visibility,
+            difficulty = if (visibility == SharedPuzzleDoc.Visibility.Public) verdict.shownDifficulty() else null,
         )
     }
 
@@ -117,6 +131,10 @@ class CreateSharedPuzzle(
             solvesCountAt = null,
         )
     }
+
+    /** The label the author's device already computed: none when the solve needs guessing or the game has no ladder. */
+    private fun Verdict.shownDifficulty(): Difficulty.Level? =
+        (this as? Verdict.Unique)?.takeUnless { it.needsGuessing }?.difficulty?.level
 
     private companion object {
         const val MAX_REGENERATIONS = 3

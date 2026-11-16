@@ -3,11 +3,13 @@ package com.ivandsky.puzzlebox.create.editor
 import android.content.Context
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.data.identity.AuthResult
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.model.Draft
+import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc.Visibility
 import com.ivandsky.puzzlebox.domain.CreateSharedPuzzle
 import com.ivandsky.puzzlebox.domain.PublishOutcome
 import com.ivandsky.puzzlebox.domain.ValidatePublishDetails
@@ -59,6 +61,7 @@ class PublishSession(
     private val flush: suspend () -> Unit,
     private val reserved: (code: String) -> Unit,
     private val storeDetails: (authorName: String, note: String) -> Unit,
+    flags: ReleaseFlags,
     private val validateDetails: ValidatePublishDetails = ValidatePublishDetails(),
 ) {
 
@@ -91,11 +94,15 @@ class PublishSession(
                 outcome is PublishOutcome.Rejected
     }
 
-    /** The author name and note as typed; [blocks] are what keeps them from publishing. */
+    /**
+     * The author name and note as typed; [blocks] are what keeps them from publishing. [visibility] is the Public or Link
+     * only choice, null while the community flag is off and nothing is offered.
+     */
     data class Details(
         val authorName: String = "",
         val note: String = "",
         val blocks: List<PublishBlock> = emptyList(),
+        val visibility: PublishVisibility.Choice? = null,
     )
 
     /** The open sign-in sheet; [signingIn] while Google or the account exchange answers. */
@@ -121,7 +128,12 @@ class PublishSession(
     /** The author name and note on the stored row, as last handed to [storeDetails]. */
     private var stored: Pair<String, String> = "" to ""
 
-    private val mutableState = MutableStateFlow(State(signedIn = identity.current.value != null))
+    /** The Public or Link only choice of this open publish; the community flag is read here, once (spec A2). */
+    private val visibility = PublishVisibility(flags)
+
+    private val mutableState = MutableStateFlow(
+        State(signedIn = identity.current.value != null, details = Details(visibility = visibility.choice)),
+    )
     val state: StateFlow<State> = mutableState.asStateFlow()
 
     init {
@@ -159,6 +171,12 @@ class PublishSession(
         if (published) return
         setDetails(mutableState.value.details.authorName, note)
         store()
+    }
+
+    /** The author picked [next]. A published or running publish, a falling-short one awaiting its retry, or no picker (flag off) refuses it. */
+    fun pickVisibility(next: Visibility) {
+        if (published || mutableState.value.busy || !visibility.pick(next)) return
+        mutableState.update { it.copy(details = it.details.copy(visibility = visibility.choice)) }
     }
 
     /** Publishes [draft] as checked by [verdict], signing in first; a no-op while one runs, the sheet is open or it is published. */
@@ -219,12 +237,15 @@ class PublishSession(
         store()
         scope.launch {
             flush()
-            val outcome = createShared(draftId, request.draft, request.verdict, ::reserve)
+            val outcome = createShared(draftId, request.draft, request.verdict, visibility.sent, ::reserve)
             if (outcome == PublishOutcome.SignedOut && !afterSignIn) {
                 mutableState.update { it.copy(busy = false) }
                 askToSignIn(request)
             } else {
                 mutableState.update { it.copy(busy = false, outcome = outcome) }
+                if (visibility.attempted(mutableState.value.retry)) {
+                    mutableState.update { it.copy(details = it.details.copy(visibility = visibility.choice)) }
+                }
             }
         }
     }
@@ -248,8 +269,7 @@ class PublishSession(
     }
 
     private fun setDetails(authorName: String, note: String) {
-        val details = Details(authorName, note, validateDetails(authorName, note))
-        mutableState.update { it.copy(details = details) }
+        mutableState.update { it.copy(details = it.details.copy(authorName = authorName, note = note, blocks = validateDetails(authorName, note))) }
     }
 
     private fun store() {

@@ -4,6 +4,8 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
+import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc.Visibility.LinkOnly
+import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc.Visibility.Public
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.data.repository.PublishResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
@@ -11,12 +13,14 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.encodeShare
 import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
+import com.ivandsky.puzzlebox.game.editor.LadderRung
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -80,7 +84,7 @@ class CreateSharedPuzzleTest {
     fun `a ready draft publishes its board under a code stored on the draft before the call`() = runTest {
         drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, timeMs = 102_000, hints = 1)))
 
-        val outcome = createShared()(DRAFT_ID, board, unique, reserve)
+        val outcome = createShared()(DRAFT_ID, board, unique, LinkOnly, reserve)
 
         val code = ShareCode.random(Random(7))
         assertEquals(PublishOutcome.Published(code), outcome)
@@ -109,11 +113,70 @@ class CreateSharedPuzzleTest {
     }
 
     @Test
+    fun `a public publish carries its visibility and the difficulty of its verdict`() = runTest {
+        drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
+
+        val code = (createShared()(DRAFT_ID, board, solvedAt(Difficulty.Level.Hard), Public, reserve) as PublishOutcome.Published).code
+
+        val doc = backend.docs.getValue(code)
+        assertEquals(Public, doc.visibility)
+        assertEquals(Difficulty.Level.Hard, doc.difficulty)
+    }
+
+    @Test
+    fun `every ladder level reaches the document as itself`() = runTest {
+        for ((i, level) in Difficulty.Level.entries.withIndex()) {
+            drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
+            val code = (createShared(seed = i)(DRAFT_ID, board, solvedAt(level), Public, reserve) as PublishOutcome.Published).code
+            assertEquals(level, backend.docs.getValue(code).difficulty)
+        }
+    }
+
+    @Test
+    fun `a link only publish is the document of today with no visibility and no difficulty`() = runTest {
+        drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
+
+        val code = (createShared()(DRAFT_ID, board, solvedAt(Difficulty.Level.Easy), LinkOnly, reserve) as PublishOutcome.Published).code
+
+        val doc = backend.docs.getValue(code)
+        assertEquals(LinkOnly, doc.visibility)
+        assertNull(doc.difficulty)
+    }
+
+    @Test
+    fun `a public publish of a puzzle that needs guessing carries no difficulty`() = runTest {
+        drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
+        val guessing = Verdict.Unique(Solution(listOf(1, 2, 3)), difficulty = null, needsGuessing = true)
+
+        val code = (createShared()(DRAFT_ID, board, guessing, Public, reserve) as PublishOutcome.Published).code
+
+        assertEquals(Public, backend.docs.getValue(code).visibility)
+        assertNull(backend.docs.getValue(code).difficulty)
+    }
+
+    @Test
+    fun `a public publish of a game with no ladder carries no difficulty`() = runTest {
+        drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
+
+        val code = (createShared()(DRAFT_ID, board, unique, Public, reserve) as PublishOutcome.Published).code
+
+        assertEquals(Public, backend.docs.getValue(code).visibility)
+        assertNull(backend.docs.getValue(code).difficulty)
+    }
+
+    private fun solvedAt(level: Difficulty.Level) =
+        Verdict.Unique(Solution(listOf(1, 2, 3)), difficulty = Difficulty(object : LadderRung {
+            override val id = "rung"
+            override val level = level
+            override val captionKey = "rung"
+        }))
+
+    @Test
     fun `a retry reuses the code already reserved on the draft`() = runTest {
         val code = checkNotNull(ShareCode.parse("K7Q2MX"))
         drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0), reservedCode = code.value))
 
-        val outcome = createShared()(DRAFT_ID, board, unique, reserve)
+        val outcome = createShared()(DRAFT_ID, board, unique, LinkOnly, reserve)
 
         assertEquals(PublishOutcome.Published(code), outcome)
         assertEquals(setOf(code), backend.docs.keys)
@@ -127,7 +190,7 @@ class CreateSharedPuzzleTest {
         backend.signedInUid = AUTHOR
         drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
 
-        val outcome = createShared()(DRAFT_ID, board, unique, reserve)
+        val outcome = createShared()(DRAFT_ID, board, unique, LinkOnly, reserve)
 
         val fresh = (outcome as PublishOutcome.Published).code
         assertTrue("a new code, not the taken one", fresh != taken)
@@ -139,7 +202,7 @@ class CreateSharedPuzzleTest {
     fun `an untested draft is blocked and reserves nothing`() = runTest {
         drafts.upsert(stored(testSolve = null))
 
-        val outcome = createShared()(DRAFT_ID, board, unique, reserve)
+        val outcome = createShared()(DRAFT_ID, board, unique, LinkOnly, reserve)
 
         assertEquals(PublishOutcome.Blocked(listOf(PublishBlock(PublishBlock.NOT_TESTED))), outcome)
         assertNull(drafts.rows[DRAFT_ID]?.reservedCode)
@@ -150,7 +213,7 @@ class CreateSharedPuzzleTest {
     fun `an author name over its cap is blocked and reserves nothing`() = runTest {
         drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)).copy(authorName = "a".repeat(Draft.AUTHOR_MAX + 1)))
 
-        val outcome = createShared()(DRAFT_ID, board, unique, reserve)
+        val outcome = createShared()(DRAFT_ID, board, unique, LinkOnly, reserve)
 
         assertEquals(PublishOutcome.Blocked(listOf(PublishBlock(PublishBlock.AUTHOR_TOO_LONG))), outcome)
         assertNull(drafts.rows[DRAFT_ID]?.reservedCode)
@@ -161,7 +224,7 @@ class CreateSharedPuzzleTest {
     fun `the trimmed author name and note go out on the document`() = runTest {
         drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)).copy(authorName = " Ivan ", note = " Start top left \n"))
 
-        val code = (createShared()(DRAFT_ID, board, unique, reserve) as PublishOutcome.Published).code
+        val code = (createShared()(DRAFT_ID, board, unique, LinkOnly, reserve) as PublishOutcome.Published).code
 
         val doc = checkNotNull(backend.docs[code])
         assertEquals("Ivan", doc.authorName)
@@ -173,7 +236,7 @@ class CreateSharedPuzzleTest {
         backend.signedInUid = null
         drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
 
-        assertEquals(PublishOutcome.SignedOut, createShared()(DRAFT_ID, board, unique, reserve))
+        assertEquals(PublishOutcome.SignedOut, createShared()(DRAFT_ID, board, unique, LinkOnly, reserve))
         assertNothingPublished()
     }
 
@@ -182,7 +245,7 @@ class CreateSharedPuzzleTest {
         backend.online = false
         drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
 
-        assertEquals(PublishOutcome.Offline, createShared()(DRAFT_ID, board, unique, reserve))
+        assertEquals(PublishOutcome.Offline, createShared()(DRAFT_ID, board, unique, LinkOnly, reserve))
         assertNothingPublished()
     }
 
@@ -191,7 +254,7 @@ class CreateSharedPuzzleTest {
         backend.publishesToday = Int.MAX_VALUE
         drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
 
-        assertEquals(PublishOutcome.DailyCapReached, createShared()(DRAFT_ID, board, unique, reserve))
+        assertEquals(PublishOutcome.DailyCapReached, createShared()(DRAFT_ID, board, unique, LinkOnly, reserve))
         assertNothingPublished()
     }
 
@@ -200,7 +263,7 @@ class CreateSharedPuzzleTest {
         forced = PublishResult.ClockSkew
         drafts.upsert(stored(testSolve = TestSolve(board.layoutKey, 1_000, 0)))
 
-        assertEquals(PublishOutcome.ClockSkew, createShared()(DRAFT_ID, board, unique, reserve))
+        assertEquals(PublishOutcome.ClockSkew, createShared()(DRAFT_ID, board, unique, LinkOnly, reserve))
         assertNothingPublished()
         assertEquals(reservedAtPublish.single(), drafts.rows[DRAFT_ID]?.reservedCode)
     }
