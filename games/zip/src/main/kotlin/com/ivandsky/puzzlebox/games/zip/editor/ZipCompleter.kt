@@ -12,9 +12,9 @@ import kotlin.random.Random
 /**
  * Zip's Finish for me (spec E1): one random finished board that keeps everything the author
  * placed. [ZipPathExtension] walks the drawn path on over every cell (or walks a path-less
- * board through its numbers), then [ZipPinnedRepair] adds numbers and walls until that path is
- * the one answer. The board comes back drawn, numbered in path order, and is one
- * [ZipDraftAnalyzer] calls Unique.
+ * board through its numbers), then [ZipPinnedRepair] adds numbers and walls, mixed as on a
+ * daily board, until that path is the one answer. The board comes back drawn, numbered in path
+ * order, and is one [ZipDraftAnalyzer] calls Unique.
  */
 object ZipCompleter : DraftCompleter<ZipDraft> {
     /** [FinishReadiness.NeedsMore] reason; IncompleteReason.count = cells the path still has to grow by. */
@@ -44,7 +44,7 @@ object ZipCompleter : DraftCompleter<ZipDraft> {
     override fun complete(draft: ZipDraft, random: Random, budget: Budget): Completion<ZipDraft> {
         if (clash(draft).isNotEmpty()) return Completion.GaveUp
         val path = ZipPathExtension(draft, budget).extend(random) ?: return Completion.GaveUp
-        val board = ZipPinnedRepair(draft, path, budget).unique(random) ?: return Completion.GaveUp
+        val board = ZipPinnedRepair(draft, path, random, budget).unique() ?: return Completion.GaveUp
         return Completion.Done(board)
     }
 
