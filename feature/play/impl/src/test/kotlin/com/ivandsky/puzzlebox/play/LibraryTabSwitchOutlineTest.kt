@@ -55,7 +55,7 @@ class LibraryTabSwitchOutlineTest {
     private var tab by mutableStateOf(GamesTab.Duels)
 
     private val slot = DuelsSlot(
-        content = { Text("duels body") },
+        content = { _, _, _ -> Text("duels body") },
         needYou = { 0 },
         onOpenDuel = {},
     )

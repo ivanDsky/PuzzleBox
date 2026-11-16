@@ -158,7 +158,7 @@ fun PuzzleBoxApp(
     }.collectAsStateWithLifecycle(initialValue = false)
     val duels = remember(navigator) {
         DuelsSlot(
-            content = { listState ->
+            content = { listState, _, _ ->
                 DuelsTab(onOpenDuel = navigator::pushOnce, onOpenReveal = navigator::pushOnce, listState = listState)
             },
             needYou = { rememberDuelsNeedYou() },

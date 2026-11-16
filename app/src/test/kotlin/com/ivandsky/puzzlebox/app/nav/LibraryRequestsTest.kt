@@ -3,7 +3,9 @@ package com.ivandsky.puzzlebox.app.nav
 import androidx.compose.runtime.saveable.SaverScope
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
+import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.DuelPrefill
 import com.ivandsky.puzzlebox.play.GamesTab
 import com.ivandsky.puzzlebox.play.LibraryRequest
 import com.ivandsky.puzzlebox.play.api.PlayKey
@@ -47,6 +49,20 @@ class LibraryRequestsTest {
     }
 
     @Test
+    fun `openChallenge lands on Games root with the challenge pending and back returns to Today`() {
+        val navigator = todayNavigator()
+        val requests = LibraryRequests()
+
+        requests.openChallenge(navigator, TabSet.FourTabs, ADA_IN_ZIP)
+
+        assertEquals(PlayKey, navigator.state.tab)
+        assertEquals(listOf<Any>(PlayKey), navigator.state.currentStack)
+        assertEquals(LibraryRequest.Challenge(ADA_IN_ZIP), requests.pending)
+        navigator.pop()
+        assertEquals(HomeKey, navigator.state.tab)
+    }
+
+    @Test
     fun `take clears the pending request`() {
         val requests = LibraryRequests()
         requests.openGamesSection(todayNavigator(), TabSet.FourTabs, GamesTab.Duels)
@@ -66,5 +82,34 @@ class LibraryRequestsTest {
             assertNotNull(request.toString(), restored)
             assertEquals(request, restored!!.pending)
         }
+    }
+
+    @Test
+    fun `the saver round-trips a challenge, including a name with colons or none`() {
+        for (name in listOf("Ada", "", "Ada: the Great", ":", "  Ada  ")) {
+            val request = LibraryRequest.Challenge(DuelPrefill("uid-1", name, GameId("zip")))
+            val saved = with(LibraryRequests.Saver) { SaverScope { true }.save(LibraryRequests(request)) }
+            val restored = LibraryRequests.Saver.restore(saved!!)
+            assertEquals("name '$name'", request, restored!!.pending)
+        }
+    }
+
+    @Test
+    fun `an old saved section value still restores`() {
+        for (tab in GamesTab.entries) {
+            assertEquals(LibraryRequest.Section(tab), LibraryRequests.Saver.restore("section:${tab.name}")!!.pending)
+        }
+        assertEquals(LibraryRequest.Section(GamesTab.Duels), LibraryRequests.Saver.restore("section:Duels")!!.pending)
+    }
+
+    @Test
+    fun `an unreadable saved value restores as no request`() {
+        for (saved in listOf("", "section:Nope", "challenge:", "challenge:zip", "challenge:zip:uid", "challenge::uid:Ada", "challenge:zip::Ada", "duel:x")) {
+            assertNull("'$saved'", LibraryRequests.Saver.restore(saved)!!.pending)
+        }
+    }
+
+    private companion object {
+        val ADA_IN_ZIP = DuelPrefill(friendUid = "uid-ada", friendName = "Ada", game = GameId("zip"))
     }
 }

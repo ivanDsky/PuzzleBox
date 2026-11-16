@@ -172,7 +172,8 @@ internal fun LibraryRoute(
  * the list into the Dailies, Friends and Duels tabs (the tab is saved here, so it survives a
  * page push); with a [custom] slot too they are Dailies, Duels and Custom, whose list holds the
  * friend puzzles and whose pill counts the ones not played yet. A [request] acts once
- * ([ConsumeLibraryRequest]; a section needs [duels]) and is reported taken ([onRequestTaken]). The game page
+ * ([ConsumeLibraryRequest]; a section or a challenge needs [duels]) and is reported taken ([onRequestTaken]); a challenge
+ * also leaves its [DuelPrefill] pending (saved here) for the Duels body, until the body takes it. The game page
  * shows its rank as a summary row that calls [onOpenRanks].
  * A non-null [linkedIn] puts the LinkedIn lines on the page's day card. A non-null [onMakeOne] puts "Make one" on the page.
  */
@@ -223,15 +224,23 @@ internal fun LibraryScreen(
     val selected = state.rows.firstOrNull { it.card.game == state.selected } ?: state.rows.firstOrNull()
     var tab by rememberSaveable { mutableStateOf(GamesTab.Dailies) }
     var pageOpen by rememberSaveable { mutableStateOf(false) }
+    var duelPrefill by rememberSaveable(stateSaver = DuelPrefillSaver) { mutableStateOf<DuelPrefill?>(null) }
+    val showSection: suspend (GamesTab) -> Unit = { next ->
+        if (duels != null) {
+            tab = next
+            pageOpen = false
+            listScroll.scrollTo(0)
+            duelsScroll.requestScrollToItem(0)
+            customScroll.requestScrollToItem(0)
+        }
+    }
     ConsumeLibraryRequest(
         request = request,
-        onSection = { next ->
+        onSection = showSection,
+        onChallenge = { challenge ->
             if (duels != null) {
-                tab = next
-                pageOpen = false
-                listScroll.scrollTo(0)
-                duelsScroll.requestScrollToItem(0)
-                customScroll.requestScrollToItem(0)
+                showSection(GamesTab.Duels)
+                duelPrefill = challenge
             }
         },
         onTaken = onRequestTaken,
@@ -245,6 +254,7 @@ internal fun LibraryScreen(
         state, layout, listScroll, onRow, modifier, headerAction = enterCode, friends = fromFriends,
         duels = duels, tab = tab, onTab = { tab = it }, friendsTab = friendsTab, friendCount = friends.size,
         duelsScroll = duelsScroll, customTab = customTab, customCount = friends.unplayed(), customScroll = customScroll,
+        duelPrefill = duelPrefill, onDuelPrefillTaken = { duelPrefill = null },
     )
     if (layout == PlayLayout.TwoPane) {
         Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {

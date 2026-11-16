@@ -8,7 +8,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 
 /**
- * A one-shot ask from outside Games, held by the app shell and taken once: show a [Section].
+ * A one-shot ask from outside Games, held by the app shell and taken once: show a [Section], or open a [Challenge].
  */
 sealed interface LibraryRequest {
     /**
@@ -16,16 +16,24 @@ sealed interface LibraryRequest {
      * the two the pills have is the one shown ([shownWith]).
      */
     data class Section(val tab: GamesTab) : LibraryRequest
+
+    /**
+     * Show the Duels tab, closing any open page, with [prefill] pending there: a challenge to that friend
+     * in that game, which the Duels body takes once ([DuelsSlot.content]).
+     */
+    data class Challenge(val prefill: DuelPrefill) : LibraryRequest
 }
 
 /**
- * Acts on [request] once, then reports it taken ([onTaken]): a [LibraryRequest.Section] calls [onSection]. The same
- * request composed again, or restored after a recreation, does not act twice; a new one does.
+ * Acts on [request] once, then reports it taken ([onTaken]): a [LibraryRequest.Section] calls [onSection] and a
+ * [LibraryRequest.Challenge] calls [onChallenge]. The same request composed again, or restored after a
+ * recreation, does not act twice; a new one does.
  */
 @Composable
 internal fun ConsumeLibraryRequest(
     request: LibraryRequest?,
     onSection: suspend (GamesTab) -> Unit,
+    onChallenge: suspend (DuelPrefill) -> Unit,
     onTaken: () -> Unit,
 ) {
     var acted by rememberSaveable(request) { mutableStateOf(false) }
@@ -33,6 +41,7 @@ internal fun ConsumeLibraryRequest(
         if (request == null || acted) return@LaunchedEffect
         when (request) {
             is LibraryRequest.Section -> onSection(request.tab)
+            is LibraryRequest.Challenge -> onChallenge(request.prefill)
         }
         acted = true
         onTaken()

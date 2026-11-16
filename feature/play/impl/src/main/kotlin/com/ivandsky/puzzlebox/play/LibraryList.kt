@@ -53,7 +53,8 @@ import kotlinx.coroutines.launch
  * scrolls back to the top and fades the new body in. There is no From friends carousel then:
  * the Friends tab is where those cards live. With a [customTab] too the pills are Dailies,
  * Duels, Custom ([gamesTabs]): Custom takes Friends' place ([shownWith]), its body is
- * [customTab], laid out on [customScroll], and its pill carries [customCount].
+ * [customTab], laid out on [customScroll], and its pill carries [customCount]. The Duels body is handed
+ * the pending [duelPrefill] and reports it taken ([onDuelPrefillTaken]).
  */
 @Composable
 internal fun LibraryList(
@@ -73,6 +74,8 @@ internal fun LibraryList(
     customTab: (@Composable () -> Unit)? = null,
     customCount: Int = 0,
     customScroll: LazyListState = rememberLazyListState(),
+    duelPrefill: DuelPrefill? = null,
+    onDuelPrefillTaken: () -> Unit = {},
 ) {
     val phone = layout == PlayLayout.SinglePane
     // Only the list on screen glides: a tab change already snaps the other ones back to their tops.
@@ -87,7 +90,7 @@ internal fun LibraryList(
     if (duels != null) {
         TabbedList(
             state, phone, scroll, duelsScroll, onRow, modifier, headerAction, duels, tab, onTab, friendsTab, friendCount,
-            customTab, customCount, customScroll,
+            customTab, customCount, customScroll, duelPrefill, onDuelPrefillTaken,
         )
         return
     }
@@ -123,6 +126,8 @@ private fun TabbedList(
     customTab: (@Composable () -> Unit)?,
     customCount: Int,
     customScroll: LazyListState,
+    duelPrefill: DuelPrefill?,
+    onDuelPrefillTaken: () -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     // A saved or requested Friends is Custom while there is a Custom tab, and the other way round.
@@ -171,7 +176,7 @@ private fun TabbedList(
                 // Like Dailies: inset on the phone, flush with the pane on the tablet; the tab pads no sides itself.
                 GamesTab.Duels -> Box(
                     Modifier.fillMaxSize().padding(horizontal = if (phone) Spacing.lg else OutlineRoom),
-                ) { duels.content(duelsScroll) }
+                ) { duels.content(duelsScroll, duelPrefill, onDuelPrefillTaken) }
                 // Its rows pad their own sides, as the Friends body does: flush with the screen on the phone, stepped out of the tablet's list.
                 GamesTab.Custom -> Box(Modifier.fillMaxSize().padding(horizontal = bodyRoom).then(sides)) { customTab?.invoke() }
             }

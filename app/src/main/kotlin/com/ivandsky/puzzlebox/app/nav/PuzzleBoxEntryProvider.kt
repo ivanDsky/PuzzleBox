@@ -100,7 +100,13 @@ internal fun puzzleBoxEntryProvider(
         onOpenRanks = openRanks(navigator),
         onMakeOne = makeOne?.let { make -> { game -> make(game, null) } },
     )
-    resultEntry(navigator, linkedIn = true, onOpenRanks = openRanks(navigator), onMakeOneLikeThis = makeOne?.let { it::invoke })
+    resultEntry(
+        navigator,
+        linkedIn = true,
+        onOpenRanks = openRanks(navigator),
+        onMakeOneLikeThis = makeOne?.let { it::invoke },
+        onChallenge = { prefill -> libraryRequests.openChallenge(navigator, tabSet, prefill) },
+    )
     createEntry(navigator)
     editorEntry(navigator, playLayout)
     publishedPuzzleEntry(navigator, playLayout)

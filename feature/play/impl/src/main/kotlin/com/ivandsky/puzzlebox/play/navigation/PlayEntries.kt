@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.CustomSlot
+import com.ivandsky.puzzlebox.play.DuelPrefill
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GameRoute
 import com.ivandsky.puzzlebox.play.LibraryRequest
@@ -143,13 +144,16 @@ fun EntryProviderScope<NavKey>.playEntry(
  * with another game's today (17); Up and Done pop.
  * [linkedIn] adds the day's LinkedIn connections to the rank row. The player's rank is a chip that calls [onOpenRanks]
  * with the game and the result's day. A non-null [onMakeOneLikeThis] adds "Make one like this" to the result, handing back
- * the game and the size just played (null: the game's default).
+ * the game and the size just played (null: the game's default). [onChallenge] is what Result's Challenge row and
+ * primary call with the friend to challenge and the game ([DuelPrefill]); the app answers it by opening Games' Duels tab
+ * with that prefill. No route calls it yet.
  */
 fun EntryProviderScope<NavKey>.resultEntry(
     navigator: Navigator,
     onOpenRanks: (GameId, LocalDate?) -> Unit,
     linkedIn: Boolean = false,
     onMakeOneLikeThis: ((GameId, VariantId?) -> Unit)? = null,
+    onChallenge: (DuelPrefill) -> Unit = {},
 ) {
     entry<ResultKey> { key ->
         val store = koinInject<PlaySessionStore>()
