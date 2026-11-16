@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.game.editor.EditorNotation
 import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
+import com.ivandsky.puzzlebox.game.editor.ScoredGrader
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
@@ -25,12 +26,14 @@ import com.ivandsky.puzzlebox.model.GameId
  * through [TangoDraftCodec], analysis is [TangoDraftAnalyzer] and publishing is gated by
  * [TangoPublishGates]. A unique draft exports through [TangoCodec] so test solve plays a real
  * puzzle, and shares as givens-and-markers [TangoShareCodec] bytes. Its text form is
- * [TangoNotation] (M5-12-a). Finish for me is [TangoCompleter] (spec E1).
+ * [TangoNotation] (M5-12-a). Finish for me is [TangoCompleter] (spec E1). The scored difficulty
+ * label is [TangoScoredGrader]'s (93); [analyze] keeps the legacy one.
  */
 object TangoEditor :
     GameEditor<TangoDraft>,
     DraftExport<TangoDraft>,
     DraftCompleter<TangoDraft> by TangoCompleter,
+    ScoredGrader<TangoDraft> by TangoScoredGrader,
     EditorShareCodec<TangoDraft> by TangoShareCodec,
     EditorNotation<TangoDraft> by TangoNotation {
     override val gameId: GameId get() = TangoDefinition.id

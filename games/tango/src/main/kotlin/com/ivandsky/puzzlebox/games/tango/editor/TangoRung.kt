@@ -9,7 +9,7 @@ import com.ivandsky.puzzlebox.game.editor.LadderRung
 /**
  * The forced-move ladder of [com.ivandsky.puzzlebox.games.tango.engine.TangoRules.hint] as
  * [LadderRung]s, in difficulty order: the hardest rung a solve uses is the last one declared.
- * Expert is unused for Tango.
+ * No rung is Expert: only the whole-solve score of [TangoScoredGrader] gives that level (93).
  */
 enum class TangoRung(
     override val id: String,

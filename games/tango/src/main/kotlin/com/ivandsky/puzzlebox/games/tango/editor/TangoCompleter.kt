@@ -48,10 +48,12 @@ object TangoCompleter : DraftCompleter<TangoDraft> {
 
     /**
      * GaveUp when no grid holds the pieces, which includes givens that break a rule
-     * ([TangoPinnedFill] refuses them before it searches), or once [budget] is spent. [target] is not
-     * aimed for yet: every board is "any" until Tango has its scored grader (93).
+     * ([TangoPinnedFill] refuses them before it searches), or once [budget] is spent. With a [target]
+     * the search is [TangoTargetFinish]'s, which returns the closest board it found when the budget
+     * runs out or the level is out of reach.
      */
     override fun complete(draft: TangoDraft, random: Random, budget: Budget, target: Difficulty.Level?): Completion<TangoDraft> {
+        if (target != null) return TangoTargetFinish.complete(draft, random, budget, target)
         val answer = TangoPinnedFill.fill(puzzle(draft, draft.givens), random, budget) ?: return Completion.GaveUp
         val givens = draft.givens.toMutableMap()
         while (true) {
