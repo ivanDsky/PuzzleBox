@@ -25,9 +25,16 @@ rules_version = '2';
 //   hidden | board | duel | replays. Readable by id by any signed-in player, written only by
 //   its owner, never deleted; a missing doc means `board`.
 //
-// Layout: puzzles/{code} — one shared puzzle per share code, readable by id only;
+// Layout: puzzles/{code} — one shared puzzle per share code, readable by id;
 //   created once by its author and never edited, except that the author may set
 //   `unpublished` (a tombstone: the code is never reused, nothing is deleted).
+//   Two optional fields, set at create and fixed afterwards (ADR-0020 amendment): `visibility`
+//   (public | link; a doc without it is link only) and `difficulty` (easy | medium | hard | expert).
+//   Listed only by a query for public, still-published puzzles with a limit of at most 30, so a
+//   link-only puzzle cannot be enumerated.
+// Layout: puzzles/{code}/reports/{uid} = {formatVersion, uid, createdAt} — one report per puzzle and
+//   reporter, created by a signed-in player who is not the author. No client reads, lists, changes
+//   or deletes it; the project owner reviews reports in the console.
 // Layout: puzzles/{code}/entries/{uid} — that puzzle's board, in the daily entry format
 //   with puzzleRef "custom/<gameId>/<code>"; closed once the puzzle is unpublished and
 //   never open to the puzzle's author.
@@ -145,7 +152,12 @@ service cloud.firestore {
 
     match /puzzles/{code} {
       allow get: if true;
-      allow list: if false;
+      // Rules are not filters: a query is allowed only when its own constraints guarantee every result
+      // passes, so the client must ask for `visibility == 'public'` and `unpublished == false` and set
+      // a limit. Any other list, a link-only or an unlimited one included, is refused whole.
+      allow list: if resource.data.visibility == 'public'
+        && resource.data.unpublished == false
+        && request.query.limit <= 30;
 
       allow create: if request.auth != null
         && validPuzzle()
@@ -165,7 +177,9 @@ service cloud.firestore {
           'title', 'authorName', 'note', 'authorUid', 'authorTimeMs', 'authorHints',
           'createdAt', 'unpublished'];
         return puzzle.keys().hasAll(fields)
-          && puzzle.keys().hasOnly(fields)
+          && puzzle.keys().hasOnly(fields.concat(['visibility', 'difficulty']))
+          && (!('visibility' in puzzle) || puzzle.visibility in ['public', 'link'])
+          && (!('difficulty' in puzzle) || puzzle.difficulty in ['easy', 'medium', 'hard', 'expert'])
           && isShareCode(code)
           && puzzle.formatVersion == 1
           && puzzle.gameId is string
@@ -232,6 +246,28 @@ service cloud.firestore {
           && entry.hints >= 0
           && entry.completedAtMs is int
           && entry.completedAtMs > 0;
+      }
+    }
+
+    match /puzzles/{code}/reports/{uid} {
+      // The puzzle is read to keep an author from reporting their own; a missing puzzle fails the
+      // `get`, so only a puzzle that exists can be reported.
+      allow create: if request.auth != null
+        && request.auth.uid == uid
+        && validReport(get(/databases/$(database)/documents/puzzles/$(code)).data);
+
+      // Write once and write only: a client never learns who reported what.
+      allow read, update, delete: if false;
+
+      function validReport(puzzle) {
+        let report = request.resource.data;
+        let fields = ['formatVersion', 'uid', 'createdAt'];
+        return puzzle.authorUid != uid
+          && report.keys().hasAll(fields)
+          && report.keys().hasOnly(fields)
+          && report.formatVersion == 1
+          && report.uid == request.auth.uid
+          && report.createdAt == request.time;
       }
     }
 

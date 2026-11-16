@@ -1,7 +1,10 @@
 package com.ivandsky.puzzlebox.backend.firebase
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
+import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
+import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.SolveReplay
 import java.io.File
 import java.security.MessageDigest
@@ -20,6 +23,10 @@ import org.junit.Test
  * Two pins moved after that: the daily entries block when it gained its closed key set, and the helpers when
  * the entry window moved there for the daily replays block to share. The visibility and daily replays blocks
  * are pinned against their codecs rather than by hash, so a doc key or a tier cannot change on one side only.
+ *
+ * The puzzles pin moved with the ADR-0020 amendment (the community list rule and the two optional fields), and
+ * the puzzle reports block is pinned beside it. The puzzle's key and word lists are also checked against its
+ * codec.
  */
 class FirestoreRulesCloudSpaceTest {
 
@@ -31,9 +38,11 @@ class FirestoreRulesCloudSpaceTest {
             "match /{document=**} {" to "2fa7810103dc8eb3f4050c94653a46e8c3ed08cf3536292a3963424eadffd1e9",
             "match /leaderboards/{boardId}/entries/{uid} {" to
                 "7a11c5d570ecd206ef9e3314e6f5692c6dabb361d25527fda5f18a5b1b0784a0",
-            "match /puzzles/{code} {" to "c3256ffb26eebe2e8e182f3681e1cb3e8a8f33d5b95fafb584896331126c2e34",
+            PUZZLES_MATCH to "9dfd86eb8809213fc5373864ae2a1739d9540ed33c05026f41fdd307763e5dfb",
             "match /puzzles/{code}/entries/{uid} {" to
                 "09382f2ceb2f5fcaccd2b22f12d2e501898ec1715275abe390fbfd81ee7f60cb",
+            "match /puzzles/{code}/reports/{uid} {" to
+                "5f91335ff9213308938930f62c47f7332e4ef8b05201c92995c9069a67dab031",
             "match /authors/{uid} {" to "5f8b57cc9972b50cac40bb7c32df8b6ed5ec827bc6e44a7755e7190b2817470f",
             "match /matches/{code} {" to "270c794c3b61d2f7121d08b58f1a547d2baed867679a45dd428d32cf8e23ceb0",
             "match /matches/{code}/results/{resultId} {" to
@@ -299,6 +308,73 @@ class FirestoreRulesCloudSpaceTest {
         assertTrue("a day in the entry window", body.contains("board[1] in dailyWindowDays()"))
     }
 
+    @Test
+    fun `a puzzle requires the keys of a link-only doc and admits the codec's community fields in the codec's words`() {
+        val body = functionBody(block(PUZZLES_MATCH), "validPuzzle")
+        val linkOnly = SharedPuzzleDocCodec.encode(puzzle())
+        val public = SharedPuzzleDocCodec.encode(puzzle(SharedPuzzleDoc.Visibility.Public, Difficulty.Level.Easy))
+        assertEquals(
+            "every key of a link-only doc is required",
+            linkOnly.keys,
+            quoted(Regex("""let fields = \[(.*?)];""", RegexOption.DOT_MATCHES_ALL).find(body)!!.groupValues[1]),
+        )
+        assertTrue("the required keys are the base of both checks", body.contains("puzzle.keys().hasAll(fields)"))
+        assertEquals(
+            "the optional keys are the ones a public doc adds",
+            public.keys - linkOnly.keys,
+            quoted(Regex("""puzzle\.keys\(\)\.hasOnly\(fields\.concat\(\[(.*?)]\)\)""").find(body)!!.groupValues[1]),
+        )
+        assertEquals(
+            "public is the codec's word; link is admitted for a client that writes it",
+            setOf(public.getValue(SharedPuzzleDocCodec.FIELD_VISIBILITY), "link"),
+            quoted(Regex("""puzzle\.visibility in \[(.*?)]""").find(body)!!.groupValues[1]),
+        )
+        assertEquals(
+            Difficulty.Level.entries
+                .map { SharedPuzzleDocCodec.encode(puzzle(difficulty = it)).getValue(SharedPuzzleDocCodec.FIELD_DIFFICULTY) }
+                .toSet(),
+            quoted(Regex("""puzzle\.difficulty in \[(.*?)]""").find(body)!!.groupValues[1]),
+        )
+    }
+
+    @Test
+    fun `puzzles are listed only by a query for public, published ones with a limit of at most 30`() {
+        val block = block(PUZZLES_MATCH)
+        val public = SharedPuzzleDocCodec.encode(puzzle(SharedPuzzleDoc.Visibility.Public))
+        assertTrue(
+            "the one list rule names the codec's field and word",
+            Regex(
+                """allow list: if resource\.data\.${SharedPuzzleDocCodec.FIELD_VISIBILITY} == """ +
+                    """'${public.getValue(SharedPuzzleDocCodec.FIELD_VISIBILITY)}'\s+""" +
+                    """&& resource\.data\.${SharedPuzzleDocCodec.FIELD_UNPUBLISHED} == false\s+""" +
+                    """&& request\.query\.limit <= 30;""",
+            ).containsMatchIn(block),
+        )
+        assertEquals("one list rule", 1, Regex("""\ballow [a-z, ]*\blist\b""").findAll(block).count())
+    }
+
+    private fun puzzle(
+        visibility: SharedPuzzleDoc.Visibility = SharedPuzzleDoc.Visibility.LinkOnly,
+        difficulty: Difficulty.Level? = null,
+    ) = SharedPuzzleDoc(
+        code = checkNotNull(ShareCode.parse("K7Q2MX")),
+        formatVersion = SharedPuzzleDoc.FORMAT_VERSION,
+        gameId = "queens",
+        variant = "classic",
+        shareCodecVersion = 1,
+        payload = byteArrayOf(1, 2, 3, 4),
+        title = "Corner queens",
+        authorName = "Ivan",
+        note = "",
+        authorUid = "author-uid",
+        authorTimeMs = 61_000,
+        authorHints = 0,
+        createdAtMs = 1_762_000_000_000,
+        unpublished = false,
+        visibility = visibility,
+        difficulty = difficulty,
+    )
+
     private fun topLevelBlocks(): Map<String, String> {
         val blocks = linkedMapOf<String, String>()
         var i = 0
@@ -348,6 +424,7 @@ class FirestoreRulesCloudSpaceTest {
     private companion object {
         const val ENTRIES_MATCH = "match /leaderboards/{boardId}/entries/{uid} {"
         const val DAILY_REPLAYS_MATCH = "match /leaderboards/{boardId}/replays/{uid} {"
+        const val PUZZLES_MATCH = "match /puzzles/{code} {"
         const val VISIBILITY_MATCH = "match /visibility/{uid} {"
         const val SPACE_MATCH = "match /users/{uid}/{kind}/{docId} {"
         val KIND_FUNCTIONS = listOf(
