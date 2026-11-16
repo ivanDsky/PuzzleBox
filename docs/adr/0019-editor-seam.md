@@ -3,7 +3,8 @@
 Date: 2026-11-06 · Status: accepted · Source: editor spec A3–A10, A22–A23, A28; prototype
 handoffs 01–09; spec checkpoint 2026-11-06 (OQ3 Queens ladder, OQ4 share target) ·
 Supersedes ADR-0003 (per-game editor phase) · Amends ADR-0008 §1/§3 (plugin and registry
-seams)
+seams) ·
+Amended by the nav-rethink spec E1 (Finish for me: `DraftCompleter` capability)
 
 ## Context
 ADR-0003 planned one editor phase per game, each after its game shipped. All five games now
@@ -92,6 +93,27 @@ Three callers need the editor logic without UI: `core:data` (decoding drafts and
   `EditorNotation`), so a landed implementer never breaks. This supersedes the flat member list
   in Decision 1: `toPuzzle`, the share codec and notation are capabilities, undo is
   `ReplaceDraft` plus each game's commands, and `00-interfaces.md` §2.1 is the source of truth.
+
+## Finish for me (amendment)
+A game's editor may also implement `DraftCompleter<D>`, a capability found with `as?` like
+`DraftExport`, so no `GameEditor` member changes and no landed editor breaks. A game without
+one (Strands, never) simply has no Finish for me: `EditorDraft.canFinish` is false and
+`finishReadiness()` and `finish(...)` answer null.
+- `readiness(draft): FinishReadiness` (`Ready`, `NeedsMore(reason)`, `Blocked(cells)`) is cheap,
+  pure and never searches, so the UI can ask it on every edit. It stays apart from the
+  `Verdict`: the verdict needs a solver run under a budget and says what the board is, while
+  readiness says only whether pressing Finish is worth it (minimum met, pieces not already
+  contradicting).
+- `complete(draft, random, budget): Completion` (`Done`, `GaveUp`) blocks, polls the `Budget`,
+  keeps every placed piece and returns only a board whose analysis is Unique (and, on the
+  ladder games, not needs-guessing). No dispatcher (Konsist P7).
+- `EditorDraft.finish(random, budget, pieces = this)` completes the board of `pieces` and
+  applies it to this draft as one undoable `ReplaceDraft` step; null on `GaveUp`, draft
+  unchanged. Passing the author's earlier draft as `pieces` makes a second press start from
+  the author's own pieces while the history of earlier completions stays.
+- The seam lives with the editor in `core:game`, not in a new module: it is a pure contract
+  over the same draft type `D`, found through the plugin's editor like every other capability
+  (ADR-0021 tools reach it that way), and a separate module would need a second lookup.
 
 ## Rejected alternatives
 - A per-game editor phase after each game ships (ADR-0003): every game has shipped, and the

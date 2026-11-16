@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.map
 import com.ivandsky.puzzlebox.model.GameId
 import java.security.MessageDigest
+import kotlin.random.Random
 
 /**
  * The type-erased draft handle features hold (ADR-0019): features keep an `EditorDraft<*>`,
@@ -21,6 +22,9 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
 
     /** True when [editor] also implements [DraftExport]. */
     val canTestSolve: Boolean get() = editor is DraftExport<*>
+
+    /** True when [editor] also implements [DraftCompleter]. */
+    val canFinish: Boolean get() = editor is DraftCompleter<*>
 
     /** The board equals the editor's blank board of this variant; history is ignored. */
     val isBlank: Boolean get() = state.draft == editor.newDraft(variant)
@@ -65,6 +69,26 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
     /** The editor's [DraftExport] of this board; null when !canTestSolve. */
     fun toPuzzle(solution: Solution): Puzzle? =
         editor.capability<D, DraftExport<D>>()?.toPuzzle(state.draft, solution)
+
+    /** The completer's [DraftCompleter.readiness] for this board; null when !canFinish. */
+    fun finishReadiness(): FinishReadiness? =
+        editor.capability<D, DraftCompleter<D>>()?.readiness(state.draft)
+
+    /**
+     * Finish for me: completes the board of [pieces] (this draft by default; null when it holds
+     * another editor) and applies it to this draft as one undoable [ReplaceDraft] step. Passing
+     * an earlier draft as [pieces] completes the author's own pieces again while this draft keeps
+     * the undo history of the earlier completions. Null when !canFinish or the completer
+     * [Completion.GaveUp]; this draft is unchanged then.
+     */
+    fun finish(random: Random, budget: Budget, pieces: EditorDraft<*> = this): EditorDraft<D>? {
+        val completer = editor.capability<D, DraftCompleter<D>>() ?: return null
+        val source = pieces.narrowTo(editor) ?: return null
+        return when (val completion = completer.complete(source.state.draft, random, budget)) {
+            is Completion.Done -> apply(ReplaceDraft(state.draft, completion.draft))
+            Completion.GaveUp -> null
+        }
+    }
 
     companion object {
         /** A blank [variant] board with an empty history. */

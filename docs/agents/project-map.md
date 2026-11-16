@@ -251,7 +251,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `analyze(draft, Budget)` → `Verdict`, `publishBlocks`, `layoutOf`), `EditorDraft<D>` (the
   type-erased draft + `CommandHistory` the UI holds: apply/undo/redo/resize, `canTestSolve`,
   `toPuzzle`), `Verdict` (sealed solvability/uniqueness/`Difficulty` outcome), `DraftState`,
-  `DraftExport`, `Budget`, `PublishBlock`, `IncompleteReason`, `LadderRung`, `Solution`.
+  `DraftExport`, `DraftCompleter<D>` (opt-in capability: `readiness` → `FinishReadiness`
+  Ready/NeedsMore/Blocked, `complete` → `Completion` Done/GaveUp; `EditorDraft.canFinish`/
+  `finishReadiness`/`finish`), `Budget`, `PublishBlock`, `IncompleteReason`, `LadderRung`, `Solution`.
   `EditorNotation<D>` (opt-in capability of a `GameEditor`: `parse`/`print`/`columns`,
   `notationVersion`, the `puzzlebox <game> v<n>` text of `docs/puzzle-notation.md`) and
   `NotationText` (the one whole-text entry: 64 KiB cap → header → `registry[id].editor as?
