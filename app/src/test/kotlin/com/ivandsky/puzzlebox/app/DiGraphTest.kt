@@ -338,7 +338,7 @@ class DiGraphTest : KoinTest {
     /** Two editor UIs for one game is a wiring bug that fails the registry's first resolve. */
     /**
      * The hub's view models are `internal` to their feature modules, so they are asked for by class name; a missing
-     * binding behind RanksViewModel's thirteen positional `get()`s would otherwise surface only when the hub opens.
+     * binding behind RanksViewModel's positional `get()`s would otherwise surface only when the hub opens.
      */
     @Test
     fun `the Ranks hub resolves off the real graph`() {

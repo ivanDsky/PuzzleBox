@@ -103,6 +103,7 @@ internal class RanksTestHub(
             },
             calendar = calendar,
             registry = registry,
+            daily = daily,
             clock = clock,
             linkedIn = ObserveLinkedInDayView(ObserveLinkedInDay(linkedInDays, registry), SyncLinkedInDay(linkedInDays, 500), FakeLinkedInLink(), linkedInDays).takeIf { linkedIn },
             savedState = savedState,
