@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.history.CalendarState
  * the viewer and their friends. [places] is the viewer's place on every board, as the boards show it, for the
  * title menu; [nudge] says the one-time swipe hint has not been shown yet. [boards] is every board's
  * slice in swipe order ([board] is the one at [position]), there for a swipe to scrub to; empty when only [board] is known.
+ * [playThisDay] is what the button where Your solve would be opens: set for a game's day the viewer has not played.
  */
 internal data class RanksUiState(
     val board: RanksBoardSlice,
@@ -29,6 +30,7 @@ internal data class RanksUiState(
     val places: List<BoardPlace> = emptyList(),
     val nudge: Boolean = false,
     val boards: List<RanksBoardSlice> = emptyList(),
+    val playThisDay: PlayThisDay? = null,
 )
 
 /** True for a list of rows holding nobody but the viewer, and no LinkedIn ghost either; empty counts. Any other state is not "alone". */

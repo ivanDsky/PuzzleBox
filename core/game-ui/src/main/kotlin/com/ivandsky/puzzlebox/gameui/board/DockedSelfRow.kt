@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
@@ -41,7 +42,7 @@ import kotlin.math.roundToInt
  * board is drawn exactly as it is without a dock, and the row in it is the one at its own place, so the dock never
  * changes what the board animates. [board] gets the modifier the board is to carry. Between two boards the dock is
  * the row of [scrub] instead, and stays at the edge it was docked to. [inlineMarks] is the board's, so the copy is
- * laid out as the row it copies.
+ * laid out as the row it copies. A [SelfRowJump] provided around the board is given the same jump the dock's tap makes.
  */
 @Composable
 internal fun DockedSelfRow(
@@ -62,12 +63,23 @@ internal fun DockedSelfRow(
         return
     }
     val dock = remember { SelfRowDock() }
+    val row = scrub?.self ?: self
+    AttachSelfRowJump(dock, attached = row != null)
     Box(modifier.onGloballyPositioned { dock.boardPlaced(it) }) {
         CompositionLocalProvider(LocalSelfRowDock provides dock) { board(Modifier) }
-        val row = scrub?.self ?: self
         if (row != null) {
             Dock(dock, row, scrub?.order ?: order, scrub?.withPuzzleBoxRank ?: withPuzzleBoxRank, medals, animated, backdrop, inlineMarks, scrub)
         }
+    }
+}
+
+/** Hands [dock]'s way back to the viewer's row to whoever asked through [LocalSelfRowJump], while the board has a row. */
+@Composable
+private fun AttachSelfRowJump(dock: SelfRowDock, attached: Boolean) {
+    val jump = LocalSelfRowJump.current ?: return
+    DisposableEffect(jump, dock, attached) {
+        if (attached) jump.attach(dock.requester)
+        onDispose { jump.detach(dock.requester) }
     }
 }
 

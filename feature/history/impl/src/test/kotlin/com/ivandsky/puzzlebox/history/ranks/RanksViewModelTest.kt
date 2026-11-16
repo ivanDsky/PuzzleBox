@@ -232,6 +232,81 @@ class RanksViewModelTest {
         assertNull(tango.yourSolve)
     }
 
+    private val yesterday = today.minusDays(1)
+
+    /** A hub on Zip's Day board at [day] (null: today), with Zip's archive running [since]..today. */
+    private fun RanksTestHub.zipDay(day: LocalDate?, since: LocalDate? = today.minusDays(30)): RanksViewModel {
+        daily.setArchiveRange(ZIP, since?.let { it..today })
+        val viewModel = viewModel()
+        viewModel.select { it.pickBoard(RanksBoard.Game(ZIP)) }
+        viewModel.selectDay(day)
+        return viewModel
+    }
+
+    private suspend fun RanksViewModel.settledZipDay(day: LocalDate): RanksUiState =
+        uiState.first { it.calendar.selectedDay == day && it.board.title.startsWith("Zip") && it.stats != null }
+
+    @Test
+    fun `a game's past day with no solve offers Play this day`() = runTest {
+        val viewModel = hub().zipDay(yesterday)
+
+        assertEquals(PlayThisDay(ZIP, yesterday), viewModel.settledZipDay(yesterday).playThisDay)
+    }
+
+    @Test
+    fun `an unplayed today offers Play this day too`() = runTest {
+        val viewModel = hub().zipDay(null)
+
+        assertEquals(PlayThisDay(ZIP, today), viewModel.settledZipDay(today).playThisDay)
+    }
+
+    @Test
+    fun `a day you solved offers none, Your solve shows instead`() = runTest {
+        val h = hub()
+        h.daily.setHistory(ZIP, listOf(HistoryTestSupport.entry(yesterday)))
+        h.completions.setRecords(listOf(HistoryTestSupport.record(yesterday)))
+        val viewModel = h.zipDay(yesterday)
+
+        val state = viewModel.uiState.first { it.yourSolve != null }
+
+        assertNull(state.playThisDay)
+    }
+
+    @Test
+    fun `Overall has no single game to play, so it offers none`() = runTest {
+        val h = hub()
+        h.daily.setArchiveRange(ZIP, today.minusDays(30)..today)
+        val viewModel = h.viewModel()
+        viewModel.selectDay(yesterday)
+
+        assertNull(viewModel.uiState.first { it.calendar.selectedDay == yesterday && it.stats != null }.playThisDay)
+    }
+
+    @Test
+    fun `a week window offers none, it has no single day`() = runTest {
+        val viewModel = hub().zipDay(yesterday)
+        viewModel.setWindow(RanksSelection.Window.Week)
+
+        assertNull(viewModel.uiState.first { it.window == RanksSelection.Window.Week && it.stats != null }.playThisDay)
+    }
+
+    @Test
+    fun `a day before the game's first puzzle offers none`() = runTest {
+        val viewModel = hub().zipDay(today.minusDays(10), since = today.minusDays(5))
+
+        assertNull(viewModel.settledZipDay(today.minusDays(10)).playThisDay)
+    }
+
+    @Test
+    fun `a game with no archive offers today only`() = runTest {
+        val h = hub()
+        val past = h.zipDay(yesterday, since = null)
+        assertNull(past.settledZipDay(yesterday).playThisDay)
+
+        val now = h.zipDay(null, since = null)
+        assertEquals(PlayThisDay(ZIP, today), now.settledZipDay(today).playThisDay)
+    }
+
     @Test
     fun `the calendar pages by week and month without moving the picked day`() = runTest {
         val h = hub()

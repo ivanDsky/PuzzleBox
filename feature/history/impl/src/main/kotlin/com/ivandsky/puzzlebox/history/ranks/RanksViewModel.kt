@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.identity.IdentityService
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.GameStats
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
@@ -73,6 +74,7 @@ internal class RanksViewModel(
     private val preferences: UserPreferencesRepository,
     private val calendar: GameCalendar,
     private val registry: GameRegistry,
+    private val daily: DailyRepository,
     private val clock: Clock = Clock.systemUTC(),
     linkedIn: ObserveLinkedInDayView? = null,
     savedState: SavedStateHandle = SavedStateHandle(),
@@ -144,7 +146,18 @@ internal class RanksViewModel(
         if (row == null) flowOf(null) else dayReplays.replays.map { YourSolve(row, it.of(row), playRegistry[row.gameId]) }
     }
 
-    private val local = combine(calendarState, observeGameStats(), yourSolve, nudge, ::Local)
+    /** What Play this day opens, if anything: the game board's day when the viewer has no solve of it (see [playThisDay]). */
+    private val playThisDay: Flow<PlayThisDay?> = combine(
+        history,
+        selection.map { Triple(it.board, it.window, it.day) }.distinctUntilChanged(),
+        today(),
+    ) { rows, (board, kind, picked), today ->
+        val day = picked ?: today
+        val solved = board is RanksBoard.Game && rows.any { it.gameId == board.id && it.day == day && it.record != null }
+        playThisDay(board, kind, day, solved, (board as? RanksBoard.Game)?.let { daily.archiveRange(it.id) }, today)
+    }.distinctUntilChanged()
+
+    private val local = combine(calendarState, observeGameStats(), yourSolve, nudge, playThisDay, ::Local)
 
     private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, BoardGhosts(linkedIn))
 
@@ -166,7 +179,7 @@ internal class RanksViewModel(
     ) { (scope, slices), signIn, position, local, kind ->
         val slice = slices.getOrElse(position) { slices.first() }
         val places = boardPlaces(boards, registry, playRegistry::brandOf, slices)
-        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices)
+        RanksUiState(slice, signIn, position, boards.size, local.calendar, local.stats, local.yourSolve, scope, kind, places, local.nudge, slices, local.playThisDay)
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS),
@@ -230,7 +243,7 @@ internal class RanksViewModel(
     /** The replays of [row]'s day only: a switch never flashes the last day's. */
     private fun DayReplays.of(row: HistoryDayRow): HistoryReplays = if (key == row.key) replays else HistoryReplays.Hidden
 
-    private data class Local(val calendar: CalendarState, val stats: GameStats, val yourSolve: YourSolve?, val nudge: Boolean)
+    private data class Local(val calendar: CalendarState, val stats: GameStats, val yourSolve: YourSolve?, val nudge: Boolean, val playThisDay: PlayThisDay?)
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L

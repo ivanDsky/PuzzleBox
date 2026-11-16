@@ -3,7 +3,9 @@ package com.ivandsky.puzzlebox.history.ranks
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -11,13 +13,17 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.PillShape
+import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
@@ -33,21 +39,39 @@ internal fun tuneLabel(scope: RankScope, window: Window): String? = listOfNotNul
 
 /**
  * The hub's bar: the [title] (the board menu) at the start, the active [label] (if any) and the tune icon that calls [onTune] at the end.
- * With [onLabel] the label is a tap target too.
+ * With [onLabel] the label is a button too, the same as the icon.
  */
 @Composable
 internal fun RanksTopBar(label: String?, onTune: () -> Unit, modifier: Modifier = Modifier, onLabel: (() -> Unit)? = null, title: @Composable () -> Unit) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         title()
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-            label?.let {
-                val tag = Modifier.testTag("ranks.tune.label")
-                Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = if (onLabel == null) tag else tag.clickable(onClick = onLabel))
-            }
+            label?.let { TuneLabel(it, onLabel) }
             IconButton(onClick = onTune, modifier = Modifier.testTag("ranks.tune")) {
                 Icon(TuneIcon, contentDescription = "Tune ranks", tint = MaterialTheme.colorScheme.onSurface)
             }
         }
+    }
+}
+
+/** The active [label]: plain text, or with [onClick] a 48 dp pill button with a chevron that says it opens something. */
+@Composable
+private fun TuneLabel(label: String, onClick: (() -> Unit)?) {
+    val tag = Modifier.testTag("ranks.tune.label")
+    if (onClick == null) {
+        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = tag)
+        return
+    }
+    Row(
+        tag
+            .clip(PillShape)
+            .clickable(role = Role.Button, onClickLabel = "Tune ranks", onClick = onClick)
+            .defaultMinSize(minHeight = RanksMetrics.TitleMinHeight)
+            .padding(start = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+        Icon(PuzzleIcons.ExpandMore, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
     }
 }
 

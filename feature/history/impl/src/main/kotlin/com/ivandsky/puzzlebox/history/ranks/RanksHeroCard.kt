@@ -17,6 +17,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorProducer
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -54,7 +55,7 @@ internal data class HeroFace(val board: String, val standing: Standing, val scor
  * the score roll ([RollingLine]) and a text that changes frosts over in place ([MorphCell]); reduced motion swaps them.
  * Between two boards the card is given the one it leaves as [was] and how far along it is as [progress] (0 to 1, read
  * only where the card is laid out and drawn): the same rolls and frosts then go as far as [progress] says, so they
- * follow a finger, and the card lands without moving again. With [onClick] the card is a tap target.
+ * follow a finger, and the card lands without moving again. With [onClick] the card is a button; without, it is plain.
  */
 @Composable
 internal fun RanksHeroCard(
@@ -73,7 +74,7 @@ internal fun RanksHeroCard(
             .testTag("ranks.hero")
             .clip(MaterialTheme.shapes.large)
             .drawBehind { drawRect(container()) }
-            .then(if (onClick == null) Modifier else Modifier.clickable(onClick = onClick))
+            .then(if (onClick == null) Modifier else Modifier.clickable(onClickLabel = "Jump to your row", role = Role.Button, onClick = onClick))
             .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
