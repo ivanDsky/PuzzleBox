@@ -85,16 +85,25 @@ val LocalAccentPalette = staticCompositionLocalOf { LightAccentTokens }
 val LocalDarkTheme = staticCompositionLocalOf { false }
 
 /**
+ * Whether surfaces are flat (nav-rethink B1): no lip, a tint plus a 100 ms scale on press.
+ * [PuzzleBoxTheme]'s `flatSurfaces`; false by default so previews, the Showkase browser and
+ * every test keep today's look. Components read this, never `ReleaseFlags` (spec A2).
+ */
+val LocalFlatSurfaces = staticCompositionLocalOf { false }
+
+/**
  * Theme composition root (ticket 10): the promoted style IS the token set — Baloo 2
  * typography, C3 light scheme, C6 dark scheme. The [darkTheme] request picks the
- * scheme. */
+ * scheme; [flatSurfaces] is the app's flat-surfaces request, handed to [LocalFlatSurfaces]. */
 @Composable
 fun PuzzleBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    flatSurfaces: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
         LocalDarkTheme provides darkTheme,
+        LocalFlatSurfaces provides flatSurfaces,
         LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText,
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
         LocalOnFill provides if (darkTheme) DarkOnFill else LightOnFill,
