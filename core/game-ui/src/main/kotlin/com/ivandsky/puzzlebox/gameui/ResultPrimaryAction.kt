@@ -19,7 +19,9 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.delay
 
 private const val TICK_MS = 1_000L
@@ -28,9 +30,12 @@ private const val TICK_MS = 1_000L
 private val CountdownMinHeight = 52.dp
 
 /**
- * The one primary step [ResultScreen] offers (spec A7, A16, SC10). Today's result offers
+ * The one primary step [ResultScreen] offers (spec A7, A16, SC10, L3). Today's result offers
  * [Next] (the next unsolved daily, named) or, when every daily is solved, [AllDone]: the
  * countdown to the next puzzles stands in for the button. A play-again's result offers [Done].
+ * The four cases after those are the other next things the chain can offer; each carries what its
+ * button's words and its action need. This file only draws them: the domain's next thing is turned into
+ * one of them in one place, the play feature.
  */
 sealed interface ResultPrimaryAction {
 
@@ -42,6 +47,18 @@ sealed interface ResultPrimaryAction {
 
     /** A play-again's result: Done returns to the origin. */
     data object Done : ResultPrimaryAction
+
+    /** "Challenge [name]": a duel with the friend [uid], the nearest neighbour on today's friends board. */
+    data class ChallengeFriend(val uid: String, val name: String) : ResultPrimaryAction
+
+    /** "Play <weekday>'s [gameName]": the [gameId]'s puzzle of [day], missed this week. */
+    data class MissedDay(val gameId: GameId, val day: LocalDate, val gameName: String) : ResultPrimaryAction
+
+    /** "Play [authorName]'s puzzle": a puzzle a friend shared, opened by [code]. */
+    data class FriendPuzzle(val code: ShareCode, val gameId: GameId, val authorName: String) : ResultPrimaryAction
+
+    /** "Try a new community puzzle by [authorName]": a community puzzle by someone who is not a friend, opened by [code]. */
+    data class CommunityPuzzle(val code: ShareCode, val gameId: GameId, val authorName: String) : ResultPrimaryAction
 }
 
 /**

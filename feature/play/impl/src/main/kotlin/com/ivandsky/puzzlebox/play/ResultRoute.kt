@@ -76,6 +76,10 @@ fun ResultRoute(
         when (val action = primary) {
             is ResultPrimaryAction.Next -> onNext(action.gameId)
             ResultPrimaryAction.AllDone, ResultPrimaryAction.Done -> onDone()
+            // The view model offers none of these until the next-thing mapping (ticket 36) supplies them.
+            is ResultPrimaryAction.ChallengeFriend, is ResultPrimaryAction.MissedDay,
+            is ResultPrimaryAction.FriendPuzzle, is ResultPrimaryAction.CommunityPuzzle,
+            -> Unit
             null -> Unit
         }
     }

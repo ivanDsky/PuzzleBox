@@ -132,11 +132,12 @@ internal fun PlayAgainLine(previousBest: BestScore?, rankOrder: RankOrder) {
 /**
  * The result's actions, in one row: the primary takes the width the icons leave, and the two
  * 48 dp icon buttons follow it, [Spacing.sm] apart and centred on the row's height (the countdown is taller than 48 dp).
- * The primary is "Next: <game>" (`result.next`) or a play-again's Done (`result.done`); once every
- * daily is solved the [ResultCountdown] to [rolloverAt] stands in its place. Then come Share
- * (tag `result.share`) and, unless [onPlayAgain] is null, Play again (`result.playAgain`), both
+ * The primary is the button [step] gives for it (`result.next`, `result.done`, and one tag and one copy for each
+ * other next thing); once every daily is solved the [ResultCountdown] to [rolloverAt] stands in its place. Then come
+ * Share (tag `result.share`) and, unless [onPlayAgain] is null, Play again (`result.playAgain`), both
  * tonal icon buttons that name themselves "Share" and "Play again" for TalkBack and a long-press tooltip.
- * A non-null [onMakeOneLikeThis] adds a plain "Make one like this" button (`result.makeOne`) under the row.
+ * Under the row: "Challenge <name>" (`result.challenge`) when a [challenge] and its [onChallenge] are given, then
+ * a plain "Make one like this" button (`result.makeOne`) when [onMakeOneLikeThis] is.
  */
 @Composable
 internal fun ResultActions(
@@ -146,10 +147,19 @@ internal fun ResultActions(
     onPlayAgain: (() -> Unit)?,
     rolloverAt: Instant?,
     modifier: Modifier = Modifier,
+    challenge: ResultPrimaryAction.ChallengeFriend? = null,
+    onChallenge: (() -> Unit)? = null,
     onMakeOneLikeThis: (() -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         ActionRow(primary, onPrimary, onShare, onPlayAgain, rolloverAt)
+        if (challenge != null && onChallenge != null) {
+            SecondaryButton(
+                text = "Challenge ${challenge.name}",
+                onClick = onChallenge,
+                modifier = Modifier.fillMaxWidth().testTag("result.challenge"),
+            )
+        }
         onMakeOneLikeThis?.let { make ->
             SecondaryButton(text = "Make one like this", onClick = make, modifier = Modifier.fillMaxWidth().testTag("result.makeOne"))
         }
@@ -170,18 +180,11 @@ private fun ActionRow(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         val fill = Modifier.weight(1f)
-        when (primary) {
-            is ResultPrimaryAction.Next -> PrimaryButton(
-                text = "Next: ${primary.name}",
-                onClick = onPrimary,
-                modifier = fill.testTag("result.next"),
-            )
-            ResultPrimaryAction.AllDone -> ResultCountdown(rolloverAt, fill)
-            ResultPrimaryAction.Done -> PrimaryButton(
-                text = "Done",
-                onClick = onPrimary,
-                modifier = fill.testTag("result.done"),
-            )
+        val step = primary.step()
+        if (step == null) {
+            ResultCountdown(rolloverAt, fill)
+        } else {
+            PrimaryButton(text = step.text, onClick = onPrimary, modifier = fill.testTag(step.tag))
         }
         TonalIconButton(
             icon = PuzzleIcons.Share,

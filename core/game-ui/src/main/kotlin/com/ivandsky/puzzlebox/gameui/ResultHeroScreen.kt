@@ -50,7 +50,8 @@ private const val SIDE_WEIGHT = 1f
  * Layout by measured width: under 760 dp one column, hero then side; from 760 dp two
  * columns weighted 1.1 to 1 with 32 dp page padding, the content capped at 1040 dp. The hero
  * time takes its 96 sp step once the hero column is 520 dp. In two columns both cards are
- * as tall as the taller one; one column never stretches. A stretched side card keeps its content at the top;
+ * as tall as the taller one (the moment card, when there is one, hangs under the hero card and is outside that
+ * equal height); one column never stretches. A stretched side card keeps its content at the top;
  * a stretched hero card keeps its header on the top padding and its best line, chips and actions on the bottom one, and
  * grows its time to fill the space between.
  * The cards report their content's own height and are given the larger of the two as a minimum
@@ -58,6 +59,7 @@ private const val SIDE_WEIGHT = 1f
  * row, which the chart's constraint-reading layout cannot answer. A pane under 480 dp tall
  * top-aligns and tightens; the page scrolls rather than squeezing the actions.
  *
+ * The moment card (L1) sits under the hero card when [ResultHeroFacts.moments] has any; without them the page is as it was.
  * [actions] is the hero's action row (the daily result passes [ResultHeroActions]); null draws none.
  * [chip] replaces the Today chip. A non-null [onRetryWrite] shows a failed-record-write notice above
  * the cards that retries through it. [onSignIn] is the rank row's sign-in when the player is signed out.
@@ -107,18 +109,24 @@ fun ResultHeroScreen(
                     val sideHeight = remember { mutableIntStateOf(0) }
                     val equalHeight = Modifier.minHeightPx { maxOf(heroHeight.intValue, sideHeight.intValue) }
                     Row(horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.Top) {
-                        ResultHeroCard(
-                            model, brand, Modifier.weight(HERO_WEIGHT), wide, actions,
-                            contentModifier = equalHeight,
-                            onContentHeight = { heroHeight.intValue = it },
-                        )
+                        Column(Modifier.weight(HERO_WEIGHT)) {
+                            ResultHeroCard(
+                                model, brand, Modifier, wide, actions,
+                                contentModifier = equalHeight,
+                                onContentHeight = { heroHeight.intValue = it },
+                            )
+                            ResultMomentCard(model.moments, brand, gap = gap)
+                        }
                         ResultSideCard(
                             model, brand, onSignIn, Modifier.weight(SIDE_WEIGHT).then(equalHeight), wide,
                             contentModifier = Modifier.reportContentHeight { sideHeight.intValue = it },
                         )
                     }
                 } else {
-                    ResultHeroCard(model, brand, Modifier, wide, actions)
+                    Column {
+                        ResultHeroCard(model, brand, Modifier, wide, actions)
+                        ResultMomentCard(model.moments, brand, gap = gap)
+                    }
                     ResultSideCard(model, brand, onSignIn, Modifier, wide)
                 }
                 board?.invoke()
