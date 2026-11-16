@@ -12,10 +12,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -27,16 +32,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isFinite
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
+import com.ivandsky.puzzlebox.gameui.LandscapeControls
+import com.ivandsky.puzzlebox.gameui.LocalPlayTuning
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.singlePaneDeviceClass
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.games.strands.StrandsRating
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 import com.ivandsky.puzzlebox.games.strandsui.chrome.HintModal
+import com.ivandsky.puzzlebox.games.strandsui.chrome.HintRowPlacement
 import com.ivandsky.puzzlebox.games.strandsui.chrome.StrandsHeaderLine
-import com.ivandsky.puzzlebox.games.strandsui.chrome.StrandsHintRow
 import com.ivandsky.puzzlebox.games.strandsui.chrome.ThemeCard
 import com.ivandsky.puzzlebox.games.strandsui.chrome.WordSlotLine
 import com.ivandsky.puzzlebox.games.strandsui.chrome.FoundWordsList
@@ -51,6 +59,9 @@ import com.ivandsky.puzzlebox.games.strandsui.chrome.FoundWordsList
  * chrome. No undo and no shared hint control (A15: the hint is Strands' own economy). A
  * finished board stays on screen with its rating word and hands its time and hints to
  * [onSolved] once per completion. A tap anywhere off the board drops a half-traced word.
+ * Under a play tuning the hint row joins the shared control row's slots (counter where Undo and
+ * Redo sit, Hint where Hint and Clear do): the tablet's scaffold puts it under the board, the
+ * phone's page keeps its scroll, capped to the tuning's board width.
  */
 @Composable
 internal fun StrandsPlayScreen(
@@ -68,21 +79,26 @@ internal fun StrandsPlayScreen(
         onSolved(solved.elapsedMs, solved.state.hintsUsed)
     }
     val reduceMotion = rememberReducedMotion()
+    val tuning = LocalPlayTuning.current
+    var boardWidth by remember { mutableStateOf<Dp?>(null) }
     val header = controller.header
     Box(modifier.fillMaxSize().clearTraceOnBackgroundTap(controller)) {
         if (status is PlayBoardStatus.Ready && header != null && layout == PlayLayout.SinglePane) {
             // One scroll for the whole phone page: 8 rows of 48 dp cells (SC11) plus the chrome
             // outgrow a landscape phone, and the scaffold's fixed side pane would leave the
             // board a sliver. NYT's page scrolls the same way.
-            BoxWithConstraints(Modifier.fillMaxSize()) {
+            BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 val viewport = maxHeight
+                val cap = tuning?.boardCapFor(singlePaneDeviceClass())
+                val pageWidth = if (cap != null) Modifier.widthIn(max = cap + Spacing.lg * 2) else Modifier
                 // heightIn(min) + Center: a page shorter than the viewport floats at its middle,
                 // a taller one grows past it and scrolls, so nothing clips.
                 Column(
-                    Modifier.fillMaxWidth().heightIn(min = viewport).verticalScroll(rememberScrollState()).testTag("strands.scroll"),
+                    pageWidth.fillMaxWidth().heightIn(min = viewport).verticalScroll(rememberScrollState()).testTag("strands.scroll"),
                     verticalArrangement = Arrangement.Center,
                 ) {
-                    BoardColumn(controller, header, reduceMotion, fitHeight = viewport, withChrome = true)
+                    val placement = if (tuning != null) HintRowPlacement.Slots else HintRowPlacement.Legacy
+                    BoardColumn(controller, header, reduceMotion, fitHeight = viewport, withChrome = true, placement = placement)
                     SidePanel(controller, status, reduceMotion, withChrome = false)
                 }
             }
@@ -90,9 +106,21 @@ internal fun StrandsPlayScreen(
             AdaptivePlayScaffold(
                 layout = layout,
                 modifier = Modifier.fillMaxSize(),
-                // Strands sizes its board by its own cell policy, so the pane cap goes unused.
-                board = { BoardPane(controller, status, reduceMotion, onRetry) },
+                // Strands sizes its board by its own cell policy; a tuning only caps it (the pane cap).
+                board = { paneCap ->
+                    if (tuning != null) {
+                        StrandsTunedBoardPane(controller, status, paneCap, onRetry, onBoardWidth = { boardWidth = it })
+                    } else {
+                        BoardPane(controller, status, reduceMotion, onRetry)
+                    }
+                },
                 side = { SidePanel(controller, status, reduceMotion, withChrome = true) },
+                actions = tuning?.let {
+                    {
+                        val beside = layout == PlayLayout.TwoPane && it.landscapeControls == LandscapeControls.SideColumn
+                        StrandsTunedControls(controller, boardWidth, beside, reduceMotion)
+                    }
+                },
                 sidePanel = sidePanel,
             )
         }
@@ -146,22 +174,14 @@ private fun BoardColumn(
     fitHeight: Dp?,
     withChrome: Boolean,
     modifier: Modifier = Modifier,
+    placement: HintRowPlacement = HintRowPlacement.Legacy,
 ) {
     val model = controller.baseModel
     Layout(
         contents = listOf(
             { if (withChrome) PuzzleChrome(controller, header, reduceMotion) },
             { StrandsBoard(controller) },
-            {
-                StrandsHintRow(
-                    found = model.foundCount,
-                    total = model.totalCount,
-                    // A solved board has no hint to give (NYT drops it too).
-                    hint = controller.hint.takeUnless { controller.isComplete },
-                    onHint = controller::pressHint,
-                    reduceMotion = reduceMotion,
-                )
-            },
+            { ControllerHintRow(controller, reduceMotion, placement) },
         ),
         modifier = modifier
             .fillMaxWidth()
