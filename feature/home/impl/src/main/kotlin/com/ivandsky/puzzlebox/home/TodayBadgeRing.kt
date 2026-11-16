@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.LocalOnFill
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.colors
@@ -47,7 +48,9 @@ private val DiscRise = 1.dp
 /**
  * One game's ring per [status]: a bare track (NotStarted), the track plus a fixed half arc
  * (InProgress — the data carries no progress fraction), a filled accent disc (Solved, the
- * fill tweening in), or a dashed outline (Offline), with the [brand] glyph centred.
+ * fill tweening in), or a dashed outline (Offline), with the [brand] glyph centred. A solved
+ * disc is a raised face on a lip with the glyph lifted; with [LocalFlatSurfaces] on it is a
+ * plain accent disc filling the ring with the glyph centred.
  */
 @Composable
 internal fun TodayBadgeRing(
@@ -58,6 +61,7 @@ internal fun TodayBadgeRing(
 ) {
     val accent = brand.accent.colors().accent
     val lip = brand.accent.colors().lip
+    val flat = LocalFlatSurfaces.current
     val track = MaterialTheme.colorScheme.outlineVariant
     val outline = MaterialTheme.colorScheme.outline
     val solved = status is TodayStatus.Solved
@@ -101,10 +105,16 @@ internal fun TodayBadgeRing(
                         )
                     }
                     if (fill > 0f) {
-                        // Spec A14: the disc is a raised face on a darker lip of its own hue.
-                        val radius = this.size.minDimension / 2 - DiscLipDrop.toPx()
-                        drawCircle(lip.copy(alpha = lip.alpha * fill), radius, center + Offset(0f, DiscLipDrop.toPx()))
-                        drawCircle(accent.copy(alpha = accent.alpha * fill), radius, center - Offset(0f, DiscRise.toPx()))
+                        if (flat) {
+                            // Nav-rethink B1: a plain accent disc out to the track's outer edge, no lip, no lift.
+                            val radius = this.size.minDimension / 2 - inset + TrackStroke.toPx() / 2
+                            drawCircle(accent.copy(alpha = accent.alpha * fill), radius, center)
+                        } else {
+                            // Spec A14: the disc is a raised face on a darker lip of its own hue.
+                            val radius = this.size.minDimension / 2 - DiscLipDrop.toPx()
+                            drawCircle(lip.copy(alpha = lip.alpha * fill), radius, center + Offset(0f, DiscLipDrop.toPx()))
+                            drawCircle(accent.copy(alpha = accent.alpha * fill), radius, center - Offset(0f, DiscRise.toPx()))
+                        }
                     }
                 }
             }
@@ -118,7 +128,7 @@ internal fun TodayBadgeRing(
                 else -> accent
             },
             modifier = Modifier
-                .offset(y = if (solved) -DiscRise else 0.dp)
+                .offset(y = if (solved && !flat) -DiscRise else 0.dp)
                 .size(size.ring * GLYPH_SHARE),
         )
     }
