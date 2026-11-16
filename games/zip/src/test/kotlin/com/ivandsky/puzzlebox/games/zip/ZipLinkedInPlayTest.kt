@@ -53,13 +53,16 @@ class ZipLinkedInPlayTest {
         return checkNotNull(SolveReplay.of(stored))
     }
 
+    private fun solve(boards: List<ZipSession>, firstMoveMs: Long = 1_000): LinkedInSolve<ZipSession> =
+        LinkedInSolve(boards, listOf(MoveKind.Normal), listOf(firstMoveMs))
+
     private fun walk(vararg idx: Int): Array<ZipReplayMove> = idx.map { Extend(Cell(it)) }.toTypedArray()
 
     private fun solvedSession(): ZipSession = capturedPath.fold(initial) { s, i -> s.withMove(ZipMove.Extend(Cell(i)), Instant.EPOCH) }
 
     @Test
     fun `a solved session encodes to the key names and shape of the captured win request`() {
-        val play = checkNotNull(ZipLinkedInPlay.encode(LinkedInSolve(listOf(solvedSession()), listOf(MoveKind.Normal))))
+        val play = checkNotNull(ZipLinkedInPlay.encode(solve(listOf(solvedSession()))))
 
         assertEquals(capturedState("zipGamePathBinding").jsonArray.map { it.jsonPrimitive.content }, (play.states["zipGamePathBinding"] as LinkedInPlayValue.Strings).values)
         assertEquals(capturedState("zipNumBacktracksBinding").jsonPrimitive.int, (play.states["zipNumBacktracksBinding"] as LinkedInPlayValue.Number).value)
@@ -74,7 +77,7 @@ class ZipLinkedInPlayTest {
 
     @Test
     fun `a replay of the same solve gives the same record through linkedInPlayOf`() {
-        val direct = ZipLinkedInPlay.encode(LinkedInSolve(listOf(solvedSession()), listOf(MoveKind.Normal)))
+        val direct = ZipLinkedInPlay.encode(solve(listOf(solvedSession())))
 
         val viaReplay = zipPlugin.linkedInPlayOf(envelope, solveOf(*walk(*capturedPath.toIntArray())))
 
@@ -104,23 +107,56 @@ class ZipLinkedInPlayTest {
     fun `a final session with a mistake is not mistake-free even if no tick was one`() {
         val flawed = solvedSession().copy(mistakeCount = 1)
 
-        assertEquals(false, ZipLinkedInPlay.encode(LinkedInSolve(listOf(flawed), listOf(MoveKind.Normal)))?.mistakeFree)
+        assertEquals(false, ZipLinkedInPlay.encode(solve(listOf(flawed)))?.mistakeFree)
     }
 
     @Test
     fun `the final backtrack count is the numBacktracks state`() {
         val backtracked = solvedSession().copy(backtrackCount = 2)
 
-        val play = checkNotNull(ZipLinkedInPlay.encode(LinkedInSolve(listOf(backtracked), listOf(MoveKind.Normal))))
+        val play = checkNotNull(ZipLinkedInPlay.encode(solve(listOf(backtracked))))
 
         assertEquals(LinkedInPlayValue.Number(2), play.states["zipNumBacktracksBinding"])
+    }
+
+    @Test
+    fun `a backtrack alone makes the record not mistake-free`() {
+        val backtracked = solvedSession().copy(backtrackCount = 1)
+
+        assertEquals(false, ZipLinkedInPlay.encode(solve(listOf(backtracked)))?.mistakeFree)
+    }
+
+    @Test
+    fun `the opening is the first two cells of the final path with no backtracks`() {
+        val backtracked = solvedSession().copy(backtrackCount = 3)
+
+        val opening = checkNotNull(ZipLinkedInPlay.encode(solve(listOf(backtracked)))?.opening)
+
+        assertEquals(
+            mapOf(
+                "zipGamePathBinding" to LinkedInPlayValue.Strings(capturedPath.take(2).map(Int::toString)),
+                "zipNumBacktracksBinding" to LinkedInPlayValue.Number(0),
+            ),
+            opening.states,
+        )
+    }
+
+    @Test
+    fun `the opening time is the first move floored to a whole second and never under one`() {
+        fun openingAt(firstMoveMs: Long) = ZipLinkedInPlay.encode(solve(listOf(solvedSession()), firstMoveMs))?.opening?.timeMs
+
+        assertEquals(1_000L, openingAt(0))
+        assertEquals(1_000L, openingAt(400))
+        assertEquals(1_000L, openingAt(1_700))
+        assertEquals(2_000L, openingAt(2_999))
+        assertEquals(3_000L, openingAt(3_000))
     }
 
     @Test
     fun `a path that is not complete gives null`() {
         val partial = initial.withMove(ZipMove.Extend(Cell(capturedPath[0])), Instant.EPOCH)
 
-        assertNull(ZipLinkedInPlay.encode(LinkedInSolve(listOf(partial), listOf(MoveKind.Normal))))
+        assertNull(ZipLinkedInPlay.encode(solve(listOf(partial))))
     }
 
     @Test

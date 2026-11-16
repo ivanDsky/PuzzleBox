@@ -4,7 +4,7 @@ package com.ivandsky.puzzlebox.game.linkedin
 data class LinkedInGamePage(
     val puzzleId: Long,
     val profileId: String,
-    val hasWon: Boolean,
+    val progress: LinkedInProgress,
     val isTutorial: Boolean,
     val totalPlays: Long,
     val wins: Long,

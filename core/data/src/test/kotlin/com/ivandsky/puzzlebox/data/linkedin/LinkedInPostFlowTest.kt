@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.data.linkedin
 
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInGamePage
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInProgress
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
@@ -89,7 +90,7 @@ class LinkedInPostFlowTest {
             "page: rate limited" to page(LinkedInRead.Rejected(Kind.RateLimited)),
             "page: another member's" to pageWith { copy(profileId = "someone-else") },
             "page: another puzzle" to pageWith { copy(puzzleId = 713) },
-            "page: already won" to pageWith { copy(hasWon = true) },
+            "page: already won" to pageWith { copy(progress = LinkedInProgress.Won) },
             "page: the tutorial" to pageWith { copy(isTutorial = true) },
         )
 

@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInResultPoster
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSendResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
+import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -17,10 +18,12 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.RecordedRequest
 import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -34,6 +37,9 @@ class SduiLinkedInResultPosterTest {
     private val servers = mutableListOf<MockWebServer>()
     private val pageBody = LinkedInPostFixtures.text("zip-page-daily-solved.rsc")
     private val winResponse = LinkedInPostFixtures.text("zip-update-game-state-win.response.rsc")
+    private val openingResponse = LinkedInPostFixtures.text("zip-update-game-state-daily-first-move.response.rsc")
+    private val capturedPageHeaders = headersOf("zip-page-daily-unsolved.request-headers.json")
+    private val capturedWriteHeaders = headersOf("zip-update-game-state-daily-win.request-headers.json")
 
     @After
     fun tearDown() = servers.forEach { it.shutdown() }
@@ -52,6 +58,10 @@ class SduiLinkedInResultPosterTest {
         assertEquals(listOf(SESSION.cookieHeader), request.headers.values("Cookie"))
         assertEquals(SESSION.csrfToken, request.getHeader("csrf-token"))
         assertEquals(SESSION.userAgent, request.getHeader("User-Agent"))
+        PAGE_HEADERS.forEach { name -> assertEquals(name, capturedPageHeaders.getValue(name), request.getHeader(name)) }
+        assertEquals("https://www.linkedin.com/games/zip", request.getHeader("referer"))
+        assertNotNull(request.getHeader("accept-language"))
+        assertNone(request)
     }
 
     @Test
@@ -128,17 +138,95 @@ class SduiLinkedInResultPosterTest {
         assertEquals("sduiid=updateGameState", request.requestUrl!!.encodedQuery)
         assertEquals(UpdateGameStateBody.build(post, page), request.body.readUtf8())
 
-        val captured = Json.parseToJsonElement(LinkedInPostFixtures.text("zip-update-game-state-win.request-headers.json"))
-            .jsonObject.getValue("headers").jsonObject.mapValues { it.value.jsonPrimitive.content }
-        STATIC_HEADERS.forEach { name ->
-            assertEquals(name, captured.getValue(name), request.getHeader(name))
-        }
+        STATIC_HEADERS.forEach { name -> assertEquals(name, capturedWriteHeaders.getValue(name), request.getHeader(name)) }
+        assertNotNull(request.getHeader("accept-language"))
+        assertNone(request)
         assertEquals("application/json", request.getHeader("Content-Type"))
         assertEquals("https://www.linkedin.com/games/zip/", request.getHeader("referer"))
         assertEquals("d_flagship3_games_zip_gameboard", request.getHeader("x-li-anchor-page-key"))
         assertEquals(listOf(SESSION.cookieHeader), request.headers.values("Cookie"))
         assertEquals(SESSION.csrfToken, request.getHeader("csrf-token"))
         assertEquals(SESSION.userAgent, request.getHeader("User-Agent"))
+    }
+
+    @Test
+    fun `a game with an opening sends the opening and then the win, both with the capture's headers`() = runBlocking {
+        val server = server(rsc(openingResponse), rsc(winResponse))
+        val post = LinkedInPostFixtures.dailyPost()
+        val page = LinkedInPostFixtures.unsolvedDailyPage
+
+        assertEquals(LinkedInSendResult.Posted, server.poster().send(post, page))
+
+        assertEquals(2, server.requestCount)
+        val first = server.takeRequest()
+        val second = server.takeRequest()
+        assertEquals(UpdateGameStateBody.opening(post, page), first.body.readUtf8())
+        assertEquals(UpdateGameStateBody.build(post, page), second.body.readUtf8())
+        listOf(first, second).forEach { request ->
+            assertEquals("POST", request.method)
+            assertEquals("/flagship-web/rsc-action/actions/server-request", request.requestUrl!!.encodedPath)
+            assertEquals("sduiid=updateGameState", request.requestUrl!!.encodedQuery)
+            STATIC_HEADERS.forEach { name -> assertEquals(name, capturedWriteHeaders.getValue(name), request.getHeader(name)) }
+        }
+    }
+
+    @Test
+    fun `a page that holds a saved play gets the win alone`() = runBlocking {
+        val server = server(rsc(winResponse), rsc(winResponse))
+        val post = LinkedInPostFixtures.dailyPost()
+        val page = LinkedInPostFixtures.inProgressDailyPage
+
+        assertEquals(LinkedInSendResult.Posted, server.poster().send(post, page))
+
+        assertEquals(1, server.requestCount)
+        assertEquals(UpdateGameStateBody.build(post, page), server.takeRequest().body.readUtf8())
+    }
+
+    @Test
+    fun `an opening that is not Posted is returned and no win is sent`() {
+        val outcomes = mapOf(
+            status(409) to LinkedInSendResult.AlreadyPlayed,
+            status(401) to writeRejected(Kind.SessionExpired),
+            status(429) to writeRejected(Kind.RateLimited),
+            status(500) to writeRejected(Kind.Unexpected),
+            rsc(openingResponse.replace("\"errors\":[]", "\"errors\":[{}]")) to writeRejected(Kind.Unexpected),
+        )
+        outcomes.forEach { (response, expected) ->
+            runBlocking {
+                // The second response is bait only a win would reach.
+                val server = server(response, rsc(winResponse))
+
+                assertEquals(expected, server.poster().send(LinkedInPostFixtures.dailyPost(), LinkedInPostFixtures.unsolvedDailyPage))
+                assertEquals(1, server.requestCount)
+            }
+        }
+    }
+
+    @Test
+    fun `a failure after the opening was written is Unknown and no win is sent`() = runBlocking {
+        val server = server(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST), rsc(winResponse))
+
+        assertEquals(LinkedInSendResult.Unknown, server.poster().send(LinkedInPostFixtures.dailyPost(), LinkedInPostFixtures.unsolvedDailyPage))
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun `the win after a posted opening answers as the win`() = runBlocking {
+        val server = server(rsc(openingResponse), status(409))
+
+        assertEquals(LinkedInSendResult.AlreadyPlayed, server.poster().send(LinkedInPostFixtures.dailyPost(), LinkedInPostFixtures.unsolvedDailyPage))
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun `x-li-track carries the device timezone and offset`() = runBlocking {
+        val server = server(rsc(winResponse))
+
+        server.poster(zone = ZoneId.of("Asia/Kolkata")).send(LinkedInPostFixtures.post(), LinkedInPostFixtures.dailyPage)
+
+        val track = Json.parseToJsonElement(server.takeRequest().getHeader("x-li-track")!!).jsonObject
+        assertEquals("Asia/Kolkata", track.getValue("timezone").jsonPrimitive.content)
+        assertEquals("5.5", track.getValue("timezoneOffset").jsonPrimitive.content)
     }
 
     @Test
@@ -276,8 +364,19 @@ class SduiLinkedInResultPosterTest {
             servers += server
         }
 
-    private fun MockWebServer.poster(session: LinkedInAccountSession? = SESSION): LinkedInResultPoster =
-        linkedInResultPoster(url("/").toString(), FixedSessionCookies(session))
+    private fun MockWebServer.poster(
+        session: LinkedInAccountSession? = SESSION,
+        zone: ZoneId = ZoneId.of("UTC"),
+    ): LinkedInResultPoster = linkedInResultPoster(url("/").toString(), FixedSessionCookies(session)) { zone }
+
+    private fun headersOf(name: String): Map<String, String> =
+        Json.parseToJsonElement(LinkedInPostFixtures.text(name)).jsonObject.mapValues { it.value.jsonPrimitive.content }
+
+    /** The trace and instance headers are redacted in the capture, and `sec-*` only a browser sends: none is made up. */
+    private fun assertNone(request: RecordedRequest) {
+        val names = request.headers.names().map(String::lowercase)
+        assertEquals(emptyList<String>(), names.filter { it.startsWith("sec-") || it in OMITTED })
+    }
 
     private fun status(code: Int) = MockResponse().setResponseCode(code)
 
@@ -296,6 +395,11 @@ class SduiLinkedInResultPosterTest {
         )
         const val SECRET_BODY = "SENTINEL-BODY"
         const val OVER_CAP = 1_048_576 + 1
-        val STATIC_HEADERS = listOf("accept", "origin", "x-li-rsc-stream", "x-li-application-version")
+        val STATIC_HEADERS = listOf("accept", "origin", "x-li-rsc-stream", "x-li-application-version", "x-li-track", "x-li-anchor-page-key")
+        val PAGE_HEADERS = listOf("accept", "x-li-rsc-stream", "x-li-application-version", "x-li-track", "x-li-anchor-page-key")
+        val OMITTED = setOf(
+            "x-li-traceparent", "x-li-tracestate", "x-li-page-instance", "x-li-page-instance-tracking-id",
+            "x-li-application-instance", "x-li-pageforestid", "x-li-initial-url", "x-li-layout-tree",
+        )
     }
 }

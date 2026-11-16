@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSource
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInOwnResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlay
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInProgress
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPost
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
@@ -137,7 +138,7 @@ internal class LinkedInPostFlow(
             // A page of another member means the session is not the linked profile's: nothing may be sent as it.
             page.profileId != key.profileId -> return pause(key, Kind.Unexpected)
             page.puzzleId != asked.puzzleNumber.toLong() -> return LinkedInPostState.NotToday
-            page.hasWon -> return whileLinked(key) { alreadyThere(key, posted = false) }
+            page.progress == LinkedInProgress.Won -> return whileLinked(key) { alreadyThere(key, posted = false) }
             page.isTutorial -> return pause(key, Kind.Unexpected)
         }
         val post = open(key) { return it }

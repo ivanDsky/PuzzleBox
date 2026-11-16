@@ -3,12 +3,15 @@ package com.ivandsky.puzzlebox.network.linkedin
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInAccountSession
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInGamePage
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPost
+import com.ivandsky.puzzlebox.game.linkedin.LinkedInProgress
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInRead.Rejected.Kind
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInResultPoster
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSendResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import java.io.IOException
+import java.time.Instant
+import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -19,21 +22,23 @@ import okhttp3.ResponseBody
 import retrofit2.Response
 
 /**
- * Posts the player's result with their session: one request per call, or none when signed out. Never
- * retries; the caller decides what a failure means. A page the stream cannot be read from, and any
- * answer but the exact success, is a rejection that pauses the link. Nothing of the session, a request
+ * Posts the player's result with their session: a page read is one request; a send is the opening play and then
+ * the win when the game has an opening and the page holds no saved play, else the win alone, and nothing at all when signed out. A send stops at an
+ * opening that is not `Posted` and returns it. Never retries; the caller decides what a failure means. A page
+ * the stream cannot be read from, and any answer but the exact success, is a rejection that pauses the link. Nothing of the session, a request
  * body or a response body leaves this class except the parsed value.
  */
 internal class SduiLinkedInResultPoster(
     private val api: LinkedInPostApi,
     private val session: LinkedInSessionCookies,
+    private val zone: () -> ZoneId = ZoneId::systemDefault,
 ) : LinkedInResultPoster {
 
     override suspend fun gamePage(gamePath: String): LinkedInRead<LinkedInGamePage> {
         val headers = session.current() ?: return LinkedInRead.SignedOut
         return try {
             // A session no header can carry is as useless as a refused one: it is a rejection, not a retry.
-            val response = fetchPage(headers, slug(gamePath)) ?: return LinkedInRead.Rejected(Kind.Unexpected)
+            val response = fetchPage(headers, gamePath) ?: return LinkedInRead.Rejected(Kind.Unexpected)
             readPage(response)
         } catch (_: IOException) {
             // OkHttp reports a cancelled call as an IOException; that is cancellation, not a dead network.
@@ -44,10 +49,21 @@ internal class SduiLinkedInResultPoster(
 
     override suspend fun send(post: LinkedInPost, page: LinkedInGamePage): LinkedInSendResult {
         val headers = session.current() ?: return LinkedInSendResult.SignedOut
-        val body = UpdateGameStateBody.build(post, page).toByteArray().toRequestBody(JSON)
+        // A page that already holds a saved play is what the web client reloads to after a failed win: it sends the win alone.
+        val opening = if (page.progress == LinkedInProgress.Started) null else UpdateGameStateBody.opening(post, page)
+        if (opening != null) {
+            val opened = write(headers, post, opening)
+            if (opened != LinkedInSendResult.Posted) return opened
+        }
+        return write(headers, post, UpdateGameStateBody.build(post, page))
+    }
+
+    /** One POST of [json]: its answer, Unknown once the body is out and the call fails, Offline before. */
+    private suspend fun write(headers: LinkedInAccountSession, post: LinkedInPost, json: String): LinkedInSendResult {
+        val body = json.toByteArray().toRequestBody(JSON)
         val written = AtomicBoolean(false)
         return try {
-            val response = write(headers, post.gamePath, body, written)
+            val response = request(headers, post.gamePath, body, written)
                 ?: return LinkedInSendResult.Rejected(Kind.Unexpected)
             serverRequestOutcome(response.code(), answer(response))
         } catch (_: IOException) {
@@ -58,9 +74,17 @@ internal class SduiLinkedInResultPoster(
     }
 
     /** Null when no request could be built from [headers]; nothing was sent then. */
-    private suspend fun fetchPage(headers: LinkedInAccountSession, slug: String): Response<ResponseBody>? =
+    private suspend fun fetchPage(headers: LinkedInAccountSession, gamePath: String): Response<ResponseBody>? =
         try {
-            api.gamePage(slug, headers.cookieHeader, headers.csrfToken, headers.userAgent)
+            val slug = slug(gamePath)
+            api.gamePage(
+                slug = slug,
+                cookie = headers.cookieHeader,
+                csrfToken = headers.csrfToken,
+                userAgent = headers.userAgent,
+                referer = "$ORIGIN/${gamePath.trim('/')}",
+                track = track(),
+            )
         } catch (_: IllegalArgumentException) {
             // OkHttp quotes a header value it refuses in its message, and redacts only the cookie. The
             // exception is dropped, not kept or chained, so the token cannot ride out of here.
@@ -68,7 +92,7 @@ internal class SduiLinkedInResultPoster(
         }
 
     /** Null when no request could be built from [headers]; nothing was sent then. */
-    private suspend fun write(
+    private suspend fun request(
         headers: LinkedInAccountSession,
         gamePath: String,
         body: RequestBody,
@@ -83,6 +107,7 @@ internal class SduiLinkedInResultPoster(
                 userAgent = headers.userAgent,
                 referer = "$ORIGIN/${gamePath.trimStart('/')}",
                 anchorPageKey = "d_flagship3_games_${slug}_gameboard",
+                track = track(),
                 body = body,
                 written = written,
             )
@@ -121,6 +146,8 @@ internal class SduiLinkedInResultPoster(
         source.request(BODY_CAP_BYTES + 1)
         if (source.buffer.size > BODY_CAP_BYTES) null else source.readUtf8()
     }
+
+    private fun track(): String = LinkedInTrack.header(zone(), Instant.now())
 
     /** `games/zip/` is the `zip` page: the last segment of the game's LinkedIn route. */
     private fun slug(gamePath: String): String = gamePath.trim('/').substringAfterLast('/')
