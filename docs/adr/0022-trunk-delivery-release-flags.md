@@ -97,3 +97,4 @@ to merge without being reachable in a release build.
 - The nav-doors flag flipped to `releaseDefault = true` in 0.33.0 on 2026-11-16 (nav-rethink M1, PRs #1002–#1009; user check ok on 0.32.0-nav-rethink.1).
 - The nav-doors flag was removed, with every branch on it, on 2026-11-16 (nav-rethink M1 cleanup).
 - FlatSurfaces flipped to `releaseDefault = true` in 0.34.0 on 2026-11-16 (nav-rethink M2, PRs #1013–#1019, #1024; user check ok on <fill after check>).
+- CustomInGames flipped to `releaseDefault = true` in 0.35.0 on 2026-11-16 (nav-rethink M3, PRs #1020, #1025, #1026, #1029, #1032, #1034, #1037; user check ok on <fill after check>).
