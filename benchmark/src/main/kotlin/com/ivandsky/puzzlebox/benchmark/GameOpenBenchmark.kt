@@ -8,15 +8,14 @@ import org.junit.runner.RunWith
 
 /**
  * Open each game from the Games tab and back: card, game page, Play, board ready, back to the list.
- * The first-run tutorial is skipped before measuring; no puzzle is ever finished, so a day's
+ * Each run starts with the game opened once (its puzzle stored, its tutorial seen), so the measured
+ * open is the stored-puzzle open a returning player sees. No puzzle is ever finished, so a day's
  * session stays "in progress" and the next run opens it with Keep going.
  */
 @RunWith(AndroidJUnit4::class)
 class GameOpenBenchmark {
     @get:Rule
     val rule = MacrobenchmarkRule()
-
-    private var tutorialSkipped = false
 
     @Test
     fun zip() = open(BenchmarkGame.Zip)
@@ -34,13 +33,8 @@ class GameOpenBenchmark {
     fun miniSudoku() = open(BenchmarkGame.MiniSudoku)
 
     private fun open(game: BenchmarkGame) = rule.journey(
-        setup = {
-            if (!tutorialSkipped) {
-                skipTutorial(game)
-                tutorialSkipped = true
-            }
-            selectTab(BenchmarkTab.Games)
-        },
+        data = DataState.Opened(game),
+        setup = { selectTab(BenchmarkTab.Games) },
     ) {
         openGamePage(game)
         startBoard()
