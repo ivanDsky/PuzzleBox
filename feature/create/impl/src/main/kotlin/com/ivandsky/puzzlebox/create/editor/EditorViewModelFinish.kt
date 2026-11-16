@@ -24,6 +24,7 @@ import kotlinx.coroutines.launch
  * runs one through [FinishRun] unless the draft is [locked] (published), nothing is open or the rule says no;
  * while one runs a press cancels it. [boardChanged] is told of every board the Studio adopts, and [land]
  * receives a completion as one step. A game without a completer ([EditorDraft.canFinish]) never offers it.
+ * The same flag puts Test solve on the regular play screen ([regularTestSolve]).
  *
  * A press aims for a level (90): the one handed in, which becomes the session's [choice], or that choice.
  * While the tool is offered the Studio grades by score ([grading]), and once the [settled] verdict of a
@@ -68,6 +69,9 @@ internal class EditorViewModelFinish(
             .distinctUntilChanged()
             .stateIn(scope, SharingStarted.Eagerly, initialValue = flags.isEnabled(ReleaseFlag.FinishForMe))
     }
+
+    /** Test solve opens on the game's regular play screen (ticket 98): the same flag, so the same value. */
+    val regularTestSolve: StateFlow<Boolean> get() = offered
 
     /** How the Studio's verdict is graded: by score while the tool is offered, the legacy label otherwise. */
     val grading: GradingMode get() = if (offered.value) GradingMode.Scored else GradingMode.Legacy

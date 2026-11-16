@@ -3,6 +3,9 @@ package com.ivandsky.puzzlebox.app.e2e
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
+import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
+import com.ivandsky.puzzlebox.games.queensui.QueensPlayController
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuDraft
 import com.ivandsky.puzzlebox.games.sudoku.editor.SudokuEditor
@@ -22,13 +25,15 @@ import com.ivandsky.puzzlebox.games.zip.editor.ZipDraft
 import com.ivandsky.puzzlebox.games.zip.editor.ZipEditor
 import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
 import com.ivandsky.puzzlebox.gameui.DragEvent
+import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GridCell
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.play.PlaySessionStore
 
 /**
  * A game the friend open loop runs over: its editor [flags] (none once released), the one-solution [board] its author
- * publishes, and how a friend plays that board to its win through the board's own input (the
+ * publishes, and how a player plays that board to its win through the board's own input (the
  * handlers its gestures call), never by writing a result.
  */
 abstract class FriendGame(private val label: String, val flags: List<ReleaseFlag> = emptyList()) {
@@ -36,9 +41,37 @@ abstract class FriendGame(private val label: String, val flags: List<ReleaseFlag
     val id: GameId get() = board.gameId
 
     /** Plays [slot]'s open board to its win; the win's result is left to the caller to await. */
-    abstract fun ShellRobot.solve(slot: PlaySlot.Custom)
+    fun ShellRobot.solve(slot: PlaySlot.Custom) {
+        val store = graph.koin.get<PlaySessionStore>()
+        play { store.peek(slot)?.controller }
+    }
+
+    /**
+     * Plays the open board whose controller [live] reads (null until there is one) to its win. A board outside the
+     * play store, such as the Studio's test solve, is played through this.
+     */
+    abstract fun ShellRobot.play(live: () -> GamePlayController?)
 
     override fun toString() = label
+}
+
+/** A 6×6 Queens board with one solution. */
+object QueensCastle : FriendGame("Queens") {
+    private const val SIZE = 6
+
+    /** Letter rows of region ids ('A' = 0). */
+    private const val REGIONS = "BBBBAA BBBBCA EBBDCA EEDDDD EEFFDF EEFFFF"
+
+    /** The one solution, row-major cell indices. */
+    private val QUEENS = listOf(5, 7, 16, 20, 24, 33)
+
+    override val board = EditorDraft(QueensEditor, DraftState(QueensDraft(SIZE, REGIONS.filter { it != ' ' }.map { it - 'A' })))
+
+    override fun ShellRobot.play(live: () -> GamePlayController?) {
+        val board = checkNotNull(awaitController<QueensPlayController>(live) { it.board != null }.board)
+        // Two taps place a queen.
+        rule.runOnIdle { QUEENS.forEach { cell -> repeat(2) { board.onTap(cell) } } }
+    }
 }
 
 /** A 5×5 Zip board whose walls force one path: a corridor snaking row by row. */
@@ -56,8 +89,8 @@ object ZipCorridor : FriendGame("Zip") {
         DraftState(ZipDraft(n = SIZE, walls = WALLED.map { Wall(Cell(it), WallDirection.DOWN) }.toSet(), path = PATH, waypoints = listOf(0, 12, 24))),
     )
 
-    override fun ShellRobot.solve(slot: PlaySlot.Custom) {
-        val controller = awaitController<ZipPlayController>(slot) { it.session != null }
+    override fun ShellRobot.play(live: () -> GamePlayController?) {
+        val controller = awaitController<ZipPlayController>(live) { it.session != null }
         rule.runOnIdle { PATH.forEach { controller.onDragEvent(DragEvent.Extend(GridCell(it / SIZE, it % SIZE))) } }
     }
 }
@@ -80,8 +113,8 @@ object TangoSunMoon : FriendGame("Tango") {
 
     override val board = EditorDraft(TangoEditor, DraftState(TangoDraft(6, GIVENS.associateWith { SOLUTION[it] }, MARKERS)))
 
-    override fun ShellRobot.solve(slot: PlaySlot.Custom) {
-        val controller = awaitController<TangoPlayController>(slot) { it.session != null }
+    override fun ShellRobot.play(live: () -> GamePlayController?) {
+        val controller = awaitController<TangoPlayController>(live) { it.session != null }
         rule.runOnIdle {
             SOLUTION.forEachIndexed { idx, cell -> if (idx !in GIVENS) controller.onPlacement(TangoPlacement(idx, cell)) }
         }
@@ -100,8 +133,8 @@ object MiniSudokuCorner : FriendGame("MiniSudoku") {
 
     override val board = EditorDraft(SudokuEditor(MINI), DraftState(SudokuDraft(MINI.variant.geometry.size, GIVENS)))
 
-    override fun ShellRobot.solve(slot: PlaySlot.Custom) {
-        val board = checkNotNull(awaitController<SudokuPlayController>(slot) { it.board != null }.board)
+    override fun ShellRobot.play(live: () -> GamePlayController?) {
+        val board = checkNotNull(awaitController<SudokuPlayController>(live) { it.board != null }.board)
         // One entry per frame: the motion reads each commit against the last, and only the
         // single last entry of a solve is the win it hands off on.
         GIVENS.forEachIndexed { cell, given ->

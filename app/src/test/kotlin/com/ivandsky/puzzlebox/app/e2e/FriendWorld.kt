@@ -33,6 +33,7 @@ import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzleRef
+import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
@@ -202,11 +203,16 @@ internal fun ShellRobot.openByCode(code: ShareCode) {
     assertRoute("route.friend")
 }
 
+/** The controller [live] reads, once it is a [T] and [ready]. */
+internal inline fun <reified T : Any> ShellRobot.awaitController(crossinline live: () -> GamePlayController?, crossinline ready: (T) -> Boolean): T {
+    rule.waitUntil(FRIEND_TIMEOUT_MS) { rule.runOnIdle { (live() as? T)?.let(ready) } == true }
+    return rule.runOnIdle { live() as T }
+}
+
 /** The live controller of [slot]'s session once it is a [T] and [ready]. */
 internal inline fun <reified T : Any> ShellRobot.awaitController(slot: PlaySlot, crossinline ready: (T) -> Boolean): T {
     val store = graph.koin.get<PlaySessionStore>()
-    rule.waitUntil(FRIEND_TIMEOUT_MS) { rule.runOnIdle { (store.peek(slot)?.controller as? T)?.let(ready) } == true }
-    return rule.runOnIdle { store.peek(slot)?.controller as T }
+    return awaitController({ store.peek(slot)?.controller }, ready)
 }
 
 /** Waits for a friend win's result. A bare waitUntil drives no frame here; each poll pumps one so the win's handoff runs. */

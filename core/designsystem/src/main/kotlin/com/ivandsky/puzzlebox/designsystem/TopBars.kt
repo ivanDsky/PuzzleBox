@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -16,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
 /**
  * Screen-opening bar: serif display title (the editorial voice from A12) with an
@@ -69,26 +67,19 @@ fun CompactTopBar(
     navigationIcon: (@Composable () -> Unit)? = null,
     actions: @Composable RowScope.() -> Unit = {},
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(64.dp)
-            .padding(horizontal = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        if (navigationIcon != null) {
-            navigationIcon()
-        }
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        actions()
-        LocalShellActions.current.invoke(this)
-    }
+    CompactTopBar(
+        title = {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+        },
+        modifier = modifier,
+        navigationIcon = navigationIcon,
+        actions = actions,
+    )
 }
 
 // Previews — Studio tooling only, zero public API surface (internal, not private, so

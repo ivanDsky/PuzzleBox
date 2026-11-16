@@ -1,29 +1,17 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.gameui.GameGlyph
-import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
-import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlayOverflowItem
-import com.ivandsky.puzzlebox.gameui.TimerBar
-import com.ivandsky.puzzlebox.gameui.TutorialHost
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
@@ -108,7 +96,7 @@ internal fun GameRoute(
     )
 }
 
-/** One live [play]'s top bar and board, behind the [tutorial] gate; How to play shows
+/** One live [play]'s top bar and board ([PlayBoardChrome]), behind the [tutorial] gate; How to play shows
  *  when [onHowToPlay] is given and the game has lessons, and the route's [overflow] items
  *  follow the game's own in the bar's menu. [linkedIn] ranks the day's LinkedIn connections into the side panel's times
  *  and [boardStyle] is how their board looks (see [PlayTimesCard]). */
@@ -127,75 +115,46 @@ internal fun GameBoard(
     linkedIn: Boolean = false,
     boardStyle: DailyBoardStyle = DailyBoardStyle.defaults(),
 ) {
-    PlayTuningHost { tuning ->
-        Column(modifier = modifier.testTag("route.game")) {
-            if (play == null) {
+    if (play == null) {
+        PlayTuningHost {
+            Column(modifier = modifier.testTag("route.game")) {
                 PlayTopBar(title = if (pastDay) PAST_DAY else "", pastDay = pastDay, onBack = onBack)
                 PlayBoardFallback(PlayBoardStatus.Unavailable(UNPLAYABLE), onRetry = {}, tagPrefix = "game")
-                return@Column
-            }
-            val record by play.record.collectAsStateWithLifecycle()
-            val board by play.board.collectAsStateWithLifecycle()
-            val playing = tutorial == TutorialGate.Closed
-            // A game's clock opens the moment its puzzle is adopted, which can be behind the
-            // first-open tutorial: fold that window so lesson time never counts. The board's
-            // chrome reopens it when the tutorial gives way to the Screen.
-            val clockBehindTutorial = if (playing) null else board.controller as? PlayClock
-            LaunchedEffect(clockBehindTutorial, board.status) { clockBehindTutorial?.onBackground() }
-            PlayTopBar(
-                title = if (pastDay) PAST_DAY else record.label,
-                pastDay = pastDay,
-                onBack = onBack,
-                glyph = { GameGlyph(play.ui.brand, GameGlyphSize.Badge) },
-            ) {
-                if (!playing) return@PlayTopBar
-                val clock = board.controller as? PlayClock
-                // Without a tuning TwoPane's side panel draws the large live timer in place of this one.
-                if ((tuning != null || layout != PlayLayout.TwoPane) && board.status is PlayBoardStatus.Ready && clock != null) {
-                    TimerBar({ clock.displayedElapsedMs() }, Modifier.width(IntrinsicSize.Max).testTag("play.timer"))
-                }
-                if (onHowToPlay != null && play.ui.tutorial.isNotEmpty()) {
-                    IconButton(onClick = onHowToPlay, modifier = Modifier.testTag("play.how_to_play")) {
-                        Icon(
-                            imageVector = PuzzleIcons.HowTo,
-                            contentDescription = "How to play",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                PlayOverflow(play.ui.overflowFor(board.controller) + overflow)
-            }
-            when (tutorial) {
-                is TutorialGate.Open -> TutorialHost(
-                    ui = play.ui,
-                    session = tutorial.session,
-                    onFinished = onTutorialFinished,
-                )
-                TutorialGate.Closed -> {
-                    // Phones never build the stats: only the two-pane side panel shows them.
-                    val stats: PlayStatsViewModel? = if (layout == PlayLayout.TwoPane) {
-                        koinViewModel(key = "stats:${play.slot}", parameters = { parametersOf(play.slot, linkedIn) })
-                    } else {
-                        null
-                    }
-                    val clock = (board.controller as? PlayClock)?.takeIf { board.status is PlayBoardStatus.Ready }
-                    val activityContext = LocalContext.current
-                    val sidePanel = remember(stats, clock, activityContext, boardStyle, tuning != null) {
-                        stats?.let { statsPanel(it, clock, activityContext, boardStyle, showTimer = tuning == null) }
-                    }
-                    play.ui.Screen(
-                        controller = board.controller,
-                        status = board.status,
-                        layout = layout,
-                        sidePanel = sidePanel,
-                        onRetry = play::retry,
-                        onSolved = { timeMs, hintsUsed -> onSolved(play.slot, timeMs, hintsUsed) },
-                        modifier = Modifier,
-                    )
-                }
             }
         }
+        return
     }
+    val record by play.record.collectAsStateWithLifecycle()
+    val board by play.board.collectAsStateWithLifecycle()
+    PlayBoardChrome(
+        ui = play.ui,
+        controller = board.controller,
+        status = board.status,
+        title = if (pastDay) PAST_DAY else record.label,
+        label = null,
+        pastDay = pastDay,
+        tutorial = tutorial,
+        onHowToPlay = onHowToPlay,
+        onTutorialFinished = onTutorialFinished,
+        layout = layout,
+        onBack = onBack,
+        onRetry = play::retry,
+        onSolved = { timeMs, hintsUsed -> onSolved(play.slot, timeMs, hintsUsed) },
+        overflow = overflow,
+        sidePanel = { clock, showTimer ->
+            // Phones never build the stats: only the two-pane side panel shows them.
+            val stats: PlayStatsViewModel? = if (layout == PlayLayout.TwoPane) {
+                koinViewModel(key = "stats:${play.slot}", parameters = { parametersOf(play.slot, linkedIn) })
+            } else {
+                null
+            }
+            val activityContext = LocalContext.current
+            remember(stats, clock, activityContext, boardStyle, showTimer) {
+                stats?.let { statsPanel(it, clock, activityContext, boardStyle, showTimer) }
+            }
+        },
+        modifier = modifier.testTag("route.game"),
+    )
 }
 
 private const val UNPLAYABLE = "This game isn't available in this build."
