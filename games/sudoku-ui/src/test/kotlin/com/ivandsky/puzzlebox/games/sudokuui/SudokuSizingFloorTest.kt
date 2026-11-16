@@ -7,7 +7,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 // Under a play tuning the keys hold the touch floor and the grid gives way first, and Clear has
-// left the keypad. Panes are SudokuSizingTest's: 336x386 small phone, 388x661 tall phone, 552x1000 tablet.
+// left the keypad (the Corner pad sizes its strip and full-width digits). Panes are SudokuSizingTest's: 336x386 small phone, 388x661 tall phone, 552x1000 tablet.
 class SudokuSizingFloorTest {
 
     private val smallPhone = 336.dp to 386.dp
@@ -70,18 +70,24 @@ class SudokuSizingFloorTest {
     }
 
     @Test
-    fun `without Clear a 6x6 action column is a quarter wide, not two 48dp halves`() {
-        val six = floored(smallPhone, 6)
-        assertEquals(SudokuKeypadActions.Column, six.actions)
-        val withClear = SudokuSizing.actionColumnWidth(smallPhone.first, six.keyRows, six.actions)
-        val noClear = SudokuSizing.actionColumnWidth(smallPhone.first, six.keyRows, six.actions, withClear = false)
-        assertEquals(104.dp, withClear)
-        assertEquals((smallPhone.first - SudokuSizing.keyGap * 3) / 4, noClear)
-        assertTrue("$noClear not under $withClear", noClear < withClear)
-        assertTrue(
-            "digit keys ${SudokuSizing.digitKeyWidth(smallPhone.first, six.keyRows, six.actions, withClear = false)}",
-            SudokuSizing.digitKeyWidth(smallPhone.first, six.keyRows, six.actions, withClear = false) >
-                SudokuSizing.digitKeyWidth(smallPhone.first, six.keyRows, six.actions),
-        )
+    fun `the corner pad gives the digits the full width and a 56dp strip, in every pane`() {
+        for (size in listOf(6, 9)) for (w in listOf(320, 336, 388, 600, 1000)) for (h in listOf(386, 661, 1000)) {
+            val layout = SudokuSizing.layout(w.dp, h.dp, size, keyFloor = SudokuSizing.keyMin, corner = true)
+            val case = "size=$size ${w}x$h $layout"
+            assertEquals(case, SudokuKeypadActions.Corner, layout.actions)
+            assertEquals(case, SudokuSizing.cornerStrip, layout.actionKey)
+            val digits = SudokuSizing.digitKeyWidth(w.dp, layout.keyRows, layout.actions)
+            assertEquals(case, (w.dp - SudokuSizing.keyGap * 2) / 3, digits)
+            val digitRows = layout.key * layout.keyRows + SudokuSizing.keyGap * (layout.keyRows - 1)
+            assertEquals(case, digitRows + SudokuSizing.keyGap + SudokuSizing.cornerStrip, SudokuSizing.keypadHeight(layout))
+        }
+    }
+
+    @Test
+    fun `the grid gives way before the corner pad's keys drop under the floor`() {
+        val layout = SudokuSizing.layout(smallPhone.first, smallPhone.second, 9, keyFloor = SudokuSizing.keyMin, corner = true)
+        assertTrue("key ${layout.key}", layout.key >= SudokuSizing.keyMin)
+        val used = layout.board + layout.keyGap + SudokuSizing.keypadHeight(layout)
+        assertTrue("grid + pad $used overflows ${smallPhone.second}: $layout", used <= smallPhone.second)
     }
 }

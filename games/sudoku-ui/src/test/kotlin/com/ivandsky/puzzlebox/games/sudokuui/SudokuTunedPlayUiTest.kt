@@ -1,12 +1,21 @@
 package com.ivandsky.puzzlebox.games.sudokuui
 
 import androidx.compose.runtime.CompositionLocalProvider
+import android.content.Context
+import android.provider.Settings
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.font.FontStyle
+import androidx.test.core.app.ApplicationProvider
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -37,7 +46,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 // nav-rethink B5: under a non-null PlayTuning the shared control row sits under the board and
-// holds Undo, Redo, Hint and Clear; the keypad keeps the digits, Notes and Erase.
+// holds Undo, Redo, Hint and Clear; the keypad keeps the digits, a corner Notes toggle and, in
+// a phone or under-board layout, Erase (B5; ticket 57b).
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], qualifiers = "w360dp-h800dp-mdpi")
@@ -157,5 +167,155 @@ class SudokuTunedPlayUiTest {
 
         composeRule.onNode(hasTestTag("sudoku.clear") and hasAnyAncestor(hasTestTag("sudoku.keypad"))).assertExists()
         composeRule.onNodeWithTag("play.clear").assertDoesNotExist()
+    }
+
+    private fun digitKey(digit: Int) = composeRule.onNode(hasContentDescription("$digit, ", substring = true) and hasAnyAncestor(hasTestTag("sudoku.keypad")))
+
+    private fun digitFontStyles(): List<FontStyle?> =
+        composeRule.onAllNodesWithTag("sudoku.digit_face", useUnmergedTree = true).fetchSemanticsNodes().map { node ->
+            val results = mutableListOf<TextLayoutResult>()
+            node.config[SemanticsActions.GetTextLayoutResult].action!!.invoke(results)
+            results.single().layoutInput.style.fontStyle
+        }
+
+    private fun enterFour(controller: SudokuPlayController) {
+        composeRule.onNodeWithTag("sudoku.cell.0").performClick()
+        composeRule.runOnIdle { controller.board!!.input(4) }
+    }
+
+    @Test
+    fun `Notes is a corner toggle, 48dp or more, top right of the digits, and toggles notes`() {
+        val controller = adopted()
+        setScreen(controller, PlayLayout.SinglePane)
+
+        val toggle = bounds("sudoku.notes_toggle")
+        val keypad = bounds("sudoku.keypad")
+        assertTrue("toggle $toggle", (toggle.right - toggle.left).value >= 47.5f && (toggle.bottom - toggle.top).value >= 47.5f)
+        assertTrue("a small corner control, not a key: $toggle", (toggle.right - toggle.left).value < 64f)
+        assertEquals("the pad's right edge", keypad.right.value, toggle.right.value, 1f)
+        val three = digitKey(3).getUnclippedBoundsInRoot()
+        assertTrue("toggle $toggle above the digits $three", toggle.bottom <= three.top + 1.dp)
+
+        composeRule.onNodeWithTag("sudoku.notes_toggle").performClick()
+        composeRule.runOnIdle { assertTrue(controller.board!!.session.notesMode) }
+        composeRule.onNodeWithTag("sudoku.notes_toggle").performClick()
+        composeRule.runOnIdle { assertTrue(!controller.board!!.session.notesMode) }
+    }
+
+    @Test
+    fun `the digits take the pad's full width in three columns`() {
+        setScreen(adopted(), PlayLayout.SinglePane)
+
+        val keypad = bounds("sudoku.keypad")
+        val one = digitKey(1).getUnclippedBoundsInRoot()
+        val three = digitKey(3).getUnclippedBoundsInRoot()
+        val four = digitKey(4).getUnclippedBoundsInRoot()
+        assertEquals(keypad.left.value, one.left.value, 1f)
+        assertEquals(keypad.right.value, three.right.value, 1f)
+        assertEquals("three to a row", one.left.value, four.left.value, 1f)
+        assertTrue("4 under 1", four.top > one.bottom - 1.dp)
+    }
+
+    @Test
+    fun `on a phone Erase sits on the pad, 48dp or more, and erases the selected cell`() {
+        val controller = adopted()
+        setScreen(controller, PlayLayout.SinglePane)
+
+        val erase = bounds("sudoku.erase")
+        val one = digitKey(1).getUnclippedBoundsInRoot()
+        assertTrue("erase $erase", (erase.right - erase.left).value >= 47.5f && (erase.bottom - erase.top).value >= 47.5f)
+        assertTrue("erase $erase above the digits $one, in the pad's strip", erase.bottom <= one.top + 1.dp)
+        enterFour(controller)
+        composeRule.onNodeWithTag("sudoku.erase").performClick()
+
+        composeRule.runOnIdle { assertEquals(SudokuCell.Empty, controller.board!!.session.board.cells[0]) }
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
+    fun `two pane under the board keeps Erase on the pad, with no second one`() {
+        setScreen(adopted(), PlayLayout.TwoPane)
+
+        assertEquals(1, composeRule.onAllNodesWithTag("sudoku.erase").fetchSemanticsNodes().size)
+        assertTrue("erase left of the board's right edge", bounds("sudoku.erase").right <= bounds("sudoku.board_area").right)
+    }
+
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp-land-mdpi")
+    fun `the side column holds Erase with the other controls and it erases the selected cell`() {
+        val controller = adopted()
+        setScreen(controller, PlayLayout.TwoPane, PlayTuning.Starting.copy(landscapeControls = LandscapeControls.SideColumn))
+
+        assertEquals("one Erase, in the column", 1, composeRule.onAllNodesWithTag("sudoku.erase").fetchSemanticsNodes().size)
+        val board = bounds("sudoku.board_area")
+        val erase = bounds("sudoku.erase")
+        val hint = bounds("play.hint")
+        val clear = bounds("play.clear")
+        assertTrue("erase $erase right of the board $board", erase.left >= board.right - 1.dp)
+        assertEquals(hint.left.value, erase.left.value, 1f)
+        assertEquals(hint.right.value, erase.right.value, 1f)
+        assertTrue("erase between hint and clear", hint.top < erase.top && erase.top < clear.top)
+
+        enterFour(controller)
+        composeRule.onNodeWithTag("sudoku.erase").performClick()
+
+        composeRule.runOnIdle { assertEquals(SudokuCell.Empty, controller.board!!.session.board.cells[0]) }
+        composeRule.onNodeWithTag("sudoku.notes_toggle").assertExists()
+    }
+
+    @Test
+    fun `notes mode shows the large digit in italic, and turning it off restores the upright digit`() {
+        setScreen(adopted(), PlayLayout.SinglePane)
+        assertEquals(List(6) { false }, digitFontStyles().map { it == FontStyle.Italic })
+
+        composeRule.onNodeWithTag("sudoku.notes_toggle").performClick()
+        composeRule.waitForIdle()
+        assertEquals(List(6) { true }, digitFontStyles().map { it == FontStyle.Italic })
+
+        composeRule.onNodeWithTag("sudoku.notes_toggle").performClick()
+        composeRule.waitForIdle()
+        assertEquals(List(6) { false }, digitFontStyles().map { it == FontStyle.Italic })
+    }
+
+    @Test
+    fun `the notes switch animates by default`() {
+        composeRule.mainClock.autoAdvance = false
+        setScreen(adopted(), PlayLayout.SinglePane)
+        composeRule.mainClock.advanceTimeByFrame()
+
+        composeRule.onNodeWithTag("sudoku.notes_toggle").performClick()
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.mainClock.advanceTimeByFrame()
+        assertEquals("two frames in, still upright", List(6) { false }, digitFontStyles().map { it == FontStyle.Italic })
+
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        assertEquals(List(6) { true }, digitFontStyles().map { it == FontStyle.Italic })
+    }
+
+    @Test
+    fun `reduced motion makes the notes switch instant`() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        composeRule.mainClock.autoAdvance = false
+        setScreen(adopted(), PlayLayout.SinglePane)
+        composeRule.mainClock.advanceTimeByFrame()
+
+        composeRule.onNodeWithTag("sudoku.notes_toggle").performClick()
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.mainClock.advanceTimeByFrame()
+
+        assertEquals("italic within two frames", List(6) { true }, digitFontStyles().map { it == FontStyle.Italic })
+    }
+
+    @Test
+    fun `without a tuning there is no corner toggle and the digits stay upright in notes mode`() {
+        setScreen(adopted(), PlayLayout.SinglePane, tuning = null)
+
+        composeRule.onNodeWithTag("sudoku.notes_toggle").assertDoesNotExist()
+        composeRule.onNodeWithTag("sudoku.erase").assertDoesNotExist()
+        composeRule.onNodeWithText("Notes").performClick()
+        composeRule.waitForIdle()
+        assertEquals(List(6) { false }, digitFontStyles().map { it == FontStyle.Italic })
     }
 }

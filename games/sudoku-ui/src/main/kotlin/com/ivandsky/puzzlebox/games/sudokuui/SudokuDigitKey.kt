@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -28,8 +29,10 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
@@ -39,6 +42,9 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 private const val TABULAR_FIGURES = "tnum"
+
+/** Tags the digit's own Text, so tests can read the face it is set in. */
+internal const val DIGIT_FACE_TAG = "sudoku.digit_face"
 
 // M3's disabled-content emphasis; the key keeps working, it only reads as done.
 private const val EXHAUSTED_CONTENT_ALPHA = 0.38f
@@ -67,6 +73,12 @@ private val MORPH_EASING = CubicBezierEasing(0.23f, 1f, 0.32f, 1f)
 private val MORPH_BLUR = 2.dp
 private const val MORPH_ALPHA_DIP = 0.45f
 
+// The pencil look (under a play tuning): the digit stays large and centred, and in notes mode
+// swaps to an italic face mid-way through a dip, so each key "writes" itself in pencil. The
+// dip is milder than the slot morph's, and the face flips as the digit is faintest.
+private const val PENCIL_ALPHA_DIP = 0.55f
+private const val PENCIL_FLIP_AT = 0.5f
+
 // The pencil-mark slot grid inside the key: its inset from the key edge, the largest
 // share of the slot the scaled figure may fill, and the scale it never exceeds.
 private val SLOT_INSET = 5.dp
@@ -82,6 +94,9 @@ private const val SLOT_SCALE_MAX = 0.62f
  * a cell (slot `d - 1` of the box-shaped notes grid), a look no board tint shares (V7).
  * The morph runs on a graphics layer (no remeasure), [staggerOrder] keys after the one
  * nearest the notes toggle; a new toggle retargets the running one. Reduced motion snaps.
+ * With [pencilLook] (a play tuning is set) the digit keeps its large centred place in both
+ * modes instead; notes mode swaps it to an italic face (a synthetic oblique of Baloo 2) in the
+ * notes ink, through the same staggered morph, and the count stays under it.
  */
 @Composable
 internal fun SudokuDigitKey(
@@ -94,6 +109,7 @@ internal fun SudokuDigitKey(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     placed: Int? = null,
+    pencilLook: Boolean = false,
 ) {
     val scheme = MaterialTheme.colorScheme
     val exhausted = remaining == 0
@@ -123,6 +139,7 @@ internal fun SudokuDigitKey(
         },
         label = "digitKeyNotesMorph",
     )
+    val italic by remember(pencilLook) { derivedStateOf { pencilLook && morph.value >= PENCIL_FLIP_AT } }
     val label = if (placed == null) digitKeyLabel(digit, remaining, notesMode) else digit.toString()
     val shape = MaterialTheme.shapes.medium
 
@@ -141,7 +158,11 @@ internal fun SudokuDigitKey(
         DigitOverCount(
             digit = digit,
             noteGrid = remember(size) { noteGrid(size) },
-            digitStyle = MaterialTheme.typography.titleLarge.copy(fontFeatureSettings = TABULAR_FIGURES),
+            digitStyle = MaterialTheme.typography.titleLarge.copy(
+                fontFeatureSettings = TABULAR_FIGURES,
+                fontStyle = if (italic) FontStyle.Italic else FontStyle.Normal,
+            ),
+            pencilLook = pencilLook,
             count = if (placed == null) remaining.toString() else "×$placed",
             countStyle = MaterialTheme.typography.labelSmall.copy(fontFeatureSettings = TABULAR_FIGURES),
             color = content,
@@ -161,6 +182,7 @@ private fun DigitOverCount(
     digit: Int,
     noteGrid: Pair<Int, Int>,
     digitStyle: TextStyle,
+    pencilLook: Boolean,
     count: String,
     countStyle: TextStyle,
     color: Color,
@@ -169,7 +191,7 @@ private fun DigitOverCount(
     Layout(
         modifier = Modifier.fillMaxSize().clearAndSetSemantics {},
         content = {
-            Text(text = digit.toString(), style = digitStyle, color = color, softWrap = false)
+            Text(text = digit.toString(), style = digitStyle, color = color, softWrap = false, modifier = Modifier.testTag(DIGIT_FACE_TAG))
             Text(text = count, style = countStyle, color = color, softWrap = false)
         },
     ) { measurables, constraints ->
@@ -205,6 +227,10 @@ private fun DigitOverCount(
             digitText.placeWithLayer(digitX, digitY) {
                 val p = morph()
                 val dip = 1f - abs(2f * p - 1f)
+                if (pencilLook) {
+                    alpha = 1f - PENCIL_ALPHA_DIP * dip
+                    return@placeWithLayer
+                }
                 transformOrigin = origin
                 translationX = dx * p
                 translationY = dy * p
@@ -215,7 +241,8 @@ private fun DigitOverCount(
             }
             if (showCount) {
                 countText.placeWithLayer((width - countText.width) / 2, (countBaseline - countText[FirstBaseline]).roundToInt()) {
-                    alpha = (1f - 2f * morph()).coerceAtLeast(0f)
+                    // The pencil look keeps the count: it is the player's tally of what is left.
+                    alpha = if (pencilLook) 1f else (1f - 2f * morph()).coerceAtLeast(0f)
                 }
             }
         }

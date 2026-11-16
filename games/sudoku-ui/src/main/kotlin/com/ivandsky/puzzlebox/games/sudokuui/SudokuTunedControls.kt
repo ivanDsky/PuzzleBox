@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
+import com.ivandsky.puzzlebox.designsystem.GameButtonSize
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayClear
 
@@ -19,7 +21,8 @@ private val ControlRowMinWidth: Dp = SudokuSizing.keyMin * 4 + SudokuSizing.keyG
  * keypad above it can be narrower (a short pane shrinks the grid), so the row follows
  * [gridWidth] (null until the first layout: as wide as the pane gives), never under
  * [ControlRowMinWidth]. [beside] puts the same buttons in the column the scaffold stacks
- * beside the board (a landscape tablet's side column), where nothing narrows it.
+ * beside the board (a landscape tablet's side column), where nothing narrows it, and adds
+ * Erase between Hint and Clear in the same tall style; elsewhere Erase is on the keypad's strip.
  */
 @Composable
 internal fun SudokuTunedControls(
@@ -30,7 +33,10 @@ internal fun SudokuTunedControls(
     modifier: Modifier = Modifier,
 ) {
     val bar: @Composable () -> Unit = {
-        PlayActionBar(controller, controller, PlayClear { state?.clear() }, MiniSudokuBrand.accent)
+        val editable = state?.session?.let { !sudokuKeypadModel(it.board, it.notesMode).solved } ?: false
+        PlayActionBar(controller, controller, PlayClear { state?.clear() }, MiniSudokuBrand.accent) {
+            EraseButton(editable, { state?.erase() }, it.testTag("sudoku.erase"), GameButtonSize.Tall)
+        }
     }
     if (beside) {
         Box(modifier) { bar() }
