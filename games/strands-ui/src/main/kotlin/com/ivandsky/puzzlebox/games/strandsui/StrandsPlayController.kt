@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.Restored
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.StrandsDefinition
 import com.ivandsky.puzzlebox.games.strands.StrandsPuzzleRef
@@ -39,7 +40,7 @@ import java.time.Instant
  * purpose: an uncommitted trace is never persisted (A30).
  *
  * No undo (A15): found words are permanent. The hint economy lives in the engine; this
- * class only spends a [StrandsHint.Reveal] the engine hands it.
+ * class only spends a [StrandsHint.Reveal] the engine hands it, asked for in [hintMode].
  *
  * Win: the incomplete → complete transition hands one completion record to
  * [PlayEnvironment.onWon].
@@ -47,6 +48,7 @@ import java.time.Instant
 class StrandsPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
+    internal val hintMode: HintMode = HintMode.Legacy,
 ) : GamePlayController, PlayClock {
 
     var session by mutableStateOf<StrandsSession?>(null)
@@ -155,7 +157,7 @@ class StrandsPlayController(
         env.onInput()
         val current = session ?: return
         if (current.state.isComplete) return
-        when (val hint = StrandsRules.hint(current.state) as StrandsHint) {
+        when (val hint = StrandsHints.hintFor(current.state, firstMove = hintMode is HintMode.FirstMove)) {
             is StrandsHint.Reveal -> {
                 val next = moveLog.hint(current, hint.hint)
                 if (next !== current) commit(next)

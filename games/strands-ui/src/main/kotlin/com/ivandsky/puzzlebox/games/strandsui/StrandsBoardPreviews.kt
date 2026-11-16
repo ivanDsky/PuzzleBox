@@ -35,13 +35,17 @@ private val previewPuzzle: StrandsPuzzle by lazy {
     )
 }
 
-/** [trace] reaches the board as its live trace, as the play screen's does, not through the model. */
+/**
+ * [trace] reaches the board as its live trace, as the play screen's does, not through the model.
+ * [readable] asks the theme for the readable board look (nav-rethink B3).
+ */
 @Composable
 private fun BoardPane(
     state: StrandsState = StrandsState(previewPuzzle),
     trace: List<Coord> = emptyList(),
+    readable: Boolean = false,
 ) {
-    PuzzleBoxTheme {
+    PuzzleBoxTheme(readableBoard = readable) {
         StrandsBoardContent(
             model = StrandsRendererModel.of(state),
             found = null,
@@ -94,3 +98,16 @@ internal fun StrandsBoardSolvedPreview() =
 @Composable
 internal fun StrandsBoardShortPanePreview() =
     BoardPane(StrandsState(previewPuzzle, found = listOf("BAKE")), trace = listOf(Coord(0, 0), Coord(0, 1)))
+
+/**
+ * The readable board with every look at once: PIES found, BAKE the found spangram, TART hinted,
+ * and C-A-K traced, each selected letter in its ring, beside the idle E.
+ */
+@PuzzleBoxPreviews
+@Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
+@Composable
+internal fun StrandsBoardReadablePreview() = BoardPane(
+    StrandsState(previewPuzzle, found = listOf("PIES", "BAKE"), hintsUsed = 1, activeHint = ActiveHint("TART", HintStage.Outlined)),
+    trace = listOf(Coord(3, 0), Coord(3, 1), Coord(3, 2)),
+    readable = true,
+)

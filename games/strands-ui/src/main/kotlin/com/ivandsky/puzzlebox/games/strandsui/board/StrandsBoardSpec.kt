@@ -40,6 +40,14 @@ internal object StrandsBoardSpec {
     val SpangramRingInset: Dp = 4.dp
 
     /**
+     * The readable board's cue for a selected letter (nav-rethink B3): a solid ring a gap outside
+     * the token, so selected differs from found by shape and not by tint alone. Ring and gap fit
+     * in the room the token leaves in its cell, so neighbouring rings never overlap.
+     */
+    val SelectionRingWidth: Dp = 2.5.dp
+    val SelectionRingGap: Dp = 1.5.dp
+
+    /**
      * The pitch the connector, ring and outline widths above are named for. At it and above
      * they keep them; a smaller pitch (the phone Studio's board beside its publish details)
      * thins them with the cell ([strandsStroke]), so no line or ring outgrows the token it marks.

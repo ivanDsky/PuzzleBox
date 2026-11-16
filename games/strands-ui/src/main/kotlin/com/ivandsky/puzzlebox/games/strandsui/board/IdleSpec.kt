@@ -9,7 +9,7 @@ internal object IdleSpec : StrandsCellSpec {
 
     override fun lip(colors: BoardColors): Color? = null
 
-    override fun letter(colors: BoardColors): Color = colors.strandsIdleLetter
+    override fun letter(colors: BoardColors): Color = colors.boardInk
 
     override val stateWord: String? = null
 

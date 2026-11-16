@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.replay.ReplayHintBadge
@@ -105,6 +106,8 @@ internal fun StrandsBoardContent(
     modifier: Modifier = Modifier,
 ) {
     val colors = LocalBoardColors.current
+    // The readable board rings what is selected, as it rings the next target on the other boards.
+    val selectionRing = LocalBoardGeometry.current.nextNumberRing
     val altCells = remember(model.links) { altThemeLinks(model.links).altThemeCells() }
     // Bumped by every touch-down: a running settle, sweep or hint pulse rests at once (A12).
     // Read only by the motion effects, so a touch-down recomposes nothing.
@@ -141,6 +144,7 @@ internal fun StrandsBoardContent(
                         cell = model.cells[row * model.cols + col],
                         altTheme = Coord(row, col) in altCells,
                         dim = dim,
+                        selectionRing = selectionRing,
                         pitch = cell,
                         found = found,
                         reduceMotion = reduceMotion,
