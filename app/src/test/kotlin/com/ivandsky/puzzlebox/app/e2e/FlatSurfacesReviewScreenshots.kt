@@ -24,6 +24,8 @@ import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import java.time.Instant
 import kotlinx.coroutines.runBlocking
+import org.junit.Assume.assumeTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -34,8 +36,8 @@ import org.robolectric.annotation.GraphicsMode
  * Nav-rethink 17: the before/after review of flat surfaces (B1). Renders each review screen through the real
  * shell ([shellRobot]) with the flat switch off and on, phone and tablet, light and dark, and writes
  * `<screen>-<phone|tablet>-<light|dark>-<off|on>.png` under `app/build/flat-review/`, plus one side-by-side
- * contact sheet per screen under `sheets/`. A build folder, never a tracked snapshots directory; the class name
- * carries `Screenshots`, so it runs only under `-Proborazzi.record` (or verify) and is deleted in cleanup.
+ * contact sheet per screen under `sheets/`. A build folder, never a tracked snapshots directory, so there is nothing
+ * to verify against: the class runs only under `-Proborazzi.record` and skips itself under verify. Deleted in cleanup.
  *
  * `./gradlew :app:testDebugUnitTest --tests '*FlatSurfacesReviewScreenshots*' -Proborazzi.record`
  */
@@ -43,6 +45,8 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34], application = DrainTestApplication::class)
 class FlatSurfacesReviewScreenshots {
+
+    @Before fun recordOnly() = assumeTrue(System.getProperty("roborazzi.test.record") == "true")
 
     @Test fun today() = render("today", HOME) { awaitTag("route.home") }
 
