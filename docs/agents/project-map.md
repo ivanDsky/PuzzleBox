@@ -337,10 +337,13 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `SudokuModules` (`miniSudokuModule` binds `LinkedInMiniSudokuDailySource`; `sudokuModule`
   binds `BundledSudokuDailySource`), `SudokuPlugin`, `SudokuGames`, geometry as variant data
   (`SudokuVariants`: the 6x6 and 9x9 variant ids); `engine/rules/` `SudokuConflicts`,
-  `engine/solve/SudokuSolver` (MRV bitmask), `engine/hints/` (`SudokuHints` ladder over
+  `engine/solve/SudokuSolver` (MRV bitmask) + internal `SudokuRandomFill` (one random full
+  grid agreeing with a board's givens, budgeted), `engine/hints/` (`SudokuHints` ladder over
   singles, intersections, subsets, reveal fallback); `codec/` `SudokuCodec`,
   `SudokuSessionCodec` v1 + `SudokuCommandCodec`; `feed/` `MiniSudokuGameExtractor`,
-  `MiniSudokuWireParser`, `SudokuUniquenessGate`; `SudokuScoreModel`.
+  `MiniSudokuWireParser`, `SudokuUniquenessGate`; `SudokuScoreModel`. `editor/`
+  `SudokuCompleter` (Finish for me on `SudokuEditor`: readiness, the per-size givens minimum,
+  budgeted `complete`: fill, givens until one solution, givens until the ladder finishes).
 - `games/zip-ui/`, `games/tango-ui/`, `games/queens-ui/`, `games/strands-ui/`, `games/sudoku-ui/` (`:games:<x>-ui`) — each game's play
   UI: one `*PlayController : GamePlayController`, one `*PlayUi : GamePlayUi`, the board
   composables, and `*UiModule` (the game's `GamePlayUi`). Strands: `StrandsPlayController`,
