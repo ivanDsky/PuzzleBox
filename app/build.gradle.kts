@@ -75,7 +75,7 @@ android {
             // Profile generation only (-Ppuzzlebox.baselineProfileGeneration, see benchmark/README.md):
             // an unminified build records the sources' own class and method names. A minified one
             // records R8's renamed, merged and inlined output, which no release build matches.
-            if (providers.gradleProperty("puzzlebox.baselineProfileGeneration").isPresent) {
+            if (providers.gradleProperty("puzzlebox.baselineProfileGeneration").orNull == "true") {
                 isMinifyEnabled = false
                 isShrinkResources = false
             }
@@ -115,7 +115,7 @@ androidComponents {
     onVariants(selector().withBuildType("release")) { variant ->
         tasks.register<CheckBaselineProfile>("checkReleaseBaselineProfile") {
             group = "verification"
-            description = "Fails when the committed Baseline Profile is missing or the release APK ships no profile."
+            description = "Fails when the committed Baseline Profile is missing or has no app rule, or the release APK has no baseline.prof."
             apkDirectory.set(variant.artifacts.get(com.android.build.api.artifact.SingleArtifact.APK))
             profileSource.from(layout.projectDirectory.file("src/main/baseline-prof.txt"))
         }

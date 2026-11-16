@@ -9,9 +9,9 @@ import org.junit.runner.RunWith
 
 /**
  * Generates the baseline profile from the critical journeys: cold start, all four tabs, and every
- * game's page and board. Wired to :app through the baselineprofile plugin and run on demand with
- * `./gradlew :app:generateBaselineProfile`. No profile is committed yet: shipping it is the S-01
- * fix, so its delta is measured against the profile-less baseline this module records today.
+ * game's page and board. Run on demand with `connectedBenchmarkAndroidTest` and
+ * `-Ppuzzlebox.baselineProfileGeneration=true`; its filtered output is the committed
+ * `app/src/main/baseline-prof.txt` (command and filter in `benchmark/README.md`).
  */
 @RunWith(AndroidJUnit4::class)
 class BaselineProfileGenerator {

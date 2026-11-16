@@ -106,8 +106,9 @@ first launch where Play has not. The `androidx.baselineprofile` Gradle plugin st
 build types without the `.benchmark` suffix that carry the real release id.
 
 `./gradlew :app:checkReleaseBaselineProfile` builds the release APK and fails when the committed
-profile is missing or has no rule for `com.ivandsky.puzzlebox`, or when the APK carries no profile.
-Run it after `:app:assembleRelease`.
+profile is missing or has no rule for `com.ivandsky.puzzlebox`, or when the APK carries no
+`baseline.prof`. The APK half alone cannot catch a dropped profile: the libraries' own profiles
+still fill it. `baseline-prof.txt` is generated data, exempt from the 300-line file limit.
 
 Regenerate once per release, after the startup and game-open paths settle, on the benchmark package
 only (never `com.ivandsky.puzzlebox` or `.debug`), with the device awake and unlocked:
