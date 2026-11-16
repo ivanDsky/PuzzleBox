@@ -231,9 +231,14 @@ class CreateViewModel(
         importedDraft.compareAndSet(draftId, null)
     }
 
-    /** The Published tab showing (on a switch or a return to Create) asks for fresh counts; one sync at a time. */
+    /** The Published tab showing (on a switch or a return to Create) asks for fresh counts. */
     private fun syncWhenPublished(shown: CreateUiState.Tab) {
-        if (shown != CreateUiState.Tab.Published || syncing?.isActive == true) return
+        if (shown == CreateUiState.Tab.Published) syncSolveCounts()
+    }
+
+    /** Asks for the published puzzles' fresh solve counts, one sync at a time; the Custom list asks when it shows. */
+    fun syncSolveCounts() {
+        if (syncing?.isActive == true) return
         syncing = viewModelScope.launch { syncSolves() }
     }
 

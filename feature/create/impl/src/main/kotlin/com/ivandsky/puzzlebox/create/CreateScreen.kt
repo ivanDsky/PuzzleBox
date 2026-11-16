@@ -11,16 +11,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -47,9 +41,8 @@ import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 
-/** The New puzzle button rises this far over a snackbar (01 handoff); Undo names ≤ 28 title chars. */
+/** The New puzzle button rises this far over a snackbar (01 handoff). */
 private val SnackbarLift = 64.dp
-private const val DELETED_TITLE_MAX = 28
 
 /**
  * The Create root: the author's drafts, newest edit first, under the large "Create" title,
@@ -97,13 +90,7 @@ fun CreateScreen(
 ) {
     var sheetOpen by rememberSaveable { mutableStateOf(false) }
     var actionsId by rememberSaveable { mutableStateOf<String?>(null) }
-    val snackbar = remember { SnackbarHostState() }
-    LaunchedEffect(state.deleted) {
-        val deleted = state.deleted ?: return@LaunchedEffect
-        val title = deleted.title.let { if (it.length > DELETED_TITLE_MAX) it.take(DELETED_TITLE_MAX) + "…" else it }
-        val result = snackbar.showSnackbar("Deleted “$title”", actionLabel = "Undo", duration = SnackbarDuration.Indefinite)
-        if (result == SnackbarResult.ActionPerformed) onUndoDelete()
-    }
+    val snackbar = rememberDeleteUndo(state.deleted, onUndoDelete)
     val reducedMotion = rememberReducedMotion()
     val lift by animateDpAsState(
         targetValue = if (snackbar.currentSnackbarData != null) SnackbarLift else 0.dp,
@@ -152,7 +139,7 @@ fun CreateScreen(
                 modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.lg).offset(y = -lift),
             )
         }
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).testTag("create.snackbar"))
+        DeleteUndoSnackbar(snackbar, Modifier.align(Alignment.BottomCenter))
     }
     ImportSheet(ui = importSheet, actions = importActions)
     if (sheetOpen) {
