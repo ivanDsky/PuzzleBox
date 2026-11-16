@@ -21,6 +21,16 @@
       "$fixture": "puzzle",
       "unpublished": true
     },
+    "puzzlePublic": {
+      "$fixture": "puzzle",
+      "visibility": "public",
+      "difficulty": "medium"
+    },
+    "report": {
+      "formatVersion": 1,
+      "uid": "bob",
+      "createdAt": "2026-11-07T12:00:00Z"
+    },
     "entry": {
       "formatVersion": 1,
       "uid": "bob",
@@ -1312,6 +1322,1054 @@
       }
     },
     {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create of a public puzzle with a difficulty",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzlePublic"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create of a public puzzle without a difficulty",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "visibility": "public"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create with visibility link",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "visibility": "link"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create without a visibility but with a difficulty",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "difficulty": "expert"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create with difficulty easy",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzlePublic",
+        "difficulty": "easy"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create with difficulty hard",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzlePublic",
+        "difficulty": "hard"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create with a visibility off the list",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "visibility": "private"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create with visibility in another case",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "visibility": "Public"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create with visibility as a bool",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "visibility": true
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create with a null visibility",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzle",
+        "visibility": null
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create with a difficulty off the ladder",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzlePublic",
+        "difficulty": "extreme"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create with difficulty in another case",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzlePublic",
+        "difficulty": "Hard"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create with difficulty as a number",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzlePublic",
+        "difficulty": 2
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create with a null difficulty",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzlePublic",
+        "difficulty": null
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create of a public puzzle with an extra field",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzlePublic",
+        "featured": true
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create of a public puzzle already unpublished",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzlePublic",
+        "unpublished": true
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 5
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "20th create in a day of a public puzzle (19 -> 20)",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzlePublic"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 19
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 20
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "21st create in a day of a public puzzle (20 -> 21)",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzlePublic"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 20
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 21
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "create of a public puzzle without bumping the authors doc",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "data": {
+        "$fixture": "puzzlePublic"
+      },
+      "mocks": [
+        {
+          "fn": "exists",
+          "path": "authors/alice",
+          "value": true
+        },
+        {
+          "fn": "get",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        },
+        {
+          "fn": "getAfter",
+          "path": "authors/alice",
+          "data": {
+            "day": "2026-11-07",
+            "count": 4
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "signed-out create of a public puzzle",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "data": {
+        "$fixture": "puzzlePublic"
+      }
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "anonymous get of a public puzzle",
+      "expect": "allow",
+      "method": "get",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "resource": {
+        "$fixture": "puzzlePublic"
+      }
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "anonymous get of a link-only puzzle (the code is a shortcut, not a gate)",
+      "expect": "allow",
+      "method": "get",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "resource": {
+        "$fixture": "puzzle",
+        "visibility": "link"
+      }
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "author unpublishes a public puzzle",
+      "expect": "allow",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzlePublic"
+      },
+      "data": {
+        "$fixture": "puzzlePublic",
+        "unpublished": true
+      }
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "author makes an old puzzle public",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "visibility": "public"
+      }
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "author flips visibility link -> public",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzle",
+        "visibility": "link"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "visibility": "public"
+      }
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "author flips visibility public -> link",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzlePublic"
+      },
+      "data": {
+        "$fixture": "puzzlePublic",
+        "visibility": "link"
+      }
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "author removes the visibility",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzlePublic"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "difficulty": "medium"
+      }
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "author changes the difficulty",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzlePublic"
+      },
+      "data": {
+        "$fixture": "puzzlePublic",
+        "difficulty": "easy"
+      }
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "author adds a difficulty to an old puzzle",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "difficulty": "easy"
+      }
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "author unpublishes and makes the puzzle public in one write",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "unpublished": true,
+        "visibility": "public"
+      }
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "another user makes a puzzle public",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "data": {
+        "$fixture": "puzzle",
+        "visibility": "public"
+      }
+    },
+    {
+      "group": "puzzles (visibility and difficulty)",
+      "name": "author deletes a public puzzle",
+      "expect": "deny",
+      "method": "delete",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzlePublic"
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "anonymous list of public published puzzles, limit 30",
+      "expect": "allow",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "resource": {
+        "$fixture": "puzzlePublic"
+      },
+      "query": {
+        "limit": 30
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "signed-in list of public published puzzles, limit 30",
+      "expect": "allow",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzlePublic"
+      },
+      "query": {
+        "limit": 30
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "list of public published puzzles, limit 1",
+      "expect": "allow",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "resource": {
+        "$fixture": "puzzlePublic"
+      },
+      "query": {
+        "limit": 1
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "list of a public puzzle without a difficulty, limit 30",
+      "expect": "allow",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "resource": {
+        "$fixture": "puzzle",
+        "visibility": "public"
+      },
+      "query": {
+        "limit": 30
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "list of public published puzzles, limit 31",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "resource": {
+        "$fixture": "puzzlePublic"
+      },
+      "query": {
+        "limit": 31
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "list of public published puzzles, limit 1000",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "resource": {
+        "$fixture": "puzzlePublic"
+      },
+      "query": {
+        "limit": 1000
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "list of public published puzzles without a limit",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "resource": {
+        "$fixture": "puzzlePublic"
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "signed-in list of public published puzzles without a limit",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzlePublic"
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "list matching a link-only puzzle (visibility link), limit 30",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "resource": {
+        "$fixture": "puzzle",
+        "visibility": "link"
+      },
+      "query": {
+        "limit": 30
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "list matching an old puzzle without a visibility, limit 30",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "query": {
+        "limit": 30
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "signed-in list matching an old puzzle without a visibility, limit 30",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "query": {
+        "limit": 30
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "the author lists their own link-only puzzle, limit 30",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "puzzle"
+      },
+      "query": {
+        "limit": 30
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "list matching an unpublished public puzzle, limit 30",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "resource": {
+        "$fixture": "puzzlePublic",
+        "unpublished": true
+      },
+      "query": {
+        "limit": 30
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "list matching a puzzle with an unknown visibility, limit 30",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "resource": {
+        "$fixture": "puzzle",
+        "visibility": "private"
+      },
+      "query": {
+        "limit": 30
+      }
+    },
+    {
+      "group": "puzzles (community list)",
+      "name": "list with a limit and no document to match (unconstrained)",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX",
+      "auth": null,
+      "query": {
+        "limit": 30
+      }
+    },
+    {
       "group": "authors",
       "name": "author reads own authors doc",
       "expect": "allow",
@@ -1881,6 +2939,376 @@
       "auth": "bob",
       "resource": {
         "$fixture": "entry"
+      }
+    },
+    {
+      "group": "puzzle reports",
+      "name": "signed-in player reports a puzzle",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "report"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "signed-in player reports a public puzzle",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "report"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzlePublic"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "signed-in player reports an unpublished puzzle",
+      "expect": "allow",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "report"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzleUnpublished"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "signed-out report",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": null,
+      "data": {
+        "$fixture": "report"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "report under another uid",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "carol",
+      "data": {
+        "$fixture": "report"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "report whose uid field names another player",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "report",
+        "uid": "carol"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "author reports their own puzzle",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/reports/alice",
+      "auth": "alice",
+      "data": {
+        "$fixture": "report",
+        "uid": "alice"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "report on a missing puzzle",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "report"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "missing": true
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "report with formatVersion 2",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "report",
+        "formatVersion": 2
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "report with an extra field",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "report",
+        "reason": "spam"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "report with createdAt other than the server time",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob",
+      "data": {
+        "$fixture": "report",
+        "createdAt": "2026-11-07T11:00:00Z"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "report without createdAt",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob",
+      "data": {
+        "formatVersion": 1,
+        "uid": "bob"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "report without a uid",
+      "expect": "deny",
+      "method": "create",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob",
+      "data": {
+        "formatVersion": 1,
+        "createdAt": "2026-11-07T12:00:00Z"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "second report (update of an existing report)",
+      "expect": "deny",
+      "method": "update",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "report"
+      },
+      "data": {
+        "$fixture": "report"
+      },
+      "mocks": [
+        {
+          "fn": "get",
+          "path": "puzzles/K7Q2MX",
+          "data": {
+            "$fixture": "puzzle"
+          }
+        }
+      ]
+    },
+    {
+      "group": "puzzle reports",
+      "name": "reporter gets their own report",
+      "expect": "deny",
+      "method": "get",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "report"
+      }
+    },
+    {
+      "group": "puzzle reports",
+      "name": "author gets a report on their puzzle",
+      "expect": "deny",
+      "method": "get",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "report"
+      }
+    },
+    {
+      "group": "puzzle reports",
+      "name": "another player gets a report",
+      "expect": "deny",
+      "method": "get",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "carol",
+      "resource": {
+        "$fixture": "report"
+      }
+    },
+    {
+      "group": "puzzle reports",
+      "name": "signed-out get of a report",
+      "expect": "deny",
+      "method": "get",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": null,
+      "resource": {
+        "$fixture": "report"
+      }
+    },
+    {
+      "group": "puzzle reports",
+      "name": "reporter lists a puzzle's reports",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob"
+    },
+    {
+      "group": "puzzle reports",
+      "name": "author lists the reports on their puzzle",
+      "expect": "deny",
+      "method": "list",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "alice"
+    },
+    {
+      "group": "puzzle reports",
+      "name": "reporter deletes their own report",
+      "expect": "deny",
+      "method": "delete",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "bob",
+      "resource": {
+        "$fixture": "report"
+      }
+    },
+    {
+      "group": "puzzle reports",
+      "name": "author deletes a report on their puzzle",
+      "expect": "deny",
+      "method": "delete",
+      "path": "puzzles/K7Q2MX/reports/bob",
+      "auth": "alice",
+      "resource": {
+        "$fixture": "report"
       }
     },
     {

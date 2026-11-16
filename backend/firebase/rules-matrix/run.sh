@@ -27,7 +27,9 @@ for ((offset = 0; offset < expected; offset += batch)); do
 
 # A case's documents may be {"$fixture": name, ...overrides}, a string may be {"$repeat": [text, n]} and a
 # map of n sync-id keys (32 digits each, every value 1) may be {"$syncIds": n}, a list may be {"$list": [item, n]}
-# (n copies) or {"$concat": [list, ...]}; all expand here, before the request is built.
+# (n copies) or {"$concat": [list, ...]}; all expand here, before the request is built. A list case may carry
+# {"query": {"limit": n}}, which the rules read as `request.query`; the API takes the bound as given and
+# cannot check that a real query is constrained to the matching documents (the emulator test does that).
 suite="$(jq --rawfile source "$rules" --argjson offset "$offset" --argjson batch "$batch" '
   .fixtures as $fx
   | .time as $time
@@ -58,7 +60,8 @@ suite="$(jq --rawfile source "$rules" --argjson offset "$offset" --argjson batch
       expectation: (.expect | ascii_upcase),
       request: ({ path: (.path | doc), method: .method, time: $time }
         + (if .auth then { auth: { uid: .auth, token: { firebase: { sign_in_provider: (.provider // "google.com") } } } } else {} end)
-        + (if has("data") then { resource: { data: (.data | expand) } } else {} end)),
+        + (if has("data") then { resource: { data: (.data | expand) } } else {} end)
+        + (if has("query") then { query: .query } else {} end)),
       functionMocks: [ (.mocks // [])[] | mock ]
     } + (if has("resource") then { resource: { data: (.resource | expand) } } else {} end) ] }
   }' "$cases")"

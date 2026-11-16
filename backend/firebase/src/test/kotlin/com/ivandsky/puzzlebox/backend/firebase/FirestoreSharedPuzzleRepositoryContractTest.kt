@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.repository.SharedFetchResult
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.UnpublishResult
 import com.ivandsky.puzzlebox.testing.contract.SharedPuzzleRepositoryContract
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import java.util.Base64
 import java.util.Date
 import kotlinx.coroutines.test.runTest
@@ -186,6 +187,8 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
             doc().copy(variant = "other"),
             doc().copy(gameId = "other"),
             doc().copy(shareCodecVersion = doc().shareCodecVersion + 1),
+            doc().copy(visibility = SharedPuzzleDoc.Visibility.Public),
+            doc().copy(difficulty = Difficulty.Level.Hard),
         )
 
         edits.forEach {
@@ -214,6 +217,28 @@ class FirestoreSharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContra
         repository.publish(doc())
 
         assertEquals(PublishResult.Published(code()), repository.publish(doc().copy(createdAtMs = doc().createdAtMs + 1)))
+    }
+
+    @Test
+    fun `a public puzzle fetches back public with its difficulty and a retry of it is Published`() = runTest {
+        signInAs(AUTHOR)
+        val public = doc().copy(visibility = SharedPuzzleDoc.Visibility.Public, difficulty = Difficulty.Level.Hard)
+
+        assertEquals(PublishResult.Published(code()), repository.publish(public))
+        val fetched = (repository.fetch(code()) as SharedFetchResult.Found).doc
+        assertEquals(SharedPuzzleDoc.Visibility.Public, fetched.visibility)
+        assertEquals(Difficulty.Level.Hard, fetched.difficulty)
+        assertEquals(PublishResult.Published(code()), repository.publish(public))
+        assertEquals(authorFields(DAY, 1, code().value), store.authors[AUTHOR])
+    }
+
+    @Test
+    fun `a public retry of a link-only puzzle is CodeTaken, so a link-only code never turns public`() = runTest {
+        signInAs(AUTHOR)
+        repository.publish(doc())
+
+        assertEquals(PublishResult.CodeTaken, repository.publish(doc().copy(visibility = SharedPuzzleDoc.Visibility.Public)))
+        assertEquals(SharedPuzzleDoc.Visibility.LinkOnly, (repository.fetch(code()) as SharedFetchResult.Found).doc.visibility)
     }
 
     @Test

@@ -60,6 +60,63 @@ than about 240 cases, so the script sends them in batches of 200 and prints one 
 | deny | update | `puzzles/K7Q2MX` | alice | author flips unpublished and edits the note |
 | deny | delete | `puzzles/K7Q2MX` | alice | author deletes a puzzle |
 
+## puzzles (visibility and difficulty)
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | create | `puzzles/K7Q2MX` | alice | create of a public puzzle with a difficulty |
+| allow | create | `puzzles/K7Q2MX` | alice | create of a public puzzle without a difficulty |
+| allow | create | `puzzles/K7Q2MX` | alice | create with visibility link |
+| allow | create | `puzzles/K7Q2MX` | alice | create without a visibility but with a difficulty |
+| allow | create | `puzzles/K7Q2MX` | alice | create with difficulty easy |
+| allow | create | `puzzles/K7Q2MX` | alice | create with difficulty hard |
+| deny | create | `puzzles/K7Q2MX` | alice | create with a visibility off the list |
+| deny | create | `puzzles/K7Q2MX` | alice | create with visibility in another case |
+| deny | create | `puzzles/K7Q2MX` | alice | create with visibility as a bool |
+| deny | create | `puzzles/K7Q2MX` | alice | create with a null visibility |
+| deny | create | `puzzles/K7Q2MX` | alice | create with a difficulty off the ladder |
+| deny | create | `puzzles/K7Q2MX` | alice | create with difficulty in another case |
+| deny | create | `puzzles/K7Q2MX` | alice | create with difficulty as a number |
+| deny | create | `puzzles/K7Q2MX` | alice | create with a null difficulty |
+| deny | create | `puzzles/K7Q2MX` | alice | create of a public puzzle with an extra field |
+| deny | create | `puzzles/K7Q2MX` | alice | create of a public puzzle already unpublished |
+| allow | create | `puzzles/K7Q2MX` | alice | 20th create in a day of a public puzzle (19 -> 20) |
+| deny | create | `puzzles/K7Q2MX` | alice | 21st create in a day of a public puzzle (20 -> 21) |
+| deny | create | `puzzles/K7Q2MX` | alice | create of a public puzzle without bumping the authors doc |
+| deny | create | `puzzles/K7Q2MX` | — | signed-out create of a public puzzle |
+| allow | get | `puzzles/K7Q2MX` | — | anonymous get of a public puzzle |
+| allow | get | `puzzles/K7Q2MX` | — | anonymous get of a link-only puzzle (the code is a shortcut, not a gate) |
+| allow | update | `puzzles/K7Q2MX` | alice | author unpublishes a public puzzle |
+| deny | update | `puzzles/K7Q2MX` | alice | author makes an old puzzle public |
+| deny | update | `puzzles/K7Q2MX` | alice | author flips visibility link -> public |
+| deny | update | `puzzles/K7Q2MX` | alice | author flips visibility public -> link |
+| deny | update | `puzzles/K7Q2MX` | alice | author removes the visibility |
+| deny | update | `puzzles/K7Q2MX` | alice | author changes the difficulty |
+| deny | update | `puzzles/K7Q2MX` | alice | author adds a difficulty to an old puzzle |
+| deny | update | `puzzles/K7Q2MX` | alice | author unpublishes and makes the puzzle public in one write |
+| deny | update | `puzzles/K7Q2MX` | bob | another user makes a puzzle public |
+| deny | delete | `puzzles/K7Q2MX` | alice | author deletes a public puzzle |
+
+## puzzles (community list)
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | list | `puzzles/K7Q2MX` | — | anonymous list of public published puzzles, limit 30 |
+| allow | list | `puzzles/K7Q2MX` | bob | signed-in list of public published puzzles, limit 30 |
+| allow | list | `puzzles/K7Q2MX` | — | list of public published puzzles, limit 1 |
+| allow | list | `puzzles/K7Q2MX` | — | list of a public puzzle without a difficulty, limit 30 |
+| deny | list | `puzzles/K7Q2MX` | — | list of public published puzzles, limit 31 |
+| deny | list | `puzzles/K7Q2MX` | — | list of public published puzzles, limit 1000 |
+| deny | list | `puzzles/K7Q2MX` | — | list of public published puzzles without a limit |
+| deny | list | `puzzles/K7Q2MX` | bob | signed-in list of public published puzzles without a limit |
+| deny | list | `puzzles/K7Q2MX` | — | list matching a link-only puzzle (visibility link), limit 30 |
+| deny | list | `puzzles/K7Q2MX` | — | list matching an old puzzle without a visibility, limit 30 |
+| deny | list | `puzzles/K7Q2MX` | bob | signed-in list matching an old puzzle without a visibility, limit 30 |
+| deny | list | `puzzles/K7Q2MX` | alice | the author lists their own link-only puzzle, limit 30 |
+| deny | list | `puzzles/K7Q2MX` | — | list matching an unpublished public puzzle, limit 30 |
+| deny | list | `puzzles/K7Q2MX` | — | list matching a puzzle with an unknown visibility, limit 30 |
+| deny | list | `puzzles/K7Q2MX` | — | list with a limit and no document to match (unconstrained) |
+
 ## authors
 
 | Expect | Method | Path | Auth | Case |
@@ -105,6 +162,33 @@ than about 240 cases, so the script sends them in batches of 200 and prints one 
 | deny | create | `puzzles/K7Q2MX/entries/bob` | bob | entry with an extra field |
 | deny | create | `puzzles/K7Q2MX/entries/bob` | bob | entry on a missing puzzle |
 | deny | delete | `puzzles/K7Q2MX/entries/bob` | bob | owner deletes an entry |
+
+## puzzle reports
+
+| Expect | Method | Path | Auth | Case |
+|---|---|---|---|---|
+| allow | create | `puzzles/K7Q2MX/reports/bob` | bob | signed-in player reports a puzzle |
+| allow | create | `puzzles/K7Q2MX/reports/bob` | bob | signed-in player reports a public puzzle |
+| allow | create | `puzzles/K7Q2MX/reports/bob` | bob | signed-in player reports an unpublished puzzle |
+| deny | create | `puzzles/K7Q2MX/reports/bob` | — | signed-out report |
+| deny | create | `puzzles/K7Q2MX/reports/bob` | carol | report under another uid |
+| deny | create | `puzzles/K7Q2MX/reports/bob` | bob | report whose uid field names another player |
+| deny | create | `puzzles/K7Q2MX/reports/alice` | alice | author reports their own puzzle |
+| deny | create | `puzzles/K7Q2MX/reports/bob` | bob | report on a missing puzzle |
+| deny | create | `puzzles/K7Q2MX/reports/bob` | bob | report with formatVersion 2 |
+| deny | create | `puzzles/K7Q2MX/reports/bob` | bob | report with an extra field |
+| deny | create | `puzzles/K7Q2MX/reports/bob` | bob | report with createdAt other than the server time |
+| deny | create | `puzzles/K7Q2MX/reports/bob` | bob | report without createdAt |
+| deny | create | `puzzles/K7Q2MX/reports/bob` | bob | report without a uid |
+| deny | update | `puzzles/K7Q2MX/reports/bob` | bob | second report (update of an existing report) |
+| deny | get | `puzzles/K7Q2MX/reports/bob` | bob | reporter gets their own report |
+| deny | get | `puzzles/K7Q2MX/reports/bob` | alice | author gets a report on their puzzle |
+| deny | get | `puzzles/K7Q2MX/reports/bob` | carol | another player gets a report |
+| deny | get | `puzzles/K7Q2MX/reports/bob` | — | signed-out get of a report |
+| deny | list | `puzzles/K7Q2MX/reports/bob` | bob | reporter lists a puzzle's reports |
+| deny | list | `puzzles/K7Q2MX/reports/bob` | alice | author lists the reports on their puzzle |
+| deny | delete | `puzzles/K7Q2MX/reports/bob` | bob | reporter deletes their own report |
+| deny | delete | `puzzles/K7Q2MX/reports/bob` | alice | author deletes a report on their puzzle |
 
 ## daily leaderboards (unchanged)
 
@@ -605,16 +689,26 @@ a row's keys and the caps, and a completions record's key, and nothing more.
 
 ## Last run
 
-2026-11-13, local `firestore.rules` with the hardened `account space` block (not deployed; the run uses the
-local source on the Rules Test API), two batches: **380 cases, 380/380 passed**, exit 0.
+2026-11-16, local `firestore.rules` with the community puzzle rules (not deployed; the run uses the local
+source on the Rules Test API), three batches: **449 cases, 449/449 passed**, exit 0. The 380 cases of the
+2026-11-13 run are unchanged and all pass.
 
-The `account space` group's 58 cases were rewritten for the Google-only rule and the doc id patterns (draft ids
-are UUIDs, the completions fixture and the 1000/1001-record cases carry sync-id keys), and the new
-`account space (hardening)` group adds 64 cases. The byte cases stay emulator-only (2026-11-11: draft blob
-65,536 bytes allowed, 65,537 denied; received bytes 8,192 allowed, 8,193 denied; a merge-set tombstone over a
-live draft allowed; a collection-group query over a kind, a list across all accounts, denied; the Test API
-cannot express one). So do the `daily replays` create rows above: 62 emulator checks on 2026-11-13, all with
-the expected verdict.
+Three new groups add 69 cases. `puzzles (visibility and difficulty)` (32) covers the two optional fields at
+create, their words, and that an update can never change them. `puzzles (community list)` (15) covers the
+`list` rule: public and published only, with a limit of at most 30. `puzzle reports` (22) covers the
+create-only report record. Against the rules before this change 14 of the 69 failed, each an expected allow.
+
+A list case carries `"query": {"limit": n}`, which the script passes to the Test API as the mocked
+`request.query`. The API can mock the limit but not a query's filters: it evaluates the rule against the one
+document in the case. So the list rows prove what the rule reads from a document and from the limit. That a
+real query without the `visibility` and `unpublished` filters is refused whole is proven only on the emulator,
+by `FirestoreCommunityListEmulatorTest` (2026-11-16: 9 tests ran, all passed). The emulator does not enforce
+composite indexes, so the four new `puzzles` indexes are first exercised by a real query after deploy.
+
+The byte cases stay emulator-only (2026-11-11: draft blob 65,536 bytes allowed, 65,537 denied; received bytes
+8,192 allowed, 8,193 denied; a merge-set tombstone over a live draft allowed; a collection-group query over a
+kind, a list across all accounts, denied; the Test API cannot express one). So do the `daily replays` create
+rows above: 62 emulator checks on 2026-11-13, all with the expected verdict.
 
 ```
 PASS  ALLOW  [puzzles] anonymous get of a puzzle
@@ -657,6 +751,53 @@ PASS  DENY  [puzzles] author edits the title
 PASS  DENY  [puzzles] author edits the payload
 PASS  DENY  [puzzles] author flips unpublished and edits the note
 PASS  DENY  [puzzles] author deletes a puzzle
+PASS  ALLOW  [puzzles (visibility and difficulty)] create of a public puzzle with a difficulty
+PASS  ALLOW  [puzzles (visibility and difficulty)] create of a public puzzle without a difficulty
+PASS  ALLOW  [puzzles (visibility and difficulty)] create with visibility link
+PASS  ALLOW  [puzzles (visibility and difficulty)] create without a visibility but with a difficulty
+PASS  ALLOW  [puzzles (visibility and difficulty)] create with difficulty easy
+PASS  ALLOW  [puzzles (visibility and difficulty)] create with difficulty hard
+PASS  DENY  [puzzles (visibility and difficulty)] create with a visibility off the list
+PASS  DENY  [puzzles (visibility and difficulty)] create with visibility in another case
+PASS  DENY  [puzzles (visibility and difficulty)] create with visibility as a bool
+PASS  DENY  [puzzles (visibility and difficulty)] create with a null visibility
+PASS  DENY  [puzzles (visibility and difficulty)] create with a difficulty off the ladder
+PASS  DENY  [puzzles (visibility and difficulty)] create with difficulty in another case
+PASS  DENY  [puzzles (visibility and difficulty)] create with difficulty as a number
+PASS  DENY  [puzzles (visibility and difficulty)] create with a null difficulty
+PASS  DENY  [puzzles (visibility and difficulty)] create of a public puzzle with an extra field
+PASS  DENY  [puzzles (visibility and difficulty)] create of a public puzzle already unpublished
+PASS  ALLOW  [puzzles (visibility and difficulty)] 20th create in a day of a public puzzle (19 -> 20)
+PASS  DENY  [puzzles (visibility and difficulty)] 21st create in a day of a public puzzle (20 -> 21)
+PASS  DENY  [puzzles (visibility and difficulty)] create of a public puzzle without bumping the authors doc
+PASS  DENY  [puzzles (visibility and difficulty)] signed-out create of a public puzzle
+PASS  ALLOW  [puzzles (visibility and difficulty)] anonymous get of a public puzzle
+PASS  ALLOW  [puzzles (visibility and difficulty)] anonymous get of a link-only puzzle (the code is a shortcut, not a gate)
+PASS  ALLOW  [puzzles (visibility and difficulty)] author unpublishes a public puzzle
+PASS  DENY  [puzzles (visibility and difficulty)] author makes an old puzzle public
+PASS  DENY  [puzzles (visibility and difficulty)] author flips visibility link -> public
+PASS  DENY  [puzzles (visibility and difficulty)] author flips visibility public -> link
+PASS  DENY  [puzzles (visibility and difficulty)] author removes the visibility
+PASS  DENY  [puzzles (visibility and difficulty)] author changes the difficulty
+PASS  DENY  [puzzles (visibility and difficulty)] author adds a difficulty to an old puzzle
+PASS  DENY  [puzzles (visibility and difficulty)] author unpublishes and makes the puzzle public in one write
+PASS  DENY  [puzzles (visibility and difficulty)] another user makes a puzzle public
+PASS  DENY  [puzzles (visibility and difficulty)] author deletes a public puzzle
+PASS  ALLOW  [puzzles (community list)] anonymous list of public published puzzles, limit 30
+PASS  ALLOW  [puzzles (community list)] signed-in list of public published puzzles, limit 30
+PASS  ALLOW  [puzzles (community list)] list of public published puzzles, limit 1
+PASS  ALLOW  [puzzles (community list)] list of a public puzzle without a difficulty, limit 30
+PASS  DENY  [puzzles (community list)] list of public published puzzles, limit 31
+PASS  DENY  [puzzles (community list)] list of public published puzzles, limit 1000
+PASS  DENY  [puzzles (community list)] list of public published puzzles without a limit
+PASS  DENY  [puzzles (community list)] signed-in list of public published puzzles without a limit
+PASS  DENY  [puzzles (community list)] list matching a link-only puzzle (visibility link), limit 30
+PASS  DENY  [puzzles (community list)] list matching an old puzzle without a visibility, limit 30
+PASS  DENY  [puzzles (community list)] signed-in list matching an old puzzle without a visibility, limit 30
+PASS  DENY  [puzzles (community list)] the author lists their own link-only puzzle, limit 30
+PASS  DENY  [puzzles (community list)] list matching an unpublished public puzzle, limit 30
+PASS  DENY  [puzzles (community list)] list matching a puzzle with an unknown visibility, limit 30
+PASS  DENY  [puzzles (community list)] list with a limit and no document to match (unconstrained)
 PASS  ALLOW  [authors] author reads own authors doc
 PASS  DENY  [authors] another user reads an authors doc
 PASS  DENY  [authors] signed-out read of an authors doc
@@ -693,6 +834,28 @@ PASS  DENY  [puzzle entries] entry with formatVersion 2
 PASS  DENY  [puzzle entries] entry with an extra field
 PASS  DENY  [puzzle entries] entry on a missing puzzle
 PASS  DENY  [puzzle entries] owner deletes an entry
+PASS  ALLOW  [puzzle reports] signed-in player reports a puzzle
+PASS  ALLOW  [puzzle reports] signed-in player reports a public puzzle
+PASS  ALLOW  [puzzle reports] signed-in player reports an unpublished puzzle
+PASS  DENY  [puzzle reports] signed-out report
+PASS  DENY  [puzzle reports] report under another uid
+PASS  DENY  [puzzle reports] report whose uid field names another player
+PASS  DENY  [puzzle reports] author reports their own puzzle
+PASS  DENY  [puzzle reports] report on a missing puzzle
+PASS  DENY  [puzzle reports] report with formatVersion 2
+PASS  DENY  [puzzle reports] report with an extra field
+PASS  DENY  [puzzle reports] report with createdAt other than the server time
+PASS  DENY  [puzzle reports] report without createdAt
+PASS  DENY  [puzzle reports] report without a uid
+PASS  DENY  [puzzle reports] second report (update of an existing report)
+PASS  DENY  [puzzle reports] reporter gets their own report
+PASS  DENY  [puzzle reports] author gets a report on their puzzle
+PASS  DENY  [puzzle reports] another player gets a report
+PASS  DENY  [puzzle reports] signed-out get of a report
+PASS  DENY  [puzzle reports] reporter lists a puzzle's reports
+PASS  DENY  [puzzle reports] author lists the reports on their puzzle
+PASS  DENY  [puzzle reports] reporter deletes their own report
+PASS  DENY  [puzzle reports] author deletes a report on their puzzle
 PASS  ALLOW  [daily leaderboards (unchanged)] signed-in read of a daily entry
 PASS  ALLOW  [daily leaderboards (unchanged)] signed-in list of a daily board
 PASS  DENY  [daily leaderboards (unchanged)] signed-out read of a daily entry
@@ -997,5 +1160,5 @@ PASS  DENY  [account space (hardening)] published doc with an unlisted extra key
 PASS  DENY  [deny-all] signed-in read of an unmatched path
 PASS  DENY  [deny-all] signed-in write of an unmatched path
 PASS  DENY  [deny-all] signed-in read of a puzzle's unknown subcollection
-380/380 passed
+449/449 passed
 ```

@@ -3,7 +3,9 @@
 Date: 2026-11-06 · Status: accepted · Source: editor spec A14–A21, A25; intake A5–A7, A11,
 share_auth/open_auth; round 3 (strip the solution, rules tests); round 5 (cap, solves count,
 board after unpublish); spec checkpoint 2026-11-06 (OQ1 board reads) · Amends ADR-0013
-(leaderboard stays Zip-only and time-first)
+(leaderboard stays Zip-only and time-first) · Amended 2026-11-16 by the nav rethink
+(`.scratch/nav-rethink/spec.md` C1, C2, C3: decisions 1 and 2 and the rejected public `list`;
+public puzzles can be listed, see the amendment at the end)
 
 ## Context
 Today Firestore holds only the daily Zip boards. Rules deny everything else, and an entry's
@@ -79,3 +81,51 @@ document, and an author must not be able to flood the project.
   ranks.
 
 *(Amended 2026-11-07 by ADR-0024: daily boards are no longer Zip-only or time-first, and decision 8 "the daily block stays byte-identical" no longer holds. The `leaderboards` rules now take the five-id allow-list and a day window [server UTC date −2, +1]; first-write-stands, immutability, board-id consistency and the custom-board rules in this ADR are unchanged.)*
+
+## Amendment 2026-11-16: community puzzles (nav rethink C1, C2, C3)
+An author now chooses at publish whether a puzzle is public or link only, and public puzzles
+show in a community list in Games › Custom. That changes decisions 1 and 2 and narrows one
+rejected alternative. Everything else above stands: the quota, who may edit what, the boards,
+the code and the links.
+
+1. **Two optional fields on `puzzles/{code}` (decision 1).** `visibility` is `public` or
+   `link`. A document without it is link only, so every puzzle published before this change
+   stays link only. `difficulty` is `easy`, `medium`, `hard` or `expert`, and is absent when
+   the puzzle needs guessing or the game has no ladder. Both are set at create and never
+   change: `update` still admits only the `unpublished` flip. The app writes `visibility`
+   only for a public puzzle, so a link-only document is the one older app versions write.
+   Older versions read the new documents, since they ignore fields they do not know.
+   `formatVersion` stays 1.
+2. **`list` is allowed for public, still-published puzzles only (decision 2).** The rule is
+   `resource.data.visibility == 'public' && resource.data.unpublished == false &&
+   request.query.limit <= 30`. Firestore refuses a query whole unless its own constraints
+   guarantee that every result passes, so a query must filter on both fields and carry a
+   limit of at most 30. Like `get`, it needs no sign-in. Nobody can enumerate link-only
+   puzzles, their author included. `get` stays public for every puzzle: the code is a
+   shortcut to any puzzle, never a gate.
+3. **Indexes.** Four composite indexes on `puzzles`, each starting `visibility, unpublished`
+   and ending `createdAt` descending: those three alone, with `gameId`, with `difficulty`,
+   and with both. They serve "new today", newest first, filtered by game and by difficulty.
+4. **Reports.** `puzzles/{code}/reports/{uid}` is `{formatVersion: 1, uid, createdAt}`, one
+   per puzzle and reporter. A signed-in player who is not the author creates it, and the
+   puzzle must exist. No client can read, list, change or delete a report, so a second
+   report by the same player is refused. Spark has no server, so a report does two things
+   only. It hides the puzzle on the reporter's device, and it leaves a record for the project
+   owner to review in the Firebase console, who can then unpublish the puzzle as admin.
+5. **The hide set stays on the device.** The puzzles a player reported or hid are kept
+   locally and are not synced.
+
+Consequences:
+- Public titles, notes and author names cannot be moderated server-side. The mitigations are
+  the report record, the text caps, author unpublish and the 20-a-day quota (C1).
+- The rejection of "public `list` or public board reads" now holds for link-only puzzles and
+  for boards. Boards stay behind sign-in.
+- A list bills one read per puzzle returned, at most 30 a query. A report costs one billed
+  `get()` in rules.
+- No "popular" order: a counter without a server can be faked (C2).
+- The community stands in for a generated Hard daily, so no code changes for that. The Hard
+  daily is revisited if the community stays thin (C3).
+- Where Custom sits in Games is ADR-0027's amendment, not this one.
+- The matrix gains cases for the two fields, the list rule and reports. It can only mock a
+  query's limit, so an emulator test (`FirestoreCommunityListEmulatorTest`) checks which real
+  queries are allowed and which are refused.

@@ -3,7 +3,9 @@ package com.ivandsky.puzzlebox.backend.firebase
 import com.google.firebase.Timestamp
 import com.google.firebase.firestore.FieldValue
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
+import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc.Visibility
 import com.ivandsky.puzzlebox.data.repository.SharedFetchResult
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.util.Base64
 
@@ -11,6 +13,11 @@ import java.util.Base64
  * `puzzles/{code}` document ↔ [SharedPuzzleDoc]. The code is the document id, so it is not a
  * field. The payload travels as base64 text and `createdAt` is stamped by the server: the
  * caller's [SharedPuzzleDoc.createdAtMs] is never written.
+ *
+ * `visibility` and `difficulty` are optional (ADR-0020 amendment). A link-only puzzle is written
+ * without `visibility`, so it is the document every released client writes, and a doc without the
+ * field, or with any word but `public`, reads as link only: a puzzle is never listed by
+ * mistake. An unknown `difficulty` reads as none.
  */
 internal object SharedPuzzleDocCodec {
 
@@ -29,6 +36,10 @@ internal object SharedPuzzleDocCodec {
     const val FIELD_AUTHOR_HINTS = "authorHints"
     const val FIELD_CREATED_AT = "createdAt"
     const val FIELD_UNPUBLISHED = "unpublished"
+    const val FIELD_VISIBILITY = "visibility"
+    const val FIELD_DIFFICULTY = "difficulty"
+
+    private const val VISIBILITY_PUBLIC = "public"
 
     fun encode(doc: SharedPuzzleDoc): Map<String, Any?> = mapOf(
         FIELD_FORMAT_VERSION to doc.formatVersion,
@@ -44,15 +55,21 @@ internal object SharedPuzzleDocCodec {
         FIELD_AUTHOR_HINTS to doc.authorHints,
         FIELD_CREATED_AT to FieldValue.serverTimestamp(),
         FIELD_UNPUBLISHED to doc.unpublished,
+    ) + listOfNotNull(
+        (FIELD_VISIBILITY to VISIBILITY_PUBLIC).takeIf { doc.visibility == Visibility.Public },
+        doc.difficulty?.let { FIELD_DIFFICULTY to difficultyName(it) },
     )
 
     /**
-     * Whether [stored] holds what [sent] would publish: every field a friend sees or plays.
-     * The per-attempt `createdAt` and the `unpublished` flag are left out, and the author is
-     * compared by the caller. Numbers compare by value, as the server returns them as longs.
+     * Whether [stored] holds what [sent] would publish: every field a friend sees or plays, and
+     * who can find it. The per-attempt `createdAt` and the `unpublished` flag are left out, and
+     * the author is compared by the caller. Numbers compare by value, as the server returns them
+     * as longs; the two optional fields compare as they read, so no `visibility` equals `link`.
      */
     fun sameContent(sent: Map<String, Any?>, stored: Map<String, Any?>): Boolean =
-        CONTENT_FIELDS.all { comparable(sent[it]) == comparable(stored[it]) }
+        CONTENT_FIELDS.all { comparable(sent[it]) == comparable(stored[it]) } &&
+            visibility(sent) == visibility(stored) &&
+            difficulty(sent) == difficulty(stored)
 
     private val CONTENT_FIELDS = listOf(
         FIELD_FORMAT_VERSION,
@@ -68,6 +85,20 @@ internal object SharedPuzzleDocCodec {
     )
 
     private fun comparable(value: Any?): Any? = if (value is Number) value.toLong() else value
+
+    private fun visibility(data: Map<String, Any?>): Visibility =
+        if (data[FIELD_VISIBILITY] == VISIBILITY_PUBLIC) Visibility.Public else Visibility.LinkOnly
+
+    private fun difficulty(data: Map<String, Any?>): Difficulty.Level? =
+        Difficulty.Level.entries.firstOrNull { difficultyName(it) == data[FIELD_DIFFICULTY] }
+
+    /** The word stored for [level]; the rules list the same four. */
+    private fun difficultyName(level: Difficulty.Level): String = when (level) {
+        Difficulty.Level.Easy -> "easy"
+        Difficulty.Level.Medium -> "medium"
+        Difficulty.Level.Hard -> "hard"
+        Difficulty.Level.Expert -> "expert"
+    }
 
     /**
      * Any version but [FORMAT_VERSION] is [SharedFetchResult.UnsupportedVersion]: a newer format
@@ -92,6 +123,8 @@ internal object SharedPuzzleDocCodec {
             authorHints = data.int(FIELD_AUTHOR_HINTS) ?: return SharedFetchResult.NotFound,
             createdAtMs = (data[FIELD_CREATED_AT] as? Timestamp)?.toDate()?.time ?: return SharedFetchResult.NotFound,
             unpublished = data[FIELD_UNPUBLISHED] as? Boolean ?: return SharedFetchResult.NotFound,
+            visibility = visibility(data),
+            difficulty = difficulty(data),
         )
         return SharedFetchResult.Found(doc)
     }
