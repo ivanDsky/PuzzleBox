@@ -37,6 +37,13 @@ data class BoardColors(
     val boardSelection: Color,
     val boardRegion: Color,
 
+    // Shared board vocabulary (nav-rethink B3): ink for numbers and strong marks, the target ring on
+    // the next number to reach, and a legal-cell tint. Legacy instances carry today's equivalents (the
+    // scheme ink, the on-path blue, no tint); the readable ones are in ReadableBoardTokens.kt.
+    val boardInk: Color,
+    val boardTarget: Color,
+    val legalCellTint: Color,
+
     // Tango glyph fills: sun/moon clear the 3:1 non-text bar vs boardSurface in both modes;
     // identity rides the silhouette (disc+rays vs crescent).
     val sunFill: Color,
@@ -104,6 +111,9 @@ val DarkBoardTokens = BoardColors(
     pathTraceLip = Color(0xFF0077AA),
     boardSelection = Color(0xFFA69BFF),
     boardRegion = DarkColorScheme.surfaceContainerHigh, // future fill tint; stroke its boundary with wall/gridline when built
+    boardInk = DarkColorScheme.onSurface,
+    boardTarget = Color(0xFF21B7FF),
+    legalCellTint = Color.Transparent,
     sunFill = Color(0xFFFF8524),
     moonFill = Color(0xFF21B7FF),
     sudokuSelection = Color(0xFF00E8DC),
@@ -147,6 +157,9 @@ val LightBoardTokens = BoardColors(
     pathTraceLip = Color(0xFF0074A5),
     boardSelection = Color(0xFF8464FF),
     boardRegion = LightColorScheme.surfaceContainerHigh, // future fill tint
+    boardInk = LightColorScheme.onSurface,
+    boardTarget = Color(0xFF007CB1),
+    legalCellTint = Color.Transparent,
     sunFill = Color(0xFFCB6400),
     moonFill = Color(0xFF0089C3),
     sudokuSelection = Color(0xFF00C8BD),

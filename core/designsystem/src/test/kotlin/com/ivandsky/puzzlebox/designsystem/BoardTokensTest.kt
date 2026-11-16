@@ -196,6 +196,39 @@ class BoardTokensTest {
         }
     }
 
+    // Readable instances (nav-rethink B3): the same floors as the legacy set, in both themes.
+    @Test
+    fun `readable instances clear the wall, ring and gridline floors on boardSurface in both themes`() {
+        for (tokens in listOf(ReadableDarkBoardTokens, ReadableLightBoardTokens)) {
+            assertTrue(contrast(tokens.boardWall, tokens.boardSurface) >= 3f)
+            assertTrue(contrast(tokens.boardTarget, tokens.boardSurface) >= 3f)
+            assertTrue(contrast(tokens.boardGridLine, tokens.boardSurface) >= 2f)
+            assertTrue(contrast(tokens.boardInk, tokens.boardSurface) >= 4.5f)
+        }
+    }
+
+    @Test
+    fun `readable gridline is quieter than the legacy gridline and the wall stays strong ink`() {
+        val pairs = listOf(
+            DarkBoardTokens to ReadableDarkBoardTokens,
+            LightBoardTokens to ReadableLightBoardTokens,
+        )
+        for ((legacy, readable) in pairs) {
+            assertTrue(contrast(readable.boardGridLine, readable.boardSurface) < contrast(legacy.boardGridLine, legacy.boardSurface))
+            assertEquals(readable.boardInk, readable.boardWall)
+            assertTrue(contrast(readable.boardWall, readable.boardSurface) > contrast(legacy.boardWall, legacy.boardSurface))
+        }
+    }
+
+    @Test
+    fun `readable instances keep the surface and carry no legal-cell tint`() {
+        assertEquals(DarkBoardTokens.boardSurface, ReadableDarkBoardTokens.boardSurface)
+        assertEquals(LightBoardTokens.boardSurface, ReadableLightBoardTokens.boardSurface)
+        for (tokens in listOf(DarkBoardTokens, LightBoardTokens, ReadableDarkBoardTokens, ReadableLightBoardTokens)) {
+            assertEquals(Color.Transparent, tokens.legalCellTint)
+        }
+    }
+
     private fun contrast(foreground: Color, background: Color): Float {
         val fg = foreground.luminance() + 0.05f
         val bg = background.luminance() + 0.05f

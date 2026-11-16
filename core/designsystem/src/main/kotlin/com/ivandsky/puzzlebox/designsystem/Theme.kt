@@ -95,7 +95,7 @@ val LocalFlatSurfaces = staticCompositionLocalOf { false }
  * Theme composition root (ticket 10): the promoted style IS the token set — Baloo 2
  * typography, C3 light scheme, C6 dark scheme. The [darkTheme] request picks the
  * scheme; [flatSurfaces] is the app's flat-surfaces request, handed to [LocalFlatSurfaces]; [readableBoard] is the
- * app's readable-board request (nav-rethink B3), which picks the [LocalBoardGeometry] value. */
+ * app's readable-board request (nav-rethink B3), which picks the [LocalBoardGeometry] value and the [LocalBoardColors] instance. */
 @Composable
 fun PuzzleBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -115,7 +115,7 @@ fun PuzzleBoxTheme(
         LocalNeutralLip provides if (darkTheme) DarkNeutralLip else LightNeutralLip,
         LocalMutedStatus provides if (darkTheme) DarkMutedStatus else LightMutedStatus,
         LocalIce provides if (darkTheme) DarkIce else LightIce,
-        LocalBoardColors provides if (darkTheme) DarkBoardTokens else LightBoardTokens,
+        LocalBoardColors provides boardColors(darkTheme, readableBoard),
         LocalAccentPalette provides accentPalette(darkTheme),
     ) {
         MaterialTheme(
@@ -125,4 +125,11 @@ fun PuzzleBoxTheme(
             content = content,
         )
     }
+}
+
+private fun boardColors(darkTheme: Boolean, readable: Boolean): BoardColors = when {
+    readable && darkTheme -> ReadableDarkBoardTokens
+    readable -> ReadableLightBoardTokens
+    darkTheme -> DarkBoardTokens
+    else -> LightBoardTokens
 }

@@ -27,6 +27,7 @@ class BoardGeometryThemeTest {
         assertEquals(BoardTokens.boardWallWeight, BoardGeometry.Legacy.wallWeight)
         assertFalse(BoardGeometry.Legacy.roundedWallCaps)
         assertFalse(BoardGeometry.Legacy.nextNumberRing)
+        assertFalse(BoardGeometry.Legacy.wallOutline)
     }
 
     @Test
@@ -35,6 +36,7 @@ class BoardGeometryThemeTest {
         assertTrue(BoardGeometry.Readable.wallWeight < BoardGeometry.Legacy.wallWeight)
         assertTrue(BoardGeometry.Readable.roundedWallCaps)
         assertTrue(BoardGeometry.Readable.nextNumberRing)
+        assertTrue(BoardGeometry.Readable.wallOutline)
     }
 
     @Test
