@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipMove
 import com.ivandsky.puzzlebox.games.zip.engine.ZipState
 import com.ivandsky.puzzlebox.games.zip.engine.ZipValidation
 import com.ivandsky.puzzlebox.games.zip.Cell
+import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
 import com.ivandsky.puzzlebox.games.zip.engine.ZipRules
 import com.ivandsky.puzzlebox.games.zip.zipPlugin
 import java.time.LocalDate
@@ -51,8 +52,8 @@ class ZipDragRecomposeTest {
     private fun newController(): ZipPlayController =
         ZipPlayController(PlayEnvironment(scope, { lastBytes = it }, {}))
 
-    private fun adopted(): ZipPlayController = newController().also {
-        check(it.adoptToday(ZipPlayFixture.envelope(), ZipPlayFixture.ref(LocalDate.of(2026, 10, 31))) == Adopt.Adopted)
+    private fun adopted(puzzle: ZipPuzzle = ZipPlayFixture.puzzle()): ZipPlayController = newController().also {
+        check(it.adoptToday(ZipPlayFixture.envelope(puzzle), ZipPlayFixture.ref(LocalDate.of(2026, 10, 31))) == Adopt.Adopted)
     }
 
     private fun show(controller: ZipPlayController) {
@@ -132,6 +133,21 @@ class ZipDragRecomposeTest {
         }
         composeRule.waitForIdle()
         assertValidTrace(controller, listOf(0, 1, 2, 3, 4))
+    }
+
+    @Test
+    fun `a fast shallow diagonal over an open board extends every crossed cell in order`() {
+        // One move from cell 0 to cell 9, a row down over four columns: cells 2 and 7 are crossed
+        // through their dead rims only, so cell 8 is caught two steps from the tail.
+        val controller = adopted(ZipPlayFixture.puzzle().let { it.copy(board = it.board.copy(walls = emptySet())) })
+        show(controller)
+        composeRule.onNodeWithTag("play.board").performTouchInput {
+            down(at(width, height, 0))
+            moveTo(at(width, height, 9))
+            up()
+        }
+        composeRule.waitForIdle()
+        assertValidTrace(controller, listOf(0, 1, 2, 7, 8, 9))
     }
 
     @Test
