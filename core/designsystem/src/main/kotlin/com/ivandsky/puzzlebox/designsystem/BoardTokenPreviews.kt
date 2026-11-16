@@ -58,7 +58,7 @@ private fun SheetColumn(title: String, readable: Boolean, dark: Boolean) {
 }
 
 /**
- * A 4×4 board in the ambient board look: grid lines, two strong walls (one with a corner), a numbered cell
+ * A 4×4 board in the ambient board look: grid lines, a wall outline when the geometry asks for it, two strong walls (one with a corner), a numbered cell
  * for the start, the next number to reach (ringed when the geometry asks for it) and the last, an empty cell
  * and a legal-cell tint sample.
  */
@@ -76,7 +76,9 @@ internal fun BoardTokenSample() {
         // A legal cell and an empty one: the tint is transparent in both looks, so neither changes the cell.
         drawRect(colors.legalCellTint, point(1, 1), Size(pitch, pitch))
 
-        for (i in 0..SheetGrid) {
+        // With a wall outline the board edge is a wall, so only the inner lines are grid lines.
+        val gridLines = if (geometry.wallOutline) 1 until SheetGrid else 0..SheetGrid
+        for (i in gridLines) {
             drawLine(colors.boardGridLine, point(i, 0), point(i, SheetGrid), BoardTokens.boardGridLineWeight.toPx())
             drawLine(colors.boardGridLine, point(0, i), point(SheetGrid, i), BoardTokens.boardGridLineWeight.toPx())
         }
@@ -86,8 +88,12 @@ internal fun BoardTokenSample() {
             cap = if (geometry.roundedWallCaps) StrokeCap.Round else StrokeCap.Butt,
             join = if (geometry.roundedWallCaps) StrokeJoin.Round else StrokeJoin.Miter,
         )
+        // Walls end on the outline's centre line, so the round cap sits inside the outline's own stroke.
         drawPath(wallPath(::point, listOf(2 to 0, 2 to 2, 3 to 2)), colors.boardWall, style = wall)
         drawPath(wallPath(::point, listOf(0 to 3, 2 to 3)), colors.boardWall, style = wall)
+        if (geometry.wallOutline) {
+            drawRect(colors.boardWall, point(0, 0), Size(pitch * SheetGrid, pitch * SheetGrid), style = wall)
+        }
 
         numberedCell(measurer, numberStyle, colors.boardInk, point(0, 0), pitch, "1")
         numberedCell(measurer, numberStyle, colors.boardInk, point(2, 1), pitch, "2")
