@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.games.tangoui
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -22,6 +21,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -85,6 +85,7 @@ class TangoBoardRenderer(
         // Stable across placements: BoardGrid keys its tap detector on this lambda, and a
         // new one per model restarted the detector, dropping a tap in flight (M4-tango-28).
         val onCellTap = remember(this, n) { onTap?.let { tap -> { row: Int, col: Int -> tap(row * n + col) } } }
+        val style = rememberTangoBoardStyle()
 
         Column(modifier) {
             BoxWithConstraints(Modifier.fillMaxWidth()) {
@@ -92,14 +93,8 @@ class TangoBoardRenderer(
                 BoardGrid(
                     rows = tango.n,
                     cols = tango.n,
-                    modifier = Modifier
-                        .aspectRatio(1f)
-                        // Close the mesh: without an outer border the top row reads
-                        // as glyphs floating above the board (user QA 2026-11-02).
-                        .border(
-                            width = BoardTokens.boardGridLineWeight * 2,
-                            color = LocalBoardColors.current.boardGridLine,
-                        ),
+                    // The frame and the sign ink follow the board tokens (TangoReadableBoardStyle).
+                    modifier = Modifier.aspectRatio(1f).then(style.frame),
                     markStyleOverride = MaterialTheme.typography.labelMedium.copy(
                         // Mark font, fraction of pitch; the drawn `=`/`×` ink per
                         // size is in markTextFraction's KDoc (TangoMarkInkTest).
@@ -107,7 +102,7 @@ class TangoBoardRenderer(
                             (pitch * TangoBoardSpec.markTextFraction(tango.n)).toSp()
                         },
                     ),
-                    markColorOverride = MaterialTheme.colorScheme.onSurface,
+                    markColorOverride = style.signInk,
                     // LinkedIn chip treatment: opaque disc under the symbol, drawn
                     // above the cell layer so the mark never hides under glyphs.
                     markBadge = true,
@@ -132,6 +127,7 @@ class TangoBoardRenderer(
                     cellContent = { row, col ->
                         Cell(
                             model = tango,
+                            style = style,
                             onPlacement = commit,
                             hinted = (row * tango.n + col) in hinted,
                             glyphFade = glyphFade,
@@ -151,6 +147,7 @@ class TangoBoardRenderer(
 @Composable
 private fun Cell(
     model: TangoRendererModel,
+    style: TangoReadableBoardStyle,
     onPlacement: ((TangoPlacement) -> Unit)?,
     hinted: Boolean,
     glyphFade: FiniteAnimationSpec<Float>?,
@@ -162,6 +159,8 @@ private fun Cell(
     val violationPhrase = TangoSemantics.violationPhraseAt(model, idx)
     val violating = violationPhrase != null
     val scheme = MaterialTheme.colorScheme
+    val given = render?.isGiven == true && render.value != null
+    val outline = if (given) style.givenOutline else Color.Unspecified
     val gridLineWeight = BoardTokens.boardGridLineWeight
     val reducedMotion = rememberReducedMotion()
     // ViolationFlash retired (user QA 2026-11-02): the 1→0.86 cell scale read as a
@@ -177,15 +176,11 @@ private fun Cell(
                 // Square corners (user QA 2026-11-02): the board is a squared
                 // gridline mesh — state washes follow the cells, not tiles.
                 val stateRadius = CornerRadius.Zero
-                // Given identity (user QA 2026-11-02): preplaced cells read as DISABLED —
+                // Given identity, legacy look (user QA 2026-11-02): preplaced cells read as DISABLED —
                 // a muted background wash, not a dot. Drawn before the violation tint so
                 // a given caught in a violating line still shows the error state above it.
-                if (render?.isGiven == true && render.value != null) {
-                    drawRoundRect(
-                        color = scheme.surfaceVariant.copy(alpha = TangoBoardSpec.givenTintAlpha),
-                        cornerRadius = stateRadius,
-                    )
-                }
+                // The readable look has no wash: the given's glyph wears an ink outline instead.
+                if (given && style.givenWash.isSpecified) drawRoundRect(color = style.givenWash, cornerRadius = stateRadius)
                 if (violating) {
                     // errorContainer tint 0.7 (Zip rejection precedent) + dashed border
                     // in colorScheme.error — the shape signal keeps color from being
@@ -212,10 +207,10 @@ private fun Cell(
         contentAlignment = Alignment.Center,
     ) {
         if (glyphFade == null) {
-            render?.value?.let { Glyph(it, Modifier.fillMaxSize(), model.n) }
+            render?.value?.let { Glyph(it, Modifier.fillMaxSize(), model.n, outline = outline) }
         } else {
             Crossfade(render?.value, Modifier.fillMaxSize(), glyphFade, label = "tango.glyph") { value ->
-                value?.let { Glyph(it, Modifier.fillMaxSize(), model.n) }
+                value?.let { Glyph(it, Modifier.fillMaxSize(), model.n, outline = outline) }
             }
         }
         // Guide ghost (spec A12): the lesson's answer, faint, until the square matches —
@@ -256,21 +251,30 @@ private fun Cell(
     }
 }
 
-/** The sun or moon in its board fill, at [alpha] of that fill's own alpha (1 = the placed glyph). */
+/**
+ * The sun or moon in its board fill, at [alpha] of that fill's own alpha (1 = the placed glyph). A specified
+ * [outline] rings the glyph in that colour first (a given under the readable tokens).
+ */
 @Composable
-private fun Glyph(value: TangoCell, modifier: Modifier, n: Int, alpha: Float = 1f) {
+private fun Glyph(value: TangoCell, modifier: Modifier, n: Int, alpha: Float = 1f, outline: Color = Color.Unspecified) {
     val colors = LocalBoardColors.current
     when (value) {
-        TangoCell.SUN -> SunGlyph(modifier, colors.sunFill.copy(alpha = colors.sunFill.alpha * alpha), n)
-        TangoCell.MOON -> MoonGlyph(modifier, colors.moonFill.copy(alpha = colors.moonFill.alpha * alpha), n)
+        TangoCell.SUN -> SunGlyph(modifier, colors.sunFill.copy(alpha = colors.sunFill.alpha * alpha), n, outline)
+        TangoCell.MOON -> MoonGlyph(modifier, colors.moonFill.copy(alpha = colors.moonFill.alpha * alpha), n, outline)
     }
 }
 
 @Composable
-private fun SunGlyph(modifier: Modifier, fill: Color, n: Int) = Canvas(modifier) { drawSun(fill, n) }
+private fun SunGlyph(modifier: Modifier, fill: Color, n: Int, outline: Color) = Canvas(modifier) {
+    if (outline.isSpecified) drawSun(outline, n, rim = TangoReadableBoardStyle.GivenOutlineWeight.toPx())
+    drawSun(fill, n)
+}
 
 @Composable
-private fun MoonGlyph(modifier: Modifier, fill: Color, n: Int) {
+private fun MoonGlyph(modifier: Modifier, fill: Color, n: Int, outline: Color) {
     val paths = remember { MoonPaths() }
-    Canvas(modifier) { drawMoon(fill, n, paths) }
+    Canvas(modifier) {
+        if (outline.isSpecified) drawMoon(outline, n, paths, rim = TangoReadableBoardStyle.GivenOutlineWeight.toPx())
+        drawMoon(fill, n, paths)
+    }
 }

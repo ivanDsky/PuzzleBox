@@ -14,14 +14,24 @@ import kotlin.math.max
  * reveal, or [TangoStep.Solved]. Pure and bounded: it never calls the solver. The
  * solution comes from the caller (null when the solver ran out of budget or the board is not
  * unique): without it only rule breaks are mistakes and nothing is revealed.
+ *
+ * With `firstMove` (nav-rethink B4) the cheapest rung is no longer always first: a step the player
+ * sees at a glance waits while a later rung forces a cell they cannot see that way.
  */
 object TangoStepper {
 
-    /** Catalog order D0..D8, cheapest first: the only place the stepping order lives. */
-    private val rungs: List<TangoStepRule> = listOf(
+    /**
+     * D0..D2, the rungs seen at a glance: one sign with a filled side, or two equal cells one cell
+     * from three in a row. Their proof is a single marker or pair, with nothing to count.
+     */
+    private val glance: List<TangoStepRule> = listOf(
         TangoLegacyStepRules.sign,
         TangoLegacyStepRules.pair,
         TangoLegacyStepRules.sandwich,
+    )
+
+    /** D3..D8, the rungs that take counting or reading a whole line. */
+    private val worked: List<TangoStepRule> = listOf(
         TangoLegacyStepRules.fullLine,
         TangoEqualPairRule,
         TangoSignCountRule,
@@ -30,21 +40,35 @@ object TangoStepper {
         TangoLegacyStepRules.lineOptions,
     )
 
-    fun next(puzzle: TangoPuzzle, grid: List<TangoCell?>, lastMove: Int?, solution: List<TangoCell>?): TangoStep {
+    /** Catalog order D0..D8, cheapest first: the only place the stepping order lives. */
+    private val rungs: List<TangoStepRule> = glance + worked
+
+    /**
+     * [firstMove] off steps in catalog order. On, the first [worked] rung that forces a cell no
+     * [glance] rung forces wins, and a glance step is returned only when no such cell exists.
+     * Mistakes, the solved check and the reveal are the same either way.
+     */
+    fun next(puzzle: TangoPuzzle, grid: List<TangoCell?>, lastMove: Int?, solution: List<TangoCell>?, firstMove: Boolean = false): TangoStep {
         require(grid.size == puzzle.cellCount) { "grid holds ${grid.size} cells, puzzle ${puzzle.cellCount}" }
         require(solution == null || solution.size == puzzle.cellCount) { "solution size ${solution?.size}" }
         mistake(puzzle, grid, lastMove, solution)?.let { return it }
         if (grid.none { it == null } && TangoRules.isComplete(TangoState(puzzle, grid))) return TangoStep.Solved
         // With a solution every wrong entry was returned above, so the rungs read only givens and
         // correct entries (A5); without one, entries off the solution cannot be told apart.
-        for (rung in rungs) {
-            val best = rung.forced(puzzle, grid).minWithOrNull(
-                compareBy<TangoStep.Deduction>({ chebyshev(puzzle.n, it.idx, lastMove) }, { it.evidence.size }, { it.idx }),
-            )
-            if (best != null) return best
-        }
+        deduction(puzzle, grid, lastMove, firstMove)?.let { return it }
         if (solution == null) return TangoStep.Unavailable
         return TangoReveal.pick(puzzle, grid, lastMove, solution) ?: TangoStep.Unavailable
+    }
+
+    /** The deduction to show: within a rung the one nearest [lastMove], then fewest evidence cells, then lowest index. */
+    private fun deduction(puzzle: TangoPuzzle, grid: List<TangoCell?>, lastMove: Int?, firstMove: Boolean): TangoStep.Deduction? {
+        val nearest = compareBy<TangoStep.Deduction>({ chebyshev(puzzle.n, it.idx, lastMove) }, { it.evidence.size }, { it.idx })
+        if (!firstMove) return rungs.firstNotNullOfOrNull { it.forced(puzzle, grid).minWithOrNull(nearest) }
+        val glanced = glance.map { it.forced(puzzle, grid) }
+        val seen = glanced.flatMapTo(HashSet()) { steps -> steps.map { it.idx } }
+        // With nothing seen at a glance this is the catalog order over the worked rungs, as with firstMove off.
+        return worked.firstNotNullOfOrNull { rung -> rung.forced(puzzle, grid).filter { it.idx !in seen }.minWithOrNull(nearest) }
+            ?: glanced.firstNotNullOfOrNull { it.minWithOrNull(nearest) }
     }
 
     /** The player entry to accuse, nearest [lastMove] then lowest index; givens are never accused. */
