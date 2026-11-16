@@ -100,3 +100,4 @@ to merge without being reachable in a release build.
 - CustomInGames flipped to `releaseDefault = true` in 0.35.0 on 2026-11-16 (nav-rethink M3, PRs #1020, #1025, #1026, #1029, #1032, #1034, #1037; user check ok on <fill after check>).
 - ResultMoments flipped to `releaseDefault = true` in 0.36.0 on 2026-11-16 (nav-rethink M4, PRs #1022, #1027, #1028, #1031, #1033, #1040, #1044, #1050; check build: (filled after the device check)).
 - CommunityPuzzles flipped to `releaseDefault = true` in 0.37.0 on 2026-11-16 (nav-rethink M8, slices 60 #1038, 70 and 71 #1043, 72 #1046, 73 #1055, 73b #1056, 74 #1059, 74b #1061, 75 #1058; production rules and indexes deployed by 76; check build: (filled after the device check)).
+- FinishForMe flipped to `releaseDefault = true` in 0.38.0 on 2026-11-16 (nav-rethink M7, slices 60 #1038, 61 #1039, 62 #1045, 63 #1057, 64 #1064, 65 #1060, 66 #1062; check build: (filled after the device check)).

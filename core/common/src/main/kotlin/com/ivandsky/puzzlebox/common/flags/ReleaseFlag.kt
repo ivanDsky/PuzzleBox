@@ -44,7 +44,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * Finish for me in the Studio (nav-rethink E1): a game whose editor has a `DraftCompleter` completes a half-built draft
      * into a unique puzzle, keeping every piece the author placed. Read only in a ViewModel or a DI module (spec A2).
      */
-    FinishForMe(label = "Finish for me in the Studio", releaseDefault = false),
+    FinishForMe(label = "Finish for me in the Studio", releaseDefault = true),
 
     /**
      * Community puzzles in Custom (nav-rethink C1, C2): public publishing, the New today list and reporting a puzzle.
