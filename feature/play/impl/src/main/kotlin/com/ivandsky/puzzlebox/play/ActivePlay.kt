@@ -54,6 +54,8 @@ class ActivePlay internal constructor(
     private val completions: CompletionRepository,
     private val scope: CoroutineScope,
     private val recordScope: CoroutineScope,
+    /** Whether [slot] is, right now, the game's today — the loading board's copy says "today's puzzle" only then. */
+    private val isTodays: () -> Boolean,
 ) {
     /** What the play screen draws: the live controller and the shared fetch state. */
     data class Board(val controller: GamePlayController, val status: PlayBoardStatus)
@@ -89,7 +91,7 @@ class ActivePlay internal constructor(
     private var moveLog: MoveLog = MoveLog.off()
     private val winRecording = WinRecording(plugin, completions, scope, recordScope)
 
-    private val _board = MutableStateFlow(Board(newController(), PlayBoardStatus.Loading))
+    private val _board = MutableStateFlow(Board(newController(), loadingStatus()))
     val board: StateFlow<Board> = _board.asStateFlow()
 
     val record: StateFlow<Record> get() = winRecording.record
@@ -127,7 +129,7 @@ class ActivePlay internal constructor(
         resetRecord(ref = null)
         reopen = null
         persistence.disarm()
-        _board.value = Board(controller, PlayBoardStatus.Loading)
+        _board.value = Board(controller, loadingStatus())
         loading = scope.launch {
             val opened = opening.open(slot)
             if (gen != generation) return@launch // superseded; its result is never shown
@@ -175,7 +177,7 @@ class ActivePlay internal constructor(
             is PlaySlot.Custom -> plugin.refOf(PuzzleKey.Custom(slot.puzzleId))
             is PlaySlot.Leg -> error("legs open Built")
         }
-        if (controller !== this.controller) return PlayBoardStatus.Loading // superseded; never shown
+        if (controller !== this.controller) return loadingStatus() // superseded; never shown
         return when (val adopted = controller.adoptToday(fetched.puzzle, resolved)) {
             is Adopt.Rejected -> PlayBoardStatus.Unavailable(adopted.message)
             Adopt.Adopted -> {
@@ -193,7 +195,7 @@ class ActivePlay internal constructor(
      *  checked. Bytes the controller still cannot read are unavailable, never a loop. A
      *  restored COMPLETED session shows its win without re-emitting and reads no baseline. */
     private fun resume(controller: GamePlayController, envelope: ByteArray): PlayBoardStatus {
-        if (controller !== this.controller) return PlayBoardStatus.Loading // superseded; never shown
+        if (controller !== this.controller) return loadingStatus() // superseded; never shown
         val session = SessionBlob.decode(envelope)?.session ?: return PlayBoardStatus.Unavailable(UNREADABLE)
         val restored = controller.adoptRestored(session) ?: return PlayBoardStatus.Unavailable(UNREADABLE)
         reopen = { it.adoptRestored(session) != null }
@@ -283,8 +285,10 @@ class ActivePlay internal constructor(
      */
     private fun withLog(current: GamePlayController, logOf: () -> MoveLog): GamePlayController {
         if (current !== controller || !recording) return current
-        return newController(logOf()).also { _board.value = Board(it, PlayBoardStatus.Loading) }
+        return newController(logOf()).also { _board.value = Board(it, loadingStatus()) }
     }
+
+    private fun loadingStatus() = PlayBoardStatus.Loading(todaysDaily = isTodays())
 
     private companion object {
         const val UNREADABLE = "This saved game couldn't be read."

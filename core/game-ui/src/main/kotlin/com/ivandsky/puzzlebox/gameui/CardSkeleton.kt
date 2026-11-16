@@ -66,7 +66,7 @@ internal fun SkeletonCircle(size: Dp, color: Color, modifier: Modifier = Modifie
 }
 
 @Composable
-private fun Modifier.skeleton(color: Color, shape: Shape): Modifier {
+internal fun Modifier.skeleton(color: Color, shape: Shape): Modifier {
     val base = clip(shape).background(color)
     if (rememberReducedMotion() || LocalInspectionMode.current) return base
     val progress = rememberSheenProgress()

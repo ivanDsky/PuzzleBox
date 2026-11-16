@@ -54,9 +54,9 @@ internal fun GameEntry(
             boardStyle = boardStyle,
         )
         is OpenDecision.Finished -> {
-            GameLoading(onBack = { navigator.pop() })
+            GameLoading(onBack = { navigator.pop() }, todaysDaily = key.day == null)
             LaunchedEffect(state) { navigator.replaceTop(state.result) }
         }
-        else -> GameLoading(onBack = { navigator.pop() })
+        else -> GameLoading(onBack = { navigator.pop() }, todaysDaily = key.day == null)
     }
 }
