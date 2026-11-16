@@ -8,3 +8,4 @@ build/
 .cxx/
 .scratch/
 PuzzleBox-*-debug.apk
+/PROFILE.local.md

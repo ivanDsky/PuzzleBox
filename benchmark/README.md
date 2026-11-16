@@ -39,7 +39,7 @@ The device must be awake and unlocked (`Stay awake` on, charging) and on its hom
 ```
 
 With more than one device attached, name one: `ANDROID_SERIAL=<serial> ./gradlew ...`. For the
-Pixel 8 Pro that is its wireless-debugging address (`adb connect 100.92.178.105:<port>`; the port
+Pixel 8 Pro that is its wireless-debugging address (`adb connect <phone address>:<port>`; the port
 changes when wireless debugging restarts). The Galaxy Tab S9 Ultra needs the same, with its own
 serial. The Tab is a two-pane layout (840 dp wide, wider than tall, at least 480 dp tall: the app's own rule, which
 `isTwoPane()` in `Navigation.kt` repeats), and the journeys run on both layouts unchanged:
