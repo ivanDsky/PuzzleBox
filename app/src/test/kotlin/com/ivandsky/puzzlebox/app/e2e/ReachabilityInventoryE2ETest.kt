@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.Chrome as PlacementChrome
+import com.ivandsky.puzzlebox.app.nav.PlacementDelta
 import com.ivandsky.puzzlebox.app.nav.placementOf
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
@@ -131,7 +132,7 @@ class ReachabilityInventoryE2ETest {
      */
     private fun ShellRobot.reached(route: String, width: Width) {
         assertRoute(route)
-        if (placementOf(state.currentStack.last()).chrome == PlacementChrome.Immersive) {
+        if (placementOf(state.currentStack.last(), PlacementDelta.None).chrome == PlacementChrome.Immersive) {
             assertNoNavigation()
         } else if (width == Width.Phone) {
             assertBottomBar()

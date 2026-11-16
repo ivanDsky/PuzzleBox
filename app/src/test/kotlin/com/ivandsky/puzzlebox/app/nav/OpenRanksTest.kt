@@ -58,7 +58,7 @@ class OpenRanksTest {
     @Test
     fun `Today's day opens Overall at the day and its streak opens the calendar`() {
         val navigator = navigator()
-        val summaries = homeSummaries(navigator, duels = null, libraryRequests = LibraryRequests())
+        val summaries = homeSummaries(navigator, TabSet.FourTabs, duels = null, libraryRequests = LibraryRequests())
         summaries.onOpenDay("2026-11-05")
         assertEquals(HistoryKey(null, "2026-11-05"), navigator.state.currentStack.last())
         navigator.pop()

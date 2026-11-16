@@ -41,8 +41,14 @@ private val create = TopLevelDestination(
 )
 
 /**
- * The tab set: Today, Games, Ranks, Create (ADR-0027, amended). Ranks took History's slot and keeps
+ * The four-tab set: Today, Games, Ranks, Create (ADR-0027, amended). Ranks took History's slot and keeps
  * its key and [Tab], so a saved back stack, the placement table and [openOwner] read the same as
  * they did when the third tab was History.
  */
 internal val topLevelDestinations: List<TopLevelDestination> = listOf(home, play, ranks, create)
+
+/**
+ * The tab set with CustomInGames on: Today, Games, Ranks. Create is not a tab; its key stays
+ * registered so a state saved with four tabs still decodes, and restore drops its stack.
+ */
+internal val customInGamesDestinations: List<TopLevelDestination> = listOf(home, play, ranks)

@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.flowOf
 import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
+import com.ivandsky.puzzlebox.app.nav.TabSet
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxEntryProvider
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
@@ -39,6 +40,7 @@ class NavRoutesTest {
     private fun provider(): (NavKey) -> NavEntry<NavKey> =
         puzzleBoxEntryProvider(
             navigator = Navigator(puzzleBoxNavigationState()),
+            tabSet = TabSet.FourTabs,
             homeLayout = HomeLayout.SinglePane,
             playLayout = PlayLayout.SinglePane,
             historyLayout = HistoryLayout.SinglePane,

@@ -4,7 +4,8 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.navigation.Navigator
 
 /**
- * Goes to [key]'s owner (ADR-0027), through the reducer's own verbs.
+ * Goes to [key]'s owner (ADR-0027), through the reducer's own verbs. The owner is read from
+ * [tabSet]: its placement delta and its tabs.
  *
  * - A key whose home is `TabRoot(tab)` selects that tab and resets it to its root; nothing
  *   is pushed, and back from the root returns to the start tab. The owner key is found by
@@ -15,13 +16,13 @@ import com.ivandsky.puzzlebox.navigation.Navigator
  * A door out of the Profile layer closes the layer on the way: both verbs do that in the
  * reducer, so the owner's screen is never left under it.
  */
-internal fun Navigator.openOwner(key: NavKey) {
-    val tab = (placementOf(key).home as? Home.TabRoot)?.tab
+internal fun Navigator.openOwner(key: NavKey, tabSet: TabSet) {
+    val tab = (placementOf(key, tabSet.placement).home as? Home.TabRoot)?.tab
     if (tab == null) {
         push(key)
         return
     }
-    val owner = topLevelDestinations.first { it.tab == tab }.key
+    val owner = tabSet.destinations.first { it.tab == tab }.key
     selectTab(owner)
     // Selecting another tab keeps its stack; reselecting the selected tab pops it to its root.
     if (state.currentStack.size > 1) selectTab(owner)

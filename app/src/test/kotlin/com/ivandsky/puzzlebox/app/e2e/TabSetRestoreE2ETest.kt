@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import android.os.Bundle
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.navigation3.runtime.NavKey
 import androidx.savedstate.savedState
 import androidx.savedstate.serialization.encodeToSavedState
@@ -9,7 +11,9 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.CatalogKey
 import com.ivandsky.puzzlebox.app.nav.NAVIGATION_STATE_KEY
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.api.CreateKey
+import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
@@ -26,8 +30,8 @@ import org.robolectric.annotation.Config
 /**
  * A saved navigation state restores against the fresh state of the tab set the app launched
  * with, through the reducer's unchanged `reconciledWith`: a v1 (Home, Play, Create,
- * Profile) bundle. Each row asserts the restored state, the selected tab of the set on screen
- * and its route.
+ * Profile) bundle, and a four-tab bundle into the three tabs CustomInGames leaves. Each row
+ * asserts the restored state, the selected tab of the set on screen and its route.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -64,6 +68,46 @@ class TabSetRestoreE2ETest {
             assertProfileTabGone()
         }
 
+    @Test
+    fun `with CustomInGames on a four-tab bundle open in the Studio on Create restores to Today with three tabs`() =
+        shellRobot(graph = shellGraph(ReleaseFlag.CustomInGames)) {
+            val fourTabs = NavigationState(
+                tab = CreateKey,
+                stacks = listOf(V1_HOME, V1_PLAY, listOf(HistoryRootKey), listOf(CreateKey, EditorKey("d1"))),
+            )
+
+            restoreLegacy(bundleOf(fourTabs))
+
+            assertState(NavigationState(tab = HomeKey, stacks = listOf(V1_HOME, V1_PLAY, listOf(HistoryRootKey))))
+            assertRoute(RANKS)
+            assertEquals(0, rule.onAllNodesWithTag(CREATE_TAB).fetchSemanticsNodes().size)
+        }
+
+    @Test
+    fun `with CustomInGames on the Studio opens full-window on Games and back returns to Games`() =
+        shellRobot(graph = shellGraph(ReleaseFlag.CustomInGames)) {
+            tapTab(PlayKey)
+            push(EditorKey("d1"))
+
+            assertRoute(EDITOR)
+            assertState(
+                NavigationState(
+                    tab = PlayKey,
+                    stacks = listOf(listOf(HomeKey), listOf(PlayKey, EditorKey("d1")), listOf(HistoryRootKey)),
+                ),
+            )
+            assertNoNavigation()
+            assertEquals(
+                "the Studio's canvas is the whole window, not the strip above a hidden bar",
+                rule.onRoot().fetchSemanticsNode().boundsInRoot,
+                rule.onNodeWithTag(EDITOR, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot,
+            )
+
+            back()
+            assertState(NavigationState(tab = PlayKey, stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey))))
+            assertRoute(LIBRARY)
+        }
+
     private fun ShellRobot.assertProfileTabGone() {
         assertEquals(0, rule.onAllNodesWithTag(PROFILE_TAB).fetchSemanticsNodes().size)
     }
@@ -81,7 +125,10 @@ class TabSetRestoreE2ETest {
     private companion object {
         const val HOME = "route.home"
         const val RANKS = "route.ranks"
+        const val LIBRARY = "route.library"
+        const val EDITOR = "route.editor"
         const val PROFILE_TAB = "nav.tab.profile"
+        const val CREATE_TAB = "nav.tab.create"
         val V1_HOME = listOf(HomeKey, HistoryKey())
         val V1_PLAY = listOf(PlayKey, HistoryKey("zip"))
         val V1_CREATE = listOf(CreateKey, PublishedPuzzleKey("K7Q2MX"))

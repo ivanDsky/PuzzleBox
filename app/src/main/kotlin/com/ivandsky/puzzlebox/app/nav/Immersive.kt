@@ -8,13 +8,14 @@ import com.ivandsky.puzzlebox.play.api.ResultKey
 
 /**
  * The one rule for immersive play: a key whose screen is full-window hides the
- * tab bar and rail while it is on top. The answer is the key's row in the placement table
- * ([placementRows]): immersive when its chrome is [Chrome.Immersive]. Boards and results
+ * tab bar and rail while it is on top. The answer is the key's placement ([placementOf],
+ * through the active [delta]): immersive when its chrome is [Chrome.Immersive]. Boards and results
  * of every kind are immersive, a duel's leg board and leg result included, and so is a
  * duel's reveal. The duel screen ([com.ivandsky.puzzlebox.compete.api.DuelKey]) keeps the
  * bottom nav.
  */
-internal fun isImmersive(key: NavKey): Boolean = placementOf(key).chrome == Chrome.Immersive
+internal fun isImmersive(key: NavKey, delta: PlacementDelta): Boolean =
+    placementOf(key, delta).chrome == Chrome.Immersive
 
 /**
  * The board-and-result subset of [isImmersive] that takes the game motion (tablet lifts

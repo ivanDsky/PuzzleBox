@@ -10,6 +10,7 @@ import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.serialization.encodeToSavedState
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
+import org.koin.compose.koinInject
 
 /**
  * The saved navigation's version key: the encoded [NavigationState] is stored under it, so a
@@ -21,10 +22,12 @@ internal const val NAVIGATION_STATE_KEY = "puzzlebox.navigation.v1"
  * The app's [Navigator], surviving rotation and process death. A restored state is
  * reconciled with [fresh] (tabs added or dropped since it was saved); a bundle that is
  * missing, foreign or undecodable, or breaks a state invariant, starts at [fresh] (A17).
+ * [fresh] is the fresh state of the app graph's tab set ([TabSetSource]) unless given.
  */
 @Composable
-internal fun rememberNavigator(fresh: NavigationState = puzzleBoxNavigationState()): Navigator =
-    rememberSaveable(saver = navigatorSaver(fresh)) { Navigator(fresh) }
+internal fun rememberNavigator(
+    fresh: NavigationState = puzzleBoxNavigationState(koinInject<TabSetSource>().tabSet.destinations),
+): Navigator = rememberSaveable(saver = navigatorSaver(fresh)) { Navigator(fresh) }
 
 private fun navigatorSaver(fresh: NavigationState): Saver<Navigator, SavedState> = Saver(
     save = { navigator ->

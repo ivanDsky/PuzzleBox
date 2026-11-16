@@ -33,7 +33,7 @@ internal const val ENTRY_KEY = "puzzlebox.entryKey"
  * (saveable state, a per-entry ViewModel store, then the [SceneCanvas], then [shellChrome]), so
  * an off-screen tab keeps its screens' state and a popped entry releases its own. Content keys
  * are namespaced by owner (the same key on two stacks is two entries) and each entry carries
- * [OWNER_TAB] and [ENTRY_KEY].
+ * [OWNER_TAB] and [ENTRY_KEY]. [placement] is the active delta the canvas reads a scene's chrome through.
  *
  * Returns the entries NavDisplay renders: [NavigationState.visibleKeys]' entries, in order, so
  * an open layer's pages sit on top of the tab they cover.
@@ -43,11 +43,12 @@ internal fun rememberTabEntries(
     state: NavigationState,
     entryProvider: (NavKey) -> NavEntry<NavKey>,
     shellChrome: NavEntryDecorator<NavKey>,
+    placement: PlacementDelta,
 ): List<NavEntry<NavKey>> {
     val saveableState = rememberSaveableStateHolderNavEntryDecorator<NavKey>()
     val viewModelStore = rememberViewModelStoreNavEntryDecorator<NavKey>()
-    val sceneCanvas = remember {
-        NavEntryDecorator<NavKey> { entry -> SceneCanvas(entry.metadata[ENTRY_KEY]) { entry.Content() } }
+    val sceneCanvas = remember(placement) {
+        NavEntryDecorator<NavKey> { entry -> SceneCanvas(entry.metadata[ENTRY_KEY], placement) { entry.Content() } }
     }
     val decorators = remember(saveableState, viewModelStore, sceneCanvas, shellChrome) {
         listOf(saveableState, viewModelStore, sceneCanvas, shellChrome)

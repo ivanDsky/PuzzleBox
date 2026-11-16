@@ -63,6 +63,7 @@ import java.time.LocalDate
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
+    tabSet: TabSet,
     homeLayout: HomeLayout,
     playLayout: PlayLayout,
     historyLayout: HistoryLayout,
@@ -77,7 +78,7 @@ internal fun puzzleBoxEntryProvider(
         navigator,
         homeLayout,
         title = topLevelDestinations.first { it.key == HomeKey }.label,
-        summaries = homeSummaries(navigator, duels, libraryRequests),
+        summaries = homeSummaries(navigator, tabSet, duels, libraryRequests),
     )
     ranksEntry(navigator, historyLayout, linkedIn = true, tuneDefaults = tuneDefaults)
     playEntry(
@@ -115,18 +116,19 @@ internal fun openRanks(navigator: Navigator): (GameId, LocalDate?) -> Unit =
     { game, day -> navigator.pushOnce(HistoryKey(game.value, day?.toString())) }
 
 /**
- * What Today opens: the rank row the hub at that game, the duels row the Games section, the day summary the hub on
- * Overall at that ISO day and the streak summary the hub with the calendar expanded.
+ * What Today opens: the rank row the hub at that game, the duels row the Games section (its owner under [tabSet]),
+ * the day summary the hub on Overall at that ISO day and the streak summary the hub with the calendar expanded.
  */
 internal fun homeSummaries(
     navigator: Navigator,
+    tabSet: TabSet,
     duels: DuelsSlot?,
     libraryRequests: LibraryRequests,
 ): HomeSummaries = HomeSummaries(
     onOpenRank = { game -> openRanks(navigator)(game, null) },
     duels = duels?.let {
         HomeDuelsSummary(
-            onOpen = { libraryRequests.openGamesSection(navigator, GamesTab.Duels) },
+            onOpen = { libraryRequests.openGamesSection(navigator, tabSet, GamesTab.Duels) },
             needYou = it.needYou,
         )
     },

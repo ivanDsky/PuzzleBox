@@ -96,6 +96,33 @@ class TopLevelNavBarTest {
     }
 
     @Test
+    fun `with CustomInGames on the bar shows today, games, ranks and no create`() {
+        assertHighlight(customInGamesDestinations) { selected, onSelect ->
+            TopLevelNavBar(selected = selected, onSelect = onSelect, destinations = customInGamesDestinations)
+        }
+        assertNoCreateTab()
+    }
+
+    @Test
+    fun `with CustomInGames on the rail shows today, games, ranks and no create`() {
+        assertHighlight(customInGamesDestinations) { selected, onSelect ->
+            TopLevelNavRail(
+                selected = selected,
+                onSelect = onSelect,
+                destinations = customInGamesDestinations,
+                bottomActions = RAIL_SLOT,
+            )
+        }
+        assertNoCreateTab()
+    }
+
+    private fun assertNoCreateTab() {
+        assertOnlyTabs(customInGamesDestinations)
+        listOf("nav.tab.home", "nav.tab.play", "nav.tab.ranks").forEach { composeRule.onAllNodesWithTag(it).assertCountEquals(1) }
+        composeRule.onAllNodesWithTag("nav.tab.create").assertCountEquals(0)
+    }
+
+    @Test
     fun `bar shows the dot on games only when games is badged`() {
         assertBadge { badged -> TopLevelNavBar(selected = HomeKey, onSelect = {}, badged = badged) }
     }
