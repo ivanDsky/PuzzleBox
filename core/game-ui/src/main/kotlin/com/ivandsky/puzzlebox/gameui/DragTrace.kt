@@ -11,6 +11,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.Dp
+import com.ivandsky.puzzlebox.designsystem.BoardTokens
 
 /**
  * Game events out of the trace gesture (user gate feedback R1 — ticket 26): a stroke
@@ -69,6 +71,7 @@ fun interface DragTraceHooks {
  * [onPointer] reports the live finger in board px for every drag sample past the slop,
  * and null once the drag ends (lift or cancel); taps never report. Hold it in snapshot
  * state and read it in the draw phase so the tip redraws without recomposing the board.
+ * [wallWeight] is the stroke of the [edgeOverlays] walls, passed straight to [BoardGrid].
  */
 @Composable
 fun DragTraceBoard(
@@ -82,6 +85,7 @@ fun DragTraceBoard(
     underlay: @Composable BoxScope.() -> Unit = {},
     cellContent: @Composable BoxScope.(row: Int, col: Int) -> Unit = { _, _ -> },
     onPointer: (Offset?) -> Unit = {},
+    wallWeight: Dp = BoardTokens.boardWallWeight,
 ) {
     val latestPath by rememberUpdatedState(path)
     val latestHooks by rememberUpdatedState(hooks)
@@ -97,6 +101,7 @@ fun DragTraceBoard(
             rows = rows,
             cols = cols,
             edgeOverlays = edgeOverlays,
+            wallWeight = wallWeight,
             underlay = underlay,
             cellContent = cellContent,
         )

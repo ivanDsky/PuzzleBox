@@ -5,8 +5,12 @@ import com.ivandsky.puzzlebox.games.zip.Cell
 
 /** Game-authored hint presentation (core `Hint` marker): reveal one cell, or trim first. */
 sealed interface ZipHint : Hint {
-    /** Highlight [cell] — the next cell of a solution extending the current trace. */
-    data class Step(val cell: Cell) : ZipHint
+    /**
+     * Highlight [cell] — the next cell of a solution extending the current trace. Under the
+     * first-move rule ([ZipHints.firstMove]) [lead] holds the cells the player already knows, in
+     * order from the trace head up to [cell]; the caller places them before the hint, uncounted.
+     */
+    data class Step(val cell: Cell, val lead: List<Cell> = emptyList()) : ZipHint
 
     /** The trace is provably dead: retreat to path index [trimTo] (keep path[0..trimTo];
      *  -1 = trim to empty). The trim itself is free (F2 §10) — the caller applies it and
@@ -37,6 +41,30 @@ class ZipHints(private val solver: ZipSolver = ZipSolver()) {
         } else {
             ZipHint.Backtrack(diverge - 1) // keep path[0..diverge-1]; -1 = empty trace
         }
+    }
+
+    /**
+     * The hint under the first-move rule (nav-rethink B4, [ZipFirstMovePicker]): the same trim as
+     * [hint] for a dead trace, otherwise the first real choice with the known cells before it as
+     * the step's lead. A stored solution is the board's only one (A16 fetch gate, generator), so
+     * each of its steps is already proven and nothing is searched; a board without one asks the solver.
+     */
+    fun firstMove(state: ZipState): ZipHint {
+        val puzzle = state.puzzle
+        val path = state.path
+        val stored = puzzle.solution
+        if (stored == null) {
+            val line = solver.completionFrom(puzzle, path)?.takeIf { it.size > path.size } ?: return hint(state)
+            return searched.pick(puzzle, path, line)
+        }
+        val legacy = hint(state)
+        return if (legacy is ZipHint.Step) unique.pick(puzzle, path, stored) else legacy
+    }
+
+    private val unique = ZipFirstMovePicker { _, _, _ -> true }
+
+    private val searched = ZipFirstMovePicker { puzzle, prefix, others ->
+        others.none { solver.canComplete(puzzle, prefix + it) }
     }
 
     /** Boards without a stored solution: the solver answers as before. */

@@ -124,6 +124,10 @@ object ZipRules : GameRules<ZipState> {
      *  Solver-backed only for boards without a stored solution ([ZipHints]). */
     override fun hint(state: ZipState): Hint = hints.hint(state)
 
+    /** The hint under the first-move rule (nav-rethink B4): [ZipHints.firstMove]. Beside
+     *  [hint], not through it: the core hint contract does not grow (ADR-0025). */
+    fun firstMoveHint(state: ZipState): ZipHint = hints.firstMove(state)
+
     fun isAdjacent(a: Cell, b: Cell, n: Int): Boolean = ZipVerifier.isAdjacent(a, b, n)
 
     /**

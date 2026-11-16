@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 import com.ivandsky.puzzlebox.game.RendererModel
 import com.ivandsky.puzzlebox.gameui.EdgeOverlay
 import com.ivandsky.puzzlebox.gameui.EdgeSide
@@ -42,6 +43,7 @@ class ZipBoardRenderer {
                 rows = zip.n,
                 cols = zip.n,
                 modifier = Modifier.matchParentSize(),
+                wallWeight = LocalBoardGeometry.current.wallWeight,
                 edgeOverlays = zip.walls.map { wall ->
                     EdgeOverlay.Wall(
                         cell = GridCell(row = wall.cellIdx / zip.n, col = wall.cellIdx % zip.n),
