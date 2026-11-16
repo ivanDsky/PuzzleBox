@@ -51,7 +51,8 @@ class MainActivity : ComponentActivity(), KoinComponent {
 
     private val firstScreen: FirstScreenReady by inject()
 
-    // The one reader of FlatSurfaces: the root theme below hands it down as LocalFlatSurfaces (spec A2).
+    // The one reader of FlatSurfaces and BoardTokens: the root theme below hands them down as LocalFlatSurfaces and
+    // LocalBoardGeometry (spec A2).
     private val releaseFlags: ReleaseFlags by inject()
 
     // Built in onCreate, on the clock the splash's one-second cap is measured on.
@@ -113,7 +114,11 @@ class MainActivity : ComponentActivity(), KoinComponent {
                     }
                 }
 
-                PuzzleBoxTheme(darkTheme = darkTheme, flatSurfaces = ReleaseFlag.FlatSurfaces in flags) {
+                PuzzleBoxTheme(
+                    darkTheme = darkTheme,
+                    flatSurfaces = ReleaseFlag.FlatSurfaces in flags,
+                    readableBoard = flags.readableBoard(),
+                ) {
                     PuzzleBoxApp(
                         windowWidthSizeClass = windowSize.widthSizeClass,
                         pendingLink = pendingLink,
