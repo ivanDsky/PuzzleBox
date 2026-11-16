@@ -2,13 +2,16 @@ package com.ivandsky.puzzlebox.games.zipui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.BoardTokens
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.EdgeOverlay
 import com.ivandsky.puzzlebox.gameui.EdgeSide
@@ -28,6 +31,7 @@ fun ZipBoard(model: ZipRendererModel, modifier: Modifier = Modifier) {
         cols = model.n,
         modifier = modifier.zipBoardOutline(model.n),
         edgeOverlays = zipWallOverlays(model),
+        wallWeight = LocalBoardGeometry.current.wallWeight,
         underlay = { ZipPipes(model) },
         cellContent = { row, col -> ZipCellDecor(model, row, col) },
     )
@@ -95,23 +99,31 @@ internal object ZipBoardSpec {
 
     /** U1 §4: board outline corner radius, measured 0.35–0.4 cell (midpoint picked). */
     const val boardOutlineRadiusFraction = 0.375f
+
+    /** The ring round the next number to reach: its radius as a fraction of the pitch, and its stroke. */
+    const val nextNumberRingRadiusFraction = 0.42f
+    val nextNumberRingWeight = 3.dp
 }
 
 /**
- * U1 §4: Zip has no wall element — the board outline IS the gridline stroke, drawn as a
- * rounded rectangle (radius ≈ 0.375 cell), inset by half the stroke so it stays inside
- * the board bounds. Board-level decoration, so both the read-only [ZipBoard] and the play
- * screen's DragTraceBoard hang it on their board modifiers.
+ * The board's outline, a rounded rectangle (U1 §4: radius ≈ 0.375 cell) inset by half its
+ * stroke so it stays inside the board bounds. By default it is the gridline stroke; when the
+ * board geometry asks for a wall outline it is drawn as a wall, and the board is clipped to
+ * its bounds so the round cap of a wall that ends at the edge cannot poke out past it.
+ * Board-level decoration, so both the read-only [ZipBoard] and the play screen's
+ * DragTraceBoard hang it on their board modifiers.
  */
 @Composable
 internal fun Modifier.zipBoardOutline(n: Int): Modifier {
     val board = LocalBoardColors.current
-    val weight = BoardTokens.boardGridLineWeight
-    return drawBehind {
+    val geometry = LocalBoardGeometry.current
+    val color = if (geometry.wallOutline) board.boardWall else board.boardGridLine
+    val weight = if (geometry.wallOutline) geometry.wallWeight else BoardTokens.boardGridLineWeight
+    return (if (geometry.wallOutline) clipToBounds() else this).drawBehind {
         val stroke = weight.toPx()
         val half = stroke / 2f
         drawRoundRect(
-            color = board.boardGridLine,
+            color = color,
             topLeft = Offset(half, half),
             size = Size(size.width - stroke, size.height - stroke),
             cornerRadius = CornerRadius(size.minDimension / n * ZipBoardSpec.boardOutlineRadiusFraction),

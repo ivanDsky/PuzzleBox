@@ -21,9 +21,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.ColorProducer
 import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
@@ -32,6 +34,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.tracePop
 import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
@@ -46,7 +49,9 @@ private val cellCorner = RoundedCornerShape(10.dp)
  * into neighbor dots. Sizes come from [ZipBoardSpec] fractions of the cell. Resting by
  * contract (A8): the next-target flash and the waypoint pop when the trace reaches a dot
  * animate only in the live game — the play screen passes [animated] (false under reduced
- * motion); previews and read-only boards stay static.
+ * motion); previews and read-only boards stay static. When the board geometry rings the
+ * next number to reach, [nextNumberAlpha] is that ring's opacity, read as it is drawn: the
+ * play screen passes its pulse, everything else leaves the ring full.
  */
 @Composable
 fun ZipCellDecor(
@@ -55,6 +60,7 @@ fun ZipCellDecor(
     col: Int,
     modifier: Modifier = Modifier,
     animated: Boolean = false,
+    nextNumberAlpha: () -> Float = { 1f },
 ) {
     val idx = row * model.n + col
     val cell = model.cells[idx]
@@ -70,7 +76,7 @@ fun ZipCellDecor(
         isHint = model.hintHighlight == idx,
         isRejected = model.rejection?.cellIdx == idx,
     )
-    ZipCell(face, modifier, animated)
+    ZipCell(face, modifier, animated, nextNumberAlpha)
 }
 
 /** What one cell draws; equal faces let [ZipCell] skip recomposition. */
@@ -90,7 +96,7 @@ internal data class ZipCellFace(
 internal var zipCellRecomposeProbe: ((Int) -> Unit)? = null
 
 @Composable
-internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean) {
+internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean, nextNumberAlpha: () -> Float) {
     zipCellRecomposeProbe?.invoke(face.idx)
     val idx = face.idx
     val dotFraction = ZipBoardSpec.dotSizeFraction(face.n)
@@ -98,6 +104,9 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean) {
     val isHint = face.isHint
     val isRejected = face.isRejected
     val board = LocalBoardColors.current
+    // The readable board marks the next number with its own ring round the dot; without it
+    // the dot itself takes the trace colour (the flash below).
+    val ringed = LocalBoardGeometry.current.nextNumberRing
     val scheme = MaterialTheme.colorScheme
 
     val pulse by animateFloatAsState(
@@ -135,6 +144,19 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean) {
         if (isRejected) {
             Box(Modifier.fillMaxSize().background(scheme.errorContainer.copy(alpha = 0.7f), cellCorner))
         }
+        if (ringed && face.isNextTarget) {
+            // Its own node, so a pulsing alpha repaints this cell alone and recomposes nothing.
+            Box(
+                Modifier.fillMaxSize().testTag("play.next_number_ring").drawBehind {
+                    drawCircle(
+                        color = board.boardTarget,
+                        radius = size.minDimension * ZipBoardSpec.nextNumberRingRadiusFraction,
+                        alpha = nextNumberAlpha(),
+                        style = Stroke(ZipBoardSpec.nextNumberRingWeight.toPx()),
+                    )
+                },
+            )
+        }
         // Ticket 28 r5, hollow EVERYWHERE: one ring renderer for all three states —
         // unvisited and start in the waypointDot role, a traced dot in the blue on-path
         // role (D2, round 3). The label always rides the ring's state color on the
@@ -145,8 +167,8 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean) {
         // settles instantly. Previews render the static state.
         val ringColor = if (inPath) board.waypointDotOnPath else board.waypointDot
         val flash = remember { Animatable(1f) }
-        LaunchedEffect(animated, face.isNextTarget) {
-            if (animated && face.isNextTarget) {
+        LaunchedEffect(animated, face.isNextTarget, ringed) {
+            if (animated && face.isNextTarget && !ringed) {
                 flash.snapTo(0f)
                 flash.animateTo(1f, tween(MotionTokens.FlashDuration))
             } else {
@@ -157,7 +179,7 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean) {
         // without recomposing the cell (ticket 02b: it ran for FlashDuration into every drag
         // that had just reached a waypoint).
         val ringPaint = ColorProducer {
-            if (face.isNextTarget) lerp(ringColor, board.waypointDotOnPath, flash.value) else ringColor
+            if (face.isNextTarget && !ringed) lerp(ringColor, board.waypointDotOnPath, flash.value) else ringColor
         }
         if (face.isWaypoint) {
             Box(

@@ -21,6 +21,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.toRect
 import androidx.compose.ui.unit.Dp
+import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -41,18 +42,22 @@ import com.ivandsky.puzzlebox.gameui.PlayClear
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlaySolveFrame
 import com.ivandsky.puzzlebox.gameui.TutorialStep
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.delay
 
-/** Zip's one play registration (ADR-0001): its controller, its board and its play screen. */
-class ZipPlayUi : GamePlayUi {
+/**
+ * Zip's one play registration (ADR-0001): its controller, its board and its play screen.
+ * [hintMode] is what the Hint button gives on every board this registration opens.
+ */
+class ZipPlayUi(private val hintMode: HintMode = HintMode.Legacy) : GamePlayUi {
     override val gameId: GameId get() = ZipDefinition.id
 
     override val brand: GameBrand get() = ZipBrand
 
-    override fun createController(env: PlayEnvironment): GamePlayController = ZipPlayController(env)
+    override fun createController(env: PlayEnvironment): GamePlayController = ZipPlayController(env, hintMode = hintMode)
 
     override val tutorial: List<TutorialStep> get() = ZipTutorial.steps
 
@@ -195,6 +200,10 @@ private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modi
     val walls = remember(puzzle) { zipWallOverlays(model) }
     // Snapshot state read only inside ZipPipes' draw: a moving finger redraws, never recomposes.
     val finger = remember { mutableStateOf<Offset?>(null) }
+    val ringAlpha = rememberNextNumberPulse(
+        held = { finger.value != null },
+        enabled = !reducedMotion && model.cells.any { it.isNextTarget },
+    )
     val cap = paneCap ?: PlayBoardMaxWidth
     Box(modifier) {
         DragTraceBoard(
@@ -206,9 +215,10 @@ private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modi
             edgeOverlays = walls,
             underlay = { ZipPipes(model, { finger.value }, hooks, animate = !reducedMotion) },
             cellContent = { row, col ->
-                ZipCellDecor(model, row, col, animated = !reducedMotion)
+                ZipCellDecor(model, row, col, animated = !reducedMotion, nextNumberAlpha = ringAlpha)
             },
             onPointer = { finger.value = it },
+            wallWeight = LocalBoardGeometry.current.wallWeight,
             // A4: capped at PlayBoardMaxWidth (a two-pane board fills its pane, A15) and
             // centered by the pane; BoardGrid's aspectRatio keeps the grid exact under
             // these loose constraints. The outline rides the same modifier (U1 §4 — Zip's

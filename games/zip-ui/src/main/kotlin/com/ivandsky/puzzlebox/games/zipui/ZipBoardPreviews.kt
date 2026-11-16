@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.games.zip.Cell
+import com.ivandsky.puzzlebox.games.zip.Wall
 import com.ivandsky.puzzlebox.games.zip.ZipBoard
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzle
 import com.ivandsky.puzzlebox.games.zip.engine.ZipState
@@ -36,9 +37,14 @@ import com.ivandsky.puzzlebox.games.zip.render.ZipRendererModel
 // Previews (A7/A8 — resting states only, registered for the T25 variant matrix).
 // ---------------------------------------------------------------------------
 
-/** Preview fixture: an n-sized board with the given waypoint cells and trace. */
-internal fun zipPreviewModel(n: Int, waypoints: List<Int>, path: List<Int> = emptyList()): ZipRendererModel {
-    val board = ZipBoard(n, emptySet(), waypoints.map(::Cell))
+/** Preview fixture: an n-sized board with the given waypoint cells, trace and walls. */
+internal fun zipPreviewModel(
+    n: Int,
+    waypoints: List<Int>,
+    path: List<Int> = emptyList(),
+    walls: Set<Wall> = emptySet(),
+): ZipRendererModel {
+    val board = ZipBoard(n, walls, waypoints.map(::Cell))
     val puzzle = ZipPuzzle(VariantId("zip/n$n"), board, null)
     return ZipRendererModel.of(ZipState(puzzle, path.map(::Cell)), null)
 }

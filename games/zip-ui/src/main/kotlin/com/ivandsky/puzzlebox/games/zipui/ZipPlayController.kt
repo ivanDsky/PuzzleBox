@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.gameui.PlayFeedback
 import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayUndo
 import com.ivandsky.puzzlebox.gameui.Restored
+import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.zip.Cell
 import com.ivandsky.puzzlebox.games.zip.ZipPuzzleRef
 import com.ivandsky.puzzlebox.games.zip.ZipReplayMove
@@ -48,6 +49,8 @@ class ZipPlayController(
     private val now: () -> Instant = Instant::now,
     /** Ticket 06: the refusal/trim messages the shared caption slot shows. */
     val feedback: ZipFeedback = ZipFeedback(env.scope),
+    /** Legacy gives the next cell; FirstMove gives the first real choice (nav-rethink B4). Set once, by the UI module. */
+    internal val hintMode: HintMode = HintMode.Legacy,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback by feedback {
 
     var session by mutableStateOf<ZipSession?>(null)
@@ -72,6 +75,8 @@ class ZipPlayController(
     private val rules = zipPlugin.rules as ZipRules // the plugin's rules ARE ZipRules
 
     private val log = ZipMoveLog(env.moveLog, now)
+
+    private val hints = ZipHintFlow(rules, log, firstMove = hintMode is HintMode.FirstMove)
 
     //region input (F2 §7: candidate moves in, authoritative validation here)
 
@@ -146,49 +151,22 @@ class ZipPlayController(
     //endregion
 
     /**
-     * Hint (A3, F2 §10, ticket 28): a provably dead trace is trimmed FREE (the longest
-     * solution-consistent prefix), then the ONE counted hint AUTO-PLACES the next
-     * solution-consistent segment and an arrow marks the new head until the next input
-     * or ~2s ([clearHintArrow] — the screen fades it). The highlight survives until the
-     * next accepted move. The degenerate first placement (empty trace) places the start
-     * cell with no arrow — a lone cell has no segment direction.
+     * Hint (A3, F2 §10, ticket 28): a provably dead trace is trimmed FREE, then the ONE counted
+     * hint AUTO-PLACES a cell ([ZipHintFlow]: the next cell, or under [HintMode.FirstMove] the
+     * first real choice) and an arrow marks the new head until the next input or ~2s
+     * ([clearHintArrow] — the screen fades it). The highlight survives until the next accepted move.
      */
     fun hint() {
         env.onInput()
         val current = session ?: return
         if (current.isComplete) return
-        val puzzle = current.puzzle
         val fromIdx = current.path.lastOrNull()?.idx
-        var next = current
-        var kept: List<Cell>? = null // the trimmed prefix, when the hint fixed a dead trace
-        var resolved = rules.hint(ZipState(puzzle, next.path))
-        if (resolved is ZipHint.Backtrack) {
-            next = log.record(
-                next,
-                if (resolved.trimTo < 0) ZipReplayMove.Reset else ZipReplayMove.RetractTo(next.path[resolved.trimTo]),
-            )
-            kept = next.path
-            resolved = rules.hint(ZipState(puzzle, next.path))
-        }
-        // Counted before the step: a hint that places the last cell wins, and a won session takes no count.
-        next = log.record(next, ZipReplayMove.Hint)
-        val step = resolved as? ZipHint.Step
-        var placedIdx: Int? = null
-        if (step != null) {
-            val move = ZipMove.Extend(step.cell)
-            if (rules.validateMove(move, ZipState(puzzle, next.path)) is ZipValidation.Valid) {
-                next = log.record(next, ZipReplayMove.Extend(step.cell))
-                placedIdx = step.cell.idx
-                next.path.getOrNull(next.path.size - 2)?.let { tail ->
-                    hintArrow = HintArrow(headIdx = step.cell.idx, tailIdx = tail.idx)
-                }
-            }
-        }
-        commit(next)
-        kept?.let { feedback.trimmed(puzzle.board, it) }
-        hintCell = (resolved as? ZipHint.Step)?.cell?.idx
-        val atMs = now().toEpochMilli()
-        hintHistory.add(HintEvent(atMs = atMs, fromIdx = fromIdx, placedIdx = placedIdx))
+        val pressed = hints.press(current)
+        pressed.arrow?.let { hintArrow = it }
+        commit(pressed.session)
+        pressed.kept?.let { feedback.trimmed(current.puzzle.board, it) }
+        hintCell = pressed.cell
+        hintHistory.add(HintEvent(atMs = now().toEpochMilli(), fromIdx = fromIdx, placedIdx = pressed.placed))
     }
 
     //region PlayHints (core chrome seam over hint())
