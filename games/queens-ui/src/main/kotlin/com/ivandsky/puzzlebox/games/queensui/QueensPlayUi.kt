@@ -116,6 +116,7 @@ fun QueensPlayScreen(
     Box(modifier.fillMaxSize()) {
         AdaptivePlayScaffold(
             layout = layout,
+            gridColumns = controller.board?.session?.puzzle?.size,
             modifier = Modifier.fillMaxSize(),
             board = { paneCap -> BoardArea(controller, status, paneCap, onRetry, onSolved) },
             side = {

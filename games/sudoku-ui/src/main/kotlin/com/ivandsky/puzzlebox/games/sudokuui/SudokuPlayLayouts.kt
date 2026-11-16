@@ -76,6 +76,7 @@ internal fun SudokuPlayScreen(
     SudokuMotionHost(controller.board, onSolved = { onSolved(it.elapsedMs, it.hintsUsed) }) {
         AdaptivePlayScaffold(
             layout = layout,
+            gridColumns = state?.session?.board?.geometry?.size,
             modifier = modifier.fillMaxSize(),
             board = { paneCap ->
                 SudokuBoardPane(status, onRetry, tuned) {

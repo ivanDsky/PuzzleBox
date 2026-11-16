@@ -104,6 +104,7 @@ fun ZipPlayScreen(
     Box(modifier.fillMaxSize()) {
         AdaptivePlayScaffold(
             layout = layout,
+            gridColumns = controller.session?.puzzle?.board?.n,
             modifier = Modifier.fillMaxSize(),
             board = { paneCap -> BoardArea(controller, status, paneCap, onRetry, onSolved) },
             side = {

@@ -89,7 +89,7 @@ internal fun StrandsPlayScreen(
             // board a sliver. NYT's page scrolls the same way.
             BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
                 val viewport = maxHeight
-                val cap = tuning?.boardCapFor(singlePaneDeviceClass())
+                val cap = tuning?.boardCapForGrid(singlePaneDeviceClass(), controller.baseModel.cols.takeIf { it > 0 })
                 val pageWidth = if (cap != null) Modifier.widthIn(max = cap + Spacing.lg * 2) else Modifier
                 // heightIn(min) + Center: a page shorter than the viewport floats at its middle,
                 // a taller one grows past it and scrolls, so nothing clips.
@@ -105,6 +105,7 @@ internal fun StrandsPlayScreen(
         } else {
             AdaptivePlayScaffold(
                 layout = layout,
+                gridColumns = controller.baseModel.cols.takeIf { it > 0 },
                 modifier = Modifier.fillMaxSize(),
                 // Strands sizes its board by its own cell policy; a tuning only caps it (the pane cap).
                 board = { paneCap ->

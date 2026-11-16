@@ -40,7 +40,8 @@ val PlayBoardMaxWidth = 552.dp // gate round 3: user asked +15% over the origina
  * pane, shows nothing.
  *
  * Under a [PlayTuning] ([LocalPlayTuning]) the board keeps to its device class's cap and
- * [actions] sit directly under it, as wide as the board, in every window; a single pane puts
+ * [actions] sit directly under it, as wide as the board, in every window; on a tablet the cap is also
+ * at most the tuning's cell cap times [gridColumns] (null: no cell cap); a single pane puts
  * [side] below them. A two-pane tuning set to [LandscapeControls.SideColumn] stacks them in
  * a column to the board's right instead. [board] gets its `paneCap`: the smaller of that cap
  * and what its pane leaves beside the controls ([ControlsBoardPane]).
@@ -53,6 +54,7 @@ val PlayBoardMaxWidth = 552.dp // gate round 3: user asked +15% over the origina
 fun AdaptivePlayScaffold(
     layout: PlayLayout,
     modifier: Modifier = Modifier,
+    gridColumns: Int? = null,
     board: @Composable BoxScope.(paneCap: Dp?) -> Unit,
     side: (@Composable BoxScope.() -> Unit)? = null,
     actions: (@Composable () -> Unit)? = null,
@@ -73,7 +75,7 @@ fun AdaptivePlayScaffold(
         } else {
             // One centred group: the board, its controls, then the caption.
             Column(modifier.fillMaxSize(), Arrangement.Center, Alignment.CenterHorizontally) {
-                val cap = tuning.boardCapFor(singlePaneDeviceClass())
+                val cap = tuning.boardCapForGrid(singlePaneDeviceClass(), gridColumns)
                 ControlsBoardPane(actions, board, cap, sideColumn = false, Modifier.fillMaxWidth().weight(1f, fill = false))
                 if (side != null) {
                     // No wider than the capped board and its gutters, so the caption starts where the board does.
@@ -88,7 +90,7 @@ fun AdaptivePlayScaffold(
             if (tuning == null) {
                 ToolbarBoardPane(actions, board, boardPane)
             } else {
-                val cap = tuning.boardCapFor(DeviceClass.TabletLandscape)
+                val cap = tuning.boardCapForGrid(DeviceClass.TabletLandscape, gridColumns)
                 ControlsBoardPane(actions, board, cap, tuning.landscapeControls == LandscapeControls.SideColumn, boardPane)
             }
             VerticalDivider()
