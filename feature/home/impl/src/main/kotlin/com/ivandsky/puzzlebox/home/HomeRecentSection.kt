@@ -29,7 +29,8 @@ import com.ivandsky.puzzlebox.gameui.GameGlyphSize
  * The recent days (A11): one row per day, newest first, each day's games as result chips
  * (glyph + solve time, or "–" when opened but not solved). Earlier days only: today is on the
  * Today card. In two-pane ([selectable]) a row selects that day for the detail pane
- * ([onDayClick]; [selectedDay] reads selected); single-pane rows are not clickable.
+ * ([onDayClick]; [selectedDay] reads selected). A single-pane row is a button only when [onOpenDay] is
+ * offered (nav rethink N2): it reports the ISO day to open in Ranks. Result chips stay plain.
  */
 @Composable
 internal fun HomeRecentSection(
@@ -38,6 +39,7 @@ internal fun HomeRecentSection(
     onDayClick: (String) -> Unit,
     selectable: Boolean,
     modifier: Modifier = Modifier,
+    onOpenDay: ((String) -> Unit)? = null,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -63,10 +65,10 @@ internal fun HomeRecentSection(
                         RecentRow(
                             day = day,
                             selected = selectable && day.isoDay == selectedDay,
-                            onClick = if (selectable) {
-                                { onDayClick(day.isoDay) }
-                            } else {
-                                null
+                            onClick = when {
+                                selectable -> { { onDayClick(day.isoDay) } }
+                                onOpenDay != null -> { { onOpenDay(day.isoDay) } }
+                                else -> null
                             },
                         )
                     }

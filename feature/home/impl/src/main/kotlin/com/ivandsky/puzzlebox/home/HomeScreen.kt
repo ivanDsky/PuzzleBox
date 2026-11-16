@@ -66,6 +66,8 @@ internal fun HomeScreen(
                     modifier = Modifier
                         .weight(0.58f)
                         .fillMaxHeight(),
+                    onOpenStreak = summaries.onOpenStreak,
+                    onOpenDay = summaries.onOpenDay,
                 )
             }
         } else {

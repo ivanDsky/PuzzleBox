@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -21,15 +23,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** Expanded-width detail pane: streak & stats until a recent day is selected, then that day. */
+/**
+ * Expanded-width detail pane: streak & stats until a recent day is selected, then that day.
+ * [onOpenStreak] and [onOpenDay] (an ISO day) are the doors to Ranks from the streak pane and from
+ * the day's link (nav rethink N2-N4); null keeps each plain.
+ */
 @Composable
 internal fun DetailPane(
     selected: HistoryDay?,
     state: HomeUiState,
     modifier: Modifier = Modifier,
+    onOpenStreak: (() -> Unit)? = null,
+    onOpenDay: ((String) -> Unit)? = null,
 ) {
     val risePx = with(LocalDensity.current) { MotionTokens.MixTabRise.roundToPx() }
     val background = MaterialTheme.colorScheme.background
@@ -52,10 +61,12 @@ internal fun DetailPane(
             HomeStreakPane(
                 state = state,
                 modifier = Modifier.fillMaxSize().padding(Spacing.sm),
+                onOpenStreak = onOpenStreak,
+                onOpenDay = onOpenDay,
             )
         } else {
             // Opaque like the streak pane, so the pane beneath never shows through as it rises.
-            DayDetail(day = day, modifier = Modifier.fillMaxSize().background(background))
+            DayDetail(day = day, onOpenDay = onOpenDay, modifier = Modifier.fillMaxSize().background(background))
         }
     }
 }
@@ -63,6 +74,7 @@ internal fun DetailPane(
 @Composable
 private fun DayDetail(
     day: HistoryDay,
+    onOpenDay: ((String) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -83,13 +95,21 @@ private fun DayDetail(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        Text(
-            text = "You can play this day again from History.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(horizontal = Spacing.xl),
-        )
+        if (onOpenDay != null) {
+            // Ranks owns the history: it offers "Play this day" for a game not played yet.
+            OutlinedButton(
+                onClick = { onOpenDay(day.isoDay) },
+                modifier = Modifier.heightIn(min = 48.dp).testTag("home.day_open_ranks"),
+            ) { Text("See this day in Ranks") }
+        } else {
+            Text(
+                text = "You can play this day again from History.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = Spacing.xl),
+            )
+        }
         Spacer(Modifier.weight(1f))
     }
 }

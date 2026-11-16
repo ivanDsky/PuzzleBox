@@ -1,11 +1,13 @@
 package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -15,6 +17,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -28,6 +33,8 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import java.time.format.TextStyle
 import java.util.Locale
 
@@ -42,6 +49,9 @@ private val LargeRing = 56.dp
 // The snowflake's share of the ice disc it sits on.
 private const val FROZEN_GLYPH_FRACTION = 0.6f
 
+// A tappable day is a button, so it keeps the 48dp minimum touch target.
+private val DayTouchMin = 48.dp
+
 /**
  * A week of [days] as seven columns, oldest to newest (spec A18): the weekday initial over
  * that day's [DayRing] out of [total] games, with the day number inside. Today's number
@@ -49,7 +59,9 @@ private const val FROZEN_GLYPH_FRACTION = 0.6f
  * day with a solve shows its number in the success text colour. A frozen day swaps the
  * number for a snowflake on an ice disc and keeps its ring segments.
  * Callers build the [WeekDay]s; the strip only draws them. [ringSize] and [ringStroke]
- * enlarge every ring (the tablet streak pane runs 64/5).
+ * enlarge every ring (the tablet streak pane runs 64/5). A non-null [onDayClick] makes each
+ * day a button of at least 48dp that reports its date (a door to that day, tagged
+ * `week.day.<ISO date>`); null keeps the strip plain.
  */
 @Composable
 fun WeekStrip(
@@ -58,23 +70,43 @@ fun WeekStrip(
     modifier: Modifier = Modifier,
     ringSize: Dp = RingSize,
     ringStroke: Dp = RingStroke,
+    onDayClick: ((LocalDate) -> Unit)? = null,
 ) {
     Row(modifier = modifier.fillMaxWidth()) {
         days.forEach { day ->
-            WeekStripDay(day, total, ringSize, ringStroke, Modifier.weight(1f))
+            WeekStripDay(day, total, ringSize, ringStroke, onDayClick, Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-private fun WeekStripDay(day: WeekDay, total: Int, ringSize: Dp, ringStroke: Dp, modifier: Modifier) {
+private fun WeekStripDay(
+    day: WeekDay,
+    total: Int,
+    ringSize: Dp,
+    ringStroke: Dp,
+    onDayClick: ((LocalDate) -> Unit)?,
+    modifier: Modifier,
+) {
     val colors = MaterialTheme.colorScheme
     val large = ringSize >= LargeRing
     val disc = if (large) ringSize - ringStroke * 2 - LargeDiscClearance * 2 else TodayDisc
     val ice = LocalIce.current
     val numberStyle = if (large) MaterialTheme.typography.titleSmall else MaterialTheme.typography.labelLarge
+    val cell = modifier.testTag("week.day.${day.date}")
     Column(
-        modifier = modifier,
+        modifier = if (onDayClick == null) {
+            cell
+        } else {
+            cell
+                .clip(MaterialTheme.shapes.medium)
+                .clickable(
+                    onClickLabel = "Open ranks for ${day.date.format(DayLabel)}",
+                    role = Role.Button,
+                    onClick = { onDayClick(day.date) },
+                )
+                .heightIn(min = DayTouchMin)
+        },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
@@ -107,6 +139,8 @@ private fun WeekStripDay(day: WeekDay, total: Int, ringSize: Dp, ringStroke: Dp,
         }
     }
 }
+
+private val DayLabel: DateTimeFormatter = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
 
 /** The weekday's narrow name in caps for the Eyebrow kicker ("M" for Monday in English). */
 internal fun weekdayInitial(date: LocalDate, locale: Locale): String =

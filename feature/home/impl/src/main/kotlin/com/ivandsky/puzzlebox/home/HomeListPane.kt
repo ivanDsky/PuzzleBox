@@ -77,7 +77,14 @@ internal fun ListPane(
             // Two-pane shows the streak in the detail pane instead.
             if (showStreak) {
                 StaggeredItem(1) {
-                    HomeStreakSection(stats = state.stats, freezesHeld = state.freezesHeld, week = state.week, total = state.today.size)
+                    HomeStreakSection(
+                        stats = state.stats,
+                        freezesHeld = state.freezesHeld,
+                        week = state.week,
+                        total = state.today.size,
+                        onOpenStreak = summaries.onOpenStreak,
+                        onOpenDay = summaries.onOpenDay,
+                    )
                 }
             }
             // The summaries sit under the streak, one line each, only when there is something to say.
@@ -88,6 +95,7 @@ internal fun ListPane(
                     selectedDay = selectedDay,
                     onDayClick = onDayClick,
                     selectable = selectable,
+                    onOpenDay = summaries.onOpenDay,
                 )
             }
         }

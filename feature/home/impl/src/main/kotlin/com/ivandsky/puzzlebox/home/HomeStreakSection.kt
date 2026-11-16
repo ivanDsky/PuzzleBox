@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -11,7 +10,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -28,7 +26,9 @@ import com.ivandsky.puzzlebox.gameui.WeekStrip
  * The streak card (A8, identity §2.8): "N days in a row · Best M" from [stats] over the
  * [WeekStrip] of the last 7 puzzle days ([week], oldest first, ending today), each day's
  * game ring counting its solved dailies out of [total] games. The [FreezeCount] of
- * [freezesHeld] sits after the line, and a frozen day shows its snowflake.
+ * [freezesHeld] sits after the line, and a frozen day shows its snowflake. A non-null
+ * [onOpenStreak] makes the streak row a button, and a non-null [onOpenDay] each week disc
+ * (nav rethink N2, N3); null keeps them plain.
  */
 @Composable
 internal fun HomeStreakSection(
@@ -37,6 +37,8 @@ internal fun HomeStreakSection(
     week: List<WeekDay>,
     total: Int,
     modifier: Modifier = Modifier,
+    onOpenStreak: (() -> Unit)? = null,
+    onOpenDay: ((String) -> Unit)? = null,
 ) {
     OutlinedCard(
         modifier = modifier.fillMaxWidth().testTag("home.streak"),
@@ -46,8 +48,9 @@ internal fun HomeStreakSection(
             modifier = Modifier.padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            StreakDoor(
+                onOpen = onOpenStreak,
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
                 Icon(
@@ -64,7 +67,12 @@ internal fun HomeStreakSection(
                 )
                 freezesHeld?.let { FreezeCount(held = it) }
             }
-            WeekStrip(days = week, total = total, modifier = Modifier.testTag("home.week"))
+            WeekStrip(
+                days = week,
+                total = total,
+                modifier = Modifier.testTag("home.week"),
+                onDayClick = onOpenDay?.let { open -> { date -> open(date.toString()) } },
+            )
         }
     }
 }
