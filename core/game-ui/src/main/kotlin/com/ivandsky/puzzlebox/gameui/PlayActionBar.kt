@@ -39,7 +39,9 @@ private val ControlsColumnWidth = 96.dp
  * [onClear] null hides Clear (Sudoku keeps its own in the keypad); Clear is never disabled,
  * the rest are always shown, disabled when they cannot act. Games pass it as
  * [AdaptivePlayScaffold]'s actions, which places it (see there). Under
- * [LocalPlayControlsVertical] the same buttons stack in a column [ControlsColumnWidth] wide.
+ * [LocalPlayControlsVertical] the same buttons stack in a column [ControlsColumnWidth] wide,
+ * where [sideColumnExtra] (a game's own control, given the button's modifier) joins them
+ * between Hint and Clear; a row never draws it.
  */
 @Composable
 internal fun PlayActionBar(
@@ -54,7 +56,9 @@ internal fun PlayActionBar(
     modifier: Modifier = Modifier,
     hintsUsed: Int = 0,
     hintRing: (() -> Float)? = null,
+    sideColumnExtra: (@Composable (Modifier) -> Unit)? = null,
 ) {
+    val vertical = LocalPlayControlsVertical.current
     val buttons: @Composable (Modifier) -> Unit = { action ->
         GameButton(onUndo, PuzzleIcons.Undo, "Undo", action.testTag("play.undo"), canUndo, size = GameButtonSize.Tall)
         GameButton(onRedo, PuzzleIcons.Redo, "Redo", action.testTag("play.redo"), canRedo, size = GameButtonSize.Tall)
@@ -67,11 +71,12 @@ internal fun PlayActionBar(
             accent = accent,
             size = GameButtonSize.Tall,
         )
+        if (vertical) sideColumnExtra?.invoke(action)
         if (onClear != null) {
             GameButton(onClear, PuzzleIcons.Clear, "Clear", action.testTag("play.clear"), size = GameButtonSize.Tall)
         }
     }
-    if (LocalPlayControlsVertical.current) {
+    if (vertical) {
         val column = modifier.width(ControlsColumnWidth).testTag("play.action_bar")
         Column(column, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             buttons(Modifier.fillMaxWidth())
@@ -93,12 +98,27 @@ internal fun PlayActionBar(
  * until it is over, whatever the press did; the game's own [PlayHints.hintEnabled] still wins.
  */
 @Composable
-fun PlayActionBar(undo: PlayUndo, hints: PlayHints, clear: PlayClear?, accent: AccentSlot, modifier: Modifier = Modifier) {
-    PlayActionBar(undo, hints, clear, accent, modifier, rememberHintCooldown(board = hints))
+fun PlayActionBar(
+    undo: PlayUndo,
+    hints: PlayHints,
+    clear: PlayClear?,
+    accent: AccentSlot,
+    modifier: Modifier = Modifier,
+    sideColumnExtra: (@Composable (Modifier) -> Unit)? = null,
+) {
+    PlayActionBar(undo, hints, clear, accent, modifier, rememberHintCooldown(board = hints), sideColumnExtra)
 }
 
 @Composable
-internal fun PlayActionBar(undo: PlayUndo, hints: PlayHints, clear: PlayClear?, accent: AccentSlot, modifier: Modifier, cooldown: HintCooldown) {
+internal fun PlayActionBar(
+    undo: PlayUndo,
+    hints: PlayHints,
+    clear: PlayClear?,
+    accent: AccentSlot,
+    modifier: Modifier,
+    cooldown: HintCooldown,
+    sideColumnExtra: (@Composable (Modifier) -> Unit)? = null,
+) {
     PlayActionBar(
         onUndo = undo::undo,
         onRedo = undo::redo,
@@ -111,6 +131,7 @@ internal fun PlayActionBar(undo: PlayUndo, hints: PlayHints, clear: PlayClear?, 
         modifier = modifier,
         hintsUsed = hints.hintsUsed,
         hintRing = cooldown.ring,
+        sideColumnExtra = sideColumnExtra,
     )
 }
 

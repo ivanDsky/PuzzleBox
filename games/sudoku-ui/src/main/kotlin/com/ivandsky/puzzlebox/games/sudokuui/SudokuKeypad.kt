@@ -11,10 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
-import com.ivandsky.puzzlebox.designsystem.GameButton
 import com.ivandsky.puzzlebox.designsystem.GameButtonSize
-import com.ivandsky.puzzlebox.designsystem.GameToggleButton
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /**
@@ -27,11 +24,13 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
  *   Key height is too short for icon over label, so these tiles are icon-only.
  * - [SudokuKeypadActions.NotesColumn] (TwoPane, whose side pane holds Erase and Clear): the
  *   notes toggle alone as an icon-only pencil key the digits' height in the fourth column.
+ * - [SudokuKeypadActions.Corner] (under a play tuning, whose control row holds Clear): the
+ *   digits take the full width under a strip with the small Notes toggle at its right corner
+ *   and, unless [showErase] is false (Erase is in the side column), Erase filling the rest.
  * Notes fills with the game's accent while on (A14).
  * Clear is one undoable command, so it needs no confirm; a solved board turns the actions off.
- * Under a play tuning [showClear] is false: Clear moved to the shared control row, so the Row
- * is Notes and Erase, and the Column splits its height between those two.
- * Switching notes morphs the digit keys one by one outward from the toggle (SudokuDigitKey).
+ * Switching notes morphs the digit keys one by one outward from the toggle (SudokuDigitKey);
+ * under Corner they instead keep their large digit and swap it to an italic pencil face.
  * The editor draws the digits alone ([showActions] false: its own tools row has Erase and
  * Clear, and Notes means nothing for givens), tags each key `digitTag(d)` and reads each
  * key's [placed] count (`placed[d - 1]`) instead of the digits left.
@@ -48,7 +47,7 @@ fun SudokuKeypad(
     actionHeight: Dp = SudokuSizing.keyMin,
     actions: SudokuKeypadActions = SudokuKeypadActions.Row,
     showActions: Boolean = true,
-    showClear: Boolean = true,
+    showErase: Boolean = true,
     placed: List<Int>? = null,
     digitTag: ((Int) -> String)? = null,
 ) {
@@ -57,12 +56,17 @@ fun SudokuKeypad(
     val gap = SudokuSizing.keyGap
     val editable = !model.solved
     BoxWithConstraints(modifier.fillMaxWidth()) {
-        val keyWidth = SudokuSizing.digitKeyWidth(maxWidth, rows, actions, showClear)
+        val keyWidth = SudokuSizing.digitKeyWidth(maxWidth, rows, actions)
         val digits: @Composable () -> Unit = {
             DigitBlock(model, actions, Modifier.width(keyWidth).height(keyHeight), reducedMotion, placed, digitTag, onDigit)
         }
         if (!showActions) {
             digits()
+        } else if (actions == SudokuKeypadActions.Corner) {
+            Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+                SudokuCornerStrip(model.notesMode, editable, showErase, onErase, onToggleNotes)
+                digits()
+            }
         } else if (actions == SudokuKeypadActions.Row) {
             Column(verticalArrangement = Arrangement.spacedBy(gap)) {
                 digits()
@@ -70,21 +74,17 @@ fun SudokuKeypad(
                     val action = Modifier.weight(1f).height(actionHeight)
                     NotesToggle(model.notesMode, editable, onToggleNotes, action)
                     EraseButton(editable, onErase, action)
-                    if (showClear) ClearButton(onClear, action)
+                    ClearButton(onClear, action)
                 }
             }
         } else {
-            val columnWidth = SudokuSizing.actionColumnWidth(maxWidth, rows, actions, showClear)
+            val columnWidth = SudokuSizing.actionColumnWidth(maxWidth, rows, actions)
             Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
                 digits()
                 Column(Modifier.width(columnWidth), verticalArrangement = Arrangement.spacedBy(gap)) {
                     if (actions == SudokuKeypadActions.NotesColumn) {
                         val key = Modifier.fillMaxWidth().height(keyHeight * rows + gap * (rows - 1)).testTag("sudoku.notes_key")
                         NotesToggle(model.notesMode, editable, onToggleNotes, key, GameButtonSize.Compact)
-                    } else if (!showClear) {
-                        val tile = Modifier.fillMaxWidth().height((keyHeight * rows + gap * (rows - 1) - gap) / 2)
-                        NotesToggle(model.notesMode, editable, onToggleNotes, tile, GameButtonSize.Compact)
-                        EraseButton(editable, onErase, tile, GameButtonSize.Compact)
                     } else {
                         val tile = Modifier.fillMaxWidth().height(keyHeight)
                         NotesToggle(model.notesMode, editable, onToggleNotes, tile, GameButtonSize.Compact)
@@ -131,54 +131,18 @@ private fun DigitBlock(
                         notesMode = model.notesMode,
                         reducedMotion = reducedMotion,
                         // The wave starts at the key nearest the notes toggle: bottom-left under
-                        // the action row, top-right beside the fourth column.
+                        // the action row, top-right beside the fourth column or under the corner.
                         staggerOrder = if (actions == SudokuKeypadActions.Row) {
                             (rows - 1 - row) * DIGIT_COLUMNS + column
                         } else {
                             row + DIGIT_COLUMNS - 1 - column
                         },
                         onClick = { onDigit(digit) },
+                        pencilLook = actions == SudokuKeypadActions.Corner,
                         modifier = if (digitTag == null) keyModifier else keyModifier.testTag(digitTag(digit)),
                     )
                 }
             }
         }
     }
-}
-
-@Composable
-private fun EraseButton(enabled: Boolean, onErase: () -> Unit, modifier: Modifier, size: GameButtonSize = GameButtonSize.Regular) {
-    GameButton(onClick = onErase, icon = PuzzleIcons.Erase, label = "Erase", modifier = modifier, enabled = enabled, size = size)
-}
-
-@Composable
-private fun ClearButton(onClear: () -> Unit, modifier: Modifier, size: GameButtonSize = GameButtonSize.Regular) {
-    GameButton(
-        onClick = onClear,
-        icon = PuzzleIcons.Clear,
-        label = "Clear",
-        modifier = modifier.testTag("sudoku.clear"),
-        size = size,
-    )
-}
-
-/** The notes mode switch: the pencil outline off, filled in the brand accent on. */
-@Composable
-private fun NotesToggle(
-    notesMode: Boolean,
-    enabled: Boolean,
-    onToggle: () -> Unit,
-    modifier: Modifier,
-    size: GameButtonSize = GameButtonSize.Regular,
-) {
-    GameToggleButton(
-        checked = notesMode,
-        onCheckedChange = { onToggle() },
-        icon = if (notesMode) PuzzleIcons.NotesOn else PuzzleIcons.Notes,
-        label = "Notes",
-        accent = MiniSudokuBrand.accent,
-        modifier = modifier,
-        enabled = enabled,
-        size = size,
-    )
 }

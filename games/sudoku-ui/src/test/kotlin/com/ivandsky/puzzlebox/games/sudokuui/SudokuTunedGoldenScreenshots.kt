@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzle
 import com.ivandsky.puzzlebox.games.sudoku.SudokuPuzzleRef
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.LandscapeControls
 import com.ivandsky.puzzlebox.gameui.LocalPlayTuning
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
@@ -38,9 +39,11 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Goldens of the Mini Sudoku play screen under [PlayTuning.Starting] (nav-rethink B5), light and
- * dark: a phone, a portrait tablet and a landscape tablet. The shared control row (Undo, Redo,
- * Hint, Clear) sits under the keypad; Clear is no longer in the keypad. Null-tuning goldens
- * stay in SudokuGoldenScreenshots, untouched. Recorded with `-Proborazzi.record=true`,
+ * dark: a phone, a portrait tablet and a landscape tablet, plain and in notes mode (the italic
+ * pencil digits), and the landscape tablet with the controls in a side column (Erase there).
+ * The shared control row (Undo, Redo, Hint, Clear) sits under the keypad; Clear is no longer in
+ * the keypad, whose digits have a strip above them with the corner Notes toggle and Erase.
+ * Null-tuning goldens stay in SudokuGoldenScreenshots, untouched. Recorded with `-Proborazzi.record=true`,
  * verified with `-Proborazzi.verify=true`; files in `games/sudoku-ui/snapshots/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -58,9 +61,19 @@ class SudokuTunedGoldenTabletPortraitTest : SudokuTunedGoldenScenes("tuned-table
 @Config(sdk = [34], qualifiers = "w1280dp-h800dp-land-mdpi")
 class SudokuTunedGoldenTabletLandscapeTest : SudokuTunedGoldenScenes("tuned-tablet-landscape", PlayLayout.TwoPane)
 
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "w1280dp-h800dp-land-mdpi")
+class SudokuTunedGoldenTabletSideColumnTest : SudokuTunedGoldenScenes(
+    "tuned-tablet-landscape-side",
+    PlayLayout.TwoPane,
+    PlayTuning.Starting.copy(landscapeControls = LandscapeControls.SideColumn),
+)
+
 abstract class SudokuTunedGoldenScenes(
     private val label: String,
     private val layout: PlayLayout = PlayLayout.SinglePane,
+    private val tuning: PlayTuning = PlayTuning.Starting,
 ) {
 
     @get:Rule
@@ -90,16 +103,27 @@ abstract class SudokuTunedGoldenScenes(
         return controller
     }
 
-    private fun capture(dark: Boolean) {
-        val ui = SudokuPlayUi(SudokuGames.MINI, InMemorySudokuHighlightSettings())
+    /** Notes mode on, with pencil marks 2 and 6 in the empty cell beside the 4. */
+    private fun notesPlay(): SudokuPlayController {
         val controller = midPlay()
+        val board = checkNotNull(controller.board)
+        board.select(1)
+        board.toggleNotesMode()
+        board.input(2)
+        board.input(6)
+        return controller
+    }
+
+    private fun capture(dark: Boolean, notes: Boolean) {
+        val ui = SudokuPlayUi(SudokuGames.MINI, InMemorySudokuHighlightSettings())
+        val controller = if (notes) notesPlay() else midPlay()
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             val config = Configuration(LocalConfiguration.current).apply {
                 uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
                     if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             }
-            CompositionLocalProvider(LocalConfiguration provides config, LocalPlayTuning provides PlayTuning.Starting) {
+            CompositionLocalProvider(LocalConfiguration provides config, LocalPlayTuning provides tuning) {
                 PuzzleBoxTheme(darkTheme = dark) {
                     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
                         ui.Screen(
@@ -117,18 +141,20 @@ abstract class SudokuTunedGoldenScenes(
         }
         composeRule.mainClock.advanceTimeBy(SETTLE_MS)
         composeRule.waitForIdle()
-        composeRule.onRoot().captureRoboImage(out(dark))
+        composeRule.onRoot().captureRoboImage(out(dark, notes))
     }
 
-    private fun out(dark: Boolean): String =
+    private fun out(dark: Boolean, notes: Boolean): String =
         File(checkNotNull(System.getProperty("user.dir")))
-            .resolve("snapshots/mid-6x6-$label-${if (dark) "dark" else "light"}.png")
+            .resolve("snapshots/${if (notes) "notes" else "mid"}-6x6-$label-${if (dark) "dark" else "light"}.png")
             .canonicalFile
             .also { checkNotNull(it.parentFile).mkdirs() }
             .absolutePath
 
-    @Test fun `mid play light`() = capture(dark = false)
-    @Test fun `mid play dark`() = capture(dark = true)
+    @Test fun `mid play light`() = capture(dark = false, notes = false)
+    @Test fun `mid play dark`() = capture(dark = true, notes = false)
+    @Test fun `notes mode light`() = capture(dark = false, notes = true)
+    @Test fun `notes mode dark`() = capture(dark = true, notes = true)
 
     private companion object {
         const val SETTLE_MS = 2_000L

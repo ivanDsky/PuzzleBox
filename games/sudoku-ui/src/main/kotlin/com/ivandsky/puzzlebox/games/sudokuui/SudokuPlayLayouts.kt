@@ -48,6 +48,8 @@ private val PaneGutter: Dp = Spacing.md
  * under a toolbar of the action bar with Erase and Clear (A15), so the board gets the
  * height of the button row it no longer carries; the side pane keeps the shared chrome.
  * The action bar's Clear is hidden: the keypad (or the TwoPane toolbar) has Sudoku's own.
+ * Under a play tuning the keypad is the Corner pad (a small Notes toggle over the digits, Erase
+ * beside it, or in the side column when the controls stack there) and Clear is in the control row.
  * The result hand-off waits for the solve sweep ([SudokuMotionHost]); one per board, so a
  * play-again's win hands off again.
  */
@@ -66,6 +68,8 @@ internal fun SudokuPlayScreen(
     val twoPane = layout == PlayLayout.TwoPane
     val tuning = LocalPlayTuning.current
     val tuned = tuning != null
+    // The tuned side column carries Erase; every other tuned layout keeps it on the keypad's strip.
+    val eraseBeside = twoPane && tuning?.landscapeControls == LandscapeControls.SideColumn
     // The toolbar spans the grid's columns, and the grid is narrower than the pane cap: it
     // shares the height with the keypad. Reported after layout, so the first frame is wide.
     var gridWidth by remember { mutableStateOf<Dp?>(null) }
@@ -76,7 +80,7 @@ internal fun SudokuPlayScreen(
             board = { paneCap ->
                 SudokuBoardPane(status, onRetry, tuned) {
                     if (state != null) {
-                        SudokuStackedBoard(state, inlineNotes = twoPane && !tuned, paneCap = paneCap, onGridWidth = { gridWidth = it }, tuned = tuned)
+                        SudokuStackedBoard(state, inlineNotes = twoPane && !tuned, paneCap = paneCap, onGridWidth = { gridWidth = it }, tuned = tuned, eraseBeside = eraseBeside)
                     }
                 }
             },
@@ -123,11 +127,12 @@ internal fun SudokuStackedBoard(
     paneCap: Dp? = null,
     onGridWidth: (Dp) -> Unit = {},
     tuned: Boolean = false,
+    eraseBeside: Boolean = false,
 ) {
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
         val size = state.session.board.geometry.size
         val floor = if (tuned) SudokuSizing.keyMin else 0.dp
-        val layout = SudokuSizing.layout(maxWidth, maxHeight, size, inlineNotes, boardMax = paneCap ?: PlayBoardMaxWidth, keyFloor = floor)
+        val layout = SudokuSizing.layout(maxWidth, maxHeight, size, inlineNotes, boardMax = paneCap ?: PlayBoardMaxWidth, keyFloor = floor, corner = tuned)
         SideEffect { onGridWidth(layout.board) }
         Column(
             modifier = Modifier.testTag("sudoku.board"),
@@ -136,7 +141,7 @@ internal fun SudokuStackedBoard(
         ) {
             SudokuGrid(state.model, state::select, Modifier.size(layout.board), spotlight = state.spotlight)
             // A pane-filling grid is height-bound: keys as wide as the pane would be slabs.
-            SudokuBoardKeypad(state, layout, Modifier.widthIn(max = if (paneCap != null) layout.board else PlayBoardMaxWidth), showClear = !tuned)
+            SudokuBoardKeypad(state, layout, Modifier.widthIn(max = if (paneCap != null) layout.board else PlayBoardMaxWidth), showErase = !eraseBeside)
         }
     }
 }
@@ -193,7 +198,7 @@ private fun SudokuBoardPane(status: PlayBoardStatus, onRetry: () -> Unit, tuned:
 }
 
 @Composable
-private fun SudokuBoardKeypad(state: SudokuBoardState, layout: SudokuLayout, modifier: Modifier = Modifier, showClear: Boolean = true) {
+private fun SudokuBoardKeypad(state: SudokuBoardState, layout: SudokuLayout, modifier: Modifier = Modifier, showErase: Boolean = true) {
     val session = state.session
     SudokuKeypad(
         model = sudokuKeypadModel(session.board, session.notesMode),
@@ -205,6 +210,6 @@ private fun SudokuBoardKeypad(state: SudokuBoardState, layout: SudokuLayout, mod
         keyHeight = layout.key,
         actionHeight = layout.actionKey,
         actions = layout.actions,
-        showClear = showClear,
+        showErase = showErase,
     )
 }

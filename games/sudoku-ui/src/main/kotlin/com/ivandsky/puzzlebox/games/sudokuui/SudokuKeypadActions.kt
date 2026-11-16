@@ -10,4 +10,15 @@ enum class SudokuKeypadActions {
 
     /** Only the notes toggle, as a fourth column the digits' height; Erase and Clear live elsewhere (TwoPane). */
     NotesColumn,
+
+    /**
+     * Under a play tuning: the digits take the full width and a 48dp strip above them holds the
+     * small Notes toggle in its right corner, with Erase filling the strip when it is not in the
+     * side column. Clear is in the shared control row.
+     */
+    Corner,
+    ;
+
+    /** True where the digit block spans the keypad's width (nothing sits beside it). */
+    internal val digitsFillWidth: Boolean get() = this == Row || this == Corner
 }
