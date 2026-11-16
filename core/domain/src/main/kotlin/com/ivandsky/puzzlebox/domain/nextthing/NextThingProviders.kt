@@ -9,5 +9,6 @@ internal val NextThingProviders: List<NextThingProvider> = listOf(
     ChallengeFriendNextThingProvider,
     MissedDayNextThingProvider,
     NewFriendPuzzleNextThingProvider,
+    CommunityNextThingProvider,
     DoneForTodayNextThingProvider,
 )

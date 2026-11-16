@@ -27,6 +27,7 @@ internal fun nextThingFacts(
     viewerUid: String? = "me",
     friendBoard: suspend () -> RankedBoard? = { null },
     friendTier: suspend (uid: String) -> VisibilityTier? = { null },
+    communityPuzzles: suspend () -> List<NextThing.CommunityPuzzle> = { emptyList() },
 ) = NextThingFacts(
     game = alpha,
     today = TODAY,
@@ -39,6 +40,7 @@ internal fun nextThingFacts(
     viewerUid = viewerUid,
     friendBoard = friendBoard,
     friendTier = friendTier,
+    communityPuzzles = communityPuzzles,
 )
 
 /** Today's alpha Friends board from uid to time pairs; a display name is the uid capitalised. */

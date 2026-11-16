@@ -19,6 +19,7 @@ class NextThingProvidersTest {
 
     private val chain = NextThingChain(failures = FailureLog { _, _, cause -> throw cause })
     private val code = ShareCode.parse("K7Q2MX")!!
+    private val community = NextThing.CommunityPuzzle(ShareCode.parse("P4STED")!!, beta, "Noor")
 
     /** Every rung has something to offer. */
     private val all = nextThingFacts(
@@ -34,7 +35,8 @@ class NextThingProvidersTest {
     private val setDone = all.copy(todaySet = listOf(TodayEntry(alpha, "Alpha", TodayStatus.Solved(40_000)), TodayEntry(beta, "Beta", TodayStatus.Solved(50_000))))
     private val noFriend = setDone.copy(friendBoard = { null })
     private val noMissedDay = noFriend.copy(history = emptyList())
-    private val nothingLeft = noMissedDay.copy(friendPuzzles = emptyList())
+    private val noFriendPuzzle = noMissedDay.copy(friendPuzzles = emptyList(), communityPuzzles = { listOf(community) })
+    private val nothingLeft = noFriendPuzzle.copy(communityPuzzles = { emptyList() })
 
     @Test
     fun `an unsolved daily is offered before anything else`() = runTest {
@@ -54,6 +56,16 @@ class NextThingProvidersTest {
     @Test
     fun `with no missed day a new friend puzzle is offered`() = runTest {
         assertEquals(NextThing.FriendPuzzle(code, alpha, "Maya"), chain.offer(noMissedDay))
+    }
+
+    @Test
+    fun `with no friend puzzle a community puzzle is offered`() = runTest {
+        assertEquals(community, chain.offer(noFriendPuzzle))
+    }
+
+    @Test
+    fun `a new friend puzzle is offered before a community one`() = runTest {
+        assertEquals(NextThing.FriendPuzzle(code, alpha, "Maya"), chain.offer(noMissedDay.copy(communityPuzzles = { listOf(community) })))
     }
 
     @Test
