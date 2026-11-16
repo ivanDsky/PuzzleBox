@@ -69,7 +69,9 @@ import com.ivandsky.puzzlebox.navigation.FirstScreenReady
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.DuelsSlot
+import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.community.CommunityHost
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.map
 import org.koin.compose.koinInject
@@ -266,13 +268,16 @@ fun PuzzleBoxApp(
 @Composable
 private fun rememberCustomSlot(navigator: Navigator): CustomSlot = remember(navigator) {
     CustomSlot { listState, friendsEmpty, friends ->
-        CustomBody(
-            listState = listState,
-            friendsEmpty = friendsEmpty,
-            friends = friends,
-            onOpenDraft = { navigator.pushOnce(EditorKey(it)) },
-            onOpenPublished = { navigator.pushOnce(PublishedPuzzleKey(it)) },
-        )
+        CommunityHost(onOpen = { navigator.pushOnce(FriendPuzzleKey(it)) }) { community ->
+            CustomBody(
+                listState = listState,
+                friendsEmpty = friendsEmpty,
+                friends = friends,
+                onOpenDraft = { navigator.pushOnce(EditorKey(it)) },
+                onOpenPublished = { navigator.pushOnce(PublishedPuzzleKey(it)) },
+                community = community,
+            )
+        }
     }
 }
 
