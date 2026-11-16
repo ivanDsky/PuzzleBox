@@ -15,4 +15,10 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
 
     /** Flat buttons and cards: no lips, a tint plus a 100 ms scale on press. Read only by the app's root theme (nav-rethink B1). */
     FlatSurfaces(label = "Flat buttons and cards", releaseDefault = false),
+
+    /**
+     * Custom inside Games and a full-screen Studio: Create stops being a tab, Games gets a Custom pill, and the Studio
+     * hides the bar (nav-rethink N9, N10). Read only in a ViewModel, a DI module or the app-graph `TabSetSource` (ADR-0027 §10).
+     */
+    CustomInGames(label = "Custom inside Games, full-screen Studio", releaseDefault = false),
 }
