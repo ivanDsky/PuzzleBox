@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.DraftCompleter
 import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorNotation
@@ -25,11 +26,13 @@ import com.ivandsky.puzzlebox.model.GameId
  * every cell [QueensDraft.UNPAINTED] (ledger ruling: blank = empty), so it starts Incomplete
  * on the unpainted count; the variant table is the shipped sizes 4..12 (A5). A unique draft
  * exports through the daily [QueensCodec] (A10), so test solve plays a real puzzle, and it
- * shares as board-only [QueensShareCodec] bytes the recipient re-solves.
+ * shares as board-only [QueensShareCodec] bytes the recipient re-solves. [QueensCompleter]
+ * finishes a half-painted draft (Finish for me, spec E1).
  */
 object QueensEditor :
     GameEditor<QueensDraft>,
     DraftExport<QueensDraft>,
+    DraftCompleter<QueensDraft> by QueensCompleter,
     EditorShareCodec<QueensDraft> by QueensShareCodec,
     EditorNotation<QueensDraft> by QueensNotation {
     override val gameId: GameId get() = QueensDefinition.id

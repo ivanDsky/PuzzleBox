@@ -5,9 +5,10 @@ import java.util.ArrayDeque
 import kotlin.random.Random
 
 /**
- * Random uniquely-solvable boards for property tests and the golden/benchmark workload
- * (zip precedent: ZipGenerator is test-only — production puzzles come from the daily
- * fetch). A13 hard gate: EXACTLY ONE solution, reached by REPAIR, not luck:
+ * Random uniquely-solvable boards. Production code since Finish for me (spec E1): the editor's
+ * pinned variant, `editor/QueensPinnedGrowth`, follows this recipe with the author's cells
+ * fixed; the property tests and the golden/benchmark workload draw their boards from here.
+ * A13 hard gate: EXACTLY ONE solution, reached by REPAIR, not luck:
  *
  * 1. Random valid placement (the intended solution) + regions grown outward from the
  *    queens (compact regions constrain harder).
