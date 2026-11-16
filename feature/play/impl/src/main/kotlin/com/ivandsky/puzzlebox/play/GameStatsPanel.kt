@@ -10,13 +10,15 @@ import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 
 /**
  * The tablet side panel's content: [PlayStatsPanel] over [stats], under the game's
- * chrome, timing it off [clock] (null while the board isn't ready).
+ * chrome, timing it off [clock] (null while the board isn't ready). [showTimer] is false when the
+ * top bar holds the timer (a play tuning).
  */
 internal fun statsPanel(
     stats: PlayStatsViewModel,
     clock: PlayClock?,
     activityContext: Context,
     boardStyle: DailyBoardStyle,
+    showTimer: Boolean,
 ): @Composable ColumnScope.() -> Unit = {
     val state by stats.state.collectAsStateWithLifecycle()
     val signIn by stats.signIn.collectAsStateWithLifecycle()
@@ -25,6 +27,7 @@ internal fun statsPanel(
         elapsedMs = { clock?.displayedElapsedMs() },
         signIn = signIn,
         onSignIn = { stats.signIn(activityContext) },
+        showTimer = showTimer,
         boardStyle = boardStyle,
     )
 }
