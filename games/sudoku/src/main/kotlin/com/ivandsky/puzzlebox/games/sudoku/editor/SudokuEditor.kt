@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.NotationResult
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
+import com.ivandsky.puzzlebox.game.editor.ScoredGrader
 import com.ivandsky.puzzlebox.game.editor.Solution
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.sudoku.SudokuDefinition
@@ -23,12 +24,14 @@ import com.ivandsky.puzzlebox.model.GameId
 /**
  * The pure editor of one Sudoku game: its only variant is the [definition]'s, so a draft of
  * another size decodes to [DecodeError.VariantSizeMismatch] rather than opening under the wrong game.
- * [SudokuCompleter] finishes a draft with givens missing (Finish for me, spec E1).
+ * [SudokuCompleter] finishes a draft with givens missing (Finish for me, spec E1), and
+ * [SudokuScoredGrader] labels a board by the score of its whole solve (92).
  */
 class SudokuEditor(private val definition: SudokuDefinition) :
     GameEditor<SudokuDraft>,
     DraftExport<SudokuDraft>,
     DraftCompleter<SudokuDraft> by SudokuCompleter,
+    ScoredGrader<SudokuDraft> by SudokuScoredGrader,
     EditorNotation<SudokuDraft>,
     EditorShareCodec<SudokuDraft> by SudokuShareCodec {
     private val variant = definition.variant
