@@ -12,6 +12,7 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -21,6 +22,8 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.ivandsky.puzzlebox.app.nav.FriendLink
 import com.ivandsky.puzzlebox.app.nav.SharedText
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.repository.SharedTextStore
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -47,6 +50,9 @@ class MainActivity : ComponentActivity(), KoinComponent {
     private val sharedText: SharedTextStore by inject()
 
     private val firstScreen: FirstScreenReady by inject()
+
+    // The one reader of FlatSurfaces: the root theme below hands it down as LocalFlatSurfaces (spec A2).
+    private val releaseFlags: ReleaseFlags by inject()
 
     // Built in onCreate, on the clock the splash's one-second cap is measured on.
     private lateinit var splashPolicy: SplashReleasePolicy
@@ -89,6 +95,7 @@ class MainActivity : ComponentActivity(), KoinComponent {
             // flashes light; the system splash covers that wait.
             val systemDark = isSystemInDarkTheme()
             val windowSize = calculateWindowSizeClass(this)
+            val flags by releaseFlags.enabled.collectAsState()
 
             theme?.let { read ->
                 val darkTheme = read.mode.isDarkTheme(systemDark)
@@ -106,7 +113,7 @@ class MainActivity : ComponentActivity(), KoinComponent {
                     }
                 }
 
-                PuzzleBoxTheme(darkTheme = darkTheme) {
+                PuzzleBoxTheme(darkTheme = darkTheme, flatSurfaces = ReleaseFlag.FlatSurfaces in flags) {
                     PuzzleBoxApp(
                         windowWidthSizeClass = windowSize.widthSizeClass,
                         pendingLink = pendingLink,

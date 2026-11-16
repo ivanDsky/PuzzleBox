@@ -105,11 +105,16 @@ object MotionTokens {
     // One name per job. Each job's reduced-motion fallback sits beside it;
     // "none" means the state change is instant (read rememberReducedMotion()).
 
-    // Press: scale 0.97 on the default spring. Reduced: none.
+    // Press: scale 0.97 on the default spring. Reduced: none. While flat surfaces are on, the
+    // scale takes PressDuration in and out instead of the spring, and a pressed surface also
+    // washes PressTintAlpha of its ink over its face (the tint is state, so reduced shows it
+    // at once).
     const val PressScale = 0.97f
+    const val PressDuration = 100
+    const val PressTintAlpha = 0.12f
 
     // Press, chunky game buttons (GameButton): sink — the face translates down into its
-    // lip on the default spring instead of scaling. Reduced: instant.
+    // lip on the default spring instead of scaling. Applies only while flat is off. Reduced: instant.
 
     // Select: icon crossfade + nav indicator 32→56dp on EasingStandard. Reduced: instant.
     const val SelectDuration = 120
