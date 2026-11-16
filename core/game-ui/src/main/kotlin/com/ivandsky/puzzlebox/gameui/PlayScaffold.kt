@@ -15,8 +15,6 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -110,17 +108,6 @@ fun AdaptivePlayScaffold(
             }
         }
     }
-}
-
-/**
- * The single pane's device class, from the window the app picks its panes from. A single
- * pane the two-pane rule would have split still takes the single-pane tablet cap.
- */
-@Composable
-private fun singlePaneDeviceClass(): DeviceClass {
-    val window = LocalWindowInfo.current.containerSize
-    val deviceClass = with(LocalDensity.current) { deviceClassFor(window.width.toDp(), window.height.toDp()) }
-    return if (deviceClass == DeviceClass.TabletLandscape) DeviceClass.TabletPortrait else deviceClass
 }
 
 private const val BOARD_PANE_SHARE = 0.7f

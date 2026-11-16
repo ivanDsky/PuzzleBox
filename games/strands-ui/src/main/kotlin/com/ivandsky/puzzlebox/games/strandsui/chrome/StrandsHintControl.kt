@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,6 +48,7 @@ import com.ivandsky.puzzlebox.games.strandsui.board.keyframes
  * the button and swells it ([rememberHintFace]). TalkBack hears "Hint" and the state: how many
  * hints are banked and how many words toward the next. Under the core hint cooldown (F2) every
  * press, modal or reveal, waits it out with the shared ring ([rememberHintCooldown]).
+ * [fill] takes the width the parent gives instead of [HintWidth] (the tuned control row).
  */
 @Composable
 internal fun StrandsHintControl(
@@ -54,6 +56,7 @@ internal fun StrandsHintControl(
     onHint: () -> Unit,
     reduceMotion: Boolean,
     modifier: Modifier = Modifier,
+    fill: Boolean = false,
 ) {
     val face = rememberHintFace(hint, reduceMotion)
     val shown = face.shown
@@ -65,7 +68,8 @@ internal fun StrandsHintControl(
     }
     val state = if (hint.available) StrandsCopy.hintAvailable(hint.count, hint.meterThirds) else StrandsCopy.hintUnavailable(hint.meterThirds)
     val cooldown = rememberHintCooldown()
-    Box(modifier.width(HintWidth)) {
+    val width = if (fill) Modifier.fillMaxWidth() else Modifier.width(HintWidth)
+    Box(modifier.then(width)) {
         Box(
             Modifier.graphicsLayer {
                 val scale = keyframes(swell.value, SwellAt, StrandsMotion.SwellStops, LinearEasing)
@@ -80,7 +84,7 @@ internal fun StrandsHintControl(
                 accent = StrandsBrand.accent.takeIf { shown.available },
                 size = GameButtonSize.Tall,
                 modifier = Modifier
-                    .width(HintWidth)
+                    .then(width)
                     .semantics { stateDescription = state }
                     .testTag("strands.hint")
                     .cooldownRing(cooldown.ring, StrandsBrand.accent),

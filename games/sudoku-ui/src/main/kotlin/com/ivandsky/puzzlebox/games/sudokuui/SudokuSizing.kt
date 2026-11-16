@@ -23,6 +23,10 @@ import kotlin.math.roundToInt
  * under the cell), they move into a fourth column beside the digits at key height instead
  * ([SudokuKeypadActions.Column]). With inlineNotes (TwoPane, where Erase and Clear sit in
  * the toolbar) only the notes toggle takes that column.
+ *
+ * Under a play tuning the caller passes a [keyFloor][layout]: the keys then never shrink below
+ * it (the cell and the grid give way first), and Clear has left the keypad, so the Column's
+ * second row is Erase alone ([actionColumnWidth] `withClear` false).
  */
 object SudokuSizing {
 
@@ -44,19 +48,23 @@ object SudokuSizing {
         size: Int,
         inlineNotes: Boolean = false,
         boardMax: Dp = PlayBoardMaxWidth,
+        keyFloor: Dp = 0.dp,
     ): SudokuLayout {
         require(size > 0 && size % COLUMNS == 0) { "size must be a positive multiple of $COLUMNS, was $size" }
         val rows = size / COLUMNS
         val widthCell = floor(minOf(maxWidth, boardMax).value / size).toInt().coerceAtLeast(0)
+        val floorKey = keyFloor.value.toInt()
+        // A key is as tall as its cell, but never under the floor.
+        fun keyAt(cell: Int) = maxOf(cell, floorKey)
         val actions = when {
             inlineNotes -> SudokuKeypadActions.NotesColumn
-            heightFor(size, rows, SudokuKeypadActions.Row, widthCell, widthCell) <= maxHeight -> SudokuKeypadActions.Row
+            heightFor(size, rows, SudokuKeypadActions.Row, widthCell, keyAt(widthCell)) <= maxHeight -> SudokuKeypadActions.Row
             else -> SudokuKeypadActions.Column
         }
         var cell = widthCell
-        while (cell > 0 && heightFor(size, rows, actions, cell, cell) > maxHeight) cell--
-        var key = cell
-        val keyCap = minOf(floor(cell * KEY_GROWTH).toInt(), keyMax.value.toInt())
+        while (cell > 0 && heightFor(size, rows, actions, cell, keyAt(cell)) > maxHeight) cell--
+        var key = keyAt(cell)
+        val keyCap = maxOf(minOf(floor(cell * KEY_GROWTH).toInt(), keyMax.value.toInt()), floorKey)
         while (key < keyCap && heightFor(size, rows, actions, cell, key + 1) <= maxHeight) key++
         val actionKey = if (actions == SudokuKeypadActions.Row) actionKeyFor(key.dp) else key.dp
         return SudokuLayout(cell.dp, (cell * size).dp, key.dp, actionKey, keyGap, rows, actions)
@@ -66,16 +74,19 @@ object SudokuSizing {
     internal fun keypadHeight(layout: SudokuLayout): Dp =
         keypadHeight(layout.keyRows, layout.actions, layout.key, layout.actionKey)
 
-    /** The fourth column's width in a keypad [width] wide; a 6x6 Column splits its second row Erase | Clear, two 48dp halves. */
-    internal fun actionColumnWidth(width: Dp, keyRows: Int, actions: SudokuKeypadActions): Dp {
+    /**
+     * The fourth column's width in a keypad [width] wide; a 6x6 Column splits its second row
+     * Erase | Clear, two 48dp halves, unless [withClear] is false (Clear is in the control row).
+     */
+    internal fun actionColumnWidth(width: Dp, keyRows: Int, actions: SudokuKeypadActions, withClear: Boolean = true): Dp {
         val quarter = (width - keyGap * COLUMNS) / (COLUMNS + 1)
-        val splitsRow = actions == SudokuKeypadActions.Column && keyRows < COLUMNS
+        val splitsRow = withClear && actions == SudokuKeypadActions.Column && keyRows < COLUMNS
         return if (splitsRow) maxOf(quarter, keyMin * 2 + keyGap) else quarter
     }
 
     /** One digit key's width in a keypad [width] wide: a third of it, or of what the fourth column leaves. */
-    internal fun digitKeyWidth(width: Dp, keyRows: Int, actions: SudokuKeypadActions): Dp {
-        val digits = if (actions == SudokuKeypadActions.Row) width else width - keyGap - actionColumnWidth(width, keyRows, actions)
+    internal fun digitKeyWidth(width: Dp, keyRows: Int, actions: SudokuKeypadActions, withClear: Boolean = true): Dp {
+        val digits = if (actions == SudokuKeypadActions.Row) width else width - keyGap - actionColumnWidth(width, keyRows, actions, withClear)
         return (digits - keyGap * (COLUMNS - 1)) / COLUMNS
     }
 
