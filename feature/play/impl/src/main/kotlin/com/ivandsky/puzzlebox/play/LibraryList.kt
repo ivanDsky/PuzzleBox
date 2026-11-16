@@ -35,7 +35,6 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.launch
@@ -52,7 +51,9 @@ import kotlinx.coroutines.launch
  * the [tab]'s body fills the rest, Dailies and Friends ([friendsTab], [friendCount] on its
  * pill) scrolling on [scroll] and Duels on [duelsScroll], which the Duels body lays its list out on. A tab change ([onTab])
  * scrolls back to the top and fades the new body in. There is no From friends carousel then:
- * the Friends tab is where those cards live.
+ * the Friends tab is where those cards live. With a [customTab] too the pills are Dailies,
+ * Duels, Custom ([gamesTabs]): Custom takes Friends' place ([shownWith]), its body is
+ * [customTab], laid out on [customScroll], and its pill carries [customCount].
  */
 @Composable
 internal fun LibraryList(
@@ -69,15 +70,25 @@ internal fun LibraryList(
     friendsTab: @Composable () -> Unit = {},
     friendCount: Int = 0,
     duelsScroll: LazyListState = rememberLazyListState(),
+    customTab: (@Composable () -> Unit)? = null,
+    customCount: Int = 0,
+    customScroll: LazyListState = rememberLazyListState(),
 ) {
     val phone = layout == PlayLayout.SinglePane
-    // Only the list on screen glides: a tab change already snaps the other one back to its top.
-    val duelsShown by rememberUpdatedState(duels != null && tab == GamesTab.Duels)
+    // Only the list on screen glides: a tab change already snaps the other ones back to their tops.
+    val shown by rememberUpdatedState(if (duels == null) null else tab.shownWith(customTab != null))
     OnTabReselect {
-        if (duelsShown) duelsScroll.animateScrollToItem(0) else scroll.animateScrollTo(0)
+        when (shown) {
+            GamesTab.Duels -> duelsScroll.animateScrollToItem(0)
+            GamesTab.Custom -> customScroll.animateScrollToItem(0)
+            else -> scroll.animateScrollTo(0)
+        }
     }
     if (duels != null) {
-        TabbedList(state, phone, scroll, duelsScroll, onRow, modifier, headerAction, duels, tab, onTab, friendsTab, friendCount)
+        TabbedList(
+            state, phone, scroll, duelsScroll, onRow, modifier, headerAction, duels, tab, onTab, friendsTab, friendCount,
+            customTab, customCount, customScroll,
+        )
         return
     }
     Column(
@@ -109,54 +120,36 @@ private fun TabbedList(
     onTab: (GamesTab) -> Unit,
     friendsTab: @Composable () -> Unit,
     friendCount: Int,
+    customTab: (@Composable () -> Unit)?,
+    customCount: Int,
+    customScroll: LazyListState,
 ) {
     val scope = rememberCoroutineScope()
+    // A saved or requested Friends is Custom while there is a Custom tab, and the other way round.
+    val shown = tab.shownWith(customTab != null)
     // The pills and the Friends body pad their own sides; the tablet's list has none, so they step out of it.
     val sides = if (phone) Modifier else Modifier.widenBy(Spacing.lg)
     // The tab switch fades the body in through an alpha layer cut to the body's bounds, which would shear the
     // selected card's outline at the pane's edges; so the tablet's body is [OutlineRoom] wider on each side and its content stays inset by it.
     val bodyRoom = if (phone) 0.dp else OutlineRoom
     val select: (GamesTab) -> Unit = { next ->
-        if (next != tab) {
+        if (next != shown) {
             scope.launch { scroll.scrollTo(0) }
             duelsScroll.requestScrollToItem(0)
+            customScroll.requestScrollToItem(0)
             onTab(next)
         }
     }
-    val duelsNeedYou = duels.needYou()
     Column(modifier.testTag("library.list"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Box(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier) { ListHeader(headerAction) }
-        Box(sides) {
-            GamesTabs {
-                GamesTabPill("Dailies", tab == GamesTab.Dailies, { select(GamesTab.Dailies) }, "library.tab.dailies")
-                GamesTabPill(
-                    "Friends",
-                    tab == GamesTab.Friends,
-                    { select(GamesTab.Friends) },
-                    "library.tab.friends",
-                    trailing = friendCount.takeIf { it > 0 }?.let { n ->
-                        {
-                            Text(n.toString(), style = MaterialTheme.typography.labelLarge.tabular(), color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    },
-                )
-                GamesTabPill(
-                    "Duels",
-                    tab == GamesTab.Duels,
-                    { select(GamesTab.Duels) },
-                    "library.tab.duels",
-                    description = if (duelsNeedYou > 0) "Duels, $duelsNeedYou need you" else null,
-                    trailing = { TabCountBadge(duelsNeedYou, Modifier.testTag("library.tab.duels.count")) },
-                )
-            }
-        }
+        Box(sides) { GamesTabRow(gamesTabs(customTab != null), shown, select, friendCount, duels.needYou(), customCount) }
         AnimatedContent(
-            targetState = tab,
+            targetState = shown,
             transitionSpec = { fadeIn(tween(MotionTokens.ReducedFadeDuration)) togetherWith fadeOut(snap()) },
             label = "games-tab",
             modifier = Modifier.weight(1f).fillMaxWidth().widenBy(bodyRoom),
-        ) { shown ->
-            when (shown) {
+        ) { body ->
+            when (body) {
                 // The scroll container clips at its top and bottom edges, so on the tablet it keeps [OutlineRoom] free
                 // above the first card and below the last one for the selected card's outline; the sides are the body's own room.
                 GamesTab.Dailies -> Column(
@@ -179,6 +172,8 @@ private fun TabbedList(
                 GamesTab.Duels -> Box(
                     Modifier.fillMaxSize().padding(horizontal = if (phone) Spacing.lg else OutlineRoom),
                 ) { duels.content(duelsScroll) }
+                // Its rows pad their own sides, as the Friends body does: flush with the screen on the phone, stepped out of the tablet's list.
+                GamesTab.Custom -> Box(Modifier.fillMaxSize().padding(horizontal = bodyRoom).then(sides)) { customTab?.invoke() }
             }
         }
     }

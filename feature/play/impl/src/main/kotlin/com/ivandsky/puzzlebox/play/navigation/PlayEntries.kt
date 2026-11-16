@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GameRoute
 import com.ivandsky.puzzlebox.play.LibraryRequest
@@ -42,6 +43,7 @@ import org.koin.compose.koinInject
  * whose Play again replaces it with the board again. The library opens its code sheet on
  * [codeDraft]'s text and hands it back through [onCodeDraftTaken]. A [duels] slot turns the
  * library into the Dailies, Friends and Duels tabs; without one it is the single games list.
+ * A [custom] slot beside it makes them Dailies, Duels and Custom, the slot's list holding the friend puzzles.
  * Its [DuelsSlot.onOpenDuel] is what the code sheet calls when an entered code names a duel (no slot: duels are off, the sheet never
  * tries a code as one). A duel puzzle's [MatchLegKey] draws its leg's board; Up pops, and a
  * solve, a give up or a puzzle already taken replaces it with its [MatchLegResultKey]. The library
@@ -60,6 +62,7 @@ fun EntryProviderScope<NavKey>.playEntry(
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
+    custom: CustomSlot? = null,
     libraryRequest: () -> LibraryRequest? = { null },
     onLibraryRequestTaken: () -> Unit = {},
     onReconnectLinkedIn: (() -> Unit)? = null,
@@ -72,6 +75,7 @@ fun EntryProviderScope<NavKey>.playEntry(
             codeDraft = codeDraft(),
             onCodeDraftTaken = onCodeDraftTaken,
             duels = duels,
+            custom = custom,
             request = libraryRequest(),
             onRequestTaken = onLibraryRequestTaken,
             linkedIn = onReconnectLinkedIn != null,

@@ -57,6 +57,7 @@ import org.koin.core.parameter.parametersOf
  * Open is [onOpenCode]. A From friends card's Remove shows "Removed <code>" with Undo. A
  * [codeDraft] opens the sheet with that text already in the field, then is taken
  * ([onCodeDraftTaken]); a [request] opens a game's page or a tab, then is taken ([onRequestTaken]).
+ * A [custom] slot beside the [duels] one makes the tabs Dailies, Duels, Custom ([LibraryScreen]).
  * The game page shows its rank as a summary row that calls [onOpenRanks].
  * With [linkedIn] the day card shows the LinkedIn lines, and [onReconnectLinkedIn] opens its login.
  */
@@ -70,6 +71,7 @@ internal fun LibraryRoute(
     codeDraft: String? = null,
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
+    custom: CustomSlot? = null,
     request: LibraryRequest? = null,
     onRequestTaken: () -> Unit = {},
     linkedIn: Boolean = false,
@@ -121,6 +123,7 @@ internal fun LibraryRoute(
             onOpenFriend = onOpenCode,
             onRemoveFriend = viewModel::removeFriend,
             duels = duels,
+            custom = custom,
             request = request,
             onRequestTaken = onRequestTaken,
             linkedIn = linkedInCard,
@@ -164,7 +167,8 @@ internal fun LibraryRoute(
  * only with an [onEnterCode]. [friends] heads the list as From friends, each card opening its
  * puzzle through [onOpenFriend] and removing it through [onRemoveFriend]. A [duels] slot turns
  * the list into the Dailies, Friends and Duels tabs (the tab is saved here, so it survives a
- * page push). A [request] acts once
+ * page push); with a [custom] slot too they are Dailies, Duels and Custom, whose list holds the
+ * friend puzzles and whose pill counts the ones not played yet. A [request] acts once
  * ([ConsumeLibraryRequest]; a section needs [duels]) and is reported taken ([onRequestTaken]). The game page
  * shows its rank as a summary row that calls [onOpenRanks].
  * A non-null [linkedIn] puts the LinkedIn lines on the page's day card.
@@ -188,12 +192,14 @@ internal fun LibraryScreen(
     onOpenFriend: (ShareCode) -> Unit = {},
     onRemoveFriend: (ShareCode) -> Unit = {},
     duels: DuelsSlot? = null,
+    custom: CustomSlot? = null,
     request: LibraryRequest? = null,
     onRequestTaken: () -> Unit = {},
     linkedIn: LinkedInCardState? = null,
 ) {
     val listScroll = rememberScrollState()
     val duelsScroll = rememberLazyListState()
+    val customScroll = rememberLazyListState()
     val enterCode: @Composable () -> Unit = {
         onEnterCode?.let { SecondaryButton(text = "Enter code", onClick = it, modifier = Modifier.testTag("library.enterCode")) }
     }
@@ -221,16 +227,20 @@ internal fun LibraryScreen(
                 pageOpen = false
                 listScroll.scrollTo(0)
                 duelsScroll.requestScrollToItem(0)
+                customScroll.requestScrollToItem(0)
             }
         },
         onTaken = onRequestTaken,
     )
     val friendsTab: @Composable () -> Unit = { FriendsTabBody(friends, onOpenFriend, onRemoveFriend, onEnterCode ?: {}) }
+    val customTab: (@Composable () -> Unit)? = custom?.let {
+        { CustomTabBody(it, customScroll, friends, onOpenFriend, onRemoveFriend, onEnterCode ?: {}) }
+    }
     @Composable
     fun GamesList(onRow: (GameId) -> Unit, modifier: Modifier = Modifier) = LibraryList(
         state, layout, listScroll, onRow, modifier, headerAction = enterCode, friends = fromFriends,
         duels = duels, tab = tab, onTab = { tab = it }, friendsTab = friendsTab, friendCount = friends.size,
-        duelsScroll = duelsScroll,
+        duelsScroll = duelsScroll, customTab = customTab, customCount = friends.unplayed(), customScroll = customScroll,
     )
     if (layout == PlayLayout.TwoPane) {
         Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {

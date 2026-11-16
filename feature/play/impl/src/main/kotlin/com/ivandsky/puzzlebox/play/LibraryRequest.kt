@@ -11,7 +11,10 @@ import androidx.compose.runtime.setValue
  * A one-shot ask from outside Games, held by the app shell and taken once: show a [Section].
  */
 sealed interface LibraryRequest {
-    /** Show [tab], closing any open page. */
+    /**
+     * Show [tab], closing any open page. Friends and Custom name the same place: whichever of
+     * the two the pills have is the one shown ([shownWith]).
+     */
     data class Section(val tab: GamesTab) : LibraryRequest
 }
 
