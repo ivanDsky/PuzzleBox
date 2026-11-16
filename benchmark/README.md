@@ -16,15 +16,15 @@ expected to work there. Real-board Ranks flows need an account and are not bench
 release package holds the real account. `TARGET_PACKAGE` in `Target.kt` is the only package any
 journey names.
 
-| Class | Journeys | Metrics |
-| --- | --- | --- |
-| `StartupBenchmark` | cold and warm, Partial and None compilation | `timeToInitialDisplayMs`, frame timing |
-| `GameOpenBenchmark` | each of the five games: card, page, Play, board ready, back | frame timing |
-| `TabSwitchBenchmark` | Today, Games, Ranks, Create and back | frame timing |
-| `ArchiveBenchmark` | calendar day taps and month arrows | frame timing |
-| `RanksBenchmark` | open, Who/When sheet, day arrows, board swipes | frame timing |
-| `ZipDragBenchmark` | drag from 1 toward 2 on the board, Clear, three times | frame timing |
-| `BaselineProfileGenerator` | cold start, tabs, every game board | writes a profile; nothing is committed |
+| Class | Journeys | Data state | Metrics |
+| --- | --- | --- | --- |
+| `StartupBenchmark` | cold and warm, Partial and None compilation | no data state: the install's data, so class order in the run matters | `timeToInitialDisplayMs`, frame timing |
+| `GameOpenBenchmark` | each of the five games: card, page, Play, board ready, back | `Opened(game)`: its puzzle stored, tutorial seen | frame timing |
+| `TabSwitchBenchmark` | Today, Games, Ranks, Create and back | `OnToday` | frame timing |
+| `ArchiveBenchmark` | calendar day taps and month arrows | `OnToday` | frame timing |
+| `RanksBenchmark` | open, Who/When sheet, day arrows, board swipes | `OnToday` | frame timing |
+| `ZipDragBenchmark` | drag from 1 toward 2 on the board, Clear, three times | `Opened(Zip)` | frame timing |
+| `BaselineProfileGenerator` | cold start, tabs, every game board | no data state: the install's data, so class order in the run matters | writes a profile; nothing is committed |
 
 Frame timing reports `frameDurationCpuMs` and `frameOverrunMs` as P50, P90, P99. No journey finishes
 a puzzle. Selectors are text and content descriptions; the app has no benchmark test tags.
@@ -52,9 +52,23 @@ serial. The Tab is a two-pane layout (840 dp wide, wider than tall, at least 480
   run in the right pane (60% to 90% of the width) instead of across the screen.
 - Zip: only a digit inside the board pane is a waypoint; the stats panel beside it has digits too.
 
-The journeys assume a fresh signed-out benchmark install: today's puzzles unsolved (the page offers
-Play, not "See result") and no Create drafts (the empty state). Uninstall `com.ivandsky.puzzlebox.benchmark`
-and let Gradle reinstall it to reset; `pm clear` is refused.
+Journeys do not clear the benchmark package's data. Each `DataState` is set up idempotently from
+whatever the last run left: `OnToday` launches to Today and nothing more; the app then starts syncing
+today's puzzle for every game (its prefetch on Home and Games, when online), and nothing waits for
+it. `Opened(game)` also opens that game with its tutorial skipped, so the game's puzzle is stored and
+its tutorial is seen; a tutorial already seen is not shown again. In-run `pm clear` of the target
+kills the instrumentation on Android 17, which is why nothing clears. Gradle's connected task
+installs fresh and uninstalls afterwards; for on-device `am instrument` runs, uninstall the benchmark
+package and reinstall first. A re-used install must have no solved daily: a solved puzzle's page
+shows "See result" instead of Play, and the journeys stop there.
+
+`GameOpenBenchmark` measures the stored open only. There is no unstored variant here: the Today launch
+stores today's puzzles for all five games before the measured block (Home and Games prefetch), and a
+first Play always opens the tutorial, so an unstored open cannot be reached from this module without an
+app hook. The unstored path is covered by the JVM tests `ActivePlayBoardFirstTest`, `SlotOpeningTest`
+and `RealGamesBoardFirstTest`, plus a visual check on the Pixel.
+
+Startup and the baseline profile declare no data state: they measure the install's data as it is.
 
 A journey never holds a `UiObject2` across a wait or a transition; it finds and acts in one `poll`,
 which finds the node again when a recomposition makes it stale.

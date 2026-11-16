@@ -23,15 +23,10 @@ class ZipDragBenchmark {
     @get:Rule
     val rule = MacrobenchmarkRule()
 
-    private var tutorialSkipped = false
-
     @Test
     fun dragAndClear() = rule.journey(
+        data = DataState.Opened(BenchmarkGame.Zip),
         setup = {
-            if (!tutorialSkipped) {
-                skipTutorial(BenchmarkGame.Zip)
-                tutorialSkipped = true
-            }
             selectTab(BenchmarkTab.Games)
             openGamePage(BenchmarkGame.Zip)
             startBoard()

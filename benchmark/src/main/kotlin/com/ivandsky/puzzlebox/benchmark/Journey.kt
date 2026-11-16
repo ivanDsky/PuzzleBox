@@ -31,11 +31,39 @@ internal fun journeyCompilation(): CompilationMode =
     }
 
 /**
- * One journey: the app is brought to Today before every run, [block] is measured, and [setup] runs
- * first and unmeasured. The process lives on between runs (journeys measure interaction, startup
- * has its own benchmark), so [setup] and [block] each leave the app on the tab they started on.
+ * The daily data a journey starts from. Every run through [journey] has one (default [OnToday]); the
+ * README table lists them. Nothing clears the app's data: each state is reached from whatever the
+ * last run left.
+ */
+internal sealed interface DataState {
+    /**
+     * Launched to Today and nothing more. The Today launch starts syncing today's puzzle for every
+     * game (the app's prefetch, when online); nothing waits for it, so the sync may still be running.
+     * No game is opened here.
+     */
+    data object OnToday : DataState
+
+    /**
+     * Launched to Today, then [game] opened with its tutorial skipped: today's puzzle for [game] is
+     * stored and its tutorial is seen. Idempotent: a tutorial already seen is not shown again.
+     */
+    data class Opened(val game: BenchmarkGame) : DataState
+}
+
+/** Puts [data] in place once the app is on Today; [setup] runs after it. */
+internal fun MacrobenchmarkScope.prepare(data: DataState) = when (data) {
+    DataState.OnToday -> Unit
+    is DataState.Opened -> skipTutorial(data.game)
+}
+
+/**
+ * One journey: [data] is set up before every run, [block] is measured, and [setup] runs first and
+ * unmeasured. Nothing clears the data between runs, so each [data] state is set up idempotently from
+ * whatever the last run left. The process lives on between runs (journeys measure interaction,
+ * startup has its own benchmark), so [setup] and [block] each leave the app on the tab they started on.
  */
 internal fun MacrobenchmarkRule.journey(
+    data: DataState = DataState.OnToday,
     compilationMode: CompilationMode = journeyCompilation(),
     metrics: List<Metric> = listOf(FrameTimingMetric()),
     setup: MacrobenchmarkScope.() -> Unit = {},
@@ -50,6 +78,7 @@ internal fun MacrobenchmarkRule.journey(
         pressHome()
         startActivityAndWait()
         ensureToday()
+        prepare(data)
         setup()
     },
     measureBlock = block,
