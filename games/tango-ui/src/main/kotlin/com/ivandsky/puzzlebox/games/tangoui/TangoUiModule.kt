@@ -1,6 +1,9 @@
 package com.ivandsky.puzzlebox.games.tangoui
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.games.tango.TangoDefinition
 import com.ivandsky.puzzlebox.games.tangoui.editor.TangoEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -12,10 +15,13 @@ import org.koin.dsl.module
 
 /** Koin wiring (ADR-0001 aggregation): `app` collects this with the other ui modules.
  *  Qualified by game id (the plugin binding's pattern) so the three play UIs coexist;
- *  the editor UI takes the `<id>.editor` qualifier beside it. */
+ *  the editor UI takes the `<id>.editor` qualifier beside it. The hint mode is built per board,
+ *  the one place Tango reads [ReleaseFlag.HintFirstMove] (nav-rethink A2). */
 val tangoUiModule: Module = module {
     single<GamePlayUi>(qualifier = qualifier(TangoDefinition.id.value)) {
-        TangoPlayUi(HintMode.Stepwise(get<DispatcherProvider>().default))
+        val compute = get<DispatcherProvider>().default
+        val flags = get<ReleaseFlags>()
+        TangoPlayUi { HintMode.Stepwise(compute, firstMove = flags.isEnabled(ReleaseFlag.HintFirstMove)) }
     }
     single<GameEditorUi>(qualifier = qualifier("${TangoDefinition.id.value}.editor")) { TangoEditorUi }
 }
