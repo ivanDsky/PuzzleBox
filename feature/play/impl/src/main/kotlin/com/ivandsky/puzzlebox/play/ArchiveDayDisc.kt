@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.LocalOnFill
 import com.ivandsky.puzzlebox.designsystem.pressScale
+import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.ArchiveDay
 import com.ivandsky.puzzlebox.domain.PastDayStatus
@@ -167,19 +169,20 @@ internal fun ArchiveDayDisc(
         contentAlignment = Alignment.Center,
     ) {
         val dim = kind == DiscKind.NotOpened && offline
+        val text = when (kind) {
+            DiscKind.Solved -> LocalOnFill.current
+            DiscKind.InProgress, DiscKind.Saved -> scheme.onSurface
+            DiscKind.NotOpened -> scheme.onSurfaceVariant
+            DiscKind.Outside -> scheme.onSurface.copy(alpha = OUTSIDE_ALPHA)
+        }
         Box(
             modifier = Modifier
                 .size(disc)
                 .graphicsLayer { alpha = if (dim) OFFLINE_ALPHA else 1f }
-                .drawBehind { drawDisc(kind, accent, mark, ProgressRing, SavedRing) },
+                .drawBehind { drawDisc(kind, accent, mark, ProgressRing, SavedRing) }
+                .pressTint(interaction, CircleShape, text),
             contentAlignment = Alignment.Center,
         ) {
-            val text = when (kind) {
-                DiscKind.Solved -> LocalOnFill.current
-                DiscKind.InProgress, DiscKind.Saved -> scheme.onSurface
-                DiscKind.NotOpened -> scheme.onSurfaceVariant
-                DiscKind.Outside -> scheme.onSurface.copy(alpha = OUTSIDE_ALPHA)
-            }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
                     date.dayOfMonth.toString(),

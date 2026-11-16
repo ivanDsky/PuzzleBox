@@ -37,6 +37,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.pressScale
+import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.TodayStatus
@@ -72,6 +73,7 @@ internal fun TodayBadge(
         modifier = modifier
             .pressScale(interaction, reducedMotion)
             .clip(MaterialTheme.shapes.medium)
+            .pressTint(interaction, MaterialTheme.shapes.medium, MaterialTheme.colorScheme.onSurface)
             .clickable(interactionSource = interaction, indication = null, onClick = onClick)
             .alpha(if (status == TodayStatus.Offline) OFFLINE_ALPHA else 1f)
             .heightIn(min = 48.dp)

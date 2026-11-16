@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.pressScale
+import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.ArchiveDay
@@ -220,6 +221,7 @@ private fun JumpChip(jump: MonthJump, tag: String, reduced: Boolean, onClick: ()
             .height(36.dp)
             .clip(PillShape)
             .background(if (jump.selected) scheme.onSurface else scheme.surfaceContainerHighest)
+            .pressTint(interaction, PillShape, if (jump.selected) scheme.surface else scheme.onSurface)
             .selectable(selected = jump.selected, interactionSource = interaction, indication = null, onClick = onClick)
             .padding(horizontal = 14.dp)
             .testTag(tag),
