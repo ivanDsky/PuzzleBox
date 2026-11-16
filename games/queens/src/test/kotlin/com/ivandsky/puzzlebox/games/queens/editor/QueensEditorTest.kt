@@ -43,6 +43,11 @@ class QueensEditorTest {
     }
 
     @Test
+    fun `Queens can be finished`() {
+        assertTrue(draft.canFinish)
+    }
+
+    @Test
     fun `an editor without DraftExport cannot be test-solved and exports nothing`() {
         val plain: GameEditor<QueensDraft> = object : GameEditor<QueensDraft> by QueensEditor {}
         val handle = EditorDraft(plain, DraftState(QueensDraft(4, UNIQUE)))
