@@ -46,6 +46,9 @@ object QueensEditorDefaults {
     /** Shadow under the disc. */
     val ringDiscElevation: Dp = 6.dp
 
+    /** Outline that holds the disc's edge in place of the shadow when surfaces are flat. */
+    val ringDiscOutline: Dp = 1.dp
+
     /** Outline of the centre ✕ (Unpaint) button. */
     val ringCentreStroke: Dp = 1.dp
 

@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import com.ivandsky.puzzlebox.designsystem.LocalDarkTheme
+import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -64,6 +65,7 @@ import kotlin.math.sin
  * 12 o'clock on a surface disc, a dashed outline on colours missing from [used], a "next"
  * tag on the first of those, an accent ring on [current] (the colour the whole selection
  * already has), and a centre ✕ that picks `QueensDraft.UNPAINTED`. Every pick goes to [onPick].
+ * With [LocalFlatSurfaces] on the disc has no drop shadow: a 1 dp outline holds its edge instead.
  */
 @Composable
 internal fun QueensColourRing(
@@ -75,12 +77,18 @@ internal fun QueensColourRing(
 ) {
     val radiusPx = with(LocalDensity.current) { QueensEditorDefaults.ringRadius(colours).toPx() }
     val next = (0 until colours).firstOrNull { it !in used }
+    val disc = MaterialTheme.colorScheme.surface.copy(alpha = QueensEditorDefaults.ringDiscAlpha)
+    val lift = if (LocalFlatSurfaces.current) {
+        Modifier.border(QueensEditorDefaults.ringDiscOutline, MaterialTheme.colorScheme.outlineVariant, CircleShape)
+    } else {
+        Modifier.shadow(QueensEditorDefaults.ringDiscElevation, CircleShape)
+    }
     Box(
         modifier = modifier
             .size(QueensEditorDefaults.ringDiameter(colours))
             .testTag("queens.editor.ring")
-            .shadow(QueensEditorDefaults.ringDiscElevation, CircleShape)
-            .background(MaterialTheme.colorScheme.surface.copy(alpha = QueensEditorDefaults.ringDiscAlpha), CircleShape)
+            .then(lift)
+            .background(disc, CircleShape)
             .swallowTouches(),
         contentAlignment = Alignment.Center,
     ) {

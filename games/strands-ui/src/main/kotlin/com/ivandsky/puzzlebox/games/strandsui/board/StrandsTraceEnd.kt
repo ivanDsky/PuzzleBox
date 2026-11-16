@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import com.ivandsky.puzzlebox.designsystem.BoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.LinkKind
@@ -94,6 +95,7 @@ private fun frameOf(end: TraceEnd, elapsedMs: Int, reduceMotion: Boolean, amplit
  */
 @Composable
 internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEndFrame?, colors: BoardColors) {
+    val flat = LocalFlatSurfaces.current
     Spacer(
         Modifier
             .fillMaxSize()
@@ -133,7 +135,7 @@ internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEn
                                 tokensScale = now.scale
                                 tokens.reset()
                                 now.path.forEach { coord ->
-                                    tokens.addToken(geometry.centerOf(GridCell(coord.row, coord.col)), half, now.scale)
+                                    tokens.addToken(geometry.centerOf(GridCell(coord.row, coord.col)), half, now.scale, flat)
                                 }
                             }
                             clipPath(tokens, ClipOp.Difference) { drawPath(line, faded, style = stroke) }

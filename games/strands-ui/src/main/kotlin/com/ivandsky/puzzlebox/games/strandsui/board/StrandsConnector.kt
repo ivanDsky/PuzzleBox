@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.unit.Density
 import com.ivandsky.puzzlebox.designsystem.BoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.LinkKind
 import com.ivandsky.puzzlebox.games.strands.render.StrandsLink
@@ -65,6 +66,7 @@ internal fun StrandsConnectors(
     val alphas = links.map { link -> key(link) { animateFloatAsState(if (link in dim.links) dim.alpha else 1f, spec, label = "dim") } }
     val scope = rememberCoroutineScope()
     val motion = remember { StrandsLineMotion(scope) }
+    val flat = LocalFlatSurfaces.current
     Spacer(
         Modifier
             .fillMaxSize()
@@ -72,7 +74,7 @@ internal fun StrandsConnectors(
                 val geometry = GridGeometry(rows, cols, size.width, size.height)
                 val alt = altThemeLinks(links)
                 val visible = links.withIndex().filter { it.value.cells.size >= 2 }
-                val drawn = visible.map { (_, link) -> linkDrawing(link, geometry, colors, link in alt) }
+                val drawn = visible.map { (_, link) -> linkDrawing(link, geometry, colors, link in alt, flat) }
                 onDrawBehind {
                     val settling = settle()
                     for (i in drawn.indices) {
@@ -97,7 +99,7 @@ internal fun StrandsConnectors(
 }
 
 /** One link's draw call, taking its alpha, over geometry built once: a stroked polyline, or a hint's trimmed butt-capped pieces. */
-private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry, colors: BoardColors, alt: Boolean): DrawScope.(Float) -> Unit {
+private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry, colors: BoardColors, alt: Boolean, flat: Boolean): DrawScope.(Float) -> Unit {
     val color = linkColor(link, colors, alt)
     val tokenRadius = geometry.pitch * StrandsBoardSpec.TokenFraction / 2
     if (link.kind != LinkKind.Hint) {
@@ -110,7 +112,7 @@ private fun CacheDrawScope.linkDrawing(link: StrandsLink, geometry: GridGeometry
             Path().apply {
                 link.cells.forEach { cell ->
                     val c = geometry.centerOf(GridCell(cell.row, cell.col))
-                    addToken(c, tokenRadius)
+                    addToken(c, tokenRadius, flat = flat)
                 }
             }
         }

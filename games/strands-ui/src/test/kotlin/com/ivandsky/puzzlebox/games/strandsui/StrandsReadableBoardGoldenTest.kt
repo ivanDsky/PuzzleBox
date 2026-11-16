@@ -37,7 +37,7 @@ class StrandsReadableBoardGoldenTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun capture(dark: Boolean) {
+    private fun capture(dark: Boolean, flat: Boolean = false) {
         composeRule.setContent {
             // The preview's theme follows the configuration's night bit, as on a device.
             val config = Configuration(LocalConfiguration.current).apply {
@@ -47,14 +47,14 @@ class StrandsReadableBoardGoldenTest {
             CompositionLocalProvider(LocalConfiguration provides config) {
                 PuzzleBoxTheme(darkTheme = dark) {
                     Surface(Modifier.testTag("pane"), color = MaterialTheme.colorScheme.background) {
-                        Box(Modifier.padding(12.dp).width(240.dp)) { StrandsBoardReadablePreview() }
+                        Box(Modifier.padding(12.dp).width(240.dp)) { if (flat) StrandsBoardFlatPreview() else StrandsBoardReadablePreview() }
                     }
                 }
             }
         }
         composeRule.waitForIdle()
         val out = File(checkNotNull(System.getProperty("user.dir")))
-            .resolve("snapshots/readable-board-${if (dark) "dark" else "light"}.png")
+            .resolve("snapshots/readable-board${if (flat) "-flat" else ""}-${if (dark) "dark" else "light"}.png")
             .canonicalFile
         composeRule.onNodeWithTag("pane").captureRoboImage(out.absolutePath)
     }
@@ -62,4 +62,9 @@ class StrandsReadableBoardGoldenTest {
     @Test fun `readable board light`() = capture(dark = false)
 
     @Test fun `readable board dark`() = capture(dark = true)
+
+    /** The same board with flat surfaces on (nav-rethink M10-8): no lip under a token. */
+    @Test fun `readable board flat light`() = capture(dark = false, flat = true)
+
+    @Test fun `readable board flat dark`() = capture(dark = true, flat = true)
 }

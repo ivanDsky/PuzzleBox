@@ -37,15 +37,16 @@ private val previewPuzzle: StrandsPuzzle by lazy {
 
 /**
  * [trace] reaches the board as its live trace, as the play screen's does, not through the model.
- * [readable] asks the theme for the readable board look (nav-rethink B3).
+ * [readable] asks the theme for the readable board look (nav-rethink B3), [flat] for flat surfaces.
  */
 @Composable
 private fun BoardPane(
     state: StrandsState = StrandsState(previewPuzzle),
     trace: List<Coord> = emptyList(),
     readable: Boolean = false,
+    flat: Boolean = false,
 ) {
-    PuzzleBoxTheme(readableBoard = readable) {
+    PuzzleBoxTheme(flatSurfaces = flat, readableBoard = readable) {
         StrandsBoardContent(
             model = StrandsRendererModel.of(state),
             found = null,
@@ -110,4 +111,15 @@ internal fun StrandsBoardReadablePreview() = BoardPane(
     StrandsState(previewPuzzle, found = listOf("PIES", "BAKE"), hintsUsed = 1, activeHint = ActiveHint("TART", HintStage.Outlined)),
     trace = listOf(Coord(3, 0), Coord(3, 1), Coord(3, 2)),
     readable = true,
+)
+
+/** [StrandsBoardReadablePreview] with flat surfaces on (nav-rethink M10-8): the same tokens with no lip under them. */
+@PuzzleBoxPreviews
+@Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
+@Composable
+internal fun StrandsBoardFlatPreview() = BoardPane(
+    StrandsState(previewPuzzle, found = listOf("PIES", "BAKE"), hintsUsed = 1, activeHint = ActiveHint("TART", HintStage.Outlined)),
+    trace = listOf(Coord(3, 0), Coord(3, 1), Coord(3, 2)),
+    readable = true,
+    flat = true,
 )
