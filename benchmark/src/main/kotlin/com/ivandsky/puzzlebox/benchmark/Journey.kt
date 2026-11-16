@@ -32,31 +32,20 @@ internal fun journeyCompilation(): CompilationMode =
 
 /**
  * The daily data a journey starts from. Every journey names one, and the README table lists them.
- * Both clear the benchmark package's app data first, so no run inherits the last run's puzzles,
- * sessions or tutorials.
+ * Nothing clears the app's data: each state is reached from whatever the last run left.
  */
 internal sealed interface DataState {
     /**
-     * Cleared, then launched to Today. The Today launch syncs today's puzzle for every game (the
-     * app's prefetch, when online), so each game's today row is stored. No game is opened and no
-     * tutorial is seen, so the first Play of any game shows its tutorial.
+     * Launched to Today and nothing more. The Today launch syncs today's puzzle for every game (the
+     * app's prefetch, when online), so each game's today row is stored. No game is opened here.
      */
     data object Cleared : DataState
 
     /**
-     * Cleared, then [game] opened once with its tutorial skipped: today's puzzle for [game] is
-     * stored and its tutorial is seen, as a player who has played it once finds it.
+     * Launched to Today, then [game] opened with its tutorial skipped: today's puzzle for [game] is
+     * stored and its tutorial is seen. Idempotent: a tutorial already seen is not shown again.
      */
     data class Opened(val game: BenchmarkGame) : DataState
-}
-
-/**
- * Wipes the benchmark package's app data with `pm clear`. The instrumentation's shell can run it
- * on the release-like benchmark build, which is not debuggable, so `run-as` is not an option.
- */
-internal fun MacrobenchmarkScope.clearAppData() {
-    val result = device.executeShellCommand("pm clear $TARGET_PACKAGE").trim()
-    check(result == "Success") { "pm clear $TARGET_PACKAGE failed: $result" }
 }
 
 /** Puts [data] in place once the app is on Today; [setup] runs after it. */
@@ -66,9 +55,10 @@ internal fun MacrobenchmarkScope.prepare(data: DataState) = when (data) {
 }
 
 /**
- * One journey: the app is cleared to [data] before every run, [block] is measured, and [setup] runs
- * first and unmeasured. The process lives on between runs (journeys measure interaction, startup
- * has its own benchmark), so [setup] and [block] each leave the app on the tab they started on.
+ * One journey: [data] is set up before every run, [block] is measured, and [setup] runs first and
+ * unmeasured. Nothing clears the data between runs, so each [data] state is set up idempotently from
+ * whatever the last run left. The process lives on between runs (journeys measure interaction,
+ * startup has its own benchmark), so [setup] and [block] each leave the app on the tab they started on.
  */
 internal fun MacrobenchmarkRule.journey(
     data: DataState = DataState.Cleared,
@@ -83,7 +73,6 @@ internal fun MacrobenchmarkRule.journey(
     iterations = JOURNEY_ITERATIONS,
     startupMode = null,
     setupBlock = {
-        clearAppData()
         pressHome()
         startActivityAndWait()
         ensureToday()
