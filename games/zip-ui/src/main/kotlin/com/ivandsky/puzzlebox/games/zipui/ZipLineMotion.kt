@@ -17,7 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 
 /**
  * The Zip line's frame state over the shared [TraceLineMotion]: Zip draws the line, its lip
- * and the head on the visible end. While the drag runs, [finger] (board px, read in the draw
+ * (none when [lip] is null: the flat look is one stroke) and the head on the visible end. While the drag runs, [finger] (board px, read in the draw
  * phase) puts the end where [ZipTipAim] projects it on a step [hooks] accepts, on the frame
  * of the pointer event: a held line is drawn without blends. Called from the draw phase
  * only: the finger and the Animatables are read there, so a moving finger or a running tween
@@ -34,7 +34,7 @@ internal class ZipLineMotion(scope: CoroutineScope) {
         hooks: DragTraceHooks?,
         n: Int,
         color: Color,
-        lip: Color,
+        lip: Color?,
         widthFraction: Float,
         lipFraction: Float,
         animate: Boolean,
@@ -69,9 +69,11 @@ internal class ZipLineMotion(scope: CoroutineScope) {
             stroke.lineTo(endPoint.x, endPoint.y)
         }
         // The lip (spec A14): the same line and head, a fraction of the pitch lower, in the darker hue.
-        translate(top = minOf(pitchX, pitchY) * lipFraction) {
-            if (end > 0f) drawPath(stroke, lip, style = style)
-            drawCircle(lip, radius = headRadius, center = endPoint)
+        if (lip != null) {
+            translate(top = minOf(pitchX, pitchY) * lipFraction) {
+                if (end > 0f) drawPath(stroke, lip, style = style)
+                drawCircle(lip, radius = headRadius, center = endPoint)
+            }
         }
         if (end > 0f) drawPath(stroke, color, style = style)
         drawCircle(color, radius = headRadius, center = endPoint)

@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.DragTraceHooks
@@ -27,7 +28,8 @@ import kotlin.math.sin
  * the [BoardGrid] underlay, so each dot's surface hole punches the pipe globally. A head
  * disc rides the line's end. In the live game [finger] (board px, read in the draw phase)
  * leans the end toward cells [hooks] accepts, and [animate] turns on grow-in, retract and
- * the tip's return home ([MotionTokens.Trace]); reduced motion keeps only the tip.
+ * the tip's return home ([MotionTokens.Trace]); reduced motion keeps only the tip. With
+ * [LocalFlatSurfaces] on the line has no lip.
  */
 @Composable
 fun ZipPipes(
@@ -37,13 +39,15 @@ fun ZipPipes(
     animate: Boolean = false,
 ) {
     val board = LocalBoardColors.current
+    // Flat surfaces (nav-rethink B1): one stroke in the trace colour, no lip band under it.
+    val lip = if (LocalFlatSurfaces.current) null else board.pathTraceLip
     val scope = rememberCoroutineScope()
     val motion = remember { ZipLineMotion(scope) }
     val path = remember(model.path, model.n) { model.path.map { GridCell(it / model.n, it % model.n) } }
     Canvas(Modifier.fillMaxSize()) {
         with(motion) {
             drawTrace(
-                path, finger(), hooks, model.n, board.pathTrace, board.pathTraceLip,
+                path, finger(), hooks, model.n, board.pathTrace, lip,
                 ZipBoardSpec.pathTraceWidthFraction, ZipBoardSpec.pathTraceLipFraction, animate,
             )
         }
