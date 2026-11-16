@@ -22,12 +22,19 @@ class RanksBenchmark {
     @get:Rule
     val rule = MacrobenchmarkRule()
 
-    /** Swipes the board pager across the screen's middle third; the indicator strip is too thin to grab. */
+    /**
+     * Swipes to the next or previous board. The phone has a pager with dots, swiped across the
+     * screen's middle (the indicator strip is too thin to grab). Two-pane has no dots: a swipe
+     * anywhere in the right pane re-ranks the board, and the left pane (calendar and list) takes
+     * none, so the swipe stays between 60% and 90% of the width, right of the left pane's edge.
+     */
     private fun MacrobenchmarkScope.swipeBoards(direction: Direction) {
-        waitFor(By.descStartsWith("Board "))
+        val twoPane = isTwoPane()
+        if (twoPane) waitFor(BenchmarkTab.Ranks.ready) else waitFor(By.descStartsWith("Board "))
         val width = device.displayWidth
         val y = device.displayHeight / 2
-        val (from, to) = if (direction == Direction.LEFT) width * 4 / 5 to width / 5 else width / 5 to width * 4 / 5
+        val (low, high) = if (twoPane) width * 3 / 5 to width * 9 / 10 else width / 5 to width * 4 / 5
+        val (from, to) = if (direction == Direction.LEFT) high to low else low to high
         device.swipe(from, y, to, y, SWIPE_STEPS)
     }
 

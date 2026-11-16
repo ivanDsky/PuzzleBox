@@ -4,6 +4,7 @@ import android.os.SystemClock
 import androidx.benchmark.macro.MacrobenchmarkScope
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.BySelector
+import androidx.test.uiautomator.StaleObjectException
 import androidx.test.uiautomator.UiObject2
 import androidx.test.uiautomator.Until
 
@@ -24,20 +25,32 @@ private fun MacrobenchmarkScope.onScreen(): String = runCatching {
         .joinToString(" | ")
 }.getOrElse { "(screen unreadable: ${it.javaClass.simpleName})" }
 
-/** Taps the first match of [selector] once it is on screen. */
+/**
+ * Taps the first match of [selector] once it is on screen. The object is found and clicked in one
+ * step and found again when a recomposition or a transition swaps the node under the click
+ * ([StaleObjectException]); a reference held across a wait goes stale on a screen that keeps
+ * redrawing, such as a running board.
+ */
 internal fun MacrobenchmarkScope.tap(selector: BySelector, timeoutMs: Long = WAIT_MS) {
-    waitFor(selector, timeoutMs).click()
+    poll("$selector", timeoutMs) { device.findObject(selector)?.also { it.click() } }
 }
 
 /** True when [selector] matches now; no waiting. */
 internal fun MacrobenchmarkScope.isShown(selector: BySelector): Boolean = device.hasObject(selector)
 
-/** Polls [find] until it returns non-null, or fails after [timeoutMs]. */
-internal fun <T : Any> poll(what: String, timeoutMs: Long = WAIT_MS, find: () -> T?): T {
+/**
+ * Polls [find] until it returns non-null, or fails after [timeoutMs] naming [what] and what was on
+ * screen. A [StaleObjectException] from [find] is a node swapped mid-read: the next poll finds it again.
+ */
+internal fun <T : Any> MacrobenchmarkScope.poll(what: String, timeoutMs: Long = WAIT_MS, find: () -> T?): T {
     val deadline = SystemClock.elapsedRealtime() + timeoutMs
     while (true) {
-        find()?.let { return it }
-        check(SystemClock.elapsedRealtime() < deadline) { "Not on screen within ${timeoutMs}ms: $what" }
+        try {
+            find()?.let { return it }
+        } catch (_: StaleObjectException) {
+            // Found again on the next poll.
+        }
+        check(SystemClock.elapsedRealtime() < deadline) { "Not on screen within ${timeoutMs}ms: $what; on screen: ${onScreen()}" }
         SystemClock.sleep(POLL_MS)
     }
 }

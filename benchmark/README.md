@@ -31,7 +31,7 @@ a puzzle. Selectors are text and content descriptions; the app has no benchmark 
 
 ## Run
 
-The phone must be awake and unlocked (`Stay awake` on, charging) and on its home screen.
+The device must be awake and unlocked (`Stay awake` on, charging) and on its home screen.
 
 ```
 ./gradlew :app:assembleBenchmark
@@ -41,8 +41,23 @@ The phone must be awake and unlocked (`Stay awake` on, charging) and on its home
 With more than one device attached, name one: `ANDROID_SERIAL=<serial> ./gradlew ...`. For the
 Pixel 8 Pro that is its wireless-debugging address (`adb connect 100.92.178.105:<port>`; the port
 changes when wireless debugging restarts). The Galaxy Tab S9 Ultra needs the same, with its own
-serial; the Tab is a two-pane layout, which the tab selector handles by looking for the label in the
-rail as well as the bar.
+serial. The Tab is a two-pane layout (840 dp wide, wider than tall, at least 480 dp tall: the app's own rule, which
+`isTwoPane()` in `Navigation.kt` repeats), and the journeys run on both layouts unchanged:
+
+- Tabs: the label is looked for in the rail as well as the bar.
+- Games: the selected game's page sits beside the list, so there is no Back on it; `leaveGame` and the
+  archive journey take it only on one pane. A game card is open once its name shows twice (card and
+  page title), because the page beside the list belongs to the game selected before it.
+- Ranks: there are no board dots, so a tab is ready on its "Tune ranks" button, and board swipes
+  run in the right pane (60% to 90% of the width) instead of across the screen.
+- Zip: only a digit inside the board pane is a waypoint; the stats panel beside it has digits too.
+
+The journeys assume a fresh signed-out benchmark install: today's puzzles unsolved (the page offers
+Play, not "See result") and no Create drafts (the empty state). Uninstall `com.ivandsky.puzzlebox.benchmark`
+and let Gradle reinstall it to reset; `pm clear` is refused.
+
+A journey never holds a `UiObject2` across a wait or a transition; it finds and acts in one `poll`,
+which finds the node again when a recomposition makes it stale.
 
 Journeys compile the app with `CompilationMode.None()` (the install-time state a user without a
 profile runs); `-Pandroid.testInstrumentationRunnerArguments.compilation=partial` switches them to
@@ -51,6 +66,10 @@ both Partial and None, always.
 
 One class or test: `-Pandroid.testInstrumentationRunnerArguments.class=com.ivandsky.puzzlebox.benchmark.StartupBenchmark`
 (add `#coldPartial` for one test).
+
+Smoke check (correctness only): add `-Pandroid.testInstrumentationRunnerArguments.androidx.benchmark.dryRunMode.enable=true`.
+Each journey runs one iteration, with no compilation and no result files (it still traces), which proves the selectors and
+navigation on a layout without waiting for a full run.
 
 ## Read the results
 
