@@ -9,10 +9,12 @@ import com.ivandsky.puzzlebox.games.tango.TangoPuzzle
 import java.util.Random
 
 /**
- * Seeded random Tango boards, a port of the spec §5 measurement bench
- * (`.scratch/editor/specs/M4-tango-sizes.md`): a random valid solution, `=`/`×` markers read
- * off it on a share of the edges, then givens removed in shuffled order while the board stays
- * unique. Removing one more given from that minimal board leaves it Multiple.
+ * Seeded random Tango boards: a random valid solution, `=`/`×` markers read off it on a share
+ * of the edges, then givens removed in shuffled order while the board stays unique. Removing
+ * one more given from that minimal board leaves it Multiple. Production code since Finish for
+ * me (spec E1): the editor's `editor/TangoPinnedFill` is this random fill with the author's
+ * givens and markers as constraints; the solver corpus and the hint tests draw their boards
+ * from here.
  *
  * Uniqueness is asked of [TangoUniqueness.countSolutions], whose answers the corpus pins, so a
  * seed always yields the same boards.

@@ -306,7 +306,10 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `TangoSeedBackedSource(LinkedInTangoDailySource)` as `DailySource`); `engine/` `TangoRules`
   (triple/count/marker rules, `TangoUniqueness`, `TangoHint`); `codec/` `TangoCodec`,
   `LotkaWireParser` (LinkedIn's `lotkaGamePuzzle`, stream + by-id shapes), `TangoSessionCodec` v2;
-  `feed/TangoGameExtractor`; `TangoScoreModel`.
+  `feed/TangoGameExtractor`; `TangoScoreModel`; `editor/` `TangoCompleter` (Finish for me:
+  readiness, the `MIN_PIECES` minimum, budgeted `complete`) over the internal `TangoPinnedFill`
+  (a random grid that keeps the author's givens and markers); `engine/TangoBoardGenerator`
+  (seeded random unique boards) is production code with no production caller yet.
 - `games/queens/` (`:games:queens`, pure JVM) — `queensPlugin` + `queensModule` (binds
   `LinkedInQueensDailySource` as `DailySource`); `engine/` rules (`QueensRules`,
   `QueensVerifier`, `NoTouchAdjacencyRule`) and `solve/` (`QueensSolver`/`QueensSearch`);
