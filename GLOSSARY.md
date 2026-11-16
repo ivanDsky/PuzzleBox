@@ -151,3 +151,11 @@ _Avoid_: late
 **Visibility tier**:
 One rung of the ladder that sets how much of a player others see: Hidden, On leaderboards (default), Challengeable, or Replays watchable; each includes the ones below.
 _Avoid_: privacy setting
+
+**Next thing**:
+What Result's main button offers after a counted solve of today's puzzle. The next-thing chain asks its providers in order and the first answer wins; it is offered, never started for the player. "The ladder" is the older word for the chain.
+_Avoid_: ladder, next step, auto-advance
+
+**Moment**:
+A celebrated fact about a counted solve: a personal best, a first sub-X time, top 3 among friends today, passing a named friend, a full set, or a 7, 30 or 100-day streak. A freeze moment is a different thing.
+_Avoid_: achievement, badge
