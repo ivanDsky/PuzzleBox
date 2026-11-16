@@ -4,10 +4,13 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -21,7 +24,8 @@ import com.ivandsky.puzzlebox.history.ranks.RanksSelection.Window
 /**
  * The tune sheet: who the board ranks ([scope], Global or Friends) and over what span ([window], a day, the
  * week or the month of the picked day). A tap reports through [onScope] / [onWindow] and the sheet stays open,
- * so the board behind it can be watched changing; [onDismiss] closes it. [defaults], when given, is the player's own defaults to show.
+ * so the board behind it can be watched changing; [onDismiss] closes it. With [defaults] a Defaults block sits under
+ * them ([TuneDefaultsBlock]); without it the sheet offers only Who and When.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,15 +38,23 @@ internal fun TuneSheet(
     modifier: Modifier = Modifier,
     defaults: RanksTuneDefaults? = null,
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("ranks.tune.sheet")) {
-        TuneChoices(scope, window, onScope, onWindow)
+    // The taller sheet opens whole instead of half way, so the Defaults block is not cut off.
+    val state = rememberModalBottomSheetState(skipPartiallyExpanded = defaults != null)
+    ModalBottomSheet(onDismissRequest = onDismiss, modifier = modifier.testTag("ranks.tune.sheet"), sheetState = state) {
+        TuneChoices(scope, window, onScope, onWindow, defaults)
     }
 }
 
 @Composable
-private fun TuneChoices(scope: RankScope, window: Window, onScope: (RankScope) -> Unit, onWindow: (Window) -> Unit) {
+private fun TuneChoices(
+    scope: RankScope,
+    window: Window,
+    onScope: (RankScope) -> Unit,
+    onWindow: (Window) -> Unit,
+    defaults: RanksTuneDefaults?,
+) {
     Column(
-        Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
+        Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Text("Who", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
@@ -68,6 +80,7 @@ private fun TuneChoices(scope: RankScope, window: Window, onScope: (RankScope) -
             tag = { "ranks.tune.window.${it.name}" },
             modifier = Modifier.fillMaxWidth(),
         )
+        if (defaults != null) TuneDefaultsBlock(defaults)
     }
 }
 
@@ -75,6 +88,6 @@ private fun TuneChoices(scope: RankScope, window: Window, onScope: (RankScope) -
 @Composable
 private fun TuneChoicesPreview() {
     RanksPreviewHost {
-        TuneChoices(RankScope.Friends, Window.Week, onScope = {}, onWindow = {})
+        TuneChoices(RankScope.Friends, Window.Week, onScope = {}, onWindow = {}, defaults = null)
     }
 }
