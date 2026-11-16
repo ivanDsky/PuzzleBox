@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.importtext.ImportTextState
 import com.ivandsky.puzzlebox.create.published.UnpublishSession
@@ -28,6 +29,7 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
+import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.flow.Flow
@@ -66,6 +68,8 @@ class EditorViewModel(
     updatePublishState: UpdatePublishState,
     private val preferences: UserPreferencesRepository,
     private val validatePublish: ValidatePublish = ValidatePublish(),
+    releaseFlags: ReleaseFlags? = null,
+    finishRandom: Random = Random.Default,
 ) : ViewModel() {
 
     private val mutableState = MutableStateFlow<EditorUiState>(EditorUiState.Loading)
@@ -128,6 +132,18 @@ class EditorViewModel(
 
     /** The Size picker's resize and its "Start a blank board?" confirm. */
     internal val resizes = ResizeSession(board = { board }, locked = { published }, apply = history::resize)
+
+    /** Finish for me (E1): offered only while FinishForMe is on; a completion lands as one step of [history]. */
+    internal val finish = EditorViewModelFinish(
+        flags = releaseFlags,
+        scope = viewModelScope,
+        dispatchers = dispatchers,
+        random = finishRandom,
+        board = { board },
+        verdict = { (mutableState.value as? EditorUiState.Ready)?.verdict ?: Verdict.Checking },
+        locked = { published },
+        land = history::replace,
+    )
 
     private val studioImport = StudioImport(games, drafts, dispatchers, clock, viewModelScope)
 
@@ -230,6 +246,7 @@ class EditorViewModel(
 
     /** Back, a tab's stack dropping the Studio, Duplicate's replace: the last edit is stored. */
     override fun onCleared() {
+        finish.cancel()
         saves.launch { autosave.flush() }
     }
 
@@ -264,6 +281,7 @@ class EditorViewModel(
     private val published: Boolean get() = publish.state.value.outcome is PublishOutcome.Published
 
     private fun changed(draft: EditorDraft<*>) {
+        finish.boardChanged(draft)
         verdictCard.dismiss()
         verdicts.submit(draft)
         testSolve.follow(draft)

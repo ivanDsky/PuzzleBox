@@ -9,8 +9,11 @@ import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.Completion
+import com.ivandsky.puzzlebox.game.editor.DraftCompleter
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.FinishReadiness
 import com.ivandsky.puzzlebox.game.editor.GameEditor
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
@@ -24,6 +27,7 @@ import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.random.Random
 
 /**
  * The stand-in game for feature:create:impl tests (ADR-0019 Consequences: the editor seam's
@@ -34,7 +38,7 @@ import kotlinx.coroutines.flow.asStateFlow
  */
 data class TestDraft(val marks: Int = 0)
 
-class FakeGameEditor(
+open class FakeGameEditor(
     override val gameId: GameId = GameId("fake"),
     override val variants: List<VariantId> = listOf(VariantId("${gameId.value}/v1")),
 ) : GameEditor<TestDraft> {
@@ -72,6 +76,35 @@ class FakeGameEditor(
         fun defaultVerdict(draft: TestDraft): Verdict =
             if (draft.marks == 0) Verdict.Incomplete(IncompleteReason("fake.blank", 1))
             else Verdict.Unique(Solution(listOf(draft.marks)))
+    }
+}
+
+/**
+ * [FakeGameEditor] with the Finish for me capability (E1): a board with marks is Ready, a blank
+ * one needs more, and a completion keeps every mark and adds one to nine from the injected
+ * [Random] (so the marks stay a byte). Tests swap [readinessOf] and [completionOf] for a
+ * completer that gives up, blocks until its budget is spent or counts its calls.
+ */
+class FakeDraftCompleter(
+    gameId: GameId = GameId("fake"),
+) : FakeGameEditor(gameId), DraftCompleter<TestDraft> {
+
+    /** Every board [complete] was asked to finish, in call order: the author's pieces each time. */
+    val completed = mutableListOf<TestDraft>()
+
+    var readinessOf: (TestDraft) -> FinishReadiness = { draft ->
+        if (draft.marks == 0) FinishReadiness.NeedsMore(IncompleteReason("fake.blank", 1)) else FinishReadiness.Ready
+    }
+
+    var completionOf: (TestDraft, Random, Budget) -> Completion<TestDraft> = { draft, random, _ ->
+        Completion.Done(TestDraft(draft.marks + random.nextInt(1, 10)))
+    }
+
+    override fun readiness(draft: TestDraft): FinishReadiness = readinessOf(draft)
+
+    override fun complete(draft: TestDraft, random: Random, budget: Budget): Completion<TestDraft> {
+        completed += draft
+        return completionOf(draft, random, budget)
     }
 }
 

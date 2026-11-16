@@ -155,6 +155,7 @@ internal fun EditorRoute(
                                     onClear = viewModel::clear,
                                     hint = { hintModifier -> ready.editor.ToolHint(ready.controller, hintModifier) },
                                     modifier = Modifier.fillMaxWidth(),
+                                    finish = rememberFinishSlot(viewModel.finish, draft, ready.verdict),
                                 )
                                 if (layout == PlayLayout.TwoPane) ready.editor.PaneTools(ready.controller, Modifier.fillMaxWidth())
                             }
@@ -217,6 +218,7 @@ internal fun EditorRoute(
                         CodeCopiedToast(code = ticket?.code, copies = copies, modifier = Modifier)
                         UnpublishedToast(code = ticket?.code, done = unpublish.done, modifier = Modifier)
                         ImportedToast(pending = importedPending, onShown = onImportedShown, modifier = Modifier)
+                        FinishGaveUpToast(state = viewModel.finish.gaveUp, modifier = Modifier)
                     }
                 },
                 readOnly = ticket != null,
