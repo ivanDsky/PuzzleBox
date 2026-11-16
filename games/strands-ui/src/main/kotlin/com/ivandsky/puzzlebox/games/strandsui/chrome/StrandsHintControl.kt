@@ -23,10 +23,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.GameButton
 import com.ivandsky.puzzlebox.designsystem.GameButtonSize
+import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.cooldownRing
 import com.ivandsky.puzzlebox.gameui.rememberHintCooldown
@@ -113,5 +115,9 @@ private val HintWidth = 132.dp
 private val BadgeOutX = 7.dp
 private val BadgeUp = (-9).dp
 
-/** The Tall game button's 64dp face on its 4dp lip, which the row keeps on the solve. */
-internal val HintHeight = 68.dp
+/**
+ * The Tall game button's height, which the row keeps on the solve: a 64dp face on its 4dp lip,
+ * or just the 64dp face when [LocalFlatSurfaces] is on and the lip is gone.
+ */
+internal val HintHeight: Dp
+    @Composable get() = if (LocalFlatSurfaces.current) 64.dp else 68.dp
