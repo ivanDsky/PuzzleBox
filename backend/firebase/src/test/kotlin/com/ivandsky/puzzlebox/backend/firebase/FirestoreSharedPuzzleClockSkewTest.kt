@@ -36,6 +36,10 @@ class FirestoreSharedPuzzleClockSkewTest {
         override suspend fun unpublish(code: String) = Unit
 
         override suspend fun get(code: String): Map<String, Any?>? = null
+
+        override suspend fun list(query: CommunityQuery): List<Pair<String, Map<String, Any?>>> = emptyList()
+
+        override suspend fun report(code: String, uid: String, fields: Map<String, Any?>) = Unit
     }
 
     private val store = DayCheckingSharedPuzzleStore(serverDay = SERVER_DAY)

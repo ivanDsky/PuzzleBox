@@ -13,6 +13,7 @@ import org.junit.Test
 /**
  * Behavior every [SharedPuzzleRepository] adapter must pass. Subclasses supply a fresh, empty,
  * online [repository] and the two hooks below; adapter-specific cases live in the subclass.
+ * Listing and reporting are in [SharedPuzzleCommunityContract], which an adapter's test subclasses.
  * Test names are camel case because this class ships in a main source set that gets dexed.
  */
 abstract class SharedPuzzleRepositoryContract {

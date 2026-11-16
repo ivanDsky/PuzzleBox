@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.backend.firebase
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
+import com.ivandsky.puzzlebox.data.repository.COMMUNITY_LIST_LIMIT
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -338,7 +339,7 @@ class FirestoreRulesCloudSpaceTest {
     }
 
     @Test
-    fun `puzzles are listed only by a query for public, published ones with a limit of at most 30`() {
+    fun `puzzles are listed only by a query for public, published ones with a limit of at most the client's`() {
         val block = block(PUZZLES_MATCH)
         val public = SharedPuzzleDocCodec.encode(puzzle(SharedPuzzleDoc.Visibility.Public))
         assertTrue(
@@ -347,10 +348,19 @@ class FirestoreRulesCloudSpaceTest {
                 """allow list: if resource\.data\.${SharedPuzzleDocCodec.FIELD_VISIBILITY} == """ +
                     """'${public.getValue(SharedPuzzleDocCodec.FIELD_VISIBILITY)}'\s+""" +
                     """&& resource\.data\.${SharedPuzzleDocCodec.FIELD_UNPUBLISHED} == false\s+""" +
-                    """&& request\.query\.limit <= 30;""",
+                    """&& request\.query\.limit <= $COMMUNITY_LIST_LIMIT;""",
             ).containsMatchIn(block),
         )
         assertEquals("one list rule", 1, Regex("""\ballow [a-z, ]*\blist\b""").findAll(block).count())
+    }
+
+    @Test
+    fun `a report requires exactly the keys and the version the client writes`() {
+        val body = functionBody(block("match /puzzles/{code}/reports/{uid} {"), "validReport")
+        val report = reportFields("reporter-uid")
+
+        assertEquals(report.keys, quoted(Regex("""let fields = \[(.*?)];""").find(body)!!.groupValues[1]))
+        assertTrue(body.contains("report.formatVersion == ${report["formatVersion"]}\n"))
     }
 
     private fun puzzle(

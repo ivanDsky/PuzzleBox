@@ -25,10 +25,11 @@ dependencies {
     testImplementation(libs.mockito.core)
 }
 
-// HostingFilesTest reads firebase.json and hosting/** through File(path) from the module dir;
-// Gradle cannot see that, so undeclared, an edited file would be served FROM-CACHE as a stale green.
+// HostingFilesTest reads firebase.json and hosting/**, and the shared-puzzle contract test reads
+// firestore.indexes.json, through File(path) from the module dir; Gradle cannot see that, so
+// undeclared, an edited file would be served FROM-CACHE as a stale green.
 tasks.withType<Test>().configureEach {
-    inputs.files("firebase.json", fileTree("hosting"), "hosting-test/share-code-vectors.json")
+    inputs.files("firebase.json", "firestore.indexes.json", fileTree("hosting"), "hosting-test/share-code-vectors.json")
         .withPropertyName("hostingFiles")
         .withPathSensitivity(PathSensitivity.RELATIVE)
 }

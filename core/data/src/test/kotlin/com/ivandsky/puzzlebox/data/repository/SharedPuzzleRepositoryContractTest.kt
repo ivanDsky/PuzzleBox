@@ -1,7 +1,7 @@
 package com.ivandsky.puzzlebox.data.repository
 
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
-import com.ivandsky.puzzlebox.testing.contract.SharedPuzzleRepositoryContract
+import com.ivandsky.puzzlebox.testing.contract.SharedPuzzleCommunityContract
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -9,11 +9,11 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Runs [SharedPuzzleRepositoryContract] against [FakeSharedPuzzleRepository], then pins the
- * knobs only the fake can force: offline, signed out, a commit followed by a timeout, and the
- * per-day publish cap.
+ * Runs [SharedPuzzleCommunityContract], and so the whole shared-puzzle contract, against
+ * [FakeSharedPuzzleRepository], then pins the knobs only the fake can force: offline, signed out,
+ * a commit followed by a timeout, the per-day publish cap and a refused list.
  */
-class SharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContract() {
+class SharedPuzzleRepositoryContractTest : SharedPuzzleCommunityContract() {
 
     private val fake = FakeSharedPuzzleRepository()
 
@@ -23,11 +23,22 @@ class SharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContract() {
         fake.signedInUid = uid
     }
 
+    /** Published as the doc's author; the day's publish count is put back, so seeding never meets the cap. */
     override suspend fun seed(doc: SharedPuzzleDoc) {
-        val previous = fake.signedInUid
+        val previousUid = fake.signedInUid
+        val previousCount = fake.publishesToday
         fake.signedInUid = doc.authorUid
         fake.publish(doc)
-        fake.signedInUid = previous
+        fake.signedInUid = previousUid
+        fake.publishesToday = previousCount
+    }
+
+    override fun goOffline() {
+        fake.online = false
+    }
+
+    override fun setNow(nowMs: Long) {
+        fake.clock = { nowMs }
     }
 
     @Test
@@ -73,8 +84,30 @@ class SharedPuzzleRepositoryContractTest : SharedPuzzleRepositoryContract() {
         assertEquals(PublishResult.Offline, fake.publish(doc(code = code("ZZZ999"))))
         assertEquals(UnpublishResult.Offline, fake.unpublish(code()))
         assertEquals(SharedFetchResult.Offline, fake.fetch(code()))
+        assertEquals(CommunityListResult.Offline, fake.listPublic(CommunityFilter()))
+        assertEquals(ReportResult.Offline, fake.report(code()))
         assertEquals(mapOf(code() to doc()), fake.docs)
         assertEquals(1, fake.publishesToday)
+    }
+
+    @Test
+    fun `a refused list is Refused until the knob is cleared`() = runTest {
+        seed(publicDoc("K7Q2MA"))
+        fake.listRefused = true
+
+        assertEquals(CommunityListResult.Refused, fake.listPublic(CommunityFilter()))
+
+        fake.listRefused = false
+        assertEquals(CommunityListResult.Listed(listOf(publicDoc("K7Q2MA"))), fake.listPublic(CommunityFilter()))
+    }
+
+    @Test
+    fun `a listed puzzle's payload cannot be changed through the list`() = runTest {
+        seed(publicDoc("K7Q2MA"))
+
+        (fake.listPublic(CommunityFilter()) as CommunityListResult.Listed).puzzles.single().payload.fill(9)
+
+        assertEquals(CommunityListResult.Listed(listOf(publicDoc("K7Q2MA"))), fake.listPublic(CommunityFilter()))
     }
 
     @Test
