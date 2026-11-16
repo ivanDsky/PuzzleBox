@@ -45,7 +45,6 @@ import com.ivandsky.puzzlebox.compete.share.createdInviteText
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import kotlinx.coroutines.launch
@@ -67,7 +66,8 @@ internal class NewDuelActions(
 /**
  * New duel: a Quick duel, today's puzzles, or Customize, then Create duel. A signed-out player meets the sign-in
  * panel first. Once created, the sheet becomes "Duel created"; [onDismiss] runs on a swipe, the scrim, Cancel or Done,
- * and the sheet starts from the Quick duel again. [inviter] names the sender in the invite text.
+ * and the sheet starts from the Quick duel again. [inviter] names the sender in the invite text. A [challenge] opens it
+ * filled in: its friend is the invitee and the duel is one puzzle of its game.
  * Motion: the sheet's **Slide in / Slide out** and the scrim's **Fade** are ModalBottomSheet's own.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,6 +76,7 @@ internal fun NewDuelSheet(
     inviter: String?,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    challenge: DuelChallenge? = null,
     viewModel: NewDuelViewModel = koinViewModel(),
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -91,6 +92,7 @@ internal fun NewDuelSheet(
             shared = createdInviteText(who, puzzles.size, puzzles.distinct(), hours, code, time) to code.matchLink
         }
     }
+    LaunchedEffect(viewModel, challenge) { challenge?.let(viewModel::prefill) }
     val dismiss = {
         viewModel.reset()
         onDismiss()
@@ -139,6 +141,14 @@ private fun CreatePanel(state: NewDuelState, actions: NewDuelActions) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        state.invitee?.let { name ->
+            Text(
+                text = "Inviting $name",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.testTag("duel.invitee"),
+            )
+        }
         PresetCard("Quick duel", "Best of 3 · mixed past dailies · 24 h", draft.preset == DuelPreset.Quick, actions.onQuick, "duel.preset.quick")
         PresetCard("Daily duel", "Today's puzzles · 24 h", draft.preset == DuelPreset.Daily, actions.onDaily, "duel.preset.daily") {
             if (draft.preset == DuelPreset.Daily) DailyGames(state.games, draft, actions.onToggle)
@@ -257,44 +267,4 @@ private fun Notice(notice: DuelNotice) {
         is DuelNotice.Failed -> notice.message ?: "Couldn't create the duel. Please try again."
     }
     Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("duel.notice"))
-}
-
-@Composable
-private fun SignInPanel(signIn: DuelSignIn, actions: NewDuelActions) {
-    val signingIn = signIn == DuelSignIn.SigningIn
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        Text("Sign in to duel friends", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
-        Text(
-            text = "Duels tie each result to you, so friends can find you and the outcome is fair. Playing puzzles never needs an account.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        when (signIn) {
-            DuelSignIn.Offline -> SignInProblem("No connection, so sign-in didn't finish. Try again when you're online.")
-            DuelSignIn.Failed -> SignInProblem("Sign-in didn't finish. Please try again.")
-            DuelSignIn.Idle, DuelSignIn.SigningIn -> Unit
-        }
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            PrimaryButton(
-                text = if (signingIn) "Signing in…" else "Continue with Google",
-                onClick = actions.onGoogle,
-                enabled = !signingIn,
-                modifier = Modifier.fillMaxWidth().testTag("duel.signIn.google"),
-            )
-            SecondaryButton(text = "Cancel", onClick = actions.onCancel, modifier = Modifier.fillMaxWidth().testTag("duel.signIn.cancel"))
-        }
-        Text(
-            text = "Friends' puzzles and your dailies stay right here.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@Composable
-private fun SignInProblem(text: String) {
-    Text(text, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("duel.signIn.problem"))
 }

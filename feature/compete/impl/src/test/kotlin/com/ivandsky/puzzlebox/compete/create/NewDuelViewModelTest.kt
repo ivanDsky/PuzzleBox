@@ -103,6 +103,12 @@ class NewDuelViewModelTest {
         override suspend fun puzzleCodeTaken(code: ShareCode): PuzzleCodeCheck = PuzzleCodeCheck.Unavailable(offline = false, message = "denied")
     }
 
+    /** The fake server refusing every invite to a named player, as the rules do for one who cannot be invited. */
+    private class NoInvitesMatchRepository(private val server: FakeMatchRepository) : MatchRepository by server {
+        override suspend fun create(draft: MatchDraft): CreateResult =
+            if (draft.invitedUid != null) CreateResult.Rejected("cannot invite ${draft.invitedUid}") else server.create(draft)
+    }
+
     private fun viewModel(
         createMatch: CreateMatch = this.createMatch,
         zone: ZoneId = ZoneOffset.UTC,
@@ -387,6 +393,72 @@ class NewDuelViewModelTest {
     }
 
     @Test
+    fun aPrefilledStartCreatesADuelInvitedToTheFriendInExactlyThatGame() = runTest {
+        val vm = started()
+        vm.prefill(SAM_IN_BETA)
+
+        assertEquals("Sam", vm.state.value.invitee)
+        assertEquals(DuelDraft.single(beta), vm.state.value.draft)
+        vm.create()
+
+        val match = server.matches.getValue(vm.created.first().first)
+        assertEquals(SAM_IN_BETA.friendUid, match.invitedUid)
+        assertEquals(listOf(beta), match.legs.map { it.ref.gameId })
+    }
+
+    @Test
+    fun anUnprefilledStartPassesNoInviteTarget() = runTest {
+        val vm = started()
+        assertEquals(null, vm.state.value.invitee)
+
+        vm.create()
+
+        assertEquals(null, server.matches.getValue(vm.created.first().first).invitedUid)
+    }
+
+    @Test
+    fun dismissingAPrefilledSheetClearsItSoTheNextStartInvitesNobody() = runTest {
+        val vm = started()
+        vm.prefill(SAM_IN_BETA)
+
+        vm.reset()
+
+        assertEquals(null, vm.state.value.invitee)
+        assertEquals(DuelDraft.quick(vm.state.value.games), vm.state.value.draft)
+        vm.create()
+        assertEquals(null, server.matches.getValue(vm.created.first().first).invitedUid)
+    }
+
+    @Test
+    fun theSameChallengeAgainKeepsTheEditsMadeSinceItOpened() = runTest {
+        val vm = started()
+        vm.prefill(SAM_IN_BETA)
+        vm.setDeadline(48)
+
+        vm.prefill(SAM_IN_BETA)
+
+        assertEquals(48, vm.state.value.draft.deadlineHours)
+        assertEquals("Sam", vm.state.value.invitee)
+    }
+
+    @Test
+    fun aFriendWhoCannotBeInvitedShowsTheSheetsOwnFailureAndKeepsTheChallenge() = runTest {
+        val refusing = CreateMatch(
+            NoInvitesMatchRepository(server), local, ComputeMatchLegs(registry, daily, calendar, history, received, Random(DRAW_SEED)), identity,
+            Random(CODE_SEED),
+        )
+        val vm = started(refusing)
+        vm.prefill(SAM_IN_BETA)
+
+        vm.create()
+
+        assertEquals(DuelNotice.Failed("cannot invite ${SAM_IN_BETA.friendUid}"), vm.state.value.notice)
+        assertEquals(DuelStep.Create, vm.state.value.step)
+        assertEquals(DuelDraft.single(beta), vm.state.value.draft)
+        assertTrue(server.matches.isEmpty())
+    }
+
+    @Test
     fun anEditClearsTheNoticeAndResetStartsFromTheQuickDuelAgain() = runTest {
         val vm = started()
         server.online = false
@@ -445,6 +517,7 @@ class NewDuelViewModelTest {
         const val CODE_SEED = 7
         const val DRAW_SEED = 3
         val NOW: Instant = Instant.parse("2026-11-09T10:00:00Z")
+        val SAM_IN_BETA = DuelChallenge(friendUid = "sam", friendName = "Sam", game = GameId("beta"))
         val ANN = Identity(uid = "ann", displayName = "Ann", photoUrl = null)
     }
 }
