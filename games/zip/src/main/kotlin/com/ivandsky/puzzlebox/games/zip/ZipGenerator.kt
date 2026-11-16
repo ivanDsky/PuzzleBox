@@ -6,13 +6,14 @@ import com.ivandsky.puzzlebox.games.zip.engine.ZipVariant
 import kotlin.random.Random
 
 /**
- * Random uniquely-solvable boards for property tests (F2 §6): a Warnsdorff-style random
+ * Random uniquely-solvable boards (F2 §6): a Warnsdorff-style random
  * Hamiltonian path, walls dropped consistently with it, waypoints placed along the path,
  * then the solver filter — only boards with EXACTLY ONE solution survive. Deterministic
  * for a given [Random] seed, so failures reproduce.
  *
- * Test-only (F2 §6): production puzzles come from the daily fetch; random generation is a
- * property-test instrument, never shipped code.
+ * Production code since Finish for me (spec E1), with no production caller yet: the editor's
+ * completer follows this recipe from the author's pieces in `editor/ZipPathExtension` and
+ * `editor/ZipPinnedRepair`. Property tests and the golden solver workload draw their boards here.
  */
 class ZipGenerator(private val random: Random = Random.Default) {
 

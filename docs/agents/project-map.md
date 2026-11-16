@@ -301,7 +301,11 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `engine/` `ZipRules` over an ordered `ZipRule` pipeline (`ZipRuleId`), `ZipVerifier`,
   `ZipSolver`/`ZipSearch` (`longestSolvablePrefix` for hints), `ZipHints`, `ZipVariants`;
   `codec/` `ZipCodec`, `ZipWireParser`, `ZipSessionCodec` v2 (`ZipCommand` history);
-  `feed/` `TrailGameExtractor`; `ZipScoreModel`; `render/ZipRendererModel`.
+  `feed/` `TrailGameExtractor`; `ZipScoreModel`; `render/ZipRendererModel`. `editor/ZipCompleter`
+  (Finish for me: readiness, the path minimum, budgeted `complete`) over the internal
+  `ZipPathExtension` (a random full path from the author's path or numbers) and `ZipPinnedRepair`
+  (numbers and walls until that path is the one answer). `ZipGenerator` (random unique boards) is
+  production code with no production caller yet.
 - `games/tango/` (`:games:tango`, pure JVM) — `tangoPlugin` + `tangoModule` (binds
   `TangoSeedBackedSource(LinkedInTangoDailySource)` as `DailySource`); `engine/` `TangoRules`
   (triple/count/marker rules, `TangoUniqueness`, `TangoHint`); `codec/` `TangoCodec`,
