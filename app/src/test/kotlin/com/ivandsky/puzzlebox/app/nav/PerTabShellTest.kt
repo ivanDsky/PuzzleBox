@@ -24,7 +24,6 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -50,6 +49,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
@@ -166,7 +166,7 @@ class PerTabShellTest {
         restoration.setContent { Shell() }
         composeRule.runOnIdle {
             navigator.push(HistoryKey())
-            navigator.selectTab(CreateKey)
+            navigator.selectTab(HistoryRootKey)
             navigator.push(CatalogKey)
         }
         val before = state()
@@ -174,7 +174,7 @@ class PerTabShellTest {
         restoration.emulateSavedInstanceStateRestore()
 
         assertEquals(before, state())
-        composeRule.onNodeWithTag(CREATE_TAB).assertIsSelected()
+        composeRule.onNodeWithTag(RANKS_TAB).assertIsSelected()
     }
 
     @Test
@@ -185,17 +185,17 @@ class PerTabShellTest {
             puzzleBoxNavKeys,
         )
 
-        restoreShellWith(legacy) { navigator.selectTab(CreateKey) }
+        restoreShellWith(legacy) { navigator.selectTab(HistoryRootKey) }
 
-        assertEquals(puzzleBoxNavigationState(), state())
+        assertEquals(puzzleBoxNavigationState(GlobalContext.get().get<TabSetSource>().tabSet.destinations), state())
         composeRule.onNodeWithTag(HOME_TAB).assertIsSelected()
     }
 
     @Test
     fun `a restored state missing a tab gains that tab's root`() {
         val withoutPlay = NavigationState(
-            tab = CreateKey,
-            stacks = listOf(listOf(HomeKey), listOf(CreateKey, CatalogKey)),
+            tab = HistoryRootKey,
+            stacks = listOf(listOf(HomeKey), listOf(HistoryRootKey, CatalogKey)),
         )
         val saved = savedState {
             putSavedState(
@@ -206,14 +206,15 @@ class PerTabShellTest {
 
         restoreShellWith(saved)
 
+        // The graph's release defaults give three tabs (CustomInGames on): Play gains its root.
         assertEquals(
             NavigationState(
-                tab = CreateKey,
-                stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey, CatalogKey)),
+                tab = HistoryRootKey,
+                stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey, CatalogKey)),
             ),
             state(),
         )
-        composeRule.onNodeWithTag(CREATE_TAB).assertIsSelected()
+        composeRule.onNodeWithTag(RANKS_TAB).assertIsSelected()
         composeRule.onNodeWithTag(CATALOG_LINK).assertDoesNotExist()
     }
 
@@ -253,7 +254,6 @@ class PerTabShellTest {
     private companion object {
         const val HOME_TAB = "nav.tab.home"
         const val RANKS_TAB = "nav.tab.ranks"
-        const val CREATE_TAB = "nav.tab.create"
         const val CATALOG_LINK = "settings.catalog"
     }
 }

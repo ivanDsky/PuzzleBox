@@ -20,7 +20,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * Custom inside Games and a full-screen Studio: Create stops being a tab, Games gets a Custom pill, and the Studio
      * hides the bar (nav-rethink N9, N10). Read only in a ViewModel, a DI module or the app-graph `TabSetSource` (ADR-0027 §10).
      */
-    CustomInGames(label = "Custom inside Games, full-screen Studio", releaseDefault = false),
+    CustomInGames(label = "Custom inside Games, full-screen Studio", releaseDefault = true),
 
     /**
      * Result moments, celebration and the next-thing chain (nav-rethink L1–L4): every M4 behaviour on Result. Read only in
