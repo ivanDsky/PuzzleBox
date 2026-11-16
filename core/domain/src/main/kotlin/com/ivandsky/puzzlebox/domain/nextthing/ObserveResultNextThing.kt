@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
+import com.ivandsky.puzzlebox.data.repository.CommunityListResult
 import com.ivandsky.puzzlebox.data.visibility.TierLookup
 import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
@@ -14,6 +15,7 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GameHistoryDay
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -77,6 +79,7 @@ class ObserveResultNextThing(
     private val computeStreak: ComputeStreak,
     private val puzzleDay: GetPuzzleDay,
     private val nextRollover: GetNextRollover,
+    private val communityPuzzles: ListCommunityPuzzles? = null,
     private val timeout: Duration = 2.seconds,
     private val failures: FailureLog = LogcatFailureLog,
 ) {
@@ -133,6 +136,7 @@ class ObserveResultNextThing(
                     viewerUid = viewer?.uid,
                     friendBoard = { friendDay.await()?.after },
                     friendTier = tierReadOnce(),
+                    communityPuzzles = ::communityOffers,
                 )
                 launch {
                     (challengeRow.offer(facts) as? NextThing.ChallengeFriend)?.let { friend -> update { it.copy(challenge = friend) } }
@@ -140,6 +144,17 @@ class ObserveResultNextThing(
                 chain.offer(facts)?.let { next -> update { it.copy(nextThing = next) } }
             }
         }
+    }
+
+    /**
+     * The community list as offers, newest first, read when the chain asks. With no [communityPuzzles] (the flag
+     * is off), or a list that is offline or refused, nothing. A puzzle of a game this build does not register is
+     * left out: it could not be opened.
+     */
+    private suspend fun communityOffers(): List<NextThing.CommunityPuzzle> {
+        val listed = communityPuzzles?.invoke() as? CommunityListResult.Listed ?: return emptyList()
+        return listed.puzzles.filter { registry[GameId(it.gameId)] != null }
+            .map { NextThing.CommunityPuzzle(it.code, GameId(it.gameId), it.authorName) }
     }
 
     /** [tierOf] for one solve: each friend's tier is read once however many ask, and the others wait for that read. */

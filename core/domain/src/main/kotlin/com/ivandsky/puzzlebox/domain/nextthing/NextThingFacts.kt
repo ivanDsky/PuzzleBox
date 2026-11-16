@@ -11,7 +11,7 @@ import java.time.LocalDate
 
 /**
  * What the providers of a [NextThingChain] decide from, for one solve. The lists are already on the phone.
- * The two friend reads may reach the network, so they are asked for only by the provider that needs them,
+ * The friend reads and the community list may reach the network, so they are asked for only by the provider that needs them,
  * inside the chain's time limit.
  *
  * @property game the game just solved.
@@ -24,6 +24,8 @@ import java.time.LocalDate
  * @property friendBoard today's Friends board for [game], ranked among the viewer and their friends only;
  *   null when it cannot be read.
  * @property friendTier the visibility tier of the friend with that uid; null when the read fails.
+ * @property communityPuzzles the community puzzles on offer, newest first, already without the player's own and
+ *   the ones they hid; empty when the list is off, offline or refused. Like the friend reads it may be slow.
  */
 internal data class NextThingFacts(
     val game: GameId,
@@ -37,4 +39,5 @@ internal data class NextThingFacts(
     val viewerUid: String?,
     val friendBoard: suspend () -> RankedBoard?,
     val friendTier: suspend (uid: String) -> VisibilityTier?,
+    val communityPuzzles: suspend () -> List<NextThing.CommunityPuzzle>,
 )

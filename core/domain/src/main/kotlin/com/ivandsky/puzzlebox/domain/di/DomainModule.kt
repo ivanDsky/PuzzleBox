@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.domain.di
 
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.domain.GetAppUpdate
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
@@ -110,7 +113,24 @@ val domainModule = module {
     factory { ObserveLatestSolvedToday(completions = get(), calendar = get(), registry = get()) }
     // The app decides whether there is a Friends/Global setting to follow; with none the rank is Global.
     factory { ObserveResultRank(leaderboard = get(), registry = get(), friendDay = get<ObserveFriendDay.Binding>().reader) }
-    factory { ObserveResultNextThing(registry = get(), identity = get(), history = get(), todaySet = get(), friendPuzzles = get(), friendUids = get(), leaderboard = get(), visibility = get(), computeStreak = get(), puzzleDay = get(), nextRollover = get()) }
+    // The community rung asks the list only with the flag on (A2); a graph without flags has it off.
+    factory {
+        val communityOn = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.CommunityPuzzles) == true
+        ObserveResultNextThing(
+            registry = get(),
+            identity = get(),
+            history = get(),
+            todaySet = get(),
+            friendPuzzles = get(),
+            friendUids = get(),
+            leaderboard = get(),
+            visibility = get(),
+            computeStreak = get(),
+            puzzleDay = get(),
+            nextRollover = get(),
+            communityPuzzles = if (communityOn) get<ListCommunityPuzzles>() else null,
+        )
+    }
     factory {
         CreateDraft(
             registry = get(),

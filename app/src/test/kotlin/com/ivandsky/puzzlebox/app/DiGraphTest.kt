@@ -71,6 +71,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInSessionCookies
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.cloud.CloudSyncRunner
 import com.ivandsky.puzzlebox.data.cloud.OversizedDrafts
@@ -370,6 +371,25 @@ class DiGraphTest : KoinTest {
             assertNotNull(koin.get<GetPlayerActions>())
             assertNotNull(koin.get<ObserveResultRank>())
             assertNotNull(koin.get<ObserveResultNextThing>())
+        } finally {
+            stopKoin()
+        }
+    }
+
+    /** With the community flag on, Result's next-thing chain is built with the community list (A2: read in DI). */
+    @Test
+    fun `Result's next thing resolves with the community flag on`() {
+        val koinApp = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(
+                PuzzleBoxApplication.appModules + module {
+                    single<IdentityService> { FakeIdentityService() }
+                    single<ReleaseFlags> { FakeReleaseFlags(ReleaseFlag.CommunityPuzzles) }
+                },
+            )
+        }
+        try {
+            assertNotNull(koinApp.koin.get<ObserveResultNextThing>())
         } finally {
             stopKoin()
         }
