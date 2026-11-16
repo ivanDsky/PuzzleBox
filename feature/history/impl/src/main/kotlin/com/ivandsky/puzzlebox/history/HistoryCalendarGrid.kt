@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.pressScale
+import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.DayRing
@@ -153,16 +154,18 @@ private fun CalendarDay(
             Text(text = it, style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
         }
         // No ring is total 0: the ring keeps its size, so every week row lines up.
+        val ink = if (selected) colors.surface else colors.onSurface
         DayRing(
             solved = if (shown) state.solvedByDay[date].orEmpty() else emptyList(),
             total = if (shown) state.gamesPerDay else 0,
+            modifier = Modifier.pressTint(interaction, CircleShape, ink),
         ) {
             disc?.let { Box(Modifier.size(DayDisc).background(it, CircleShape)) }
             Text(
                 text = date.dayOfMonth.toString(),
                 style = MaterialTheme.typography.labelLarge.tabular(),
                 fontWeight = if (date == today && !selected) FontWeight.Bold else null,
-                color = if (selected) colors.surface else colors.onSurface,
+                color = ink,
             )
         }
     }

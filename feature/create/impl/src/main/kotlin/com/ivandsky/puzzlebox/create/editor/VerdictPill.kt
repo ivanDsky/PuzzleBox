@@ -7,6 +7,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,6 +47,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.pressScale
+import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
@@ -109,15 +111,15 @@ fun VerdictPill(verdict: Verdict, onClick: () -> Unit, modifier: Modifier = Modi
             contentAlignment = Alignment.Center,
             label = "create-verdict-pill",
             contentKey = Verdict::glanceKey,
-        ) { shown -> PillFace(shown, compact) }
+        ) { shown -> PillFace(shown, compact, interactionSource) }
     }
 }
 
 @Composable
-private fun PillFace(verdict: Verdict, compact: Boolean) {
+private fun PillFace(verdict: Verdict, compact: Boolean, interactionSource: InteractionSource) {
     val (container, content) = verdict.tone().colors()
     Surface(
-        modifier = Modifier.height(PillHeight).widthIn(max = PillMaxWidth),
+        modifier = Modifier.height(PillHeight).widthIn(max = PillMaxWidth).pressTint(interactionSource, PillShape, content),
         shape = PillShape,
         color = container,
         contentColor = content,

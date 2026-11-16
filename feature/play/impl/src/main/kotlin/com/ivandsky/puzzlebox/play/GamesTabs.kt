@@ -38,6 +38,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.pressScale
+import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 
@@ -89,6 +90,7 @@ internal fun GamesTabPill(
                 description?.let { contentDescription = it }
                 this.selected = selected
             }
+            .pressTint(interaction, PillShape, content)
             .clickable(interactionSource = interaction, indication = null, role = Role.Tab, onClick = onClick)
             .testTag(tag),
     ) {

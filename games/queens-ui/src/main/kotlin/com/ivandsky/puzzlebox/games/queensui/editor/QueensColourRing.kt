@@ -48,6 +48,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
+import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.games.queens.editor.QueensDraft
 import com.ivandsky.puzzlebox.games.queensui.LocalQueensReducedMotion
 import com.ivandsky.puzzlebox.games.queensui.QueensBrand
@@ -123,6 +124,7 @@ private fun RingPetal(
                 .drawBehind { if (isCurrent) drawCurrentRing(accent.accent) }
                 .clip(CircleShape)
                 .background(fill)
+                .pressTint(interaction, CircleShape, ink)
                 .drawWithContent {
                     if (QueensRegionPalette.textured(region)) drawPetalTexture(ink)
                     drawContent()
@@ -161,6 +163,7 @@ private fun UnpaintCentre(onPick: (Int) -> Unit) {
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             .border(QueensEditorDefaults.ringCentreStroke, MaterialTheme.colorScheme.outline, CircleShape)
+            .pressTint(interaction, CircleShape, MaterialTheme.colorScheme.onSurface)
             .testTag("queens.editor.ring.unpaint")
             .clickable(interaction, indication = null, role = Role.Button) { onPick(QueensDraft.UNPAINTED) },
         contentAlignment = Alignment.Center,

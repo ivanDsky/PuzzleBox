@@ -38,6 +38,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.pressScale
+import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Verdict
@@ -115,6 +116,7 @@ private fun TitleBlock(title: String, subtitle: String, saving: Boolean, importe
         Modifier
             .pressScale(interactionSource, rememberReducedMotion())
             .clip(AppShapes.small)
+            .pressTint(interactionSource, AppShapes.small, MaterialTheme.colorScheme.onSurface)
             .clickable(interactionSource = interactionSource, indication = null, role = Role.Button, onClick = onClick)
     }
     Column(
