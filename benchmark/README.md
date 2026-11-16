@@ -59,9 +59,11 @@ game (its prefetch on Home and Games, when online). `Opened(game)` also opens th
 tutorial skipped, so the game's puzzle is stored and its tutorial is seen. Uninstalling is not needed
 to reset.
 
-`GameOpenBenchmark` measures the stored open only. An unstored open cannot be set up from this module
-alone: the Today launch stores today's puzzles for all five games before the measured block, and a
-first Play always opens the tutorial. An unstored variant needs a hook in the benchmark build of `:app`.
+`GameOpenBenchmark` measures the stored open only. There is no unstored variant here: the Today launch
+stores today's puzzles for all five games before the measured block (Home and Games prefetch), and a
+first Play always opens the tutorial, so an unstored open cannot be reached from this module without an
+app hook. The unstored path is covered by the JVM tests (ticket 04) and a visual check on the Pixel
+(ticket 16).
 Startup and the baseline profile do not clear: they measure the install's data as it is.
 
 A journey never holds a `UiObject2` across a wait or a transition; it finds and acts in one `poll`,
