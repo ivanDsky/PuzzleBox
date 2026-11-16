@@ -3,7 +3,7 @@ package com.ivandsky.puzzlebox.play.community
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 
-/** What the New today list shows below its filters. */
+/** What the New today list shows below its header. */
 internal sealed interface CommunityPhase {
     data object Loading : CommunityPhase
 
@@ -22,7 +22,7 @@ internal data class CommunityNotice(val id: Int, val message: String)
 
 /**
  * The New today section. With [enabled] false (the community flag is off) nothing shows and nothing loads. [game] and
- * [difficulty] are the chips picked (null is All, and no difficulty chip); [signInPrompt] is the sign-in dialog a
+ * [difficulty] are the filters picked (null is All, and Any difficulty); [signInPrompt] is the sign-in dialog a
  * signed-out Report opens, with [signIn] saying how the last try went.
  */
 internal data class CommunityState(

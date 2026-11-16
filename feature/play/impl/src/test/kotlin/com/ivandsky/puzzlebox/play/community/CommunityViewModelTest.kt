@@ -87,6 +87,28 @@ class CommunityViewModelTest {
     }
 
     @Test
+    fun `picking no difficulty drops it, and clearing the filters drops the game and the difficulty in one reload`() = runTest {
+        fixture.publish("AAA111", NOW - HOUR, difficulty = Level.Easy)
+        fixture.publish("BBB222", NOW - 2 * HOUR, game = BETA, difficulty = Level.Easy)
+        val viewModel = fixture.viewModel()
+        viewModel.pickGame(BETA)
+        viewModel.pickDifficulty(DifficultyChoice.Easy)
+
+        viewModel.pickDifficulty(null)
+        assertNull(viewModel.state.value.difficulty)
+        assertEquals(BETA, viewModel.state.value.game)
+        viewModel.pickDifficulty(DifficultyChoice.Easy)
+        val before = fixture.recording.filters.size
+        viewModel.clearFilters()
+
+        assertNull(viewModel.state.value.game)
+        assertNull(viewModel.state.value.difficulty)
+        assertEquals(listOf("AAA111", "BBB222"), viewModel.rows())
+        assertEquals(before + 1, fixture.recording.filters.size)
+        assertEquals(CommunityFilter(), fixture.recording.filters.last())
+    }
+
+    @Test
     fun `Hard includes Expert`() = runTest {
         fixture.publish("AAA111", NOW - HOUR, difficulty = Level.Hard)
         fixture.publish("BBB222", NOW - 2 * HOUR, difficulty = Level.Expert)

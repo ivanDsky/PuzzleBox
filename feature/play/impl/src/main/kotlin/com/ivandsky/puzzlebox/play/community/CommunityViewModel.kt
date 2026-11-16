@@ -26,10 +26,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Games › Custom's New today (nav-rethink C2): the community puzzles of the last day through [list], newest first,
- * narrowed by a game chip (All, then each game that has an editor) and a difficulty chip. Picking a chip reloads the
- * list; a picked difficulty chip picked again is dropped. Report ([report]) hides a puzzle at once on this device
- * and says so in a notice; signed out it opens the sign-in prompt instead and the player taps Report again.
+ * New today (nav-rethink C2): the community puzzles of the last day through [list], newest first, narrowed by a
+ * game and a difficulty picked in the filter menu (All, then each game that has an editor; Any, then Easy to Hard).
+ * Picking reloads the list; the difficulty picked again is dropped, and [clearFilters] drops both. Report
+ * ([report]) hides a puzzle at once on this device and says so in a notice; signed out it opens the sign-in prompt instead and the player taps Report again.
  *
  * The community flag is read here, once, when the view model is made (spec A2): off, nothing loads and
  * [CommunityState.enabled] stays false, so the host adds no section. A puzzle of a game this build cannot open is
@@ -48,7 +48,7 @@ internal class CommunityViewModel(
 
     private val choices = games.all.filter { it.editor != null }.map {
         val id = it.definition.id
-        GameChoice(id, games.displayName(id), plays.brandOf(id))
+        GameChoice(id, games.displayName(id))
     }
     private val shipped = choices.map { it.id }.toSet()
     private val signInHolder = BoardSignInHolder(identity, idTokens)
@@ -75,13 +75,19 @@ internal class CommunityViewModel(
         load()
     }
 
-    /** Narrows to [choice]; the chip already picked is dropped, back to every difficulty. */
-    fun pickDifficulty(choice: DifficultyChoice) {
+    /** Narrows to [choice]; the one already picked, or null (Any), drops back to every difficulty. */
+    fun pickDifficulty(choice: DifficultyChoice?) {
         current.update { it.copy(difficulty = choice.takeIf { picked -> picked != it.difficulty }) }
         load()
     }
 
-    /** Loads the list again under the chips picked now; Retry after an offline or refused list. */
+    /** Drops the game and the difficulty together, back to every puzzle, in one reload. */
+    fun clearFilters() {
+        current.update { it.copy(game = null, difficulty = null) }
+        load()
+    }
+
+    /** Loads the list again under the filters picked now; Retry after an offline or refused list. */
     fun retry() = load()
 
     /** Reports [code]. Reported (or already reported) it drops from the list at once; every other result hides nothing. */
