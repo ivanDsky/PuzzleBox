@@ -114,6 +114,52 @@ class DragTraceStrokeTest {
         assertEquals((1..4).map { DragEvent.Extend(GridCell(0, it)) }, s.second)
     }
 
+    @Test
+    fun `a fast shallow diagonal that changes rows through two dead rims extends every crossed cell in order`() {
+        // One row down over four columns: the finger leaves (0, 2) and comes into (1, 2) through their rims,
+        // so the next cell caught, (1, 3), is two steps from the tail (0, 1).
+        val s = stroke(listOf(GridCell(0, 0)), centre(0, 0))
+        s.feed(centre(1, 4))
+        assertEquals(
+            listOf(GridCell(0, 1), GridCell(0, 2), GridCell(1, 2), GridCell(1, 3), GridCell(1, 4)).map(DragEvent::Extend),
+            s.second,
+        )
+    }
+
+    @Test
+    fun `a fast turn that hugs a column boundary extends every crossed cell in order`() {
+        // East into (0, 1), then down along the line between columns 1 and 2: (1, 1) and (1, 2) are
+        // crossed in their rims and corners only, and (2, 2) is caught two steps from the tail.
+        val s = stroke(listOf(GridCell(0, 0)), centre(0, 0))
+        s.feed(Offset(175f, 50f))
+        s.feed(Offset(225f, 250f))
+        assertEquals(
+            listOf(GridCell(0, 0), GridCell(0, 1), GridCell(1, 1), GridCell(1, 2), GridCell(2, 2)),
+            s.first.path,
+        )
+    }
+
+    @Test
+    fun `jitter over the row boundary of a shallow diagonal fills each crossed cell once`() {
+        // The finger wavers between (0, 2) and (1, 2) inside their rims before it goes on along row 1.
+        val s = stroke(listOf(GridCell(0, 0)), centre(0, 0))
+        s.feed(listOf(Offset(230f, 95f), Offset(250f, 105f), Offset(255f, 95f), Offset(270f, 105f), centre(1, 4)))
+        assertEquals(
+            listOf(GridCell(0, 0), GridCell(0, 1), GridCell(0, 2), GridCell(1, 2), GridCell(1, 3), GridCell(1, 4)),
+            s.first.path,
+        )
+    }
+
+    @Test
+    fun `a fast shallow diagonal stops at the first crossed cell the hooks refuse`() {
+        val s = stroke(listOf(GridCell(0, 0)), centre(0, 0), blocked = setOf(GridCell(1, 2)))
+        s.feed(centre(1, 4))
+        assertEquals(
+            listOf(DragEvent.Extend(GridCell(0, 1)), DragEvent.Extend(GridCell(0, 2)), DragEvent.Refused(GridCell(1, 3))),
+            s.second,
+        )
+    }
+
     private fun segment(from: Offset, to: Offset, steps: Int): List<Offset> =
         List(steps) { from + (to - from) * ((it + 1).toFloat() / steps) }
 }

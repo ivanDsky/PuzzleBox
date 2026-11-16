@@ -20,6 +20,9 @@ import kotlin.math.floor
  * - A cell the hooks accept: extends. A diagonal neighbour of the tail the hooks refuse, a 4-way
  *   game's corner cut: extends through whichever side cell the finger passed closer to, when
  *   the hooks accept both steps.
+ * - A cell further from the tail, caught after the finger crossed the cells between through their
+ *   dead zones only: the trace fills in every cell the finger crossed on its way from the tail, in
+ *   order, up to the first step the hooks refuse.
  * - Anything else: [DragEvent.Refused], at most once per [moveTo]; the trace never stops following the
  *   finger because of it.
  */
@@ -41,12 +44,21 @@ internal class DragTraceStroke(
     /** The finger since the trace last changed, in cell units: which side cell a corner cut passed. */
     private val trail = ArrayDeque<Offset>()
 
+    /**
+     * The cells the finger crossed since it was last on the tail, the tail first and none twice: the
+     * way a caught cell out of the tail's reach is filled in along. Empty while the finger has not
+     * come from the tail.
+     */
+    private val route = ArrayList<GridCell>()
+
     private var events = mutableListOf<DragEvent>()
     private var refused = false
 
     /** The stroke starts where the finger landed (empty path + start cell, or the tail), wherever in the cell. */
     fun begin(): List<DragEvent> = collect {
-        enter(cellOf(at))
+        val cell = cellOf(at)
+        cross(cell)
+        enter(cell)
         trail.clear()
     }
 
@@ -76,6 +88,7 @@ internal class DragTraceStroke(
             val point = from + (to - from) * (i.toFloat() / steps)
             record(point)
             val cell = cellOf(point)
+            cross(cell)
             if (cell != visited && DragTraceCatch.catches(point.x - cell.col - 0.5f, point.y - cell.row - 0.5f, reachOf(cell))) {
                 enter(cell)
             }
@@ -92,12 +105,21 @@ internal class DragTraceStroke(
         trail.addLast(point)
     }
 
+    /** A cell crossed again cuts the loop the finger made since: jitter over a boundary is no detour to draw. */
+    private fun cross(cell: GridCell) {
+        val seen = route.indexOf(cell)
+        when {
+            seen >= 0 -> route.subList(seen + 1, route.size).clear()
+            route.isNotEmpty() || cell == path.lastOrNull() -> route += cell
+        }
+    }
+
     private fun enter(cell: GridCell) {
         visited = cell
         when {
             cell == path.getOrNull(path.lastIndex - 1) -> {
                 path = path.dropLast(1)
-                trail.clear()
+                redrawn()
                 emit(DragEvent.Retract(path.lastIndex))
             }
             cell == path.lastOrNull() -> Unit // the tail: where the tip already rests
@@ -105,11 +127,12 @@ internal class DragTraceStroke(
             hooks.canExtend(path, cell) -> extend(cell)
             else -> {
                 val bridge = bridgeTo(cell)
-                if (bridge != null) {
-                    extend(bridge)
-                    extend(cell)
-                } else {
-                    refuse(cell)
+                when {
+                    bridge != null -> {
+                        extend(bridge)
+                        extend(cell)
+                    }
+                    !fill() -> refuse(cell)
                 }
             }
         }
@@ -124,8 +147,29 @@ internal class DragTraceStroke(
 
     private fun extend(cell: GridCell) {
         path = path + cell
-        trail.clear()
+        redrawn()
         emit(DragEvent.Extend(cell))
+    }
+
+    /** The trace changed: how the finger came to it says nothing about the next cell. */
+    private fun redrawn() {
+        trail.clear()
+        route.clear()
+        path.lastOrNull()?.let { if (it == visited) route += it }
+    }
+
+    /**
+     * Draws the trace on along [route] to the caught cell at its end, one the tail cannot reach in a
+     * step: every cell the finger crossed on the way, in order, each a step or a corner cut the hooks
+     * accept. The first one they refuse stops the trace there, and the fill reports false.
+     */
+    private fun fill(): Boolean {
+        if (route.size < 3) return false // no cell in between: the step and the corner cut were just refused
+        for (step in route.subList(1, route.size).toList()) { // a copy: every extend starts the route over
+            if (!hooks.canExtend(path, step)) extend(bridgeTo(step) ?: return false)
+            extend(step)
+        }
+        return true
     }
 
     private fun emit(event: DragEvent) {
