@@ -31,4 +31,6 @@ class DraftEntity(
     val ownerUid: String? = null,
     /** Schema v11: fingerprint of the last version uploaded to the cloud; null when never uploaded. */
     val uploadedFingerprint: String? = null,
+    /** Schema v14: the level the author picked over the Studio's proposal (a `Difficulty.Level` name); null follows the proposal. Stays on the device. */
+    val difficultyChoice: String? = null,
 )

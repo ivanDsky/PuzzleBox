@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.database.SyncTombstoneDao
 import com.ivandsky.puzzlebox.database.SyncTombstoneEntity
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -99,6 +100,7 @@ private fun Draft.toEntity(ownerUid: String?, uploadedFingerprint: String?) = Dr
     note = note,
     ownerUid = ownerUid,
     uploadedFingerprint = uploadedFingerprint,
+    difficultyChoice = difficultyChoice?.name,
 )
 
 private fun DraftEntity.toDraft(): Draft {
@@ -122,5 +124,6 @@ private fun DraftEntity.toDraft(): Draft {
         imported = imported,
         authorName = authorName,
         note = note,
+        difficultyChoice = difficultyChoice?.let(Difficulty.Level::valueOf),
     )
 }

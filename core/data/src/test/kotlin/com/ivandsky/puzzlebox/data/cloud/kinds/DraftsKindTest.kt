@@ -202,6 +202,25 @@ class DraftsKindTest {
     }
 
     @Test
+    fun `a replaced draft keeps the author's difficulty choice, and a code adopted keeps it too`() = runTest {
+        db.draftDao().upsert(entity("a", ANN, 1_000L, null, difficultyChoice = "Expert"))
+        db.draftDao().upsert(entity("b", ANN, 5_000L, null, difficultyChoice = "Easy"))
+
+        kind.apply(ANN, listOf(live("a", editedAtMs = 2_000L), live("b", editedAtMs = 2_000L, reservedCode = "K7Q2MX")))
+
+        assertEquals("Expert", row("a")!!.difficultyChoice)
+        assertEquals("Easy", row("b")!!.difficultyChoice)
+        assertEquals("K7Q2MX", row("b")!!.reservedCode)
+    }
+
+    @Test
+    fun `the author's difficulty choice stays on the device`() = runTest {
+        db.draftDao().upsert(entity("a", ANN, 2_000L, null, difficultyChoice = "Hard"))
+
+        assertEquals(setOf("formatVersion", "gameId", "variant", "draftFormatVersion", "name", "blob", "editedAtMs"), kind.pending(ANN).single().fields.keys)
+    }
+
+    @Test
     fun `a draft kept under a published code uploads its reserved code`() = runTest {
         db.draftDao().upsert(entity("a", ANN, 2_000L, null, reservedCode = "K7Q2MX"))
 
@@ -631,6 +650,7 @@ class DraftsKindTest {
         reservedCode: String? = null,
         authorName: String = "",
         note: String = "",
+        difficultyChoice: String? = null,
     ) = DraftEntity(
         id = id,
         gameId = "queens",
@@ -648,6 +668,7 @@ class DraftsKindTest {
         note = note,
         ownerUid = owner,
         uploadedFingerprint = fingerprint,
+        difficultyChoice = difficultyChoice,
     )
 
     private companion object {

@@ -163,6 +163,7 @@ class PublishVisibilitySessionTest {
             flush = { drafts.upsert(row) },
             reserved = { code -> row = row.copy(reservedCode = code) },
             storeDetails = { name, note -> row = row.copy(authorName = name, note = note) },
+            storeLevel = {},
             flags = if (on) FakeReleaseFlags(ReleaseFlag.CommunityPuzzles) else FakeReleaseFlags(),
         )
     }

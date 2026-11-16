@@ -123,6 +123,7 @@ class EditorViewModel(
         flush = { autosave.flush() },
         reserved = { code -> lastStored = lastStored?.copy(reservedCode = code)?.also(autosave::offer) },
         storeDetails = { authorName, note -> lastStored?.let { write(it.copy(authorName = authorName, note = note)) } },
+        storeLevel = { level -> lastStored?.let { write(it.copy(difficultyChoice = level)) } },
         flags = releaseFlags ?: ShippedReleaseFlags,
     )
 
@@ -178,7 +179,7 @@ class EditorViewModel(
         val (stored, draft, ui) = loadDraft(key.draftId) ?: return EditorUiState.Missing
         lastStored = stored
         meta.open(stored.title)
-        publish.open(stored.authorName, stored.note, published = publishedCode(stored))
+        publish.open(stored.authorName, stored.note, published = publishedCode(stored), level = stored.difficultyChoice)
         history.open(draft)
         board = draft
         testSolve.open(stored.testSolve, draft)

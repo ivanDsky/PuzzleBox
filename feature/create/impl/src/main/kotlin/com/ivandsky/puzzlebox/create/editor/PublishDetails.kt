@@ -11,11 +11,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.clickable
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -29,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import com.ivandsky.puzzlebox.data.model.Draft
@@ -41,6 +40,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.domain.ValidatePublishDetails
+import com.ivandsky.puzzlebox.game.editor.Difficulty.Level
 import com.ivandsky.puzzlebox.game.editor.PublishBlock
 
 /**
@@ -52,7 +52,8 @@ import com.ivandsky.puzzlebox.game.editor.PublishBlock
  * the title and the author side by side, for a short slot; an [action] heads the form, at the
  * end of its "Publish details" row, after the [history] (Undo and Redo, reachable here while the
  * tools are away); the row tells it to be `compact` when too narrow for its full form. With [Details.visibility][PublishSession.Details.visibility]
- * set (community flag on), the Public or Link only picker ([onVisibility]) comes before the game's own [fields], which close the form.
+ * set (community flag on), the Public or Link only picker ([onVisibility]) comes before the game's own [fields], which close the
+ * form; with a [level] (FinishForMe, a proposal, Public), the level picker ([onLevel]) follows it, off once the visibility is frozen.
  *
  * Motion: the note row **Expands** in with a **Fade** (EnterDuration on the emphasized
  * decelerate curve); under reduced motion it only fades.
@@ -72,6 +73,8 @@ fun PublishDetails(
     action: (@Composable (compact: Boolean) -> Unit)? = null,
     history: (@Composable () -> Unit)? = null,
     onVisibility: (Visibility) -> Unit = {},
+    level: LevelChoice? = null,
+    onLevel: (Level) -> Unit = {},
     fields: @Composable (Modifier) -> Unit = {},
 ) {
     var renaming by rememberSaveable { mutableStateOf(false) }
@@ -150,6 +153,7 @@ fun PublishDetails(
             )
         }
         details.visibility?.let { PublishVisibilityPicker(it, onVisibility, enabled = enabled) }
+        level?.let { PublishLevelPicker(it, onLevel, enabled = enabled && details.visibility?.locked != true) }
         fields(Modifier.fillMaxWidth())
     }
     if (renaming) {
@@ -164,27 +168,6 @@ fun PublishDetails(
         )
     }
 }
-
-/** The details folded into one line, "Castle · by Ivan", while the board is edited; a tap ([onClick]) opens them again. */
-@Composable
-internal fun PublishDetailsSummary(title: String, authorName: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Row(
-        modifier = modifier.clickable(role = Role.Button, onClick = onClick).testTag("create.details.summary"),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = "${title.ifBlank { "Name your puzzle" }} · by ${authorName.trim().ifBlank { "Anonymous" }}",
-            style = MaterialTheme.typography.bodyMedium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false),
-        )
-        Icon(PuzzleIcons.Create, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(SummaryIconSize))
-    }
-}
-
-private val SummaryIconSize = 16.dp
 
 /** The header's width, at font scale 1, that fits the title, Undo, Redo and the full Edit board chip. */
 private val HeaderRoom = 340.dp

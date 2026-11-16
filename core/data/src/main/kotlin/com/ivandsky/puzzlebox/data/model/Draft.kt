@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.data.model
 
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
 
@@ -8,6 +9,7 @@ import java.time.Instant
  * One editor draft (A6): the opaque board [blob] in format [draftFormatVersion] (ADR-0005) for
  * one [variant] of one game. [testSolve] stays null until the author solves it; [reservedCode]
  * is the share code once reserved (M3); [imported] marks a draft copied in from elsewhere.
+ * [difficultyChoice] is the level the author picked over the Studio's proposal (96); it stays on the device.
  * Equality compares [blob] by content, so a draft read back from storage equals the one saved.
  */
 data class Draft(
@@ -23,6 +25,7 @@ data class Draft(
     val imported: Boolean,
     val authorName: String,      // M3 publish details; "" until set (≤ AUTHOR_MAX)
     val note: String,            // M3 publish details; "" until set (≤ NOTE_MAX)
+    val difficultyChoice: Difficulty.Level? = null, // 96: the author's own level; null follows the Studio's proposal
 ) {
     override fun equals(other: Any?): Boolean =
         other is Draft &&
@@ -37,7 +40,8 @@ data class Draft(
             reservedCode == other.reservedCode &&
             imported == other.imported &&
             authorName == other.authorName &&
-            note == other.note
+            note == other.note &&
+            difficultyChoice == other.difficultyChoice
 
     override fun hashCode(): Int {
         var h = id.hashCode()
@@ -52,6 +56,7 @@ data class Draft(
         h = 31 * h + imported.hashCode()
         h = 31 * h + authorName.hashCode()
         h = 31 * h + note.hashCode()
+        h = 31 * h + (difficultyChoice?.hashCode() ?: 0)
         return h
     }
 

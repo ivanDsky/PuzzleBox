@@ -24,7 +24,7 @@ import kotlin.random.Random
  * retry after a lost answer reuses it and finds its own document.
  *
  * [visibility] is the author's choice for the community list. A [SharedPuzzleDoc.Visibility.Public] doc carries the
- * [verdict]'s difficulty label; a link only doc is written exactly as before the choice existed, with neither new field.
+ * [verdict]'s difficulty label, or the [level] the author chose over it (96); a link only doc is written exactly as before the choice existed, with neither new field.
  *
  * The draft has one writer, the caller's: a code this use case picks (none reserved yet, or a
  * taken one replaced) is handed to `reserve`, which returns once the draft holds it, so a save
@@ -48,6 +48,7 @@ class CreateSharedPuzzle(
         draft: EditorDraft<*>,
         verdict: Verdict,
         visibility: SharedPuzzleDoc.Visibility,
+        level: Difficulty.Level? = null,
         reserve: suspend (code: ShareCode) -> Unit,
     ): PublishOutcome {
         val stored = drafts.get(draftId) ?: return PublishOutcome.Rejected("no draft $draftId")
@@ -60,7 +61,7 @@ class CreateSharedPuzzle(
         var regenerations = 0
         while (true) {
             val code = checkNotNull(ShareCode.parse(checkNotNull(row.reservedCode)))
-            val doc = row.toDoc(code, uid, shareVersion, payload, visibility, verdict)
+            val doc = row.toDoc(code, uid, shareVersion, payload, visibility, level ?: verdict.shownDifficulty())
             when (val result = shared.publish(doc)) {
                 is PublishResult.Published -> {
                     published.upsert(row.toListing(result.code, doc.createdAtMs))
@@ -93,7 +94,7 @@ class CreateSharedPuzzle(
         shareVersion: Int,
         payload: ByteArray,
         visibility: SharedPuzzleDoc.Visibility,
-        verdict: Verdict,
+        level: Difficulty.Level?,
     ): SharedPuzzleDoc {
         val test = checkNotNull(testSolve)
         return SharedPuzzleDoc(
@@ -112,7 +113,7 @@ class CreateSharedPuzzle(
             createdAtMs = clock().toEpochMilli(),
             unpublished = false,
             visibility = visibility,
-            difficulty = if (visibility == SharedPuzzleDoc.Visibility.Public) verdict.shownDifficulty() else null,
+            difficulty = if (visibility == SharedPuzzleDoc.Visibility.Public) level else null,
         )
     }
 

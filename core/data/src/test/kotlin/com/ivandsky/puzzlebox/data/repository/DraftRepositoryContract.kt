@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.TestSolve
 import com.ivandsky.puzzlebox.database.PuzzleBoxDatabase
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import java.time.Instant
@@ -43,6 +44,7 @@ abstract class DraftRepositoryContract {
         testSolve: TestSolve? = null,
         authorName: String = "",
         note: String = "",
+        difficultyChoice: Difficulty.Level? = null,
     ) = Draft(
         id = id,
         gameId = GameId("queens"),
@@ -56,6 +58,7 @@ abstract class DraftRepositoryContract {
         imported = false,
         authorName = authorName,
         note = note,
+        difficultyChoice = difficultyChoice,
     )
 
     @Test
@@ -86,6 +89,15 @@ abstract class DraftRepositoryContract {
         val loaded = repository.get("d1")
         assertEquals("Ivan", loaded?.authorName)
         assertEquals("Mind the corner", loaded?.note)
+    }
+
+    @Test
+    fun `the author's difficulty choice round-trips, and a draft without one reads none`() = runTest {
+        repository.upsert(draft("d1", difficultyChoice = Difficulty.Level.Expert))
+        repository.upsert(draft("d2"))
+
+        assertEquals(Difficulty.Level.Expert, repository.get("d1")?.difficultyChoice)
+        assertNull(repository.get("d2")?.difficultyChoice)
     }
 
     @Test

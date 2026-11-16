@@ -190,6 +190,7 @@ private fun DraftEntity.withReservedCode(code: String) = DraftEntity(
     note = note,
     ownerUid = ownerUid,
     uploadedFingerprint = uploadedFingerprint,
+    difficultyChoice = difficultyChoice,
 )
 
 private fun SyncTombstoneEntity.toFields(): Map<String, Any?> =
@@ -216,6 +217,7 @@ private fun DraftDoc.Edit.toEntity(id: String, uid: String, stored: DraftEntity?
         note = stored?.note ?: "",
         ownerUid = uid,
         uploadedFingerprint = fingerprint,
+        difficultyChoice = stored?.difficultyChoice,
     )
 }
 

@@ -69,14 +69,14 @@ class CreateSharedPuzzleRetryTest {
         backend.commitThenOffline = true
         val publish = createShared()
 
-        val first = publish(DRAFT_ID, board, unique, LinkOnly, reserve)
+        val first = publish(DRAFT_ID, board, unique, LinkOnly, reserve = reserve)
 
         assertEquals(PublishOutcome.Offline, first)
         val reserved = checkNotNull(drafts.rows.getValue(DRAFT_ID).reservedCode)
         assertEquals("the doc landed before the answer was lost", setOf(reserved), backend.docs.keys.map { it.value }.toSet())
         assertTrue("not listed as published yet", published.rows.isEmpty())
 
-        val retry = publish(DRAFT_ID, board, unique, LinkOnly, reserve)
+        val retry = publish(DRAFT_ID, board, unique, LinkOnly, reserve = reserve)
 
         val code = checkNotNull(ShareCode.parse(reserved))
         assertEquals(PublishOutcome.Published(code), retry)
@@ -91,10 +91,10 @@ class CreateSharedPuzzleRetryTest {
         backend.commitThenOffline = true
         val publish = createShared()
         val medium = Verdict.Unique(Solution(listOf(1, 2, 3)), difficulty = Difficulty(MediumRung))
-        assertEquals(PublishOutcome.Offline, publish(DRAFT_ID, board, medium, Public, reserve))
+        assertEquals(PublishOutcome.Offline, publish(DRAFT_ID, board, medium, Public, reserve = reserve))
         val lost = checkNotNull(ShareCode.parse(checkNotNull(drafts.rows.getValue(DRAFT_ID).reservedCode)))
 
-        val retry = publish(DRAFT_ID, board, medium, Public, reserve)
+        val retry = publish(DRAFT_ID, board, medium, Public, reserve = reserve)
 
         assertEquals(PublishOutcome.Published(lost), retry)
         assertEquals("exactly one doc, public, with its difficulty", setOf(lost), backend.docs.keys)
@@ -108,10 +108,10 @@ class CreateSharedPuzzleRetryTest {
         drafts.upsert(ready())
         backend.commitThenOffline = true
         val publish = createShared()
-        assertEquals(PublishOutcome.Offline, publish(DRAFT_ID, board, unique, Public, reserve))
+        assertEquals(PublishOutcome.Offline, publish(DRAFT_ID, board, unique, Public, reserve = reserve))
         val lost = checkNotNull(ShareCode.parse(checkNotNull(drafts.rows.getValue(DRAFT_ID).reservedCode)))
 
-        val code = (publish(DRAFT_ID, board, unique, LinkOnly, reserve) as PublishOutcome.Published).code
+        val code = (publish(DRAFT_ID, board, unique, LinkOnly, reserve = reserve) as PublishOutcome.Published).code
 
         assertTrue("a fresh code, not the lost one", code != lost)
         assertTrue("the lost public doc is retired", backend.docs.getValue(lost).unpublished)
@@ -123,11 +123,11 @@ class CreateSharedPuzzleRetryTest {
         drafts.upsert(ready())
         backend.commitThenOffline = true
         val publish = createShared()
-        assertEquals(PublishOutcome.Offline, publish(DRAFT_ID, board, unique, LinkOnly, reserve))
+        assertEquals(PublishOutcome.Offline, publish(DRAFT_ID, board, unique, LinkOnly, reserve = reserve))
         val lost = checkNotNull(ShareCode.parse(checkNotNull(drafts.rows.getValue(DRAFT_ID).reservedCode)))
         drafts.upsert(drafts.rows.getValue(DRAFT_ID).copy(title = "Fortress"))
 
-        val outcome = publish(DRAFT_ID, board, unique, LinkOnly, reserve)
+        val outcome = publish(DRAFT_ID, board, unique, LinkOnly, reserve = reserve)
 
         val code = (outcome as PublishOutcome.Published).code
         assertTrue("a different code than the lost one", code != lost)
@@ -144,13 +144,13 @@ class CreateSharedPuzzleRetryTest {
     fun `a draft killed after its code was reserved publishes later under that code`() = runTest {
         drafts.upsert(ready())
         backend.online = false
-        assertEquals(PublishOutcome.Offline, createShared(seed = 7)(DRAFT_ID, board, unique, LinkOnly, reserve))
+        assertEquals(PublishOutcome.Offline, createShared(seed = 7)(DRAFT_ID, board, unique, LinkOnly, reserve = reserve))
         val reserved = checkNotNull(drafts.rows.getValue(DRAFT_ID).reservedCode)
         assertTrue("nothing written offline", backend.docs.isEmpty())
 
         // A fresh process: new use case, new random, the stored row as it was left.
         backend.online = true
-        val outcome = createShared(seed = 99)(DRAFT_ID, board, unique, LinkOnly, reserve)
+        val outcome = createShared(seed = 99)(DRAFT_ID, board, unique, LinkOnly, reserve = reserve)
 
         val code = checkNotNull(ShareCode.parse(reserved))
         assertEquals(PublishOutcome.Published(code), outcome)
@@ -169,7 +169,7 @@ class CreateSharedPuzzleRetryTest {
             }
         }
 
-        val outcome = createShared(shared = alwaysTaken)(DRAFT_ID, board, unique, LinkOnly, reserve)
+        val outcome = createShared(shared = alwaysTaken)(DRAFT_ID, board, unique, LinkOnly, reserve = reserve)
 
         assertTrue("rejected, got $outcome", outcome is PublishOutcome.Rejected)
         assertEquals("the first code and three regenerations, no fifth try", 4, tried.size)

@@ -384,7 +384,7 @@ class FinishViewModelTest {
         assertTrue(scored.graded.isEmpty())
     }
 
-    private companion object {
+    internal companion object {
         val NOW: Instant = Instant.parse("2026-11-06T10:00:00Z")
         const val DRAFT_ID = "draft-1"
         const val WINDOW_MS = 300L

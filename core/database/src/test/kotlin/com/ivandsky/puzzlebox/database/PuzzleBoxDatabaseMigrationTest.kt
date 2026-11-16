@@ -780,8 +780,36 @@ class PuzzleBoxDatabaseMigrationTest {
     }
 
     @Test
-    fun `fresh v13 database is created by the normal builder path`() {
-        val dbName = "puzzlebox-fresh-v13.db"
+    fun `migrate 13 to 14 keeps every draft and gives it no difficulty choice`() {
+        val dbName = "puzzlebox-migration-13-14-test.db"
+        val v13 = helper.createDatabase(dbName, 13)
+        v13.execSQL(
+            "INSERT INTO drafts " +
+                "(id, gameId, variant, draftFormatVersion, blob, title, updatedAt, testLayoutKey, testTimeMs, testHints, " +
+                "reservedCode, imported, authorName, note, ownerUid, uploadedFingerprint) " +
+                "VALUES ('d1', 'sudoku', 'sudoku/9', 1, x'0102', 'Castle', 5000, 'k', 61000, 0, 'K7Q2MX', 0, 'Ivan', 'hi', 'uid-a', 'fp')",
+        )
+        v13.close()
+
+        // Validates against the committed 14.json.
+        val db = helper.runMigrationsAndValidate(dbName, 14, true, Migrations.MIGRATION_13_14)
+
+        db.query("SELECT id, title, authorName, note, reservedCode, difficultyChoice FROM drafts").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("d1", cursor.getString(0))
+            assertEquals("Castle", cursor.getString(1))
+            assertEquals("Ivan", cursor.getString(2))
+            assertEquals("hi", cursor.getString(3))
+            assertEquals("K7Q2MX", cursor.getString(4))
+            assertTrue(cursor.isNull(5))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `fresh v14 database is created by the normal builder path`() {
+        val dbName = "puzzlebox-fresh-v14.db"
         val context = RuntimeEnvironment.getApplication()
         context.deleteDatabase(dbName)
         val database = Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, dbName)
@@ -790,7 +818,7 @@ class PuzzleBoxDatabaseMigrationTest {
             .build()
         try {
             val db = database.openHelper.writableDatabase
-            assertEquals(13, db.version)
+            assertEquals(14, db.version)
 
             // replay is omitted: a leg queued without one reads NULL.
             db.execSQL(

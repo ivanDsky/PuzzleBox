@@ -266,6 +266,16 @@ object Migrations {
         }
     }
 
+    /**
+     * v14 (author's level): `drafts` gains the nullable `difficultyChoice`, the level the author picked over the
+     * Studio's proposal, null for every kept draft (it follows the proposal); additive only.
+     */
+    val MIGRATION_13_14 = object : Migration(13, 14) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `drafts` ADD COLUMN `difficultyChoice` TEXT")
+        }
+    }
+
     val ALL: Array<Migration> =
         arrayOf(
             MIGRATION_1_2,
@@ -280,5 +290,6 @@ object Migrations {
             CloudSyncMigration.MIGRATION_10_11,
             MIGRATION_11_12,
             MIGRATION_12_13,
+            MIGRATION_13_14,
         )
 }
