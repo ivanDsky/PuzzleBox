@@ -41,6 +41,7 @@ import com.ivandsky.puzzlebox.app.nav.applyFriendLink
 import com.ivandsky.puzzlebox.app.nav.applySharedText
 import com.ivandsky.puzzlebox.app.nav.chromeMotion
 import com.ivandsky.puzzlebox.app.nav.chromePadding
+import com.ivandsky.puzzlebox.app.nav.hasCreateTab
 import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.app.nav.playTabBadged
 import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
@@ -48,7 +49,6 @@ import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
 import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
 import com.ivandsky.puzzlebox.create.CustomBody
-import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
@@ -166,7 +166,7 @@ fun PuzzleBoxApp(
         )
     }
     // The tab set is fixed for the process, so each branch is taken for good.
-    val customInGames = destinations.none { it.key == CreateKey }
+    val customInGames = !tabSet.hasCreateTab
     val custom = if (customInGames) rememberCustomSlot(navigator) else null
     val makeOne = if (customInGames) rememberMakeOne(navigator) else null
     val badged = playTabBadged(anyInProgress, duelsNeedYou = duels.needYou())
