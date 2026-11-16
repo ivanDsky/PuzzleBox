@@ -46,6 +46,7 @@ import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.app.nav.playTabBadged
 import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
+import com.ivandsky.puzzlebox.compete.create.DuelChallenge
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
 import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
 import com.ivandsky.puzzlebox.create.CustomBody
@@ -158,8 +159,14 @@ fun PuzzleBoxApp(
     }.collectAsStateWithLifecycle(initialValue = false)
     val duels = remember(navigator) {
         DuelsSlot(
-            content = { listState, _, _ ->
-                DuelsTab(onOpenDuel = navigator::pushOnce, onOpenReveal = navigator::pushOnce, listState = listState)
+            content = { listState, prefill, onTaken ->
+                DuelsTab(
+                    onOpenDuel = navigator::pushOnce,
+                    onOpenReveal = navigator::pushOnce,
+                    listState = listState,
+                    challenge = prefill?.let { DuelChallenge(it.friendUid, it.friendName, it.game) },
+                    onChallengeTaken = onTaken,
+                )
             },
             needYou = { rememberDuelsNeedYou() },
             onOpenDuel = navigator::pushOnce,

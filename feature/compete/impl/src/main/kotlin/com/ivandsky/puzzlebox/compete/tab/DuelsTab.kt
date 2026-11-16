@@ -24,6 +24,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
+import com.ivandsky.puzzlebox.compete.create.DuelChallenge
+import com.ivandsky.puzzlebox.compete.create.DuelChallengeSaver
 import com.ivandsky.puzzlebox.compete.create.NewDuelSheet
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.DuelRow
@@ -36,7 +38,8 @@ import org.koin.androidx.compose.koinViewModel
  * The body under the Games screen's Duels pill: the challenge card, then my duels in their sections, then a one-line
  * note when there are none. It scrolls as one list on [listState], which the Games host holds so it can send the list
  * to its top; the host owns the side inset. [onOpenDuel] opens the duel screen and [onOpenReveal] the reveal of a duel
- * whose reveal is ready or already seen.
+ * whose reveal is ready or already seen. A pending [challenge] opens the New duel sheet filled in, once: [onChallengeTaken]
+ * runs as the sheet takes it, and closing the sheet drops it.
  */
 @Composable
 fun DuelsTab(
@@ -44,6 +47,8 @@ fun DuelsTab(
     onOpenReveal: (DuelRevealKey) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
+    challenge: DuelChallenge? = null,
+    onChallengeTaken: () -> Unit = {},
 ) {
     val viewModel: DuelsTabViewModel = koinViewModel()
     val state = viewModel.state.collectAsStateWithLifecycle()
@@ -55,6 +60,12 @@ fun DuelsTab(
         }
     }
     var newDuelOpen by rememberSaveable { mutableStateOf(false) }
+    // The challenge the open sheet was started with; the host's copy is gone once it has been taken.
+    var sheetChallenge by rememberSaveable(stateSaver = DuelChallengeSaver) { mutableStateOf<DuelChallenge?>(null) }
+    TakeDuelChallenge(challenge, onTaken = onChallengeTaken) {
+        sheetChallenge = it
+        newDuelOpen = true
+    }
     DuelsTabContent(
         rows = state.value.rows,
         signedIn = state.value.signedIn,
@@ -71,7 +82,16 @@ fun DuelsTab(
         onAccept = viewModel::accept,
         onDecline = viewModel::decline,
     )
-    if (newDuelOpen) NewDuelSheet(inviter = state.value.inviter, onDismiss = { newDuelOpen = false })
+    if (newDuelOpen) {
+        NewDuelSheet(
+            inviter = state.value.inviter,
+            onDismiss = {
+                newDuelOpen = false
+                sheetChallenge = null
+            },
+            challenge = sheetChallenge,
+        )
+    }
 }
 
 /**
