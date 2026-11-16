@@ -140,7 +140,8 @@ internal data class NavMotion(
  * the outgoing entry's, [to] the incoming one's. [liftable] says the game has a card to grow
  * out of (push) or shrink back into (pop); only the tablet form reads it.
  * - Reduced motion: the upper page fades for every case.
- * - Another owner tab: phone fade-through; tablet rise-over.
+ * - Another owner tab, or the layer above the tabs opening or closing: phone fade-through;
+ *   tablet rise-over.
  * - Phone, same tab: the full-screen slide, result included.
  * - Tablet, into or out of a game: lift from its card, or the phone slide without one
  *   (deep link, history play-again). Game ⇄ result and every other move: full-width shared axis.

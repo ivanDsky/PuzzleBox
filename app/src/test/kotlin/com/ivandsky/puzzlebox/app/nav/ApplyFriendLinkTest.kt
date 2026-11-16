@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -101,6 +102,15 @@ class ApplyFriendLinkTest {
             assertEquals("from $before", listOf<NavKey>(PlayKey), after.stackOf(PlayKey))
             assertEquals("other stacks kept, from $before", before.stacks - setOf(before.stackOf(PlayKey)), after.stacks - setOf(after.stackOf(PlayKey)))
         }
+    }
+
+    @Test
+    fun `a link closes the layer open over Play, also when its card is already there or the text is no code`() {
+        val under = stacks(PlayKey, play = listOf(PlayKey, CARD))
+        val covered = under.copy(layer = listOf(ProfileKey))
+
+        assertEquals(under, covered.applying(K7Q2MX))
+        assertEquals(stacks(PlayKey), stacks(PlayKey).copy(layer = listOf(ProfileKey)).applying(FriendLink.Invalid("K7Q2M")))
     }
 
     private fun NavigationState.applying(link: FriendLink): NavigationState =

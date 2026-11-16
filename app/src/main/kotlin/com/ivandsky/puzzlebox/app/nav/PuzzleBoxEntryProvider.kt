@@ -43,8 +43,8 @@ import java.time.LocalDate
  * the Ranks tab; the Ranks hub's rows push the day's game key; Settings' Component catalog row pushes [CatalogKey] on the current
  * tab's stack.
  * The Create tab's New puzzle and its draft rows push that draft's
- * Studio on Create's stack, and its published rows that puzzle's page. Back pops the current tab's stack ([Navigator.pop]),
- * including after process-death restore. A [codeDraft] (a tapped link's text that isn't a
+ * Studio on Create's stack, and its published rows that puzzle's page. Back pops the layer or the current tab's stack
+ * ([Navigator.pop]), including after process-death restore. A [codeDraft] (a tapped link's text that isn't a
  * code) opens the Play library's code sheet holding it.
  *
  * Each content type has one owner (ADR-0027): Today's rank summary opens the Ranks hub ([openRanks]) and its
@@ -59,7 +59,9 @@ import java.time.LocalDate
  *
  * [navDoors] is the `NavDoors` flag as the shell reads it (A2: no route or composable reads a flag): on, Today's day and
  * streak summaries open the hub ([homeSummaries]), Play hides its streak card and the hub's Ranks doors open, with
- * [tuneDefaults] for its Tune sheet; off, every slot stays null or at its default.
+ * [tuneDefaults] for its Tune sheet, and Profile's own pages (Settings, the LinkedIn login, the catalog) stack on Profile
+ * inside the layer above the tabs ([Navigator.pushLayer]); off, every slot stays null or at its default and those pages
+ * are pushed on the current tab.
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
@@ -107,10 +109,12 @@ internal fun puzzleBoxEntryProvider(
     publishedPuzzleEntry(navigator, playLayout)
     val back: () -> Unit = { navigator.pop() }
     profileEntry(
-        onOpenCatalog = { navigator.push(CatalogKey) },
+        onOpenCatalog = { if (navDoors) navigator.pushLayer(CatalogKey) else navigator.push(CatalogKey) },
         onBack = back,
-        onOpenSettings = { navigator.pushOnce(SettingsKey) },
-        onOpenLinkedInLogin = { navigator.pushOnce(LinkedInLoginKey) },
+        onOpenSettings = { if (navDoors) navigator.pushLayer(SettingsKey) else navigator.pushOnce(SettingsKey) },
+        onOpenLinkedInLogin = {
+            if (navDoors) navigator.pushLayer(LinkedInLoginKey) else navigator.pushOnce(LinkedInLoginKey)
+        },
         debugSections = { DebugSettingsSlot(openGame = { navigator.pushOnce(GameKey(it)) }) },
         visibility = visibility,
     )

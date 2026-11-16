@@ -12,10 +12,14 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import com.ivandsky.puzzlebox.navigation.NavigationState
 
 /**
- * Metadata key naming the tab whose stack an entry belongs to; its value is that tab's root
- * [NavKey]. Published contract: shell motion reads it to tell a tab switch from a push.
+ * Metadata key naming the stack an entry belongs to; its value is that tab's root [NavKey],
+ * or [LAYER_OWNER] for an entry in the layer above the tabs. Published contract: shell motion
+ * reads it to tell a tab switch, or the layer opening or closing, from a push.
  */
 internal const val OWNER_TAB = "puzzlebox.ownerTab"
+
+/** The [OWNER_TAB] value, and the content-key namespace, of the layer's entries: no tab owns them. */
+internal const val LAYER_OWNER = "puzzlebox.layer"
 
 /**
  * Metadata key carrying the entry's own [NavKey] (NavEntry does not expose it). Published
@@ -25,13 +29,14 @@ internal const val OWNER_TAB = "puzzlebox.ownerTab"
 internal const val ENTRY_KEY = "puzzlebox.entryKey"
 
 /**
- * The app's only Navigation3 adapter: decorates EVERY tab's stack (saveable state, a
- * per-entry ViewModel store, then the [SceneCanvas], then [shellChrome]), so an off-screen
- * tab keeps its screens' state and a popped entry releases its own. Content keys are
- * namespaced by tab (the same key on two stacks is two entries) and each entry carries
+ * The app's only Navigation3 adapter: decorates EVERY tab's stack and the layer above the tabs
+ * (saveable state, a per-entry ViewModel store, then the [SceneCanvas], then [shellChrome]), so
+ * an off-screen tab keeps its screens' state and a popped entry releases its own. Content keys
+ * are namespaced by owner (the same key on two stacks is two entries) and each entry carries
  * [OWNER_TAB] and [ENTRY_KEY].
  *
- * Returns the entries NavDisplay renders: [NavigationState.visibleKeys]' entries, in order.
+ * Returns the entries NavDisplay renders: [NavigationState.visibleKeys]' entries, in order, so
+ * an open layer's pages sit on top of the tab they cover.
  */
 @Composable
 internal fun rememberTabEntries(
@@ -56,14 +61,22 @@ internal fun rememberTabEntries(
             )
         }
     }
-    return state.visibleTabs.flatMap { decorated.getValue(it) }
+    val layer = key(LAYER_OWNER) {
+        rememberDecoratedNavEntries(
+            backStack = state.layer,
+            entryDecorators = decorators,
+            entryProvider = { navKey -> ownedBy(LAYER_OWNER, entryProvider(navKey), navKey) },
+        )
+    }
+    return state.visibleTabs.flatMap { decorated.getValue(it) } + layer
 }
 
-private fun ownedBy(tab: NavKey, entry: NavEntry<NavKey>, navKey: NavKey): NavEntry<NavKey> {
+/** [entry] as [owner]'s: a tab's root key, or [LAYER_OWNER]. */
+private fun ownedBy(owner: Any, entry: NavEntry<NavKey>, navKey: NavKey): NavEntry<NavKey> {
     val metadata = buildMap(entry.metadata.size + 2) {
         putAll(entry.metadata)
-        put(OWNER_TAB, tab)
+        put(OWNER_TAB, owner)
         put(ENTRY_KEY, navKey)
     }
-    return NavEntry(navKey, "$tab/${entry.contentKey}", metadata) { entry.Content() }
+    return NavEntry(navKey, "$owner/${entry.contentKey}", metadata) { entry.Content() }
 }

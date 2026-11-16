@@ -3,7 +3,7 @@
 Date: 2026-11-04 · Status: accepted · Source: navigation-ux run (design-it-twice nav A/B/C and
 play A/B/C, stage-B review rulings) · Supersedes ADR-0010 (kept sessions)
 
-*(Amended 2026-11-09 by ADR-0027: where content lives is decided by one owner per content type, a placement table and chrome types; the tab set becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag was removed). The reducer and its verbs are unchanged. Amended 2026-11-10 by ADR-0027's re-gate fixes: the placement table's chrome is `Bar` or `Immersive`, and the shell draws one avatar through a fourth entry decorator.)*
+*(Amended 2026-11-09 by ADR-0027: where content lives is decided by one owner per content type, a placement table and chrome types; the tab set becomes Today · Games · History · Create (shipped in 0.24.0; the NavV2 flag was removed). The reducer and its verbs are unchanged. Amended 2026-11-10 by ADR-0027's re-gate fixes: the placement table's chrome is `Bar` or `Immersive`, and the shell draws one avatar through a fourth entry decorator. Amended 2026-11-16 by the nav rethink (`.scratch/nav-rethink/spec.md` N7): the state gains a layer above the tabs with invariant I5 and two verbs (§1–§4). The shell opens Profile in it while the `NavDoors` flag is on.)*
 
 ## Context
 Up to 0.8 the app kept one `NavBackStack<NavKey>`: picking a tab reset the stack to that tab's
@@ -15,13 +15,18 @@ its own stack, lets any stack show any game's board, and keeps in-progress plays
 
 ## Decision
 1. **One immutable `NavigationState` (`core:navigation`).** A `@Serializable data class
-   NavigationState(tab, stacks)`: the selected tab plus one stack per tab, each stack's first
-   key its tab root, the first stack's root the start tab. Invariants are checked in `init`
-   (so also on decode): I1 there are stacks and none is empty, I2 roots are distinct, I3 `tab`
-   is a tab, I4 a root appears only at index 0 of its own stack. Views: `tabs`, `startTab`,
-   `stackOf`, `currentStack`, `visibleTabs` (`[start]` or `[start, tab]`), `visibleKeys`,
-   `allKeys`. `toString()` prints spec-row notation (`**Home**[Home] Play[Play, Game]`). Tests
-   seed states with the constructor or `navigationState(vararg tabs)`; there is no builder DSL.
+   NavigationState(tab, stacks, layer)`: the selected tab, one stack per tab, each stack's first
+   key its tab root, the first stack's root the start tab, and the layer, a stack that belongs
+   to no tab and covers the selected one while it holds a key (empty by default). Invariants
+   are checked in `init` (so also on decode): I1 there are stacks and none is empty, I2 roots
+   are distinct, I3 `tab` is a tab, I4 a root appears only at index 0 of its own stack, I5 the
+   layer is empty, or holds no tab root and no key already on a stack. Views: `tabs`,
+   `startTab`, `stackOf`, `currentStack`, `visibleTabs` (`[start]` or `[start, tab]`),
+   `visibleKeys` (the visible tabs' keys, then the layer's, so its last key is the screen on
+   top) and `allKeys` (every stack's keys, then the layer's). `toString()` prints spec-row
+   notation (`**Home**[Home] Play[Play, Game]`), with ` Layer[Profile, Settings]` after the
+   stacks only while the layer is open. Tests seed states with the constructor or
+   `navigationState(vararg tabs)`; there is no builder DSL.
 2. **The verb rules are pure transitions on the state.** Each verb returns a new state:
    - `selectTab(tab)` switches; reselecting the current tab pops it to its root;
    - `push(key)` pushes on the current stack; pushing a tab root throws (literal misuse);
@@ -32,18 +37,35 @@ its own stack, lets any stack show any game's board, and keeps in-progress plays
      `key` already on top, it returns the same state instead of throwing, so a stale callback
      cannot crash production (the E2E rows assert Result actually appears).
 
+   The layer has two verbs of its own, and every tab verb has a rule for an open layer:
+
+   | Verb | With the layer open |
+   |---|---|
+   | `openLayer(key)` | The layer becomes `[key]`, whatever it held. A tab root throws (literal misuse) |
+   | `pushLayer(key)` | Puts `key` on the layer's top; a no-op when it is already there. On an empty layer it opens it |
+   | `selectTab(tab)` | Clears the layer and selects `tab`. The tab under the layer is not popped to its root |
+   | `push(key)` | Closes the layer first, then pushes on the tab under it |
+   | `pushOnce(key)` | As `push`; with `key` already on that tab's top it only closes the layer |
+   | `pop()` | Pops the layer first; its last key closes it, back on the screen it covered |
+   | `replaceTop(key)` | Applies to the layer's top |
+
+   A key that enters the layer leaves every stack that held it, so I5 holds without a caller
+   checking first. There is no close verb: `selectTab` of the current tab is the close.
+
    `Navigator` is a thin `@Stable` holder: `state` is snapshot state with a private setter, and
    each verb is one line applying the reducer verb of the same name (`pop()` returns false at
    the start root). Feature entries receive a `Navigator`, never the stacks.
 3. **The shell lives in `app/.../nav/`.** `TopLevelDestination`/`topLevelDestinations` is the tab
    registry (key, label, icon, test tag); `puzzleBoxNavigationState()` builds the fresh state
    from it, so Home is the start tab. `rememberTabEntries` is the only Navigation3 adapter: it
-   decorates every tab's stack (saveable state, a per-entry `ViewModelStore`, the scene canvas,
-   and a fourth, `shellChromeDecorator` in `ShellChrome.kt`, which supplies the
+   decorates every tab's stack and the layer (saveable state, a per-entry `ViewModelStore`, the
+   scene canvas, and a fourth, `shellChromeDecorator` in `ShellChrome.kt`, which supplies the
    one `ShellAvatar` and the shell-actions slot to Today's entry),
-   namespaces content keys by tab, tags each entry with `OWNER_TAB` and `ENTRY_KEY` metadata,
+   namespaces content keys by owner, tags each entry with `OWNER_TAB` (a tab's root key, or
+   `LAYER_OWNER` for the layer's entries) and `ENTRY_KEY` metadata,
    and returns `visibleKeys`' entries. `PuzzleBoxNavShell` hosts `NavDisplay` with `onBack` =
-   `Navigator.pop`; `NavTransitions.kt` picks motion from the metadata (owner tab differs →
+   `Navigator.pop`; `NavTransitions.kt` picks motion from the metadata (owner differs, which
+   includes the layer opening or closing →
    fade-through, Result → its own entrance, reduced motion → opacity only). The shell hands
    `state.allKeys` to `PlaySessionStore.retain` whenever the stacks change and calls
    `PlaySessionStore.flush` at activity stop (ADR-0007 §4).
@@ -51,8 +73,10 @@ its own stack, lets any stack show any game's board, and keeps in-progress plays
    `NAVIGATION_STATE_KEY = "puzzlebox.navigation.v1"`. A restored state is
    `reconciledWith(fresh)`: stacks whose root is still a tab are kept, missing tabs are added at
    their root, stacks follow the fresh order, and a vanished selected tab falls back to the
-   start tab. A bundle without the key (the 0.8 single `NavBackStack`), an undecodable one, or
-   one that breaks an invariant starts fresh at Home.
+   start tab. The layer is kept, unless one of its keys is now a tab root; then it is dropped.
+   `layer` is a defaulted field, so a bundle saved before it existed decodes with an empty
+   layer and the key stays `v1`. A bundle without the key (the 0.8 single `NavBackStack`), an
+   undecodable one, or one that breaks an invariant starts fresh at Home.
 5. **Serial-name policy.** Keys serialize polymorphically over `NavKey`
    (`navKeySavedStateConfiguration`, every feature's `<name>NavKeys()` registered in
    `app/nav/PuzzleBoxNavKeys.kt`). New keys keep the `com.ivandsky.puzzlebox.app.nav.*` serial

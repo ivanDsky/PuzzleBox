@@ -44,6 +44,8 @@ import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
 import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
@@ -67,11 +69,15 @@ import org.koin.compose.koinInject
 
 /**
  * The app shell: tab bar (or rail) beneath [PuzzleBoxNavShell]. The highlight is the
- * [navigator]'s selected tab, so it always names the tab that owns the screen on top.
+ * [navigator]'s selected tab, so it always names the tab that owns the screen on top, or the
+ * tab under the Profile layer while that is open.
  * The Play tab carries a dot while any of today's games is in progress.
- * Play is immersive: while the selected tab's top is immersive ([isImmersive]: a
+ * Play is immersive: while the screen on top is immersive ([isImmersive]: a
  * board or a result, a duel's leg board or result, or a duel's reveal) neither bar nor rail
  * shows, and back is the way out.
+ *
+ * This is where [releaseFlags] is read for the nav rethink (`NavDoors`, A2: the one read); the
+ * rail's avatar and [PuzzleBoxNavShell] get a plain Boolean.
  *
  * Full-screen motion (polish 04): the chrome sits UNDER the scenes, which leave its strip
  * unpainted ([LocalChromePadding]), so a board covers it as one window and the chrome leaves
@@ -102,6 +108,7 @@ fun PuzzleBoxApp(
     onShareApplied: () -> Unit = {},
     todaySet: ObserveTodaySet = koinInject(),
     firstScreenReady: FirstScreenReady = koinInject(),
+    releaseFlags: ReleaseFlags = koinInject(),
 ) {
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
     val libraryRequests = rememberLibraryRequests()
@@ -131,8 +138,11 @@ fun PuzzleBoxApp(
     val identityService = koinInject<IdentityService>()
     val cloudSync = koinInject<CloudSync>()
     val destinations = topLevelDestinations
+    val flags by releaseFlags.enabled.collectAsStateWithLifecycle()
+    val navDoors = ReleaseFlag.NavDoors in flags
     val selected = navigator.state.tab
-    val top = navigator.state.currentStack.last()
+    // The screen on top: the Profile layer's when it is open, else the selected tab's.
+    val top = navigator.state.visibleKeys.last()
     val immersive = isImmersive(top)
     // Home publishes its own readiness once its local state loads; any other landing screen is ready now.
     LaunchedEffect(Unit) { if (top !is HomeKey) firstScreenReady.markReady() }
@@ -150,10 +160,12 @@ fun PuzzleBoxApp(
     }
     val badged = playTabBadged(anyInProgress, duelsNeedYou = duels.needYou())
     // A tap on the selected tab at its root is a reducer no-op, so the shell spots it here
-    // and tells the roots; the tap still goes through selectTab.
+    // and tells the roots; the tap still goes through selectTab. With the Profile layer open
+    // the same tap only closes the layer, so the root is told nothing.
     val tabReselect = remember { MutableSharedFlow<Unit>(extraBufferCapacity = 1) }
     val onSelect = { tab: NavKey ->
-        val atRoot = tab == navigator.state.tab && navigator.state.currentStack.size == 1
+        val state = navigator.state
+        val atRoot = tab == state.tab && state.currentStack.size == 1 && state.layer.isEmpty()
         navigator.selectTab(tab)
         if (atRoot) tabReselect.tryEmit(Unit)
     }
@@ -195,7 +207,9 @@ fun PuzzleBoxApp(
                     onSelect = onSelect,
                     badged = badged,
                     destinations = destinations,
-                    bottomActions = { ShellAvatar(navigator, identityService.current, ShellAvatarSize.Rail) },
+                    bottomActions = {
+                        ShellAvatar(navigator, identityService.current, ShellAvatarSize.Rail, profileAsLayer = navDoors)
+                    },
                     modifier = Modifier
                         .fillMaxHeight()
                         .onSizeChanged { railWidth = with(density) { it.width.toDp() } },
@@ -216,6 +230,7 @@ fun PuzzleBoxApp(
                     onCodeDraftTaken = { codeDraft = null },
                     duels = duels,
                     libraryRequests = libraryRequests,
+                    navDoors = navDoors,
                 )
             }
             // The one-time "Welcome back" after an account's first restore (A33), above the chrome.

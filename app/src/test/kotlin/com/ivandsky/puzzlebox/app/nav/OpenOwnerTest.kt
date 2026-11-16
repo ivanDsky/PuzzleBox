@@ -9,12 +9,14 @@ import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.profile.api.ProfileKey
+import com.ivandsky.puzzlebox.profile.api.SettingsKey
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
  * Go to owner: a tab-root key selects its owner tab and resets it to the root, pushing
- * nothing; every other key is a plain push.
+ * nothing; every other key is a plain push. With the Profile layer open, either way closes it first.
  */
 class OpenOwnerTest {
 
@@ -78,6 +80,29 @@ class OpenOwnerTest {
 
         assertEquals(PlayKey, after.tab)
         assertEquals(listOf(PlayKey, CatalogKey), after.currentStack)
+    }
+
+    @Test
+    fun `with the layer open a tab root leaves an empty layer on its tab`() {
+        val under = stacks(PlayKey, play = listOf(PlayKey, GameKey("zip")))
+
+        val after = under.copy(layer = listOf(ProfileKey, SettingsKey)).opening(HistoryRootKey)
+
+        assertEquals(under.copy(tab = HistoryRootKey), after)
+    }
+
+    @Test
+    fun `with the layer open over the owner tab it closes the layer and resets that tab`() {
+        val before = stacks(HistoryRootKey, history = listOf(HistoryRootKey, HistoryKey("zip"))).copy(layer = listOf(ProfileKey))
+
+        assertEquals(stacks(HistoryRootKey), before.opening(HistoryRootKey))
+    }
+
+    @Test
+    fun `with the layer open a pushed key closes it and lands on the tab under it`() {
+        val before = stacks(CreateKey).copy(layer = listOf(ProfileKey, SettingsKey))
+
+        assertEquals(stacks(CreateKey, create = listOf(CreateKey, GameKey("zip"))), before.opening(GameKey("zip")))
     }
 
     private fun NavigationState.opening(key: NavKey): NavigationState =

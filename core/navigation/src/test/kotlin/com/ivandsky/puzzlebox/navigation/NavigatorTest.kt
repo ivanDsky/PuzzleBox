@@ -117,4 +117,18 @@ class NavigatorTest {
 
         assertEquals(listOf<NavKey>(Home, Page(2)), navigator.state.currentStack)
     }
+
+    @Test
+    fun `openLayer and pushLayer publish the layer, and pop takes it down a page at a time`() {
+        val navigator = navigator()
+        navigator.selectTab(Play)
+
+        navigator.openLayer(Page(1))
+        navigator.pushLayer(Page(2))
+
+        assertEquals(navigationState(Home, Play, Profile).selectTab(Play).openLayer(Page(1)).pushLayer(Page(2)), navigator.state)
+        assertTrue(navigator.pop())
+        assertTrue(navigator.pop())
+        assertEquals(navigationState(Home, Play, Profile).selectTab(Play), navigator.state)
+    }
 }

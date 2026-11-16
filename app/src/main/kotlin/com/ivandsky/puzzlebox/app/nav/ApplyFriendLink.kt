@@ -7,7 +7,9 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 
 /**
  * Puts a tapped [link] on the back stack, through the reducer's own verbs: it selects Play
- * without popping it, so a daily in play beneath stays alive and back returns to it.
+ * without popping it, so a daily in play beneath stays alive and back returns to it. An open
+ * Profile layer closes first, also over Play itself, so the link's screen is never hidden
+ * under it.
  *
  * - A code pushes its card once; when that card is already on Play's stack (the friend is
  *   mid-puzzle) selecting Play is the whole move, since a key appears once per stack.
@@ -16,7 +18,7 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
  *   popped on the way saves like any other.
  */
 internal fun Navigator.applyFriendLink(link: FriendLink) {
-    if (state.tab != PlayKey) selectTab(PlayKey)
+    if (state.tab != PlayKey || state.layer.isNotEmpty()) selectTab(PlayKey)
     when (link) {
         is FriendLink.Code -> {
             val card = FriendPuzzleKey(link.code.value)

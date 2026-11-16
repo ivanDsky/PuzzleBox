@@ -11,6 +11,9 @@ import com.ivandsky.puzzlebox.navigation.Navigator
  *   [TopLevelDestination.tab] and then looked up in the live `state.tabs`, because the
  *   placement table names tabs, not the stacks that exist.
  * - Every other key (`PushedOn`, `Shell`, `DebugOnly`) is a plain push on the current tab.
+ *
+ * A door out of the Profile layer closes the layer on the way: both verbs do that in the
+ * reducer, so the owner's screen is never left under it.
  */
 internal fun Navigator.openOwner(key: NavKey) {
     val tab = (placementOf(key).home as? Home.TabRoot)?.tab
