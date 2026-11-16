@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
 import com.ivandsky.puzzlebox.game.DecodeError
 import com.ivandsky.puzzlebox.game.DecodeResult
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -22,17 +23,22 @@ import kotlinx.coroutines.flow.map
  * received rows, the saved plays ([PlaySlot.Custom] under the code) and each puzzle's own
  * completion rows. Whether a board still opens here is decided once per received-rows change,
  * not on every save.
+ *
+ * Puzzles in [hidden] (reported on this device, C1) are left out. This cannot read release flags (A2) and does not
+ * need to: the hide set only fills through a Report, which exists only while the community flag is on, so with the flag
+ * off it is empty and the list is what it always was. A hidden code still opens when typed; opening never reads [hidden].
  */
 class ObserveFriendPuzzles(
     private val received: ReceivedPuzzleRepository,
     private val saved: SavedPlayRepository,
     private val completions: CompletionRepository,
     private val registry: GameRegistry,
+    private val hidden: HiddenPuzzles,
 ) {
     /** Local data only (failure-12). A19 order: every non-Solved row first, newest openedAt first; then Solved, newest openedAt first. */
     @OptIn(ExperimentalCoroutinesApi::class)
     operator fun invoke(): Flow<List<FriendPuzzleRow>> =
-        received.observeAll()
+        combine(received.observeAll(), hidden.observe()) { puzzles, hiddenCodes -> puzzles.filter { it.code !in hiddenCodes } }
             .map { puzzles -> puzzles.sortedByDescending { it.openedAt }.map { Received(it, outdated = needsUpdate(it)) } }
             .flatMapLatest { puzzles ->
                 if (puzzles.isEmpty()) {

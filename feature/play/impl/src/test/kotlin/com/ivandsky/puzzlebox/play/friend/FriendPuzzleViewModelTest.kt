@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.play.friend
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
@@ -10,7 +11,9 @@ import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.ComputeCustomBoard
 import com.ivandsky.puzzlebox.domain.CustomBoardView
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
+import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.OpenOutcome
+import com.ivandsky.puzzlebox.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -25,7 +28,9 @@ import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.FakeGames
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
@@ -36,6 +41,7 @@ import java.time.Instant
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -61,6 +67,7 @@ class FriendPuzzleViewModelTest {
     private val received = FakeReceivedPuzzleRepository()
     private val completions = FakeCompletionRepository()
     private val saved = FakeSavedPlayRepository()
+    private val hidden = FakeHiddenPuzzles()
     private var boardReads = 0
 
     /** A board that counts its reads; one that is never read stays at zero. */
@@ -195,7 +202,109 @@ class FriendPuzzleViewModelTest {
         assertEquals("no board read while signed out", 0, boardReads)
     }
 
-    private fun TestScope.viewModel(key: FriendPuzzleKey = FriendPuzzleKey(code.value)): FriendPuzzleViewModel {
+    @Test
+    fun `reporting closes the card and the code leaves From friends`() = runTest {
+        publish()
+        received.upsert(stored())
+        backend.signedInUid = REPORTER
+        val vm = viewModel(communityOn = true)
+
+        vm.report()
+
+        assertEquals(FriendCardState.Reported, vm.state.value)
+        assertEquals(setOf(code), hidden.hidden)
+        assertEquals(emptyList<ShareCode>(), friendList().first().map { it.code })
+    }
+
+    @Test
+    fun `reporting a puzzle already reported closes the card the same way`() = runTest {
+        publish()
+        received.upsert(stored())
+        backend.signedInUid = REPORTER
+        backend.report(code)
+        val vm = viewModel(communityOn = true)
+
+        vm.report()
+
+        assertEquals(FriendCardState.Reported, vm.state.value)
+        assertEquals(setOf(code), hidden.hidden)
+    }
+
+    @Test
+    fun `signed out, Report asks to sign in and hides nothing`() = runTest {
+        publish()
+        received.upsert(stored())
+        backend.signedInUid = null
+        val vm = viewModel(communityOn = true)
+
+        vm.report()
+
+        val ready = vm.state.value as FriendCardState.Ready
+        assertTrue(ready.report.signInPrompt)
+        assertTrue(hidden.hidden.isEmpty())
+        assertEquals(listOf(code), friendList().first().map { it.code })
+    }
+
+    @Test
+    fun `Not now closes the sign-in prompt and the card stays`() = runTest {
+        publish()
+        received.upsert(stored())
+        backend.signedInUid = null
+        val vm = viewModel(communityOn = true)
+        vm.report()
+
+        vm.dismissSignIn()
+
+        assertEquals(false, (vm.state.value as FriendCardState.Ready).report.signInPrompt)
+    }
+
+    @Test
+    fun `an offline Report says so, hides nothing and keeps the card`() = runTest {
+        publish()
+        received.upsert(stored())
+        backend.signedInUid = REPORTER
+        val vm = viewModel(communityOn = true)
+        backend.online = false
+
+        vm.report()
+
+        val ready = vm.state.value as FriendCardState.Ready
+        assertEquals("You're offline. Report it when you're back.", ready.report.notice?.message)
+        assertTrue(hidden.hidden.isEmpty())
+    }
+
+    @Test
+    fun `with the flag on the card offers Report`() = runTest {
+        received.upsert(stored())
+
+        assertTrue(readyCard(viewModel(communityOn = true)).canReport)
+    }
+
+    @Test
+    fun `with the flag off the card offers no Report, Report does nothing and the list is as before`() = runTest {
+        publish()
+        received.upsert(stored())
+        backend.signedInUid = REPORTER
+        val vm = viewModel()
+
+        vm.report()
+
+        assertEquals(false, readyCard(vm).canReport)
+        assertTrue(hidden.hidden.isEmpty())
+        assertEquals(listOf(code), friendList().first().map { it.code })
+    }
+
+    @Test
+    fun `a hidden code still opens when typed`() = runTest {
+        received.upsert(stored())
+        hidden.add(code)
+
+        assertTrue(viewModel(communityOn = true).state.value is FriendCardState.Ready)
+    }
+
+    private fun friendList() = ObserveFriendPuzzles(received, saved, completions, fakes.games, hidden)()
+
+    private fun TestScope.viewModel(key: FriendPuzzleKey = FriendPuzzleKey(code.value), communityOn: Boolean = false): FriendPuzzleViewModel {
         val testDispatcher = main.testDispatcher
         val now = object : DispatcherProvider {
             override val main = testDispatcher
@@ -220,6 +329,8 @@ class FriendPuzzleViewModelTest {
             editors = GameEditorRegistry(emptyList()),
             dispatchers = now,
             board = FriendPuzzleBoard(boards, FakeIdentityService(), dismissedGoogleSignIn, ComputeCustomBoard()),
+            flags = if (communityOn) FakeReleaseFlags(ReleaseFlag.CommunityPuzzles) else FakeReleaseFlags(),
+            reportPuzzle = ReportPuzzle(backend, hidden),
         )
         backgroundScope.launch(testDispatcher) { vm.state.collect {} }
         return vm
@@ -258,5 +369,6 @@ class FriendPuzzleViewModelTest {
 
     private companion object {
         const val AUTHOR = "uid-jonas"
+        const val REPORTER = "uid-me"
     }
 }

@@ -14,11 +14,14 @@ import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -34,7 +37,8 @@ class ObserveFriendPuzzlesTest {
     private val received = FakeReceivedPuzzleRepository()
     private val saved = FakeSavedPlayRepository()
     private val completions = FakeCompletionRepository()
-    private val observe = ObserveFriendPuzzles(received, saved, completions, GameRegistry(listOf(versioned(alpha))))
+    private val hidden = FakeHiddenPuzzles()
+    private val observe = ObserveFriendPuzzles(received, saved, completions, GameRegistry(listOf(versioned(alpha))), hidden)
 
     private suspend fun statusOf(code: ShareCode): FriendStatus =
         observe().first().single { it.code == code }.status
@@ -47,6 +51,44 @@ class ObserveFriendPuzzlesTest {
             listOf(FriendPuzzleRow(A, alpha, "Crown A", "Bo", FriendStatus.New)),
             observe().first(),
         )
+    }
+
+    @Test
+    fun `a hidden puzzle leaves the list and the others stay`() = runTest {
+        received.upsert(puzzle(A, openedAt = 1))
+        received.upsert(puzzle(B, openedAt = 2))
+        hidden.add(A)
+
+        assertEquals(listOf(B), observe().first().map { it.code })
+    }
+
+    @Test
+    fun `hiding a puzzle drops it from a list already being observed`() = runTest {
+        received.upsert(puzzle(A, openedAt = 1))
+        received.upsert(puzzle(B, openedAt = 2))
+        val seen = mutableListOf<List<ShareCode>>()
+        val job = launch(UnconfinedTestDispatcher(testScheduler)) { observe().collect { seen += it.map { row -> row.code } } }
+
+        hidden.add(B)
+
+        assertEquals(listOf(listOf(B, A), listOf(A)), seen)
+        job.cancel()
+    }
+
+    @Test
+    fun `an empty hide set keeps the list as before`() = runTest {
+        received.upsert(puzzle(A, openedAt = 1))
+        received.upsert(puzzle(B, openedAt = 2))
+
+        assertEquals(listOf(B, A), observe().first().map { it.code })
+    }
+
+    @Test
+    fun `hiding a puzzle keeps its stored row, so its code still opens`() = runTest {
+        received.upsert(puzzle(A))
+        hidden.add(A)
+
+        assertEquals(A, received.get(A)?.code)
     }
 
     @Test

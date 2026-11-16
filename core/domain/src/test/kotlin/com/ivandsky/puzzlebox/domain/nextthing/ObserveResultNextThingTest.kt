@@ -36,6 +36,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
 import com.ivandsky.puzzlebox.testing.game.TestGames.beta
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
@@ -124,7 +125,7 @@ class ObserveResultNextThingTest {
         identity = identity,
         history = ObserveGameHistory(registry, daily, completions),
         todaySet = ObserveTodaySet(registry, saved, completions, calendar, daily, SyncTodayPuzzles(registry, daily, calendar)),
-        friendPuzzles = ObserveFriendPuzzles(received, saved, completions, registry),
+        friendPuzzles = ObserveFriendPuzzles(received, saved, completions, registry, FakeHiddenPuzzles()),
         friendUids = ObserveFriendUids(matches, identity),
         leaderboard = leaderboardRepo,
         visibility = visibility,

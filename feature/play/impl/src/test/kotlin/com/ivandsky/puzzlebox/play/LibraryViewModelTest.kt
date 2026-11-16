@@ -43,6 +43,7 @@ import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInLink
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
@@ -152,7 +153,7 @@ class LibraryViewModelTest {
             registry = fakes.registry,
             daily = daily,
             prefs = prefs,
-            friendPuzzles = ObserveFriendPuzzles(received, saved, completions, fakes.games),
+            friendPuzzles = ObserveFriendPuzzles(received, saved, completions, fakes.games, FakeHiddenPuzzles()),
             deleteReceivedPuzzle = delete,
             appScope = CoroutineScope(dispatcher + Job()),
             linkedIn = linkedIn,

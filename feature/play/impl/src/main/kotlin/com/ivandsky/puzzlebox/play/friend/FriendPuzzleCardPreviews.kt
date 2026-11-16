@@ -24,6 +24,7 @@ private fun previewCard(
     yours: BestScore? = null,
     difficulty: Difficulty.Level? = Difficulty.Level.Medium,
     board: CustomBoardView? = CustomBoardView.SignedOut(PreviewBoardAuthor),
+    canReport: Boolean = false,
 ) = FriendCard(
     puzzle = ReceivedPuzzle(
         code = requireNotNull(ShareCode.parse("K7Q2MX")),
@@ -50,6 +51,7 @@ private fun previewCard(
     yours = yours,
     board = board,
     signIn = BoardSignIn.Idle,
+    canReport = canReport,
 )
 
 @Composable
@@ -79,6 +81,13 @@ internal fun FriendPuzzleCardResumePreview() {
 internal fun FriendPuzzleCardPlayAgainPreview() {
     val top = listOf(previewBoardRow(1, "Maja", 74_000L), previewBoardRow(2, "Me", 125_000L, isMe = true), previewBoardRow(3, "Lea", 131_000L, hints = 1))
     PreviewCard(previewCard(FriendCardAction.PlayAgain, yours = BestScore(125_000L, 0), board = CustomBoardView.Ranked(top, mine = null, author = PreviewBoardAuthor)))
+}
+
+// Preview: the community flag is on, so the ⋮ beside the title offers Report.
+@PuzzleBoxPreviews
+@Composable
+internal fun FriendPuzzleCardReportPreview() {
+    PreviewCard(previewCard(FriendCardAction.Play, canReport = true))
 }
 
 // Preview: a game without a difficulty ladder, no difficulty chip.

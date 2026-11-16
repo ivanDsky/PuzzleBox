@@ -65,6 +65,7 @@ import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInDays
 import com.ivandsky.puzzlebox.testing.linkedin.FakeLinkedInPosts
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
@@ -655,7 +656,7 @@ class ResultViewModelTest {
             identity = identity,
             history = ObserveGameHistory(games, daily, completions),
             todaySet = todaySet,
-            friendPuzzles = ObserveFriendPuzzles(FakeReceivedPuzzleRepository(), saved, completions, games),
+            friendPuzzles = ObserveFriendPuzzles(FakeReceivedPuzzleRepository(), saved, completions, games, FakeHiddenPuzzles()),
             friendUids = ObserveFriendUids(matches, identity),
             leaderboard = leaderboard,
             visibility = visibility,

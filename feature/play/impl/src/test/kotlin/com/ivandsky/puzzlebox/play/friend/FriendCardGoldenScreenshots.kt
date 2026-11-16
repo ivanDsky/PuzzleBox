@@ -35,7 +35,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * A friend's puzzle card under its Up bar, phone and tablet, light and dark: fresh (Play,
  * signed out), a saved play (Resume), solved and signed in over the top three, the top three
- * signed out, and taken down with its leaderboard closed; then each reason a code didn't open.
+ * signed out, taken down with its leaderboard closed, and a fresh one with the community flag on
+ * (the ⋮ beside the title); then each reason a code didn't open.
  * Goldens in `snapshots/friend/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -55,6 +56,9 @@ abstract class FriendCardGoldenScreenshots(private val device: String) {
 
     @Test fun `card fresh light`() = card("card-fresh", card(FriendCardAction.Play), dark = false)
     @Test fun `card fresh dark`() = card("card-fresh", card(FriendCardAction.Play), dark = true)
+
+    @Test fun `card report light`() = card("card-report", card(FriendCardAction.Play).copy(canReport = true), dark = false)
+    @Test fun `card report dark`() = card("card-report", card(FriendCardAction.Play).copy(canReport = true), dark = true)
 
     @Test fun `card resume light`() = card("card-resume", card(FriendCardAction.Resume(42_000L)), dark = false)
     @Test fun `card resume dark`() = card("card-resume", card(FriendCardAction.Resume(42_000L)), dark = true)

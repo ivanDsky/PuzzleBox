@@ -21,6 +21,8 @@ import org.koin.dsl.module
  * doc ([SyncReceivedStatus]), the Enter code sheet's check, and the card's ViewModel and the
  * result's, each reading the puzzle's board through its own
  * [FriendPuzzleBoard], which ranks it with [ComputeCustomBoard].
+ * The card's ViewModel also takes the release flags and [com.ivandsky.puzzlebox.domain.ReportPuzzle]
+ * for Report; it reads the community flag once.
  * The games are reached only through the app's [com.ivandsky.puzzlebox.game.GameRegistry];
  * this module names none.
  */
@@ -38,7 +40,7 @@ val friendModule = module {
     factory { ComputeCustomBoard() }
     factory { FriendPuzzleBoard(get(), get(), get(), get()) }
     factory { SyncReceivedStatus(get(), get()) }
-    viewModel { (key: FriendPuzzleKey) -> FriendPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { (key: FriendPuzzleKey) -> FriendPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: CustomResultKey) -> CustomResultViewModel(key, get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { CommunityViewModel(get(), get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
 }

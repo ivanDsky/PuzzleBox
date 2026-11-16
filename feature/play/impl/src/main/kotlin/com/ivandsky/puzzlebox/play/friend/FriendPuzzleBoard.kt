@@ -40,6 +40,9 @@ internal class FriendPuzzleBoard(
     /** How this screen's last sign-in went. */
     val signInStatus: StateFlow<BoardSignIn> = signInHolder.status
 
+    /** Whether someone is signed in now. */
+    val signedIn: Boolean get() = identity.current.value != null
+
     /**
      * [puzzle]'s board ranked by [order], pinning its author: the first [top] rows, read [read]
      * deep so this user's own row below them is found. Null while a signed-in read is in flight.

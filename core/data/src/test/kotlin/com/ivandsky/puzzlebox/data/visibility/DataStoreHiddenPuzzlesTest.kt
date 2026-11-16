@@ -7,6 +7,7 @@ import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
@@ -69,6 +70,20 @@ class DataStoreHiddenPuzzlesTest {
             source.forget("u1")
 
             assertEquals(setOf(FIRST), hidden.codes())
+        }
+    }
+
+    @Test
+    fun `observing the hide set follows each puzzle hidden`() = runTest {
+        process { _, hidden ->
+            val seen = mutableListOf<Set<ShareCode>>()
+            val job = launch(UnconfinedTestDispatcher(testScheduler)) { hidden.observe().collect { seen += it } }
+
+            hidden.add(FIRST)
+            hidden.add(SECOND)
+
+            assertEquals(listOf(emptySet(), setOf(FIRST), setOf(FIRST, SECOND)), seen)
+            job.cancel()
         }
     }
 

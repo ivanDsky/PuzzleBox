@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.data.repository.CustomBoardRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.ComputeCustomBoard
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
+import com.ivandsky.puzzlebox.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RankOrder
@@ -33,6 +34,8 @@ import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.FakeGames
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
+import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
@@ -139,6 +142,8 @@ class BoardPreviewTest {
             editors = GameEditorRegistry(emptyList()),
             dispatchers = now,
             board = FriendPuzzleBoard(boards, identity, oneGoogleAccount(TOKEN), ComputeCustomBoard()),
+            flags = FakeReleaseFlags(),
+            reportPuzzle = ReportPuzzle(shared, FakeHiddenPuzzles()),
         )
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {

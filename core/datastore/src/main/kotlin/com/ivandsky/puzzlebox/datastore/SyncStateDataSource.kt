@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.net.URLEncoder
@@ -81,6 +82,9 @@ class SyncStateDataSource(
 
     /** The share codes of puzzles the player reported, for this device alone; a file without the key reads as empty. */
     suspend fun hiddenPuzzles(): Set<String> = dataStore.data.first()[KEY_HIDDEN_PUZZLES].orEmpty()
+
+    /** The hidden puzzles' share codes, again each time one is added. */
+    fun observeHiddenPuzzles(): Flow<Set<String>> = dataStore.data.map { it[KEY_HIDDEN_PUZZLES].orEmpty() }.distinctUntilChanged()
 
     /** Adds [code] to the hidden puzzles; the read and the write are one edit. */
     suspend fun addHiddenPuzzle(code: String) {
