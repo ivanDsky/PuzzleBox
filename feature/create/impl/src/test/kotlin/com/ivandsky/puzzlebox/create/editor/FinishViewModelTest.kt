@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.create.FakeDraftCompleter
 import com.ivandsky.puzzlebox.create.FakeEditorController
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
+import com.ivandsky.puzzlebox.create.FakeScoredGrader
 import com.ivandsky.puzzlebox.create.TestDraft
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.data.model.Draft
@@ -14,6 +15,8 @@ import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.Completion
+import com.ivandsky.puzzlebox.game.editor.Difficulty
+import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
@@ -34,6 +37,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -64,6 +68,7 @@ class FinishViewModelTest {
         marks: Int = 2,
         flags: ReleaseFlags? = FakeReleaseFlags(ReleaseFlag.FinishForMe),
         game: FakeGameEditor = editor,
+        choice: FinishLevelChoice = FinishLevelChoice(),
     ): EditorViewModel {
         drafts.upsert(storedRow(game.draft(marks).encode()))
         val vm = EditorViewModel(
@@ -71,7 +76,7 @@ class FinishViewModelTest {
             CreateDraftCopy(drafts, newId = { "copy-1" }, clock = { NOW }), lanes, backgroundScope, clock = { NOW },
             createShared = signedOutPublishing(drafts), publishedPuzzles = FakePublishedPuzzleRepository(), identity = nobodySignedIn(),
             idTokens = noGoogleAccount, updatePublishState = signedOutUnpublishing(), preferences = FakeUserPreferencesRepository(),
-            releaseFlags = flags, finishRandom = Random(SEED),
+            releaseFlags = flags, finishRandom = Random(SEED), finishLevel = choice,
         )
         runCurrent()
         return vm
@@ -231,7 +236,7 @@ class FinishViewModelTest {
     }
 
     @Test
-    fun `a completer that gives up changes nothing and raises the message`() = runTest(mainRule.testDispatcher) {
+    fun `a completer that gives up on a board with its answers changes nothing and asks for changes`() = runTest(mainRule.testDispatcher) {
         editor.completionOf = { _, _, _ -> Completion.GaveUp }
         val vm = open(marks = 2)
         settled()
@@ -241,7 +246,142 @@ class FinishViewModelTest {
 
         assertTrue(controller.adopted.isEmpty())
         assertFalse(vm.canUndo.value)
-        assertTrue(vm.finish.gaveUp.pending.value)
+        assertEquals(FinishNotice.NoFix, vm.finish.notices.pending.value)
+    }
+
+    @Test
+    fun `a completer that gives up on a board with room left asks for more pieces`() = runTest(mainRule.testDispatcher) {
+        editor.analysis = { _, _ -> Verdict.Incomplete(IncompleteReason("fake.unpainted", 3)) }
+        editor.completionOf = { _, _, _ -> Completion.GaveUp }
+        val vm = open(marks = 2)
+        settled()
+
+        vm.finish.press()
+        runCurrent()
+
+        assertEquals(FinishNotice.NeedsMore, vm.finish.notices.pending.value)
+    }
+
+    @Test
+    fun `a repeat that gives up is judged by the author's pieces, not by the completion on the board`() = runTest(mainRule.testDispatcher) {
+        editor.analysis = { draft, _ ->
+            if (draft.marks == 2) Verdict.Incomplete(IncompleteReason("fake.unpainted", 3)) else FakeGameEditor.defaultVerdict(draft)
+        }
+        val vm = open(marks = 2)
+        settled()
+        vm.finish.press()
+        runCurrent()
+        settled()
+        editor.completionOf = { _, _, _ -> Completion.GaveUp }
+
+        vm.finish.press()
+        runCurrent()
+
+        assertEquals("the pieces were Incomplete; the Unique board is Finish's own", FinishNotice.NeedsMore, vm.finish.notices.pending.value)
+    }
+
+    @Test
+    fun `a press with a level hands it to the completer and keeps it as the choice`() = runTest(mainRule.testDispatcher) {
+        val vm = open(marks = 2)
+        settled()
+        assertEquals("Medium until the author chooses", Difficulty.Level.Medium, vm.finish.level.value)
+
+        vm.finish.press(Difficulty.Level.Hard)
+        runCurrent()
+        vm.finish.press()
+        runCurrent()
+
+        assertEquals(listOf<Difficulty.Level?>(Difficulty.Level.Hard, Difficulty.Level.Hard), editor.targets)
+        assertEquals(Difficulty.Level.Hard, vm.finish.level.value)
+    }
+
+    @Test
+    fun `the next Studio of the session opens on the last level chosen`() = runTest(mainRule.testDispatcher) {
+        val session = FinishLevelChoice()
+        val first = open(marks = 2, choice = session)
+        settled()
+        first.finish.press(Difficulty.Level.Expert)
+        runCurrent()
+
+        val second = open(marks = 2, choice = session)
+
+        assertEquals(Difficulty.Level.Expert, second.finish.level.value)
+    }
+
+    @Test
+    fun `a press the gate turns away does not change the choice`() = runTest(mainRule.testDispatcher) {
+        val vm = open(marks = 0)
+        settled()
+
+        vm.finish.press(Difficulty.Level.Expert)
+        runCurrent()
+
+        assertEquals(Difficulty.Level.Medium, vm.finish.level.value)
+        assertTrue(editor.targets.isEmpty())
+    }
+
+    @Test
+    fun `a board finished at another level says which, once its check settles`() = runTest(mainRule.testDispatcher) {
+        val scored = FakeScoredGrader().apply { levelOf = { Difficulty.Level.Medium } }
+        val vm = open(marks = 2, game = scored)
+        settled()
+
+        vm.finish.press(Difficulty.Level.Hard)
+        runCurrent()
+        assertNull("nothing is said while the completion is still being checked", vm.finish.notices.pending.value)
+        settled()
+
+        assertEquals(FinishNotice.Missed(got = Difficulty.Level.Medium, wanted = Difficulty.Level.Hard), vm.finish.notices.pending.value)
+    }
+
+    @Test
+    fun `a board finished at the level asked for says nothing`() = runTest(mainRule.testDispatcher) {
+        val scored = FakeScoredGrader().apply { levelOf = { Difficulty.Level.Hard } }
+        val vm = open(marks = 2, game = scored)
+        settled()
+
+        vm.finish.press(Difficulty.Level.Hard)
+        runCurrent()
+        settled()
+
+        assertEquals(1, controller.adopted.size)
+        assertNull(vm.finish.notices.pending.value)
+    }
+
+    @Test
+    fun `an edit before the completion's check settles drops the comparison`() = runTest(mainRule.testDispatcher) {
+        val scored = FakeScoredGrader().apply { levelOf = { Difficulty.Level.Medium } }
+        val vm = open(marks = 2, game = scored)
+        settled()
+        vm.finish.press(Difficulty.Level.Hard)
+        runCurrent()
+
+        controller.edit(scored.draft(marks = 1))
+        runCurrent()
+        settled()
+
+        assertNull("the author's own board was never asked for a level", vm.finish.notices.pending.value)
+    }
+
+    @Test
+    fun `with FinishForMe on the Studio's verdict carries the scored level`() = runTest(mainRule.testDispatcher) {
+        val scored = FakeScoredGrader().apply { levelOf = { Difficulty.Level.Expert } }
+        val vm = open(marks = 2, game = scored)
+        settled()
+
+        val verdict = (vm.state.value as EditorUiState.Ready).verdict as Verdict.Unique
+        assertEquals(Difficulty(Difficulty.Level.Expert, score = 2, hardestRung = null), verdict.difficulty)
+    }
+
+    @Test
+    fun `with FinishForMe off the Studio's verdict keeps its legacy label`() = runTest(mainRule.testDispatcher) {
+        val scored = FakeScoredGrader().apply { levelOf = { Difficulty.Level.Expert } }
+        val vm = open(marks = 2, flags = FakeReleaseFlags(), game = scored)
+        settled()
+
+        val verdict = (vm.state.value as EditorUiState.Ready).verdict as Verdict.Unique
+        assertNull(verdict.difficulty)
+        assertTrue(scored.graded.isEmpty())
     }
 
     private companion object {

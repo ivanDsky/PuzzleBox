@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.sudoku.editor
 
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.Completion
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.DraftCompleter
 import com.ivandsky.puzzlebox.game.editor.FinishReadiness
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
@@ -57,7 +58,8 @@ object SudokuCompleter : DraftCompleter<SudokuDraft> {
         return if (missing > 0) FinishReadiness.NeedsMore(IncompleteReason(GIVENS, missing)) else FinishReadiness.Ready
     }
 
-    override fun complete(draft: SudokuDraft, random: Random, budget: Budget): Completion<SudokuDraft> {
+    /** [target] is not aimed for yet: every board is "any" until Sudoku has its scored grader (92). */
+    override fun complete(draft: SudokuDraft, random: Random, budget: Budget, target: Difficulty.Level?): Completion<SudokuDraft> {
         val geometry = geometryOf(draft)
         val grid = SudokuRandomFill.fill(geometry, draft.givens, random, budget) ?: return Completion.GaveUp
         val givens = draft.givens.toIntArray()

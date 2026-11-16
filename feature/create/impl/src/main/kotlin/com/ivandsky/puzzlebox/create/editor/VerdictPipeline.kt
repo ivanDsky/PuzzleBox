@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.create.editor
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.GradingMode
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -22,7 +23,8 @@ import kotlinx.coroutines.withContext
  * the budget, and a cancelled solve never publishes. A board whose [EditorDraft.layoutKey]
  * matches the last submitted one (e.g. a Queens answer-crown edit, 38) keeps its verdict and is
  * never solved again; [recheck] (Check again) always solves. [submit] and the publish run on
- * [scope]'s dispatcher (the VM's main), so the newest submit always has the last word.
+ * [scope]'s dispatcher (the VM's main), so the newest submit always has the last word. Each
+ * solve asks [grading] how to label a Unique board (90): by the game's score, or the legacy way.
  */
 internal class VerdictPipeline(
     private val scope: CoroutineScope,
@@ -30,6 +32,7 @@ internal class VerdictPipeline(
     private val nanoTime: () -> Long = System::nanoTime,
     private val debounceMs: Long = 150,
     private val budgetMs: Long = 1_500,
+    private val grading: () -> GradingMode = { GradingMode.Legacy },
 ) {
     private val mutableVerdict = MutableStateFlow<Verdict>(Verdict.Checking)
     val verdict: StateFlow<Verdict> = mutableVerdict.asStateFlow()
@@ -49,8 +52,9 @@ internal class VerdictPipeline(
         mutableVerdict.value = Verdict.Checking
         pending = scope.launch {
             delay(debounceMs)
+            val mode = grading()
             val verdict = withContext(dispatchers.default) {
-                draft.analyze(Budget.within(budgetMs, nanoTime) { !isActive })
+                draft.analyze(Budget.within(budgetMs, nanoTime) { !isActive }, mode)
             }
             mutableVerdict.value = verdict
         }

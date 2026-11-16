@@ -219,7 +219,7 @@ internal fun EditorRoute(
                         CodeCopiedToast(code = ticket?.code, copies = copies, modifier = Modifier)
                         UnpublishedToast(code = ticket?.code, done = unpublish.done, modifier = Modifier)
                         ImportedToast(pending = importedPending, onShown = onImportedShown, modifier = Modifier)
-                        FinishGaveUpToast(state = viewModel.finish.gaveUp, modifier = Modifier)
+                        FinishNoticeToast(state = viewModel.finish.notices, modifier = Modifier)
                     }
                 },
                 readOnly = ticket != null,

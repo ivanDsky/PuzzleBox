@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -55,8 +54,7 @@ private val StripBorder = 2.dp
 private val ToolWidth = 64.dp
 private val ToolHeight = 56.dp
 private val CompactTool = 48.dp
-private val ToolIconSize = 20.dp
-private const val BusyRingProgress = 0.66f
+internal val ToolIconSize = 20.dp
 
 /**
  * The Studio tool strip under the board (prototype 02 A): a card with the studio accent
@@ -65,7 +63,8 @@ private const val BusyRingProgress = 0.66f
  * game's variant table, A5) above the strip, left out when [sizes] holds one size or none
  * (nothing to pick); and Clear. A size pick other than the open one goes to [onResize];
  * Clear goes to [onClear]. A non-null [finish] adds Finish before Clear (E1): disabled, enabled or
- * busy (a progress ring; a tap cancels) as the slot says; null leaves the strip as it was. The
+ * busy (a progress ring; a tap cancels) as the slot says, its tap opening the [FinishLevelPopover]
+ * above the strip, whose pick goes to the slot (90); null leaves the strip as it was. The
  * tools share the row, so on the narrowest phones five of them shrink rather than clip. Under the tools sits the game's one-line [hint]. Tools give press
  * feedback (scale [MotionTokens.PressScale]); reduced motion drops it.
  */
@@ -85,6 +84,7 @@ fun ToolStrip(
     finish: FinishSlot? = null,
 ) {
     var picking by rememberSaveable { mutableStateOf(false) }
+    var levelling by rememberSaveable { mutableStateOf(false) }
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -110,7 +110,7 @@ fun ToolStrip(
                         Text(sizeLabel(size), style = MaterialTheme.typography.titleSmall, color = ink, maxLines = 1)
                     }
                 }
-                if (finish != null) FinishTool(finish, share)
+                if (finish != null) FinishTool(finish, levelling, { levelling = it }, share)
                 IconTool("Clear", PuzzleIcons.Clear, enabled = true, onClick = onClear, tag = "create.tool.clear", modifier = share)
             }
             Box(Modifier.fillMaxWidth().padding(horizontal = Spacing.sm)) {
@@ -127,6 +127,16 @@ fun ToolStrip(
                     if (picked != size) onResize(picked)
                 },
                 onDismiss = { picking = false },
+            )
+        }
+        if (levelling && finish != null) {
+            FinishLevelPopover(
+                current = finish.level,
+                onPick = { picked ->
+                    levelling = false
+                    finish.onFinish(picked)
+                },
+                onDismiss = { levelling = false },
             )
         }
     }
@@ -147,39 +157,13 @@ internal fun IconTool(
     }
 }
 
-/** Finish for me: the dice, or while [finish] is busy a progress ring that a tap cancels; a determinate ring under reduced motion. */
-@Composable
-private fun FinishTool(finish: FinishSlot, modifier: Modifier) {
-    val reduced = rememberReducedMotion()
-    Tool(
-        "Finish",
-        enabled = finish.enabled || finish.busy,
-        active = false,
-        onClick = finish.onPress,
-        tag = "create.tool.finish",
-        modifier = modifier,
-        stateDescription = if (finish.busy) "Finishing, tap to cancel" else null,
-    ) { ink ->
-        if (finish.busy) {
-            val ring = Modifier.size(ToolIconSize)
-            if (reduced) {
-                CircularProgressIndicator(progress = { BusyRingProgress }, modifier = ring, color = ink, strokeWidth = 2.dp)
-            } else {
-                CircularProgressIndicator(modifier = ring, color = ink, strokeWidth = 2.dp)
-            }
-        } else {
-            Icon(PuzzleIcons.Dice, contentDescription = null, tint = ink, modifier = Modifier.size(ToolIconSize))
-        }
-    }
-}
-
 /**
  * One 64×56dp tool: [glyph] over label; [compact], a 48dp square of the glyph alone, the label
  * its description. A disabled tool keeps readable onSurfaceVariant ink, an [active] one (its
  * popover is open) sits on the studio accent container.
  */
 @Composable
-private fun Tool(
+internal fun Tool(
     label: String,
     enabled: Boolean,
     active: Boolean,

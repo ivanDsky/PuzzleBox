@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.zip.editor
 
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.Completion
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.DraftCompleter
 import com.ivandsky.puzzlebox.game.editor.FinishReadiness
 import com.ivandsky.puzzlebox.game.editor.IncompleteReason
@@ -41,7 +42,8 @@ object ZipCompleter : DraftCompleter<ZipDraft> {
         return if (missing > 0) FinishReadiness.NeedsMore(IncompleteReason(PATH, missing)) else FinishReadiness.Ready
     }
 
-    override fun complete(draft: ZipDraft, random: Random, budget: Budget): Completion<ZipDraft> {
+    /** [target] is not aimed for yet: every board is "any" until Zip has its scored grader (94). */
+    override fun complete(draft: ZipDraft, random: Random, budget: Budget, target: Difficulty.Level?): Completion<ZipDraft> {
         if (clash(draft).isNotEmpty()) return Completion.GaveUp
         val path = ZipPathExtension(draft, budget).extend(random) ?: return Completion.GaveUp
         val board = ZipPinnedRepair(draft, path, random, budget).unique() ?: return Completion.GaveUp

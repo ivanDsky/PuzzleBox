@@ -154,7 +154,7 @@ class EditorDraftFinishTest {
             }
         }
 
-        override fun complete(draft: List<Int>, random: Random, budget: Budget): Completion<List<Int>> {
+        override fun complete(draft: List<Int>, random: Random, budget: Budget, target: Difficulty.Level?): Completion<List<Int>> {
             completed += draft
             randoms += random
             budgets += budget
@@ -165,6 +165,6 @@ class EditorDraftFinishTest {
 
     private object GivingUpEditor : ListBase(), DraftCompleter<List<Int>> {
         override fun readiness(draft: List<Int>): FinishReadiness = FinishReadiness.Ready
-        override fun complete(draft: List<Int>, random: Random, budget: Budget): Completion<List<Int>> = Completion.GaveUp
+        override fun complete(draft: List<Int>, random: Random, budget: Budget, target: Difficulty.Level?): Completion<List<Int>> = Completion.GaveUp
     }
 }

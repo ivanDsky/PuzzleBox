@@ -2,7 +2,9 @@ package com.ivandsky.puzzlebox.create.editor
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.FinishBudget
 import kotlin.random.Random
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -13,15 +15,13 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** The time a completion may take before Finish gives up. */
-internal const val FINISH_BUDGET_MS = 2_000L
-
 /**
- * The Studio's Finish run (E1): each [press] completes the board on [DispatcherProvider.default] under a
- * [budgetMs] budget that also ends when the run is cancelled, so the main thread never waits, and hands the
- * completion to the board as one step. A press while it runs cancels it, as does [boardChanged] by any
- * other board (an edit, undo, redo, resize or clear) and [scope] ending; a cancel says nothing. A completer
- * that gives up, or a spent budget, raises [gaveUp] and leaves the board as it is.
+ * The Studio's Finish run (E1): each [press] completes the board on [DispatcherProvider.default] under
+ * the budget [budgetMs] gives its target (90: [FinishBudget], longer for Hard and Expert), which also ends
+ * when the run is cancelled, so the main thread never waits, and hands the completion to the board as one
+ * step. A press while it runs cancels it, as does [boardChanged] by any other board (an edit, undo, redo,
+ * resize or clear) and [scope] ending; a cancel says nothing. A completer that gives up, or a spent budget
+ * with no board found, calls [gaveUp] with the pieces it could not finish and leaves the board as it is.
  *
  * A completion starts a repeat chain: the author's own pieces are kept, so the next press completes those
  * again (not the last completion) while the board stays the completion this run landed. [boardChanged]
@@ -31,9 +31,9 @@ internal class FinishRun(
     private val scope: CoroutineScope,
     private val dispatchers: DispatcherProvider,
     private val random: Random,
-    private val gaveUp: FinishGaveUpToastState,
+    private val gaveUp: (pieces: EditorDraft<*>) -> Unit,
     private val nanoTime: () -> Long = System::nanoTime,
-    private val budgetMs: Long = FINISH_BUDGET_MS,
+    private val budgetMs: (Difficulty.Level?) -> Long = FinishBudget::millisFor,
 ) {
     private val running = MutableStateFlow(false)
 
@@ -56,8 +56,8 @@ internal class FinishRun(
     /** The completion being handed to the board: its own change is not an edit. */
     private var landing: EditorDraft<*>? = null
 
-    /** Starts a completion of [board] and hands it to [land]; while one runs, cancels it instead. */
-    fun press(board: EditorDraft<*>, land: (EditorDraft<*>) -> Unit) {
+    /** Starts a completion of [board] aiming for [target] (null: any level) and hands it to [land]; while one runs, cancels it instead. */
+    fun press(board: EditorDraft<*>, land: (EditorDraft<*>) -> Unit, target: Difficulty.Level? = null) {
         if (running.value) return cancel()
         val source = pieces ?: board
         val mine = ++generation
@@ -65,11 +65,11 @@ internal class FinishRun(
         job = scope.launch {
             try {
                 val next = withContext(dispatchers.default) {
-                    board.finish(random, Budget.within(budgetMs, nanoTime) { !isActive }, source)
+                    board.finish(random, Budget.within(budgetMs(target), nanoTime) { !isActive }, source, target)
                 }
                 if (generation != mine) return@launch
                 if (next == null) {
-                    gaveUp.raise()
+                    gaveUp(source)
                 } else {
                     pieces = source
                     chained.value = true

@@ -5,7 +5,9 @@ import com.ivandsky.puzzlebox.create.FakeDraftCompleter
 import com.ivandsky.puzzlebox.create.TestDraft
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.Completion
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.FinishBudget
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import kotlin.random.Random
@@ -22,19 +24,23 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * E1's budgeted run (spec A2, A3) against the fake completer: a press lands one undoable
  * completion; the next press completes the author's own pieces again; a spent budget or a
- * give-up leaves the board and raises the message; a second tap, an edit and leaving cancel it.
+ * give-up leaves the board and reports the pieces it could not finish; a second tap, an edit and
+ * leaving cancel it. A press's level reaches the completer and sets how long it may take (90).
  */
 class FinishRunTest {
 
     private val editor = FakeDraftCompleter()
     private val pieces = editor.draft(marks = 2)
-    private val gaveUp = FinishGaveUpToastState()
+
+    /** The pieces each give-up was reported with, in order. */
+    private val gaveUp = mutableListOf<EditorDraft<*>>()
 
     /** What the strip's press lands on the board, in order. */
     private val landed = mutableListOf<EditorDraft<*>>()
@@ -43,14 +49,14 @@ class FinishRunTest {
         default: CoroutineDispatcher = StandardTestDispatcher(testScheduler),
         scope: CoroutineScope = CoroutineScope(StandardTestDispatcher(testScheduler) + Job()),
         nanoTime: () -> Long = System::nanoTime,
-        budgetMs: Long = 2_000,
+        budgetMs: (Difficulty.Level?) -> Long = FinishBudget::millisFor,
     ): FinishRun {
         val lanes = object : DispatcherProvider {
             override val main: CoroutineDispatcher = Dispatchers.Main
             override val io: CoroutineDispatcher = default
             override val default: CoroutineDispatcher = default
         }
-        return FinishRun(scope, lanes, Random(SEED), gaveUp, nanoTime, budgetMs)
+        return FinishRun(scope, lanes, Random(SEED), gaveUp::add, nanoTime, budgetMs)
     }
 
     /** The first [count] completions' marks added to [base], from the seed the run is given. */
@@ -71,7 +77,7 @@ class FinishRunTest {
         val undone = completion.undo()!!
         assertEquals(TestDraft(2), undone.state.draft)
         assertNull(undone.undo())
-        assertFalse(gaveUp.pending.value)
+        assertTrue(gaveUp.isEmpty())
     }
 
     @Test
@@ -108,9 +114,44 @@ class FinishRunTest {
 
         assertEquals("the budget is 2 s: one poll still inside it, the next spent", 1, polls)
         assertTrue(landed.isEmpty())
-        assertTrue(gaveUp.pending.value)
+        assertSame(pieces, gaveUp.single())
         assertFalse(run.busy.value)
         assertFalse(run.repeating.value)
+    }
+
+    @Test
+    fun `the level a press asks for reaches the completer`() = runTest {
+        val run = run()
+        run.press(pieces, landed::add, Difficulty.Level.Hard)
+        runCurrent()
+        run.press(landed.last(), landed::add, Difficulty.Level.Easy)
+        runCurrent()
+
+        assertEquals(listOf<Difficulty.Level?>(Difficulty.Level.Hard, Difficulty.Level.Easy), editor.targets)
+    }
+
+    @Test
+    fun `Hard and Expert may take four seconds, Easy and Medium two`() = runTest {
+        var polls = 0
+        editor.completionOf = { _, _, budget ->
+            while (!budget.exhausted()) polls++
+            Completion.GaveUp
+        }
+        var clock = 0L
+        // Every read of the clock is one second, so a 2 s budget allows one poll and a 4 s budget three.
+        val run = run(nanoTime = { clock += ONE_SECOND_NANOS; clock })
+
+        val allowed = Difficulty.Level.entries.associateWith { level ->
+            polls = 0
+            run.press(pieces, landed::add, level)
+            runCurrent()
+            polls
+        }
+
+        assertEquals(
+            mapOf(Difficulty.Level.Easy to 1, Difficulty.Level.Medium to 1, Difficulty.Level.Hard to 3, Difficulty.Level.Expert to 3),
+            allowed,
+        )
     }
 
     @Test
@@ -121,7 +162,7 @@ class FinishRunTest {
         runCurrent()
 
         assertTrue(landed.isEmpty())
-        assertTrue(gaveUp.pending.value)
+        assertSame(pieces, gaveUp.single())
         assertFalse(run.busy.value)
     }
 
@@ -136,7 +177,7 @@ class FinishRunTest {
         runCurrent()
 
         assertEquals(1, landed.size)
-        assertTrue(gaveUp.pending.value)
+        assertSame("the give-up is about the author's pieces, not the completion on the board", pieces, gaveUp.single())
         assertTrue("the board is still an unedited completion", run.repeating.value)
     }
 
@@ -171,7 +212,7 @@ class FinishRunTest {
     fun `a second tap while it runs cancels it silently`() = runTest {
         val blocked = BlockingCompleter()
         editor.completionOf = blocked
-        val run = run(default = Dispatchers.Default, budgetMs = LONG_BUDGET_MS)
+        val run = run(default = Dispatchers.Default, budgetMs = { LONG_BUDGET_MS })
 
         run.press(pieces, landed::add)
         runCurrent()
@@ -184,14 +225,14 @@ class FinishRunTest {
         assertTrue("the completer's budget saw the cancel", blocked.stopped.await(AWAIT_S, TimeUnit.SECONDS))
         settle()
         assertTrue(landed.isEmpty())
-        assertFalse("a cancel is silent", gaveUp.pending.value)
+        assertTrue("a cancel is silent", gaveUp.isEmpty())
     }
 
     @Test
     fun `an edit while it runs cancels it silently`() = runTest {
         val blocked = BlockingCompleter()
         editor.completionOf = blocked
-        val run = run(default = Dispatchers.Default, budgetMs = LONG_BUDGET_MS)
+        val run = run(default = Dispatchers.Default, budgetMs = { LONG_BUDGET_MS })
 
         run.press(pieces, landed::add)
         runCurrent()
@@ -203,7 +244,7 @@ class FinishRunTest {
         assertTrue(blocked.stopped.await(AWAIT_S, TimeUnit.SECONDS))
         settle()
         assertTrue(landed.isEmpty())
-        assertFalse(gaveUp.pending.value)
+        assertTrue(gaveUp.isEmpty())
     }
 
     @Test
@@ -211,7 +252,7 @@ class FinishRunTest {
         val blocked = BlockingCompleter()
         editor.completionOf = blocked
         val studio = CoroutineScope(StandardTestDispatcher(testScheduler) + Job())
-        val run = run(default = Dispatchers.Default, scope = studio, budgetMs = LONG_BUDGET_MS)
+        val run = run(default = Dispatchers.Default, scope = studio, budgetMs = { LONG_BUDGET_MS })
 
         run.press(pieces, landed::add)
         runCurrent()
@@ -222,14 +263,14 @@ class FinishRunTest {
         assertTrue(blocked.stopped.await(AWAIT_S, TimeUnit.SECONDS))
         settle()
         assertTrue(landed.isEmpty())
-        assertFalse(gaveUp.pending.value)
+        assertTrue(gaveUp.isEmpty())
     }
 
     @Test
     fun `a press after a cancelled run still lands, and the cancelled run's end does not undo it`() = runTest {
         val blocked = BlockingCompleter()
         editor.completionOf = blocked
-        val run = run(default = Dispatchers.Default, budgetMs = LONG_BUDGET_MS)
+        val run = run(default = Dispatchers.Default, budgetMs = { LONG_BUDGET_MS })
         run.press(pieces, landed::add)
         runCurrent()
         assertTrue(blocked.started.await(AWAIT_S, TimeUnit.SECONDS))

@@ -28,6 +28,7 @@ import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.Completion
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
@@ -60,8 +61,8 @@ import org.robolectric.shadows.ShadowLooper
 
 /**
  * Finish for me in the Studio route (E1, A2): the tool shows only with FinishForMe on and an editor
- * with a completer, starts disabled, enables with the board, completes it as one undoable step and
- * says the failure message when the completer gives up.
+ * with a completer, starts disabled, enables with the board, asks for a level, completes the board
+ * as one undoable step and says the failure message when the completer gives up.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp")
@@ -104,12 +105,15 @@ class FinishStudioTest {
     }
 
     @Test
-    fun `it enables with the board, a press completes it, and Undo returns the pieces`() {
+    fun `it enables with the board, a level pick completes it, and Undo returns the pieces`() {
         open(marks = 2)
         awaitEnabled()
 
         composeRule.onNodeWithTag(FINISH).performClick()
+        assertEquals("the tool asks for a level first", emptyList<Any>(), controller().adopted)
+        composeRule.onNodeWithTag(HARD).performClick()
         await { controller().adopted.isNotEmpty() }
+        assertEquals(listOf<Difficulty.Level?>(Difficulty.Level.Hard), editor.targets)
 
         val completion = controller().adopted.single().state.draft as TestDraft
         assertEquals(2 + Random(SEED).nextInt(1, 10), completion.marks)
@@ -125,9 +129,10 @@ class FinishStudioTest {
         awaitEnabled()
 
         composeRule.onNodeWithTag(FINISH).performClick()
+        composeRule.onNodeWithTag(MEDIUM).performClick()
         await { composeRule.onAllNodes(hasTestTag(TOAST)).fetchSemanticsNodes().isNotEmpty() }
 
-        composeRule.onNodeWithText("Too many unknowns to finish this draft. Place a few more and try again.").assertExists()
+        composeRule.onNodeWithText("Couldn't fix this board in time. Change a few highlighted cells and try again.").assertExists()
         assertEquals(emptyList<Any>(), controller().adopted)
     }
 
@@ -190,6 +195,8 @@ class FinishStudioTest {
         const val FINISH = "create.tool.finish"
         const val UNDO = "create.tool.undo"
         const val TOAST = "create.toast.finishGaveUp"
+        const val MEDIUM = "create.finish.level.Medium"
+        const val HARD = "create.finish.level.Hard"
 
         fun storedRow(blob: ByteArray) = Draft(
             id = DRAFT_ID,

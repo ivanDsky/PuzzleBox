@@ -61,7 +61,18 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
 
     fun encode(): ByteArray = editor.encodeDraft(state)
 
-    fun analyze(budget: Budget): Verdict = editor.analyze(state.draft, budget)
+    /**
+     * The editor's verdict on this board. Under [GradingMode.Scored] a Unique board that does not
+     * need guessing carries the label of the editor's [ScoredGrader] instead of the legacy one (no
+     * label when the grader ran out of [budget]); an editor without a scored grader, and every
+     * other verdict, is as [GradingMode.Legacy] gives it.
+     */
+    fun analyze(budget: Budget, grading: GradingMode = GradingMode.Legacy): Verdict {
+        val verdict = editor.analyze(state.draft, budget)
+        if (grading == GradingMode.Legacy || verdict !is Verdict.Unique || verdict.needsGuessing) return verdict
+        val grader = editor.capability<D, ScoredGrader<D>>() ?: return verdict
+        return verdict.copy(difficulty = grader.grade(state.draft, verdict.solution, budget))
+    }
 
     /** The game's board gates for this board under [verdict]; empty for a game without any. */
     fun publishBlocks(verdict: Verdict): List<PublishBlock> = editor.publishBlocks(state.draft, verdict)
@@ -78,13 +89,14 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
      * Finish for me: completes the board of [pieces] (this draft by default; null when it holds
      * another editor) and applies it to this draft as one undoable [ReplaceDraft] step. Passing
      * an earlier draft as [pieces] completes the author's own pieces again while this draft keeps
-     * the undo history of the earlier completions. Null when !canFinish or the completer
-     * [Completion.GaveUp]; this draft is unchanged then.
+     * the undo history of the earlier completions. [target] is the level to aim for, null for any
+     * ([DraftCompleter.complete]); a board at another level is still returned. Null when !canFinish
+     * or the completer [Completion.GaveUp]; this draft is unchanged then.
      */
-    fun finish(random: Random, budget: Budget, pieces: EditorDraft<*> = this): EditorDraft<D>? {
+    fun finish(random: Random, budget: Budget, pieces: EditorDraft<*> = this, target: Difficulty.Level? = null): EditorDraft<D>? {
         val completer = editor.capability<D, DraftCompleter<D>>() ?: return null
         val source = pieces.narrowTo(editor) ?: return null
-        return when (val completion = completer.complete(source.state.draft, random, budget)) {
+        return when (val completion = completer.complete(source.state.draft, random, budget, target)) {
             is Completion.Done -> apply(ReplaceDraft(state.draft, completion.draft))
             Completion.GaveUp -> null
         }

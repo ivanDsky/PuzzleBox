@@ -71,13 +71,14 @@ class EditorViewModel(
     private val validatePublish: ValidatePublish = ValidatePublish(),
     releaseFlags: ReleaseFlags? = null,
     finishRandom: Random = Random.Default,
+    finishLevel: FinishLevelChoice = FinishLevelChoice(),
 ) : ViewModel() {
 
     private val mutableState = MutableStateFlow<EditorUiState>(EditorUiState.Loading)
     val state: StateFlow<EditorUiState> = mutableState.asStateFlow()
 
     private val loadDraft = LoadDraft(drafts, games, editors)
-    private val verdicts = VerdictPipeline(viewModelScope, dispatchers)
+    private val verdicts = VerdictPipeline(viewModelScope, dispatchers, grading = { finish.grading })
     private val history = EditHistory(locked = { published }, adopt = ::adopt)
 
     /** The saved Auto-show: each new Multiple opens with its witness on the board while it is on (the default). */
@@ -136,13 +137,15 @@ class EditorViewModel(
     internal val resizes = ResizeSession(board = { board }, locked = { published }, apply = history::resize)
 
     /** Finish for me (E1): offered only while FinishForMe is on; a completion lands as one step of [history]. */
-    internal val finish = EditorViewModelFinish(
+    internal val finish: EditorViewModelFinish = EditorViewModelFinish(
         flags = releaseFlags,
         scope = viewModelScope,
         dispatchers = dispatchers,
         random = finishRandom,
+        choice = finishLevel,
         board = { board },
         verdict = { (mutableState.value as? EditorUiState.Ready)?.verdict ?: Verdict.Checking },
+        settled = verdicts.verdict,
         locked = { published },
         land = history::replace,
     )
@@ -191,9 +194,7 @@ class EditorViewModel(
     }
 
     /** The card's Auto-show switch: saved for every editor and later sessions; the next new Multiple reads it. */
-    fun setAutoShowWitness(on: Boolean) {
-        viewModelScope.launch { preferences.setAutoShowWitness(on) }
-    }
+    fun setAutoShowWitness(on: Boolean) { viewModelScope.launch { preferences.setAutoShowWitness(on) } }
 
     /**
      * The test-cleared toast's Undo: back to the nearest earlier board with the tested layout, so
@@ -223,9 +224,7 @@ class EditorViewModel(
     }
 
     /** App stop (A5): the pending edit is stored now, not at the window's end. */
-    fun flush() {
-        saves.launch { autosave.flush() }
-    }
+    fun flush() { saves.launch { autosave.flush() } }
 
     /** Duplicate copies the stored row, so the pending edit is stored first and the copy has it. */
     fun duplicate(onCopied: (draftId: String) -> Unit) {

@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
+import com.ivandsky.puzzlebox.game.editor.GradingMode
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
@@ -23,13 +24,15 @@ internal data class DraftStamp(val id: String, val updatedAt: Instant)
  * The Create root's verdict chips (spec A7): `analyze(draft, Budget.within(1_500…))` on
  * [DispatcherProvider.default], once per [DraftStamp]. [analyzeNew] is called on the main
  * thread with the drafts now listed; it drops the stamps of drafts no longer listed, so an
- * edited draft is analysed again and a restored one too.
+ * edited draft is analysed again and a restored one too. [grading] says how a Unique board is
+ * labelled (90), so a chip reads as its Studio does.
  */
 internal class DraftAnalysis(
     private val scope: CoroutineScope,
     private val games: GameRegistry,
     private val dispatchers: DispatcherProvider,
     private val nanoTime: () -> Long = System::nanoTime,
+    private val grading: () -> GradingMode = { GradingMode.Legacy },
 ) {
     private val settled = MutableStateFlow<Map<DraftStamp, Verdict?>>(emptyMap())
 
@@ -56,9 +59,10 @@ internal class DraftAnalysis(
             return
         }
         scope.launch {
+            val mode = grading()
             val verdict = withContext(dispatchers.default) {
                 EditorDraft.open(editor, draft.blob).getOrNull()
-                    ?.analyze(Budget.within(BUDGET_MS, nanoTime) { !isActive })
+                    ?.analyze(Budget.within(BUDGET_MS, nanoTime) { !isActive }, mode)
             }
             if (stamp in requested) settled.update { it + (stamp to verdict) }
         }

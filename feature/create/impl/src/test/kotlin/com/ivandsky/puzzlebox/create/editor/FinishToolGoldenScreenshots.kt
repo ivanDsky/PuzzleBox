@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.create.settleAndCapture
 import com.ivandsky.puzzlebox.create.showGolden
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -41,13 +42,16 @@ class FinishToolGoldenScreenshots {
     private fun capture(dark: Boolean) {
         rule.showGolden(dark) {
             Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
-                strip("Disabled", FinishSlot(enabled = false, busy = false, onPress = {}))
-                strip("Enabled", FinishSlot(enabled = true, busy = false, onPress = {}))
-                strip("Busy", FinishSlot(enabled = true, busy = true, onPress = {}))
+                strip("Disabled", slot(enabled = false, busy = false))
+                strip("Enabled", slot(enabled = true, busy = false))
+                strip("Busy", slot(enabled = true, busy = true))
             }
         }
         rule.settleAndCapture("finish-tool", "states", "phone", dark)
     }
+
+    private fun slot(enabled: Boolean, busy: Boolean) =
+        FinishSlot(enabled, busy, level = Difficulty.Level.Medium, onFinish = {}, onCancel = {})
 
     @Composable
     private fun strip(label: String, finish: FinishSlot) {
