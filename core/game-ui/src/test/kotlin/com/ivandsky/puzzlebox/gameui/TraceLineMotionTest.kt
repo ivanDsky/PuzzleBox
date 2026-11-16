@@ -188,6 +188,70 @@ class TraceLineMotionTest {
         assertEquals(1f, motion.step(listOf(0, 1), animate = false))
     }
 
+    @Test
+    fun `a held drag draws the end at its target on the frame of every commit`() = runTest {
+        // Ticket 02b: each commit restarted the grow blend, and a blend's first two frames draw
+        // the old end, so a finger taking a cell a frame left the line standing at the start.
+        val motion = motion()
+        motion.step(listOf(0), animate = false)
+
+        assertEquals(1.5f, motion.step(listOf(0, 1), TraceTip(TipKind.Forward, 2, 0.5f), animate = true, held = true))
+        assertEquals(2.4f, motion.step(listOf(0, 1, 2), TraceTip(TipKind.Forward, 3, 0.4f), animate = true, held = true))
+        assertEquals("the tip cell rides the line's end", listOf(0, 1, 2, 3), motion.line)
+    }
+
+    @Test
+    fun `a held finger crossing the tail centre carries the end through it without homing`() = runTest {
+        // Ticket 02b: the tip going null on the centre started a HomeDuration blend there, so
+        // the end hung behind a finger that was already past.
+        val motion = motion()
+        motion.step(listOf(0, 1), animate = false)
+
+        assertEquals(0.95f, motion.step(listOf(0, 1), TraceTip(TipKind.Back, 0, 0.05f), animate = true, held = true))
+        assertEquals(1f, motion.step(listOf(0, 1), animate = true, held = true))
+        assertEquals(1.05f, motion.step(listOf(0, 1), TraceTip(TipKind.Forward, 2, 0.05f), animate = true, held = true))
+        assertEquals(1.1f, motion.step(listOf(0, 1), TraceTip(TipKind.Forward, 2, 0.1f), animate = true, held = true))
+    }
+
+    @Test
+    fun `a held lean appearing far from the tail is drawn at once`() = runTest {
+        // Ticket 02b: under the finger there is nothing to grow toward; the grow blend put
+        // 100 ms between the finger and the end.
+        val motion = motion()
+        motion.step(listOf(0, 1), animate = false)
+
+        assertEquals(1.9f, motion.step(listOf(0, 1), TraceTip(TipKind.Forward, 2, 0.9f), animate = true, held = true))
+    }
+
+    @Test
+    fun `a held backtrack draws the shortened line at once`() = runTest {
+        // Ticket 02b: the retract blend kept the removed cell drawn while the finger was
+        // already back over the previous one.
+        val back = motion()
+        back.step(listOf(0, 1, 2), animate = false)
+        assertEquals(0.8f, back.step(listOf(0, 1), TraceTip(TipKind.Back, 0, 0.2f), animate = true, held = true))
+        assertEquals(listOf(0, 1), back.line)
+
+        // Backtracked onto the near half of the removed cell: the end leans back at it.
+        val lean = motion()
+        lean.step(listOf(0, 1, 2), animate = false)
+        assertEquals(1.49f, lean.step(listOf(0, 1), TraceTip(TipKind.Forward, 2, 0.49f), animate = true, held = true))
+        assertEquals(listOf(0, 1, 2), lean.line)
+    }
+
+    @Test
+    fun `a blend running when the finger takes hold is dropped for good`() = runTest {
+        // Ticket 02b: a hint or undo blend still in flight when the drag starts must not
+        // pull the end off the finger, nor resume when the finger lets go.
+        val motion = motion()
+        motion.step(listOf(0), animate = false)
+        motion.step(listOf(0, 1, 2, 3), animate = true)
+        frames(FRAME_MS) { motion.step(listOf(0, 1, 2, 3), animate = true) }
+
+        assertEquals(3f, motion.step(listOf(0, 1, 2, 3), animate = true, held = true))
+        assertEquals(listOf(3f), frames(FRAME_MS) { motion.step(listOf(0, 1, 2, 3), animate = true) })
+    }
+
     private fun TestScope.motion(): TraceLineMotion<Int> =
         TraceLineMotion(CoroutineScope(backgroundScope.coroutineContext + VirtualFrameClock(testScheduler)))
 

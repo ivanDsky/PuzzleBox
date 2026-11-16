@@ -10,8 +10,8 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,6 +21,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.graphics.ColorProducer
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
@@ -150,16 +153,20 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean) {
                 flash.snapTo(1f)
             }
         }
-        val ringPaint = if (face.isNextTarget) {
-            lerp(ringColor, board.waypointDotOnPath, flash.value)
-        } else {
-            ringColor
+        // Read where the ring and label are drawn, so the flash repaints them frame by frame
+        // without recomposing the cell (ticket 02b: it ran for FlashDuration into every drag
+        // that had just reached a waypoint).
+        val ringPaint = ColorProducer {
+            if (face.isNextTarget) lerp(ringColor, board.waypointDotOnPath, flash.value) else ringColor
         }
         if (face.isWaypoint) {
             Box(
                 Modifier
                     .fillMaxSize(dotFraction)
-                    .background(ringPaint, CircleShape)
+                    .drawWithCache {
+                        val ring = CircleShape.createOutline(size, layoutDirection, this)
+                        onDrawBehind { drawOutline(ring, ringPaint()) }
+                    }
                     .testTag("play.waypoint_dot_$idx"),
                 contentAlignment = Alignment.Center,
             ) {
@@ -189,7 +196,7 @@ internal fun ZipCell(face: ZipCellFace, modifier: Modifier, animated: Boolean) {
                             ZipBoardSpec.labelFontPerCap
                         ).toSp()
                 }
-                Text(
+                BasicText(
                     text = label.toString(),
                     style = TextStyle(fontWeight = FontWeight.Bold, fontSize = fontSize),
                     color = ringPaint, // label rides the ring (state color, or the trace blue while next target)
