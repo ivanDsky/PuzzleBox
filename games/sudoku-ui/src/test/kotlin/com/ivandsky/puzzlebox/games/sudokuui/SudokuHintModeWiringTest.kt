@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.games.sudokuui
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.games.sudoku.SudokuDefinition
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -8,6 +10,7 @@ import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -28,7 +31,7 @@ class SudokuHintModeWiringTest {
 
     private val defaultDispatcher = Dispatchers.Unconfined
 
-    private fun koinWith(): Koin = koinApplication {
+    private fun koinWith(vararg flags: ReleaseFlag): Koin = koinApplication {
         modules(miniSudokuUiModule, sudokuUiModule, module {
             single<DispatcherProvider> {
                 object : DispatcherProvider {
@@ -38,6 +41,11 @@ class SudokuHintModeWiringTest {
                 }
             }
             single<SudokuHighlightSettings> { InMemorySudokuHighlightSettings() }
+            single<ReleaseFlags> {
+                object : ReleaseFlags {
+                    override val enabled = MutableStateFlow(flags.toSet())
+                }
+            }
         })
     }.koin.also { koins += it }
 
@@ -71,13 +79,24 @@ class SudokuHintModeWiringTest {
     }
 
     @Test
-    fun `mini resolves stepwise on the provider's default dispatcher and classic resolves legacy`() {
+    fun `with HintFirstMove off, mini resolves stepwise on the provider's default dispatcher and classic resolves legacy`() {
         val koin = koinWith()
 
         val mini = playUi(koin, SudokuGames.MINI).createController(env) as SudokuPlayController
         val classic = playUi(koin, SudokuGames.CLASSIC).createController(env) as SudokuPlayController
 
         assertEquals(HintMode.Stepwise(defaultDispatcher), mini.hintMode)
+        assertEquals(HintMode.Legacy, classic.hintMode)
+    }
+
+    @Test
+    fun `with HintFirstMove on, mini's mode carries the first-move option and classic stays legacy`() {
+        val koin = koinWith(ReleaseFlag.HintFirstMove)
+
+        val mini = playUi(koin, SudokuGames.MINI).createController(env) as SudokuPlayController
+        val classic = playUi(koin, SudokuGames.CLASSIC).createController(env) as SudokuPlayController
+
+        assertEquals(HintMode.Stepwise(defaultDispatcher, firstMove = true), mini.hintMode)
         assertEquals(HintMode.Legacy, classic.hintMode)
     }
 }

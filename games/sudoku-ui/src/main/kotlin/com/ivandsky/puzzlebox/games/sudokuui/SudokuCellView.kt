@@ -109,7 +109,7 @@ internal fun SudokuCellView(
                     cell.conflict -> colors.error
                     // The full teal fill needs the hue's deep ink; green entries and grey givens fail on it.
                     cell.selected -> board.sudokuSelectionInk
-                    cell.given -> colors.onSurface
+                    cell.given -> board.boardInk
                     else -> entryInk
                 },
                 modifier = Modifier.popScale(motion, cell.idx),

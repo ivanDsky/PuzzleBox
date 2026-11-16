@@ -6,6 +6,7 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.BoardGeometry
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightRole
@@ -47,9 +48,9 @@ class SudokuSpotlightGeometryTest {
     private fun lighting(cell: Int) =
         Spotlight(SIZE, SIZE, mapOf(cell to SpotlightRole.TARGET), callout = null, SudokuSpotlightGlyphs(mapOf(cell to "4")), playId = 1)
 
-    private fun show(spotlight: Spotlight) {
+    private fun show(spotlight: Spotlight, readableBoard: Boolean = false) {
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) {
+            PuzzleBoxTheme(darkTheme = false, readableBoard = readableBoard) {
                 SudokuGrid(sudokuBoardModel(mini, null), onSelect = {}, Modifier.size(360.dp), spotlight = spotlight)
             }
         }
@@ -87,8 +88,18 @@ class SudokuSpotlightGeometryTest {
         val cells = Rect(bounds("sudoku.cell.0").topLeft, bounds("sudoku.cell.${SIZE * SIZE - 1}").bottomRight)
         assertRect(cells, bounds(SPOTLIGHT_TAG))
 
-        val frame = with(composeRule.density) { gridStrokes(SIZE).box.toPx() }
+        val frame = with(composeRule.density) { gridStrokes(SIZE, BoardGeometry.Legacy).box.toPx() }
         assertRect(bounds("sudoku.grid").deflate(frame), bounds(SPOTLIGHT_TAG))
+    }
+
+    @Test
+    fun `on the readable board the cells and the overlay sit inside the heavier wall`() {
+        show(lighting(LIT), readableBoard = true)
+
+        val cells = Rect(bounds("sudoku.cell.0").topLeft, bounds("sudoku.cell.${SIZE * SIZE - 1}").bottomRight)
+        val wall = with(composeRule.density) { BoardGeometry.Readable.wallWeight.toPx() }
+        assertRect(bounds("sudoku.grid").deflate(wall), cells)
+        assertRect(cells, bounds(SPOTLIGHT_TAG))
     }
 
     private companion object {

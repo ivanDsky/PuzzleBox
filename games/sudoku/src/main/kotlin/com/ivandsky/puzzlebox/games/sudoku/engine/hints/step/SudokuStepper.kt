@@ -18,13 +18,20 @@ import kotlin.math.abs
  * come from the givens and correct entries minus the `known` strikes (cell to digit mask), so notes
  * and wrong entries never seed a step. Mistakes and the reveal digit read the stored solution;
  * nothing is solved here.
+ *
+ * With `firstMove` (nav-rethink B4) a single the player sees at a glance is skipped: after the mistake check the
+ * step is the cheapest single of the first rung (box, line, naked) that holds one on a cell that is not obvious.
+ * A cell is obvious when any single on it sits in a unit with at most [OBVIOUS_EMPTY_CELLS] empty cells. When every
+ * single is obvious the usual order stands, so no elimination or reveal jumps ahead of a single.
  */
 object SudokuStepper {
 
     // The legacy ladder names the single rung, so the stepper and SudokuHints.hint never disagree on it.
     private val ladder = SudokuHints(emptyList())
 
-    fun next(puzzle: SudokuPuzzle, board: SudokuBoard, lastMove: Int?, known: Map<Int, Int>): SudokuStep {
+    private const val OBVIOUS_EMPTY_CELLS = 2
+
+    fun next(puzzle: SudokuPuzzle, board: SudokuBoard, lastMove: Int?, known: Map<Int, Int>, firstMove: Boolean = false): SudokuStep {
         mistake(puzzle, board, lastMove)?.let { return it }
         if (board.isFull) return SudokuStep.Solved
 
@@ -33,6 +40,7 @@ object SudokuStepper {
         for ((cell, mask) in known) candidates[cell] = candidates[cell] and mask.inv()
 
         val scan = Scan(geometry, board, candidates, lastMove)
+        if (firstMove) scan.firstNotObvious()?.let { return it }
         scan.cheapest(scan.lastCells())?.let { return it }
         val rung = ladder.single(geometry, candidates, null, emptyList())?.technique
             ?: return SudokuEliminations.next(geometry, candidates, lastMove) { ladder.single(geometry, it, null, emptyList()) != null }
@@ -81,6 +89,28 @@ object SudokuStepper {
         )
 
         fun cheapest(found: List<Ranked>): SudokuStep.Single? = found.minWithOrNull(order)?.single
+
+        /** The cheapest single of the first rung holding one on a cell no single makes obvious; null when all are obvious. */
+        fun firstNotObvious(): SudokuStep.Single? {
+            val rungs = listOf(
+                hiddenSingles(SudokuTechnique.HIDDEN_SINGLE_BOX),
+                hiddenSingles(SudokuTechnique.HIDDEN_SINGLE_LINE),
+                nakedSingles(),
+            )
+            val obvious = rungs.flatten().filter { obvious(it.single.place) }.mapTo(HashSet()) { it.single.place.cell }
+            return rungs.firstNotNullOfOrNull { rung -> cheapest(rung.filter { it.single.place.cell !in obvious }) }
+        }
+
+        /** A hidden single's own unit is nearly full, or any unit of a naked single's cell is (it has no unit of its own). */
+        private fun obvious(place: SudokuHint.Place): Boolean {
+            val cell = place.cell
+            val units = place.unit?.let(::listOf) ?: listOf(
+                SudokuUnit(UnitKind.ROW, geometry.rowOf(cell)),
+                SudokuUnit(UnitKind.COLUMN, geometry.colOf(cell)),
+                SudokuUnit(UnitKind.BOX, geometry.boxOf(cell)),
+            )
+            return units.any { unit -> geometry.cellsOf(unit).count { board.digitAt(it) == 0 } <= OBVIOUS_EMPTY_CELLS }
+        }
 
         /** D0: a unit with one empty cell. Its candidates are the one digit the unit lacks, as it sees the rest. */
         fun lastCells(): List<Ranked> = geometry.units.mapNotNull { unit ->

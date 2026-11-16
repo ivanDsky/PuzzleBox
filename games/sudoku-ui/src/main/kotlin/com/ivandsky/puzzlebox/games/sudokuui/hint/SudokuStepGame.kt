@@ -14,9 +14,11 @@ import com.ivandsky.puzzlebox.games.sudoku.engine.hints.step.SudokuStepper
  * It also owns `known` (A7): the engine ignores notes, so a shown elimination leaves nothing it can read, and it would
  * come back on every press. The struck masks of the elimination on screen are remembered on the next input and fed
  * back to the stepper; memory only, never persisted (A21). Main-confined; the compute block only reads copies.
+ * [firstMove] is the mode's first-move option (B4), handed to the stepper on every press.
  */
 internal class SudokuStepGame(
     private val session: () -> SudokuSession,
+    private val firstMove: Boolean = false,
 ) : StepHints.Game<SudokuStep, SudokuSpotlightMapper.Key> {
 
     /** Cell to struck digit mask. Replaced, never mutated, so a captured reference is a snapshot. */
@@ -31,7 +33,8 @@ internal class SudokuStepGame(
         val board = current.board
         val lastMove = current.history.done.lastOrNull()?.let(::cellOf)
         val known = known
-        return { SudokuStepper.next(puzzle, board, lastMove, known) }
+        val firstMove = firstMove
+        return { SudokuStepper.next(puzzle, board, lastMove, known, firstMove) }
     }
 
     override fun keyOf(step: SudokuStep): SudokuSpotlightMapper.Key? = SudokuSpotlightMapper.keyOf(step)
