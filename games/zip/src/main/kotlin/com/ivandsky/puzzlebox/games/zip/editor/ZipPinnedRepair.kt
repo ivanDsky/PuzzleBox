@@ -124,13 +124,13 @@ internal class ZipPinnedRepair(
     private fun wallBetween(a: Int, b: Int): Wall =
         Wall(Cell(minOf(a, b)), if (abs(a - b) == 1) WallDirection.RIGHT else WallDirection.DOWN)
 
-    private companion object {
+    companion object {
         /**
          * DFS nodes one search may visit, a thirtieth of [ZipDraftAnalyzer.MAX_NODES]. A search
          * that cannot settle costs the run this much before the board is tightened blind: a
          * higher cap gives a few walls fewer at 8×8 and takes several times as long.
          */
-        const val SEARCH_NODES = 10_000
+        private const val SEARCH_NODES = 10_000
 
         /** Numbers wanted per board side before walls take over: at most 10 on 5×5, 16 on 8×8. */
         const val NUMBERS_PER_SIDE = 2
