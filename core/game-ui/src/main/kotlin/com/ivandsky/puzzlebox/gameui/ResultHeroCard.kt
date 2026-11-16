@@ -26,7 +26,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
@@ -39,6 +38,7 @@ import com.ivandsky.puzzlebox.designsystem.ResultBeats
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.Stamp
 import com.ivandsky.puzzlebox.designsystem.beatDelayMs
+import com.ivandsky.puzzlebox.designsystem.entranceSettled
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.rememberCountUp
@@ -155,8 +155,8 @@ internal fun ResultHeroCard(
 /** The glyph (stamped in once), the title over the date line, and the pill that rises with the supporting beat. */
 @Composable
 private fun HeroHeader(model: ResultHeroModel, brand: GameBrand) {
-    val inspection = LocalInspectionMode.current
-    var entered by rememberSaveable { mutableStateOf(inspection) }
+    val settled = entranceSettled()
+    var entered by rememberSaveable { mutableStateOf(settled) }
     LaunchedEffect(Unit) { entered = true }
     Row(
         modifier = Modifier.fillMaxWidth(),

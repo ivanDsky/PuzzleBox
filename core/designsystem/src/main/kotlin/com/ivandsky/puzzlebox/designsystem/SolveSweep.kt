@@ -26,7 +26,6 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.invalidateDraw
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.unit.dp
 import com.airbnb.android.showkase.annotation.ShowkaseComposable
 import kotlin.math.hypot
@@ -35,12 +34,13 @@ import kotlin.math.hypot
  * A [SolveSweepState] tied to this composition. The sweep lasts
  * [MotionTokens.SweepDuration]. Reduced motion (and the preview inspector, which
  * never runs effects past the first frame) jumps straight to the end: the accent
- * outline with no band.
+ * outline with no band. Under [LocalEntranceSettled] it is at that end from the first frame.
  */
 @Composable
 fun rememberSolveSweepState(): SolveSweepState {
-    val state = remember { SolveSweepState() }
-    val instant = rememberReducedMotion() || LocalInspectionMode.current
+    val played = LocalEntranceSettled.current
+    val state = remember { SolveSweepState(played) }
+    val instant = rememberReducedMotion() || entranceSettled()
     LaunchedEffect(state, state.plays) {
         if (state.plays == 0) return@LaunchedEffect
         if (instant) {

@@ -16,7 +16,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -26,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.ResultBeats
 import com.ivandsky.puzzlebox.designsystem.beatDelayMs
+import com.ivandsky.puzzlebox.designsystem.entranceSettled
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 
@@ -39,7 +39,7 @@ private val LabelGap = 8.dp
  */
 @Composable
 internal fun RangeLabels(view: HeroScopeView, entrance: Boolean, width: Dp) {
-    val settled = LocalInspectionMode.current
+    val settled = entranceSettled()
     val reduced = rememberReducedMotion()
     val alpha = remember { Animatable(if (settled) 1f else 0f) }
     LaunchedEffect(Unit) {

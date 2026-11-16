@@ -8,7 +8,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.util.lerp
 
 /**
@@ -44,7 +43,7 @@ internal fun beatScale(fromScale: Float, progress: Float): Float = lerp(fromScal
  * The layer alpha clips paint outside the block's bounds until the fade ends.
  */
 fun Modifier.resultBeat(beat: Int, index: Int = 0, fromScale: Float = 1f): Modifier = composed {
-    val settled = LocalInspectionMode.current
+    val settled = entranceSettled()
     val reduced = rememberReducedMotion()
     val progress = remember { Animatable(if (settled) 1f else 0f) }
     LaunchedEffect(progress, reduced) {

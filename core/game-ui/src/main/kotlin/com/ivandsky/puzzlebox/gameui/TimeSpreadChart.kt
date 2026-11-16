@@ -25,7 +25,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -36,6 +35,7 @@ import com.ivandsky.puzzlebox.designsystem.GameAccent
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.ResultBeats
 import com.ivandsky.puzzlebox.designsystem.beatDelayMs
+import com.ivandsky.puzzlebox.designsystem.entranceSettled
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.tabular
 import kotlin.math.abs
@@ -172,7 +172,7 @@ private fun BarColumn(
     palette: GameAccent,
     slot: Dp,
 ) {
-    val settled = LocalInspectionMode.current
+    val settled = entranceSettled()
     val reduced = rememberReducedMotion()
     val from = start ?: BarStart(0f, 1f, GROW_FROM)
     val progress = remember { Animatable(if (settled || reduced) 1f else 0f) }

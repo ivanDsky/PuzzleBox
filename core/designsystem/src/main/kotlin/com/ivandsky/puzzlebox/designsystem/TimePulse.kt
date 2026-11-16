@@ -8,7 +8,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalInspectionMode
 import kotlin.math.PI
 import kotlin.math.sin
 
@@ -20,7 +19,7 @@ internal fun pulseScale(progress: Float): Float = 1f + (MotionTokens.PulseScale 
  * [trigger] turns true. Reduced motion and previews: none. Draw-phase only.
  */
 fun Modifier.timePulse(trigger: Boolean): Modifier = composed {
-    val skip = rememberReducedMotion() || LocalInspectionMode.current
+    val skip = rememberReducedMotion() || entranceSettled()
     val progress = remember { Animatable(0f) }
     LaunchedEffect(trigger, skip) {
         if (!trigger || skip) return@LaunchedEffect
