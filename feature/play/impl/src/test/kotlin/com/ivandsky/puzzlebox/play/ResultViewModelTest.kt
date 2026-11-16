@@ -553,6 +553,7 @@ class ResultViewModelTest {
             LinkedInPostState.Offline to LinkedInPostRowState.Retry,
             LinkedInPostState.Paused to LinkedInPostRowState.Paused,
             LinkedInPostState.NotToday to LinkedInPostRowState.NotToday,
+            LinkedInPostState.Tutorial to LinkedInPostRowState.Tutorial,
             LinkedInPostState.Hidden to null,
         )
         for ((state, button) in expected) {
@@ -593,7 +594,7 @@ class ResultViewModelTest {
 
     @Test
     fun `a tap on a status line submits nothing`() {
-        for (state in listOf(LinkedInPostState.Sending, LinkedInPostState.Posted, LinkedInPostState.AlreadyOnLinkedIn, LinkedInPostState.Paused, LinkedInPostState.NotToday, LinkedInPostState.Hidden)) {
+        for (state in listOf(LinkedInPostState.Sending, LinkedInPostState.Posted, LinkedInPostState.AlreadyOnLinkedIn, LinkedInPostState.Paused, LinkedInPostState.NotToday, LinkedInPostState.Tutorial, LinkedInPostState.Hidden)) {
             linkedInPosts.emit(alpha, day, state)
             val vm = vm(flags = postOn).postObserved()
             vm.postToLinkedIn()

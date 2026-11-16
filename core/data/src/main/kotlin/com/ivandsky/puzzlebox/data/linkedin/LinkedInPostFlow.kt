@@ -137,9 +137,10 @@ internal class LinkedInPostFlow(
         when {
             // A page of another member means the session is not the linked profile's: nothing may be sent as it.
             page.profileId != key.profileId -> return pause(key, Kind.Unexpected)
+            // Before the puzzle id: a tutorial carries its own id, and LinkedIn still onboarding the account is no fault of the link.
+            page.isTutorial -> return LinkedInPostState.Tutorial
             page.puzzleId != asked.puzzleNumber.toLong() -> return LinkedInPostState.NotToday
             page.progress == LinkedInProgress.Won -> return whileLinked(key) { alreadyThere(key, posted = false) }
-            page.isTutorial -> return pause(key, Kind.Unexpected)
         }
         val post = open(key) { return it }
         // Under the lock a disconnect holds for its whole wipe: a post that got here mid-wipe waits, then finds no link to mark.
@@ -260,7 +261,7 @@ internal class LinkedInPostFlow(
 
     private companion object {
         /** The outcomes no stored state can tell: shown until the day's next tap or the end of the process. */
-        val UNSTORED = setOf(LinkedInPostState.Offline, LinkedInPostState.AlreadyOnLinkedIn, LinkedInPostState.NotToday)
+        val UNSTORED = setOf(LinkedInPostState.Offline, LinkedInPostState.AlreadyOnLinkedIn, LinkedInPostState.NotToday, LinkedInPostState.Tutorial)
     }
 }
 

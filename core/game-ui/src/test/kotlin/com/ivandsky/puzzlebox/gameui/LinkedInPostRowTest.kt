@@ -40,6 +40,7 @@ class LinkedInPostRowTest {
         LinkedInPostRowState.Retry to "Try again",
         LinkedInPostRowState.Paused to "LinkedIn paused",
         LinkedInPostRowState.NotToday to "Not today's puzzle",
+        LinkedInPostRowState.Tutorial to "LinkedIn tutorial first",
     )
 
     private val subtitles = mapOf(
@@ -51,6 +52,7 @@ class LinkedInPostRowTest {
         LinkedInPostRowState.Retry to "Couldn't reach LinkedIn",
         LinkedInPostRowState.Paused to "Open Profile to resume",
         LinkedInPostRowState.NotToday to "That puzzle is no longer today's",
+        LinkedInPostRowState.Tutorial to "LinkedIn shows this account a tutorial today",
     )
 
     private fun show(state: LinkedInPostRowState, time: String? = "0:58", pending: Boolean = false) {

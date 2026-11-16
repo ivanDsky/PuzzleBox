@@ -22,6 +22,15 @@ class SduiGamePageParserTest {
     }
 
     @Test
+    fun `the onboarding tutorial page is a tutorial, Fresh, with the tutorial's puzzle id and not the day's`() {
+        val tutorial = SduiGamePageParser.parse(LinkedInPostFixtures.text("zip-page-test-account-tutorial-2.rsc"))!!
+
+        assertEquals(true, tutorial.isTutorial)
+        assertEquals(2L, tutorial.puzzleId)
+        assertEquals(LinkedInProgress.Fresh, tutorial.progress)
+    }
+
+    @Test
     fun `the derived in-progress page is Started with the plays after the save`() {
         val saved = LinkedInPostFixtures.text("zip-page-daily-in-progress.derived.rsc")
 

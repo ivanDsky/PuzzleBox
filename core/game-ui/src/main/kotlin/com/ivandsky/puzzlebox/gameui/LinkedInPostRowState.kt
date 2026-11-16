@@ -15,7 +15,8 @@ enum class LinkedInPostRowState(val title: String, val enabled: Boolean) {
     Check("Check LinkedIn", enabled = true),
     Retry("Try again", enabled = true),
     Paused("LinkedIn paused", enabled = false),
-    NotToday("Not today's puzzle", enabled = false);
+    NotToday("Not today's puzzle", enabled = false),
+    Tutorial("LinkedIn tutorial first", enabled = false);
 
     /** The line under the title. [time] is the formatted solve time; without it the lines say "your time". */
     fun subtitle(time: String?): String = when (this) {
@@ -27,5 +28,6 @@ enum class LinkedInPostRowState(val title: String, val enabled: Boolean) {
         Retry -> "Couldn't reach LinkedIn"
         Paused -> "Open Profile to resume"
         NotToday -> "That puzzle is no longer today's"
+        Tutorial -> "LinkedIn shows this account a tutorial today"
     }
 }
