@@ -56,5 +56,5 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * Fixed play controls and board size caps (nav-rethink B5, B6). Read only by the play-tuning source binding in the
      * game UI DI, which holds a non-null `PlayTuning` only while this is on (spec A2).
      */
-    BoardErgonomics(label = "Fixed play controls and board size caps", releaseDefault = false),
+    BoardErgonomics(label = "Fixed play controls and board size caps", releaseDefault = true),
 }

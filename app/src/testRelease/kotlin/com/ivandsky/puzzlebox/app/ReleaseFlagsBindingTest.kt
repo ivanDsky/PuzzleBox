@@ -37,7 +37,7 @@ class ReleaseFlagsBindingTest {
     }
 
     @Test
-    fun `release graph binds the flag-gated play tuning, dark while BoardErgonomics ships off`() {
+    fun `release graph binds the flag-gated play tuning, shipped tuning while BoardErgonomics ships on`() {
         val koin = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
             modules(PuzzleBoxApplication.appModules)
