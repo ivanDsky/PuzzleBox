@@ -12,6 +12,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -30,6 +31,14 @@ import com.ivandsky.puzzlebox.designsystem.solveSweep
 import java.time.Instant
 import kotlinx.coroutines.delay
 
+/**
+ * Whether the solve moment is hosted by an overlay on Result instead of by the play frame.
+ * When true, [PlaySolveFrame] hands off right after the sweep and skips its own stamp and
+ * hold, so Result loads while [SolveCelebration] plays over it. Off (no provider) leaves
+ * every game's play frame as it was.
+ */
+val LocalSolveCelebrationOverlay = staticCompositionLocalOf { false }
+
 /** How long the solved board rests before the hand-off: the stamp's spring settles, or
  *  under reduced motion the outline is seen. */
 private const val SOLVED_HOLD_MS = 360L
@@ -41,7 +50,8 @@ private const val SOLVED_HOLD_MS = 360L
  * [solved] is the session's completion instant, so the moment plays
  * once per solve. A board that is already solved when it first draws (a restored play)
  * hands off at once, as before. Reduced motion shows only the accent outline, held
- * briefly, with no stamp.
+ * briefly, with no stamp. Under [LocalSolveCelebrationOverlay] the frame hands off right
+ * after the sweep and leaves the stamp and hold to [SolveCelebration].
  */
 @Composable
 fun PlaySolveFrame(
@@ -55,6 +65,7 @@ fun PlaySolveFrame(
     val sweep = rememberSolveSweepState()
     val reducedMotion = rememberReducedMotion()
     val handOff by rememberUpdatedState(onHandOff)
+    val overlayMode = LocalSolveCelebrationOverlay.current
     // Seen unsolved in this composition: only a solve the player just made gets the moment.
     var seenOpen by remember { mutableStateOf(false) }
     var stamped by remember { mutableStateOf(false) }
@@ -66,11 +77,11 @@ fun PlaySolveFrame(
         }
         if (seenOpen) {
             sweep.play()
-            if (!reducedMotion) {
-                delay(MotionTokens.SweepDuration.toLong())
-                stamped = true
+            if (!reducedMotion) delay(MotionTokens.SweepDuration.toLong())
+            if (!overlayMode) {
+                stamped = !reducedMotion
+                delay(SOLVED_HOLD_MS)
             }
-            delay(SOLVED_HOLD_MS)
         }
         handOff()
     }
