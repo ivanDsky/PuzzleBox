@@ -46,7 +46,7 @@ class PlayTuningPanelTest {
 
         composeRule.onNodeWithTag("tuning.phone.value").assertTextEquals("560 dp")
         assertEquals(
-            PlayTuning.Shipped.copy(phoneCap = 560.dp, tabletPortraitCap = 592.dp),
+            PlayTuning.Shipped.copy(phoneCap = 560.dp, tabletPortraitCap = 632.dp),
             source.tuning.value,
         )
     }
@@ -65,7 +65,7 @@ class PlayTuningPanelTest {
     @Test
     fun `the tablet landscape stepper is gone while the pane is filled and Fill the pane toggles it`() {
         show()
-        composeRule.onNodeWithTag("tuning.tabletLandscape.value").assertTextEquals("600 dp")
+        composeRule.onNodeWithTag("tuning.tabletLandscape.value").assertTextEquals("640 dp")
 
         composeRule.onNodeWithTag("tuning.fill").performClick()
         composeRule.onNodeWithTag("tuning.tabletLandscape").assertDoesNotExist()
@@ -79,7 +79,7 @@ class PlayTuningPanelTest {
     @Test
     fun `the tablet cell cap stepper is gone while the cap is off and its switch turns it back on at 72 dp`() {
         show()
-        composeRule.onNodeWithTag("tuning.cell.value").assertTextEquals("72 dp")
+        composeRule.onNodeWithTag("tuning.cell.value").assertTextEquals("80 dp")
 
         composeRule.onNodeWithTag("tuning.cellCap").performClick()
         assertNull(source.tuning.value.tabletCellCap)
