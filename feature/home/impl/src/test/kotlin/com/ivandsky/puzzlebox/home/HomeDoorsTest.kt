@@ -8,11 +8,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertTouchWidthIsEqualTo
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -89,6 +92,18 @@ class HomeDoorsTest {
         composeRule.onNodeWithTag("week.day.2026-11-02").assertHeightIsAtLeast(48.dp)
         composeRule.onNodeWithTag("home.streak_door").assertHeightIsAtLeast(48.dp)
         composeRule.onNodeWithTag("home.history_row_2026-11-03").assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w360dp-h640dp-420dpi")
+    fun `at 360dp each week disc zone is touchable at 48dp wide and the zones leave no gap`() {
+        setContent(HomeLayout.SinglePane, doors = true)
+
+        val cells = (0L..6L).map { composeRule.onNodeWithTag("week.day.${HomeScreenTest.DAY.minusDays(6 - it)}") }
+        cells.forEach { it.assertTouchWidthIsEqualTo(48.dp).assertHeightIsAtLeast(48.dp) }
+        val bounds = cells.map { it.getUnclippedBoundsInRoot() }
+        println("week zone at 360dp: layout ${bounds.first().width}, touch 48.dp")
+        bounds.zipWithNext { a, b -> assertEquals(a.right.value, b.left.value, 0.5f) }
     }
 
     @Test
