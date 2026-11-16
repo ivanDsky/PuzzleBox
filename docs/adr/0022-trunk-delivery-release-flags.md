@@ -98,3 +98,4 @@ to merge without being reachable in a release build.
 - The nav-doors flag was removed, with every branch on it, on 2026-11-16 (nav-rethink M1 cleanup).
 - FlatSurfaces flipped to `releaseDefault = true` in 0.34.0 on 2026-11-16 (nav-rethink M2, PRs #1013–#1019, #1024; user check ok on <fill after check>).
 - CustomInGames flipped to `releaseDefault = true` in 0.35.0 on 2026-11-16 (nav-rethink M3, PRs #1020, #1025, #1026, #1029, #1032, #1034, #1037; user check ok on <fill after check>).
+- ResultMoments flipped to `releaseDefault = true` in 0.36.0 on 2026-11-16 (nav-rethink M4, PRs #1022, #1027, #1028, #1031, #1033, #1040, #1044, #1050; check build: (filled after the device check)).
