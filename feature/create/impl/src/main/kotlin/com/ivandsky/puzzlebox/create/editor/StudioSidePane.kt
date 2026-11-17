@@ -120,7 +120,7 @@ private fun PreviewPane(verdict: Verdict) {
                 sizeLabel = { "4×4" },
                 onResize = {},
                 onClear = {},
-                hint = { Text("Tap a cell to place a crown", it, style = MaterialTheme.typography.bodySmall) },
+                hint = { Text("Tap a cell to place a queen", it, style = MaterialTheme.typography.bodySmall) },
                 modifier = stripModifier,
             )
         },

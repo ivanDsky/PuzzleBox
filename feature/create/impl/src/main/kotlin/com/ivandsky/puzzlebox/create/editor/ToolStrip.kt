@@ -264,7 +264,7 @@ private fun ToolStripPreview() {
 @Composable
 private fun PreviewHint(modifier: Modifier) {
     Text(
-        text = "Drag across cells, then pick a colour",
+        text = "Drag across cells, then pick a color",
         modifier = modifier,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,

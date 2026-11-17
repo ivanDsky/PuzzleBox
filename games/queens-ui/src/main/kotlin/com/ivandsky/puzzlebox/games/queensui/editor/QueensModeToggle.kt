@@ -40,7 +40,7 @@ internal fun QueensModeToggle(mode: QueensEditorMode, onSelect: (QueensEditorMod
             ) {
                 Text(
                     when (each) {
-                        QueensEditorMode.Crown -> "Crown"
+                        QueensEditorMode.Crown -> "Queen"
                         QueensEditorMode.Paint -> "Paint"
                     },
                     maxLines = 1,

@@ -36,8 +36,8 @@ private val points = listOf(
     "It only reads. PuzzleBox never posts, submits or changes anything on LinkedIn.",
     BoardsInAccount,
     "Your LinkedIn password is typed into LinkedIn's own page; PuzzleBox never sees it. " +
-        "The login stays in this phone's web view.",
-    "Disconnect clears this phone's login. It does not sign you out of LinkedIn anywhere else.",
+        "The login stays in this device's web view.",
+    "Disconnect clears this device's login. It does not sign you out of LinkedIn anywhere else.",
 )
 
 /**

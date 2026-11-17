@@ -155,7 +155,7 @@ private fun CreatePanel(state: NewDuelState, actions: NewDuelActions) {
         }
         PresetCard(
             title = "Customize",
-            subtitle = "Rounds, games, deadline, friends' puzzles",
+            subtitle = "Puzzles, games, deadline, friends' puzzles",
             selected = draft.preset == DuelPreset.Custom,
             onClick = { customizing = !customizing },
             tag = "duel.preset.custom",

@@ -32,7 +32,7 @@ private fun previewCard(
         variant = VariantId("queens/n8"),
         sharedFormatVersion = 1,
         puzzleBytes = ByteArray(0),
-        title = "Crown the castle",
+        title = "Rule the castle",
         authorName = "Jonas",
         note = "The bottom-left corner is the whole trick.",
         authorTimeMs = 102_000L,

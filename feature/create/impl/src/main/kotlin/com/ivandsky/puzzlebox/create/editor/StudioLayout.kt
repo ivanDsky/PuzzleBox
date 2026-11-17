@@ -197,7 +197,7 @@ private fun PreviewLayout(layout: PlayLayout) {
                 sizeLabel = { "8×8" },
                 onResize = {},
                 onClear = {},
-                hint = { Text("Tap a cell to place a crown", it, style = MaterialTheme.typography.bodySmall) },
+                hint = { Text("Tap a cell to place a queen", it, style = MaterialTheme.typography.bodySmall) },
                 modifier = stripModifier,
             )
         },

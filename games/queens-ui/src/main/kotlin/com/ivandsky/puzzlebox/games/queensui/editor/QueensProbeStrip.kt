@@ -38,7 +38,7 @@ internal fun QueensProbeStrip(fit: QueensAnswerFit, crowns: Int, modifier: Modif
     val (ground, ink) = probeChipColors(fit) ?: (Color.Unspecified to Color.Unspecified)
     Box(modifier.fillMaxWidth()) {
         Text(
-            text = if (copy == null) "" else "${if (crowns == 1) "1 crown" else "$crowns crowns"}: $copy",
+            text = if (copy == null) "" else "${if (crowns == 1) "1 queen" else "$crowns queens"}: $copy",
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.SemiBold,
             color = ink,

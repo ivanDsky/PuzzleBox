@@ -106,7 +106,7 @@ internal fun QueensSelectionChips(
     ) {
         if (count == 0) {
             Text(
-                text = "Drag across cells, then pick a colour.",
+                text = "Drag across cells, then pick a color.",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -132,7 +132,7 @@ internal fun QueensSelectionChips(
             ContextChip("Fill", "queens.editor.chip.fill", onFill, fill, QueensRegionPalette.onInkFor(fill, scheme.onSurface, scheme.scrim))
         }
         ContextChip("Area", "queens.editor.chip.area", onArea)
-        ContextChip("All of colour", "queens.editor.chip.allOf", onAllOfColour)
+        ContextChip("All of color", "queens.editor.chip.allOf", onAllOfColour)
         ContextChip("Cancel", "queens.editor.chip.cancel", onCancel)
     }
 }

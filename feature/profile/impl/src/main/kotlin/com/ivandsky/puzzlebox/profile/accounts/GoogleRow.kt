@@ -46,8 +46,8 @@ private val MarkSize = 22.dp
 private val MenuMinWidth = 180.dp
 private val MenuItemHeight = 48.dp
 
-private const val SIGN_IN_SYNC_COPY = "Sign in with Google to put your times on the leaderboards and keep your history on every device."
-private const val SIGN_OUT_COPY = "Signing out keeps your history on this phone and in your account."
+private const val SIGN_IN_SYNC_COPY = "Sign in with Google to put your times in Ranks and keep your history on every device."
+private const val SIGN_OUT_COPY = "Signing out keeps your history on this device and in your account."
 private const val UNFINISHED_COPY = "Unfinished games stay on this device."
 
 /**

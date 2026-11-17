@@ -36,8 +36,8 @@ class DeleteCloudDataDialogTest {
 
         composeRule.onNodeWithText("Delete my cloud data?").assertExists()
         composeRule.onNodeWithText("This removes your synced history and saved boards from your account", substring = true).assertExists()
-        composeRule.onNodeWithText("Everything stays on this phone.", substring = true).assertExists()
-        composeRule.onNodeWithText("Signing in again uploads this phone's history again.", substring = true).assertExists()
+        composeRule.onNodeWithText("Everything stays on this device.", substring = true).assertExists()
+        composeRule.onNodeWithText("Signing in again uploads this device's history again.", substring = true).assertExists()
         composeRule.onNodeWithText("It can't be undone.", substring = true).assertExists()
     }
 

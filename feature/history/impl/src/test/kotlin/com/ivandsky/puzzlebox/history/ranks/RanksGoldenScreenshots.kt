@@ -130,7 +130,7 @@ abstract class RanksGoldenScreenshots(private val device: String) {
             RankOrder.TimeThenHints,
             OverallState.Partial(Standings, loaded = 2, total = 5).toDailyBoardState("you"),
             "Points from every game's board. Higher is better.",
-            "2 of 5 boards",
+            "2 of 5 games",
         )
 
         val FriendsDay = RanksUiState(

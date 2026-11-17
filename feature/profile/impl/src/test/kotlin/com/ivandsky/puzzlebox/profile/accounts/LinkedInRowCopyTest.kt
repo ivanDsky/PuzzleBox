@@ -58,7 +58,7 @@ class LinkedInRowCopyTest {
             "Import your own LinkedIn game results and see your connections' times. " +
                 "The boards you read are saved to your own PuzzleBox account, readable only by you, and kept after Disconnect.",
         ).assertExists()
-        composeRule.onNodeWithText("on this phone", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("on this device", substring = true).assertDoesNotExist()
     }
 
     @Test

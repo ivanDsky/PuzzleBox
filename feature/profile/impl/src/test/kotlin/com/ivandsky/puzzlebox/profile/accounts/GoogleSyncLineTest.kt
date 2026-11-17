@@ -111,9 +111,9 @@ class GoogleSyncLineTest {
     fun `paused gives each reason its own short line`() {
         val lines = mapOf(
             PauseReason.Exhausted to "Sync paused · over today's limit, tries again later",
-            PauseReason.WriteCap to "Sync paused · this phone is over its daily limit, tries again later",
+            PauseReason.WriteCap to "Sync paused · this device is over its daily limit, tries again later",
             PauseReason.Denied to "Sync paused · your account was refused, tries again later",
-            PauseReason.Local to "Sync paused · something went wrong on this phone, tries again later",
+            PauseReason.Local to "Sync paused · something went wrong on this device, tries again later",
         )
         assertEquals(PauseReason.entries.toSet(), lines.keys)
         val sync = mutableStateOf(GoogleSync(GoogleSync.Status.Paused(PauseReason.Exhausted)))

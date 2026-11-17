@@ -91,8 +91,8 @@ internal fun QueensFixRow.text(size: Int): String? = when (id) {
         if (count < size) "$count of $size regions — ${size - count} more needed" else "$count regions — only $size allowed"
     PublishBlock.SPLIT_REGION -> "Region ${letterOf(region)} is in $count pieces"
     PublishBlock.NEEDS_GUESSING -> "Logic alone can't finish it — players would have to guess"
-    QueensCrownIssue.DOUBLE -> "Region ${letterOf(region)} has $count crowns"
-    QueensCrownIssue.MISSING -> "Region ${letterOf(region)} has no crown"
+    QueensCrownIssue.DOUBLE -> "Region ${letterOf(region)} has $count queens"
+    QueensCrownIssue.MISSING -> "Region ${letterOf(region)} has no queen"
     else -> null
 }
 

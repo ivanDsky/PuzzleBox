@@ -118,7 +118,7 @@ private fun DraftRowPreview() {
                         id = "a",
                         gameId = GameId("queens"),
                         brand = GameBrand(AccentSlot.Violet, GameGlyphs.Queens),
-                        title = "Sunday crowns",
+                        title = "Sunday queens",
                         meta = "Queens · 8×8",
                         edited = "edited 2 h ago",
                         verdict = Verdict.Unique(Solution(emptyList())),

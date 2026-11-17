@@ -61,7 +61,7 @@ class DeleteSavedBoardsDialogTest {
         setDialog()
 
         composeRule.onNodeWithText("Delete saved boards?").assertExists()
-        composeRule.onNodeWithText("Another phone keeps its own copy", substring = true).assertExists()
+        composeRule.onNodeWithText("Another device keeps its own copy", substring = true).assertExists()
     }
 
     @Test

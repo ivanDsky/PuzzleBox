@@ -78,7 +78,7 @@ internal fun CustomBoard(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text("Leaderboard", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text("Ranks", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
             Text(rankRuleText(rankOrder) + " · only this puzzle", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         (board?.author ?: author)?.let { AuthorLine(it) }
@@ -134,9 +134,9 @@ private fun UnavailableNote() {
     ) {
         Icon(PuzzleIcons.NeedsConnection, contentDescription = null, modifier = Modifier.size(BoardIconSize), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text("Board unavailable offline", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
+            Text("Ranks unavailable offline", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurface)
             Text(
-                "Your time is saved on this phone and joins the board once you're back online.",
+                "Your time is saved on this device and joins Ranks once you're back online.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -182,7 +182,7 @@ private fun PreviewTools(modifier: Modifier) {
         sizeLabel = { "6×6" },
         onResize = {},
         onClear = {},
-        hint = { Text("Crown | Paint", it, style = MaterialTheme.typography.bodySmall) },
+        hint = { Text("Queen | Paint", it, style = MaterialTheme.typography.bodySmall) },
         modifier = modifier,
     )
 }

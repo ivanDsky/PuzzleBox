@@ -98,7 +98,7 @@ internal fun OpenOutcome.errorCopy(code: ShareCode?): OpenErrorCopy? = when (thi
     OpenOutcome.NoLongerAvailable -> OpenErrorCopy(
         tag = "friend.error.noLongerAvailable",
         title = "This puzzle is no longer available",
-        body = "Its author took it down before it reached this phone.",
+        body = "Its author took it down before it reached this device.",
         action = null,
         glyph = OpenErrorGlyph.Gone,
     )

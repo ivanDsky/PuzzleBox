@@ -75,7 +75,7 @@ class OverallBoardMappingTest {
         val state = OverallState.Partial(standings, loaded = 2, total = 5)
 
         assertEquals(3, ranked(state).rows.size)
-        assertEquals("2 of 5 boards", state.boardNote())
+        assertEquals("2 of 5 games", state.boardNote())
     }
 
     @Test
@@ -83,7 +83,7 @@ class OverallBoardMappingTest {
         val state = OverallState.Offline(standings)
 
         assertEquals(3, ranked(state).rows.size)
-        assertEquals("Offline — showing boards saved on this phone", state.boardNote())
+        assertEquals("Offline — showing Ranks saved on this device", state.boardNote())
     }
 
     @Test

@@ -39,7 +39,7 @@ private fun ReplayOptInContent(onShare: () -> Unit, onKeepPrivate: () -> Unit) {
     ) {
         Text("Share your replays?", style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag("ranks.optin.title"))
         Text(
-            "You're on the board. Let other players watch how you solved, from your next solve on. Change it any time in Settings.",
+            "You're in Ranks. Let other players watch how you solved, from your next solve on. Change it any time in Settings.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

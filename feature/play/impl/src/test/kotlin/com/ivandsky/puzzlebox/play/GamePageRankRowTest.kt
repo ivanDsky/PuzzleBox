@@ -143,7 +143,7 @@ class GamePageRankRowTest {
     @Test
     fun `signed out or off the board the row is just Leaderboard`() {
         show(FakeIdentityService(), entries(10, meRank = null))
-        composeRule.onNodeWithTag("summary.rank").assertTextEquals("Leaderboard")
+        composeRule.onNodeWithTag("summary.rank").assertTextEquals("Ranks")
     }
 
     @Test

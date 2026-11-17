@@ -24,7 +24,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.shareIn
 
-private const val OVERALL_CAPTION = "Points from every game's board. Higher is better."
+private const val OVERALL_CAPTION = "Points from every game's Ranks. Higher is better."
 
 /**
  * Every board of the hub as the slice its slot draws, in the hub's swipe order. All are projections of the hub's shared

@@ -130,9 +130,9 @@ internal fun ClosedNote() {
     ) {
         Icon(PuzzleIcons.Lock, contentDescription = null, modifier = Modifier.size(BoardIconSize), tint = muted.content)
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Text("Leaderboard closed", style = MaterialTheme.typography.titleSmall, color = muted.content)
+            Text("Ranks closed", style = MaterialTheme.typography.titleSmall, color = muted.content)
             Text(
-                "The author took this puzzle down. It still plays, and your times stay on this phone.",
+                "The author took this puzzle down. It still plays, and your times stay on this device.",
                 style = MaterialTheme.typography.bodySmall,
                 color = muted.content,
             )
@@ -171,7 +171,7 @@ internal fun SignInPrompt(title: String, yourTimeMs: Long?, signIn: BoardSignIn,
     ) {
         Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
         Text(
-            yourTimeMs?.let { "Your ${formatDuration(it)} is saved on this phone either way." } ?: "Playing never needs it.",
+            yourTimeMs?.let { "Your ${formatDuration(it)} is saved on this device either way." } ?: "Playing never needs it.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )

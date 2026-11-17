@@ -99,7 +99,7 @@ class ProfileScreenTest {
         composeRule.onNodeWithTag("profile-signed-out").assertExists()
         composeRule.onNodeWithText("Sign in with Google").assertExists()
         composeRule.onNodeWithTag("profile-signed-in").assertDoesNotExist()
-        composeRule.onNodeWithText("Sign in with Google to put your times on the leaderboards and keep your history on every device.").assertExists()
+        composeRule.onNodeWithText("Sign in with Google to put your times in Ranks and keep your history on every device.").assertExists()
 
         composeRule.onNodeWithText("Sign in with Google").performScrollTo().performClick()
         assertEquals(1, signInClicks)
@@ -354,7 +354,7 @@ class ProfileScreenTest {
     fun `needing a reconnect shows Reconnect with no Resume and no stats`() {
         setLinkedIn(LinkedInRowState.Paused(known, "Your LinkedIn login expired.", needsReconnect = true))
 
-        composeRule.onNodeWithText("LinkedIn signed this phone out.").assertExists()
+        composeRule.onNodeWithText("LinkedIn signed this device out.").assertExists()
         composeRule.onNodeWithText("Resume").assertDoesNotExist()
         composeRule.onNodeWithText("213 days total · Queens, Tango, Zip · Updated 12 min ago").assertDoesNotExist()
         composeRule.onNodeWithTag("profile.linkedin.overflow").assertExists()
