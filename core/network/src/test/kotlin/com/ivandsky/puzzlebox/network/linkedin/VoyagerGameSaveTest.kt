@@ -16,6 +16,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.RecordedRequest
@@ -55,7 +56,7 @@ class VoyagerGameSaveTest {
         val request = server.takeRequest()
         assertEquals("GET", request.method)
         assertEquals(GAME_PATH, request.path)
-        assertVoyager(request)
+        assertRead(request)
     }
 
     @Test
@@ -79,10 +80,26 @@ class VoyagerGameSaveTest {
             assertEquals("POST", request.method)
             assertEquals(SAVE_PATH, request.path)
             assertEquals("application/json; charset=UTF-8", request.getHeader("Content-Type"))
-            assertVoyager(request)
+            assertSave(request)
         }
         assertEquals(MiniSudokuVoyagerFixtures.openingRequest, body(opening))
         assertEquals(MiniSudokuVoyagerFixtures.winRequest, body(win))
+    }
+
+    @Test
+    fun `each save carries the capture's accept, LinkedIn's origin and the device timezone in x-li-track`() = runBlocking {
+        val server = server(json(saved), json(saved))
+
+        server.poster(zone = ZoneId.of("Asia/Kolkata")).send(post, fresh)
+
+        repeat(2) {
+            val request = server.takeRequest()
+            assertEquals("application/vnd.linkedin.normalized+json", request.getHeader("accept"))
+            assertEquals("https://www.linkedin.com", request.getHeader("origin"))
+            val track = Json.parseToJsonElement(request.getHeader("x-li-track")!!).jsonObject
+            assertEquals("Asia/Kolkata", track.getValue("timezone").jsonPrimitive.content)
+            assertEquals("5.5", track.getValue("timezoneOffset").jsonPrimitive.content)
+        }
     }
 
     @Test
@@ -130,7 +147,7 @@ class VoyagerGameSaveTest {
         val reread = server.takeRequest()
         assertEquals("GET", reread.method)
         assertEquals(GAME_PATH, reread.path)
-        assertVoyager(reread)
+        assertRead(reread)
     }
 
     @Test
@@ -303,16 +320,33 @@ class VoyagerGameSaveTest {
         zone: ZoneId = ZoneId.of("UTC"),
     ): LinkedInResultPoster = linkedInResultPoster(url("/").toString(), FixedSessionCookies(session)) { zone }
 
-    /** The session and the three headers every voyager call carries; the capture's redacted ones are not made up. */
-    private fun assertVoyager(request: RecordedRequest) {
+    /** A voyager read: the session and the three headers of the account reads, and nothing a write adds. */
+    private fun assertRead(request: RecordedRequest) {
+        assertSession(request)
+        assertEquals("application/vnd.linkedin.normalized+json+2.1", request.getHeader("accept"))
+        assertOmitted(request, SAVE_ONLY + NEVER_SENT)
+    }
+
+    /** A voyager save: the capture's headers whose values are known. The redacted ones are not made up. */
+    private fun assertSave(request: RecordedRequest) {
+        assertSession(request)
+        assertEquals("application/vnd.linkedin.normalized+json", request.getHeader("accept"))
+        assertEquals("https://www.linkedin.com", request.getHeader("origin"))
+        assertEquals("UTC", Json.parseToJsonElement(request.getHeader("x-li-track")!!).jsonObject.getValue("timezone").jsonPrimitive.content)
+        assertOmitted(request, NEVER_SENT)
+    }
+
+    private fun assertSession(request: RecordedRequest) {
         assertEquals(listOf(SESSION.cookieHeader), request.headers.values("Cookie"))
         assertEquals(SESSION.csrfToken, request.getHeader("csrf-token"))
         assertEquals(SESSION.userAgent, request.getHeader("User-Agent"))
-        assertEquals("application/vnd.linkedin.normalized+json+2.1", request.getHeader("accept"))
         assertEquals("2.0.0", request.getHeader("x-restli-protocol-version"))
         assertEquals("en_US", request.getHeader("x-li-lang"))
+    }
+
+    private fun assertOmitted(request: RecordedRequest, omitted: Set<String>) {
         val names = request.headers.names().map(String::lowercase)
-        assertEquals(emptyList<String>(), names.filter { it.startsWith("sec-") || it in OMITTED })
+        assertEquals(emptyList<String>(), names.filter { it.startsWith("sec-") || it in omitted })
     }
 
     private fun body(request: RecordedRequest): JsonObject = Json.parseToJsonElement(request.body.readUtf8()).jsonObject
@@ -347,6 +381,7 @@ class VoyagerGameSaveTest {
 
         /** A 200 that carries a GraphQL error and no save result. */
         const val REFUSED = """{"data":{"data":null},"errors":[{"message":"nope"}]}"""
-        val OMITTED = setOf("x-li-track", "x-li-page-instance", "x-li-pem-metadata", "x-li-anchor-page-key", "origin", "referer")
+        val SAVE_ONLY = setOf("x-li-track", "origin")
+        val NEVER_SENT = setOf("x-li-page-instance", "x-li-pem-metadata", "x-li-anchor-page-key", "referer")
     }
 }

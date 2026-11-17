@@ -30,7 +30,7 @@ fun linkedInResultPoster(
     val graphql = VoyagerGraphql(retrofit.create(LinkedInAccountApi::class.java), session)
     return TwoWireLinkedInResultPoster(
         sdui = SduiLinkedInResultPoster(api, session, zone),
-        voyager = VoyagerGameSave(api, graphql, session),
+        voyager = VoyagerGameSave(api, graphql, session, zone),
     )
 }
 

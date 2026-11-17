@@ -10,6 +10,8 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInSendResult
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInVoyagerPlay
 import java.io.IOException
+import java.time.Instant
+import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
@@ -32,6 +34,7 @@ internal class VoyagerGameSave(
     private val api: LinkedInPostApi,
     private val graphql: VoyagerGraphql,
     private val session: LinkedInSessionCookies,
+    private val zone: () -> ZoneId,
 ) {
 
     /** One GET of today's game of [post]'s type. A game with no readable stored record is Rejected(Unexpected). */
@@ -80,6 +83,7 @@ internal class VoyagerGameSave(
                 cookie = headers.cookieHeader,
                 csrfToken = headers.csrfToken,
                 userAgent = headers.userAgent,
+                track = LinkedInTrack.header(zone(), Instant.now()),
                 body = body,
                 written = written,
             )

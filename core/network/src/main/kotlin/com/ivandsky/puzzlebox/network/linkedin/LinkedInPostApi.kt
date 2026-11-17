@@ -67,11 +67,14 @@ internal interface LinkedInPostApi {
     ): Response<ResponseBody>
 
     /**
-     * The voyager save, with the headers the voyager reads send ([LinkedInAccountApi]): the capture's own values
-     * for the page-instance and track headers are redacted, so none is invented. [written] as in [serverRequest].
+     * The voyager save, with the headers of the Mini Sudoku capture whose values are known: its own `accept`,
+     * `origin`, the track header, and the protocol and language headers the voyager reads send
+     * ([LinkedInAccountApi]). The capture's page-instance and PEM values are redacted, so those two are left
+     * out, not invented. [written] as in [serverRequest].
      */
     @Headers(
-        "accept: application/vnd.linkedin.normalized+json+2.1",
+        "accept: application/vnd.linkedin.normalized+json",
+        "origin: https://www.linkedin.com",
         "x-restli-protocol-version: 2.0.0",
         "x-li-lang: en_US",
     )
@@ -83,6 +86,7 @@ internal interface LinkedInPostApi {
         @Header("Cookie") cookie: String,
         @Header("csrf-token") csrfToken: String,
         @Header("User-Agent") userAgent: String,
+        @Header("x-li-track") track: String,
         @Body body: RequestBody,
         @Tag written: AtomicBoolean,
     ): Response<ResponseBody>
