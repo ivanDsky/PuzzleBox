@@ -129,6 +129,9 @@ internal fun ResultHeroCard(
                     modifier = Modifier.timePulse(celebrated).testTag("result.hero.time"),
                 )
             }
+            model.compareColumns?.let { compare ->
+                HeroCompareRow(compare, brand, wide, Modifier.resultBeat(ResultBeats.Supporting, 1))
+            }
             model.bestLine?.let { line ->
                 Text(
                     text = line,

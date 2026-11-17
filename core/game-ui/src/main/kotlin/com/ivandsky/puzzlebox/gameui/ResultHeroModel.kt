@@ -74,7 +74,8 @@ internal sealed interface HeroRank {
  * pulse; [burst] adds the burst (a new best only). [moments] are the moment card's rows, strongest first, at most
  * three, none for a practice puzzle or a play again; [challenge] is the Challenge row's friend, none when the
  * [primary] already is that challenge. [bestSubLine] is the small line under the comparison ("Best on this puzzle 1:41");
- * [compare] draws the comparison line larger, as the same-puzzle comparison does.
+ * [compare] draws the comparison line larger, as the same-puzzle comparison does. [compareColumns] (Result hero polish) is
+ * the previous and best solve as two labelled columns; it replaces [bestLine] and [bestSubLine], which are then null.
  */
 internal data class ResultHeroModel(
     val title: String,
@@ -94,6 +95,7 @@ internal data class ResultHeroModel(
     val challenge: ResultPrimaryAction.ChallengeFriend?,
     val bestSubLine: String? = null,
     val compare: Boolean = false,
+    val compareColumns: HeroCompare? = null,
 )
 
 /**
@@ -115,14 +117,17 @@ internal fun resultHeroModel(
     val insights = facts.insights.takeUnless { facts.practice }
     val verdict = facts.verdict.takeUnless { facts.practice }
     val pill = heroPill(verdict).takeIf { counts }
+    val columns = facts.samePuzzle?.takeIf { it.columns && !facts.practice }
+        ?.let { heroSamePuzzleCompare(it, facts.rankOrder, facts.timeMs, facts.hintsUsed) }
     return ResultHeroModel(
         title = resultTitle(facts.game, facts.puzzleNumber, facts.practice),
         dateLine = facts.dateLine,
         timeMs = facts.timeMs,
         pill = pill,
-        bestLine = bestLine(facts, verdict),
-        bestSubLine = facts.samePuzzle?.let { heroSamePuzzleBest(it, facts.rankOrder) }.takeUnless { facts.practice },
+        bestLine = bestLine(facts, verdict).takeIf { columns == null },
+        bestSubLine = facts.samePuzzle?.let { heroSamePuzzleBest(it, facts.rankOrder) }.takeUnless { facts.practice || columns != null },
         compare = facts.samePuzzle != null,
+        compareColumns = columns,
         bestImproved = counts && verdict == RecordVerdict.NewBest,
         chips = chips(facts, insights, chip),
         streak = insights?.let { streak(it, locale) },
