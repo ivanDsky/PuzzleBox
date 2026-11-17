@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.history.ranks
 
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
+import com.ivandsky.puzzlebox.domain.ranks.RankScope
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardState
 import com.ivandsky.puzzlebox.history.HistoryTestSupport
 import com.ivandsky.puzzlebox.history.HistoryTestSupport.ZIP
@@ -42,7 +43,10 @@ class RanksLinkLandingTest {
         hub.daily.setHistory(ZIP, listOf(HistoryTestSupport.entry(today), HistoryTestSupport.entry(yesterday)))
         hub.completions.setRecords(listOf(HistoryTestSupport.record(today), HistoryTestSupport.record(yesterday)))
         val opening = RanksSelection.opening(RanksBoard.Game(ZIP), day).landing(rankBoards(hub.registry), hub.calendar::today)
-        hub.viewModel(linkedIn = linkedIn, opening = opening).uiState.first { it.board.state != DailyBoardState.Loading }.board.state
+        val viewModel = hub.viewModel(linkedIn = linkedIn, opening = opening)
+        // No friend here, so the landing is Global; the player picks Friends.
+        if (friends) viewModel.setScope(RankScope.Friends)
+        viewModel.uiState.first { it.board.state != DailyBoardState.Loading }.board.state
     }
 
     @Test

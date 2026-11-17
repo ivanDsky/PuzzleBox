@@ -21,7 +21,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** F1: the hub lands on the player's default scope, Friends until they switch it; a restored selection still wins; a Friends board of the viewer alone says how to fill it. */
+/** F1: the hub lands on the player's default scope, Friends once they have a friend and until they switch it; a restored selection still wins; a Friends board of the viewer alone says how to fill it. */
 class RanksFriendsDefaultTest {
 
     @get:Rule
@@ -39,11 +39,39 @@ class RanksFriendsDefaultTest {
     private val link = RanksSelection.opening(RanksBoard.Game(ZIP), null)
 
     @Test
-    fun `with the default on Friends the hub and a link both land on Friends`() {
+    fun `with the default on Friends and a friend the hub and a link both land on Friends`() = runTest {
         val hub = hub(friendsDefault = true)
+        hub.befriend("maya")
 
         assertEquals(RankScope.Friends, hub.viewModel().selection.value.scope)
         assertEquals(RankScope.Friends, hub.viewModel(opening = link).selection.value.scope)
+    }
+
+    @Test
+    fun `with the default on Friends but no friends the hub lands on Global`() {
+        val hub = hub(friendsDefault = true)
+
+        assertEquals(RankScope.Global, hub.viewModel().selection.value.scope)
+        assertEquals(RankScope.Global, hub.viewModel(opening = link).selection.value.scope)
+    }
+
+    @Test
+    fun `with the default on Friends and signed out the hub lands on Global`() {
+        val hub = RanksTestHub(FakeLeaderboardRepository(), identity = null, friendsDefault = true)
+
+        assertEquals(RankScope.Global, hub.viewModel().selection.value.scope)
+    }
+
+    @Test
+    fun `a scope picked before the landing arrives is kept`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val hub = RanksTestHub(FakeLeaderboardRepository(), friendsDefault = true, storedDefaultGate = gate)
+        val viewModel = hub.viewModel()
+
+        viewModel.setScope(RankScope.Friends)
+        gate.complete(Unit)
+
+        assertEquals(RankScope.Friends, viewModel.selection.value.scope)
     }
 
     @Test
@@ -101,6 +129,7 @@ class RanksFriendsDefaultTest {
     @Test
     fun `a reselect reset lands on the default as it stands now`() = runTest {
         val hub = hub(friendsDefault = true)
+        hub.befriend("maya")
         val viewModel = hub.viewModel()
         viewModel.setScope(RankScope.Global)
 
@@ -116,6 +145,7 @@ class RanksFriendsDefaultTest {
     fun `a Friends board with only the viewer on it is marked alone, and not once a friend is on it`() = runTest {
         val hub = hub(friendsDefault = true)
         val viewModel = hub.viewModel(opening = link)
+        viewModel.setScope(RankScope.Friends)
 
         val alone = withTimeout(5_000) { viewModel.uiState.first { it.board.state is DailyBoardState.Ranked }.board }
         assertEquals(listOf("u1"), (alone.state as DailyBoardState.Ranked).rows.map { it.name })
