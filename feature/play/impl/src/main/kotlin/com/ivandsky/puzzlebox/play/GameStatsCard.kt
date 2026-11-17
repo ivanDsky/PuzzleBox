@@ -32,6 +32,7 @@ import java.util.Locale
 
 private val LongDate = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.US)
 private const val NONE = "—"
+private val StatRowPadding = 10.dp
 
 /** A date as the page writes it: "Mar 18, 2025". */
 internal fun longDate(day: LocalDate): String = day.format(LongDate)
@@ -86,8 +87,15 @@ internal fun GameStatsCard(row: LibraryRowModel, modifier: Modifier = Modifier) 
         KeyValue("Playing since", stats.playingSince?.let(::longDate) ?: "Not yet")
         row.progress?.let { archive ->
             KeyValue("Archive", "#1 · ${longDate(archive.range.start)} → #${count(archive.total)} today")
-            val solves = if (archive.archivedSolves == 1) "1 solve" else "${count(archive.archivedSolves)} solves"
-            KeyValue("From the archive", "$solves · best yes, streak never")
+            archiveStatSentence(archive.archivedSolves)?.let { sentence ->
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Text(
+                    sentence,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth().padding(vertical = StatRowPadding).testTag("library.stats.archive"),
+                )
+            }
         }
     }
 }
@@ -128,7 +136,7 @@ private fun RowScope.StatTile(value: String, label: String, small: Boolean = fal
 private fun KeyValue(label: String, value: String) {
     Column {
         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        Row(Modifier.fillMaxWidth().padding(vertical = StatRowPadding), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             Text(
                 text = value,
