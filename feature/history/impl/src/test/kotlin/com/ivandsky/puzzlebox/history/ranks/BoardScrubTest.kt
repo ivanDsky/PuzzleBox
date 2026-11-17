@@ -211,13 +211,12 @@ class BoardScrubTest {
         scrub.release(position = 1)
         frames(4)
         scrub.dragBy(0.05f, COUNT)
-        val caughtAt = scrub.progress
+        val caughtAt = scrub.share(2)
 
         scrub.cancel()
 
         frames(5)
-        assertEquals(1, scrub.from)
-        assertTrue("progress ${scrub.progress} after $caughtAt", scrub.progress > caughtAt)
+        assertTrue("share ${scrub.share(2)} after $caughtAt", scrub.share(2) > caughtAt)
         testScheduler.advanceUntilIdle()
         assertAtRestOn(2, scrub)
     }
@@ -232,7 +231,7 @@ class BoardScrubTest {
         scrub.moveTo(2, instant = false)
 
         scrub.dragBy(0.1f, COUNT)
-        assertTrue("progress ${scrub.progress}", scrub.progress < COMMIT)
+        assertTrue("share ${scrub.share(2)}", scrub.share(2) < COMMIT)
 
         assertEquals(2, scrub.release(position = 2))
         testScheduler.advanceUntilIdle()
@@ -249,9 +248,55 @@ class BoardScrubTest {
         scrub.moveTo(2, instant = false)
 
         scrub.dragBy(0.3f, COUNT)
-        assertTrue("progress ${scrub.progress}", scrub.progress > COMMIT)
+        assertTrue("share ${scrub.share(2)}", scrub.share(2) > COMMIT)
 
         assertEquals(1, scrub.release(position = 2))
+        testScheduler.advanceUntilIdle()
+        assertAtRestOn(1, scrub)
+    }
+
+    @Test
+    fun `a committed swipe caught on its way scrubs on to the board after the one it was arriving at`() = runTest {
+        val scrub = scrubAt(0)
+        scrub.dragBy(-0.3f, COUNT)
+        scrub.release(position = 0, velocity = FLING)
+        frames(4)
+        scrub.moveTo(1, instant = false)
+        val arrived = scrub.share(1)
+
+        scrub.dragBy(-(1f - arrived) - 0.2f, COUNT)
+
+        assertBetween(1, 2, 0.2f, scrub)
+    }
+
+    // The user-reported stall: each quick flick caught the one before on its way and settled where it already was.
+    @Test
+    fun `a run of quick flicks moves a board each, however soon each catches the one before`() = runTest {
+        val scrub = scrubAt(0)
+
+        repeat(COUNT - 1) { flick ->
+            scrub.dragBy(-0.05f, COUNT)
+            val target = scrub.release(position = flick, velocity = FLING)
+            assertEquals("flick $flick", flick + 1, target)
+            scrub.moveTo(target, instant = false)
+            frames(3)
+        }
+
+        testScheduler.advanceUntilIdle()
+        assertAtRestOn(COUNT - 1, scrub)
+    }
+
+    @Test
+    fun `a quick flick back on a swipe caught on its way returns to the board it left`() = runTest {
+        val scrub = scrubAt(1)
+        scrub.dragBy(-0.3f, COUNT)
+        scrub.release(position = 1, velocity = FLING)
+        frames(3)
+        scrub.moveTo(2, instant = false)
+
+        scrub.dragBy(0.05f, COUNT)
+
+        assertEquals(1, scrub.release(position = 2, velocity = -FLING))
         testScheduler.advanceUntilIdle()
         assertAtRestOn(1, scrub)
     }
