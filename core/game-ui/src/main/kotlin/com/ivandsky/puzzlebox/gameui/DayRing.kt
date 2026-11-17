@@ -32,9 +32,10 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 internal val RingSize = 40.dp
 internal val RingStroke = 3.dp
 
-// Arc-end to arc-end, along the ring. Round caps eat one stroke of it, so 8 segments
-// still show a 2.5dp gap between neighbours.
-private val SegmentGap = 5.5.dp
+// Round caps extend each arc by half a stroke at both ends, so the arc-end to arc-end gap
+// is the stroke plus the visible gap. Adding the stroke keeps the visible gap the same at
+// every stroke: the phone ring at 3dp and the tablet pane at 5dp both show 3.5dp.
+private val SegmentVisibleGap = 3.5.dp
 private const val FULL_TURN = 360f
 private const val TWELVE_O_CLOCK = -90f
 
@@ -70,7 +71,8 @@ fun DayRing(
                     drawCircle(segments.single(), radius = arcSize.width / 2, style = Stroke(strokePx))
                     return@drawBehind
                 }
-                val gap = Math.toDegrees(SegmentGap.toPx() / (arcSize.width / 2).toDouble()).toFloat()
+                val gapPx = strokePx + SegmentVisibleGap.toPx()
+                val gap = Math.toDegrees(gapPx / (arcSize.width / 2).toDouble()).toFloat()
                 val step = FULL_TURN / segments.size
                 segments.forEachIndexed { index, color ->
                     drawArc(
