@@ -20,6 +20,7 @@ import com.ivandsky.puzzlebox.data.visibility.OwnTier
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.SIGN_IN_WITH_GOOGLE
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
@@ -63,7 +64,7 @@ private fun SignInPrompt(prompt: SignInPrompt, onSignIn: () -> Unit) {
             modifier = Modifier.testTag("settings.visibility.reason"),
         )
         SecondaryButton(
-            text = if (prompt.running) "Signing in…" else "Sign in with Google",
+            text = if (prompt.running) "Signing in…" else SIGN_IN_WITH_GOOGLE,
             onClick = onSignIn,
             enabled = !prompt.running,
             modifier = Modifier.fillMaxWidth().testTag("settings.visibility.signin"),
