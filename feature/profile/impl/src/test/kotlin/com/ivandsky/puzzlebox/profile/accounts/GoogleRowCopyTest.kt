@@ -47,7 +47,7 @@ class GoogleRowCopyTest {
         setRow(signedOut, sync = null)
 
         composeRule
-            .onNodeWithText("Sign in with Google to put your times on the leaderboards and keep your history on every device.")
+            .onNodeWithText("Sign in with Google to put your times in Ranks and keep your history on every device.")
             .assertExists()
     }
 
@@ -55,7 +55,7 @@ class GoogleRowCopyTest {
     fun `signed in and synced says what stays after sign out and that unfinished games stay on the device`() {
         setRow(signedIn, sync = GoogleSync(GoogleSync.Status.Synced(NOW)))
 
-        composeRule.onNodeWithText("Signing out keeps your history on this phone and in your account.").assertExists()
+        composeRule.onNodeWithText("Signing out keeps your history on this device and in your account.").assertExists()
         composeRule.onNodeWithText("Unfinished games stay on this device.").assertExists()
     }
 
@@ -64,7 +64,7 @@ class GoogleRowCopyTest {
         setRow(signedIn, sync = null)
 
         composeRule.onNodeWithText("Signed in with Google").assertExists()
-        composeRule.onNodeWithText("Signing out keeps your history on this phone and in your account.").assertDoesNotExist()
+        composeRule.onNodeWithText("Signing out keeps your history on this device and in your account.").assertDoesNotExist()
         composeRule.onNodeWithText("Unfinished games stay on this device.").assertDoesNotExist()
     }
 

@@ -39,7 +39,7 @@ internal fun PageDots(
 ) {
     if (count <= 1) return
     Row(
-        modifier.semantics(mergeDescendants = true) { contentDescription = "Board ${index + 1} of $count" },
+        modifier.semantics(mergeDescendants = true) { contentDescription = "Ranks page ${index + 1} of $count" },
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {

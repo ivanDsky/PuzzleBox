@@ -40,7 +40,7 @@ import com.ivandsky.puzzlebox.gameui.board.RollingNumber
 internal data class HeroFace(val board: String, val standing: Standing, val score: String?) {
     /** The line under the board's name: the score, or why there is none. */
     fun line(): String = score ?: when (standing) {
-        Standing.Pending -> "Loading the board"
+        Standing.Pending -> "Loading Ranks"
         Standing.Beyond -> "Outside the top 100"
         else -> "Not ranked here yet"
     }

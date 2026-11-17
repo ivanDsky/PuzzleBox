@@ -60,7 +60,7 @@ internal fun BoardPreview(
             .testTag("friend.card.board"),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Text("Leaderboard", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Ranks", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         AuthorLine(author)
         AnimatedContent(
             targetState = board,

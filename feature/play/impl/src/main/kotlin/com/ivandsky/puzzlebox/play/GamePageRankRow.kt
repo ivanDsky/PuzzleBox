@@ -16,7 +16,7 @@ import org.koin.core.parameter.parametersOf
 /**
  * The game page's rank in the Ranks hub: one summary row, "You #12 of 340", opening the hub through
  * [onOpen]. It reads the game's own [GamePageRankViewModel]. Without a standing to show (signed out, loading, not on the board) the row is
- * just "Leaderboard".
+ * just "Ranks".
  */
 @Composable
 internal fun GamePageRankRow(
@@ -34,12 +34,12 @@ internal fun GamePageRankRow(
 }
 
 /**
- * "You #12 of 340" from the player's own row on the board the page reads, else "Leaderboard". In Friends scope (F20)
+ * "You #12 of 340" from the player's own row on the board the page reads, else "Ranks". In Friends scope (F20)
  * the place and the count are the player's among their friends and connections, as the hub's Friends board has them.
  */
 internal fun rankRowText(state: GamePageRankState): String {
-    if (state.amongFriends) return state.standing?.let { "You #${it.place} of ${it.count}" } ?: "Leaderboard"
+    if (state.amongFriends) return state.standing?.let { "You #${it.place} of ${it.count}" } ?: "Ranks"
     val ranked = state.board as? DailyBoardState.Ranked
     val own = ranked?.let { it.pinned ?: it.rows.firstOrNull { row -> row.isSelf } }
-    return if (own == null) "Leaderboard" else "You #${own.rank} of ${state.entries}"
+    return if (own == null) "Ranks" else "You #${own.rank} of ${state.entries}"
 }

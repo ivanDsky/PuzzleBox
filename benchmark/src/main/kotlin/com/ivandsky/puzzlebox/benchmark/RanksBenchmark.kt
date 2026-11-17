@@ -30,7 +30,7 @@ class RanksBenchmark {
      */
     private fun MacrobenchmarkScope.swipeBoards(direction: Direction) {
         val twoPane = isTwoPane()
-        if (twoPane) waitFor(BenchmarkTab.Ranks.ready) else waitFor(By.descStartsWith("Board "))
+        if (twoPane) waitFor(BenchmarkTab.Ranks.ready) else waitFor(By.descStartsWith("Ranks page "))
         val width = device.displayWidth
         val y = device.displayHeight / 2
         val (low, high) = if (twoPane) width * 3 / 5 to width * 9 / 10 else width / 5 to width * 4 / 5

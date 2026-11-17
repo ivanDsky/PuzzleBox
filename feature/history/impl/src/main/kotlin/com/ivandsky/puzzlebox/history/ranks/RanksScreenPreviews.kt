@@ -94,7 +94,7 @@ private fun Hub(state: DailyBoardState) = Hub(RanksBoardSlice("Zip · today", Ra
 
 @Composable
 private fun Overall(state: OverallState) = Hub(
-    RanksBoardSlice("Overall · today", RankOrder.TimeThenHints, state.toDailyBoardState("you"), "Points from every game's board. Higher is better.", state.boardNote()),
+    RanksBoardSlice("Overall · today", RankOrder.TimeThenHints, state.toDailyBoardState("you"), "Points from every game's Ranks. Higher is better.", state.boardNote()),
 )
 
 @PuzzleBoxPreviews
@@ -194,7 +194,7 @@ private fun RanksTwoPanePreview() = Tablet(
 @Composable
 private fun RanksTwoPaneOverallPreview() = Tablet(
     RanksUiState(
-        RanksBoardSlice("Overall · today", RankOrder.TimeThenHints, OverallState.Partial(Standings, loaded = 2, total = 5).toDailyBoardState("you"), "Points from every game's board. Higher is better.", "2 of 5 boards"),
+        RanksBoardSlice("Overall · today", RankOrder.TimeThenHints, OverallState.Partial(Standings, loaded = 2, total = 5).toDailyBoardState("you"), "Points from every game's Ranks. Higher is better.", "2 of 5 boards"),
         boardCount = TabletPlaces.size,
         calendar = Week.copy(expanded = true),
         stats = Stats,

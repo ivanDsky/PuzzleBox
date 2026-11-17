@@ -41,10 +41,10 @@ internal fun pinnedLine(state: DailyBoardState): DailyBoardLine.Real? =
 /** What a board in [state] says instead of rows, if anything; a ranked board only when it is [empty], worded for [isToday]. */
 internal fun boardMessage(state: DailyBoardState, empty: Boolean, isToday: Boolean): BoardPart.Message? = when (state) {
     DailyBoardState.Loading -> BoardPart.Message("Loading…", "daily_board.loading")
-    DailyBoardState.Unavailable -> BoardPart.Message("Leaderboard unavailable right now.", "daily_board.unavailable")
+    DailyBoardState.Unavailable -> BoardPart.Message("Ranks unavailable right now.", "daily_board.unavailable")
     DailyBoardState.SignedOut -> null
     is DailyBoardState.Ranked -> if (empty) {
-        BoardPart.Message(if (isToday) "No one is on today's board yet." else "No one is on this day's board yet.", "daily_board.empty")
+        BoardPart.Message(if (isToday) "No one is in today's Ranks yet." else "No one is in this day's Ranks yet.", "daily_board.empty")
     } else {
         null
     }

@@ -22,15 +22,15 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /** The scoring rule in one sentence. */
 internal const val RANKS_RULE =
-    "Each board scores you by place, 100 points for first and fewer the more players are ahead of you, and Overall adds those scores up."
+    "Each Ranks list scores you by place, 100 points for first and fewer the more players are ahead of you, and Overall adds those scores up."
 
 /** The lead word of each line, then what it says: how a board orders, what Overall sums, and the unofficial and 100+ cases. */
 private val Rules = listOf(
     "Per game" to "fastest time wins and fewer hints break a tie. Strands ranks hints first.",
-    "Overall" to "your scores from every game's board in the window. Players with the same total share a place.",
+    "Overall" to "your scores from every game's Ranks in the window. Players with the same total share a place.",
     "Week and Month" to "each game ranks the average of the days you played.",
     "Top 100" to "past that you see 100+ with no exact place, and your Overall total shows as at least (≥).",
-    "Unofficial" to "a solve posted after its day's submit window closed stays on this phone. Only you see it, marked. It earns no points and takes no one's place.",
+    "Unofficial" to "a solve posted after its day's submit window closed stays on this device. Only you see it, marked. It earns no points and takes no one's place.",
 )
 
 /** "How ranks work": the rule and what it means for ties, windows, the cap and unofficial solves. [onDismiss] closes it. */

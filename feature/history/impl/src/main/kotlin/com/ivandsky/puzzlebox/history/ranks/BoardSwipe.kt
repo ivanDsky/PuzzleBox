@@ -148,8 +148,8 @@ internal fun BoardSwipe(
             .onSizeChanged { width = it.width.toFloat() }
             .semantics {
                 customActions = listOf(
-                    CustomAccessibilityAction("Next board") { onStep(1); true },
-                    CustomAccessibilityAction("Previous board") { onStep(-1); true },
+                    CustomAccessibilityAction("Next Ranks page") { onStep(1); true },
+                    CustomAccessibilityAction("Previous Ranks page") { onStep(-1); true },
                 )
             }
             .pointerInput(fling, commitCap, still, scrub) {

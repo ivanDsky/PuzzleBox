@@ -152,14 +152,14 @@ class DailyBoardTest {
     @Test
     fun `empty ranked says nobody is on the board`() {
         show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()))
-        composeRule.onNodeWithText("No one is on today's board yet.").assertIsDisplayed()
+        composeRule.onNodeWithText("No one is in today's Ranks yet.").assertIsDisplayed()
     }
 
     @Test
     fun `an empty board of another day says so, not that today's is empty`() {
         show(RankOrder.TimeThenHints, DailyBoardState.Ranked(emptyList()), isToday = false)
 
-        composeRule.onNodeWithTag("daily_board.empty").assertTextEquals("No one is on this day's board yet.")
+        composeRule.onNodeWithTag("daily_board.empty").assertTextEquals("No one is in this day's Ranks yet.")
     }
 
     @Test
@@ -290,7 +290,7 @@ class DailyBoardTest {
 
         composeRule.onNodeWithTag("daily_board.ghost.name").assertTextEquals("Ada")
         composeRule.onNodeWithTag("daily_board.ghost.detail").assertDoesNotExist()
-        composeRule.onNodeWithText("on this phone", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithText("on this device", substring = true).assertDoesNotExist()
         composeRule.onNodeWithTag("daily_board.ghost.linkedin_dot").assertContentDescriptionEquals("LinkedIn")
     }
 

@@ -69,14 +69,14 @@ private fun VisibilityRow(tier: VisibilityTier, selected: Boolean, enabled: Bool
 
 private fun VisibilityTier.title(): String = when (this) {
     VisibilityTier.Hidden -> "Hidden"
-    VisibilityTier.Board -> "On leaderboards"
+    VisibilityTier.Board -> "On Ranks"
     VisibilityTier.Duel -> "+ Challengeable"
     VisibilityTier.Replays -> "+ Replays watchable"
 }
 
 private fun VisibilityTier.opens(): String = when (this) {
-    VisibilityTier.Hidden -> "You stay off the leaderboards and can't be challenged. Past entries stay."
-    VisibilityTier.Board -> "Your results appear on the leaderboards."
+    VisibilityTier.Hidden -> "You stay off Ranks and can't be challenged. Past entries stay."
+    VisibilityTier.Board -> "Your results appear in Ranks."
     VisibilityTier.Duel -> "Other players can challenge you to a duel."
     VisibilityTier.Replays -> "Other players can watch replays of your games."
 }

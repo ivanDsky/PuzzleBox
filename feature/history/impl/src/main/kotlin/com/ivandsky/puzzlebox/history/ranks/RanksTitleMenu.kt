@@ -72,7 +72,7 @@ internal fun RanksTitleMenu(
                 .testTag("ranks.title")
                 .pressScale(interaction, reduced)
                 .clip(PillShape)
-                .clickable(interaction, LocalIndication.current, role = Role.Button, onClickLabel = "Choose board") { open = true }
+                .clickable(interaction, LocalIndication.current, role = Role.Button, onClickLabel = "Choose Ranks") { open = true }
                 .defaultMinSize(minHeight = RanksMetrics.TitleMinHeight)
                 .padding(start = Spacing.sm)
                 .semantics { stateDescription = if (open) "Expanded" else "Collapsed" },

@@ -70,7 +70,7 @@ class RanksScreenTest {
 
         composeRule.onNodeWithText("Maya").assertIsDisplayed()
         composeRule.onNodeWithTag("ranks.board.note").assertIsDisplayed()
-        composeRule.onNodeWithText("2 of 5 boards").assertIsDisplayed()
+        composeRule.onNodeWithText("2 of 5 Ranks").assertIsDisplayed()
     }
 
     @Test
@@ -205,7 +205,7 @@ class RanksScreenTest {
     fun `the dots say which board of how many`() {
         showSwiping(position = 1) {}
 
-        composeRule.onNodeWithTag("ranks.dots").assertContentDescriptionEquals("Board 2 of 4")
+        composeRule.onNodeWithTag("ranks.dots").assertContentDescriptionEquals("Ranks page 2 of 4")
     }
 
     @Test
