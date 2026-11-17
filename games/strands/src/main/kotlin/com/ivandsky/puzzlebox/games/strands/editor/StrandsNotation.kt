@@ -126,7 +126,7 @@ internal object StrandsNotation {
                 }
                 if (cell in used || cell in cells) return err(token, "cell ${token.text} is already used")
                 if (cells.isNotEmpty() && !adjacent(cells.last(), cell)) {
-                    return err(token, "cells must be 8-neighbour steps")
+                    return err(token, "cells must be 8-neighbor steps")
                 }
                 cells += cell
             }

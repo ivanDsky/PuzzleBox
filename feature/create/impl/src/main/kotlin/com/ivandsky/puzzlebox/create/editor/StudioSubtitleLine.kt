@@ -23,9 +23,10 @@ private val MinLabelWidth = 48.dp
 
 /**
  * The subtitle line, left to right: STUDIO tag, game label, separator, save state. The save state
- * is always placed whole. When the label would be narrower than [MinLabelWidth], the tag drops
- * first, then the label with its separator, so nothing is left dangling. With nothing before it,
- * the save state reads without its separator.
+ * is always placed whole. The tag shows only while the whole label fits beside it; otherwise it
+ * drops first, so the label is the last thing to give. Then the label ellipsizes down to
+ * [MinLabelWidth] and drops with its separator, so nothing is left dangling. With nothing before
+ * it, the save state reads without its separator.
  */
 @Composable
 internal fun SubtitleLine(subtitle: String, saving: Boolean, modifier: Modifier) {
@@ -59,9 +60,10 @@ internal fun SubtitleLine(subtitle: String, saving: Boolean, modifier: Modifier)
         val tail = dot.width + gap + word.width
         val roomWithTag = maxWidth - tag.width - 2 * gap - tail
         val roomWithoutTag = maxWidth - gap - tail
-        val tagFits = roomWithTag >= minLabel
+        val wholeLabel = measurables[1].maxIntrinsicWidth(Int.MAX_VALUE)
+        val tagFits = roomWithTag >= wholeLabel
         val labelRoom = if (tagFits) roomWithTag else roomWithoutTag
-        val labelShown = subtitle.isNotEmpty() && labelRoom >= minLabel
+        val labelShown = subtitle.isNotEmpty() && labelRoom >= minOf(minLabel, wholeLabel)
         val tagShown = if (subtitle.isEmpty()) tag.width + gap + word.width <= maxWidth else tagFits
         val label = if (labelShown) measurables[1].measure(Constraints(maxWidth = labelRoom)) else null
         val tagP = if (tagShown) tag else null

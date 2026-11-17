@@ -21,7 +21,7 @@ class S8CopyVocabularyTest {
         RuleCheck.assertFixture(
             S8CopyVocabulary,
             "S8",
-            9,
+            11,
             setOf(
                 Violation("$dir/Colour.kt", 2, ""),
                 Violation("$dir/Favourite.kt", 1, ""),
@@ -29,6 +29,8 @@ class S8CopyVocabularyTest {
                 Violation("$dir/Crown.kt", 1, ""),
                 Violation("$dir/Phone.kt", 1, ""),
                 Violation("$dir/Rounds.kt", 1, ""),
+                Violation("$dir/Neighbour.kt", 1, ""),
+                Violation("$dir/Cancelled.kt", 1, ""),
                 Violation("$dir/Nested.kt", 3, ""),
             ),
         )

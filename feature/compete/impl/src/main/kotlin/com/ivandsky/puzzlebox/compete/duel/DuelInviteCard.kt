@@ -78,7 +78,7 @@ internal fun DuelInviteCard(invite: DuelUiState.Invite, actions: InviteActions, 
                     message = "Someone accepted before you. Start a duel of your own.",
                     onClose = actions.onClose,
                 )
-                InviteKind.Cancelled -> Resolved("Cancelled", cancelledMessage(details), actions.onClose)
+                InviteKind.Cancelled -> Resolved("Canceled", cancelledMessage(details), actions.onClose)
                 InviteKind.Waiting -> WaitingTail(invite, actions)
             }
         }
