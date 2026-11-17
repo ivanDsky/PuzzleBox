@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
 import com.ivandsky.puzzlebox.gameui.SolveRestState
 import com.ivandsky.puzzlebox.gameui.SolveRestTapLayer
+import com.ivandsky.puzzlebox.gameui.SolveStamp
 import com.ivandsky.puzzlebox.gameui.rememberSolveRest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -182,6 +183,9 @@ internal val LocalSudokuMotion = staticCompositionLocalOf<SudokuMotionState?> { 
 /** The solve moment B's frame for the grid ([Modifier.solveFrame]); nothing without the solve rest. */
 internal val LocalSudokuSolveFrame = staticCompositionLocalOf<Modifier> { Modifier }
 
+/** The game's glyph stamp for the grid's box, inside the solve frame ([SolveStamp]); nothing without the solve rest. */
+internal val LocalSudokuSolveStamp = staticCompositionLocalOf<(@Composable () -> Unit)?> { null }
+
 /**
  * Watches [state] for player commits and gives [content]'s grid their motion and haptics. With the solve rest on, a
  * solve also plays the solve moment B on the grid, in [brand]'s accent.
@@ -197,9 +201,11 @@ internal fun SudokuMotionHost(
     val moment = if (rest.enabled) rememberSolveMomentState() else null
     val accent = brand.accent.colors().accent
     val frame = remember(moment, accent) { moment?.let { Modifier.solveFrame(it, accent, RectangleShape) } ?: Modifier }
+    val stamp: (@Composable () -> Unit)? = if (rest.enabled) remember(rest, brand) { @Composable { SolveStamp(brand, rest) } } else null
     CompositionLocalProvider(
         LocalSudokuMotion provides rememberSudokuMotion(state, onSolved, rest, moment),
         LocalSudokuSolveFrame provides frame,
+        LocalSudokuSolveStamp provides stamp,
     ) {
         if (rest.enabled) {
             Box(propagateMinConstraints = true) {

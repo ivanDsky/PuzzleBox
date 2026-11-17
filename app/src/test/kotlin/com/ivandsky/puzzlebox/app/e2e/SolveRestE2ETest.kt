@@ -19,7 +19,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Nav-rethink 104, through the real shell: the win of each of the five dailies stays on its board for about 1.5 s with no stamp, and then Result opens with nothing over it; a tap on the board during the rest opens
+ * Nav-rethink 104, through the real shell: the win of each of the five dailies stays on its board for about 1.5 s, and then Result opens with nothing over it; the game's glyph is stamped on the board meanwhile (nav-rethink 139); a tap on the board during the rest opens
  * Result at once. Nav-rethink 129: a board in the solve frame pops once on the way. Nav-rethink 130: all five boards pop, and Result opens 1.5 s from the solve on every one. The clock is held from
  * the winning move on and stepped a frame (16 ms) at a time.
  */
@@ -82,12 +82,14 @@ class SolveRestE2ETest {
     @Test fun `a Strands win opens Result 1700 ms from the solve`() = prompt(DailySolve.Strands)
 
     private fun rests(game: DailySolve) = solving(game) {
+        var stamped = false
         val frames = framesUntil("$game: Result") {
-            assertFalse("$game: the board played a stamp", shows(BOARD_STAMP))
+            stamped = stamped || shows(BOARD_STAMP)
             assertFalse("$game: a celebration over Result", shows(OVERLAY))
             shows("result.hero.screen")
         }
         assertTrue("$game: Result came after ${frames * FRAME_MS} ms, before the rest was over", frames * FRAME_MS >= MIN_REST_MS)
+        assertTrue("$game: the game's glyph stamped onto the board during the rest", stamped)
     }
 
     private fun tapped() = solving(DailySolve.Zip) {

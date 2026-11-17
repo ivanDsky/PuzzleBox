@@ -31,10 +31,11 @@ import kotlinx.coroutines.launch
  * The solve moment around a game's [board] (A6, identity §2.6; the solve moment B, M12-10). The instant [solved] turns
  * non-null during play, the solve rest begins (the buzz, the tap layer) and the moment plays on the same clock: the sweep
  * band, the board's pop and a frame line lapping the board in [brand]'s accent, closed 1300 ms after the solve and held
- * 400 ms before the hand-off. [onHandOff] carries the player to Result [CelebrationMotion.SolveMomentMs] after the solve,
- * or at once on a tap on the board, wherever the motion is. There is no stamp. Reduced motion shows the closed frame for
- * the same rest. [solved] is the session's completion instant, so the moment plays once per solve. A board already solved
- * when it first draws (a restored play) hands off at once; a fresh board in the same place (play again) drops the frame.
+ * 400 ms before the hand-off. As the board pops, [CelebrationMotion.BoardPopStartMs] after the solve, [brand]'s glyph
+ * stamps onto the centre of the board and stays until the hand-off; it is decorative and takes no tap. [onHandOff]
+ * carries the player to Result [CelebrationMotion.SolveMomentMs] after the solve, or at once on a tap on the board,
+ * wherever the motion is. Reduced motion shows the closed frame for the same rest, with no stamp. [solved] is the
+ * session's completion instant, so the moment plays once per solve. A board already solved when it first draws (a restored play) hands off at once; a fresh board in the same place (play again) drops the frame.
  *
  * The pop and the line's comet reach a little past the board, so it needs 6 dp clear around it; [PlayBoardPane] gives more.
  */
@@ -68,6 +69,7 @@ fun PlaySolveFrame(
     }
     Box(modifier.solveFrame(moment, brand.accent.colors().accent, shape), contentAlignment = Alignment.Center) {
         board()
+        SolveStamp(brand, rest)
         SolveRestTapLayer(rest, Modifier.matchParentSize())
     }
 }

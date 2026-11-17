@@ -113,10 +113,12 @@ class StrandsSolveRestTest {
         advance(CelebrationMotion.SolveMomentMs / 2)
         assertEquals("still resting", 0, handOffs)
         rule.onNodeWithTag("play.solve_rest").assertExists()
+        rule.onNodeWithTag("play.solve_stamp").assertExists()
 
         advance(CelebrationMotion.SolveMomentMs)
         assertEquals(1, handOffs)
         rule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
+        rule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
         advance(5_000)
         assertEquals("one solve, one hand-off", 1, handOffs)
     }
@@ -156,9 +158,9 @@ class StrandsSolveRestTest {
         show(controller, rest = true)
         rule.runOnIdle { controller.solve() }
         advance(600)
-        rule.onNodeWithTag("play.solve_rest").performClick()
+        rule.onNodeWithTag("play.solve_stamp").performClick()
         rule.mainClock.advanceTimeBy(16)
-        assertEquals(1, handOffs)
+        assertEquals("a tap on the stamp's area passes to the layer under it", 1, handOffs)
         advance(5_000)
         assertEquals(1, handOffs)
     }
@@ -171,6 +173,8 @@ class StrandsSolveRestTest {
         rule.runOnIdle { controller.solve() }
         advance(CelebrationMotion.SolveMomentMs / 2)
         assertEquals(0, handOffs)
+        rule.onNodeWithTag("play.solve_rest").assertExists()
+        rule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
         advance(CelebrationMotion.SolveMomentMs)
         assertEquals(1, handOffs)
     }

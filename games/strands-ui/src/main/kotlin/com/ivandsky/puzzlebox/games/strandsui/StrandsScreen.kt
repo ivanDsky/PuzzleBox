@@ -40,6 +40,7 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.SolveRestTapLayer
+import com.ivandsky.puzzlebox.gameui.SolveStamp
 import com.ivandsky.puzzlebox.gameui.rememberSolveRest
 import com.ivandsky.puzzlebox.gameui.singlePaneDeviceClass
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -102,7 +103,8 @@ internal fun StrandsPlayScreen(
     val tuning = LocalPlayTuning.current
     var boardWidth by remember { mutableStateOf<Dp?>(null) }
     val header = controller.header
-    CompositionLocalProvider(LocalStrandsSolveMoment provides moment) {
+    val stamp: (@Composable () -> Unit)? = if (rest.enabled) remember(rest) { @Composable { SolveStamp(StrandsBrand, rest) } } else null
+    CompositionLocalProvider(LocalStrandsSolveMoment provides moment, LocalStrandsSolveStamp provides stamp) {
         Box(modifier.fillMaxSize().clearTraceOnBackgroundTap(controller)) {
             if (status is PlayBoardStatus.Ready && header != null && layout == PlayLayout.SinglePane) {
                 // One scroll for the whole phone page: 8 rows of 48 dp cells (SC11) plus the chrome

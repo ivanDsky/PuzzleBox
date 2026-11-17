@@ -121,7 +121,8 @@ internal fun SudokuPlayScreen(
  * grid's width through [onGridWidth]. [paneCap] is the two-pane board cap; null keeps
  * [PlayBoardMaxWidth]. [tuned] (a play tuning is set) keeps every key at the 48dp touch
  * floor, shrinking the grid first, and takes Clear out of the keypad: it sits in the control row.
- * The grid alone wears the solve moment's frame ([LocalSudokuSolveFrame]), so it pops and the keypad stays put.
+ * The grid alone wears the solve moment's frame ([LocalSudokuSolveFrame]) and the game's glyph stamp ([LocalSudokuSolveStamp]),
+ * so it pops and the keypad stays put.
  */
 @Composable
 internal fun SudokuStackedBoard(
@@ -143,7 +144,10 @@ internal fun SudokuStackedBoard(
             verticalArrangement = Arrangement.spacedBy(layout.keyGap),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            SudokuGrid(state.model, state::select, Modifier.size(layout.board).then(LocalSudokuSolveFrame.current), spotlight = state.spotlight)
+            Box(Modifier.size(layout.board).then(LocalSudokuSolveFrame.current), contentAlignment = Alignment.Center) {
+                SudokuGrid(state.model, state::select, Modifier.fillMaxSize(), spotlight = state.spotlight)
+                LocalSudokuSolveStamp.current?.invoke()
+            }
             // A pane-filling grid is height-bound: keys as wide as the pane would be slabs.
             SudokuBoardKeypad(state, layout, Modifier.widthIn(max = if (paneCap != null) layout.board else PlayBoardMaxWidth), showErase = !eraseBeside)
         }
