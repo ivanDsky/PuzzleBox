@@ -63,14 +63,13 @@ fun sudokuTutorial(definition: SudokuDefinition): List<TutorialStep> {
         ),
         lesson(
             definition,
-            "Each box needs every number once, too. Find the one empty square in the box where the $boxDigit fits, then fill the rest.",
+            "Each box needs every number once. Place the $boxDigit, then fill the rest.",
             solution,
             open = boards.boxSquares,
         ),
         lesson(
             definition,
-            "Notes are small marks for numbers that might fit. Turn Notes on and mark the two numbers " +
-                "this row needs in its first empty square. Then turn Notes off and place the one its column needs.",
+            "Notes on: mark this row's two numbers. Notes off: place the one its column needs.",
             solution,
             open = boards.notesSquares,
         ),
