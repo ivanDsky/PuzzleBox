@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.game.replay.GameReplay
 import com.ivandsky.puzzlebox.game.replay.MoveKind
 import com.ivandsky.puzzlebox.game.replay.MoveMark
 import com.ivandsky.puzzlebox.game.replay.ReplayFacts
+import com.ivandsky.puzzlebox.game.replay.ReplayFirstMove
 import com.ivandsky.puzzlebox.game.replay.ReplayMove
 import com.ivandsky.puzzlebox.games.queens.engine.hints.step.QueensStep
 import com.ivandsky.puzzlebox.games.queens.engine.rules.QueensRuleViolation
@@ -14,9 +15,13 @@ import java.time.Instant
 
 /**
  * Queens solve replay: a recorded move runs through the session reducer live play calls for it,
- * so a replayed board cannot drift from the played one.
+ * so a replayed board cannot drift from the played one. A hint's target is recomputed with the
+ * first-move option [firstMove] answers now (nav-rethink B4, ticket 47b); the record cannot carry it (ADR-0025).
+ * `QueensReplay` on its own is the legacy order, the instance a plugin carries when no option is bound.
  */
-object QueensReplay : GameReplay<QueensSession> {
+class QueensReplay(private val firstMove: ReplayFirstMove = ReplayFirstMove.Off) : GameReplay<QueensSession> {
+
+    companion object : GameReplay<QueensSession> by QueensReplay()
 
     override fun step(session: QueensSession, move: ReplayMove, atMs: Long): QueensSession? {
         val now = Instant.ofEpochMilli(atMs)
@@ -97,7 +102,7 @@ object QueensReplay : GameReplay<QueensSession> {
         QueensSolver().search(puzzle, limit = 2).takeIf { it.solutionCount == 1 }?.firstSolution
 
     private fun hintTargets(before: QueensSession): Set<Int> =
-        when (val step = QueensSessionStep.next(before, QueensSessionStep.boundedSolution(before.puzzle))) {
+        when (val step = QueensSessionStep.next(before, QueensSessionStep.boundedSolution(before.puzzle), firstMove.enabled())) {
             is QueensStep.Mistake -> setOf(step.cell.idx)
             is QueensStep.Deduction -> when (val result = step.result) {
                 is QueensStep.Deduction.Result.Cross -> result.cells.mapTo(HashSet()) { it.idx }
