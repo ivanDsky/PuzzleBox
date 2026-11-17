@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.app.match.AndroidNetworkStatus
 import com.ivandsky.puzzlebox.app.nav.TabSetSource
+import com.ivandsky.puzzlebox.app.nav.TabletCrossfadeSource
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.domain.ranks.SubmitDailyReplay
@@ -56,6 +57,8 @@ val appModule = module {
     single { FirstScreenReady() }
     // The tab set and its placement delta; the only reader of the CustomInGames flag (ADR-0027 §10).
     single { TabSetSource(get()) }
+    // TabletCrossfade, read once here; the nav shell takes the Boolean (ADR-0022).
+    single { TabletCrossfadeSource(get()) }
     // The watcher's per-post outcome: one instance, written by the watcher and read by
     // the Result board and the tablet panel.
     single { SubmitStatusTracker() }

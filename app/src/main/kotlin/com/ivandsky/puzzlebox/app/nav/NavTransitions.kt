@@ -5,6 +5,7 @@ import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
@@ -38,6 +39,9 @@ internal enum class NavMotionKind {
     /** D: the incoming tab fades in and rises over the outgoing one, which stays opaque. */
     Rise,
 
+    /** D with TabletCrossfade: the upper page fades in place over the opaque lower one; nothing travels or scales. */
+    Crossfade,
+
     /** B tab switch: out, then in. */
     FadeThrough,
 
@@ -46,6 +50,9 @@ internal enum class NavMotionKind {
 
     /** A predictive-back scrub, shifted toward [NavMotion.swipeEdge]. */
     Predictive,
+
+    /** TabletCrossfade predictive back: the upper page shifts toward the end, shrinks and fades; the lower one fades in late from the start side. */
+    PredictiveShrink,
 }
 
 /**
@@ -102,7 +109,7 @@ internal data class NavMotion(
             NavMotionKind.FadeThrough ->
                 fadeIn(tween(durationMillis, enterDelayMillis, easing)) togetherWith
                     fadeOut(tween(exitMillis, easing = MotionTokens.EasingLinear))
-            NavMotionKind.Reduced -> if (pop) {
+            NavMotionKind.Reduced, NavMotionKind.Crossfade -> if (pop) {
                 fadeIn(hold, initialAlpha = 1f) togetherWith fadeOut(fade)
             } else {
                 fadeIn(fade) togetherWith fadeOut(hold, targetAlpha = 1f)
@@ -116,6 +123,17 @@ internal data class NavMotion(
                 )
                 fadeIn(hold, initialAlpha = 1f) togetherWith (shift + lateFade)
             }
+            NavMotionKind.PredictiveShrink -> {
+                // The reference tablet back: the outgoing page travels toward the end (right in LTR) whichever edge the
+                // swipe starts from, shrinking a little and fading out; the page below fades in late from a small start-side offset.
+                val outFade = tween<Float>((durationMillis * PredictiveTabletFadeOutFraction).roundToInt(), easing = easing)
+                val inFade = tween<Float>(durationMillis / 2, delayMillis = durationMillis / 2, easing = easing)
+                val outgoing = slideOutHorizontally(travel) { endward * (it * PredictiveTabletShiftFraction).roundToInt() } +
+                    scaleOut(fade, PredictiveTabletScale) + fadeOut(outFade)
+                val incoming = slideInHorizontally(travel) { -endward * (it * PredictiveTabletIncomingOffset).roundToInt() } +
+                    fadeIn(inFade, initialAlpha = 0f)
+                incoming togetherWith outgoing
+            }
         }
     }
 
@@ -126,6 +144,18 @@ internal data class NavMotion(
 
         /** The outgoing screen's shift toward the gesture, as a fraction of the width. */
         const val PredictiveShiftFraction = 0.08f
+
+        /** TabletCrossfade predictive back: how far the outgoing page travels toward the end, as a fraction of the width. */
+        const val PredictiveTabletShiftFraction = 0.45f
+
+        /** The outgoing page's scale at the end of the scrub. */
+        const val PredictiveTabletScale = 0.95f
+
+        /** The outgoing page is gone after this share of the scrub. */
+        const val PredictiveTabletFadeOutFraction = 0.85f
+
+        /** The page below fades in over the scrub's second half from this start-side offset, as a fraction of the width. */
+        const val PredictiveTabletIncomingOffset = 0.04f
 
         /** The outgoing screen fades out over the last stretch of the timeline. */
         val PredictiveFadeOutMillis = MotionTokens.DurationMedium / 2
@@ -141,10 +171,11 @@ internal data class NavMotion(
  * out of (push) or shrink back into (pop); only the tablet form reads it.
  * - Reduced motion: the upper page fades for every case.
  * - Another owner tab, or the layer above the tabs opening or closing: phone fade-through;
- *   tablet rise-over.
+ *   tablet rise-over, or with [tabletCrossfade] an in-place crossfade of [MotionTokens.TabletTabCrossfade] (the Profile/Settings layer opening or closing takes [MotionTokens.TabletPageCrossfade]).
  * - Phone, same tab: the full-screen slide, result included.
  * - Tablet, into or out of a game: lift from its card, or the phone slide without one
- *   (deep link, history play-again). Game ⇄ result and every other move: full-width shared axis.
+ *   (deep link, history play-again). Game ⇄ result and every other move: full-width shared axis, or with
+ *   [tabletCrossfade] an in-place crossfade of [MotionTokens.TabletPageCrossfade].
  */
 internal fun navMotion(
     from: Map<String, Any>,
@@ -153,14 +184,24 @@ internal fun navMotion(
     reduceMotion: Boolean,
     form: NavForm,
     liftable: Boolean = false,
+    tabletCrossfade: Boolean = false,
 ): NavMotion {
     val opensGame = !pop && to[ENTRY_KEY].isBoardEntry() && !from[ENTRY_KEY].isResultEntry()
     val closesGame = pop && from[ENTRY_KEY].isBoardEntry()
     return when {
         reduceMotion -> reduced(pop, MotionTokens.ReducedFadeDuration)
-        from[OWNER_TAB] != to[OWNER_TAB] -> if (form == NavForm.Phone) tabFadeThrough(pop) else rise(pop)
+        from[OWNER_TAB] != to[OWNER_TAB] -> when {
+            form == NavForm.Phone -> tabFadeThrough(pop)
+            // The ticket calls opening or closing the Profile/Settings layer a page move, not a tab switch.
+            tabletCrossfade -> crossfade(
+                pop,
+                if (from[OWNER_TAB] == LAYER_OWNER || to[OWNER_TAB] == LAYER_OWNER) MotionTokens.TabletPageCrossfade else MotionTokens.TabletTabCrossfade,
+            )
+            else -> rise(pop)
+        }
         form == NavForm.Phone -> slide(pop)
         opensGame || closesGame -> if (liftable) lift(pop) else slide(pop)
+        tabletCrossfade -> crossfade(pop, MotionTokens.TabletPageCrossfade)
         else -> axis(pop)
     }
 }
@@ -168,14 +209,15 @@ internal fun navMotion(
 /**
  * Predictive back: a gesture-scrubbed preview of the real destination, the same for every
  * back. The outgoing screen shifts with the swipe ([swipeEdge], a [NavigationEvent] edge) over
- * the opaque destination; under reduced motion the scrub only fades the outgoing screen.
+ * the opaque destination; under reduced motion the scrub only fades the outgoing screen. With [shrink]
+ * (TabletCrossfade on a tablet) the screen always travels toward the end and fades, shrinking a little, whichever edge.
  */
-internal fun predictivePopMotion(swipeEdge: Int, reduceMotion: Boolean): NavMotion =
+internal fun predictivePopMotion(swipeEdge: Int, reduceMotion: Boolean, shrink: Boolean = false): NavMotion =
     if (reduceMotion) {
         reduced(pop = true, NavMotion.PredictiveMillis).copy(easing = MotionTokens.EasingLinear)
     } else {
         NavMotion(
-            NavMotionKind.Predictive,
+            if (shrink) NavMotionKind.PredictiveShrink else NavMotionKind.Predictive,
             pop = true,
             durationMillis = NavMotion.PredictiveMillis,
             easing = MotionTokens.EasingLinear,
@@ -204,6 +246,13 @@ private fun axis(pop: Boolean) = NavMotion(
     NavMotionKind.Axis,
     pop = pop,
     durationMillis = if (pop) MotionTokens.MixAxisPop else MotionTokens.MixAxisPush,
+    easing = MotionTokens.EasingStandard,
+)
+
+private fun crossfade(pop: Boolean, millis: Int) = NavMotion(
+    NavMotionKind.Crossfade,
+    pop = pop,
+    durationMillis = millis,
     easing = MotionTokens.EasingStandard,
 )
 

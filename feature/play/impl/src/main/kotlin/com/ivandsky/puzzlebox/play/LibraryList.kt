@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.play
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -156,6 +158,7 @@ private fun TabbedList(
     // The tab switch fades the body in through an alpha layer cut to the body's bounds, which would shear the
     // selected card's outline at the pane's edges; so the tablet's body is [OutlineRoom] wider on each side and its content stays inset by it.
     val bodyRoom = if (phone) 0.dp else OutlineRoom
+    val settled = LocalEnterSettled.current
     val select: (GamesTab) -> Unit = { next ->
         if (next != shown) {
             scope.launch { scroll.scrollTo(0) }
@@ -169,7 +172,13 @@ private fun TabbedList(
         Box(sides) { GamesTabRow(gamesTabs(customTab != null, community), shown, select, friendCount, duels.needYou(), customCount) }
         AnimatedContent(
             targetState = shown,
-            transitionSpec = { fadeIn(tween(MotionTokens.ReducedFadeDuration)) togetherWith fadeOut(snap()) },
+            transitionSpec = {
+                if (settled) {
+                    EnterTransition.None togetherWith ExitTransition.None
+                } else {
+                    fadeIn(tween(MotionTokens.ReducedFadeDuration)) togetherWith fadeOut(snap())
+                }
+            },
             label = "games-tab",
             modifier = Modifier.weight(1f).fillMaxWidth().widenBy(bodyRoom),
         ) { body ->

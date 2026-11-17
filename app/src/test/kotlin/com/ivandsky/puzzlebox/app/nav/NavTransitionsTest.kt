@@ -208,6 +208,68 @@ class NavTransitionsTest {
         assertEquals(NavMotionKind.Axis, navMotion(layerSettings, layerProfile, pop = true, reduceMotion = false, NavForm.Tablet).kind)
     }
 
+    // ---- pins: TabletCrossfade on, tablet ----
+
+    @Test
+    fun `TabletCrossfade tab switch is a 160 ms crossfade on the standard easing`() {
+        val expected = { pop: Boolean ->
+            NavMotion(NavMotionKind.Crossfade, pop, durationMillis = 160, easing = MotionTokens.EasingStandard)
+        }
+        assertEquals(expected(false), crossfadeNav(homeRoot, playRoot, pop = false))
+        assertEquals(expected(true), crossfadeNav(playRoot, homeRoot, pop = true))
+        assertEquals(0f, expected(false).scrimAlpha)
+    }
+
+    @Test
+    fun `TabletCrossfade opening and closing the layer is a 200 ms page crossfade, not the tab timing`() {
+        val expected = { pop: Boolean ->
+            NavMotion(NavMotionKind.Crossfade, pop, durationMillis = 200, easing = MotionTokens.EasingStandard)
+        }
+        assertEquals(expected(false), crossfadeNav(playRoot, layerProfile, pop = false))
+        assertEquals(expected(true), crossfadeNav(layerProfile, playRoot, pop = true))
+        assertEquals(expected(false), crossfadeNav(homeRoot, layerSettings, pop = false))
+        assertEquals(expected(true), crossfadeNav(layerSettings, homeRoot, pop = true))
+    }
+
+    @Test
+    fun `TabletCrossfade in-tab push and plain back are a 200 ms crossfade on the standard easing`() {
+        val expected = { pop: Boolean ->
+            NavMotion(NavMotionKind.Crossfade, pop, durationMillis = 200, easing = MotionTokens.EasingStandard)
+        }
+        // An archive day or a duel reached from a game or result page, and the layer's own pages.
+        assertEquals(expected(false), crossfadeNav(layerProfile, layerSettings, pop = false))
+        assertEquals(expected(true), crossfadeNav(layerSettings, layerProfile, pop = true))
+        assertEquals(expected(false), crossfadeNav(game, result, pop = false))
+        assertEquals(expected(true), crossfadeNav(result, playRoot, pop = true))
+    }
+
+    @Test
+    fun `TabletCrossfade keeps the game lift and its slide fallback, reduced motion and the phone`() {
+        assertEquals(NavMotionKind.Lift, navMotion(playRoot, game, pop = false, reduceMotion = false, NavForm.Tablet, liftable = true, tabletCrossfade = true).kind)
+        assertEquals(NavMotionKind.Lift, navMotion(game, playRoot, pop = true, reduceMotion = false, NavForm.Tablet, liftable = true, tabletCrossfade = true).kind)
+        assertEquals(NavMotionKind.Slide, navMotion(playRoot, game, pop = false, reduceMotion = false, NavForm.Tablet, liftable = false, tabletCrossfade = true).kind)
+        assertEquals(
+            navMotion(playRoot, game, pop = false, reduceMotion = true, NavForm.Tablet),
+            navMotion(playRoot, game, pop = false, reduceMotion = true, NavForm.Tablet, tabletCrossfade = true),
+        )
+        assertEquals(NavMotionKind.Reduced, navMotion(homeRoot, playRoot, pop = false, reduceMotion = true, NavForm.Tablet, tabletCrossfade = true).kind)
+        assertEquals(NavMotionKind.FadeThrough, navMotion(homeRoot, playRoot, pop = false, reduceMotion = false, NavForm.Phone, tabletCrossfade = true).kind)
+        assertEquals(NavMotionKind.Slide, navMotion(layerProfile, layerSettings, pop = false, reduceMotion = false, NavForm.Phone, tabletCrossfade = true).kind)
+        assertEquals(NavMotionKind.Predictive, predictivePopMotion(NavigationEvent.EDGE_LEFT, reduceMotion = false).kind)
+    }
+
+    @Test
+    fun `TabletCrossfade predictive back shrinks in place, and reduced motion and the default stay as they were`() {
+        val shrink = predictivePopMotion(NavigationEvent.EDGE_LEFT, reduceMotion = false, shrink = true)
+
+        assertEquals(NavMotionKind.PredictiveShrink, shrink.kind)
+        assertEquals(NavMotion.PredictiveMillis, shrink.durationMillis)
+        assertEquals(0f, shrink.scrimAlpha)
+        assertTrue(!shrink.incomingOnTop)
+        assertEquals(NavMotionKind.Reduced, predictivePopMotion(NavigationEvent.EDGE_LEFT, reduceMotion = true, shrink = true).kind)
+        assertEquals(NavMotionKind.Predictive, predictivePopMotion(NavigationEvent.EDGE_LEFT, reduceMotion = false, shrink = false).kind)
+    }
+
     // ---- pins: reduced and predictive ----
 
     @Test
@@ -341,6 +403,41 @@ class NavTransitionsTest {
     }
 
     @Test
+    fun `TabletCrossfade tab switch fades in place over the opaque outgoing tab, nothing travels`() {
+        val probe = Probe(composeRule)
+        for (pop in listOf(false, true)) {
+            val motion = if (pop) crossfadeNav(playRoot, homeRoot, pop = true) else crossfadeNav(homeRoot, playRoot, pop = false)
+            val frame = probe.play(motion)
+
+            assertStill(frame)
+            assertOpaque(frame)
+            assertTrue("the upper page is mid-fade: $frame", frame.upper(pop) in 1..254)
+        }
+    }
+
+    @Test
+    fun `TabletCrossfade page push and pop fade in place, nothing travels`() {
+        val probe = Probe(composeRule)
+        for (pop in listOf(false, true)) {
+            val motion = if (pop) crossfadeNav(layerSettings, layerProfile, pop = true) else crossfadeNav(layerProfile, layerSettings, pop = false)
+            val frame = probe.play(motion)
+
+            assertStill(frame)
+            assertOpaque(frame)
+            assertTrue("the upper page is mid-fade: $frame", frame.upper(pop) in 1..254)
+        }
+    }
+
+    private fun crossfadeNav(from: Map<String, Any>, to: Map<String, Any>, pop: Boolean) =
+        navMotion(from, to, pop, reduceMotion = false, NavForm.Tablet, tabletCrossfade = true)
+
+    @Test
+    fun `with TabletCrossfade off the tablet keeps its rise and its axis slide`() {
+        assertEquals(NavMotionKind.Rise, navMotion(homeRoot, playRoot, pop = false, reduceMotion = false, NavForm.Tablet, tabletCrossfade = false).kind)
+        assertEquals(NavMotionKind.Axis, navMotion(layerProfile, layerSettings, pop = false, reduceMotion = false, NavForm.Tablet, tabletCrossfade = false).kind)
+    }
+
+    @Test
     fun `phone tab switch fades only, with no travel`() {
         assertStill(Probe(composeRule).play(navTransition(homeRoot, playRoot, pop = false, NavForm.Phone)))
     }
@@ -377,6 +474,32 @@ class NavTransitionsTest {
         assertTrue("right-edge swipe pulls left: $fromRight", fromRight.outgoing.left < fromRight.container.left - EPS)
         assertSameRect(fromRight.container, fromRight.incoming)
         assertOpaque(fromRight)
+    }
+
+    @Test
+    fun `TabletCrossfade predictive back moves the screen right for either edge and fades it out`() {
+        val probe = Probe(composeRule)
+
+        listOf(NavigationEvent.EDGE_LEFT, NavigationEvent.EDGE_RIGHT).forEach { edge ->
+            val motion = predictivePopMotion(edge, reduceMotion = false, shrink = true)
+            val mid = probe.play(motion, PREDICTIVE_HALF)
+            assertTrue("edge $edge: outgoing is right of the container: $mid", mid.outgoing.left > mid.container.left + EPS)
+            assertTrue("edge $edge: outgoing shrinks: $mid", mid.outgoing.right - mid.outgoing.left < mid.container.right - mid.container.left - EPS)
+            val late = probe.play(motion, NavMotion.PredictiveMillis - LATE_MILLIS)
+            assertTrue("edge $edge: outgoing is gone by the end: $late", late.upper(true) <= 40)
+        }
+    }
+
+    @Test
+    fun `TabletCrossfade predictive back brings the lower page in late from a small left offset`() {
+        val probe = Probe(composeRule)
+        val motion = predictivePopMotion(NavigationEvent.EDGE_RIGHT, reduceMotion = false, shrink = true)
+
+        val early = probe.play(motion, SAMPLE_MILLIS)
+        assertTrue("invisible in the first half: $early", early.lower(true) <= 8)
+        val late = probe.play(motion, NavMotion.PredictiveMillis - LATE_MILLIS)
+        assertTrue("fading in by the end: $late", late.lower(true) > 8)
+        assertTrue("small left offset, never beyond: $late", late.incoming.left <= late.container.left && late.incoming.left >= late.container.left - (late.container.right - late.container.left) / 10)
     }
 
     @Test
@@ -432,6 +555,8 @@ class NavTransitionsTest {
         val outgoingChannel: Int,
     ) {
         fun upper(pop: Boolean): Int = if (pop) outgoingChannel else incomingChannel
+
+        fun lower(pop: Boolean): Int = if (pop) incomingChannel else outgoingChannel
     }
 
     /**
