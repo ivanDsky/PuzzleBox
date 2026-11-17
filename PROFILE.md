@@ -47,6 +47,9 @@ off  # user ruling 2026-11-05 (replaces 2026-10-31 `always`): publish the review
 - changes: trunk   # user ruling 2026-11-07 (replaces 2026-11-05 `pr`): ship-to-trunk — one small PR per ticket off fresh origin/main, unfinished behavior merges dark behind a release flag, the flip PR (flag on + version bump) is the release
 - pr-check: none   # merge gate: `./gradlew assembleDebug test` green on the PR branch rebased onto fresh origin/main. User ruling 2026-11-07 (ADR-0023, replaces the required pr-check): PRs run no CI and main requires no status check. Main's workflow re-runs the gate after every merge; red main → stop merging, revert the culprit or fix it forward in one line. Skip `gh pr checks` waits (there are none). Goldens are not in this gate (ADR-0023, 2026-11-14): a ticket that changes a UI module also runs `./gradlew :<module>:testDebugUnitTest -Proborazzi.verify` for that module and fixes or re-records drift in its own PR
 
+## Tracker                   # shared backlog: file-tickets files, work-tickets claims (skills #44)
+- backend: github            # user ruling 2026-11-16: GitHub Issues on the origin remote (ivanDsky/PuzzleBox), state:/type:/area:/epic: labels. Backlog-worker PRs (work-tickets) are opened for the user to merge, as the skill says (user ruling 2026-11-16)
+
 ## Consent ledger
 - pre-approved: merge dark slices on green   # user ruling 2026-11-07: agent merges dark/non-behavioral slice PRs on a green LOCAL suite (`./gradlew assembleDebug test` on the rebased branch, ADR-0023) + clean fast review; flip PRs, live changes (migrations, persisted formats, manifest/permissions, dependency/SDK bumps, GitHub Actions version bumps) still wait for the user
 - pre-approved: re-record goldens owned by the module you changed   # never shared/design-system goldens
