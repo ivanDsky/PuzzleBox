@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.zipui
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -38,6 +39,10 @@ class ZipFeedback(private val scope: CoroutineScope) : PlayFeedback {
     var hintCaption by mutableStateOf<String?>(null)
         private set
 
+    /** Every refused drag step, explained or not. A counter, so a repeat of the same refusal still changes it. */
+    var refusals by mutableIntStateOf(0)
+        private set
+
     override val violation: String? get() = null
 
     private val rules = zipPlugin.rules as ZipRules // the plugin's rules ARE ZipRules
@@ -58,6 +63,7 @@ class ZipFeedback(private val scope: CoroutineScope) : PlayFeedback {
      * (R1), and nothing here is a mistake for analytics.
      */
     fun refused(session: ZipSession, cell: Cell) {
+        refusals++
         val verdict = rules.validateMove(ZipMove.Extend(cell), ZipState(session.puzzle, session.path))
         val reason = (verdict as? ZipValidation.Invalid)?.reason ?: return
         if (reason is Reason.WrongWaypointOrder || reason == Reason.WallBetween || reason == Reason.WrongStart) {
