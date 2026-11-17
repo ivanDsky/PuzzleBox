@@ -11,6 +11,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -53,7 +54,8 @@ import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
  * primary action, [onAction], and under it the [BoardPreview], whose sign-in is [onSignIn]. A ⋮ beside the title offers
  * Report ([onReport]) when [FriendCard.canReport].
  * Sections rise in with the Enter stagger the first time the code's card is shown; under
- * reduced motion they only fade. On a wide window the card keeps to one centred column.
+ * reduced motion they only fade. On a wide window the card keeps to one centred column, unless it is [inPane] (the
+ * Community tablet's right pane) with the board on and room for both columns: then [FriendPuzzleGrid] lays out two.
  */
 @Composable
 internal fun FriendPuzzleCard(
@@ -62,27 +64,38 @@ internal fun FriendPuzzleCard(
     onSignIn: () -> Unit,
     modifier: Modifier = Modifier,
     onReport: () -> Unit = {},
+    inPane: Boolean = false,
 ) {
     val reduced = rememberReducedMotion()
     val entrance = rememberCardEntrance(card.puzzle.code)
+    if (inPane && card.hiddenBoard) {
+        BoxWithConstraints(modifier) {
+            if (maxWidth >= FriendGridMinWidth) {
+                FriendPuzzleGrid(card, entrance, reduced, onAction, onSignIn, onReport)
+            } else {
+                SingleColumn(card, entrance, reduced, onAction, onSignIn, onReport, Modifier)
+            }
+        }
+    } else {
+        SingleColumn(card, entrance, reduced, onAction, onSignIn, onReport, modifier)
+    }
+}
+
+@Composable
+private fun SingleColumn(
+    card: FriendCard,
+    entrance: CardEntrance,
+    reduced: Boolean,
+    onAction: () -> Unit,
+    onSignIn: () -> Unit,
+    onReport: () -> Unit,
+    modifier: Modifier,
+) {
     val accent = card.brand.accent.colors()
     val puzzle = card.puzzle
     Column(modifier.maxContentWidth().padding(horizontal = Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
         Enter(entrance, 0, reduced) { FriendCardHead(card, reduced) }
-        Enter(entrance, 1, reduced) {
-            Row(verticalAlignment = Alignment.Top) {
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Text(
-                        text = puzzle.title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.testTag("friend.card.title"),
-                    )
-                    Byline(puzzle.authorName, accent.container, accent.onContainer)
-                }
-                if (card.canReport) FriendCardMenu(onReport)
-            }
-        }
+        Enter(entrance, 1, reduced) { FriendTitleRow(card, onReport) }
         if (puzzle.note.isNotBlank()) Enter(entrance, 2, reduced) { Note(puzzle.note, accent.accent) }
         // The hidden board takes the slot after the note, so the sections after it stagger one later.
         val later = if (card.hiddenBoard) 1 else 0
@@ -104,6 +117,24 @@ internal fun FriendPuzzleCard(
     }
 }
 
+/** The title and "by author" beside the ⋮ menu (Report, when the card offers it). */
+@Composable
+internal fun FriendTitleRow(card: FriendCard, onReport: () -> Unit) {
+    val accent = card.brand.accent.colors()
+    Row(verticalAlignment = Alignment.Top) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text(
+                text = card.puzzle.title,
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.testTag("friend.card.title"),
+            )
+            Byline(card.puzzle.authorName, accent.container, accent.onContainer)
+        }
+        if (card.canReport) FriendCardMenu(onReport)
+    }
+}
+
 @Composable
 private fun Byline(author: String, container: Color, onContainer: Color) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -120,7 +151,7 @@ private fun Byline(author: String, container: Color, onContainer: Color) {
 }
 
 @Composable
-private fun Note(note: String, rule: Color) {
+internal fun Note(note: String, rule: Color) {
     Row(
         Modifier.fillMaxWidth().height(IntrinsicSize.Min)
             .background(MaterialTheme.colorScheme.surfaceContainerLow, MaterialTheme.shapes.small),
@@ -137,7 +168,7 @@ private fun Note(note: String, rule: Color) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun Chips(card: FriendCard, container: Color, onContainer: Color, reduced: Boolean) {
+internal fun Chips(card: FriendCard, container: Color, onContainer: Color, reduced: Boolean) {
     val neutral = MaterialTheme.colorScheme.surfaceContainerHigh
     val ink = MaterialTheme.colorScheme.onSurfaceVariant
     val muted = LocalMutedStatus.current
@@ -172,7 +203,7 @@ private fun Chip(text: String, container: Color, content: Color, tag: String) {
 }
 
 @Composable
-private fun Stats(card: FriendCard) {
+internal fun Stats(card: FriendCard) {
     Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Tile("Author", Modifier.weight(1f)) {
             Value(formatDuration(card.puzzle.authorTimeMs), "friend.card.author.time")
@@ -219,7 +250,7 @@ private fun Hints(hints: Int, tag: String) {
 }
 
 @Composable
-private fun Action(action: FriendCardAction, reduced: Boolean, onAction: () -> Unit) {
+internal fun Action(action: FriendCardAction, reduced: Boolean, onAction: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         AnimatedContent(targetState = action, transitionSpec = { crossfade(reduced) }, label = "cta") { shown ->
             Box(Modifier.testTag("friend.card.cta.${shown.tag}")) {

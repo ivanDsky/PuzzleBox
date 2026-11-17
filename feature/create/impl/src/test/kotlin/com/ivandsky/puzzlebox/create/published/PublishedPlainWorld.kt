@@ -76,12 +76,14 @@ internal const val PLAIN_LOADING = PublishedPlainBoardLoadingTag
 /**
  * The author's page over fake stores for one [game]: its Studio board is a tagged stand-in that draws whatever
  * verdict it is given ([STUDIO_BOARD]); its plain board is a [GivensBoard] of its own shape ([PLAIN_CONTENT]), built
- * only from the puzzle the editor's export hands it. [withReplayBoard] false is a game that draws no such board.
+ * only from the puzzle the editor's export hands it. [withReplayBoard] false is a game that draws no such board; the
+ * puzzle is called [title].
  */
 internal class PublishedPlainWorld(
     val game: PlainGame,
     private val flags: ReleaseFlags?,
     private val withReplayBoard: Boolean = true,
+    private val title: String = TITLE,
 ) {
     val editor = PlainEditor(game.id)
     val drafts = FakeDraftRepository()
@@ -122,14 +124,14 @@ internal class PublishedPlainWorld(
         drafts.upsert(
             Draft(
                 id = "castle", gameId = board.gameId, variant = board.variant,
-                draftFormatVersion = board.editor.draftFormatVersion, blob = board.encode(), title = TITLE, updatedAt = NOW,
+                draftFormatVersion = board.editor.draftFormatVersion, blob = board.encode(), title = title, updatedAt = NOW,
                 testSolve = TestSolve(board.layoutKey, timeMs = 102_000, hints = 0), reservedCode = CODE.value,
                 imported = false, authorName = "Ivan", note = "",
             ),
         )
         published.upsert(
             PublishedPuzzle(
-                code = CODE, gameId = game.id, variant = board.variant, title = TITLE, authorTimeMs = 102_000,
+                code = CODE, gameId = game.id, variant = board.variant, title = title, authorTimeMs = 102_000,
                 authorHints = 0, createdAt = NOW, unpublished = unpublished, solvesCount = 3, solvesCountAt = NOW,
             ),
         )

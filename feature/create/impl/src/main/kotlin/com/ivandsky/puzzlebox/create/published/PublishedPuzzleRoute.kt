@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -69,7 +70,8 @@ import org.koin.core.parameter.parametersOf
  * reduced motion). A code with no stored row or kept draft shows the missing-draft screen.
  * [PlayLayout.TwoPane] sets the board square on the left and the ticket and actions in the
  * Studio's side pane on the right, so a tablet shows both without scrolling. A null [onBack] is the page shown inside a
- * pane of its own (the Community tablet's right pane): it has no Back.
+ * pane of its own (the Community tablet's right pane): it has no Back, and with CommunityPuzzles on it is two columns
+ * when the pane has room for them ([PublishedPageGrid]) and the single column when it has not.
  */
 @Composable
 internal fun PublishedPuzzleRoute(
@@ -93,14 +95,28 @@ internal fun PublishedPuzzleRoute(
         when (shown) {
             PublishedPuzzleViewModel.State.Loading -> Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
             PublishedPuzzleViewModel.State.Missing -> MissingDraftScreen(onBack = onBack)
-            is PublishedPuzzleViewModel.State.Ready -> PublishedPage(
-                page = shown,
-                unpublish = viewModel.unpublish,
-                layout = layout,
-                onBack = onBack,
-                onDuplicate = { viewModel.duplicate(onOpen) },
-                onConfirmUnpublish = viewModel::confirmUnpublish,
-            )
+            is PublishedPuzzleViewModel.State.Ready -> {
+                val page: @Composable (PlayLayout, Boolean) -> Unit = { shownLayout, grid ->
+                    PublishedPage(
+                        page = shown,
+                        unpublish = viewModel.unpublish,
+                        layout = shownLayout,
+                        grid = grid,
+                        onBack = onBack,
+                        onDuplicate = { viewModel.duplicate(onOpen) },
+                        onConfirmUnpublish = viewModel::confirmUnpublish,
+                    )
+                }
+                // The pane (no Back) with the plain board on: two columns when it has the room, else the single column.
+                if (shown.plainBoard && onBack == null && layout == PlayLayout.TwoPane) {
+                    BoxWithConstraints {
+                        val wide = maxWidth >= PublishedGridMinWidth
+                        page(if (wide) PlayLayout.TwoPane else PlayLayout.SinglePane, wide)
+                    }
+                } else {
+                    page(layout, false)
+                }
+            }
         }
     }
 }
@@ -110,6 +126,7 @@ private fun PublishedPage(
     page: PublishedPuzzleViewModel.State.Ready,
     unpublish: UnpublishSession,
     layout: PlayLayout,
+    grid: Boolean,
     onBack: (() -> Unit)?,
     onDuplicate: () -> Unit,
     onConfirmUnpublish: () -> Unit,
@@ -134,17 +151,29 @@ private fun PublishedPage(
         )
     }
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
-        CompactTopBar(
-            title = page.ticket.title,
-            navigationIcon = onBack?.let { back ->
-                {
-                    IconButton(onClick = back, modifier = Modifier.testTag("create.publishedPage.back")) {
-                        Icon(PuzzleIcons.Back, contentDescription = "Back to Create")
+        if (!grid) {
+            CompactTopBar(
+                title = page.ticket.title,
+                navigationIcon = onBack?.let { back ->
+                    {
+                        IconButton(onClick = back, modifier = Modifier.testTag("create.publishedPage.back")) {
+                            Icon(PuzzleIcons.Back, contentDescription = "Back to Create")
+                        }
                     }
-                }
-            },
-        )
-        when (layout) {
+                },
+            )
+        }
+        if (grid) {
+            PublishedPageGrid(
+                title = page.ticket.title,
+                board = board,
+                details = {
+                    PublishedActions(page.ticket, onCopied = { copies++ }, onDuplicate = onDuplicate, onUnpublish = unpublish::ask)
+                    page.ui.PublishFields(page.controller, enabled = false, modifier = Modifier.fillMaxWidth())
+                },
+                toasts = toasts,
+            )
+        } else when (layout) {
             PlayLayout.SinglePane -> Box(Modifier.weight(1f).fillMaxWidth()) {
                 PageColumn(Modifier.maxContentWidth()) {
                     board(Modifier.fillMaxWidth())
