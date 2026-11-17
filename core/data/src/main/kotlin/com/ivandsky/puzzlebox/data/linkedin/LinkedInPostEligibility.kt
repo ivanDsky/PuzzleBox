@@ -23,6 +23,7 @@ internal object LinkedInPostEligibility {
         val delta: Int?,
         val posted: Boolean,
         val sending: Boolean,
+        val already: Boolean = false,
     )
 
     sealed interface Verdict {
@@ -35,7 +36,7 @@ internal object LinkedInPostEligibility {
 
     /**
      * The order is the contract. What can never be posted is hidden first, so posting off or an import hides
-     * even a posted or paused day. A posted day says so on any later day. A day that is not today is refused
+     * even a posted or paused day. A posted day says so on any later day, and so does a day LinkedIn said it already holds. A day that is not today is refused
      * before [play] is asked, so only a solve that could still be sent has its replay folded.
      */
     suspend fun decide(facts: Facts, play: suspend () -> LinkedInPlay?): Verdict {
@@ -51,6 +52,7 @@ internal object LinkedInPostEligibility {
         val typeId = facts.typeId ?: return HIDDEN
         val gamePath = facts.gamePath ?: return HIDDEN
         if (facts.posted) return Verdict.Blocked(LinkedInPostState.Posted)
+        if (facts.already) return Verdict.Blocked(LinkedInPostState.AlreadyOnLinkedIn)
         if (facts.delta != 0) return Verdict.Blocked(LinkedInPostState.NotToday)
         val encoded = play() ?: return HIDDEN
         if (facts.link is LinkState.Paused) return Verdict.Blocked(LinkedInPostState.Paused)

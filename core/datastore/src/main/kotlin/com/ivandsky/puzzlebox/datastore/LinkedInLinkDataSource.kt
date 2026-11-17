@@ -28,6 +28,7 @@ class LinkedInLinkDataSource(
             postingConsentAtMs = preferences[KEY_POSTING_CONSENT_AT_MS],
             postedRefs = preferences[KEY_POSTED_REFS].orEmpty(),
             sendingRefs = preferences[KEY_SENDING_REFS].orEmpty(),
+            alreadyRefs = preferences[KEY_ALREADY_REFS].orEmpty(),
         )
     }
 
@@ -40,6 +41,7 @@ class LinkedInLinkDataSource(
             if (preferences[KEY_PROFILE_ID] != profileId) {
                 preferences.remove(KEY_POSTED_REFS)
                 preferences.remove(KEY_SENDING_REFS)
+                preferences.remove(KEY_ALREADY_REFS)
             }
             preferences[KEY_PROFILE_ID] = profileId
             preferences[KEY_CONSENT_AT_MS] = consentAtMs
@@ -86,14 +88,16 @@ class LinkedInLinkDataSource(
     }
 
     /**
-     * Ends the send of [ref]: its marker goes, and with [posted] the ref is remembered as posted. A no-op unless
-     * [profileId] is the linked profile, for the same reason as [markSending].
+     * Ends the send of [ref]: its marker goes, with [posted] the ref is remembered as posted, and with [already] as
+     * held by LinkedIn without this install's post. A no-op unless [profileId] is the linked profile, for the same
+     * reason as [markSending].
      */
-    suspend fun settleSend(profileId: String, ref: String, posted: Boolean) {
+    suspend fun settleSend(profileId: String, ref: String, posted: Boolean, already: Boolean = false) {
         dataStore.edit { preferences ->
             if (preferences[KEY_PROFILE_ID] != profileId) return@edit
             preferences[KEY_SENDING_REFS] = preferences[KEY_SENDING_REFS].orEmpty() - ref
             if (posted) preferences[KEY_POSTED_REFS] = preferences[KEY_POSTED_REFS].orEmpty() + ref
+            if (already) preferences[KEY_ALREADY_REFS] = preferences[KEY_ALREADY_REFS].orEmpty() + ref
         }
     }
 
@@ -109,5 +113,6 @@ class LinkedInLinkDataSource(
         val KEY_POSTING_CONSENT_AT_MS = longPreferencesKey("linkedin_posting_consent_at_ms")
         val KEY_POSTED_REFS = stringSetPreferencesKey("linkedin_posted_refs")
         val KEY_SENDING_REFS = stringSetPreferencesKey("linkedin_sending_refs")
+        val KEY_ALREADY_REFS = stringSetPreferencesKey("linkedin_already_refs")
     }
 }

@@ -231,6 +231,21 @@ class LinkedInLinkDataSourceTest {
     }
 
     @Test
+    fun `a send settled as already held swaps the marker for an already ref, which another profile and a clear drop`() = runTest {
+        val file = tempFile()
+
+        process(file) {
+            it.connect("profile-1", 1_000L)
+            it.markSending("profile-1", "zip/2026-11-05")
+            it.settleSend("profile-1", "zip/2026-11-05", posted = false, already = true)
+            assertEquals(LinkedInLinkPrefs("profile-1", 1_000L, null, null, alreadyRefs = setOf("zip/2026-11-05")), it.link.first())
+            it.connect("profile-2", 2_000L)
+        }
+
+        assertEquals(LinkedInLinkPrefs("profile-2", 2_000L, null, null), read(file))
+    }
+
+    @Test
     fun `a send settled for a profile that is not the linked one changes nothing`() = runTest {
         val file = tempFile()
 
