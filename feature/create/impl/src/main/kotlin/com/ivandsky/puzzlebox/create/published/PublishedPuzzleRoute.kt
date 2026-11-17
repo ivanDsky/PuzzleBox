@@ -42,7 +42,6 @@ import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.create.editor.CodeCopiedToast
 import com.ivandsky.puzzlebox.create.editor.MissingDraftScreen
 import com.ivandsky.puzzlebox.create.editor.PublishedTicket
-import com.ivandsky.puzzlebox.create.editor.ReadOnlyBoard
 import com.ivandsky.puzzlebox.create.editor.ShareTicket
 import com.ivandsky.puzzlebox.create.editor.SidePaneWidth
 import com.ivandsky.puzzlebox.create.editor.SquareBoardSlot
@@ -59,7 +58,8 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * A published puzzle's page (spec A6): under a compact bar whose Back ([onBack]) returns to the
- * Create root, the board as published (read-only), the game's own publish details as published
+ * Create root, the board as published (read-only; with CommunityPuzzles on, the plain sharp board with no
+ * verdict, see [PublishedPageBoard]), the game's own publish details as published
  * (disabled; Strands' theme clue), the share ticket with Copy code and Share, a
  * note that it can't be edited, **Duplicate as new draft**, which stores an editable copy and
  * opens it through [onOpen], and, while the code is live, **Unpublish…** behind its confirm
@@ -116,9 +116,7 @@ private fun PublishedPage(
 ) {
     var copies by remember { mutableIntStateOf(0) }
     val asked by unpublish.state.collectAsStateWithLifecycle()
-    val board: @Composable (Modifier) -> Unit = { boardModifier ->
-        ReadOnlyBoard(board = { page.ui.Board(page.controller, page.verdict, layout, it) }, modifier = boardModifier)
-    }
+    val board: @Composable (Modifier) -> Unit = { boardModifier -> PublishedPageBoard(page, layout, boardModifier) }
     val actions: @Composable ColumnScope.() -> Unit = {
         page.ui.PublishFields(page.controller, enabled = false, modifier = Modifier.fillMaxWidth())
         PublishedActions(page.ticket, onCopied = { copies++ }, onDuplicate = onDuplicate, onUnpublish = unpublish::ask)
