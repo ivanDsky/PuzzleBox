@@ -28,6 +28,7 @@ val databaseModule = module {
     single { get<PuzzleBoxDatabase>().matchLocalDao() }
     single { get<PuzzleBoxDatabase>().matchResultDao() }
     single { get<PuzzleBoxDatabase>().syncTombstoneDao() }
+    single { get<PuzzleBoxDatabase>().selfMatchDao() }
     // A separate file from puzzlebox.db, so the LinkedIn cache and its schema evolve apart from puzzle data.
     single {
         Room.databaseBuilder(get<Context>(), LinkedInDatabase::class.java, LinkedInDatabase.NAME)
