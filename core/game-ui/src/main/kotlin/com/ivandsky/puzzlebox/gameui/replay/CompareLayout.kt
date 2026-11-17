@@ -8,7 +8,7 @@ enum class CompareLayout {
     /** Both boards side by side. */
     Twin,
 
-    /** One board at a time with a peek of the other. */
+    /** One board at a time, centred on the screen, with the other a swipe or a tab tap away. */
     FlipPeek,
 }
 

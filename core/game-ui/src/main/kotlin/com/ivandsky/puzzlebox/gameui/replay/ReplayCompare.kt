@@ -14,7 +14,7 @@ import com.ivandsky.puzzlebox.game.replay.Timeline
  * Two-sided replay section. Draws nothing when both timelines are null. Both sides play from time 0 on one
  * shared transport; a side that has ended stays on its last board. The lead line shows only when both sides
  * have a replay, and its noun is [board].pieces. Needs a bounded height, like [ReplayPlayer].
- * [CompareLayout.FlipPeek] shows one board at a time with a peek of the other. [showErrors] false hides every
+ * [CompareLayout.FlipPeek] shows one board at a time, centred, and flips to the other. [showErrors] false hides every
  * rule-violation mark on both boards.
  */
 @Composable

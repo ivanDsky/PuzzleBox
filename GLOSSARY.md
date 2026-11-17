@@ -106,7 +106,7 @@ The corner disc on a replay board cell (Strands: a word) that a replayed hint re
 The compare layout with both boards side by side, at Expanded width.
 
 **Flip+peek**:
-The compare layout with one board at a time in a pager and the other peeking at the edge, at Compact and Medium width.
+The compare layout with one board at a time in a full-width pager, centred on the screen, and tabs or a swipe to flip to the other, at Compact and Medium width. The other board no longer peeks at the edge (#1112); the name stays.
 
 **Streak freeze** (short: freeze):
 A held token that covers one missed puzzle day so the streak survives; derived from the solved-day history, never stored.
