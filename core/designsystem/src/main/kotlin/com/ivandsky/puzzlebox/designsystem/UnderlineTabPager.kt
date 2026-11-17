@@ -10,13 +10,16 @@ import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.PagerSnapDistance
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 
@@ -29,7 +32,10 @@ import kotlin.math.abs
  * on another tab animates to its page over [MotionTokens.DurationLong] on
  * [MotionTokens.EasingEmphasizedDecelerate], and a release settles the same way. A tap on the
  * selected tab only calls [onReselect] with its index (callers scroll to top). The selected page is
- * saved across recreation; [initialPage] is the first one.
+ * saved across recreation; [initialPage] is the first one. A host that owns the tab (Games: a request for
+ * a tab, back from a game's page) hears each page the pager settles on through [onPageSettled] (not the
+ * first one) and passes [selectedPage]: when it changes to a page the pager is not on, the pager moves
+ * there the way a tap does. Null leaves the pager its own owner.
  *
  * Under reduced motion nothing slides: pages stay in place and cross-fade over
  * [CrossfadeDuration], the bar jumps to the tab the page is heading for, and a swipe still changes
@@ -41,16 +47,27 @@ fun UnderlineTabPager(
     onReselect: (Int) -> Unit,
     modifier: Modifier = Modifier,
     initialPage: Int = 0,
+    selectedPage: Int? = null,
+    onPageSettled: (Int) -> Unit = {},
     content: @Composable (page: Int) -> Unit,
 ) {
     val reduced = rememberReducedMotion()
     val state = rememberPagerState(initialPage = initialPage.coerceIn(0, (tabs.size - 1).coerceAtLeast(0))) { tabs.size }
     val scope = rememberCoroutineScope()
     val reselect by rememberUpdatedState(onReselect)
+    val settled by rememberUpdatedState(onPageSettled)
     val settle = if (reduced) {
         tween<Float>(CrossfadeDuration, easing = MotionTokens.EasingLinear)
     } else {
         tween(MotionTokens.DurationLong, easing = MotionTokens.EasingEmphasizedDecelerate)
+    }
+    LaunchedEffect(state) {
+        snapshotFlow { state.settledPage }.drop(1).collect { settled(it) }
+    }
+    LaunchedEffect(selectedPage) {
+        if (selectedPage != null && selectedPage in tabs.indices && selectedPage != state.currentPage) {
+            state.animateScrollToPage(selectedPage, animationSpec = settle)
+        }
     }
     Column(modifier) {
         UnderlineTabsAt(

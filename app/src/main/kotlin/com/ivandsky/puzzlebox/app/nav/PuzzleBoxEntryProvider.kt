@@ -81,6 +81,7 @@ internal fun puzzleBoxEntryProvider(
     custom: CustomSlot? = null,
     makeOne: MakeOne? = null,
     libraryRequests: LibraryRequests = LibraryRequests(),
+    underlineTabs: Boolean = false,
     visibility: VisibilitySlot,
     tuneDefaults: RanksTuneDefaults,
 ): (NavKey) -> NavEntry<NavKey> = entryProvider {
@@ -106,6 +107,7 @@ internal fun puzzleBoxEntryProvider(
         onOpenRanks = openRanks(navigator),
         onMakeOne = makeOne?.let { make -> { game -> make(game) } },
         communityTab = communityTab,
+        underlineTabs = underlineTabs,
     )
     communityEntry(
         navigator,

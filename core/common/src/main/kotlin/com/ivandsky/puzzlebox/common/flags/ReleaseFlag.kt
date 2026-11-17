@@ -69,4 +69,10 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * which binds it once and provides it to the games as LocalPlayFeel (spec A2).
      */
     PlayFeel(label = "Same feel in every game", releaseDefault = false),
+
+    /**
+     * In-surface tabs are the shared underline strip with swipe (nav-rethink M12-6): Games swaps its pill row for it
+     * (Community's tabs use the same strip). Read only in the app graph, which passes one Boolean down (spec A2).
+     */
+    UnderlineTabs(label = "Underline tabs with swipe", releaseDefault = false),
 }
