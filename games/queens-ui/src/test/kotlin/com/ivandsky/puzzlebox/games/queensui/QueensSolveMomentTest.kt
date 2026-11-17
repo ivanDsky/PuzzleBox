@@ -109,10 +109,12 @@ class QueensSolveMomentTest {
         rule.onNodeWithTag("play.solve_rest").assertExists()
         assertEquals("the buzz came with the solve", 1, confirms())
 
-        advance(CelebrationMotion.SolveMomentMs - 200 - 100)
-        assertEquals("still resting at 1400 ms", 0, handOffs)
-        advance(200)
-        assertEquals("handed off 1500 ms from the solve", 1, handOffs)
+        rule.mainClock.advanceTimeBy(CelebrationMotion.SolveMomentMs - CLOCK_MARGIN_MS - 200)
+        rule.waitForIdle()
+        assertEquals("still resting before the moment ends", 0, handOffs)
+        rule.mainClock.advanceTimeBy(2 * CLOCK_MARGIN_MS)
+        rule.waitForIdle()
+        assertEquals("handed off after the solve moment", 1, handOffs)
         rule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
 
         advance(3_000)
@@ -150,5 +152,7 @@ class QueensSolveMomentTest {
 
     private companion object {
         const val STEP_MS = 16L
+        /** Clock margin around [CelebrationMotion.SolveMomentMs]: whole frames, so the clock's steps can't straddle it. */
+        const val CLOCK_MARGIN_MS = 50L
     }
 }

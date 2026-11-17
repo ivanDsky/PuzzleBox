@@ -421,17 +421,19 @@ class SudokuMotionTest {
     }
 
     @Test
-    fun `the solve wave is over inside the moment's motion, and the hand-off is 1500 ms from the solve`() {
+    fun `the solve wave is over inside the moment's motion, and the hand-off is the solve moment from the solve`() {
         val motionEnd = CelebrationMotion.FrameDrawStartMs + CelebrationMotion.FrameDrawMs
         assertEquals(1_300, motionEnd)
         for (geometry in listOf(SudokuGeometry(6, 2, 3), SudokuGeometry(9, 3, 3))) {
             assertTrue("solve wave ${SudokuMotion.solveWave(geometry).totalMs} ms", SudokuMotion.solveWave(geometry).totalMs <= motionEnd)
         }
         val (_, solved, _) = solveWithRest(rest = true)
-        settle(CelebrationMotion.SolveMomentMs.toInt() - 100)
-        composeRule.runOnIdle { assertEquals("still resting at 1400 ms", 0, solved.size) }
-        settle(200)
-        composeRule.runOnIdle { assertEquals("handed off by 1600 ms", 1, solved.size) }
+        // Clock margin around the solve moment: whole frames, so the 16 ms settle steps can't straddle it.
+        val clockMarginMs = 50
+        settle(CelebrationMotion.SolveMomentMs.toInt() - clockMarginMs)
+        composeRule.runOnIdle { assertEquals("still resting before the moment ends", 0, solved.size) }
+        settle(2 * clockMarginMs)
+        composeRule.runOnIdle { assertEquals("handed off after the solve moment", 1, solved.size) }
     }
 
     //endregion

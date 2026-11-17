@@ -37,7 +37,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Nav-rethink 129, the solve moment B with the rest on: after the sweep the board pops to 1.03 and settles, the accent
  * frame line laps the board clockwise from the top edge and is closed 1300 ms after the solve, and nothing moves from
- * then to the hand-off at 1500 ms. Reduced motion shows the whole outline from the start, with no pop. The clock is
+ * then to the hand-off after [CelebrationMotion.SolveMomentMs]. Reduced motion shows the whole outline from the start, with no pop. The clock is
  * held; a 200 dp white board sits 24 dp inside a white pane, at one pixel per dp.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -139,7 +139,7 @@ class PlaySolveMomentTest {
     }
 
     @Test
-    fun `nothing moves from the closed frame to the hand-off at 1500 ms`() {
+    fun `nothing moves from the closed frame to the hand-off after the solve moment`() {
         setFrame()
         solveAndRunTo(1_380)
         val closed = pane()
@@ -149,8 +149,12 @@ class PlaySolveMomentTest {
         assertEquals("still resting", 0, handOffs)
         assertTrue("the board changed after the frame closed", closed.buffer.contentEquals(pane().buffer))
 
-        composeRule.mainClock.advanceTimeBy(60)
-        assertEquals("the hand-off is 1500 ms from the solve", 1, handOffs)
+        composeRule.mainClock.advanceTimeBy(CelebrationMotion.SolveMomentMs - CLOCK_MARGIN_MS - 1_480)
+        assertEquals("still resting before the moment ends", 0, handOffs)
+        assertTrue("the board changed after the frame closed", closed.buffer.contentEquals(pane().buffer))
+
+        composeRule.mainClock.advanceTimeBy(2 * CLOCK_MARGIN_MS)
+        assertEquals("the hand-off follows the solve moment", 1, handOffs)
     }
 
     @Test
@@ -170,9 +174,9 @@ class PlaySolveMomentTest {
         }
         assertTrue("no band, no comet: the board changed", first.buffer.contentEquals(pane().buffer))
 
-        composeRule.mainClock.advanceTimeBy(1_480 - at)
+        composeRule.mainClock.advanceTimeBy(CelebrationMotion.SolveMomentMs - CLOCK_MARGIN_MS - at)
         assertEquals("the rest is a pause, so reduced motion keeps it", 0, handOffs)
-        composeRule.mainClock.advanceTimeBy(60)
+        composeRule.mainClock.advanceTimeBy(2 * CLOCK_MARGIN_MS)
         assertEquals(1, handOffs)
     }
 
@@ -192,11 +196,15 @@ class PlaySolveMomentTest {
         val lapping = pane()
         assertNotEquals(Color.White, lapping[TOP_MIDDLE.first, TOP_MIDDLE.second])
         assertEquals("the second lap starts from nothing", Color.White, lapping[LEFT_UPPER.first, LEFT_UPPER.second])
-        composeRule.mainClock.advanceTimeBy(800)
+        composeRule.mainClock.advanceTimeBy(CelebrationMotion.SolveMomentMs - CLOCK_MARGIN_MS - 760)
+        assertEquals("the second rest is still on", 1, handOffs)
+        composeRule.mainClock.advanceTimeBy(2 * CLOCK_MARGIN_MS)
         assertEquals(2, handOffs)
     }
 
     private companion object {
+        /** Clock margin around [CelebrationMotion.SolveMomentMs]: whole frames, so the clock's steps can't straddle it. */
+        const val CLOCK_MARGIN_MS = 50L
         const val PANE = "pane"
         const val REST = "play.solve_rest"
         const val FRAME_MS = 16L

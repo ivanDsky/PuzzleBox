@@ -4,6 +4,8 @@ import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** The solve's success buzz goes through [HapticFeedback], where the Vibration switch gates it. */
@@ -46,5 +48,20 @@ class SolveRestStateTest {
         assertEquals(true, rest.confirms)
         assertEquals(listOf(HapticFeedbackType.Confirm), buzzes)
         assertEquals(false, rest.resting)
+    }
+
+    @Test
+    fun `the rest is still on at 1699 ms and over at 1700 ms`() = runTest {
+        val rest = SolveRestState(enabled = true, playFeel = false, haptics = haptics)
+
+        val done = rest.begin(this)
+        testScheduler.runCurrent()
+        testScheduler.advanceTimeBy(1_699)
+        testScheduler.runCurrent()
+        assertFalse("still resting at 1699 ms", done.isCompleted)
+
+        testScheduler.advanceTimeBy(1)
+        testScheduler.runCurrent()
+        assertTrue("over at 1700 ms", done.isCompleted)
     }
 }
