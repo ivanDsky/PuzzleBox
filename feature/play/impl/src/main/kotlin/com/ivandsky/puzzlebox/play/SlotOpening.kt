@@ -19,7 +19,6 @@ import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.SessionBlob
-import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.unavailableMessage
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -106,9 +105,6 @@ internal class SlotOpening(
 
     /** The slot's saved row as stored, read through the [lane] after every save queued before it; never deletes. */
     suspend fun savedRow(slot: PlaySlot): ByteArray? = lane.run { saved.load(slot) }
-
-    /** The size ([VariantId]) of [slot]'s stored puzzle, for a result to say which size was played; null when none is stored. */
-    suspend fun variantOf(slot: PlaySlot.Daily): VariantId? = daily.cachedPuzzle(slot.gameId, slot.day)?.variant
 
     /** The slot's saved envelope when it decodes; an undecodable row is deleted in the same lane turn. */
     private suspend fun restore(slot: PlaySlot, plugin: GamePlugin<*, *, *>): ByteArray? = lane.run {

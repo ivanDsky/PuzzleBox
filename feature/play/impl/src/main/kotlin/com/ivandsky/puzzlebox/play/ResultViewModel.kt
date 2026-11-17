@@ -26,7 +26,8 @@ import com.ivandsky.puzzlebox.domain.nextUnsolved
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.RankOrder
-import com.ivandsky.puzzlebox.game.VariantId
+import com.ivandsky.puzzlebox.game.PuzzleRef
+import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -49,7 +50,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
@@ -66,7 +66,8 @@ import kotlinx.coroutines.launch
  * true once the history shows the slot has none (A22: it never ranks or counts).
  * [doneToday] of [total] is today's playable set solved, this game counted the moment it
  * is solved; [rolloverAt] is when the next puzzles land. [replay] is Ready once this solve is stored with a replay,
- * Hidden before (a pending or failed write), or when there is none (A13).
+ * Hidden before (a pending or failed write), or when there is none (A13). [samePuzzle] holds the player's earlier solves
+ * of this puzzle (Result moments on); null with the moments off.
  */
 data class ResultUiState(
     val verdict: RecordVerdict? = null,
@@ -80,6 +81,7 @@ data class ResultUiState(
     val total: Int? = null,
     val rolloverAt: Instant? = null,
     val replay: ReplaySectionState = ReplaySectionState.Hidden,
+    val samePuzzle: SamePuzzleSolves? = null,
 )
 
 /**
@@ -138,6 +140,8 @@ class ResultViewModel internal constructor(
     private val names: Map<GameId, String> = store.playable.toMap()
     private val today: Boolean = calendar.today(slot.gameId) == slot.day
     private val replayRow = ResultReplayRow(completions, loadReplay, solve, live.takeIf { liveHoldsSolve })
+    private val comparing = releaseFlags?.isEnabled(ReleaseFlag.ResultMoments) == true
+    private val samePuzzleRows = ResultSamePuzzle(completions, solve, live.takeIf { liveHoldsSolve }, games.rankOrderOf(slot.gameId))
 
     val brand: GameBrand = ui.brandOf(slot.gameId)
 
@@ -145,7 +149,10 @@ class ResultViewModel internal constructor(
     val playUi: GamePlayUi? = ui[slot.gameId]
 
     /** This solve's record facts, folded eagerly so a later play again never erases them. */
-    private val record: StateFlow<ResultUiState> = ResultUiState(game = games.displayName(slot.gameId)).let { blank ->
+    private val record: StateFlow<ResultUiState> = ResultUiState(
+        game = games.displayName(slot.gameId),
+        samePuzzle = SamePuzzleSolves.Unread.takeIf { comparing },
+    ).let { blank ->
         if (live != null) {
             val first = resultOf(blank, live.record.value)
             live.record.runningFold(first, ::resultOf).stateIn(viewModelScope, SharingStarted.Eagerly, first)
@@ -159,18 +166,26 @@ class ResultViewModel internal constructor(
 
     private val dayRow = history().map { days -> days.firstOrNull { it.gameId == slot.gameId && it.day == slot.day } }
 
-    /** Needs the edition number, which only the history row has, so it waits for that row. */
-    private val replay: Flow<ReplaySectionState> = dayRow
+    /** The slot's puzzle ref once the history row gives its edition number; null before, and for a practice puzzle's missing row. */
+    private val refOfDay: Flow<PuzzleRef?> = dayRow
         .map { day -> day?.let { games[slot.gameId]?.refOf?.invoke(PuzzleKey.Daily(slot.day, it.puzzleNumber)) } }
         .distinctUntilChanged()
+
+    /** Needs the edition number, which only the history row has, so it waits for that row. */
+    private val replay: Flow<ReplaySectionState> = refOfDay
         .flatMapLatest { ref -> if (ref == null || playUi?.replayBoard == null) flowOf(ReplaySectionState.Hidden) else replayRow.of(ref) }
+
+    /** With Result moments on, the player's earlier solves of this puzzle; None for a practice puzzle, null with the moments off. */
+    private val samePuzzle: Flow<SamePuzzleSolves?> =
+        if (!comparing) flowOf(null) else refOfDay.flatMapLatest { ref -> ref?.let(samePuzzleRows::of) ?: flowOf(SamePuzzleSolves.None) }
 
     val state: StateFlow<ResultUiState> = combine(
         record,
         dayRow,
         playableToday,
         replay,
-    ) { facts, day, set, replay ->
+        samePuzzle,
+    ) { facts, day, set, replay, samePuzzle ->
         val practice = day != null && day.puzzleNumber == null
         facts.copy(
             puzzleNumber = day?.puzzleNumber,
@@ -179,6 +194,7 @@ class ResultViewModel internal constructor(
             total = set.size,
             rolloverAt = rollover(),
             replay = replay,
+            samePuzzle = samePuzzle,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), record.value)
 
@@ -207,10 +223,6 @@ class ResultViewModel internal constructor(
 
     /** True for a past day's result: a play again counts nothing. */
     val playAgain: Boolean = !today
-
-    /** The size this solve was played at, read once from the stored puzzle; null until read, or when none is stored (the game's default size). */
-    val playedVariant: StateFlow<VariantId?> = flow { emit(store.playedVariant(slot)) }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     /**
      * The hero page's streak, week and time spread; null until read, and for a practice puzzle.

@@ -79,6 +79,10 @@ class FakeCompletionRepository(
         all.map { rows -> rows.filter { it.puzzleRef == puzzleRef } }
 
     /** Rows carry no completedAt here, so newest first means latest stored first. */
+    override fun observeSolves(puzzleRef: PuzzleRef): Flow<List<CompletionRecord>> =
+        all.map { rows -> rows.filter { it.puzzleRef == puzzleRef }.reversed() }
+
+    /** Rows carry no completedAt here, so newest first means latest stored first. */
     override fun observeCustom(gameId: GameId, puzzleId: String): Flow<List<CompletionRecord>> =
         all.map { rows ->
             rows.filter { it.puzzleRef.gameId == gameId && it.puzzleRef.key == PuzzleKey.Custom(puzzleId) }.reversed()

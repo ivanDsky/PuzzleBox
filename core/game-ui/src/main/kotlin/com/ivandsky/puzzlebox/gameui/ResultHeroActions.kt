@@ -11,7 +11,7 @@ import java.time.Instant
  * when [onPlayAgain] is given, Play again icon buttons; with everything solved the countdown to [rolloverAt] stands in for
  * the primary. A null [primary] (not known yet) keeps the row in place, invisible and inert. Under the row, a
  * "Challenge <name>" button for [challenge] when [onChallenge] is given, unless the [primary] already is that
- * challenge; then a non-null [onMakeOneLikeThis] adds a "Make one like this" button.
+ * challenge.
  */
 @Composable
 fun ResultHeroActions(
@@ -23,7 +23,6 @@ fun ResultHeroActions(
     rolloverAt: Instant? = null,
     challenge: ResultPrimaryAction.ChallengeFriend? = null,
     onChallenge: (() -> Unit)? = null,
-    onMakeOneLikeThis: (() -> Unit)? = null,
 ) {
     val pending = primary == null
     ResultActions(
@@ -35,6 +34,5 @@ fun ResultHeroActions(
         modifier = modifier.then(if (pending) Modifier.alpha(0f).clearAndSetSemantics {} else Modifier),
         challenge = visibleChallenge(primary, challenge),
         onChallenge = onChallenge?.let { challenged -> { if (!pending) challenged() } },
-        onMakeOneLikeThis = onMakeOneLikeThis?.let { make -> { if (!pending) make() } },
     )
 }

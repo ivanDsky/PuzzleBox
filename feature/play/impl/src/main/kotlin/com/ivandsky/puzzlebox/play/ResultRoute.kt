@@ -17,7 +17,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.formatDuration
-import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.gameui.ResultBelowCardRows
 import com.ivandsky.puzzlebox.gameui.ResultHeroActions
 import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
@@ -54,9 +53,6 @@ import org.koin.core.parameter.parametersOf
  * The hero's chip is a rank chip ("#12 of 340") that calls [onOpenRanks] with the game and
  * the result's day, shown once the rank is known.
  *
- * A non-null [onMakeOneLikeThis] adds a "Make one like this" button to the actions: it hands back the game and the size
- * the player just played (null when that is not known, meaning the game's default size). With none, the button is absent.
- *
  * With Result moments on, the view model's [ResultViewModel.nextFacts] add the moment card and the Challenge row, and
  * the primary may be any next thing: Challenge (the row too) hands [onChallenge] the friend and this game, a missed
  * day hands [onOpenDay] its game and day, and a friend's or a community puzzle hands [onOpenPuzzle] its code.
@@ -70,7 +66,6 @@ fun ResultRoute(
     onOpenReplay: (ReplayKey) -> Unit,
     onOpenRanks: (GameId, LocalDate?) -> Unit,
     linkedIn: Boolean = false,
-    onMakeOneLikeThis: ((GameId, VariantId?) -> Unit)? = null,
     onChallenge: (DuelPrefill) -> Unit = {},
     onOpenDay: (GameId, LocalDate) -> Unit = { _, _ -> },
     onOpenPuzzle: (ShareCode) -> Unit = {},
@@ -94,8 +89,6 @@ fun ResultRoute(
         }
     }
     val onShare = { context.shareText(resultShareText(state.game, state.puzzleNumber, key.timeMs, key.hintsUsed)) }
-    val variant by viewModel.playedVariant.collectAsStateWithLifecycle()
-    val makeOne = onMakeOneLikeThis?.let { make -> { make(GameId(key.gameId), variant) } }
     Column(modifier = modifier.testTag("route.result")) {
         CompactTopBar(
             // The result card already names the puzzle; the bar only carries Up.
@@ -110,7 +103,7 @@ fun ResultRoute(
                 }
             },
         )
-        HeroPage(key, viewModel, state, primary, next, onPrimary, onShare, onPlayAgain, context, onOpenReplay, onOpenRanks, makeOne, challenge)
+        HeroPage(key, viewModel, state, primary, next, onPrimary, onShare, onPlayAgain, context, onOpenReplay, onOpenRanks, challenge)
     }
 }
 
@@ -132,7 +125,6 @@ private fun ColumnScope.HeroPage(
     context: Context,
     onOpenReplay: (ReplayKey) -> Unit,
     onOpenRanks: (GameId, LocalDate?) -> Unit,
-    onMakeOneLikeThis: (() -> Unit)?,
     onChallenge: (ResultPrimaryAction.ChallengeFriend) -> Unit,
 ) {
     val insights by viewModel.heroInsights.collectAsStateWithLifecycle()
@@ -162,6 +154,7 @@ private fun ColumnScope.HeroPage(
             primary = primary,
             moments = next.moments,
             challenge = next.challenge,
+            samePuzzle = state.samePuzzle,
         ),
         onSignIn = { viewModel.signIn(context) },
         modifier = Modifier.weight(1f),
@@ -177,7 +170,6 @@ private fun ColumnScope.HeroPage(
                 rolloverAt = state.rolloverAt,
                 challenge = next.challenge,
                 onChallenge = next.challenge?.let { friend -> { onChallenge(friend) } },
-                onMakeOneLikeThis = onMakeOneLikeThis,
             )
         },
         replay = if (linkedInPost == null && viewModel.playUi == null) {

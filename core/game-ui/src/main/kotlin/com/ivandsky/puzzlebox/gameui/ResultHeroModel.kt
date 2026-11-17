@@ -73,7 +73,8 @@ internal sealed interface HeroRank {
  * paints the best line in the game's accent (a new best); [celebrate] is the entrance's
  * pulse; [burst] adds the burst (a new best only). [moments] are the moment card's rows, strongest first, at most
  * three, none for a practice puzzle or a play again; [challenge] is the Challenge row's friend, none when the
- * [primary] already is that challenge.
+ * [primary] already is that challenge. [bestSubLine] is the small line under the comparison ("Best on this puzzle 1:41");
+ * [compare] draws the comparison line larger, as the same-puzzle comparison does.
  */
 internal data class ResultHeroModel(
     val title: String,
@@ -91,6 +92,8 @@ internal data class ResultHeroModel(
     val primary: ResultPrimaryAction?,
     val moments: List<HeroMoment>,
     val challenge: ResultPrimaryAction.ChallengeFriend?,
+    val bestSubLine: String? = null,
+    val compare: Boolean = false,
 )
 
 /**
@@ -117,17 +120,9 @@ internal fun resultHeroModel(
         dateLine = facts.dateLine,
         timeMs = facts.timeMs,
         pill = pill,
-        bestLine = if (facts.practice) {
-            null
-        } else {
-            heroBestLine(
-                verdict = if (facts.playAgain) RecordVerdict.PlayAgain else verdict,
-                previousBest = facts.previousBest,
-                order = facts.rankOrder,
-                timeMs = facts.timeMs,
-                hintsUsed = facts.hintsUsed,
-            )
-        },
+        bestLine = bestLine(facts, verdict),
+        bestSubLine = facts.samePuzzle?.let { heroSamePuzzleBest(it, facts.rankOrder) }.takeUnless { facts.practice },
+        compare = facts.samePuzzle != null,
         bestImproved = counts && verdict == RecordVerdict.NewBest,
         chips = chips(facts, insights, chip),
         streak = insights?.let { streak(it, locale) },
@@ -139,6 +134,31 @@ internal fun resultHeroModel(
         moments = if (counts) heroMoments(facts.moments) else emptyList(),
         challenge = visibleChallenge(facts.primary, facts.challenge),
     )
+}
+
+/**
+ * The line under the time. With the same-puzzle comparison on ([ResultHeroFacts.samePuzzle]) an earlier solve of this
+ * puzzle is what the solve is compared with, whatever the game-wide verdict (it may be unknown after process death),
+ * and nothing shows until those solves are read; without an earlier solve, or with the comparison off, it is the
+ * game-wide wording. A practice puzzle has none.
+ */
+private fun bestLine(facts: ResultHeroFacts, verdict: RecordVerdict?): String? {
+    val same = facts.samePuzzle
+    return when {
+        facts.practice -> null
+        same != null && !same.read -> null
+        same?.previous != null -> {
+            val line = heroSamePuzzleLine(same.previous, same.previousFromLinkedIn, facts.rankOrder, facts.timeMs, facts.hintsUsed)
+            if (facts.playAgain) "${PlayAgainCopy.LABEL} · $line" else line
+        }
+        else -> heroBestLine(
+            verdict = if (facts.playAgain) RecordVerdict.PlayAgain else verdict,
+            previousBest = facts.previousBest,
+            order = facts.rankOrder,
+            timeMs = facts.timeMs,
+            hintsUsed = facts.hintsUsed,
+        )
+    }
 }
 
 private fun chips(facts: ResultHeroFacts, insights: ResultInsights?, supplied: ResultHeroChip?): List<ResultHeroChip> = buildList {

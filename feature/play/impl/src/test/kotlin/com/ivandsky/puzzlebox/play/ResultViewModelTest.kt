@@ -36,6 +36,8 @@ import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInDay
 import com.ivandsky.puzzlebox.domain.linkedin.ObserveLinkedInPost
 import com.ivandsky.puzzlebox.domain.linkedin.SubmitLinkedInResult
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.CompletionSource
+import com.ivandsky.puzzlebox.gameui.SamePuzzleSolves
 import com.ivandsky.puzzlebox.domain.moments.Moment
 import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
@@ -764,6 +766,113 @@ class ResultViewModelTest {
 
         assertEquals(ResultPrimaryAction.Next(beta, fakes.games.displayName(beta)), vm.primary.value)
         assertEquals(ResultNextFacts(primary = vm.primary.value), vm.nextFacts.value)
+    }
+
+    // --- the same puzzle's earlier solves (Result moments) ---------------------------------
+
+    private fun solve(time: Long, hints: Int = 0, source: CompletionSource = CompletionSource.App, date: LocalDate = day) =
+        CompletionRecord(TestGames.Ref(alpha, PuzzleKey.Daily(date, 7)), time, hints, RecordStats(1, "{}"), source = source)
+
+    private fun samePuzzle(vm: ResultViewModel) = vm.observed().state.value.samePuzzle
+
+    @Test
+    fun `the previous solve of this puzzle is its newest, whatever its source`() {
+        val appFirst = FakeController.TIME_MS + 30_000
+        val linkedIn = FakeController.TIME_MS + 12_000
+        completions.setRecords(listOf(solve(appFirst), solve(linkedIn, source = CompletionSource.LinkedIn)))
+        solveLive()
+
+        assertEquals(
+            SamePuzzleSolves(BestScore(linkedIn, 0), previousFromLinkedIn = true, best = BestScore(linkedIn, 0)),
+            samePuzzle(vm(flags = momentsOn)),
+        )
+    }
+
+    @Test
+    fun `an app solve newer than a LinkedIn one is the previous solve, and the best is the faster of them`() {
+        val linkedIn = FakeController.TIME_MS - 5_000
+        val app = FakeController.TIME_MS + 12_000
+        completions.setRecords(listOf(solve(linkedIn, source = CompletionSource.LinkedIn), solve(app)))
+        solveLive()
+
+        assertEquals(
+            SamePuzzleSolves(BestScore(app, 0), previousFromLinkedIn = false, best = BestScore(linkedIn, 0)),
+            samePuzzle(vm(flags = momentsOn)),
+        )
+    }
+
+    @Test
+    fun `another day's solves are not this puzzle's`() {
+        completions.setRecords(listOf(solve(FakeController.TIME_MS + 12_000, date = day.minusDays(1))))
+        solveLive()
+
+        assertEquals(SamePuzzleSolves.None, samePuzzle(vm(flags = momentsOn)))
+    }
+
+    @Test
+    fun `the solve just recorded is not its own previous solve`() {
+        solveLive()
+
+        assertEquals(SamePuzzleSolves.None, samePuzzle(vm(flags = momentsOn)))
+    }
+
+    @Test
+    fun `after process death the stored solve is left out and the one before it still compares`() {
+        val before = FakeController.TIME_MS + 12_000
+        completions.setRecords(listOf(solve(before), solve(FakeController.TIME_MS)))
+
+        assertEquals(SamePuzzleSolves(BestScore(before, 0), best = BestScore(before, 0)), samePuzzle(vm(flags = momentsOn)))
+    }
+
+    @Test
+    fun `a previous solve of the same time still counts while this solve's write is in flight, and after it`() {
+        completions.setRecords(listOf(solve(FakeController.TIME_MS)))
+        completions.writeGate = CompletableDeferred()
+        solveLive()
+        val vm = vm(flags = momentsOn).observed()
+
+        val expected = SamePuzzleSolves(BestScore(FakeController.TIME_MS, 0), best = BestScore(FakeController.TIME_MS, 0))
+        assertEquals(expected, vm.state.value.samePuzzle)
+
+        completions.writeGate!!.complete(Unit)
+        dispatcher.scheduler.runCurrent()
+        assertEquals(expected, vm.state.value.samePuzzle)
+    }
+
+    @Test
+    fun `the earlier solves are unread until the page reads them, then none when there are none`() {
+        solveLive()
+        val vm = vm(flags = momentsOn)
+
+        assertEquals(SamePuzzleSolves.Unread, vm.state.value.samePuzzle)
+        assertEquals(SamePuzzleSolves.None, vm.observed().state.value.samePuzzle)
+    }
+
+    @Test
+    fun `with Result moments off the result carries no same-puzzle facts and reads no earlier solves`() {
+        completions.setRecords(listOf(solve(FakeController.TIME_MS + 12_000)))
+        solveLive()
+
+        assertNull(samePuzzle(vm(flags = FakeReleaseFlags())))
+        assertNull(samePuzzle(vm(flags = null)))
+    }
+
+    @Test
+    fun `a hints-first game picks its best by hints`() {
+        val hintsFirst = FakeGames(listOf(alpha, beta), hintsRanked = setOf(alpha))
+        val hintsStore = store(hintsFirst.games, hintsFirst.registry)
+        val fewerHints = solve(FakeController.TIME_MS + 50_000, hints = 0)
+        completions.setRecords(listOf(solve(100_000, hints = 3), fewerHints))
+        hintsStore.open(GameKey(alpha.value, day.toString()))!!
+        dispatcher.scheduler.runCurrent()
+        hintsFirst[alpha].latest.win()
+        dispatcher.scheduler.runCurrent()
+
+        val vm = vm(games = hintsFirst.games, ui = hintsFirst.registry, store = hintsStore, flags = momentsOn)
+        assertEquals(
+            SamePuzzleSolves(BestScore(fewerHints.time, 0), best = BestScore(fewerHints.time, 0)),
+            samePuzzle(vm),
+        )
     }
 
     private fun entry(uid: String, seconds: Int) =
