@@ -58,10 +58,14 @@ class PlaySolveFrameTest {
         Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, scale)
     }
 
-    private fun setFrame(rest: Boolean = false) {
+    private fun setFrame(rest: Boolean = false, playFeel: Boolean = false) {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
-            CompositionLocalProvider(LocalSolveRestOnBoard provides rest, LocalHapticFeedback provides haptics) {
+            CompositionLocalProvider(
+                LocalSolveRestOnBoard provides rest,
+                LocalPlayFeel provides playFeel,
+                LocalHapticFeedback provides haptics,
+            ) {
                 PuzzleBoxTheme(darkTheme = false) {
                     PlaySolveFrame(brand = GameBrand.Neutral, solved = solved, onHandOff = { handOffs++ }) {
                         Box(Modifier.size(200.dp))
@@ -221,5 +225,42 @@ class PlaySolveFrameTest {
         solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(5_000)
         assertEquals(emptyList<HapticFeedbackType>(), buzzes)
+    }
+
+    @Test
+    fun `with PlayFeel on and the rest off the solve confirms once and does not rest`() {
+        setFrame(playFeel = true)
+        solve(Instant.ofEpochSecond(1))
+        composeRule.mainClock.advanceTimeBy(100)
+        assertEquals("as the solve moment starts", listOf(HapticFeedbackType.Confirm), buzzes)
+        composeRule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
+
+        // The hand-off keeps the flag-off timing: the sweep, the stamp and its 360 ms hold.
+        composeRule.mainClock.advanceTimeBy(MotionTokens.SweepDuration + 200L)
+        assertEquals("the old hold is not over", 0, handOffs)
+        composeRule.mainClock.advanceTimeBy(100)
+        assertEquals(1, handOffs)
+        composeRule.onNodeWithTag("play.solve_stamp").assertExists()
+
+        composeRule.mainClock.advanceTimeBy(5_000)
+        assertEquals("once, not again at the hand-off", 1, buzzes.size)
+    }
+
+    @Test
+    fun `with PlayFeel on and the rest on the solve confirms once`() {
+        setFrame(rest = true, playFeel = true)
+        solve(Instant.ofEpochSecond(1))
+        composeRule.mainClock.advanceTimeBy(5_000)
+        assertEquals(listOf(HapticFeedbackType.Confirm), buzzes)
+        assertEquals(1, handOffs)
+    }
+
+    @Test
+    fun `with PlayFeel on a restored solved board does not confirm`() {
+        solved = Instant.ofEpochSecond(1)
+        setFrame(playFeel = true)
+        composeRule.mainClock.advanceTimeBy(5_000)
+        assertEquals(emptyList<HapticFeedbackType>(), buzzes)
+        assertEquals(1, handOffs)
     }
 }

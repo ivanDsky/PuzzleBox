@@ -217,8 +217,8 @@ internal fun rememberSudokuMotion(
             sudokuHapticFor(event)?.let(haptics::perform)
             val resting = if (event is SudokuPlayerEvent.Solved) rest.begin(this) else null
             playSudokuEvent(motion, event, next.board.geometry) {
-                // With the rest on, the solve buzz went out as the sweep started; a second one would double it.
-                if (!rest.enabled) haptics.perform(SudokuHaptic.Confirm)
+                // When the rest confirms, the solve buzz went out as the sweep started; a second one would double it.
+                if (!rest.confirms) haptics.perform(SudokuHaptic.Confirm)
                 resting?.await()
                 handOff(state.session)
             }
