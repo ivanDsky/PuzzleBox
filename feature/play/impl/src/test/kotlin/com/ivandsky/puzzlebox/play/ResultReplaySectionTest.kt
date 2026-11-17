@@ -134,6 +134,8 @@ class ResultReplaySectionTest {
             board = signedOutBoard(),
             completions = completions,
             loadReplay = loadSolveReplay(games, daily, completions),
+            nextThing = lazy { error("this test never reads the next thing") },
+            daily = daily,
         ).also { viewModel ->
             screen.launch { viewModel.state.collect {} }
             dispatcher.scheduler.runCurrent()

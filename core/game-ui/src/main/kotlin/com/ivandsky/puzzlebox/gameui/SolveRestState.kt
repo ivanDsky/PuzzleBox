@@ -15,9 +15,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * Whether a solve rests on the board for [CelebrationMotion.SolveMomentMs] before the hand-off (M10-6), with no stamp.
- * Provided by the play route from the Result moments flag, for every game; off (no provider) leaves each game's
- * hand-off as it was.
+ * Whether a game's own board rests on a solve for [CelebrationMotion.SolveMomentMs] before the hand-off (M10-6), with no
+ * stamp. The play chrome provides it for every game's play screen and the Studio's test solve; a board drawn outside
+ * it (the Library's lessons) does not rest on its own.
  */
 val LocalSolveRestOnBoard = staticCompositionLocalOf { false }
 

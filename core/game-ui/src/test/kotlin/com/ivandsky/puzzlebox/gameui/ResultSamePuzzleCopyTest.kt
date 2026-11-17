@@ -141,6 +141,8 @@ class ResultSamePuzzleCopyTest {
         insights = null,
         rank = ResultRank.Hidden,
         primary = ResultPrimaryAction.Done,
+        moments = emptyList(),
+        challenge = null,
         samePuzzle = samePuzzle,
     )
 

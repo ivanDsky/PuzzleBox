@@ -120,6 +120,9 @@ abstract class ResultLinkedInPostGoldenScreenshots(private val device: String) {
             insights = null,
             rank = ResultRank.Ranked(position = 14, count = 212, topPercent = 7),
             primary = ResultPrimaryAction.Next(GameId("tango"), "Tango"),
+            moments = emptyList(),
+            challenge = null,
+            samePuzzle = null,
         )
     }
 }

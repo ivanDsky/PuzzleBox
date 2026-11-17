@@ -17,9 +17,9 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
 /**
- * What Result adds to a counted solve with Result moments on (L1, L3, L4): the [moments] it earned, the [primary]
- * step, and the friend the [challenge] row names. Empty until the first fact lands, and for good with the moments
- * off; [primary] is null until the next thing is known.
+ * What Result adds to a counted solve (L1, L3, L4): the [moments] it earned, the [primary] step, and the friend the
+ * [challenge] row names. Empty until the first fact lands, and for good on a past day's result; [primary] is null until
+ * the next thing is known.
  */
 internal data class ResultNextFacts(
     val moments: List<Moment> = emptyList(),

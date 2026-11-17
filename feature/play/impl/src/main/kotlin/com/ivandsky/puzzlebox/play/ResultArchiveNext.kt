@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 
 /**
- * A past day's primary step with Result moments on (M10-5): the same game on the next unsolved day ([nextArchiveDay]),
+ * A past day's primary step (M10-5): the same game on the next unsolved day ([nextArchiveDay]),
  * else Done. A solve of a day that already had an earlier solve (a play again, per [earlier]) and a practice puzzle keep
  * Done, as does a game with no archive. [gameName] is the game's display name.
  */

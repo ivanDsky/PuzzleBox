@@ -32,8 +32,6 @@ import org.koin.core.parameter.parametersOf
  * the bar's How to play reopens it over the live play; Skip or "Let's play" hands back to the board.
  * The bar's Up stays, so back leaves the game from a tutorial too. [boardStyle] is the side panel's
  * times' (see [PlayTimesCard]).
- *
- * The board runs under [SolveRestHost]: with Result moments on, a solve rests on this board before Result.
  */
 @Composable
 internal fun GameRoute(
@@ -48,22 +46,20 @@ internal fun GameRoute(
     val viewModel: GameViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val pastDay by viewModel.pastDay.collectAsStateWithLifecycle()
     val tutorial by viewModel.tutorial.collectAsStateWithLifecycle()
-    SolveRestHost {
-        GameBoard(
-            play = viewModel.play,
-            pastDay = pastDay,
-            tutorial = tutorial,
-            boardStyle = boardStyle,
-            onHowToPlay = viewModel::howToPlay,
-            onTutorialFinished = viewModel::closeTutorial,
-            layout = layout,
-            onBack = onBack,
-            onSolved = onSolved,
-            overflow = emptyList(),
-            linkedIn = linkedIn,
-            modifier = modifier,
-        )
-    }
+    GameBoard(
+        play = viewModel.play,
+        pastDay = pastDay,
+        tutorial = tutorial,
+        boardStyle = boardStyle,
+        onHowToPlay = viewModel::howToPlay,
+        onTutorialFinished = viewModel::closeTutorial,
+        layout = layout,
+        onBack = onBack,
+        onSolved = onSolved,
+        overflow = emptyList(),
+        linkedIn = linkedIn,
+        modifier = modifier,
+    )
 }
 
 /**

@@ -9,8 +9,8 @@ import com.ivandsky.puzzlebox.game.RankOrder
 /**
  * The facts one Results hero page is built from; [rank] and [insights] are what the page reads beyond the old result.
  * [moments] (L1) are the celebrated facts of a counted solve, in any order; the page shows the strongest three. A
- * [challenge] (L4) is the friend the Challenge row names. Both are absent by default and the page is then what it was.
- * [samePuzzle] (M10) is what the player's earlier solves of this very puzzle say; null (the default) keeps the line that
+ * [challenge] (L4) is the friend the Challenge row names; both are empty for a page that has none (a duel leg's).
+ * [samePuzzle] (M10) is what the player's earlier solves of this very puzzle say; null (a duel leg) keeps the line that
  * compares with the game's best, and any value, even [SamePuzzleSolves.None], draws that line larger.
  */
 data class ResultHeroFacts(
@@ -29,7 +29,7 @@ data class ResultHeroFacts(
     val insights: ResultInsights?,
     val rank: ResultRank,
     val primary: ResultPrimaryAction?,
-    val moments: List<Moment> = emptyList(),
-    val challenge: ResultPrimaryAction.ChallengeFriend? = null,
-    val samePuzzle: SamePuzzleSolves? = null,
+    val moments: List<Moment>,
+    val challenge: ResultPrimaryAction.ChallengeFriend?,
+    val samePuzzle: SamePuzzleSolves?,
 )

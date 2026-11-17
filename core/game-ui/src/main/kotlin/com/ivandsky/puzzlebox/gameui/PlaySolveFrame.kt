@@ -16,38 +16,27 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
-import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.Stamp
 import com.ivandsky.puzzlebox.designsystem.colors
-import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.designsystem.rememberSolveSweepState
-import com.ivandsky.puzzlebox.designsystem.solveSweep
+import com.ivandsky.puzzlebox.designsystem.rememberSolveMomentState
+import com.ivandsky.puzzlebox.designsystem.solveFrame
 import java.time.Instant
-import kotlinx.coroutines.delay
-
-/** How long the solved board rests before the hand-off: the stamp's spring settles, or
- *  under reduced motion the outline is seen. Only without [LocalSolveRestOnBoard]. */
-private const val SOLVED_HOLD_MS = 360L
+import kotlinx.coroutines.launch
 
 /**
- * The solve moment around a game's [board] (A6, identity §2.6). When [solved] turns
- * non-null during play, the board plays SolveSweep in [brand]'s accent, then the brand
- * glyph Stamps in over it, and only then does [onHandOff] carry the player to Result.
- * [solved] is the session's completion instant, so the moment plays
- * once per solve. A board that is already solved when it first draws (a restored play)
- * hands off at once, as before. Reduced motion shows only the accent outline, held
- * briefly, with no stamp.
+ * The solve moment around a game's [board] (A6, identity §2.6; the solve moment B, M12-10). The instant [solved] turns
+ * non-null during play, the solve rest begins (the buzz, the tap layer) and the moment plays on the same clock: the sweep
+ * band, the board's pop and a frame line lapping the board in [brand]'s accent, closed 1300 ms after the solve and held
+ * 400 ms before the hand-off. [onHandOff] carries the player to Result [CelebrationMotion.SolveMomentMs] after the solve,
+ * or at once on a tap on the board, wherever the motion is. There is no stamp. Reduced motion shows the closed frame for
+ * the same rest. [solved] is the session's completion instant, so the moment plays once per solve. A board already solved
+ * when it first draws (a restored play) hands off at once; a fresh board in the same place (play again) drops the frame.
  *
- * Under [LocalSolveRestOnBoard] it is the solve moment B instead (M12-10), with no stamp: the sweep band, the board's
- * pop and a frame line that laps the board, so the moment lasts [CelebrationMotion.SolveMomentMs] from the solve to
- * the hand-off (reduced motion: the outline for the same time), and a tap on the board hands off at once. The pop and
- * the line's comet reach a little past the board, so it needs 6 dp clear around it; [PlayBoardPane] gives more.
+ * The pop and the line's comet reach a little past the board, so it needs 6 dp clear around it; [PlayBoardPane] gives more.
  */
 @Composable
 fun PlaySolveFrame(
@@ -58,54 +47,28 @@ fun PlaySolveFrame(
     shape: Shape = RectangleShape,
     board: @Composable () -> Unit,
 ) {
-    val rest = rememberSolveRest()
-    if (rest.enabled) {
-        PlaySolveMoment(brand, solved, rest, onHandOff, shape, modifier, board)
-    } else {
-        PlaySolveStamp(brand, solved, rest, onHandOff, shape, modifier, board)
-    }
-}
-
-/**
- * The solve moment without [LocalSolveRestOnBoard]: the sweep, the stamp, then the hand-off. [rest] does not rest here;
- * beginning it still confirms the solve when PlayFeel asks for that.
- */
-@Composable
-private fun PlaySolveStamp(
-    brand: GameBrand,
-    solved: Instant?,
-    rest: SolveRestState,
-    onHandOff: () -> Unit,
-    shape: Shape,
-    modifier: Modifier,
-    board: @Composable () -> Unit,
-) {
-    val sweep = rememberSolveSweepState()
-    val reducedMotion = rememberReducedMotion()
+    val rest = rememberSolveRest(enabled = true)
+    val moment = rememberSolveMomentState()
     val handOff by rememberUpdatedState(onHandOff)
     // Seen unsolved in this composition: only a solve the player just made gets the moment.
     var seenOpen by remember { mutableStateOf(false) }
-    var stamped by remember { mutableStateOf(false) }
     LaunchedEffect(solved) {
         if (solved == null) {
             seenOpen = true
-            stamped = false
+            moment.reset()
             return@LaunchedEffect
         }
         if (seenOpen) {
-            rest.begin(this)
-            sweep.play()
-            if (!reducedMotion) delay(MotionTokens.SweepDuration.toLong())
-            stamped = !reducedMotion
-            delay(SOLVED_HOLD_MS)
+            val resting = rest.begin(this)
+            // Not awaited: a tap hands off mid-motion, and the frame finishes closing behind it.
+            launch { moment.play() }
+            resting.await()
         }
         handOff()
     }
-    Box(modifier.solveSweep(sweep, brand.accent.colors().accent, shape), contentAlignment = Alignment.Center) {
+    Box(modifier.solveFrame(moment, brand.accent.colors().accent, shape), contentAlignment = Alignment.Center) {
         board()
-        Stamp(visible = stamped, modifier = Modifier.testTag("play.solve_stamp")) {
-            GameGlyph(brand, GameGlyphSize.Hero)
-        }
+        SolveRestTapLayer(rest, Modifier.matchParentSize())
     }
 }
 

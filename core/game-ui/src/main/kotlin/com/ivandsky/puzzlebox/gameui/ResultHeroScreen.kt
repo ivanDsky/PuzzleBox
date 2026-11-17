@@ -60,7 +60,7 @@ private const val SIDE_WEIGHT = 1f
  * top-aligns and tightens; the page scrolls rather than squeezing the actions.
  *
  * The moment card (L1) sits under the hero card on one column, and first in the side column (above the streak card) on
- * two, so the celebration is on the first screen; the cards still line up to one height. Without moments the page is as it was.
+ * two, so the celebration is on the first screen; the cards still line up to one height. Without moments (a duel leg) the cards are the same height.
  * [actions] is the hero's action row (the daily result passes [ResultHeroActions]); null draws none.
  * [chip] replaces the Today chip. A non-null [onRetryWrite] shows a failed-record-write notice above
  * the cards that retries through it. [onSignIn] is the rank row's sign-in when the player is signed out.

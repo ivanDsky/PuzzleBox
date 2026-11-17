@@ -51,7 +51,6 @@ internal object QueensMotion {
     private const val QUEEN_PULSE_MS = 300L
     private const val QUEEN_PULSE_SCALE = 1.22f
     private const val QUEEN_PULSE_PEAK_AT = 0.4f
-    const val SWEEP_GAP_MS = 100L
     private const val QUEEN_STEP_FLOOR_MS = 30L
 
     /** The solve moment B's motion is over when its frame line closes; the rest of the moment is still. */
@@ -64,10 +63,6 @@ internal object QueensMotion {
     /** How long the auto cross at [idx] waits after the queen at [origin] lands. */
     fun staggerDelayMs(idx: Int, origin: Int?, n: Int): Long =
         if (origin == null) 0L else (ring(idx, origin, n) * STAGGER_STEP_MS).coerceAtMost(STAGGER_CAP_MS)
-
-    /** Without the solve moment B: how long the solve frame waits so the sweep starts after the last queen's Pulse begins. */
-    fun solveLeadMs(queens: Int, reducedMotion: Boolean): Long =
-        if (reducedMotion) 0L else QUEEN_LEAD_MS + queens * QUEEN_STEP_MS + SWEEP_GAP_MS
 
     fun popScale(elapsedMs: Float): Float {
         val t = MotionTokens.EasingEmphasizedDecelerate.transform(progress(elapsedMs, POP_MS.toFloat()))

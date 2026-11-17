@@ -91,6 +91,9 @@ internal fun heroSampleFacts(
     insights = heroSampleInsights(BestScore(timeMs, hintsUsed), earlier, order, streak, weekdayEarlier, fastestWeekday),
     rank = rank,
     primary = primary,
+    moments = emptyList(),
+    challenge = null,
+    samePuzzle = null,
 )
 
 /** The model of [heroSampleFacts] for the same arguments, in US English so weekday initials are stable. */

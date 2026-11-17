@@ -1,6 +1,10 @@
 package com.ivandsky.puzzlebox.app.play
 
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
+import com.ivandsky.puzzlebox.data.visibility.HiddenPuzzles
+import com.ivandsky.puzzlebox.data.visibility.VisibilityRepository
+import com.ivandsky.puzzlebox.domain.nextthing.ObserveResultNextThing
+import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -41,6 +45,7 @@ import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -70,6 +75,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -224,12 +230,22 @@ class RealGamesResultRouteTest {
                     }
                     single<IdentityService> { FakeIdentityService() }
                     single<LeaderboardRepository> { FakeLeaderboardRepository() }
+                    single<HiddenPuzzles> { FakeHiddenPuzzles() }
+                    single<VisibilityRepository> { FakeVisibilityRepository() }
                     single { SubmitStatusTracker() }
                     single<CustomBoardRepository> { FakeCustomBoardRepository() }
                     single<GoogleIdTokenProvider> { DismissedGoogleIdTokenProvider }
                     factory { ObserveLeaderboard(get(), get(), get(), get()) }
                     factory { ObserveResultRank(get(), get(), friendDay = null) } // no Friends/Global setting
                     factory { ObserveResultInsights(get(), get(), get(), get()) }
+                    factory { ObserveFriendUids(get(), get()) }
+                    factory {
+                        ObserveResultNextThing(
+                            registry = get(), identity = get(), history = get(), todaySet = get(), friendPuzzles = get(),
+                            friendUids = get(), leaderboard = get(), visibility = get(), computeStreak = get(),
+                            puzzleDay = get(), nextRollover = get(),
+                        )
+                    }
                     // Tutorial seen: this path is about the result; the lessons have their own tests.
                     single<UserPreferencesRepository> {
                         FakeUserPreferencesRepository(seen = setOf(ZipDefinition.id))

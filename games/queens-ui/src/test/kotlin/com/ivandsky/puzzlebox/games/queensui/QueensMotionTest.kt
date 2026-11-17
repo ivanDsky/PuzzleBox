@@ -153,7 +153,7 @@ class QueensMotionTest {
     }
 
     @Test
-    fun `with the rest on, thirteen queens step faster so the last pulse is over 1300 ms after the solve`() {
+    fun `in the play chrome, thirteen queens step faster so the last pulse is over 1300 ms after the solve`() {
         val (state, motion, last) = thirteenQueens(rest = true)
 
         commit { state.place(last) }
@@ -168,7 +168,7 @@ class QueensMotionTest {
     }
 
     @Test
-    fun `flag off, thirteen queens keep the 70 ms step`() {
+    fun `outside the play chrome (a Library lesson), thirteen queens keep the 70 ms step`() {
         val (state, motion, last) = thirteenQueens(rest = false)
 
         commit { state.place(last) }
@@ -189,13 +189,6 @@ class QueensMotionTest {
         assertEquals(QueensMotion.STAGGER_STEP_MS, QueensMotion.staggerDelayMs(origin + n + 1, origin, n))
         assertEquals(4 * QueensMotion.STAGGER_STEP_MS, QueensMotion.staggerDelayMs(7 * n + 3, origin, n))
         assertEquals(0L, QueensMotion.staggerDelayMs(5, null, n))
-    }
-
-    @Test
-    fun `the solve hand-off waits for the orchestration, and not at all under reduced motion`() {
-        val lead = QueensMotion.QUEEN_LEAD_MS + 8 * QueensMotion.QUEEN_STEP_MS + QueensMotion.SWEEP_GAP_MS
-        assertEquals(lead, QueensMotion.solveLeadMs(queens = 8, reducedMotion = false))
-        assertEquals(0L, QueensMotion.solveLeadMs(queens = 8, reducedMotion = true))
     }
 
     @Test

@@ -25,7 +25,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * A past day's first solve with Result moments on: the main button reads "Next: Zip · Nov 13" and continues the same game
+ * A past day's first solve: the main button reads "Next: Zip · Nov 13" and continues the same game
  * on its next unsolved day, in place of Done. Phone and tablet, light and dark. Goldens in `snapshots/results-hero/`.
  */
 @RunWith(RobolectricTestRunner::class)
