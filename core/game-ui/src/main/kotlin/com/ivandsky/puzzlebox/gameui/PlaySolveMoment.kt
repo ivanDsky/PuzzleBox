@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
 /**
  * [PlaySolveFrame] under [LocalSolveRestOnBoard]: the solve moment B (M12-10). The instant [solved] turns non-null
  * during play, [rest] begins (the buzz, the tap layer) and the moment plays on the same clock: the sweep band, the
- * board's pop and the frame line lapping the board in [brand]'s accent, closed 200 ms before the hand-off. [onHandOff]
+ * board's pop and the frame line lapping the board in [brand]'s accent, closed 1300 ms after the solve and held 400 ms before the hand-off. [onHandOff]
  * comes [CelebrationMotion.SolveMomentMs] after the solve, or at once on a tap, wherever the motion is. There is no
  * stamp. Reduced motion shows the closed frame for the same rest. A board already solved when it first draws hands
  * off at once; a fresh board in the same place (play again) drops the frame.

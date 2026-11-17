@@ -23,11 +23,12 @@ object CelebrationMotion {
     const val HintPulseMs = 1000
 
     /**
-     * The solve moment on the board (M10-6, M12-10): from the winning move to the hand-off to Result. It is motion, not
-     * a still rest: the band sweeps, the board pops and the frame line laps it, and only the last 200 ms is the settled
-     * board. Its length holds under reduced motion too, where only the accent outline shows.
+     * The solve moment on the board (M10-6, M12-10): from the winning move to the hand-off to Result, 1700 ms in all. It is
+     * motion, not a still rest: the band sweeps, the board pops and the frame line laps it, and the motion ends at 1300 ms
+     * (the frame closes). The closed board then holds still for the last 400 ms before Result. Its length holds under
+     * reduced motion too, where only the accent outline shows.
      */
-    const val SolveMomentMs = 1500L
+    const val SolveMomentMs = 1700L
 
     /** The board pop: as the band leaves, the whole board rises to this scale and releases on the Stamp spring. */
     const val BoardPopScale = 1.03f

@@ -72,15 +72,15 @@ class SolveRestE2ETest {
     @Test @Config(qualifiers = TABLET)
     fun `a Mini Sudoku win pops the grid once, then opens Result on a tablet`() = pops(DailySolve.MiniSudoku, SUDOKU_GRID)
 
-    @Test fun `a Zip win opens Result 1500 ms from the solve`() = prompt(DailySolve.Zip)
+    @Test fun `a Zip win opens Result 1700 ms from the solve`() = prompt(DailySolve.Zip)
 
-    @Test fun `a Tango win opens Result 1500 ms from the solve`() = prompt(DailySolve.Tango)
+    @Test fun `a Tango win opens Result 1700 ms from the solve`() = prompt(DailySolve.Tango)
 
-    @Test fun `a Queens win opens Result 1500 ms from the solve`() = prompt(DailySolve.Queens)
+    @Test fun `a Queens win opens Result 1700 ms from the solve`() = prompt(DailySolve.Queens)
 
-    @Test fun `a Mini Sudoku win opens Result 1500 ms from the solve`() = prompt(DailySolve.MiniSudoku)
+    @Test fun `a Mini Sudoku win opens Result 1700 ms from the solve`() = prompt(DailySolve.MiniSudoku)
 
-    @Test fun `a Strands win opens Result 1500 ms from the solve`() = prompt(DailySolve.Strands)
+    @Test fun `a Strands win opens Result 1700 ms from the solve`() = prompt(DailySolve.Strands)
 
     @Test fun `flag off, a Mini Sudoku win neither rests nor pops`() = still(DailySolve.MiniSudoku, SUDOKU_GRID)
 
@@ -122,7 +122,7 @@ class SolveRestE2ETest {
         assertEquals("$game: the board is back at rest for the hand-off", atRest, last, 0f)
     }
 
-    /** The moment starts at the solve: the rest is up on the next frames, and Result follows the 1.5 s with only the shell's own frames after. */
+    /** The moment starts at the solve: the rest is up on the next frames, and Result follows the solve moment with only the shell's own frames after. */
     private fun prompt(game: DailySolve) = solving(game) {
         val toRest = framesUntil("$game: the rest") { shows(REST) }
         assertTrue("$game: the rest began ${toRest * FRAME_MS} ms after the solve", toRest * FRAME_MS <= REST_START_MS)
@@ -179,7 +179,8 @@ class SolveRestE2ETest {
         const val FRAME_MS = 16
         const val MIN_REST_MS = 1_300
         const val REST_START_MS = 100
-        const val MAX_REST_MS = 1_700
+        /** Result opens within this long of the solve: the moment plus the shell's own frames (about 60 ms) and frame quantization. */
+        val MAX_REST_MS = CelebrationMotion.SolveMomentMs.toInt() + 100
         const val BUDGET_FRAMES = 250
     }
 }
