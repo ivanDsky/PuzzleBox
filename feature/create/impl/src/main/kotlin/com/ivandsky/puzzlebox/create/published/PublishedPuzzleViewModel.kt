@@ -3,6 +3,9 @@ package com.ivandsky.puzzlebox.create.published
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.create.editor.LoadDraft
 import com.ivandsky.puzzlebox.create.editor.ShareTicket
@@ -11,13 +14,17 @@ import com.ivandsky.puzzlebox.data.repository.PublishedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.UpdatePublishState
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
+import com.ivandsky.puzzlebox.gameui.hidden.GivensBoard
 import com.ivandsky.puzzlebox.model.ShareCode
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,7 +52,11 @@ class PublishedPuzzleViewModel(
     private val copyDraft: CreateDraftCopy,
     private val dispatchers: DispatcherProvider,
     updatePublishState: UpdatePublishState,
+    flags: ReleaseFlags? = null,
 ) : ViewModel() {
+
+    // Read once: with CommunityPuzzles on the page draws the plain board (spec M12-9); without flags it is the shipped page.
+    private val plainBoard = flags?.isEnabled(ReleaseFlag.CommunityPuzzles) == true
 
     private val loadDraft = LoadDraft(drafts, games, editors)
     private val mutableState = MutableStateFlow<State>(State.Loading)
@@ -60,7 +71,7 @@ class PublishedPuzzleViewModel(
             mutableState.value = ready ?: State.Missing
             if (ready != null) {
                 follow(ready.ticket.code)
-                analyze(ready)
+                if (plainBoard) showPlainBoard(ready) else analyze(ready)
             }
         }
     }
@@ -99,6 +110,7 @@ class PublishedPuzzleViewModel(
             controller = controller,
             draftId = stored.id,
             verdict = Verdict.Checking,
+            plainBoard = plainBoard,
         )
     }
 
@@ -118,18 +130,43 @@ class PublishedPuzzleViewModel(
         mutableState.update { (it as? State.Ready)?.copy(verdict = verdict) ?: it }
     }
 
+    /**
+     * The plain board of [ready]'s kept draft, for the page with CommunityPuzzles on: the draft's plain puzzle
+     * ([EditorDraft.toPuzzle], without author aids). The game's export needs the solution, so the one solve within
+     * [BUDGET_MS] runs for that alone, and its verdict is dropped. The solution is dropped again by
+     * [GameReplayBoard.givens][com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard.givens]
+     * before it draws anything. A game that cannot export or draw the board leaves the page without one.
+     */
+    private suspend fun showPlainBoard(ready: State.Ready) {
+        val board = ready.controller.draft.value
+        val givens = withContext(dispatchers.default) { plainPuzzle(board)?.let { plays[board.gameId]?.replayBoard?.givens(it) } }
+        mutableState.update { (it as? State.Ready)?.copy(givens = givens, givensSettled = true) ?: it }
+    }
+
+    private fun CoroutineScope.plainPuzzle(board: EditorDraft<*>): Puzzle? {
+        val verdict = board.analyze(Budget.within(BUDGET_MS, System::nanoTime) { !isActive })
+        return (verdict as? Verdict.Unique)?.let { board.toPuzzle(it.solution) }
+    }
+
     /** The page: loading, a code with no row or kept draft this build can open, or [Ready]. */
     internal sealed interface State {
         data object Loading : State
         data object Missing : State
 
-        /** The [ticket], the kept draft [draftId]'s read-only board ([ui], [controller]) and its [verdict]. */
+        /**
+         * The [ticket], the kept draft [draftId]'s read-only board ([ui], [controller]) and its [verdict]. With
+         * [plainBoard] the page draws the draft's plain [givens] instead: null until built, and for good once
+         * [givensSettled] when this game cannot draw one. The [verdict] then stays [Verdict.Checking]: nothing shows it.
+         */
         data class Ready(
             val ticket: ShareTicket,
             val ui: GameEditorUi,
             val controller: GameEditorController,
             val draftId: String,
             val verdict: Verdict,
+            val plainBoard: Boolean = false,
+            val givens: GivensBoard? = null,
+            val givensSettled: Boolean = false,
         ) : State
     }
 
