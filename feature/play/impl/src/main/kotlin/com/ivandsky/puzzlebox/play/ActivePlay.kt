@@ -96,6 +96,9 @@ class ActivePlay internal constructor(
 
     val record: StateFlow<Record> get() = winRecording.record
 
+    /** Counts every player input the live controller receives; a change means the player has moved on. */
+    val inputs: StateFlow<Int> get() = persistence.inputs
+
     val controller: GamePlayController get() = _board.value.controller
 
     private var ref: PuzzleRef? = null
