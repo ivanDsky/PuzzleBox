@@ -48,8 +48,8 @@ private const val SETTLE_MS = 2_000L
 
 /**
  * The whole reveal, phone and tablet, light and dark: the VS intro, a race mid-run, a Strands card, a no-result card,
- * a tie card, a long-name intro, the summary after a win, a loss, a draw, a best of 7, long names and a gave-up
- * puzzle, and the Rematch sheet.
+ * a tie card, a long-name intro, the summary after a win, a loss, a draw, a best of 7, long names, a nickname with a hinted
+ * puzzle and a gave-up puzzle, and the Rematch sheet.
  * Every frame is the machine advanced to a known instant. Goldens in `snapshots/reveal/`.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -99,6 +99,9 @@ abstract class RevealGoldenScreenshots(private val device: String, private val w
 
     @Test fun `summary long names light`() = summary("summary-long-names", LONG_NAMES_SUMMARY, dark = false)
     @Test fun `summary long names dark`() = summary("summary-long-names", LONG_NAMES_SUMMARY, dark = true)
+
+    @Test fun `summary nickname light`() = summary("summary-nickname", NICKNAME_SUMMARY, dark = false)
+    @Test fun `summary nickname dark`() = summary("summary-nickname", NICKNAME_SUMMARY, dark = true)
 
     @Test fun `summary gave up light`() = summary("summary-gave-up", GAVE_UP_SUMMARY, dark = false)
     @Test fun `summary gave up dark`() = summary("summary-gave-up", GAVE_UP_SUMMARY, dark = true)
@@ -201,6 +204,11 @@ abstract class RevealGoldenScreenshots(private val device: String, private val w
             MatchVerdict.Won,
         )
         val LONG_NAMES_SUMMARY = summaryOf(LONG_NAMES, MatchVerdict.Drawn)
+        // A nickname name over a hinted Strands leg: the short name in the tight spots, the two-line time cell.
+        val NICKNAME_SUMMARY = summaryOf(
+            plan("Ivan “ZloyDI” Dobrovolskyi", "Maria “Mashka” Kowalczyk-Nowak", ZIP_WIN, STRANDS_WIN, QUEENS_LOSS),
+            MatchVerdict.Won,
+        )
         val GAVE_UP_SUMMARY = summaryOf(plan("Ivan", "Sam", ZIP_WIN, STRANDS_WIN, GAVE_UP), MatchVerdict.Won)
     }
 }
