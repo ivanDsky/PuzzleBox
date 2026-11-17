@@ -17,7 +17,7 @@ internal fun detectMoments(facts: SolveFacts): List<Moment> {
         firstSubX(facts),
         facts.friends?.let(::topThree),
         facts.friends?.let(::passedFriend),
-        Moment.FullSetDone.takeIf { facts.totalToday > 0 && facts.doneToday == facts.totalToday },
+        Moment.FullSetDone(facts.dayTotal).takeIf { facts.totalToday > 0 && facts.doneToday == facts.totalToday },
         Moment.Streak(facts.streak).takeIf { facts.streak in STREAK_MILESTONES && facts.streakBefore < facts.streak },
     )
 }

@@ -12,7 +12,7 @@ class ResultHeroMomentsTest {
 
     private val everything = listOf(
         Moment.Streak(7),
-        Moment.FullSetDone,
+        Moment.FullSetDone(),
         Moment.PassedFriend("u1", "Maya"),
         Moment.TopThreeFriends(2),
         Moment.FirstSubX(60_000L),
@@ -38,7 +38,7 @@ class ResultHeroMomentsTest {
     @Test
     fun `at most three rows`() {
         assertEquals(3, model(everything).moments.size)
-        assertEquals(2, model(listOf(Moment.FullSetDone, Moment.Streak(3))).moments.size)
+        assertEquals(2, model(listOf(Moment.FullSetDone(), Moment.Streak(3))).moments.size)
     }
 
     @Test
@@ -46,7 +46,11 @@ class ResultHeroMomentsTest {
         val texts = model(everything).moments
         assertEquals(listOf("New personal best", "First sub-1:00", "Top 3 among friends today"), texts.map { it.text })
         assertEquals("You passed Maya", heroMoments(listOf(Moment.PassedFriend("u1", "Maya"))).single().text)
-        assertEquals("Full set done", heroMoments(listOf(Moment.FullSetDone)).single().text)
+        assertEquals("Full set done", heroMoments(listOf(Moment.FullSetDone())).single().text)
+        val total = Moment.FullSetDone.DayTotal(timeMs = 312_000L, hints = 0)
+        assertEquals("Full set done · 5:12 total", heroMoments(listOf(Moment.FullSetDone(total))).single().text)
+        assertEquals("Full set done · 5:12 total, 3 hints", heroMoments(listOf(Moment.FullSetDone(total.copy(hints = 3)))).single().text)
+        assertEquals("Full set done · 5:12 total, 1 hint", heroMoments(listOf(Moment.FullSetDone(total.copy(hints = 1)))).single().text)
         assertEquals("7-day streak", heroMoments(listOf(Moment.Streak(7))).single().text)
     }
 
@@ -69,7 +73,7 @@ class ResultHeroMomentsTest {
         assertEquals(HapticFeedbackType.LongPress, ResultMomentHaptics.typeFor(Moment.FirstSubX(60_000L)))
         assertEquals(HapticFeedbackType.Confirm, ResultMomentHaptics.typeFor(Moment.TopThreeFriends(3)))
         assertEquals(HapticFeedbackType.Confirm, ResultMomentHaptics.typeFor(Moment.PassedFriend("u1", "Maya")))
-        assertEquals(HapticFeedbackType.TextHandleMove, ResultMomentHaptics.typeFor(Moment.FullSetDone))
+        assertEquals(HapticFeedbackType.TextHandleMove, ResultMomentHaptics.typeFor(Moment.FullSetDone()))
         assertEquals(HapticFeedbackType.TextHandleMove, ResultMomentHaptics.typeFor(Moment.Streak(7)))
     }
 }

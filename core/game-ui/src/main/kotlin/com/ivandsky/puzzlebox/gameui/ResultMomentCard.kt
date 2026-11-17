@@ -121,6 +121,6 @@ private fun MomentRow(moment: HeroMoment, brand: GameBrand, instant: Boolean, mo
 @Composable
 private fun Moment.icon(): ImageVector = when (this) {
     Moment.PersonalBest, is Moment.FirstSubX, is Moment.TopThreeFriends, is Moment.PassedFriend -> PuzzleIcons.Trophy
-    Moment.FullSetDone -> PuzzleIcons.Check
+    is Moment.FullSetDone -> PuzzleIcons.Check
     is Moment.Streak -> PuzzleIcons.Flame
 }

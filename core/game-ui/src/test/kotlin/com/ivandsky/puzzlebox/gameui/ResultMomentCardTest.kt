@@ -69,7 +69,7 @@ class ResultMomentCardTest {
 
     @Test
     fun `one row per moment, strongest first, and one buzz for the strongest`() {
-        moments = listOf(Moment.Streak(7), Moment.PersonalBest, Moment.FullSetDone)
+        moments = listOf(Moment.Streak(7), Moment.PersonalBest, Moment.FullSetDone())
         show()
         composeRule.mainClock.advanceTimeBy(1_500)
         composeRule.onNodeWithTag("result.moment.0").assertTextEquals("New personal best")
@@ -79,13 +79,21 @@ class ResultMomentCardTest {
     }
 
     @Test
+    fun `the full-set row renders the day's formatted total`() {
+        moments = listOf(Moment.FullSetDone(Moment.FullSetDone.DayTotal(timeMs = 312_000L, hints = 2)))
+        show()
+        composeRule.mainClock.advanceTimeBy(1_500)
+        composeRule.onNodeWithTag("result.moment.0").assertTextEquals("Full set done · 5:12 total, 2 hints")
+    }
+
+    @Test
     fun `a late friend-board moment slides in and a Result keeps to one buzz`() {
-        moments = listOf(Moment.FullSetDone)
+        moments = listOf(Moment.FullSetDone())
         show()
         composeRule.mainClock.advanceTimeBy(1_500)
         assertEquals(listOf(HapticFeedbackType.TextHandleMove), buzzes)
 
-        moments = listOf(Moment.FullSetDone, Moment.TopThreeFriends(1))
+        moments = listOf(Moment.FullSetDone(), Moment.TopThreeFriends(1))
         composeRule.mainClock.advanceTimeBy(1_500)
         composeRule.onNodeWithTag("result.moment.0").assertTextEquals("Top 3 among friends today")
         composeRule.onNodeWithTag("result.moment.1").assertTextEquals("Full set done")

@@ -28,7 +28,7 @@ private val AllMoments = listOf(
     Moment.PersonalBest,
     Moment.TopThreeFriends(2),
     Moment.Streak(7),
-    Moment.FullSetDone,
+    Moment.FullSetDone(),
 )
 
 @Composable

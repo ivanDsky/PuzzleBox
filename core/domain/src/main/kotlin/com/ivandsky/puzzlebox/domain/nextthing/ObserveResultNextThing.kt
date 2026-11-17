@@ -22,6 +22,7 @@ import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.TodayEntry
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.domain.isStreakDay
+import com.ivandsky.puzzlebox.domain.moments.Moment
 import com.ivandsky.puzzlebox.domain.moments.SolveFacts
 import com.ivandsky.puzzlebox.domain.moments.detectMoments
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendUids
@@ -80,6 +81,7 @@ class ObserveResultNextThing(
     private val puzzleDay: GetPuzzleDay,
     private val nextRollover: GetNextRollover,
     private val communityPuzzles: ListCommunityPuzzles,
+    private val showDayTotal: Boolean = false,
     private val timeout: Duration = 2.seconds,
     private val failures: FailureLog = LogcatFailureLog,
 ) {
@@ -183,9 +185,20 @@ class ObserveResultNextThing(
             bestHintFreeMs = rest.filter { it.gameId == game }.mapNotNull { it.record }.filter { it.hints == 0 }.minOfOrNull { it.time },
             doneToday = set.count { it.game != game && it.status is TodayStatus.Solved } + 1,
             totalToday = set.size,
+            dayTotal = dayTotal(game, day, solve, days, set).takeIf { showDayTotal },
             streakBefore = computeStreak(streakDays).current,
             streak = computeStreak(streakDays + day).current,
         )
+    }
+
+    /** The set's summed time and hints: this solve, plus each other solved game's time from the set and its hints from that day's record. */
+    private fun dayTotal(game: GameId, day: LocalDate, solve: BestScore, days: List<GameHistoryDay>, set: List<TodayEntry>): Moment.FullSetDone.DayTotal {
+        val others = set.filter { it.game != game }.mapNotNull { entry ->
+            (entry.status as? TodayStatus.Solved)?.let { solved ->
+                solved.timeMs to (days.firstOrNull { it.gameId == entry.game && it.day == day }?.record?.hints ?: 0)
+            }
+        }
+        return Moment.FullSetDone.DayTotal(solve.timeMs + others.sumOf { it.first }, solve.hints + others.sumOf { it.second })
     }
 
     /**

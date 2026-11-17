@@ -122,6 +122,7 @@ class ObserveResultNextThingTest {
     private fun observe(
         leaderboardRepo: LeaderboardRepository = leaderboard,
         timeout: Duration = 2.seconds,
+        showDayTotal: Boolean = false,
     ) = ObserveResultNextThing(
         registry = registry,
         identity = identity,
@@ -137,6 +138,7 @@ class ObserveResultNextThingTest {
         communityPuzzles = ListCommunityPuzzles(FakeSharedPuzzleRepository(), FakeHiddenPuzzles(), identity) { 0L },
         timeout = timeout,
         failures = { _, _, cause -> failures += cause },
+        showDayTotal = showDayTotal,
     )
 
     private data class Seen(val at: Long, val value: ResultNextThing)
@@ -158,13 +160,24 @@ class ObserveResultNextThingTest {
     private val challenge = NextThing.ChallengeFriend("ann", "ann")
 
     @Test
+    fun `with the day total on, the full set sums this solve and the other solved games' times and hints`() = runTest {
+        scene()
+        completions.setRecords(listOf(record(beta, 0, 70_000, hints = 2), record(alpha, 1, 85_000)))
+
+        val seen = solve(timeMs = 60_000, hints = 1, use = observe(showDayTotal = true))
+
+        val total = Moment.FullSetDone.DayTotal(timeMs = 130_000, hints = 3)
+        assertEquals(Moment.FullSetDone(total), seen.first().value.moments.last())
+    }
+
+    @Test
     fun `a hint-free personal best with a friend above emits the local moments first, then the friend-board moment and a challenge`() = runTest {
         scene()
 
         val seen = solve(timeMs = 60_000)
 
-        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone), null), seen.first().value)
-        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, passedBea, Moment.FullSetDone), challenge, challenge), seen.last().value)
+        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone()), null), seen.first().value)
+        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, passedBea, Moment.FullSetDone()), challenge, challenge), seen.last().value)
         assertTrue(seen.dropLast(1).none { it.value.nextThing == challenge && passedBea !in it.value.moments })
         assertEquals("the chain's rung and the Challenge row share one tier read", listOf("ann"), visibility.lookupCalls)
     }
@@ -185,7 +198,7 @@ class ObserveResultNextThingTest {
 
         val last = solve(timeMs = 60_000).last().value
 
-        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, passedBea, Moment.FullSetDone), challenge, challenge), last)
+        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, passedBea, Moment.FullSetDone()), challenge, challenge), last)
     }
 
     @Test
@@ -194,7 +207,7 @@ class ObserveResultNextThingTest {
 
         val last = solve(timeMs = 60_000).last().value
 
-        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone), challenge, challenge), last)
+        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone()), challenge, challenge), last)
     }
 
     @Test
@@ -255,8 +268,8 @@ class ObserveResultNextThingTest {
 
         val seen = solve(timeMs = 60_000, use = observe(slow))
 
-        assertEquals(listOf(Seen(0, ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone), null))), seen.take(1))
-        assertEquals(Seen(2_000, ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone), NextThing.DoneForToday(rollover))), seen.last())
+        assertEquals(listOf(Seen(0, ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone()), null))), seen.take(1))
+        assertEquals(Seen(2_000, ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone()), NextThing.DoneForToday(rollover))), seen.last())
         assertEquals(2_000, currentTime)
     }
 
@@ -283,7 +296,7 @@ class ObserveResultNextThingTest {
 
         val seen = solve(timeMs = 60_000)
 
-        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone), NextThing.DoneForToday(rollover)), seen.last().value)
+        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone()), NextThing.DoneForToday(rollover)), seen.last().value)
         assertEquals(emptyList<String>(), visibility.lookupCalls)
     }
 
@@ -294,7 +307,7 @@ class ObserveResultNextThingTest {
 
         val seen = solve(timeMs = 60_000)
 
-        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone), NextThing.DoneForToday(rollover)), seen.last().value)
+        assertEquals(ResultNextThing(listOf(Moment.PersonalBest, Moment.FullSetDone()), NextThing.DoneForToday(rollover)), seen.last().value)
         assertEquals(0, leaderboard.fetchCalls)
         assertEquals(emptyList<String>(), visibility.lookupCalls)
     }

@@ -73,8 +73,15 @@ class DetectMomentsTest {
     }
 
     @Test
+    fun `the fifth solve of five carries the day's total and four of five carry no full set`() {
+        val total = Moment.FullSetDone.DayTotal(timeMs = 5 * 60_000L, hints = 2)
+        assertEquals(listOf(Moment.FullSetDone(total)), detectMoments(plain.copy(doneToday = 5, totalToday = 5, dayTotal = total)))
+        assertEquals(emptyList<Moment>(), detectMoments(plain.copy(doneToday = 4, totalToday = 5, dayTotal = total)))
+    }
+
+    @Test
     fun `the solve that completes today's set is a full set`() {
-        assertEquals(listOf(Moment.FullSetDone), detectMoments(plain.copy(doneToday = 3, totalToday = 3)))
+        assertEquals(listOf(Moment.FullSetDone()), detectMoments(plain.copy(doneToday = 3, totalToday = 3)))
     }
 
     @Test
@@ -200,7 +207,7 @@ class DetectMomentsTest {
                 Moment.FirstSubX(60_000),
                 Moment.TopThreeFriends(place = 1),
                 Moment.PassedFriend("ann", "Ann"),
-                Moment.FullSetDone,
+                Moment.FullSetDone(),
                 Moment.Streak(7),
             ),
             detectMoments(everything),
@@ -210,7 +217,7 @@ class DetectMomentsTest {
     @Test
     fun `without a friend board the local moments still come`() {
         assertEquals(
-            listOf(Moment.PersonalBest, Moment.FirstSubX(60_000), Moment.FullSetDone, Moment.Streak(7)),
+            listOf(Moment.PersonalBest, Moment.FirstSubX(60_000), Moment.FullSetDone(), Moment.Streak(7)),
             detectMoments(everything.copy(friends = null)),
         )
     }

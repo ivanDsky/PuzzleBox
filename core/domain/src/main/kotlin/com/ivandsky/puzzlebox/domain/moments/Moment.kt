@@ -18,8 +18,11 @@ sealed interface Moment {
     /** This solve moved the player above the friend [name] on today's Friends board. */
     data class PassedFriend(val uid: String, val name: String) : Moment
 
-    /** This solve finished today's set. */
-    data object FullSetDone : Moment
+    /** This solve finished today's set; [total] is the set's summed time and hints, or null when the total is not shown. */
+    data class FullSetDone(val total: DayTotal? = null) : Moment {
+        /** The time and hints across every game of the day's set. */
+        data class DayTotal(val timeMs: Long, val hints: Int)
+    }
 
     /** This solve brought the streak to [days]. */
     data class Streak(val days: Int) : Moment

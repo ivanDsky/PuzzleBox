@@ -715,7 +715,7 @@ class ResultViewModelTest {
 
         val vm = vm().observed()
 
-        assertEquals(listOf(Moment.PersonalBest, Moment.FullSetDone), vm.nextFacts.value.moments)
+        assertEquals(listOf(Moment.PersonalBest, Moment.FullSetDone()), vm.nextFacts.value.moments)
         assertEquals(ann, vm.primary.value)
         assertEquals(ann, vm.nextFacts.value.challenge)
     }
@@ -738,7 +738,7 @@ class ResultViewModelTest {
 
         val vm = vm().observed()
 
-        assertEquals(listOf(Moment.FullSetDone), vm.nextFacts.value.moments)
+        assertEquals(listOf(Moment.FullSetDone()), vm.nextFacts.value.moments)
         assertEquals(ann, vm.primary.value)
     }
 
