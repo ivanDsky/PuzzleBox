@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +29,8 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.SudokuUnit
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
+import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
 import com.ivandsky.puzzlebox.gameui.SolveRestState
 import com.ivandsky.puzzlebox.gameui.SolveRestTapLayer
 import com.ivandsky.puzzlebox.gameui.rememberSolveRest
@@ -204,8 +207,13 @@ internal fun rememberSudokuMotion(
     rest: SolveRestState = rememberSolveRest(),
 ): SudokuMotionState? {
     if (state == null) return null
+    // Keyed on the board so a swapped board never classifies its moves against the old one's baseline.
+    key(state) {
+        MoveHapticsEffect({ SudokuMoveSnapshot(state.session, state.rejection) }, ::sudokuMoveHaptic)
+    }
     val reduced = rememberReducedMotion()
     val haptics = LocalHapticFeedback.current
+    val playFeel by rememberUpdatedState(LocalPlayFeel.current)
     val handOff by rememberUpdatedState(onSolved)
     val motion = remember(state) { SudokuMotionState(state.session.board.geometry.cellCount) }
     SideEffect { motion.reduced = reduced }
@@ -215,7 +223,8 @@ internal fun rememberSudokuMotion(
         snapshotFlow { state.session }.collect { next ->
             val event = sudokuPlayerEvent(previous, next)
             previous = next
-            sudokuHapticFor(event)?.let(haptics::perform)
+            // With PlayFeel on, MoveHapticsEffect owns the move ticks; this path would double them.
+            if (!playFeel) sudokuHapticFor(event)?.let(haptics::perform)
             val resting = if (event is SudokuPlayerEvent.Solved) rest.begin(this) else null
             playSudokuEvent(motion, event, next.board.geometry) {
                 // When the rest confirms, the solve buzz went out as the sweep started; a second one would double it.

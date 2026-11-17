@@ -220,7 +220,7 @@ class SudokuPlayController(
 
     override val violation: String? get() = board?.violation
 
-    override val rejection: String? get() = board?.rejection
+    override val rejection: String? get() = board?.rejection?.message
 
     //endregion
 }

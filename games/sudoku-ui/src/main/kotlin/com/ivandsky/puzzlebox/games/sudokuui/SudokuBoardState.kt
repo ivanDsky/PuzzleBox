@@ -76,10 +76,10 @@ class SudokuBoardState(
     var hintRevealed by mutableStateOf(false)
         private set
 
-    /** The last refused input's copy, shown until the next action. */
-    var rejection by mutableStateOf<String?>(null)
+    /** The last refused input, shown until the next action; [SudokuRejection.seq] tells a repeat apart. */
+    var rejection by mutableStateOf<SudokuRejection?>(null)
         private set
-
+    private var refused = 0
     private val recorder = SudokuMoveLog(log, now, runningSince)
 
     private var winEmitted = false
@@ -256,7 +256,7 @@ class SudokuBoardState(
 
     private fun rejectsGiven(idx: Int): Boolean {
         if (session.board.cells[idx] !is SudokuCell.Given) return false
-        rejection = SudokuHintCaptions.GIVEN_REJECTION
+        rejection = SudokuRejection(SudokuHintCaptions.GIVEN_REJECTION, ++refused)
         return true
     }
 
