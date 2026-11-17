@@ -4,6 +4,9 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.di.MatchRemote
+import com.ivandsky.puzzlebox.data.di.dataModule
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.match.ClaimResult
@@ -13,7 +16,6 @@ import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.MatchRepository
-import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
@@ -21,6 +23,18 @@ import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
 import com.ivandsky.puzzlebox.data.match.WriteResult
 import com.ivandsky.puzzlebox.data.match.LegResult
 import com.ivandsky.puzzlebox.data.match.PostResult
+import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
+import com.ivandsky.puzzlebox.games.zipui.ZipPlayController
+import com.ivandsky.puzzlebox.gameui.DragEvent
+import com.ivandsky.puzzlebox.gameui.GridCell
+import com.ivandsky.puzzlebox.history.api.HistoryKey
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
+import com.ivandsky.puzzlebox.home.api.HomeKey
+import com.ivandsky.puzzlebox.navigation.NavigationState
+import com.ivandsky.puzzlebox.play.ActivePlay
+import com.ivandsky.puzzlebox.play.api.CommunityKey
+import com.ivandsky.puzzlebox.play.api.MatchLegKey
+import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.domain.CreateOutcome
 import com.ivandsky.puzzlebox.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
@@ -49,10 +63,15 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.Koin
+import org.koin.core.KoinApplication
+import org.koin.core.qualifier.named
+import org.koin.dsl.koinApplication
 import org.koin.dsl.module
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -64,46 +83,64 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
-@Config(sdk = [34], application = DrainTestApplication::class)
+@Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
 class SelfDuelIsolationTest {
 
     private val writes = AtomicInteger()
+
+    /** The record store's own data graph; it opens the app's database file. */
+    private val processes = mutableListOf<KoinApplication>()
+
+    @After
+    fun closeProcesses() {
+        processes.forEach(KoinApplication::close)
+    }
+
     private val graph: E2eKoinGraph = E2eKoinGraph(
         E2E_TODAY,
-        overrides = module { single<MatchRepository>(MatchRemote) { CountingMatchRepository(graph.matches, writes) } },
+        overrides = module {
+            single<MatchRepository>(MatchRemote) { CountingMatchRepository(graph.matches, writes) }
+            // The real record store: first-win rules are what keep a slower leg off the best, the streak and History.
+            single(named(ROOM)) {
+                val registry = get<GameRegistry>()
+                koinApplication {
+                    androidContext(RuntimeEnvironment.getApplication())
+                    modules(dataModule, unfilteredOwnerModule, module { single { registry } })
+                }.also(processes::add).koin
+            }
+            single<CompletionRepository> { get<Koin>(named(ROOM)).get() }
+        },
         releaseFlags = FakeReleaseFlags(ReleaseFlag.VirtualDuel),
     )
 
-    @Before
-    fun start() = graph.start()
-
-    @After
-    fun stop() = graph.stop()
-
     @Test
-    fun aWholeSelfDuelLeavesEveryFriendDailyBoardAndServerReadAsItWas() = runBlocking {
+    fun aWholeSelfDuelLeavesEveryFriendDailyBoardAndServerReadAsItWas() = shellRobot(onPlay, graph = graph) {
         graph.identity.currentIdentity = Identity(uid = ME, displayName = "Me", photoUrl = null)
         graph.matches.now = Instant.now()
         graph.matches.signedInUid = ME
-        graph.seedSolvedZips(E2E_TODAY)
-        friendDuelClaimedBySam()
+        graph.seedSolvedZips(E2E_TODAY, firstSolveMs = FAST_FIRST_SOLVE_MS) { seeded ->
+            runBlocking { seeded.forEach { graph.koin.get<CompletionRepository>().onCompleted(it) } }
+        }
+        runBlocking { friendDuelClaimedBySam() }
         graph.koin.get<LeaderboardSubmitWatcher>().start()
         graph.koin.get<MatchResultPoster>().start()
         // The one in-window daily (yesterday's) reaches the board before the snapshot, so a leak cannot hide as a late submit.
         eventually { graph.leaderboard.submitted.isNotEmpty() }
-        val before = snapshot()
+        val before = runBlocking { snapshot() }
         assertEquals("the friend duel counts, so the badge and friends are not trivially empty", setOf(SAM), before.friends)
         assertEquals(1, before.needYou)
 
-        val kept = createSelfDuel()
-        val removed = createSelfDuel()
+        val kept = runBlocking { createSelfDuel() }
+        val removed = runBlocking { createSelfDuel() }
         playEveryLeg(kept)
-        graph.koin.get<RecordRevealSeen>()(kept, myScore = 1, theirScore = 0)
-        graph.koin.get<DeleteSelfDuel>()(removed)
+        runBlocking {
+            graph.koin.get<RecordRevealSeen>()(kept, myScore = 1, theirScore = 0)
+            graph.koin.get<DeleteSelfDuel>()(removed)
+        }
 
         val self = graph.koin.get<SelfMatchRepository>()
-        assertEquals("the kept duel is on the device, the removed one is gone", listOf(kept), self.observeAll().first().map { it.code })
-        assertEquals("Past you is not a friend, and the self duels reached the server not once", before, snapshot())
+        assertEquals("the kept duel is on the device, the removed one is gone", listOf(kept), runBlocking { self.observeAll().first() }.map { it.code })
+        assertEquals("Past you is not a friend, and the self duels reached the server not once", before, runBlocking { snapshot() })
     }
 
     private suspend fun createSelfDuel(): ShareCode {
@@ -111,13 +148,31 @@ class SelfDuelIsolationTest {
         return (created as CreateOutcome.Created).code
     }
 
-    /** Finishes every leg of [code] through the real use case and waits until the poster settled each one. */
-    private suspend fun playEveryLeg(code: ShareCode) {
-        val finish = graph.koin.get<FinishLeg>()
-        repeat(SOLVED_ZIPS) { leg -> finish(code, leg, LegFinish.Solved(timeMs = FIRST_SOLVE_MS - 1_000L, hints = 0)) }
-        val outbox = graph.koin.get<MatchResultOutbox>()
-        eventually { outbox.observe(code).first().count { it.state == ResultPostState.Posted } == SOLVED_ZIPS }
+    /**
+     * Plays every leg of [code] on its board, as a player does, so each solve takes the completion path a duel leg
+     * takes. Each is slower than the first solves seeded: a faster leg would legitimately move the best (A2).
+     */
+    private fun ShellRobot.playEveryLeg(code: ShareCode) {
+        repeat(SOLVED_ZIPS) { index ->
+            val leg = MatchLegKey(code.value, index, ZipDefinition.id.value)
+            openDuelPuzzle(leg)
+            val ready = { play: ActivePlay -> (play.controller as ZipPlayController).session != null }
+            solveDuelPuzzle(leg, ready) { play ->
+                val zip = play.controller as ZipPlayController
+                ZipPlayFixture.solution.forEach { zip.onDragEvent(DragEvent.Extend(GridCell(it.idx / SIZE, it.idx % SIZE))) }
+            }
+            awaitIdling {
+                runBlocking { graph.outbox.observe(code).first() }.count { it.state == ResultPostState.Posted } == index + 1
+            }
+            tap("result.up")
+        }
     }
+
+    /** The Play tab is selected; Home's stack holds History. */
+    private val onPlay = NavigationState(
+        tab = PlayKey,
+        stacks = listOf(listOf(HomeKey, HistoryKey()), listOf(PlayKey), listOf(CommunityKey), listOf(HistoryRootKey)),
+    )
 
     /** Sam claims the seat of a duel I made: one Your move row, and Sam is my friend. */
     private suspend fun friendDuelClaimedBySam() {
@@ -156,8 +211,8 @@ class SelfDuelIsolationTest {
         val needYou: Int,
     )
 
-    private suspend fun eventually(condition: suspend () -> Boolean) = withTimeout(TIMEOUT_MS) {
-        while (!condition()) delay(POLL_MS)
+    private fun eventually(condition: () -> Boolean) = runBlocking {
+        withTimeout(TIMEOUT_MS) { while (!condition()) delay(POLL_MS) }
     }
 
     /** The friend-duel server fake, counting every write call (reads and sealed-result reads pass through). */
@@ -170,9 +225,13 @@ class SelfDuelIsolationTest {
     }
 
     private companion object {
+        const val ROOM = "room"
         const val ME = "me"
         const val SAM = "sam"
         const val TIMEOUT_MS = 10_000L
         const val POLL_MS = 20L
+        const val SIZE = 5
+        // A play's time is wall clock, so a leg can only be slower than a first solve that took a millisecond (A2).
+        const val FAST_FIRST_SOLVE_MS = 1L
     }
 }

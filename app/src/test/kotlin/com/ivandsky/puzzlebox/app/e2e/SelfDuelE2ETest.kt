@@ -81,7 +81,6 @@ class SelfDuelE2ETest {
         assertTrue("the seen duel is a finished row, not $kind", kind is DuelRowKind.Finished)
         assertTrue("it shows in My duels", shows("duel.row.${code.value}"))
         assertTrue("the friend-duel server never held it", graph.matches.matches.isEmpty())
-        assertTrue("nothing reached a leaderboard", graph.leaderboard.submitted.isEmpty())
     }
 
     /** Opens leg [index] from the duel page, checks its time-left timer, solves it and posts it. */
