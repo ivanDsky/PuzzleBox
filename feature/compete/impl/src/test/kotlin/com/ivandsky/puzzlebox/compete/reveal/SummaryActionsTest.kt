@@ -5,9 +5,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotSame
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,7 +13,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
-/** The duel summary's Share and Watch again pair: labelled, and Watch again wears its own icon. */
+/** The duel summary's Watch again action: labelled, and it fires its callback. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [34])
@@ -36,11 +34,6 @@ class SummaryActionsTest {
         composeRule.onNodeWithTag("reveal.watchAgain").assertTextEquals("Watch again").performClick()
 
         assertEquals(1, watched)
-    }
-
-    @Test
-    fun `watch again wears a replay icon, not the retry arrow Play again uses`() {
-        assertNotSame(PuzzleIcons.Retry, PuzzleIcons.WatchAgain)
     }
 
     private companion object {

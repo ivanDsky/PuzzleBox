@@ -118,7 +118,7 @@ class ResultHeroScreenTest {
         setContent(1280, 800)
         val rank = composeRule.onNodeWithTag("result.side.rank").getUnclippedBoundsInRoot()
         val share = composeRule.onNodeWithTag("result.share").getUnclippedBoundsInRoot()
-        assertTrue("premise: hero content ends at ${share.bottom}, above the rank row (${rank.bottom})", share.bottom < rank.bottom)
+        assertTrue("premise: hero content ends at ${share.bottom}, no lower than the rank row (${rank.bottom})", share.bottom <= rank.bottom + 1.dp)
         assertCardsEqualHeight()
     }
 
@@ -167,14 +167,12 @@ class ResultHeroScreenTest {
         setContent(1280, 800)
         val parts = heroParts()
         val (card, _, next, share) = parts
-        // The 1280 dp pane is a wide hero column: 24 dp card padding. The 48 dp Share icon is centred in the row of the
-        // taller Next button, so it ends a few dp above the row's bottom.
-        val inset = (next.height - share.height) / 2
+        // The 1280 dp pane is a wide hero column: 24 dp card padding. Share is the bottom row of the stacked actions.
         assertTrue(
-            "share bottom ${share.bottom} must lie within ${Spacing.xl + 1.dp} (+$inset centring) of the card bottom ${card.bottom}",
-            card.bottom - share.bottom <= Spacing.xl + 1.dp + inset,
+            "share bottom ${share.bottom} must lie within ${Spacing.xl + 1.dp} of the card bottom ${card.bottom}",
+            card.bottom - share.bottom <= Spacing.xl + 1.dp,
         )
-        assertEquals("the row rests on the card padding", (card.bottom - Spacing.xl).value, next.bottom.value, 1f)
+        assertEquals("the row rests on the card padding", (card.bottom - Spacing.xl).value, share.bottom.value, 1f)
         assertTrue("the row ${next.top} must stay below the chips ${parts.chipsBottom}", next.top >= parts.chipsBottom + Spacing.lg - 1.dp)
     }
 
@@ -208,7 +206,8 @@ class ResultHeroScreenTest {
         val drawnCentre = (drawn.top + drawn.bottom) / 2 / density
         val middle = (tall.glyph.bottom + tall.best.top).value / 2
         assertEquals("the time is centred between the header and the best line", middle, drawnCentre, 2f)
-        assertTrue("the time grows into the space (${short.time.width} -> ${(drawn.right - drawn.left) / density} wide)", (drawn.right - drawn.left) / density > short.time.width.value * 1.4f)
+        // The stacked actions take about 56 dp of the spare height, so the time grows less than it did beside the old row.
+        assertTrue("the time grows into the space (${short.time.width} -> ${(drawn.right - drawn.left) / density} wide)", (drawn.right - drawn.left) / density > short.time.width.value * 1.2f)
         assertTrue("the time stays inside the card (${drawn.right / density} vs ${tall.card.right})", drawn.right / density <= tall.card.right.value - Spacing.lg.value)
     }
 

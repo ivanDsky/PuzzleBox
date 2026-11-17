@@ -166,12 +166,18 @@ class ResultHeroCardTest {
     fun `share and play again show their labels and keep their names`() {
         setContent(heroSampleModel(verdict = RecordVerdict.NotBest))
 
-        composeRule.onNodeWithTag("result.share").assertTextEquals("Share").assertContentDescriptionEquals("Share").assertHasClickAction()
-        composeRule.onNodeWithTag("result.playAgain").assertTextEquals("Play again").assertContentDescriptionEquals("Play again").assertHasClickAction()
+        composeRule.onNodeWithTag("result.share")
+            .assertTextEquals("Share")
+            .assertContentDescriptionEquals("Share")
+            .assertHasClickAction()
+        composeRule.onNodeWithTag("result.playAgain")
+            .assertTextEquals("Play again")
+            .assertContentDescriptionEquals("Play again")
+            .assertHasClickAction()
     }
 
     @Test
-    fun `on a phone, share and play again sit side by side under the primary, equal and 48 dp tall`() {
+    fun `on a phone, share and play again sit side by side under the primary, 48 dp tall`() {
         setContent(heroSampleModel(verdict = RecordVerdict.NotBest))
 
         val primary = composeRule.onNodeWithTag("result.next").getUnclippedBoundsInRoot()
@@ -182,22 +188,21 @@ class ResultHeroCardTest {
         assertTrue("play again ${again.left} must sit right of share ${share.right}", again.left >= share.right)
         assertEquals("the pair spans the primary's width", primary.left.value, share.left.value, 0.5f)
         assertEquals("the pair spans the primary's width", primary.right.value, again.right.value, 0.5f)
-        assertEquals("equal halves", (share.right - share.left).value, (again.right - again.left).value, 0.5f)
+        assertTrue("play again takes the rest of the row", (again.right - again.left) > (share.right - share.left))
         assertEquals(48f, share.height.value, 0.5f)
         assertEquals(48f, again.height.value, 0.5f)
     }
 
     @Test
-    fun `on a wide card the primary, share and play again share one row`() {
+    fun `on a wide card the pair still stacks under the primary`() {
         setContent(heroSampleModel(verdict = RecordVerdict.NotBest), width = 640.dp)
 
         val primary = composeRule.onNodeWithTag("result.next").getUnclippedBoundsInRoot()
         val share = composeRule.onNodeWithTag("result.share").getUnclippedBoundsInRoot()
         val again = composeRule.onNodeWithTag("result.playAgain").getUnclippedBoundsInRoot()
-        assertTrue("share ${share.left} must sit right of primary ${primary.right}", share.left >= primary.right)
+        assertTrue("share ${share.top} must sit under primary ${primary.bottom}", share.top >= primary.bottom)
+        assertEquals("play again shares share's row", share.top.value, again.top.value, 0.5f)
         assertTrue("play again ${again.left} must sit right of share ${share.right}", again.left >= share.right)
-        assertEquals("share centred on the primary's row", (primary.top + primary.bottom).value, (share.top + share.bottom).value, 1f)
-        assertEquals("play again centred on the primary's row", (primary.top + primary.bottom).value, (again.top + again.bottom).value, 1f)
         assertEquals(48f, share.height.value, 0.5f)
     }
 

@@ -2,10 +2,11 @@ package com.ivandsky.puzzlebox.gameui.replay
 
 import android.content.Context
 import android.provider.Settings
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Surface
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
@@ -22,8 +23,8 @@ import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
- * Goldens of the replay's "Errors" switch in both states, light and dark, beside the page's own padding. Recorded
- * with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
+ * Goldens of the replay's "Errors" switch in both states, light and dark, on the page background it sits on, beside
+ * the page's own padding. Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -47,10 +48,13 @@ class ShowErrorsToggleGoldenTest {
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = dark) {
-                Surface(Modifier.fillMaxSize()) {
-                    Row(Modifier.padding(Spacing.lg)) {
-                        ShowErrorsToggle(showErrors = showErrors, onChange = {})
-                    }
+                Row(
+                    Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.background)
+                        .padding(Spacing.lg),
+                ) {
+                    ShowErrorsToggle(showErrors = showErrors, onChange = {})
                 }
             }
         }
