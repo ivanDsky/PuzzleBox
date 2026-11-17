@@ -53,7 +53,8 @@ internal fun DuelContent(code: String, navigator: Navigator, layout: PlayLayout,
             is DuelUiState.Invite -> DuelInviteCard(current, actions, Modifier.verticalScroll(rememberScrollState()))
             is DuelUiState.Participant -> {
                 val now by rememberCountdownNow(time, current.view.match.closesAt)
-                DuelLegs(current, layout, now, time, legsActions(current, context, navigator), Modifier.fillMaxSize())
+                DuelLegs(current, layout, now, time, legsActions(current, context, navigator, vm::askRemove), Modifier.fillMaxSize())
+                if (current.removeAsked) RemoveDuelDialog(onRemove = vm::remove, onKeep = vm::keep)
             }
             DuelUiState.NotFound -> EmptyState("This duel link doesn't work", "Check the code with your friend and try again.")
             DuelUiState.Offline -> ErrorState(
@@ -67,12 +68,16 @@ internal fun DuelContent(code: String, navigator: Navigator, layout: PlayLayout,
     }
 }
 
-/** Start and Resume push the puzzle's play screen (the game id from the match's own puzzle); the footer buttons share and open the reveal. */
-private fun legsActions(state: DuelUiState.Participant, context: Context, navigator: Navigator) = LegsActions(
+/**
+ * Start and Resume push the puzzle's play screen (the game id from the match's own puzzle); the footer buttons share
+ * and open the reveal; [onRemove] asks to remove a self duel.
+ */
+private fun legsActions(state: DuelUiState.Participant, context: Context, navigator: Navigator, onRemove: () -> Unit) = LegsActions(
     onOpenLeg = { row ->
         val match = state.view.match
         navigator.pushOnce(MatchLegKey(match.code.value, row.legIndex, match.legs[row.legIndex].ref.gameId.value))
     },
     onNudge = context::shareInvite,
     onReveal = { navigator.push(DuelRevealKey(state.view.match.code.value)) },
+    onRemove = onRemove,
 )

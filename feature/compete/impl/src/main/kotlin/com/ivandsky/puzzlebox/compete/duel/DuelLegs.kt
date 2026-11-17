@@ -27,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.compete.common.PastYouAvatar
 import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.MaxContentWidth
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
@@ -49,11 +50,15 @@ import org.koin.compose.koinInject
 private val AvatarSize = 40.dp
 private val AvatarOverlap = 28.dp
 
-/** What the screen's buttons do: [onOpenLeg] starts or resumes a puzzle, [onNudge] shares the text, [onReveal] opens the reveal. */
+/**
+ * What the screen's buttons do: [onOpenLeg] starts or resumes a puzzle, [onNudge] shares the text, [onReveal] opens
+ * the reveal, [onRemove] asks to remove a self duel.
+ */
 internal data class LegsActions(
     val onOpenLeg: (LegRowModel) -> Unit,
     val onNudge: (String) -> Unit,
     val onReveal: () -> Unit,
+    val onRemove: () -> Unit,
 )
 
 /**
@@ -74,16 +79,25 @@ internal fun DuelLegs(
     val view = state.view
     val games = koinInject<GameRegistry>()
     val brands = koinInject<GamePlayRegistry>()
-    val model = remember(view, state.elapsedMs, now) {
-        duelLegsModel(view, state.elapsedMs, now, games::displayName, games::rankOrderOf)
+    val model = remember(state, now) {
+        duelLegsModel(
+            view = view,
+            elapsedMs = state.elapsedMs,
+            now = now,
+            nameOf = games::displayName,
+            rankOrderOf = games::rankOrderOf,
+            myName = state.myName,
+            firstSolvedAt = state.firstSolvedAt,
+            dayOf = time::day,
+        )
     }
     val content = LegsContent(model, view.match.deadline, time.ends(view.match.deadline), view.match.closesAt, view.match.code, now, actions)
     BoxWithConstraints(modifier.fillMaxSize()) {
         val twoPane = layout == PlayLayout.TwoPane
-        if (twoPane && maxWidth >= TwoColumnMinWidth) {
-            TwoColumnLegs(content, brands, maxHeight)
-        } else {
-            SingleColumnLegs(content, brands, capped = twoPane)
+        when {
+            model.self -> SelfDuelLegs(content, layout, brands, Modifier.fillMaxSize())
+            twoPane && maxWidth >= TwoColumnMinWidth -> TwoColumnLegs(content, brands, maxHeight)
+            else -> SingleColumnLegs(content, brands, capped = twoPane)
         }
     }
 }
@@ -104,7 +118,7 @@ private fun SingleColumnLegs(content: LegsContent, brands: GamePlayRegistry, cap
 }
 
 /** Everything the panes draw, so the pane composables take one value. */
-private class LegsContent(
+internal class LegsContent(
     val model: DuelLegsModel,
     val deadline: Instant,
     val ends: String,
@@ -150,19 +164,23 @@ internal const val DUEL_GRID_TAG = "duel.legs.grid"
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LegsHeader(content: LegsContent) {
+internal fun LegsHeader(content: LegsContent) {
     val model = content.model
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Box {
                 PlayerAvatar(model.me.name, model.me.photoUrl, size = AvatarSize)
-                PlayerAvatar(
-                    name = model.opponent.name,
-                    photoUrl = model.opponent.photoUrl,
-                    modifier = Modifier.padding(start = AvatarOverlap),
-                    size = AvatarSize,
-                    tone = DuelTone.Them,
-                )
+                if (model.self) {
+                    PastYouAvatar(model.me.name, Modifier.padding(start = AvatarOverlap), AvatarSize)
+                } else {
+                    PlayerAvatar(
+                        name = model.opponent.name,
+                        photoUrl = model.opponent.photoUrl,
+                        modifier = Modifier.padding(start = AvatarOverlap),
+                        size = AvatarSize,
+                        tone = DuelTone.Them,
+                    )
+                }
             }
             Column(Modifier.weight(1f)) {
                 Text(
@@ -172,7 +190,7 @@ private fun LegsHeader(content: LegsContent) {
                     modifier = Modifier.testTag("duel.legs.title"),
                 )
                 Text(
-                    text = "Best of ${model.rows.size} · ends ${content.ends}",
+                    text = if (model.self) "Best of ${model.rows.size} · against your first solves" else "Best of ${model.rows.size} · ends ${content.ends}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -181,15 +199,19 @@ private fun LegsHeader(content: LegsContent) {
         // Once the reveal is ready the footer says why ("Both finished" / "Closed"); a countdown and "hidden" would be stale.
         if (model.footer != DuelFooter.RevealReady) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                Pill(timeLeftText(content.deadline, content.now), Modifier.testTag("duel.legs.timeLeft"))
-                Pill("Score hidden until it settles")
+                if (model.self) {
+                    Pill("Times hidden until the results")
+                } else {
+                    Pill(timeLeftText(content.deadline, content.now), Modifier.testTag("duel.legs.timeLeft"))
+                    Pill("Score hidden until it settles")
+                }
             }
         }
     }
 }
 
 @Composable
-private fun PuzzleList(content: LegsContent, brands: GamePlayRegistry, selected: Int?, onSelect: ((Int) -> Unit)?) {
+internal fun PuzzleList(content: LegsContent, brands: GamePlayRegistry, selected: Int?, onSelect: ((Int) -> Unit)?) {
     val rows = content.model.rows
     Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Puzzles", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.onSurface)
@@ -241,7 +263,7 @@ private fun LegsFooter(content: LegsContent) {
 }
 
 @Composable
-private fun FooterCard(title: String, action: @Composable () -> Unit) {
+internal fun FooterCard(title: String, action: @Composable () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()

@@ -21,14 +21,20 @@ class ObserveDuel(
 ) {
 
     operator fun invoke(code: ShareCode): Flow<DuelSnapshot> {
-        val solved = completions.observeRecords().map { rows -> rows.mapTo(HashSet()) { PuzzleRefKeys.encode(it.puzzleRef) } }
+        val solved = completions.observeRecords().map { rows -> rows.associate { PuzzleRefKeys.encode(it.puzzleRef) to it.firstCompletedAt } }
         val playing = savedPlays.observeInProgress().map { slots ->
             slots.mapNotNull { (slot, elapsed) ->
                 (slot as? PlaySlot.Leg)?.takeIf { it.matchCode == code.value }?.let { it.legIndex to elapsed }
             }.toMap()
         }
         return combine(observeMatch(code), solved, playing) { match, done, elapsed ->
-            DuelSnapshot(match, solvedBefore = match.read()?.legs.orEmpty().any { it.ref.wire in done }, elapsedMs = elapsed)
+            val legs = match.read()?.legs.orEmpty()
+            DuelSnapshot(
+                match,
+                solvedBefore = legs.any { it.ref.wire in done },
+                elapsedMs = elapsed,
+                firstSolvedAt = legs.mapNotNull { leg -> done[leg.ref.wire]?.let { leg.ref.wire to it } }.toMap(),
+            )
         }
     }
 
