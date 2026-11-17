@@ -143,7 +143,7 @@ val domainModule = module {
         )
     }
     factory { CreateDraftCopy(drafts = get(), newId = { UUID.randomUUID().toString() }, clock = { Instant.now() }) }
-    factory { FinishLeg(outbox = get(), matches = get(), identity = get(), clock = { Instant.now() }) }
+    factory { FinishLeg(outbox = get(), self = get(), identity = get(), clock = { Instant.now() }) }
     factory {
         ObserveMatch(
             repo = get(),

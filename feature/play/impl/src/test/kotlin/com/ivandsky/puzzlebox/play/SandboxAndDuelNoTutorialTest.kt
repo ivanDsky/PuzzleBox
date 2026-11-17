@@ -40,6 +40,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.Instant
@@ -116,7 +117,7 @@ class SandboxAndDuelNoTutorialTest {
                     single<MatchRepository> { FakeMatchRepository() }
                     single<MatchResultOutbox> { FakeMatchResultOutbox() }
                     single<IdentityService> { FakeIdentityService(initial = Identity("ann-uid", "Ann", photoUrl = null)) }
-                    factory { FinishLeg(get(), get(), get()) { Instant.EPOCH } }
+                    factory { FinishLeg(get(), FakeSelfMatchRepository(), get()) { Instant.EPOCH } }
                     factory { LoadPastDay(get(), get()) }
                 },
                 module { single<CloudSync> { FakeCloudSync() } },

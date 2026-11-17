@@ -9,8 +9,8 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
-import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import java.time.Instant
 import java.time.LocalDate
@@ -39,7 +39,7 @@ class LegCompletionReplayTest {
         inner = completions,
         code = code,
         legIndex = legIndex,
-        finishLeg = FinishLeg(outbox, FakeMatchRepository(), FakeIdentityService(me)) { Instant.EPOCH },
+        finishLeg = FinishLeg(outbox, FakeSelfMatchRepository(), FakeIdentityService(me)) { Instant.EPOCH },
     )
 
     private fun solve() = CompletionRecord(ref, time = 83_456, hints = 2, stats = RecordStats(1, "{}"))

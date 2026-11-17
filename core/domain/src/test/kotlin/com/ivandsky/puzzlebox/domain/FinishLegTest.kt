@@ -3,10 +3,8 @@ package com.ivandsky.puzzlebox.domain
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.LegResult
-import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.OutboxResult
-import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -16,7 +14,6 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.SolveReplay
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
-import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import java.time.Instant
@@ -38,10 +35,8 @@ class FinishLegTest {
     private val otherCode = ShareCode.parse("ABCDEF")!!
     private val outbox = FakeMatchResultOutbox()
     private val identity = FakeIdentityService(Identity("me", "Me", null))
-    private val matches = FakeMatchRepository()
-    private val selfMatches = FakeSelfMatchRepository()
-    private val finishLeg = FinishLeg(outbox, matches, identity) { now }
-    private val finishSelfLeg = FinishLeg(outbox, selfMatches, identity) { now }
+    private val self = FakeSelfMatchRepository()
+    private val finishLeg = FinishLeg(outbox, self, identity) { now }
     private val replay = SolveReplay.of(byteArrayOf(1, 2, 3))!!
 
     private suspend fun rows(c: ShareCode = code): List<OutboxResult> = outbox.observe(c).first()
@@ -60,13 +55,7 @@ class FinishLegTest {
             isRecord = true,
         )
         val draft = buildSelfMatch(code, now, includeFriends = false, legs = legs, records = listOf(record))
-        selfMatches.save(draft.match, draft.past)
-    }
-
-    /** I challenge with the one leg; the server holds the match. */
-    private suspend fun aFriendDuelIsOnTheServer() {
-        matches.signedInUid = "me"
-        matches.create(MatchDraft(code, 24, Player("me", "Me", null), invitedUid = null, legs, includeFriends = false, rematchOf = null))
+        self.save(draft.match, draft.past)
     }
 
     @Test
@@ -140,7 +129,7 @@ class FinishLegTest {
         aSelfDuelIsSaved()
         identity.currentIdentity = null
 
-        val answer = finishSelfLeg(code, 0, LegFinish.Solved(timeMs = 5_000, hints = 1))
+        val answer = finishLeg(code, 0, LegFinish.Solved(timeMs = 5_000, hints = 1))
 
         assertEquals(FinishResult.Queued, answer)
         assertEquals(
@@ -153,7 +142,7 @@ class FinishLegTest {
     fun aSelfDuelLegFinishedSignedInIsQueuedUnderTheSelfSeatNotTheAccount() = runTest {
         aSelfDuelIsSaved()
 
-        assertEquals(FinishResult.Queued, finishSelfLeg(code, 0, LegFinish.Solved(timeMs = 5_000, hints = 0)))
+        assertEquals(FinishResult.Queued, finishLeg(code, 0, LegFinish.Solved(timeMs = 5_000, hints = 0)))
 
         assertEquals(listOf(SelfSeats.ME), rows().map { it.result.uid })
     }
@@ -162,27 +151,24 @@ class FinishLegTest {
     fun aSelfDuelLegIsRecordedOnceAcrossSignInAndSignOut() = runTest {
         aSelfDuelIsSaved()
         identity.currentIdentity = null
-        assertEquals(FinishResult.Queued, finishSelfLeg(code, 0, LegFinish.Solved(timeMs = 5_000, hints = 0)))
+        assertEquals(FinishResult.Queued, finishLeg(code, 0, LegFinish.Solved(timeMs = 5_000, hints = 0)))
 
         identity.currentIdentity = Identity("me", "Me", null)
-        val again = finishSelfLeg(code, 0, LegFinish.GaveUp())
+        val again = finishLeg(code, 0, LegFinish.GaveUp())
 
         assertEquals(FinishResult.AlreadyRecorded, again)
         assertEquals(listOf(5_000L), rows().map { it.result.timeMs })
     }
 
     @Test
-    fun aFriendDuelTheServerHoldsIsQueuedUnderTheAccount() = runTest {
-        aFriendDuelIsOnTheServer()
-
+    fun aFriendLegQueuesAtOnceUnderTheAccountWithNoRemoteToAnswer() = runTest {
         assertEquals(FinishResult.Queued, finishLeg(code, 0, LegFinish.Solved(timeMs = 5_000, hints = 0)))
 
         assertEquals(listOf("me"), rows().map { it.result.uid })
     }
 
     @Test
-    fun aFriendDuelTheServerHoldsQueuesNothingSignedOut() = runTest {
-        aFriendDuelIsOnTheServer()
+    fun aFriendLegQueuesNothingSignedOut() = runTest {
         identity.currentIdentity = null
 
         val answer = finishLeg(code, 0, LegFinish.Solved(timeMs = 5_000, hints = 0))

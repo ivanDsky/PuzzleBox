@@ -43,6 +43,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
@@ -130,7 +131,7 @@ class MatchLegResultViewModelTest {
             ),
             writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
             completions = FakeCompletionRepository(),
-            finishLeg = FinishLeg(outbox, server, identity) { Instant.EPOCH },
+            finishLeg = FinishLeg(outbox, FakeSelfMatchRepository(), identity) { Instant.EPOCH },
             calendar = calendar,
             dispatchers = object : DispatcherProvider {
                 override val main = dispatcher
