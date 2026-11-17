@@ -33,9 +33,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Games with UnderlineTabs on (nav-rethink 125), phone and tablet, light and dark: the underline strip with the Duels
- * need-you badge over each of Dailies, Friends and Duels, and over Custom with a Custom slot. The pill goldens
- * (`LibraryTabsGoldenScreenshots`, flag off) stay as they were. Goldens in `snapshots/underline-tabs/`.
+ * Games (nav-rethink 125), phone and tablet, light and dark: the underline strip with the Duels need-you badge over
+ * each of Dailies, Friends and Duels, and over Custom with a Custom slot. Goldens in `snapshots/underline-tabs/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -95,7 +94,6 @@ abstract class LibraryUnderlineTabsGoldenScreenshots(private val layout: PlayLay
                 onEnterCode = {},
                 duels = DUELS,
                 custom = custom,
-                underlineTabs = true,
             )
         }
         rule.mainClock.advanceTimeBy(SETTLE_MS)

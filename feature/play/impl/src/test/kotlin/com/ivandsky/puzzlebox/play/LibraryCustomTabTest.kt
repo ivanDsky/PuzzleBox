@@ -206,17 +206,6 @@ class LibraryCustomTabTest {
         composeRule.onNodeWithTag(draft(0)).assertIsDisplayed()
     }
 
-    @Test
-    @Config(qualifiers = "w411dp-h400dp")
-    fun `leaving a scrolled Custom tab and coming back finds its list at the top`() {
-        showCustomScrolledDown()
-
-        tap("library.tab.dailies")
-        tap("library.tab.custom")
-
-        composeRule.onNodeWithTag(draft(0)).assertIsDisplayed()
-    }
-
     private fun showCustomScrolledDown() {
         ownRows = LONG
         setContent()

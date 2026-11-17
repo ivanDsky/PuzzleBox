@@ -46,8 +46,6 @@ import com.ivandsky.puzzlebox.app.nav.isImmersive
 import com.ivandsky.puzzlebox.app.nav.playTabBadged
 import com.ivandsky.puzzlebox.app.nav.rememberLibraryRequests
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
@@ -116,8 +114,6 @@ fun PuzzleBoxApp(
     var codeDraft by rememberSaveable { mutableStateOf<String?>(null) }
     val libraryRequests = rememberLibraryRequests()
     val tabSet = koinInject<TabSetSource>().tabSet
-    // The one reader of UnderlineTabs: Games' tabs take a Boolean (spec A2).
-    val underlineTabs = ReleaseFlag.UnderlineTabs in koinInject<ReleaseFlags>().enabled.collectAsStateWithLifecycle().value
     if (pendingLink != null) {
         remember(pendingLink) {
             FriendLink.of(pendingLink)?.let { link ->
@@ -234,7 +230,6 @@ fun PuzzleBoxApp(
                         custom = custom,
                         makeOne = makeOne,
                         libraryRequests = libraryRequests,
-                        underlineTabs = underlineTabs,
                     )
                 }
                 // The one-time "Welcome back" after an account's first restore (A33), above the chrome.

@@ -56,8 +56,7 @@ import org.koin.compose.koinInject
  * [onOpenRanks] also opens the Ranks hub from the Result's rank chip, and the marks of the play side panel's times
  * draw as chips beside the name, as the hub's boards do. A non-null [onMakeOne] adds "Make one" to each game page.
  * With a [communityTab] (the app's Community tab, [communityEntry]) Custom is not a Games pill and the friend puzzles
- * live on that tab: Games shows Dailies and Duels only. [underlineTabs] is Games' underline tabs with swipe in place of
- * the pill row.
+ * live on that tab: Games shows Dailies and Duels only.
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -72,7 +71,6 @@ fun EntryProviderScope<NavKey>.playEntry(
     onReconnectLinkedIn: (() -> Unit)? = null,
     onMakeOne: ((GameId) -> Unit)? = null,
     communityTab: Boolean = false,
-    underlineTabs: Boolean = false,
 ) {
     entry<PlayKey> {
         LibraryRoute(
@@ -90,7 +88,6 @@ fun EntryProviderScope<NavKey>.playEntry(
             onOpenRanks = onOpenRanks,
             onMakeOne = onMakeOne,
             communityTab = communityTab,
-            underlineTabs = underlineTabs,
         )
     }
     entry<FriendPuzzleKey> { key ->

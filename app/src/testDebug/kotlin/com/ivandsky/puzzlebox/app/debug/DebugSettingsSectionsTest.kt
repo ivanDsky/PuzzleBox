@@ -3,7 +3,6 @@ package com.ivandsky.puzzlebox.app.debug
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.debug.flags.DebugReleaseFlags
@@ -42,16 +41,5 @@ class DebugSettingsSectionsTest {
         ReleaseFlag.entries.forEach {
             composeRule.onNodeWithTag("debug.flag.${it.name}").assertExists()
         }
-    }
-
-    @Test
-    fun `the release flags panel has a switch for UnderlineTabs, on`() {
-        composeRule.setContent {
-            PuzzleBoxTheme { ReleaseFlagsPanel(flags = DebugReleaseFlags(LocalContext.current)) }
-        }
-
-        composeRule.onNodeWithTag("debug.flag.UnderlineTabs").assertExists()
-        composeRule.onNodeWithText("Underline tabs with swipe").assertExists()
-        composeRule.onNodeWithText("UnderlineTabs · release: on").assertExists()
     }
 }
