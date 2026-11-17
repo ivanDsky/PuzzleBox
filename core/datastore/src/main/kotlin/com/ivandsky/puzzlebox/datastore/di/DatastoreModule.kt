@@ -1,12 +1,14 @@
 package com.ivandsky.puzzlebox.datastore.di
 
 import android.content.Context
+import androidx.datastore.core.DataMigration
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.datastore.LinkedInLinkDataSource
 import com.ivandsky.puzzlebox.datastore.PuzzleBoxPreferencesDataSource
+import com.ivandsky.puzzlebox.datastore.puzzleBoxPreferencesMigrations
 import com.ivandsky.puzzlebox.datastore.SyncStateDataSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
@@ -26,14 +28,18 @@ private val SyncStateScope = named("datastore.cloud_sync_state.scope")
  * cancels the scope. The Context is resolved here, not inside the file producer, which
  * DataStore runs lazily on first collection, possibly after Koin has closed.
  */
-private fun Scope.store(scope: CoroutineScope, fileName: String): DataStore<Preferences> {
+private fun Scope.store(
+    scope: CoroutineScope,
+    fileName: String,
+    migrations: List<DataMigration<Preferences>> = emptyList(),
+): DataStore<Preferences> {
     val filesDir = get<Context>().filesDir
-    return PreferenceDataStoreFactory.create(scope = scope) { filesDir.resolve(fileName) }
+    return PreferenceDataStoreFactory.create(scope = scope, migrations = migrations) { filesDir.resolve(fileName) }
 }
 
 val datastoreModule = module {
     single(PreferencesScope) { CoroutineScope(get<DispatcherProvider>().io + SupervisorJob()) } onClose { it?.cancel() }
-    single { store(get(PreferencesScope), "puzzlebox.preferences_pb") }
+    single { store(get(PreferencesScope), "puzzlebox.preferences_pb", puzzleBoxPreferencesMigrations) }
     single { PuzzleBoxPreferencesDataSource(get()) }
     // Two DataStores must never share a file, so the LinkedIn link gets its own.
     single(LinkedInScope) { CoroutineScope(get<DispatcherProvider>().io + SupervisorJob()) } onClose { it?.cancel() }

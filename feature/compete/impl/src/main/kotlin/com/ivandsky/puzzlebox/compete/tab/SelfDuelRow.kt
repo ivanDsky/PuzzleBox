@@ -33,11 +33,11 @@ private fun DuelOutcome.verb(): String = when (this) {
 }
 
 /**
- * One My duels row for a duel against Past you: the Past you avatar wearing [initial], its name over [selfDuelSub], and no deadline pill
+ * One My duels row for a duel against Past you: the Past you avatar wearing [selfName]'s initial, its name over [selfDuelSub], and no deadline pill
  * (a self duel never expires), then a chevron (my move), a trophy and a chevron (results ready) or my score (finished).
  */
 @Composable
-internal fun SelfDuelRow(row: DuelRow, initial: String, onClick: () -> Unit, modifier: Modifier = Modifier, selected: Boolean = false) {
+internal fun SelfDuelRow(row: DuelRow, selfName: String, onClick: () -> Unit, modifier: Modifier = Modifier, selected: Boolean = false) {
     val scheme = MaterialTheme.colorScheme
     DuelRowShell(
         title = row.opponent?.name.orEmpty(),
@@ -46,7 +46,7 @@ internal fun SelfDuelRow(row: DuelRow, initial: String, onClick: () -> Unit, mod
         modifier = modifier,
         selected = selected,
         fill = if (row.kind == DuelRowKind.RevealReady) lerp(scheme.surface, scheme.primaryContainer, RESULTS_READY_BLEND) else Color.Unspecified,
-        avatar = { PastYouAvatar(initial = initial, size = AvatarSize) },
+        avatar = { PastYouAvatar(name = selfName, size = AvatarSize) },
         trailing = {
             when (val kind = row.kind) {
                 DuelRowKind.RevealReady -> {

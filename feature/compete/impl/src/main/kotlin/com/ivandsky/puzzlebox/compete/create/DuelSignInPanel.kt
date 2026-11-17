@@ -31,7 +31,7 @@ internal fun SignInPanel(state: NewDuelState, actions: NewDuelActions) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (state.selfOffered) PlayAgainstRow(state.opponent, state.initial, actions.onOpponent)
+        if (state.selfOffered) PlayAgainstRow(state.opponent, state.selfName, actions.onOpponent)
         when (signIn) {
             DuelSignIn.Offline -> SignInProblem("No connection, so sign-in didn't finish. Try again when you're online.")
             DuelSignIn.Failed -> SignInProblem("Sign-in didn't finish. Please try again.")

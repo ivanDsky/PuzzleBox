@@ -96,6 +96,7 @@ internal fun NewDuelSheet(
             shared = createdInviteText(who, puzzles.size, puzzles.distinct(), hours, code, time) to code.matchLink
         }
     }
+    LaunchedEffect(viewModel) { viewModel.refreshSolved() }
     LaunchedEffect(viewModel, challenge) { challenge?.let(viewModel::prefill) }
     val dismiss = {
         viewModel.reset()
@@ -161,7 +162,7 @@ private fun CreatePanel(state: NewDuelState, actions: NewDuelActions) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        if (state.selfOffered) PlayAgainstRow(state.opponent, state.initial, actions.onOpponent)
+        if (state.selfOffered) PlayAgainstRow(state.opponent, state.selfName, actions.onOpponent)
         when (state.opponent) {
             Opponent.Friend -> FriendCreatePanel(state, actions)
             Opponent.PastYou -> SelfCreatePanel(state, actions)

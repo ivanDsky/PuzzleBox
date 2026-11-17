@@ -225,6 +225,42 @@ class RevealLegsTest {
     }
 
     @Test
+    fun aSelfLegDecidedByHintsShowsTheHintsBasisAndTheGap() {
+        val card = hintsDecidedSelfCard()
+
+        assertEquals("You win", card.pill)
+        assertEquals("Fewer hints · 1 vs 3", card.basis)
+        assertEquals("15 s slower than your first solve", card.improvement?.text)
+        assertTrue(card.gapBesideBasis)
+    }
+
+    @Test
+    fun aTimeDecidedSelfLegKeepsTheGapAsItsOnlyLine() {
+        val card = revealPlan(selfView(LegVerdict.Win(LegBasis.Time), myRow(0, timeMs = 58_000), theirs(0, timeMs = 72_000)), { "Zip" }, { RankOrder.TimeThenHints }).cards.single()
+
+        assertEquals("14 s quicker than your first solve", card.basis)
+        assertFalse(card.gapBesideBasis)
+    }
+
+    private fun hintsDecidedSelfCard() = revealPlan(
+        selfView(LegVerdict.Win(LegBasis.Hints), myRow(0, timeMs = 95_000, hints = 1), theirs(0, timeMs = 80_000, hints = 3)),
+        nameOf = { "Strands" },
+        rankOrderOf = { RankOrder.HintsThenTime },
+    ).cards.single()
+
+    private fun selfView(verdict: LegVerdict, mine: OutboxResult, theirs: LegSeen): MatchView {
+        val base = view(listOf(legRef(0)), listOf(verdict), listOf(mine), listOf(theirs))
+        return base.copy(
+            me = SelfSeats.ME,
+            mine = base.mine.map { it.copy(result = it.result.copy(uid = SelfSeats.ME)) },
+            match = base.match.copy(
+                challenger = Player(SelfSeats.ME, "You", null),
+                opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null),
+            ),
+        )
+    }
+
+    @Test
     fun aFriendDuelHasNoGapAndNoPastYou() {
         val plan = plan(view(listOf(legRef(0)), listOf(LegVerdict.Win(LegBasis.Time)), listOf(myRow(0)), listOf(theirs(0))))
 

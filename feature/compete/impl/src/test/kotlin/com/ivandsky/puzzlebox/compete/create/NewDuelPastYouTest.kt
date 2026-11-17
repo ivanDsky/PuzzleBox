@@ -51,7 +51,7 @@ class NewDuelPastYouTest {
     @Test
     fun `signed out with Past you chosen shows no sign-in panel and Create makes the duel`() {
         var created = 0
-        show(quick().copy(initial = "Y"), actionsWith(onCreate = { created++ }))
+        show(quick().copy(selfName = "You"), actionsWith(onCreate = { created++ }))
 
         rule.onNodeWithTag("duel.opponent.self").assertIsSelected()
         rule.onNodeWithTag("duel.signIn.google").assertDoesNotExist()

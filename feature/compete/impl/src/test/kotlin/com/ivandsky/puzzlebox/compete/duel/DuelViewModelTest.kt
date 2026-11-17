@@ -32,6 +32,8 @@ import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
+import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.domain.buildSelfMatch
@@ -98,7 +100,10 @@ class DuelViewModelTest {
         server.signedInUid = player?.uid
     }
 
-    private fun viewModel(rawCode: String = code.value) = DuelViewModel(
+    private fun viewModel(
+        rawCode: String = code.value,
+        plays: SavedPlayRepository = FakeSavedPlayRepository(),
+    ) = DuelViewModel(
         code = rawCode,
         observeDuel = ObserveDuel(
             observeMatch = ObserveMatch(repo, FakeMatchResultOutbox(), local, identity, registry) { now },
@@ -110,7 +115,7 @@ class DuelViewModelTest {
         identity = identity,
         idTokens = idTokens,
         registry = registry,
-        deleteSelfDuel = DeleteSelfDuel(self, FakeMatchResultOutbox(), FakeSavedPlayRepository(), local),
+        deleteSelfDuel = DeleteSelfDuel(self, FakeMatchResultOutbox(), plays, local),
         loadLegPuzzle = LoadLegPuzzle(
             daily = FakeDailyRepository(),
             received = FakeReceivedPuzzleRepository(),
@@ -590,5 +595,22 @@ class DuelViewModelTest {
         assertFalse(self.holds(selfCode))
         assertTrue(seen.none { it === DuelUiState.NotFound })
         assertEquals(DuelUiState.Loading, vm.state.value)
+    }
+
+    @Test
+    fun aFailingDeleteDoesNotCrashPutsTheConfirmBackAndKeepsTheScreenOpen() = runTest {
+        selfDuel(ann)
+        val failing = object : SavedPlayRepository by FakeSavedPlayRepository() {
+            override suspend fun delete(slot: PlaySlot) = throw IllegalStateException("disk full")
+        }
+        val vm = started(viewModel(selfCode.value, plays = failing))
+        val closed = backgroundScope.async(UnconfinedTestDispatcher(testScheduler)) { vm.closes.first() }
+
+        vm.askRemove()
+        vm.remove()
+
+        assertFalse((vm.state.value as DuelUiState.Participant).removeAsked)
+        assertFalse(closed.isCompleted)
+        assertTrue(self.holds(selfCode))
     }
 }

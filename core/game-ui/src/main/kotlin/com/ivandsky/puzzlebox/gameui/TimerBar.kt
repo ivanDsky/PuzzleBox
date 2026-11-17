@@ -22,7 +22,6 @@ import com.ivandsky.puzzlebox.designsystem.LocalTimerFill
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.tabular
-import kotlin.math.abs
 
 /** Called each time the timer label composes; a no-op outside tests, which count the label's redraws with it. */
 internal val LocalTimerLabelComposed = staticCompositionLocalOf<() -> Unit> { {} }
@@ -59,10 +58,9 @@ fun TimerBar(
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         if (budgetMs != null && label != null) {
-            val targetSecond = budgetMs / 1000L
-            val clock = formatDuration(abs(targetSecond - shownSecond) * 1000L)
-            CrossingLabel(over = shownSecond >= targetSecond) { over ->
-                Text(text = label(over, clock), style = style, color = color)
+            val standing by remember(elapsedMs, budgetMs) { derivedStateOf { crossing(elapsedMs(), budgetMs) } }
+            CrossingLabel(over = standing.over) { over ->
+                Text(text = label(over, standing.clock), style = style, color = color)
             }
             CrossingFill(elapsedMs, budgetMs)
         } else {
@@ -99,7 +97,7 @@ private fun BudgetFill(elapsedMs: () -> Long, budgetMs: Long) {
 @Composable
 private fun CrossingFill(elapsedMs: () -> Long, budgetMs: Long) {
     val elapsed = elapsedMs()
-    val over = elapsed / 1000L >= budgetMs / 1000L
+    val over = crossing(elapsed, budgetMs).over
     FlatProgressBar(
         progress = { if (over) 1f else (elapsed.toFloat() / budgetMs.toFloat()).coerceIn(0f, 1f) },
         color = rememberCrossingFill(over),

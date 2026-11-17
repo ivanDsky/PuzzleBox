@@ -23,7 +23,7 @@ import com.ivandsky.puzzlebox.game.replay.ReplayFacts
 internal val SideHeaderHeight = 40.dp
 private val DiscSize = 28.dp
 
-/** Who a board belongs to: a [tint] disc with the initial (or the Past you avatar when [pastYouInitial] is set), the [name], and under it where that side stands. */
+/** Who a board belongs to: a [tint] disc with the initial (or the Past you avatar when [pastYouName] is set), the [name], and under it where that side stands. */
 @Composable
 internal fun ReplaySideHeader(
     name: String,
@@ -32,15 +32,15 @@ internal fun ReplaySideHeader(
     tint: Color,
     onTint: Color,
     modifier: Modifier = Modifier,
-    pastYouInitial: String? = null,
+    pastYouName: String? = null,
 ) {
     Row(
         modifier.height(SideHeaderHeight),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        if (pastYouInitial != null) {
-            PastYouAvatar(initial = pastYouInitial, size = DiscSize)
+        if (pastYouName != null) {
+            PastYouAvatar(name = pastYouName, size = DiscSize)
         } else {
             Box(Modifier.size(DiscSize).background(tint, CircleShape), contentAlignment = Alignment.Center) {
                 Text(name.take(1).uppercase(), style = MaterialTheme.typography.labelLarge, color = onTint)

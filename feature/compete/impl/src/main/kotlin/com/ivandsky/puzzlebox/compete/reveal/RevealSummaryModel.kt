@@ -44,7 +44,10 @@ internal data class PuzzleRow(
     val margin: RowMargin,
     val legIndex: Int,
     val improvement: Improvement? = null,
-)
+) {
+    /** See [RevealCard.gapBesideBasis]. */
+    val gapBesideBasis: Boolean get() = improvement != null && improvement.text != basis
+}
 
 /** Everything the summary draws and shares, from the viewer's side. */
 internal data class DuelSummary(

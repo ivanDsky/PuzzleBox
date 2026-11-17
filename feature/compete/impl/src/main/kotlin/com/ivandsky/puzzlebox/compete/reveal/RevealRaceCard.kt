@@ -107,6 +107,15 @@ internal fun RaceCard(
                 textAlign = if (wide) TextAlign.Center else TextAlign.Unspecified,
                 modifier = if (wide) Modifier.fillMaxWidth().alpha(basisAlpha) else Modifier.alpha(basisAlpha),
             )
+            card.improvement?.takeIf { card.gapBesideBasis }?.let { gap ->
+                Text(
+                    text = gap.text,
+                    style = if (wide) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
+                    color = if (wide) accent.onContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = if (wide) TextAlign.Center else TextAlign.Unspecified,
+                    modifier = (if (wide) Modifier.fillMaxWidth() else Modifier).alpha(basisAlpha).testTag("reveal.card.gap"),
+                )
+            }
         }
     }
 }

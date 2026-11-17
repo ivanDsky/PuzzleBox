@@ -26,16 +26,16 @@ internal data class Improvement(val trend: Trend, val seconds: Long) {
 
 /**
  * The gap of [mine] to your first solve [past]; null unless both sides have a time. Times are floored to whole seconds
- * first, as the duel's own margin is, so the gap agrees with the figures on screen.
+ * first by [marginSeconds], the duel's own margin, so the gap agrees with the figures on screen.
  */
 internal fun improvementOf(mine: DuelSideState, past: DuelSideState): Improvement? {
     val a = mine as? DuelSideState.Time ?: return null
     val b = past as? DuelSideState.Time ?: return null
-    val gap = b.timeMs / MS_PER_SECOND - a.timeMs / MS_PER_SECOND
+    val gap = marginSeconds(a.timeMs, b.timeMs)
     return when {
-        gap > 0 -> Improvement(Trend.Quicker, gap)
-        gap < 0 -> Improvement(Trend.Slower, -gap)
-        else -> Improvement(Trend.Same, 0)
+        gap == 0L -> Improvement(Trend.Same, 0)
+        a.timeMs < b.timeMs -> Improvement(Trend.Quicker, gap)
+        else -> Improvement(Trend.Slower, gap)
     }
 }
 

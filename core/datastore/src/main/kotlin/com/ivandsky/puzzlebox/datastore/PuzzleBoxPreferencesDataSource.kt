@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.datastore
 
+import androidx.datastore.core.DataMigration
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -105,6 +106,26 @@ class PuzzleBoxPreferencesDataSource(
         val KEY_SHOW_REPLAY_ERRORS = booleanPreferencesKey("show_replay_errors")
         val KEY_RANKS_FRIENDS_DEFAULT = booleanPreferencesKey("ranks_friends_default")
         val KEY_VIBRATION = booleanPreferencesKey("vibration")
-        val KEY_SHOW_SELF_DUEL_TIME_LEFT = booleanPreferencesKey("showSelfDuelTimeLeft")
     }
 }
+
+private val KEY_SHOW_SELF_DUEL_TIME_LEFT = booleanPreferencesKey("show_self_duel_time_left")
+private val LEGACY_KEY_SHOW_SELF_DUEL_TIME_LEFT = booleanPreferencesKey("showSelfDuelTimeLeft")
+
+/**
+ * The migrations the preferences file runs on its first read: the self-duel time-left switch moved from the camelCase
+ * key it first shipped under to the snake_case of its neighbours, keeping what the player chose (an unset switch stays unset).
+ */
+val puzzleBoxPreferencesMigrations: List<DataMigration<Preferences>> = listOf(
+    object : DataMigration<Preferences> {
+        override suspend fun shouldMigrate(currentData: Preferences) = LEGACY_KEY_SHOW_SELF_DUEL_TIME_LEFT in currentData
+
+        override suspend fun migrate(currentData: Preferences): Preferences = currentData.toMutablePreferences().apply {
+            val legacy = this[LEGACY_KEY_SHOW_SELF_DUEL_TIME_LEFT]
+            remove(LEGACY_KEY_SHOW_SELF_DUEL_TIME_LEFT)
+            if (legacy != null && KEY_SHOW_SELF_DUEL_TIME_LEFT !in this) this[KEY_SHOW_SELF_DUEL_TIME_LEFT] = legacy
+        }.toPreferences()
+
+        override suspend fun cleanUp() = Unit
+    },
+)
