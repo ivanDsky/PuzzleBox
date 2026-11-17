@@ -1,15 +1,14 @@
 package com.ivandsky.puzzlebox.play.community
 
 import com.ivandsky.puzzlebox.game.editor.Difficulty
-import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.model.GameId
 
-/** One game chip: a game that has an editor, so a puzzle of it can be made and shared. */
-internal data class GameChoice(val id: GameId, val name: String, val brand: GameBrand)
+/** One game in the filter menu: a game that has an editor, so a puzzle of it can be made and shared. */
+internal data class GameChoice(val id: GameId, val name: String)
 
 /**
- * The difficulty chips. Hard also asks for Expert: the analyser's ladder has four levels and the
- * list shows three chips. A chip narrows to [levels]; with none picked the list is every puzzle,
+ * The difficulty menu items. Hard also asks for Expert: the analyser's ladder has four levels and the
+ * menu shows three. An item narrows to [levels]; with none picked the list is every puzzle,
  * labelled or not.
  */
 internal enum class DifficultyChoice(val label: String, val levels: Set<Difficulty.Level>) {

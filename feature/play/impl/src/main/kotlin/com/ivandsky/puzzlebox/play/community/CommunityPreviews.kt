@@ -14,9 +14,9 @@ import com.ivandsky.puzzlebox.model.ShareCode
 private val Zip = GameBrand(AccentSlot.Blue, GameGlyphs.Zip)
 private val Tango = GameBrand(AccentSlot.Orange, GameGlyphs.Tango)
 
-private val Games = listOf(GameChoice(GameId("zip"), "Zip", Zip), GameChoice(GameId("tango"), "Tango", Tango))
+private val Games = listOf(GameChoice(GameId("zip"), "Zip"), GameChoice(GameId("tango"), "Tango"))
 
-private val Actions = CommunityActions(onOpen = {}, onReport = {}, onGame = {}, onDifficulty = {}, onRetry = {})
+private val Actions = CommunityActions(onOpen = {}, onReport = {}, onGame = {}, onDifficulty = {}, onClearFilters = {}, onRetry = {})
 
 private fun row(code: String, game: String, brand: GameBrand, title: String, level: String?, age: String) =
     CommunityRowModel(checkNotNull(ShareCode.parse(code)), game, brand, title, author = "Maya", difficulty = level, age = age)

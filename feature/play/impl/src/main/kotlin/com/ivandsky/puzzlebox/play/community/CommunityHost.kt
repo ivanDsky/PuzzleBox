@@ -44,6 +44,7 @@ object CommunityHost {
             onReport = viewModel::report,
             onGame = viewModel::pickGame,
             onDifficulty = viewModel::pickDifficulty,
+            onClearFilters = viewModel::clearFilters,
             onRetry = viewModel::retry,
         )
         Box(Modifier.fillMaxSize()) {
