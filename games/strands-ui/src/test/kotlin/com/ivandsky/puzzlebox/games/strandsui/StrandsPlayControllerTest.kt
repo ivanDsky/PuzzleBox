@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.BROKEN_PUZZLE_MESSAGE
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.playCaption
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.model.GameId
@@ -292,6 +293,17 @@ class StrandsPlayControllerTest {
         c.pressHint()
         assertEquals(1, lastSaved().state.hintsUsed)
         assertEquals(HintDialog.NoneAvailable, c.hintDialog)
+    }
+
+    @Test
+    fun `the hint seam reports the hints the session took, which the tablet leg panel reads`() {
+        val c = adopted()
+        assertEquals(0, (c as? PlayHints)?.hintsUsed)
+
+        listOf("PIKE", "TAKE", "RAKE").forEach { c.play(StrandsUiFixtures.nonTheme.getValue(it)) }
+        c.pressHint()
+
+        assertEquals(1, (c as? PlayHints)?.hintsUsed)
     }
 
     @Test

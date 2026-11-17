@@ -2,11 +2,14 @@ package com.ivandsky.puzzlebox.compete.reveal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.log.FailureLog
+import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.match.isSelf
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.CreateOutcome
 import com.ivandsky.puzzlebox.domain.CreateSelfDuel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +34,7 @@ internal class RematchViewModel(
     private val match: Match,
     private val createMatch: CreateMatch,
     private val createSelfDuel: CreateSelfDuel,
+    private val failures: FailureLog = LogcatFailureLog,
 ) : ViewModel() {
 
     private val working = MutableStateFlow(RematchState())
@@ -44,7 +48,14 @@ internal class RematchViewModel(
     fun send() {
         if (working.getAndUpdate { RematchState(sending = true) }.sending) return
         viewModelScope.launch {
-            val outcome = if (match.isSelf) createSelfDuel(selfRematchSettings(match)) else createMatch(rematchSettings(match), rematchOf = match)
+            val outcome = try {
+                if (match.isSelf) createSelfDuel(selfRematchSettings(match)) else createMatch(rematchSettings(match), rematchOf = match)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                failures.warn(TAG, "rematch create failed", e)
+                CreateOutcome.Failed(null)
+            }
             when (outcome) {
                 is CreateOutcome.Created -> createdDuels.send(outcome)
                 else -> working.update { RematchState(note = refusalNote(outcome)) }
@@ -66,3 +77,5 @@ private fun refusalNote(outcome: CreateOutcome): String? = when (outcome) {
     CreateOutcome.NoPuzzles -> "There are no puzzles left to draw. Try again later."
     is CreateOutcome.Failed -> outcome.message ?: "Couldn't send the invite. Try again."
 }
+
+private const val TAG = "RematchViewModel"

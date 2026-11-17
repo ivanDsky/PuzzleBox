@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.compete.duel
 
+import com.ivandsky.puzzlebox.common.log.FailureLog
+import com.ivandsky.puzzlebox.common.log.LogcatFailureLog
 import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.CancellationException
@@ -14,13 +16,15 @@ internal enum class RemovalStep { Idle, Asking, Removing }
 
 /**
  * The remove-confirm of one self duel: [ask] opens it, [keep] closes it, [remove] deletes the duel through
- * [deleteSelfDuel] and then calls [onRemoved]. A delete that fails (it is not transactional, so the duel may be left part-deleted and listed) puts the confirm back to Idle and does not call [onRemoved]; the user can remove again. A null [code] (a link
- * that reads as no duel) has nothing to remove.
+ * [deleteSelfDuel] and then calls [onRemoved]. A delete that fails is reported to [failures]; it may leave the duel
+ * part-deleted and listed (the delete is not transactional), so the confirm goes back to Idle, [onRemoved] is not
+ * called, and the user can remove again. A null [code] (a link that reads as no duel) has nothing to remove.
  */
 internal class SelfDuelRemoval(
     private val code: ShareCode?,
     private val deleteSelfDuel: DeleteSelfDuel,
     private val scope: CoroutineScope,
+    private val failures: FailureLog = LogcatFailureLog,
     private val onRemoved: suspend () -> Unit,
 ) {
     private val mutableStep = MutableStateFlow(RemovalStep.Idle)
@@ -43,7 +47,8 @@ internal class SelfDuelRemoval(
             } catch (e: CancellationException) {
                 mutableStep.value = RemovalStep.Idle
                 throw e
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                failures.warn(TAG, "self duel delete failed", e)
                 mutableStep.value = RemovalStep.Idle
                 return@launch
             }
@@ -51,3 +56,5 @@ internal class SelfDuelRemoval(
         }
     }
 }
+
+private const val TAG = "SelfDuelRemoval"

@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayFeedback
+import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.strands.Coord
@@ -50,7 +51,7 @@ class StrandsPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
     internal val hintMode: HintMode = HintMode.Legacy,
-) : GamePlayController, PlayClock, PlayFeedback {
+) : GamePlayController, PlayClock, PlayFeedback, PlayHints {
 
     var session by mutableStateOf<StrandsSession?>(null)
         private set
@@ -103,6 +104,12 @@ class StrandsPlayController(
     /** The hints the finished board took; null while it is unsolved (A36 rating word). */
     val solvedHints: Int?
         get() = session?.state?.takeIf { it.isComplete }?.hintsUsed
+
+    // The shell reads only the count (tablet leg panel); the board draws its own hint button and caption.
+    override val hintsUsed: Int get() = session?.state?.hintsUsed ?: 0
+    override val hintEnabled: Boolean get() = session?.state?.isComplete == false
+    override val hintCaption: String? get() = null
+    override fun requestHint() = pressHint()
 
     override val isComplete: Boolean get() = session?.state?.isComplete == true
 
