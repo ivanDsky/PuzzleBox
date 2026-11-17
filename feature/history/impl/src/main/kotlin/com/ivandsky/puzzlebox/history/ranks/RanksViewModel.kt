@@ -161,7 +161,12 @@ internal class RanksViewModel(
         playThisDay(board, kind, day, solved, (board as? RanksBoard.Game)?.let { daily.archiveRange(it.id) }, today)
     }.distinctUntilChanged()
 
-    private val local = combine(calendarState, observeGameStats(), yourSolve, nudge, playThisDay, ::Local)
+    /** The picked game's own stats; Overall has none, so no game's best time can stand for another's. */
+    private val stats: Flow<GameStats?> = selection.map { it.board }.distinctUntilChanged().flatMapLatest { board ->
+        if (board is RanksBoard.Game) observeGameStats(board.id) else flowOf(null)
+    }
+
+    private val local = combine(calendarState, stats, yourSolve, nudge, playThisDay, ::Local)
 
     private val slices = RanksBoardSlices(boards, window, scopedBoards::of, observeOverall, viewer, history, calendar, registry, BoardGhosts(linkedIn))
 
@@ -247,7 +252,7 @@ internal class RanksViewModel(
     /** The replays of [row]'s day only: a switch never flashes the last day's. */
     private fun DayReplays.of(row: HistoryDayRow): HistoryReplays = if (key == row.key) replays else HistoryReplays.Hidden
 
-    private data class Local(val calendar: CalendarState, val stats: GameStats, val yourSolve: YourSolve?, val nudge: Boolean, val playThisDay: PlayThisDay?)
+    private data class Local(val calendar: CalendarState, val stats: GameStats?, val yourSolve: YourSolve?, val nudge: Boolean, val playThisDay: PlayThisDay?)
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
