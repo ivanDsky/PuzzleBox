@@ -106,4 +106,47 @@ internal object LinkedInPostFixtures {
             ),
         ),
     )
+
+    val tangoWinRequest: JsonObject get() = Json.parseToJsonElement(text("tango-update-game-state-daily-win.request.json")).jsonObject
+
+    val tangoOpeningRequest: JsonObject get() = Json.parseToJsonElement(text("tango-update-game-state-daily-opening.request.json")).jsonObject
+
+    /** The Tango daily (#770) at load: yesterday's totals of 594 plays and wins, request time 0. */
+    val tangoPage = LinkedInGamePage(
+        puzzleId = 770,
+        profileId = "ACoAAFAKEPROFILE0000000000000000000000000",
+        progress = LinkedInProgress.Fresh,
+        isTutorial = false,
+        totalPlays = 594,
+        wins = 594,
+        requestTime = 0,
+    )
+
+    private fun tangoStrings(request: JsonObject, key: String): List<String>? =
+        request.getValue("states").jsonArray
+            .firstOrNull { it.jsonObject.getValue("key").jsonPrimitive.content == key }
+            ?.jsonObject?.getValue("value")?.jsonArray?.map { it.jsonPrimitive.content }
+
+    /** The post of the Tango win capture: the captured board and solve order, 34035 ms, opening at 583 ms with no solve order. */
+    fun tangoPost() = LinkedInPost(
+        gamePath = "games/tango/",
+        gameTypeId = 5,
+        puzzleNumber = 770,
+        timeMs = 34_035,
+        hintUsed = false,
+        play = LinkedInPlay(
+            states = mapOf(
+                "tangoBoardStateBinding" to LinkedInPlayValue.Strings(checkNotNull(tangoStrings(tangoWinRequest, "tangoBoardStateBinding"))),
+                "tangoSolveOrderBinding" to LinkedInPlayValue.Strings(checkNotNull(tangoStrings(tangoWinRequest, "tangoSolveOrderBinding"))),
+            ),
+            payloadKeys = mapOf("playRecord" to "tangoBoardStateBinding", "solveOrder" to "tangoSolveOrderBinding"),
+            mistakeFree = false,
+            opening = LinkedInOpening(
+                states = mapOf(
+                    "tangoBoardStateBinding" to LinkedInPlayValue.Strings(checkNotNull(tangoStrings(tangoOpeningRequest, "tangoBoardStateBinding"))),
+                ),
+                timeMs = 583,
+            ),
+        ),
+    )
 }

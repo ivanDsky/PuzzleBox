@@ -66,6 +66,31 @@ class SduiGamePageParserTest {
     }
 
     @Test
+    fun `the unsolved Tango page is Fresh with its puzzle id`() {
+        val parsed = SduiGamePageParser.parse(LinkedInPostFixtures.text("tango-page-daily-unsolved.rsc"))!!
+
+        assertEquals(770L, parsed.puzzleId)
+        assertEquals(LinkedInProgress.Fresh, parsed.progress)
+    }
+
+    @Test
+    fun `the Tango page reloaded after a partial save is Started with the plays after the save`() {
+        val parsed = SduiGamePageParser.parse(LinkedInPostFixtures.text("tango-page-daily-in-progress.rsc"))!!
+
+        assertEquals(LinkedInProgress.Started, parsed.progress)
+        assertEquals(595L, parsed.totalPlays)
+        assertEquals(594L, parsed.wins)
+    }
+
+    @Test
+    fun `a saved Tango board with no unknown cell is Won`() {
+        val saved = LinkedInPostFixtures.text("tango-page-daily-in-progress.rsc")
+        val full = saved.replace("LotkaCellValue_UNKNOWN", "LotkaCellValue_ZERO")
+
+        assertEquals(LinkedInProgress.Won, SduiGamePageParser.parse(full)!!.progress)
+    }
+
+    @Test
     fun `a page with no saved-state field is drift`() {
         assertNull(SduiGamePageParser.parse(page.replace("mostRecentGameState", "renamedState")))
     }

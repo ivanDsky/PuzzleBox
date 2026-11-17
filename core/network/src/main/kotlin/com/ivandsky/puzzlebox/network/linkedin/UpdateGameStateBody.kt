@@ -48,7 +48,8 @@ internal object UpdateGameStateBody {
 
     private fun body(post: LinkedInPost, page: LinkedInGamePage, step: Step): String {
         val states = states(step, page)
-        val keys = states.map { it.key }
+        // Every key the payload binds is requested, even one with no state yet (the Tango opening has no solve order).
+        val keys = (states.map { it.key } + post.play.payloadKeys.values).distinct()
         val stateBag = JsonArray(states.map(State::json))
         val serverRequestArguments = arguments(keys, post)
         val body = buildJsonObject {

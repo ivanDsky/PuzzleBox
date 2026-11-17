@@ -12,7 +12,7 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInProgress
  * `gameBoardHasWon` is not part of the initial state on a page LinkedIn serves; the web client sets it when
  * the board is won. Progress is read from `mostRecentGameState`: `"$undefined"` is Fresh, a saved partial
  * play is Started, a complete one is Won. For Zip (`trailGameState`) complete means the trail has as many
- * cells as the board (`gridSize` squared). A saved state of a kind not known here is Won, so nothing is sent
+ * cells as the board (`gridSize` squared). For Tango (`lotkaGameState`) any `LotkaCellValue_UNKNOWN` cell means Started, none Won. A saved state of a kind not known here is Won, so nothing is sent
  * from it. An explicit `gameBoardHasWon` true, if LinkedIn ever serves one, is Won. The completion
  * attributes are on every page, so they are no signal.
  *
@@ -47,6 +47,9 @@ internal object SduiGamePageParser {
         if (rsc.startsWith(UNDEFINED, start)) return LinkedInProgress.Fresh
         val saved = objectAt(rsc, start) ?: return null
         val case = CASE.find(saved)?.groupValues?.get(1)
+        if (case == "lotkaGameState") {
+            return if (saved.contains(UNKNOWN_CELL)) LinkedInProgress.Started else LinkedInProgress.Won
+        }
         if (case != "trailGameState") return LinkedInProgress.Won
         val cells = CELLS.findAll(saved).sumOf { cells -> cells.groupValues[1].count { it == ',' } + 1 }
         val grid = GRID_SIZE.find(rsc)?.groupValues?.get(1)?.toIntOrNull() ?: return LinkedInProgress.Won
@@ -114,4 +117,5 @@ internal object SduiGamePageParser {
     private val CASE = Regex(""""\${'$'}case":"([A-Za-z]+)"""")
     private val CELLS = Regex(""""cells":\[([0-9,]+)\]""")
     private val GRID_SIZE = Regex(""""gridSize":([0-9]+)""")
+    private const val UNKNOWN_CELL = "LotkaCellValue_UNKNOWN"
 }
