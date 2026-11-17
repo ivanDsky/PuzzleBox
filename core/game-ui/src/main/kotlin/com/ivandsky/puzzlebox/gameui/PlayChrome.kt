@@ -11,6 +11,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -116,7 +117,7 @@ fun PlayClockEffects(clock: PlayClock) {
  * route's [LocalRouteCaption]), with the route's one-time [LocalHintCostLine] as its second line. The controls are the scaffold's [AdaptivePlayScaffold]
  * actions ([PlayActionBar]); the title, timer, How to play and the overflow live in the
  * route's top bar. [clock] runs the shared clock loop here so the fold follows the game's
- * screen.
+ * screen. [captionAlign] lets a game centre the caption under its board.
  */
 @Composable
 fun PlayChrome(
@@ -124,6 +125,7 @@ fun PlayChrome(
     hints: PlayHints?,
     modifier: Modifier = Modifier,
     feedback: PlayFeedback? = null,
+    captionAlign: TextAlign = TextAlign.Start,
 ) {
     if (clock != null) PlayClockEffects(clock)
 
@@ -137,6 +139,7 @@ fun PlayChrome(
         val markSeen = LocalHintCostLine.current?.markSeen
         PlayCaptionSlot(
             caption = playCaption(feedback, hints) ?: LocalRouteCaption.current,
+            textAlign = captionAlign,
             note = hintCostNote(hints),
             onNoteShown = { markSeen?.invoke() },
         )
