@@ -120,6 +120,67 @@ class NavigationStateTest {
     }
 
     @Test
+    fun `switchTo resets the target to its root plus the key, keeps the origin stack and closes the layer`() {
+        val origin = fresh.selectTab(Play).push(Page(1)).push(Page(2)).openLayer(Page(9))
+
+        val state = origin.switchTo(Profile, Page(3))
+
+        assertEquals(Profile, state.tab)
+        assertEquals(listOf<NavKey>(Profile, Page(3)), state.currentStack)
+        assertEquals(listOf<NavKey>(Play, Page(1), Page(2)), state.stackOf(Play))
+        assertEquals(emptyList<NavKey>(), state.layer)
+        assertEquals(NavigationState.Return(Play, depth = 2), state.returnTo)
+    }
+
+    @Test
+    fun `one back from a switched tab restores the origin with its whole stack`() {
+        val origin = fresh.selectTab(Play).push(Page(1)).push(Page(2))
+
+        val back = origin.switchTo(Profile, Page(3)).pop()
+
+        assertEquals(Play, back?.tab)
+        assertEquals(origin.stackOf(Play), back?.stackOf(Play))
+        assertNull(back?.returnTo)
+        assertEquals(Play, origin.switchTo(Profile).pop()?.tab)
+    }
+
+    @Test
+    fun `back pops what was pushed after the switch before it returns`() {
+        val origin = fresh.selectTab(Play).push(Page(1))
+        val state = origin.switchTo(Profile, Page(3)).push(Page(4))
+
+        assertEquals(origin.switchTo(Profile, Page(3)), state.pop())
+    }
+
+    @Test
+    fun `a tab selected after a switch forgets the return`() {
+        val state = fresh.selectTab(Play).switchTo(Profile, Page(3))
+
+        assertNull(state.selectTab(Profile).returnTo)
+        assertNull(state.selectTab(Home).returnTo)
+        // A rail tap on the tab a link left keeps the old back: Play's root goes to the start tab.
+        assertEquals(Home, state.selectTab(Play).pop()?.tab)
+    }
+
+    @Test
+    fun `switchTo the selected tab records no return`() {
+        val state = fresh.selectTab(Play).push(Page(1)).switchTo(Play, Page(2))
+
+        assertEquals(listOf<NavKey>(Play, Page(2)), state.currentStack)
+        assertNull(state.returnTo)
+    }
+
+    @Test
+    fun `a saved return survives a round trip and reconciling drops it when its origin is gone`() {
+        val state = fresh.selectTab(Play).push(Page(1)).switchTo(Profile, Page(3))
+
+        val wire = json.encodeToString(NavigationState.serializer(), state)
+        assertEquals(state, json.decodeFromString(NavigationState.serializer(), wire))
+        assertNull(state.reconciledWith(navigationState(Home, Profile)).returnTo)
+        assertEquals(state.returnTo, state.reconciledWith(fresh).returnTo)
+    }
+
+    @Test
     fun `pop at the start root returns null`() {
         assertNull(fresh.pop())
     }

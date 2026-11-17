@@ -18,7 +18,8 @@ import kotlinx.serialization.Serializable
  * - I5: [layer] holds no tab root and no key that is on a stack.
  *
  * Keys serialize polymorphically over [NavKey]; decoding needs the app's NavKey module.
- * [layer] is defaulted, so a state saved before it existed decodes with the layer closed.
+ * [layer] and [returnTo] are defaulted, so a state saved before they existed decodes with the layer closed and no
+ * return.
  */
 @Immutable
 @Serializable
@@ -26,7 +27,15 @@ data class NavigationState(
     val tab: NavKey,
     val stacks: List<List<NavKey>>,
     val layer: List<NavKey> = emptyList(),
+    val returnTo: Return? = null,
 ) {
+
+    /**
+     * Where one Back goes from a tab a link switched to: [tab] is the origin (whose stack stays untouched) and [depth]
+     * the target stack's size when the link landed; Back at that size or lower leaves for the origin.
+     */
+    @Serializable
+    data class Return(val tab: NavKey, val depth: Int)
 
     init {
         require(stacks.isNotEmpty() && stacks.none { it.isEmpty() }) { "I1: empty stacks in $stacks" }
@@ -37,6 +46,9 @@ data class NavigationState(
             "I4: a tab root sits above index 0 in $stacks"
         }
         require(layer.none { key -> stacks.any { key in it } }) { "I5: layer $layer shares a key with $stacks" }
+        require(returnTo == null || (returnTo.tab in roots && returnTo.tab != tab)) {
+            "I6: return to ${returnTo?.tab} is not another tab of $stacks"
+        }
     }
 
     /** Tab roots in stack order. */
@@ -66,10 +78,26 @@ data class NavigationState(
     fun selectTab(tab: NavKey): NavigationState {
         stackOf(tab)
         return when {
-            layer.isNotEmpty() -> copy(tab = tab, layer = emptyList())
-            tab == this.tab -> withCurrentStack(listOf(tab))
-            else -> copy(tab = tab)
+            layer.isNotEmpty() -> copy(tab = tab, layer = emptyList(), returnTo = null)
+            tab == this.tab -> withCurrentStack(listOf(tab)).copy(returnTo = null)
+            else -> copy(tab = tab, returnTo = null)
         }
+    }
+
+    /**
+     * A link's switch: selects [target] with its stack reset to its root plus [key] when given, closes the layer, and
+     * records the current tab as where one Back returns, its stack untouched. A link from [target] itself records none.
+     */
+    fun switchTo(target: NavKey, key: NavKey? = null): NavigationState {
+        stackOf(target)
+        require(key !in tabs) { "cannot push tab root $key" }
+        val stack = listOfNotNull(target, key)
+        return copy(
+            tab = target,
+            stacks = stacks.map { if (it.first() == target) stack else it },
+            layer = emptyList(),
+            returnTo = if (target == tab) null else Return(tab, stack.size),
+        )
     }
 
     /** Pushes [key] on the current stack, closing the layer first; a tab root cannot be pushed. */
@@ -92,12 +120,14 @@ data class NavigationState(
     fun pushLayer(key: NavKey): NavigationState = if (layer.lastOrNull() == key) this else withLayer(layer + key)
 
     /**
-     * Removes the top key: the layer's while it is open, else the current stack's. At a
+     * Removes the top key: the layer's while it is open, else the current stack's. A tab a link switched to
+     * ([switchTo]) returns to the link's origin at the size it landed with, and keeps its stack. At a
      * non-start root it selects the start tab and keeps both stacks; at the start root it
      * returns null (the app exits).
      */
     fun pop(): NavigationState? = when {
         layer.isNotEmpty() -> copy(layer = layer.dropLast(1))
+        returnTo != null && currentStack.size <= returnTo.depth -> copy(tab = returnTo.tab, returnTo = null)
         currentStack.size > 1 -> withCurrentStack(currentStack.dropLast(1))
         tab != startTab -> copy(tab = startTab)
         else -> null
@@ -124,6 +154,7 @@ data class NavigationState(
         tab = if (tab in fresh.tabs) tab else fresh.startTab,
         stacks = fresh.tabs.map { root -> stacks.firstOrNull { it.first() == root } ?: listOf(root) },
         layer = if (layer.any { it in fresh.tabs }) emptyList() else layer,
+        returnTo = returnTo?.takeIf { tab in fresh.tabs && it.tab in fresh.tabs },
     )
 
     /**

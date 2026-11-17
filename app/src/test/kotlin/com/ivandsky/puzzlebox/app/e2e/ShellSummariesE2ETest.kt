@@ -5,6 +5,7 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -25,6 +26,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import java.time.Instant
@@ -38,7 +40,8 @@ import org.robolectric.annotation.Config
 /**
  * The one-line summaries on the real shell (SC2, SC7), on a phone's bar and a tablet's
  * rail: each opens its owner tab at its root and shows the owner's block, and Back from that
- * root returns to Today. The sweep pins one owner per block: off its owner no screen draws the
+ * root returns to the screen the row was tapped on (Today). The sweep pins one owner per block: off its owner no
+ * screen draws the
  * game page's board (`leaderboard.*`) or History's stats (`history.stats*`), and no screen
  * shows more than one `summary.<type>` row of a type.
  */
@@ -79,7 +82,10 @@ class ShellSummariesE2ETest {
         assertRoute(RANKS)
         back()
         assertRoute(HOME)
-        assertState(tabAt(HomeKey))
+        // Ranks stays as the link left it; Today is back with its stack untouched.
+        assertEquals(HomeKey, state.tab)
+        assertEquals(null, state.returnTo)
+        assertEquals(listOf<NavKey>(HomeKey), state.currentStack)
     }
 
     private fun duels() = shellRobot(graph = shellGraph()) {
@@ -90,7 +96,7 @@ class ShellSummariesE2ETest {
         awaitTag("duels.tab")
         rule.onNodeWithTag("library.tab.duels").assertIsSelected()
         assertRoute(LIBRARY)
-        assertState(tabAt(PlayKey))
+        assertState(tabAt(PlayKey).copy(returnTo = NavigationState.Return(HomeKey, depth = 1)))
         back()
         assertRoute(HOME)
         assertState(tabAt(HomeKey))
