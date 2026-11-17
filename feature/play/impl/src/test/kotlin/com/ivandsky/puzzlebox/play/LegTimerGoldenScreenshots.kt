@@ -124,7 +124,7 @@ abstract class LegTimerGoldenScreenshots(private val device: String, private val
 }
 
 /** The stand-in game drawn the way the real games draw: in the adaptive scaffold, the chrome's caption slot beside the board. */
-private class ScaffoldedUi(private val fake: FakePlayUi) : GamePlayUi by fake {
+internal class ScaffoldedUi(private val fake: FakePlayUi) : GamePlayUi by fake {
     @Composable
     override fun Screen(
         controller: GamePlayController,

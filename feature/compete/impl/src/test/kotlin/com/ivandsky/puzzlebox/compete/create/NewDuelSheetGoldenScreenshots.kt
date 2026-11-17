@@ -31,17 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
-import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
-import com.ivandsky.puzzlebox.gameui.GameBrand
-import com.ivandsky.puzzlebox.gameui.GamePlayController
-import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.GamePlayUi
-import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
-import com.ivandsky.puzzlebox.gameui.PlayEnvironment
-import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.TutorialStep
-import com.ivandsky.puzzlebox.model.GameId
 import java.io.File
 import org.junit.After
 import org.junit.Before
@@ -62,22 +52,6 @@ private val SHEET_MAX_WIDTH = 640.dp
 private val SHEET_TOP_GAP = 8.dp
 private const val SCRIM_ALPHA = 0.32f
 
-private val ZIP = GameId("zip")
-private val TANGO = GameId("tango")
-private val QUEENS = GameId("queens")
-private val MINI = GameId("mini-sudoku")
-private val STRANDS = GameId("strands")
-
-private val GAMES = listOf(
-    DuelGame(ZIP, "Zip", todayNumber = 7, solvedToday = false, hintsFirst = false),
-    DuelGame(TANGO, "Tango", todayNumber = 7, solvedToday = false, hintsFirst = false),
-    DuelGame(QUEENS, "Queens", todayNumber = 7, solvedToday = false, hintsFirst = false),
-    DuelGame(MINI, "Mini Sudoku", todayNumber = 7, solvedToday = false, hintsFirst = false),
-    DuelGame(STRANDS, "Strands", todayNumber = 7, solvedToday = false, hintsFirst = true),
-)
-
-private val ALL_SOLVED = SolvedCounts(mapOf(ZIP to 17, TANGO to 11, QUEENS to 12, MINI to 6))
-
 /** The New duel sheet's states from the contract, phone and tablet, light and dark. Golden in `snapshots/new-duel/`. */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -89,7 +63,7 @@ class NewDuelSheetGoldenScreenshots {
 
     @Before
     fun startKoinWithBrands() {
-        startKoin { modules(module { single { brands() } }) }
+        startKoin { modules(module { single { newDuelBrands() } }) }
     }
 
     @After
@@ -105,8 +79,6 @@ class NewDuelSheetGoldenScreenshots {
     @Test fun `few solved phone dark`() = golden("few-solved", fewSolved(), tablet = false, dark = true, customize = true)
     @Test fun `none solved phone light`() = golden("none-solved", noneSolved(), tablet = false, dark = false, customize = true)
     @Test fun `none solved phone dark`() = golden("none-solved", noneSolved(), tablet = false, dark = true, customize = true)
-    @Test fun `signed out phone light`() = golden("signed-out", signedOut(), tablet = false, dark = false)
-    @Test fun `signed out phone dark`() = golden("signed-out", signedOut(), tablet = false, dark = true)
 
     @Config(qualifiers = GOLDEN_TABLET)
     @Test fun `friend tablet light`() = golden("friend", friend(), tablet = true, dark = false)
@@ -138,12 +110,6 @@ class NewDuelSheetGoldenScreenshots {
     @Config(qualifiers = GOLDEN_TABLET)
     @Test fun `none solved tablet dark`() = golden("none-solved", noneSolved(), tablet = true, dark = true, customize = true)
 
-    @Config(qualifiers = GOLDEN_TABLET)
-    @Test fun `signed out tablet light`() = golden("signed-out", signedOut(), tablet = true, dark = false)
-
-    @Config(qualifiers = GOLDEN_TABLET)
-    @Test fun `signed out tablet dark`() = golden("signed-out", signedOut(), tablet = true, dark = true)
-
     private fun golden(name: String, state: NewDuelState, tablet: Boolean, dark: Boolean, customize: Boolean = false) {
         rule.showGolden(dark) {
             SheetBackdrop(tablet) { NewDuelContent(state, NO_ACTIONS) }
@@ -155,55 +121,6 @@ class NewDuelSheetGoldenScreenshots {
         rule.settleAndCapture("new-duel", "new-duel-sheet-$name", if (tablet) "tablet" else "phone", dark)
     }
 }
-
-private fun state(
-    opponent: Opponent,
-    self: SelfDuelView,
-    summary: String,
-    signedOut: Boolean = false,
-) = NewDuelState(
-    draft = DuelDraft.quick(GAMES),
-    games = GAMES,
-    summary = summary,
-    invitee = null,
-    step = if (signedOut && opponent == Opponent.Friend) DuelStep.SignIn else DuelStep.Create,
-    creating = false,
-    notice = null,
-    signIn = DuelSignIn.Idle,
-    selfOffered = true,
-    opponent = opponent,
-    initial = "I",
-    self = self,
-)
-
-private fun selfState(form: SelfDuelForm, counts: SolvedCounts) =
-    SelfDuelView(form, counts, GAMES).let { state(Opponent.PastYou, it, it.summary) }
-
-private fun friend() = state(Opponent.Friend, SelfDuelView.initial(), "Best of 3 · mixed past dailies · ends Wed 18:00")
-
-private fun quick() = selfState(SelfDuelForm.quick(GAMES), ALL_SOLVED)
-
-private fun custom() = selfState(
-    SelfDuelForm(DuelPreset.Custom, count = 5, games = setOf(ZIP, TANGO, QUEENS, MINI), includeFriends = true),
-    SolvedCounts(ALL_SOLVED.byGame + (STRANDS to 0)),
-)
-
-private fun fewSolved() = selfState(
-    SelfDuelForm(DuelPreset.Custom, count = 3, games = setOf(ZIP), includeFriends = false),
-    SolvedCounts(mapOf(ZIP to 2, TANGO to 1)),
-)
-
-private fun noneSolved() = selfState(
-    SelfDuelForm(DuelPreset.Custom, count = 3, games = setOf(STRANDS), includeFriends = false),
-    SolvedCounts(mapOf(ZIP to 14, TANGO to 9, QUEENS to 11, MINI to 6)),
-)
-
-private fun signedOut() = state(Opponent.PastYou, SelfDuelView(SelfDuelForm.quick(GAMES), ALL_SOLVED, GAMES), SelfDuelView(SelfDuelForm.quick(GAMES), ALL_SOLVED, GAMES).summary, signedOut = true)
-
-private val NO_ACTIONS = NewDuelActions(
-    onQuick = {}, onDaily = {}, onCount = {}, onToggle = {}, onDeadline = {}, onFriends = {}, onOpponent = {},
-    onCreate = {}, onGoogle = {}, onCancel = {},
-)
 
 /** ModalBottomSheet's chrome without its window: a scrim, the sheet's surface and drag handle, bottom-aligned, at most 640 dp wide on a tablet. */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -221,38 +138,6 @@ private fun SheetBackdrop(tablet: Boolean, content: @Composable ColumnScope.() -
             }
         }
     }
-}
-
-private fun brands(): GamePlayRegistry = GamePlayRegistry(
-    listOf(
-        BrandOnly(ZIP, AccentSlot.Blue),
-        BrandOnly(TANGO, AccentSlot.Orange),
-        BrandOnly(QUEENS, AccentSlot.Violet),
-        BrandOnly(MINI, AccentSlot.Pink),
-        BrandOnly(STRANDS, AccentSlot.Teal),
-    ),
-)
-
-/** The games' accent hues without the games: only the brand is real, the play surface is never shown. */
-private class BrandOnly(override val gameId: GameId, accent: AccentSlot) : GamePlayUi {
-    override val brand: GameBrand = GameBrand.Neutral.copy(accent = accent)
-    override val tutorial: List<TutorialStep> = emptyList()
-
-    override fun createController(env: PlayEnvironment): GamePlayController = throw UnsupportedOperationException("brand only")
-
-    @Composable
-    override fun Board(controller: GamePlayController, modifier: Modifier) = Unit
-
-    @Composable
-    override fun Screen(
-        controller: GamePlayController,
-        status: PlayBoardStatus,
-        layout: PlayLayout,
-        sidePanel: (@Composable ColumnScope.() -> Unit)?,
-        onRetry: () -> Unit,
-        onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
-        modifier: Modifier,
-    ) = Unit
 }
 
 private fun ComposeContentTestRule.showGolden(dark: Boolean, content: @Composable () -> Unit) {

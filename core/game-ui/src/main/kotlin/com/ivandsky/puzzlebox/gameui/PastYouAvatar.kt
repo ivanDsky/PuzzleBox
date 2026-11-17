@@ -1,4 +1,4 @@
-package com.ivandsky.puzzlebox.compete.common
+package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -24,7 +24,6 @@ import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 
 // Past you's avatar: the opponent's initial in the Them pair, with the history mark on its
 // lower right. The mark is a counter-clockwise arrow around a clock face, on the 24 grid.

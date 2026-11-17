@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.game.GameRegistry
@@ -58,7 +59,7 @@ internal class ReplayCompareViewModel(
     /** The game's replay board; null for a game that has none, which the page shows as no replay. */
     val board: GameReplayBoard? = ui[gameId]?.replayBoard
 
-    val names = CompareNames(key.myName, key.theirName)
+    val names = CompareNames(key.myName, key.theirName, theirsPast = key.theirName == SelfSeats.PAST_NAME)
 
     /** The verdict the lead line ends on, as the surface that opened the page said it. */
     val finalLead: Lead? = when (key.lead) {
