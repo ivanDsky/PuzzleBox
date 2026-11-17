@@ -168,12 +168,6 @@ object MotionTokens {
     // not an animation, so it holds under reduced motion too.
     const val SolveHoldMillis = 900L
 
-    // SolveCelebration: the stamp overlay on Result lasts CelebrationMillis, or the longer
-    // CelebrationMomentMillis when a moment is signalled; a tap ends it at once. Pauses, so
-    // they hold under reduced motion too.
-    const val CelebrationMillis = 1000L
-    const val CelebrationMomentMillis = 2000L
-
     // Reject: a refused move jolts the cell on a medium-bouncy spring, and the rejection
     // highlight clears after RejectHoldMillis. Reduced: the highlight without the jolt.
     const val RejectSpringDamping = Spring.DampingRatioMediumBouncy

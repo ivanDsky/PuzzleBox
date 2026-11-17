@@ -22,7 +22,7 @@ import org.robolectric.util.ReflectionHelpers
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
-class SolveCelebrationHapticsTest {
+class SolveHapticTest {
 
     private val app = RuntimeEnvironment.getApplication()
     private val view = View(app)

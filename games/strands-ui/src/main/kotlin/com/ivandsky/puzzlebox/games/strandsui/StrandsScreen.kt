@@ -38,6 +38,8 @@ import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayChrome
 import com.ivandsky.puzzlebox.gameui.PlayLayout
+import com.ivandsky.puzzlebox.gameui.SolveRestTapLayer
+import com.ivandsky.puzzlebox.gameui.rememberSolveRest
 import com.ivandsky.puzzlebox.gameui.singlePaneDeviceClass
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.games.strands.StrandsRating
@@ -73,9 +75,14 @@ internal fun StrandsPlayScreen(
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val rest = rememberSolveRest()
+    // Seen open in this composition: only a solve the player just made rests; a restored solved board hands off at once.
+    var seenOpen by remember { mutableStateOf(false) }
     // Keyed on completion, so a play-again's next win hands off again.
     LaunchedEffect(controller.isComplete) {
+        if (!controller.isComplete) seenOpen = true
         val solved = controller.session?.takeIf { it.state.isComplete } ?: return@LaunchedEffect
+        if (seenOpen) rest.begin(this).await()
         onSolved(solved.elapsedMs, solved.state.hintsUsed)
     }
     val reduceMotion = rememberReducedMotion()
@@ -125,6 +132,7 @@ internal fun StrandsPlayScreen(
                 sidePanel = sidePanel,
             )
         }
+        SolveRestTapLayer(rest, Modifier.matchParentSize())
     }
     controller.hintDialog?.let { dialog -> HintModal(dialog, controller::dismissHintDialog) }
 }

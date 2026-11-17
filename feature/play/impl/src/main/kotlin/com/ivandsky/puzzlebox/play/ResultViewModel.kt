@@ -46,7 +46,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -109,8 +108,7 @@ data class ResultUiState(
  *
  * With Result moments on ([releaseFlags]), today's solve asks [nextThing] once for its moments, next thing and
  * Challenge friend ([nextFacts], see [resultNextFacts]) and [primary] is that next thing; off, [nextThing] is never
- * built and everything above holds as written. [celebrating] is true for the one Result its board handed the solve to
- * ([CelebrationOnResult]).
+ * built and everything above holds as written.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ResultViewModel internal constructor(
@@ -132,7 +130,6 @@ class ResultViewModel internal constructor(
     observePost: ObserveLinkedInPost? = null,
     submitPost: SubmitLinkedInResult? = null,
     nextThing: Lazy<ObserveResultNextThing>? = null,
-    celebration: CelebrationOnResult? = null,
 ) : ViewModel() {
     private val slot = PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))
     private val solve = ActivePlay.Solve(key.timeMs, key.hintsUsed)
@@ -206,19 +203,6 @@ class ResultViewModel internal constructor(
         !today -> MutableStateFlow(ResultPrimaryAction.Done)
         moments != null -> nextFacts.map { it.primary }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
         else -> nextUnsolved.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
-    }
-
-    /** True when this page opened under the solve celebration: it composes finished, with no entrance to play. */
-    internal val celebrated: Boolean = celebration?.take(slot, solve) == true
-
-    private val _celebrating = MutableStateFlow(celebrated)
-
-    /** True while the solve celebration plays over the page: only for a solve its board just handed off. */
-    internal val celebrating: StateFlow<Boolean> = _celebrating.asStateFlow()
-
-    /** The celebration ended, by its timer or a tap. */
-    internal fun celebrationDone() {
-        _celebrating.value = false
     }
 
     /** True for a past day's result: a play again counts nothing. */

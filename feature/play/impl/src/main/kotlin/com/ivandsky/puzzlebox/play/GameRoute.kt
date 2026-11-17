@@ -34,8 +34,7 @@ import org.koin.core.parameter.parametersOf
  * The bar's Up stays, so back leaves the game from a tutorial too. [boardStyle] is the side panel's
  * times' (see [PlayTimesCard]).
  *
- * The solve's hand-off goes through [CelebrationOnResultHandOff]: when the celebration is bound on, it plays over
- * Result instead of on this board.
+ * The board runs under [SolveRestHost]: with Result moments on, a solve rests on this board before Result.
  */
 @Composable
 internal fun GameRoute(
@@ -50,7 +49,7 @@ internal fun GameRoute(
     val viewModel: GameViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) })
     val pastDay by viewModel.pastDay.collectAsStateWithLifecycle()
     val tutorial by viewModel.tutorial.collectAsStateWithLifecycle()
-    CelebrationOnResultHandOff(onSolved) { handOff ->
+    SolveRestHost {
         GameBoard(
             play = viewModel.play,
             pastDay = pastDay,
@@ -60,7 +59,7 @@ internal fun GameRoute(
             onTutorialFinished = viewModel::closeTutorial,
             layout = layout,
             onBack = onBack,
-            onSolved = handOff,
+            onSolved = onSolved,
             overflow = emptyList(),
             linkedIn = linkedIn,
             modifier = modifier,
