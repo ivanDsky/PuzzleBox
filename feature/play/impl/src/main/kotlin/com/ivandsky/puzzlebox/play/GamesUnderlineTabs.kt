@@ -27,9 +27,9 @@ import kotlinx.coroutines.launch
  * request for another moves the pager, and each page the pager settles on is reported through [onTab].
  *
  * Every tab owns its scroll ([scrolls]), so a swipe away
- * and back finds it where it was, and a tap on the current tab glides that tab to its top. On the tablet the pager is
- * [OutlineRoom] wider on each side so the selected row's outline is not cut at the pane's edge, and clips the shifted
- * page at the column's gutters rather than at the list's edge.
+ * and back finds it where it was, and a tap on the current tab glides that tab to its top. On the tablet the bodies
+ * keep [OutlineRoom] at each side so the selected row's outline stays inside the list's edges, and the pager clips the
+ * shifted page at the column's gutters rather than at the list's edge.
  */
 @Composable
 internal fun UnderlineTabbedList(
@@ -50,34 +50,37 @@ internal fun UnderlineTabbedList(
     val shown = tab.ordinal
     val needYou = duels.needYou()
     val strip = tabs.map { it.underlineTab(needYou) }
-    val bodyRoom = if (phone) 0.dp else OutlineRoom
     Column(modifier.testTag("library.list"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         header()
         UnderlineTabPager(
             tabs = strip,
             onReselect = { index -> scope.launch { scrolls.toTop(tabs[index]) } },
-            modifier = Modifier.weight(1f).fillMaxWidth().widenBy(bodyRoom),
-            clipBleed = if (phone) 0.dp else Spacing.xl - OutlineRoom,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            clipBleed = if (phone) 0.dp else Spacing.xl,
             initialPage = shown,
             selectedPage = shown,
             onPageSettled = { onTab(tabs[it]) },
         ) { page ->
             when (tabs[page]) {
-                // The scroll container clips at its top and bottom edges, so on the tablet it keeps [OutlineRoom] free
-                // above the first card and below the last one for the selected card's outline.
+                // The scroll container clips at its top and bottom edges, so on the tablet it keeps room above the
+                // first card (a card gap, wider than the outline) and [OutlineRoom] below the last one, and
+                // [OutlineRoom] at each side so the selected card's outline stays inside the list's edges.
                 GamesTab.Dailies -> Column(
                     Modifier
                         .fillMaxSize()
                         .verticalScroll(scrolls.dailies)
                         .padding(horizontal = if (phone) Spacing.lg else OutlineRoom)
-                        .padding(top = if (phone) 0.dp else OutlineRoom, bottom = if (phone) Spacing.xl else OutlineRoom),
+                        .padding(top = if (phone) 0.dp else Spacing.md, bottom = if (phone) Spacing.xl else OutlineRoom),
                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                 ) {
                     if (phone && state.offline) OfflinePill()
                     DailyRows(state, phone, onRow)
                 }
                 GamesTab.Duels -> Box(
-                    Modifier.fillMaxSize().padding(horizontal = if (phone) Spacing.lg else OutlineRoom),
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = if (phone) Spacing.lg else OutlineRoom)
+                        .padding(top = if (phone) 0.dp else Spacing.sm),
                 ) { duels.content(scrolls.duels, duelPrefill, onDuelPrefillTaken) }
             }
         }

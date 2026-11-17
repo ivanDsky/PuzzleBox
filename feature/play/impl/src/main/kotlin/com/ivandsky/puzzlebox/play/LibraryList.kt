@@ -18,11 +18,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.offset
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -117,11 +114,4 @@ internal fun DailyRows(state: LibraryUiState, phone: Boolean, onRow: (GameId) ->
             )
         }
     }
-}
-
-/** Measures the node [room] wider on each side and places it [room] left, keeping its parent's width. */
-internal fun Modifier.widenBy(room: Dp): Modifier = layout { measurable, constraints ->
-    val r = room.roundToPx()
-    val placeable = measurable.measure(constraints.offset(horizontal = 2 * r))
-    layout((placeable.width - 2 * r).coerceAtLeast(0), placeable.height) { placeable.place(-r, 0) }
 }
