@@ -311,4 +311,15 @@ class DuelsTabViewModelTest {
         assertFalse(off.state.value.duelYourself)
         assertTrue(on.state.value.duelYourself)
     }
+
+    @Test
+    fun `Past you wears the viewer's initial, Y when signed out`() = runTest {
+        viewAs(Player("maria", "Maria", null))
+        val named = started(viewModel())
+        assertEquals("M", named.state.value.selfInitial)
+
+        viewAs(null)
+        val anonymous = started(viewModel())
+        assertEquals("Y", anonymous.state.value.selfInitial)
+    }
 }

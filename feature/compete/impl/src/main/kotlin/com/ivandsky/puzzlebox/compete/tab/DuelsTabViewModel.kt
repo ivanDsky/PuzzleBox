@@ -36,6 +36,8 @@ internal data class DuelsTabState(
     val signedIn: Boolean,
     /** The Virtual duel entry is on: the signed-out challenge card also offers a duel against Past you. */
     val duelYourself: Boolean = false,
+    /** The letter on Past you's avatar: the viewer's own initial, "Y" while signed out or unnamed. */
+    val selfInitial: String = SELF_INITIAL_FALLBACK,
     val now: Instant,
     /** The signed-in player's name, for the invite text; null while signed out. */
     val inviter: String?,
@@ -51,6 +53,10 @@ internal data class DuelsTabState(
 internal enum class InviteNote { AlreadyTaken, Cancelled, Closed, AcceptFailed, DeclineFailed }
 
 private data class RowCalls(val inFlight: Set<ShareCode> = emptySet(), val notes: Map<ShareCode, InviteNote> = emptyMap())
+
+private const val SELF_INITIAL_FALLBACK = "Y"
+
+private fun initialOf(name: String?): String = name?.trim()?.firstOrNull()?.uppercase() ?: SELF_INITIAL_FALLBACK
 
 private const val NOW_REFRESH_MS = 60_000L
 private const val STOP_TIMEOUT_MS = 5_000L
@@ -95,6 +101,7 @@ internal class DuelsTabViewModel(
             rows = duels.rows,
             signedIn = who != null,
             duelYourself = yourself,
+            selfInitial = initialOf(who?.displayName),
             now = now,
             inviter = who?.displayName,
             inFlight = pending.inFlight,
@@ -109,6 +116,7 @@ internal class DuelsTabViewModel(
                 rows = emptyList(),
                 signedIn = identity.current.value != null,
                 duelYourself = ReleaseFlag.VirtualDuel in releaseFlags.enabled.value,
+                selfInitial = initialOf(identity.current.value?.displayName),
                 now = clock(),
                 inviter = identity.current.value?.displayName,
             ),

@@ -78,6 +78,7 @@ fun DuelsTab(
         rows = state.value.rows,
         signedIn = state.value.signedIn,
         duelYourself = state.value.duelYourself,
+        selfInitial = state.value.selfInitial,
         inviter = state.value.inviter,
         // Read only inside each row's time-left text, so the minute tick redraws that text and nothing else.
         now = { state.value.now },
@@ -114,6 +115,7 @@ internal fun DuelsTabContent(
     rows: List<DuelRow>,
     signedIn: Boolean,
     duelYourself: Boolean = false,
+    selfInitial: String = "Y",
     inviter: String?,
     now: () -> Instant,
     onNewDuel: () -> Unit,
@@ -149,11 +151,11 @@ internal fun DuelsTabContent(
                     DuelRowKind.Unclaimed -> UnclaimedRow(row, inviter, now, onClick = open, selected = isSelected)
                     DuelRowKind.RevealReady, is DuelRowKind.Finished -> {
                         val reveal = { onOpenReveal(DuelRevealKey(row.code.value)) }
-                        if (row.isSelf) SelfDuelRow(row, onClick = reveal, selected = isSelected)
+                        if (row.isSelf) SelfDuelRow(row, selfInitial, onClick = reveal, selected = isSelected)
                         else DuelCard(row, now, onClick = reveal, selected = isSelected)
                     }
                     DuelRowKind.YourMove, DuelRowKind.Waiting ->
-                        if (row.isSelf) SelfDuelRow(row, onClick = open, selected = isSelected)
+                        if (row.isSelf) SelfDuelRow(row, selfInitial, onClick = open, selected = isSelected)
                         else DuelCard(row, now, onClick = open, selected = isSelected)
                 }
             }
