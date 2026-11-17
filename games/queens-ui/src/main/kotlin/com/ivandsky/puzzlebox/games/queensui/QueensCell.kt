@@ -54,6 +54,7 @@ internal fun QueensCell(
     val error = MaterialTheme.colorScheme.error
     val reducedMotion = LocalQueensReducedMotion.current
     val motion = LocalQueensMotion.current
+    val autoCrossAlpha = if (dark) QueensBoardDefaults.autoCrossAlphaDark else 1f
     val washPeak = if (dark) QueensMotion.WASH_PEAK_DARK else QueensMotion.WASH_PEAK_LIGHT
     val visual = model.visuals[idx]
     var shown by remember { mutableStateOf(visual) }
@@ -156,7 +157,7 @@ internal fun QueensCell(
                     QueensBoardDefaults.crossLengthFraction,
                     scale = (if (grows) QueensMotion.STAGGER_FROM + (1f - QueensMotion.STAGGER_FROM) * p else 1f) *
                         QueensMotion.solveCrossScale(cross),
-                    alpha = p * cross,
+                    alpha = p * cross * autoCrossAlpha,
                 )
                 QueensCellVisual.QUEEN -> {
                     val scale = motion?.scaleOf(idx) ?: 1f

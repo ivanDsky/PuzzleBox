@@ -17,6 +17,10 @@ object QueensBoardDefaults {
     val crossWeight: Dp = 2.5.dp
     const val crossLengthFraction: Float = 0.30f
 
+    // A 9x9 board holds up to ~72 auto crosses, and in dark they match a queen's ink: dim them to this
+    // share so placed queens and manual crosses read first.
+    const val autoCrossAlphaDark: Float = 0.45f
+
     // §3.4 Queen crown: 55% of the cell — the dominant glyph.
     const val queenHeightFraction: Float = 0.55f
 

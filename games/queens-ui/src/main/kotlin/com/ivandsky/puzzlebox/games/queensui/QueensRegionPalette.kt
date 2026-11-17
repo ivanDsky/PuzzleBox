@@ -15,10 +15,9 @@ import androidx.compose.ui.unit.dp
  *    spatial memory (region 3 is the same color tomorrow) holds.
  * 2. Candy ramps (spec A13, page 06 variant D): saturated mid-tones generated in OKLCH
  *    with parity alternation — LIGHT even ids at L 0.80 / C 0.13, odd ids at L 0.88 /
- *    C 0.105; DARK even ids at L 0.36 / C 0.095, odd ids at L 0.44 / C 0.085 — each
- *    chroma clipped to the sRGB gamut. Odd ids always sit lighter than even ids, so any
- *    even/odd neighbour pair differs in lightness as well as hue; same-parity
- *    neighbours differ by hue alone.
+ *    C 0.105, each chroma clipped to the sRGB gamut; odd ids always sit lighter than even
+ *    ids, so any even/odd neighbour pair differs in lightness as well as hue. DARK has no
+ *    parity: its fills are tuned so every pair of the 10 differs by CIEDE2000 >= 14.
  * 3. On-ink computation (`onInkFor`): evaluated once per board render at fill-resolution
  *    time against the ACTIVE scheme's candidates — the scheme `onSurface` ink vs the
  *    `scrim`/`surface` constant — picking the HIGHER-contrast candidate. Floors (§9):
@@ -59,18 +58,20 @@ object QueensRegionPalette {
         Color(0xFFFFC3E3), // 9 magenta
     )
 
-    // Dark: even ids OKLCH L 0.36 (CIE L* 25–27), odd ids L 0.44 (L* 34–36).
+    // Dark: CIE L* 20-36 across four bands, chroma 22-36, hue held near each name, searched for the largest
+    // smallest pairwise CIEDE2000 (14.4; the old ramp bottomed at 10.2). L* <= 36 keeps the light on-ink
+    // >= 4.5:1 and the editor's clash wash >= 3:1 on every fill.
     private val dark = listOf(
-        Color(0xFF662520), // 0 red
-        Color(0xFF76441F), // 1 orange
-        Color(0xFF4C3B01), // 2 amber
-        Color(0xFF325F34), // 3 green
-        Color(0xFF014841), // 4 teal
-        Color(0xFF025D6D), // 5 cyan
-        Color(0xFF153D6D), // 6 blue
-        Color(0xFF4A4C80), // 7 indigo
-        Color(0xFF492E64), // 8 violet
-        Color(0xFF733E5D), // 9 magenta
+        Color(0xFF622819), // 0 red
+        Color(0xFF6C4F35), // 1 orange
+        Color(0xFF49490B), // 2 amber
+        Color(0xFF0E3813), // 3 green
+        Color(0xFF105C4C), // 4 teal
+        Color(0xFF0D5B6A), // 5 cyan
+        Color(0xFF084B7A), // 6 blue
+        Color(0xFF2A2E4F), // 7 indigo
+        Color(0xFF6A447A), // 8 violet
+        Color(0xFF773048), // 9 magenta
     )
 
     /** Region fill for [region] id in [dark] mode. */
