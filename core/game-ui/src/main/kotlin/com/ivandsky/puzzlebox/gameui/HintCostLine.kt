@@ -7,7 +7,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 
@@ -40,7 +39,8 @@ internal fun hintCostNote(hints: PlayHints?): String? {
     val used = hints?.hintsUsed ?: 0
     val enabled = hints?.hintEnabled == true
     var baseline by remember(hints) { mutableIntStateOf(NONE) }
-    var armedInputs by rememberSaveable { mutableIntStateOf(NONE) }
+    // Not saveable: a restored process counts inputs from 0 again, so a saved mark could re-arm the line.
+    var armedInputs by remember { mutableIntStateOf(NONE) }
     val applying = offered != null && baseline != NONE && used > baseline
     LaunchedEffect(used, enabled) {
         val now = offered

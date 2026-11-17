@@ -14,6 +14,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithTag
@@ -161,6 +162,28 @@ class HintCostLineTest {
         hints.applyHint("a real hint") // the first hint the player applies still shows it
         composeRule.waitForIdle()
         shown(HINT_COST_TEXT)
+        assertEquals(1, marks)
+    }
+
+    @Test
+    fun `a restore after the line was seen never shows it again when the input count restarts`() {
+        val restoration = StateRestorationTester(composeRule)
+        restoration.setContent {
+            val line = HintCostLine(seen = { seen }, inputs = { inputs }, markSeen = { marks++; seen = true })
+            CompositionLocalProvider(LocalPlayFeel provides true, LocalHintCostLine provides line) {
+                PuzzleBoxTheme(darkTheme = false) {
+                    Column(Modifier.requiredSize(width = 360.dp, height = 400.dp)) { PlayChrome(clock = null, hints = hints) }
+                }
+            }
+        }
+        composeRule.waitForIdle()
+        hints.applyHint(null) // armed at input 0, then the process dies with the line seen and the player idle
+        composeRule.waitForIdle()
+        shown(HINT_COST_TEXT)
+
+        restoration.emulateSavedInstanceStateRestore()
+        composeRule.waitForIdle()
+        gone(HINT_COST_TEXT) // the seen flag is persisted, the input count is back at 0 and the saved mark would match
         assertEquals(1, marks)
     }
 
