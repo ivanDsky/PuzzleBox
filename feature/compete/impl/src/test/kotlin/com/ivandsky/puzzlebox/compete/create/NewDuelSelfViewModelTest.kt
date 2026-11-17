@@ -39,6 +39,7 @@ import java.util.Locale
 import kotlin.random.Random
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -79,10 +80,12 @@ class NewDuelSelfViewModelTest {
     private val local = FakeMatchLocalRepository()
     private val self = FakeSelfMatchRepository()
     private var poolReads = 0
+    private var poolThrows = false
     private val pool = ComputeSolvedPool(
         registry,
         object : CompletionRepository by completions {
-            override fun observeRecords(): Flow<List<CompletionRecord>> = completions.observeRecords().also { poolReads++ }
+            override fun observeRecords(): Flow<List<CompletionRecord>> =
+                if (poolThrows) flow { throw IllegalStateException("room closed") } else completions.observeRecords().also { poolReads++ }
         },
         received,
     )
@@ -291,6 +294,30 @@ class NewDuelSelfViewModelTest {
         assertEquals(before.copy(preset = DuelPreset.Custom, count = 4), vm.state.value.self.form)
         vm.chooseOpponent(Opponent.Friend)
         assertEquals(5, vm.state.value.draft.count)
+    }
+
+    @Test
+    fun `a Room throw while creating against past you is the failed notice, not a crash`() = runTest {
+        solve(alpha, 1, 2, 3, 4)
+        val vm = started()
+        vm.chooseOpponent(Opponent.PastYou)
+        poolThrows = true
+
+        vm.create()
+
+        assertTrue(vm.state.value.notice is DuelNotice.Failed)
+        assertFalse(vm.state.value.creating)
+    }
+
+    @Test
+    fun `a Room throw reading the solved pool leaves the sheet open with no counts`() = runTest {
+        solve(alpha, 1, 2, 3, 4)
+        poolThrows = true
+
+        val vm = started()
+        vm.chooseOpponent(Opponent.PastYou)
+
+        assertEquals(Opponent.PastYou, vm.state.value.opponent)
     }
 
     @Test

@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
+import com.ivandsky.puzzlebox.common.log.FailureLog
 import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.match.CreateResult
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.Match
@@ -36,6 +38,7 @@ import java.time.LocalDate
 import kotlin.random.Random
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.Assert.assertEquals
@@ -233,6 +236,26 @@ class RematchViewModelTest {
 
         assertEquals("There are no puzzles left to draw. Try again later.", vm.state.value.note)
         assertFalse(vm.state.value.sending)
+    }
+
+    @Test
+    fun aSelfDuelRematchThatThrowsIsTheFailureNoteAndTheButtonComesBack() = runTest {
+        val self = played.copy(challenger = Player(SelfSeats.ME, "You", null), opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null))
+        val room = IllegalStateException("room closed")
+        val broken = object : CompletionRepository by completions {
+            override fun observeRecords() = flow<List<CompletionRecord>> { throw room }
+        }
+        val failing = CreateSelfDuel(
+            ComputeSolvedPool(registry, broken, received), broken, received, selfMatches, local,
+            { Instant.parse("2026-11-09T10:00:00Z") }, Random(CODE_SEED),
+        )
+        val reported = mutableListOf<Throwable>()
+        val vm = RematchViewModel(self, CreateMatch(server, local, draw, identity, Random(CODE_SEED)), failing, FailureLog { _, _, cause -> reported += cause })
+
+        vm.send()
+
+        assertEquals(RematchState(note = "Couldn't send the invite. Try again."), vm.state.value)
+        assertEquals(listOf<Throwable>(room), reported)
     }
 
     private companion object {
