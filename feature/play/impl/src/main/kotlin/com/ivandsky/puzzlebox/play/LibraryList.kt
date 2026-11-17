@@ -89,7 +89,6 @@ internal fun LibraryList(
     friendsScroll: ScrollState = rememberScrollState(),
 ) {
     val phone = layout == PlayLayout.SinglePane
-    val settled = LocalEnterSettled.current
     // Only the list on screen glides: a tab change already snaps the other ones back to their tops.
     val shown by rememberUpdatedState(if (duels == null) null else tab.shownWith(customTab != null, community))
     OnTabReselect {
