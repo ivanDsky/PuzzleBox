@@ -234,7 +234,7 @@ internal class CloudSyncWorld(
             try {
                 PuzzleBoxApplication.prepareCloudSync(graph.koin)
                 graph.koin.get<CloudSyncRunner>().start()
-                val robot = ShellRobot(graph, tabAt(tab), topLevelDestinations)
+                val robot = ShellRobot(graph, tabAt(tab))
                 val run = object : Statement() {
                     override fun evaluate() {
                         robot.launch()

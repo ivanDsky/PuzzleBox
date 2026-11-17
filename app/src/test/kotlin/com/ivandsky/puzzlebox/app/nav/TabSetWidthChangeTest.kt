@@ -59,7 +59,7 @@ class TabSetWidthChangeTest {
     fun stopGraph() = graph.stop()
 
     @Test
-    fun `a resize across the two-pane boundary keeps History selected and its stack, with three tabs in bar and rail`() {
+    fun `a resize across the two-pane boundary keeps History selected and its stack, with four tabs in bar and rail`() {
         val inHistory = puzzleBoxNavigationState().selectTab(HistoryRootKey).push(HistoryKey("zip"))
         var window by mutableStateOf(DpSize(891.dp, 448.dp))
         lateinit var navigator: Navigator
@@ -98,7 +98,7 @@ class TabSetWidthChangeTest {
     }
 
     /**
-     * The three tabs show once each, no Profile tab, only History highlighted; in one
+     * The four tabs show once each, no Profile tab, only History highlighted; in one
      * row along the bottom for the bar, in one column at the start for the [rail].
      */
     private fun assertTabs(rail: Boolean) {

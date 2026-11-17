@@ -90,7 +90,7 @@ internal fun FriendPuzzleCardPlayAgainPreview() {
     PreviewCard(previewCard(FriendCardAction.PlayAgain, yours = BestScore(125_000L, 0), board = CustomBoardView.Ranked(top, mine = null, author = PreviewBoardAuthor)))
 }
 
-// Preview: the community flag is on, so the ⋮ beside the title offers Report.
+// Preview: the ⋮ beside the title offers Report.
 @PuzzleBoxPreviews
 @Composable
 internal fun FriendPuzzleCardReportPreview() {
@@ -118,14 +118,14 @@ private fun previewGivens(): GivensBoard = GivensBoard(PREVIEW_SIDE, PREVIEW_SID
 
 private const val PREVIEW_SIDE = 8
 
-// Preview: the community flag is on and the puzzle is new to you, its board blurred under "Hidden until you play".
+// Preview: the puzzle is new to you, its board blurred under "Hidden until you play".
 @PuzzleBoxPreviews
 @Composable
 internal fun FriendPuzzleCardHiddenBoardPreview() {
     PreviewCard(previewCard(FriendCardAction.Play, canReport = true, givens = previewGivens()))
 }
 
-// Preview: the community flag is on and you solved it, so its board shows sharp.
+// Preview: you solved it, so its board shows sharp.
 @PuzzleBoxPreviews
 @Composable
 internal fun FriendPuzzleCardSolvedBoardPreview() {

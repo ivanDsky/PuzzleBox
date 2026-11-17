@@ -59,7 +59,7 @@ class PublishLevelSessionTest {
     )
 
     @Test
-    fun `flag on, a Public doc stores the level the author chose`() = runTest {
+    fun `a Public doc stores the level the author chose`() = runTest {
         val session = session()
 
         session.pickLevel(Level.Easy, hard)
@@ -69,7 +69,7 @@ class PublishLevelSessionTest {
     }
 
     @Test
-    fun `flag on, with no pick the doc stores the proposal`() = runTest {
+    fun `with no pick the doc stores the proposal`() = runTest {
         val session = session()
 
         publish(session)
@@ -78,7 +78,7 @@ class PublishLevelSessionTest {
     }
 
     @Test
-    fun `flag on, a link only doc stores no level whatever was chosen`() = runTest {
+    fun `a link only doc stores no level whatever was chosen`() = runTest {
         val session = session()
 
         session.pickLevel(Level.Easy, hard)
@@ -91,7 +91,7 @@ class PublishLevelSessionTest {
     }
 
     @Test
-    fun `flag off, nothing is offered and the doc keeps the verdict's own label`() = runTest {
+    fun `with FinishForMe off nothing is offered and the doc keeps the verdict's own label`() = runTest {
         val session = session(finishForMe = false)
 
         assertFalse(session.state.value.details.levelOffered)
@@ -113,11 +113,6 @@ class PublishLevelSessionTest {
 
         session.pickVisibility(Visibility.Public)
         assertTrue(session.state.value.details.levelOffered)
-    }
-
-    @Test
-    fun `without the community flag nothing is public, so no control is offered`() = runTest {
-        assertFalse(session(community = false).state.value.details.levelOffered)
     }
 
     @Test
@@ -220,12 +215,8 @@ class PublishLevelSessionTest {
         runCurrent()
     }
 
-    private suspend fun TestScope.session(finishForMe: Boolean = true, community: Boolean = true): PublishSession {
+    private suspend fun TestScope.session(finishForMe: Boolean = true): PublishSession {
         drafts.upsert(row)
-        val flags = listOfNotNull(
-            ReleaseFlag.FinishForMe.takeIf { finishForMe },
-            ReleaseFlag.CommunityPuzzles.takeIf { community },
-        )
         return PublishSession(
             draftId = DRAFT_ID,
             createShared = CreateSharedPuzzle(
@@ -242,7 +233,7 @@ class PublishLevelSessionTest {
                 stored += level
                 row = row.copy(difficultyChoice = level)
             },
-            flags = FakeReleaseFlags(*flags.toTypedArray()),
+            flags = if (finishForMe) FakeReleaseFlags(ReleaseFlag.FinishForMe) else FakeReleaseFlags(),
         )
     }
 

@@ -15,8 +15,6 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.AlphaShareEditor
 import com.ivandsky.puzzlebox.play.FakeGames
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -65,7 +63,7 @@ internal class RecordingSharedPuzzleRepository(private val inner: FakeSharedPuzz
  * [CommunityViewModel] over the real use cases and the fake repository: alpha and beta have editors, gamma does not;
  * "me" is signed in, "other" writes the puzzles, and the clock stands at [NOW].
  */
-internal class CommunityFixture(flagOn: Boolean = true, signedIn: Boolean = true) {
+internal class CommunityFixture(signedIn: Boolean = true) {
     val shared = FakeSharedPuzzleRepository().apply {
         clock = { NOW }
         signedInUid = ME.takeIf { signedIn }
@@ -75,7 +73,6 @@ internal class CommunityFixture(flagOn: Boolean = true, signedIn: Boolean = true
     private val identity = FakeIdentityService(Identity(uid = ME, displayName = "Me", photoUrl = null).takeIf { signedIn })
     private val fakeGames = FakeGames(listOf(ALPHA, BETA))
     private val games = GameRegistry(listOf(editorGame(ALPHA), editorGame(BETA), TestGames.plugin(NO_EDITOR)))
-    private val flags = if (flagOn) FakeReleaseFlags(ReleaseFlag.CommunityPuzzles) else FakeReleaseFlags()
 
     /** Published as another player, so it lists for "me" and can be reported. */
     suspend fun publish(
@@ -100,7 +97,6 @@ internal class CommunityFixture(flagOn: Boolean = true, signedIn: Boolean = true
     }
 
     fun viewModel() = CommunityViewModel(
-        flags = flags,
         list = ListCommunityPuzzles(recording, hidden, identity, clock = { NOW }),
         reportPuzzle = ReportPuzzle(recording, hidden),
         games = games,

@@ -11,7 +11,6 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.unit.toSize
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
@@ -32,7 +31,6 @@ import com.ivandsky.puzzlebox.play.FakeGames
 import com.ivandsky.puzzlebox.play.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
@@ -53,11 +51,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The friend page's hidden board (nav-rethink M12-8), on the route over its real view model and fakes: with
- * CommunityPuzzles on, the puzzle's board sits between the note and the chips, blurred under "Hidden until you play"
- * until you have solved it and sharp after; with it off the page draws no board and never asks the game for one. The
- * page's other parts (the action, Report, the ranks) stay either way, and while the code opens the quiet bars take the
- * board's slot instead of the spinner.
+ * The friend page's hidden board (nav-rethink M12-8), on the route over its real view model and fakes: the
+ * puzzle's board sits between the note and the chips, blurred under "Hidden until you play" until you have solved
+ * it and sharp after. The page's other parts (the action, Report, the ranks) sit beside it, and while the code opens the
+ * quiet bars take the board's slot.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -78,8 +75,8 @@ class FriendHiddenBoardTest {
     private var openGate: CompletableDeferred<Unit>? = null
 
     @Test
-    fun `flag on, an unsolved puzzle shows its board hidden and not the sharp one`() {
-        show(communityOn = true)
+    fun `an unsolved puzzle shows its board hidden and not the sharp one`() {
+        show()
 
         node("friend.card.board.hidden").assertIsDisplayed().assert(hasContentDescription("Board hidden until you play"))
         assertEquals(0, count("friend.card.board.sharp"))
@@ -87,30 +84,18 @@ class FriendHiddenBoardTest {
     }
 
     @Test
-    fun `flag on, a solved puzzle shows the sharp board and not the hidden one`() {
+    fun `a solved puzzle shows the sharp board and not the hidden one`() {
         solved()
-        show(communityOn = true)
+        show()
 
         node("friend.card.board.sharp").assertIsDisplayed().assert(hasContentDescription("Board"))
         assertEquals(0, count("friend.card.board.hidden"))
     }
 
     @Test
-    fun `flag off, the page shows no board and never asks the game for one`() {
-        solved()
-        show(communityOn = false)
-
-        node("friend.card.title").assertIsDisplayed()
-        assertEquals(0, count("friend.card.board.hidden"))
-        assertEquals(0, count("friend.card.board.sharp"))
-        assertEquals(0, count(STUB_BOARD_TAG))
-        assertTrue(stub.asked.isEmpty())
-    }
-
-    @Test
     @Config(sdk = [34], qualifiers = GOLDEN_TABLET)
     fun `on a tablet the Community right pane draws the hidden board too, with no Up bar`() {
-        show(communityOn = true, showUp = false)
+        show(showUp = false)
 
         node("friend.card.board.hidden").assertIsDisplayed()
         assertEquals(0, count("friend.up"))
@@ -119,7 +104,7 @@ class FriendHiddenBoardTest {
 
     @Test
     fun `the board sits between the note and the chips`() {
-        show(communityOn = true)
+        show()
 
         val note = bounds("friend.card.note")
         val board = bounds("friend.card.board.hidden")
@@ -130,7 +115,7 @@ class FriendHiddenBoardTest {
 
     @Test
     fun `the page keeps its action, its facts, its ranks and Report beside the board`() {
-        show(communityOn = true)
+        show()
 
         node("friend.card.title").assertIsDisplayed()
         node("friend.card.author").assertExists()
@@ -146,16 +131,16 @@ class FriendHiddenBoardTest {
 
     @Test
     fun `a puzzle whose game draws no such board shows none`() {
-        show(communityOn = true, board = null)
+        show(board = null)
 
         node("friend.card.title").assertIsDisplayed()
         assertEquals(0, count("friend.card.board.hidden"))
     }
 
     @Test
-    fun `flag on, the quiet bars hold the board's slot while the code opens, not the spinner`() {
+    fun `the quiet bars hold the board's slot while the code opens, not the spinner`() {
         openGate = CompletableDeferred()
-        show(communityOn = true)
+        show()
 
         node("friend.card.loading.board").assertIsDisplayed()
         assertEquals(0, count("friend.card.loading"))
@@ -167,21 +152,12 @@ class FriendHiddenBoardTest {
         assertEquals(0, count("friend.card.loading.board"))
     }
 
-    @Test
-    fun `flag off, the spinner is as shipped while the code opens`() {
-        openGate = CompletableDeferred()
-        show(communityOn = false)
-
-        node("friend.card.loading").assertIsDisplayed()
-        assertEquals(0, count("friend.card.loading.board"))
-    }
-
     private fun solved() {
         val ref = checkNotNull(fakes.games[game]).refOf(PuzzleKey.Custom(code.value))
         completions.setRecords(listOf(CompletionRecord(ref, 125_000L, 0, RecordStats(1, "{}"))))
     }
 
-    private fun show(communityOn: Boolean, board: GameReplayBoard? = stub, showUp: Boolean = true) {
+    private fun show(board: GameReplayBoard? = stub, showUp: Boolean = true) {
         fakes[game].replayBoard = board
         runBlocking { received.upsert(stored()) }
         val now = object : DispatcherProvider {
@@ -213,7 +189,6 @@ class FriendHiddenBoardTest {
             editors = GameEditorRegistry(emptyList()),
             dispatchers = now,
             board = signedOutBoard(),
-            flags = if (communityOn) FakeReleaseFlags(ReleaseFlag.CommunityPuzzles) else FakeReleaseFlags(),
             reportPuzzle = ReportPuzzle(shared, FakeHiddenPuzzles()),
         )
         composeRule.setContent {

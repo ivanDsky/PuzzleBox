@@ -8,7 +8,7 @@ import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.identity.Identity
-import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.model.Draft
@@ -102,8 +102,8 @@ internal class FriendWorld(flags: List<ReleaseFlag> = emptyList()) {
         graph.identity.currentIdentity = Identity(uid = AUTHOR, displayName = "Ivan", photoUrl = null)
         shared.signedInUid = AUTHOR
         runBlocking { drafts.upsert(readyDraft(board, title)) }
-        tapTab(PlayKey)
-        tap("library.tab.custom")
+        tapTab(CommunityKey)
+        tap("community.tab.yours")
         tap("create.draft.row")
         awaitTag("create.readiness.ready")
         tap("create.action.publish")
@@ -197,7 +197,7 @@ internal fun readyDraft(board: EditorDraft<*>, title: String) = Draft(
 
 /** From the library's list: Enter code, type [code], and wait for its card. */
 internal fun ShellRobot.openByCode(code: ShareCode) {
-    tap("library.enterCode")
+    tap("community.enterCode")
     rule.onNodeWithTag("friend.code.field").performTextInput(code.display)
     tap("friend.code.open")
     awaitTag("friend.card.title")

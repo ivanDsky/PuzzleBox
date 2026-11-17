@@ -6,7 +6,7 @@ import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
-import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -44,7 +44,7 @@ class FriendOpenLoopE2ETest(name: String) {
             world.signInFriend()
             val before = world.settleDailies(this, game.id)
 
-            tapTab(PlayKey)
+            tapTab(CommunityKey)
             openByCode(code)
             awaitTag("friend.card.glyph")
             val row = world.received.rows.getValue(code)

@@ -18,6 +18,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import org.junit.Assert.assertEquals
@@ -29,7 +30,7 @@ import org.robolectric.annotation.Config
 /**
  * A saved navigation state restores against the fresh state of the tab set the app launched
  * with, through the reducer's unchanged `reconciledWith`: a v1 (Home, Play, Create,
- * Profile) bundle, and a four-tab bundle into the three tabs the app has now. Each row
+ * Profile) bundle, and a Today, Games, Ranks, Create bundle into the four tabs the app has now. Each row
  * asserts the restored state, the selected tab of the set on screen and its route.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -45,7 +46,7 @@ class TabSetRestoreE2ETest {
             assertState(
                 NavigationState(
                     tab = HomeKey,
-                    stacks = listOf(V1_HOME, V1_PLAY, listOf(HistoryRootKey)),
+                    stacks = listOf(V1_HOME, V1_PLAY, listOf(CommunityKey), listOf(HistoryRootKey)),
                 ),
             )
             assertRoute(RANKS)
@@ -60,7 +61,7 @@ class TabSetRestoreE2ETest {
             assertState(
                 NavigationState(
                     tab = PlayKey,
-                    stacks = listOf(V1_HOME, V1_PLAY, listOf(HistoryRootKey)),
+                    stacks = listOf(V1_HOME, V1_PLAY, listOf(CommunityKey), listOf(HistoryRootKey)),
                 ),
             )
             assertRoute(RANKS)
@@ -68,7 +69,7 @@ class TabSetRestoreE2ETest {
         }
 
     @Test
-    fun `a four-tab bundle open in the Studio on Create restores to Today with three tabs`() =
+    fun `a four-tab bundle open in the Studio on Create restores to Today with four tabs`() =
         shellRobot {
             val fourTabs = NavigationState(
                 tab = CreateKey,
@@ -77,22 +78,29 @@ class TabSetRestoreE2ETest {
 
             restoreLegacy(bundleOf(fourTabs))
 
-            assertState(NavigationState(tab = HomeKey, stacks = listOf(V1_HOME, V1_PLAY, listOf(HistoryRootKey))))
+            assertState(
+                NavigationState(tab = HomeKey, stacks = listOf(V1_HOME, V1_PLAY, listOf(CommunityKey), listOf(HistoryRootKey))),
+            )
             assertRoute(RANKS)
             assertEquals(0, rule.onAllNodesWithTag(CREATE_TAB).fetchSemanticsNodes().size)
         }
 
     @Test
-    fun `the Studio opens full-window on Games and back returns to Games`() =
+    fun `the Studio opens full-window on Community and back returns to Community`() =
         shellRobot {
-            tapTab(PlayKey)
+            tapTab(CommunityKey)
             push(EditorKey("d1"))
 
             assertRoute(EDITOR)
             assertState(
                 NavigationState(
-                    tab = PlayKey,
-                    stacks = listOf(listOf(HomeKey), listOf(PlayKey, EditorKey("d1")), listOf(HistoryRootKey)),
+                    tab = CommunityKey,
+                    stacks = listOf(
+                        listOf(HomeKey),
+                        listOf(PlayKey),
+                        listOf(CommunityKey, EditorKey("d1")),
+                        listOf(HistoryRootKey),
+                    ),
                 ),
             )
             assertNoNavigation()
@@ -103,8 +111,13 @@ class TabSetRestoreE2ETest {
             )
 
             back()
-            assertState(NavigationState(tab = PlayKey, stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey))))
-            assertRoute(LIBRARY)
+            assertState(
+                NavigationState(
+                    tab = CommunityKey,
+                    stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(CommunityKey), listOf(HistoryRootKey)),
+                ),
+            )
+            assertRoute(COMMUNITY)
         }
 
     private fun ShellRobot.assertProfileTabGone() {
@@ -124,7 +137,7 @@ class TabSetRestoreE2ETest {
     private companion object {
         const val HOME = "route.home"
         const val RANKS = "route.ranks"
-        const val LIBRARY = "route.library"
+        const val COMMUNITY = "route.community"
         const val EDITOR = "route.editor"
         const val PROFILE_TAB = "nav.tab.profile"
         const val CREATE_TAB = "nav.tab.create"

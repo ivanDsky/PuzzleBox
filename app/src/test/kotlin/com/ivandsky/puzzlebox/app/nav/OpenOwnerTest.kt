@@ -56,7 +56,7 @@ class OpenOwnerTest {
         val before = stacks(PlayKey, play = listOf(PlayKey, GameKey("zip")))
         val navigator = Navigator(before)
 
-        navigator.openOwner(HistoryRootKey, TabSet.ThreeTabs)
+        navigator.openOwner(HistoryRootKey)
         navigator.pop()
 
         assertEquals(before, navigator.state)
@@ -115,7 +115,7 @@ class OpenOwnerTest {
         )
         val navigator = Navigator(before)
 
-        navigator.openOnOwnerTab(HistoryKey("zip"), TabSet.ThreeTabs)
+        navigator.openOnOwnerTab(HistoryKey("zip"))
 
         assertEquals(HistoryRootKey, navigator.state.tab)
         assertEquals(listOf<NavKey>(HistoryRootKey, HistoryKey("zip")), navigator.state.currentStack)
@@ -131,15 +131,15 @@ class OpenOwnerTest {
     fun `a double tap on a pushed-on key switches once`() {
         val navigator = Navigator(stacks(PlayKey))
 
-        navigator.openOnOwnerTab(HistoryKey("zip"), TabSet.ThreeTabs)
+        navigator.openOnOwnerTab(HistoryKey("zip"))
         val once = navigator.state
-        navigator.openOnOwnerTab(HistoryKey("zip"), TabSet.ThreeTabs)
+        navigator.openOnOwnerTab(HistoryKey("zip"))
 
         assertEquals(once, navigator.state)
     }
 
     private fun NavigationState.opening(key: NavKey): NavigationState =
-        Navigator(this).apply { openOwner(key, TabSet.ThreeTabs) }.state
+        Navigator(this).apply { openOwner(key) }.state
 
     private fun stacks(
         tab: NavKey,

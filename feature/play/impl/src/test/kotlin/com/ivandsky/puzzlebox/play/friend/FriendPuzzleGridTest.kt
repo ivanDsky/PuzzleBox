@@ -13,7 +13,6 @@ import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
@@ -30,7 +29,6 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.FakeGames
 import com.ivandsky.puzzlebox.play.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
@@ -51,9 +49,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Ticket 132: the friend page in the Community tablet's right pane lays out two columns with CommunityPuzzles on: the
- * board, chips and time tiles left; the head, title, note, Play and the ranks in a 372 dp column right. A pane too
- * narrow for both columns (320 dp board + 24 dp gap + 372 dp), a full-screen page and the flag off keep the single column.
+ * Ticket 132: the friend page in the Community tablet's right pane lays out two columns: the board, chips and time
+ * tiles left; the head, title, note, Play and the ranks in a 372 dp column right. A pane too narrow for both columns
+ * (320 dp board + 24 dp gap + 372 dp) and a full-screen page keep the single column.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -68,8 +66,8 @@ class FriendPuzzleGridTest {
     private val code = requireNotNull(ShareCode.parse("K7Q2MX"))
 
     @Test
-    fun `wide pane, flag on, the board is left of Play and of the ranks`() {
-        show(communityOn = true, showUp = false, pane = 880.dp)
+    fun `wide pane, the board is left of Play and of the ranks`() {
+        show(showUp = false, pane = 880.dp)
 
         assertEquals(1, count("friend.card.grid"))
         val board = bounds("friend.card.board.hidden")
@@ -80,8 +78,8 @@ class FriendPuzzleGridTest {
     }
 
     @Test
-    fun `wide pane, flag on, chips and time tiles are in the left column and the head, title, note in the right`() {
-        show(communityOn = true, showUp = false, pane = 880.dp)
+    fun `wide pane, chips and time tiles are in the left column and the head, title, note in the right`() {
+        show(showUp = false, pane = 880.dp)
 
         val board = bounds("friend.card.board.hidden")
         val play = bounds("friend.card.play")
@@ -97,8 +95,8 @@ class FriendPuzzleGridTest {
     }
 
     @Test
-    fun `wide pane, flag on, the right column is 372 dp wide`() {
-        show(communityOn = true, showUp = false, pane = 880.dp)
+    fun `wide pane, the right column is 372 dp wide`() {
+        show(showUp = false, pane = 880.dp)
 
         val right = bounds("friend.card.grid.right")
         assertEquals(with(composeRule.density) { 372.dp.toPx() }, right.width, 1f)
@@ -106,7 +104,7 @@ class FriendPuzzleGridTest {
 
     @Test
     fun `a tablet pane, the grid board is wider than today's cap and the board, chips and tiles fit the pane`() {
-        show(communityOn = true, showUp = false, pane = 1200.dp)
+        show(showUp = false, pane = 1200.dp)
 
         val board = bounds("friend.card.board.hidden")
         val pane = bounds("route.friend")
@@ -119,7 +117,7 @@ class FriendPuzzleGridTest {
 
     @Test
     fun `a tablet pane, the board fills the left column's width when the height allows`() {
-        show(communityOn = true, showUp = false, pane = 880.dp)
+        show(showUp = false, pane = 880.dp)
 
         val board = bounds("friend.card.board.hidden")
         val right = bounds("friend.card.grid.right")
@@ -130,7 +128,7 @@ class FriendPuzzleGridTest {
 
     @Test
     fun `a pane shorter than the board's bound keeps today's size and scrolls`() {
-        show(communityOn = true, showUp = false, pane = 1200.dp, height = 560.dp)
+        show(showUp = false, pane = 1200.dp, height = 560.dp)
 
         val board = bounds("friend.card.board.hidden")
         assertEquals(with(composeRule.density) { HiddenBoardTokens.MaxSide.toPx() }, board.width, 1f)
@@ -147,7 +145,7 @@ class FriendPuzzleGridTest {
 
     @Test
     fun `a tablet pane, the right column is centred against the left`() {
-        show(communityOn = true, showUp = false, pane = 880.dp)
+        show(showUp = false, pane = 880.dp)
 
         val left = bounds("friend.card.grid.left")
         val right = bounds("friend.card.grid.right")
@@ -157,7 +155,7 @@ class FriendPuzzleGridTest {
     @Test
     fun `a tablet pane, loading draws the two-column skeleton and not the single bars or the spinner`() {
         openGate = CompletableDeferred()
-        show(communityOn = true, showUp = false, pane = 1200.dp)
+        show(showUp = false, pane = 1200.dp)
 
         assertEquals(1, count("friend.card.grid.skeleton"))
         assertEquals(1, count("friend.card.grid.skeleton.right"))
@@ -176,7 +174,7 @@ class FriendPuzzleGridTest {
     @Test
     fun `a narrow pane keeps the single column's loading bars`() {
         openGate = CompletableDeferred()
-        show(communityOn = true, showUp = false, pane = 600.dp)
+        show(showUp = false, pane = 600.dp)
 
         assertEquals(0, count("friend.card.grid.skeleton"))
         assertEquals(1, count("friend.card.loading.board"))
@@ -185,15 +183,15 @@ class FriendPuzzleGridTest {
     @Test
     fun `a full-screen page keeps the single column's loading bars`() {
         openGate = CompletableDeferred()
-        show(communityOn = true, showUp = true, pane = 1280.dp)
+        show(showUp = true, pane = 1280.dp)
 
         assertEquals(0, count("friend.card.grid.skeleton"))
         assertEquals(1, count("friend.card.loading.board"))
     }
 
     @Test
-    fun `narrow pane, flag on, falls back to the single column`() {
-        show(communityOn = true, showUp = false, pane = 600.dp)
+    fun `narrow pane, falls back to the single column`() {
+        show(showUp = false, pane = 600.dp)
 
         assertEquals(0, count("friend.card.grid"))
         val board = bounds("friend.card.board.hidden")
@@ -203,28 +201,19 @@ class FriendPuzzleGridTest {
 
     @Test
     fun `a pane just wide enough for both columns draws the grid`() {
-        show(communityOn = true, showUp = false, pane = 748.dp)
+        show(showUp = false, pane = 748.dp)
         assertEquals(1, count("friend.card.grid"))
     }
 
     @Test
     fun `a pane one dp short of both columns stays single`() {
-        show(communityOn = true, showUp = false, pane = 747.dp)
+        show(showUp = false, pane = 747.dp)
         assertEquals(0, count("friend.card.grid"))
     }
 
     @Test
-    fun `wide pane, flag off, is the shipped single column with no board`() {
-        show(communityOn = false, showUp = false, pane = 880.dp)
-
-        assertEquals(0, count("friend.card.grid"))
-        assertEquals(0, count("friend.card.board.hidden"))
-        assertTrue(bounds("friend.card.size").bottom <= bounds("friend.card.play").top)
-    }
-
-    @Test
-    fun `a full-screen page with the flag on keeps the single column`() {
-        show(communityOn = true, showUp = true, pane = 1280.dp)
+    fun `a full-screen page keeps the single column`() {
+        show(showUp = true, pane = 1280.dp)
 
         assertEquals(0, count("friend.card.grid"))
         assertTrue(bounds("friend.card.board.hidden").bottom <= bounds("friend.card.play").top)
@@ -232,7 +221,7 @@ class FriendPuzzleGridTest {
 
     private fun assertSkeletonInPlace(pane: Dp) {
         openGate = CompletableDeferred()
-        show(communityOn = true, showUp = false, pane = pane)
+        show(showUp = false, pane = pane)
         val loading = bounds("friend.card.loading.board")
         openGate?.complete(Unit)
         composeRule.waitForIdle()
@@ -242,7 +231,7 @@ class FriendPuzzleGridTest {
 
     /** The topmost and lowest parts of the page leave equal gaps above and below, within 1 dp. */
     private fun assertCentred(pane: Dp) {
-        show(communityOn = true, showUp = false, pane = pane)
+        show(showUp = false, pane = pane)
 
         val route = bounds("route.friend")
         val top = minOf(bounds("friend.card.grid.left").top, bounds("friend.card.grid.right").top)
@@ -251,7 +240,7 @@ class FriendPuzzleGridTest {
         assertEquals("gaps above and below", top - route.top, route.bottom - bottom, onePx)
     }
 
-    private fun show(communityOn: Boolean, showUp: Boolean, pane: Dp, height: Dp = Dp.Unspecified) {
+    private fun show(showUp: Boolean, pane: Dp, height: Dp = Dp.Unspecified) {
         fakes[game].replayBoard = StubGivensBoard()
         runBlocking { received.upsert(stored()) }
         val now = object : DispatcherProvider {
@@ -283,7 +272,6 @@ class FriendPuzzleGridTest {
             editors = GameEditorRegistry(emptyList()),
             dispatchers = now,
             board = signedOutBoard(),
-            flags = if (communityOn) FakeReleaseFlags(ReleaseFlag.CommunityPuzzles) else FakeReleaseFlags(),
             reportPuzzle = ReportPuzzle(shared, FakeHiddenPuzzles()),
         )
         composeRule.setContent {

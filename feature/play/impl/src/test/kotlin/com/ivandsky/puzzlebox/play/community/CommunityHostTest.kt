@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.play.community
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -23,7 +22,7 @@ import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
-/** [CommunityHost] around a stand-in Custom list: what the flag adds, what a row, its menu and the sign-in prompt do. */
+/** [CommunityHost] around a stand-in Custom list: what it adds, what a row, its menu and the sign-in prompt do. */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34], qualifiers = "w411dp-h891dp-420dpi")
 class CommunityHostTest {
@@ -32,7 +31,6 @@ class CommunityHostTest {
     val rule = createAndroidComposeRule<ComponentActivity>()
 
     private val opened = mutableListOf<String>()
-    private val handed = mutableStateOf<Boolean?>(null)
 
     @After
     fun stopGraph() = stopKoin()
@@ -43,8 +41,7 @@ class CommunityHostTest {
         rule.setContent {
             PuzzleBoxTheme {
                 CommunityHost(onOpen = { opened += it }) { community ->
-                    handed.value = community != null
-                    LazyColumn { community?.invoke(this) }
+                    LazyColumn { community.invoke(this) }
                 }
             }
         }
@@ -52,15 +49,7 @@ class CommunityHostTest {
     }
 
     @Test
-    fun `with the flag off the list is handed no section`() {
-        show(CommunityFixture(flagOn = false))
-
-        assertEquals(false, handed.value)
-        rule.onNodeWithTag("community.head").assertDoesNotExist()
-    }
-
-    @Test
-    fun `with the flag on the section lists the puzzles and a row opens by its code`() {
+    fun `the section lists the puzzles and a row opens by its code`() {
         val fixture = CommunityFixture().also { runBlocking { it.publish("AAA111", NOW - HOUR, difficulty = Level.Hard) } }
         show(fixture)
 

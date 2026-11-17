@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.profile.api.SettingsKey
@@ -33,5 +34,5 @@ class OpenProfileTest {
     private fun stacks(
         tab: NavKey,
         home: List<NavKey> = listOf(HomeKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, listOf(PlayKey), listOf(HistoryRootKey)))
+    ) = NavigationState(tab = tab, stacks = listOf(home, listOf(PlayKey), listOf(CommunityKey), listOf(HistoryRootKey)))
 }

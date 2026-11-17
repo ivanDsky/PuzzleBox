@@ -35,8 +35,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * A friend's puzzle card under its Up bar, phone and tablet, light and dark: fresh (Play,
  * signed out), a saved play (Resume), solved and signed in over the top three, the top three
- * signed out, taken down with its leaderboard closed, and a fresh one with the community flag on
- * (the ⋮ beside the title); then each reason a code didn't open.
+ * signed out, taken down with its leaderboard closed, and a fresh one
+ * with the ⋮ beside the title; then each reason a code didn't open.
  * Goldens in `snapshots/friend/`.
  */
 @RunWith(RobolectricTestRunner::class)

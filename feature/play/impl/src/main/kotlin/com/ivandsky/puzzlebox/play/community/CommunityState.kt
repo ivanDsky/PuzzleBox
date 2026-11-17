@@ -21,12 +21,11 @@ internal sealed interface CommunityPhase {
 internal data class CommunityNotice(val id: Int, val message: String)
 
 /**
- * The New today section. With [enabled] false (the community flag is off) nothing shows and nothing loads. [game] and
+ * The New today section. [game] and
  * [difficulty] are the filters picked (null is All, and Any difficulty); [signInPrompt] is the sign-in dialog a
  * signed-out Report opens, with [signIn] saying how the last try went.
  */
 internal data class CommunityState(
-    val enabled: Boolean,
     val games: List<GameChoice> = emptyList(),
     val game: GameId? = null,
     val difficulty: DifficultyChoice? = null,

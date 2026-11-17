@@ -34,7 +34,7 @@ import com.ivandsky.puzzlebox.games.strandsui.StrandsPlayController
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.PlaySessionStore
-import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
@@ -86,8 +86,8 @@ class StrandsPublishOpenLoopE2ETest {
             shared.signedInUid = AUTHOR
             seedReadyDraft()
 
-            tapTab(PlayKey)
-            tap("library.tab.custom")
+            tapTab(CommunityKey)
+            tap("community.tab.yours")
             tap("create.draft.row")
             awaitTag("create.readiness.ready")
             tap("create.action.publish")
@@ -97,8 +97,8 @@ class StrandsPublishOpenLoopE2ETest {
 
             // The Studio is full-window: Back is the way out, to Custom.
             back()
-            assertRoute("route.library")
-            tap("library.enterCode")
+            assertRoute("route.community")
+            tap("community.enterCode")
             rule.onNodeWithTag("friend.code.field").performTextInput(code.display)
             tap("friend.code.open")
             awaitTag("friend.card.title")
@@ -143,8 +143,8 @@ class StrandsPublishOpenLoopE2ETest {
         shellRobot(graph = graph) {
             seedReadyDraft(clue = "")
 
-            tapTab(PlayKey)
-            tap("library.tab.custom")
+            tapTab(CommunityKey)
+            tap("community.tab.yours")
             tap("create.draft.row")
             fun count(tag: String) = rule.onAllNodesWithTag(tag).fetchSemanticsNodes().size
             // Unique: the Not unique block is gone and the clue's own phrase stands in the line.
@@ -161,8 +161,8 @@ class StrandsPublishOpenLoopE2ETest {
             seedReadyDraft()
             fun clue() = rule.onNodeWithTag("strands.editor.clue").fetchSemanticsNode().config[SemanticsProperties.EditableText].text
 
-            tapTab(PlayKey)
-            tap("library.tab.custom")
+            tapTab(CommunityKey)
+            tap("community.tab.yours")
             tap("create.draft.row")
             awaitTag("create.details")
             rule.waitUntil(TIMEOUT_MS) { rule.onAllNodesWithTag("create.tool.strip").fetchSemanticsNodes().isEmpty() }

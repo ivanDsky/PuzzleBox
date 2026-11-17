@@ -6,7 +6,7 @@ import com.ivandsky.puzzlebox.app.e2e.StrandsWoods.NON_THEME
 import com.ivandsky.puzzlebox.app.e2e.StrandsWoods.awaitBoard
 import com.ivandsky.puzzlebox.app.e2e.StrandsWoods.tapWord
 import com.ivandsky.puzzlebox.model.PlaySlot
-import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -37,7 +37,7 @@ class StrandsFriendHintE2ETest {
         val code = world.publishAsAuthor(this, StrandsWoods.board, "Woods")
         back() // the Studio is full-window, with no tab bar to leave by
         world.signInFriend()
-        tapTab(PlayKey)
+        tapTab(CommunityKey)
         openByCode(code)
         tap("friend.card.play")
         val controller = awaitBoard(PlaySlot.Custom(StrandsWoods.id, code.value))

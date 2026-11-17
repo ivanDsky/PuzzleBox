@@ -54,7 +54,7 @@ class EditorLevelTest {
         override val default: CoroutineDispatcher = mainRule.testDispatcher
     }
 
-    private suspend fun TestScope.open(flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FinishForMe, ReleaseFlag.CommunityPuzzles)): EditorViewModel {
+    private suspend fun TestScope.open(flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FinishForMe)): EditorViewModel {
         if (drafts.rows[DRAFT_ID] == null) drafts.upsert(row(game.draft(2).encode()))
         val vm = EditorViewModel(
             EditorKey(DRAFT_ID), drafts, GameRegistry(listOf(FinishViewModelTest.withEditor(game))), GameEditorRegistry(listOf(ui)), GamePlayRegistry(emptyList()),
@@ -133,7 +133,7 @@ class EditorLevelTest {
     }
 
     @Test
-    fun `with the flag off no control is offered and the stored pick is left alone`() = runTest(mainRule.testDispatcher) {
+    fun `with FinishForMe off no control is offered and the stored pick is left alone`() = runTest(mainRule.testDispatcher) {
         drafts.upsert(row(game.draft(2).encode()).copy(difficultyChoice = Level.Hard))
         val vm = open(flags = FakeReleaseFlags())
 

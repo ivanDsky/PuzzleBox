@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.game.editor.EditorDraft
 import com.ivandsky.puzzlebox.games.queens.editor.QueensEditor
@@ -17,7 +16,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The phone's Community over the real shell with CommunityPuzzles on (M12-4): three tabs under the
+ * The phone's Community over the real shell (M12-4): three tabs under the
  * head, the filter ⋮ on New today only, and Yours holding create's own list, whose draft opens its Studio and comes
  * back to Yours.
  */
@@ -31,7 +30,7 @@ class CommunityTabsE2ETest {
 
     @Test
     fun `Community is three tabs and a draft under Yours opens its Studio and returns to Yours`() =
-        shellRobot(graph = shellGraph(ReleaseFlag.CommunityPuzzles, overrides = stores)) {
+        shellRobot(graph = shellGraph(overrides = stores)) {
             runBlocking {
                 drafts.upsert(readyDraft(EditorDraft.fresh(QueensEditor, QueensEditor.defaultVariant), "Castle").copy(id = "castle", testSolve = null))
             }

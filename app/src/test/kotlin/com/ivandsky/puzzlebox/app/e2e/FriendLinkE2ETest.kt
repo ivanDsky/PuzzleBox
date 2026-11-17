@@ -41,9 +41,9 @@ import org.robolectric.annotation.Config
 
 /**
  * A tapped share link over the real activity: the manifest routes it to [MainActivity], a
- * cold start and a warm new intent both land on the friend's card in Play, recreating the
+ * cold start and a warm new intent both land on the friend's card in Community, recreating the
  * activity keeps that one card, and a link whose code doesn't parse opens the code sheet
- * holding its text. A friend's board is immersive like a daily one.
+ * holding its text, on Community's root. A friend's board is immersive like a daily one.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -83,10 +83,10 @@ class FriendLinkE2ETest {
     }
 
     @Test
-    fun `a cold start from a link opens the card in Play and its board is immersive`() = launching(view(LINK)) {
+    fun `a cold start from a link opens the card in Community and its board is immersive`() = launching(view(LINK)) {
         awaitTag("friend.card.title")
         assertRoute("route.friend")
-        rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+        rule.onNodeWithTag("nav.tab.community").assertIsSelected()
 
         tap("friend.card.play")
         assertRoute("route.game")
@@ -103,12 +103,12 @@ class FriendLinkE2ETest {
         assertRoute("route.friend")
 
         back()
-        assertRoute("route.library")
-        rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+        assertRoute("route.community")
+        rule.onNodeWithTag("nav.tab.community").assertIsSelected()
     }
 
     @Test
-    fun `a link while the app runs on Ranks opens the card in Play`() = launching(fromRecents(view(LINK))) {
+    fun `a link while the app runs on Ranks opens the card in Community`() = launching(fromRecents(view(LINK))) {
         // Relaunched from Recents, the link that first started the task is not re-applied.
         assertRoute("route.home")
         tap("nav.tab.ranks")
@@ -118,18 +118,18 @@ class FriendLinkE2ETest {
         rule.waitForIdle()
         awaitTag("friend.card.title")
         assertRoute("route.friend")
-        rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+        rule.onNodeWithTag("nav.tab.community").assertIsSelected()
 
         back()
-        assertRoute("route.library")
+        assertRoute("route.community")
     }
 
     @Test
     fun `a link whose code does not parse opens the code sheet holding its text`() =
         launching(view("${ShareCode.LINK_PREFIX}K7Q2M")) {
             awaitTag("friend.code.sheet")
-            assertRoute("route.library")
-            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+            assertRoute("route.community")
+            rule.onNodeWithTag("nav.tab.community").assertIsSelected()
             rule.waitUntil(TIMEOUT_MS) {
                 rule.onAllNodes(hasTestTag("friend.code.field") and hasText("K7Q2M")).fetchSemanticsNodes().isNotEmpty()
             }
@@ -220,7 +220,7 @@ class FriendLinkE2ETest {
         val isRoute = SemanticsMatcher("test tag route.*") {
             it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("route.") == true
         }
-        val TABS = listOf("nav.tab.home", "nav.tab.play", "nav.tab.ranks")
+        val TABS = listOf("nav.tab.home", "nav.tab.play", "nav.tab.community", "nav.tab.ranks")
         const val TIMEOUT_MS = 10_000L
     }
 }

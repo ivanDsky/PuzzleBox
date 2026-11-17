@@ -13,7 +13,8 @@ content lives*. This ADR adds that. The reducer, its verbs and its invariants st
 was fixed here at four (shipped in 0.24.0; the NavV2 flag was removed); Profile stops being a tab.
 *(Amended 2026-11-13: History's slot became Ranks, §2; the hub's release flag that gated it is deleted.)*
 *(Amended 2026-11-16, nav rethink N9, N10; 2026-11-17: the CustomInGames flag shipped on and is deleted.)* The tab set
-is Today · Games · Ranks and making puzzles lives in Games › Custom; the flag-off set is gone.
+is Today · Games · Ranks and making puzzles lives in Games › Custom; the flag-off set is gone. *(Amended 2026-11-17, cleanup 79:
+the CommunityPuzzles flag shipped on and is deleted; Community is the fourth tab: Today · Games · Community · Ranks.)*
 
 ## Decision
 1. **One owner.** Each content type has one owner screen. Every other screen shows at most one summary row for it, and
@@ -115,7 +116,7 @@ is Today · Games · Ranks and making puzzles lives in Games › Custom; the fla
 8. **The one exemption.** The tablet in-game side panel (`PlayStatsPanel`) stays. It is an immersive in-play companion,
    so it does not break one-owner.
 9. **Placement describes the target.** The placement table's homes describe the three-tab information architecture
-   (Today · Games · Ranks). `NavigationState.tabs` is the runtime truth for which tabs exist. Before 0.24.0 the tab set
+   (Today · Games · Community · Ranks). `NavigationState.tabs` is the runtime truth for which tabs exist. Before 0.24.0 the tab set
    differed (Profile was a tab, History was not); that is historical. Code that needs the live tab set reads
    `NavigationState`, never the table.
 10. **One flag-on convention.** A route or composable never reads a flag. *(Amended 2026-11-16, nav rethink A2.)*
@@ -135,8 +136,8 @@ is Today · Games · Ranks and making puzzles lives in Games › Custom; the fla
       required wherever Games or Community takes it; the Games Custom pill hides itself under a Community tab;
     - game page `onMakeOne: ((GameId) -> Unit)?`; Result `onMakeOneLikeThis: ((GameId, VariantId?) -> Unit)?`; `null`
       hides the button;
-    - `TabSetSource`, which reads the CommunityPuzzles flag, is the only place the tab list and placement delta are
-      chosen.
+    - *(Done for the community flag: `TabSetSource`, the `TabSet` and the placement delta are deleted; the tab list is
+      `topLevelDestinations` and every key's placement is its row in the one table.)*
 11. **Where does new content go?**
 
     | You add | It goes |
@@ -155,12 +156,14 @@ is Today · Games · Ranks and making puzzles lives in Games › Custom; the fla
     rule (§3), not a table column. This ADR never copies the table. A Konsist rule (P9, ADR-0009 conventions)
     fails when a production `NavKey` has no row, and its failure text links this ADR.
 
-    *(Amended 2026-11-16, nav rethink N9, A2; 2026-11-17, cleanup 29.)* **Delta placement.** While a flag is in flight,
-    its placement is a small delta over the one base table: one override row per key the flag moves, never a second full
-    table. The CustomInGames delta (Studio pushed on Games with `Immersive` chrome, published page pushed on Games with
-    `Bar` chrome, no Create root in the tab list) is folded into the base table and deleted. The delta that remains is
-    CommunityPuzzles'. The lookup takes the active delta from `TabSetSource` (§10). A test checks that every production
-    key resolves under both tab sets. Cleanup deletes the delta and folds its rows into the base table.
+    *(Amended 2026-11-16, nav rethink N9, A2; 2026-11-17, cleanups 29 and 79.)* **Delta placement.** While a flag is in
+    flight, its placement is a small delta over the one base table: one override row per key the flag moves, never a
+    second full table. The CustomInGames delta (Studio pushed on Games with `Immersive` chrome, published page pushed on
+    Games with `Bar` chrome, no Create root in the tab list) was folded into the base table and deleted, then the
+    CommunityPuzzles delta (Studio, published page and friend's puzzle, Custom game and Custom result pushed on
+    Community, with the Studio and the Custom game and result `Immersive`) the same way, together with `TabSetSource`.
+    No delta remains; `placementOf(key)` reads the one table. Cleanup of a future flag's delta deletes it and folds its
+    rows into the base table.
 
 ## Rejected
 - **A per-key table in this ADR.** It would drift from the code on the first new key. The table is data in

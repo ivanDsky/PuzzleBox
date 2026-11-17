@@ -4,9 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
@@ -64,7 +61,7 @@ internal sealed interface FriendCardState {
 /**
  * What a friend's puzzle card shows: the stored [puzzle] in its game's [brand], named [gameName],
  * sized [size], and a preview of its [board], closed once the author takes the puzzle down.
- * [canReport] is whether the card offers Report (the community flag is on).
+ * [canReport] is whether the card offers Report (the view model always sets it).
  */
 internal data class FriendCard(
     val puzzle: ReceivedPuzzle,
@@ -78,7 +75,7 @@ internal data class FriendCard(
     val board: CustomBoardView?,
     val signIn: BoardSignIn,
     val canReport: Boolean = false,
-    /** The puzzle's board before any move, from the givens alone; null when the page draws no board (flag off, or a game with none). */
+    /** The puzzle's board before any move, from the givens alone; null for a game with none. */
     val givens: GivensBoard? = null,
 ) {
     /** The page draws the puzzle's board in its hidden slot (nav-rethink M12-8). */
@@ -113,8 +110,7 @@ internal sealed interface FriendCardAction {
  * name, brand, size label and rank order come from the registries; the feature names no game.
  *
  * Report ([report], nav-rethink C1) hides the puzzle on this device through [reportPuzzle] and turns the state to
- * [FriendCardState.Reported]; signed out it opens the sign-in prompt instead and the player taps Report again. The
- * community flag is read here, once, when the view model is made (spec A2); off, [FriendCard.canReport] is false.
+ * [FriendCardState.Reported]; signed out it opens the sign-in prompt instead and the player taps Report again.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 internal class FriendPuzzleViewModel(
@@ -129,16 +125,12 @@ internal class FriendPuzzleViewModel(
     private val editors: GameEditorRegistry,
     private val dispatchers: DispatcherProvider,
     private val board: FriendPuzzleBoard,
-    flags: ReleaseFlags,
     private val reportPuzzle: ReportPuzzle,
 ) : ViewModel() {
 
     private val opened = MutableStateFlow<OpenOutcome?>(null)
     private val reported = MutableStateFlow(false)
     private val reportUi = MutableStateFlow(FriendReportUi())
-    private val canReport = flags.isEnabled(ReleaseFlag.CommunityPuzzles)
-    /** Whether the page draws the puzzle's hidden board, and the loading bars in its slot (nav-rethink M12-8): the community flag, read once here (spec A2). */
-    val hiddenBoard: Boolean = canReport
     private var reporting = false
     private var noticeCount = 0
 
@@ -170,7 +162,7 @@ internal class FriendPuzzleViewModel(
     /** Reports this puzzle. Reported (or already reported) it is hidden and the card closes; every other result hides nothing. */
     fun report() {
         val shared = code ?: return
-        if (!canReport || reporting) return
+        if (reporting) return
         reporting = true
         viewModelScope.launch {
             try {
@@ -220,7 +212,7 @@ internal class FriendPuzzleViewModel(
         val savedElapsed = saved.observeInProgress().map { it[slot] }.distinctUntilChanged()
         val order = games[puzzle.gameId]?.score?.rankOrder ?: RankOrder.TimeThenHints
         val current = received.observe(puzzle.code).map { it ?: puzzle }.distinctUntilChanged()
-        val givens = if (hiddenBoard) givensOf(puzzle) else null
+        val givens = givensOf(puzzle)
         return combine(
             current,
             completions.observeCustom(puzzle.gameId, puzzle.code.value),
@@ -242,7 +234,7 @@ internal class FriendPuzzleViewModel(
                 yours = first?.let { BestScore(it.time, it.hints) },
                 board = preview,
                 signIn = signIn,
-                canReport = canReport,
+                canReport = true,
                 givens = givens,
             )
         }

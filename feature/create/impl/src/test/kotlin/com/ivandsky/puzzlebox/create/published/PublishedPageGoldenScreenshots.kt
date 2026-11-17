@@ -1,13 +1,6 @@
 package com.ivandsky.puzzlebox.create.published
 
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -25,18 +18,14 @@ import com.ivandsky.puzzlebox.create.showGolden
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.data.model.TestSolve
-import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.UpdatePublishState
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.editor.GameEditor
-import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.gameui.editor.GameEditorController
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
-import com.ivandsky.puzzlebox.gameui.editor.GameEditorUi
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -62,7 +51,7 @@ import org.robolectric.shadows.ShadowLooper
  * A published puzzle's page, phone (single pane) and tablet (two panes), light and dark: live
  * with its ticket and Unpublish…, the unpublish confirm dialog, the dialog's offline line after a
  * failed confirm, and the unpublished record with its code struck. The page runs on its real
- * view model over fake stores; the board is a placeholder square. Goldens in `snapshots/published/`.
+ * view model over fake stores; the game draws no plain board, so the page is the ticket and its actions alone. Goldens in `snapshots/published/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -109,7 +98,7 @@ abstract class PublishedPageGoldenScreenshots(private val layout: PlayLayout, pr
                     viewModel { (key: PublishedPuzzleKey) ->
                         PublishedPuzzleViewModel(
                             key, published, drafts, GameRegistry(listOf(pluginOf(editor))),
-                            GameEditorRegistry(listOf(PlaceholderEditorUi(FakeGameEditorUi(editor.gameId)))),
+                            GameEditorRegistry(listOf(FakeGameEditorUi(editor.gameId))),
                             GamePlayRegistry(emptyList()), CreateDraftCopy(drafts, newId = { "copy" }, clock = { NOW }),
                             DefaultDispatcherProvider(), UpdatePublishState(shared, published),
                         )
@@ -119,6 +108,7 @@ abstract class PublishedPageGoldenScreenshots(private val layout: PlayLayout, pr
         }
         rule.showGolden(dark, frozen = false) { PublishedPuzzleRoute(PublishedPuzzleKey(CODE.value), layout, onBack = {}, onOpen = {}) }
         awaitTag("create.published.ticket")
+        awaitGone(PublishedPlainBoardLoadingTag)
         then()
         rule.settleAndCapture("published", name, device, dark)
     }
@@ -174,14 +164,10 @@ abstract class PublishedPageGoldenScreenshots(private val layout: PlayLayout, pr
         rule.onAllNodes(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
     }
 
-    /** The fake editor with the Studio previews' placeholder square for its board. */
-    private class PlaceholderEditorUi(base: FakeGameEditorUi) : GameEditorUi by base {
-        @Composable
-        override fun Board(controller: GameEditorController, verdict: Verdict, layout: PlayLayout, modifier: Modifier) {
-            Box(modifier, contentAlignment = Alignment.Center) {
-                Box(Modifier.aspectRatio(1f, matchHeightConstraintsFirst = true).background(MaterialTheme.colorScheme.surfaceContainerHighest, AppShapes.small))
-            }
-        }
+    /** The plain board's placeholder stands until its givens settle, which a loaded machine can take past the ticket. */
+    private fun awaitGone(tag: String) = rule.waitUntil(TIMEOUT_MS) {
+        ShadowLooper.idleMainLooper(FRAME_MS, TimeUnit.MILLISECONDS)
+        rule.onAllNodes(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNodes().isEmpty()
     }
 
     private companion object {

@@ -88,7 +88,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowLooper
 
 /**
- * The published page: the read-only board, the ticket's code and the author's time; Duplicate opens an editable,
+ * The published page: the ticket's code and the author's time; Duplicate opens an editable,
  * unreserved copy in the Studio; the page's key survives saved state; and a published draft reopened over the stored
  * rows alone, as after process death, is the read-only Studio with its ticket.
  * Unpublish, from the page or the Studio's overflow, tombstones the shared doc and marks the
@@ -119,11 +119,12 @@ class PublishedPageTest {
     }
 
     @Test
-    fun `the published page shows its board, code and author time`() {
+    fun `the published page shows its ticket's code and author time`() {
         storePublished(NEWER, "newer", minutesAgo = 5)
         show(PublishedPuzzleKey(NEWER.value))
 
-        awaitCount(READ_ONLY_BOARD, 1)
+        awaitCount(TICKET, 1)
+        awaitCount(READ_ONLY_BOARD, 0)
         awaitStamped(CODE)
         composeRule.onNodeWithTag(CODE).assertTextEquals(NEWER.display)
         awaitStamped(AUTHOR_TIME)

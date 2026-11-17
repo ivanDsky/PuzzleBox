@@ -49,7 +49,7 @@ import org.robolectric.annotation.Config
  * A plain-text share over the real activity: the manifest
  * routes `ACTION_SEND text/plain` to [MainActivity]; a cold start and a warm new intent (from
  * the Play tab) both end on the Studio of an imported draft with the verdict the same board
- * pasted would show (Unique), back returns to Games' Custom, and recreating the activity
+ * pasted would show (Unique), back returns to Community's Yours, and recreating the activity
  * afterwards creates no second draft. A task relaunched from Recents does not re-apply its
  * share.
  */
@@ -83,7 +83,7 @@ class ShareTargetE2ETest {
     }
 
     @Test
-    fun `a cold start from a share ends on the imported draft's Studio and back is Games' Custom`() {
+    fun `a cold start from a share ends on the imported draft's Studio and back is Community's Yours`() {
         startGraph()
         launching(send(UNIQUE)) {
             awaitVerdict()
@@ -93,14 +93,14 @@ class ShareTargetE2ETest {
             assertNull("the text was taken", store.pending.value)
 
             back()
-            assertRoute(LIBRARY)
+            assertRoute(COMMUNITY)
             awaitTag(CUSTOM_LIST)
-            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+            rule.onNodeWithTag("nav.tab.community").assertIsSelected()
         }
     }
 
     @Test
-    fun `a share while the app runs on Games opens the Studio and back returns to Custom`() {
+    fun `a share while the app runs on Games opens the Studio on Community and back returns to Yours`() {
         startGraph()
         // Relaunched from Recents, the share that first started the task is not re-applied.
         launching(fromRecents(send(UNIQUE))) {
@@ -114,14 +114,14 @@ class ShareTargetE2ETest {
             assertEquals(1, drafts.rows.size)
 
             back()
-            assertRoute(LIBRARY)
+            assertRoute(COMMUNITY)
             awaitTag(CUSTOM_LIST)
-            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+            rule.onNodeWithTag("nav.tab.community").assertIsSelected()
         }
     }
 
     @Test
-    fun `a share while a Studio is open opens the shared draft, not the old one, then back is Custom`() {
+    fun `a share while a Studio is open opens the shared draft, not the old one, then back is Yours`() {
         startGraph()
         seedBlankDraft()
         launching(fromRecents(send(UNIQUE))) {
@@ -134,9 +134,9 @@ class ShareTargetE2ETest {
             assertNull(store.pending.value)
 
             back()
-            assertRoute(LIBRARY)
+            assertRoute(COMMUNITY)
             awaitTag(CUSTOM_LIST)
-            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+            rule.onNodeWithTag("nav.tab.community").assertIsSelected()
         }
     }
 
@@ -168,11 +168,11 @@ class ShareTargetE2ETest {
         }
     }
 
-    /** Games' Custom, then the seeded draft's row opens its Studio. */
+    /** Community's Yours, then the seeded draft's row opens its Studio. */
     private fun openSeededStudio() {
-        tap("nav.tab.play")
-        tap("library.tab.custom")
-        assertRoute(LIBRARY)
+        tap("nav.tab.community")
+        tap("community.tab.yours")
+        assertRoute(COMMUNITY)
         tap("create.draft.row")
         awaitTag("create.editor.board")
         assertRoute(EDITOR)
@@ -203,7 +203,7 @@ class ShareTargetE2ETest {
     }
 
     @Test
-    fun `a share while the app runs on Ranks opens the Studio on Games and back is Custom, then Ranks, then Today`() {
+    fun `a share while the app runs on Ranks opens the Studio on Community and back is Yours, then Today`() {
         startGraph()
         launching(fromRecents(send(UNIQUE))) {
             assertRoute(HOME)
@@ -216,14 +216,11 @@ class ShareTargetE2ETest {
             assertEquals(1, drafts.rows.size)
 
             back()
-            assertRoute(LIBRARY)
+            assertRoute(COMMUNITY)
             awaitTag(CUSTOM_LIST)
-            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+            rule.onNodeWithTag("nav.tab.community").assertIsSelected()
 
-            // The share switched tab from Ranks, so one Back returns to the screen it arrived on.
-            back()
-            assertRoute(RANKS)
-
+            // The share selected Community, a non-start root: one Back is Today.
             back()
             assertRoute(HOME)
         }
@@ -311,6 +308,7 @@ class ShareTargetE2ETest {
     private companion object {
         const val HOME = "route.home"
         const val LIBRARY = "route.library"
+        const val COMMUNITY = "route.community"
         const val RANKS = "route.ranks"
         const val EDITOR = "route.editor"
         const val CUSTOM_LIST = "custom.list"

@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -32,9 +33,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Making puzzles inside Games (N9, N10) over the real shell: the Custom pill's draft and
- * published rows and the two Make-one doors each open their screen on the Games stack, and Back
- * or the Studio's Delete returns to the screen the door was on.
+ * Making puzzles (N9, N10) over the real shell: Community's Yours draft and published rows open
+ * their screen on the Community stack, the two Make-one doors open the Studio on the Games stack,
+ * and Back or the Studio's Delete returns to the screen the door was on.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -50,39 +51,39 @@ class GamesCustomE2ETest {
     }
 
     @Test
-    fun `a draft row under Custom opens its Studio full-window on Games and Back returns to Custom`() =
+    fun `a draft row under Yours opens its Studio full-window on Community and Back returns to Yours`() =
         shellRobot(graph = shellGraph(overrides = stores)) {
             seedDraft()
-            tapTab(PlayKey)
-            tap(CUSTOM_PILL)
+            tapTab(CommunityKey)
+            tap(TAB_YOURS)
 
             tap(DRAFT_ROW)
 
             assertRoute(EDITOR)
-            assertState(games(EditorKey(DRAFT_ID)))
+            assertState(community(EditorKey(DRAFT_ID)))
 
             back()
-            assertState(games())
-            assertRoute(LIBRARY)
+            assertState(community())
+            assertRoute(COMMUNITY)
             awaitTag(CUSTOM_LIST)
         }
 
     @Test
-    fun `a published row under Custom opens its page on Games with the bar and Back returns to Custom`() =
+    fun `a published row under Yours opens its page on Community with the bar and Back returns to Yours`() =
         shellRobot(graph = shellGraph(overrides = stores)) {
             seedPublished()
-            tapTab(PlayKey)
-            tap(CUSTOM_PILL)
+            tapTab(CommunityKey)
+            tap(TAB_YOURS)
 
             tap(PUBLISHED_ROW)
 
             assertRoute(PUBLISHED_PAGE)
-            // assertState also checks that the bar shows with Games selected.
-            assertState(games(PublishedPuzzleKey(CODE.value)))
+            // assertState also checks that the bar shows with Community selected.
+            assertState(community(PublishedPuzzleKey(CODE.value)))
 
             back()
-            assertState(games())
-            assertRoute(LIBRARY)
+            assertState(community())
+            assertRoute(COMMUNITY)
             awaitTag(CUSTOM_LIST)
         }
 
@@ -141,10 +142,16 @@ class GamesCustomE2ETest {
         awaitTag(ZIP_PAGE)
     }
 
-    /** The three-tab state selected on Games, whose stack is the library then [pushed]. */
+    /** The four-tab state selected on Games, whose stack is the library then [pushed]. */
     private fun games(vararg pushed: NavKey) = NavigationState(
         tab = PlayKey,
-        stacks = listOf(listOf(HomeKey), listOf(PlayKey) + pushed, listOf(HistoryRootKey)),
+        stacks = listOf(listOf(HomeKey), listOf(PlayKey) + pushed, listOf(CommunityKey), listOf(HistoryRootKey)),
+    )
+
+    /** The four-tab state selected on Community, whose stack is its root then [pushed]. */
+    private fun community(vararg pushed: NavKey) = NavigationState(
+        tab = CommunityKey,
+        stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(CommunityKey) + pushed, listOf(HistoryRootKey)),
     )
 
     private fun seedDraft() = runBlocking {
@@ -173,10 +180,11 @@ class GamesCustomE2ETest {
         const val DRAFT_ID = "castle"
         val CODE: ShareCode = checkNotNull(ShareCode.parse("K7Q2MX"))
         const val LIBRARY = "route.library"
+        const val COMMUNITY = "route.community"
         const val EDITOR = "route.editor"
         const val RESULT = "route.result"
         const val PUBLISHED_PAGE = "route.publishedPuzzle"
-        const val CUSTOM_PILL = "library.tab.custom"
+        const val TAB_YOURS = "community.tab.yours"
         const val CUSTOM_LIST = "custom.list"
         const val DRAFT_ROW = "create.draft.row"
         const val PUBLISHED_ROW = "create.published.row"

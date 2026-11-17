@@ -36,6 +36,7 @@ import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.network.FakeNytTransport
 import java.time.LocalDate
@@ -235,7 +236,7 @@ class StrandsPlayE2ETest {
 
     private val playHub = NavigationState(
         tab = PlayKey,
-        stacks = listOf<List<NavKey>>(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey)),
+        stacks = listOf<List<NavKey>>(listOf(HomeKey), listOf(PlayKey), listOf(CommunityKey), listOf(HistoryRootKey)),
     )
 
     private companion object {

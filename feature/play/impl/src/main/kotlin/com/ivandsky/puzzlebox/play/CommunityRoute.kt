@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.compete.api.DuelKey
+import com.ivandsky.puzzlebox.data.repository.SharedTextStore
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
@@ -22,6 +23,7 @@ import com.ivandsky.puzzlebox.play.community.CommunityViewModel
 import com.ivandsky.puzzlebox.play.friend.EnterCodeSheet
 import com.ivandsky.puzzlebox.play.friend.FriendPuzzleRoute
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import org.koin.core.parameter.parametersOf
 
 /**
@@ -52,6 +54,7 @@ internal fun CommunityRoute(
     val removedFriend by viewModel.removedFriend.collectAsStateWithLifecycle()
     val community: CommunityViewModel = koinViewModel()
     val communityState by community.state.collectAsStateWithLifecycle()
+    val sharePending by koinInject<SharedTextStore>().pending.collectAsStateWithLifecycle()
     var enteringCode by rememberSaveable { mutableStateOf(false) }
     var codePrefill by rememberSaveable { mutableStateOf("") }
     LaunchedEffect(codeDraft) {
@@ -67,7 +70,7 @@ internal fun CommunityRoute(
     Box(modifier.fillMaxSize().testTag("route.community")) {
         if (layout == PlayLayout.SinglePane) {
             CommunityBound(community, communityState, onOpen) { actions ->
-                CommunityTabs(communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, Modifier.fillMaxSize())
+                CommunityTabs(communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, Modifier.fillMaxSize(), sharePending = sharePending != null)
             }
         } else {
             val yours = custom.yoursSummary()
@@ -75,7 +78,7 @@ internal fun CommunityRoute(
                 CommunityPanes(
                     default = { tab -> defaultCommunityPick(tab, communityState.phase, friends, yours) },
                     list = { size, picks ->
-                        CommunityTabs(communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, size, picks)
+                        CommunityTabs(communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, size, picks, sharePending = sharePending != null)
                     },
                     empty = { tab -> CommunityEmptyPane(tab, communityState.phase) },
                     detail = { pick, clear -> CommunityPage(pick, clear, custom, onPlay) },

@@ -74,7 +74,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `ObserveTodaySet` reports any of today's games in progress or a duel needs the player;
   holds the Enter-code draft and the one-shot `LibraryRequests`; the rail carries the avatar), `nav/` the shell
   (ADR-0011, ADR-0027): `TopLevelDestination.kt` (`topLevelDestinations` tab registry: key, label, icon,
-  test tag, `Tab`; the three-tab set Today, Games, Ranks; `TabSetSource` swaps in Community's set while CommunityPuzzles is on),
+  test tag, `Tab`; the four tabs Today, Games, Community, Ranks),
   `PuzzleBoxNavigationState.kt` (fresh state, start tab first),
   `RememberNavigator.kt` (`rememberNavigator`, saved under `NAVIGATION_STATE_KEY`
   `"puzzlebox.navigation.v1"`, restored via `reconciledWith`; foreign/undecodable → fresh),
@@ -414,7 +414,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   best live, Play again; today's solve asks `ObserveResultNextThing` once for its moments, next thing and Challenge friend,
   a past day's first solve offers `ResultArchiveNext`), duel legs
   (`MatchLegRoute`/`MatchLegViewModel`, `MatchLegResultRoute`, `LegCompletionRepository`
-  tagging a leg solve with its match), `friend/` (a friend's puzzle: `EnterCodeSheet`, `FriendPuzzleRoute`, `CustomResultRoute`), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
+  tagging a leg solve with its match), `friend/` (a friend's puzzle: `EnterCodeSheet`, `FriendPuzzleRoute` with its hidden board and Report, `CustomResultRoute`), `community/` (Custom's New today: `CommunityHost`, `CommunityViewModel` over the `ListCommunityPuzzles` and `ReportPuzzle` use cases, `CommunityState`, the filter menu and rows), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
   `resultEntry`) and `navigation/GameEntry`; `GameStatsPanel` is the tablet side panel's content (`PlayStatsPanel`: timer, today's progress and the day board).
 - `feature/history/impl/` (`:feature:history:impl`, the Ranks hub; the module keeps its History name) —
   `navigation/RanksEntry` (the tab root `HistoryRootKey` and the pushed `HistoryKey`, both open the hub),
@@ -544,7 +544,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `placementOf` throws for a key with no row. `isImmersive` (`Immersive.kt`) derives only the
   bar-hiding predicate from it. Konsist P9 fails a production `NavKey` without a row. The
   per-key table is never copied into docs.
-- **Tab set** (ADR-0027) — `topLevelDestinations` is the one registry: Today, Games, Ranks.
+- **Tab set** (ADR-0027) — `topLevelDestinations` is the one registry: Today, Games, Community, Ranks.
   Features never read a flag for it: an entry takes a nullable callback or a slot for an optional
   link, and the app passes it (ADR-0027 §10).
 - **Shell actions and the avatar** (ADR-0027) — `ShellAvatar` (`app/nav/ShellChrome.kt`) is the

@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.play.friend
 
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
@@ -29,7 +28,6 @@ import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.FakeGames
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -209,7 +207,7 @@ class FriendPuzzleViewModelTest {
         publish()
         received.upsert(stored())
         backend.signedInUid = REPORTER
-        val vm = viewModel(communityOn = true)
+        val vm = viewModel()
 
         vm.report()
 
@@ -224,7 +222,7 @@ class FriendPuzzleViewModelTest {
         received.upsert(stored())
         backend.signedInUid = REPORTER
         backend.report(code)
-        val vm = viewModel(communityOn = true)
+        val vm = viewModel()
 
         vm.report()
 
@@ -237,7 +235,7 @@ class FriendPuzzleViewModelTest {
         publish()
         received.upsert(stored())
         backend.signedInUid = null
-        val vm = viewModel(communityOn = true)
+        val vm = viewModel()
 
         vm.report()
 
@@ -252,7 +250,7 @@ class FriendPuzzleViewModelTest {
         publish()
         received.upsert(stored())
         backend.signedInUid = null
-        val vm = viewModel(communityOn = true)
+        val vm = viewModel()
         vm.report()
 
         vm.dismissSignIn()
@@ -265,7 +263,7 @@ class FriendPuzzleViewModelTest {
         publish()
         received.upsert(stored())
         backend.signedInUid = REPORTER
-        val vm = viewModel(communityOn = true)
+        val vm = viewModel()
         backend.online = false
 
         vm.report()
@@ -276,24 +274,10 @@ class FriendPuzzleViewModelTest {
     }
 
     @Test
-    fun `with the flag on the card offers Report`() = runTest {
+    fun `the card offers Report`() = runTest {
         received.upsert(stored())
 
-        assertTrue(readyCard(viewModel(communityOn = true)).canReport)
-    }
-
-    @Test
-    fun `with the flag off the card offers no Report, Report does nothing and the list is as before`() = runTest {
-        publish()
-        received.upsert(stored())
-        backend.signedInUid = REPORTER
-        val vm = viewModel()
-
-        vm.report()
-
-        assertEquals(false, readyCard(vm).canReport)
-        assertTrue(hidden.hidden.isEmpty())
-        assertEquals(listOf(code), friendList().first().map { it.code })
+        assertTrue(readyCard(viewModel()).canReport)
     }
 
     @Test
@@ -301,43 +285,31 @@ class FriendPuzzleViewModelTest {
         received.upsert(stored())
         hidden.add(code)
 
-        assertTrue(viewModel(communityOn = true).state.value is FriendCardState.Ready)
+        assertTrue(viewModel().state.value is FriendCardState.Ready)
     }
 
     @Test
-    fun `with the flag on the card carries the puzzle's givens, asked of its game from the stored puzzle alone`() = runTest {
-        fakes[game].replayBoard = stub
-        received.upsert(stored())
-        val vm = viewModel(communityOn = true)
-
-        val card = readyCard(vm)
-
-        assertTrue(card.hiddenBoard)
-        assertTrue(vm.hiddenBoard)
-        assertEquals(listOf(Puzzle(game, VariantId("alpha/n8"), 1, byteArrayOf(1, 2, 3))), stub.asked.distinct())
-    }
-
-    @Test
-    fun `with the flag off the card has no board and the game is never asked for one`() = runTest {
+    fun `the card carries the puzzle's givens, asked of its game from the stored puzzle alone`() = runTest {
         fakes[game].replayBoard = stub
         received.upsert(stored())
         val vm = viewModel()
 
-        assertEquals(false, readyCard(vm).hiddenBoard)
-        assertEquals(false, vm.hiddenBoard)
-        assertTrue(stub.asked.isEmpty())
+        val card = readyCard(vm)
+
+        assertTrue(card.hiddenBoard)
+        assertEquals(listOf(Puzzle(game, VariantId("alpha/n8"), 1, byteArrayOf(1, 2, 3))), stub.asked.distinct())
     }
 
     @Test
-    fun `with the flag on, a game that draws no such board leaves the card without one`() = runTest {
+    fun `a game that draws no such board leaves the card without one`() = runTest {
         received.upsert(stored())
 
-        assertEquals(false, readyCard(viewModel(communityOn = true)).hiddenBoard)
+        assertEquals(false, readyCard(viewModel()).hiddenBoard)
     }
 
     private fun friendList() = ObserveFriendPuzzles(received, saved, completions, fakes.games, hidden)()
 
-    private fun TestScope.viewModel(key: FriendPuzzleKey = FriendPuzzleKey(code.value), communityOn: Boolean = false): FriendPuzzleViewModel {
+    private fun TestScope.viewModel(key: FriendPuzzleKey = FriendPuzzleKey(code.value)): FriendPuzzleViewModel {
         val testDispatcher = main.testDispatcher
         val now = object : DispatcherProvider {
             override val main = testDispatcher
@@ -362,7 +334,6 @@ class FriendPuzzleViewModelTest {
             editors = GameEditorRegistry(emptyList()),
             dispatchers = now,
             board = FriendPuzzleBoard(boards, FakeIdentityService(), dismissedGoogleSignIn, ComputeCustomBoard()),
-            flags = if (communityOn) FakeReleaseFlags(ReleaseFlag.CommunityPuzzles) else FakeReleaseFlags(),
             reportPuzzle = ReportPuzzle(backend, hidden),
         )
         backgroundScope.launch(testDispatcher) { vm.state.collect {} }

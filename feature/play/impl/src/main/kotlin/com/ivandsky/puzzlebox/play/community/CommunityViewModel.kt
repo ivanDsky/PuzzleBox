@@ -4,9 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.CommunityFilter
 import com.ivandsky.puzzlebox.data.repository.CommunityListResult
@@ -31,12 +28,9 @@ import kotlinx.coroutines.launch
  * Picking reloads the list; the difficulty picked again is dropped, and [clearFilters] drops both. Report
  * ([report]) hides a puzzle at once on this device and says so in a notice; signed out it opens the sign-in prompt instead and the player taps Report again.
  *
- * The community flag is read here, once, when the view model is made (spec A2): off, nothing loads and
- * [CommunityState.enabled] stays false, so the host adds no section. A puzzle of a game this build cannot open is
- * left out.
+ * A puzzle of a game this build cannot open is left out.
  */
 internal class CommunityViewModel(
-    flags: ReleaseFlags,
     private val list: ListCommunityPuzzles,
     private val reportPuzzle: ReportPuzzle,
     private val games: GameRegistry,
@@ -56,16 +50,14 @@ internal class CommunityViewModel(
     private var loading: Job? = null
     private var noticeCount = 0
 
-    private val current = MutableStateFlow(CommunityState(enabled = flags.isEnabled(ReleaseFlag.CommunityPuzzles)))
+    private val current = MutableStateFlow(CommunityState())
 
     val state: StateFlow<CommunityState> = current.asStateFlow()
 
     init {
-        if (current.value.enabled) {
-            current.update { it.copy(games = choices) }
-            viewModelScope.launch { signInHolder.status.collect { status -> current.update { it.copy(signIn = status) } } }
-            load()
-        }
+        current.update { it.copy(games = choices) }
+        viewModelScope.launch { signInHolder.status.collect { status -> current.update { it.copy(signIn = status) } } }
+        load()
     }
 
     /** Narrows to [game], or to every game for null; the chip already picked does nothing. */

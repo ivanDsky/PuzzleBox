@@ -147,9 +147,8 @@ class ObserveResultNextThing(
     }
 
     /**
-     * The community list as offers, newest first, read when the chain asks. With no [communityPuzzles] (the flag
-     * is off), or a list that is offline or refused, nothing. A puzzle of a game this build does not register is
-     * left out: it could not be opened.
+     * The community list as offers, newest first, read when the chain asks. With no [communityPuzzles], or a list that is
+     * offline or refused, nothing. A puzzle of a game this build does not register is left out: it could not be opened.
      */
     private suspend fun communityOffers(): List<NextThing.CommunityPuzzle> {
         val listed = communityPuzzles?.invoke() as? CommunityListResult.Listed ?: return emptyList()

@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.app.e2e.LinkedInDataWorld.Companion.GHOSTS
 import com.ivandsky.puzzlebox.app.e2e.LinkedInDataWorld.Companion.ZIP
 import com.ivandsky.puzzlebox.app.e2e.LinkedInDataWorld.Companion.zipRefKey
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
-import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.FinalBoardStore
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
@@ -153,7 +152,7 @@ class LinkedInGhostFriendsE2ETest {
     }
 
     private fun onZipPage(block: ShellRobot.() -> Unit) {
-        shellRobot(graph = world.graph, destinations = topLevelDestinations) {
+        shellRobot(graph = world.graph) {
             runBlocking { world.connect() }
             openZipPage()
             awaitSynced(today)

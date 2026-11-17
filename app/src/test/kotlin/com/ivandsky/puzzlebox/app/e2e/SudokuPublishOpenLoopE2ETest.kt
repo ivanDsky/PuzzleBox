@@ -21,7 +21,7 @@ import com.ivandsky.puzzlebox.games.sudokuui.SudokuPlayController
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.play.PlaySessionStore
-import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
@@ -69,8 +69,8 @@ class SudokuPublishOpenLoopE2ETest {
         shared.signedInUid = AUTHOR
         seedReadyDraft()
 
-        tapTab(PlayKey)
-        tap("library.tab.custom")
+        tapTab(CommunityKey)
+        tap("community.tab.yours")
         tap("create.draft.row")
         awaitTag("create.readiness.ready")
         tap("create.action.publish")
@@ -80,8 +80,8 @@ class SudokuPublishOpenLoopE2ETest {
 
         // The Studio is full-window: Back is the way out, to Custom.
         back()
-        assertRoute("route.library")
-        tap("library.enterCode")
+        assertRoute("route.community")
+        tap("community.enterCode")
         rule.onNodeWithTag("friend.code.field").performTextInput(code.display)
         tap("friend.code.open")
         awaitTag("friend.card.title")

@@ -199,16 +199,4 @@ class CommunityViewModelTest {
 
         assertEquals(CommunityPhase.Loaded(emptyList()), viewModel.state.value.phase)
     }
-
-    @Test
-    fun `with the flag off nothing loads and the section is not enabled`() = runTest {
-        val off = CommunityFixture(flagOn = false)
-        off.publish("AAA111", NOW - HOUR)
-
-        val viewModel = off.viewModel()
-
-        assertFalse(viewModel.state.value.enabled)
-        assertTrue(off.recording.filters.isEmpty())
-        assertTrue(viewModel.state.value.games.isEmpty())
-    }
 }

@@ -41,15 +41,9 @@ private val community = TopLevelDestination(
 )
 
 /**
- * The base tab set: Today, Games, Ranks (ADR-0027, amended). Making puzzles lives in Games, so Create is not a tab;
- * its key stays registered so a state saved with four tabs still decodes, and restore drops its stack. Ranks took
- * History's slot and keeps its key and [Tab], so a saved back stack, the placement table and [openOwner] read the
- * same as they did when the third tab was History.
+ * The tabs, in bar order: Today, Games, Community, Ranks (ADR-0027, amended). Making puzzles lives in Community's list,
+ * so Create is not a tab; its key stays registered so a state saved with four tabs still decodes, and restore drops its
+ * stack. Ranks took History's slot and keeps its key and [Tab], so a saved back stack, the placement table and
+ * [openOwner] read the same as they did when the third tab was History.
  */
-internal val topLevelDestinations: List<TopLevelDestination> = listOf(home, play, ranks)
-
-/**
- * The tab set with CommunityPuzzles on (nav-rethink M10-1): Today, Games, Community, Ranks. Community takes Custom's
- * list out of Games.
- */
-internal val communityDestinations: List<TopLevelDestination> = listOf(home, play, community, ranks)
+internal val topLevelDestinations: List<TopLevelDestination> = listOf(home, play, community, ranks)

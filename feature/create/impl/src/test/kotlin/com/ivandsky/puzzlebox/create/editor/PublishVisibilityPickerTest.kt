@@ -8,7 +8,6 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsAtLeast
-import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -17,7 +16,6 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc.Visibility
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -26,7 +24,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The Public or Link only picker (nav-rethink C1): the two plain words, the pick marked, each chip a 48dp target, a tap
- * reports the choice; a locked pick or a running publish turns the chips off; the details show it only when offered.
+ * reports the choice; a locked pick or a running publish turns the chips off; the details always show it.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
@@ -75,13 +73,7 @@ class PublishVisibilityPickerTest {
     }
 
     @Test
-    fun `the details show the picker only when a choice is offered`() {
-        composeRule.setContent { PuzzleBoxTheme { Details(PublishSession.Details(authorName = "Ivan")) } }
-        assertTrue("flag off: no picker", composeRule.onAllNodes(hasTestTag("create.details.visibility")).fetchSemanticsNodes().isEmpty())
-    }
-
-    @Test
-    fun `the details show the picker when a choice is offered and report the pick`() {
+    fun `the details show the picker and report the pick`() {
         val picked = mutableListOf<Visibility>()
         val details = PublishSession.Details(authorName = "Ivan", visibility = PublishVisibility.Choice(Visibility.Public))
         composeRule.setContent { PuzzleBoxTheme { Details(details, picked::add) } }

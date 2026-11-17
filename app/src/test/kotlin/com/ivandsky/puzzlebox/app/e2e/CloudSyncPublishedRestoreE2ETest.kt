@@ -22,6 +22,7 @@ import com.ivandsky.puzzlebox.games.zip.ZipDefinition
 import com.ivandsky.puzzlebox.games.zip.editor.ZipDraft
 import com.ivandsky.puzzlebox.games.zip.editor.ZipEditor
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -35,7 +36,7 @@ import org.robolectric.annotation.Config
 
 /**
  * A published puzzle on a second phone (ticket 45): A keeps a published board as a draft under its code, B restores it,
- * and B's Published page opens it, with A's variant and author time, while B's Drafts tab lists only the ordinary draft.
+ * and B's Published page opens it, with A's variant and author time, while B's Yours tab lists only the ordinary draft.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -77,15 +78,16 @@ class CloudSyncPublishedRestoreE2ETest {
             assertEquals("the kept draft came with its code", CODE, phoneB.shownDrafts().single { it.id == KEPT }.reservedCode)
             assertTrue("the kept draft's board is A's", keptBoard.contentEquals(phoneB.shownDrafts().single { it.id == KEPT }.blob))
 
-            // Custom lists the ordinary draft only; the kept one is the published puzzle's board.
-            tap("library.tab.custom")
+            // Yours lists the ordinary draft only; the kept one is the published puzzle's board.
+            tapTab(CommunityKey)
+            tap("community.tab.yours")
             awaitTag("create.draft.row")
             rule.waitForIdle()
-            assertEquals("one draft under Custom", 1, rule.onAllNodesWithTag("create.draft.row").fetchSemanticsNodes().size)
+            assertEquals("one draft under Yours", 1, rule.onAllNodesWithTag("create.draft.row").fetchSemanticsNodes().size)
 
             tap("create.published.row")
             awaitTag("route.publishedPuzzle")
-            awaitTag("create.studio.board.readOnly")
+            awaitTag("create.publishedPage.plainBoard")
             awaitTag("create.published.authorTime")
             rule.onNodeWithTag("create.published.authorTime").assertTextContains(formatDuration(AUTHOR_TIME_MS), substring = true)
         }

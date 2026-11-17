@@ -59,7 +59,7 @@ import org.koin.core.parameter.parametersOf
 
 /**
  * A published puzzle's page (spec A6): under a compact bar whose Back ([onBack]) returns to the
- * Games root, the board as published (read-only; with CommunityPuzzles on, the plain sharp board with no
+ * Games root, the board as published (the plain sharp board with no
  * verdict, see [PublishedPageBoard]), the game's own publish details as published
  * (disabled; Strands' theme clue), the share ticket with Copy code and Share, a
  * note that it can't be edited, **Duplicate as new draft**, which stores an editable copy and
@@ -70,7 +70,7 @@ import org.koin.core.parameter.parametersOf
  * reduced motion). A code with no stored row or kept draft shows the missing-draft screen.
  * [PlayLayout.TwoPane] sets the board square on the left and the ticket and actions in the
  * Studio's side pane on the right, so a tablet shows both without scrolling. A null [onBack] is the page shown inside a
- * pane of its own (the Community tablet's right pane): it has no Back, and with CommunityPuzzles on it is two columns
+ * pane of its own (the Community tablet's right pane): it has no Back, and it is two columns
  * when the pane has room for them ([PublishedPageGrid]) and the single column when it has not.
  */
 @Composable
@@ -93,8 +93,8 @@ internal fun PublishedPuzzleRoute(
         label = "publishedPage",
     ) { shown ->
         when (shown) {
-            // The pane (no Back) with the plain board on draws the grid's skeleton when it has the room for both columns.
-            PublishedPuzzleViewModel.State.Loading -> PublishedPageLoading(grid = viewModel.plainBoard && onBack == null && layout == PlayLayout.TwoPane)
+            // The pane (no Back) draws the grid's skeleton when it has the room for both columns.
+            PublishedPuzzleViewModel.State.Loading -> PublishedPageLoading(grid = onBack == null && layout == PlayLayout.TwoPane)
             PublishedPuzzleViewModel.State.Missing -> MissingDraftScreen(onBack = onBack)
             is PublishedPuzzleViewModel.State.Ready -> {
                 val page: @Composable (PlayLayout, Boolean) -> Unit = { shownLayout, grid ->
@@ -108,8 +108,8 @@ internal fun PublishedPuzzleRoute(
                         onConfirmUnpublish = viewModel::confirmUnpublish,
                     )
                 }
-                // The pane (no Back) with the plain board on: two columns when it has the room, else the single column.
-                if (shown.plainBoard && onBack == null && layout == PlayLayout.TwoPane) {
+                // The pane (no Back): two columns when it has the room, else the single column.
+                if (onBack == null && layout == PlayLayout.TwoPane) {
                     BoxWithConstraints {
                         val wide = maxWidth >= PublishedGridMinWidth
                         page(if (wide) PlayLayout.TwoPane else PlayLayout.SinglePane, wide)
@@ -134,7 +134,7 @@ private fun PublishedPage(
 ) {
     var copies by remember { mutableIntStateOf(0) }
     val asked by unpublish.state.collectAsStateWithLifecycle()
-    val board: @Composable (Modifier) -> Unit = { boardModifier -> PublishedPageBoard(page, layout, boardModifier) }
+    val board: @Composable (Modifier) -> Unit = { boardModifier -> PublishedPageBoard(page, boardModifier) }
     val actions: @Composable ColumnScope.() -> Unit = {
         page.ui.PublishFields(page.controller, enabled = false, modifier = Modifier.fillMaxWidth())
         PublishedActions(page.ticket, onCopied = { copies++ }, onDuplicate = onDuplicate, onUnpublish = unpublish::ask)
@@ -167,7 +167,7 @@ private fun PublishedPage(
         if (grid) {
             PublishedPageGrid(
                 title = page.ticket.title,
-                board = { boardModifier, side -> PublishedPageBoard(page, layout, boardModifier, side) },
+                board = { boardModifier, side -> PublishedPageBoard(page, boardModifier, side) },
                 details = {
                     PublishedActions(page.ticket, onCopied = { copies++ }, onDuplicate = onDuplicate, onUnpublish = unpublish::ask)
                     page.ui.PublishFields(page.controller, enabled = false, modifier = Modifier.fillMaxWidth())

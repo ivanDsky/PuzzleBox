@@ -110,48 +110,36 @@ class PlacementTest {
         val tabs = roots.map { it.first }
 
         assertEquals("two tab roots share a tab: $tabs", tabs.distinct(), tabs)
-        // Community is a tab only in the CommunityPuzzles set, so it is not in topLevelDestinations.
-        assertEquals(topLevelDestinations.map { it.tab }.toSet() + Tab.Community, tabs.toSet())
+        assertEquals(topLevelDestinations.map { it.tab }.toSet(), tabs.toSet())
         assertEquals(
             "a tab root's key differs from its destination's",
-            topLevelDestinations.associate { it.tab to it.key::class } + (Tab.Community to CommunityKey::class),
+            topLevelDestinations.associate { it.tab to it.key::class },
             roots.toMap(),
         )
     }
 
     @Test
-    fun `every registered key resolves under the base set and the Community set, and only the Custom keys move`() {
+    fun `every registered key resolves to its row`() {
         val keys = PlacementSamples.everyRow()
         assertEquals("a registered key has no sample to resolve", registeredKeyClasses(), keys.map { it::class }.toSet())
-        val base = keys.associate { it::class to placements.getValue(it::class) }
 
-        assertEquals(base, keys.associate { it::class to placementOf(it, PlacementDelta.None) })
-        assertEquals(
-            base + mapOf(
-                EditorKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Immersive),
-                PublishedPuzzleKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Bar),
-                FriendPuzzleKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Bar),
-                CustomGameKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Immersive),
-                CustomResultKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Immersive),
-            ),
-            keys.associate { it::class to placementOf(it, communityPlacement) },
-        )
+        assertEquals(keys.associate { it::class to placements.getValue(it::class) }, keys.associate { it::class to placementOf(it) })
     }
 
     @Test
-    fun `the Studio and the published page live on Games in the base table`() {
-        assertEquals(Placement(Home.PushedOn(Tab.Games), Chrome.Immersive), placementOf(EditorKey("d1"), PlacementDelta.None))
-        assertEquals(Placement(Home.PushedOn(Tab.Games), Chrome.Bar), placementOf(PublishedPuzzleKey("K7Q2MX"), PlacementDelta.None))
+    fun `the Studio and the published page live on Community`() {
+        assertEquals(Placement(Home.PushedOn(Tab.Community), Chrome.Immersive), placementOf(EditorKey("d1")))
+        assertEquals(Placement(Home.PushedOn(Tab.Community), Chrome.Bar), placementOf(PublishedPuzzleKey("K7Q2MX")))
     }
 
     @Test
     fun `the legacy Create key resolves as retired`() {
-        assertEquals(Placement(Home.Retired, Chrome.Bar), placementOf(CreateKey, PlacementDelta.None))
+        assertEquals(Placement(Home.Retired, Chrome.Bar), placementOf(CreateKey))
     }
 
     @Test
     fun `a key without a row fails with a message that names it`() {
-        val failure = assertThrows(IllegalStateException::class.java) { placementOf(NoRow, PlacementDelta.None) }
+        val failure = assertThrows(IllegalStateException::class.java) { placementOf(NoRow) }
 
         assertTrue(
             "expected the message to name NoRow, got: ${failure.message}",

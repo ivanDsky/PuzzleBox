@@ -48,7 +48,7 @@ import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
 
 /**
  * A friend's puzzle before it is played: the game's glyph, the title, "by" the author and
- * the note, with [FriendCard.givens] (CommunityPuzzles on) the puzzle's board between them, blurred under "Hidden until
+ * the note, with [FriendCard.givens] the puzzle's board between them, blurred under "Hidden until
  * you play" until you have solved it ([HiddenBoardSection]), the size and difficulty chips (difficulty only when the local re-check graded
  * it, "Taken down · still plays" once the author took it down, popping in on the stamp's
  * spring when the card's recheck finds it), the author's time and hints beside yours once solved, the code with Copy, the one
@@ -56,7 +56,7 @@ import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
  * Report ([onReport]) when [FriendCard.canReport].
  * Sections rise in with the Enter stagger the first time the code's card is shown; under
  * reduced motion they only fade. On a wide window the card keeps to one centred column, unless it is in the Community
- * tablet's right pane, [paneHeight] high, with the board on and room for both columns: then [FriendPuzzleGrid] lays out
+ * tablet's right pane, [paneHeight] high, with the board and room for both columns: then [FriendPuzzleGrid] lays out
  * two, centred in the pane. A card in a pane carries no bottom margin in its [modifier]: the single column adds its own,
  * and the grid keeps its margins inside the pane's height.
  */

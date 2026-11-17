@@ -6,7 +6,6 @@ import com.ivandsky.puzzlebox.profile.settings.VisibilitySlot
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.nav.Home
-import com.ivandsky.puzzlebox.app.nav.TabSet
 import com.ivandsky.puzzlebox.app.nav.placementRows
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxEntryProvider
 import com.ivandsky.puzzlebox.app.nav.testCustomSlot
@@ -45,7 +44,6 @@ class NavRoutesTest {
         val navigator = Navigator(puzzleBoxNavigationState())
         return puzzleBoxEntryProvider(
             navigator = navigator,
-            tabSet = TabSet.ThreeTabs,
             homeLayout = HomeLayout.SinglePane,
             playLayout = PlayLayout.SinglePane,
             historyLayout = HistoryLayout.SinglePane,

@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.navigation.NavigationState
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
@@ -28,7 +29,7 @@ import org.robolectric.annotation.Config
 
 /**
  * The real shell (SC1, SC5, SC6), on a phone's bar and a tablet's rail: the tab set
- * is Today, Games and Ranks; the rail carries the avatar once at
+ * is Today, Games, Community and Ranks; the rail carries the avatar once at
  * its bottom on every screen it shows, centres its tabs on the window and gives the avatar a 48dp
  * target below them, the bar carries the avatar only in Today's header and nowhere else; the
  * avatar opens Profile and Profile's gear opens Settings in the layer over the current tab (on a bar from Today),
@@ -42,11 +43,11 @@ class ShellTabsE2ETest {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `a phone's bar shows Today, Games and Ranks with Today selected`() = tabSet(Width.Phone)
+    fun `a phone's bar shows Today, Games, Community and Ranks with Today selected`() = tabSet(Width.Phone)
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `a tablet's rail shows Today, Games and Ranks with Today selected`() = tabSet(Width.Rail)
+    fun `a tablet's rail shows Today, Games, Community and Ranks with Today selected`() = tabSet(Width.Rail)
 
     @Test
     @Config(qualifiers = PHONE)
@@ -124,6 +125,7 @@ class ShellTabsE2ETest {
             stacks = listOf(
                 listOf(HomeKey, HistoryKey()),
                 listOf(PlayKey, DuelKey(CODE), FriendPuzzleKey(CODE)),
+                listOf(CommunityKey),
                 listOf(HistoryRootKey),
             ),
         ),
@@ -159,6 +161,7 @@ class ShellTabsE2ETest {
             stacks = listOf(
                 listOf(HomeKey, ResultKey(ZIP, E2E_TODAY.toString(), timeMs = 61_000, hintsUsed = 0)),
                 listOf(PlayKey, GameKey(ZIP)),
+                listOf(CommunityKey),
                 listOf(HistoryRootKey, DuelRevealKey(CODE)),
             ),
         ),
@@ -245,6 +248,7 @@ class ShellTabsE2ETest {
         const val CODE = "K7Q2MX"
         const val HOME = "route.home"
         const val LIBRARY = "route.library"
+        const val COMMUNITY = "route.community"
         const val RANKS = "route.ranks"
         const val FRIEND = "route.friend"
         const val GAME = "route.game"
@@ -254,8 +258,9 @@ class ShellTabsE2ETest {
         val LABELS = listOf(
             "nav.tab.home" to "Today",
             "nav.tab.play" to "Games",
+            "nav.tab.community" to "Community",
             "nav.tab.ranks" to "Ranks",
         )
-        val ROOTS = listOf(HomeKey to HOME, PlayKey to LIBRARY, HistoryRootKey to RANKS)
+        val ROOTS = listOf(HomeKey to HOME, PlayKey to LIBRARY, CommunityKey to COMMUNITY, HistoryRootKey to RANKS)
     }
 }

@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
-import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import kotlinx.coroutines.runBlocking
 import org.koin.dsl.module
@@ -42,8 +42,8 @@ internal class TestSolveWorld(vararg flags: ReleaseFlag) {
     /** Keeps [board] as an untested draft titled [title], opens it in the Studio and taps Test solve once it is offered. */
     fun startTestSolve(robot: ShellRobot, board: EditorDraft<*>, title: String) = with(robot) {
         runBlocking { drafts.upsert(readyDraft(board, title).copy(testSolve = null)) }
-        tapTab(PlayKey)
-        tap("library.tab.custom")
+        tapTab(CommunityKey)
+        tap("community.tab.yours")
         tap("create.draft.row")
         testSolveAgain(this)
     }

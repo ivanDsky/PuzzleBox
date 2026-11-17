@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.games.queensui.QueensPlayController
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
@@ -96,6 +97,7 @@ class FriendResumeE2ETest {
         val dailyLeft = savedSession(dailySlot)
         tap(LIBRARY_PAGE_BACK)
 
+        tapTab(CommunityKey)
         openCard(code)
         tap(CARD_PLAY)
         awaitTag(GAME)
@@ -111,7 +113,7 @@ class FriendResumeE2ETest {
         shared.online = false
         relaunch()
         foreground()
-        tapTab(PlayKey)
+        tapTab(CommunityKey)
         openCard(code)
 
         // The card offers Resume and reads the friend slot's saved time; today's slot keeps its own.
@@ -130,6 +132,7 @@ class FriendResumeE2ETest {
         back()
         awaitTag(CARD_TITLE)
         tap(CARD_UP)
+        tapTab(PlayKey)
         openGame(QUEENS)
         val dailyResumed = session(dailySlot)
         assertEquals("today's marks are untouched", dailyLeft.marks, dailyResumed.marks)
@@ -163,7 +166,7 @@ class FriendResumeE2ETest {
         shared.signedInUid = null
     }
 
-    /** From the library's list: Enter code, then the card once it has opened. */
+    /** From Community's head: Enter code, then the card once it has opened. */
     private fun ShellRobot.openCard(code: ShareCode) {
         tap(ENTER_CODE)
         rule.onNodeWithTag(CODE_FIELD).performTextInput(code.display)
@@ -242,7 +245,7 @@ class FriendResumeE2ETest {
         const val GAME = "route.game"
         const val FRIEND = "route.friend"
         const val LIBRARY_PAGE_BACK = "library.page.back"
-        const val ENTER_CODE = "library.enterCode"
+        const val ENTER_CODE = "community.enterCode"
         const val CODE_FIELD = "friend.code.field"
         const val CODE_OPEN = "friend.code.open"
         const val CARD_TITLE = "friend.card.title"

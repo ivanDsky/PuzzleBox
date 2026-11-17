@@ -29,7 +29,6 @@ import org.robolectric.annotation.Config
 @Config(sdk = [34], application = DrainTestApplication::class)
 class OpenRanksTest {
 
-    private val tabSet = TabSet.ThreeTabs
 
     /** Games with a game page and a Result on its stack: where the game page's and Result's rank links are tapped. */
     private fun onResult() = Navigator(puzzleBoxNavigationState()).also {
@@ -54,7 +53,7 @@ class OpenRanksTest {
         val navigator = Navigator(puzzleBoxNavigationState()).also { it.selectTab(PlayKey); it.push(GameKey("zip")) }
         val before = navigator.state
 
-        openRanks(navigator, tabSet)(GameId("zip"), LocalDate.of(2026, 11, 5))
+        openRanks(navigator)(GameId("zip"), LocalDate.of(2026, 11, 5))
 
         navigator.assertOnRanks(HistoryKey("zip", "2026-11-05"))
         assertEquals(before.currentStack, navigator.state.stackOf(PlayKey))
@@ -68,7 +67,7 @@ class OpenRanksTest {
         val navigator = onResult()
         val games = navigator.state.currentStack
 
-        openRanks(navigator, tabSet)(GameId("zip"), LocalDate.of(2026, 11, 5))
+        openRanks(navigator)(GameId("zip"), LocalDate.of(2026, 11, 5))
 
         navigator.assertOnRanks(HistoryKey("zip", "2026-11-05"))
         navigator.pop()
@@ -80,14 +79,14 @@ class OpenRanksTest {
     @Test
     fun `a null day is today`() {
         val navigator = onResult()
-        openRanks(navigator, tabSet)(GameId("zip"), null)
+        openRanks(navigator)(GameId("zip"), null)
         navigator.assertOnRanks(HistoryKey("zip", null))
     }
 
     @Test
     fun `a double tap switches once`() {
         val navigator = onResult()
-        val open = openRanks(navigator, tabSet)
+        val open = openRanks(navigator)
         open(GameId("zip"), null)
         val state = navigator.state
         open(GameId("zip"), null)
@@ -108,7 +107,7 @@ class OpenRanksTest {
     @Test
     fun `Ranks from the rail later shows Ranks as the link left it`() {
         val navigator = onResult()
-        openRanks(navigator, tabSet)(GameId("zip"), null)
+        openRanks(navigator)(GameId("zip"), null)
         navigator.pop()
 
         navigator.selectTab(HistoryRootKey)
@@ -128,7 +127,7 @@ class OpenRanksTest {
         val navigator = Navigator(puzzleBoxNavigationState())
         val before = navigator.state
 
-        val summaries = homeSummaries(navigator, tabSet, duels = null, libraryRequests = LibraryRequests())
+        val summaries = homeSummaries(navigator, duels = null, libraryRequests = LibraryRequests())
         summaries.onOpenRank?.invoke(GameId("zip"))
 
         navigator.assertOnRanks(HistoryKey("zip", null))
@@ -140,7 +139,7 @@ class OpenRanksTest {
     fun `Today's day opens Overall at the day and its streak opens the calendar, each switching to Ranks`() {
         val navigator = Navigator(puzzleBoxNavigationState())
         val before = navigator.state
-        val summaries = homeSummaries(navigator, tabSet, duels = null, libraryRequests = LibraryRequests())
+        val summaries = homeSummaries(navigator, duels = null, libraryRequests = LibraryRequests())
 
         summaries.onOpenDay("2026-11-05")
         navigator.assertOnRanks(HistoryKey(null, "2026-11-05"))
@@ -159,7 +158,7 @@ class OpenRanksTest {
         val before = navigator.state
         val requests = LibraryRequests()
 
-        requests.openGamesSection(navigator, tabSet, GamesTab.Duels)
+        requests.openGamesSection(navigator, GamesTab.Duels)
 
         assertEquals(PlayKey, navigator.state.tab)
         navigator.pop()

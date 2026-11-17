@@ -6,7 +6,6 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
@@ -20,7 +19,6 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.FakeGames
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
@@ -40,7 +38,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Report on the friend route, over the real use case and fake backend: the ⋮ only with the community flag on; Report
+ * Report on the friend route, over the real use case and fake backend: the ⋮ beside the title; Report
  * in its menu closes the card behind a "Reported" snackbar and then leaves; signed out it opens the sign-in prompt and
  * the card stays.
  */
@@ -61,24 +59,16 @@ class FriendReportRouteTest {
     private var backs = 0
 
     @Test
-    fun `with the flag on the card has an overflow that offers Report`() {
-        show(communityOn = true)
+    fun `the card has an overflow that offers Report`() {
+        show()
 
         node("friend.card.more").assertIsDisplayed().performClick()
         node("friend.card.report").assertIsDisplayed()
     }
 
     @Test
-    fun `with the flag off the card has no overflow`() {
-        show(communityOn = false)
-
-        node("friend.card.title").assertIsDisplayed()
-        assertEquals(0, composeRule.onAllNodes(hasTestTag("friend.card.more")).fetchSemanticsNodes().size)
-    }
-
-    @Test
     fun `Report hides the puzzle, says so, then leaves the card`() {
-        show(communityOn = true)
+        show()
 
         node("friend.card.more").performClick()
         node("friend.card.report").performClick()
@@ -95,7 +85,7 @@ class FriendReportRouteTest {
 
     @Test
     fun `signed out, Report opens the sign-in prompt and the card stays`() {
-        show(communityOn = true, signedIn = false)
+        show(signedIn = false)
 
         node("friend.card.more").performClick()
         node("friend.card.report").performClick()
@@ -112,7 +102,7 @@ class FriendReportRouteTest {
         assertEquals(0, composeRule.onAllNodes(hasTestTag("community.signin")).fetchSemanticsNodes().size)
     }
 
-    private fun show(communityOn: Boolean, signedIn: Boolean = true) {
+    private fun show(signedIn: Boolean = true) {
         runBlocking {
             shared.publish(doc())
             received.upsert(stored())
@@ -141,7 +131,6 @@ class FriendReportRouteTest {
             editors = GameEditorRegistry(emptyList()),
             dispatchers = now,
             board = signedOutBoard(),
-            flags = if (communityOn) FakeReleaseFlags(ReleaseFlag.CommunityPuzzles) else FakeReleaseFlags(),
             reportPuzzle = ReportPuzzle(shared, hidden),
         )
         composeRule.setContent {

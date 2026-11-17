@@ -52,6 +52,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
@@ -153,7 +154,7 @@ class FriendWinIsolationE2ETest {
                 dailySubmits.none { it.puzzleRef in outOfWindow.map(refKey) },
             )
 
-            tapTab(PlayKey)
+            tapTab(CommunityKey)
             openCard()
             tap(CARD_PLAY)
             awaitTag(GAME)
@@ -231,7 +232,7 @@ class FriendWinIsolationE2ETest {
         shared.signedInUid = null
     }
 
-    /** From the library's list: Enter code, then the card once it has opened. */
+    /** From Community's head: Enter code, then the card once it has opened. */
     private fun ShellRobot.openCard() {
         tap(ENTER_CODE)
         rule.onNodeWithTag(CODE_FIELD).performTextInput(code.display)
@@ -305,7 +306,7 @@ class FriendWinIsolationE2ETest {
     /** Home's stack holds History, so a relaunch opens on it and back reaches Home. */
     private val historyOverHome = NavigationState(
         tab = HomeKey,
-        stacks = listOf(listOf(HomeKey, HistoryKey()), listOf(PlayKey), listOf(HistoryRootKey)),
+        stacks = listOf(listOf(HomeKey, HistoryKey()), listOf(PlayKey), listOf(CommunityKey), listOf(HistoryRootKey)),
     )
 
     private companion object {
@@ -330,7 +331,7 @@ class FriendWinIsolationE2ETest {
         const val CUSTOM_RESULT = "route.custom_result"
         const val FRIEND_CARD = "route.friend"
         const val RESULT_DONE = "result.done"
-        const val ENTER_CODE = "library.enterCode"
+        const val ENTER_CODE = "community.enterCode"
         const val CODE_FIELD = "friend.code.field"
         const val CODE_OPEN = "friend.code.open"
         const val CARD_TITLE = "friend.card.title"

@@ -33,7 +33,6 @@ class LinkedInNavTest {
         val navigator = Navigator(puzzleBoxNavigationState())
         val entry = puzzleBoxEntryProvider(
             navigator = navigator,
-            tabSet = TabSet.ThreeTabs,
             homeLayout = HomeLayout.SinglePane,
             playLayout = PlayLayout.SinglePane,
             historyLayout = HistoryLayout.SinglePane,

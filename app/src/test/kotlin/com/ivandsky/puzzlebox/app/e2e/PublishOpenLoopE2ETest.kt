@@ -21,7 +21,7 @@ import com.ivandsky.puzzlebox.games.queensui.QueensPlayController
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.PlaySessionStore
-import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
@@ -66,14 +66,14 @@ class PublishOpenLoopE2ETest {
         publishOpenLoop(
             graph(),
             openDraft = {
-                tapTab(PlayKey)
-                tap("library.tab.custom")
+                tapTab(CommunityKey)
+                tap("community.tab.yours")
                 tap("create.draft.row")
             },
             toGames = {
                 // The Studio is full-window: Back is the way out, to Custom, which now lists the puzzle.
                 back()
-                assertRoute("route.library")
+                assertRoute("route.community")
                 awaitTag("create.published.row")
             },
         )
@@ -95,7 +95,7 @@ class PublishOpenLoopE2ETest {
         assertEquals("the shared doc is the draft's", TITLE, shared.docs.getValue(code).title)
 
         toGames()
-        tap("library.enterCode")
+        tap("community.enterCode")
         rule.onNodeWithTag("friend.code.field").performTextInput(code.display)
         tap("friend.code.open")
         awaitTag("friend.card.title")

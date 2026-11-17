@@ -8,18 +8,14 @@ import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.play.GamesTab
-import com.ivandsky.puzzlebox.play.LibraryRequest
 import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 /**
- * The shared-text intake helpers: what a `SEND` share offers, and where it lands: Games' Custom pill,
- * or Community's root when that tab is on.
+ * The shared-text intake helpers: what a `SEND` share offers, and where it lands: Community's root.
  */
 class SharedTextTest {
 
@@ -52,73 +48,50 @@ class SharedTextTest {
     }
 
     @Test
-    fun `the text opens Games' root with Custom asked for, from every tab`() {
+    fun `the text lands on Community's root from every tab, keeping every other stack`() {
         listOf(
             stacks(HomeKey, home = listOf(HomeKey, HistoryKey())),
             stacks(PlayKey),
             stacks(PlayKey, play = listOf(PlayKey, EditorKey("castle"))),
+            stacks(CommunityKey, community = listOf(CommunityKey, EditorKey("castle"))),
             stacks(HistoryRootKey, history = listOf(HistoryRootKey, HistoryKey())),
         ).forEach { before ->
-            val requests = LibraryRequests()
-            val after = before.applied(requests = requests)
+            val after = before.applied()
 
-            assertEquals("from $before", PlayKey, after.tab)
-            assertEquals("from $before", listOf<NavKey>(PlayKey), after.stackOf(PlayKey))
-            assertEquals("from $before", LibraryRequest.Section(GamesTab.Custom), requests.pending)
+            assertEquals("from $before", CommunityKey, after.tab)
+            assertEquals("from $before", listOf<NavKey>(CommunityKey), after.stackOf(CommunityKey))
             assertEquals(
                 "other stacks kept, from $before",
-                before.stacks - setOf(before.stackOf(PlayKey)),
-                after.stacks - setOf(after.stackOf(PlayKey)),
+                before.stacks - setOf(before.stackOf(CommunityKey)),
+                after.stacks - setOf(after.stackOf(CommunityKey)),
             )
         }
     }
 
     @Test
-    fun `the text closes the layer open over Games`() {
-        val requests = LibraryRequests()
-        val covered = stacks(PlayKey).copy(layer = listOf(ProfileKey))
+    fun `the text closes the layer open over Community`() {
+        val covered = stacks(CommunityKey).copy(layer = listOf(ProfileKey))
 
-        assertEquals(stacks(PlayKey), covered.applied(requests = requests))
-        assertEquals(LibraryRequest.Section(GamesTab.Custom), requests.pending)
+        assertEquals(stacks(CommunityKey), covered.applied())
     }
 
     @Test
     fun `back from where the text landed reaches Today`() {
         val navigator = Navigator(stacks(PlayKey, play = listOf(PlayKey, EditorKey("castle"))))
 
-        navigator.applySharedText(TabSet.ThreeTabs, LibraryRequests())
+        navigator.applySharedText()
         navigator.pop()
 
         assertEquals(HomeKey, navigator.state.tab)
     }
 
-    @Test
-    fun `with a Community tab the text lands on Community's root and asks for no Games section`() {
-        val requests = LibraryRequests()
-        val before = communityStacks(PlayKey, play = listOf(PlayKey, EditorKey("castle")))
-
-        val after = before.applied(TabSet.CommunityTabs, requests)
-
-        assertEquals(CommunityKey, after.tab)
-        assertEquals(listOf<NavKey>(CommunityKey), after.stackOf(CommunityKey))
-        assertEquals(before.stackOf(PlayKey), after.stackOf(PlayKey))
-        assertNull(requests.pending)
-    }
-
-    private fun NavigationState.applied(
-        tabSet: TabSet = TabSet.ThreeTabs,
-        requests: LibraryRequests = LibraryRequests(),
-    ): NavigationState = Navigator(this).apply { applySharedText(tabSet, requests) }.state
+    private fun NavigationState.applied(): NavigationState = Navigator(this).apply { applySharedText() }.state
 
     private fun stacks(
         tab: NavKey,
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
+        community: List<NavKey> = listOf(CommunityKey),
         history: List<NavKey> = listOf(HistoryRootKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, history))
-
-    private fun communityStacks(
-        tab: NavKey,
-        play: List<NavKey> = listOf(PlayKey),
-    ) = NavigationState(tab = tab, stacks = listOf(listOf(HomeKey), play, listOf(CommunityKey), listOf(HistoryRootKey)))
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, community, history))
 }

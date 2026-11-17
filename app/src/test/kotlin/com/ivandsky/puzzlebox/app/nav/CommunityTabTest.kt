@@ -11,7 +11,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.compete.api.DuelKey
 import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
@@ -27,9 +26,7 @@ import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -38,7 +35,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * M10-1: Community is its own tab while CommunityPuzzles is on: Today, Games, Community, Ranks. The links
+ * M10-1: Community is its own tab Today, Games, Community, Ranks. The links
  * and shared text land on the Community tab, where Custom's list lives, instead of a Games section.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -49,33 +46,28 @@ class CommunityTabTest {
     val composeRule = createComposeRule()
 
     @Test
-    fun `with CommunityPuzzles on the tabs are today, games, community, ranks`() {
-        val tabSet = TabSetSource(FakeReleaseFlags(ReleaseFlag.CommunityPuzzles)).tabSet
-
-        assertEquals(listOf("Today", "Games", "Community", "Ranks"), tabSet.destinations.map { it.label })
-        assertEquals(listOf(HomeKey, PlayKey, CommunityKey, HistoryRootKey), tabSet.destinations.map { it.key })
-        assertEquals(listOf("nav.tab.home", "nav.tab.play", "nav.tab.community", "nav.tab.ranks"), tabSet.destinations.map { it.tag })
-        assertTrue(tabSet.hasCommunityTab)
+    fun `the tabs are today, games, community, ranks`() {
+        assertEquals(listOf("Today", "Games", "Community", "Ranks"), topLevelDestinations.map { it.label })
+        assertEquals(listOf(HomeKey, PlayKey, CommunityKey, HistoryRootKey), topLevelDestinations.map { it.key })
+        assertEquals(listOf("nav.tab.home", "nav.tab.play", "nav.tab.community", "nav.tab.ranks"), topLevelDestinations.map { it.tag })
     }
 
     @Test
-    fun `with CommunityPuzzles on the Studio is immersive on Community and the published page keeps the bar`() {
-        val tabSet = TabSetSource(FakeReleaseFlags(ReleaseFlag.CommunityPuzzles)).tabSet
-
-        assertTrue(isImmersive(EditorKey("d1"), tabSet.placement))
-        assertEquals(Placement(Home.PushedOn(Tab.Community), Chrome.Immersive), placementOf(EditorKey("d1"), tabSet.placement))
-        assertEquals(Placement(Home.PushedOn(Tab.Community), Chrome.Bar), placementOf(PublishedPuzzleKey("K7Q2MX"), tabSet.placement))
-        assertEquals(Placement(Home.PushedOn(Tab.Community), Chrome.Bar), placementOf(FriendPuzzleKey("K7Q2MX"), tabSet.placement))
+    fun `the Studio is immersive on Community and the published page keeps the bar`() {
+        assertTrue(isImmersive(EditorKey("d1")))
+        assertEquals(Placement(Home.PushedOn(Tab.Community), Chrome.Immersive), placementOf(EditorKey("d1")))
+        assertEquals(Placement(Home.PushedOn(Tab.Community), Chrome.Bar), placementOf(PublishedPuzzleKey("K7Q2MX")))
+        assertEquals(Placement(Home.PushedOn(Tab.Community), Chrome.Bar), placementOf(FriendPuzzleKey("K7Q2MX")))
     }
 
     @Test
     fun `the bar shows four tabs and highlights the selected one`() {
         var selected: NavKey = CommunityKey
         composeRule.setContent {
-            TopLevelNavBar(selected = selected, onSelect = {}, destinations = TabSet.CommunityTabs.destinations)
+            TopLevelNavBar(selected = selected, onSelect = {}, destinations = topLevelDestinations)
         }
 
-        TabSet.CommunityTabs.destinations.forEach { composeRule.onAllNodesWithTag(it.tag).assertCountEquals(1) }
+        topLevelDestinations.forEach { composeRule.onAllNodesWithTag(it.tag).assertCountEquals(1) }
         composeRule.onAllNodesWithTag("nav.tab.create").assertCountEquals(0)
         composeRule.onNodeWithTag("nav.tab.community").assertIsSelected()
     }
@@ -86,26 +78,24 @@ class CommunityTabTest {
             TopLevelNavRail(
                 selected = CommunityKey,
                 onSelect = {},
-                destinations = TabSet.CommunityTabs.destinations,
+                destinations = topLevelDestinations,
                 bottomActions = { Box(Modifier.size(48.dp)) },
             )
         }
 
-        TabSet.CommunityTabs.destinations.forEach { composeRule.onAllNodesWithTag(it.tag).assertCountEquals(1) }
+        topLevelDestinations.forEach { composeRule.onAllNodesWithTag(it.tag).assertCountEquals(1) }
         composeRule.onNodeWithTag("nav.tab.community").assertIsSelected()
     }
 
     @Test
     fun `a code selects Community and pushes its card there, keeping Games' stack`() {
         val before = fourTabs(HomeKey, play = listOf(PlayKey, GameKey("zip")))
-        val requests = LibraryRequests()
 
-        val after = before.applyingLink(FriendLink.Code(code("K7Q2MX")), requests)
+        val after = before.applyingLink(FriendLink.Code(code("K7Q2MX")))
 
         assertEquals(CommunityKey, after.tab)
         assertEquals(listOf(CommunityKey, CARD), after.stackOf(CommunityKey))
         assertEquals(before.stackOf(PlayKey), after.stackOf(PlayKey))
-        assertNull(requests.pending)
     }
 
     @Test
@@ -131,31 +121,27 @@ class CommunityTabTest {
             fourTabs(CommunityKey, community = listOf(CommunityKey, CARD)),
             fourTabs(HistoryRootKey).copy(layer = listOf(ProfileKey)),
         ).forEach { before ->
-            val requests = LibraryRequests()
-            val after = before.applyingLink(FriendLink.Invalid("K7Q2M"), requests)
+            val after = before.applyingLink(FriendLink.Invalid("K7Q2M"))
 
             assertEquals("from $before", CommunityKey, after.tab)
             assertEquals("from $before", listOf<NavKey>(CommunityKey), after.stackOf(CommunityKey))
             assertEquals("from $before", emptyList<NavKey>(), after.layer)
-            assertNull("from $before", requests.pending)
         }
     }
 
     @Test
-    fun `shared text lands on Community's root from every tab, asking for no Games section`() {
+    fun `shared text lands on Community's root from every tab, `() {
         listOf(
             fourTabs(HomeKey),
             fourTabs(PlayKey, play = listOf(PlayKey, EditorKey("castle"))),
             fourTabs(CommunityKey, community = listOf(CommunityKey, EditorKey("castle"))),
             fourTabs(HistoryRootKey).copy(layer = listOf(ProfileKey)),
         ).forEach { before ->
-            val requests = LibraryRequests()
-            val after = Navigator(before).apply { applySharedText(TabSet.CommunityTabs, requests) }.state
+            val after = Navigator(before).apply { applySharedText() }.state
 
             assertEquals("from $before", CommunityKey, after.tab)
             assertEquals("from $before", listOf<NavKey>(CommunityKey), after.stackOf(CommunityKey))
             assertEquals("from $before", emptyList<NavKey>(), after.layer)
-            assertNull("from $before", requests.pending)
         }
     }
 
@@ -171,20 +157,20 @@ class CommunityTabTest {
     }
 
     @Test
-    fun `a legacy state saved with a Create stack is reconciled when Community is on`() {
+    fun `a legacy state saved with a Create stack is reconciled`() {
         val saved = NavigationState(
             tab = CreateKey,
             stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(HistoryRootKey), listOf(CreateKey, EditorKey("castle"))),
         )
 
-        val restored = saved.reconciledWith(puzzleBoxNavigationState(TabSet.CommunityTabs.destinations))
+        val restored = saved.reconciledWith(puzzleBoxNavigationState())
 
         assertEquals(listOf(HomeKey, PlayKey, CommunityKey, HistoryRootKey), restored.tabs)
         assertEquals(HomeKey, restored.tab)
     }
 
-    private fun NavigationState.applyingLink(link: FriendLink, requests: LibraryRequests = LibraryRequests()): NavigationState =
-        Navigator(this).apply { applyFriendLink(link, TabSet.CommunityTabs, requests) }.state
+    private fun NavigationState.applyingLink(link: FriendLink): NavigationState =
+        Navigator(this).apply { applyFriendLink(link) }.state
 
     private fun fourTabs(
         tab: NavKey,

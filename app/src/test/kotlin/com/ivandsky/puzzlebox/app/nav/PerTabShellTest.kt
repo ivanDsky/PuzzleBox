@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
@@ -86,7 +87,7 @@ class PerTabShellTest {
                 PuzzleBoxApplication.appModules + module {
                     // Home prefetches today's puzzles on resume: every game's fetch is scripted.
                     single<DailyRepository> { freshDailyForAllGames() }
-                    // No release flag on: the base three tabs, whatever the release default.
+                    // No release flag on, whatever the release default.
                     single<ReleaseFlags> { FakeReleaseFlags() }
                     single<CompletionRepository> { FakeCompletionRepository() }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
@@ -209,7 +210,7 @@ class PerTabShellTest {
         assertEquals(
             NavigationState(
                 tab = PlayKey,
-                stacks = listOf(listOf(HomeKey), listOf(PlayKey, CatalogKey), listOf(HistoryRootKey)),
+                stacks = listOf(listOf(HomeKey), listOf(PlayKey, CatalogKey), listOf(CommunityKey), listOf(HistoryRootKey)),
             ),
             state(),
         )
@@ -218,7 +219,7 @@ class PerTabShellTest {
     }
 
     @Test
-    fun `a legacy four-tab state with a Create stack restores into three tabs and drops that stack`() {
+    fun `a legacy four-tab state with a Create stack restores into the four tabs and drops that stack`() {
         val legacy = NavigationState(
             tab = PlayKey,
             stacks = listOf(
@@ -234,7 +235,7 @@ class PerTabShellTest {
         assertEquals(
             NavigationState(
                 tab = PlayKey,
-                stacks = listOf(listOf(HomeKey), listOf(PlayKey, CatalogKey), listOf(HistoryRootKey)),
+                stacks = listOf(listOf(HomeKey), listOf(PlayKey, CatalogKey), listOf(CommunityKey), listOf(HistoryRootKey)),
             ),
             state(),
         )

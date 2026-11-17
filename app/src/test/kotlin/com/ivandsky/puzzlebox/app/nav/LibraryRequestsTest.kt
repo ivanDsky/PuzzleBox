@@ -24,7 +24,7 @@ class LibraryRequestsTest {
         val navigator = todayNavigator()
         val requests = LibraryRequests()
 
-        requests.openGamesSection(navigator, TabSet.ThreeTabs, GamesTab.Duels)
+        requests.openGamesSection(navigator, GamesTab.Duels)
 
         assertEquals(PlayKey, navigator.state.tab)
         assertEquals(listOf<Any>(PlayKey), navigator.state.currentStack)
@@ -34,27 +34,11 @@ class LibraryRequestsTest {
     }
 
     @Test
-    fun `openCustom lands on Games root with Custom pending and back returns to the origin`() {
-        val navigator = todayNavigator()
-        navigator.push(EditorKey("castle"))
-        val before = navigator.state
-        val requests = LibraryRequests()
-
-        requests.openCustom(navigator, TabSet.ThreeTabs)
-
-        assertEquals(PlayKey, navigator.state.tab)
-        assertEquals(listOf<Any>(PlayKey), navigator.state.currentStack)
-        assertEquals(LibraryRequest.Section(GamesTab.Custom), requests.pending)
-        navigator.pop()
-        assertEquals(before, navigator.state)
-    }
-
-    @Test
     fun `openChallenge lands on Games root with the challenge pending and back returns to the origin`() {
         val navigator = todayNavigator()
         val requests = LibraryRequests()
 
-        requests.openChallenge(navigator, TabSet.ThreeTabs, ADA_IN_ZIP)
+        requests.openChallenge(navigator, ADA_IN_ZIP)
 
         assertEquals(PlayKey, navigator.state.tab)
         assertEquals(listOf<Any>(PlayKey), navigator.state.currentStack)
@@ -66,7 +50,7 @@ class LibraryRequestsTest {
     @Test
     fun `take clears the pending request`() {
         val requests = LibraryRequests()
-        requests.openGamesSection(todayNavigator(), TabSet.ThreeTabs, GamesTab.Duels)
+        requests.openGamesSection(todayNavigator(), GamesTab.Duels)
 
         requests.take()
 

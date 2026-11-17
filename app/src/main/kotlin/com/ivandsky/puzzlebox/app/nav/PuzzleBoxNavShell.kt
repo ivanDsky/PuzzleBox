@@ -48,11 +48,10 @@ import org.koin.compose.koinInject
  * and saves; at activity stop it [PlaySessionStore.flush]es every live play, so a pending
  * throttled save is never lost.
  *
- * [tabSet] is the app graph's tab set: the canvas and the owner doors read placement through it.
  * [codeDraft] and [onCodeDraftTaken] reach the Play library: a draft opens its code sheet.
  * [libraryRequests] is the one-shot Games request: Games reads its pending value and takes it.
  * [duels], when given, adds the Duels tab and
- * lets Enter code open a duel. [custom] fills the Games Custom pill (or the Community tab), and [makeOne] backs the
+ * lets Enter code open a duel. [custom] fills the Community tab's Custom list, and [makeOne] backs the
  * Make-one door on the game page. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
@@ -63,7 +62,6 @@ import org.koin.compose.koinInject
 @Composable
 internal fun PuzzleBoxNavShell(
     navigator: Navigator,
-    tabSet: TabSet,
     homeLayout: HomeLayout,
     playLayout: PlayLayout,
     historyLayout: HistoryLayout,
@@ -94,7 +92,6 @@ internal fun PuzzleBoxNavShell(
         state = navigator.state,
         entryProvider = puzzleBoxEntryProvider(
             navigator = navigator,
-            tabSet = tabSet,
             homeLayout = homeLayout,
             playLayout = playLayout,
             historyLayout = historyLayout,
@@ -108,7 +105,6 @@ internal fun PuzzleBoxNavShell(
             tuneDefaults = tuneDefaults,
         ).withHintCooldown(),
         shellChrome = shellChrome,
-        placement = tabSet.placement,
     )
     val motion = remember { mutableStateOf(NavMotion.Idle) }
     // The board that lifted in last: only it shrinks back into a card on its pop.

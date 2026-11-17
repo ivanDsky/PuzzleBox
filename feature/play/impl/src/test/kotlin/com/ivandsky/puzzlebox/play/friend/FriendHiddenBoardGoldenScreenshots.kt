@@ -33,7 +33,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The friend page with the community flag on, under its Up bar, light and dark: an unsolved puzzle's board blurred
+ * The friend page under its Up bar, light and dark: an unsolved puzzle's board blurred
  * under "Hidden until you play" between the note and the chips, and a solved one with its board sharp over the top
  * three. On a phone, a 320 dp phone (Play still reachable by scrolling) and the tablet's pane. The board is a stand-in
  * ([StubGivensBoard]): the five real games' boards are pinned in the app's goldens. Goldens in `snapshots/friend/`.

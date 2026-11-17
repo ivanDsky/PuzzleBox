@@ -12,12 +12,10 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.create.settleAndCapture
 import com.ivandsky.puzzlebox.create.showGolden
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.After
@@ -32,7 +30,7 @@ import org.robolectric.shadows.ShadowLooper
 
 /**
  * Ticket 132: the author's published page in the Community tablet's right pane (the 400 dp list beside it) with
- * CommunityPuzzles on, light and dark: two columns in a wide pane (Strands, whose disabled theme clue ends the right
+ * light and dark: two columns in a wide pane (Strands, whose disabled theme clue ends the right
  * column) and the single column a pane too narrow for both falls back to. The board is a stand-in of the game's shape.
  * Goldens in `snapshots/published/grid-…`; the full-screen page's are [PublishedPlainGoldenScreenshots]'s, unchanged.
  */
@@ -75,7 +73,7 @@ class PublishedGridGoldenScreenshots {
     }
 
     private fun world(game: PlainGame) =
-        PublishedPlainWorld(game, FakeReleaseFlags(ReleaseFlag.CommunityPuzzles), title = "Sunday ${game.label}")
+        PublishedPlainWorld(game, title = "Sunday ${game.label}")
 
     private fun show(world: PublishedPlainWorld, width: Dp, dark: Boolean) {
         world.start()

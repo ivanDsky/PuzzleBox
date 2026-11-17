@@ -3,9 +3,6 @@ package com.ivandsky.puzzlebox.create.published
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
-import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.create.editor.LoadDraft
 import com.ivandsky.puzzlebox.create.editor.ShareTicket
@@ -36,9 +33,8 @@ import kotlinx.coroutines.withContext
 
 /**
  * The published page of [key]'s code: the stored [PublishedPuzzleRepository] row joined with the
- * kept draft whose reserved code it is. That draft's board shows read-only (its controller puts
- * the board back over any edit), under the share ticket from the row's title and author time,
- * the draft's author name and the game's name and hue. [duplicate] stores an editable copy
+ * kept draft whose reserved code it is. That draft's plain board shows under the share ticket from the row's title
+ * and author time, the draft's author name and the game's name and hue. [duplicate] stores an editable copy
  * without the test solve or the code, so it publishes under a new one. [unpublish] takes the
  * code down behind its confirm; the row's unpublished mark flows into the ticket as it lands.
  */
@@ -52,11 +48,7 @@ class PublishedPuzzleViewModel(
     private val copyDraft: CreateDraftCopy,
     private val dispatchers: DispatcherProvider,
     updatePublishState: UpdatePublishState,
-    flags: ReleaseFlags? = null,
 ) : ViewModel() {
-
-    // Read once: with CommunityPuzzles on the page draws the plain board (spec M12-9); without flags it is the shipped page.
-    internal val plainBoard = flags?.isEnabled(ReleaseFlag.CommunityPuzzles) == true
 
     private val loadDraft = LoadDraft(drafts, games, editors)
     private val mutableState = MutableStateFlow<State>(State.Loading)
@@ -71,7 +63,7 @@ class PublishedPuzzleViewModel(
             mutableState.value = ready ?: State.Missing
             if (ready != null) {
                 follow(ready.ticket.code)
-                if (plainBoard) showPlainBoard(ready) else analyze(ready)
+                showPlainBoard(ready)
             }
         }
     }
@@ -109,8 +101,6 @@ class PublishedPuzzleViewModel(
             ui = ui,
             controller = controller,
             draftId = stored.id,
-            verdict = Verdict.Checking,
-            plainBoard = plainBoard,
         )
     }
 
@@ -124,14 +114,8 @@ class PublishedPuzzleViewModel(
         }
     }
 
-    private suspend fun analyze(ready: State.Ready) {
-        val board = ready.controller.draft.value
-        val verdict = withContext(dispatchers.default) { board.analyze(Budget.within(BUDGET_MS, System::nanoTime) { !isActive }) }
-        mutableState.update { (it as? State.Ready)?.copy(verdict = verdict) ?: it }
-    }
-
     /**
-     * The plain board of [ready]'s kept draft, for the page with CommunityPuzzles on: the draft's plain puzzle
+     * The plain board of [ready]'s kept draft: the draft's plain puzzle
      * ([EditorDraft.toPuzzle], without author aids). The game's export needs the solution, so the one solve within
      * [BUDGET_MS] runs for that alone, and its verdict is dropped. The solution is dropped again by
      * [GameReplayBoard.givens][com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard.givens]
@@ -154,17 +138,15 @@ class PublishedPuzzleViewModel(
         data object Missing : State
 
         /**
-         * The [ticket], the kept draft [draftId]'s read-only board ([ui], [controller]) and its [verdict]. With
-         * [plainBoard] the page draws the draft's plain [givens] instead: null until built, and for good once
-         * [givensSettled] when this game cannot draw one. The [verdict] then stays [Verdict.Checking]: nothing shows it.
+         * The [ticket], the kept draft [draftId]'s [ui] and [controller] (the game's own publish fields draw from them)
+         * and the draft's plain [givens]: null until built, and for good once [givensSettled] when this game cannot draw
+         * one.
          */
         data class Ready(
             val ticket: ShareTicket,
             val ui: GameEditorUi,
             val controller: GameEditorController,
             val draftId: String,
-            val verdict: Verdict,
-            val plainBoard: Boolean = false,
             val givens: GivensBoard? = null,
             val givensSettled: Boolean = false,
         ) : State

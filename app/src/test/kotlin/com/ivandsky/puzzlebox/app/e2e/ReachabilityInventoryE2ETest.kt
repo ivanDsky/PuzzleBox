@@ -1,12 +1,15 @@
 package com.ivandsky.puzzlebox.app.e2e
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsMatcher
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.Chrome as PlacementChrome
-import com.ivandsky.puzzlebox.app.nav.PlacementDelta
 import com.ivandsky.puzzlebox.app.nav.placementOf
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import org.junit.Assert.assertEquals
@@ -91,8 +94,9 @@ class ReachabilityInventoryE2ETest {
         assertRoute(LIBRARY)
 
         if (shows("library.page.back")) tap("library.page.back") // a phone shows the game page alone
-        tap("library.tab.custom")
-        reached(LIBRARY, width)
+        tapTab(CommunityKey)
+        tap("community.tab.yours")
+        reached(COMMUNITY, width)
         tap("create.empty.game.queens")
         awaitTag("create.editor.board")
         reached(EDITOR, width)
@@ -104,12 +108,24 @@ class ReachabilityInventoryE2ETest {
             shellRobot(graph = world.graph) {
                 val code = world.publishAsAuthor(this, ZipCorridor.board, TITLE)
                 back()
-                assertRoute(LIBRARY)
-                tap("create.published.row")
-                reached(PUBLISHED, width)
+                if (width == Width.Phone) {
+                    assertRoute(COMMUNITY)
+                    tap("create.published.row")
+                    reached(PUBLISHED, width)
+                } else {
+                    // A rail window's Community is two panes: Yours' first published puzzle is already open beside the list.
+                    awaitTag(PUBLISHED)
+                    assertEquals(
+                        "routes on screen (state $state)",
+                        listOf(COMMUNITY, PUBLISHED),
+                        rule.onAllNodes(IS_ROUTE, useUnmergedTree = true).fetchSemanticsNodes().map { it.config[SemanticsProperties.TestTag] },
+                    )
+                    assertRail()
+                    assertChromeFor(rail = true)
+                }
                 world.signInFriend()
 
-                tapTab(PlayKey)
+                tapTab(CommunityKey)
                 openByCode(code)
                 reached(FRIEND, width)
                 tap("friend.card.play")
@@ -131,7 +147,7 @@ class ReachabilityInventoryE2ETest {
      */
     private fun ShellRobot.reached(route: String, width: Width) {
         assertRoute(route)
-        if (placementOf(state.currentStack.last(), PlacementDelta.None).chrome == PlacementChrome.Immersive) {
+        if (placementOf(state.currentStack.last()).chrome == PlacementChrome.Immersive) {
             assertNoNavigation()
         } else if (width == Width.Phone) {
             assertBottomBar()
@@ -144,6 +160,9 @@ class ReachabilityInventoryE2ETest {
     private enum class Width { Phone, Rail }
 
     private companion object {
+        val IS_ROUTE = SemanticsMatcher("test tag route.*") {
+            it.config.getOrNull(SemanticsProperties.TestTag)?.startsWith("route.") == true
+        }
         const val PHONE = "w411dp-h891dp"
         const val RAIL = "w1280dp-h800dp-land"
         const val TITLE = "From a friend"
@@ -153,6 +172,7 @@ class ReachabilityInventoryE2ETest {
         const val PROFILE = "route.profile"
         const val CATALOG = "route.catalog"
         const val LIBRARY = "route.library"
+        const val COMMUNITY = "route.community"
         const val GAME = "route.game"
         const val RESULT = "route.result"
         const val EDITOR = "route.editor"

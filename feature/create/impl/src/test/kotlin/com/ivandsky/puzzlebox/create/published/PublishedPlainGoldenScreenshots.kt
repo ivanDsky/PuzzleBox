@@ -3,13 +3,11 @@ package com.ivandsky.puzzlebox.create.published
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.create.GOLDEN_PHONE
 import com.ivandsky.puzzlebox.create.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.create.settleAndCapture
 import com.ivandsky.puzzlebox.create.showGolden
 import com.ivandsky.puzzlebox.gameui.PlayLayout
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.util.concurrent.TimeUnit
 import org.junit.After
 import org.junit.Rule
@@ -22,11 +20,11 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowLooper
 
 /**
- * The author's own published page with CommunityPuzzles on (ticket 128), for each of the five games, phone and
+ * The author's own published page (ticket 128), for each of the five games, phone and
  * tablet, light and dark: the plain sharp board, no verdict and no Studio tools, over the share ticket and its actions.
  * The page runs on its real view model over fake stores; each game's board is a stand-in of the game's shape and
- * colour, since the create module knows no game. Goldens in `snapshots/published/plain-<game>-…`; the flag-off
- * page's are [PublishedPageGoldenScreenshots]'s, unchanged.
+ * colour, since the create module knows no game. Goldens in `snapshots/published/plain-<game>-…`; the
+ * page's dialogs and unpublished record are [PublishedPageGoldenScreenshots]'s.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -60,7 +58,7 @@ abstract class PublishedPlainGoldenScreenshots(private val layout: PlayLayout, p
     @Test fun `strands dark`() = capture(PlainGame.STRANDS, dark = true)
 
     private fun capture(game: PlainGame, dark: Boolean) {
-        val world = PublishedPlainWorld(game, FakeReleaseFlags(ReleaseFlag.CommunityPuzzles))
+        val world = PublishedPlainWorld(game)
         world.start()
         rule.showGolden(dark, frozen = false) {
             PublishedPuzzleRoute(world.key, layout, onBack = {}, onOpen = {})

@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
@@ -94,7 +95,7 @@ class RanksPlayAgainE2ETest {
         switchTab(PlayKey)
         openGame(ZIP)
 
-        assertState(stacks(tab = PlayKey, history = playingAgain.stacks[2], play = listOf(PlayKey, GameKey(ZIP))))
+        assertState(stacks(tab = PlayKey, history = playingAgain.stackOf(HistoryRootKey), play = listOf(PlayKey, GameKey(ZIP))))
         assertRoute(GAME)
         val today = awaitZip(E2E_TODAY)
         assertEquals("today's board is a fresh session of today", E2E_TODAY, (today.ref?.key as? PuzzleKey.Daily)?.date)
@@ -143,7 +144,7 @@ class RanksPlayAgainE2ETest {
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
         history: List<NavKey> = listOf(HistoryRootKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, history))
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, listOf(CommunityKey), history))
 
     private val opening = HistoryKey(ZIP, "$PLAY_AGAIN_DAY")
     private val ranks = stacks(tab = HistoryRootKey, history = listOf(HistoryRootKey, opening))

@@ -20,24 +20,18 @@ import org.koin.androidx.compose.koinViewModel
 
 /**
  * Hosts Games › Custom's New today (nav-rethink C2). Called as `CommunityHost(onOpen) { community -> ... }`:
- * the content draws the Custom list and gets the section to add to it, or null when the community flag is off, so the
- * list is exactly what it was. The snackbar and the sign-in dialog sit over the content, outside its scrolling list.
+ * the content draws the Custom list and gets the section to add to it. The snackbar and the sign-in dialog sit over the content, outside its scrolling list.
  * `onOpen` opens a row's puzzle by its code, the way a friend's puzzle opens.
  *
- * The flag is read by [CommunityViewModel], once; this host never reads it. It is an object, not a top-level
- * composable, because it binds the Koin view model and so has no preview of its own; the section it adds is
- * previewed in `CommunityPreviews.kt`.
+ * It is an object, not a top-level composable, because it binds the Koin view model and so has no preview of its
+ * own; the section it adds is previewed in `CommunityPreviews.kt`.
  */
 object CommunityHost {
 
     @Composable
-    operator fun invoke(onOpen: (code: String) -> Unit, content: @Composable (community: (LazyListScope.() -> Unit)?) -> Unit) {
+    operator fun invoke(onOpen: (code: String) -> Unit, content: @Composable (community: LazyListScope.() -> Unit) -> Unit) {
         val viewModel: CommunityViewModel = koinViewModel()
         val state by viewModel.state.collectAsStateWithLifecycle()
-        if (!state.enabled) {
-            content(null)
-            return
-        }
         CommunityBound(viewModel, state, onOpen = { code -> onOpen(code.value) }) { actions ->
             content { communitySection(state, actions) }
         }

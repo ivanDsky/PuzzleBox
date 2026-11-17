@@ -71,7 +71,7 @@ class ImmersivePlayShellTest {
                 PuzzleBoxApplication.appModules + module {
                     // Home prefetches today's puzzles on resume: every game's fetch is scripted.
                     single<DailyRepository> { freshDailyForAllGames() }
-                    // No release flag on: the base three tabs, whatever the release default.
+                    // No release flag on, whatever the release default.
                     single<ReleaseFlags> { FakeReleaseFlags() }
                     single<CompletionRepository> { FakeCompletionRepository() }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
