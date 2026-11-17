@@ -57,3 +57,39 @@ private fun previewBoard() = TangoRendererModel(
     rejection = null,
     status = TangoRendererModel.Status.PLAYING,
 )
+
+/** Tutorial lesson 1 as the player first sees it: three open squares, each ghosting its answer (#1186). */
+@Composable
+internal fun TangoLessonOneSample(dark: Boolean) {
+    PuzzleBoxTheme(darkTheme = dark) {
+        TangoBoardRenderer(guideGhosts = true).Content(
+            lessonOneBoard(),
+            Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(Spacing.md),
+        )
+    }
+}
+
+@PuzzleBoxPreviews
+@Composable
+private fun TangoLessonOnePreview() {
+    PuzzleBoxTheme { TangoLessonOneSample(dark = LocalDarkTheme.current) }
+}
+
+/** `SSMM / .M.S / .MSM / MSMS`, answers M, S, S in the open squares (TangoTutorial lesson 1). */
+private fun lessonOneBoard() = TangoRendererModel(
+    n = 4,
+    cells = "SSMM.M.S.MSMMSMS".map { ch ->
+        TangoRendererModel.CellRender(
+            value = when (ch) {
+                'S' -> TangoCell.SUN
+                'M' -> TangoCell.MOON
+                else -> null
+            },
+            isGiven = ch != '.',
+        )
+    },
+    markers = emptyList(),
+    rejection = null,
+    status = TangoRendererModel.Status.PLAYING,
+    ghosts = mapOf(4 to TangoCell.MOON, 6 to TangoCell.SUN, 8 to TangoCell.SUN),
+)

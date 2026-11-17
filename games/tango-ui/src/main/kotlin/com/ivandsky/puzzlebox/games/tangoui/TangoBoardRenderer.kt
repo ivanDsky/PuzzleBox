@@ -63,12 +63,14 @@ private val SpotlightOnBoard = Modifier.wrapContentSize(Alignment.TopStart).aspe
  * actions; null for both = an inert board (the editor's preview). [hinted] cells wear the replay
  * hint badge in their top-right corner (a replay board only; live play passes none). [glyphFade],
  * set by the replay board only, fades a glyph in, out and between sun and moon on that spec
- * (`snap()` = at once); null, as live play passes, draws the glyph as is.
+ * (`snap()` = at once); null, as live play passes, draws the glyph as is. [guideGhosts] (live play) draws a guided
+ * lesson's ghosts as invitations: stronger glyph and a dashed outline on an open square (#1186); the editor keeps its faint hints.
  */
 class TangoBoardRenderer(
     private val onTap: ((idx: Int) -> Unit)? = null,
     private val onPlacement: ((TangoPlacement) -> Unit)? = null,
     private val spotlight: () -> Spotlight? = { null },
+    private val guideGhosts: Boolean = false,
 ) {
 
     @Composable
@@ -128,6 +130,7 @@ class TangoBoardRenderer(
                         Cell(
                             model = tango,
                             style = style,
+                            guideGhosts = guideGhosts,
                             onPlacement = commit,
                             hinted = (row * tango.n + col) in hinted,
                             glyphFade = glyphFade,
@@ -148,6 +151,7 @@ class TangoBoardRenderer(
 private fun Cell(
     model: TangoRendererModel,
     style: TangoReadableBoardStyle,
+    guideGhosts: Boolean,
     onPlacement: ((TangoPlacement) -> Unit)?,
     hinted: Boolean,
     glyphFade: FiniteAnimationSpec<Float>?,
@@ -160,6 +164,7 @@ private fun Cell(
     val violating = violationPhrase != null
     val scheme = MaterialTheme.colorScheme
     val given = render?.isGiven == true && render.value != null
+    val inviting = guideGhosts && render?.value == null && model.ghosts.containsKey(idx)
     val gridLineWeight = BoardTokens.boardGridLineWeight
     val reducedMotion = rememberReducedMotion()
     // ViolationFlash retired (user QA 2026-11-02): the 1→0.86 cell scale read as a
@@ -180,6 +185,8 @@ private fun Cell(
                 // a given caught in a violating line still shows the error state above it.
                 // The readable look has no wash; a given is told by its sun or moon colour alone.
                 if (given && style.givenWash.isSpecified) drawRoundRect(color = style.givenWash, cornerRadius = stateRadius)
+                // An open guide square: a dashed accent outline reads as "tap here" (#1186).
+                if (inviting) drawGhostOutline(scheme.primary, gridLineWeight.toPx())
                 if (violating) {
                     // errorContainer tint 0.7 (Zip rejection precedent) + dashed border
                     // in colorScheme.error — the shape signal keeps color from being
@@ -216,7 +223,7 @@ private fun Cell(
         // full size on an empty square, a corner badge beside a wrong glyph.
         model.ghosts[idx]?.let { answer ->
             val badge = Modifier.align(Alignment.TopEnd).fillMaxSize(TangoBoardSpec.ghostBadgeFraction)
-            Glyph(answer, if (render?.value == null) Modifier.fillMaxSize() else badge, model.n, TangoBoardSpec.ghostAlpha)
+            Glyph(answer, if (render?.value == null) Modifier.fillMaxSize() else badge, model.n, if (guideGhosts) TangoBoardSpec.guideGhostAlpha else TangoBoardSpec.ghostAlpha)
         }
         // Inset inside the corner: on the top row a flush badge was cut by the board border.
         if (hinted) BoxWithConstraints(Modifier.fillMaxSize()) {

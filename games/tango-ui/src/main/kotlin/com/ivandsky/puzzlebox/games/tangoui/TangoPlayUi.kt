@@ -182,6 +182,7 @@ private fun TangoBoard(controller: TangoPlayController, paneCap: Dp?, modifier: 
             onTap = controller::onTap,
             onPlacement = controller::onPlacement,
             spotlight = { controller.spotlight },
+            guideGhosts = true,
         )
     }
     val cap = paneCap ?: PlayBoardMaxWidth
