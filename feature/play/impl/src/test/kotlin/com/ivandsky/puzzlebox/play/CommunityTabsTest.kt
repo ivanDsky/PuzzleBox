@@ -65,6 +65,7 @@ class CommunityTabsTest {
     private val reselect = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     private var state by mutableStateOf(LOADED)
     private var friends by mutableStateOf(FRIENDS)
+    private var sharePending by mutableStateOf(false)
 
     /** The app's slot with a Yours list like create's, plus a row that scrolls sideways (see the report: chips). */
     private val slot = CustomSlot(
@@ -84,7 +85,7 @@ class CommunityTabsTest {
     private val content: @androidx.compose.runtime.Composable () -> Unit = {
         PuzzleBoxTheme {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
-                CommunityTabs(state, ACTIONS, friends, slot, onOpen = {}, onRemove = {}, onEnterCode = {}, Modifier.fillMaxSize())
+                CommunityTabs(state, ACTIONS, friends, slot, onOpen = {}, onRemove = {}, onEnterCode = {}, Modifier.fillMaxSize(), sharePending = sharePending)
             }
         }
     }
@@ -312,6 +313,31 @@ class CommunityTabsTest {
         assertTrue(isShown(friendRow(8)))
         tap(TAB_NEW)
         assertTrue(isShown(newRow(20)))
+    }
+
+    @Test
+    fun `a text shared before the tabs show starts them on Yours`() {
+        sharePending = true
+        show()
+
+        rule.onNodeWithTag(TAB_YOURS).assertIsSelected()
+        assertTrue(isShown("yours.list"))
+    }
+
+    @Test
+    fun `a text shared while New today shows opens Yours once and leaves later tab choices alone`() {
+        show()
+        rule.onNodeWithTag(TAB_NEW).assertIsSelected()
+
+        sharePending = true
+        rule.waitForIdle()
+        rule.onNodeWithTag(TAB_YOURS).assertIsSelected()
+
+        sharePending = false
+        tap(TAB_FRIENDS)
+        rule.onNodeWithTag(TAB_FRIENDS).assertIsSelected()
+        rule.waitForIdle()
+        rule.onNodeWithTag(TAB_FRIENDS).assertIsSelected()
     }
 
     private companion object {

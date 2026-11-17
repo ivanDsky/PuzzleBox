@@ -53,6 +53,9 @@ import kotlinx.coroutines.launch
  * On the tablet the same tabs sit in the list pane under the head, with [picks] (the panes' per-tab picks): each page
  * is given its tab's picker and selected row ([CommunityTabPicks.ProvideFor]), so a row picks for its own tab, and the
  * tab the pager settles on is the one the right pane follows. Null on the phone, where a row opens a page of its own.
+ *
+ * A [sharePending] text (another app shared it) opens Yours, where Custom's list takes it: on the first composition
+ * without a move, later by the pager's. It acts when it turns true, so a taken text leaves the user's own tab choice.
  */
 @Composable
 internal fun CommunityTabs(
@@ -65,6 +68,7 @@ internal fun CommunityTabs(
     onEnterCode: () -> Unit,
     modifier: Modifier = Modifier,
     picks: CommunityTabPicks? = null,
+    sharePending: Boolean = false,
 ) {
     val yours = custom.yours
     val pages = remember(yours != null) { CommunityTab.entries.filter { it != CommunityTab.Yours || yours != null } }
@@ -77,7 +81,11 @@ internal fun CommunityTabs(
         CommunityTab.Yours -> yoursList
     }
     // The page the pager last settled on, and a page asked of it ("Make a puzzle") until it gets there.
-    var page by rememberSaveable { mutableIntStateOf(0) }
+    // Text another app shared is imported by Yours' list, which composes only while its page shows: a share opens Yours,
+    // at once when it starts the app and with the pager's move when the tabs are already up.
+    val yoursIndex = pages.indexOf(CommunityTab.Yours)
+    val startsOnShare = remember { sharePending && yoursIndex >= 0 }
+    var page by rememberSaveable { mutableIntStateOf(if (startsOnShare) yoursIndex else 0) }
     var asked by remember { mutableStateOf<Int?>(null) }
     // The pager moves only when the page asked of it changes, and it reports no settle on the page it left (a drag back
     // mid-move), which would leave `asked` set and the same ask without effect. So an ask first clears `asked`
@@ -87,6 +95,12 @@ internal fun CommunityTabs(
         asking?.let {
             asked = it
             asking = null
+        }
+    }
+    LaunchedEffect(sharePending) {
+        if (sharePending && yoursIndex >= 0 && page != yoursIndex) {
+            asked = null
+            asking = yoursIndex
         }
     }
     val current = pages[page.coerceIn(pages.indices)]
@@ -107,6 +121,7 @@ internal fun CommunityTabs(
             tabs = tabs,
             onReselect = { index -> scope.launch { listFor(pages[index]).animateScrollToItem(0) } },
             modifier = Modifier.weight(1f).fillMaxWidth(),
+            initialPage = page,
             selectedPage = asked,
             onPageSettled = { settled ->
                 page = settled

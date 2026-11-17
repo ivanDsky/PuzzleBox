@@ -84,10 +84,9 @@ class ShareTargetE2ETest {
     }
 
     @Test
-    fun `a cold start from a share lands on Community, where Yours opens the imported draft's Studio`() {
+    fun `a cold start from a share opens Yours on Community, which imports the draft and opens its Studio`() {
         startGraph()
         launching(send(UNIQUE)) {
-            importFromYours()
             awaitVerdict()
             assertRoute(EDITOR)
             assertEquals("one imported draft", 1, drafts.rows.size)
@@ -110,7 +109,6 @@ class ShareTargetE2ETest {
             assertRoute(LIBRARY)
 
             deliver(send(UNIQUE))
-            importFromYours()
             awaitVerdict()
             assertRoute(EDITOR)
             assertEquals(1, drafts.rows.size)
@@ -144,7 +142,6 @@ class ShareTargetE2ETest {
     fun `recreating the activity after a share creates no second draft`() {
         startGraph()
         launching(send(UNIQUE)) {
-            importFromYours()
             awaitVerdict()
 
             rule.activityRule.scenario.recreate()
@@ -177,13 +174,6 @@ class ShareTargetE2ETest {
         tap("create.draft.row")
         awaitTag("create.editor.board")
         assertRoute(EDITOR)
-    }
-
-    /** The share waits on Community's root; Yours, which imports it, opens it as the Studio of a draft. */
-    private fun importFromYours() {
-        assertRoute(COMMUNITY)
-        rule.onNodeWithTag("nav.tab.community").assertIsSelected()
-        tap(YOURS)
     }
 
     /** A blank 5×5 Queens draft: a Studio whose verdict is not Unique. */
@@ -219,7 +209,6 @@ class ShareTargetE2ETest {
             assertRoute(RANKS)
 
             deliver(send(UNIQUE))
-            importFromYours()
             awaitVerdict()
             assertRoute(EDITOR)
             assertEquals(1, drafts.rows.size)
