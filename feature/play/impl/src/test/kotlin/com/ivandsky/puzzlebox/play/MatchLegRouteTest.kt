@@ -198,7 +198,7 @@ class MatchLegRouteTest {
                     single<MatchRepository> { matches }
                     single<MatchResultOutbox> { outbox }
                     single<IdentityService> { identity }
-                    factory { FinishLeg(get(), get()) { Instant.EPOCH } }
+                    factory { FinishLeg(get(), get(), get()) { Instant.EPOCH } }
                     factory { LoadPastDay(get(), get()) }
                 },
                 module { single<CloudSync> { FakeCloudSync() } },

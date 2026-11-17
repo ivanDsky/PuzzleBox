@@ -118,7 +118,7 @@ class LibraryViewModelTest {
         ),
         writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
         completions = completions,
-        finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH },
+        finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeMatchRepository(), FakeIdentityService()) { Instant.EPOCH },
         calendar = calendar,
         dispatchers = object : DispatcherProvider {
             override val main = dispatcher

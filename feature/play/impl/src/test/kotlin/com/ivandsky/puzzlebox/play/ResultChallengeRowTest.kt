@@ -184,7 +184,7 @@ class ResultChallengeRowTest {
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { matches }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
-                    factory { FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH } }
+                    factory { FinishLeg(FakeMatchResultOutbox(), FakeMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
                     single<GameCalendar> { FakeGameCalendar(day) }
                     factory { LoadPastDay(get(), get()) }
                     single { SyncTodayPuzzles(get(), get(), get()) }

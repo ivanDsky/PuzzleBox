@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.OutboxResult
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.match.ResultRead
+import com.ivandsky.puzzlebox.data.match.mySeat
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Duration
@@ -21,14 +22,17 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.transformLatest
 
 /**
  * The read model of one duel, for every match screen: the server match, my outbox rows, this device's cached row and
- * the signed-in identity, as one [MatchState]. The only caller of the sealed result read: an opponent's leg is read
+ * the signed-in identity, as one [MatchState]. "Me" is the seat the match gives the viewer ([mySeat]): the fixed self
+ * seat in a self duel, signed in or out, else the account; a viewer without a seat gets the match document alone.
+ *
+ * The only caller of the sealed result read: an opponent's leg is read
  * once its progress names it and my own result for it is Posted, or the match has closed (a leg one player never
  * finished is lost to them, so the other's time must show), and a revealed result is kept for the collector's life.
  * A read that is Offline or Sealed after the close is tried again every [CLOSE_READ_RETRY]. Late and LocalOnly rows
@@ -47,46 +51,39 @@ class ObserveMatch(
 ) {
 
     operator fun invoke(code: ShareCode): Flow<MatchState> =
-        identity.current.map { it?.uid }.distinctUntilChanged().flatMapLatest { me ->
-            if (me == null) observePublic(code) else observeAs(code, me)
-        }
-
-    /** The match document alone: the rules let anyone `get` it, and it holds no results. Offline keeps the sign-in card bare. */
-    private fun observePublic(code: ShareCode): Flow<MatchState> = repo.observe(code).map { fetch ->
-        when (fetch) {
-            MatchFetch.NotFound -> MatchState.NotFound
-            MatchFetch.Offline -> MatchState.SignedOut(null)
-            is MatchFetch.UnsupportedVersion -> MatchState.UpdateApp(fetch.found)
-            is MatchFetch.Found -> MatchState.SignedOut(fetch.match)
-        }
-    }
-
-    private fun observeAs(code: ShareCode, me: String): Flow<MatchState> {
-        val revealed = HashMap<Int, LegResult>()
-        return combine(repo.observe(code), outbox.observe(code), local.observeAll()) { fetch, rows, locals ->
-            Triple(fetch, rows.filter { it.result.uid == me }, locals.firstOrNull { it.code == code })
-        }.transformLatest { (fetch, mine, cached) ->
-            when (fetch) {
-                MatchFetch.NotFound -> emit(MatchState.NotFound)
-                MatchFetch.Offline -> emit(MatchState.Offline)
-                is MatchFetch.UnsupportedVersion -> emit(MatchState.UpdateApp(fetch.found))
-                is MatchFetch.Found -> {
-                    val match = fetch.match
-                    var now = clock()
-                    var seen = theirLegs(code, match, me, mine, revealed, now)
-                    emit(MatchState.Loaded(view(match, me, mine, seen.legs, cached, now)))
-                    var next = nextWake(match, now, seen.unread)
-                    while (next != null) {
-                        delay(Duration.between(now, next).toKotlinDuration())
-                        now = clock()
-                        seen = theirLegs(code, match, me, mine, revealed, now)
-                        emit(MatchState.Loaded(view(match, me, mine, seen.legs, cached, now)))
-                        next = nextWake(match, now, seen.unread)
+        identity.current.map { it?.uid }.distinctUntilChanged().flatMapLatest { uid ->
+            val revealed = HashMap<Int, LegResult>()
+            repo.observe(code).transformLatest { fetch ->
+                when (fetch) {
+                    MatchFetch.NotFound -> emit(MatchState.NotFound)
+                    // Signed out, Offline keeps the sign-in card bare.
+                    MatchFetch.Offline -> emit(if (uid == null) MatchState.SignedOut(null) else MatchState.Offline)
+                    is MatchFetch.UnsupportedVersion -> emit(MatchState.UpdateApp(fetch.found))
+                    is MatchFetch.Found -> when (val me = fetch.match.mySeat(uid)) {
+                        // The match document alone: the rules let anyone `get` it, and it holds no results.
+                        null -> emit(MatchState.SignedOut(fetch.match))
+                        else -> emitAll(observeAs(code, fetch.match, me, revealed))
                     }
                 }
             }
         }
-    }
+
+    private fun observeAs(code: ShareCode, match: Match, me: String, revealed: MutableMap<Int, LegResult>): Flow<MatchState> =
+        combine(outbox.observe(code), local.observeAll()) { rows, locals ->
+            rows.filter { it.result.uid == me } to locals.firstOrNull { it.code == code }
+        }.transformLatest { (mine, cached) ->
+            var now = clock()
+            var seen = theirLegs(code, match, me, mine, revealed, now)
+            emit(MatchState.Loaded(view(match, me, mine, seen.legs, cached, now)))
+            var next = nextWake(match, now, seen.unread)
+            while (next != null) {
+                delay(Duration.between(now, next).toKotlinDuration())
+                now = clock()
+                seen = theirLegs(code, match, me, mine, revealed, now)
+                emit(MatchState.Loaded(view(match, me, mine, seen.legs, cached, now)))
+                next = nextWake(match, now, seen.unread)
+            }
+        }
 
     /** What [theirLegs] saw, and whether a read the rules allow came back Offline and so wants another try. */
     private class Seen(val legs: List<LegSeen>, val unread: Boolean)

@@ -497,7 +497,7 @@ class ResultScreenTest {
                     single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
-                    factory { FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH } }
+                    factory { FinishLeg(FakeMatchResultOutbox(), FakeMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
                     single<GameCalendar> { FakeGameCalendar(day) }
                     factory { LoadPastDay(get(), get()) }
                     single { SyncTodayPuzzles(get(), get(), get()) }

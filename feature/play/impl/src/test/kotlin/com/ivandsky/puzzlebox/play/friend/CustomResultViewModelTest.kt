@@ -172,7 +172,7 @@ class CustomResultViewModelTest {
                     factory { ReportPuzzle(get(), get()) }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
-                    factory { FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH } }
+                    factory { FinishLeg(FakeMatchResultOutbox(), FakeMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
                     single<GameCalendar> { FakeGameCalendar(LocalDate.parse("2026-11-04")) }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     single { GameEditorRegistry(emptyList()) }
@@ -299,7 +299,7 @@ class CustomResultViewModelTest {
             ),
             writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
             completions = sealing,
-            finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH },
+            finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeMatchRepository(), FakeIdentityService()) { Instant.EPOCH },
             calendar = calendar,
             dispatchers = testDispatchers(dispatcher),
         )

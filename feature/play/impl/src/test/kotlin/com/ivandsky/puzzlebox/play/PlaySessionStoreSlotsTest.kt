@@ -107,7 +107,7 @@ class PlaySessionStoreSlotsTest {
             ),
             writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
             completions = repo,
-            finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH },
+            finishLeg = FinishLeg(FakeMatchResultOutbox(), FakeMatchRepository(), FakeIdentityService()) { Instant.EPOCH },
             calendar = calendar,
             dispatchers = object : DispatcherProvider {
                 override val main = dispatcher

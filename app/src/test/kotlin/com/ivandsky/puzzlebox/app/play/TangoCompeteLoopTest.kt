@@ -75,7 +75,7 @@ class TangoCompeteLoopTest {
             single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
             single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
             single<MatchRepository> { FakeMatchRepository() }
-            factory { FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH } }
+            factory { FinishLeg(FakeMatchResultOutbox(), FakeMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
             single<SavedPlayRepository> { FakeSavedPlayRepository() }
             single<GameCalendar> { FakeGameCalendar(TangoDefinition.cadence.today()) }
             single<DispatcherProvider> {

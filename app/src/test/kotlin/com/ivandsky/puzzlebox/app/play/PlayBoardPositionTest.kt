@@ -144,7 +144,7 @@ class PlayBoardPositionTest {
                     single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
-                    factory { FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH } }
+                    factory { FinishLeg(FakeMatchResultOutbox(), FakeMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<ReleaseFlags> { FakeReleaseFlags() }
                     single<GameCalendar> { FakeGameCalendar(cadenceToday) }

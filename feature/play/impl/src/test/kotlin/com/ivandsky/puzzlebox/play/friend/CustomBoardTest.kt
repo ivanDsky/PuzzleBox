@@ -284,7 +284,7 @@ class CustomBoardTest {
                     single<ReceivedPuzzleRepository> { received }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
-                    factory { FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH } }
+                    factory { FinishLeg(FakeMatchResultOutbox(), FakeMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
                     single<GameCalendar> { FakeGameCalendar(LocalDate.parse("2026-11-04")) }
                     single<UserPreferencesRepository> { FakeUserPreferencesRepository() }
                     single<CustomBoardRepository> { boards }

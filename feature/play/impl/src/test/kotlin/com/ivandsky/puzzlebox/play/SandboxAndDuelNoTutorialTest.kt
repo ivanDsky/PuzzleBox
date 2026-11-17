@@ -116,7 +116,7 @@ class SandboxAndDuelNoTutorialTest {
                     single<MatchRepository> { FakeMatchRepository() }
                     single<MatchResultOutbox> { FakeMatchResultOutbox() }
                     single<IdentityService> { FakeIdentityService(initial = Identity("ann-uid", "Ann", photoUrl = null)) }
-                    factory { FinishLeg(get(), get()) { Instant.EPOCH } }
+                    factory { FinishLeg(get(), get(), get()) { Instant.EPOCH } }
                     factory { LoadPastDay(get(), get()) }
                 },
                 module { single<CloudSync> { FakeCloudSync() } },

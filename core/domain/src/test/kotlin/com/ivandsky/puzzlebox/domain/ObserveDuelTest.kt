@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.Player
+import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.GameId
@@ -19,6 +20,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.test.runTest
@@ -150,6 +152,27 @@ class ObserveDuelTest {
             assertEquals(emptyMap<Int, Long>(), awaitItem().elapsedMs)
             savedPlays.save(PlaySlot.Leg(TestGames.alpha, code.value, 0), byteArrayOf(1), 5_000)
             assertEquals(mapOf(0 to 5_000L), awaitItem().elapsedMs)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun aSignedOutPlayerResumesTheirSelfDuelFromTheSelfSeat() = runTest {
+        val legs = listOf(MatchLeg(LegRef.Daily(TestGames.alpha, date, 1), null))
+        val draft = buildSelfMatch(code, now, includeFriends = false, legs = legs, records = listOf(solved(TestGames.alpha, 1)))
+        val self = FakeSelfMatchRepository().apply { save(draft.match, draft.past) }
+        val observeSelfDuel = ObserveDuel(
+            observeMatch = ObserveMatch(self, FakeMatchResultOutbox(), FakeMatchLocalRepository(), identity, registry) { now },
+            completions = completions,
+            savedPlays = savedPlays,
+        )
+        viewAs(null)
+        savedPlays.save(PlaySlot.Leg(TestGames.alpha, code.value, 0), byteArrayOf(1), 12_000)
+
+        observeSelfDuel(code).test {
+            val snapshot = awaitItem()
+            assertEquals(SelfSeats.ME, (snapshot.match as MatchState.Loaded).view.me)
+            assertEquals(mapOf(0 to 12_000L), snapshot.elapsedMs)
             cancelAndIgnoreRemainingEvents()
         }
     }

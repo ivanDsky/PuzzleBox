@@ -14,15 +14,15 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * Posts the signed-in user's pending duel results from the outbox and records each outcome on its row. Rows of
- * another account wait until that account signs in. Lateness is the repository's verdict (server clock), never the
- * device's.
+ * Posts the player's pending duel results from the outbox and records each outcome on its row: the signed-in
+ * account's rows, and a self duel's rows ([SelfSeats.ME]) signed in or out, since those go to the device's own store.
+ * Rows of another account wait until that account signs in. Lateness is the repository's verdict (server clock),
+ * never the device's.
  *
  * Each row is tried at most once per process: a rejection waits for the next app start or [poke], so [MAX_ATTEMPTS]
  * spans app starts rather than one burst. An unavailable repository or a failed call leaves the row Pending and
@@ -45,10 +45,8 @@ class MatchResultPoster(
     fun start() {
         scope.launch {
             combine(identity.current, pokes) { me, _ -> me }.flatMapLatest { me ->
-                if (me == null) {
-                    flowOf(emptyList())
-                } else {
-                    outbox.observePending().map { rows -> rows.filter { it.result.uid == me.uid } }
+                outbox.observePending().map { rows ->
+                    rows.filter { it.result.uid == SelfSeats.ME || it.result.uid == me?.uid }
                 }
             }.collect { rows ->
                 for (row in rows) {
