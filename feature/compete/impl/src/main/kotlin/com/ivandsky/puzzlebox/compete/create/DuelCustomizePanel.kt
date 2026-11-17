@@ -37,7 +37,7 @@ internal fun DuelCustomizePanel(state: NewDuelState, actions: NewDuelActions, mo
     val draft = state.draft
     Column(modifier.fillMaxWidth().testTag("duel.customize"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         if (!draft.todayOnly) {
-            Section("ROUNDS · BEST OF") { RoundsRow(draft.count, actions.onCount) }
+            Section("PUZZLES · BEST OF") { RoundsRow(draft.count, actions.onCount) }
         }
         Section("GAMES") {
             GameChips(state.games, draft, actions.onToggle)
@@ -80,7 +80,7 @@ private fun RoundsRow(count: Int, onCount: (Int) -> Unit) {
         IconButton(
             onClick = { onCount(count - 1) },
             enabled = count > DuelDraft.MIN_COUNT,
-            modifier = Modifier.semantics { contentDescription = "Fewer rounds" }.testTag("duel.rounds.fewer"),
+            modifier = Modifier.semantics { contentDescription = "Fewer puzzles" }.testTag("duel.rounds.fewer"),
         ) { Text("−", style = MaterialTheme.typography.titleLarge) }
         Text(
             text = count.toString(),
@@ -91,7 +91,7 @@ private fun RoundsRow(count: Int, onCount: (Int) -> Unit) {
         IconButton(
             onClick = { onCount(count + 1) },
             enabled = count < Match.MAX_LEGS,
-            modifier = Modifier.semantics { contentDescription = "More rounds" }.testTag("duel.rounds.more"),
+            modifier = Modifier.semantics { contentDescription = "More puzzles" }.testTag("duel.rounds.more"),
         ) { Text("+", style = MaterialTheme.typography.titleLarge) }
         QUICK_COUNTS.forEach { quick ->
             FilterChip(
