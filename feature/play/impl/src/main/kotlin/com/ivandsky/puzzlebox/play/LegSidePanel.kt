@@ -25,8 +25,8 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.CrossingLabel
 import com.ivandsky.puzzlebox.gameui.FlatProgressBar
 import com.ivandsky.puzzlebox.gameui.PlayClock
+import com.ivandsky.puzzlebox.gameui.crossing
 import com.ivandsky.puzzlebox.gameui.rememberCrossingFill
-import kotlin.math.abs
 import kotlin.time.Duration
 
 // The figure-and-unit row of the progress and hints cards, as tall as the reference draws it.
@@ -61,6 +61,7 @@ internal fun legSidePanel(
 internal fun LegTimeCard(target: Duration?, elapsedMs: () -> Long, modifier: Modifier = Modifier) {
     val shownSecond by remember(elapsedMs) { derivedStateOf { elapsedMs() / 1000L } }
     val targetSecond = target?.inWholeSeconds
+    val standing by remember(elapsedMs, target) { derivedStateOf { target?.let { crossing(elapsedMs(), it.inWholeMilliseconds) } } }
     StatsCard(modifier.testTag("leg.time")) {
         Column(
             Modifier.fillMaxHeight().fillMaxWidth().padding(horizontal = Spacing.sm),
@@ -70,8 +71,7 @@ internal fun LegTimeCard(target: Duration?, elapsedMs: () -> Long, modifier: Mod
                 CardLabel("Time")
                 BigNumber(formatDuration(shownSecond * 1000L))
             } else {
-                val over = shownSecond >= targetSecond
-                val clock = formatDuration(abs(targetSecond - shownSecond) * 1000L)
+                val (over, clock) = checkNotNull(standing)
                 CrossingLabel(over) { isOver ->
                     Column {
                         CardLabel(if (isOver) "Over time" else "Time left")

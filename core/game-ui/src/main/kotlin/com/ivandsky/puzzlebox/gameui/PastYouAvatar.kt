@@ -58,11 +58,11 @@ private val HistoryMark: ImageVector = ImageVector.Builder(
     )
     .build()
 
-/** Past you: the initial in the opponent pair, with the history mark at the lower right. */
+/** Past you: the initial of [name] (the player's own) in the opponent pair, with the history mark at the lower right. */
 @Composable
-fun PastYouAvatar(initial: String, modifier: Modifier = Modifier, size: Dp = 40.dp) {
+fun PastYouAvatar(name: String, modifier: Modifier = Modifier, size: Dp = 40.dp) {
     Box(modifier = modifier.size(size)) {
-        PlayerAvatar(name = initial, photoUrl = null, size = size, tone = DuelTone.Them)
+        PlayerAvatar(name = name, photoUrl = null, size = size, tone = DuelTone.Them)
         PastMark(size = size * MARK_SHARE, modifier = Modifier.align(Alignment.BottomEnd))
     }
 }
@@ -87,7 +87,7 @@ private fun PastMark(size: Dp, modifier: Modifier) {
 @Composable
 internal fun PastYouAvatarPreview() = PuzzleBoxTheme {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-        PastYouAvatar(initial = "I")
-        PastYouAvatar(initial = "I", size = 48.dp)
+        PastYouAvatar(name = "Ivan")
+        PastYouAvatar(name = "Ivan", size = 48.dp)
     }
 }

@@ -47,7 +47,7 @@ internal fun state(
     signIn = DuelSignIn.Idle,
     selfOffered = true,
     opponent = opponent,
-    initial = "I",
+    selfName = "Ivan",
     self = self,
 )
 

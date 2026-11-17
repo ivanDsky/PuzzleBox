@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
+import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.CreateSelfDuel
@@ -36,6 +37,7 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 import java.util.Locale
 import kotlin.random.Random
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -76,7 +78,14 @@ class NewDuelSelfViewModelTest {
     private val server = FakeMatchRepository().apply { signedInUid = ANN.uid }
     private val local = FakeMatchLocalRepository()
     private val self = FakeSelfMatchRepository()
-    private val pool = ComputeSolvedPool(registry, completions, received)
+    private var poolReads = 0
+    private val pool = ComputeSolvedPool(
+        registry,
+        object : CompletionRepository by completions {
+            override fun observeRecords(): Flow<List<CompletionRecord>> = completions.observeRecords().also { poolReads++ }
+        },
+        received,
+    )
     private val noToken = object : GoogleIdTokenProvider {
         override suspend fun idToken(activityContext: Context): GoogleIdToken = GoogleIdToken.Available("t")
     }
@@ -154,6 +163,32 @@ class NewDuelSelfViewModelTest {
     }
 
     @Test
+    fun `a puzzle solved after the sheet first opened is counted when it opens again`() = runTest {
+        solve(alpha, 1, 2)
+        val vm = started()
+        vm.chooseOpponent(Opponent.PastYou)
+        vm.refreshSolved()
+        assertEquals(2, vm.state.value.self.cap)
+
+        solve(alpha, 1, 2, 3)
+        vm.refreshSolved()
+
+        assertEquals(3, vm.state.value.self.cap)
+    }
+
+    @Test
+    fun `with the flag off the solved pool is never read`() = runTest {
+        solve(alpha, 1, 2)
+        val vm = started(FakeReleaseFlags())
+
+        vm.refreshSolved()
+        vm.setFriends(true)
+        vm.reset()
+
+        assertEquals(0, poolReads)
+    }
+
+    @Test
     fun `friends' puzzles switch re-reads the pool`() = runTest {
         solve(alpha, 1, 2)
         val vm = started()
@@ -200,7 +235,7 @@ class NewDuelSelfViewModelTest {
         vm.create()
         vm.opened.first()
         assertEquals(1, self.observeAll().first().size)
-        assertEquals("Y", vm.state.value.initial)
+        assertEquals("You", vm.state.value.selfName)
     }
 
     @Test
@@ -259,9 +294,9 @@ class NewDuelSelfViewModelTest {
     }
 
     @Test
-    fun `the avatar initial is the player's own`() = runTest {
+    fun `the avatar takes its name from the player`() = runTest {
         val vm = started()
-        assertEquals("A", vm.state.value.initial)
+        assertEquals("Ann", vm.state.value.selfName)
     }
 
     private companion object {

@@ -54,8 +54,8 @@ class PastYouAvatarGoldenScreenshots {
                 horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                PastYouAvatar(initial = "Ivan")
-                PastYouAvatar(initial = "Sam", size = 48.dp)
+                PastYouAvatar(name = "Ivan")
+                PastYouAvatar(name = "Sam", size = 48.dp)
             }
         }
         rule.settleAndCapture("common", "past-you-avatar", "phone", dark)

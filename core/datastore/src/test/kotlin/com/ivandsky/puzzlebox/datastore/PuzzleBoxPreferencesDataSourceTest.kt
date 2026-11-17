@@ -1,6 +1,8 @@
 package com.ivandsky.puzzlebox.datastore
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.core.edit
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ThemeMode
 import com.ivandsky.puzzlebox.model.ThemeRead
@@ -8,6 +10,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -176,6 +179,55 @@ class PuzzleBoxPreferencesDataSourceTest {
         firstScope.cancel()
 
         assertFalse(newDataSource(file).preferences.first().showSelfDuelTimeLeft)
+    }
+
+    /** The file as the build that shipped the camelCase key left it: [legacy] under it, or nothing at all. */
+    private suspend fun TestScope.legacyFile(legacy: Boolean?): File {
+        val file = tempFile()
+        val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())
+        PreferenceDataStoreFactory.create(scope = scope) { file }.edit { preferences ->
+            legacy?.let { preferences[booleanPreferencesKey("showSelfDuelTimeLeft")] = it }
+        }
+        scope.cancel()
+        return file
+    }
+
+    /** [block] over the file as a restarted process reads it, running the preferences migrations; its DataStore closes after. */
+    private suspend fun TestScope.restarted(file: File, block: suspend (PuzzleBoxPreferencesDataSource) -> Unit) {
+        val scope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())
+        block(
+            PuzzleBoxPreferencesDataSource(
+                PreferenceDataStoreFactory.create(scope = scope, migrations = puzzleBoxPreferencesMigrations) { file },
+            ),
+        )
+        scope.cancel()
+    }
+
+    @Test
+    fun `a self-duel time left switched off under the old key stays off`() = runTest {
+        restarted(legacyFile(legacy = false)) { assertFalse(it.preferences.first().showSelfDuelTimeLeft) }
+    }
+
+    @Test
+    fun `a self-duel time left switched on under the old key stays on and a later switch-off persists`() = runTest {
+        val file = legacyFile(legacy = true)
+        restarted(file) {
+            assertTrue(it.preferences.first().showSelfDuelTimeLeft)
+            it.setShowSelfDuelTimeLeft(false)
+        }
+
+        restarted(file) { assertFalse(it.preferences.first().showSelfDuelTimeLeft) }
+    }
+
+    @Test
+    fun `with no old key the self-duel time left is on and the Settings write persists under the new key`() = runTest {
+        val file = legacyFile(legacy = null)
+        restarted(file) {
+            assertTrue(it.preferences.first().showSelfDuelTimeLeft)
+            it.setShowSelfDuelTimeLeft(false)
+        }
+
+        restarted(file) { assertFalse(it.preferences.first().showSelfDuelTimeLeft) }
     }
 
     @Test

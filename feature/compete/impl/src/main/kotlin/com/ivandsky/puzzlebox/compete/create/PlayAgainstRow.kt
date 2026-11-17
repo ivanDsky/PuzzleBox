@@ -47,11 +47,11 @@ private const val DASH_OFF = 4f
 
 /**
  * "Play against": the label on the left and the two choices on the right, "A friend" (a dashed "?") and "Past you"
- * (your [initial] with the past mark). The [selected] one wears a primary ring that crossfades over
+ * (your [selfName]'s initial with the past mark). The [selected] one wears a primary ring that crossfades over
  * [MotionTokens.SelectDuration] (instant with reduced motion) and its label turns bold.
  */
 @Composable
-internal fun PlayAgainstRow(selected: Opponent, initial: String, onSelect: (Opponent) -> Unit, modifier: Modifier = Modifier) {
+internal fun PlayAgainstRow(selected: Opponent, selfName: String, onSelect: (Opponent) -> Unit, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = "PLAY AGAINST",
@@ -62,7 +62,7 @@ internal fun PlayAgainstRow(selected: Opponent, initial: String, onSelect: (Oppo
         Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Choice("A friend", selected == Opponent.Friend, { onSelect(Opponent.Friend) }, "duel.opponent.friend") { UnknownFriend() }
             Choice("Past you", selected == Opponent.PastYou, { onSelect(Opponent.PastYou) }, "duel.opponent.self") {
-                PastYouAvatar(initial = initial, size = AVATAR)
+                PastYouAvatar(name = selfName, size = AVATAR)
             }
         }
     }

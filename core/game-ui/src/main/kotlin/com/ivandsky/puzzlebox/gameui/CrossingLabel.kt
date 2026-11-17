@@ -17,8 +17,9 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
 /** Crossfades [content] when [over] flips: the label before the target gives way to the one after it. */
 @Composable
-fun CrossingLabel(over: Boolean, content: @Composable (over: Boolean) -> Unit) {
+fun CrossingLabel(over: Boolean, modifier: Modifier = Modifier, content: @Composable (over: Boolean) -> Unit) {
     Crossfade(
+        modifier = modifier,
         targetState = over,
         animationSpec = if (rememberReducedMotion()) snap() else tween(MotionTokens.DurationExit, easing = LinearEasing),
         label = "timer-label",

@@ -136,7 +136,10 @@ private fun PuzzleName(row: PuzzleRow, brand: GameBrand, wide: Boolean, index: I
             val basisStyle = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold)
             val basisColor = brand.accent.colors().onContainer
             if (gap != null) {
-                ImprovementGap(gap, basisStyle, basisColor, index, maxLines = if (wide) 1 else 2)
+                if (row.gapBesideBasis) {
+                    Text(text = row.basis, style = basisStyle, color = basisColor, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                ImprovementGap(gap, basisStyle, basisColor, index, maxLines = if (wide || row.gapBesideBasis) 1 else 2)
             } else {
                 Text(
                     text = row.basis,

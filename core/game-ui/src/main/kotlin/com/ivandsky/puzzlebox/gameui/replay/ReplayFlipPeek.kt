@@ -112,7 +112,7 @@ internal fun ReplayFlipPeek(
                         frame = frame,
                         pieces = board.pieces,
                         isMine = isMine,
-                        pastYouInitial = names.mine.takeIf { !isMine && names.theirsPast },
+                        pastYouName = names.mine.takeIf { !isMine && names.theirsPast },
                         selected = page >= 0 && pager.targetPage == page,
                         hidden = page >= 0 && pager.targetPage != page,
                         reduced = reduced,
@@ -159,7 +159,7 @@ private fun SideTab(
     frame: ReplayFrame?,
     pieces: String,
     isMine: Boolean,
-    pastYouInitial: String?,
+    pastYouName: String?,
     selected: Boolean,
     hidden: Boolean,
     reduced: Boolean,
@@ -188,7 +188,7 @@ private fun SideTab(
                     tint = tint,
                     onTint = if (isMine) colors.onPrimary else colors.onTertiary,
                     modifier = Modifier.align(Alignment.CenterStart),
-                    pastYouInitial = pastYouInitial,
+                    pastYouName = pastYouName,
                 )
                 HintFlash(frame.facts.hints, hidden && playing && !reduced, Modifier.align(Alignment.TopEnd))
             }

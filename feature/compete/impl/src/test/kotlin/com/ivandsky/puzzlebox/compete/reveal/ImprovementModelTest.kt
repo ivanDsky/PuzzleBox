@@ -40,6 +40,14 @@ class ImprovementModelTest {
     }
 
     @Test
+    fun theHintsDoNotChangeTheGapOrItsText() {
+        val gap = improvementOf(DuelSideState.Time(95_000, hints = 1), DuelSideState.Time(80_000, hints = 3))
+
+        assertEquals(Improvement(Trend.Slower, 15), gap)
+        assertEquals("15 s slower than your first solve", gap?.text)
+    }
+
+    @Test
     fun noTimeOnEitherSideIsNoGap() {
         assertNull(improvementOf(DuelSideState.GaveUp, time(60_000)))
         assertNull(improvementOf(time(60_000), DuelSideState.NotPlayed))

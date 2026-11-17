@@ -21,7 +21,8 @@ import kotlin.math.abs
  * strip shows beside the game glyph, the game's [rankOrder] (which figure `DuelCompare` leads with), the [basis] line
  * under the sides and the [pill] naming who took it. [legIndex] is the puzzle's place in the match, which a settled
  * card's place in the race is not once an earlier puzzle is still pending. A self duel's card also holds its
- * [improvement] over your first solve, which stands in for the basis line.
+ * [improvement] over your first solve, which stands in for the basis line, except on a puzzle the hints decided, which
+ * shows both ([gapBesideBasis]).
  */
 internal data class RevealCard(
     val leg: LegReveal,
@@ -32,7 +33,10 @@ internal data class RevealCard(
     val pill: String,
     val legIndex: Int,
     val improvement: Improvement? = null,
-)
+) {
+    /** The gap is a line of its own under [basis], which is then the friend line a hints-decided puzzle keeps. */
+    val gapBesideBasis: Boolean get() = improvement != null && improvement.text != basis
+}
 
 /** The reveal's cast and its race: [cards] holds the settled puzzles only, in puzzle order. */
 internal data class RevealPlan(val me: Player, val opponent: Player, val cards: List<RevealCard>) {
@@ -79,7 +83,8 @@ internal fun revealPlan(
                 is LegRef.Custom -> "Friend's"
             },
             rankOrder = order,
-            basis = improvement?.text ?: basisLine(verdict, mySide, theirSide, order, opponent.name),
+            // A time-decided self leg's gap stands in for the basis line; one the hints decided keeps both.
+            basis = improvement?.text?.takeUnless { verdict.decidedOnHints() } ?: basisLine(verdict, mySide, theirSide, order, opponent.name),
             pill = pillText(verdict, me.name, opponent.name, match.isSelf),
             legIndex = index,
             improvement = improvement,
@@ -87,6 +92,8 @@ internal fun revealPlan(
     }
     return RevealPlan(me, opponent, cards)
 }
+
+private fun LegVerdict.decidedOnHints() = (this as? LegVerdict.Win)?.basis == LegBasis.Hints || (this as? LegVerdict.Loss)?.basis == LegBasis.Hints
 
 private fun ResultPostState.counts() = this == ResultPostState.Pending || this == ResultPostState.Posted
 

@@ -91,12 +91,12 @@ class SelfDuelPageTouchTargetsTest {
         return DuelUiState.Participant(view, elapsedMs = if (1 in doneLegs) emptyMap() else mapOf(1 to 32_000L), firstSolvedAt = firstSolves, myName = "Ivan")
     }
 
-    private fun show(state: DuelUiState.Participant, confirm: Boolean = false) {
+    private fun show(state: DuelUiState.Participant, confirm: Boolean = false, layout: PlayLayout = PlayLayout.SinglePane) {
         rule.setContent {
             PuzzleBoxTheme {
                 DuelLegs(
                     state = state,
-                    layout = PlayLayout.SinglePane,
+                    layout = layout,
                     now = now,
                     time = CompeteTime(Clock.fixed(now, ZoneOffset.UTC), Locale.US),
                     actions = LegsActions({}, {}, {}, {}),
@@ -127,6 +127,15 @@ class SelfDuelPageTouchTargetsTest {
         show(state(doneLegs = setOf(0)), confirm = true)
 
         rule.onNodeWithTag("duel.remove.keep").assertExists()
+        rule.assertTouchTargetsAtLeast48()
+    }
+
+    @Test
+    fun `a tablet pane too narrow for two columns keeps one column with its controls as 48 dp touch targets`() {
+        show(state(doneLegs = setOf(0)), layout = PlayLayout.TwoPane)
+
+        rule.onNodeWithTag("duel.legs.detail").assertDoesNotExist()
+        rule.onNodeWithTag("duel.legs.remove").assertExists()
         rule.assertTouchTargetsAtLeast48()
     }
 }

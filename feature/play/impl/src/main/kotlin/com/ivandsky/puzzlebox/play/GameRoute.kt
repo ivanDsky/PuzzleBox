@@ -148,7 +148,7 @@ internal fun GameBoard(
                 }
                 val activityContext = LocalContext.current
                 val controller = board.controller
-                remember(stats, clock, activityContext, boardStyle, showTimer, selfLeg, controller) {
+                remember(stats, clock, activityContext, boardStyle, showTimer, selfLeg, controller, layout) {
                     when {
                         selfLeg != null && layout == PlayLayout.TwoPane ->
                             legSidePanel(selfLeg, clock, { (controller as? PlayHints)?.hintsUsed ?: 0 }, showTimer)

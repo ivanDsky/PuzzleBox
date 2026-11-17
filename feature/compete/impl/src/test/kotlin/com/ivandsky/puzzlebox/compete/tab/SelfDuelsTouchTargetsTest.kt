@@ -54,7 +54,7 @@ class SelfDuelsTouchTargetsTest {
                         rows = rows,
                         signedIn = signedIn,
                         duelYourself = true,
-                        selfInitial = "I",
+                        selfName = "Ivan",
                         inviter = if (signedIn) "Ivan" else null,
                         now = { now },
                         onNewDuel = {},

@@ -104,7 +104,7 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
                     rows = state.rows,
                     signedIn = state.signedIn,
                     duelYourself = state.duelYourself,
-                    selfInitial = state.selfInitial,
+                    selfName = state.selfName,
                     inviter = state.inviter,
                     now = { state.now },
                     onNewDuel = {},
@@ -145,7 +145,7 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
             isSelf = true,
         )
 
-        val EMPTY = DuelsTabState(rows = emptyList(), signedIn = true, now = NOW, inviter = "Ivan", selfInitial = "I")
+        val EMPTY = DuelsTabState(rows = emptyList(), signedIn = true, now = NOW, inviter = "Ivan", selfName = "Ivan")
 
         val POPULATED = EMPTY.copy(
             rows = listOf(

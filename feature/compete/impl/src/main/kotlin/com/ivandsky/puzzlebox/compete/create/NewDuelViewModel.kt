@@ -23,7 +23,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.util.Locale
 import kotlin.coroutines.cancellation.CancellationException
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,11 +30,9 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -71,8 +68,8 @@ internal data class NewDuelState(
     val selfOffered: Boolean = false,
     /** Who the duel is against; [Opponent.PastYou] only while [selfOffered]. */
     val opponent: Opponent = Opponent.Friend,
-    /** The initial Past you's avatar wears: the player's own, "Y" while signed out. */
-    val initial: String = "Y",
+    /** The name Past you's avatar takes its initial from: the player's own, "You" while signed out. */
+    val selfName: String = "You",
     val self: SelfDuelView = SelfDuelView.initial(),
 ) {
     val canCreate: Boolean
@@ -87,8 +84,8 @@ private const val STOP_TIMEOUT_MS = 5_000L
 /**
  * The New duel sheet's state holder: presets and customize edits on a [DuelDraft], Create through [createMatch], and
  * the Google sign-in a signed-out player gets first. With [ReleaseFlag.VirtualDuel] on (collected, so it applies live)
- * "Play against" also offers Past you: its choices live on a [SelfDuelForm] measured against [computeSolvedPool],
- * Create goes through [createSelfDuel] and the new duel's code leaves once through [opened] (it has nothing to share).
+ * "Play against" also offers Past you: its choices live on a [SelfDuelForm] measured against the solved pool ([SelfDuelStep]),
+ * Create goes through it too and the new duel's code leaves once through [opened] (it has nothing to share).
  * A created friend duel's code leaves once through [created]; the sheet calls [reset] when it closes so the next
  * opening starts from the Quick duel again.
  */
@@ -101,8 +98,8 @@ internal class NewDuelViewModel(
     daily: DailyRepository,
     private val registry: GameRegistry,
     private val flags: ReleaseFlags,
-    private val createSelfDuel: CreateSelfDuel,
-    private val computeSolvedPool: ComputeSolvedPool,
+    createSelfDuel: CreateSelfDuel,
+    computeSolvedPool: ComputeSolvedPool,
     private val clock: () -> Instant,
     private val zone: () -> ZoneId,
     private val locale: () -> Locale,
@@ -121,6 +118,7 @@ internal class NewDuelViewModel(
     )
 
     private val signInStep = DuelSignInStep(identity, idTokens)
+    private val selfStep = SelfDuelStep(computeSolvedPool, createSelfDuel, flags)
     private val working = MutableStateFlow(Working(DuelDraft.quick(emptyList())))
     private val createdCodes = Channel<Pair<ShareCode, List<String>>>(Channel.BUFFERED)
     private val openedCodes = Channel<ShareCode>(Channel.BUFFERED)
@@ -143,16 +141,15 @@ internal class NewDuelViewModel(
     /** The code of a duel against Past you, once, after Create succeeded: the sheet opens that duel. */
     val opened: Flow<ShareCode> = openedCodes.receiveAsFlow()
 
-    /** What each game's solved puzzles number; read again when friends' puzzles are switched or the sheet is reset. */
-    @OptIn(ExperimentalCoroutinesApi::class)
-    private val solved: StateFlow<SolvedCounts?> = combine(
-        games,
-        working.map { it.form.includeFriends to it.generation }.distinctUntilChanged(),
-    ) { available, (friends, _) -> available to friends }
-        .filter { (available, _) -> available.isNotEmpty() }
-        .mapLatest { (available, friends) ->
-            SolvedCounts(computeSolvedPool(available.mapTo(HashSet()) { it.id }, friends).groupingBy { it.gameId }.eachCount())
-        }
+    /** Bumped each time the sheet opens, so the solved counts are read again for puzzles solved since. */
+    private val sheetOpens = MutableStateFlow(0)
+
+    private val solved: StateFlow<SolvedCounts?> = selfStep
+        .solved(
+            games = games,
+            includeFriends = working.map { it.form.includeFriends }.distinctUntilChanged(),
+            rereads = combine(working.map { it.generation }.distinctUntilChanged(), sheetOpens, ::Pair),
+        )
         .stateIn(viewModelScope, SharingStarted.Eagerly, null)
 
     val state: StateFlow<NewDuelState> = combine(working, games, identity.current, solved, flags.enabled, ::build)
@@ -188,7 +185,7 @@ internal class NewDuelViewModel(
             signIn = work.signIn,
             selfOffered = offered,
             opponent = opponent,
-            initial = who?.displayName?.firstOrNull { it.isLetterOrDigit() }?.uppercase() ?: "Y",
+            selfName = who?.displayName ?: "You",
             self = self,
         )
     }
@@ -217,6 +214,9 @@ internal class NewDuelViewModel(
     private fun edit(friend: (DuelDraft) -> DuelDraft, self: (SelfDuelForm) -> SelfDuelForm = { it }) = working.update {
         if (selfActive(it)) it.copy(form = self(it.form), notice = null) else it.copy(draft = friend(it.draft), notice = null)
     }
+
+    /** The sheet opened: counts the puzzles solved since it last did. */
+    fun refreshSolved() = sheetOpens.update { it + 1 }
 
     /** Back to the Quick duel with nothing pending (no challenge either), as the sheet closes; a create still in flight is dropped. */
     fun reset() = working.update {
@@ -252,19 +252,15 @@ internal class NewDuelViewModel(
 
     /** Create against Past you: no account, no code to share; the new duel's code leaves through [opened]. */
     private fun createSelf(start: Working) {
-        val settings = solved.value?.let(start.form::toSettings)?.takeIf { it.rounds > 0 }
-        if (settings == null) {
-            working.update { it.copy(creating = false) }
-            return
-        }
         viewModelScope.launch {
-            val outcome = createSelfDuel(settings)
+            val outcome = selfStep.create(start.form, solved.value)
             var current = false
             working.update { work ->
                 current = work.generation == start.generation
                 if (!current) return@update work
                 when (outcome) {
                     is CreateOutcome.Created -> work
+                    null -> work.copy(creating = false)
                     CreateOutcome.NoPuzzles -> work.copy(creating = false, notice = DuelNotice.NoPuzzles)
                     else -> work.copy(creating = false, notice = DuelNotice.Failed(null))
                 }
