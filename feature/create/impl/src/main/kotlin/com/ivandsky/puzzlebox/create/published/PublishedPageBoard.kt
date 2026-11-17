@@ -5,7 +5,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.create.editor.ReadOnlyBoard
+import com.ivandsky.puzzlebox.designsystem.HiddenBoardTokens
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.hidden.HiddenBoard
 import com.ivandsky.puzzlebox.gameui.hidden.HiddenBoardLoading
@@ -17,10 +19,16 @@ internal const val PublishedPlainBoardLoadingTag = "create.publishedPage.plainBo
  * The board section of the author's published page. With the plain board off it is the Studio's board, read-only, with
  * its verdict, as shipped. With it on it is the draft's plain, sharp board from 126's [HiddenBoard]: no verdict, no
  * marks, no tools, the same for every game. While that board is built the room holds quiet bars; a game that cannot
- * draw one leaves the section empty, and the Studio board is never the fallback.
+ * draw one leaves the section empty, and the Studio board is never the fallback. The plain board is at most [maxSide]
+ * high, [HiddenBoardTokens.MaxSide] unless the two-column page has room for more.
  */
 @Composable
-internal fun PublishedPageBoard(page: PublishedPuzzleViewModel.State.Ready, layout: PlayLayout, modifier: Modifier = Modifier) {
+internal fun PublishedPageBoard(
+    page: PublishedPuzzleViewModel.State.Ready,
+    layout: PlayLayout,
+    modifier: Modifier = Modifier,
+    maxSide: Dp = HiddenBoardTokens.MaxSide,
+) {
     if (!page.plainBoard) {
         ReadOnlyBoard(board = { page.ui.Board(page.controller, page.verdict, layout, it) }, modifier = modifier)
         return
@@ -28,8 +36,8 @@ internal fun PublishedPageBoard(page: PublishedPuzzleViewModel.State.Ready, layo
     val givens = page.givens
     Box(modifier, contentAlignment = Alignment.Center) {
         when {
-            givens != null -> HiddenBoard(givens, sharp = true, modifier = Modifier.testTag(PublishedPlainBoardTag))
-            !page.givensSettled -> HiddenBoardLoading(Modifier.testTag(PublishedPlainBoardLoadingTag))
+            givens != null -> HiddenBoard(givens, sharp = true, modifier = Modifier.testTag(PublishedPlainBoardTag), maxSide = maxSide)
+            !page.givensSettled -> HiddenBoardLoading(Modifier.testTag(PublishedPlainBoardLoadingTag), maxSide = maxSide)
         }
     }
 }

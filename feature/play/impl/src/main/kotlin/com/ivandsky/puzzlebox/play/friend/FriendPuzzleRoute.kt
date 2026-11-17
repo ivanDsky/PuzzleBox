@@ -3,8 +3,10 @@ package com.ivandsky.puzzlebox.play.friend
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -17,6 +19,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
@@ -66,27 +70,33 @@ internal fun FriendPuzzleRoute(
                     },
                 )
             }
-            when (val card = state) {
-                FriendCardState.Loading ->
-                    if (viewModel.hiddenBoard) FriendLoadingBoard()
-                    else Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(Modifier.testTag("friend.card.loading"))
-                    }
-                is FriendCardState.Ready -> FriendPuzzleCard(
-                    card = card.card,
-                    onAction = { onPlay(card.card.play) },
-                    onSignIn = { viewModel.signIn(context) },
-                    modifier = Modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.xl),
-                    onReport = viewModel::report,
-                    inPane = !showUp,
-                )
-                FriendCardState.Reported -> Unit
-                is FriendCardState.Failed -> card.outcome.errorCopy(ShareCode.parse(key.code))?.let { copy ->
-                    FriendOpenError(
-                        copy = copy,
-                        onRetry = viewModel::retry,
-                        onUpdate = { uriHandler.openStoreListing() },
+            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                // The pane (no Up bar) knows its own height: the grid centres in it and sizes its board by it.
+                val paneHeight = if (showUp) Dp.Unspecified else maxHeight
+                when (val card = state) {
+                    FriendCardState.Loading ->
+                        if (viewModel.hiddenBoard) FriendLoadingBoard(paneHeight = paneHeight)
+                        else Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(Modifier.testTag("friend.card.loading"))
+                        }
+                    is FriendCardState.Ready -> FriendPuzzleCard(
+                        card = card.card,
+                        onAction = { onPlay(card.card.play) },
+                        onSignIn = { viewModel.signIn(context) },
+                        modifier = Modifier.verticalScroll(rememberScrollState())
+                            // The pane's two-column page keeps its margins inside the pane's height.
+                            .padding(bottom = if (!showUp && card.card.hiddenBoard) 0.dp else Spacing.xl),
+                        onReport = viewModel::report,
+                        paneHeight = paneHeight,
                     )
+                    FriendCardState.Reported -> Unit
+                    is FriendCardState.Failed -> card.outcome.errorCopy(ShareCode.parse(key.code))?.let { copy ->
+                        FriendOpenError(
+                            copy = copy,
+                            onRetry = viewModel::retry,
+                            onUpdate = { uriHandler.openStoreListing() },
+                        )
+                    }
                 }
             }
         }

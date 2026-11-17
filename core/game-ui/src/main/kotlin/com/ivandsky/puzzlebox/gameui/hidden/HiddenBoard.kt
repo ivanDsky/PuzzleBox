@@ -14,6 +14,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.unit.Dp
+import com.ivandsky.puzzlebox.designsystem.HiddenBoardTokens
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 
@@ -29,10 +31,11 @@ internal const val SHARP_BOARD_DESCRIPTION = "Board"
  *
  * Either way no touch reaches the board, so nothing on it can be tapped, held or played, and TalkBack is told one
  * line. The slot keeps no touch for itself: a drag that starts on the board still scrolls the page it is in.
- * Turning [sharp] on fades the blur and the veil away over the plain board.
+ * Turning [sharp] on fades the blur and the veil away over the plain board. The slot is at most
+ * [HiddenBoardTokens.MaxSide] high unless a page with room to spare gives it a larger [maxSide].
  */
 @Composable
-fun HiddenBoard(board: GivensBoard, sharp: Boolean, modifier: Modifier = Modifier) {
+fun HiddenBoard(board: GivensBoard, sharp: Boolean, modifier: Modifier = Modifier, maxSide: Dp = HiddenBoardTokens.MaxSide) {
     val reduced = rememberReducedMotion()
     val reveal = updateTransition(targetState = sharp, label = "hidden-board")
     val sharpAlpha by reveal.animateFloat({ fade(reduced, MotionTokens.DurationMedium) }, "sharp") { if (it) 1f else 0f }
@@ -46,6 +49,7 @@ fun HiddenBoard(board: GivensBoard, sharp: Boolean, modifier: Modifier = Modifie
         modifier = modifier.clearAndSetSemantics {
             contentDescription = if (sharp) SHARP_BOARD_DESCRIPTION else HIDDEN_BOARD_DESCRIPTION
         },
+        maxSide = maxSide,
     ) {
         if (showSharp) {
             Fitted(Modifier.graphicsLayer { alpha = sharpAlpha }) { board.content(Modifier) }

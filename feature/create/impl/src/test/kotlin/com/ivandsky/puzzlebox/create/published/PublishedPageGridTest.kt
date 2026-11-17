@@ -2,7 +2,9 @@ package com.ivandsky.puzzlebox.create.published
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -11,15 +13,19 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.GOLDEN_TABLET
 import com.ivandsky.puzzlebox.create.showGolden
+import com.ivandsky.puzzlebox.designsystem.HiddenBoardTokens
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CompletableDeferred
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -75,12 +81,78 @@ class PublishedPageGridTest {
     }
 
     @Test
-    fun `wide pane, flag on, the right column is 372 dp wide, both columns start at the top and there is no bar`() {
+    fun `wide pane, flag on, the right column is 372 dp wide and there is no bar`() {
         show(PlainGame.QUEENS, ON, pane = 880.dp)
 
         assertEquals(with(rule.density) { 372.dp.toPx() }, bounds("$GRID.right").width, 1f)
-        assertEquals(bounds(PLAIN_BOARD).top, bounds("create.publishedPage.title").top, 1f)
         assertEquals(0, count("create.publishedPage.back"))
+    }
+
+    @Test
+    fun `a tablet pane, the board is wider than today's cap and fits the pane`() {
+        show(PlainGame.QUEENS, ON, pane = 1200.dp)
+
+        val board = bounds(PLAIN_BOARD)
+        val pane = bounds("route.publishedPuzzle")
+        assertTrue("board ${board.width} wider than the cap", board.width > with(rule.density) { HiddenBoardTokens.MaxSide.toPx() })
+        assertEquals("the board keeps its square", board.width, board.height, 1f)
+        assertTrue("board in the pane: $board of $pane", board.top >= pane.top && board.bottom <= pane.bottom)
+    }
+
+    @Test
+    fun `a tablet pane, the board fills the left column's width when the height allows`() {
+        show(PlainGame.QUEENS, ON, pane = 880.dp)
+
+        val expected = with(rule.density) { (880.dp - Spacing.lg * 2 - Spacing.xl - 372.dp).toPx() }
+        assertEquals(expected, bounds(PLAIN_BOARD).width, 1f)
+    }
+
+    @Test
+    fun `a pane shorter than the board's bound keeps today's size`() {
+        show(PlainGame.QUEENS, ON, pane = 1200.dp, height = 420.dp)
+
+        assertEquals(with(rule.density) { HiddenBoardTokens.MaxSide.toPx() }, bounds(PLAIN_BOARD).width, 1f)
+    }
+
+    @Test
+    fun `a pane 880 dp wide, the columns sit vertically centred in the pane`() = assertCentred(880.dp)
+
+    @Test
+    fun `a pane 1200 dp wide, the columns sit vertically centred in the pane`() = assertCentred(1200.dp)
+
+    @Test
+    fun `a tablet pane, loading draws the two-column skeleton and not a blank surface`() {
+        val world = PublishedPlainWorld(PlainGame.QUEENS, ON).apply { gate = CompletableDeferred() }
+        showWorld(world, pane = 1200.dp, await = false)
+
+        assertEquals(1, count("$GRID.skeleton"))
+        assertEquals(1, count("$GRID.skeleton.right"))
+        assertEquals(1, count(PLAIN_LOADING))
+        assertEquals(0, count("create.published.ticket"))
+        assertTrue("board left of the right column", bounds(PLAIN_LOADING).right <= bounds("$GRID.skeleton.right").left)
+    }
+
+    @Test
+    fun `a pane 1200 dp wide, the skeleton's board is exactly where the loaded board lands`() = assertSkeletonInPlace(1200.dp)
+
+    @Test
+    fun `a pane 1000 dp wide, the skeleton's board is exactly where the loaded board lands`() = assertSkeletonInPlace(1000.dp)
+
+    @Test
+    fun `a narrow pane keeps the blank surface while loading`() {
+        val world = PublishedPlainWorld(PlainGame.QUEENS, ON).apply { gate = CompletableDeferred() }
+        showWorld(world, pane = 600.dp, await = false)
+
+        assertEquals(0, count("$GRID.skeleton"))
+        assertEquals(0, count(PLAIN_LOADING))
+    }
+
+    @Test
+    fun `flag off, a wide pane keeps the blank surface while loading`() {
+        val world = PublishedPlainWorld(PlainGame.QUEENS, FakeReleaseFlags()).apply { gate = CompletableDeferred() }
+        showWorld(world, pane = 880.dp, await = false)
+
+        assertEquals(0, count("$GRID.skeleton"))
     }
 
     @Test
@@ -114,14 +186,40 @@ class PublishedPageGridTest {
         assertEquals(0, count(PLAIN_BOARD))
     }
 
-    private fun show(game: PlainGame, flags: ReleaseFlags, pane: Dp, awaitPlain: Boolean = true) {
-        val world = PublishedPlainWorld(game, flags)
+    private fun assertSkeletonInPlace(pane: Dp) {
+        val world = PublishedPlainWorld(PlainGame.QUEENS, ON).apply { gate = CompletableDeferred() }
+        showWorld(world, pane, await = false)
+        val loading = bounds(PLAIN_LOADING)
+        world.gate?.complete(Unit)
+        awaitTag(PLAIN_CONTENT)
+        rule.waitForIdle()
+
+        assertEquals(loading, bounds(PLAIN_BOARD))
+    }
+
+    /** The topmost and lowest parts of the page leave equal gaps above and below, within 1 dp. */
+    private fun assertCentred(pane: Dp) {
+        show(PlainGame.QUEENS, ON, pane = pane)
+
+        val route = bounds("route.publishedPuzzle")
+        val top = minOf(bounds(PLAIN_BOARD).top, bounds("create.publishedPage.title").top)
+        val bottom = maxOf(bounds(PLAIN_BOARD).bottom, bounds("fake.editor.publishFields.disabled").bottom)
+        assertEquals("gaps above and below", top - route.top, route.bottom - bottom, with(rule.density) { 1.dp.toPx() })
+    }
+
+    private fun show(game: PlainGame, flags: ReleaseFlags, pane: Dp, awaitPlain: Boolean = true, height: Dp = Dp.Unspecified) =
+        showWorld(PublishedPlainWorld(game, flags), pane, awaitPlain, height = height)
+
+    private fun showWorld(world: PublishedPlainWorld, pane: Dp, awaitPlain: Boolean = true, await: Boolean = true, height: Dp = Dp.Unspecified) {
         world.start()
         rule.showGolden(dark = false, frozen = false) {
-            Box(Modifier.wrapContentWidth(Alignment.Start).width(pane)) { PublishedPuzzleRoute(world.key, PlayLayout.TwoPane, onBack = null, onOpen = {}) }
+            Box(Modifier.wrapContentWidth(Alignment.Start).width(pane)
+                .then(if (height.isSpecified) Modifier.wrapContentHeight(Alignment.Top).height(height) else Modifier)) {
+                PublishedPuzzleRoute(world.key, PlayLayout.TwoPane, onBack = null, onOpen = {})
+            }
         }
-        awaitTag("create.published.ticket")
-        if (awaitPlain) awaitTag(PLAIN_CONTENT)
+        if (await) awaitTag("create.published.ticket")
+        if (await && awaitPlain) awaitTag(PLAIN_CONTENT)
         rule.waitForIdle()
     }
 

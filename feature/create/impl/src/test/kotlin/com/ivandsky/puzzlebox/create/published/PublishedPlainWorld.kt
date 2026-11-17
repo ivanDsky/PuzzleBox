@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.PublishedPuzzle
 import com.ivandsky.puzzlebox.data.model.TestSolve
+import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.UpdatePublishState
 import com.ivandsky.puzzlebox.game.GamePlugin
@@ -51,6 +52,9 @@ import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import java.time.Instant
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import org.koin.core.context.startKoin
 import org.koin.core.module.dsl.viewModel
@@ -87,6 +91,15 @@ internal class PublishedPlainWorld(
 ) {
     val editor = PlainEditor(game.id)
     val drafts = FakeDraftRepository()
+
+    /** While set, the kept draft is not handed over, so the page stays loading until it completes. */
+    var gate: CompletableDeferred<Unit>? = null
+    private val gatedDrafts = object : DraftRepository by drafts {
+        override fun observeAll() = flow {
+            gate?.await()
+            emitAll(drafts.observeAll())
+        }
+    }
     val published = FakePublishedPuzzleRepository()
     val shared = FakeSharedPuzzleRepository()
 
@@ -104,7 +117,7 @@ internal class PublishedPlainWorld(
                 module {
                     viewModel { (key: PublishedPuzzleKey) ->
                         PublishedPuzzleViewModel(
-                            key, published, drafts, GameRegistry(listOf(pluginOf(editor))),
+                            key, published, gatedDrafts, GameRegistry(listOf(pluginOf(editor))),
                             GameEditorRegistry(listOf(StudioWithVerdict(FakeGameEditorUi(game.id, gameSlots = true)))),
                             GamePlayRegistry(listOf(PlayWithGivens())),
                             CreateDraftCopy(drafts, newId = { "copy" }, clock = { NOW }),

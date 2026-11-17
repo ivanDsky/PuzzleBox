@@ -56,7 +56,7 @@ class PublishedPuzzleViewModel(
 ) : ViewModel() {
 
     // Read once: with CommunityPuzzles on the page draws the plain board (spec M12-9); without flags it is the shipped page.
-    private val plainBoard = flags?.isEnabled(ReleaseFlag.CommunityPuzzles) == true
+    internal val plainBoard = flags?.isEnabled(ReleaseFlag.CommunityPuzzles) == true
 
     private val loadDraft = LoadDraft(drafts, games, editors)
     private val mutableState = MutableStateFlow<State>(State.Loading)

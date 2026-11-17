@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.create.showGolden
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.CompletableDeferred
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
@@ -54,8 +55,29 @@ class PublishedGridGoldenScreenshots {
     @Test fun `narrow light`() = pane("grid-narrow-queens", PlainGame.QUEENS, NARROW, dark = false)
     @Test fun `narrow dark`() = pane("grid-narrow-queens", PlainGame.QUEENS, NARROW, dark = true)
 
+    @Test fun `loading light`() = loading("grid-loading", dark = false)
+    @Test fun `loading dark`() = loading("grid-loading", dark = true)
+
     private fun pane(name: String, game: PlainGame, width: Dp, dark: Boolean) {
-        val world = PublishedPlainWorld(game, FakeReleaseFlags(ReleaseFlag.CommunityPuzzles), title = "Sunday ${game.label}")
+        val world = world(game)
+        show(world, width, dark)
+        awaitTag("create.published.ticket")
+        awaitTag(PLAIN_CONTENT)
+        rule.settleAndCapture("published", name, "tablet", dark)
+    }
+
+    /** The page while its draft is still on the way: the two-column skeleton in the wide pane. */
+    private fun loading(name: String, dark: Boolean) {
+        val world = world(PlainGame.STRANDS).apply { gate = CompletableDeferred() }
+        show(world, WIDE, dark)
+        awaitTag(PLAIN_LOADING)
+        rule.settleAndCapture("published", name, "tablet", dark)
+    }
+
+    private fun world(game: PlainGame) =
+        PublishedPlainWorld(game, FakeReleaseFlags(ReleaseFlag.CommunityPuzzles), title = "Sunday ${game.label}")
+
+    private fun show(world: PublishedPlainWorld, width: Dp, dark: Boolean) {
         world.start()
         rule.showGolden(dark, frozen = false) {
             Row(Modifier.fillMaxHeight()) {
@@ -65,9 +87,6 @@ class PublishedGridGoldenScreenshots {
                 }
             }
         }
-        awaitTag("create.published.ticket")
-        awaitTag(PLAIN_CONTENT)
-        rule.settleAndCapture("published", name, "tablet", dark)
     }
 
     private fun awaitTag(tag: String) = rule.waitUntil(TIMEOUT_MS) {

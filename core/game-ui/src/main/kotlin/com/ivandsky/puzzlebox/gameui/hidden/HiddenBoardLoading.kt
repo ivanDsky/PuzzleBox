@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.HiddenBoardTokens
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -33,12 +34,18 @@ private const val BARS = 3
 
 /**
  * Holds the room of a [rows] by [cols] board while its puzzle loads, so the page does not jump when the board
- * arrives: three soft bars that dim and brighten. Still under reduced motion.
+ * arrives: three soft bars that dim and brighten. Still under reduced motion. It takes a [maxSide] as the
+ * [HiddenBoard] it stands for does.
  */
 @Composable
-fun HiddenBoardLoading(modifier: Modifier = Modifier, rows: Int = 1, cols: Int = 1) {
+fun HiddenBoardLoading(
+    modifier: Modifier = Modifier,
+    rows: Int = 1,
+    cols: Int = 1,
+    maxSide: Dp = HiddenBoardTokens.MaxSide,
+) {
     val still = rememberReducedMotion() || LocalInspectionMode.current
-    Box(modifier.hiddenBoardBounds(rows, cols).semantics { contentDescription = "Loading board" }) {
+    Box(modifier.hiddenBoardBounds(rows, cols, maxSide).semantics { contentDescription = "Loading board" }) {
         if (still) Bars(Modifier) else PulsingBars()
     }
 }

@@ -242,6 +242,39 @@ class HiddenBoardTest {
     }
 
     @Test
+    fun `a larger max side lets a square board grow past 400 dp, to the width it is given`() {
+        show(1000) { HiddenBoard(leakyBoard(), sharp = false, maxSide = 600.dp) }
+        composeRule.onNodeWithContentDescription("Board hidden until you play")
+            .assertWidthIsEqualTo(600.dp)
+            .assertHeightIsEqualTo(600.dp)
+    }
+
+    @Test
+    fun `a larger max side never makes the board wider than it is given`() {
+        show(500) { HiddenBoard(leakyBoard(), sharp = true, maxSide = 600.dp) }
+        composeRule.onNodeWithContentDescription("Board")
+            .assertWidthIsEqualTo(500.dp)
+            .assertHeightIsEqualTo(500.dp)
+    }
+
+    @Test
+    fun `a wide board keeps its shape under a larger max side`() {
+        show(1200) { HiddenBoard(leakyBoard(rows = 4, cols = 8), sharp = false, maxSide = 500.dp) }
+        composeRule.onNodeWithContentDescription("Board hidden until you play")
+            .assertWidthIsEqualTo(1000.dp)
+            .assertHeightIsEqualTo(500.dp)
+    }
+
+    @Test
+    fun `loading takes the same larger max side as the board`() {
+        setAnimatorScale(0f)
+        show(1000) { HiddenBoardLoading(rows = 8, cols = 6, maxSide = 600.dp) }
+        composeRule.onNodeWithContentDescription("Loading board")
+            .assertWidthIsEqualTo(450.dp)
+            .assertHeightIsEqualTo(600.dp)
+    }
+
+    @Test
     fun `loading holds the board's slot and pulses`() {
         setAnimatorScale(1f)
         composeRule.mainClock.autoAdvance = false
