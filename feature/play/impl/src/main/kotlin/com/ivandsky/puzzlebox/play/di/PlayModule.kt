@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.LibraryViewModel
 import com.ivandsky.puzzlebox.play.MatchLegResultViewModel
 import com.ivandsky.puzzlebox.play.MatchLegViewModel
+import com.ivandsky.puzzlebox.play.PlayFeel
 import com.ivandsky.puzzlebox.play.PlaySessionStore
 import com.ivandsky.puzzlebox.play.PlayStatsViewModel
 import com.ivandsky.puzzlebox.play.ReplayCompareViewModel
@@ -107,6 +108,8 @@ val playModule = module {
     }
     // Read once per graph: the solved board rests before Result with Result moments on; without ReleaseFlags it is off.
     single { SolveRest(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ResultMoments) == true) }
+    // PlayFeel (spec A19) is read once per graph, like SolveRest: every play board and the lessons host hand it down.
+    single { PlayFeel(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.PlayFeel) == true) }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
     // read inside the view model (the release flag), so its bindings resolve only on the same parameter.
     // Result moments read the same flags without LinkedIn: a graph without ReleaseFlags builds Result with them
