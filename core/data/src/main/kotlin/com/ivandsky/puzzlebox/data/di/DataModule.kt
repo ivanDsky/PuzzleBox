@@ -24,6 +24,8 @@ import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.match.RoomMatchLocalRepository
 import com.ivandsky.puzzlebox.data.match.RoomMatchResultOutbox
+import com.ivandsky.puzzlebox.data.match.RoomSelfMatchRepository
+import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.GameSettingsRepository
@@ -107,6 +109,8 @@ val dataModule = module {
     // the match repository, the NetworkStatus and the process scope are supplied by app and the backend.
     single { MatchResultPoster(identity = get(), outbox = get(), matches = get(), network = get(), scope = get()) }
     single<MatchResultSync> { get<MatchResultPoster>() }
+    // Duels against your own first solves stay on the device; nothing reads this store until the match router does.
+    single<SelfMatchRepository> { RoomSelfMatchRepository(get(), get(), get()) }
     // Final boards read from the cloud are kept in their own database; nothing there is authoritative.
     single<FinalBoardStore> { RoomFinalBoardStore(get()) }
     // Process-wide so the 15-minute update-check throttle survives screen changes.
