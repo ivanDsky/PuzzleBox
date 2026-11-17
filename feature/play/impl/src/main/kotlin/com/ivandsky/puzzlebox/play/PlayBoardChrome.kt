@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlayOverflowItem
 import com.ivandsky.puzzlebox.gameui.TimerBar
 import com.ivandsky.puzzlebox.gameui.TutorialHost
+import com.ivandsky.puzzlebox.gameui.selfTimerLabel
 
 /**
  * One board's play screen, whoever holds its [controller]: the play top bar (Up, the game's glyph and [title], then
@@ -34,6 +35,7 @@ import com.ivandsky.puzzlebox.gameui.TutorialHost
  *
  * [sidePanel] builds the two-pane side panel for the open clock, and is told whether the panel draws the large
  * timer; it is called only while the board plays. With none, the bar keeps the timer in every layout.
+ * A [targetMs] (a self-duel leg's past you's time) makes the bar's timer count toward it as time left, then over by.
  *
  * Under it a solve rests on the board before [onSolved] ([LocalSolveRestOnBoard]), for every board it draws.
  */
@@ -55,6 +57,7 @@ internal fun PlayBoardChrome(
     overflow: List<PlayOverflowItem>,
     sidePanel: (@Composable (clock: PlayClock?, showTimer: Boolean) -> (@Composable ColumnScope.() -> Unit)?)?,
     modifier: Modifier,
+    targetMs: Long? = null,
 ) {
     CompositionLocalProvider(LocalSolveRestOnBoard provides true) {
         PlayFeelHost {
@@ -78,7 +81,12 @@ internal fun PlayBoardChrome(
                         // Without a tuning TwoPane's side panel draws the large live timer in place of this one.
                         val timerInBar = tuning != null || layout != PlayLayout.TwoPane || sidePanel == null
                         if (timerInBar && status is PlayBoardStatus.Ready && clock != null) {
-                            TimerBar({ clock.displayedElapsedMs() }, Modifier.width(IntrinsicSize.Max).testTag("play.timer"))
+                            TimerBar(
+                                elapsedMs = { clock.displayedElapsedMs() },
+                                modifier = Modifier.width(IntrinsicSize.Max).testTag("play.timer"),
+                                budgetMs = targetMs,
+                                label = if (targetMs != null) ::selfTimerLabel else null,
+                            )
                         }
                         if (onHowToPlay != null && ui.tutorial.isNotEmpty()) {
                             IconButton(onClick = onHowToPlay, modifier = Modifier.testTag("play.how_to_play")) {

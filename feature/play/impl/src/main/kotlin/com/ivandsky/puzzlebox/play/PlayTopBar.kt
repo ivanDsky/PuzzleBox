@@ -49,10 +49,23 @@ internal fun PlayTopBar(
         glyph()
     }
     if (label == null) {
-        CompactTopBar(title = title, modifier = modifier, navigationIcon = navigationIcon, actions = actions)
+        CompactTopBar(title = { PlainTitle(title) }, modifier = modifier, navigationIcon = navigationIcon, actions = actions)
     } else {
         CompactTopBar(title = { LabelledTitle(title, label) }, modifier = modifier, navigationIcon = navigationIcon, actions = actions)
     }
+}
+
+/** [title] on up to two lines, cut with an ellipsis, so a long name never clips against the timer beside it. */
+@Composable
+private fun RowScope.PlainTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleLarge,
+        color = MaterialTheme.colorScheme.onSurface,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.weight(1f),
+    )
 }
 
 /** [name] on one line, cut with an ellipsis when the row is short, then [label], never cut. A blank [name] leaves [label] alone. */
