@@ -136,7 +136,7 @@ class LinkedInPostFlowTest {
         assertEquals(
             mapOf(
                 "posted" to Left(LinkedInPostState.Posted, 1, me, posted = ref, sending = emptySet()),
-                "already played" to Left(LinkedInPostState.AlreadyOnLinkedIn, 1, me, posted = ref, sending = emptySet()),
+                "already played" to Left(LinkedInPostState.AlreadyOnLinkedIn, 1, me, posted = emptySet(), sending = emptySet()),
                 "rejected" to
                     Left(LinkedInPostState.Paused, 1, LinkState.Paused("me", Kind.Unexpected), emptySet(), emptySet()),
                 "signed out" to
@@ -161,13 +161,13 @@ class LinkedInPostFlowTest {
     }
 
     @Test
-    fun `after a send with no answer the next tap asks LinkedIn first, and a result found there ends it unsent`() = runTest {
+    fun `after a send with no answer the next tap asks LinkedIn first, and a result of another time found there ends it unsent`() = runTest {
         val rig = rig()
         rig.postable()
         rig.logOwnRead()
         rig.poster.sendReply = LinkedInSendResult.Unknown
         rig.submit()
-        rig.source.respondOwn("me", 6, 712, LinkedInRead.Ok(LinkedInOwnResult.Solved(timeSeconds = 83, hintFree = true)))
+        rig.source.respondOwn("me", 6, 712, LinkedInRead.Ok(LinkedInOwnResult.Solved(timeSeconds = 84, hintFree = true)))
 
         val second = rig.submit()
 
@@ -177,6 +177,66 @@ class LinkedInPostFlowTest {
         assertEquals(emptySet<String>(), rig.stored().sendingRefs)
         assertEquals(emptySet<String>(), rig.stored().postedRefs)
         assertNull(rig.ownRead())
+    }
+
+    @Test
+    fun `after a send with no answer a result of this post's time found by the next tap is Posted, logged as posted and never sent again`() = runTest {
+        val rig = rig()
+        rig.postable()
+        rig.logOwnRead()
+        rig.poster.sendReply = LinkedInSendResult.Unknown
+        rig.submit()
+        rig.source.respondOwn("me", 6, 712, LinkedInRead.Ok(LinkedInOwnResult.Solved(timeSeconds = 83, hintFree = true)))
+
+        val second = rig.submit()
+
+        assertEquals(LinkedInPostState.Posted, second)
+        assertEquals(listOf("page:games/fixture/", "send"), rig.poster.calls)
+        assertEquals(setOf("fixture/2026-11-05"), rig.stored().postedRefs)
+        assertEquals(emptySet<String>(), rig.stored().sendingRefs)
+        assertNull(rig.ownRead())
+    }
+
+    @Test
+    fun `a result of this post's time found with no send before it is Already on LinkedIn`() = runTest {
+        val rig = rig()
+        rig.postable()
+        rig.source.respondOwn("me", 6, 712, LinkedInRead.Ok(LinkedInOwnResult.Solved(timeSeconds = 83, hintFree = true)))
+
+        val result = rig.submit()
+
+        assertEquals(LinkedInPostState.AlreadyOnLinkedIn, result)
+        assertEquals(emptySet<String>(), rig.stored().postedRefs)
+        assertEquals(emptyList<String>(), rig.poster.calls)
+    }
+
+    @Test
+    fun `a day settled as Posted after a send with no answer still reads Posted after a restart`() = runTest {
+        val rig = rig()
+        rig.postable()
+        rig.poster.sendReply = LinkedInSendResult.Unknown
+        rig.submit()
+        rig.source.respondOwn("me", 6, 712, LinkedInRead.Ok(LinkedInOwnResult.Solved(timeSeconds = 83, hintFree = true)))
+        rig.submit()
+
+        val restarted = rig.door().observe(rig.game, rig.today).first().state
+
+        assertEquals(LinkedInPostState.Posted, restarted)
+    }
+
+    @Test
+    fun `a 409 reads Already on LinkedIn before and after a restart, and is not remembered as posted`() = runTest {
+        val rig = rig()
+        rig.postable()
+        rig.poster.sendReply = LinkedInSendResult.AlreadyPlayed
+
+        val result = rig.submit()
+        val restarted = rig.door().observe(rig.game, rig.today).first().state
+
+        assertEquals(LinkedInPostState.AlreadyOnLinkedIn, result)
+        assertEquals(LinkedInPostState.AlreadyOnLinkedIn, restarted)
+        assertEquals(emptySet<String>(), rig.stored().postedRefs)
+        assertEquals(emptySet<String>(), rig.stored().sendingRefs)
     }
 
     @Test

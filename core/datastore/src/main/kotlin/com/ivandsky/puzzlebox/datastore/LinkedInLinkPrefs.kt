@@ -18,4 +18,6 @@ data class LinkedInLinkPrefs(
     val postedRefs: Set<String> = emptySet(),
     /** What the linked profile began to send and has no known outcome for yet. */
     val sendingRefs: Set<String> = emptySet(),
+    /** What LinkedIn answered it already holds, though this install did not post it. */
+    val alreadyRefs: Set<String> = emptySet(),
 )

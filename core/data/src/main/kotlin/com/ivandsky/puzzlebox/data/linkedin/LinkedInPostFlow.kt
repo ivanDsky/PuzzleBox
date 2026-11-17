@@ -128,7 +128,9 @@ internal class LinkedInPostFlow(
     private suspend fun post(key: DayKey): LinkedInPostState {
         val checked = open(key) { return it }
         when (val own = source.ownResult(key.profileId, checked.gameTypeId, checked.puzzleNumber)) {
-            is LinkedInRead.Ok -> if (own.value is LinkedInOwnResult.Solved) return whileLinked(key) { alreadyThere(key, posted = false) }
+            is LinkedInRead.Ok -> (own.value as? LinkedInOwnResult.Solved)?.let { held ->
+                return whileLinked(key) { alreadyThere(key, posted = landed(key, checked, held)) }
+            }
             else -> return unread(key, own)
         }
         val asked = open(key) { return it }
@@ -154,11 +156,8 @@ internal class LinkedInPostFlow(
     private suspend fun answered(key: DayKey, sent: LinkedInSendResult): LinkedInPostState = when {
         // The marker goes with the link it was written under, so without it the answer belongs to a link that is gone.
         !log.observe(key.game, key.day).first().sending -> LinkedInPostState.Hidden
-        sent == LinkedInSendResult.Posted -> {
-            alreadyThere(key, posted = true)
-            LinkedInPostState.Posted
-        }
-        sent == LinkedInSendResult.AlreadyPlayed -> alreadyThere(key, posted = true)
+        sent == LinkedInSendResult.Posted -> alreadyThere(key, posted = true)
+        sent == LinkedInSendResult.AlreadyPlayed -> alreadyThere(key, posted = false, remember = true)
         // Nothing is known, so the marker stays: the day reads as unsure until a later check settles it.
         sent == LinkedInSendResult.Unknown -> LinkedInPostState.Unknown
         else -> {
@@ -201,13 +200,21 @@ internal class LinkedInPostFlow(
 
     /**
      * LinkedIn holds a result for the day. The marker goes, and the day card's cached own read with it, so the card
-     * reads the result on its next sync. Only a result this phone sent is remembered as [posted].
+     * reads the result on its next sync. Only a result this phone sent is remembered as [posted]. A [remember]ed
+     * answer of the send itself keeps reading as already there after a restart; a check's does not, as before.
      */
-    private suspend fun alreadyThere(key: DayKey, posted: Boolean): LinkedInPostState {
-        log.settle(key, posted)
+    private suspend fun alreadyThere(key: DayKey, posted: Boolean, remember: Boolean = false): LinkedInPostState {
+        log.settle(key, posted, already = remember)
         fetchLog.deleteOwnEntry(key.game.value, key.day.toString(), key.profileId)
-        return LinkedInPostState.AlreadyOnLinkedIn
+        return if (posted) LinkedInPostState.Posted else LinkedInPostState.AlreadyOnLinkedIn
     }
+
+    /**
+     * Whether the result LinkedIn holds is this phone's own post that landed unanswered: the day was left sending,
+     * and the result's time is the post's in whole seconds, the unit LinkedIn's read reports.
+     */
+    private suspend fun landed(key: DayKey, post: LinkedInPost, held: LinkedInOwnResult.Solved): Boolean =
+        log.observe(key.game, key.day).first().sending && held.timeSeconds.toLong() == post.timeMs / 1000
 
     private suspend fun pause(key: DayKey, kind: Kind): LinkedInPostState = whileLinked(key) { paused(kind) }
 
@@ -238,6 +245,7 @@ internal class LinkedInPostFlow(
             delta = window.deltaOf(game, day),
             posted = entry.posted,
             sending = entry.sending,
+            already = entry.already,
         )
         return Reading(
             key = state.profileId?.let { DayKey(it, game, day) },
