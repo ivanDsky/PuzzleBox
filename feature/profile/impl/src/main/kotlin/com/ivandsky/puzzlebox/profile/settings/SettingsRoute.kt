@@ -33,6 +33,7 @@ internal fun SettingsRoute(
         onSetSudokuSameDigitHighlight = viewModel::onSetSudokuSameDigitHighlight,
         onSelectVisibility = viewModel::onSelectVisibility,
         onSetRanksFriendsDefault = viewModel::onSetRanksFriendsDefault,
+        onSetVibration = viewModel::onSetVibration,
         onBack = onBack,
         onOpenCatalog = onOpenCatalog.takeIf { debuggable },
         debugSections = debugSections.takeIf { debuggable },

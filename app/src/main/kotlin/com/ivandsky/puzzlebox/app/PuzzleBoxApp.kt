@@ -201,67 +201,69 @@ fun PuzzleBoxApp(
     var barHeight by remember { mutableStateOf(0.dp) }
     var railWidth by remember { mutableStateOf(0.dp) }
 
-    Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Box(Modifier.fillMaxSize()) {
-            // Two-pane moves navigation to a rail; the bottom bar is every other shape.
-            AnimatedVisibility(
-                visible = !expanded && !immersive,
-                modifier = Modifier.align(Alignment.BottomCenter),
-                enter = chrome.enter,
-                exit = chrome.exit,
-            ) {
-                TopLevelNavBar(
-                    selected = selected,
-                    onSelect = onSelect,
-                    badged = badged,
-                    destinations = destinations,
-                    modifier = Modifier.onSizeChanged { barHeight = with(density) { it.height.toDp() } },
+    VibrationGate {
+        Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
+            Box(Modifier.fillMaxSize()) {
+                // Two-pane moves navigation to a rail; the bottom bar is every other shape.
+                AnimatedVisibility(
+                    visible = !expanded && !immersive,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    enter = chrome.enter,
+                    exit = chrome.exit,
+                ) {
+                    TopLevelNavBar(
+                        selected = selected,
+                        onSelect = onSelect,
+                        badged = badged,
+                        destinations = destinations,
+                        modifier = Modifier.onSizeChanged { barHeight = with(density) { it.height.toDp() } },
+                    )
+                }
+                AnimatedVisibility(
+                    visible = expanded && !immersive,
+                    modifier = Modifier.align(Alignment.TopStart).fillMaxHeight(),
+                    enter = chrome.enter,
+                    exit = chrome.exit,
+                ) {
+                    TopLevelNavRail(
+                        selected = selected,
+                        onSelect = onSelect,
+                        badged = badged,
+                        destinations = destinations,
+                        bottomActions = {
+                            ShellAvatar(navigator, identityService.current, ShellAvatarSize.Rail)
+                        },
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .onSizeChanged { railWidth = with(density) { it.width.toDp() } },
+                    )
+                }
+                val contentPadding = chromePadding(expanded, barHeight, railWidth)
+                CompositionLocalProvider(
+                    LocalChromePadding provides contentPadding,
+                    LocalTabReselect provides tabReselect,
+                ) {
+                    PuzzleBoxNavShell(
+                        navigator = navigator,
+                        tabSet = tabSet,
+                        homeLayout = layout,
+                        playLayout = playLayout,
+                        historyLayout = historyLayout,
+                        modifier = Modifier.fillMaxSize(),
+                        codeDraft = { codeDraft },
+                        onCodeDraftTaken = { codeDraft = null },
+                        duels = duels,
+                        custom = custom,
+                        makeOne = makeOne,
+                        libraryRequests = libraryRequests,
+                    )
+                }
+                // The one-time "Welcome back" after an account's first restore (A33), above the chrome.
+                RestoreWelcome(
+                    restored = cloudSync.restored,
+                    modifier = Modifier.align(Alignment.BottomCenter).padding(contentPadding),
                 )
             }
-            AnimatedVisibility(
-                visible = expanded && !immersive,
-                modifier = Modifier.align(Alignment.TopStart).fillMaxHeight(),
-                enter = chrome.enter,
-                exit = chrome.exit,
-            ) {
-                TopLevelNavRail(
-                    selected = selected,
-                    onSelect = onSelect,
-                    badged = badged,
-                    destinations = destinations,
-                    bottomActions = {
-                        ShellAvatar(navigator, identityService.current, ShellAvatarSize.Rail)
-                    },
-                    modifier = Modifier
-                        .fillMaxHeight()
-                        .onSizeChanged { railWidth = with(density) { it.width.toDp() } },
-                )
-            }
-            val contentPadding = chromePadding(expanded, barHeight, railWidth)
-            CompositionLocalProvider(
-                LocalChromePadding provides contentPadding,
-                LocalTabReselect provides tabReselect,
-            ) {
-                PuzzleBoxNavShell(
-                    navigator = navigator,
-                    tabSet = tabSet,
-                    homeLayout = layout,
-                    playLayout = playLayout,
-                    historyLayout = historyLayout,
-                    modifier = Modifier.fillMaxSize(),
-                    codeDraft = { codeDraft },
-                    onCodeDraftTaken = { codeDraft = null },
-                    duels = duels,
-                    custom = custom,
-                    makeOne = makeOne,
-                    libraryRequests = libraryRequests,
-                )
-            }
-            // The one-time "Welcome back" after an account's first restore (A33), above the chrome.
-            RestoreWelcome(
-                restored = cloudSync.restored,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(contentPadding),
-            )
         }
     }
 }

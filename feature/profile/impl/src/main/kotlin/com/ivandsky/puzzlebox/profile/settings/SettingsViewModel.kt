@@ -35,8 +35,16 @@ internal class SettingsViewModel(
             gamesSection,
             visibility?.ownTier ?: flowOf(null),
             preferences.ranksFriendsDefault,
-        ) { mode, gamesState, ownTier, ranksFriends ->
-            SettingsUiState(themeMode = mode, versionName = appBuild.versionName, games = gamesState, visibility = ownTier, ranksFriendsDefault = ranksFriends)
+            preferences.vibration,
+        ) { mode, gamesState, ownTier, ranksFriends, vibration ->
+            SettingsUiState(
+                themeMode = mode,
+                versionName = appBuild.versionName,
+                games = gamesState,
+                visibility = ownTier,
+                ranksFriendsDefault = ranksFriends,
+                vibration = vibration,
+            )
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -58,6 +66,11 @@ internal class SettingsViewModel(
     fun onSetRanksFriendsDefault(friends: Boolean) {
         if (visibility == null) return
         viewModelScope.launch { preferences.setRanksFriendsDefault(friends) }
+    }
+
+    /** Vibration: the app-wide haptics switch; the root gate follows the stored value at once. */
+    fun onSetVibration(on: Boolean) {
+        viewModelScope.launch { preferences.setVibration(on) }
     }
 
     /** Games: written to the store the in-game overflow toggle reads, so the board shows it next time it opens. */

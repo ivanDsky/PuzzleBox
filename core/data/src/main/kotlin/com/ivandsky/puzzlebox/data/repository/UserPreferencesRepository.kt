@@ -37,4 +37,9 @@ interface UserPreferencesRepository {
     val ranksFriendsDefault: Flow<Boolean>
 
     suspend fun setRanksFriendsDefault(friends: Boolean)
+
+    /** Whether the app plays any haptic; true until switched off. Gates every one, whatever the game's own feel says. */
+    val vibration: Flow<Boolean>
+
+    suspend fun setVibration(on: Boolean)
 }

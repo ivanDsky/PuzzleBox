@@ -47,6 +47,7 @@ class SettingsScreenTest {
     private val sudokuSameDigit = mutableListOf<Boolean>()
     private val tiers = mutableListOf<VisibilityTier>()
     private val ranksFriends = mutableListOf<Boolean>()
+    private val vibration = mutableListOf<Boolean>()
     private var backClicks = 0
     private var catalogClicks = 0
 
@@ -65,6 +66,7 @@ class SettingsScreenTest {
                     onSetSudokuSameDigitHighlight = { sudokuSameDigit += it },
                     onSelectVisibility = { tiers += it },
                     onSetRanksFriendsDefault = { ranksFriends += it },
+                    onSetVibration = { vibration += it },
                     onBack = { backClicks++ },
                     onOpenCatalog = if (showCatalog) ({ catalogClicks++ }) else null,
                     debugSections = debugSections,
@@ -90,6 +92,23 @@ class SettingsScreenTest {
         assertEquals(listOf(true), queensAutoCross)
         assertEquals(listOf(false), sudokuPeer)
         assertEquals(listOf(true), sudokuSameDigit)
+    }
+
+    @Test
+    fun `the vibration row shows the stored value and a tap reports the flipped one`() {
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", vibration = true))
+
+        composeRule.onNodeWithTag("settings.vibration.switch").performScrollTo().assertIsOn().performClick()
+
+        assertEquals(listOf(false), vibration)
+    }
+
+    @Test
+    fun `vibration sits in its own section outside Games`() {
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", vibration = false))
+
+        composeRule.onNodeWithTag("settings.vibration.switch").performScrollTo().assertIsOff()
+        composeRule.onNode(hasTestTag("settings.vibration.switch") and hasAnyAncestor(hasTestTag("settings.games"))).assertDoesNotExist()
     }
 
     @Test

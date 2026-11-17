@@ -156,6 +156,10 @@ _Avoid_: privacy setting
 What Result's main button offers after a counted solve of today's puzzle. The next-thing chain asks its providers in order and the first answer wins; it is offered, never started for the player. "The ladder" is the older word for the chain.
 _Avoid_: ladder, next step, auto-advance
 
+**Haptic gate**:
+All haptics go through `LocalHapticFeedback`, which the app root provides as the platform one behind the Vibration switch in Settings; off silences every haptic the app plays, whatever a game's feel says. Konsist S9 forbids the View haptic API so the gate stays the one choke point.
+_Avoid_: vibrator call, View haptic
+
 **Moment**:
 A celebrated fact about a counted solve: a personal best, a first sub-X time, top 3 among friends today, passing a named friend, a full set, or a 7, 30 or 100-day streak. A freeze moment is a different thing.
 _Avoid_: achievement, badge

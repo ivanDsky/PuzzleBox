@@ -149,6 +149,21 @@ class PuzzleBoxPreferencesDataSourceTest {
     }
 
     @Test
+    fun `vibration is on until switched off and an off survives a new data source over the same file`() = runTest {
+        val file = tempFile()
+        val firstScope = CoroutineScope(UnconfinedTestDispatcher(testScheduler) + SupervisorJob())
+        val firstProcess = PuzzleBoxPreferencesDataSource(
+            PreferenceDataStoreFactory.create(scope = firstScope) { file },
+        )
+        assertTrue(firstProcess.preferences.first().vibration)
+
+        firstProcess.setVibration(false)
+        firstScope.cancel()
+
+        assertFalse(newDataSource(file).preferences.first().vibration)
+    }
+
+    @Test
     fun `an unset game flag emits its default`() = runTest {
         val dataSource = newDataSource(tempFile())
 
