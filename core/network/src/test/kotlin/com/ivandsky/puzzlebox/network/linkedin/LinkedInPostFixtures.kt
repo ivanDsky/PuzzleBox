@@ -149,4 +149,44 @@ internal object LinkedInPostFixtures {
             ),
         ),
     )
+
+    val queensWinRequest: JsonObject get() = Json.parseToJsonElement(text("queens-update-game-state-daily-win.request.json")).jsonObject
+
+    val queensOpeningRequest: JsonObject get() = Json.parseToJsonElement(text("queens-update-game-state-daily-opening.request.json")).jsonObject
+
+    /** What the unsolved Queens #930 daily page serves: plays 725, wins 722, request time 0. */
+    val queensDailyPage = unsolvedDailyPage.copy(puzzleId = 930, totalPlays = 725, wins = 722)
+
+    /** The Queens state [key] of a capture as the encoder holds it: its strings. */
+    private fun JsonObject.queensStrings(key: String) = LinkedInPlayValue.Strings(
+        getValue("states").jsonArray.single { it.jsonObject.getValue("key").jsonPrimitive.content == key }
+            .jsonObject.getValue("value").jsonArray.map { it.jsonPrimitive.content },
+    )
+
+    /**
+     * The post of the Queens captures: puzzle 930, 80075 ms, a conflict on the way (not mistake-free), no hint, with the
+     * opening save of 1001 ms. The play values are the captured ones, so only the body is under test.
+     */
+    fun queensPost() = LinkedInPost(
+        gamePath = "games/queens/",
+        gameTypeId = 3,
+        puzzleNumber = 930,
+        timeMs = 80_075,
+        hintUsed = false,
+        play = LinkedInPlay(
+            states = mapOf(
+                "queensBoardStateBinding" to queensWinRequest.queensStrings("queensBoardStateBinding"),
+                "queensSolveOrderBinding" to queensWinRequest.queensStrings("queensSolveOrderBinding"),
+            ),
+            payloadKeys = mapOf("playRecord" to "queensBoardStateBinding", "solveOrder" to "queensSolveOrderBinding"),
+            mistakeFree = false,
+            opening = LinkedInOpening(
+                states = mapOf(
+                    "queensBoardStateBinding" to queensOpeningRequest.queensStrings("queensBoardStateBinding"),
+                    "queensSolveOrderBinding" to queensOpeningRequest.queensStrings("queensSolveOrderBinding"),
+                ),
+                timeMs = 1_001,
+            ),
+        ),
+    )
 }

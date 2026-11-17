@@ -175,6 +175,7 @@ val queensPlugin: GamePlugin<QueensState, QueensSession, QueensRendererModel> =
         },
         editor = QueensEditor,
         replay = QueensReplay,
+        linkedInPlay = QueensLinkedInPlay::encode,
     )
 
 /**
