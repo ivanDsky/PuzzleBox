@@ -46,9 +46,11 @@ internal class BoardScrub(position: Int, private val scope: CoroutineScope) {
     private var wanted = position
     private var held = false
 
-    // Where the scrub was when the finger took it: a release decides by how far the finger has moved it since.
+    // Where the scrub was when the finger took it, signed (positive = towards the board after [from]): a release
+    // decides by how far the finger has moved it since.
     private var grabbedAt = 0f
-    private var grabbedTo = position
+    private var caught = false
+    private var boards = 0
     private var arriving = false
     private var motion: Job? = null
 
@@ -68,6 +70,7 @@ internal class BoardScrub(position: Int, private val scope: CoroutineScope) {
      * no further; returns the part of [delta] it did not take, which is not zero only past the first or last board.
      */
     fun dragBy(delta: Float, count: Int): Float {
+        boards = count
         if (!held) grab()
         val at = (if (to >= from) travel else -travel) - delta
         val reach = at.coerceIn(if (from > 0) -1f else 0f, if (from < count - 1) 1f else 0f)
@@ -79,8 +82,9 @@ internal class BoardScrub(position: Int, private val scope: CoroutineScope) {
     /**
      * The finger lets go while the hub is on [position], moving at [velocity] board widths a second (positive =
      * towards the next board). Returns the board the scrub settles on, for the hub to go to: [to] for a fling its
-     * way ([fling] or faster) or a drag of [commit] board widths, otherwise [from]. A swipe that had already
-     * committed and is only caught on its way stays committed unless the finger takes it [commit] back.
+     * way ([fling] or faster) or a drag of [commit] board widths since the finger took it, otherwise [from]. A
+     * fling the other way on a scrub caught on its way goes on to [from]'s neighbour that way, so a run of quick
+     * flicks moves one board each, however soon each catches the one before.
      */
     fun release(position: Int, velocity: Float, fling: Float, commit: Float): Int {
         held = false
@@ -89,11 +93,17 @@ internal class BoardScrub(position: Int, private val scope: CoroutineScope) {
             return position
         }
         val forward = to > from
-        val arrive = when {
-            abs(velocity) >= fling -> (velocity > 0f) == forward
-            position == to && to == grabbedTo -> grabbedAt - travel < commit
-            else -> travel >= commit
+        val flung = abs(velocity) >= fling
+        val onward = from + sign(velocity).toInt()
+        if (caught && flung && (velocity > 0f) != forward && onward in 0 until boards) {
+            to = onward
+            travel = 0f
+            wanted = onward
+            settle(arrive = true, abs(velocity))
+            return onward
         }
+        val moved = (if (forward) travel else -travel) - grabbedAt
+        val arrive = if (flung) (velocity > 0f) == forward else (if (forward) moved else -moved) >= commit
         val target = if (arrive) to else from
         wanted = target
         settle(arrive, if (forward) velocity else -velocity)
@@ -135,15 +145,22 @@ internal class BoardScrub(position: Int, private val scope: CoroutineScope) {
     }
 
     // A finger scrubs between neighbours only: a move across several boards is caught on the side it is nearer to.
+    // One caught on its way to the board the hub has moved to carries on from that board, the board it left now
+    // behind it, so the finger scrubs on to the next one; it looks the same, only seen from the other end.
     private fun grab() {
         held = true
+        caught = motion?.isActive == true
         motion?.cancel()
         if (abs(to - from) > 1) {
             if (travel >= HALFWAY) from = to else to = from
             travel = 0f
+        } else if (caught && arriving && to != from) {
+            val left = from
+            from = to
+            to = left
+            travel = 1f - travel
         }
-        grabbedAt = travel
-        grabbedTo = to
+        grabbedAt = if (to >= from) travel else -travel
     }
 
     private fun settle(arrive: Boolean, speed: Float) {
