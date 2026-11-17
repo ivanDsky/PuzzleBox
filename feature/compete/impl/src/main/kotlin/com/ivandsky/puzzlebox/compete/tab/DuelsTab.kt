@@ -77,6 +77,7 @@ fun DuelsTab(
     DuelsTabContent(
         rows = state.value.rows,
         signedIn = state.value.signedIn,
+        duelYourself = state.value.duelYourself,
         inviter = state.value.inviter,
         // Read only inside each row's time-left text, so the minute tick redraws that text and nothing else.
         now = { state.value.now },
@@ -112,6 +113,7 @@ fun DuelsTab(
 internal fun DuelsTabContent(
     rows: List<DuelRow>,
     signedIn: Boolean,
+    duelYourself: Boolean = false,
     inviter: String?,
     now: () -> Instant,
     onNewDuel: () -> Unit,
@@ -145,9 +147,14 @@ internal fun DuelsTabContent(
                         selected = isSelected,
                     )
                     DuelRowKind.Unclaimed -> UnclaimedRow(row, inviter, now, onClick = open, selected = isSelected)
-                    DuelRowKind.RevealReady, is DuelRowKind.Finished ->
-                        DuelCard(row, now, onClick = { onOpenReveal(DuelRevealKey(row.code.value)) }, selected = isSelected)
-                    DuelRowKind.YourMove, DuelRowKind.Waiting -> DuelCard(row, now, onClick = open, selected = isSelected)
+                    DuelRowKind.RevealReady, is DuelRowKind.Finished -> {
+                        val reveal = { onOpenReveal(DuelRevealKey(row.code.value)) }
+                        if (row.isSelf) SelfDuelRow(row, onClick = reveal, selected = isSelected)
+                        else DuelCard(row, now, onClick = reveal, selected = isSelected)
+                    }
+                    DuelRowKind.YourMove, DuelRowKind.Waiting ->
+                        if (row.isSelf) SelfDuelRow(row, onClick = open, selected = isSelected)
+                        else DuelCard(row, now, onClick = open, selected = isSelected)
                 }
             }
         }
@@ -158,7 +165,7 @@ internal fun DuelsTabContent(
         contentPadding = PaddingValues(vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
-        item(key = "challenge") { DuelChallengeCard(signedIn = signedIn, onClick = onNewDuel) }
+        item(key = "challenge") { DuelChallengeCard(signedIn = signedIn, onClick = onNewDuel, duelYourself = duelYourself) }
         items(sections, key = { it.section.tag }) { section(it) }
         if (rows.isEmpty()) item(key = "empty") { DuelsEmptyNote() }
     }

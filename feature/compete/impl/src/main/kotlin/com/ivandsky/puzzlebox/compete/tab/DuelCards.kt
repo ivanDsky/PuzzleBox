@@ -46,9 +46,12 @@ internal fun duelCardColors(): GameCardColors {
     )
 }
 
-/** "Challenge a friend" with the sub line, or "Sign in to duel friends" while [signedIn] is false. */
+/**
+ * "Challenge a friend" with the sub line, or "Sign in to duel friends" while [signedIn] is false; with [duelYourself]
+ * (the Virtual duel entry is on) the signed-out line also offers a duel against Past you.
+ */
 @Composable
-internal fun DuelChallengeCard(signedIn: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun DuelChallengeCard(signedIn: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, duelYourself: Boolean = false) {
     val colors = duelCardColors()
     GameCardSurface(
         colors = colors,
@@ -73,7 +76,11 @@ internal fun DuelChallengeCard(signedIn: Boolean, onClick: () -> Unit, modifier:
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Icon(PuzzleIcons.Trophy, contentDescription = null, modifier = Modifier.size(14.dp), tint = colors.fg2)
                     Text(
-                        text = if (signedIn) "Best of 3 · same puzzles, your own time" else "Sign in to duel friends",
+                        text = when {
+                            signedIn -> "Best of 3 · same puzzles, your own time"
+                            duelYourself -> "Sign in to duel friends, or duel yourself now"
+                            else -> "Sign in to duel friends"
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.fg2,
                     )

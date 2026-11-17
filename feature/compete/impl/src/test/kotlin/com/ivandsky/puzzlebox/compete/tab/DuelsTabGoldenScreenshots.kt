@@ -80,9 +80,21 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
     @Test fun `tab long name light`() = tab("tab-long-name", LONG_NAME, dark = false)
     @Test fun `tab long name dark`() = tab("tab-long-name", LONG_NAME, dark = true)
 
+    @Test fun `tab mixed light`() = selfTab("duels-tab-mixed", MIXED, dark = false)
+    @Test fun `tab mixed dark`() = selfTab("duels-tab-mixed", MIXED, dark = true)
+
+    @Test fun `tab self only light`() = selfTab("duels-tab-self-only", SELF_ONLY, dark = false)
+    @Test fun `tab self only dark`() = selfTab("duels-tab-self-only", SELF_ONLY, dark = true)
+
+    @Test fun `tab finished light`() = selfTab("duels-tab-finished", FINISHED, dark = false)
+    @Test fun `tab finished dark`() = selfTab("duels-tab-finished", FINISHED, dark = true)
+
     private val pane = device == "pane"
 
-    private fun tab(name: String, state: DuelsTabState, dark: Boolean) {
+    /** The Past you states are named for the contract: the 400 dp column is its "tablet" capture. */
+    private fun selfTab(name: String, state: DuelsTabState, dark: Boolean) = tab(name, state, dark, if (pane) "tablet" else "phone")
+
+    private fun tab(name: String, state: DuelsTabState, dark: Boolean, label: String = device) {
         rule.showGolden(dark) {
             // Surface forces its child to full size; the inner Box stands in for the Games host, which insets the
             // phone by Spacing.lg and gives the tablet's pane its whole width, with no inset.
@@ -90,6 +102,7 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
                 DuelsTabContent(
                     rows = state.rows,
                     signedIn = state.signedIn,
+                    duelYourself = state.duelYourself,
                     inviter = state.inviter,
                     now = { state.now },
                     onNewDuel = {},
@@ -100,7 +113,7 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
                 )
             }
         }
-        rule.settleAndCapture("tab", name, device, dark)
+        rule.settleAndCapture("tab", name, label, dark)
     }
 
     private companion object {
@@ -116,6 +129,18 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
             theirDone = theirDone,
             legs = legs,
             deadline = NOW + left,
+        )
+
+        /** A duel against Past you: no opponent photo, no deadline that matters, `isSelf`. */
+        fun self(code: String, kind: DuelRowKind, done: Int, legs: Int) = DuelRow(
+            code = code(code),
+            opponent = Player(uid = "self-past", name = "Past you", photoUrl = null),
+            kind = kind,
+            legsDone = done,
+            theirDone = legs,
+            legs = legs,
+            deadline = Instant.MAX,
+            isSelf = true,
         )
 
         val EMPTY = DuelsTabState(rows = emptyList(), signedIn = true, now = NOW, inviter = "Ivan")
@@ -145,6 +170,47 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
                 row("TB3003", DuelRowKind.Finished(3, 0), "Test Bot", 3, 3, Duration.ofHours(50)),
                 row("TB4004", DuelRowKind.Finished(2, 1), "Test Bot", 3, 3, Duration.ofHours(60)),
                 row("TB5005", DuelRowKind.Finished(1, 1), "Test Bot", 2, 2, Duration.ofHours(70)),
+            ),
+        )
+
+        // Friend rows and Past you rows side by side, the flag on.
+        val MIXED = EMPTY.copy(
+            duelYourself = true,
+            rows = listOf(
+                row("JON333", DuelRowKind.Invited, "Jonas", 0, 3, Duration.ofHours(23)),
+                row("SAM222", DuelRowKind.YourMove, "Sam", 1, 3, Duration.ofMinutes(5 * 60 + 12L), theirDone = 2),
+                self("SELF11", DuelRowKind.YourMove, 1, 3),
+                row("DANA55", DuelRowKind.RevealReady, "Dana", 5, 5, Duration.ofHours(3), theirDone = 5),
+                self("SELF22", DuelRowKind.RevealReady, 3, 3),
+                row("MAYA44", DuelRowKind.Waiting, "Maya", 3, 3, Duration.ofMinutes(12 * 60 + 5L), theirDone = 1),
+                row("K7Q2MX", DuelRowKind.Unclaimed, null, 0, 3, Duration.ofHours(24)),
+            ),
+        )
+
+        // Signed out with the flag on: only Past you duels, and the challenge card offers them.
+        val SELF_ONLY = EMPTY.copy(
+            signedIn = false,
+            inviter = null,
+            duelYourself = true,
+            rows = listOf(
+                self("SELF11", DuelRowKind.YourMove, 1, 3),
+                self("SELF33", DuelRowKind.YourMove, 0, 5),
+                self("SELF22", DuelRowKind.RevealReady, 3, 3),
+                self("SELF44", DuelRowKind.Finished(2, 1), 3, 3),
+                self("SELF55", DuelRowKind.Finished(1, 2), 3, 3),
+            ),
+        )
+
+        // Finished section: a won and a lost Past you duel among friend ones, a draw too.
+        val FINISHED = EMPTY.copy(
+            duelYourself = true,
+            rows = listOf(
+                row("SAM222", DuelRowKind.YourMove, "Sam", 1, 3, Duration.ofMinutes(5 * 60 + 12L), theirDone = 2),
+                self("SELF44", DuelRowKind.Finished(2, 1), 3, 3),
+                row("RIO777", DuelRowKind.Finished(2, 1), "Rio", 3, 3, Duration.ofHours(30)),
+                row("PRI888", DuelRowKind.Finished(0, 2), "Priya", 2, 2, Duration.ofHours(40)),
+                row("TB1001", DuelRowKind.Finished(1, 1), "Test Bot", 2, 2, Duration.ofHours(50)),
+                self("SELF55", DuelRowKind.Finished(1, 2), 3, 3),
             ),
         )
 
