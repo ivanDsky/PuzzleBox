@@ -25,6 +25,9 @@ import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
+import com.ivandsky.puzzlebox.domain.buildSelfMatch
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -72,6 +75,7 @@ class DuelViewModelTest {
     private val server = FakeMatchRepository().apply { this.now = this@DuelViewModelTest.now }
     private var repo: MatchRepository = server
     private val local = FakeMatchLocalRepository()
+    private val self = FakeSelfMatchRepository()
     private val identity = FakeIdentityService()
     private val completions = FakeCompletionRepository()
     private val registry = TestGames.registry(listOf(TestGames.alpha, TestGames.beta))
@@ -98,6 +102,7 @@ class DuelViewModelTest {
         identity = identity,
         idTokens = idTokens,
         registry = registry,
+        deleteSelfDuel = DeleteSelfDuel(self, FakeMatchResultOutbox(), FakeSavedPlayRepository(), local),
     )
 
     private fun TestScope.started(vm: DuelViewModel): DuelViewModel {
@@ -478,5 +483,91 @@ class DuelViewModelTest {
         val state = invite(vm)
         assertEquals(InviteKind.Waiting, state.kind)
         assertEquals(InviteNotice.Offline(SeatAction.Cancel), state.notice)
+    }
+
+    private val selfCode = ShareCode.parse("ABC234")!!
+    private val firstSolve = Instant.parse("2026-09-14T08:00:00Z")
+
+    /** A self duel saved on this device with a solve of its first puzzle: the viewer is [viewer], null when signed out. */
+    private suspend fun selfDuel(viewer: Player?) {
+        viewAs(viewer)
+        val legs = listOf(
+            MatchLeg(LegRef.Daily(TestGames.alpha, date, 1), null),
+            MatchLeg(LegRef.Daily(TestGames.beta, date, 2), null),
+        )
+        val record = CompletionRecord(
+            puzzleRef = TestGames.Ref(TestGames.alpha, PuzzleKey.Daily(date, puzzleNumber = 1)),
+            time = 38_000L,
+            hints = 0,
+            stats = RecordStats(schemaVersion = 1, blob = "{}"),
+            firstCompletedAt = firstSolve,
+            isRecord = true,
+        )
+        val draft = buildSelfMatch(selfCode, now, false, legs, legs.map { record })
+        self.save(draft.match, draft.past)
+        completions.setRecords(listOf(record))
+        repo = self
+    }
+
+    @Test
+    fun aSelfDuelOpensAsAParticipantNamedByTheSignedInPlayerWithTheDayOfPastYoursFirstSolve() = runTest {
+        selfDuel(ann)
+        val vm = started(viewModel(selfCode.value))
+
+        val state = vm.state.value as DuelUiState.Participant
+
+        assertEquals("Ann", state.myName)
+        assertEquals(mapOf(state.view.match.legs[0].ref.wire to firstSolve), state.firstSolvedAt)
+        assertFalse(state.removeAsked)
+    }
+
+    @Test
+    fun aSignedOutSelfDuelHasNoName() = runTest {
+        selfDuel(null)
+        val vm = started(viewModel(selfCode.value))
+
+        val state = vm.state.value as DuelUiState.Participant
+
+        assertNull(state.myName)
+    }
+
+    @Test
+    fun removeAsksFirstAndKeepClosesTheAskWithoutDeleting() = runTest {
+        selfDuel(ann)
+        val vm = started(viewModel(selfCode.value))
+
+        vm.askRemove()
+        assertTrue((vm.state.value as DuelUiState.Participant).removeAsked)
+        vm.keep()
+
+        assertFalse((vm.state.value as DuelUiState.Participant).removeAsked)
+        assertTrue(self.holds(selfCode))
+    }
+
+    @Test
+    fun removeWithoutAskingDeletesNothing() = runTest {
+        selfDuel(ann)
+        val vm = started(viewModel(selfCode.value))
+
+        vm.remove()
+
+        assertTrue(self.holds(selfCode))
+    }
+
+    @Test
+    fun confirmedRemoveDeletesTheDuelClosesTheScreenAndNeverShowsNotFound() = runTest {
+        selfDuel(ann)
+        val vm = started(viewModel(selfCode.value))
+        val seen = mutableListOf<DuelUiState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect { seen += it } }
+        val closed = async { vm.closes.first() }
+
+        vm.askRemove()
+        vm.remove()
+        closed.await()
+
+        assertFalse(self.holds(selfCode))
+        assertTrue(seen.none { it === DuelUiState.NotFound })
+        assertEquals(DuelUiState.Loading, vm.state.value)
     }
 }

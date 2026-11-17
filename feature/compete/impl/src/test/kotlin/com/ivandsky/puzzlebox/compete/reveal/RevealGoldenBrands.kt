@@ -18,13 +18,15 @@ import com.ivandsky.puzzlebox.model.GameId
  * The games' accent hues without the games: compete-impl cannot depend on the game modules, so each golden game
  * gets the neutral glyph in the accent its real brand uses. Only the brand is real; the play surface is never shown.
  */
-internal fun goldenBrands(): GamePlayRegistry = GamePlayRegistry(
-    listOf(
-        BrandOnlyPlay(GameId("zip"), AccentSlot.Blue),
-        BrandOnlyPlay(GameId("queens"), AccentSlot.Violet),
-        BrandOnlyPlay(GameId("strands"), AccentSlot.Teal),
-    ),
+internal fun goldenBrands(): GamePlayRegistry = goldenBrandsOf(
+    GameId("zip") to AccentSlot.Blue,
+    GameId("queens") to AccentSlot.Violet,
+    GameId("strands") to AccentSlot.Teal,
 )
+
+/** [goldenBrands] for other games: one brand-only play per [games] pair. */
+internal fun goldenBrandsOf(vararg games: Pair<GameId, AccentSlot>): GamePlayRegistry =
+    GamePlayRegistry(games.map { (id, accent) -> BrandOnlyPlay(id, accent) })
 
 private class BrandOnlyPlay(override val gameId: GameId, accent: AccentSlot) : GamePlayUi {
     override val brand: GameBrand = GameBrand.Neutral.copy(accent = accent)

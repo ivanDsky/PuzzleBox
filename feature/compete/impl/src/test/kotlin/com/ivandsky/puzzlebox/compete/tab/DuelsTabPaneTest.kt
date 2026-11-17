@@ -41,6 +41,7 @@ import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.designsystem.MaxContentWidth
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.TwoColumnRightWidth
+import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
@@ -151,6 +152,7 @@ class DuelsTabPaneTest {
                     single<IdentityService> { identity }
                     single<ReleaseFlags> { FakeReleaseFlags() }
                     single { ObserveDuel(observeMatch, FakeCompletionRepository(), FakeSavedPlayRepository()) }
+                    single { DeleteSelfDuel(FakeSelfMatchRepository(), outbox, FakeSavedPlayRepository(), local) }
                     single { MatchResultSync { } }
                     single<GoogleIdTokenProvider> {
                         object : GoogleIdTokenProvider {

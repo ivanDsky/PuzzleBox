@@ -161,6 +161,7 @@ private fun hintsText(hints: Int): String = if (hints == 1) "1 hint" else "$hint
 
 private fun opponentText(line: OpponentLine, name: String): String = when (line) {
     OpponentLine.NotPlayed -> "$name hasn't played"
+    is OpponentLine.FirstSolve -> line.day?.let { "$name: first solve on $it" } ?: "$name: first solve"
     OpponentLine.Sealed -> "$name played, sealed until you finish"
     is OpponentLine.Revealed ->
         if (line.gaveUp) "$name gave up" else "$name: ${formatDuration(line.timeMs)} · ${hintsText(line.hints)}"

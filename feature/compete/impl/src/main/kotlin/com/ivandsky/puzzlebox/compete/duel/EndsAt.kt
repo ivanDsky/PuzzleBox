@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private const val ENDS_PATTERN = "EEE HH:mm"
+private const val DAY_PATTERN = "MMM d"
 
 /** The one "ends" text every duel surface shows: weekday and time of [deadline] in [zone], spelled in [locale] ("Sat 18:00"). */
 internal fun formatEnds(deadline: Instant, zone: ZoneId, locale: Locale): String =
@@ -37,6 +38,9 @@ internal class CompeteTime(val clock: Clock, val locale: Locale) {
     fun now(): Instant = clock.instant()
 
     fun ends(deadline: Instant): String = formatEnds(deadline, zone, locale)
+
+    /** The calendar day of [at] in the device zone, short ("Sep 14"). */
+    fun day(at: Instant): String = DateTimeFormatter.ofPattern(DAY_PATTERN, locale).format(at.atZone(zone))
 }
 
 /** The screen's [CompeteTime]: the provided [LocalCompeteClock] and the locale the configuration currently asks for. */

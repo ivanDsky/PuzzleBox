@@ -112,7 +112,7 @@ class DuelLegsContentTest {
                     layout = PlayLayout.SinglePane,
                     now = now,
                     time = CompeteTime(Clock.fixed(now, ZoneOffset.UTC), Locale.US),
-                    actions = LegsActions({}, {}, {}),
+                    actions = LegsActions({}, {}, {}, {}),
                 )
             }
         }

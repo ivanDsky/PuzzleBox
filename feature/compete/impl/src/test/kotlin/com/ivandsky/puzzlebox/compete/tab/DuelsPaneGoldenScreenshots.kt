@@ -87,7 +87,7 @@ class DuelsPaneGoldenScreenshots {
                     layout = PlayLayout.TwoPane,
                     now = NOW,
                     time = CompeteTime(Clock.fixed(NOW, ZoneOffset.UTC), Locale.US),
-                    actions = LegsActions({}, {}, {}),
+                    actions = LegsActions({}, {}, {}, {}),
                     modifier = Modifier.fillMaxSize(),
                 )
             }

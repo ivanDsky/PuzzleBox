@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.compete.duel
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
+import com.ivandsky.puzzlebox.data.match.isSelf
 import com.ivandsky.puzzlebox.domain.LegSeen
 import com.ivandsky.puzzlebox.domain.MatchView
 import com.ivandsky.puzzlebox.domain.revealReady
@@ -13,6 +14,7 @@ import java.time.Duration
 import java.time.Instant
 
 private const val MINUTES_PER_HOUR = 60L
+private const val SELF_NAME = "You"
 
 /** Where one of my puzzles stands: not opened, saved part-way, or finished. */
 internal sealed interface LegStatus {
@@ -32,6 +34,9 @@ internal sealed interface OpponentLine {
     data object Sealed : OpponentLine
 
     data class Revealed(val timeMs: Long, val hints: Int, val gaveUp: Boolean) : OpponentLine
+
+    /** A self duel's past you: the [day] of the first solve its score comes from (null when not known), never the score. */
+    data class FirstSolve(val day: String?) : OpponentLine
 }
 
 /** A result that has not settled with the server: still posting, rejected as late, or kept on this device only. */
@@ -61,12 +66,14 @@ internal data class DuelLegsModel(
     val opponent: Player,
     val rows: List<LegRowModel>,
     val footer: DuelFooter,
+    val self: Boolean = false,
 )
 
 /**
  * Maps [view] and the in-progress play times ([elapsedMs], by puzzle index) to what the screen draws. A finished
  * puzzle is the viewer's outbox row; otherwise a saved play makes it In progress, else New. The footer asks the
- * match's own reveal rule rather than restating it.
+ * match's own reveal rule rather than restating it. A self duel names me [myName] (its stored "You" is a placeholder)
+ * and shows each opponent line as the [dayOf] the puzzle's [firstSolvedAt]: past you's score is never read here.
  */
 internal fun duelLegsModel(
     view: MatchView,
@@ -74,6 +81,9 @@ internal fun duelLegsModel(
     now: Instant,
     nameOf: (GameId) -> String,
     rankOrderOf: (GameId) -> RankOrder,
+    myName: String? = null,
+    firstSolvedAt: Map<String, Instant> = emptyMap(),
+    dayOf: (Instant) -> String = Instant::toString,
 ): DuelLegsModel {
     val match = view.match
     val mine = view.mine.filter { it.result.uid == view.me }.associateBy { it.result.legIndex }
@@ -91,7 +101,7 @@ internal fun duelLegsModel(
             title = legTitle(leg.ref, nameOf(leg.ref.gameId)),
             rankOrder = rankOrderOf(leg.ref.gameId),
             status = status,
-            opponent = opponentLine(view.theirs.getOrNull(index)),
+            opponent = if (match.isSelf) firstSolve(firstSolvedAt[leg.ref.wire], dayOf) else opponentLine(view.theirs.getOrNull(index)),
             posting = outbox?.state?.caption(),
             action = when (status) {
                 LegStatus.New -> LegAction.Start
@@ -103,12 +113,17 @@ internal fun duelLegsModel(
     }
     val footer = when {
         match.revealReady(view.me, view.mine, now) -> DuelFooter.RevealReady
-        match.legs.indices.all { it in mine } -> DuelFooter.Waiting
+        // A self duel has nobody to wait on or nudge: its footer is the results or nothing.
+        !match.isSelf && match.legs.indices.all { it in mine } -> DuelFooter.Waiting
         else -> DuelFooter.Playing
     }
-    val me = (if (match.challenger.uid == view.me) match.challenger else match.opponent) ?: Player(view.me, "You", null)
+    val me = when {
+        match.isSelf -> Player(view.me, myName ?: SELF_NAME, null)
+        match.challenger.uid == view.me -> match.challenger
+        else -> match.opponent ?: Player(view.me, SELF_NAME, null)
+    }
     val opponent = match.opponentOf(view.me) ?: Player("", "a friend", null)
-    return DuelLegsModel(me, opponent, rows, footer)
+    return DuelLegsModel(me, opponent, rows, footer, self = match.isSelf)
 }
 
 private fun legTitle(ref: LegRef, gameName: String): String = when (ref) {
@@ -121,6 +136,8 @@ private fun opponentLine(seen: LegSeen?): OpponentLine = when (seen) {
     LegSeen.Played -> OpponentLine.Sealed
     is LegSeen.Revealed -> OpponentLine.Revealed(seen.result.timeMs, seen.result.hints, seen.result.gaveUp)
 }
+
+private fun firstSolve(at: Instant?, dayOf: (Instant) -> String): OpponentLine = OpponentLine.FirstSolve(at?.let(dayOf))
 
 private fun ResultPostState.caption(): PostingCaption? = when (this) {
     ResultPostState.Pending -> PostingCaption.Pending

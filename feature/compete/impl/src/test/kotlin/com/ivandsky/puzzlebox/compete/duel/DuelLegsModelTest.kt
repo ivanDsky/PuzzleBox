@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.OutboxResult
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
+import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.domain.LegSeen
 import com.ivandsky.puzzlebox.domain.MatchView
 import com.ivandsky.puzzlebox.domain.Outcome
@@ -140,6 +141,54 @@ class DuelLegsModelTest {
         assertEquals(DuelFooter.RevealReady, model(bothDone).footer)
         assertEquals(DuelFooter.Waiting, model(pendingPost).footer)
         assertEquals(DuelFooter.RevealReady, model(closed, now = afterClose).footer)
+    }
+
+    private fun selfView(legs: Int, done: Set<Int>): MatchView {
+        val everyLeg = (0 until legs).toSet()
+        val match = match(legs, progress = mapOf(SelfSeats.PAST to everyLeg, SelfSeats.ME to done)).copy(
+            challenger = Player(SelfSeats.ME, "You", null),
+            opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null),
+            deadlineHours = SelfSeats.NO_DEADLINE_HOURS,
+        )
+        val rows = done.map {
+            OutboxResult(code, LegResult(SelfSeats.ME, it, 40_000, 0, completedAtMs = 1, gaveUp = false), ResultPostState.Posted, attempts = 0)
+        }
+        return MatchView(
+            match, SelfSeats.ME, rows, match.legs.map { LegSeen.Played },
+            Outcome(emptyList(), 0, 0, settled = false, verdict = null), local = null,
+        )
+    }
+
+    @Test
+    fun aSelfDuelNamesMeByMyNameAndPastYouAndShowsTheDayOfTheFirstSolveNotATime() {
+        val view = selfView(legs = 2, done = emptySet())
+        val solvedOn = Instant.parse("2026-09-14T08:00:00Z")
+
+        val model = duelLegsModel(
+            view, emptyMap(), createdAt, { "Zip" }, { RankOrder.TimeThenHints },
+            myName = "Ivan",
+            firstSolvedAt = mapOf(view.match.legs[0].ref.wire to solvedOn),
+            dayOf = { "Sep 14" },
+        )
+
+        assertTrue(model.self)
+        assertEquals("Ivan", model.me.name)
+        assertEquals("Past you", model.opponent.name)
+        assertEquals(listOf(OpponentLine.FirstSolve("Sep 14"), OpponentLine.FirstSolve(null)), model.rows.map { it.opponent })
+    }
+
+    @Test
+    fun aSelfDuelNeverWaitsOnAnyoneAndOffersTheResultsOnceIPlayedEveryPuzzle() {
+        val playing = model(selfView(legs = 2, done = setOf(0)))
+        val played = model(selfView(legs = 2, done = setOf(0, 1)))
+
+        assertEquals(DuelFooter.Playing, playing.footer)
+        assertEquals(DuelFooter.RevealReady, played.footer)
+    }
+
+    @Test
+    fun aFriendDuelIsNotSelf() {
+        assertFalse(model(view(match(legs = 1))).self)
     }
 
     @Test

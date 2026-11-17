@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.match.Player
+import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.domain.DuelSnapshot
 import com.ivandsky.puzzlebox.domain.MatchState
 import com.ivandsky.puzzlebox.domain.MatchView
@@ -84,8 +85,18 @@ internal sealed interface DuelUiState {
         val signIn: DuelSignIn,
     ) : DuelUiState
 
-    /** The viewer holds a seat; the puzzles screen takes [view] and the saved plays' [elapsedMs], by puzzle index. */
-    data class Participant(val view: MatchView, val elapsedMs: Map<Int, Long>) : DuelUiState
+    /**
+     * The viewer holds a seat; the puzzles screen takes [view] and the saved plays' [elapsedMs], by puzzle index.
+     * A self duel also takes [firstSolvedAt] (the day past you set each score, by the puzzle's wire key), [myName]
+     * (the signed-in name, null signed out) and [removeAsked], the remove-confirm showing.
+     */
+    data class Participant(
+        val view: MatchView,
+        val elapsedMs: Map<Int, Long>,
+        val firstSolvedAt: Map<String, Instant> = emptyMap(),
+        val myName: String? = null,
+        val removeAsked: Boolean = false,
+    ) : DuelUiState
 
     data object NotFound : DuelUiState
     data object Offline : DuelUiState
@@ -105,9 +116,10 @@ internal class DuelViewModel(
     observeDuel: ObserveDuel,
     private val updateSeat: UpdateMatchSeat,
     resultSync: MatchResultSync,
-    identity: IdentityService,
+    private val identity: IdentityService,
     idTokens: GoogleIdTokenProvider,
     private val registry: GameRegistry,
+    deleteSelfDuel: DeleteSelfDuel,
 ) : ViewModel() {
 
     private data class Working(
@@ -122,38 +134,69 @@ internal class DuelViewModel(
     private val working = MutableStateFlow(Working())
     private val reloads = MutableStateFlow(0)
     private val closeEvents = Channel<Unit>(Channel.BUFFERED)
+    private val removal = SelfDuelRemoval(shareCode, deleteSelfDuel, viewModelScope) { closeEvents.send(Unit) }
 
     init {
         if (shareCode != null) resultSync.poke()
     }
 
-    /** Fires once after a Decline finished: the screen has nothing left to show. */
+    /** Fires once after a Decline or a Remove finished: the screen has nothing left to show. */
     val closes: Flow<Unit> = closeEvents.receiveAsFlow()
+
+    /** Opens the remove-confirm of a self duel. */
+    fun askRemove() = removal.ask()
+
+    /** Closes the remove-confirm and keeps the duel. */
+    fun keep() = removal.keep()
+
+    /** Removes the self duel the confirm asked about; [closes] fires when it is gone. */
+    fun remove() = removal.remove()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val state: StateFlow<DuelUiState> = if (shareCode == null) {
         MutableStateFlow<DuelUiState>(DuelUiState.NotFound).asStateFlow()
     } else {
-        combine(reloads.flatMapLatest { observeDuel(shareCode) }, working) { duel, work -> build(shareCode, duel, work) }
+        combine(
+            reloads.flatMapLatest { observeDuel(shareCode) },
+            working,
+            identity.current,
+            removal.step,
+        ) { duel, work, me, step -> build(shareCode, duel, work, me?.displayName, step) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DuelUiState.Loading)
     }
 
-    private fun build(code: ShareCode, duel: DuelSnapshot, work: Working): DuelUiState = when (val match = duel.match) {
-        MatchState.NotFound -> DuelUiState.NotFound
-        MatchState.Offline -> DuelUiState.Offline
-        is MatchState.UpdateApp -> DuelUiState.UpdateApp
-        is MatchState.SignedOut -> DuelUiState.Invite(
-            InviteKind.SignedOut, code, match.match?.let { inviteDetails(it, null, duel.solvedBefore) }, false, null, work.signIn,
-        )
-        is MatchState.Loaded -> loaded(code, match.view, duel, work)
+    private fun build(code: ShareCode, duel: DuelSnapshot, work: Working, myName: String?, removal: RemovalStep): DuelUiState {
+        if (removal == RemovalStep.Removing) return DuelUiState.Loading
+        return when (val match = duel.match) {
+            MatchState.NotFound -> DuelUiState.NotFound
+            MatchState.Offline -> DuelUiState.Offline
+            is MatchState.UpdateApp -> DuelUiState.UpdateApp
+            is MatchState.SignedOut -> DuelUiState.Invite(
+                InviteKind.SignedOut, code, match.match?.let { inviteDetails(it, null, duel.solvedBefore) }, false, null, work.signIn,
+            )
+            is MatchState.Loaded -> loaded(code, match.view, duel, work, myName, removal == RemovalStep.Asking)
+        }
     }
 
-    private fun loaded(code: ShareCode, view: MatchView, duel: DuelSnapshot, work: Working): DuelUiState {
+    private fun loaded(
+        code: ShareCode,
+        view: MatchView,
+        duel: DuelSnapshot,
+        work: Working,
+        myName: String?,
+        removeAsked: Boolean,
+    ): DuelUiState {
         val match = view.match
         val me = view.me
         val challenger = match.challenger.uid == me
         if (match.opponent?.uid == me || challenger && match.opponent != null) {
-            return DuelUiState.Participant(view, duel.elapsedMs)
+            return DuelUiState.Participant(
+                view = view,
+                elapsedMs = duel.elapsedMs,
+                firstSolvedAt = duel.firstSolvedAt,
+                myName = myName,
+                removeAsked = removeAsked,
+            )
         }
         val kind = work.outcome ?: when {
             match.opponent != null -> InviteKind.Taken

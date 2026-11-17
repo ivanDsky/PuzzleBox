@@ -51,6 +51,7 @@ val competeModule: Module = module {
             identity = get(),
             idTokens = get(),
             registry = get(),
+            deleteSelfDuel = get(),
         )
     }
     viewModel { (code: String, reducedMotion: Boolean, zone: ZoneId, locale: Locale) ->
