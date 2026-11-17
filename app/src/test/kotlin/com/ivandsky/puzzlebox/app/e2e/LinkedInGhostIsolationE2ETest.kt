@@ -112,6 +112,8 @@ class LinkedInGhostIsolationE2ETest {
             awaitLooper { shows("summary.rank") }
             // The hub's board shows the connections too.
             openZipRanks()
+            // A player with no friend lands on Global (#1178); connections count on Friends.
+            tuneRanks("Friends", "Day")
             awaitLooper { textsUnder("daily_board.ghost.name").toSet() == names }
 
             graph.koin.get<LeaderboardSubmitWatcher>().start()
@@ -173,6 +175,8 @@ class LinkedInGhostIsolationE2ETest {
             awaitSynced(today)
             awaitLooper { shows("summary.rank") }
             openZipRanks()
+            // A player with no friend lands on Global (#1178); connections count on Friends.
+            tuneRanks("Friends", "Day")
             awaitLooper { textsUnder("daily_board.ghost.name").toSet() == names }
 
             // Tier Replays and opted in before the solve, so the solve below is published at Posted.

@@ -142,7 +142,9 @@ class ShellSummariesE2ETest {
     private fun ShellRobot.assertOwnersOnly(historyOwner: Boolean = false) {
         val tags = rule.onAllNodes(hasAnyTag, useUnmergedTree = true).fetchSemanticsNodes()
             .map { it.config[SemanticsProperties.TestTag] }
-        assertEquals("Games' board blocks off Games (state $state)", emptyList<String>(), tags.filter { it.startsWith("leaderboard.") })
+        // The hub lands on Global until the player has a friend (#1178), so its own board rows carry rank medals; those are not Games' block.
+        val gamesBoard = tags.filter { it.startsWith("leaderboard.") && !(historyOwner && it.startsWith("leaderboard.medal.")) }
+        assertEquals("Games' board blocks off Games (state $state)", emptyList<String>(), gamesBoard)
         if (!historyOwner) {
             assertEquals("History's stats off History (state $state)", emptyList<String>(), tags.filter { it.startsWith("history.stats") })
         }
