@@ -24,8 +24,8 @@ class BoardFlagsTest {
     }
 
     @Test
-    fun `both new flags ship off in release`() {
-        assertFalse(ReleaseFlag.BoardTokens.releaseDefault)
-        assertFalse(ReleaseFlag.HintFirstMove.releaseDefault)
+    fun `both new flags ship on in release`() {
+        assertTrue(ReleaseFlag.BoardTokens.releaseDefault)
+        assertTrue(ReleaseFlag.HintFirstMove.releaseDefault)
     }
 }

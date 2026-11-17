@@ -14,7 +14,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     LinkedInPush(label = "Post results to LinkedIn", releaseDefault = false),
 
     /** Flat buttons and cards: no lips, a tint plus a 100 ms scale on press. Read only by the app's root theme (nav-rethink B1). */
-    FlatSurfaces(label = "Flat buttons and cards", releaseDefault = false),
+    FlatSurfaces(label = "Flat buttons and cards", releaseDefault = true),
 
     /**
      * Strands' flat look (no lip under a token, a 64 dp hint row), split from [FlatSurfaces] so that can ship without
@@ -38,19 +38,19 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * The readable board look (nav-rethink B3): shared board tokens and geometry for all five games. Read only by the app's
      * root theme, which hands the theme one Boolean (spec A2).
      */
-    BoardTokens(label = "Readable board look", releaseDefault = false),
+    BoardTokens(label = "Readable board look", releaseDefault = true),
 
     /**
      * Hints give a real first move (nav-rethink B4): a hint never points at what the player already knows. Read only in a
      * game UI module's DI, which picks the [HintMode][com.ivandsky.puzzlebox.gameui.hint.HintMode] at registration (spec A2).
      */
-    HintFirstMove(label = "Hints give a real first move", releaseDefault = false),
+    HintFirstMove(label = "Hints give a real first move", releaseDefault = true),
 
     /**
      * Finish for me in the Studio (nav-rethink E1): a game whose editor has a `DraftCompleter` completes a half-built draft
      * into a unique puzzle, keeping every piece the author placed. Read only in a ViewModel or a DI module (spec A2).
      */
-    FinishForMe(label = "Finish for me in the Studio", releaseDefault = false),
+    FinishForMe(label = "Finish for me in the Studio", releaseDefault = true),
 
     /**
      * Community puzzles in Custom (nav-rethink C1, C2): public publishing, the New today list and reporting a puzzle.
@@ -62,7 +62,7 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * Fixed play controls and board size caps (nav-rethink B5, B6). Read only by the play-tuning source binding in the
      * game UI DI, which holds a non-null `PlayTuning` only while this is on (spec A2).
      */
-    BoardErgonomics(label = "Fixed play controls and board size caps", releaseDefault = false),
+    BoardErgonomics(label = "Fixed play controls and board size caps", releaseDefault = true),
 
     /**
      * Same feel in every game (spec A19): one Boolean that every play board hands its games. Read only in feature/play's DI,

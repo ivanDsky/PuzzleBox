@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.gameui.DeviceClass
 import com.ivandsky.puzzlebox.gameui.PlayTuning
 import com.ivandsky.puzzlebox.gameui.PlayTuningSource
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -40,29 +41,29 @@ class DebugReleaseFlagsBindingTest {
     }
 
     @Test
-    fun `debug graph binds the flag-gated play tuning, dark until BoardErgonomics is overridden on`() {
+    fun `debug graph binds the flag-gated play tuning, shipped tuning by default while BoardErgonomics ships on`() {
         val koin = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
             modules(PuzzleBoxApplication.appModules)
         }.koin
         try {
             assertTrue(koin.get<PlayTuningSource>() is FlaggedPlayTuningSource)
-            assertEquals(PlayTuning.Shipped.takeIf { ReleaseFlag.BoardErgonomics.releaseDefault }, koin.get<PlayTuningSource>().tuning.value)
+            assertEquals(PlayTuning.Shipped, koin.get<PlayTuningSource>().tuning.value)
         } finally {
             stopKoin()
         }
     }
 
     @Test
-    fun `debug graph's play tuning holds the base value once BoardErgonomics is overridden on`() {
+    fun `debug graph's play tuning goes dark once BoardErgonomics is overridden off`() {
         val koin = startKoin {
             androidContext(RuntimeEnvironment.getApplication())
             modules(PuzzleBoxApplication.appModules)
         }.koin
         try {
-            koin.get<DebugReleaseFlags>().setOverride(ReleaseFlag.BoardErgonomics, true)
+            koin.get<DebugReleaseFlags>().setOverride(ReleaseFlag.BoardErgonomics, false)
 
-            assertEquals(PlayTuning.Shipped, koin.get<PlayTuningSource>().tuning.value)
+            assertNull(koin.get<PlayTuningSource>().tuning.value)
         } finally {
             stopKoin()
         }
