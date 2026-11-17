@@ -209,7 +209,7 @@ internal fun rememberSudokuMotion(
     if (state == null) return null
     // Keyed on the board so a swapped board never classifies its moves against the old one's baseline.
     key(state) {
-        MoveHapticsEffect({ SudokuMoveSnapshot(state.session, state.refusals) }, ::sudokuMoveHaptic)
+        MoveHapticsEffect({ SudokuMoveSnapshot(state.session, state.rejection) }, ::sudokuMoveHaptic)
     }
     val reduced = rememberReducedMotion()
     val haptics = LocalHapticFeedback.current

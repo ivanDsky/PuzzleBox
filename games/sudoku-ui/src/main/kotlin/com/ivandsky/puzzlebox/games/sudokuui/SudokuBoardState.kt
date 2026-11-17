@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.games.sudokuui
 
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.designsystem.spotlight.Spotlight
@@ -77,17 +76,10 @@ class SudokuBoardState(
     var hintRevealed by mutableStateOf(false)
         private set
 
-    /** The last refused input's copy, shown until the next action. */
-    var rejection by mutableStateOf<String?>(null)
+    /** The last refused input, shown until the next action; [SudokuRejection.seq] tells a repeat apart. */
+    var rejection by mutableStateOf<SudokuRejection?>(null)
         private set
-
-    /**
-     * Refused inputs on a given, counted. A repeat refusal leaves [rejection] equal, so the haptic
-     * reads this counter to tell a second refusal from no refusal at all.
-     */
-    var refusals by mutableIntStateOf(0)
-        private set
-
+    private var refused = 0
     private val recorder = SudokuMoveLog(log, now, runningSince)
 
     private var winEmitted = false
@@ -264,8 +256,7 @@ class SudokuBoardState(
 
     private fun rejectsGiven(idx: Int): Boolean {
         if (session.board.cells[idx] !is SudokuCell.Given) return false
-        rejection = SudokuHintCaptions.GIVEN_REJECTION
-        refusals++
+        rejection = SudokuRejection(SudokuHintCaptions.GIVEN_REJECTION, ++refused)
         return true
     }
 

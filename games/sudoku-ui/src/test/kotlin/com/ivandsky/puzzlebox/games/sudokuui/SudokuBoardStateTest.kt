@@ -80,10 +80,10 @@ class SudokuBoardStateTest {
         val before = s.session
         s.input(1)
         assertEquals(before, s.session)
-        assertEquals("That number is part of the puzzle.", s.rejection)
+        assertEquals("That number is part of the puzzle.", s.rejection?.message)
         s.erase()
         assertEquals(before, s.session)
-        assertEquals("That number is part of the puzzle.", s.rejection)
+        assertEquals("That number is part of the puzzle.", s.rejection?.message)
         s.select(0)
         assertNull(s.rejection)
     }

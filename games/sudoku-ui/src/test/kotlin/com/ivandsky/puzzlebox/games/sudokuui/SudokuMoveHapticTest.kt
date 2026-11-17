@@ -48,7 +48,7 @@ class SudokuMoveHapticTest {
         input(digit)
     }
 
-    private fun SudokuBoardState.snap() = SudokuMoveSnapshot(session, refusals)
+    private fun SudokuBoardState.snap() = SudokuMoveSnapshot(session, rejection)
 
     /** Runs [action] on [state] and classifies the step the way the effect does. */
     private fun step(state: SudokuBoardState, action: SudokuBoardState.() -> Unit): MoveHaptic? {
@@ -84,16 +84,34 @@ class SudokuMoveHapticTest {
     }
 
     @Test
-    fun `an erase ticks, of a digit or of only its notes`() {
+    fun `an erase is silent, of a digit or of only its notes`() {
         val state = fresh()
         state.place(0)
-        assertEquals(MoveHaptic.Placed, step(state) { erase() })
+        assertNull(step(state) { erase() })
         state.select(1)
         state.toggleNotesMode()
         state.input(2)
         state.toggleNotesMode()
         state.select(1)
-        assertEquals(MoveHaptic.Placed, step(state) { erase() })
+        assertNull(step(state) { erase() })
+    }
+
+    @Test
+    fun `two redos in one step are silent`() {
+        val state = fresh()
+        state.place(0)
+        state.place(1)
+        state.undo()
+        state.undo()
+        assertNull(step(state) { redo(); redo() })
+    }
+
+    @Test
+    fun `undo then the same digit again ticks`() {
+        val state = fresh()
+        state.place(0)
+        state.undo()
+        assertEquals(MoveHaptic.Placed, step(state) { place(0) })
     }
 
     @Test
