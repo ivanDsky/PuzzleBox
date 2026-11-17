@@ -49,10 +49,6 @@ import com.ivandsky.puzzlebox.app.nav.rememberNavigator
 import com.ivandsky.puzzlebox.compete.create.DuelChallenge
 import com.ivandsky.puzzlebox.compete.tab.DuelsTab
 import com.ivandsky.puzzlebox.compete.tab.rememberDuelsNeedYou
-import com.ivandsky.puzzlebox.create.CustomBody
-import com.ivandsky.puzzlebox.create.api.EditorKey
-import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
-import com.ivandsky.puzzlebox.create.published.publishedPuzzlePane
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
@@ -68,12 +64,8 @@ import com.ivandsky.puzzlebox.home.HomeLayout
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.FirstScreenReady
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.DuelsSlot
-import com.ivandsky.puzzlebox.play.LocalCommunityPicker
-import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
-import com.ivandsky.puzzlebox.play.community.CommunityHost
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.map
 import org.koin.compose.koinInject
@@ -264,28 +256,6 @@ fun PuzzleBoxApp(
                     modifier = Modifier.align(Alignment.BottomCenter).padding(contentPadding),
                 )
             }
-        }
-    }
-}
-
-/**
- * The Custom body of Games' pill and of the Community tab: create's drafts and published rows, which open their screens
- * on the current stack. Inside the Community tablet's two-pane ([LocalCommunityPicker]) a New today row and a published
- * row pick their puzzle for the right pane instead, which [publishedPuzzlePane] draws for a published one.
- */
-@Composable
-private fun rememberCustomSlot(navigator: Navigator): CustomSlot = remember(navigator) {
-    CustomSlot(published = publishedPuzzlePane(onOpen = { navigator.pushOnce(EditorKey(it)) })) { listState, friendsEmpty, friends ->
-        val picker = LocalCommunityPicker.current
-        CommunityHost(onOpen = { picker?.puzzle(it) ?: navigator.pushOnce(FriendPuzzleKey(it)) }) { community ->
-            CustomBody(
-                listState = listState,
-                friendsEmpty = friendsEmpty,
-                friends = friends,
-                onOpenDraft = { navigator.pushOnce(EditorKey(it)) },
-                onOpenPublished = { picker?.published(it) ?: navigator.pushOnce(PublishedPuzzleKey(it)) },
-                community = community,
-            )
         }
     }
 }
