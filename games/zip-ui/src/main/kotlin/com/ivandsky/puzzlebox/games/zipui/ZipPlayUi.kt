@@ -177,7 +177,7 @@ private fun BoxScope.BoardArea(
  */
 @Composable
 private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modifier) {
-    // Before the early return below, so the haptics fire on every board that holds a session.
+    // One fixed slot, unconditional: the seam keys on the haptics alone, so the board's early return cannot skip it.
     MoveHapticsEffect({ ZipMoveSnapshot(controller.session, controller.feedback.refusals) }, ::zipMoveHaptic)
     val rejected = controller.feedback.rejectedMove
     val model = remember(controller, controller.session, controller.hintCell, rejected) {

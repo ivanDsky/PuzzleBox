@@ -5,10 +5,10 @@ import com.ivandsky.puzzlebox.games.zip.ZipCommand
 import com.ivandsky.puzzlebox.games.zip.ZipSession
 
 /**
- * What [zipMoveHaptic] reads: the live session and the feedback's refusal counter. Both are counters, so a second
- * refusal or rejection of the same kind still changes the snapshot.
+ * What [zipMoveHaptic] reads: the live session and the feedback's refusal counter. The session's `mistakeCount` and
+ * [refusals] are counters, so a second refusal or rejection of the same kind still changes the snapshot.
  */
-data class ZipMoveSnapshot(val session: ZipSession?, val refusals: Int)
+internal data class ZipMoveSnapshot(val session: ZipSession?, val refusals: Int)
 
 /**
  * The haptic for the step from [before] to [after]: a tick when the trace grows or shrinks by a step the player made,

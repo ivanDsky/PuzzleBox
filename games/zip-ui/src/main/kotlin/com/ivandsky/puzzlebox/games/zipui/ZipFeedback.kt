@@ -39,7 +39,7 @@ class ZipFeedback(private val scope: CoroutineScope) : PlayFeedback {
     var hintCaption by mutableStateOf<String?>(null)
         private set
 
-    /** Every refused drag step, explained or not. A counter, so a repeat of the same refusal still changes it. */
+    /** Every explained refused drag step. A counter, so a repeat of the same refusal still changes it. */
     var refusals by mutableIntStateOf(0)
         private set
 
@@ -59,14 +59,14 @@ class ZipFeedback(private val scope: CoroutineScope) : PlayFeedback {
     /**
      * The drag board refused [cell] before any move existed (DragEvent.Refused). Only a
      * refusal the player plausibly meant — skipping a number, crossing a wall, starting
-     * off 1 — is explained; a finger wandering onto a far or traced cell stays silent
-     * (R1), and nothing here is a mistake for analytics.
+     * off 1 — is explained and counted; a finger wandering onto a far or traced cell stays
+     * silent (R1), and nothing here is a mistake for analytics.
      */
     fun refused(session: ZipSession, cell: Cell) {
-        refusals++
         val verdict = rules.validateMove(ZipMove.Extend(cell), ZipState(session.puzzle, session.path))
         val reason = (verdict as? ZipValidation.Invalid)?.reason ?: return
         if (reason is Reason.WrongWaypointOrder || reason == Reason.WallBetween || reason == Reason.WrongStart) {
+            refusals++
             reject(session.puzzle.board, cell, reason)
         }
     }
