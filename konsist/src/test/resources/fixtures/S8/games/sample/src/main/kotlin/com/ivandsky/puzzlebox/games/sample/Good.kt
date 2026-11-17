@@ -12,6 +12,8 @@ fun good(c: LeaderboardCrownColour) {
     val ok = "Ranks, queen, color and this device, with ${c.rounds} puzzles"
     val surrounds = "It surrounds the board; the grounds are fine"
     val key = "leaderboards"
+    val us = "Canceled, with neighbors"
+    val field = "cancelled"
     val parsed = malformed("malformed crowns section")
     val tag = "duel.rounds.${c.rounds}"
     Log.w("Ranks", "leaderboard submit rejected for this phone")

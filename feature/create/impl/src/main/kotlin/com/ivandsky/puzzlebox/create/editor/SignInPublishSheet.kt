@@ -136,7 +136,7 @@ private fun messageOf(failure: SignInFailure): String = when (failure) {
         GoogleIdToken.Unavailable.Reason.NETWORK -> "No connection, so Google couldn't sign you in. Nothing was published."
         GoogleIdToken.Unavailable.Reason.NO_CREDENTIAL -> "No Google account on this device. Add one in Settings to publish."
         GoogleIdToken.Unavailable.Reason.PROVIDER_UNAVAILABLE -> "Google sign-in isn't available on this device right now."
-        GoogleIdToken.Unavailable.Reason.CANCELLED -> "Sign-in cancelled. Nothing was published."
+        GoogleIdToken.Unavailable.Reason.CANCELLED -> "Sign-in canceled. Nothing was published."
         GoogleIdToken.Unavailable.Reason.MALFORMED,
         GoogleIdToken.Unavailable.Reason.OTHER,
         -> "Google sign-in didn't finish. Please try again."

@@ -98,10 +98,10 @@ class TangoStepCopyTest {
         val opposite = puzzle(TangoMarker(0, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE))
         val sign = { value: TangoCell -> deduction(TangoStepRung.SIGN, value, idx = 1, evidence = setOf(0, 1)) }
 
-        assertEquals("Sign: = copies its neighbour, so this is a sun", text(sign(TangoCell.SUN), same))
-        assertEquals("Sign: = copies its neighbour, so this is a moon", text(sign(TangoCell.MOON), same))
-        assertEquals("Sign: × flips its neighbour, so this is a sun", text(sign(TangoCell.SUN), opposite))
-        assertEquals("Sign: × flips its neighbour, so this is a moon", text(sign(TangoCell.MOON), opposite))
+        assertEquals("Sign: = copies its neighbor, so this is a sun", text(sign(TangoCell.SUN), same))
+        assertEquals("Sign: = copies its neighbor, so this is a moon", text(sign(TangoCell.MOON), same))
+        assertEquals("Sign: × flips its neighbor, so this is a sun", text(sign(TangoCell.SUN), opposite))
+        assertEquals("Sign: × flips its neighbor, so this is a moon", text(sign(TangoCell.MOON), opposite))
     }
 
     @Test
@@ -109,7 +109,7 @@ class TangoStepCopyTest {
         val below = puzzle(TangoMarker(1, TangoEdgeSide.DOWN, TangoMarkerKind.OPPOSITE))
 
         assertEquals(
-            "Sign: × flips its neighbour, so this is a moon",
+            "Sign: × flips its neighbor, so this is a moon",
             text(deduction(TangoStepRung.SIGN, TangoCell.MOON, idx = 5, evidence = setOf(1, 5)), below),
         )
     }

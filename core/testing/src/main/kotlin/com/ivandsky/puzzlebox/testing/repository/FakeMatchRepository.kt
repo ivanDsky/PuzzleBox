@@ -157,7 +157,7 @@ class FakeMatchRepository : MatchRepository {
             when {
                 result.uid != caller -> PostResult.Rejected("the result is not the signed-in user's")
                 caller != match.challenger.uid && caller != match.opponent?.uid -> PostResult.Rejected("not a seated player")
-                match.cancelled || match.declined -> PostResult.Rejected("the match is cancelled or declined")
+                match.cancelled || match.declined -> PostResult.Rejected("the match is canceled or declined")
                 result.legIndex !in match.legs.indices -> PostResult.Rejected("no leg ${result.legIndex}")
                 key in results -> PostResult.Duplicate
                 now >= match.closesAt || result.completedAtMs > match.deadline.toEpochMilli() -> PostResult.Late

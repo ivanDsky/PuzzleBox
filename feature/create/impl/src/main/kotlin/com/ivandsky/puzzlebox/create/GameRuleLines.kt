@@ -13,7 +13,7 @@ internal fun gameRuleLine(game: GameId): String? = RuleLines[game.value]
 private val RuleLines: Map<String, String> = mapOf(
     "zip" to "Draw one path through every cell, hitting the numbers in order",
     "queens" to "One queen in every row, column and color region",
-    "tango" to "Fill every cell with a sun or moon; = and × link neighbours",
+    "tango" to "Fill every cell with a sun or moon; = and × link neighbors",
     "minisudoku" to "1 to 6 once in every row, column and 2×3 box",
     "strands" to "Hide a theme’s words and one spangram in 8×6 letters",
     "sudoku" to "Debug build only — same engine, 3×3 boxes",

@@ -219,13 +219,13 @@ Visible copy uses one word per concept and US spelling.
 
 - **Scope:** production files.
 - **Detection:** a string literal containing `colour`, `favourite`, `leaderboard`, `crown`,
-  `this phone` or `rounds` at a word start, any case, so `Colours` and `crowns` match but
+  `this phone`, `rounds`, `neighbour` or `cancelled` at a word start, any case, so `Colours` and `crowns` match but
   `surrounds` does not. Not matched: comments and KDoc, identifiers, a literal passed to `Log.*`,
   `println`, `require`, `check`, `error`, `malformed` or `testTag`, a `const val TAG` log tag, a `@Preview` argument, and a literal that is
   only lowercase letters, digits, `_`, `.` and `-` (a key such as `"leaderboards"`). The violation is the file.
 - **Accepted misses:** other synonyms (the rule cannot know them), a lowercase one-word key that
   is really copy, and a literal built by concatenating pieces that split a banned word.
-- **How to fix:** say color, favorite, Ranks, queen, puzzles or "this device" (spec S1).
+- **How to fix:** say color, favorite, Ranks, queen, puzzles, "this device", neighbor or canceled (spec S1).
 
 ## S9
 Every haptic goes through `LocalHapticFeedback`, the one choke point the Vibration switch gates (`VibrationGate`,

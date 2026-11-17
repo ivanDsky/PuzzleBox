@@ -358,7 +358,7 @@ class StrandsNotationTest {
     @Test
     fun `non neighbouring cells error at the later cell`() {
         assertEquals(
-            NotationResult.Err(11, 15, "cells must be 8-neighbour steps"),
+            NotationResult.Err(11, 15, "cells must be 8-neighbor steps"),
             err(board("word FORK 1,1 1,3 1,4", rows = fork)),
         )
     }

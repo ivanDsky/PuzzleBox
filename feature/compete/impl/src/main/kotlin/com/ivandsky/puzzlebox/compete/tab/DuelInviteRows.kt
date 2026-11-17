@@ -78,7 +78,7 @@ internal fun InvitedRow(
 
 private fun InviteNote.text(): String = when (this) {
     InviteNote.AlreadyTaken -> "Already taken"
-    InviteNote.Cancelled -> "Cancelled"
+    InviteNote.Cancelled -> "Canceled"
     InviteNote.Closed -> "Closed"
     InviteNote.AcceptFailed -> "Couldn't accept · try again"
     InviteNote.DeclineFailed -> "Couldn't decline · try again"

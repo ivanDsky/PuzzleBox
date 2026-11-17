@@ -13,7 +13,7 @@ import com.ivandsky.puzzlebox.play.api.ReplayKey
 internal const val CompareAction = "Compare"
 
 /** What a screen reader says for leg [leg]'s [CompareAction]: the bare word would be the same on every row. */
-internal fun compareDescription(leg: Int): String = "Compare leg ${leg + 1}"
+internal fun compareDescription(leg: Int): String = "Compare puzzle ${leg + 1}"
 
 private const val MyName = "You"
 

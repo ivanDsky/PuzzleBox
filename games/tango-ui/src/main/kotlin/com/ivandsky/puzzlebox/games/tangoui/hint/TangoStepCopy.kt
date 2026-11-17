@@ -51,8 +51,8 @@ internal object TangoStepCopy {
         val kind = (step.evidence - step.idx).firstNotNullOfOrNull { puzzle.markerBetween(step.idx, it) }
         val value = word(step.value)
         return when (kind) {
-            TangoMarkerKind.SAME -> "Sign: = copies its neighbour, so this is a $value"
-            TangoMarkerKind.OPPOSITE -> "Sign: × flips its neighbour, so this is a $value"
+            TangoMarkerKind.SAME -> "Sign: = copies its neighbor, so this is a $value"
+            TangoMarkerKind.OPPOSITE -> "Sign: × flips its neighbor, so this is a $value"
             null -> "Sign: the sign beside it makes this a $value"
         }
     }

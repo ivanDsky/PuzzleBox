@@ -10,10 +10,10 @@ import com.ivandsky.puzzlebox.konsist.core.Violation
 object S8CopyVocabulary : Rule {
     override val id = "S8"
 
-    private const val HINT = "use the canonical word: color, favorite, Ranks, queen, puzzles, this device"
+    private const val HINT = "use the canonical word: color, favorite, Ranks, queen, puzzles, this device, neighbor, canceled"
 
     /** `(?<![A-Za-z$])` keeps `surrounds`, `grounds` and a template identifier like `$crowns` out; the open end keeps plurals and `colourful` in. */
-    private val banned = Regex("""(?<![A-Za-z$])(?:colour|favourite|leaderboard|crown|this phone|rounds)""", RegexOption.IGNORE_CASE)
+    private val banned = Regex("""(?<![A-Za-z$])(?:colour|favourite|leaderboard|crown|this phone|rounds|neighbour|cancelled)""", RegexOption.IGNORE_CASE)
 
     /** A lowercase dotted or snake key (`"leaderboards"`, `"duel.rounds.$quick"`) is a name, not copy. */
     private val machineKey = Regex("""[a-z0-9_.\-{}$]+""")

@@ -120,7 +120,7 @@ class DuelInviteCardTest {
         var closed = 0
         show(InviteKind.Cancelled, details(viewerIsChallenger = false), onClose = { closed++ })
 
-        assertShown("Cancelled")
+        assertShown("Canceled")
         assertShown("Ann called this duel off before anyone accepted.")
         rule.onNodeWithTag("duel.invite.close").assertTextEquals("Close").performClick()
         assertEquals("Close leaves the card", 1, closed)
