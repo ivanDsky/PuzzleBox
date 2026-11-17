@@ -119,7 +119,7 @@ private fun StageBlock(plan: RevealPlan, state: RevealState, eyebrow: String, in
     }
 }
 
-/** The phone's race: puzzle [index]'s card under the score, scrolling if the card is taller than the room. */
+/** The phone's race: puzzle [index]'s card and the chip strip under it, scrolling if taller than the room. */
 @Composable
 private fun RaceBody(plan: RevealPlan, state: RevealState, index: Int, brands: GamePlayRegistry) {
     Column(
@@ -128,10 +128,12 @@ private fun RaceBody(plan: RevealPlan, state: RevealState, index: Int, brands: G
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
     ) {
         key(index) {
             RaceCard(plan, plan.cards[index], state, position = index + 1, brand = brands.brandOf(plan.cards[index].leg.gameId), wide = false)
         }
+        RaceStrip(plan, state, index, brands, Modifier.fillMaxWidth())
     }
 }
 
