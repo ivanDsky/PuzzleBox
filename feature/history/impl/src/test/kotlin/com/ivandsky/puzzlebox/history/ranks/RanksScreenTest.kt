@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -18,6 +19,7 @@ import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeRight
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.SIGN_IN_WITH_GOOGLE
 import com.ivandsky.puzzlebox.domain.ranks.OverallStandings
 import com.ivandsky.puzzlebox.domain.ranks.OverallState
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -87,7 +89,7 @@ class RanksScreenTest {
         show(OverallState.SignedOut, onSignIn = { taps++ })
 
         composeRule.onNodeWithTag("ranks.signIn").assertIsDisplayed()
-        composeRule.onNodeWithTag("ranks.signIn.button").performClick()
+        composeRule.onNodeWithTag("ranks.signIn.button").assertTextEquals(SIGN_IN_WITH_GOOGLE).performClick()
 
         assertEquals(1, taps)
     }

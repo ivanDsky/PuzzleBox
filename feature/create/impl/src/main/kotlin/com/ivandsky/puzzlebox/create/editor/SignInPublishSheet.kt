@@ -29,11 +29,12 @@ import com.ivandsky.puzzlebox.data.identity.AuthError
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.SIGN_IN_WITH_GOOGLE
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
- * Sign in to publish (08 handoff "Sign in to publish"): why an account, Continue with Google
+ * Sign in to publish (08 handoff "Sign in to publish"): why an account, Sign in with Google
  * ([onGoogle]; "Signing in…" and disabled while [PublishSession.SignIn.signingIn]) and Cancel
  * ([onCancel], as is a swipe or the scrim). Open while [signIn] is non-null; when it turns null
  * the sheet slides away with its last content.
@@ -98,7 +99,7 @@ private fun SignInPublishContent(signingIn: Boolean, onGoogle: () -> Unit, onCan
         )
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             PrimaryButton(
-                text = if (signingIn) "Signing in…" else "Continue with Google",
+                text = if (signingIn) "Signing in…" else SIGN_IN_WITH_GOOGLE,
                 onClick = onGoogle,
                 enabled = !signingIn,
                 modifier = Modifier.fillMaxWidth().testTag("create.signIn.google"),

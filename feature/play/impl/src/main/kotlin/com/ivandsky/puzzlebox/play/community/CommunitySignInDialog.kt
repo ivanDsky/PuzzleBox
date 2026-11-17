@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.AppDialog
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
+import com.ivandsky.puzzlebox.designsystem.SIGN_IN_WITH_GOOGLE
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
 
@@ -36,7 +37,7 @@ internal fun CommunitySignInDialog(signIn: BoardSignIn, onSignIn: () -> Unit, on
         actions = {
             AppTextButton("Not now", onClick = onDismiss, modifier = Modifier.testTag("community.signin.dismiss"))
             SecondaryButton(
-                text = if (busy) "Signing in…" else "Sign in with Google",
+                text = if (busy) "Signing in…" else SIGN_IN_WITH_GOOGLE,
                 onClick = onSignIn,
                 enabled = !busy,
                 modifier = Modifier.testTag("community.signin.google"),

@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.designsystem.LocalMutedStatus
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
+import com.ivandsky.puzzlebox.designsystem.SIGN_IN_WITH_GOOGLE
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
@@ -178,7 +179,7 @@ internal fun SignInPrompt(title: String, yourTimeMs: Long?, signIn: BoardSignIn,
         if (button) {
             val busy = signIn == BoardSignIn.SigningIn
             SecondaryButton(
-                text = if (busy) "Signing in…" else "Sign in with Google",
+                text = if (busy) "Signing in…" else SIGN_IN_WITH_GOOGLE,
                 onClick = onSignIn,
                 enabled = !busy,
                 modifier = Modifier.testTag("custom_board.sign_in"),

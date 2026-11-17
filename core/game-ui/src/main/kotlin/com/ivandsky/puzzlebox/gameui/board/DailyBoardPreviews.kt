@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
+import com.ivandsky.puzzlebox.designsystem.SIGN_IN_WITH_GOOGLE
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.game.RankOrder
 
@@ -41,7 +42,7 @@ private fun Padded(modifier: Modifier = Modifier, content: @Composable () -> Uni
 }
 
 @Composable
-private fun SignInSlot() = Text("Sign in with Google")
+private fun SignInSlot() = Text(SIGN_IN_WITH_GOOGLE)
 
 @PuzzleBoxPreviews
 @Composable
