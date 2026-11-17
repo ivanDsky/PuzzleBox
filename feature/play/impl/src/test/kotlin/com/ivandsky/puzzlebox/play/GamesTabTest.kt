@@ -18,4 +18,17 @@ class GamesTabTest {
     fun `without a Custom slot a saved Custom tab shows as Friends`() {
         assertEquals(GamesTab.Friends, GamesTab.Custom.shownWith(custom = false))
     }
+
+    @Test
+    fun `with a Community tab Games keeps only Dailies and Duels`() {
+        assertEquals(listOf(GamesTab.Dailies, GamesTab.Duels), gamesTabs(custom = false, community = true))
+        assertEquals(listOf(GamesTab.Dailies, GamesTab.Duels), gamesTabs(custom = true, community = true))
+    }
+
+    @Test
+    fun `with a Community tab a saved Friends or Custom tab shows as Dailies`() {
+        assertEquals(GamesTab.Dailies, GamesTab.Friends.shownWith(custom = false, community = true))
+        assertEquals(GamesTab.Dailies, GamesTab.Custom.shownWith(custom = false, community = true))
+        assertEquals(GamesTab.Duels, GamesTab.Duels.shownWith(custom = false, community = true))
+    }
 }

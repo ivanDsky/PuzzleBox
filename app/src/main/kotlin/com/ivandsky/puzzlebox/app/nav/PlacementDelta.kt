@@ -3,6 +3,9 @@ package com.ivandsky.puzzlebox.app.nav
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
+import com.ivandsky.puzzlebox.play.api.CustomGameKey
+import com.ivandsky.puzzlebox.play.api.CustomResultKey
+import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import kotlin.reflect.KClass
 
 /**
@@ -31,5 +34,20 @@ internal val customInGamesPlacement = PlacementDelta(
     listOf(
         PlacementRow(EditorKey::class, Placement(Home.PushedOn(Tab.Games), Chrome.Immersive)),
         PlacementRow(PublishedPuzzleKey::class, Placement(Home.PushedOn(Tab.Games), Chrome.Bar)),
+    ),
+)
+
+/**
+ * CustomInGames and CommunityPuzzles on: Custom's list is the Community tab, so everything it opens is pushed on
+ * Community and keeps its chrome: the Studio is full-window, the published page and a friend's puzzle keep the bar,
+ * and a custom board and its result are immersive. Games keeps the daily keys.
+ */
+internal val communityPlacement = PlacementDelta(
+    listOf(
+        PlacementRow(EditorKey::class, Placement(Home.PushedOn(Tab.Community), Chrome.Immersive)),
+        PlacementRow(PublishedPuzzleKey::class, Placement(Home.PushedOn(Tab.Community), Chrome.Bar)),
+        PlacementRow(FriendPuzzleKey::class, Placement(Home.PushedOn(Tab.Community), Chrome.Bar)),
+        PlacementRow(CustomGameKey::class, Placement(Home.PushedOn(Tab.Community), Chrome.Immersive)),
+        PlacementRow(CustomResultKey::class, Placement(Home.PushedOn(Tab.Community), Chrome.Immersive)),
     ),
 )

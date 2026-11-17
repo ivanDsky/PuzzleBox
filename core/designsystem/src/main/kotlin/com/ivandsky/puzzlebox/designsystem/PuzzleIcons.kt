@@ -68,6 +68,14 @@ object PuzzleIcons {
     /** Overflow menu: three dots stacked. */
     val More: ImageVector = Icons.Rounded.MoreVert
 
+    /** Community tab, unselected: Material `group`, two people, outlined. */
+    val Community: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_group_outlined)
+
+    /** Community tab, selected: Material `group`, two solid people. */
+    val CommunityFilled: ImageVector
+        @Composable get() = ImageVector.vectorResource(R.drawable.ic_group_filled)
+
     /**
      * History tab, unselected: Material Symbols `schedule` (FILL 0), a clock face.
      */
@@ -213,6 +221,8 @@ internal fun PuzzleIconsPreview() {
             "ProfileFilled" to PuzzleIcons.ProfileFilled,
             "History" to PuzzleIcons.History,
             "HistoryFilled" to PuzzleIcons.HistoryFilled,
+            "Community" to PuzzleIcons.Community,
+            "CommunityFilled" to PuzzleIcons.CommunityFilled,
             "Settings" to PuzzleIcons.Settings,
             "Appearance" to PuzzleIcons.Appearance,
             "HowTo" to PuzzleIcons.HowTo,

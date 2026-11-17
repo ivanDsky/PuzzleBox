@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
@@ -42,8 +43,8 @@ internal data class Placement(val home: Home, val chrome: Chrome)
 /** One row of the table: [key]'s class and its [placement]. */
 internal data class PlacementRow(val key: KClass<out NavKey>, val placement: Placement)
 
-/** The four tabs. A tab is named here, not by a key. */
-internal enum class Tab { Today, Games, History, Create }
+/** The five tabs a shell can show (never all at once). A tab is named here, not by a key. */
+internal enum class Tab { Today, Games, Community, History, Create }
 
 /** Where a key lives. */
 internal sealed interface Home {
@@ -79,6 +80,7 @@ internal enum class Chrome {
 internal val placementRows: List<PlacementRow> = listOf(
     PlacementRow(HomeKey::class, Placement(TabRoot(Tab.Today), Chrome.Bar)),
     PlacementRow(PlayKey::class, Placement(TabRoot(Tab.Games), Chrome.Bar)),
+    PlacementRow(CommunityKey::class, Placement(TabRoot(Tab.Community), Chrome.Bar)),
     PlacementRow(CreateKey::class, Placement(TabRoot(Tab.Create), Chrome.Bar)),
     PlacementRow(HistoryRootKey::class, Placement(TabRoot(Tab.History), Chrome.Bar)),
     PlacementRow(HistoryKey::class, Placement(PushedOn(Tab.History), Chrome.Bar)),
