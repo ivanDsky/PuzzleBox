@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.layout
@@ -28,8 +29,14 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 private const val PUSH_TRAVEL_DIVISOR = 12
 
 /**
+ * True inside a pane that crossfades as a whole (TabletCrossfade): its blocks start settled, so the pane's own fade is
+ * the only motion and no block fades in a second time behind it.
+ */
+internal val LocalEnterSettled = staticCompositionLocalOf { false }
+
+/**
  * A block's entrance (06-a §Motion): a fade staggered by its [index], capped so a long
- * list never waits; [reduced] motion is one short fade. Previews show it settled.
+ * list never waits; [reduced] motion is one short fade. Previews and a whole-pane crossfade ([LocalEnterSettled]) show it settled.
  *
  * The fade is a graphicsLayer alpha, which composites into an offscreen buffer cut to the
  * layer's bounds, so anything the content paints outside its own bounds is clipped until
@@ -44,7 +51,7 @@ internal fun EnterFade(
     bleed: Dp = 0.dp,
     content: @Composable BoxScope.() -> Unit,
 ) {
-    val settled = LocalInspectionMode.current
+    val settled = LocalInspectionMode.current || LocalEnterSettled.current
     val alpha = remember { Animatable(if (settled) 1f else 0f) }
     LaunchedEffect(alpha) {
         val spec = if (reduced) {

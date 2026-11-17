@@ -1,7 +1,17 @@
 package com.ivandsky.puzzlebox.play
 
 import android.provider.Settings
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.platform.testTag
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -15,6 +25,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -167,6 +178,33 @@ class LibraryPaneCrossfadeTest {
         composeRule.mainClock.advanceTimeBy(16L)
 
         assertEquals(listOf(false, true), pagesShown())
+    }
+
+    @Test
+    fun `the old page holds opaque under the new one fading in, never a dip to the background`() {
+        val rows = previewState().rows
+        composeRule.setContent {
+            var selected by remember { mutableStateOf(rows[0]) }
+            PuzzleBoxTheme(darkTheme = false) {
+                Box(Modifier.fillMaxSize().background(Color.White)) {
+                    LibraryPane(LibraryPaneFrame(selected, null, null), crossfade = true) { shown ->
+                        val color = if (shown.row == rows[0]) Color.Red else Color.Blue
+                        Box(Modifier.fillMaxSize().background(color).clickable { selected = rows[1] }.testTag("probe.pane"))
+                    }
+                }
+            }
+        }
+        composeRule.mainClock.autoAdvance = false
+        composeRule.mainClock.advanceTimeBy(SETTLE_MILLIS)
+
+        composeRule.onNodeWithTag("probe.pane").performClick()
+        composeRule.mainClock.advanceTimeBy(100L)
+        val map = composeRule.onRoot().captureToImage().toPixelMap()
+        val pixel = map[map.width / 2, map.height / 2]
+
+        assertTrue("outgoing page still shows: $pixel", pixel.red > 0.05f)
+        assertTrue("incoming page is fading in: $pixel", pixel.blue > 0.05f)
+        assertTrue("no background shows through: $pixel", pixel.green < 0.05f)
     }
 
     private companion object {

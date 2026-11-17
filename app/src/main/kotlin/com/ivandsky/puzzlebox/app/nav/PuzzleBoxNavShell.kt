@@ -144,7 +144,7 @@ internal fun PuzzleBoxNavShell(
                     play(navMotion(from, targetState.metadata, pop = true, reduceMotion, form, liftable, tabletCrossfade))
                 },
                 predictivePopTransitionSpec = { swipeEdge ->
-                    play(predictivePopMotion(swipeEdge, reduceMotion))
+                    play(predictivePopMotion(swipeEdge, reduceMotion, shrink = tabletCrossfade && form == NavForm.Tablet))
                 },
                 onBack = { navigator.pop() },
             )

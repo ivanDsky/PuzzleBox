@@ -258,6 +258,18 @@ class NavTransitionsTest {
         assertEquals(NavMotionKind.Predictive, predictivePopMotion(NavigationEvent.EDGE_LEFT, reduceMotion = false).kind)
     }
 
+    @Test
+    fun `TabletCrossfade predictive back shrinks in place, and reduced motion and the default stay as they were`() {
+        val shrink = predictivePopMotion(NavigationEvent.EDGE_LEFT, reduceMotion = false, shrink = true)
+
+        assertEquals(NavMotionKind.PredictiveShrink, shrink.kind)
+        assertEquals(NavMotion.PredictiveMillis, shrink.durationMillis)
+        assertEquals(0f, shrink.scrimAlpha)
+        assertTrue(!shrink.incomingOnTop)
+        assertEquals(NavMotionKind.Reduced, predictivePopMotion(NavigationEvent.EDGE_LEFT, reduceMotion = true, shrink = true).kind)
+        assertEquals(NavMotionKind.Predictive, predictivePopMotion(NavigationEvent.EDGE_LEFT, reduceMotion = false, shrink = false).kind)
+    }
+
     // ---- pins: reduced and predictive ----
 
     @Test
@@ -460,6 +472,21 @@ class NavTransitionsTest {
 
         val fromRight = probe.play(predictivePopMotion(NavigationEvent.EDGE_RIGHT, reduceMotion = false), PREDICTIVE_HALF)
         assertTrue("right-edge swipe pulls left: $fromRight", fromRight.outgoing.left < fromRight.container.left - EPS)
+        assertSameRect(fromRight.container, fromRight.incoming)
+        assertOpaque(fromRight)
+    }
+
+    @Test
+    fun `TabletCrossfade predictive back shrinks the screen toward the swipe edge over an opaque, still destination`() {
+        val probe = Probe(composeRule)
+
+        val fromLeft = probe.play(predictivePopMotion(NavigationEvent.EDGE_LEFT, reduceMotion = false, shrink = true), PREDICTIVE_HALF)
+        assertTrue("shrinks: $fromLeft", fromLeft.outgoing.right - fromLeft.outgoing.left < fromLeft.container.right - fromLeft.container.left - EPS)
+        assertTrue("left pivot: the left side moves in less than the right: $fromLeft", fromLeft.outgoing.left - fromLeft.container.left < fromLeft.container.right - fromLeft.outgoing.right)
+        assertSameRect(fromLeft.container, fromLeft.incoming)
+
+        val fromRight = probe.play(predictivePopMotion(NavigationEvent.EDGE_RIGHT, reduceMotion = false, shrink = true), PREDICTIVE_HALF)
+        assertTrue("right pivot: the right side moves in less than the left: $fromRight", fromRight.container.right - fromRight.outgoing.right < fromRight.outgoing.left - fromRight.container.left)
         assertSameRect(fromRight.container, fromRight.incoming)
         assertOpaque(fromRight)
     }
