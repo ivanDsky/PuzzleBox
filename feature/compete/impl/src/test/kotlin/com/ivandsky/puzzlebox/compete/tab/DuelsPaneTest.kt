@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
@@ -60,6 +61,7 @@ class DuelsPaneTest {
                             observeMyDuels = ObserveMyDuels(server, FakeSelfMatchRepository(), FakeMatchResultOutbox(), FakeMatchLocalRepository(), identity) { now },
                             updateSeat = UpdateMatchSeat(server, FakeMatchLocalRepository(), identity),
                             identity = identity,
+                            releaseFlags = FakeReleaseFlags(),
                             clock = { now },
                         )
                     }

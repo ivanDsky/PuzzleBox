@@ -45,7 +45,7 @@ import java.time.Duration
 import java.time.Instant
 
 /** How much of primaryContainer a results-ready row takes over the section's surface. */
-private const val RESULTS_READY_BLEND = 0.45f
+internal const val RESULTS_READY_BLEND = 0.45f
 private val RowMinHeight = 64.dp
 private val RowVertical = 10.dp
 private val RowHorizontal = 14.dp
@@ -182,7 +182,7 @@ internal fun DuelChevron() {
 
 /** The primary disc with the trophy: this duel's results are ready. */
 @Composable
-private fun TrophyDisc() {
+internal fun TrophyDisc() {
     val scheme = MaterialTheme.colorScheme
     Box(Modifier.size(TrophyDiscSize).background(scheme.primary, CircleShape), contentAlignment = Alignment.Center) {
         Icon(PuzzleIcons.Trophy, contentDescription = null, modifier = Modifier.size(TrophyIconSize), tint = scheme.onPrimary)
@@ -220,7 +220,7 @@ private fun TimeLeftChip(deadline: Instant, now: () -> Instant) {
  * colours when the scores were not kept.
  */
 @Composable
-private fun ScoreChip(kind: DuelRowKind.Finished) {
+internal fun ScoreChip(kind: DuelRowKind.Finished) {
     val outcome = kind.outcome()
     val muted = LocalMutedStatus.current
     val fill = outcome?.paint()?.fill ?: muted.container

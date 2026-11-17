@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.compete.tab
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.domain.DuelRow
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
@@ -18,6 +20,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -31,6 +34,10 @@ import kotlinx.coroutines.launch
 internal data class DuelsTabState(
     val rows: List<DuelRow>,
     val signedIn: Boolean,
+    /** The Virtual duel entry is on: the signed-out challenge card also offers a duel against Past you. */
+    val duelYourself: Boolean = false,
+    /** The letter on Past you's avatar: the viewer's own initial, "Y" while signed out or unnamed. */
+    val selfInitial: String = SELF_INITIAL_FALLBACK,
     val now: Instant,
     /** The signed-in player's name, for the invite text; null while signed out. */
     val inviter: String?,
@@ -46,6 +53,10 @@ internal data class DuelsTabState(
 internal enum class InviteNote { AlreadyTaken, Cancelled, Closed, AcceptFailed, DeclineFailed }
 
 private data class RowCalls(val inFlight: Set<ShareCode> = emptySet(), val notes: Map<ShareCode, InviteNote> = emptyMap())
+
+private const val SELF_INITIAL_FALLBACK = "Y"
+
+private fun initialOf(name: String?): String = name?.trim()?.firstOrNull()?.uppercase() ?: SELF_INITIAL_FALLBACK
 
 private const val NOW_REFRESH_MS = 60_000L
 private const val STOP_TIMEOUT_MS = 5_000L
@@ -63,6 +74,7 @@ internal class DuelsTabViewModel(
     observeMyDuels: ObserveMyDuels,
     private val updateSeat: UpdateMatchSeat,
     identity: IdentityService,
+    releaseFlags: ReleaseFlags,
     clock: () -> Instant,
 ) : ViewModel() {
 
@@ -75,7 +87,7 @@ internal class DuelsTabViewModel(
 
     val state: StateFlow<DuelsTabState> = combine(
         observeMyDuels().onEach { pin(it.rows) },
-        identity.current,
+        identity.current.combine(releaseFlags.enabled.map { ReleaseFlag.VirtualDuel in it }) { who, yourself -> who to yourself },
         flow {
             while (true) {
                 emit(clock())
@@ -84,10 +96,12 @@ internal class DuelsTabViewModel(
         },
         calls,
         pinned,
-    ) { duels, who, now, pending, pick ->
+    ) { duels, (who, yourself), now, pending, pick ->
         DuelsTabState(
             rows = duels.rows,
             signedIn = who != null,
+            duelYourself = yourself,
+            selfInitial = initialOf(who?.displayName),
             now = now,
             inviter = who?.displayName,
             inFlight = pending.inFlight,
@@ -101,6 +115,8 @@ internal class DuelsTabViewModel(
             DuelsTabState(
                 rows = emptyList(),
                 signedIn = identity.current.value != null,
+                duelYourself = ReleaseFlag.VirtualDuel in releaseFlags.enabled.value,
+                selfInitial = initialOf(identity.current.value?.displayName),
                 now = clock(),
                 inviter = identity.current.value?.displayName,
             ),
