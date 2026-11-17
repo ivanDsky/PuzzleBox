@@ -15,12 +15,17 @@ import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.match.ResultPostState.Pending
 import com.ivandsky.puzzlebox.data.match.ResultPostState.Posted
 import com.ivandsky.puzzlebox.data.match.ResultRead
+import com.ivandsky.puzzlebox.data.match.SelfSeats
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
@@ -31,6 +36,7 @@ import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -54,6 +60,7 @@ class ObserveMyDuelsTest {
             return server.readResult(code, legIndex, uid)
         }
     }
+    private val selfStore = FakeSelfMatchRepository()
     private val outbox = FakeMatchResultOutbox()
     private val local = FakeMatchLocalRepository()
     private val identity = FakeIdentityService()
@@ -62,7 +69,7 @@ class ObserveMyDuelsTest {
     private val deadlineMs = 24L * 3_600_000
 
     private fun TestScope.observe(): Flow<MyDuels> =
-        ObserveMyDuels(repo, outbox, local, identity) { Instant.ofEpochMilli(testScheduler.currentTime) }()
+        ObserveMyDuels(repo, selfStore, outbox, local, identity) { Instant.ofEpochMilli(testScheduler.currentTime) }()
 
     private fun viewAs(player: Player) {
         identity.currentIdentity = Identity(player.uid, player.name, null)
@@ -430,7 +437,7 @@ class ObserveMyDuelsTest {
             override fun observeAll() = local.observeAll().map { rows -> rows.map { it.copy(myScore = null, theirScore = null) } }
         }
         viewAs(ann)
-        ObserveMyDuels(repo, outbox, unscored, identity) { Instant.ofEpochMilli(testScheduler.currentTime) }().test {
+        ObserveMyDuels(repo, selfStore, outbox, unscored, identity) { Instant.ofEpochMilli(testScheduler.currentTime) }().test {
             assertEquals(DuelRowKind.Finished(null, null), latest(this@runTest).rows.single().kind)
             cancelAndIgnoreRemainingEvents()
         }
@@ -636,6 +643,106 @@ class ObserveMyDuelsTest {
             identity.currentIdentity = Identity(ann.uid, ann.name, null)
             server.signedInUid = null
             assertEquals(MyDuels(emptyList(), 0), latest(this@runTest))
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    private suspend fun selfDuel(value: String, legCount: Int = 2, created: Instant = Instant.EPOCH): ShareCode {
+        val code = code(value)
+        val legs = legs(legCount)
+        val records = legs.indices.map { i ->
+            CompletionRecord(
+                puzzleRef = TestGames.Ref(TestGames.alpha, PuzzleKey.Daily(LocalDate.of(2026, 11, 1 + i), i + 1)),
+                time = 50_000L,
+                hints = 0,
+                stats = RecordStats(schemaVersion = 1, blob = "{}"),
+                firstCompletedAt = Instant.EPOCH,
+                isRecord = true,
+            )
+        }
+        val draft = buildSelfMatch(code, created, includeFriends = false, legs = legs, records = records)
+        selfStore.save(draft.match, draft.past)
+        return code
+    }
+
+    private suspend fun takesSelf(code: ShareCode, leg: Int) {
+        outbox.enqueue(code, result(SelfSeats.ME, leg))
+        outbox.update(code, leg, SelfSeats.ME, Posted, attempts = 1)
+        selfStore.post(code, result(SelfSeats.ME, leg))
+    }
+
+    @Test
+    fun aSelfDuelIsListedSignedOutAsYourMoveWithoutCountingInTheBadge() = runTest {
+        val c = selfDuel("K7Q2M1")
+        identity.currentIdentity = null
+        server.signedInUid = null
+        observe().test {
+            val duels = latest(this@runTest)
+            assertEquals(mapOf(c to DuelRowKind.YourMove), duels.kinds())
+            assertTrue(duels.rows.single().isSelf)
+            assertEquals(0, duels.needYou)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun aSelfDuelMovesToResultsReadyOnceEveryLegIsMine() = runTest {
+        val c = selfDuel("K7Q2M1")
+        viewAs(ann)
+        observe().test {
+            assertEquals(DuelRowKind.YourMove, latest(this@runTest).rows.single().kind)
+            takesSelf(c, 0)
+            val half = latest(this@runTest).rows.single()
+            assertEquals(DuelRowKind.YourMove, half.kind)
+            assertEquals(1, half.legsDone)
+            takesSelf(c, 1)
+            val duels = latest(this@runTest)
+            assertEquals(DuelRowKind.RevealReady, duels.rows.single().kind)
+            assertEquals(0, duels.needYou)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun aSelfDuelKeepsItsFinishedRowSevenDaysLikeAFriendDuel() = runTest {
+        val c = selfDuel("K7Q2M1")
+        takesSelf(c, 0); takesSelf(c, 1)
+        local.remember(c, LocalRole.Participant, SelfSeats.PAST_NAME)
+        local.markRevealSeen(c, Instant.EPOCH, 2, 1)
+        viewAs(ann)
+        observe().test {
+            assertEquals(DuelRowKind.Finished(2, 1), latest(this@runTest).rows.single().kind)
+            testScheduler.advanceTimeBy(7L * 24 * 3_600_000 + 1)
+            assertTrue(latest(this@runTest).rows.isEmpty())
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun selfRowsSortAfterFriendRowsOfTheSameSectionAndNeverSetATimer() = runTest {
+        val self = selfDuel("K7Q2M1")
+        val friend = code("K7Q2M2")
+        duel(friend, claimedBy = bob)
+        viewAs(ann)
+        observe().test {
+            val duels = latest(this@runTest)
+            assertEquals(listOf(friend, self), duels.rows.map { it.code })
+            assertEquals(1, duels.needYou)
+            assertFalse(duels.rows.first().isSelf)
+            cancelAndIgnoreRemainingEvents()
+        }
+        // No self row makes the list wait for a boundary of its own: only the friend duel's deadline is pending.
+        assertTrue(testScheduler.currentTime < closesAtMs)
+    }
+
+    @Test
+    fun aSelfDuelOutlivesSigningInAndOut() = runTest {
+        val c = selfDuel("K7Q2M1")
+        viewAs(ann)
+        observe().test {
+            assertEquals(listOf(c), latest(this@runTest).rows.map { it.code })
+            identity.currentIdentity = null
+            assertEquals(listOf(c), latest(this@runTest).rows.map { it.code })
             cancelAndIgnoreRemainingEvents()
         }
     }

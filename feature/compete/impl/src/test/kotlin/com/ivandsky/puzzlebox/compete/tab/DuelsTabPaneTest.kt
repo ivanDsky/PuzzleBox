@@ -46,6 +46,7 @@ import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
@@ -134,7 +135,7 @@ class DuelsTabPaneTest {
             modules(
                 competeModule,
                 module {
-                    single { ObserveMyDuels(server, outbox, local, identity) { now } }
+                    single { ObserveMyDuels(server, FakeSelfMatchRepository(), outbox, local, identity) { now } }
                     single { UpdateMatchSeat(server, local, identity) }
                     single<IdentityService> { identity }
                     single { ObserveDuel(observeMatch, FakeCompletionRepository(), FakeSavedPlayRepository()) }

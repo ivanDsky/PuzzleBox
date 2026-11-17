@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
@@ -78,7 +79,7 @@ class DuelsTabViewModelTest {
     }
 
     private fun viewModel() = DuelsTabViewModel(
-        observeMyDuels = ObserveMyDuels(repo, FakeMatchResultOutbox(), local, identity) { now },
+        observeMyDuels = ObserveMyDuels(repo, FakeSelfMatchRepository(), FakeMatchResultOutbox(), local, identity) { now },
         updateSeat = UpdateMatchSeat(repo, local, identity),
         identity = identity,
         clock = { now },

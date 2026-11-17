@@ -156,7 +156,7 @@ val domainModule = module {
     }
     factory { ObserveDuel(observeMatch = get(), completions = get(), savedPlays = get()) }
     factory {
-        ObserveMyDuels(repo = get(), outbox = get(), local = get(), identity = get(), clock = { Instant.now() })
+        ObserveMyDuels(repo = get(), self = get(), outbox = get(), local = get(), identity = get(), clock = { Instant.now() })
     }
     factory { ObserveOverall(identity = get(), completions = get()) }
     factory { ObserveFriendUids(matches = get(), identity = get()) }

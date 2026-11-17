@@ -9,6 +9,9 @@ import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.OutboxResult
+import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
+import com.ivandsky.puzzlebox.data.match.SelfSeats
+import com.ivandsky.puzzlebox.data.match.isSelf
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Duration
 import java.time.Instant
@@ -40,59 +43,61 @@ import kotlinx.coroutines.coroutineScope
  * row's stay) with no upstream change. Past `deadline` a match has no move left to ask for (a started puzzle is
  * resumed from the duel screen) and an unaccepted invite is dropped, so neither needs me.
  * Each row carries how many puzzles the opponent has played ([DuelRow.theirDone], from the public progress), never a
- * time. Signed out, or an `observeMine` of null, is empty. Writes nothing.
+ * time. Signed out, or an `observeMine` of null, has no friend rows. Writes nothing.
+ * Self duels (the device store, signed in or out) are listed beside them as rows with [DuelRow.isSelf]: seat
+ * [SelfSeats.ME], the same kinds and the same seven-day Finished stay, but they sort after the friend rows of their
+ * section, never count in [MyDuels.needYou] and never schedule a time boundary (they have no deadline).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObserveMyDuels(
     private val repo: MatchRepository,
+    private val self: SelfMatchRepository,
     private val outbox: MatchResultOutbox,
     private val local: MatchLocalRepository,
     private val identity: IdentityService,
     private val clock: () -> Instant,
 ) {
 
-    private class Inputs(val mine: List<Match>?, val locals: List<LocalMatch>, val outbox: List<OutboxResult>)
+    private class Inputs(val mine: List<Match>?, val selfs: List<Match>, val locals: List<LocalMatch>, val outbox: List<OutboxResult>)
 
     operator fun invoke(): Flow<MyDuels> =
-        identity.current.map { it?.uid }.distinctUntilChanged().flatMapLatest { me ->
-            if (me == null) flowOf(EMPTY) else observeAs(me)
-        }
+        identity.current.map { it?.uid }.distinctUntilChanged().flatMapLatest { me -> observeAs(me) }
 
-    private fun observeAs(me: String): Flow<MyDuels> = flow {
+    private fun observeAs(me: String?): Flow<MyDuels> = flow {
         val inputs = MutableStateFlow<Inputs?>(null)
         coroutineScope {
             launch {
-                combine(repo.observeMine(), local.observeAll(), outbox.observeAll(), ::Inputs).collect { inputs.value = it }
+                combine(server(me), self.observeAll(), local.observeAll(), outbox.observeAll(), ::Inputs).collect { inputs.value = it }
             }
             val latest = inputs.filterNotNull()
-            val invites = latest.map { inviteCodes(it) }.distinctUntilChanged().flatMapLatest { codes ->
+            val invites = latest.map { inviteCodes(me, it) }.distinctUntilChanged().flatMapLatest { codes ->
                 if (codes.isEmpty()) flowOf(emptyMap()) else combine(codes.map { watched(it) }) { it.toMap() }
             }
             emitAll(
                 combine(latest, invites) { now, fetched -> now to fetched }.transformLatest { (now, fetched) ->
-                    val mine = now.mine
-                    if (mine == null) {
-                        emit(EMPTY)
-                    } else {
-                        var at = clock()
-                        val candidates = mine + fetched.values.mapNotNull { (it as? MatchFetch.Found)?.match }
+                    val mine = now.mine.orEmpty()
+                    var at = clock()
+                    val candidates = mine + fetched.values.mapNotNull { (it as? MatchFetch.Found)?.match }
+                    emit(duels(me, now, mine, fetched, at))
+                    var next = nextBoundary(candidates, now.locals, at)
+                    while (next != null) {
+                        delay(Duration.between(at, next).toKotlinDuration())
+                        at = clock()
                         emit(duels(me, now, mine, fetched, at))
-                        var next = nextBoundary(candidates, now.locals, at)
-                        while (next != null) {
-                            delay(Duration.between(at, next).toKotlinDuration())
-                            at = clock()
-                            emit(duels(me, now, mine, fetched, at))
-                            next = nextBoundary(candidates, now.locals, at)
-                        }
+                        next = nextBoundary(candidates, now.locals, at)
                     }
                 }.distinctUntilChanged(),
             )
         }
     }
 
+    /** The server's duels of [me]; none signed out. */
+    private fun server(me: String?): Flow<List<Match>?> = if (me == null) flowOf(emptyList()) else repo.observeMine()
+
     /** Cached link invites of mine that no server row covers, so each needs its own fetch. */
-    private fun inviteCodes(inputs: Inputs): Set<ShareCode> {
+    private fun inviteCodes(me: String?, inputs: Inputs): Set<ShareCode> {
         val mine = inputs.mine ?: return emptySet()
+        if (me == null) return emptySet()
         val served = mine.mapTo(HashSet()) { it.code }
         return inputs.locals.filter { it.role == LocalRole.Invite && !it.dismissed && it.code !in served }
             .mapTo(LinkedHashSet()) { it.code }
@@ -118,25 +123,31 @@ class ObserveMyDuels(
         }
 
     private fun duels(
-        me: String,
+        me: String?,
         inputs: Inputs,
         mine: List<Match>,
         fetched: Map<ShareCode, MatchFetch>,
         now: Instant,
     ): MyDuels {
-        val taken = inputs.outbox.filter { it.result.uid == me }.groupBy { it.code }
+        val takenBy = { seat: String -> inputs.outbox.filter { it.result.uid == seat }.groupBy { it.code } }
         val localByCode = inputs.locals.associateBy { it.code }
-        val served = mine.mapNotNull { match ->
-            rowOf(match, me, taken[match.code].orEmpty(), localByCode[match.code], now)
+        val served = if (me == null) emptyList() else {
+            val taken = takenBy(me)
+            mine.mapNotNull { match -> rowOf(match, me, taken[match.code].orEmpty(), localByCode[match.code], now) }
         }
-        val invited = fetched.values.mapNotNull { (it as? MatchFetch.Found)?.match }
-            .mapNotNull { match -> linkInvite(match, me, now) }
-        val (done, active) = (served + invited).partition { it.kind is DuelRowKind.Finished }
+        val invited = if (me == null) emptyList() else {
+            fetched.values.mapNotNull { (it as? MatchFetch.Found)?.match }.mapNotNull { match -> linkInvite(match, me, now) }
+        }
+        val takenSelf = takenBy(SelfSeats.ME)
+        val selfRows = inputs.selfs.mapNotNull { match ->
+            rowOf(match, SelfSeats.ME, takenSelf[match.code].orEmpty(), localByCode[match.code], now)
+        }
+        val (done, active) = (served + invited + selfRows).partition { it.kind is DuelRowKind.Finished }
         val seenAt = { row: DuelRow -> localByCode[row.code]?.revealSeenAt ?: Instant.EPOCH }
         val rows = active.sortedWith(
-            compareBy<DuelRow> { rank(it.kind) }.thenBy { it.deadline }.thenBy { it.code.value },
-        ) + done.sortedWith(compareByDescending(seenAt).thenBy { it.code.value })
-        return MyDuels(rows, rows.count { it.kind.needsYou() })
+            compareBy<DuelRow> { rank(it.kind) }.thenBy { it.isSelf }.thenBy { it.deadline }.thenBy { it.code.value },
+        ) + done.sortedWith(compareBy<DuelRow> { it.isSelf }.thenByDescending(seenAt).thenBy { it.code.value })
+        return MyDuels(rows, rows.count { it.kind.needsYou() && !it.isSelf })
     }
 
     private fun rowOf(match: Match, me: String, taken: List<OutboxResult>, cached: LocalMatch?, now: Instant): DuelRow? {
@@ -153,7 +164,7 @@ class ObserveMyDuels(
         } ?: return null
         val other = if (kind == DuelRowKind.Invited) match.challenger else match.opponentOf(me)
         val theirDone = if (kind == DuelRowKind.Invited || other == null) 0 else match.playedBy(other.uid)
-        return DuelRow(match.code, other, kind, taken.size, theirDone, match.legs.size, match.deadline)
+        return DuelRow(match.code, other, kind, taken.size, theirDone, match.legs.size, match.deadline, match.isSelf)
     }
 
     /** How many of the match's puzzles [uid] has played, from the public progress; indices outside the match's legs do not count. */
@@ -188,6 +199,5 @@ class ObserveMyDuels(
     private companion object {
         /** How long a duel stays in the list as a finished row after its reveal was first seen. */
         val FINISHED_KEPT: Duration = Duration.ofDays(7)
-        val EMPTY = MyDuels(emptyList(), 0)
     }
 }
