@@ -208,6 +208,16 @@ class ResultReplaySectionTest {
     }
 
     @Test
+    fun `a cold result shows the record's replay when a newer LinkedIn import of the same solve is stored`() {
+        kotlinx.coroutines.runBlocking {
+            completions.onCompleted(solve(), replay)
+            completions.onCompleted(solve(source = CompletionSource.LinkedIn).copy(isRecord = false), replay = null)
+        }
+
+        assertTrue(vm().replaySection is ReplaySectionState.Ready)
+    }
+
+    @Test
     fun `another solve of the puzzle does not open this result's replay`() {
         kotlinx.coroutines.runBlocking { completions.onCompleted(solve(timeMs = TIME_MS + 1), replay) }
 

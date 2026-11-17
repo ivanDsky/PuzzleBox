@@ -112,7 +112,7 @@ class RoomLinkedInDaysDisconnectRaceTest {
 
     private fun days(link: LinkedInLink, completions: CompletionRepository) = RoomLinkedInDays(
         link, source, completions, daily, FakeGameCalendar(today), TestGames.registry(listOf(zip)), db,
-        LinkedInCallBudget({ NOW }, limit = 100), avatars, storeLock, FakeOwnerScope(),
+        LinkedInCallBudget({ NOW }, limit = 100), avatars, storeLock, testPostLog(), FakeOwnerScope(),
     ) { NOW }
 
     private suspend fun assertNothingLeftOfTheAccount(link: LinkedInLink) {

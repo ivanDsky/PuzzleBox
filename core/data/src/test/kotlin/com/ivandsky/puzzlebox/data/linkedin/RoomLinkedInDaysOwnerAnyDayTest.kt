@@ -65,6 +65,7 @@ class RoomLinkedInDaysOwnerAnyDayTest {
             LinkedInCallBudget({ NOW }, limit = 100),
             avatars,
             LinkedInStoreLock(),
+            testPostLog(),
             FakeOwnerScope(),
         ) { NOW }
     }

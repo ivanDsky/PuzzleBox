@@ -38,6 +38,7 @@ internal class RoomLinkedInDays(
     private val budget: LinkedInCallBudget,
     private val avatars: LinkedInAvatars,
     storeLock: LinkedInStoreLock,
+    postLog: LinkedInPostLog,
     ownerScope: OwnerScope,
     private val clock: () -> Long,
 ) : LinkedInDays {
@@ -52,7 +53,7 @@ internal class RoomLinkedInDays(
     private val window = LinkedInDayWindow(calendar)
 
     private val daySync = LinkedInDaySync(
-        link, source, completions, daily, window, registry, fetchLog, ghosts, budget, avatars, storeLock, syncState, clock,
+        link, source, completions, daily, window, registry, fetchLog, ghosts, budget, avatars, storeLock, postLog, syncState, clock,
     )
 
     override suspend fun sync(game: GameId, day: LocalDate): LinkedInSync {

@@ -53,6 +53,7 @@ class RoomLinkedInDaysSyncTest {
     private val link = FakeLinkedInLink(LinkState.Connected("me"))
     private val source = FakeLinkedInAccountSource()
     private val avatars = testAvatars(createTempDirectory("avatars").toFile())
+    private val linkData = testLinkData()
     private val completions = FakeCompletionRepository()
     private val calendar = FakeGameCalendar(today)
     private val daily = FakeDailyRepository().apply {
@@ -79,7 +80,7 @@ class RoomLinkedInDaysSyncTest {
     private fun newDays(
         source: LinkedInAccountSource = this.source,
         budget: LinkedInCallBudget = LinkedInCallBudget({ now }, limit = 100),
-    ) = RoomLinkedInDays(link, source, completions, daily, calendar, TestGames.registry(listOf(zip)), db, budget, avatars, LinkedInStoreLock(), FakeOwnerScope()) { now }
+    ) = RoomLinkedInDays(link, source, completions, daily, calendar, TestGames.registry(listOf(zip)), db, budget, avatars, LinkedInStoreLock(), LinkedInPostLog(linkData), FakeOwnerScope()) { now }
 
     private fun number(day: LocalDate): Int = 700 + ChronoUnit.DAYS.between(EPOCH, day).toInt()
 
@@ -263,6 +264,26 @@ class RoomLinkedInDaysSyncTest {
         assertEquals(LinkedInSync.Done, days.sync(zip, day))
         assertEquals(2, source.calls.count { it == ownCall(day) })
         assertEquals(1, imports().size)
+    }
+
+    @Test
+    fun `a solved result of a day this phone posted is logged as read and not imported`() = runTest {
+        val day = ago(3)
+        linkData.connect("me", 1L)
+        val key = DayKey("me", zip, day)
+        LinkedInPostLog(linkData).apply {
+            markSending(key)
+            settle(key, posted = true)
+        }
+        respondOwn(day)
+        respondBoard(day)
+
+        assertEquals(LinkedInSync.Done, days.sync(zip, day))
+
+        assertTrue(imports().isEmpty())
+        assertEquals(LinkedInOutcome.Solved.name, logged(day, LinkedInItem.Own))
+        assertEquals(LinkedInSync.Done, days.sync(zip, day))
+        assertEquals(1, source.calls.count { it == ownCall(day) })
     }
 
     @Test

@@ -81,7 +81,7 @@ class RoomLinkedInDaysAvatarTest {
         avatars: LinkedInAvatars = this.avatars,
     ) = RoomLinkedInDays(
         link, source, FakeCompletionRepository(), daily, FakeGameCalendar(today),
-        TestGames.registry(listOf(zip)), db, budget, avatars, LinkedInStoreLock(), FakeOwnerScope(),
+        TestGames.registry(listOf(zip)), db, budget, avatars, LinkedInStoreLock(), testPostLog(), FakeOwnerScope(),
     ) { now }
 
     private fun number(day: LocalDate): Int = 700 + ChronoUnit.DAYS.between(EPOCH, day).toInt()

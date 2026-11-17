@@ -103,7 +103,7 @@ class RoomLinkedInDaysSlotTest {
         spent.all = true
         val days = RoomLinkedInDays(
             link, stamped, completions, daily, FakeGameCalendar(today), TestGames.registry(listOf(zip)), db, budget,
-            testAvatars(createTempDirectory("avatars").toFile()), LinkedInStoreLock(), FakeOwnerScope(),
+            testAvatars(createTempDirectory("avatars").toFile()), LinkedInStoreLock(), testPostLog(), FakeOwnerScope(),
         ) { FETCHED_AT_MS + testScheduler.currentTime }
         return days to spent
     }
