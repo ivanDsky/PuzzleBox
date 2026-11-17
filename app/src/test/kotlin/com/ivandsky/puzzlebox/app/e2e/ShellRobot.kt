@@ -49,9 +49,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.PuzzleBoxApp
 import com.ivandsky.puzzlebox.app.nav.NAVIGATION_STATE_KEY
-import com.ivandsky.puzzlebox.app.nav.TabSetSource
-import com.ivandsky.puzzlebox.app.nav.TopLevelDestination
 import com.ivandsky.puzzlebox.app.nav.isImmersive
+import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
 import com.ivandsky.puzzlebox.app.nav.rememberNavigator
@@ -91,8 +90,7 @@ import org.robolectric.Shadows.shadowOf
  * every feature entry — over [graph] (the production Koin modules with fakes on the
  * edges), starting at [state], or at the shell's own fresh state when null. The width class
  * comes from the real window, so a row's `@Config(qualifiers = …)` picks bar or rail.
- * [destinations] is the tab set the robot expects on screen: the graph's own ([TabSetSource])
- * when null. The caller's test class runs on Robolectric with [DrainTestApplication]
+ * The caller's test class runs on Robolectric with [DrainTestApplication]
  * (`@Config(application = DrainTestApplication::class)`): a plain `Application`, so the merged
  * manifest's application never starts a second Koin, that also idles the main looper after every
  * test, before Robolectric's looper reset drops Compose's pending dispatch.
@@ -101,7 +99,6 @@ internal fun shellRobot(
     state: NavigationState? = null,
     today: LocalDate = E2E_TODAY,
     graph: E2eKoinGraph = E2eKoinGraph(today),
-    destinations: List<TopLevelDestination>? = null,
     darkTheme: Boolean = false,
     flatSurfaces: Boolean = false,
     platformHaptics: HapticFeedback? = null,
@@ -109,7 +106,7 @@ internal fun shellRobot(
 ) {
     graph.start()
     try {
-        val robot = ShellRobot(graph, state, destinations, darkTheme, flatSurfaces, platformHaptics)
+        val robot = ShellRobot(graph, state, darkTheme, flatSurfaces, platformHaptics)
         val run = object : Statement() {
             override fun evaluate() {
                 robot.launch()
@@ -148,15 +145,13 @@ internal fun tabAt(tab: NavKey, vararg pushed: NavKey): NavigationState {
 class ShellRobot internal constructor(
     val graph: E2eKoinGraph,
     private val initial: NavigationState?,
-    destinations: List<TopLevelDestination>?,
     private val darkTheme: Boolean = false,
     private val flatSurfaces: Boolean = false,
     /** Stands in for the platform's haptics, under the shell's own Vibration gate; null keeps the real ones. */
     private val platformHaptics: HapticFeedback? = null,
 ) {
-    // The started graph's tab set: the one the shell under test resolves.
-    private val tabSet = graph.koin.get<TabSetSource>().tabSet
-    private val destinations = destinations ?: tabSet.destinations
+    // The tabs the shell under test shows.
+    private val destinations = topLevelDestinations
     val rule = createAndroidComposeRule<ComponentActivity>()
 
     private val restoration = StateRestorationTester(rule)
@@ -616,7 +611,7 @@ class ShellRobot internal constructor(
      */
     fun assertChromeFor(rail: Boolean) {
         val top = state.layer.lastOrNull() ?: state.currentStack.last()
-        val shown = if (rail) !isImmersive(top, tabSet.placement) else top == HomeKey
+        val shown = if (rail) !isImmersive(top) else top == HomeKey
         if (shown) assertChromeActions() else assertNoChromeActions()
         if (shown && rail) {
             val avatar = rule.onNodeWithTag(AVATAR).fetchSemanticsNode().boundsInRoot
@@ -693,7 +688,7 @@ class ShellRobot internal constructor(
 
     /** Immersive play, as the shell decides it: the selected tab's top is immersive ([isImmersive]). */
     private val NavigationState.immersive: Boolean
-        get() = isImmersive(currentStack.last(), tabSet.placement)
+        get() = isImmersive(currentStack.last())
 
     private companion object {
         const val TIMEOUT_MS = 5_000L

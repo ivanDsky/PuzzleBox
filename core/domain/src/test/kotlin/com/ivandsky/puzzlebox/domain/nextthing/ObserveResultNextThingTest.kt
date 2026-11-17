@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -42,6 +43,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import java.time.Clock
 import java.time.Instant
@@ -132,6 +134,7 @@ class ObserveResultNextThingTest {
         computeStreak = ComputeStreak(GetPuzzleDay(registry, clock)),
         puzzleDay = GetPuzzleDay(registry, clock),
         nextRollover = GetNextRollover(registry, clock),
+        communityPuzzles = ListCommunityPuzzles(FakeSharedPuzzleRepository(), FakeHiddenPuzzles(), identity) { 0L },
         timeout = timeout,
         failures = { _, _, cause -> failures += cause },
     )

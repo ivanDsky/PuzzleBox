@@ -7,7 +7,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -40,7 +39,7 @@ import org.koin.compose.koinInject
  * scenes' scrims ([LocalNavMotion]). On the tablet form a push of a game whose card is on
  * screen lifts out of that card ([NavLift]), and its pop shrinks back into it. System back is
  * [Navigator.pop]: it pops the layer while that is open, else the current tab, returns a
- * Games/History root to Today, and at the
+ * Games/Community/Ranks root to Today, and at the
  * Home root returns false so the back press falls through and the app exits.
  *
  * Play lifetime: whenever the stacks change the shell hands every key they
@@ -48,33 +47,28 @@ import org.koin.compose.koinInject
  * and saves; at activity stop it [PlaySessionStore.flush]es every live play, so a pending
  * throttled save is never lost.
  *
- * [tabSet] is the app graph's tab set: the canvas and the owner doors read placement through it.
- * [codeDraft] and [onCodeDraftTaken] reach the Play library: a draft opens its code sheet.
+ * [codeDraft] and [onCodeDraftTaken] reach the Community code sheet: a draft opens it.
  * [libraryRequests] is the one-shot Games request: Games reads its pending value and takes it.
  * [duels], when given, adds the Duels tab and
- * lets Enter code open a duel. [custom] fills the Games Custom pill (or the Community tab), and [makeOne] backs the
- * Make-one door on the game page. The shell draws the
+ * lets Enter code open a duel. [custom] fills the Community tab, and [makeOne] backs the
+ * Make-one doors on the game page and the Result. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
- * [tabletCrossfade] is the app graph's TabletCrossfade flag: on the tablet, tab switches and in-tab page changes
- * crossfade in place instead of rising or sliding.
  * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
  */
 @Composable
 internal fun PuzzleBoxNavShell(
     navigator: Navigator,
-    tabSet: TabSet,
     homeLayout: HomeLayout,
     playLayout: PlayLayout,
     historyLayout: HistoryLayout,
+    custom: CustomSlot,
+    makeOne: MakeOne,
     modifier: Modifier = Modifier,
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
-    custom: CustomSlot,
-    makeOne: MakeOne,
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
-    tabletCrossfade: Boolean = rememberTabletCrossfade(),
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
 ) {
@@ -82,7 +76,6 @@ internal fun PuzzleBoxNavShell(
     val tuneDefaults = rememberRanksTuneDefaults(koinInject(), koinInject())
     val reduceMotion = rememberReducedMotion()
     val layoutDirection = LocalLayoutDirection.current
-    val density = LocalDensity.current
     val form = if (homeLayout == HomeLayout.TwoPane) NavForm.Tablet else NavForm.Phone
     val state = navigator.state
     LaunchedEffect(state.allKeys) { store.retain(state.allKeys) }
@@ -94,7 +87,6 @@ internal fun PuzzleBoxNavShell(
         state = navigator.state,
         entryProvider = puzzleBoxEntryProvider(
             navigator = navigator,
-            tabSet = tabSet,
             homeLayout = homeLayout,
             playLayout = playLayout,
             historyLayout = historyLayout,
@@ -108,7 +100,6 @@ internal fun PuzzleBoxNavShell(
             tuneDefaults = tuneDefaults,
         ).withHintCooldown(),
         shellChrome = shellChrome,
-        placement = tabSet.placement,
     )
     val motion = remember { mutableStateOf(NavMotion.Idle) }
     // The board that lifted in last: only it shrinks back into a card on its pop.
@@ -121,7 +112,7 @@ internal fun PuzzleBoxNavShell(
             motion.value = it
             lift.lifting = it.kind == NavMotionKind.Lift
             lift.liftMillis = it.durationMillis
-        }.transform(layoutDirection, density)
+        }.transform(layoutDirection)
         CompositionLocalProvider(
             LocalNavMotion provides motion,
             LocalNavLift provides lift.takeIf { form == NavForm.Tablet },
@@ -131,7 +122,7 @@ internal fun PuzzleBoxNavShell(
                 transitionSpec = {
                     val to = targetState.metadata
                     val liftable = form == NavForm.Tablet && lift.isOnScreen(to[ENTRY_KEY])
-                    val chosen = navMotion(initialState.metadata, to, pop = false, reduceMotion, form, liftable, tabletCrossfade)
+                    val chosen = navMotion(initialState.metadata, to, pop = false, reduceMotion, form, liftable)
                     lifted.key = to[ENTRY_KEY].takeIf { chosen.kind == NavMotionKind.Lift }
                     play(chosen)
                 },
@@ -139,10 +130,10 @@ internal fun PuzzleBoxNavShell(
                     val from = initialState.metadata
                     val liftable = from[ENTRY_KEY] != null && from[ENTRY_KEY] == lifted.key &&
                         lift.isOnScreen(lifted.key)
-                    play(navMotion(from, targetState.metadata, pop = true, reduceMotion, form, liftable, tabletCrossfade))
+                    play(navMotion(from, targetState.metadata, pop = true, reduceMotion, form, liftable))
                 },
                 predictivePopTransitionSpec = { swipeEdge ->
-                    play(predictivePopMotion(swipeEdge, reduceMotion, shrink = tabletCrossfade && form == NavForm.Tablet))
+                    play(predictivePopMotion(swipeEdge, reduceMotion, shrink = form == NavForm.Tablet))
                 },
                 onBack = { navigator.pop() },
             )

@@ -2,8 +2,8 @@ package com.ivandsky.puzzlebox.app.e2e
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.Chrome as PlacementChrome
-import com.ivandsky.puzzlebox.app.nav.PlacementDelta
 import com.ivandsky.puzzlebox.app.nav.placementOf
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -30,7 +30,7 @@ import org.robolectric.annotation.Config
  * checks the shell actions its placement's chrome needs: the avatar and the gear show exactly
  * once on every screen the rail shows, and on a bar only on Today's root.
  *
- * Per width: the daily and Custom run on the default graph, and the friend run on a
+ * Per width: the daily and Community run on the default graph, and the friend run on a
  * [FriendWorld] with only the Zip editor on.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -41,7 +41,7 @@ class ReachabilityInventoryE2ETest {
 
     @Test
     @Config(qualifiers = PHONE)
-    fun `a phone reaches every daily, Custom and shell screen`() = dailyAndCustomRun(Width.Phone)
+    fun `a phone reaches every daily, Community and shell screen`() = dailyAndCommunityRun(Width.Phone)
 
     @Test
     @Config(qualifiers = PHONE)
@@ -50,14 +50,14 @@ class ReachabilityInventoryE2ETest {
 
     @Test
     @Config(qualifiers = RAIL)
-    fun `a rail window reaches every daily, Custom and shell screen`() = dailyAndCustomRun(Width.Rail)
+    fun `a rail window reaches every daily, Community and shell screen`() = dailyAndCommunityRun(Width.Rail)
 
     @Test
     @Config(qualifiers = RAIL)
     fun `a rail window reaches a published puzzle and a friend's card, board and result`() =
         friendRun(Width.Rail)
 
-    private fun dailyAndCustomRun(width: Width) = shellRobot {
+    private fun dailyAndCommunityRun(width: Width) = shellRobot {
         reached(HOME, width)
 
         tapTab(HistoryRootKey)
@@ -90,9 +90,9 @@ class ReachabilityInventoryE2ETest {
         back()
         assertRoute(LIBRARY)
 
-        if (shows("library.page.back")) tap("library.page.back") // a phone shows the game page alone
-        tap("library.tab.custom")
-        reached(LIBRARY, width)
+        tapTab(CommunityKey)
+        reached(COMMUNITY, width)
+        tap("community.tab.yours")
         tap("create.empty.game.queens")
         awaitTag("create.editor.board")
         reached(EDITOR, width)
@@ -104,9 +104,10 @@ class ReachabilityInventoryE2ETest {
             shellRobot(graph = world.graph) {
                 val code = world.publishAsAuthor(this, ZipCorridor.board, TITLE)
                 back()
-                assertRoute(LIBRARY)
+                awaitTag(COMMUNITY)
+                tap("community.tab.yours")
                 tap("create.published.row")
-                reached(PUBLISHED, width)
+                reachedPublished(width)
                 world.signInFriend()
 
                 tapTab(PlayKey)
@@ -126,12 +127,26 @@ class ReachabilityInventoryE2ETest {
     }
 
     /**
+     * The published page: on a phone a screen of its own on the Community stack; on the rail, Community's right pane
+     * beside the list, so the page's tag shows with Community's under the rail rather than as the only route.
+     */
+    private fun ShellRobot.reachedPublished(width: Width) {
+        if (width == Width.Phone) {
+            reached(PUBLISHED, width)
+        } else {
+            awaitTag(PUBLISHED)
+            assertRail()
+            assertChromeFor(rail = true)
+        }
+    }
+
+    /**
      * [route] is the only route on screen, with the chrome read from the top screen's placement:
      * `Bar` shows the tabs, `Immersive` nothing; the avatar and gear sit on the rail, else on Today only.
      */
     private fun ShellRobot.reached(route: String, width: Width) {
         assertRoute(route)
-        if (placementOf(state.currentStack.last(), PlacementDelta.None).chrome == PlacementChrome.Immersive) {
+        if (placementOf(state.currentStack.last()).chrome == PlacementChrome.Immersive) {
             assertNoNavigation()
         } else if (width == Width.Phone) {
             assertBottomBar()
@@ -155,6 +170,7 @@ class ReachabilityInventoryE2ETest {
         const val LIBRARY = "route.library"
         const val GAME = "route.game"
         const val RESULT = "route.result"
+        const val COMMUNITY = "route.community"
         const val EDITOR = "route.editor"
         const val PUBLISHED = "route.publishedPuzzle"
         const val SETTINGS = "route.settings"

@@ -109,7 +109,6 @@ class ObserveResultCommunityNextThingTest {
 
     private fun observe(
         repository: SharedPuzzleRepository = shared,
-        community: Boolean = true,
         timeout: Duration = 2.seconds,
     ) = ObserveResultNextThing(
         registry = registry,
@@ -123,7 +122,7 @@ class ObserveResultCommunityNextThingTest {
         computeStreak = ComputeStreak(GetPuzzleDay(registry, clock)),
         puzzleDay = GetPuzzleDay(registry, clock),
         nextRollover = GetNextRollover(registry, clock),
-        communityPuzzles = ListCommunityPuzzles(repository, hidden, identity) { now }.takeIf { community },
+        communityPuzzles = ListCommunityPuzzles(repository, hidden, identity) { now },
         timeout = timeout,
         failures = { _, _, cause -> failures += cause },
     )
@@ -222,21 +221,6 @@ class ObserveResultCommunityNextThingTest {
 
         assertEquals(NextThing.DoneForToday(rollover), nextThing(observe(broken)))
         assertTrue(failures.single() is IllegalStateException)
-    }
-
-    @Test
-    fun `with the community list not given nothing is listed and nothing is offered`() = runTest {
-        publish("AAAA22", "zed", hoursAgo = 1)
-        val counting = object : SharedPuzzleRepository by shared {
-            var lists = 0
-            override suspend fun listPublic(filter: CommunityFilter): CommunityListResult {
-                lists++
-                return shared.listPublic(filter)
-            }
-        }
-
-        assertEquals(NextThing.DoneForToday(rollover), nextThing(observe(counting, community = false)))
-        assertEquals(0, counting.lists)
     }
 
     @Test

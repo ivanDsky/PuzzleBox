@@ -173,7 +173,7 @@ class LibraryRouteTest {
         composeRule.setContent {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
                 PuzzleBoxTheme(darkTheme = false) {
-                    LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) }, onOpenCode = {}, onOpenRanks = { _, _ -> }, custom = CustomSlot { _, _, _ -> }, onMakeOne = {})
+                    LibraryRoute(layout = layout, onPlay = { game, day -> played.add(game to day) }, onOpenCode = {}, onOpenRanks = { _, _ -> }, onMakeOne = {})
                 }
             }
         }
@@ -381,7 +381,6 @@ class LibraryRouteTest {
                     onOpenLesson = {},
                     calendar = CalendarActions(),
                     onOpenRanks = { _, _ -> },
-                    custom = CustomSlot { _, _, _ -> },
                     onMakeOne = {},
                 )
             }

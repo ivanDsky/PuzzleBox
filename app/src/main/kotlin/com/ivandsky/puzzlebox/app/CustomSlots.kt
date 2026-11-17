@@ -16,7 +16,7 @@ import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.community.CommunityHost
 
 /**
- * The Custom body of Games' pill and of the Community tab: create's drafts and published rows, which open their screens
+ * The Custom body of the Community tab: create's drafts and published rows, which open their screens
  * on the current stack. Inside the Community tablet's two-pane ([LocalCommunityPicker]) a New today row and a published
  * row pick their puzzle for the right pane instead, which [publishedPuzzlePane] draws for a published one. Its
  * [CustomSlot.yours] is the same list with only your own puzzles ([YoursBody]), and [CustomSlot.yoursSummary] their count.

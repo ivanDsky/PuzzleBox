@@ -54,7 +54,7 @@ class EditorLevelTest {
         override val default: CoroutineDispatcher = mainRule.testDispatcher
     }
 
-    private suspend fun TestScope.open(flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FinishForMe, ReleaseFlag.CommunityPuzzles)): EditorViewModel {
+    private suspend fun TestScope.open(flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.FinishForMe)): EditorViewModel {
         if (drafts.rows[DRAFT_ID] == null) drafts.upsert(row(game.draft(2).encode()))
         val vm = EditorViewModel(
             EditorKey(DRAFT_ID), drafts, GameRegistry(listOf(FinishViewModelTest.withEditor(game))), GameEditorRegistry(listOf(ui)), GamePlayRegistry(emptyList()),

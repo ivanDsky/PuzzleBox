@@ -71,16 +71,12 @@ object MotionTokens {
     const val LiftScrimAlpha = 0.2f
     const val MixLiftCardFade = 0.45f
 
-    // Game ⇄ result on tablet: both pages travel the full width together, opaque.
-    const val MixAxisPush = 360
-    const val MixAxisPop = 300
-
-    // Tablet tab and list→detail: the incoming page fades in (and a tab rises) over the
+    // Home's tablet detail pane: the incoming page fades in and rises over the
     // outgoing one, which stays opaque — two pages never fade at once.
     const val MixTabIn = 220
     val MixTabRise: Dp = 16.dp
 
-    // TabletCrossfade: the tablet's rail tab switch and its in-tab page changes (also the Games right pane) fade in
+    // The tablet's rail tab switch and its in-tab page changes (also the Games right pane) fade in
     // place on EasingStandard, with no travel and no scale; the tab switch is the quicker of the two.
     const val TabletTabCrossfade = 160
     const val TabletPageCrossfade = 200

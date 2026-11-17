@@ -137,6 +137,5 @@ private fun ListHost(tabbed: Boolean, initialTab: GamesTab) {
         duels = if (tabbed) scrollingDuels else null,
         tab = tab,
         onTab = { tab = it },
-        customTab = {},
     )
 }

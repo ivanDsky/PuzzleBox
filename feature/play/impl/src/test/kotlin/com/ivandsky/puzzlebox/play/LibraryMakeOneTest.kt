@@ -54,7 +54,6 @@ class LibraryMakeOneTest {
                     onOpenLesson = {},
                     calendar = CalendarActions(),
                     onOpenRanks = { _, _ -> },
-                    custom = CustomSlot { _, _, _ -> },
                     onMakeOne = onMakeOne,
                 )
             }

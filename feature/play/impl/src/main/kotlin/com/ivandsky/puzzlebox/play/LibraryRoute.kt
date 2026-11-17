@@ -40,11 +40,10 @@ import org.koin.core.parameter.parametersOf
  * Open is [onOpenCode]. A From friends card's Remove shows "Removed <code>" with Undo. A
  * [codeDraft] opens the sheet with that text already in the field, then is taken
  * ([onCodeDraftTaken]); a [request] opens a game's page or a tab, then is taken ([onRequestTaken]).
- * The [custom] slot beside the [duels] one makes the tabs Dailies, Duels, Custom ([LibraryScreen]).
  * The game page shows its rank as a summary row that calls [onOpenRanks].
  * With [linkedIn] the day card shows the LinkedIn lines, and [onReconnectLinkedIn] opens its login.
- * [onMakeOne] puts "Make one" on each game page. With a [communityTab] Custom is not a Games pill: the
- * pills are Dailies and Duels, and the friend puzzles live on that tab ([CommunityRoute]).
+ * [onMakeOne] puts "Make one" on each game page. The friend puzzles and Custom's list are the app's Community
+ * tab ([CommunityRoute]); Games shows Dailies and Duels.
  */
 @Composable
 internal fun LibraryRoute(
@@ -56,13 +55,11 @@ internal fun LibraryRoute(
     codeDraft: String? = null,
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
-    custom: CustomSlot,
     request: LibraryRequest? = null,
     onRequestTaken: () -> Unit = {},
     linkedIn: Boolean = false,
     onReconnectLinkedIn: (() -> Unit)? = null,
     onMakeOne: (GameId) -> Unit,
-    communityTab: Boolean = false,
 ) {
     val viewModel: LibraryViewModel = koinViewModel(parameters = { parametersOf(linkedIn) })
     val registry: GamePlayRegistry = koinInject()
@@ -110,14 +107,11 @@ internal fun LibraryRoute(
             onOpenFriend = onOpenCode,
             onRemoveFriend = viewModel::removeFriend,
             duels = duels,
-            custom = custom,
             request = request,
             onRequestTaken = onRequestTaken,
             linkedIn = linkedInCard,
             onOpenRanks = onOpenRanks,
             onMakeOne = onMakeOne,
-            communityTab = communityTab,
-            paneCrossfade = rememberPaneCrossfade(),
         )
         FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))
         if (enteringCode) {

@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.profile.api.ProfileKey
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
@@ -86,7 +87,7 @@ class PerTabShellTest {
                 PuzzleBoxApplication.appModules + module {
                     // Home prefetches today's puzzles on resume: every game's fetch is scripted.
                     single<DailyRepository> { freshDailyForAllGames() }
-                    // No release flag on: the base three tabs, whatever the release default.
+                    // Every flag stays off, whatever the release default: these pin the shell, not the gated surfaces.
                     single<ReleaseFlags> { FakeReleaseFlags() }
                     single<CompletionRepository> { FakeCompletionRepository() }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
@@ -172,7 +173,7 @@ class PerTabShellTest {
         restoration.setContent { Shell() }
         composeRule.runOnIdle {
             navigator.push(HistoryKey())
-            navigator.selectTab(PlayKey)
+            navigator.selectTab(CommunityKey)
             navigator.push(CatalogKey)
         }
         val before = state()
@@ -180,7 +181,7 @@ class PerTabShellTest {
         restoration.emulateSavedInstanceStateRestore()
 
         assertEquals(before, state())
-        composeRule.onNodeWithTag(PLAY_TAB).assertIsSelected()
+        composeRule.onNodeWithTag(COMMUNITY_TAB).assertIsSelected()
     }
 
     @Test
@@ -191,7 +192,7 @@ class PerTabShellTest {
             puzzleBoxNavKeys,
         )
 
-        restoreShellWith(legacy) { navigator.selectTab(PlayKey) }
+        restoreShellWith(legacy) { navigator.selectTab(CommunityKey) }
 
         assertEquals(puzzleBoxNavigationState(), state())
         composeRule.onNodeWithTag(HOME_TAB).assertIsSelected()
@@ -199,26 +200,26 @@ class PerTabShellTest {
 
     @Test
     fun `a restored state missing a tab gains that tab's root`() {
-        val withoutRanks = NavigationState(
-            tab = PlayKey,
-            stacks = listOf(listOf(HomeKey), listOf(PlayKey, CatalogKey)),
+        val withoutPlayAndRanks = NavigationState(
+            tab = CommunityKey,
+            stacks = listOf(listOf(HomeKey), listOf(CommunityKey, CatalogKey)),
         )
 
-        restoreShellWith(savedNavigation(withoutRanks))
+        restoreShellWith(savedNavigation(withoutPlayAndRanks))
 
         assertEquals(
             NavigationState(
-                tab = PlayKey,
-                stacks = listOf(listOf(HomeKey), listOf(PlayKey, CatalogKey), listOf(HistoryRootKey)),
+                tab = CommunityKey,
+                stacks = listOf(listOf(HomeKey), listOf(PlayKey), listOf(CommunityKey, CatalogKey), listOf(HistoryRootKey)),
             ),
             state(),
         )
-        composeRule.onNodeWithTag(PLAY_TAB).assertIsSelected()
+        composeRule.onNodeWithTag(COMMUNITY_TAB).assertIsSelected()
         composeRule.onNodeWithTag(CATALOG_LINK).assertDoesNotExist()
     }
 
     @Test
-    fun `a legacy four-tab state with a Create stack restores into three tabs and drops that stack`() {
+    fun `a legacy four-tab state with a Create stack restores into the four tabs and drops that stack`() {
         val legacy = NavigationState(
             tab = PlayKey,
             stacks = listOf(
@@ -234,7 +235,7 @@ class PerTabShellTest {
         assertEquals(
             NavigationState(
                 tab = PlayKey,
-                stacks = listOf(listOf(HomeKey), listOf(PlayKey, CatalogKey), listOf(HistoryRootKey)),
+                stacks = listOf(listOf(HomeKey), listOf(PlayKey, CatalogKey), listOf(CommunityKey), listOf(HistoryRootKey)),
             ),
             state(),
         )
@@ -300,6 +301,7 @@ class PerTabShellTest {
         const val HOME_TAB = "nav.tab.home"
         const val RANKS_TAB = "nav.tab.ranks"
         const val PLAY_TAB = "nav.tab.play"
+        const val COMMUNITY_TAB = "nav.tab.community"
         const val CREATE_TAB = "nav.tab.create"
         const val CATALOG_LINK = "settings.catalog"
     }

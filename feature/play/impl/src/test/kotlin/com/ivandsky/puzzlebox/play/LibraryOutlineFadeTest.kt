@@ -61,7 +61,6 @@ class LibraryOutlineFadeTest {
                         scroll = rememberScrollState(),
                         onRow = {},
                         modifier = Modifier.width(400.dp),
-                        customTab = {},
                     )
                 }
             }

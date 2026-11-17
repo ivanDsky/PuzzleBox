@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.gameui.DragEvent
@@ -94,7 +95,7 @@ class RanksPlayAgainE2ETest {
         switchTab(PlayKey)
         openGame(ZIP)
 
-        assertState(stacks(tab = PlayKey, history = playingAgain.stacks[2], play = listOf(PlayKey, GameKey(ZIP))))
+        assertState(stacks(tab = PlayKey, history = playingAgain.stacks[3], play = listOf(PlayKey, GameKey(ZIP))))
         assertRoute(GAME)
         val today = awaitZip(E2E_TODAY)
         assertEquals("today's board is a fresh session of today", E2E_TODAY, (today.ref?.key as? PuzzleKey.Daily)?.date)
@@ -143,7 +144,8 @@ class RanksPlayAgainE2ETest {
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
         history: List<NavKey> = listOf(HistoryRootKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, history))
+        community: List<NavKey> = listOf(CommunityKey),
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, community, history))
 
     private val opening = HistoryKey(ZIP, "$PLAY_AGAIN_DAY")
     private val ranks = stacks(tab = HistoryRootKey, history = listOf(HistoryRootKey, opening))

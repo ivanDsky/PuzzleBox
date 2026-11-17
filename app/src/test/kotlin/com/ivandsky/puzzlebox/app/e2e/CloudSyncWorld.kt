@@ -9,7 +9,6 @@ import androidx.room.RoomDatabase
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
-import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.data.cloud.CloudDoc
 import com.ivandsky.puzzlebox.data.cloud.CloudResult
 import com.ivandsky.puzzlebox.data.cloud.CloudSpace
@@ -234,7 +233,7 @@ internal class CloudSyncWorld(
             try {
                 PuzzleBoxApplication.prepareCloudSync(graph.koin)
                 graph.koin.get<CloudSyncRunner>().start()
-                val robot = ShellRobot(graph, tabAt(tab), topLevelDestinations)
+                val robot = ShellRobot(graph, tabAt(tab))
                 val run = object : Statement() {
                     override fun evaluate() {
                         robot.launch()

@@ -26,7 +26,6 @@ class RanksLinkLoadingTest {
     private fun open(go: ShellRobot.() -> Unit) = shellRobot(
         puzzleBoxNavigationState(),
         graph = E2eKoinGraph(E2E_TODAY),
-        destinations = topLevelDestinations,
     ) {
         go()
         awaitTag("route.ranks")

@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.navigation.NavigationState
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
@@ -32,15 +33,15 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Making puzzles inside Games (N9, N10) over the real shell: the Custom pill's draft and
- * published rows and the two Make-one doors each open their screen on the Games stack, and Back
- * or the Studio's Delete returns to the screen the door was on.
+ * Making puzzles (N9, N10) over the real shell: Community's Yours draft and published rows open their
+ * screen on the Community stack, the game page's Make one opens the Studio on the Games stack, and Back or the
+ * Studio's Delete returns to the screen the door was on. Games itself holds only Dailies and Duels.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
 // A real phone's height: the Studio's board slot needs room for its grid.
 @Config(sdk = [34], application = DrainTestApplication::class, qualifiers = "w411dp-h891dp")
-class GamesCustomE2ETest {
+class StudioDoorsE2ETest {
 
     private val drafts = FakeDraftRepository()
     private val published = FakePublishedPuzzleRepository()
@@ -50,40 +51,40 @@ class GamesCustomE2ETest {
     }
 
     @Test
-    fun `a draft row under Custom opens its Studio full-window on Games and Back returns to Custom`() =
+    fun `a draft row under Yours opens its Studio full-window on Community and Back returns to Yours`() =
         shellRobot(graph = shellGraph(overrides = stores)) {
             seedDraft()
-            tapTab(PlayKey)
-            tap(CUSTOM_PILL)
+            tapTab(CommunityKey)
+            tap(YOURS_TAB)
 
             tap(DRAFT_ROW)
 
             assertRoute(EDITOR)
-            assertState(games(EditorKey(DRAFT_ID)))
+            assertState(community(EditorKey(DRAFT_ID)))
 
             back()
-            assertState(games())
-            assertRoute(LIBRARY)
-            awaitTag(CUSTOM_LIST)
+            assertState(community())
+            assertRoute(COMMUNITY)
+            awaitTag(DRAFT_ROW)
         }
 
     @Test
-    fun `a published row under Custom opens its page on Games with the bar and Back returns to Custom`() =
+    fun `a published row under Yours opens its page on Community with the bar and Back returns to Yours`() =
         shellRobot(graph = shellGraph(overrides = stores)) {
             seedPublished()
-            tapTab(PlayKey)
-            tap(CUSTOM_PILL)
+            tapTab(CommunityKey)
+            tap(YOURS_TAB)
 
             tap(PUBLISHED_ROW)
 
             assertRoute(PUBLISHED_PAGE)
-            // assertState also checks that the bar shows with Games selected.
-            assertState(games(PublishedPuzzleKey(CODE.value)))
+            // assertState also checks that the bar shows with Community selected.
+            assertState(community(PublishedPuzzleKey(CODE.value)))
 
             back()
-            assertState(games())
-            assertRoute(LIBRARY)
-            awaitTag(CUSTOM_LIST)
+            assertState(community())
+            assertRoute(COMMUNITY)
+            awaitTag(PUBLISHED_ROW)
         }
 
     @Test
@@ -135,16 +136,33 @@ class GamesCustomE2ETest {
             awaitIdling { drafts.rows.isEmpty() }
         }
 
+    @Test
+    fun `Games holds only the Dailies and Duels pills`() =
+        shellRobot(graph = shellGraph(overrides = stores)) {
+            tapTab(PlayKey)
+            awaitTag(DAILIES_PILL)
+            assertTrue("Duels pill", shows(DUELS_PILL))
+            assertFalse("Custom pill", shows(CUSTOM_PILL))
+            assertFalse("Friends pill", shows(FRIENDS_PILL))
+        }
+
     private fun ShellRobot.openZipPage() {
         tapTab(PlayKey)
         tap(ZIP_ROW)
         awaitTag(ZIP_PAGE)
     }
 
-    /** The three-tab state selected on Games, whose stack is the library then [pushed]. */
-    private fun games(vararg pushed: NavKey) = NavigationState(
-        tab = PlayKey,
-        stacks = listOf(listOf(HomeKey), listOf(PlayKey) + pushed, listOf(HistoryRootKey)),
+    /** The four-tab state selected on Games, whose stack is the library then [pushed]. */
+    private fun games(vararg pushed: NavKey) = tabs(PlayKey, pushed)
+
+    /** The four-tab state selected on Community, whose stack is its root then [pushed]. */
+    private fun community(vararg pushed: NavKey) = tabs(CommunityKey, pushed)
+
+    private fun tabs(selected: NavKey, pushed: Array<out NavKey>) = NavigationState(
+        tab = selected,
+        stacks = listOf(HomeKey, PlayKey, CommunityKey, HistoryRootKey).map { root ->
+            if (root == selected) listOf(root) + pushed else listOf(root)
+        },
     )
 
     private fun seedDraft() = runBlocking {
@@ -173,16 +191,19 @@ class GamesCustomE2ETest {
         const val DRAFT_ID = "castle"
         val CODE: ShareCode = checkNotNull(ShareCode.parse("K7Q2MX"))
         const val LIBRARY = "route.library"
+        const val COMMUNITY = "route.community"
         const val EDITOR = "route.editor"
         const val RESULT = "route.result"
         const val PUBLISHED_PAGE = "route.publishedPuzzle"
+        const val DAILIES_PILL = "library.tab.dailies"
+        const val DUELS_PILL = "library.tab.duels"
         const val CUSTOM_PILL = "library.tab.custom"
-        const val CUSTOM_LIST = "custom.list"
+        const val FRIENDS_PILL = "library.tab.friends"
+        const val YOURS_TAB = "community.tab.yours"
         const val DRAFT_ROW = "create.draft.row"
         const val PUBLISHED_ROW = "create.published.row"
         const val ZIP_ROW = "library.row.zip"
         const val ZIP_PAGE = "library.page.zip"
-        const val PAGE_PLAY = "library.play"
         const val PAGE_MAKE_ONE = "library.page.makeOne"
         const val RESULT_MAKE_ONE = "result.makeOne"
         const val RESULT_TIME = "result.hero.time"

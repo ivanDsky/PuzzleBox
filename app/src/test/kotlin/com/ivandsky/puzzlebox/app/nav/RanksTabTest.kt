@@ -72,7 +72,7 @@ class RanksTabTest {
     @Test
     fun `a back stack saved on the Ranks tab restores on it`() {
         val seed = tabAt(HistoryRootKey, HistoryKey(ZIP))
-        shellRobot(seed, graph = E2eKoinGraph(E2E_TODAY), destinations = topLevelDestinations) {
+        shellRobot(seed, graph = E2eKoinGraph(E2E_TODAY)) {
             assertRoute(RANKS)
 
             relaunch(keepSavedState = true)
@@ -110,7 +110,7 @@ class RanksTabTest {
     }
 
     private fun shell(block: ShellRobot.() -> Unit) =
-        shellRobot(graph = E2eKoinGraph(E2E_TODAY), destinations = topLevelDestinations, block = block)
+        shellRobot(graph = E2eKoinGraph(E2E_TODAY), block = block)
 
     private fun ImageVector.pathData() = root.mapNotNull { (it as? VectorPath)?.pathData }
 

@@ -38,8 +38,8 @@ import org.koin.core.component.inject
  * The single activity (singleTask): a tapped share link starts it or, when it is already
  * running, arrives as a new intent; either way the link waits in [pendingLink] until the app
  * has put it on the back stack. A plain-text share takes the same two doors:
- * its text goes to the [SharedTextStore] and [pendingShare] has the app show Custom,
- * which imports it. A recreated activity restores its back stack and never re-reads the
+ * its text goes to the [SharedTextStore] and [pendingShare] has the app show the Community tab,
+ * whose Yours list imports it. A recreated activity restores its back stack and never re-reads the
  * intent that started it, so the friend's card is pushed and the text imported once.
  */
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -146,8 +146,8 @@ class MainActivity : ComponentActivity(), KoinComponent {
     }
 
     /**
-     * Puts the text [intent] shares in the [SharedTextStore]; the Custom body takes it once it
-     * is resumed. True when text was put.
+     * Puts the text [intent] shares in the [SharedTextStore]; the Yours list on the Community tab
+     * takes it once it is shown. True when text was put.
      */
     private fun handOffSharedText(intent: Intent): Boolean {
         val text = intent.sharedText() ?: return false

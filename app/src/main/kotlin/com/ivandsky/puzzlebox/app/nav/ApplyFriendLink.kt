@@ -7,24 +7,22 @@ import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 
 /**
- * Puts a tapped [link] on the back stack, through the reducer's own verbs: it selects Play
+ * Puts a tapped [link] on the back stack, through the reducer's own verbs: it selects the owner tab
  * without popping it, so a daily in play beneath stays alive and back returns to it. An open
- * Profile layer closes first, also over Play itself, so the link's screen is never hidden
+ * Profile layer closes first, also over the owner itself, so the link's screen is never hidden
  * under it.
  *
- * - A code pushes its card once; when that card is already on Play's stack (the friend is
- *   mid-puzzle) selecting Play is the whole move, since a key appears once per stack.
- * - A match pushes its duel once the same way.
- * - Invalid text returns Play to its root, the library that hosts the code sheet; a board
- *   popped on the way saves like any other. Without a Community tab in [tabSet] it also asks Games
- *   for its Custom section ([LibraryRequests.openCustom]), where Enter code lives.
+ * Custom's list, its code sheet included, is Community's root (M10-1): a code and invalid text go there, a match is
+ * a duel and stays on Play.
  *
- * With a Community tab in [tabSet] (M10-1) Custom's list, its code sheet included, is Community's
- * root: a code and invalid text go there instead of Play, the same way (a code's card on Community's
- * stack, invalid text at its root, no Games section asked for). A match is a duel and stays on Play.
+ * - A code pushes its card once; when that card is already on the owner's stack (the friend is
+ *   mid-puzzle) selecting the owner is the whole move, since a key appears once per stack.
+ * - A match pushes its duel once the same way.
+ * - Invalid text returns Community to its root, the list that hosts the code sheet; a board
+ *   popped on the way saves like any other.
  */
-internal fun Navigator.applyFriendLink(link: FriendLink, tabSet: TabSet, libraryRequests: LibraryRequests) {
-    val owner = if (tabSet.hasCommunityTab && link !is FriendLink.Match) CommunityKey else PlayKey
+internal fun Navigator.applyFriendLink(link: FriendLink) {
+    val owner = if (link !is FriendLink.Match) CommunityKey else PlayKey
     if (state.tab != owner || state.layer.isNotEmpty()) selectTab(owner)
     when (link) {
         is FriendLink.Code -> {
@@ -36,8 +34,6 @@ internal fun Navigator.applyFriendLink(link: FriendLink, tabSet: TabSet, library
             if (duel !in state.currentStack) pushOnce(duel)
         }
         // Reselecting the selected tab pops it to its root.
-        is FriendLink.Invalid ->
-            if (!tabSet.hasCommunityTab) libraryRequests.openCustom(this, tabSet)
-            else if (state.currentStack.size > 1) selectTab(owner)
+        is FriendLink.Invalid -> if (state.currentStack.size > 1) selectTab(owner)
     }
 }

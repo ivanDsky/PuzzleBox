@@ -29,8 +29,8 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 private const val PUSH_TRAVEL_DIVISOR = 12
 
 /**
- * True where TabletCrossfade makes a block just be there: the crossfading right pane and the tablet's Games list. Blocks
- * start settled (no stagger, no fade-in, no tab-body fade), so nothing animates a second time behind the pane's own fade.
+ * True where the Games right pane crossfades and the tablet's Games list sits beside it: blocks
+ * start settled (no stagger, no fade-in), so nothing animates a second time behind the pane's own fade.
  */
 internal val LocalEnterSettled = staticCompositionLocalOf { false }
 

@@ -21,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.captureToImage
@@ -29,7 +28,6 @@ import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavEntry
@@ -166,37 +164,15 @@ class NavTransitionsTest {
         )
     }
 
-    @Test
-    fun `tablet game to result and back travel the full width together, without a scrim`() {
-        val push = navMotion(game, result, pop = false, reduceMotion = false, NavForm.Tablet, liftable = true)
-        val again = navMotion(result, game, pop = false, reduceMotion = false, NavForm.Tablet, liftable = true)
-        val done = navMotion(result, playRoot, pop = true, reduceMotion = false, NavForm.Tablet)
-
-        assertEquals(NavMotion(NavMotionKind.Axis, pop = false, durationMillis = 360, easing = MotionTokens.EasingStandard), push)
-        assertEquals(push, again)
-        assertEquals(NavMotion(NavMotionKind.Axis, pop = true, durationMillis = 300, easing = MotionTokens.EasingStandard), done)
-    }
-
-    @Test
-    fun `tablet tab switch rises over the opaque outgoing tab`() {
-        val motion = navMotion(homeRoot, playRoot, pop = false, reduceMotion = false, NavForm.Tablet)
-
-        assertEquals(NavMotion(NavMotionKind.Rise, pop = false, durationMillis = 220, easing = MotionTokens.EasingStandard), motion)
-        assertEquals(0f, motion.scrimAlpha)
-        assertEquals(NavMotionKind.Rise, navMotion(playRoot, homeRoot, pop = true, reduceMotion = false, NavForm.Tablet).kind)
-    }
-
     // ---- pins: the layer above the tabs ----
 
     @Test
-    fun `opening and closing the layer moves like a tab switch, on the phone and the tablet`() {
+    fun `opening and closing the layer moves like a tab switch on the phone`() {
         assertEquals(
             navMotion(homeRoot, playRoot, pop = false, reduceMotion = false, NavForm.Phone),
             navMotion(game, layerProfile, pop = false, reduceMotion = false, NavForm.Phone),
         )
         assertEquals(NavMotionKind.FadeThrough, navMotion(layerSettings, homeRoot, pop = true, reduceMotion = false, NavForm.Phone).kind)
-        assertEquals(NavMotionKind.Rise, navMotion(playRoot, layerProfile, pop = false, reduceMotion = false, NavForm.Tablet).kind)
-        assertEquals(NavMotionKind.Rise, navMotion(layerProfile, playRoot, pop = true, reduceMotion = false, NavForm.Tablet).kind)
     }
 
     @Test
@@ -205,13 +181,12 @@ class NavTransitionsTest {
             navMotion(playRoot, game, pop = false, reduceMotion = false, NavForm.Phone),
             navMotion(layerProfile, layerSettings, pop = false, reduceMotion = false, NavForm.Phone),
         )
-        assertEquals(NavMotionKind.Axis, navMotion(layerSettings, layerProfile, pop = true, reduceMotion = false, NavForm.Tablet).kind)
     }
 
-    // ---- pins: TabletCrossfade on, tablet ----
+    // ---- pins: tablet (D) crossfades ----
 
     @Test
-    fun `TabletCrossfade tab switch is a 160 ms crossfade on the standard easing`() {
+    fun `tablet tab switch is a 160 ms crossfade on the standard easing`() {
         val expected = { pop: Boolean ->
             NavMotion(NavMotionKind.Crossfade, pop, durationMillis = 160, easing = MotionTokens.EasingStandard)
         }
@@ -221,7 +196,7 @@ class NavTransitionsTest {
     }
 
     @Test
-    fun `TabletCrossfade opening and closing the layer is a 200 ms page crossfade, not the tab timing`() {
+    fun `tablet opening and closing the layer is a 200 ms page crossfade, not the tab timing`() {
         val expected = { pop: Boolean ->
             NavMotion(NavMotionKind.Crossfade, pop, durationMillis = 200, easing = MotionTokens.EasingStandard)
         }
@@ -232,7 +207,7 @@ class NavTransitionsTest {
     }
 
     @Test
-    fun `TabletCrossfade in-tab push and plain back are a 200 ms crossfade on the standard easing`() {
+    fun `tablet in-tab push and plain back are a 200 ms crossfade on the standard easing`() {
         val expected = { pop: Boolean ->
             NavMotion(NavMotionKind.Crossfade, pop, durationMillis = 200, easing = MotionTokens.EasingStandard)
         }
@@ -244,22 +219,18 @@ class NavTransitionsTest {
     }
 
     @Test
-    fun `TabletCrossfade keeps the game lift and its slide fallback, reduced motion and the phone`() {
-        assertEquals(NavMotionKind.Lift, navMotion(playRoot, game, pop = false, reduceMotion = false, NavForm.Tablet, liftable = true, tabletCrossfade = true).kind)
-        assertEquals(NavMotionKind.Lift, navMotion(game, playRoot, pop = true, reduceMotion = false, NavForm.Tablet, liftable = true, tabletCrossfade = true).kind)
-        assertEquals(NavMotionKind.Slide, navMotion(playRoot, game, pop = false, reduceMotion = false, NavForm.Tablet, liftable = false, tabletCrossfade = true).kind)
-        assertEquals(
-            navMotion(playRoot, game, pop = false, reduceMotion = true, NavForm.Tablet),
-            navMotion(playRoot, game, pop = false, reduceMotion = true, NavForm.Tablet, tabletCrossfade = true),
-        )
-        assertEquals(NavMotionKind.Reduced, navMotion(homeRoot, playRoot, pop = false, reduceMotion = true, NavForm.Tablet, tabletCrossfade = true).kind)
-        assertEquals(NavMotionKind.FadeThrough, navMotion(homeRoot, playRoot, pop = false, reduceMotion = false, NavForm.Phone, tabletCrossfade = true).kind)
-        assertEquals(NavMotionKind.Slide, navMotion(layerProfile, layerSettings, pop = false, reduceMotion = false, NavForm.Phone, tabletCrossfade = true).kind)
+    fun `tablet keeps the game lift and its slide fallback, reduced motion and the phone`() {
+        assertEquals(NavMotionKind.Lift, navMotion(playRoot, game, pop = false, reduceMotion = false, NavForm.Tablet, liftable = true).kind)
+        assertEquals(NavMotionKind.Lift, navMotion(game, playRoot, pop = true, reduceMotion = false, NavForm.Tablet, liftable = true).kind)
+        assertEquals(NavMotionKind.Slide, navMotion(playRoot, game, pop = false, reduceMotion = false, NavForm.Tablet, liftable = false).kind)
+        assertEquals(NavMotionKind.Reduced, navMotion(homeRoot, playRoot, pop = false, reduceMotion = true, NavForm.Tablet).kind)
+        assertEquals(NavMotionKind.FadeThrough, navMotion(homeRoot, playRoot, pop = false, reduceMotion = false, NavForm.Phone).kind)
+        assertEquals(NavMotionKind.Slide, navMotion(layerProfile, layerSettings, pop = false, reduceMotion = false, NavForm.Phone).kind)
         assertEquals(NavMotionKind.Predictive, predictivePopMotion(NavigationEvent.EDGE_LEFT, reduceMotion = false).kind)
     }
 
     @Test
-    fun `TabletCrossfade predictive back shrinks in place, and reduced motion and the default stay as they were`() {
+    fun `tablet predictive back shrinks in place, and reduced motion and the phone default stay as they were`() {
         val shrink = predictivePopMotion(NavigationEvent.EDGE_LEFT, reduceMotion = false, shrink = true)
 
         assertEquals(NavMotionKind.PredictiveShrink, shrink.kind)
@@ -337,23 +308,6 @@ class NavTransitionsTest {
     }
 
     @Test
-    fun `axis moves both pages together at full width, opaque`() {
-        val probe = Probe(composeRule)
-        for (pop in listOf(false, true)) {
-            val motion = if (pop) {
-                navMotion(result, playRoot, pop = true, reduceMotion = false, NavForm.Tablet)
-            } else {
-                navMotion(game, result, pop = false, reduceMotion = false, NavForm.Tablet)
-            }
-            val frame = probe.play(motion)
-
-            val gap = abs(frame.incoming.left - frame.outgoing.left)
-            assertEquals("pages abut: $frame", WIDTH.value, gap, EPS)
-            assertTrue("in flight: $frame", abs(frame.incoming.left - frame.container.left) > EPS)
-        }
-    }
-
-    @Test
     fun `lift holds both scenes still and opaque, so only the shared card moves`() {
         val probe = Probe(composeRule)
         for (pop in listOf(false, true)) {
@@ -383,17 +337,6 @@ class NavTransitionsTest {
     }
 
     @Test
-    fun `tablet tab switch fades the incoming over an outgoing tab that stays at alpha 1`() {
-        val motion = navMotion(homeRoot, playRoot, pop = false, reduceMotion = false, NavForm.Tablet)
-        val frame = Probe(composeRule).play(motion)
-
-        assertOpaque(frame)
-        assertTrue("incoming is still fading in: $frame", frame.incomingChannel in 1..254)
-        assertTrue("incoming rises: $frame", frame.incoming.top > frame.container.top + EPS)
-        assertTrue("outgoing holds still: $frame", abs(frame.outgoing.top - frame.container.top) < EPS)
-    }
-
-    @Test
     fun `tablet tab back to Home fades only the upper page`() {
         val motion = navMotion(playRoot, homeRoot, pop = true, reduceMotion = false, NavForm.Tablet)
         val frame = Probe(composeRule).play(motion)
@@ -403,7 +346,7 @@ class NavTransitionsTest {
     }
 
     @Test
-    fun `TabletCrossfade tab switch fades in place over the opaque outgoing tab, nothing travels`() {
+    fun `tablet tab switch fades in place over the opaque outgoing tab, nothing travels`() {
         val probe = Probe(composeRule)
         for (pop in listOf(false, true)) {
             val motion = if (pop) crossfadeNav(playRoot, homeRoot, pop = true) else crossfadeNav(homeRoot, playRoot, pop = false)
@@ -416,7 +359,7 @@ class NavTransitionsTest {
     }
 
     @Test
-    fun `TabletCrossfade page push and pop fade in place, nothing travels`() {
+    fun `tablet page push and pop fade in place, nothing travels`() {
         val probe = Probe(composeRule)
         for (pop in listOf(false, true)) {
             val motion = if (pop) crossfadeNav(layerSettings, layerProfile, pop = true) else crossfadeNav(layerProfile, layerSettings, pop = false)
@@ -429,13 +372,7 @@ class NavTransitionsTest {
     }
 
     private fun crossfadeNav(from: Map<String, Any>, to: Map<String, Any>, pop: Boolean) =
-        navMotion(from, to, pop, reduceMotion = false, NavForm.Tablet, tabletCrossfade = true)
-
-    @Test
-    fun `with TabletCrossfade off the tablet keeps its rise and its axis slide`() {
-        assertEquals(NavMotionKind.Rise, navMotion(homeRoot, playRoot, pop = false, reduceMotion = false, NavForm.Tablet, tabletCrossfade = false).kind)
-        assertEquals(NavMotionKind.Axis, navMotion(layerProfile, layerSettings, pop = false, reduceMotion = false, NavForm.Tablet, tabletCrossfade = false).kind)
-    }
+        navMotion(from, to, pop, reduceMotion = false, NavForm.Tablet)
 
     @Test
     fun `phone tab switch fades only, with no travel`() {
@@ -477,7 +414,7 @@ class NavTransitionsTest {
     }
 
     @Test
-    fun `TabletCrossfade predictive back moves the screen right for either edge and fades it out`() {
+    fun `tablet predictive back moves the screen right for either edge and fades it out`() {
         val probe = Probe(composeRule)
 
         listOf(NavigationEvent.EDGE_LEFT, NavigationEvent.EDGE_RIGHT).forEach { edge ->
@@ -491,7 +428,7 @@ class NavTransitionsTest {
     }
 
     @Test
-    fun `TabletCrossfade predictive back brings the lower page in late from a small left offset`() {
+    fun `tablet predictive back brings the lower page in late from a small left offset`() {
         val probe = Probe(composeRule)
         val motion = predictivePopMotion(NavigationEvent.EDGE_RIGHT, reduceMotion = false, shrink = true)
 
@@ -570,13 +507,11 @@ class NavTransitionsTest {
         private val stack = mutableStateListOf<NavKey>(PAGE_A)
         private var next: ContentTransform = INSTANT
         private val motion = mutableStateOf(NavMotion.Idle)
-        private lateinit var density: Density
         private val direction = layoutDirection
 
         init {
             rule.mainClock.autoAdvance = false
             rule.setContent {
-                density = LocalDensity.current
                 // The shell's own scene canvas wraps each page, so its clock keeps a held page
                 // composed exactly as in the app; a clear scrim keeps the pixel reading honest.
                 MaterialTheme(colorScheme = lightColorScheme(scrim = Color.Transparent, background = Color.Black)) {
@@ -591,7 +526,7 @@ class NavTransitionsTest {
                                 entryProvider = { key ->
                                     NavEntry(key) {
                                         val color = if (key == PAGE_A) Color.Blue else Color.Red
-                                        SceneCanvas(entryKey = null, placement = PlacementDelta.None) {
+                                        SceneCanvas(entryKey = null) {
                                             Box(Modifier.fillMaxSize().background(color).testTag(tagOf(key)))
                                         }
                                     }
@@ -607,7 +542,7 @@ class NavTransitionsTest {
         fun play(motion: NavMotion, atMillis: Long = SAMPLE_MILLIS): Frame {
             move(INSTANT, NavMotion.Idle) { if (motion.pop) ensureTop(PAGE_B) else ensureTop(PAGE_A) }
             rule.mainClock.advanceTimeBy(SETTLE_MILLIS)
-            val transform = motion.transform(direction, density)
+            val transform = motion.transform(direction)
             move(transform, motion) { if (motion.pop) stack.removeAt(stack.lastIndex) else stack.add(PAGE_B) }
             rule.mainClock.advanceTimeBy(atMillis)
             val incoming = if (motion.pop) PAGE_A else PAGE_B

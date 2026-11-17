@@ -36,7 +36,6 @@ private fun row(code: String, game: String, brand: GameBrand, title: String, lev
     CommunityRowModel(checkNotNull(ShareCode.parse(code)), game, brand, title, author = "Maya", difficulty = level, age = age)
 
 private val Loaded = CommunityState(
-    enabled = true,
     games = listOf(GameChoice(GameId("zip"), "Zip"), GameChoice(GameId("tango"), "Tango")),
     phase = CommunityPhase.Loaded(
         listOf(

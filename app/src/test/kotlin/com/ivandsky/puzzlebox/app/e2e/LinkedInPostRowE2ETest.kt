@@ -4,7 +4,8 @@ import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertTextContains
-import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.play.MiniSudokuPlayFixture
@@ -200,8 +201,8 @@ class LinkedInPostRowE2ETest {
 
     private fun ShellRobot.assertOffersPost(game: DailySolve) {
         try {
-            // The merged tree: the row is there but inert until the page is ready.
-            awaitLinkedIn { rule.onAllNodesWithTag(POST_ROW).fetchSemanticsNodes().isNotEmpty() }
+            // The row is there but inert (no semantics) until the page's primary resolves; wait for the ready row.
+            awaitLinkedIn { rule.onAllNodes(hasTestTag(POST_ROW) and hasText("Post to LinkedIn")).fetchSemanticsNodes().isNotEmpty() }
         } catch (timeout: ComposeTimeoutException) {
             throw AssertionError("$game: the result page offers no Post to LinkedIn row", timeout)
         }

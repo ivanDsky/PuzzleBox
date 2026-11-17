@@ -45,13 +45,11 @@ import java.time.LocalDate
  * Loop wiring: Home's Today card selects the Play tab; its history teaser opens
  * the Ranks tab; the Ranks hub's rows push the day's game key; Settings' Component catalog row pushes [CatalogKey] on the current
  * tab's stack.
- * Custom lives in Games: [custom] fills the Games Custom pill, its New puzzle and draft rows push that draft's
- * Studio on the Games stack and its published rows that puzzle's page, and [makeOne] backs the game
- * page's Make one (the default size). Back pops the layer or
- * the current tab's stack
+ * The Studio on a draft pushes on Community's stack, and a published row that puzzle's page. [custom] fills the
+ * Community tab ([communityEntry]: Custom's list, with its own code sheet; Games shows Dailies and Duels) and
+ * [makeOne] backs the game page's Make one (the default size). Back pops the layer or the current tab's stack
  * ([Navigator.pop]), including after process-death restore. A [codeDraft] (a tapped link's text that isn't a
- * code) opens the Play library's code sheet holding it. With a Community tab in [tabSet] (M10-1) Custom is that tab's
- * root ([communityEntry]) and not a Games pill: [custom] fills it, with its own code sheet, and Games shows Dailies and Duels.
+ * code) opens the Community code sheet holding it.
  *
  * Each content type has one owner (ADR-0027): Today's rank summary opens the Ranks hub ([openRanks]) and its
  * duels summary the Games section through [libraryRequests]. Today hides what is owned elsewhere; the game page
@@ -69,15 +67,14 @@ import java.time.LocalDate
  */
 internal fun puzzleBoxEntryProvider(
     navigator: Navigator,
-    tabSet: TabSet,
     homeLayout: HomeLayout,
     playLayout: PlayLayout,
     historyLayout: HistoryLayout,
+    custom: CustomSlot,
+    makeOne: MakeOne,
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
-    custom: CustomSlot,
-    makeOne: MakeOne,
     libraryRequests: LibraryRequests = LibraryRequests(),
     visibility: VisibilitySlot,
     tuneDefaults: RanksTuneDefaults,
@@ -86,10 +83,9 @@ internal fun puzzleBoxEntryProvider(
         navigator,
         homeLayout,
         title = topLevelDestinations.first { it.key == HomeKey }.label,
-        summaries = homeSummaries(navigator, tabSet, duels, libraryRequests),
+        summaries = homeSummaries(navigator, duels, libraryRequests),
     )
     ranksEntry(navigator, historyLayout, linkedIn = true, tuneDefaults = tuneDefaults)
-    val communityTab = tabSet.hasCommunityTab
     playEntry(
         navigator,
         playLayout,
@@ -98,11 +94,9 @@ internal fun puzzleBoxEntryProvider(
         onLibraryRequestTaken = libraryRequests::take,
         onCodeDraftTaken = onCodeDraftTaken,
         duels = duels,
-        custom = custom,
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) },
-        onOpenRanks = openRanks(navigator, tabSet),
+        onOpenRanks = openRanks(navigator),
         onMakeOne = { game -> makeOne(game) },
-        communityTab = communityTab,
     )
     communityEntry(
         navigator,
@@ -115,8 +109,8 @@ internal fun puzzleBoxEntryProvider(
     resultEntry(
         navigator,
         linkedIn = true,
-        onOpenRanks = openRanks(navigator, tabSet),
-        onChallenge = { prefill -> libraryRequests.openChallenge(navigator, tabSet, prefill) },
+        onOpenRanks = openRanks(navigator),
+        onChallenge = { prefill -> libraryRequests.openChallenge(navigator, prefill) },
     )
     editorEntry(navigator, playLayout, testSolvePlay = TestSolveOnPlay)
     publishedPuzzleEntry(navigator, playLayout)
@@ -145,26 +139,25 @@ private val TestSolveOnPlay = TestSolvePlaySlot { ui, controller, title, label, 
  * Opens [HistoryKey] for a game and day (null: today) on the Ranks tab, once per tap: the hub at that board. One back
  * returns to the screen the link was on.
  */
-internal fun openRanks(navigator: Navigator, tabSet: TabSet): (GameId, LocalDate?) -> Unit =
-    { game, day -> navigator.openOnOwnerTab(HistoryKey(game.value, day?.toString()), tabSet) }
+internal fun openRanks(navigator: Navigator): (GameId, LocalDate?) -> Unit =
+    { game, day -> navigator.openOnOwnerTab(HistoryKey(game.value, day?.toString())) }
 
 /**
- * What Today opens: the rank row the hub at that game, the duels row the Games section (its owner under [tabSet]),
- * the day summary the hub on Overall at that ISO day and the streak summary the hub with the calendar expanded.
+ * What Today opens: the rank row the hub at that game, the duels row the Games section, the day summary the hub on
+ * Overall at that ISO day and the streak summary the hub with the calendar expanded.
  */
 internal fun homeSummaries(
     navigator: Navigator,
-    tabSet: TabSet,
     duels: DuelsSlot?,
     libraryRequests: LibraryRequests,
 ): HomeSummaries = HomeSummaries(
-    onOpenRank = { game -> openRanks(navigator, tabSet)(game, null) },
+    onOpenRank = { game -> openRanks(navigator)(game, null) },
     duels = duels?.let {
         HomeDuelsSummary(
-            onOpen = { libraryRequests.openGamesSection(navigator, tabSet, GamesTab.Duels) },
+            onOpen = { libraryRequests.openGamesSection(navigator, GamesTab.Duels) },
             needYou = it.needYou,
         )
     },
-    onOpenDay = { day: String -> navigator.openOnOwnerTab(HistoryKey(gameId = null, day = day), tabSet) },
-    onOpenStreak = { navigator.openOnOwnerTab(HistoryKey(calendarExpanded = true), tabSet) },
+    onOpenDay = { day: String -> navigator.openOnOwnerTab(HistoryKey(gameId = null, day = day)) },
+    onOpenStreak = { navigator.openOnOwnerTab(HistoryKey(calendarExpanded = true)) },
 )

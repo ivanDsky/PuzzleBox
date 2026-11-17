@@ -119,7 +119,7 @@ abstract class CommunityPanesGoldenScreenshots(private val device: String) {
     /**
      * The right pane's stand-in for the real page ([FriendPuzzleRoute] over its view model): a friend puzzle's card as
      * the picked row says (game, brand, title and author from the New today or Friends row), with the stub board the
-     * page draws with CommunityPuzzles on; or your published one. The real page's board is tested in
+     * page draws; or your published one. The real page's board is tested in
      * FriendHiddenBoardTest.
      */
     @Composable
@@ -162,7 +162,7 @@ abstract class CommunityPanesGoldenScreenshots(private val device: String) {
         fun row(code: String, game: String, brand: GameBrand, title: String, level: String?, age: String) =
             CommunityRowModel(checkNotNull(ShareCode.parse(code)), game, brand, title, author = "Maya", difficulty = level, age = age)
 
-        val BASE = CommunityState(enabled = true)
+        val BASE = CommunityState()
 
         val LOADED = BASE.copy(
             phase = CommunityPhase.Loaded(

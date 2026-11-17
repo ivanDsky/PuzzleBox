@@ -116,11 +116,6 @@ class PublishLevelSessionTest {
     }
 
     @Test
-    fun `without the community flag nothing is public, so no control is offered`() = runTest {
-        assertFalse(session(community = false).state.value.details.levelOffered)
-    }
-
-    @Test
     fun `a pick is handed to the draft's writer and shown, and picking the proposal again drops it`() = runTest {
         val session = session()
 
@@ -220,12 +215,9 @@ class PublishLevelSessionTest {
         runCurrent()
     }
 
-    private suspend fun TestScope.session(finishForMe: Boolean = true, community: Boolean = true): PublishSession {
+    private suspend fun TestScope.session(finishForMe: Boolean = true): PublishSession {
         drafts.upsert(row)
-        val flags = listOfNotNull(
-            ReleaseFlag.FinishForMe.takeIf { finishForMe },
-            ReleaseFlag.CommunityPuzzles.takeIf { community },
-        )
+        val flags = listOfNotNull(ReleaseFlag.FinishForMe.takeIf { finishForMe })
         return PublishSession(
             draftId = DRAFT_ID,
             createShared = CreateSharedPuzzle(

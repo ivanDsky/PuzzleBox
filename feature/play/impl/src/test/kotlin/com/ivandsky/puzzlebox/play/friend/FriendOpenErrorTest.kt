@@ -32,7 +32,6 @@ import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.FakeGames
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.repository.FakeHiddenPuzzles
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
@@ -345,7 +344,6 @@ class FriendOpenErrorTest {
         editors = GameEditorRegistry(emptyList()),
         dispatchers = now,
         board = signedOutBoard(),
-        flags = FakeReleaseFlags(),
         reportPuzzle = ReportPuzzle(shared, FakeHiddenPuzzles()),
     )
 

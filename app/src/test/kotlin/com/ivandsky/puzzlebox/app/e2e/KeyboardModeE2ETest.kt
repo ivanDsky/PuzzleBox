@@ -34,7 +34,7 @@ import org.robolectric.annotation.Config
  * Device check R3: the keyboard adjusts the app's window by resize, never by pan (a pan slid the
  * Studio's top bar under the status bar, and below API 30 left no IME inset to scroll by). The
  * manifest declares it on [MainActivity], so the system never re-picks pan, and the import
- * sheet's text field under Games' Custom pill, the main window's other text field, still takes input under it.
+ * sheet's text field on Community's Yours page, the main window's other text field, still takes input under it.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -61,8 +61,8 @@ class KeyboardModeE2ETest {
         graph.start()
         launching {
             assertEquals(RESIZE, rule.activity.window.attributes.softInputMode and ADJUST)
-            tap("nav.tab.play")
-            tap(CUSTOM_PILL)
+            tap("nav.tab.community")
+            tap(YOURS)
             tap(IMPORT)
             tap(TEXT)
             rule.onNodeWithTag(TEXT).performTextInput("puzzlebox queens v1")
@@ -109,7 +109,7 @@ class KeyboardModeE2ETest {
         // platform has no non-deprecated constant for reading that mode back from the window.
         @Suppress("DEPRECATION")
         const val RESIZE = WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE
-        const val CUSTOM_PILL = "library.tab.custom"
+        const val YOURS = "community.tab.yours"
         const val IMPORT = "create.empty.import"
         const val TEXT = "create.import.text"
         const val TIMEOUT_MS = 10_000L

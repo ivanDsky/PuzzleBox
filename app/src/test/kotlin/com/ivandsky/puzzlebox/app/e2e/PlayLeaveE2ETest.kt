@@ -9,6 +9,7 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.topLevelDestinations
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 
 import com.ivandsky.puzzlebox.domain.TodayStatus
 import com.ivandsky.puzzlebox.game.FetchError
@@ -281,8 +282,9 @@ class PlayLeaveE2ETest {
         tab: NavKey,
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
+        community: List<NavKey> = listOf(CommunityKey),
         history: List<NavKey> = listOf(HistoryRootKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, history))
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, community, history))
 
     private val playHub = stacks(tab = PlayKey)
     private val inZip = stacks(tab = PlayKey, play = listOf(PlayKey, GameKey(ZIP)))

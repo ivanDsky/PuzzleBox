@@ -39,7 +39,7 @@ private val GridMargin = Spacing.md
 internal val PublishedGridMinWidth = GridMinBoardWidth + GridGap + SidePaneWidth + Spacing.lg * 2
 
 /**
- * The author's published page as two columns, for the Community tablet's right pane with CommunityPuzzles on: the plain
+ * The author's published page as two columns, for the Community tablet's right pane: the plain
  * sharp [board] on the left; on the right, in the Create side pane's width, the [title] as the heading and the page's
  * [details] (the share ticket, the can't-edit note, Duplicate, Unpublish and the game's disabled publish fields). The
  * pane has no bar; the columns are centred on each other and on the pane, and the page scrolls when they are taller.

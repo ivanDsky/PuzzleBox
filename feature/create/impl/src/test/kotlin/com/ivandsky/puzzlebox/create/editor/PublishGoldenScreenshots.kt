@@ -36,7 +36,7 @@ import org.robolectric.annotation.GraphicsMode
  * (in the tools' slot, on the tablet in the side pane's) signed in and signed out, the sign-in
  * sheet, the Publishing spinner pill, Offline, Rejected and the daily cap with their banners
  * and Retry publish, then the share ticket once published and the struck read-only record once
- * unpublished. With the community flag on the details carry the Public or Link only picker (`details-public`, `details-link-only`). The board is the Studio preview's placeholder square. Goldens in `snapshots/publish/`.
+ * unpublished. The details carry the Public or Link only picker (`details` for Public, `details-link-only`). The board is the Studio preview's placeholder square. Goldens in `snapshots/publish/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -55,9 +55,6 @@ abstract class PublishGoldenScreenshots(private val layout: PlayLayout, private 
 
     @Test fun `details light`() = capture("details", PublishSession.State(details = DETAILS), dark = false)
     @Test fun `details dark`() = capture("details", PublishSession.State(details = DETAILS), dark = true)
-
-    @Test fun `details public light`() = capture("details-public", PublishSession.State(details = PICKER), dark = false)
-    @Test fun `details public dark`() = capture("details-public", PublishSession.State(details = PICKER), dark = true)
 
     @Test fun `details link only light`() = capture("details-link-only", PublishSession.State(details = PICKER_LINK_ONLY), dark = false)
     @Test fun `details link only dark`() = capture("details-link-only", PublishSession.State(details = PICKER_LINK_ONLY), dark = true)
@@ -183,7 +180,6 @@ abstract class PublishGoldenScreenshots(private val layout: PlayLayout, private 
         val UNIQUE = Verdict.Unique(Solution(listOf(1, 9, 12, 22, 26, 35)))
         val PASSED = TestSolve(layoutKey = "golden", timeMs = 102_000, hints = 0)
         val DETAILS = PublishSession.Details(authorName = "Ivan", note = "Start from the corner.")
-        val PICKER = DETAILS.copy(visibility = PublishVisibility.Choice(Visibility.Public))
         val PICKER_LINK_ONLY = DETAILS.copy(visibility = PublishVisibility.Choice(Visibility.LinkOnly))
         val SIGNED_OUT = PublishSession.State(signedIn = false)
         val CODE = checkNotNull(ShareCode.parse("K7Q2MX"))

@@ -40,9 +40,9 @@ val friendModule = module {
     factory { ComputeCustomBoard() }
     factory { FriendPuzzleBoard(get(), get(), get(), get()) }
     factory { SyncReceivedStatus(get(), get()) }
-    viewModel { (key: FriendPuzzleKey) -> FriendPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    viewModel { (key: FriendPuzzleKey) -> FriendPuzzleViewModel(key, get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     viewModel { (key: CustomResultKey) -> CustomResultViewModel(key, get(), get(), get(), get(), get(), get(), get(), get()) }
-    viewModel { CommunityViewModel(get(), get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
+    viewModel { CommunityViewModel(get(), get(), get(), get(), get(), get(), System::currentTimeMillis) }
 }
 
 private const val OPEN_BUDGET_MS = 5_000L

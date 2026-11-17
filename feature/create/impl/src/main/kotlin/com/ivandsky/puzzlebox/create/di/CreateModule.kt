@@ -78,7 +78,6 @@ val createModule: Module = module {
             copyDraft = get(),
             dispatchers = get(),
             updatePublishState = get(),
-            flags = get(),
         )
     }
 }

@@ -37,13 +37,11 @@ import com.ivandsky.puzzlebox.model.GameId
  * row. On the tablet the [selected] row is outlined; on the phone the list shows the
  * offline pill and each row carries a chevron.
  *
- * With a [duels] slot the list is tabbed instead ([UnderlineTabbedList]): the header stays put over the shared
- * underline strip over a swipeable pager, one page per tab of [gamesTabs]: Dailies, Duels, Custom. Dailies scrolls on
- * [scroll], Duels on [duelsScroll], which the Duels body lays its list out on, and Custom's body is [customTab], laid
- * out on [customScroll], its tab carrying [customCount]; each tab keeps its own scroll, and a tab change ([onTab])
- * scrolls nothing back to the top. There is no From friends carousel then: the friend puzzles live in Custom. The
- * Duels body is handed the pending [duelPrefill] and reports it taken ([onDuelPrefillTaken]). With a [community] tab
- * the tabs are Dailies and Duels only; Custom is not shown, and a saved one shows Dailies.
+ * With a [duels] slot the list is tabbed instead: the header stays put over the shared underline strip over a swipeable
+ * pager ([UnderlineTabbedList]), the [tab]'s body filling the rest: Dailies and Duels. Each tab keeps its own scroll,
+ * Dailies on [scroll] and Duels on [duelsScroll], which the Duels body lays its list out on; a tab change ([onTab])
+ * scrolls nothing back to the top. The friend puzzles live on the app's Community tab, so there is no From friends
+ * carousel in the tabs. The Duels body is handed the pending [duelPrefill] and reports it taken ([onDuelPrefillTaken]).
  */
 @Composable
 internal fun LibraryList(
@@ -58,28 +56,20 @@ internal fun LibraryList(
     tab: GamesTab = GamesTab.Dailies,
     onTab: (GamesTab) -> Unit = {},
     duelsScroll: LazyListState = rememberLazyListState(),
-    customTab: @Composable () -> Unit,
-    customCount: Int = 0,
-    customScroll: LazyListState = rememberLazyListState(),
     duelPrefill: DuelPrefill? = null,
     onDuelPrefillTaken: () -> Unit = {},
-    community: Boolean = false,
 ) {
     val phone = layout == PlayLayout.SinglePane
-    // Only the list on screen glides.
-    val shown by rememberUpdatedState(if (duels == null) null else tab.shownWith(community))
+    // Only the list on screen glides: a tab change already snaps the other ones back to their tops.
+    val onDuels by rememberUpdatedState(duels != null && tab == GamesTab.Duels)
     OnTabReselect {
-        when (shown) {
-            GamesTab.Duels -> duelsScroll.animateScrollToItem(0)
-            GamesTab.Custom -> customScroll.animateScrollToItem(0)
-            else -> scroll.animateScrollTo(0)
-        }
+        if (onDuels) duelsScroll.animateScrollToItem(0) else scroll.animateScrollTo(0)
     }
     if (duels != null) {
         UnderlineTabbedList(
-            state, phone, GamesScrolls(scroll, duelsScroll, customScroll), onRow, modifier,
+            state, phone, GamesScrolls(scroll, duelsScroll), onRow, modifier,
             header = { Box(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier) { ListHeader(headerAction) } },
-            duels, tab, onTab, customTab, customCount, duelPrefill, onDuelPrefillTaken, community,
+            duels, tab, onTab, duelPrefill, onDuelPrefillTaken,
         )
         return
     }

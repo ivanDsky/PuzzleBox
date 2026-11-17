@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardEntry
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
@@ -118,6 +119,10 @@ class ShellSummariesE2ETest {
         assertRoute(RANKS)
         assertOwnersOnly(historyOwner = true)
 
+        tapTab(CommunityKey)
+        assertRoute(COMMUNITY)
+        assertOwnersOnly()
+
         tapTab(HomeKey)
         tapAvatar()
         assertRoute(PROFILE)
@@ -204,6 +209,7 @@ class ShellSummariesE2ETest {
         const val HOME = "route.home"
         const val LIBRARY = "route.library"
         const val RANKS = "route.ranks"
+        const val COMMUNITY = "route.community"
         const val RESULT = "route.result"
         const val PROFILE = "route.profile"
         const val SETTINGS = "route.settings"

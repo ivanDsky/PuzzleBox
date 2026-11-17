@@ -150,7 +150,7 @@ class LibraryTabletScrollTest {
         }
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                LibraryRoute(layout = PlayLayout.TwoPane, onPlay = { _, _ -> }, onOpenCode = {}, onOpenRanks = { _, _ -> }, custom = CustomSlot { _, _, _ -> }, onMakeOne = {})
+                LibraryRoute(layout = PlayLayout.TwoPane, onPlay = { _, _ -> }, onOpenCode = {}, onOpenRanks = { _, _ -> }, onMakeOne = {})
             }
         }
         awaitTag("library.friends.row.${A.value}")

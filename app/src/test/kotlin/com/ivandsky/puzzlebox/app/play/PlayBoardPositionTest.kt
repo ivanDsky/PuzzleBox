@@ -73,7 +73,6 @@ import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.app.di.PreferencesQueensSettings
-import com.ivandsky.puzzlebox.app.nav.testCustomSlot
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeGameSettingsRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
@@ -242,7 +241,7 @@ class PlayBoardPositionTest {
                         backStack = navigator.state.currentStack,
                         onBack = { navigator.pop() },
                         entryProvider = entryProvider {
-                            playEntry(navigator, layout, onOpenRanks = { _, _ -> }, custom = testCustomSlot(), onMakeOne = {})
+                            playEntry(navigator, layout, onOpenRanks = { _, _ -> }, onMakeOne = {})
                             entry<ResultKey> { Text("result") }
                         },
                     )

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
@@ -19,7 +18,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
-import androidx.compose.runtime.key
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -51,24 +49,19 @@ private const val ReadyTimeoutMillis = 400L
 private const val HoldAlpha = 0.98f
 
 /**
- * The two-pane right pane. With [crossfade] (TabletCrossfade) picking another game fades the old page out and the new
+ * The two-pane right pane: picking another game fades the old page out and the new
  * one in over [MotionTokens.TabletPageCrossfade], in place: no slide, no rise, no scale, and the pane keeps its size.
  * The old page stays opaque under the fading new one, and the page's own staggered block entrance is off so nothing
  * waves behind the fade.
  * Reduced motion uses the app's [MotionTokens.ReducedFadeDuration] fade. Picking the shown game changes nothing: the
- * pane only refreshes. Without [crossfade] the page swaps in a single frame, as it always did.
+ * pane only refreshes.
  */
 @Composable
 internal fun LibraryPane(
     frame: LibraryPaneFrame,
-    crossfade: Boolean,
     modifier: Modifier = Modifier,
     content: @Composable (LibraryPaneFrame) -> Unit,
 ) {
-    if (!crossfade) {
-        key(frame.row.card.game) { Box(modifier.fillMaxWidth()) { content(frame) } }
-        return
-    }
     val reduced = rememberReducedMotion()
     // The page swaps to another game only once its data is here: otherwise the new page fades in empty and its calendar
     // and day card fill in under the fade, which reads as a jump. The same game's updates show at once.

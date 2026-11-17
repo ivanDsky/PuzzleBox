@@ -10,6 +10,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.junit4.v2.AndroidComposeTestRule as v2AndroidComposeTestRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
@@ -48,8 +49,8 @@ import org.robolectric.annotation.Config
 /**
  * A plain-text share over the real activity: the manifest
  * routes `ACTION_SEND text/plain` to [MainActivity]; a cold start and a warm new intent (from
- * the Play tab) both end on the Studio of an imported draft with the verdict the same board
- * pasted would show (Unique), back returns to Games' Custom, and recreating the activity
+ * the Play or Ranks tab) both end on the Studio of an imported draft with the verdict the same board
+ * pasted would show (Unique), back returns to Community's root, and recreating the activity
  * afterwards creates no second draft. A task relaunched from Recents does not re-apply its
  * share.
  */
@@ -83,9 +84,10 @@ class ShareTargetE2ETest {
     }
 
     @Test
-    fun `a cold start from a share ends on the imported draft's Studio and back is Games' Custom`() {
+    fun `a cold start from a share lands on Community, where Yours opens the imported draft's Studio`() {
         startGraph()
         launching(send(UNIQUE)) {
+            importFromYours()
             awaitVerdict()
             assertRoute(EDITOR)
             assertEquals("one imported draft", 1, drafts.rows.size)
@@ -93,14 +95,13 @@ class ShareTargetE2ETest {
             assertNull("the text was taken", store.pending.value)
 
             back()
-            assertRoute(LIBRARY)
-            awaitTag(CUSTOM_LIST)
-            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+            assertRoute(COMMUNITY)
+            assertEquals(0, rule.onAllNodesWithTag("nav.tab.create").fetchSemanticsNodes().size)
         }
     }
 
     @Test
-    fun `a share while the app runs on Games opens the Studio and back returns to Custom`() {
+    fun `a share while the app runs on Play lands on Community and back from the Studio returns to it`() {
         startGraph()
         // Relaunched from Recents, the share that first started the task is not re-applied.
         launching(fromRecents(send(UNIQUE))) {
@@ -109,19 +110,19 @@ class ShareTargetE2ETest {
             assertRoute(LIBRARY)
 
             deliver(send(UNIQUE))
+            importFromYours()
             awaitVerdict()
             assertRoute(EDITOR)
             assertEquals(1, drafts.rows.size)
 
             back()
-            assertRoute(LIBRARY)
-            awaitTag(CUSTOM_LIST)
-            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+            assertRoute(COMMUNITY)
+            rule.onNodeWithTag("nav.tab.community").assertIsSelected()
         }
     }
 
     @Test
-    fun `a share while a Studio is open opens the shared draft, not the old one, then back is Custom`() {
+    fun `a share while Community shows a Studio opens the shared draft, then back is the Community root`() {
         startGraph()
         seedBlankDraft()
         launching(fromRecents(send(UNIQUE))) {
@@ -134,9 +135,8 @@ class ShareTargetE2ETest {
             assertNull(store.pending.value)
 
             back()
-            assertRoute(LIBRARY)
-            awaitTag(CUSTOM_LIST)
-            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
+            assertRoute(COMMUNITY)
+            rule.onNodeWithTag("nav.tab.community").assertIsSelected()
         }
     }
 
@@ -144,6 +144,7 @@ class ShareTargetE2ETest {
     fun `recreating the activity after a share creates no second draft`() {
         startGraph()
         launching(send(UNIQUE)) {
+            importFromYours()
             awaitVerdict()
 
             rule.activityRule.scenario.recreate()
@@ -168,14 +169,21 @@ class ShareTargetE2ETest {
         }
     }
 
-    /** Games' Custom, then the seeded draft's row opens its Studio. */
+    /** Community's root, then Yours' seeded draft row opens its Studio. */
     private fun openSeededStudio() {
-        tap("nav.tab.play")
-        tap("library.tab.custom")
-        assertRoute(LIBRARY)
+        tap("nav.tab.community")
+        assertRoute(COMMUNITY)
+        tap(YOURS)
         tap("create.draft.row")
         awaitTag("create.editor.board")
         assertRoute(EDITOR)
+    }
+
+    /** The share waits on Community's root; Yours, which imports it, opens it as the Studio of a draft. */
+    private fun importFromYours() {
+        assertRoute(COMMUNITY)
+        rule.onNodeWithTag("nav.tab.community").assertIsSelected()
+        tap(YOURS)
     }
 
     /** A blank 5×5 Queens draft: a Studio whose verdict is not Unique. */
@@ -203,7 +211,7 @@ class ShareTargetE2ETest {
     }
 
     @Test
-    fun `a share while the app runs on Ranks opens the Studio on Games and back is Custom, then Ranks, then Today`() {
+    fun `a share while the app runs on Ranks lands on Community and back is Community, then Today`() {
         startGraph()
         launching(fromRecents(send(UNIQUE))) {
             assertRoute(HOME)
@@ -211,18 +219,14 @@ class ShareTargetE2ETest {
             assertRoute(RANKS)
 
             deliver(send(UNIQUE))
+            importFromYours()
             awaitVerdict()
             assertRoute(EDITOR)
             assertEquals(1, drafts.rows.size)
 
             back()
-            assertRoute(LIBRARY)
-            awaitTag(CUSTOM_LIST)
-            rule.onNodeWithTag("nav.tab.play").assertIsSelected()
-
-            // The share switched tab from Ranks, so one Back returns to the screen it arrived on.
-            back()
-            assertRoute(RANKS)
+            assertRoute(COMMUNITY)
+            rule.onNodeWithTag("nav.tab.community").assertIsSelected()
 
             back()
             assertRoute(HOME)
@@ -311,9 +315,10 @@ class ShareTargetE2ETest {
     private companion object {
         const val HOME = "route.home"
         const val LIBRARY = "route.library"
+        const val COMMUNITY = "route.community"
         const val RANKS = "route.ranks"
         const val EDITOR = "route.editor"
-        const val CUSTOM_LIST = "custom.list"
+        const val YOURS = "community.tab.yours"
         const val VERDICT = "create.editor.pill"
         const val SIZE = 5
         const val TIMEOUT_MS = 10_000L

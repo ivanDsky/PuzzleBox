@@ -35,15 +35,14 @@ import java.time.YearMonth
  * [page] is the selected game's calendar and [month] the one it asked for (null = today's);
  * on the phone a picked day scrolls the page up to the day card. The header's Enter code shows
  * only with an [onEnterCode]. [friends] heads the list as From friends, each card opening its
- * puzzle through [onOpenFriend] and removing it through [onRemoveFriend]. A [duels] slot turns
- * the list into the Dailies, Duels and Custom tabs (the tab is saved here, so it survives a
- * page push); the [custom] slot's list holds the friend puzzles and its pill counts the ones not played yet. With a
- * [communityTab] Custom is not a pill: the tabs are Dailies and Duels. A [request] acts once
+ * puzzle through [onOpenFriend] and removing it through [onRemoveFriend]; the tabs have none, since the friend puzzles
+ * live on the app's Community tab. A [duels] slot turns
+ * the list into the Dailies and Duels tabs (the tab is saved here, so it survives a
+ * page push). A [request] acts once
  * ([ConsumeLibraryRequest]; a section or a challenge needs [duels]) and is reported taken ([onRequestTaken]); a challenge
  * also leaves its [DuelPrefill] pending (saved here) for the Duels body, until the body takes it. The game page
  * shows its rank as a summary row that calls [onOpenRanks].
  * A non-null [linkedIn] puts the LinkedIn lines on the page's day card. [onMakeOne] puts "Make one" on the page.
- * With [paneCrossfade] the two-pane right pane fades to the picked game's page instead of switching in one frame ([LibraryPane]).
  */
 @Composable
 internal fun LibraryScreen(
@@ -64,17 +63,13 @@ internal fun LibraryScreen(
     onOpenFriend: (ShareCode) -> Unit = {},
     onRemoveFriend: (ShareCode) -> Unit = {},
     duels: DuelsSlot? = null,
-    custom: CustomSlot,
     request: LibraryRequest? = null,
     onRequestTaken: () -> Unit = {},
     linkedIn: LinkedInCardState? = null,
     onMakeOne: (GameId) -> Unit,
-    communityTab: Boolean = false,
-    paneCrossfade: Boolean = false,
 ) {
     val listScroll = rememberScrollState()
     val duelsScroll = rememberLazyListState()
-    val customScroll = rememberLazyListState()
     val enterCode: @Composable () -> Unit = {
         onEnterCode?.let { SecondaryButton(text = "Enter code", onClick = it, modifier = Modifier.testTag("library.enterCode")) }
     }
@@ -101,7 +96,6 @@ internal fun LibraryScreen(
             pageOpen = false
             listScroll.scrollTo(0)
             duelsScroll.requestScrollToItem(0)
-            customScroll.requestScrollToItem(0)
         }
     }
     ConsumeLibraryRequest(
@@ -115,23 +109,21 @@ internal fun LibraryScreen(
         },
         onTaken = onRequestTaken,
     )
-    val customTab: @Composable () -> Unit = { CustomTabBody(custom, customScroll, friends, onOpenFriend, onRemoveFriend, onEnterCode ?: {}) }
     @Composable
     fun GamesList(onRow: (GameId) -> Unit, modifier: Modifier = Modifier) = LibraryList(
         state, layout, listScroll, onRow, modifier, headerAction = enterCode, friends = fromFriends,
-        duels = duels, tab = tab, onTab = { tab = it },
-        duelsScroll = duelsScroll, customTab = customTab, customCount = friends.unplayed(), customScroll = customScroll,
-        duelPrefill = duelPrefill, onDuelPrefillTaken = { duelPrefill = null }, community = communityTab,
+        duels = duels, tab = tab, onTab = { tab = it }, duelsScroll = duelsScroll,
+        duelPrefill = duelPrefill, onDuelPrefillTaken = { duelPrefill = null },
     )
     if (layout == PlayLayout.TwoPane) {
         Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {
-            CompositionLocalProvider(LocalEnterSettled provides paneCrossfade) { GamesList(onRow, Modifier.width(400.dp)) }
+            CompositionLocalProvider(LocalEnterSettled provides true) { GamesList(onRow, Modifier.width(400.dp)) }
             Spacer(Modifier.width(Spacing.xl))
             // The Duels tab's right pane is a duel, never a game's page; going back to Dailies shows the selected game again.
-            if (duels != null && tab.shownWith(communityTab) == GamesTab.Duels) {
+            if (duels != null && tab == GamesTab.Duels) {
                 duels.pane(Modifier.fillMaxSize())
             } else if (selected != null) {
-                LibraryPane(LibraryPaneFrame(selected, page, month), paneCrossfade) { shown ->
+                LibraryPane(LibraryPaneFrame(selected, page, month)) { shown ->
                     Page(shown.row, onBack = null, shown.page, shown.month)
                 }
             }

@@ -27,7 +27,6 @@ class SettingsHubSectionsTest {
     /** Opens Settings the way a player does (avatar, then Profile's gear) and waits for the section that follows the hub's. */
     private fun settings(block: ShellRobot.() -> Unit) = shellRobot(
         graph = shellGraph(),
-        destinations = topLevelDestinations,
     ) {
         tapAvatar()
         tapGear()

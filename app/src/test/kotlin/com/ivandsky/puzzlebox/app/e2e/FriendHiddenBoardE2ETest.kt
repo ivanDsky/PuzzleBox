@@ -7,7 +7,6 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.e2e.FriendWorld.Companion.AUTHOR
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc
 import com.ivandsky.puzzlebox.game.editor.encodeShare
 import com.ivandsky.puzzlebox.game.editor.shareFormatVersion
@@ -24,8 +23,8 @@ import org.robolectric.ParameterizedRobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The friend page's hidden board (nav-rethink M12-8) over the real shell and each of the five real games, with
- * CommunityPuzzles on: a friend opens a published puzzle by its code and finds its board blurred under "Hidden until
+ * The friend page's hidden board (nav-rethink M12-8) over the real shell and each of the five real games:
+ * a friend opens a published puzzle by its code and finds its board blurred under "Hidden until
  * you play", with only that one line to TalkBack and nothing of the puzzle's solution on the page; after the friend
  * wins it, the page's board is sharp and is still the same givens, not the solved board. The author publishes through
  * the shared fake (the Studio's own publish page is not under test here).
@@ -36,7 +35,7 @@ import org.robolectric.annotation.Config
 class FriendHiddenBoardE2ETest(name: String) {
 
     private val game: FriendGame = FRIEND_GAMES.single { it.toString() == name }
-    private val world = FriendWorld(game.flags + ReleaseFlag.CommunityPuzzles)
+    private val world = FriendWorld(game.flags)
 
     @After
     fun close() = world.close()

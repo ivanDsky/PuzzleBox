@@ -11,9 +11,7 @@ import androidx.compose.runtime.setValue
  * A one-shot ask from outside Games, held by the app shell and taken once: show a [Section], or open a [Challenge].
  */
 sealed interface LibraryRequest {
-    /**
-     * Show [tab], closing any open page. A [tab] the pills do not have shows as Dailies ([shownWith]).
-     */
+    /** Show [tab], closing any open page. */
     data class Section(val tab: GamesTab) : LibraryRequest
 
     /**

@@ -25,7 +25,7 @@ import java.time.LocalDate
  *   null when it cannot be read.
  * @property friendTier the visibility tier of the friend with that uid; null when the read fails.
  * @property communityPuzzles the community puzzles on offer, newest first, already without the player's own and
- *   the ones they hid; empty when the list is off, offline or refused. Like the friend reads it may be slow.
+ *   the ones they hid; empty when the list is offline or refused. Like the friend reads it may be slow.
  */
 internal data class NextThingFacts(
     val game: GameId,

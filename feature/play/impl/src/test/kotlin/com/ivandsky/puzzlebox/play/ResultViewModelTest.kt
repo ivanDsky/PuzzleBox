@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
@@ -685,6 +686,7 @@ class ResultViewModelTest {
             computeStreak = ComputeStreak(GetPuzzleDay(games, clock)),
             puzzleDay = GetPuzzleDay(games, clock),
             nextRollover = GetNextRollover(games, clock),
+            communityPuzzles = ListCommunityPuzzles(FakeSharedPuzzleRepository(), FakeHiddenPuzzles(), identity) { 0L },
             failures = { _, _, cause -> throw cause },
         )
     }

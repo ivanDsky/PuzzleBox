@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performTextInput
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRef
 import com.ivandsky.puzzlebox.data.model.PuzzleRefKeys
 import com.ivandsky.puzzlebox.data.di.dataModule
@@ -305,7 +306,7 @@ class FriendWinIsolationE2ETest {
     /** Home's stack holds History, so a relaunch opens on it and back reaches Home. */
     private val historyOverHome = NavigationState(
         tab = HomeKey,
-        stacks = listOf(listOf(HomeKey, HistoryKey()), listOf(PlayKey), listOf(HistoryRootKey)),
+        stacks = listOf(listOf(HomeKey, HistoryKey()), listOf(PlayKey), listOf(CommunityKey), listOf(HistoryRootKey)),
     )
 
     private companion object {

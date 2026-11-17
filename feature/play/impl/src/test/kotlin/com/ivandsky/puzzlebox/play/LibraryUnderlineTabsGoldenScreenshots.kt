@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -33,8 +31,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Games (nav-rethink 125), phone and tablet, light and dark: the underline strip with the Duels need-you badge over
- * each of Dailies, Duels and Custom. Goldens in `snapshots/underline-tabs/`.
+ * Games, phone and tablet, light and dark: the underline strip with the Duels
+ * need-you badge over each of Dailies and Duels. Goldens in `snapshots/underline-tabs/`.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -70,9 +68,6 @@ abstract class LibraryUnderlineTabsGoldenScreenshots(private val layout: PlayLay
     @Test fun `duels light`() = capture("underline-duels", GamesTab.Duels, dark = false)
     @Test fun `duels dark`() = capture("underline-duels", GamesTab.Duels, dark = true)
 
-    @Test fun `custom light`() = capture("underline-custom", GamesTab.Custom, dark = false)
-    @Test fun `custom dark`() = capture("underline-custom", GamesTab.Custom, dark = true)
-
     private fun capture(name: String, tab: GamesTab, dark: Boolean) {
         rule.showGolden(dark) {
             LibraryScreen(
@@ -87,10 +82,8 @@ abstract class LibraryUnderlineTabsGoldenScreenshots(private val layout: PlayLay
                 onOpenLesson = {},
                 calendar = CalendarActions(),
                 onOpenRanks = { _, _ -> },
-                friends = listOf(FriendPreviewCards[0], FriendPreviewCards[3]),
                 onEnterCode = {},
                 duels = DUELS,
-                custom = CUSTOM,
                 onMakeOne = {},
             )
         }
@@ -127,16 +120,5 @@ abstract class LibraryUnderlineTabsGoldenScreenshots(private val layout: PlayLay
             onOpenDuel = {},
             pane = { modifier -> DuelPaneStandIn(modifier) },
         )
-
-        /** A stand-in for the create module's list: heads and rows that pad their own sides, the friend puzzles between them. */
-        val CUSTOM = CustomSlot { state, _, friends ->
-            LazyColumn(Modifier.fillMaxSize(), state = state) {
-                item { Text("Continue", Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.lg, bottom = Spacing.sm), style = MaterialTheme.typography.titleLarge) }
-                items(2) { Text("Draft ${it + 1}", Modifier.fillMaxWidth().height(72.dp).padding(Spacing.lg)) }
-                friends()
-                item { Text("Published by you", Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.lg, bottom = Spacing.sm), style = MaterialTheme.typography.titleLarge) }
-                items(2) { Text("Published ${it + 1}", Modifier.fillMaxWidth().height(72.dp).padding(Spacing.lg)) }
-            }
-        }
     }
 }

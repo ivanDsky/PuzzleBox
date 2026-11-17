@@ -48,12 +48,12 @@ import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
 
 /**
  * A friend's puzzle before it is played: the game's glyph, the title, "by" the author and
- * the note, with [FriendCard.givens] (CommunityPuzzles on) the puzzle's board between them, blurred under "Hidden until
+ * the note, with [FriendCard.givens] the puzzle's board between them, blurred under "Hidden until
  * you play" until you have solved it ([HiddenBoardSection]), the size and difficulty chips (difficulty only when the local re-check graded
  * it, "Taken down · still plays" once the author took it down, popping in on the stamp's
  * spring when the card's recheck finds it), the author's time and hints beside yours once solved, the code with Copy, the one
  * primary action, [onAction], and under it the [BoardPreview], whose sign-in is [onSignIn]. A ⋮ beside the title offers
- * Report ([onReport]) when [FriendCard.canReport].
+ * Report ([onReport]).
  * Sections rise in with the Enter stagger the first time the code's card is shown; under
  * reduced motion they only fade. On a wide window the card keeps to one centred column, unless it is in the Community
  * tablet's right pane, [paneHeight] high, with the board on and room for both columns: then [FriendPuzzleGrid] lays out
@@ -120,7 +120,7 @@ private fun SingleColumn(
     }
 }
 
-/** The title and "by author" beside the ⋮ menu (Report, when the card offers it). */
+/** The title and "by author" beside the ⋮ menu (Report). */
 @Composable
 internal fun FriendTitleRow(card: FriendCard, onReport: () -> Unit) {
     val accent = card.brand.accent.colors()
@@ -134,7 +134,7 @@ internal fun FriendTitleRow(card: FriendCard, onReport: () -> Unit) {
             )
             Byline(card.puzzle.authorName, accent.container, accent.onContainer)
         }
-        if (card.canReport) FriendCardMenu(onReport)
+        FriendCardMenu(onReport)
     }
 }
 

@@ -20,7 +20,7 @@ journey names.
 | --- | --- | --- | --- |
 | `StartupBenchmark` | cold and warm, Partial and None compilation | no data state: the install's data, so class order in the run matters | `timeToInitialDisplayMs`, frame timing |
 | `GameOpenBenchmark` | each of the five games: card, page, Play, board ready, back | `Opened(game)`: its puzzle stored, tutorial seen | frame timing |
-| `TabSwitchBenchmark` | Today, Games, Ranks, Create and back | `OnToday` | frame timing |
+| `TabSwitchBenchmark` | Today, Games, Ranks, Community and back | `OnToday` | frame timing |
 | `ArchiveBenchmark` | calendar day taps and month arrows | `OnToday` | frame timing |
 | `RanksBenchmark` | open, Who/When sheet, day arrows, board swipes | `OnToday` | frame timing |
 | `ZipDragBenchmark` | drag from 1 toward 2 on the board, Clear, three times | `Opened(Zip)` | frame timing |
