@@ -203,7 +203,7 @@ private fun PublishedRowPreview() {
                         code = checkNotNull(ShareCode.parse("K7Q2MX")),
                         gameId = GameId("queens"),
                         brand = GameBrand(AccentSlot.Violet, GameGlyphs.Queens),
-                        title = "Sunday crowns",
+                        title = "Sunday queens",
                         meta = "Author 1:42",
                         solves = 3,
                         published = "published 2 h ago",

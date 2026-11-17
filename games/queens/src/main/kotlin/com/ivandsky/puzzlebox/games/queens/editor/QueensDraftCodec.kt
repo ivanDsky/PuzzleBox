@@ -68,7 +68,7 @@ object QueensDraftCodec {
         val undone = readSteps(cursor) ?: return malformed("malformed redo history")
         // Present only when k > 0, so an empty section is malformed rather than a second spelling.
         val crowns = if (cursor.pos == bytes.size) emptySet() else readCrowns(cursor, draft.regions.size)?.ifEmpty { null }
-        if (crowns == null) return malformed("malformed crowns section")
+        if (crowns == null) return malformed("malformed queens section")
         if (cursor.pos != bytes.size) return malformed("${bytes.size - cursor.pos} trailing bytes")
         if (!fitsBackward(done, draft.size)) return malformed("undo history does not fit the board")
         if (!fitsForward(undone, draft.size)) return malformed("redo history does not fit the board")

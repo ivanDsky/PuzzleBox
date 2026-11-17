@@ -57,9 +57,9 @@ private fun tagOf(state: QueensCoachState): String? = when (state) {
 
 private fun copyOf(state: QueensCoachState): String = when (state) {
     QueensCoachState.Hidden -> ""
-    is QueensCoachState.PlaceCrowns -> "Place ${state.total} crowns where the answer goes (${state.placed}/${state.total})"
-    QueensCoachState.PaintRegions -> "Paint a region around each crown — drag out from a crown"
-    QueensCoachState.Ambiguous -> "2 answers fit — ghost crowns show the other one. Move a highlighted cell to another colour"
+    is QueensCoachState.PlaceCrowns -> "Place ${state.total} queens where the answer goes (${state.placed}/${state.total})"
+    QueensCoachState.PaintRegions -> "Paint a region around each queen — drag out from a queen"
+    QueensCoachState.Ambiguous -> "2 answers fit — ghost queens show the other one. Move a highlighted cell to another color"
     QueensCoachState.Unique -> "Unique ✓ — try solving it"
 }
 

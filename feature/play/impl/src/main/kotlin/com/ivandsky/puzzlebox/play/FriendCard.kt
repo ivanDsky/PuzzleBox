@@ -239,7 +239,7 @@ internal val FriendPreviewCards = listOf(
     previewCard("K7Q2MX", "Tango", GameBrand(AccentSlot.Orange, GameGlyphs.Tango), "Sunday sun and moons", "Jonas", FriendStatus.InProgress(70_000)),
     previewCard(
         "B4R9TZ", "Queens", GameBrand(AccentSlot.Violet, GameGlyphs.Queens),
-        "Crown of the castle, a long title that wraps past two lines", "Mia", FriendStatus.Solved(228_000),
+        "Rule of the castle, a long title that wraps past two lines", "Mia", FriendStatus.Solved(228_000),
     ),
     previewCard("M3N8PQ", "Zip", GameBrand(AccentSlot.Blue, GameGlyphs.Zip), "One line", "Ari", FriendStatus.TakenDown),
     previewCard("H2J5WX", "Queens", GameBrand(AccentSlot.Violet, GameGlyphs.Queens), "Fresh one", "Bo", FriendStatus.New),

@@ -167,7 +167,7 @@ private fun previewState(
 ) = CustomResultState(
     timeMs = timeMs,
     hintsUsed = hints,
-    title = "Queens 8×8 · Crown the castle",
+    title = "Queens 8×8 · Rule the castle",
     brand = GameBrand.Neutral.copy(accent = AccentSlot.Pink),
     rankOrder = RankOrder.TimeThenHints,
     puzzle = ReceivedPuzzle(
@@ -176,7 +176,7 @@ private fun previewState(
         variant = VariantId("queens/n8"),
         sharedFormatVersion = 1,
         puzzleBytes = ByteArray(0),
-        title = "Crown the castle",
+        title = "Rule the castle",
         authorName = PreviewBoardAuthor.name,
         note = "",
         authorTimeMs = 102_000L,
