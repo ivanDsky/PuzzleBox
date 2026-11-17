@@ -46,9 +46,9 @@ internal fun LazyListScope.fromFriendsSection(
 }
 
 /**
- * One full-width [FriendCard] per puzzle in [cards]; with none, the hint that offers [onEnterCode].
+ * One [FriendRow] per puzzle in [cards]; with none, the hint that offers [onEnterCode].
  * Every row pads its own sides and carries its own vertical spacing, so the list needs neither;
- * the keys start with `friend:`. A card opens through [onOpen]; its long-press menu removes
+ * the keys start with `friend:`. A row opens through [onOpen]; its long-press menu removes
  * through [onRemove].
  */
 internal fun LazyListScope.friendRows(
@@ -94,25 +94,6 @@ internal fun FriendsEmptyHint(onEnterCode: () -> Unit, modifier: Modifier = Modi
         EmptyState(title = "No puzzles from friends yet", message = "Puzzles friends send you show up here.")
         SecondaryButton("Enter code", onClick = onEnterCode, modifier = Modifier.testTag("library.friends.enter_code"))
     }
-}
-
-/** One friend puzzle as a full-width [FriendCard], opening and removing by its code. */
-@Composable
-internal fun FriendRow(
-    card: FriendCardModel,
-    reduced: Boolean,
-    onOpen: (ShareCode) -> Unit,
-    onRemove: (ShareCode) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    FriendCard(
-        card = card,
-        reduced = reduced,
-        onClick = { onOpen(card.row.code) },
-        onRemove = { onRemove(card.row.code) },
-        modifier = modifier.fillMaxWidth(),
-        fillWidth = true,
-    )
 }
 
 @PuzzleBoxPreviews
