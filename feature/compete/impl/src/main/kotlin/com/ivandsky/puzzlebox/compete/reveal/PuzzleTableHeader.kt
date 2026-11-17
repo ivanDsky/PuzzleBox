@@ -41,8 +41,9 @@ internal fun PuzzleTableHeader(summary: DuelSummary, metrics: TableMetrics, modi
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.weight(PuzzleCellWeight),
         )
-        PlayerHead(summary.me, summary.myPhotoUrl, DuelTone.Me, Modifier.width(metrics.timeWidth))
-        PlayerHead(summary.opponent, summary.theirPhotoUrl, DuelTone.Them, Modifier.width(metrics.timeWidth))
+        val tight = metrics.compact && metrics.pastYou
+        PlayerHead(summary.me, summary.myPhotoUrl, DuelTone.Me, Modifier.width(metrics.timeWidth), tight)
+        PlayerHead(summary.opponent, summary.theirPhotoUrl, DuelTone.Them, Modifier.width(metrics.timeWidth), tight)
         if (!metrics.compact) {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceBetween) {
                 MarginHead("← ", summary.me, "", Modifier.weight(1f, fill = false))
@@ -56,12 +57,13 @@ internal fun PuzzleTableHeader(summary: DuelSummary, metrics: TableMetrics, modi
 /** The share of a tablet row the puzzle's tile and name take, against 1 for the margin bar. */
 internal const val PuzzleCellWeight = 1.2f
 
+/** [tight]: a self duel's narrower phone column drops the avatar's gap and the end padding so "Past you" keeps its full name. */
 @Composable
-private fun PlayerHead(name: String, photoUrl: String?, tone: DuelTone, modifier: Modifier) {
+private fun PlayerHead(name: String, photoUrl: String?, tone: DuelTone, modifier: Modifier, tight: Boolean) {
     Row(
-        modifier = modifier.padding(end = 6.dp),
+        modifier = modifier.padding(end = if (tight) 0.dp else 6.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+        horizontalArrangement = Arrangement.spacedBy(if (tight) 4.dp else 8.dp, Alignment.End),
     ) {
         RevealAvatar(name, photoUrl, size = HeaderAvatar, tone = tone)
         FittedName(

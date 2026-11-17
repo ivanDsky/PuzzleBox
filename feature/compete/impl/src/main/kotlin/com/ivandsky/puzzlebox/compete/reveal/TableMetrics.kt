@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
  * [compact] is the phone, where the margin bar sits beside the times on a second line under the puzzle's name. A self
  * duel's phone table ([pastYou]) takes narrower time columns and label so the margin track keeps a readable length.
  */
-internal class TableMetrics(val compact: Boolean, val timeWidth: Dp, pastYou: Boolean = false) {
+internal class TableMetrics(val compact: Boolean, val timeWidth: Dp, val pastYou: Boolean = false) {
     val columnGap: Dp = if (compact) Spacing.sm else Spacing.lg
     val sidePadding: Dp = if (compact) Spacing.md else Spacing.xl
     val marginLabelWidth: Dp = if (compact) (if (pastYou) 40.dp else 52.dp) else 64.dp
