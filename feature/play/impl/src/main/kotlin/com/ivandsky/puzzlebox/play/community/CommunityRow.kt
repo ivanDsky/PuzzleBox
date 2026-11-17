@@ -19,7 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
+import com.ivandsky.puzzlebox.designsystem.LocalSelectedRowCode
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.selectedRow
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 
@@ -36,7 +38,8 @@ internal fun CommunityRow(row: CommunityRowModel, onOpen: () -> Unit, onReport: 
     Surface(
         shape = AppShapes.large,
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = modifier.fillMaxWidth().clip(AppShapes.large).clickable(onClick = onOpen).testTag("community.row.$code"),
+        modifier = modifier.fillMaxWidth().clip(AppShapes.large).selectedRow(LocalSelectedRowCode.current == code)
+            .clickable(onClick = onOpen).testTag("community.row.$code"),
     ) {
         Row(
             Modifier.heightIn(min = RowMinHeight).padding(start = Spacing.lg, top = Spacing.md, bottom = Spacing.md, end = Spacing.xs),

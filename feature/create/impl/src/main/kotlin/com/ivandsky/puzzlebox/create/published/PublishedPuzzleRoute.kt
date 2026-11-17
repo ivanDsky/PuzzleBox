@@ -68,13 +68,14 @@ import org.koin.core.parameter.parametersOf
  * bottom. The page **Cross-fades** in once loaded (DurationMedium; ReducedFadeDuration under
  * reduced motion). A code with no stored row or kept draft shows the missing-draft screen.
  * [PlayLayout.TwoPane] sets the board square on the left and the ticket and actions in the
- * Studio's side pane on the right, so a tablet shows both without scrolling.
+ * Studio's side pane on the right, so a tablet shows both without scrolling. A null [onBack] is the page shown inside a
+ * pane of its own (the Community tablet's right pane): it has no Back.
  */
 @Composable
 internal fun PublishedPuzzleRoute(
     key: PublishedPuzzleKey,
     layout: PlayLayout,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onOpen: (draftId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -109,7 +110,7 @@ private fun PublishedPage(
     page: PublishedPuzzleViewModel.State.Ready,
     unpublish: UnpublishSession,
     layout: PlayLayout,
-    onBack: () -> Unit,
+    onBack: (() -> Unit)?,
     onDuplicate: () -> Unit,
     onConfirmUnpublish: () -> Unit,
 ) {
@@ -137,9 +138,11 @@ private fun PublishedPage(
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         CompactTopBar(
             title = page.ticket.title,
-            navigationIcon = {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("create.publishedPage.back")) {
-                    Icon(PuzzleIcons.Back, contentDescription = "Back to Create")
+            navigationIcon = onBack?.let { back ->
+                {
+                    IconButton(onClick = back, modifier = Modifier.testTag("create.publishedPage.back")) {
+                        Icon(PuzzleIcons.Back, contentDescription = "Back to Create")
+                    }
                 }
             },
         )

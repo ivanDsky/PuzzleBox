@@ -32,7 +32,8 @@ import org.koin.core.parameter.parametersOf
  * A friend's puzzle on the Play stack: a spinner while the code opens, then the scrolling
  * [FriendPuzzleCard], whose Play, Resume or Play again opens the puzzle's board ([onPlay]) and
  * whose board preview signs in with Google in place, or [FriendOpenError] saying why the code
- * did not open, with Try again or the store listing when either helps. Up is [onBack], the navigator's pop.
+ * did not open, with Try again or the store listing when either helps. Up is [onBack], the navigator's pop; with
+ * [showUp] false (the Community tablet's right pane, which has no page to go back from) there is no Up bar at all.
  * Reporting the puzzle (when the card offers it) closes the card behind a short "Reported" snackbar, then [onBack]; a
  * signed-out Report opens the sign-in prompt the New today list uses.
  */
@@ -41,6 +42,7 @@ internal fun FriendPuzzleRoute(
     key: FriendPuzzleKey,
     onPlay: (CustomGameKey) -> Unit,
     onBack: () -> Unit,
+    showUp: Boolean = true,
     modifier: Modifier = Modifier,
     viewModel: FriendPuzzleViewModel = koinViewModel(key = key.toString(), parameters = { parametersOf(key) }),
 ) {
@@ -49,18 +51,20 @@ internal fun FriendPuzzleRoute(
     val context = LocalContext.current
     Box(modifier.fillMaxSize().testTag("route.friend")) {
         Column(Modifier.fillMaxSize()) {
-            CompactTopBar(
-                title = "",
-                navigationIcon = {
-                    IconButton(onClick = onBack, modifier = Modifier.testTag("friend.up")) {
-                        Icon(
-                            imageVector = PuzzleIcons.Back,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-            )
+            if (showUp) {
+                CompactTopBar(
+                    title = "",
+                    navigationIcon = {
+                        IconButton(onClick = onBack, modifier = Modifier.testTag("friend.up")) {
+                            Icon(
+                                imageVector = PuzzleIcons.Back,
+                                contentDescription = "Back",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    },
+                )
+            }
             when (val card = state) {
                 FriendCardState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(Modifier.testTag("friend.card.loading"))
