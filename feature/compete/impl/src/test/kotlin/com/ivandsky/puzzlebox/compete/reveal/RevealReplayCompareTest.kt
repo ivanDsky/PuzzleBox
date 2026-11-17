@@ -40,6 +40,7 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ReplayCompareKey
 import com.ivandsky.puzzlebox.play.api.ReplayKey
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -103,6 +104,9 @@ class RevealReplayCompareTest {
         val leads = Lead.entries.map { compareKey("K7Q2MX", zip, LegCompare(0, null, null, "Sam", it)).lead }
 
         assertEquals(listOf(ReplayCompareKey.LEAD_MINE, ReplayCompareKey.LEAD_THEIRS, ReplayCompareKey.LEAD_LEVEL), leads)
+        val past = compareKey("K7Q2MX", zip, LegCompare(0, null, null, "Past you", Lead.Mine), self = true)
+        assertTrue(past.theirsPast)
+        assertFalse(compareKey("K7Q2MX", zip, LegCompare(0, null, null, "Past you", Lead.Mine)).theirsPast)
     }
 
     @Test
@@ -181,6 +185,7 @@ class RevealReplayCompareTest {
                 code = "K7Q2MX",
                 gameOf = { zip },
                 navigator = navigator,
+                self = false,
                 onOpened = { dropped++ },
             )
         }

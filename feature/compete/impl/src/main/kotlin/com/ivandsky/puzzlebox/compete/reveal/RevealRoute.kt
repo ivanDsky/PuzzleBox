@@ -71,6 +71,7 @@ internal fun RevealRoute(code: String, navigator: Navigator, layout: PlayLayout)
                 code = code,
                 gameOf = { leg -> current.match.legs.getOrNull(leg)?.ref?.gameId },
                 navigator = navigator,
+                self = current.match.isSelf,
                 onOpened = vm::closeCompare,
             )
             RevealRunScreen(

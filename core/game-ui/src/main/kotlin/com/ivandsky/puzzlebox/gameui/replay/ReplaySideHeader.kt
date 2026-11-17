@@ -17,12 +17,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.gameui.PastYouAvatar
 import com.ivandsky.puzzlebox.game.replay.ReplayFacts
 
 internal val SideHeaderHeight = 40.dp
 private val DiscSize = 28.dp
 
-/** Who a board belongs to: a [tint] disc with the initial, the [name], and under it where that side stands. */
+/** Who a board belongs to: a [tint] disc with the initial (or the Past you avatar when [pastYouInitial] is set), the [name], and under it where that side stands. */
 @Composable
 internal fun ReplaySideHeader(
     name: String,
@@ -31,14 +32,19 @@ internal fun ReplaySideHeader(
     tint: Color,
     onTint: Color,
     modifier: Modifier = Modifier,
+    pastYouInitial: String? = null,
 ) {
     Row(
         modifier.height(SideHeaderHeight),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Box(Modifier.size(DiscSize).background(tint, CircleShape), contentAlignment = Alignment.Center) {
-            Text(name.take(1).uppercase(), style = MaterialTheme.typography.labelLarge, color = onTint)
+        if (pastYouInitial != null) {
+            PastYouAvatar(initial = pastYouInitial, size = DiscSize)
+        } else {
+            Box(Modifier.size(DiscSize).background(tint, CircleShape), contentAlignment = Alignment.Center) {
+                Text(name.take(1).uppercase(), style = MaterialTheme.typography.labelLarge, color = onTint)
+            }
         }
         Column {
             Text(

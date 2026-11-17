@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import com.ivandsky.puzzlebox.compete.common.PastYouAvatar
+import com.ivandsky.puzzlebox.gameui.PastYouAvatar
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews

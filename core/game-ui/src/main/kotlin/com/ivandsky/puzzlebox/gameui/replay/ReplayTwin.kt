@@ -39,6 +39,7 @@ internal fun ReplayTwin(
                     pieces = board.pieces,
                     tint = if (isMine) colors.primary else colors.tertiary,
                     onTint = if (isMine) colors.onPrimary else colors.onTertiary,
+                    pastYouInitial = names.mine.takeIf { !isMine && names.theirsPast },
                 )
                 ReplayBoardSlot(frame, board, options, size)
             }

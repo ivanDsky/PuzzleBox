@@ -123,7 +123,7 @@ abstract class RevealSelfGoldenScreenshots(private val device: String, private v
                 mine = ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES, stepMs = 1_000),
                 theirs = ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES, stepMs = 1_200),
                 board = ReplayGoldenBoard,
-                names = CompareNames(mine = "Ivan", theirs = SelfSeats.PAST_NAME),
+                names = CompareNames(mine = "Ivan", theirs = SelfSeats.PAST_NAME, theirsPast = true),
                 layout = if (wide) CompareLayout.Twin else CompareLayout.FlipPeek,
                 context = "Duel · Zip #401",
                 onBack = {},
@@ -135,7 +135,7 @@ abstract class RevealSelfGoldenScreenshots(private val device: String, private v
         rule.settleAndCapture("compare", device, dark)
     }
 
-    private companion object {
+    internal companion object {
         val CODE = checkNotNull(ShareCode.parse("K7Q2MX"))
         val CREATED_AT: Instant = Instant.parse("2026-11-09T10:00:00Z")
         val ZIP = GameId("zip")
