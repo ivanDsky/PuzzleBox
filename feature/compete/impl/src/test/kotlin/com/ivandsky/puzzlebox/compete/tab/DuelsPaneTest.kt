@@ -19,6 +19,7 @@ import com.ivandsky.puzzlebox.navigation.Navigator
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchResultOutbox
 import java.time.Instant
@@ -56,7 +57,7 @@ class DuelsPaneTest {
                 module {
                     viewModel {
                         DuelsTabViewModel(
-                            observeMyDuels = ObserveMyDuels(server, FakeMatchResultOutbox(), FakeMatchLocalRepository(), identity) { now },
+                            observeMyDuels = ObserveMyDuels(server, FakeSelfMatchRepository(), FakeMatchResultOutbox(), FakeMatchLocalRepository(), identity) { now },
                             updateSeat = UpdateMatchSeat(server, FakeMatchLocalRepository(), identity),
                             identity = identity,
                             clock = { now },
