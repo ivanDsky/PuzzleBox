@@ -13,4 +13,5 @@ object ReplayTags {
     const val SHOW_ERRORS = "replay-show-errors"
     const val SEEK = "replay-seek"
     const val POSITION = "replay-position"
+    const val SIDE_NAME = "replay-side-name"
 }

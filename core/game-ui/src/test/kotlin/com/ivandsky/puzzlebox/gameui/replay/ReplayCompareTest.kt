@@ -1,13 +1,22 @@
 package com.ivandsky.puzzlebox.gameui.replay
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -23,6 +32,7 @@ import com.ivandsky.puzzlebox.game.replay.ReplayOutcome
 import com.ivandsky.puzzlebox.game.replay.Timeline
 import com.ivandsky.puzzlebox.testing.replay.ReplayFixtures
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -186,7 +196,80 @@ class ReplayCompareTest {
         assertEquals(listOf("facts 0"), boards())
     }
 
+    private val squareBoard = object : GameReplayBoard {
+        override val pieces = "pieces"
+
+        @Composable
+        override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {
+            Box(modifier.aspectRatio(1f).testTag(BOARD))
+        }
+    }
+
+    private fun showTablet(mine: Timeline?, theirs: Timeline?) {
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            // A larger system font is what pushes the two-line header past its old fixed height.
+            val density = Density(LocalDensity.current.density, fontScale = 1.5f)
+            CompositionLocalProvider(LocalDensity provides density) {
+                PuzzleBoxTheme(darkTheme = false) {
+                    ReplayCompare(mine, theirs, squareBoard, names, CompareLayout.Twin, Modifier.size(1280.dp, 800.dp))
+                }
+            }
+        }
+        composeRule.mainClock.advanceTimeByFrame()
+    }
+
+    private fun top(node: SemanticsNodeInteraction) = node.fetchSemanticsNode().boundsInRoot.top
+
+    private fun bottom(node: SemanticsNodeInteraction) = node.fetchSemanticsNode().boundsInRoot.bottom
+
+    private fun assertHeadersClearOfBoards(statsSides: Int) {
+        val stats = composeRule.onAllNodesWithText(" pieces · ", substring = true)
+        assertEquals(statsSides, stats.fetchSemanticsNodes().size)
+        val boards = composeRule.onAllNodesWithTag(BOARD)
+        val boardTop = top(boards[0])
+        for (i in 0 until statsSides) assertTrue("stats line $i overlaps its board", bottom(stats[i]) <= boardTop + 0.5f)
+        if (boards.fetchSemanticsNodes().size == 2) assertEquals(boardTop, top(boards[1]), 0.5f)
+        val nameNodes = composeRule.onAllNodesWithTag(ReplayTags.SIDE_NAME)
+        assertEquals(2, nameNodes.fetchSemanticsNodes().size)
+        val nameTops = listOf(top(nameNodes[0]), top(nameNodes[1]))
+        assertEquals("names share a baseline", nameTops[0], nameTops[1], 0.5f)
+        assertTrue("name above board", nameTops.all { it < boardTop })
+    }
+
+    @Test
+    fun `tablet headers clear their boards and line up with stats on both sides`() {
+        showTablet(mine, theirs)
+        assertHeadersClearOfBoards(statsSides = 2)
+    }
+
+    @Test
+    fun `tablet headers line up when my side has no stats line`() {
+        showTablet(null, theirs)
+        assertHeadersClearOfBoards(statsSides = 1)
+    }
+
+    @Test
+    fun `tablet headers line up when their side has no stats line`() {
+        showTablet(mine, null)
+        assertHeadersClearOfBoards(statsSides = 1)
+    }
+
+    @Test
+    fun `a phone header without stats keeps its name centred`() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                ReplaySideHeader("You", null, "pieces", Color.Red, Color.White, modifier = Modifier.testTag(HEADER))
+            }
+        }
+
+        val header = composeRule.onNodeWithTag(HEADER).fetchSemanticsNode().boundsInRoot
+        val name = composeRule.onNodeWithTag(ReplayTags.SIDE_NAME).fetchSemanticsNode().boundsInRoot
+        assertEquals(header.center.y, name.center.y, 0.5f)
+    }
+
     private companion object {
+        const val HEADER = "side-header"
         const val BOARD = "fake-board"
 
         /** The first frame after play only sets the clock's baseline, so it moves nothing. */
