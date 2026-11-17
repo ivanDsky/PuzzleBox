@@ -177,6 +177,23 @@ class TangoPlayControllerTest {
     }
 
     @Test
+    fun `any later input clears the fixed-square caption, even one with nothing to move`() {
+        val inputs = mapOf<String, (TangoPlayController) -> Unit>(
+            "placement" to { it.onPlacement(TangoPlacement(2, TangoCell.MOON)) },
+            "undo on empty history" to { it.undo() },
+            "redo on empty history" to { it.redo() },
+            "clear" to { it.clearBoard() },
+        )
+        for ((name, input) in inputs) {
+            val s = loaded()
+            s.onTap(0)
+            assertEquals(name, "That square is fixed.", s.rejection)
+            input(s)
+            assertNull(name, s.rejection)
+        }
+    }
+
+    @Test
     fun `a fresh win emits ONE record with the tango ref`() {
         val s = loaded()
 

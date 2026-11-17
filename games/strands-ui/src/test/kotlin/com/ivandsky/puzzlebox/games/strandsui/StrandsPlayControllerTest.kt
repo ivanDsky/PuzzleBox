@@ -146,6 +146,11 @@ class StrandsPlayControllerTest {
         assertEquals("Too short", playCaption(c, null))
         c.tap(Coord(1, 0))
         assertNull(c.rejection)
+
+        val found = adopted().apply { play(StrandsUiFixtures.row(0)) }
+        assertNull(found.rejection) // a found word is not a refusal
+        val nonTheme = adopted().apply { play(StrandsUiFixtures.nonTheme.getValue("PIKE")) }
+        assertNull(nonTheme.rejection) // nor is a valid non-theme word
     }
 
     @Test

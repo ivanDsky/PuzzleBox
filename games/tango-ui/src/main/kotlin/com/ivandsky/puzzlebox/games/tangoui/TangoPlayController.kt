@@ -151,11 +151,11 @@ class TangoPlayController(
     private fun stepHistory(move: TangoReplayMove) {
         env.onInput()
         val current = session ?: return
+        fixedTapped = false
         stepHints.inputMade() // any history press is input, even one with nothing to move (A10)
         val next = moveLog.record(current, move)
         if (next == current) return // nothing to move, or the session is complete
         lastRejection = null
-        fixedTapped = false
         settle.arm()
         settle.suppress(TangoViolations.cellSets(next) - TangoViolations.cellSets(current))
         commit(next)
