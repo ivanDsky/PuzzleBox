@@ -44,7 +44,8 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * Goldens of the solve moment B (nav-rethink 129) around a board in its pane, with the rest on and the clock held:
  * the solve itself, the comet turning the first corner at 700 ms, the line past half way at 1000 ms, the closed frame
- * at the 1500 ms hand-off, and reduced motion's outline. One pair follows Zip's rounded outline, whose path runs the
+ * at the 1500 ms hand-off, and reduced motion's outline. The game's glyph stamps onto the board with the pop (440 ms), so
+ * every pose from 560 ms on wears it; reduced motion has none. The stamp has landed at 1000 ms in light and dark, on a phone and on a tablet. One pair follows Zip's rounded outline, whose path runs the
  * other way round; the popped board and the comet stay inside the pane's margin. A plain square stands for the board.
  * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
  */
@@ -77,6 +78,12 @@ class PlaySolveMomentGoldenTest {
     @Test fun `the closed frame at the hand-off`() = capture(1_500, "SolveMoment_1500ms.png")
 
     @Test fun `the line is past half way, dark`() = capture(1_000, "SolveMoment_1000ms_dark.png", dark = true)
+
+    @Test @Config(sdk = [34], qualifiers = TABLET)
+    fun `the stamp has landed, tablet`() = capture(1_000, "SolveMoment_stamp_tablet.png")
+
+    @Test @Config(sdk = [34], qualifiers = TABLET)
+    fun `the stamp has landed, tablet dark`() = capture(1_000, "SolveMoment_stamp_tablet_dark.png", dark = true)
 
     @Test fun `the closed frame at the hand-off, dark`() = capture(1_500, "SolveMoment_1500ms_dark.png", dark = true)
 
@@ -132,6 +139,7 @@ class PlaySolveMomentGoldenTest {
 
     private companion object {
         const val FRAME_MS = 16L
+        const val TABLET = "w1280dp-h800dp-xhdpi"
 
         /** 328 dp is the widest board the 360 dp pane takes inside its gutters. */
         const val BOARD = 328

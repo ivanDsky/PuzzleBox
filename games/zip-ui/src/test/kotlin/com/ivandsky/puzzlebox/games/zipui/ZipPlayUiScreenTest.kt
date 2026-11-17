@@ -189,9 +189,12 @@ class ZipPlayUiScreenTest {
         composeRule.waitForIdle()
         check(solvedFacts == null) { "handed off before the solve moment played" }
         composeRule.onNodeWithTag("play.solve_rest").assertExists()
+        // The game's glyph is stamped on the board with the pop, while the rest is up.
+        composeRule.onNodeWithTag("play.solve_stamp").assertExists()
 
         playSolveMoment()
         composeRule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
+        composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
         check(solvedFacts != null) { "the solve moment never handed off" }
     }
 

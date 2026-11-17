@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.games.strandsui
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredSize
@@ -51,6 +52,9 @@ import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 /** The play screen's solve moment B, which the board wears; null without the solve rest and off the play screen. */
 internal val LocalStrandsSolveMoment = staticCompositionLocalOf<SolveMomentState?> { null }
 
+/** The game's glyph stamp for the board's box, inside the solve frame ([SolveStamp]); nothing without the solve rest. */
+internal val LocalStrandsSolveStamp = staticCompositionLocalOf<(@Composable () -> Unit)?> { null }
+
 /**
  * Strands' one board, chrome-free ([com.ivandsky.puzzlebox.gameui.GamePlayUi.Board]): the
  * daily screen and the tutorial both draw it. Draws nothing until [controller] holds a
@@ -96,6 +100,7 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
         },
         modifier = modifier,
         frame = remember(moment, accent) { moment?.let { Modifier.solveFrame(it, accent, RectangleShape) } ?: Modifier },
+        stamp = LocalStrandsSolveStamp.current ?: {},
     )
 }
 
@@ -109,7 +114,7 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
  * editor's empty tiles), so the live line is never covered. [onFinger] gets the dragging
  * finger in cell units after each move's steps, and null at the lift, before the lift's step.
  * [dim] fades the letters and connectors it names (the editor's unselected paths); the live
- * trace is never faded. [floor] is the least cell pitch ([strandsCellSizeFor]). [readOnly] drops the
+ * trace is never faded. [stamp] draws over the grid in [frame]'s box, so it pops with the board. [floor] is the least cell pitch ([strandsCellSizeFor]). [readOnly] drops the
  * gesture layer, so the board takes no drag (the replay board). [hintBadges] are the cells that wear the replay's hint badge in their top-right corner.
  */
 @Composable
@@ -127,6 +132,7 @@ internal fun StrandsBoardContent(
     readOnly: Boolean = false,
     hintBadges: Set<Coord> = emptySet(),
     frame: Modifier = Modifier,
+    stamp: @Composable () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val colors = strandsBoardColors()
@@ -152,35 +158,39 @@ internal fun StrandsBoardContent(
         val cell = strandsCellSizeFor(maxWidth, maxHeight, model.rows, model.cols, floor)
         val boardSize = DpSize(cell * model.cols, cell * model.rows)
         Box(Modifier.fillMaxWidth().height(boardSize.height), contentAlignment = Alignment.Center) {
-            BoardGrid(
-                rows = model.rows,
-                cols = model.cols,
-                modifier = Modifier.requiredSize(boardSize).then(frame).testTag("strands.board"),
-                // Strands has no grid: the letters float on the bare board.
-                colors = colors.copy(boardGridLine = Color.Transparent),
-                underlay = {
-                    tiles()
-                    StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, foundLetter, animate = !reduceMotion, settle = { settle.value }, dim = dim)
-                    StrandsTraceEndConnector(model.rows, model.cols, { end.value }, colors)
-                },
-                cellContent = { row, col ->
-                    LetterToken(
-                        cell = model.cells[row * model.cols + col],
-                        altTheme = Coord(row, col) in altCells,
-                        dim = dim,
-                        selectionRing = selectionRing,
-                        pitch = cell,
-                        found = found,
-                        reduceMotion = reduceMotion,
-                        touchSeq = touchSeq,
-                        end = end,
-                        colors = colors,
-                        trace = trace,
-                        onTrace = onTrace,
-                    )
-                    if (Coord(row, col) in hintBadges) ReplayHintBadge(Modifier.align(Alignment.TopEnd))
-                },
-            )
+            // The frame's box holds the grid and the stamp, so the stamp pops with the board.
+            Box(Modifier.requiredSize(boardSize).then(frame).testTag("strands.board"), contentAlignment = Alignment.Center) {
+                BoardGrid(
+                    rows = model.rows,
+                    cols = model.cols,
+                    modifier = Modifier.fillMaxSize(),
+                    // Strands has no grid: the letters float on the bare board.
+                    colors = colors.copy(boardGridLine = Color.Transparent),
+                    underlay = {
+                        tiles()
+                        StrandsConnectors(model.rows, model.cols, model.links, trace, colors, { finger.value }, foundLetter, animate = !reduceMotion, settle = { settle.value }, dim = dim)
+                        StrandsTraceEndConnector(model.rows, model.cols, { end.value }, colors)
+                    },
+                    cellContent = { row, col ->
+                        LetterToken(
+                            cell = model.cells[row * model.cols + col],
+                            altTheme = Coord(row, col) in altCells,
+                            dim = dim,
+                            selectionRing = selectionRing,
+                            pitch = cell,
+                            found = found,
+                            reduceMotion = reduceMotion,
+                            touchSeq = touchSeq,
+                            end = end,
+                            colors = colors,
+                            trace = trace,
+                            onTrace = onTrace,
+                        )
+                        if (Coord(row, col) in hintBadges) ReplayHintBadge(Modifier.align(Alignment.TopEnd))
+                    },
+                )
+                stamp()
+            }
             if (!readOnly) {
                 StrandsGestureLayer(
                     rows = model.rows,

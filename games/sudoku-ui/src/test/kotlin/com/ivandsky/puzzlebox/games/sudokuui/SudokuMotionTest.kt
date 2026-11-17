@@ -256,10 +256,12 @@ class SudokuMotionTest {
         advance(CelebrationMotion.SolveMomentMs / 2)
         composeRule.runOnIdle { assertEquals("still resting", 0, solved.size) }
         composeRule.onNodeWithTag("play.solve_rest").assertExists()
+        composeRule.onNodeWithTag("play.solve_stamp").assertExists()
 
         advance(CelebrationMotion.SolveMomentMs)
         composeRule.runOnIdle { assertEquals(1, solved.size) }
         composeRule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
+        composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
         advance(5_000)
         composeRule.runOnIdle { assertEquals("one solve, one hand-off", 1, solved.size) }
     }
@@ -268,9 +270,9 @@ class SudokuMotionTest {
     fun `a tap on the board during the rest hands off at once`() {
         val (_, solved, _) = solveWithRest(rest = true)
         advance(700)
-        composeRule.onNodeWithTag("play.solve_rest").performClick()
+        composeRule.onNodeWithTag("play.solve_stamp").performClick()
         composeRule.mainClock.advanceTimeBy(16)
-        composeRule.runOnIdle { assertEquals(1, solved.size) }
+        composeRule.runOnIdle { assertEquals("a tap on the stamp's area passes to the layer under it", 1, solved.size) }
         advance(5_000)
         composeRule.runOnIdle { assertEquals(1, solved.size) }
     }
@@ -335,6 +337,8 @@ class SudokuMotionTest {
         try {
             advance(CelebrationMotion.SolveMomentMs / 2)
             composeRule.runOnIdle { assertEquals(0, solved.size) }
+            composeRule.onNodeWithTag("play.solve_rest").assertExists()
+            composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
             advance(CelebrationMotion.SolveMomentMs)
             composeRule.runOnIdle { assertEquals(1, solved.size) }
         } finally {

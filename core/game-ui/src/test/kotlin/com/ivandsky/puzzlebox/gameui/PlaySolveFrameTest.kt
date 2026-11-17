@@ -82,19 +82,27 @@ class PlaySolveFrameTest {
 
 
     @Test
-    fun `a solve rests the board for the solve moment with no stamp, then hands off once`() {
+    fun `a solve rests the board for the solve moment, the stamp lands with the pop, then hands off once`() {
         setFrame()
         composeRule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
+        composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
 
         solve(Instant.ofEpochSecond(1))
-        composeRule.mainClock.advanceTimeBy(CelebrationMotion.SolveMomentMs - 100)
-        assertEquals("still resting", 0, handOffs)
+        composeRule.mainClock.advanceTimeBy(CelebrationMotion.BoardPopStartMs - 100L)
         composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
+        composeRule.mainClock.advanceTimeBy(200)
+        composeRule.onNodeWithTag("play.solve_stamp").assertExists()
+
+        composeRule.mainClock.advanceTimeBy(CelebrationMotion.SolveMomentMs - CelebrationMotion.BoardPopStartMs - 300)
+        assertEquals("still resting", 0, handOffs)
+        composeRule.onNodeWithTag("play.solve_stamp").assertExists()
         composeRule.onNodeWithTag("play.solve_rest").assertExists()
 
-        composeRule.mainClock.advanceTimeBy(200)
+        composeRule.mainClock.advanceTimeBy(300)
         assertEquals(1, handOffs)
         composeRule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
+        composeRule.mainClock.advanceTimeBy(500)
+        composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
 
         composeRule.mainClock.advanceTimeBy(5_000)
         assertEquals("one solve, one hand-off", 1, handOffs)
@@ -103,8 +111,11 @@ class PlaySolveFrameTest {
         solve(null)
         composeRule.mainClock.advanceTimeBy(5_000)
         solve(Instant.ofEpochSecond(2))
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.onNodeWithTag("play.solve_stamp").assertExists()
         composeRule.mainClock.advanceTimeBy(5_000)
         assertEquals(2, handOffs)
+        composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
     }
 
     @Test
@@ -129,12 +140,38 @@ class PlaySolveFrameTest {
     }
 
     @Test
+    fun `a tap on the stamp's area hands off at once, once`() {
+        setFrame()
+        solve(Instant.ofEpochSecond(1))
+        composeRule.mainClock.advanceTimeBy(900)
+        composeRule.onNodeWithTag("play.solve_stamp").assertExists().performClick()
+        composeRule.mainClock.advanceTimeBy(16)
+        assertEquals("the stamp passed the tap to the layer under it", 1, handOffs)
+
+        composeRule.mainClock.advanceTimeBy(5_000)
+        assertEquals(1, handOffs)
+        composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a tap before the stamp lands hands off with no stamp after`() {
+        setFrame()
+        solve(Instant.ofEpochSecond(1))
+        composeRule.mainClock.advanceTimeBy(200)
+        composeRule.onNodeWithTag("play.solve_rest").performClick()
+        composeRule.mainClock.advanceTimeBy(1_000)
+        assertEquals(1, handOffs)
+        composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
+    }
+
+    @Test
     fun `reduced motion keeps the outline and the same rest, with no stamp`() {
         setAnimatorScale(0f)
         setFrame()
         solve(Instant.ofEpochSecond(1))
         composeRule.mainClock.advanceTimeBy(CelebrationMotion.SolveMomentMs - 100)
         assertEquals("the rest is a pause, so reduced motion keeps it", 0, handOffs)
+        composeRule.onNodeWithTag("play.solve_rest").assertExists()
         composeRule.onNodeWithTag("play.solve_stamp").assertDoesNotExist()
 
         composeRule.mainClock.advanceTimeBy(200)
