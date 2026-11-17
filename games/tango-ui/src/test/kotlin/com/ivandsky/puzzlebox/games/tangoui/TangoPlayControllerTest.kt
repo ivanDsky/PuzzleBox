@@ -163,6 +163,37 @@ class TangoPlayControllerTest {
     }
 
     @Test
+    fun `tapping a given says it is fixed until the next input`() {
+        val s = loaded()
+        val before = s.session
+
+        s.onTap(0) // idx 0 is a SUN given
+        assertEquals("That square is fixed.", s.rejection)
+        assertEquals("That square is fixed.", playCaption(s, s))
+        assertEquals(before, s.session)
+
+        s.onTap(2) // an empty cell: the refusal clears
+        assertNull(s.rejection)
+    }
+
+    @Test
+    fun `any later input clears the fixed-square caption, even one with nothing to move`() {
+        val inputs = mapOf<String, (TangoPlayController) -> Unit>(
+            "placement" to { it.onPlacement(TangoPlacement(2, TangoCell.MOON)) },
+            "undo on empty history" to { it.undo() },
+            "redo on empty history" to { it.redo() },
+            "clear" to { it.clearBoard() },
+        )
+        for ((name, input) in inputs) {
+            val s = loaded()
+            s.onTap(0)
+            assertEquals(name, "That square is fixed.", s.rejection)
+            input(s)
+            assertNull(name, s.rejection)
+        }
+    }
+
+    @Test
     fun `a fresh win emits ONE record with the tango ref`() {
         val s = loaded()
 
@@ -381,7 +412,7 @@ class TangoPlayControllerTest {
         val phrase = TangoSemantics.firstViolationPhrase(s.rendererModel()!!)
         assertNotNull(phrase)
         assertEquals(phrase, s.violation)
-        assertNull(s.rejection) // placements land; Tango never shows a refusal caption
+        assertNull(s.rejection) // a violating placement lands: the phrase is the caption, not a refusal
         assertEquals(phrase, playCaption(s, s))
     }
 

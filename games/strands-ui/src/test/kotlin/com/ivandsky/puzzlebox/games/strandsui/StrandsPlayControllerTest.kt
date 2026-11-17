@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.BROKEN_PUZZLE_MESSAGE
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.playCaption
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PuzzleKey
@@ -134,6 +135,22 @@ class StrandsPlayControllerTest {
         assertEquals(WordSlot.Verdict("Too short", VerdictKind.Reject, 2), c.slot)
         assertEquals(1, saved.size)
         assertNull(c.lastFound)
+    }
+
+    @Test
+    fun `a refused word is the lesson caption, and a new trace clears it`() {
+        val c = adopted()
+        assertNull(c.rejection)
+        c.play(listOf(Coord(0, 0), Coord(0, 1), Coord(0, 2)))
+        assertEquals("Too short", c.rejection)
+        assertEquals("Too short", playCaption(c, null))
+        c.tap(Coord(1, 0))
+        assertNull(c.rejection)
+
+        val found = adopted().apply { play(StrandsUiFixtures.row(0)) }
+        assertNull(found.rejection) // a found word is not a refusal
+        val nonTheme = adopted().apply { play(StrandsUiFixtures.nonTheme.getValue("PIKE")) }
+        assertNull(nonTheme.rejection) // nor is a valid non-theme word
     }
 
     @Test

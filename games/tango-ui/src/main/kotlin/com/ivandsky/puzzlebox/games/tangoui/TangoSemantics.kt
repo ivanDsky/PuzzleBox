@@ -15,6 +15,9 @@ import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
  */
 object TangoSemantics {
 
+    /** The caption for a tap on a given square, in play and in lessons. */
+    const val FIXED_SQUARE = "That square is fixed."
+
     // ---- per-cell TalkBack strings (§9) ----
 
     /** ContentDescription: "Row 3, column 5" (1-based, TalkBack convention). */
