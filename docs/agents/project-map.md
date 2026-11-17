@@ -686,9 +686,11 @@ or `local.properties` (the SDK under the user's `Library` folder here); Gradle t
 via `gradle/gradle-daemon-jvm.properties`. Android modules run `testDebugUnitTest`, pure-JVM
 modules run `test`. The merge gate (ADR-0023) is
 
-`./gradlew assembleDebug test`
+`./gradlew assembleDebug test -x :app:testReleaseUnitTest -x :app:testBenchmarkUnitTest`
 
-which runs every module's unit tests, `:core:auth` and `:feature:compete:impl` included. The
+which runs every module's debug unit tests, `:core:auth` and `:feature:compete:impl` included.
+`:app`'s release host tests (`app/src/testRelease`) run on main's CI and, for a change to
+release-only wiring, as `./gradlew :app:testReleaseUnitTest`. The
 same tests split in two: `testUi` (`:app`, `:feature:*`) and `testCore` (every other module). A
 narrower run: `./gradlew assembleDebug testDebugUnitTest :core:game:test :games:zip:test
 :games:queens:test :games:tango:test :games:strands:test :games:sudoku:test :core:model:test
