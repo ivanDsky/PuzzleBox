@@ -66,21 +66,22 @@ object QueensLinkedInPlay {
 
     /**
      * The colour names of the first [SOLVE_ORDER_LENGTH] queens placed on a cell of the final (solved) board, in
-     * placement order. A queen counts at each placement, as the client counts it; the list only grows to its cap.
+     * first-placement order. The client keys this by cell and never shrinks it, so a cell removed and queened again
+     * is not counted twice and a removal drops nothing.
      */
     private fun solveOrderOf(solve: LinkedInSolve<QueensSession>): List<String> {
         val puzzle = solve.final.puzzle
         val solution = solve.final.queens.toSet()
-        val order = ArrayList<String>(SOLVE_ORDER_LENGTH)
+        val order = LinkedHashMap<Cell, String>(SOLVE_ORDER_LENGTH)
         var standing: Set<Cell> = emptySet()
         for (board in solve.boards) {
             for (queen in board.queens) {
-                if (order.size == SOLVE_ORDER_LENGTH) return order
-                if (queen !in standing && queen in solution) order += REGION_COLOURS[puzzle.regionOf(queen)]
+                if (order.size == SOLVE_ORDER_LENGTH) return order.values.toList()
+                if (queen !in standing && queen in solution && queen !in order) order[queen] = REGION_COLOURS[puzzle.regionOf(queen)]
             }
             standing = board.queens.toSet()
         }
-        return order
+        return order.values.toList()
     }
 
     /** The first move's time, capped at one second and never under 1 ms, as the client's first save reads. */

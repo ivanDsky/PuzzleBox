@@ -102,6 +102,20 @@ class QueensLinkedInPlayTest {
     }
 
     @Test
+    fun `a cell queened again after a removal is not counted twice`() {
+        val a = initial.withQueenPlaced(Cell(1), Instant.EPOCH)
+        val removed = a.withQueenRemoved(Cell(1), Instant.EPOCH)
+        val b = removed.withQueenPlaced(Cell(16), Instant.EPOCH)
+        val again = b.withQueenPlaced(Cell(1), Instant.EPOCH)
+        val c = again.withQueenPlaced(Cell(31), Instant.EPOCH)
+        val rest = listOf(13, 26, 35, 46).scan(c) { session, idx -> session.withQueenPlaced(Cell(idx), Instant.EPOCH) }.drop(1)
+
+        val play = encode(listOf(a, removed, b, again, c) + rest)
+
+        assertEquals(listOf("orange", "green", "red"), play.strings("queensSolveOrderBinding"))
+    }
+
+    @Test
     fun `a mistake, a hint or an undo in the solve is not mistake-free`() {
         val boards = boardsOf(*placementOrder.toIntArray())
         for (flaw in listOf(MoveKind.Mistake, MoveKind.Hint, MoveKind.Undo)) {
