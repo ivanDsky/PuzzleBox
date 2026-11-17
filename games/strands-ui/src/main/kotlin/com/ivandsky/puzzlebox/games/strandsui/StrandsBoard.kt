@@ -21,7 +21,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
-import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.BoardGrid
@@ -39,6 +38,7 @@ import com.ivandsky.puzzlebox.games.strandsui.board.altThemeCells
 import com.ivandsky.puzzlebox.games.strandsui.board.altThemeLinks
 import com.ivandsky.puzzlebox.games.strandsui.board.rememberLinkSettle
 import com.ivandsky.puzzlebox.games.strandsui.board.rememberTraceEndFrame
+import com.ivandsky.puzzlebox.games.strandsui.board.strandsBoardColors
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 
 /**
@@ -105,7 +105,7 @@ internal fun StrandsBoardContent(
     hintBadges: Set<Coord> = emptySet(),
     modifier: Modifier = Modifier,
 ) {
-    val colors = LocalBoardColors.current
+    val colors = strandsBoardColors()
     // The readable board rings what is selected, as it rings the next target on the other boards.
     val selectionRing = LocalBoardGeometry.current.nextNumberRing
     val altCells = remember(model.links) { altThemeLinks(model.links).altThemeCells() }

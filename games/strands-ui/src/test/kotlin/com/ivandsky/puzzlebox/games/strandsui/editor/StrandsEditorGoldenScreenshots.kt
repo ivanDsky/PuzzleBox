@@ -38,6 +38,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TestName
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -65,10 +66,24 @@ class StrandsEditorGoldenScreenshotsPhone : StrandsEditorGoldenScreenshots("phon
 @Config(sdk = [34], qualifiers = "w1280dp-h800dp-land-mdpi")
 class StrandsEditorGoldenScreenshotsTablet : StrandsEditorGoldenScreenshots("tablet")
 
-abstract class StrandsEditorGoldenScreenshots(private val device: String) {
+/** The Studio board with Flat Strands on (nav-rethink 131), the states that differ. Goldens are `snapshots/editor/flat-*`. */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "w411dp-h1400dp-420dpi")
+class StrandsEditorFlatGoldenPhone : StrandsEditorGoldenScreenshots("phone", flat = true)
+
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "w1280dp-h800dp-land-mdpi")
+class StrandsEditorFlatGoldenTablet : StrandsEditorGoldenScreenshots("tablet", flat = true)
+
+abstract class StrandsEditorGoldenScreenshots(private val device: String, private val flat: Boolean = false) {
 
     @get:Rule
     val rule = createComposeRule()
+
+    @get:Rule
+    val testName = TestName()
 
     @Test fun `blank light`() = blank(dark = false)
     @Test fun `blank dark`() = blank(dark = true)
@@ -305,6 +320,7 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
             }
         },
     ) {
+        assumeTrue(!flat || testName.methodName in FlatCases)
         val context = ApplicationProvider.getApplicationContext<Context>()
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         val controller = StrandsEditorController(EditorDraft(StrandsEditor, DraftState(draft))) {}
@@ -320,7 +336,7 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
                 LocalConfiguration provides config,
                 LocalEditorDispatchers provides QueueDispatcherProvider(queue),
             ) {
-                PuzzleBoxTheme(darkTheme = dark) {
+                PuzzleBoxTheme(darkTheme = dark, flatSurfaces = flat, flatStrands = flat) {
                     Surface(Modifier.testTag(GOLDEN)) {
                         Column(Modifier.padding(Spacing.md)) { content(controller) }
                     }
@@ -337,12 +353,17 @@ abstract class StrandsEditorGoldenScreenshots(private val device: String) {
 
     private fun out(name: String, dark: Boolean): String =
         File(checkNotNull(System.getProperty("user.dir")))
-            .resolve("snapshots/editor/$name-$device-${if (dark) "dark" else "light"}.png")
+            .resolve("snapshots/editor/${if (flat) "flat-" else ""}$name-$device-${if (dark) "dark" else "light"}.png")
             .canonicalFile
             .also { checkNotNull(it.parentFile).mkdirs() }
             .absolutePath
 
     private companion object {
+        /** The flat look is pinned on the board states that differ: empty tiles, a live trace, a selection, pockets, a solved set. */
+        val FlatCases = setOf(
+            "blank light", "blank dark", "trace in progress light", "trace in progress dark",
+            "selected path light", "selected path dark", "pockets light", "pockets dark", "unique light", "unique dark",
+        )
         const val GOLDEN = "golden"
         const val BOARD = "strands.editor.board"
         const val FRAME_MS = 16L

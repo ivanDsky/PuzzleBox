@@ -7,8 +7,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.unit.Density
 import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -22,6 +24,7 @@ import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -49,9 +52,21 @@ class StrandsGoldenCompactTest : StrandsGoldenTestBase("compact", PlayLayout.Sin
 @Config(sdk = [34], qualifiers = "w1280dp-h900dp-420dpi")
 class StrandsGoldenExpandedTest : StrandsGoldenTestBase("expanded", PlayLayout.TwoPane)
 
+/** The same matrix with Flat Strands on (nav-rethink 131): outlined squares, merged found words, gold spangram. Goldens are `flat-*`. */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "w360dp-h640dp-420dpi")
+class StrandsFlatGoldenCompactTest : StrandsGoldenTestBase("compact", PlayLayout.SinglePane, flat = true)
+
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], qualifiers = "w1280dp-h900dp-420dpi")
+class StrandsFlatGoldenExpandedTest : StrandsGoldenTestBase("expanded", PlayLayout.TwoPane, flat = true)
+
 abstract class StrandsGoldenTestBase(
     private val widthLabel: String,
     private val layout: PlayLayout,
+    private val flat: Boolean = false,
 ) {
 
     @get:Rule
@@ -59,7 +74,7 @@ abstract class StrandsGoldenTestBase(
 
     private fun out(name: String, dark: Boolean): String =
         File(checkNotNull(System.getProperty("user.dir")))
-            .resolve("snapshots/$name-$widthLabel-${if (dark) "dark" else "light"}.png")
+            .resolve("snapshots/${if (flat) "flat-" else ""}$name-$widthLabel-${if (dark) "dark" else "light"}.png")
             .canonicalFile
             .also { checkNotNull(it.parentFile).mkdirs() }
             .absolutePath
@@ -77,7 +92,7 @@ abstract class StrandsGoldenTestBase(
 
     private fun StrandsPlayController.playNonTheme(words: List<List<Coord>>) = words.forEach { play(it) }
 
-    private fun capture(name: String, dark: Boolean, setUp: StrandsPlayController.() -> Unit = {}) {
+    private fun capture(name: String, dark: Boolean, fontScale: Float = 1f, setUp: StrandsPlayController.() -> Unit = {}) {
         // The reduced-motion path snaps every found-word and hint animation to its end state,
         // so a capture never lands mid-transition.
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -90,8 +105,8 @@ abstract class StrandsGoldenTestBase(
                 uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
                     if (dark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
             }
-            CompositionLocalProvider(LocalConfiguration provides config) {
-                PuzzleBoxTheme(darkTheme = dark) {
+            CompositionLocalProvider(LocalConfiguration provides config, LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
+                PuzzleBoxTheme(darkTheme = dark, flatSurfaces = flat, flatStrands = flat) {
                     // The shell paints the page; without it a dark capture sits on a white window.
                     Surface(color = MaterialTheme.colorScheme.background) {
                         StrandsPlayScreen(
@@ -141,4 +156,15 @@ abstract class StrandsGoldenTestBase(
 
     @Test fun `solved with rating light`() = capture("solved", dark = false) { solve() }
     @Test fun `solved with rating dark`() = capture("solved", dark = true) { solve() }
+
+    // The flat look (nav-rethink 131) only: two merged theme words, the alt theme tint, and a large font.
+    @Test fun `flat two merged words light`() = flatOnly { capture("found-two", dark = false) { play(RealDay.themeWords[0]); play(RealDay.themeWords[1]) } }
+    @Test fun `flat two merged words dark`() = flatOnly { capture("found-two", dark = true) { play(RealDay.themeWords[0]); play(RealDay.themeWords[1]) } }
+    @Test fun `flat large font light`() = flatOnly { capture("large-font", dark = false, fontScale = 1.3f) { hintOutlined(); play(RealDay.themeWords[0]) } }
+    @Test fun `flat large font dark`() = flatOnly { capture("large-font", dark = true, fontScale = 1.3f) { hintOutlined(); play(RealDay.themeWords[0]) } }
+
+    private fun flatOnly(body: () -> Unit) {
+        assumeTrue(flat)
+        body()
+    }
 }

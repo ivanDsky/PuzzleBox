@@ -77,7 +77,7 @@ class StrandsFlatTokenTest {
     fun `flat on, a found letter has no lip, the strip under its face is the bare board`() {
         show(flat = true)
         val (face, belowFace, bare) = foundLetterProbe()
-        assertEquals(LightBoardTokens.strandsThemeFill, face)
+        assertEquals(LightBoardTokens.strandsThemeTint, face)
         assertEquals(bare, belowFace)
         assertNotEquals(LightBoardTokens.strandsThemeLip, belowFace)
     }

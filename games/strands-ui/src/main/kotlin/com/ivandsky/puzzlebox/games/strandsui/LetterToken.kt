@@ -34,19 +34,21 @@ import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSemantics.letterButton
-import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsCellDrawing
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsCellFrame
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsCellSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsDim
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsMotionCue
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsMotionTrigger
+import com.ivandsky.puzzlebox.games.strandsui.board.StrandsOutlinedSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.TraceEndFrame
 import com.ivandsky.puzzlebox.games.strandsui.board.TraceOverlaySpec
 import com.ivandsky.puzzlebox.games.strandsui.board.at
 import com.ivandsky.puzzlebox.games.strandsui.board.dimSpec
+import com.ivandsky.puzzlebox.games.strandsui.board.drawOutlinedToken
 import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
 import com.ivandsky.puzzlebox.games.strandsui.board.lipRoomPx
+import com.ivandsky.puzzlebox.games.strandsui.board.outlinedLetterColor
 import com.ivandsky.puzzlebox.games.strandsui.board.tokenColor
 
 /** Called with a letter's cell each time its token composes; a no-op outside tests, which count recompositions with it. */
@@ -89,9 +91,9 @@ internal fun LetterToken(
     SideEffect { composed.done = true }
     val joinTrigger = remember(traced) { JoinTrigger.takeIf { traced && composed.done } }
     val join = rememberCellFrame(TraceOverlaySpec, joinTrigger, reduceMotion, touchSeq)
-    val tokenSize = pitch * StrandsBoardSpec.TokenFraction
+    val tokenSize = pitch * StrandsOutlinedSpec.tokenFraction(flat)
     // Pitch-proportional and immune to font scale, like the token it sits in.
-    val letterSize = with(LocalDensity.current) { (pitch * StrandsBoardSpec.LetterFraction).toSp() }
+    val letterSize = with(LocalDensity.current) { (pitch * StrandsOutlinedSpec.letterFraction(flat)).toSp() }
     // A letter on the live trace is never faded; the others fade and recover on [dimSpec].
     val dimmed = !traced && cell.coord in dim.cells
     val faded = animateFloatAsState(if (cell.coord in dim.cells) dim.alpha else 1f, dimSpec(reduceMotion), label = "dim")
@@ -118,17 +120,21 @@ internal fun LetterToken(
                     val frame = base.value
                     val half = size.minDimension / 2
                     val ended = end.value.at(cell.coord)
+                    if (flat) {
+                        drawOutlinedToken(spec, colors, altTheme, traced, frame, join.value, ended)
+                        // The hint's dashed ring and the spangram's ring; the selection is the thick outline above.
+                        if (ended == null) with(spec) { decorate(colors, half, frame) }
+                        return@drawBehind
+                    }
                     if (ended != null) {
-                        if (!flat) drawTokenSquare(ended.lip(colors), half, lip = true)
+                        drawTokenSquare(ended.lip(colors), half, lip = true)
                         drawTokenSquare(ended.fill(colors), half)
                         return@drawBehind
                     }
                     val lip = if (altTheme) colors.strandsThemeAltLip else spec.lip(colors)
                     val fill = if (altTheme) colors.strandsThemeAltFill else spec.fill(colors)
-                    if (!flat) {
-                        tokenColor(lip, TraceOverlaySpec.lip(colors), traced, frame, join.value)?.let {
-                            drawTokenSquare(it, half, lip = true)
-                        }
+                    tokenColor(lip, TraceOverlaySpec.lip(colors), traced, frame, join.value)?.let {
+                        drawTokenSquare(it, half, lip = true)
                     }
                     tokenColor(fill, TraceOverlaySpec.fill(colors), traced, frame, join.value)?.let { drawTokenSquare(it, half) }
                     if (selectionRing && traced) {
@@ -146,6 +152,7 @@ internal fun LetterToken(
                     val lit = join.value.lit
                     val ended = end.value.at(cell.coord)
                     when {
+                        flat -> outlinedLetterColor(spec, colors, traced, ended)
                         ended != null -> ended.letter(colors)
                         !traced -> spec.letter(colors)
                         lit >= 1f -> TraceOverlaySpec.letter(colors)
