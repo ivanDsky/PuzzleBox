@@ -140,7 +140,7 @@ class MatchLegViewModelSelfTest {
     private fun rows(): List<OutboxResult> = runBlocking { outbox.observe(code).first() }
 
     private fun route(leg: Int = 1): MatchLegViewModel =
-        MatchLegViewModel(leg(leg), store, matches, outbox, identity, ObserveLegTarget(self, preferences)).also { vm ->
+        MatchLegViewModel(leg(leg), store, matches, outbox, identity, self, ObserveLegTarget(self, preferences)).also { vm ->
             screen.launch { vm.state.collect {} }
             screen.launch { vm.exits.collect { exits += it } }
             dispatcher.scheduler.runCurrent()

@@ -4,7 +4,7 @@ import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.LegResult
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
-import com.ivandsky.puzzlebox.data.match.SelfSeats
+import com.ivandsky.puzzlebox.data.match.seatFor
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import kotlinx.coroutines.flow.first
@@ -24,7 +24,7 @@ class FinishLeg(
 ) {
 
     suspend operator fun invoke(code: ShareCode, legIndex: Int, finish: LegFinish): FinishResult {
-        val seat = seat(code) ?: return FinishResult.SignedOut
+        val seat = self.seatFor(code, identity.current.value?.uid) ?: return FinishResult.SignedOut
         val recorded = outbox.observe(code).first().any { it.result.legIndex == legIndex && it.result.uid == seat }
         if (recorded) return FinishResult.AlreadyRecorded
         val completedAtMs = clock().toEpochMilli()
@@ -37,8 +37,4 @@ class FinishLeg(
         outbox.enqueue(code, result)
         return FinishResult.Queued
     }
-
-    /** Read from the device alone: a friend leg must queue offline, not wait on a remote read. */
-    private suspend fun seat(code: ShareCode): String? =
-        if (self.holds(code)) SelfSeats.ME else identity.current.value?.uid
 }

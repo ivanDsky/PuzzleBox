@@ -2,8 +2,10 @@ package com.ivandsky.puzzlebox.data.match
 
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import java.time.Instant
 import java.time.LocalDate
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -56,6 +58,28 @@ class SelfSeatsTest {
         val self = match(challenger = SelfSeats.ME, opponent = SelfSeats.PAST).copy(deadlineHours = SelfSeats.NO_DEADLINE_HOURS)
 
         assertTrue(self.deadline.isAfter(self.createdAt.plusSeconds(90L * 365 * 24 * 3_600)))
+    }
+
+    @Test
+    fun `a held code gives the self seat signed in or out`() = runBlocking {
+        val self = heldSelf()
+
+        assertEquals(SelfSeats.ME, self.seatFor(code, "ann-uid"))
+        assertEquals(SelfSeats.ME, self.seatFor(code, null))
+    }
+
+    @Test
+    fun `a code not held gives the identity uid and null stays null`() = runBlocking {
+        val self = FakeSelfMatchRepository()
+
+        assertEquals("ann-uid", self.seatFor(code, "ann-uid"))
+        assertNull(self.seatFor(code, null))
+    }
+
+    private val code = requireNotNull(ShareCode.parse("ABC234"))
+
+    private suspend fun heldSelf() = FakeSelfMatchRepository().also {
+        it.save(match(challenger = SelfSeats.ME, opponent = SelfSeats.PAST), past = emptyList())
     }
 
     private fun match(challenger: String, opponent: String?) = Match(

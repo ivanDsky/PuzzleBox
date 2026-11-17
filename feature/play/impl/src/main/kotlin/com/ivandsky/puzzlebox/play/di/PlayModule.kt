@@ -150,6 +150,6 @@ val playModule = module {
         )
     }
     viewModel { (key: MatchLegKey) ->
-        MatchLegViewModel(key = key, store = get(), matches = get(), outbox = get(), identity = get(), legTarget = get())
+        MatchLegViewModel(key = key, store = get(), matches = get(), outbox = get(), identity = get(), self = get(), legTarget = get())
     }
 }
