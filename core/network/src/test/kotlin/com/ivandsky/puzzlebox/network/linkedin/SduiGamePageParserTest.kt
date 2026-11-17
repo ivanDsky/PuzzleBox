@@ -22,6 +22,18 @@ class SduiGamePageParserTest {
     }
 
     @Test
+    fun `the unsolved Queens daily page is puzzle 930, Fresh, with its plays and wins`() {
+        val parsed = SduiGamePageParser.parse(LinkedInPostFixtures.text("queens-page-daily-unsolved.rsc"))!!
+
+        assertEquals(LinkedInPostFixtures.queensDailyPage, parsed)
+        assertEquals(930L, parsed.puzzleId)
+        assertEquals(LinkedInProgress.Fresh, parsed.progress)
+        assertEquals(false, parsed.isTutorial)
+        assertEquals(725, parsed.totalPlays)
+        assertEquals(722, parsed.wins)
+    }
+
+    @Test
     fun `the onboarding tutorial page is a tutorial, Fresh, with the tutorial's puzzle id and not the day's`() {
         val tutorial = SduiGamePageParser.parse(LinkedInPostFixtures.text("zip-page-test-account-tutorial-2.rsc"))!!
 
