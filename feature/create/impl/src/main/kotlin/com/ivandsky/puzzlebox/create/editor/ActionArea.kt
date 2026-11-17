@@ -60,6 +60,7 @@ fun ActionArea(
     onShowDetails: (() -> Unit)? = null,
     fieldCopy: Map<String, String> = emptyMap(),
     compact: Boolean = false,
+    keepReadinessLine: Boolean = false,
 ) {
     val detailBlocks = publish?.blocks.orEmpty()
     val shown = remember(blocks, detailBlocks) { blocks + detailBlocks }
@@ -86,10 +87,10 @@ fun ActionArea(
             if (publish != null && onShowDetails != null) {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                     PublishDetailsSummary(title, publish.details.authorName, onShowDetails, Modifier.weight(1f, fill = false))
-                    ReadinessLine(shown, fieldCopy, Modifier.weight(1f, fill = false))
+                    ReadinessLine(shown, fieldCopy, keepReadinessLine, Modifier.weight(1f, fill = false))
                 }
             } else {
-                ReadinessLine(shown, fieldCopy, Modifier.fillMaxWidth())
+                ReadinessLine(shown, fieldCopy, keepReadinessLine, Modifier.fillMaxWidth())
             }
         }
         if (publish != null) PublishCta(publish, ready = shown.isEmpty(), onPublish = onPublish, modifier = Modifier.fillMaxWidth())
@@ -98,15 +99,18 @@ fun ActionArea(
 
 /**
  * One phrase per readiness entry, an evenly spaced "·" between; Ready in the accent colour when
- * nothing blocks. Not tested is left to the status line above, so it alone shows no line.
+ * nothing blocks. Not tested is left to the status line above, so it alone shows no line, or an empty one when the game keeps the height ([keepReadinessLine]).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ReadinessLine(blocks: List<PublishBlock>, fieldCopy: Map<String, String>, modifier: Modifier) {
+private fun ReadinessLine(blocks: List<PublishBlock>, fieldCopy: Map<String, String>, keepHeight: Boolean, modifier: Modifier) {
     val entries = remember(blocks, fieldCopy) { readinessOf(blocks, fieldCopy) }
-    if (entries.isEmpty() && blocks.isNotEmpty()) return
+    if (entries.isEmpty() && blocks.isNotEmpty() && !keepHeight) return
     FlowRow(modifier.testTag("create.readiness"), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        if (entries.isEmpty()) {
+        // Kept height: Not tested alone shows an empty line, so the board above never moves.
+        if (entries.isEmpty() && blocks.isNotEmpty()) {
+            Text("", style = MaterialTheme.typography.bodyMedium)
+        } else if (entries.isEmpty()) {
             Text(
                 text = "Ready",
                 style = MaterialTheme.typography.bodyMedium,

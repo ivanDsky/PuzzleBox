@@ -27,6 +27,8 @@ object ZipEditorUi : GameEditorUi {
 
     override val gameId: GameId = ZipDefinition.id
 
+    override val keepsReadinessLine: Boolean = true
+
     override fun sizeLabel(variant: VariantId): String {
         val n = ZipVariants.byId(variant)?.size ?: return variant.value
         return "$n×$n"

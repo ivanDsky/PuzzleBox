@@ -43,7 +43,7 @@ import java.io.File
 
 /**
  * The Zip editor's looks on a 411 dp phone and in the tablet Studio's left pane, light and dark:
- * each step, a partial path with its fix row, Unique, Multiple with diff rings, None with its
+ * each step, an empty board with its coach line, a partial path with its fix row, Unique, Multiple with diff rings, None with its
  * clash cells and witness A and B on the board. Every board is a real 5×5 draft whose verdict
  * comes from [ZipDraftAnalyzer], asserted before the capture.
  * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`; goldens in
@@ -76,6 +76,9 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
     @Test fun `partial path light`() = partial(dark = false)
     @Test fun `partial path dark`() = partial(dark = true)
 
+    @Test fun `empty board light`() = empty(dark = false)
+    @Test fun `empty board dark`() = empty(dark = true)
+
     @Test fun `unique light`() = unique(dark = false)
     @Test fun `unique dark`() = unique(dark = true)
 
@@ -102,6 +105,12 @@ abstract class ZipEditorGoldenScreenshots(private val device: String) {
             waypoints = listOf(0, SNAKE[PARTIAL_CELLS - 1]),
         )
         capture("partial-path", dark, draft, analyzed<Verdict.Incomplete>(draft), fixList = true)
+    }
+
+    /** No path yet: the tools row carries one coach line in place of Reverse and Clear path. */
+    private fun empty(dark: Boolean) {
+        val draft = ZipDraft(SIZE, emptySet(), emptyList(), emptyList())
+        capture("empty-board", dark, draft, analyzed<Verdict.Incomplete>(draft))
     }
 
     private fun unique(dark: Boolean) =

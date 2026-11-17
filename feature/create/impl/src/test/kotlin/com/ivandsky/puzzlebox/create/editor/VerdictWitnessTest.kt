@@ -20,11 +20,13 @@ import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.toSize
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -59,7 +61,7 @@ class VerdictWitnessTest {
     private fun setContent() {
         composeRule.setContent {
             PuzzleBoxTheme {
-                VerdictWitness(overlay, autoShow, onChange = { overlay = it }, onAutoShow = { autoShow = it })
+                VerdictWitness(overlay, autoShow, onChange = { overlay = it }, onAutoShow = { autoShow = it }, legend = "legend")
             }
         }
     }
@@ -76,6 +78,20 @@ class VerdictWitnessTest {
         assertEquals(EditorOverlay(EditorOverlay.Witness.B, showOnBoard = true), overlay)
         composeRule.onNodeWithTag(WITNESS_B).assertIsSelected()
         composeRule.onNodeWithTag(WITNESS_A).assertIsNotSelected()
+    }
+
+    @Test
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    @Config(qualifiers = "w360dp-h640dp-xhdpi")
+    fun `a one-line legend under the segments says what the board marks`() {
+        composeRule.setContent {
+            PuzzleBoxTheme { VerdictWitness(overlay, autoShow, {}, {}, LEGEND_TEXT, Modifier.padding(Spacing.lg)) }
+        }
+        val legend = composeRule.onNodeWithTag(LEGEND).fetchSemanticsNode()
+
+        composeRule.onNodeWithTag(LEGEND).assertTextEquals(LEGEND_TEXT)
+        val lineHeightPx = with(Density(composeRule.activity.resources.displayMetrics.density)) { 16.sp.toPx() }
+        assertTrue("legend wraps: height ${legend.size.height}px", legend.size.height < 2 * lineHeightPx)
     }
 
     @Test
@@ -170,6 +186,8 @@ class VerdictWitnessTest {
     }
 
     private companion object {
+        const val LEGEND_TEXT = "A and B differ in 12 cells, marked on the board"
+        const val LEGEND = "create.verdict.witness.legend"
         const val WITNESS_A = "create.verdict.witness.a"
         const val WITNESS_B = "create.verdict.witness.b"
         const val SHOW_ON_BOARD = "create.verdict.showOnBoard"

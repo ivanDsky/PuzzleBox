@@ -134,7 +134,8 @@ private fun CardFace(
         }
         if (verdict is Verdict.Unique && verdict.gradeState() != null) {
             Grade(verdict)
-        } else {
+        } else if (verdict !is Verdict.Multiple) {
+            // 2+ solutions says it under the witness segments instead, so the card keeps its height.
             Text(
                 text = subtitleOf(verdict),
                 style = MaterialTheme.typography.bodyMedium,
@@ -153,7 +154,7 @@ private fun CardFace(
                 modifier = Modifier.fillMaxWidth().testTag("create.verdict.checkAgain"),
             )
         }
-        if (verdict is Verdict.Multiple) VerdictWitness(overlay, autoShow, onOverlay, onAutoShow)
+        if (verdict is Verdict.Multiple) VerdictWitness(overlay, autoShow, onOverlay, onAutoShow, legend = legendOf(verdict))
     }
 }
 
@@ -205,10 +206,15 @@ private fun subtitleOf(verdict: Verdict): String = when (verdict) {
     is Verdict.Incomplete -> "Finish the board and it checks itself"
     Verdict.Checking -> "Runs a moment after your last tap"
     is Verdict.Unique -> "Exactly one solution"
-    is Verdict.Multiple -> "${verdict.differingCells.size} cells differ, marked on the board"
+    is Verdict.Multiple -> legendOf(verdict)
     is Verdict.None ->
         if (verdict.conflicts.isEmpty()) "No single spot to blame" else "${verdict.conflicts.size} clashing cells marked in red"
     Verdict.Undetermined -> "The solver hit its time budget"
+}
+
+private fun legendOf(verdict: Verdict.Multiple): String {
+    val count = verdict.differingCells.size
+    return "A and B differ in $count ${if (count == 1) "cell" else "cells"}, marked on the board"
 }
 
 private fun explanationOf(verdict: Verdict): String = when (verdict) {

@@ -49,6 +49,12 @@ interface GameEditorUi {
      */
     val publishFieldCopy: Map<String, String> get() = emptyMap()
 
+    /**
+     * Whether the Studio's readiness line keeps its height when Not tested alone shows no phrase,
+     * so the board never moves as the draft turns unique. False by default: the board then takes that height.
+     */
+    val keepsReadinessLine: Boolean get() = false
+
     /** Context line beside the tool strip; the default draws nothing. */
     @Composable fun ToolHint(controller: GameEditorController, modifier: Modifier) {}
 
