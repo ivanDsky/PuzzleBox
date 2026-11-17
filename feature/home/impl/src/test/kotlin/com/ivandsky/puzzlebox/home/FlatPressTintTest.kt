@@ -61,6 +61,7 @@ class FlatPressTintTest {
         row = HomeUiState.TodayRow(GameId("zip"), "Zip", TodayStatus.NotStarted, GameBrand.Neutral, RankOrder.TimeThenHints),
         next = false,
         size = TodayBadgeSize.Compact,
+        nameLines = 1,
         onClick = {},
         modifier = Modifier.width(96.dp).testTag("badge"),
     )

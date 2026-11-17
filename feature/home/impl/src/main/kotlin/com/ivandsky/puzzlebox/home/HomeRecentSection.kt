@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -17,7 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import com.ivandsky.puzzlebox.designsystem.EmptyState
+import androidx.compose.ui.text.style.TextAlign
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -31,10 +32,12 @@ import com.ivandsky.puzzlebox.gameui.GameGlyphSize
  * Today card. In two-pane ([selectable]) a row selects that day for the detail pane
  * ([onDayClick]; [selectedDay] reads selected). A single-pane row is a button
  * too (nav rethink N2): it reports the ISO day to open in Ranks through [onOpenDay]. Result chips stay plain.
+ * Until [loaded] the card stays blank (A17), so it never claims "empty" before local state is read.
  */
 @Composable
 internal fun HomeRecentSection(
     days: List<HistoryDay>,
+    loaded: Boolean,
     selectedDay: String?,
     onDayClick: (String) -> Unit,
     selectable: Boolean,
@@ -51,16 +54,20 @@ internal fun HomeRecentSection(
             color = MaterialTheme.colorScheme.onSurface,
         )
         OutlinedCard(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().testTag("home.recent_card"),
             shape = MaterialTheme.shapes.large,
         ) {
-            if (days.isEmpty()) {
-                EmptyState(
-                    title = "Earlier days will show here",
-                    message = "Finished puzzles and scores will appear here.",
-                )
-            } else {
-                Column(Modifier.padding(Spacing.sm)) {
+            when {
+                !loaded -> CardPlaceholder { BlankValue(MaterialTheme.typography.bodyMedium) }
+                days.isEmpty() -> CardPlaceholder {
+                    Text(
+                        text = "Finished puzzles show here",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+                else -> Column(Modifier.padding(Spacing.sm)) {
                     days.forEach { day ->
                         RecentRow(
                             day = day,
@@ -71,6 +78,13 @@ internal fun HomeRecentSection(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun CardPlaceholder(content: @Composable () -> Unit) {
+    Box(Modifier.fillMaxWidth().padding(Spacing.xl), contentAlignment = Alignment.Center) {
+        content()
     }
 }
 

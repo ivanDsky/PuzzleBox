@@ -57,12 +57,14 @@ private val StatusSkeletonHeight = 10.dp
  * status is the loading skeleton. [next] puts the name in primary text (the CTA's game).
  * Tapping is [onClick] in every state — an offline badge's tap is its retry. A status change
  * crossfades the ring and status line in place.
+ * [nameLines] is the row's call: 2 only when a name in the row wraps, so a one-line row keeps no empty line.
  */
 @Composable
 internal fun TodayBadge(
     row: HomeUiState.TodayRow,
     next: Boolean,
     size: TodayBadgeSize,
+    nameLines: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -92,9 +94,10 @@ internal fun TodayBadge(
         }
         Text(
             text = row.displayName,
-            style = if (size == TodayBadgeSize.Expanded) MaterialTheme.typography.labelLarge else MaterialTheme.typography.labelMedium,
+            style = size.nameStyle(),
             color = if (next) LocalPrimaryText.current else MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
+            minLines = nameLines,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth(),

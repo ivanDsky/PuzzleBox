@@ -9,12 +9,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.height
 import com.ivandsky.puzzlebox.designsystem.LocalTabReselect
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.GameBrand
@@ -22,6 +25,7 @@ import com.ivandsky.puzzlebox.home.HomeScreenTest.Companion.TODAY
 import com.ivandsky.puzzlebox.home.HomeScreenTest.Companion.state
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.flow.MutableSharedFlow
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,14 +43,14 @@ class HomeScreenRecentTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun setContent(layout: HomeLayout, history: List<HistoryDay> = emptyList()) {
+    private fun setContent(layout: HomeLayout, history: List<HistoryDay> = emptyList(), loaded: Boolean = true) {
         composeRule.setContent {
             CompositionLocalProvider(LocalTabReselect provides MutableSharedFlow<Unit>()) {
                 PuzzleBoxTheme {
                     var picked by remember { mutableStateOf<String?>(null) }
                     HomeScreen(
                         layout = layout,
-                        state = state(TODAY, history, GameId("tango")).copy(selectedDay = picked),
+                        state = state(TODAY, history, GameId("tango")).copy(selectedDay = picked, isLocalStateLoaded = loaded),
                         onOpenGame = {},
                         onSelectDay = { picked = it },
                         modifier = Modifier,
@@ -88,10 +92,10 @@ class HomeScreenRecentTest {
     }
 
     @Test
-    fun `history teaser shows the empty state when nothing is cached`() {
+    fun `history teaser shows one line when nothing is cached`() {
         setContent(HomeLayout.SinglePane)
 
-        composeRule.onNodeWithText("Earlier days will show here").assertExists()
+        composeRule.onAllNodesWithText("Finished puzzles show here").assertCountEquals(1)
         composeRule.onNodeWithText("See all").assertDoesNotExist()
     }
 
@@ -103,8 +107,43 @@ class HomeScreenRecentTest {
         )
 
         composeRule.onNodeWithText("October 30").assertExists()
-        composeRule.onNodeWithText("Earlier days will show here").assertDoesNotExist()
+        composeRule.onNodeWithText("Finished puzzles show here").assertDoesNotExist()
     }
+
+    @Test
+    fun `before local state loads the recent card stays blank with no empty claim`() {
+        setContent(HomeLayout.SinglePane, loaded = false)
+
+        composeRule.onAllNodesWithText("Finished puzzles show here").assertCountEquals(0)
+    }
+
+    @Test
+    fun `recent card keeps its height when local state finishes loading`() {
+        var loaded by mutableStateOf(false)
+        composeRule.setContent {
+            CompositionLocalProvider(LocalTabReselect provides MutableSharedFlow<Unit>()) {
+                PuzzleBoxTheme {
+                    HomeScreen(
+                        layout = HomeLayout.SinglePane,
+                        state = state(TODAY, emptyList(), GameId("tango")).copy(isLocalStateLoaded = loaded),
+                        onOpenGame = {},
+                        onSelectDay = {},
+                        modifier = Modifier,
+                        title = "PuzzleBox",
+                        summaries = HomeSummaries(onOpenRank = null, duels = null, onOpenDay = {}, onOpenStreak = {}),
+                    )
+                }
+            }
+        }
+        composeRule.waitForIdle()
+        val blankHeight = recentCardHeight()
+        loaded = true
+        composeRule.waitForIdle()
+        assertEquals(blankHeight, recentCardHeight(), 0.5f)
+    }
+
+    private fun recentCardHeight(): Float =
+        composeRule.onNodeWithTag("home.recent_card", useUnmergedTree = true).getUnclippedBoundsInRoot().height.value
 
     @Test
     fun `selecting a two-game day on two pane selects exactly that row`() {

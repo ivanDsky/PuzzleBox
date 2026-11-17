@@ -99,7 +99,14 @@ internal fun TodayBadgePreview() {
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             (DefaultSet.take(3) + previewRow("strands", "Strands", GameBrand(AccentSlot.Pink, GameGlyphs.Strands), TodayStatus.Offline)).forEach { row ->
-                TodayBadge(row, next = row.game.value == "tango", size = TodayBadgeSize.Compact, onClick = {}, modifier = Modifier.width(66.dp))
+                TodayBadge(
+                    row,
+                    next = row.game.value == "tango",
+                    size = TodayBadgeSize.Compact,
+                    nameLines = 1,
+                    onClick = {},
+                    modifier = Modifier.width(66.dp),
+                )
             }
         }
     }
