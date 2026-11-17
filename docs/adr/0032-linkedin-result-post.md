@@ -26,6 +26,7 @@ Posting is a larger breach of LinkedIn's terms than reading: it is visible to th
    - P10 keeps covering every production file of `:core:network` package `network.linkedin`. The one file named `LinkedInPostApi.kt` is exempt from its non-GET check alone; the client-leak checks still apply to every file.
    - P12 `LinkedInPostOnlyServerRequest` has the same subject set. A file named `LinkedInPostApi.kt` has exactly one non-GET annotation, and it is exactly `@POST("flagship-web/rsc-action/actions/server-request")`. No file in the package builds a write by hand (`.post(`, `.put(`, `.patch(`, `.delete(`, `.method(`).
    - A POST in any other file fails P10; a second or wrong POST path in `LinkedInPostApi.kt` and a hand-built write fail P12.
+10. **A posted day never imports its own result.** The day sync reads LinkedIn's own result of a day this phone posted (decision 7's posted log) as read but writes no completion: that result is LinkedIn's copy of the player's PuzzleBox solve, and importing it would add a newer row with no replay. The shown solve of a daily stays its earliest solve, and the result page reads the replay of the stored row that is that solve.
 
 ## Consequences
 - LinkedIn will show a posted result under the player's name, to whoever LinkedIn's own settings allow. PuzzleBox never changes those settings (A7).

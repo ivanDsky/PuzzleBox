@@ -75,7 +75,7 @@ class RoomLinkedInDaysRangeTest {
 
     private fun newDays(source: LinkedInAccountSource) = RoomLinkedInDays(
         link, source, completions, daily, FakeGameCalendar(today), registry, db, LinkedInCallBudget({ NOW }, limit = 100),
-        testAvatars(createTempDirectory("avatars").toFile()), LinkedInStoreLock(), FakeOwnerScope(visible = "uid-1"),
+        testAvatars(createTempDirectory("avatars").toFile()), LinkedInStoreLock(), testPostLog(), FakeOwnerScope(visible = "uid-1"),
     ) { NOW }
 
     private fun number(day: LocalDate): Int = 700 + ChronoUnit.DAYS.between(EPOCH, day).toInt()

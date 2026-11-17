@@ -30,6 +30,7 @@ internal class LinkedInDaySync(
     private val budget: LinkedInCallBudget,
     private val avatars: LinkedInAvatars,
     private val storeLock: LinkedInStoreLock,
+    private val postLog: LinkedInPostLog,
     private val syncState: LinkedInSyncState,
     private val clock: () -> Long,
 ) {
@@ -72,9 +73,12 @@ internal class LinkedInDaySync(
         return settle(request, read) { result ->
             when (result) {
                 is LinkedInOwnResult.Solved -> {
-                    val record = LinkedInImport.toRecord(request.game, request.day, number, result, registry)
-                        ?: return@settle LinkedInSync.NotLinkedInGame
-                    completions.onCompleted(record)
+                    // LinkedIn's copy of a solve this phone posted: importing it would add a duplicate with no replay (ADR-0032).
+                    if (!postLog.observe(request.game, request.day).first().posted) {
+                        val record = LinkedInImport.toRecord(request.game, request.day, number, result, registry)
+                            ?: return@settle LinkedInSync.NotLinkedInGame
+                        completions.onCompleted(record)
+                    }
                     log(request, LinkedInItem.Own, LinkedInOutcome.Solved, nowMs)
                 }
                 LinkedInOwnResult.NotPlayed -> log(request, LinkedInItem.Own, LinkedInOutcome.NotPlayed, nowMs)

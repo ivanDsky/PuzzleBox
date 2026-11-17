@@ -80,6 +80,7 @@ class RoomLinkedInDaysProfileTest {
         LinkedInCallBudget({ now }, limit = 100),
         testAvatars(createTempDirectory("avatars").toFile()),
         LinkedInStoreLock(),
+        testPostLog(),
         FakeOwnerScope(),
     ) { now }
 

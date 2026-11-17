@@ -35,7 +35,7 @@ internal class ResultReplayRow(
                 if (!stored) {
                     ReplaySectionState.Hidden
                 } else {
-                    loadReplay(SolveReplayRef.Latest(ref))?.let(ReplaySectionState::Ready) ?: unavailableOf(ref)
+                    loadReplay(replayRefOf(ref))?.let(ReplaySectionState::Ready) ?: unavailableOf(ref)
                 }
             }
 
@@ -53,6 +53,17 @@ internal class ResultReplayRow(
                 (records + again).any { it.puzzleRef == ref && it.time == solve.timeMs && it.hints == solve.hints }
             }
         }
+
+    /**
+     * The replay of the stored row that is this solve. A cold result whose time and hints match the puzzle's record row
+     * reads the record's replay, so a newer import or practice row never hides it. A live solve was just written, so it
+     * is the newest row.
+     */
+    private suspend fun replayRefOf(ref: PuzzleRef): SolveReplayRef {
+        val isRecord = live == null &&
+            completions.observeRecords().first().any { it.puzzleRef == ref && it.time == solve.timeMs && it.hints == solve.hints }
+        return if (isRecord) SolveReplayRef.Record(ref) else SolveReplayRef.Latest(ref)
+    }
 
     /** A stored solve with no replay says so, naming a LinkedIn import. */
     private suspend fun unavailableOf(ref: PuzzleRef): ReplaySectionState {
