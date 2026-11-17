@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.games.zipui
 
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -38,6 +39,10 @@ class ZipFeedback(private val scope: CoroutineScope) : PlayFeedback {
     var hintCaption by mutableStateOf<String?>(null)
         private set
 
+    /** Every explained refused drag step. A counter, so a repeat of the same refusal still changes it. */
+    var refusals by mutableIntStateOf(0)
+        private set
+
     override val violation: String? get() = null
 
     private val rules = zipPlugin.rules as ZipRules // the plugin's rules ARE ZipRules
@@ -54,13 +59,14 @@ class ZipFeedback(private val scope: CoroutineScope) : PlayFeedback {
     /**
      * The drag board refused [cell] before any move existed (DragEvent.Refused). Only a
      * refusal the player plausibly meant — skipping a number, crossing a wall, starting
-     * off 1 — is explained; a finger wandering onto a far or traced cell stays silent
-     * (R1), and nothing here is a mistake for analytics.
+     * off 1 — is explained and counted; a finger wandering onto a far or traced cell stays
+     * silent (R1), and nothing here is a mistake for analytics.
      */
     fun refused(session: ZipSession, cell: Cell) {
         val verdict = rules.validateMove(ZipMove.Extend(cell), ZipState(session.puzzle, session.path))
         val reason = (verdict as? ZipValidation.Invalid)?.reason ?: return
         if (reason is Reason.WrongWaypointOrder || reason == Reason.WallBetween || reason == Reason.WrongStart) {
+            refusals++
             reject(session.puzzle.board, cell, reason)
         }
     }
