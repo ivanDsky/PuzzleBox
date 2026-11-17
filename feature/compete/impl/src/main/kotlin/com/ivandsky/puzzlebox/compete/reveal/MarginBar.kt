@@ -44,10 +44,10 @@ private val CentreMarkHeight = 18.dp
 /**
  * How far apart a puzzle's results were: a track with a mark at its centre, a fill growing from the mark toward the
  * winner (left for me, right for the opponent; none when [winner] is null) and the [margin]'s label at the end,
- * [labelWidth] wide. The fill traces out when the row arrives, [rowIndex] places it in the stagger.
+ * [labelWidth] wide, in the winner's hue when [tintLabel]. The fill traces out when the row arrives, [rowIndex] places it in the stagger.
  */
 @Composable
-internal fun MarginBar(margin: RowMargin, winner: Side?, rowIndex: Int, labelWidth: Dp, modifier: Modifier = Modifier) {
+internal fun MarginBar(margin: RowMargin, winner: Side?, rowIndex: Int, labelWidth: Dp, modifier: Modifier = Modifier, tintLabel: Boolean = false) {
     val reduced = rememberReducedMotion()
     val instant = reduced || LocalInspectionMode.current
     val grown = remember { Animatable(if (instant) margin.ratio else 0f) }
@@ -84,7 +84,12 @@ internal fun MarginBar(margin: RowMargin, winner: Side?, rowIndex: Int, labelWid
         Text(
             text = margin.label,
             style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = when {
+                !tintLabel -> MaterialTheme.colorScheme.onSurfaceVariant
+                winner == Side.Mine -> LocalPrimaryText.current
+                winner == Side.Theirs -> secondaryText()
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            },
             textAlign = TextAlign.End,
             maxLines = 1,
             modifier = Modifier.width(labelWidth),

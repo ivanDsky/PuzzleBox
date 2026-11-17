@@ -46,8 +46,8 @@ internal fun PuzzleTableHeader(summary: DuelSummary, metrics: TableMetrics, modi
         PlayerHead(summary.opponent, summary.theirPhotoUrl, DuelTone.Them, Modifier.width(metrics.timeWidth), tight)
         if (!metrics.compact) {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceBetween) {
-                MarginHead("← ", summary.me, "", Modifier.weight(1f, fill = false))
-                MarginHead("", summary.opponent, " →", Modifier.weight(1f, fill = false).padding(start = Spacing.sm))
+                MarginHead("← ", if (summary.pastYou) YOU else summary.me, "", summary.pastYou, Modifier.weight(1f, fill = false))
+                MarginHead("", summary.opponent, " →", summary.pastYou, Modifier.weight(1f, fill = false).padding(start = Spacing.sm))
             }
         }
     }
@@ -76,14 +76,16 @@ private fun PlayerHead(name: String, photoUrl: String?, tone: DuelTone, modifier
     }
 }
 
-/** One end of the margin bar's head: [name] between its [before] and [after] marks, in capitals, the short name when the full one does not fit. */
+/** One end of the margin bar's head: [name] between its [before] and [after] marks, in capitals (a self duel's, [sentenceCase], reads "← You" and "Past you →"), the short name when the full one does not fit. */
 @Composable
-private fun MarginHead(before: String, name: String, after: String, modifier: Modifier) {
+private fun MarginHead(before: String, name: String, after: String, sentenceCase: Boolean, modifier: Modifier) {
     FittedName(
-        full = "$before$name$after".uppercase(),
-        short = "$before${shortName(name)}$after".uppercase(),
+        full = "$before$name$after".let { if (sentenceCase) it else it.uppercase() },
+        short = "$before${shortName(name)}$after".let { if (sentenceCase) it else it.uppercase() },
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier,
     )
 }
+
+private const val YOU = "You"
