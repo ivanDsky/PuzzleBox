@@ -51,6 +51,7 @@ import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -86,6 +87,7 @@ class DuelViewModelTest {
     private var repo: MatchRepository = server
     private val local = FakeMatchLocalRepository()
     private val self = FakeSelfMatchRepository()
+    private val timeLeft = MutableStateFlow(true)
     private val identity = FakeIdentityService()
     private val completions = FakeCompletionRepository()
     private val registry = TestGames.registry(listOf(TestGames.alpha, TestGames.beta))
@@ -116,6 +118,7 @@ class DuelViewModelTest {
         idTokens = idTokens,
         registry = registry,
         deleteSelfDuel = DeleteSelfDuel(self, FakeMatchResultOutbox(), plays, local),
+        showTimeLeft = timeLeft,
         loadLegPuzzle = LoadLegPuzzle(
             daily = FakeDailyRepository(),
             received = FakeReceivedPuzzleRepository(),
@@ -612,5 +615,16 @@ class DuelViewModelTest {
         assertFalse((vm.state.value as DuelUiState.Participant).removeAsked)
         assertFalse(closed.isCompleted)
         assertTrue(self.holds(selfCode))
+    }
+
+    @Test
+    fun theParticipantCarriesTheTimeLeftSettingLive() = runTest {
+        selfDuel(ann)
+        val vm = started(viewModel(selfCode.value))
+        assertTrue((vm.state.value as DuelUiState.Participant).timeLeftShown)
+
+        timeLeft.value = false
+
+        assertFalse((vm.state.value as DuelUiState.Participant).timeLeftShown)
     }
 }

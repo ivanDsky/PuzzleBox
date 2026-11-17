@@ -138,6 +138,23 @@ class DuelPaneFeaturesTest {
     }
 
     @Test
+    fun `the callout promises a countdown only while the timer shows time left`() {
+        show(DuelPageFixtures.self(refs, doneLegs = setOf(0)))
+        rule.onNode(inCallout("The timer counts down to past you’s time.")).assertIsDisplayed()
+    }
+
+    @Test
+    fun `with time left off the callout drops the countdown step and renumbers the rest`() {
+        show(DuelPageFixtures.self(refs, doneLegs = setOf(0)).copy(timeLeftShown = false))
+
+        rule.onAllNodes(inCallout("The timer counts down to past you’s time.")).assertCountEquals(0)
+        rule.onNode(inCallout("Hints count against you.")).assertIsDisplayed()
+        rule.onNode(inCallout("Past you’s time stays hidden until the results.")).assertIsDisplayed()
+        rule.onNode(inCallout("2")).assertIsDisplayed()
+        rule.onAllNodes(inCallout("3")).assertCountEquals(0)
+    }
+
+    @Test
     fun `the page fills the width, a divider between the list and the detail, no centred frame`() {
         show(DuelPageFixtures.self(refs, doneLegs = setOf(0, 1, 2)))
 

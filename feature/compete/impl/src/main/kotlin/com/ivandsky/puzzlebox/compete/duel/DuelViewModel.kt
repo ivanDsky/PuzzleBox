@@ -91,7 +91,8 @@ internal sealed interface DuelUiState {
     /**
      * The viewer holds a seat; the puzzles screen takes [view] and the saved plays' [elapsedMs], by puzzle index.
      * A self duel also takes [firstSolvedAt] (the day past you set each score, by the puzzle's wire key), [myName]
-     * (the signed-in name, null signed out) and [removeAsked], the remove-confirm showing.
+     * (the signed-in name, null signed out), [removeAsked] (the remove-confirm showing) and [timeLeftShown] (the Play
+     * setting: the leg timer counts down to past you's time).
      */
     data class Participant(
         val view: MatchView,
@@ -99,6 +100,7 @@ internal sealed interface DuelUiState {
         val firstSolvedAt: Map<String, Instant> = emptyMap(),
         val myName: String? = null,
         val removeAsked: Boolean = false,
+        val timeLeftShown: Boolean = true,
     ) : DuelUiState
 
     data object NotFound : DuelUiState
@@ -123,6 +125,7 @@ internal class DuelViewModel(
     idTokens: GoogleIdTokenProvider,
     private val registry: GameRegistry,
     deleteSelfDuel: DeleteSelfDuel,
+    showTimeLeft: Flow<Boolean>,
     loadLegPuzzle: LoadLegPuzzle,
     plays: GamePlayRegistry,
     dispatchers: DispatcherProvider,
@@ -170,11 +173,12 @@ internal class DuelViewModel(
             working,
             identity.current,
             removal.step,
-        ) { duel, work, me, step -> build(shareCode, duel, work, me?.displayName, step) }
+            showTimeLeft,
+        ) { duel, work, me, step, timeLeft -> build(shareCode, duel, work, me?.displayName, step, timeLeft) }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), DuelUiState.Loading)
     }
 
-    private fun build(code: ShareCode, duel: DuelSnapshot, work: Working, myName: String?, removal: RemovalStep): DuelUiState {
+    private fun build(code: ShareCode, duel: DuelSnapshot, work: Working, myName: String?, removal: RemovalStep, timeLeft: Boolean): DuelUiState {
         if (removal == RemovalStep.Removing) return DuelUiState.Loading
         return when (val match = duel.match) {
             MatchState.NotFound -> DuelUiState.NotFound
@@ -183,7 +187,7 @@ internal class DuelViewModel(
             is MatchState.SignedOut -> DuelUiState.Invite(
                 InviteKind.SignedOut, code, match.match?.let { inviteDetails(it, null, duel.solvedBefore) }, false, null, work.signIn,
             )
-            is MatchState.Loaded -> loaded(code, match.view, duel, work, myName, removal == RemovalStep.Asking)
+            is MatchState.Loaded -> loaded(code, match.view, duel, work, myName, removal == RemovalStep.Asking, timeLeft)
         }
     }
 
@@ -194,6 +198,7 @@ internal class DuelViewModel(
         work: Working,
         myName: String?,
         removeAsked: Boolean,
+        timeLeftShown: Boolean,
     ): DuelUiState {
         val match = view.match
         val me = view.me
@@ -205,6 +210,7 @@ internal class DuelViewModel(
                 firstSolvedAt = duel.firstSolvedAt,
                 myName = myName,
                 removeAsked = removeAsked,
+                timeLeftShown = timeLeftShown,
             )
         }
         val kind = work.outcome ?: when {

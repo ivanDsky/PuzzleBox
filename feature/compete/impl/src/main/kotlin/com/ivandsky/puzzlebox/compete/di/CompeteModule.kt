@@ -6,6 +6,7 @@ import com.ivandsky.puzzlebox.compete.reveal.RematchViewModel
 import com.ivandsky.puzzlebox.compete.reveal.RevealViewModel
 import com.ivandsky.puzzlebox.compete.tab.DuelsTabViewModel
 import com.ivandsky.puzzlebox.data.match.Match
+import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.domain.ObserveMatch
 import java.time.Instant
 import java.time.ZoneId
@@ -52,6 +53,7 @@ val competeModule: Module = module {
             idTokens = get(),
             registry = get(),
             deleteSelfDuel = get(),
+            showTimeLeft = get<UserPreferencesRepository>().showSelfDuelTimeLeft,
             loadLegPuzzle = get(),
             plays = get(),
             dispatchers = get(),
