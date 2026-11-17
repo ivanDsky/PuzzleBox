@@ -1,13 +1,20 @@
 package com.ivandsky.puzzlebox.compete.tab
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import com.ivandsky.puzzlebox.compete.common.PastYouAvatar
+import com.ivandsky.puzzlebox.data.match.Player
+import com.ivandsky.puzzlebox.data.match.SelfSeats
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.DuelRow
 import com.ivandsky.puzzlebox.domain.DuelRowKind
+import com.ivandsky.puzzlebox.model.ShareCode
+import java.time.Instant
 
 /** The avatar's letter: Past you is the player's own earlier self, so it wears no friend's initial. */
 private const val PAST_INITIAL = "I"
@@ -54,4 +61,26 @@ internal fun SelfDuelRow(row: DuelRow, onClick: () -> Unit, modifier: Modifier =
             }
         },
     )
+}
+
+private fun previewRow(kind: DuelRowKind, done: Int) = DuelRow(
+    code = checkNotNull(ShareCode.parse("K7Q2MX")),
+    opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null),
+    kind = kind,
+    legsDone = done,
+    theirDone = 3,
+    legs = 3,
+    deadline = Instant.EPOCH,
+    isSelf = true,
+)
+
+@PuzzleBoxPreviews
+@Composable
+internal fun SelfDuelRowPreview() = PuzzleBoxTheme {
+    Column {
+        SelfDuelRow(previewRow(DuelRowKind.YourMove, 1), onClick = {})
+        SelfDuelRow(previewRow(DuelRowKind.RevealReady, 3), onClick = {})
+        SelfDuelRow(previewRow(DuelRowKind.Finished(2, 1), 3), onClick = {})
+        SelfDuelRow(previewRow(DuelRowKind.Finished(1, 2), 3), onClick = {})
+    }
 }

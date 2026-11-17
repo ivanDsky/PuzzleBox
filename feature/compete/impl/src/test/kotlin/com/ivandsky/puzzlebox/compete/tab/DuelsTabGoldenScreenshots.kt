@@ -20,6 +20,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.ivandsky.puzzlebox.data.match.Player
+import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.domain.DuelRow
@@ -134,7 +135,7 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
         /** A duel against Past you: no opponent photo, no deadline that matters, `isSelf`. */
         fun self(code: String, kind: DuelRowKind, done: Int, legs: Int) = DuelRow(
             code = code(code),
-            opponent = Player(uid = "self-past", name = "Past you", photoUrl = null),
+            opponent = Player(uid = SelfSeats.PAST, name = "Past you", photoUrl = null),
             kind = kind,
             legsDone = done,
             theirDone = legs,
