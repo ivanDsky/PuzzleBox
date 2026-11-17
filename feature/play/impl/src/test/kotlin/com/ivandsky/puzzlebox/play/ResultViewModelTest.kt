@@ -528,6 +528,42 @@ class ResultViewModelTest {
         dispatcher.scheduler.runCurrent()
     }
 
+    private fun ResultViewModel.postTimeObserved() = apply {
+        screen.launch { linkedInPostTimeMs.collect {} }
+        dispatcher.scheduler.runCurrent()
+    }
+
+    @Test
+    fun `a play again on a posted day names the time the day's record holds, not the replay's`() {
+        val posted = FakeController.TIME_MS + 8_000
+        completions.setRecords(listOf(record(posted, 0)))
+        linkedInPosts.emit(alpha, day, LinkedInPostState.Posted)
+
+        val vm = vm(key.copy(timeMs = FakeController.TIME_MS), flags = postOn).postObserved().postTimeObserved()
+
+        assertEquals(LinkedInPostRowState.Posted, vm.linkedInPost.value)
+        assertEquals(posted, vm.linkedInPostTimeMs.value)
+    }
+
+    @Test
+    fun `the first solve's Posted row names its own time`() {
+        completions.setRecords(listOf(record(FakeController.TIME_MS, 0)))
+        linkedInPosts.emit(alpha, day, LinkedInPostState.Posted)
+
+        val vm = vm(flags = postOn).postObserved().postTimeObserved()
+
+        assertEquals(FakeController.TIME_MS, vm.linkedInPostTimeMs.value)
+    }
+
+    @Test
+    fun `a day with no record row names no time`() {
+        linkedInPosts.emit(alpha, day, LinkedInPostState.Posted)
+
+        val vm = vm(flags = postOn).postObserved().postTimeObserved()
+
+        assertNull(vm.linkedInPostTimeMs.value)
+    }
+
     @Test
     fun `each post state shows its button state`() {
         val vm = vm(flags = postOn).postObserved()
