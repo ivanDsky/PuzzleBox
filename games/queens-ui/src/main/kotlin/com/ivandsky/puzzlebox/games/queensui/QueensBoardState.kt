@@ -69,6 +69,7 @@ class QueensBoardState(
     private val settle: (QueensSession) -> QueensSession = { it },
     mode: HintMode.Stepwise,
     scope: CoroutineScope,
+    plainCaptions: Boolean = false,
     /** Every player input, whether or not it changes the board (see [PlayEnvironment.onInput]). */
     private val onInput: () -> Unit = {},
 ) {
@@ -97,7 +98,7 @@ class QueensBoardState(
 
     internal val stepHints: StepHints<QueensStep, QueensSpotlightMapper.Key> =
         // A newly counted hint: no clearHint on the way, so the Spotlight stays.
-        StepHints(mode, scope, QueensStepGame({ session }, mode.firstMove), { session.hintsUsed }, { commit(QueensReplayMove.Hint) })
+        StepHints(mode, scope, QueensStepGame({ session }, mode.firstMove, plainCaptions), { session.hintsUsed }, { commit(QueensReplayMove.Hint) })
 
     private var erasing = false
     private var eraseRunOpen = false

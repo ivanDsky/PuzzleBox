@@ -31,7 +31,7 @@ class QueensFirstMoveHintTest {
     }
 
     /** The play registration as [queensUiModule] builds it, computing on the calling thread. */
-    private val ui = QueensPlayUi(InMemoryQueensSettings()) { queensHintMode(flags, Dispatchers.Unconfined) }
+    private val ui = QueensPlayUi(InMemoryQueensSettings(), hintMode = { queensHintMode(flags, Dispatchers.Unconfined) })
 
     private val fresh = QueensSession(ref = null, puzzle = QueensPlayFixtures.puzzle())
     private val solution = QueensPlayFixtures.solution.toSet()

@@ -22,7 +22,7 @@ val queensUiModule: Module = module {
     single<GamePlayUi>(qualifier = qualifier(QueensDefinition.id.value)) {
         val flags = getOrNull<ReleaseFlags>()
         val compute = get<DispatcherProvider>().default
-        QueensPlayUi(get<QueensSettings>()) { queensHintMode(flags, compute) }
+        QueensPlayUi(get<QueensSettings>(), { queensHintMode(flags, compute) }, { queensPlainCaptions(flags) })
     }
     single<GameEditorUi>(qualifier = qualifier("${QueensDefinition.id.value}.editor")) { QueensEditorUi }
     // The replay of a recorded hint asks the stepper with the option the play UI gets; `queensModule` picks this up.
@@ -41,3 +41,6 @@ internal fun queensHintMode(flags: ReleaseFlags?, compute: CoroutineDispatcher):
 
 /** The option [queensHintMode] puts in the mode, also what a replay of a recorded hint is asked with (ticket 47b). */
 internal fun queensFirstMove(flags: ReleaseFlags?): Boolean = flags?.isEnabled(ReleaseFlag.HintFirstMove) == true
+
+/** Whether Queens' hint callouts use the plain sentence set (HintPolish); the one place Queens reads that flag. */
+internal fun queensPlainCaptions(flags: ReleaseFlags?): Boolean = flags?.isEnabled(ReleaseFlag.HintPolish) == true

@@ -27,11 +27,12 @@ class SudokuPlayUi(
     private val highlights: SudokuHighlightSettings,
     override val brand: GameBrand = GameBrand.Neutral,
     private val hintMode: HintModeSource = HintModeSource { HintMode.Legacy },
+    private val plainCaptions: () -> Boolean = { false },
 ) : GamePlayUi {
     override val gameId: GameId get() = definition.id
 
     override fun createController(env: PlayEnvironment): GamePlayController =
-        SudokuPlayController(definition, env, highlights, hintMode = hintMode.current())
+        SudokuPlayController(definition, env, highlights, hintMode = hintMode.current(), plainCaptions = plainCaptions())
 
     override val tutorial: List<TutorialStep> by lazy { sudokuTutorial(definition) }
 

@@ -121,4 +121,69 @@ class TangoStepCopyTest {
             text(deduction(TangoStepRung.SIGN, TangoCell.MOON, idx = 1, evidence = setOf(0, 1)), plain),
         )
     }
+
+    // HintPolish (#1174): the plain set, one sentence per step kind and no deduction name in front.
+
+    private fun plainText(step: TangoStep, puzzle: TangoPuzzle = plain) = TangoStepCopy.text(step, puzzle, plain = true)
+
+    private val sign = puzzle(TangoMarker(0, TangoEdgeSide.RIGHT, TangoMarkerKind.OPPOSITE))
+
+    /** One step of every kind: each rung (the sign on a puzzle that holds its marker), the reveal and every mistake. */
+    private fun everyStep(): List<Pair<TangoStep, TangoPuzzle>> =
+        TangoStepRung.entries.map { deduction(it, row = 1, options = 2, evidence = setOf(0, 1)) to sign } +
+            listOf(null, TangoVerdict.Reason.ThreeInARow, TangoVerdict.Reason.MarkerConflict, TangoVerdict.Reason.CountExceeded)
+                .map { TangoStep.Mistake(1, it) to plain } +
+            (TangoStep.Reveal(1, TangoCell.MOON) to plain)
+
+    @Test
+    fun `plain texts are pinned for each rung, the reveal and the mistakes`() {
+        val expected = mapOf(
+            TangoStepRung.PAIR to "Two moons touch, so the cells at both ends are suns",
+            TangoStepRung.SANDWICH to "This cell sits between two moons, so it is a sun",
+            TangoStepRung.FULL_LINE to "Row 2 has all its moons, so the rest are suns",
+            TangoStepRung.EQUAL_PAIR to "Beside a moon, so both of these cells are suns",
+            TangoStepRung.SIGN_COUNT to "The signs use up the moons, so this is a sun",
+            TangoStepRung.SPLIT_PAIR to "The gap holds one of each, so the rest are suns",
+            TangoStepRung.COUNT_SQUEEZE to "The other kind here would break the line, so this is a sun",
+            TangoStepRung.LINE_OPTIONS to "All 2 ways to fill this line put a sun here",
+            TangoStepRung.SIGN to "A × sign flips its neighbor, so this is a sun",
+        )
+        assertEquals(TangoStepRung.entries.toSet(), expected.keys)
+        for ((rung, line) in expected) {
+            assertEquals("$rung", line, plainText(deduction(rung, row = 1, options = 2, evidence = setOf(0, 1)), sign))
+        }
+        assertEquals(
+            "An = sign copies its neighbor, so this is a moon",
+            plainText(
+                deduction(TangoStepRung.SIGN, TangoCell.MOON, evidence = setOf(0, 1)),
+                puzzle(TangoMarker(0, TangoEdgeSide.RIGHT, TangoMarkerKind.SAME)),
+            ),
+        )
+        assertEquals("The sign beside it makes this a moon", plainText(deduction(TangoStepRung.SIGN, TangoCell.MOON, evidence = setOf(0, 1))))
+        assertEquals("Column 3 has all its moons, so the rest are suns", plainText(deduction(TangoStepRung.FULL_LINE, col = 2)))
+        assertEquals("This cell is a moon, though no simple step finds it", plainText(TangoStep.Reveal(1, TangoCell.MOON)))
+        assertEquals("This cell isn't in the solution", plainText(TangoStep.Mistake(1, null)))
+        assertEquals("This cell makes three in a row", plainText(TangoStep.Mistake(1, TangoVerdict.Reason.ThreeInARow)))
+        assertEquals("This cell breaks a sign", plainText(TangoStep.Mistake(1, TangoVerdict.Reason.MarkerConflict)))
+        assertEquals("This cell has too many of one kind", plainText(TangoStep.Mistake(1, TangoVerdict.Reason.CountExceeded)))
+    }
+
+    @Test
+    fun `no plain text starts with a deduction name, and each is one short line`() {
+        val names = listOf("Pair", "Sandwich", "Full line", "Equal pair", "Sign count", "Sign", "Split pair", "Count squeeze", "Line options", "Reveal", "Wrong cell")
+        for ((step, p) in everyStep()) {
+            val line = plainText(step, p)
+            assertFalse(line, '\n' in line)
+            assertTrue("$line is ${line.length} chars", line.length <= 70)
+            assertFalse(line, Regex("^[A-Z][A-Za-z ]+: ").containsMatchIn(line))
+            for (name in names) assertFalse("$line starts with $name", line.startsWith("$name:", ignoreCase = true))
+        }
+    }
+
+    @Test
+    fun `flag off keeps today's line for a rung`() {
+        val step = deduction(TangoStepRung.PAIR)
+        assertEquals("Pair: two moons touch, so suns at both ends", TangoStepCopy.text(step, plain, plain = false))
+        assertEquals(text(step), TangoStepCopy.text(step, plain, plain = false))
+    }
 }

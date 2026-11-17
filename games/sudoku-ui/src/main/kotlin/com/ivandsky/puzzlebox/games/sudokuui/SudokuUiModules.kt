@@ -16,7 +16,8 @@ import org.koin.dsl.module
 
 /**
  * Mini Sudoku's play UI, qualified by its game id like the plugin binding; its editor UI takes the `<id>.editor` qualifier beside it.
- * The mode source reads `HintFirstMove` here (nav-rethink A2), once per controller, so the option never changes mid-play.
+ * The mode source reads `HintFirstMove` here (nav-rethink A2), once per controller, so the option never changes mid-play;
+ * the plain hint captions read `HintPolish` here the same way.
  */
 val miniSudokuUiModule: Module = module {
     single<GamePlayUi>(qualifier = qualifier(SudokuGames.MINI.id.value)) {
@@ -30,6 +31,7 @@ val miniSudokuUiModule: Module = module {
                     firstMove = get<ReleaseFlags>().isEnabled(ReleaseFlag.HintFirstMove),
                 )
             },
+            { get<ReleaseFlags>().isEnabled(ReleaseFlag.HintPolish) },
         )
     }
     single<GameEditorUi>(qualifier = qualifier("${SudokuGames.MINI.id.value}.editor")) { SudokuEditorUi(SudokuGames.MINI) }
