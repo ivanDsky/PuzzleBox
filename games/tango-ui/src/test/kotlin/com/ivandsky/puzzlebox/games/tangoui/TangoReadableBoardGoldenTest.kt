@@ -13,7 +13,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The Tango board under the readable board tokens (nav-rethink B3), light and dark: an ink wall for the frame, the
- * quiet grid line, givens outlined in ink with no wash, signs in ink. [TangoBoardGoldenTest] keeps the legacy look
+ * quiet grid line, givens with no wash or outline, signs in ink. [TangoBoardGoldenTest] keeps the legacy look
  * pixel-exact beside it. Runs only under `-Proborazzi.verify` or `-Proborazzi.record=true` ([GoldenCompare]).
  */
 @RunWith(RobolectricTestRunner::class)

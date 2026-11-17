@@ -18,7 +18,6 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.BoardColors
 import com.ivandsky.puzzlebox.designsystem.BoardGeometry
 import com.ivandsky.puzzlebox.designsystem.BoardTokens
@@ -29,7 +28,7 @@ import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
  * What the shared board tokens decide on the Tango board (nav-rethink B3): the frame, how a given is told from the
  * player's own entries, and the sign ink. Built from [LocalBoardColors] and [LocalBoardGeometry] alone, never from a
  * release flag. Under the legacy tokens every value is the board as it was drawn before them, pixel for pixel; under
- * the readable tokens the frame is a wall in ink, a given wears an ink outline and no cell is tinted for being a given.
+ * the readable tokens the frame is a wall in ink, a given is told by its sun or moon colour, and no cell is tinted for being a given.
  */
 @Immutable
 internal class TangoReadableBoardStyle(
@@ -46,12 +45,9 @@ internal class TangoReadableBoardStyle(
     /** The `=` and `×` signs: board ink, the strongest stroke on the board. */
     val signInk: Color get() = colors.boardInk
 
-    /** The outline a given's glyph wears, at [GivenOutlineWeight]; unspecified when a given is told by its wash. */
-    val givenOutline: Color get() = if (readable) colors.boardInk else Color.Unspecified
-
     /**
      * The legacy given wash over the whole cell (user QA 2026-11-02: a preplaced cell reads as disabled, not dotted).
-     * Unspecified under the readable tokens: there a given is told by ink ([givenOutline]) and no cell carries a tint.
+     * Unspecified under the readable tokens: there a given is told by its glyph colour alone and no cell carries a tint.
      */
     val givenWash: Color get() = if (readable) Color.Unspecified else legacyGivenWash
 
@@ -81,11 +77,6 @@ internal class TangoReadableBoardStyle(
             clipPath(outer) { content.drawContent() }
             drawRect(colors.boardWall, topLeft = inset, size = centreLine, style = stroke)
         }
-    }
-
-    companion object {
-        /** The ink outline around a given's glyph: the grid line's weight, so the board has one thin stroke. */
-        val GivenOutlineWeight: Dp = BoardTokens.boardGridLineWeight
     }
 }
 
