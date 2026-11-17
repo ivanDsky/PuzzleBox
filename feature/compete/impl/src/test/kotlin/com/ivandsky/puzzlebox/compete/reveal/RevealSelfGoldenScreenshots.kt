@@ -1,5 +1,9 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performSemanticsAction
+import com.ivandsky.puzzlebox.gameui.replay.ReplayTags
 import android.content.Context
 import android.content.res.Configuration
 import android.provider.Settings
@@ -118,10 +122,12 @@ abstract class RevealSelfGoldenScreenshots(private val device: String, private v
     }
 
     private fun compare(dark: Boolean) {
+        val mine = ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES, stepMs = 1_000)
+        val theirs = ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES, stepMs = 1_200)
         rule.showGolden(dark) {
             ReplayComparePage(
-                mine = ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES, stepMs = 1_000),
-                theirs = ReplayFixtures.timeline(ReplayFixtures.SHORT_MOVES, stepMs = 1_200),
+                mine = mine,
+                theirs = theirs,
                 board = ReplayGoldenBoard,
                 names = CompareNames(mine = "Ivan", theirs = SelfSeats.PAST_NAME, theirsPast = true),
                 layout = if (wide) CompareLayout.Twin else CompareLayout.FlipPeek,
@@ -132,6 +138,8 @@ abstract class RevealSelfGoldenScreenshots(private val device: String, private v
                 finalLead = Lead.Mine,
             )
         }
+        // The replay autoplays: capture it at the end state, as the friend compare goldens do.
+        rule.onNodeWithTag(ReplayTags.SEEK).performSemanticsAction(SemanticsActions.SetProgress) { it(maxOf(mine.endMs, theirs.endMs).toFloat()) }
         rule.settleAndCapture("compare", device, dark)
     }
 

@@ -71,7 +71,7 @@ internal fun PuzzleTableRow(
         PuzzleTimeCell(row.mine, mine, DuelTone.Me, metrics.compact, tickDelay, Modifier.width(metrics.timeWidth))
         PuzzleTimeCell(row.theirs, theirs, DuelTone.Them, metrics.compact, tickDelay, Modifier.width(metrics.timeWidth))
     }
-    val bar: @Composable (Modifier) -> Unit = { MarginBar(row.margin, row.winner, index, metrics.marginLabelWidth, it) }
+    val bar: @Composable (Modifier) -> Unit = { MarginBar(row.margin, row.winner, index, metrics.marginLabelWidth, it, tintLabel = pastYou) }
     Row(
         modifier = modifier
             .fillMaxWidth()

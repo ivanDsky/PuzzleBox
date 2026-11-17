@@ -54,13 +54,13 @@ private fun CardBody(summary: DuelSummary, win: Boolean, onRematch: () -> Unit, 
     Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         CardHead(summary, win)
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
-            ScoreSide(summary.myScore, summary.me, summary.myPhotoUrl, DuelTone.Me, win, "reveal.summary.mine", Modifier.weight(1f))
+            ScoreSide(summary.myScore, summary.me, summary.myPhotoUrl, DuelTone.Me, win, false, "reveal.summary.mine", Modifier.weight(1f))
             Text(
                 text = "–",
                 style = MaterialTheme.typography.displayMedium.copy(fontSize = NumeralSize, lineHeight = NumeralSize),
                 color = scheme.onSurfaceVariant,
             )
-            ScoreSide(summary.theirScore, summary.opponent, summary.theirPhotoUrl, DuelTone.Them, win, "reveal.summary.theirs", Modifier.weight(1f))
+            ScoreSide(summary.theirScore, summary.opponent, summary.theirPhotoUrl, DuelTone.Them, win, summary.pastYou && summary.kind == VerdictKind.Loss, "reveal.summary.theirs", Modifier.weight(1f))
         }
         Text(
             text = summary.verdict,
@@ -99,15 +99,19 @@ private fun CardHead(summary: DuelSummary, win: Boolean) {
     }
 }
 
-/** One big numeral over its player's avatar and name. */
+/** One big numeral over its player's avatar and name; [pastYouWon] tints it in Past you's hue, as the tablet score is. */
 @Composable
-private fun ScoreSide(score: Int, name: String, photoUrl: String?, tone: DuelTone, win: Boolean, tag: String, modifier: Modifier) {
+private fun ScoreSide(score: Int, name: String, photoUrl: String?, tone: DuelTone, win: Boolean, pastYouWon: Boolean, tag: String, modifier: Modifier) {
     val shown = rememberCountUp(score.toLong(), durationMs = MotionTokens.ScoreCountUpDuration)
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
             text = shown.toString(),
             style = MaterialTheme.typography.displayLarge.copy(fontSize = NumeralSize, lineHeight = NumeralSize).tabular(),
-            color = if (win && tone == DuelTone.Me) LocalPrimaryText.current else MaterialTheme.colorScheme.onSurface,
+            color = when {
+                win && tone == DuelTone.Me -> LocalPrimaryText.current
+                pastYouWon -> secondaryText()
+                else -> MaterialTheme.colorScheme.onSurface
+            },
             modifier = Modifier.testTag(tag),
         )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
