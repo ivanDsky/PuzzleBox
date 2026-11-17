@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -267,7 +268,7 @@ internal fun LibraryScreen(
     )
     if (layout == PlayLayout.TwoPane) {
         Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {
-            GamesList(onRow, Modifier.width(400.dp))
+            CompositionLocalProvider(LocalEnterSettled provides paneCrossfade) { GamesList(onRow, Modifier.width(400.dp)) }
             Spacer(Modifier.width(Spacing.xl))
             if (selected != null) {
                 LibraryPane(LibraryPaneFrame(selected, page, month), paneCrossfade) { shown ->

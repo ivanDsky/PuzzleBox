@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.platform.testTag
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -23,6 +24,7 @@ import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.YearMonth
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -65,17 +67,27 @@ class LibraryPaneCrossfadeTest {
         Settings.Global.putFloat(RuntimeEnvironment.getApplication().contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, scale)
     }
 
-    private fun show(crossfade: Boolean) {
+    private val pageGame = mutableStateOf(GameId("zip"))
+    private var followPick = true
+
+    private fun pageFor(game: GameId) = ArchivePageState(game, YearMonth.of(2026, 11), emptyList(), null)
+
+    private fun show(crossfade: Boolean, settle: Boolean = true) {
+        // Before setContent: otherwise its idle wait runs every entrance animation out first.
+        composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             var selected by remember { mutableStateOf(GameId("zip")) }
             PuzzleBoxTheme(darkTheme = false) {
                 LibraryScreen(
                     state = previewState().copy(selected = selected),
-                    page = null,
+                    page = pageFor(pageGame.value),
                     month = null,
                     layout = PlayLayout.TwoPane,
                     hasLesson = { false },
-                    onSelect = { selected = it },
+                    onSelect = {
+                        selected = it
+                        if (followPick) pageGame.value = it
+                    },
                     onPlay = { _, _ -> },
                     onRetry = {},
                     onOpenLesson = {},
@@ -85,8 +97,7 @@ class LibraryPaneCrossfadeTest {
                 )
             }
         }
-        composeRule.mainClock.autoAdvance = false
-        composeRule.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        if (settle) composeRule.mainClock.advanceTimeBy(SETTLE_MILLIS)
     }
 
     private fun pagesShown() = listOf("zip", "tango").map { composeRule.onNodeWithTag("library.page.$it").isShown() }
@@ -148,6 +159,57 @@ class LibraryPaneCrossfadeTest {
     }
 
     @Test
+    fun `a picked game's page waits for its calendar, so nothing fills in under the fade`() {
+        followPick = false
+        show(crossfade = true)
+
+        pick("tango")
+        composeRule.mainClock.advanceTimeBy(100L)
+        assertEquals("the new page is not shown empty", listOf(true, false), pagesShown())
+
+        composeRule.runOnUiThread {
+            pageGame.value = GameId("tango")
+            Snapshot.sendApplyNotifications()
+        }
+        composeRule.mainClock.advanceTimeBy(100L)
+        assertEquals("the page fades in with its data", listOf(true, true), pagesShown())
+        composeRule.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        assertEquals(listOf(false, true), pagesShown())
+    }
+
+    @Test
+    fun `a calendar that never arrives does not hold the pane forever`() {
+        followPick = false
+        show(crossfade = true)
+
+        pick("tango")
+        composeRule.mainClock.advanceTimeBy(SETTLE_MILLIS)
+
+        assertEquals(listOf(false, true), pagesShown())
+    }
+
+    private fun firstFrameMatchesSettled(crossfade: Boolean): Boolean {
+        show(crossfade, settle = false)
+        composeRule.mainClock.advanceTimeBy(16L)
+        val tag = "library.row.tango"
+        val first = composeRule.onNodeWithTag(tag).captureToImage().toPixelMap().buffer
+        val firstTop = composeRule.onNodeWithTag(tag).getBoundsInRoot().top
+        composeRule.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        val settled = composeRule.onNodeWithTag(tag).captureToImage().toPixelMap().buffer
+        return first.contentEquals(settled) && firstTop == composeRule.onNodeWithTag(tag).getBoundsInRoot().top
+    }
+
+    @Test
+    fun `games rows are at full alpha in their final place on the first frame`() {
+        assertTrue(firstFrameMatchesSettled(crossfade = true))
+    }
+
+    @Test
+    fun `without the flag the rows still fade in`() {
+        assertTrue(!firstFrameMatchesSettled(crossfade = false))
+    }
+
+    @Test
     fun `picking the row already selected does nothing`() {
         show(crossfade = true)
 
@@ -187,7 +249,7 @@ class LibraryPaneCrossfadeTest {
             var selected by remember { mutableStateOf(rows[0]) }
             PuzzleBoxTheme(darkTheme = false) {
                 Box(Modifier.fillMaxSize().background(Color.White)) {
-                    LibraryPane(LibraryPaneFrame(selected, null, null), crossfade = true) { shown ->
+                    LibraryPane(LibraryPaneFrame(selected, pageFor(selected.card.game), null), crossfade = true) { shown ->
                         val color = if (shown.row == rows[0]) Color.Red else Color.Blue
                         Box(Modifier.fillMaxSize().background(color).clickable { selected = rows[1] }.testTag("probe.pane"))
                     }
