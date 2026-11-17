@@ -20,6 +20,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.toRect
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
@@ -118,6 +119,7 @@ fun ZipPlayScreen(
                     clock = controller,
                     hints = controller,
                     feedback = controller,
+                    captionAlign = TextAlign.Center,
                 )
             },
             actions = { PlayActionBar(controller, controller, controller.edits, ZipBrand.accent) },
