@@ -5,6 +5,9 @@ import com.ivandsky.puzzlebox.game.Command
 /**
  * Queens draft edits as undoable commands (spec A5, S3). Resize and clear use
  * [com.ivandsky.puzzlebox.game.editor.ReplaceDraft], not a Queens command.
+ *
+ * Every edit, applied or reverted, clears [QueensDraft.recoloured]: the marks of a finish last
+ * until the author touches the board again.
  */
 sealed interface QueensDraftCommand : Command<QueensDraft> {
     /** One ring pick = one step; region == UNPAINTED unpaints. */
@@ -23,12 +26,12 @@ sealed interface QueensDraftCommand : Command<QueensDraft> {
         override fun revert(state: QueensDraft): QueensDraft = if (placed) lift(state) else place(state)
 
         private fun place(state: QueensDraft): QueensDraft {
-            val crowned = state.copy(crowns = state.crowns + cell)
+            val crowned = state.copy(crowns = state.crowns + cell, recoloured = emptySet())
             return if (seed == null) crowned else crowned.with(mapOf(cell to seed))
         }
 
         private fun lift(state: QueensDraft): QueensDraft {
-            val lifted = state.copy(crowns = state.crowns - cell)
+            val lifted = state.copy(crowns = state.crowns - cell, recoloured = emptySet())
             return if (seed == null) lifted else lifted.with(mapOf(cell to QueensDraft.UNPAINTED))
         }
     }
@@ -41,5 +44,5 @@ fun QueensDraft.paint(cells: Set<Int>, region: Int): QueensDraftCommand.Paint =
 private fun QueensDraft.with(changes: Map<Int, Int>): QueensDraft {
     val next = regions.toMutableList()
     changes.forEach { (cell, region) -> next[cell] = region }
-    return copy(regions = next)
+    return copy(regions = next, recoloured = emptySet())
 }

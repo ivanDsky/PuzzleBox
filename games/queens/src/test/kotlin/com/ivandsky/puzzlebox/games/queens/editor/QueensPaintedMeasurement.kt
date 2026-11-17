@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.queens.editor
 
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.game.editor.Completion
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.Verdict
 import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
 import org.junit.Assert.assertEquals
@@ -14,7 +15,8 @@ import kotlin.random.Random
  * (ticket 63b). Run with
  * `QUEENS_PAINTED_MEASURE=true ./gradlew :games:queens:test --rerun --tests '*QueensPaintedMeasurement'`.
  * QUEENS_PAINTED_SAMPLES sets the drafts per row (default 20), QUEENS_PAINTED_SIZES the sizes
- * (default `5,6,7,8,9,10`).
+ * (default `5,6,7,8,9,10`), QUEENS_PAINTED_TARGET the level every press asks for, as the Studio
+ * does (ticket 107: paint first, crowns second); unset is "any", the order before 107.
  *
  * Drafts come from two sources. "unique" is a generated unique board, so a completion that keeps
  * every painted cell exists. "painting" is a hand-style painting with two answers or more
@@ -72,8 +74,9 @@ class QueensPaintedMeasurement {
 
     /** One press under the Studio's 2 s budget: the finished board or null, and the wall time in ms. */
     private fun press(draft: QueensDraft, seed: Int): Pair<QueensDraft?, Long> {
+        val target = System.getenv("QUEENS_PAINTED_TARGET")?.let(Difficulty.Level::valueOf)
         val start = System.nanoTime()
-        val completion = QueensCompleter.complete(draft, Random(seed), Budget.within(BUDGET_MS, System::nanoTime))
+        val completion = QueensCompleter.complete(draft, Random(seed), Budget.within(BUDGET_MS, System::nanoTime), target)
         return (completion as? Completion.Done)?.draft to (System.nanoTime() - start) / 1_000_000
     }
 

@@ -44,4 +44,10 @@ class FinishNoticeTest {
             FinishNotice.Missed(got = Difficulty.Level.Medium, wanted = Difficulty.Level.Hard).text,
         )
     }
+
+    @Test
+    fun `a finish that changed painted cells says how many and that they are highlighted`() {
+        assertEquals("Finished. 2 painted cells changed colour; they're highlighted.", FinishNotice.Recoloured(2).text)
+        assertEquals("Finished. 1 painted cell changed colour; it's highlighted.", FinishNotice.Recoloured(1).text)
+    }
 }

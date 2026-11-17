@@ -20,10 +20,14 @@ import kotlin.random.Random
  */
 class QueensCompleterTargetTest {
 
-    /** A draft cut at the minimum of started regions from the seeded [size] board, one crown on it. */
-    private fun cut(size: Int): QueensDraft {
+    /**
+     * A draft cut from the seeded [size] board, one crown on it: [started] regions begun, the
+     * minimum unless given. With every region begun no colour is unused, so a fill may grow any
+     * region, as every fill did before 107.
+     */
+    private fun cut(size: Int, started: Int = QueensCompleter.minimumStarted(size)): QueensDraft {
         val board = checkNotNull(QueensGenerator(Random(size * 7)).nextUnique(size))
-        return QueensDraftCuts.cut(board, QueensCompleter.minimumStarted(size), crowns = 1, Random(size))
+        return QueensDraftCuts.cut(board, started, crowns = 1, Random(size))
     }
 
     private fun finish(draft: QueensDraft, target: Level?, budget: Budget = Budget.Unlimited): QueensDraft? =
@@ -60,7 +64,8 @@ class QueensCompleterTargetTest {
     @Test
     fun `a level out of reach finishes at the closest one`() {
         // A 4×4 never scores past Easy and a 5×5 never reaches Hard.
-        val levels = listOf(4 to Level.Expert, 5 to Level.Expert).map { (size, target) -> finish(cut(size), target)?.let { verdict(it).difficulty?.level } }
+        val levels = listOf(4 to Level.Expert, 5 to Level.Expert)
+            .map { (size, target) -> finish(cut(size, started = size), target)?.let { verdict(it).difficulty?.level } }
 
         assertEquals(listOf(Level.Easy, Level.Medium), levels)
     }
@@ -68,8 +73,13 @@ class QueensCompleterTargetTest {
     @Test
     fun `a budget spent once a first board is found returns that board`() {
         val draft = cut(8)
-        var pollsToFirst = 0
-        val first = finish(draft, target = null, Budget { pollsToFirst++; false })
+        // The search stops at its first board when that board is at the level asked for: of all
+        // the levels, that press polls the budget least.
+        val (pollsToFirst, first) = Level.entries.map { level ->
+            var counted = 0
+            val board = finish(draft, level, Budget { counted++; false })
+            counted to board
+        }.minBy { it.first }
         var polls = 0
 
         val done = finish(draft, Level.Expert, Budget { ++polls > pollsToFirst })

@@ -28,8 +28,9 @@ import kotlinx.coroutines.launch
  *
  * A press aims for a level (90): the one handed in, which becomes the session's [choice], or that choice.
  * While the tool is offered the Studio grades by score ([grading]), and once the [settled] verdict of a
- * landed completion is in, a level other than the one asked for raises [FinishNotice.Missed]. A give-up
- * raises the notice that fits its cause ([gaveUpNotice]). All of them wait in [notices].
+ * landed completion is in, a level other than the one asked for raises [FinishNotice.Missed]. A completion
+ * that changed the author's pieces ([EditorDraft.finishChanged]) raises [FinishNotice.Recoloured] as it
+ * lands. A give-up raises the notice that fits its cause ([gaveUpNotice]). All of them wait in [notices].
  */
 internal class EditorViewModelFinish(
     flags: ReleaseFlags?,
@@ -111,6 +112,7 @@ internal class EditorViewModelFinish(
         land(next)
         awaiting = target
         compare(settled.value)
+        next.finishChanged().takeIf { it > 0 }?.let { notices.raise(FinishNotice.Recoloured(it)) }
     }
 
     private fun compare(verdict: Verdict) {

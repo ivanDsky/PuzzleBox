@@ -7,11 +7,16 @@ package com.ivandsky.puzzlebox.games.queens.editor
  *
  * [crowns] are the author's answer crowns (cell indices; flow C, round 6). They are author-only:
  * never in the notation (A23), the puzzle, analysis or the layout key ([QueensEditor.layoutOf]).
+ *
+ * [recoloured] are the painted cells the last Finish for me changed the colour of (ticket 107),
+ * for the editor to highlight. Author-only like the crowns, and never saved: the next paint or
+ * crown edit clears them ([QueensDraftCommand]).
  */
 data class QueensDraft(
     val size: Int,
     val regions: List<Int>,
     val crowns: Set<Int> = emptySet(),
+    val recoloured: Set<Int> = emptySet(),
 ) {
     init {
         require(regions.size == size * size) { "expected ${size * size} cells, got ${regions.size}" }
@@ -19,6 +24,8 @@ data class QueensDraft(
         require(bad == null) { "region id $bad outside 0 until $size" }
         val badCrown = crowns.firstOrNull { it !in regions.indices }
         require(badCrown == null) { "crown cell $badCrown outside 0 until ${regions.size}" }
+        val badMark = recoloured.firstOrNull { it !in regions.indices }
+        require(badMark == null) { "recoloured cell $badMark outside 0 until ${regions.size}" }
     }
 
     companion object {

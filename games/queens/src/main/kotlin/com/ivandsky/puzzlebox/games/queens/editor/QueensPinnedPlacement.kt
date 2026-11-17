@@ -9,12 +9,15 @@ import kotlin.random.Random
  * of its queens: one queen a row and a column, none touching, every crown among them. A queen
  * on a painted cell is its region's, so a region's cells hold one at most. A queen on an
  * unpainted cell goes to a started region that has none and can walk to it over unpainted
- * cells, or it seeds a region the author never started.
+ * cells, or it seeds a region the author never started. With [seedsOnly] it only ever seeds: no
+ * more queens lie on unpainted cells than there are regions to start, so every started region
+ * holds its queen on its own paint.
  */
 internal class QueensPinnedPlacement(
     private val draft: QueensDraft,
     private val neighbours: Array<IntArray>,
     private val budget: Budget,
+    private val seedsOnly: Boolean = false,
 ) {
     private val n = draft.size
     private val started = draft.regions.filter { it != QueensDraft.UNPAINTED }.distinct()
@@ -29,10 +32,12 @@ internal class QueensPinnedPlacement(
         val column = IntArray(n) { NONE }
         val columnTaken = BooleanArray(n)
         val held = IntArray(n)
+        var seeds = if (seedsOnly) n - started.size else n
         for (crown in draft.crowns) {
             column[crown / n] = crown % n
             columnTaken[crown % n] = true
             if (reg[crown] != QueensDraft.UNPAINTED && ++held[reg[crown]] > 1) return null
+            if (reg[crown] == QueensDraft.UNPAINTED && --seeds < 0) return null
         }
         val reachedBy = IntArray(n * n) // per cell, one bit for every region whose reach holds it
         val due = List(n) { ArrayList<Int>() }
@@ -55,20 +60,21 @@ internal class QueensPinnedPlacement(
                 if (!crowned) {
                     if (columnTaken[col]) continue
                     if (region != QueensDraft.UNPAINTED && held[region] > 0) continue
+                    if (region == QueensDraft.UNPAINTED && seeds == 0) continue
                 }
                 if (row > 0 && abs(column[row - 1] - col) <= 1) continue
                 if (row < n - 1 && column[row + 1] != NONE && abs(column[row + 1] - col) <= 1) continue
                 if (!crowned) {
                     column[row] = col
                     columnTaken[col] = true
-                    if (region != QueensDraft.UNPAINTED) held[region]++
+                    if (region != QueensDraft.UNPAINTED) held[region]++ else seeds--
                 }
                 val inReach = due[row].all { late -> (0..row).any { reachedBy[it * n + column[it]] shr late and 1 == 1 } }
                 if (inReach) place(row + 1)?.let { return it }
                 if (!crowned) {
                     column[row] = NONE
                     columnTaken[col] = false
-                    if (region != QueensDraft.UNPAINTED) held[region]--
+                    if (region != QueensDraft.UNPAINTED) held[region]-- else seeds++
                 }
             }
             return null
