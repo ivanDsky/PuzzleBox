@@ -60,9 +60,17 @@ class QueensReadableBoardFaceTest {
     @Test
     fun `a region border is the wall token at the wall weight`() {
         val face = face(readable = true)
-        // 1.5 dp off the border between rows 0 and 1, mid-cell: inside a 4.5 dp wall, outside a 1.5 dp line.
-        assertEquals(face.wall.toArgb(), face[face.cell / 2, face.cell + face.px(1.5f)])
-        assertEquals(face.wall.toArgb(), face[face.cell / 2, face.cell - face.px(1.5f)])
+        // 1 dp off the border between rows 0 and 1, mid-cell: inside the 3 dp region wall on either side.
+        assertEquals(face.wall.toArgb(), face[face.cell / 2, face.cell + face.px(1f)])
+        assertEquals(face.wall.toArgb(), face[face.cell / 2, face.cell - face.px(1f)])
+    }
+
+    @Test
+    fun `a region border is thinner than the board outline`() {
+        val face = face(readable = true)
+        // 2 dp below the border between rows 0 and 1: the 3 dp region wall ends 1.5 dp off it, so this is row 1's bare fill.
+        val fill = QueensRegionPalette.fill(model.regions[model.n], dark = false).toArgb()
+        assertEquals(fill, face[face.cell / 2, face.cell + face.px(2f)])
     }
 
     @Test

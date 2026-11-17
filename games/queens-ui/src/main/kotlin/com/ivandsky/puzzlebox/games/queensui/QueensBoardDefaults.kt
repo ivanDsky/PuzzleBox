@@ -30,6 +30,10 @@ object QueensBoardDefaults {
     const val cellGridLineAlpha: Float = 0.25f
     val regionBorderWeight: Dp = BoardTokens.boardGridLineWeight
 
+    // Readable board: interior region walls draw at 3dp, thinner than the shared 4.5dp wall token that
+    // still outlines the board frame (Zip, Tango and Sudoku keep the shared weight).
+    val readableRegionWallWeight: Dp = 3.dp
+
     // §3.5 Violation stripes: 45°, 10dp pitch along the edge (≈7dp across the stripes),
     // a 3dp error band on a 4dp black under-band. The old 6dp pitch put 5dp of stroke
     // in every ≈4.2dp period, so the bands merged into a solid red block; this leaves a
