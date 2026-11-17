@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -56,6 +57,10 @@ import kotlinx.coroutines.launch
  * [customTab], laid out on [customScroll], and its pill carries [customCount]. The Duels body is handed
  * the pending [duelPrefill] and reports it taken ([onDuelPrefillTaken]). With a [community] tab the pills are Dailies
  * and Duels only; Friends and Custom are not shown, and a saved one shows Dailies.
+ *
+ * With [underlineTabs] (the app graph's UnderlineTabs flag) the pills are the shared underline strip over a swipeable
+ * pager instead ([UnderlineTabbedList]): each tab keeps its own scroll, Friends on [friendsScroll], and a tab change no
+ * longer scrolls anything back to the top.
  */
 @Composable
 internal fun LibraryList(
@@ -78,6 +83,8 @@ internal fun LibraryList(
     duelPrefill: DuelPrefill? = null,
     onDuelPrefillTaken: () -> Unit = {},
     community: Boolean = false,
+    underlineTabs: Boolean = false,
+    friendsScroll: ScrollState = rememberScrollState(),
 ) {
     val phone = layout == PlayLayout.SinglePane
     // Only the list on screen glides: a tab change already snaps the other ones back to their tops.
@@ -86,8 +93,17 @@ internal fun LibraryList(
         when (shown) {
             GamesTab.Duels -> duelsScroll.animateScrollToItem(0)
             GamesTab.Custom -> customScroll.animateScrollToItem(0)
+            GamesTab.Friends -> (if (underlineTabs) friendsScroll else scroll).animateScrollTo(0)
             else -> scroll.animateScrollTo(0)
         }
+    }
+    if (duels != null && underlineTabs) {
+        UnderlineTabbedList(
+            state, phone, GamesScrolls(scroll, friendsScroll, duelsScroll, customScroll), onRow, modifier,
+            header = { Box(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier) { ListHeader(headerAction) } },
+            duels, tab, onTab, friendsTab, friendCount, customTab, customCount, duelPrefill, onDuelPrefillTaken, community,
+        )
+        return
     }
     if (duels != null) {
         TabbedList(
@@ -204,7 +220,7 @@ private fun ListHeader(headerAction: @Composable () -> Unit) {
 
 /** Every game's row in registry order, each fading in staggered by its place. */
 @Composable
-private fun DailyRows(state: LibraryUiState, phone: Boolean, onRow: (GameId) -> Unit) {
+internal fun DailyRows(state: LibraryUiState, phone: Boolean, onRow: (GameId) -> Unit) {
     val reduced = rememberReducedMotion()
     state.rows.forEachIndexed { index, row ->
         EnterFade(index, reduced, bleed = if (phone) 0.dp else OutlineRoom) {

@@ -72,6 +72,7 @@ internal fun PuzzleBoxNavShell(
     custom: CustomSlot? = null,
     makeOne: MakeOne? = null,
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
+    underlineTabs: Boolean = false,
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
 ) {
@@ -101,6 +102,7 @@ internal fun PuzzleBoxNavShell(
             custom = custom,
             makeOne = makeOne,
             libraryRequests = libraryRequests,
+            underlineTabs = underlineTabs,
             visibility = visibility,
             tuneDefaults = tuneDefaults,
         ).withHintCooldown(),
