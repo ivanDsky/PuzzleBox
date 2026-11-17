@@ -157,7 +157,7 @@ What Result's main button offers after a counted solve of today's puzzle. The ne
 _Avoid_: ladder, next step, auto-advance
 
 **Haptic gate**:
-All haptics go through `LocalHapticFeedback`, which the app root provides as the platform one behind the Vibration switch in Settings; off silences every haptic the app plays, whatever a game's feel says. Konsist S8 forbids the View haptic API so the gate stays the one choke point.
+All haptics go through `LocalHapticFeedback`, which the app root provides as the platform one behind the Vibration switch in Settings; off silences every haptic the app plays, whatever a game's feel says. Konsist S9 forbids the View haptic API so the gate stays the one choke point.
 _Avoid_: vibrator call, View haptic
 
 **Moment**:

@@ -17,7 +17,7 @@ import org.koin.compose.koinInject
 /**
  * Provides [LocalHapticFeedback] as the platform one behind the Vibration preference, for all of [content]. Off drops
  * every haptic the app plays, whatever a game's feel says; a flip applies to the next buzz, mid-play included. Every
- * haptic goes through [LocalHapticFeedback] (konsist S8), so this is the one gate.
+ * haptic goes through [LocalHapticFeedback] (konsist S9), so this is the one gate.
  */
 @Composable
 fun VibrationGate(

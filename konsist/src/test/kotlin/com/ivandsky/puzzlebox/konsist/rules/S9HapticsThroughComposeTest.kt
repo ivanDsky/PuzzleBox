@@ -5,22 +5,22 @@ import com.ivandsky.puzzlebox.konsist.core.Violation
 import org.junit.Test
 
 /**
- * S8: production code must not call `View.performHapticFeedback` or use `HapticFeedbackConstants`; every haptic goes
+ * S9: production code must not call `View.performHapticFeedback` or use `HapticFeedbackConstants`; every haptic goes
  * through `LocalHapticFeedback`. Contract and allowlist rules: ADR-0009 (docs/adr/0009-in-module-structure-rules.md).
  */
-class S8HapticsThroughComposeTest {
+class S9HapticsThroughComposeTest {
     private val dir = "core/ui/src/main/kotlin/com/ivandsky/puzzlebox/core/ui"
 
     @Test
-    fun `S8 real tree is clean against allowlist`() {
-        RuleCheck.assertClean(S8HapticsThroughCompose)
+    fun `S9 real tree is clean against allowlist`() {
+        RuleCheck.assertClean(S9HapticsThroughCompose)
     }
 
     @Test
-    fun `S8 fixture yields exact violations`() {
+    fun `S9 fixture yields exact violations`() {
         RuleCheck.assertFixture(
-            S8HapticsThroughCompose,
-            "S8",
+            S9HapticsThroughCompose,
+            "S9",
             4,
             setOf(
                 Violation("$dir/Constants.kt", null, ""),
@@ -31,7 +31,7 @@ class S8HapticsThroughComposeTest {
     }
 
     @Test
-    fun `S8 add-a-game is clean`() {
-        RuleCheck.assertAddAGameClean(S8HapticsThroughCompose)
+    fun `S9 add-a-game is clean`() {
+        RuleCheck.assertAddAGameClean(S9HapticsThroughCompose)
     }
 }

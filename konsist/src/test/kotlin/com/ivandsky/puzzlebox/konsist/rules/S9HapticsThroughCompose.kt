@@ -6,8 +6,8 @@ import com.ivandsky.puzzlebox.konsist.core.SourceSetKind
 import com.ivandsky.puzzlebox.konsist.core.SourceTree
 import com.ivandsky.puzzlebox.konsist.core.Violation
 
-object S8HapticsThroughCompose : Rule {
-    override val id = "S8"
+object S9HapticsThroughCompose : Rule {
+    override val id = "S9"
 
     private const val HINT = "play haptics through LocalHapticFeedback, where the Vibration switch gates them"
 
