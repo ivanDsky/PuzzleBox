@@ -86,8 +86,13 @@ internal fun GameStatsCard(row: LibraryRowModel, modifier: Modifier = Modifier) 
         KeyValue("Playing since", stats.playingSince?.let(::longDate) ?: "Not yet")
         row.progress?.let { archive ->
             KeyValue("Archive", "#1 · ${longDate(archive.range.start)} → #${count(archive.total)} today")
-            val solves = if (archive.archivedSolves == 1) "1 solve" else "${count(archive.archivedSolves)} solves"
-            KeyValue("From the archive", "$solves · best yes, streak never")
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Text(
+                archiveStatSentence(archive.archivedSolves),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp).testTag("library.stats.archive"),
+            )
         }
     }
 }
