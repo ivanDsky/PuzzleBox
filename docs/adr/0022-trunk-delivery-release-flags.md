@@ -96,3 +96,4 @@ to merge without being reachable in a release build.
 - The LinkedInAccount flag was removed, with every branch on it, on 2026-11-14 (#970).
 - The nav-doors flag flipped to `releaseDefault = true` in 0.33.0 on 2026-11-16 (nav-rethink M1, PRs #1002–#1009; user check ok on 0.32.0-nav-rethink.1).
 - The nav-doors flag was removed, with every branch on it, on 2026-11-16 (nav-rethink M1 cleanup).
+- FlatSurfaces, FinishForMe, BoardErgonomics, BoardTokens and HintFirstMove flipped to `releaseDefault = true` together in 0.34.0 on 2026-11-16 (nav-rethink M2 PRs #1014–#1019, #1024; M6 PRs #1042, #1047–#1049, #1053, #1066, #1067, #1070; M7 and M9 PRs #1038, #1039, #1045, #1057, #1060, #1062, #1064, #1069, #1072–#1079; M10 PRs #1035, #1036, #1081–#1084, #1086, #1091, #1095, #1105, #1107; user check ok on 0.33.0-nav-rethink.17 (build 1152); M11 PRs #1105, #1107 and #1115 merged after it). FlatStrands, CustomInGames, ResultMoments and CommunityPuzzles stay off.
