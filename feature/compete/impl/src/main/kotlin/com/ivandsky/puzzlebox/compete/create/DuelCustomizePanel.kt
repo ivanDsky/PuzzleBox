@@ -24,6 +24,7 @@ import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.model.GameId
 import org.koin.compose.koinInject
 
 private val QUICK_COUNTS = listOf(3, 5, 7)
@@ -41,14 +42,7 @@ internal fun DuelCustomizePanel(state: NewDuelState, actions: NewDuelActions, mo
         }
         Section("GAMES") {
             GameChips(state.games, draft, actions.onToggle)
-            state.games.firstOrNull { it.id in draft.games && it.hintsFirst }?.let {
-                Text(
-                    text = "${it.name} ranks hints first, then time.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("duel.customize.hintsFirst"),
-                )
-            }
+            HintsFirstNote(state.games, draft.games)
         }
         Section("DEADLINE") {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -66,16 +60,31 @@ internal fun DuelCustomizePanel(state: NewDuelState, actions: NewDuelActions, mo
     }
 }
 
+/** Says a chosen game ranks hints before time, once, for the first such game. */
 @Composable
-private fun Section(label: String, content: @Composable () -> Unit) {
+internal fun HintsFirstNote(games: List<DuelGame>, chosen: Set<GameId>) {
+    games.firstOrNull { it.id in chosen && it.hintsFirst }?.let {
+        Text(
+            text = "${it.name} ranks hints first, then time.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag("duel.customize.hintsFirst"),
+        )
+    }
+}
+
+/** One labelled group of the Customize panel. */
+@Composable
+internal fun Section(label: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         content()
     }
 }
 
+/** The rounds stepper and its 3/5/7 chips; [max] is the most rounds the duel can have, and chips above it are off. */
 @Composable
-private fun RoundsRow(count: Int, onCount: (Int) -> Unit) {
+internal fun RoundsRow(count: Int, onCount: (Int) -> Unit, max: Int = Match.MAX_LEGS) {
     Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
         IconButton(
             onClick = { onCount(count - 1) },
@@ -90,13 +99,14 @@ private fun RoundsRow(count: Int, onCount: (Int) -> Unit) {
         )
         IconButton(
             onClick = { onCount(count + 1) },
-            enabled = count < Match.MAX_LEGS,
+            enabled = count < max,
             modifier = Modifier.semantics { contentDescription = "More puzzles" }.testTag("duel.rounds.more"),
         ) { Text("+", style = MaterialTheme.typography.titleLarge) }
         QUICK_COUNTS.forEach { quick ->
             FilterChip(
                 selected = count == quick,
                 onClick = { onCount(quick) },
+                enabled = quick <= max,
                 label = { Text(quick.toString()) },
                 modifier = Modifier.testTag("duel.rounds.$quick"),
             )
@@ -135,13 +145,14 @@ internal fun DuelGameChip(game: DuelGame, selected: Boolean, enabled: Boolean, l
     )
 }
 
+/** The friends' puzzles switch, with [hint] saying whose puzzles it adds. */
 @Composable
-private fun FriendsRow(included: Boolean, onChange: (Boolean) -> Unit) {
+internal fun FriendsRow(included: Boolean, onChange: (Boolean) -> Unit, hint: String = "Adds puzzles friends sent you") {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f).padding(end = Spacing.md)) {
             Text("Friends' puzzles", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
             Text(
-                text = "Adds puzzles friends sent you",
+                text = hint,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

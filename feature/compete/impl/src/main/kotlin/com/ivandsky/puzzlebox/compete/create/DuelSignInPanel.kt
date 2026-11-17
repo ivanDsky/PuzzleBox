@@ -13,9 +13,13 @@ import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** The panel a signed-out player meets first: Continue with Google, or Cancel to close the sheet. */
+/**
+ * The panel a signed-out player meets first for a friend duel: Continue with Google, or Cancel to close the sheet.
+ * With Past you offered it keeps the "Play against" row, the way to a duel that needs no account.
+ */
 @Composable
-internal fun SignInPanel(signIn: DuelSignIn, actions: NewDuelActions) {
+internal fun SignInPanel(state: NewDuelState, actions: NewDuelActions) {
+    val signIn = state.signIn
     val signingIn = signIn == DuelSignIn.SigningIn
     Column(
         modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
@@ -27,6 +31,7 @@ internal fun SignInPanel(signIn: DuelSignIn, actions: NewDuelActions) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (state.selfOffered) PlayAgainstRow(state.opponent, state.initial, actions.onOpponent)
         when (signIn) {
             DuelSignIn.Offline -> SignInProblem("No connection, so sign-in didn't finish. Try again when you're online.")
             DuelSignIn.Failed -> SignInProblem("Sign-in didn't finish. Please try again.")

@@ -1,0 +1,273 @@
+package com.ivandsky.puzzlebox.compete.create
+
+import android.content.Context
+import com.ivandsky.puzzlebox.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
+import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
+import com.ivandsky.puzzlebox.domain.CreateMatch
+import com.ivandsky.puzzlebox.domain.CreateSelfDuel
+import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.domain.ObserveTodaySet
+import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.data.identity.Identity
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
+import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
+import com.ivandsky.puzzlebox.testing.game.TestGames
+import com.ivandsky.puzzlebox.testing.game.TestGames.alpha
+import com.ivandsky.puzzlebox.testing.game.TestGames.beta
+import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
+import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.util.Locale
+import kotlin.random.Random
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeoutOrNull
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+
+/** The New duel sheet's "Play against" choice and its Past you branch, over the core:testing fakes and the real use cases. */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [34])
+class NewDuelSelfViewModelTest {
+
+    @get:Rule
+    val main = MainDispatcherRule()
+
+    private val today = LocalDate.of(2026, 11, 9)
+    private val registry = TestGames.registry(listOf(alpha, beta))
+    private val calendar = FakeGameCalendar(today)
+    private val daily = FakeDailyRepository().apply {
+        listOf(alpha, beta).forEach { game ->
+            setArchiveRange(game, today.minusDays(29)..today)
+            setPuzzleNumbers(game) { day -> (day.toEpochDay() % 10_000).toInt() + 1 }
+        }
+    }
+    private val completions = FakeCompletionRepository()
+    private val received = FakeReceivedPuzzleRepository()
+    private val identity = FakeIdentityService(ANN)
+    private val server = FakeMatchRepository().apply { signedInUid = ANN.uid }
+    private val local = FakeMatchLocalRepository()
+    private val self = FakeSelfMatchRepository()
+    private val pool = ComputeSolvedPool(registry, completions, received)
+    private val noToken = object : GoogleIdTokenProvider {
+        override suspend fun idToken(activityContext: Context): GoogleIdToken = GoogleIdToken.Available("t")
+    }
+
+    /** Release flags a test can flip, to show the sheet reads them live. */
+    private class SwitchableFlags(initial: Set<ReleaseFlag>) : ReleaseFlags {
+        override val enabled: MutableStateFlow<Set<ReleaseFlag>> = MutableStateFlow(initial)
+    }
+
+    private fun TestScope.started(flags: ReleaseFlags = FakeReleaseFlags(ReleaseFlag.VirtualDuel)): NewDuelViewModel {
+        val history = ObserveGameHistory(registry, daily, completions)
+        val vm = NewDuelViewModel(
+            createMatch = CreateMatch(server, local, ComputeMatchLegs(registry, daily, calendar, history, received, Random(DRAW_SEED)), identity, Random(CODE_SEED)),
+            identity = identity,
+            idTokens = noToken,
+            todaySet = ObserveTodaySet(registry, FakeSavedPlayRepository(), completions, calendar, daily, SyncTodayPuzzles(registry, daily, calendar)),
+            calendar = calendar,
+            daily = daily,
+            registry = registry,
+            flags = flags,
+            createSelfDuel = CreateSelfDuel(pool, completions, received, self, local, { NOW }, Random(DRAW_SEED)),
+            computeSolvedPool = pool,
+            clock = { NOW },
+            zone = { ZoneOffset.UTC },
+            locale = { Locale.US },
+        )
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.state.collect {} }
+        return vm
+    }
+
+    private fun solve(game: GameId, vararg days: Int) = completions.setRecords(
+        days.map { day ->
+            CompletionRecord(
+                puzzleRef = TestGames.Ref(game, PuzzleKey.Daily(LocalDate.of(2026, 10, day), puzzleNumber = day)),
+                time = 30_000L, hints = 0, stats = RecordStats(schemaVersion = 1, blob = "{}"), isRecord = true,
+            )
+        },
+    )
+
+    @Test
+    fun `past you creates a self duel and opens it by its code, with no friend duel made`() = runTest {
+        solve(alpha, 1, 2, 3, 4)
+        val vm = started()
+        vm.chooseOpponent(Opponent.PastYou)
+
+        vm.create()
+
+        val code = vm.opened.first()
+        val match = self.observeAll().first().single()
+        assertEquals(code, match.code)
+        assertEquals(3, match.legs.size)
+        assertTrue(server.matches.isEmpty())
+        assertEquals("Best of 3 · mixed solved puzzles · against your first solves", vm.state.value.summary)
+        assertNull(withTimeoutOrNull(1) { vm.created.first() })
+    }
+
+    @Test
+    fun `rounds stop at the solved puzzles and Create plays that many`() = runTest {
+        solve(alpha, 1, 2)
+        val vm = started()
+        vm.chooseOpponent(Opponent.PastYou)
+        vm.setCount(7)
+
+        val view = vm.state.value.self
+        assertEquals(2, view.cap)
+        assertEquals(2, view.rounds)
+        assertTrue(view.capped)
+        assertEquals(2, view.solved(vm.state.value.games.first { it.id == alpha }))
+        assertTrue(vm.state.value.summary, vm.state.value.summary.startsWith("Best of 2 · "))
+
+        vm.create()
+        vm.opened.first()
+
+        assertEquals(2, self.observeAll().first().single().legs.size)
+    }
+
+    @Test
+    fun `friends' puzzles switch re-reads the pool`() = runTest {
+        solve(alpha, 1, 2)
+        val vm = started()
+        vm.chooseOpponent(Opponent.PastYou)
+        assertEquals(2, vm.state.value.self.cap)
+
+        vm.setFriends(true)
+
+        assertTrue(vm.state.value.self.form.includeFriends)
+        assertEquals(DuelPreset.Custom, vm.state.value.self.form.preset)
+        assertEquals(2, vm.state.value.self.cap)
+    }
+
+    @Test
+    fun `no solved puzzle of the chosen games turns Create off with its reason`() = runTest {
+        solve(alpha, 1, 2)
+        val vm = started()
+        vm.chooseOpponent(Opponent.PastYou)
+        vm.state.value.games.filter { it.id != beta }.forEach(vm::toggle)
+
+        val state = vm.state.value
+        assertEquals(setOf(beta), state.self.form.games)
+        assertTrue(state.self.empty)
+        assertEquals(0, state.self.rounds)
+        assertFalse(state.canCreate)
+        vm.create()
+        assertTrue(self.observeAll().first().isEmpty())
+        assertFalse(vm.state.value.creating)
+        assertNull(withTimeoutOrNull(1) { vm.opened.first() })
+    }
+
+    @Test
+    fun `signed out, past you still creates and no sign-in step shows`() = runTest {
+        solve(alpha, 1, 2, 3)
+        identity.currentIdentity = null
+        val vm = started()
+        assertEquals(DuelStep.SignIn, vm.state.value.step)
+        assertTrue(vm.state.value.selfOffered)
+
+        vm.chooseOpponent(Opponent.PastYou)
+
+        assertEquals(DuelStep.Create, vm.state.value.step)
+        assertTrue(vm.state.value.canCreate)
+        vm.create()
+        vm.opened.first()
+        assertEquals(1, self.observeAll().first().size)
+        assertEquals("Y", vm.state.value.initial)
+    }
+
+    @Test
+    fun `flag off keeps the sheet a friend duel only, whatever was chosen`() = runTest {
+        solve(alpha, 1, 2, 3)
+        val vm = started(FakeReleaseFlags())
+
+        vm.chooseOpponent(Opponent.PastYou)
+
+        assertFalse(vm.state.value.selfOffered)
+        assertEquals(Opponent.Friend, vm.state.value.opponent)
+        vm.setCount(5)
+        assertEquals(5, vm.state.value.draft.count)
+        vm.create()
+        vm.created.first()
+        assertTrue(self.observeAll().first().isEmpty())
+    }
+
+    @Test
+    fun `the flag is collected, so turning it on offers past you at once`() = runTest {
+        val flags = SwitchableFlags(emptySet())
+        val vm = started(flags)
+        assertFalse(vm.state.value.selfOffered)
+
+        flags.enabled.value = setOf(ReleaseFlag.VirtualDuel)
+
+        assertTrue(vm.state.value.selfOffered)
+    }
+
+    @Test
+    fun `a challenge names a friend already, so past you is not offered`() = runTest {
+        val vm = started()
+        vm.chooseOpponent(Opponent.PastYou)
+
+        vm.prefill(DuelChallenge("sam", "Sam", beta))
+
+        assertFalse(vm.state.value.selfOffered)
+        assertEquals(Opponent.Friend, vm.state.value.opponent)
+    }
+
+    @Test
+    fun `each opponent keeps its own choices, and Daily and deadline edits leave past you untouched`() = runTest {
+        solve(alpha, 1, 2, 3, 4, 5)
+        val vm = started()
+        vm.setCount(5)
+        vm.chooseOpponent(Opponent.PastYou)
+        val before = vm.state.value.self.form
+
+        vm.setDeadline(48)
+        vm.chooseDaily()
+        vm.setCount(4)
+
+        assertEquals(before.copy(preset = DuelPreset.Custom, count = 4), vm.state.value.self.form)
+        vm.chooseOpponent(Opponent.Friend)
+        assertEquals(5, vm.state.value.draft.count)
+    }
+
+    @Test
+    fun `the avatar initial is the player's own`() = runTest {
+        val vm = started()
+        assertEquals("A", vm.state.value.initial)
+    }
+
+    private companion object {
+        const val CODE_SEED = 7
+        const val DRAW_SEED = 3
+        val NOW: Instant = Instant.parse("2026-11-09T10:00:00Z")
+        val ANN = Identity(uid = "ann", displayName = "Ann", photoUrl = null)
+    }
+}

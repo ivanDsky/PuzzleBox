@@ -10,12 +10,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -43,10 +43,10 @@ import com.ivandsky.puzzlebox.compete.share.DuelCreatedSheet
 import com.ivandsky.puzzlebox.compete.share.createdInviteSaver
 import com.ivandsky.puzzlebox.compete.share.createdInviteText
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
-import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.model.ShareCode
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
@@ -58,16 +58,19 @@ internal class NewDuelActions(
     val onToggle: (DuelGame) -> Unit,
     val onDeadline: (Int) -> Unit,
     val onFriends: (Boolean) -> Unit,
+    val onOpponent: (Opponent) -> Unit,
     val onCreate: () -> Unit,
     val onGoogle: () -> Unit,
     val onCancel: () -> Unit,
 )
 
 /**
- * New duel: a Quick duel, today's puzzles, or Customize, then Create duel. A signed-out player meets the sign-in
- * panel first. Once created, the sheet becomes "Duel created"; [onDismiss] runs on a swipe, the scrim, Cancel or Done,
+ * New duel: a Quick duel, today's puzzles, or Customize, then Create duel; with Past you offered, "Play against" picks
+ * a friend or Past you (Quick or Customize only, no account). A signed-out player meets the sign-in
+ * panel first for a friend duel. Once created, the sheet becomes "Duel created"; [onDismiss] runs on a swipe, the scrim, Cancel or Done,
  * and the sheet starts from the Quick duel again. [inviter] names the sender in the invite text. A [challenge] opens it
- * filled in: its friend is the invitee and the duel is one puzzle of its game.
+ * filled in: its friend is the invitee and the duel is one puzzle of its game. A duel against Past you has no code to
+ * share: [onOpenDuel] opens it by its code and the sheet closes.
  * Motion: the sheet's **Slide in / Slide out** and the scrim's **Fade** are ModalBottomSheet's own.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -77,6 +80,7 @@ internal fun NewDuelSheet(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     challenge: DuelChallenge? = null,
+    onOpenDuel: (ShareCode) -> Unit = {},
     viewModel: NewDuelViewModel = koinViewModel(),
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -97,6 +101,15 @@ internal fun NewDuelSheet(
         viewModel.reset()
         onDismiss()
     }
+    val openDuel by rememberUpdatedState(onOpenDuel)
+    val close by rememberUpdatedState(onDismiss)
+    LaunchedEffect(viewModel) {
+        viewModel.opened.collect { code ->
+            openDuel(code)
+            viewModel.reset()
+            close()
+        }
+    }
     val actions = NewDuelActions(
         onQuick = viewModel::chooseQuick,
         onDaily = viewModel::chooseDaily,
@@ -104,6 +117,7 @@ internal fun NewDuelSheet(
         onToggle = viewModel::toggle,
         onDeadline = viewModel::setDeadline,
         onFriends = viewModel::setFriends,
+        onOpponent = viewModel::chooseOpponent,
         onCreate = viewModel::create,
         onGoogle = { scope.launch { viewModel.signIn(context) } },
         onCancel = dismiss,
@@ -118,68 +132,46 @@ internal fun NewDuelSheet(
     }
 }
 
-/** The sheet's body alone: the create panel, or the sign-in panel while there is no account to create under. */
+/** The sheet's body alone: the create panel, or the sign-in panel while there is no account to create a friend duel under. */
 @Composable
 internal fun NewDuelContent(state: NewDuelState, actions: NewDuelActions) {
     when (state.step) {
         DuelStep.Create -> CreatePanel(state, actions)
-        DuelStep.SignIn -> SignInPanel(state.signIn, actions)
+        DuelStep.SignIn -> SignInPanel(state, actions)
     }
 }
 
+/** The title, the one-line intro and the "Play against" row, then the friend panel or Past you's; the column scrolls when taller than the window. */
 @Composable
 private fun CreatePanel(state: NewDuelState, actions: NewDuelActions) {
-    var customizing by rememberSaveable { mutableStateOf(false) }
-    val draft = state.draft
     Column(
-        modifier = Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(start = Spacing.lg, end = Spacing.lg, bottom = Spacing.lg),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text("New duel", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.onSurface)
         Text(
-            text = "Same puzzles for you both, played in your own time. Opponent times stay sealed until you finish.",
+            text = if (state.opponent == Opponent.PastYou) {
+                "Race your first solve of each puzzle. It stays on this device."
+            } else {
+                "Same puzzles for you both, played in your own time. Opponent times stay sealed until you finish."
+            },
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        state.invitee?.let { name ->
-            Text(
-                text = "Inviting $name",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.testTag("duel.invitee"),
-            )
+        if (state.selfOffered) PlayAgainstRow(state.opponent, state.initial, actions.onOpponent)
+        when (state.opponent) {
+            Opponent.Friend -> FriendCreatePanel(state, actions)
+            Opponent.PastYou -> SelfCreatePanel(state, actions)
         }
-        PresetCard("Quick duel", "Best of 3 · mixed past dailies · 24 h", draft.preset == DuelPreset.Quick, actions.onQuick, "duel.preset.quick")
-        PresetCard("Daily duel", "Today's puzzles · 24 h", draft.preset == DuelPreset.Daily, actions.onDaily, "duel.preset.daily") {
-            if (draft.preset == DuelPreset.Daily) DailyGames(state.games, draft, actions.onToggle)
-        }
-        PresetCard(
-            title = "Customize",
-            subtitle = "Puzzles, games, deadline, friends' puzzles",
-            selected = draft.preset == DuelPreset.Custom,
-            onClick = { customizing = !customizing },
-            tag = "duel.preset.custom",
-            trailing = { Chevron(expanded = customizing) },
-        ) { CustomizeBody(customizing, state, actions) }
-        state.notice?.let { Notice(it) }
-        Text(
-            text = state.summary,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.testTag("duel.summary"),
-        )
-        PrimaryButton(
-            text = "Create duel",
-            onClick = actions.onCreate,
-            enabled = state.canCreate,
-            loading = state.creating,
-            modifier = Modifier.fillMaxWidth().testTag("duel.create"),
-        )
     }
 }
 
+/** Reveals the Customize panel's [content] when [open]; it grows in, and goes at once when closed. */
 @Composable
-private fun CustomizeBody(open: Boolean, state: NewDuelState, actions: NewDuelActions) {
+internal fun CustomizeBody(open: Boolean, content: @Composable () -> Unit) {
     val reduced = rememberReducedMotion()
     AnimatedVisibility(
         visible = open,
@@ -190,12 +182,12 @@ private fun CustomizeBody(open: Boolean, state: NewDuelState, actions: NewDuelAc
                 fadeIn(tween(MotionTokens.EnterDuration, easing = MotionTokens.EasingEmphasizedDecelerate))
         },
         exit = ExitTransition.None,
-    ) { DuelCustomizePanel(state, actions, Modifier.padding(top = Spacing.sm)) }
+    ) { content() }
 }
 
 /** One choice: its [title] and [subtitle], marked when [selected], with [content] drawn under them. */
 @Composable
-private fun PresetCard(
+internal fun PresetCard(
     title: String,
     subtitle: String,
     selected: Boolean,
@@ -226,7 +218,7 @@ private fun PresetCard(
 }
 
 @Composable
-private fun Chevron(expanded: Boolean) {
+internal fun Chevron(expanded: Boolean) {
     val reduced = rememberReducedMotion()
     val turn by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
@@ -241,25 +233,9 @@ private fun Chevron(expanded: Boolean) {
     )
 }
 
-/** One chip per game for today's puzzle: its number, or "Solved today" and unavailable once the player has it. */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun DailyGames(games: List<DuelGame>, draft: DuelDraft, onToggle: (DuelGame) -> Unit) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        games.forEach { game ->
-            val label = when {
-                game.solvedToday -> "${game.name} · Solved today"
-                game.todayNumber != null -> "${game.name} #${game.todayNumber}"
-                else -> game.name
-            }
-            DuelGameChip(game, selected = game.id in draft.games, enabled = !game.solvedToday, label = label, onClick = { onToggle(game) })
-        }
-    }
-}
-
 /** Why Create did not close the sheet, each in its own words; the choices above stay as they were. */
 @Composable
-private fun Notice(notice: DuelNotice) {
+internal fun Notice(notice: DuelNotice) {
     val text = when (notice) {
         DuelNotice.Offline -> "You're offline. Connect and try again."
         DuelNotice.Busy -> "Duels are busy today. Try again later."
