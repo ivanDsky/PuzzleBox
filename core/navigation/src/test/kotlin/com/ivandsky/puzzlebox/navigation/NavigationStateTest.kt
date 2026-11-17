@@ -174,7 +174,8 @@ class NavigationStateTest {
     fun `a saved return survives a round trip and reconciling drops it when its origin is gone`() {
         val state = fresh.selectTab(Play).push(Page(1)).switchTo(Profile, Page(3))
 
-        assertEquals(state, json.decodeFromString(NavigationState.serializer(), json.encodeToString(NavigationState.serializer(), state)))
+        val wire = json.encodeToString(NavigationState.serializer(), state)
+        assertEquals(state, json.decodeFromString(NavigationState.serializer(), wire))
         assertNull(state.reconciledWith(navigationState(Home, Profile)).returnTo)
         assertEquals(state.returnTo, state.reconciledWith(fresh).returnTo)
     }

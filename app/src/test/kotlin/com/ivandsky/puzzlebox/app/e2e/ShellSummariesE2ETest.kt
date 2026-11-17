@@ -38,7 +38,8 @@ import org.robolectric.annotation.Config
 /**
  * The one-line summaries on the real shell (SC2, SC7), on a phone's bar and a tablet's
  * rail: each opens its owner tab at its root and shows the owner's block, and Back from that
- * root returns to Today. The sweep pins one owner per block: off its owner no screen draws the
+ * root returns to the screen the row was tapped on (Today). The sweep pins one owner per block: off its owner no
+ * screen draws the
  * game page's board (`leaderboard.*`) or History's stats (`history.stats*`), and no screen
  * shows more than one `summary.<type>` row of a type.
  */

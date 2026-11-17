@@ -20,7 +20,7 @@ class LibraryRequestsTest {
     private fun todayNavigator() = Navigator(puzzleBoxNavigationState())
 
     @Test
-    fun `openGamesSection lands on Games root with the section pending and back returns to Today`() {
+    fun `openGamesSection lands on Games root with the section pending and back returns to the origin`() {
         val navigator = todayNavigator()
         val requests = LibraryRequests()
 
@@ -34,7 +34,7 @@ class LibraryRequestsTest {
     }
 
     @Test
-    fun `openCustom with Custom in Games lands on Games root with Custom pending and back returns to Today`() {
+    fun `openCustom with Custom in Games lands on Games root with Custom pending and back returns to the origin`() {
         val navigator = Navigator(puzzleBoxNavigationState(TabSet.CustomInGames.destinations))
         navigator.push(EditorKey("castle"))
         val before = navigator.state
@@ -50,7 +50,7 @@ class LibraryRequestsTest {
     }
 
     @Test
-    fun `openChallenge lands on Games root with the challenge pending and back returns to Today`() {
+    fun `openChallenge lands on Games root with the challenge pending and back returns to the origin`() {
         val navigator = todayNavigator()
         val requests = LibraryRequests()
 

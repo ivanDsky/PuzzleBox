@@ -1,19 +1,19 @@
 package com.ivandsky.puzzlebox.app.nav
 
+import androidx.navigation3.runtime.NavKey
 import androidx.savedstate.serialization.decodeFromSavedState
 import androidx.savedstate.savedState
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.history.api.HistoryKey
+import com.ivandsky.puzzlebox.history.api.HistoryRootKey
+import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.NavigationState
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.home.api.HomeKey
-import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.play.GamesTab
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.play.api.ResultKey
-import androidx.navigation3.runtime.NavKey
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -45,11 +45,12 @@ class OpenRanksTest {
 
     private fun Navigator.assertBackAt(origin: NavigationState) {
         assertEquals(origin.tab, state.tab)
-        assertEquals(origin.stacks.filter { it.first() != HistoryRootKey }, state.stacks.filter { it.first() != HistoryRootKey })
+        fun List<List<NavKey>>.withoutRanks() = filter { it.first() != HistoryRootKey }
+        assertEquals(origin.stacks.withoutRanks(), state.stacks.withoutRanks())
     }
 
     @Test
-    fun `the game page's rank row and Your history row switch to Ranks at the game and day, and back restores the page`() {
+    fun `the game page's rank rows switch to Ranks at the game and day, and back restores the page`() {
         val navigator = Navigator(puzzleBoxNavigationState()).also { it.selectTab(PlayKey); it.push(GameKey("zip")) }
         val before = navigator.state
 
@@ -118,7 +119,8 @@ class OpenRanksTest {
     @Test
     fun `a key saved before the calendar field decodes with it folded`() {
         val old = savedState { putString("gameId", "zip"); putString("day", "2026-11-05") }
-        assertEquals(HistoryKey("zip", "2026-11-05", calendarExpanded = false), decodeFromSavedState(HistoryKey.serializer(), old))
+        val decoded = decodeFromSavedState(HistoryKey.serializer(), old)
+        assertEquals(HistoryKey("zip", "2026-11-05", calendarExpanded = false), decoded)
     }
 
     @Test
@@ -126,7 +128,8 @@ class OpenRanksTest {
         val navigator = Navigator(puzzleBoxNavigationState())
         val before = navigator.state
 
-        homeSummaries(navigator, tabSet, duels = null, libraryRequests = LibraryRequests()).onOpenRank?.invoke(GameId("zip"))
+        val summaries = homeSummaries(navigator, tabSet, duels = null, libraryRequests = LibraryRequests())
+        summaries.onOpenRank?.invoke(GameId("zip"))
 
         navigator.assertOnRanks(HistoryKey("zip", null))
         navigator.pop()

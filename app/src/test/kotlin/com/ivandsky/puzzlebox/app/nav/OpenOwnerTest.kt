@@ -94,7 +94,8 @@ class OpenOwnerTest {
 
     @Test
     fun `with the layer open over the owner tab it closes the layer and resets that tab`() {
-        val before = stacks(HistoryRootKey, history = listOf(HistoryRootKey, HistoryKey("zip"))).copy(layer = listOf(ProfileKey))
+        val before = stacks(HistoryRootKey, history = listOf(HistoryRootKey, HistoryKey("zip")))
+            .copy(layer = listOf(ProfileKey))
 
         assertEquals(stacks(HistoryRootKey), before.opening(HistoryRootKey))
     }
@@ -108,7 +109,11 @@ class OpenOwnerTest {
 
     @Test
     fun `a pushed-on key switches to its tab over its root and one back returns to the origin`() {
-        val before = stacks(PlayKey, play = listOf(PlayKey, GameKey("zip")), history = listOf(HistoryRootKey, HistoryKey("old")))
+        val before = stacks(
+            PlayKey,
+            play = listOf(PlayKey, GameKey("zip")),
+            history = listOf(HistoryRootKey, HistoryKey("old")),
+        )
         val navigator = Navigator(before)
 
         navigator.openOnOwnerTab(HistoryKey("zip"), TabSet.FourTabs)
@@ -116,7 +121,11 @@ class OpenOwnerTest {
         assertEquals(HistoryRootKey, navigator.state.tab)
         assertEquals(listOf<NavKey>(HistoryRootKey, HistoryKey("zip")), navigator.state.currentStack)
         navigator.pop()
-        assertEquals(before.copy(stacks = before.stacks.map { if (it.first() == HistoryRootKey) listOf(HistoryRootKey, HistoryKey("zip")) else it }), navigator.state)
+        val linked = listOf(HistoryRootKey, HistoryKey("zip"))
+        assertEquals(
+            before.copy(stacks = before.stacks.map { if (it.first() == HistoryRootKey) linked else it }),
+            navigator.state,
+        )
     }
 
     @Test
