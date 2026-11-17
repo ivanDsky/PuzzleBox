@@ -10,6 +10,8 @@ import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.match.MatchRepository
+import com.ivandsky.puzzlebox.data.model.PostState
+import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -27,6 +29,8 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
+import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
@@ -51,24 +55,31 @@ import org.koin.dsl.module
 
 /**
  * The GameKey route's tutorial harness: the route over stand-in games, Koin wired per test.
- * Concrete tests pick the seen-read behaviour they need through [start].
+ * Concrete tests pick the seen-read behaviour they need through [start]. [custom] runs the same
+ * fixtures over a friend's puzzle, with [playFeel] as the graph's PlayFeel.
  */
-abstract class GameTutorialFixture {
+abstract class GameTutorialFixture(
+    /** Opens the key as a friend's puzzle ([CustomGameKey], [CustomGameViewModel]) instead of a daily. */
+    private val custom: Boolean = false,
+    private val playFeel: Boolean = false,
+) {
 
     @get:Rule
     val composeRule = createComposeRule()
 
     protected val alpha = TestGames.alpha
     protected val beta = TestGames.beta
-    private val day = TestGames.definition(alpha).cadence.today()
+    protected val day = TestGames.definition(alpha).cadence.today()
     protected val fakes = FakeGames(listOf(alpha, beta))
     private val daily = FakeDailyRepository().apply {
         setToday(alpha, TestGames.puzzle(alpha))
         setToday(beta, TestGames.puzzle(beta))
         setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L)))
     }
+    private val received = FakeReceivedPuzzleRepository()
+    private val code = checkNotNull(ShareCode.parse("K7Q2MX"))
     private val completions = FakeCompletionRepository()
-    private val saved = FakeSavedPlayRepository()
+    protected val saved = FakeSavedPlayRepository()
     protected var solved = 0
     protected var backs = 0
     protected val entry = mutableIntStateOf(0)
@@ -91,7 +102,7 @@ abstract class GameTutorialFixture {
                     single<GameRegistry> { fakes.games }
                     single<GamePlayRegistry> { fakes.registry }
                     single<SavedPlayRepository> { saved }
-                    single<ReceivedPuzzleRepository> { FakeReceivedPuzzleRepository() }
+                    single<ReceivedPuzzleRepository> { received }
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
                     factory { FinishLeg(FakeMatchResultOutbox(), FakeIdentityService()) { Instant.EPOCH } }
@@ -102,25 +113,56 @@ abstract class GameTutorialFixture {
                 module { single<CloudSync> { FakeCloudSync() } },
                 playModule,
                 hubOffFriendDay,
+                module { single { PlayFeel(playFeel) } },
             )
         }
+        if (custom) runBlocking { received.upsert(friendPuzzle(game)) }
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 // A new key is a new entry owner's composition; the VM store stays the test's.
                 key(entry.intValue) {
-                    GameRoute(
-                        key = GameKey(game.value),
-                        layout = PlayLayout.SinglePane,
-                        onBack = { backs++ },
-                        onSolved = { _, _, _ -> solved++ },
-                    )
+                    if (custom) {
+                        GameRoute(
+                            key = CustomGameKey(game.value, code.value),
+                            layout = PlayLayout.SinglePane,
+                            onBack = { backs++ },
+                            onSolved = { _, _, _ -> solved++ },
+                        )
+                    } else {
+                        GameRoute(
+                            key = GameKey(game.value),
+                            layout = PlayLayout.SinglePane,
+                            onBack = { backs++ },
+                            onSolved = { _, _, _ -> solved++ },
+                        )
+                    }
                 }
             }
         }
         composeRule.waitForIdle()
     }
 
-    protected fun live() = koin!!.koin.get<PlaySessionStore>().peek(PlaySlot.Daily(alpha, day))!!
+    protected fun live() = koin!!.koin.get<PlaySessionStore>()
+        .peek(if (custom) PlaySlot.Custom(alpha, code.value) else PlaySlot.Daily(alpha, day))!!
+
+    private fun friendPuzzle(game: GameId) = ReceivedPuzzle(
+        code = code,
+        gameId = game,
+        variant = TestGames.variant(game),
+        sharedFormatVersion = 1,
+        puzzleBytes = TestGames.puzzle(game).payload,
+        title = "Castle",
+        authorName = "Ivan",
+        note = "",
+        authorTimeMs = 102_000L,
+        authorHints = 0,
+        authorUid = "author",
+        openedAt = Instant.parse("2026-11-04T09:00:00Z"),
+        unpublished = false,
+        postState = PostState.Pending,
+        postAttempts = 0,
+        difficulty = null,
+    )
 
     protected fun records() = runBlocking { completions.observeRecords().first() }
 

@@ -4,17 +4,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
-import com.ivandsky.puzzlebox.gameui.TutorialSession
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.api.GameKey
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 
 /**
  * One [GameKey] entry's state holder (A9, N21): opens the key's slot in the
@@ -22,19 +19,16 @@ import kotlinx.coroutines.launch
  * every entry naming the same slot shares its controller, and the play outlives this
  * ViewModel; releasing it is [PlaySessionStore.retain]'s job, never this one's.
  *
- * Tutorials (spec A11) are this entry's, not the store's: a game with lessons whose
- * tutorial [prefs] has not marked seen opens it in place of the board once that read lands; the
- * board never waits for the read, so a first play may show one frame first. How to play
- * reopens it over the live play. While it shows, the board's composition is gone, so the
- * play chrome's clock effect has folded the clock; it reopens when the board returns.
- * The lessons run in a sandbox: nothing they do reaches the slot or the records. The open
- * tutorial lives here, so a rotation keeps its step.
+ * Tutorials (spec A11) are this entry's, not the store's: its [TutorialGateHolder] opens them
+ * in place of the board, and How to play reopens them over the live play. While they show, the board's
+ * composition is gone, so the play chrome's clock effect has folded the clock; it reopens when the board
+ * returns. The lessons run in a sandbox: nothing they do reaches the slot or the records.
  */
 class GameViewModel(
     key: GameKey,
     store: PlaySessionStore,
     calendar: GameCalendar,
-    private val prefs: UserPreferencesRepository,
+    prefs: UserPreferencesRepository,
 ) : ViewModel() {
 
     /** The slot's live play; null when the key's game is unplayable in this build. */
@@ -51,40 +45,15 @@ class GameViewModel(
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
     } ?: MutableStateFlow(false).asStateFlow()
 
-    private val hasLessons = play?.ui?.tutorial?.isNotEmpty() == true
+    private val gate = TutorialGateHolder(play, prefs, viewModelScope)
 
-    private val _tutorial = MutableStateFlow<TutorialGate>(TutorialGate.Closed)
-    internal val tutorial: StateFlow<TutorialGate> = _tutorial.asStateFlow()
+    internal val tutorial: StateFlow<TutorialGate> = gate.gate
 
-    /** The player has opened or closed the tutorial, so a late first-play read leaves it alone. */
-    private var tutorialTouched = false
-
-    init {
-        if (play != null && hasLessons) {
-            viewModelScope.launch {
-                val seen = prefs.tutorialSeen(play.gameId).first()
-                if (!seen && !tutorialTouched) _tutorial.value = TutorialGate.Open(TutorialSession(play.ui.tutorial))
-            }
-        }
-    }
-
-    /** How to play: the game's tutorial opens over the live play. A no-op without lessons
-     *  or while a tutorial is already open. */
-    fun howToPlay() {
-        val lessons = play?.ui?.tutorial ?: return
-        if (lessons.isEmpty() || _tutorial.value is TutorialGate.Open) return
-        tutorialTouched = true
-        _tutorial.value = TutorialGate.Open(TutorialSession(lessons))
-    }
+    /** How to play: the game's tutorial opens over the live play. */
+    fun howToPlay() = gate.howToPlay()
 
     /** The tutorial ended (finished or skipped): the game is marked seen and the board shows. */
-    fun closeTutorial() {
-        val game = play?.gameId ?: return
-        if (_tutorial.value !is TutorialGate.Open) return
-        tutorialTouched = true
-        _tutorial.value = TutorialGate.Closed
-        viewModelScope.launch { prefs.markTutorialSeen(game) }
-    }
+    fun closeTutorial() = gate.close()
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
