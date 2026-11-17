@@ -12,8 +12,10 @@ import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.PuzzleCodeCheck
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
+import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.CreateOutcome
+import com.ivandsky.puzzlebox.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.domain.DuelSettings
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
@@ -34,6 +36,8 @@ import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
+import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
@@ -121,6 +125,9 @@ class NewDuelViewModelTest {
         calendar = calendar,
         daily = daily,
         registry = registry,
+        flags = FakeReleaseFlags(),
+        createSelfDuel = CreateSelfDuel(ComputeSolvedPool(registry, completions, received), completions, received, FakeSelfMatchRepository(), local, { NOW }, Random(DRAW_SEED)),
+        computeSolvedPool = ComputeSolvedPool(registry, completions, received),
         clock = { NOW },
         zone = { zone },
         locale = { locale },

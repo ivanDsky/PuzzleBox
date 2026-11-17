@@ -101,6 +101,7 @@ fun DuelsTab(
                 sheetChallenge = null
             },
             challenge = sheetChallenge,
+            onOpenDuel = { code -> open(DuelKey(code.value)) },
         )
     }
 }
