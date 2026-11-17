@@ -1,6 +1,6 @@
 # ADR-0009 — In-module structure rules (`:konsist`)
 
-Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S9 from the Vibration switch (P3-07); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032)
+Date: 2026-11-04 · Status: accepted · Source: structure-rules run (S0 S1 S2 S4 S5 P1–P7); P8 from the navigation-ux run (spec A5); P9 from the nav-ia run (ADR-0027); P10 from the LinkedIn account run (ADR-0028); S6 from the sudoku run (spec A12); S7 from the Queens app-theme fix; S8 from the consistency polish run (spec S1); S9 from the Vibration switch (P3-07); P11 from the ci-warnings run (#850); P12 and the P10 narrowing from the LinkedIn result post run (ADR-0032)
 
 ## Context
 ADR-0008 guards the edges between modules. It says nothing about what is inside a module:
@@ -74,7 +74,7 @@ returns these findings:
   fixtures are protected files: a worker does not edit them to make a test pass.
 
 Entries on record at the time of writing: S1 64, S2 6, S4 25, S5 4, P1 6, P2 1, P5 4, P6 1.
-S0, S6, S7, S9, P3, P4, P7, P8, P9, P10, P11 and P12 have none.
+S0, S6, S7, S8, S9, P3, P4, P7, P8, P9, P10, P11 and P12 have none.
 
 ### Payload cross-reference
 The `design-architecture` payload (`references/rules-architecture.md`) states four of these as
@@ -86,7 +86,7 @@ prose rules; the tests are their mechanical form and add no stricter bar:
 - Rule 20, one public top-level type per file (private helpers, extensions, typealiases and
   previews excepted): S1.
 
-The other rules (S0, S4, S5, S6, S7, S9, P1, P4–P12) have no payload twin. Dependency direction between
+The other rules (S0, S4, S5, S6, S7, S8, S9, P1, P4–P12) have no payload twin. Dependency direction between
 modules stays in ADR-0008.
 
 ### Adding a rule
@@ -213,6 +213,19 @@ The system night flag is read only where the app theme is resolved.
   scanned: golden captures set the device flag on purpose.
 - **How to fix:** read `LocalDarkTheme.current` — the resolved app theme, which Settings >
   Appearance can force opposite the system.
+
+## S8
+Visible copy uses one word per concept and US spelling.
+
+- **Scope:** production files.
+- **Detection:** a string literal containing `colour`, `favourite`, `leaderboard`, `crown`,
+  `this phone` or `rounds` at a word start, any case, so `Colours` and `crowns` match but
+  `surrounds` does not. Not matched: comments and KDoc, identifiers, a literal passed to `Log.*`,
+  `println`, `require`, `check`, `error`, `malformed` or `testTag`, a `const val TAG` log tag, a `@Preview` argument, and a literal that is
+  only lowercase letters, digits, `_`, `.` and `-` (a key such as `"leaderboards"`). The violation is the file.
+- **Accepted misses:** other synonyms (the rule cannot know them), a lowercase one-word key that
+  is really copy, and a literal built by concatenating pieces that split a banned word.
+- **How to fix:** say color, favorite, Ranks, queen, puzzles or "this device" (spec S1).
 
 ## S9
 Every haptic goes through `LocalHapticFeedback`, the one choke point the Vibration switch gates (`VibrationGate`,
