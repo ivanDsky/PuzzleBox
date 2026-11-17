@@ -275,7 +275,7 @@ private fun StudioTopBarPreview() {
 private fun StudioTopBarLongTitlePreview() {
     PuzzleBoxTheme {
         StudioTopBar(
-            title = "Grandma Ruth's 80th — the big family crown puzzle, part 2",
+            title = "Grandma Ruth's 80th — the big family queen puzzle, part 2",
             subtitle = "Queens 12×12",
             saving = true,
             onBack = {},

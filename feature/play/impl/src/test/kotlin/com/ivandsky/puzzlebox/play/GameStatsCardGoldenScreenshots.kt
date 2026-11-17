@@ -59,7 +59,7 @@ abstract class GameStatsCardGoldenScreenshots(private val device: String) {
         val ZIP = GameId("zip")
         val ORDER = RankOrder.TimeThenHints
 
-        /** Twelve archive solves: the sentence is the spec's example, with no best time or streak claim. */
+        /** Twelve archive solves: the sentence as the card shows it, counting toward best but not streak. */
         val ARCHIVE_ROW = LibraryRowModel(
             card = GameCardModel(ZIP, "Zip", GameBrand.Neutral, status = null, rankOrder = ORDER),
             today = 41,

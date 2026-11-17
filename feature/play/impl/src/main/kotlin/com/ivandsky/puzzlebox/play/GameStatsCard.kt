@@ -87,6 +87,7 @@ internal fun GameStatsCard(row: LibraryRowModel, modifier: Modifier = Modifier) 
         row.progress?.let { archive ->
             KeyValue("Archive", "#1 · ${longDate(archive.range.start)} → #${count(archive.total)} today")
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            // 10.dp matches the KeyValue row padding; no Spacing token is 10.dp.
             Text(
                 archiveStatSentence(archive.archivedSolves),
                 style = MaterialTheme.typography.bodyMedium,
