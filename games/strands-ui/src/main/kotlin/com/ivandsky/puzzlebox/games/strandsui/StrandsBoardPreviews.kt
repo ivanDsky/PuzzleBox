@@ -37,7 +37,7 @@ private val previewPuzzle: StrandsPuzzle by lazy {
 
 /**
  * [trace] reaches the board as its live trace, as the play screen's does, not through the model.
- * [readable] asks the theme for the readable board look (nav-rethink B3), [flat] for flat surfaces.
+ * [readable] asks the theme for the readable board look (nav-rethink B3), [flat] for flat Strands.
  */
 @Composable
 private fun BoardPane(
@@ -46,7 +46,7 @@ private fun BoardPane(
     readable: Boolean = false,
     flat: Boolean = false,
 ) {
-    PuzzleBoxTheme(flatSurfaces = flat, readableBoard = readable) {
+    PuzzleBoxTheme(flatStrands = flat, readableBoard = readable) {
         StrandsBoardContent(
             model = StrandsRendererModel.of(state),
             found = null,
@@ -113,7 +113,7 @@ internal fun StrandsBoardReadablePreview() = BoardPane(
     readable = true,
 )
 
-/** [StrandsBoardReadablePreview] with flat surfaces on (nav-rethink M10-8): the same tokens with no lip under them. */
+/** [StrandsBoardReadablePreview] with flat Strands on (nav-rethink M10-8): the same tokens with no lip under them. */
 @PuzzleBoxPreviews
 @Preview(name = "Compact width", widthDp = 360, heightDp = 400, showBackground = true)
 @Composable

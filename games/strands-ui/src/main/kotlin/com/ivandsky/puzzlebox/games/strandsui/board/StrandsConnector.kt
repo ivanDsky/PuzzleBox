@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.util.lerp
 import androidx.compose.ui.unit.Density
 import com.ivandsky.puzzlebox.designsystem.BoardColors
-import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
+import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.LinkKind
 import com.ivandsky.puzzlebox.games.strands.render.StrandsLink
@@ -66,7 +66,7 @@ internal fun StrandsConnectors(
     val alphas = links.map { link -> key(link) { animateFloatAsState(if (link in dim.links) dim.alpha else 1f, spec, label = "dim") } }
     val scope = rememberCoroutineScope()
     val motion = remember { StrandsLineMotion(scope) }
-    val flat = LocalFlatSurfaces.current
+    val flat = LocalFlatStrands.current
     Spacer(
         Modifier
             .fillMaxSize()

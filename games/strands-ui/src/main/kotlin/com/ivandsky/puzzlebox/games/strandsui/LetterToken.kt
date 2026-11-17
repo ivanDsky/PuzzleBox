@@ -30,7 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.BoardColors
-import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
+import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSemantics.letterButton
@@ -74,8 +74,8 @@ internal fun LetterToken(
     onTrace: (TraceStep) -> Unit,
 ) {
     LocalTokenComposed.current(cell.coord)
-    // Flat surfaces: the token is its face alone, no lip under it (nav-rethink M10-8).
-    val flat = LocalFlatSurfaces.current
+    // Flat Strands: the token is its face alone, no lip under it (nav-rethink M10-8).
+    val flat = LocalFlatStrands.current
     val traceIndex by remember(cell.coord, trace) {
         derivedStateOf { trace().path.indexOf(cell.coord).takeIf { it >= 0 } }
     }

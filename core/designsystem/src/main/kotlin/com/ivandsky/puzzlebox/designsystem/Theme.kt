@@ -92,20 +92,28 @@ val LocalDarkTheme = staticCompositionLocalOf { false }
 val LocalFlatSurfaces = staticCompositionLocalOf { false }
 
 /**
+ * Whether Strands draws its flat look (no lip under a token, a 64 dp hint row), split from [LocalFlatSurfaces] so
+ * that can ship without touching Strands. [PuzzleBoxTheme]'s `flatStrands`; false by default. Only Strands reads it.
+ */
+val LocalFlatStrands = staticCompositionLocalOf { false }
+
+/**
  * Theme composition root (ticket 10): the promoted style IS the token set — Baloo 2
  * typography, C3 light scheme, C6 dark scheme. The [darkTheme] request picks the
- * scheme; [flatSurfaces] is the app's flat-surfaces request, handed to [LocalFlatSurfaces]; [readableBoard] is the
+ * scheme; [flatSurfaces] is the app's flat-surfaces request, handed to [LocalFlatSurfaces]; [flatStrands] is Strands' own, handed to [LocalFlatStrands]; [readableBoard] is the
  * app's readable-board request (nav-rethink B3), which picks the [LocalBoardGeometry] value and the [LocalBoardColors] instance. */
 @Composable
 fun PuzzleBoxTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     flatSurfaces: Boolean = false,
+    flatStrands: Boolean = false,
     readableBoard: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(
         LocalDarkTheme provides darkTheme,
         LocalFlatSurfaces provides flatSurfaces,
+        LocalFlatStrands provides flatStrands,
         LocalBoardGeometry provides if (readableBoard) BoardGeometry.Readable else BoardGeometry.Legacy,
         LocalPrimaryText provides if (darkTheme) DarkPrimaryText else LightPrimaryText,
         LocalTimerFill provides if (darkTheme) DarkTimerFill else LightTimerFill,
