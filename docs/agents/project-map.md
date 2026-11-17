@@ -176,9 +176,11 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   a `CompletionRecord`), `LinkedInSync`, `LinkedInDayData`, `LinkedInOwnState`); `match/` (ADR-0026:
   `Match`, `MatchRepository` the remote port, `MatchLocalRepository` → `RoomMatchLocalRepository`,
   `MatchResultOutbox` → `RoomMatchResultOutbox`, `MatchResultPoster` + `MatchResultSync`,
+  `SelfMatchRepository` → `RoomSelfMatchRepository` (duels against your own first solves, on the device),
+  `RoutingMatchRepository` (the unqualified `MatchRepository`: self codes to the self store, the rest to the backend's, bound under `MatchRemote`),
   `LegRef`, `PuzzleCodeCheck`); `network/NetworkStatus` (the port the poster waits on);
   `repository/GameSettingsRepository` → `OfflineGameSettingsRepository` (per-game boolean settings).
-- `core/database/` (`:core:database`) — Room v12 `PuzzleBoxDatabase`: `PuzzleDailyDao`/
+- `core/database/` (`:core:database`) — Room v15 `PuzzleBoxDatabase`: `PuzzleDailyDao`/
   `PuzzleDailyEntity` (`puzzle_dailies`, keyed gameId+day), `CompletionDao`/`CompletionEntity`
   (`completions`, keyed on the encoded puzzle-ref string), `SavedPlayDao`/`SavedPlayEntity`
   (`saved_plays`, keyed gameId+day, `blob` + `updatedAt`, `saveAndPrune`), v7 additions
@@ -187,10 +189,11 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   (`published_puzzles`), `ReceivedPuzzleEntity` (`received_puzzles`), v8 duel storage
   `LegSavedPlayDao`/`LegSavedPlayEntity` (`leg_saved_plays`), `MatchLocalDao`/`MatchLocalEntity` (`matches_local`),
   `MatchResultDao`/`MatchResultEntity` (`match_results`) and nullable `completions.matchCode`, v9
-  `completions.source`; schemas 1–12
-  exported under `core/database/schemas/`, `Migrations.ALL` = 1→…→12; v12 `CompletionReplayDao`/
+  `completions.source`; schemas 1–15
+  exported under `core/database/schemas/`, `Migrations.ALL` = 1→…→15; v12 `CompletionReplayDao`/
   `CompletionReplayEntity` (`completion_replays`, one sealed replay per record or latest completion,
-  cascade-deleted with it) and nullable `match_results.replay`; `linkedin/`
+  cascade-deleted with it) and nullable `match_results.replay`, v13 `completion_replays.uploaded`, v14 `drafts.difficultyChoice`, v15 the
+  self-duel store `SelfMatchDao`/`SelfMatchEntity` (`self_matches`) and `SelfPastLegEntity` (`self_past_legs`); `linkedin/`
   `LinkedInDatabase` (a separate Room file, v1: `GhostEntity`/`GhostDao`, `FetchLogEntity`/`FetchLogDao`); Koin `databaseModule`.
 - `core/network/` (`:core:network`, pure JVM) — the one LinkedIn client: internal
   `LinkedInGamesApi` (Retrofit), `LinkedInSessionCookieJar` + `LinkedInCsrfInterceptor`
@@ -273,7 +276,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `Screen`), `GamePlayController` (+ `PlayClock`/`PlayHints`/`PlayUndo`), `GamePlayRegistry`
   (GameId → `GamePlayUi`; a duplicate id throws), `PlayBoardStatus` + `PlayBoardFallback`,
   `PlayCopy`, `BoardGrid` + `EdgeOverlay`, `DragTrace`, `GridGeometry`, `HintButton`,
-  `TimerBar` + `formatClock`, `PlayScaffold`, `PanePolicy` (the one two-pane decision from window size in dp), `PlayChrome`, `PlaySolveFrame` (the one solve hand-off: the solve moment B rests the board 1.7 s, `SolveRestState` + `SolveRestTapLayer`, then hands off), `ResultHeroScreen` (daily result; `ResultMoments.kt`, `ResultMomentCard`), `ResultScreen` (friend result),
+  `TimerBar` + `formatClock`, `PastYouAvatar` (the opponent's initial with the history mark, for Past you), `PlayScaffold`, `PanePolicy` (the one two-pane decision from window size in dp), `PlayChrome`, `PlaySolveFrame` (the one solve hand-off: the solve moment B rests the board 1.7 s, `SolveRestState` + `SolveRestTapLayer`, then hands off), `ResultHeroScreen` (daily result; `ResultMoments.kt`, `ResultMomentCard`), `ResultScreen` (friend result),
   `CompletionRecordEmitter`, `board/SelfRowJump` (a request the hero card sends the day board to scroll to the viewer's row). `editor/`: `GameEditorUi` (per-game `sizeLabel`,
   `createController`, `Board`), `GameEditorController` (draft `StateFlow`, `adopt`, overlay
   hooks), `GameEditorRegistry` (GameId → `GameEditorUi`), `EditorOverlay` (witness display).
@@ -622,7 +625,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   and when `NetworkStatus` reports the network back; `AndroidNetworkStatus` in `app/match/` is
   the one Android seam) + `MatchResultSync`. `core:domain` holds the use cases and the pure
   outcome rules (`ComputeMatchOutcome`, `ComputeMatchLegs`); the outcome is derived on the
-  device from sealed results. `MatchRepositoryContract` and `MatchResultsContract` in
+  device from sealed results. A duel against your own first solves (`CreateSelfDuel`, the Past you opponent) stays on the
+  device in `SelfMatchRepository`; `RoutingMatchRepository` sends its code there and every other call to the backend. `MatchRepositoryContract` and `MatchResultsContract` in
   `core:testing` pin the fake and the Firestore implementation to one behaviour. The Games
   screen's Duels tab is handed in by the shell as a `DuelsSlot` (`feature:play:impl`), so
   play has no compete edge; `feature:compete:impl` owns the Duels tab, the new-duel sheet, the
@@ -645,16 +649,18 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
 - **Handwritten fakes** in `core:testing` (test-scope only): `FakeDailyRepository`,
   `FakeCompletionRepository`, `FakeIdentityService`, `FakeLeaderboardRepository`,
   `FakeSavedPlayRepository`, `FakeUserPreferencesRepository`, `FakeGameCalendar`, `TestGames`,
-  the match fakes, `FakeNetworkStatus`, `FakeGameSettingsRepository` and the `FakeLinkedIn*` set.
+  the match fakes (`FakeSelfMatchRepository` too), `FakeNetworkStatus`, `FakeGameSettingsRepository` and the `FakeLinkedIn*` set.
 - **Pure layout policy** — `PanePolicy.isTwoPane` in `core/game-ui`.
-- **`Migrations.ALL`** (`core:database`) — every schema change bumps the Room version (now 12),
+- **`Migrations.ALL`** (`core:database`) — every schema change bumps the Room version (now 15),
   commits the schema JSON, and registers a migration (1→2 puzzle_dailies, 2→3 completions,
   3→4 daily_puzzles rebuild, 4→5 drops the legacy daily_puzzles, 5→6 adds saved_plays, 6→7
   adds drafts, custom_saved_plays, published_puzzles, received_puzzles, 7→8 (MIGRATION_7_8)
   adds leg_saved_plays, matches_local, match_results and completions.matchCode, 8→9
   (MIGRATION_8_9) adds completions.source, 9→10 (`MIGRATION_9_10`), 10→11 (`CloudSyncMigration.MIGRATION_10_11`),
   11→12 (MIGRATION_11_12, ADR-0030) adds the side table
-  `completion_replays` and nullable `match_results.replay`); no destructive fallback. `LinkedInDatabase` is a
+  `completion_replays` and nullable `match_results.replay`, 12→13 (MIGRATION_12_13) adds `completion_replays.uploaded`,
+  13→14 (MIGRATION_13_14) adds `drafts.difficultyChoice`, 14→15 (`SelfMatchMigration.MIGRATION_14_15`) adds `self_matches`
+  and `self_past_legs`); no destructive fallback. `LinkedInDatabase` is a
   separate Room file at version 1 with its own schema under
   `core/database/schemas/com.ivandsky.puzzlebox.database.linkedin.LinkedInDatabase/`, so backup
   can leave it out; it holds no cookie or token column.

@@ -45,6 +45,10 @@ An opponent's leg result stays unreadable until your own exists or the match clo
 **Reveal**:
 The once-per-device animated outcome sequence that ends on the summary.
 
+**Virtual duel / self duel** (visible word: Past you):
+A duel you play against your own first solve of each puzzle, stored on the device. It follows the same rules as a friend duel and has no server and no daily limit.
+_Avoid_: bot, practice
+
 **Late / LocalOnly**:
 The two failed post states: rejected because the match had closed, or rejected three times.
 
