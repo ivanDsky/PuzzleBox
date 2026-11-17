@@ -17,7 +17,7 @@ class SolveRestStateTest {
 
     @Test
     fun `begin buzzes one Confirm when enabled`() = runTest {
-        val rest = SolveRestState(enabled = true, haptics = haptics)
+        val rest = SolveRestState(enabled = true, playFeel = false, haptics = haptics)
 
         val done = rest.begin(this)
         testScheduler.runCurrent()
@@ -29,8 +29,22 @@ class SolveRestStateTest {
 
     @Test
     fun `begin does not buzz when disabled`() = runTest {
-        SolveRestState(enabled = false, haptics = haptics).begin(this).await()
+        val rest = SolveRestState(enabled = false, playFeel = false, haptics = haptics)
 
+        rest.begin(this).await()
+
+        assertEquals(false, rest.confirms)
         assertEquals(emptyList<HapticFeedbackType>(), buzzes)
+    }
+
+    @Test
+    fun `with PlayFeel begin buzzes one Confirm when disabled, and is over at once`() = runTest {
+        val rest = SolveRestState(enabled = false, playFeel = true, haptics = haptics)
+
+        rest.begin(this).await()
+
+        assertEquals(true, rest.confirms)
+        assertEquals(listOf(HapticFeedbackType.Confirm), buzzes)
+        assertEquals(false, rest.resting)
     }
 }

@@ -28,7 +28,10 @@ val LocalSolveRestOnBoard = staticCompositionLocalOf { false }
  * androidx maps it to VIRTUAL_KEY, a lighter tap than the old LONG_PRESS.
  */
 @Stable
-class SolveRestState internal constructor(val enabled: Boolean, private val haptics: HapticFeedback) {
+class SolveRestState internal constructor(val enabled: Boolean, playFeel: Boolean, private val haptics: HapticFeedback) {
+    /** Whether [begin] plays the success buzz: with the rest, and with PlayFeel even when the rest is off. */
+    val confirms: Boolean = enabled || playFeel
+
     /** True while the board rests: the tap layer is up. */
     var resting by mutableStateOf(false)
         private set
@@ -37,8 +40,8 @@ class SolveRestState internal constructor(val enabled: Boolean, private val hapt
 
     /** Starts the rest in [scope] now, with the success buzz (L2) once, as the solve moment starts, through [HapticFeedback] so the Vibration switch silences it; await the result to wait out what is left of it. */
     fun begin(scope: CoroutineScope): Deferred<Unit> = scope.async {
+        if (confirms) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
         if (!enabled) return@async
-        haptics.performHapticFeedback(HapticFeedbackType.Confirm)
         skips.tryReceive()
         resting = true
         try {

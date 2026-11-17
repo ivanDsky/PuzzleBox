@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuUnit
 import com.ivandsky.puzzlebox.games.sudoku.UnitKind
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
@@ -202,7 +203,11 @@ class SudokuMotionTest {
     // Frame by frame: once the sweep is over nothing animates, and one big step skips past the rest timer's wake-up.
     private fun advance(ms: Long) = repeat((ms / 50L).toInt()) { composeRule.mainClock.advanceTimeBy(50L) }
 
-    private fun solveWithRest(rest: Boolean, reduced: Boolean = false): Triple<SudokuBoardState, List<Pair<Long, Int>>, () -> Unit> {
+    private fun solveWithRest(
+        rest: Boolean,
+        reduced: Boolean = false,
+        playFeel: Boolean = false,
+    ): Triple<SudokuBoardState, List<Pair<Long, Int>>, () -> Unit> {
         if (reduced) {
             Settings.Global.putFloat(ApplicationProvider.getApplicationContext<Context>().contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         }
@@ -214,7 +219,11 @@ class SudokuMotionTest {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme {
-                CompositionLocalProvider(LocalHapticFeedback provides haptics, LocalSolveRestOnBoard provides rest) {
+                CompositionLocalProvider(
+                    LocalHapticFeedback provides haptics,
+                    LocalSolveRestOnBoard provides rest,
+                    LocalPlayFeel provides playFeel,
+                ) {
                     ui.Screen(
                         controller = controller,
                         status = PlayBoardStatus.Ready,
@@ -280,6 +289,37 @@ class SudokuMotionTest {
         } finally {
             restore()
         }
+    }
+
+    /**
+     * One live solve through to its hand-off: the Confirms played while the sweep still runs, and in all. The solve
+     * rest and the board share one recorder, so a doubled confirm shows as two.
+     */
+    private fun solveConfirms(rest: Boolean, playFeel: Boolean): Pair<Int, Int> {
+        fun confirms() = haptics.played.count { it == HapticFeedbackType.Confirm }
+        val (_, solved, _) = solveWithRest(rest, playFeel = playFeel)
+        advance(300)
+        val duringSweep = confirms()
+        advance(CelebrationMotion.SolveMomentMs * 2)
+        return composeRule.runOnIdle {
+            assertEquals(1, solved.size)
+            duringSweep to confirms()
+        }
+    }
+
+    @Test
+    fun `PlayFeel on with the rest off confirms once as the sweep starts, and the board's own confirm steps aside`() {
+        assertEquals(1 to 1, solveConfirms(rest = false, playFeel = true))
+    }
+
+    @Test
+    fun `PlayFeel on with the rest on confirms once`() {
+        assertEquals(1 to 1, solveConfirms(rest = true, playFeel = true))
+    }
+
+    @Test
+    fun `PlayFeel off with the rest off keeps the board's own confirm after the sweep as the only one`() {
+        assertEquals(0 to 1, solveConfirms(rest = false, playFeel = false))
     }
 
     @Test

@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardMaxWidth
@@ -157,6 +158,7 @@ private fun BoxScope.TangoBoardArea(
  */
 @Composable
 private fun TangoBoard(controller: TangoPlayController, paneCap: Dp?, modifier: Modifier) {
+    MoveHapticsEffect({ controller.session }, ::tangoMoveHaptic)
     // suppressedSets is a key: the settle debounce clears it 0.5 s after the last touch,
     // and the model must rebuild then or newly introduced violations stay hidden forever.
     val model = remember(

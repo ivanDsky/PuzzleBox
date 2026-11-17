@@ -193,8 +193,9 @@ internal fun SudokuMotionHost(
 /**
  * Plays each player commit's effect and haptic. The board as first seen (restore, rotation,
  * play-again) is the baseline and plays nothing; a board already solved hands off at once. A solve
- * runs its sweep, then CONFIRM, then [onSolved]; the win record was written at commit. With the [rest] on, [onSolved]
- * waits for the solve moment, counted from the solve.
+ * runs its sweep, then [onSolved]; the win record was written at commit. Its CONFIRM goes out as the sweep starts
+ * when the [rest] confirms, and after the sweep otherwise. With the [rest] on, [onSolved] waits for the solve moment,
+ * counted from the solve.
  */
 @Composable
 internal fun rememberSudokuMotion(
@@ -217,8 +218,8 @@ internal fun rememberSudokuMotion(
             sudokuHapticFor(event)?.let(haptics::perform)
             val resting = if (event is SudokuPlayerEvent.Solved) rest.begin(this) else null
             playSudokuEvent(motion, event, next.board.geometry) {
-                // With the rest on, the solve buzz went out as the sweep started; a second one would double it.
-                if (!rest.enabled) haptics.perform(SudokuHaptic.Confirm)
+                // When the rest confirms, the solve buzz went out as the sweep started; a second one would double it.
+                if (!rest.confirms) haptics.perform(SudokuHaptic.Confirm)
                 resting?.await()
                 handOff(state.session)
             }
