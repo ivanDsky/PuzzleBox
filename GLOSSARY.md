@@ -55,7 +55,7 @@ A completion written from the player's own LinkedIn result, stored with `source 
 A LinkedIn connection's row for a day. On a Friends board it is ranked with the PuzzleBox rows and takes a friend place when it has a time (hidden times rank last); Global boards hold none. Part of a saved board, and never stored in a shared document.
 
 **Saved board**:
-One LinkedIn connections' board for a game and day, kept on the phone for good and, when signed in, in the player's cloud space; Disconnect keeps it, Delete saved boards removes it.
+One LinkedIn connections' board for a game and day, kept on this device for good and, when signed in, in the player's cloud space; Disconnect keeps it, Delete saved boards removes it.
 
 **Cloud space**:
 The signed-in account's own owner-only Firestore area holding its synced kinds; nobody else can read it.
@@ -94,7 +94,7 @@ Elapsed solve time with pause and background excluded; never wall clock.
 Who is ahead at a moment of a compare: fewer hints, then more correct pieces, else Level.
 
 **No replay**:
-The solve has no usable replay, for any cause. On the daily result and the History day a stored solve shows the disabled Watch replay row with the reason; elsewhere the section is not drawn.
+The solve has no usable replay, for any cause. On the daily result and the History day a stored solve shows the disabled Watch replay row with the reason; in the board slot of a compare or duel review, and on the empty page, the same words read "No replay"; elsewhere the section is not drawn.
 
 **Replay mark** (kind):
 The kind of one timeline tick: Normal, Undo, Hint or Mistake. A merged tap cycle takes the highest kind of its marks.
@@ -125,7 +125,7 @@ The one line on today's Result that says a freeze was used or earned by this sol
 _Avoid_: freeze toast, freeze notification
 
 **Ranks**:
-The top-level tab that replaces History: one leaderboard, re-ranked in place, with your own row in view. It opens on Friends by default; Settings → Ranks switches the default between Friends and Global, and the game-page row, Result chip and Today row follow it.
+The top-level tab that replaces History: one Ranks list, re-ranked in place, with your own row in view. It opens on Friends by default; Settings → Ranks switches the default between Friends and Global, and the game-page row, Result chip and Today row follow it.
 _Avoid_: History tab
 
 **Overall**:
@@ -149,7 +149,7 @@ A local solve or LinkedIn result for a day whose submit window has passed: devic
 _Avoid_: late
 
 **Visibility tier**:
-One rung of the ladder that sets how much of a player others see: Hidden, On leaderboards (default), Challengeable, or Replays watchable; each includes the ones below.
+One rung of the ladder that sets how much of a player others see: Hidden, On Ranks (default), Challengeable, or Replays watchable; each includes the ones below.
 _Avoid_: privacy setting
 
 **Next thing**:
