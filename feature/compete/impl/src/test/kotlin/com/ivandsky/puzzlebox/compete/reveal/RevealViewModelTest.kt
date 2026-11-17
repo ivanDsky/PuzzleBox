@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.data.match.OutboxResult
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.match.ResultRead
+import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegSeen
 import com.ivandsky.puzzlebox.domain.LegVerdict
@@ -143,7 +144,7 @@ class RevealViewModelTest {
         }
     }
 
-    private fun loadReplay(): LoadSolveReplay {
+    private fun loadReplay(daily: FakeDailyRepository = this.daily): LoadSolveReplay {
         val completions = FakeCompletionRepository()
         val loadShared = LoadSharedPuzzle(
             registry = registry,
@@ -406,6 +407,57 @@ class RevealViewModelTest {
 
         assertNull(vm.compare.value)
         assertEquals("the leg stops being offered", setOf(1), running(vm).compareLegs)
+    }
+
+    @Test
+    fun aLegWhoseDayWasNeverOpenedHereComparesWithTheirReplayAlone() = runTest {
+        duel()
+        play(0, null, solved)
+        val unopened = FakeDailyRepository().apply {
+            setDay(ReplayFixtures.GAME, day, DailyDay.Ready(puzzle(ReplayFixtures.SHORT_MOVES), 1))
+        }
+        val vm = started(viewModel(loadReplay(unopened)))
+        matches.value = loaded(revealed = setOf(0, 1), of = compareMatch)
+        vm.revealEnded()
+
+        vm.openCompare(0)
+
+        val open = vm.compare.value!!
+        assertNull(open.mine)
+        assertNotNull("their side opens from the day fetched on demand", open.theirs)
+        assertEquals(setOf(0, 1), running(vm).compareLegs)
+    }
+
+    @Test
+    fun aFailedReadNeverDropsTheCompare() = runTest {
+        duel()
+        play(0, null, solved)
+        val vm = compared()
+        vm.revealEnded()
+        theirsOnline = false
+
+        vm.openCompare(0)
+
+        assertNull("nothing could be read", vm.compare.value)
+        assertEquals("the leg is still offered", setOf(0, 1), running(vm).compareLegs)
+        theirsOnline = true
+        vm.openCompare(0)
+        assertNotNull("a later tap opens it", vm.compare.value!!.theirs)
+    }
+
+    @Test
+    fun aRewatchOffersALegAgainThatHadNoReplay() = runTest {
+        duel()
+        play(0, null, null)
+        val vm = compared()
+        vm.revealEnded()
+        vm.openCompare(0)
+        assertEquals(setOf(1), running(vm).compareLegs)
+
+        vm.watchAgain()
+        vm.revealEnded()
+
+        assertEquals(setOf(0, 1), running(vm).compareLegs)
     }
 
     @Test

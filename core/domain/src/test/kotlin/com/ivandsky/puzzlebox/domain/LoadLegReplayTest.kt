@@ -12,11 +12,13 @@ import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
+import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.domain.SolveReplayRef.MyLeg
 import com.ivandsky.puzzlebox.domain.SolveReplayRef.Record
 import com.ivandsky.puzzlebox.domain.SolveReplayRef.TheirLeg
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.DecodeResult
+import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.GamePlugin
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.GameRules
@@ -297,6 +299,59 @@ class LoadLegReplayTest {
         outbox.enqueue(code, result(ann.uid, 0, solved))
 
         assertNull(bare(MyLeg(code, 0)))
+    }
+
+    @Test
+    fun `their daily leg this device never opened is fetched like the play path does`() = runTest {
+        duel()
+        post(bob, result(bob.uid, 0, solved))
+        post(ann, result(ann.uid, 0, replay = null))
+        val unopened = FakeDailyRepository().apply {
+            setDay(game, solvedDay, DailyDay.Ready(puzzle(ReplayFixtures.SHORT_MOVES), 1))
+        }
+
+        val source = resolver(unopened)(TheirLeg(code, 0))
+
+        assertEquals(solved, source?.bytes)
+        assertEquals(ReplayFixtures.SHORT_MOVES.toByte(), source?.puzzle?.payload?.single())
+        assertEquals(1, unopened.dayCalls(game, solvedDay))
+    }
+
+    @Test
+    fun `a cached daily leg is not fetched`() = runTest {
+        duel()
+        outbox.enqueue(code, result(ann.uid, 0, solved))
+
+        load(MyLeg(code, 0))
+
+        assertEquals(0, daily.dayCalls(game, solvedDay))
+    }
+
+    @Test
+    fun `a daily leg that cannot be fetched is unavailable, one that is not out is absent`() = runTest {
+        duel()
+        post(bob, result(bob.uid, 0, solved))
+        post(ann, result(ann.uid, 0, replay = null))
+        val unreachable = FakeDailyRepository().apply { setDay(game, solvedDay, DailyDay.Failed(FetchError.Unavailable("offline"))) }
+        val missing = FakeDailyRepository().apply { setDay(game, solvedDay, DailyDay.Failed(FetchError.NotFound("404"))) }
+
+        assertEquals(LegReplayRead.Unavailable, resolver(unreachable).read(TheirLeg(code, 0)))
+        assertEquals(LegReplayRead.Absent, resolver(missing).read(TheirLeg(code, 0)))
+        assertEquals(LegReplayRead.Absent, resolver(FakeDailyRepository()).read(TheirLeg(code, 0)))
+    }
+
+    @Test
+    fun `a read tells an offline opponent result from a settled absence`() = runTest {
+        duel()
+        post(bob, result(bob.uid, 0, solved))
+        post(bob, result(bob.uid, 1, replay = null))
+        post(ann, result(ann.uid, 0, replay = null))
+        post(ann, result(ann.uid, 1, replay = null))
+
+        assertEquals(LegReplayRead.Absent, load.read(TheirLeg(code, 1)))
+        assertEquals(LegReplayRead.Absent, load.read(MyLeg(code, 0)))
+        server.online = false
+        assertEquals(LegReplayRead.Unavailable, load.read(TheirLeg(code, 0)))
     }
 
     @Test

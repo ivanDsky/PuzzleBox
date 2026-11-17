@@ -42,6 +42,30 @@ class LoadSolveReplay(
         }
     }
 
+    /**
+     * One side of a duel leg, telling a settled absence from a load that failed (offline, a puzzle that could not be
+     * fetched, an unexpected error) so a surface never writes off a leg a retry could open. Logged and cancelled like [invoke].
+     */
+    suspend fun readLeg(ref: SolveReplayRef): LegReplayLoad {
+        return try {
+            when (val read = leg.read(ref)) {
+                LegReplayRead.Absent -> LegReplayLoad.Absent
+                LegReplayRead.Unavailable -> LegReplayLoad.Unavailable
+                is LegReplayRead.Found -> {
+                    val source = read.source
+                    val plugin = games[source.puzzle.gameId] ?: return LegReplayLoad.Absent
+                    val timeline = withContext(dispatchers.default) { plugin.openTimeline(source.puzzle, source.bytes) }
+                    timeline?.let(LegReplayLoad::Opened) ?: LegReplayLoad.Absent
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            failures.warn(TAG, "leg replay load failed for ${ref::class.simpleName}", e)
+            LegReplayLoad.Unavailable
+        }
+    }
+
     /** True when the puzzle's newest solve is its record solve, or it has no solve. */
     suspend fun latestIsRecord(puzzle: PuzzleRef): Boolean {
         return try {
