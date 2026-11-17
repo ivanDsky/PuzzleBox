@@ -10,6 +10,7 @@ import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.DraftExport
 import com.ivandsky.puzzlebox.game.editor.DraftState
 import com.ivandsky.puzzlebox.game.editor.EditorShareCodec
@@ -26,6 +27,7 @@ import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
@@ -182,6 +184,35 @@ class LoadSharedPuzzleTest {
         }
     }
 
+    @Test
+    fun `a public doc's published level is stored over the level graded on this device`() = runTest {
+        shared.publish(doc(payload = byteArrayOf(1, 0), difficulty = Difficulty.Level.Easy))
+        val grading = loadWith(GradedEditor(Difficulty(Difficulty.Level.Hard, score = null, hardestRung = null)))
+
+        val row = (grading(CODE) as OpenOutcome.Opened).puzzle
+
+        assertEquals(Difficulty.Level.Easy, row.difficulty)
+        assertEquals(Difficulty.Level.Easy, received.rows[CODE]?.difficulty)
+    }
+
+    @Test
+    fun `a doc with no published level stores the level graded on this device`() = runTest {
+        shared.publish(doc(payload = byteArrayOf(1, 0), difficulty = null))
+        val grading = loadWith(GradedEditor(Difficulty(Difficulty.Level.Hard, score = null, hardestRung = null)))
+
+        val row = (grading(CODE) as OpenOutcome.Opened).puzzle
+
+        assertEquals(Difficulty.Level.Hard, row.difficulty)
+        assertEquals(Difficulty.Level.Hard, received.rows[CODE]?.difficulty)
+    }
+
+    @Test
+    fun `a doc with no published level and an ungraded game stores no level`() = runTest {
+        shared.publish(doc(payload = byteArrayOf(1, 0), difficulty = null))
+
+        assertNull((load(CODE) as OpenOutcome.Opened).puzzle.difficulty)
+    }
+
     private fun loadWith(editor: GameEditor<List<Int>>): LoadSharedPuzzle =
         LoadSharedPuzzle(
             registry = GameRegistry(listOf(withEditor(PAIR, editor))),
@@ -190,6 +221,17 @@ class LoadSharedPuzzleTest {
             budget = { Budget.within(BUDGET_MS, System::nanoTime) },
             clock = { NOW },
         )
+
+    /** A [PairEditor] whose unique verdict carries [grade], standing in for the legacy grader's label. */
+    private class GradedEditor(private val grade: Difficulty) : GameEditor<List<Int>> by PairEditor,
+        EditorShareCodec<List<Int>> by PairEditor,
+        DraftExport<List<Int>> by PairEditor {
+        override fun analyze(draft: List<Int>, budget: Budget): Verdict =
+            when (val verdict = PairEditor.analyze(draft, budget)) {
+                is Verdict.Unique -> Verdict.Unique(verdict.solution, grade)
+                else -> verdict
+            }
+    }
 
     /** A [PairEditor] whose decode or analyze throws, standing in for a game's codec bug. */
     private class ThrowingEditor(
@@ -214,10 +256,12 @@ class LoadSharedPuzzleTest {
         gameId: String = PAIR.value,
         formatVersion: Int = SharedPuzzleDoc.FORMAT_VERSION,
         shareCodecVersion: Int = PairEditor.SHARE_VERSION,
+        difficulty: Difficulty.Level? = null,
     ) = SharedPuzzleDoc(
         code = CODE, formatVersion = formatVersion, gameId = gameId, variant = PairEditor.VARIANT.value,
         shareCodecVersion = shareCodecVersion, payload = payload, title = "Twins", authorName = "Jonas",
         note = "", authorUid = AUTHOR, authorTimeMs = 42_000L, authorHints = 0, createdAtMs = 0L, unpublished = false,
+        difficulty = difficulty,
     )
 
     private fun stored() = ReceivedPuzzle(

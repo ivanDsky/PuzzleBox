@@ -29,7 +29,7 @@ data class ReceivedPuzzle(
     val unpublished: Boolean,
     val postState: PostState,
     val postAttempts: Int,
-    val difficulty: Difficulty.Level?,   // from the local re-verify; null for games without a ladder
+    val difficulty: Difficulty.Level?,   // the published level, else the local re-verify grade; null for games without a ladder
 ) {
     override fun equals(other: Any?): Boolean =
         other is ReceivedPuzzle &&
