@@ -26,6 +26,8 @@ import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.spotlight.SpotlightOverlay
 import com.ivandsky.puzzlebox.games.queens.QueensSession
 import com.ivandsky.puzzlebox.gameui.GridGeometry
+import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
+import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
 
 /** True when system animations are off — every board entrance/exit collapses to an
  *  instant state change (direction doc §5 reduced-motion rule). Read at board level
@@ -74,6 +76,8 @@ private fun QueensPlayBoardContent(
 ) {
     val model = QueensBoardModel.of(state.session, state.guide)
     val haptics = LocalHapticFeedback.current
+    val playFeel = LocalPlayFeel.current
+    MoveHapticsEffect({ state.session }, ::queensMoveHaptic)
     var pressedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var tracedCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
     var downCell by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -90,7 +94,7 @@ private fun QueensPlayBoardContent(
             .aspectRatio(1f)
             // Keyed on the state too: the next lesson or a play-again brings a new state of
             // the same size, and the gestures must feed it, not the solved one.
-            .pointerInput(state, model.n) {
+            .pointerInput(state, model.n, playFeel) {
                 detectTapGestures(
                     onPress = {
                         tryAwaitRelease()
@@ -101,7 +105,7 @@ private fun QueensPlayBoardContent(
                         pressedCell = null
                         val before = state.session
                         state.onTap(row * model.n + col)
-                        state.tapHaptic(before)?.let(haptics::performHapticFeedback)
+                        if (!playFeel) state.tapHaptic(before)?.let(haptics::performHapticFeedback)
                     },
                 )
             }
@@ -112,13 +116,13 @@ private fun QueensPlayBoardContent(
                     pressedCell = downCell
                 }
             }
-            .pointerInput(state, model.n) {
+            .pointerInput(state, model.n, playFeel) {
                 detectDragGestures(
                     onDragStart = { offset ->
                         val cell = downCell ?: cellOf(offset.x, offset.y, size.width.toFloat())
                         tracedCell = cell
                         pressedCell = cell
-                        haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        if (!playFeel) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         state.onDragStart(cell.first * model.n + cell.second)
                     },
                     onDrag = { change, _ ->
@@ -126,7 +130,7 @@ private fun QueensPlayBoardContent(
                         if (cell != tracedCell) {
                             tracedCell = cell
                             pressedCell = cell
-                            haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            if (!playFeel) haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                             state.onDragCell(cell.first * model.n + cell.second)
                         }
                     },
