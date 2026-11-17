@@ -6,7 +6,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
+import com.ivandsky.puzzlebox.gameui.hidden.GivensBoard
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.gameui.replay.rememberStepsForward
@@ -21,6 +23,9 @@ import com.ivandsky.puzzlebox.games.queens.QueensSession
  */
 internal object QueensReplayBoard : GameReplayBoard {
     override val pieces: String get() = "queens"
+
+    override fun givens(puzzle: Puzzle): GivensBoard? =
+        queensGivensSession(puzzle)?.let { GivensBoard.of(it.puzzle.size, it.puzzle.size, this, it) }
 
     @Composable
     override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {

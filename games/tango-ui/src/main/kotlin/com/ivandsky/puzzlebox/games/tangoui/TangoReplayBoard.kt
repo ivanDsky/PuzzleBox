@@ -6,7 +6,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
+import com.ivandsky.puzzlebox.gameui.hidden.GivensBoard
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
 import com.ivandsky.puzzlebox.gameui.replay.rememberStepsForward
@@ -24,6 +26,9 @@ import com.ivandsky.puzzlebox.games.tango.render.TangoViolations
  */
 internal object TangoReplayBoard : GameReplayBoard {
     override val pieces: String get() = "cells"
+
+    override fun givens(puzzle: Puzzle): GivensBoard? =
+        tangoGivensSession(puzzle)?.let { GivensBoard.of(it.puzzle.n, it.puzzle.n, this, it) }
 
     @Composable
     override fun Board(frame: ReplayFrame, options: ReplayBoardOptions, modifier: Modifier) {
