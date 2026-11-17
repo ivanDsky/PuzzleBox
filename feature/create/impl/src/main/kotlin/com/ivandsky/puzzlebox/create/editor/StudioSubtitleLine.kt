@@ -8,6 +8,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -18,11 +19,13 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 
 private val TagHorizontalPadding = 6.dp
+private val MinLabelWidth = 48.dp
 
 /**
- * The subtitle line, left to right: the STUDIO tag, the subtitle, the save state. The save state
- * is measured first and keeps its width. The tag is dropped whole when it cannot sit beside the
- * save state with a gap on each side, so the subtitle ellipsizes instead of the tag being squeezed.
+ * The subtitle line, left to right: STUDIO tag, game label, separator, save state. The save state
+ * is always placed whole. When the label would be narrower than [MinLabelWidth], the tag drops
+ * first, then the label with its separator, so nothing is left dangling. With nothing before it,
+ * the save state reads without its separator.
  */
 @Composable
 internal fun SubtitleLine(subtitle: String, saving: Boolean, modifier: Modifier) {
@@ -36,32 +39,60 @@ internal fun SubtitleLine(subtitle: String, saving: Boolean, modifier: Modifier)
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag("create.studio.label"),
             )
-            SaveStatus(saving)
+            Text(
+                text = "·",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("create.studio.separator"),
+            )
+            SaveState(saving)
         },
     ) { measurables, constraints ->
         val gap = Spacing.xs.roundToPx()
+        val minLabel = MinLabelWidth.roundToPx()
         val maxWidth = constraints.maxWidth
-        val status = measurables[2].measure(Constraints(maxWidth = maxWidth))
         val tag = measurables[0].measure(Constraints(maxWidth = maxWidth))
-        val showTag = tag.width + status.width + 2 * gap <= maxWidth
-        val leading = if (showTag) tag.width + gap else 0
-        val subtitleWidth = (maxWidth - leading - status.width - gap).coerceAtLeast(0)
-        val subtitleLine = measurables[1].measure(Constraints(maxWidth = subtitleWidth))
-        val height = maxOf(status.height, subtitleLine.height, if (showTag) tag.height else 0)
+        val dot = measurables[2].measure(Constraints(maxWidth = maxWidth))
+        val word = measurables[3].measure(Constraints(maxWidth = maxWidth))
+        val tail = dot.width + gap + word.width
+        val roomWithTag = maxWidth - tag.width - 2 * gap - tail
+        val roomWithoutTag = maxWidth - gap - tail
+        val tagFits = roomWithTag >= minLabel
+        val labelRoom = if (tagFits) roomWithTag else roomWithoutTag
+        val labelShown = subtitle.isNotEmpty() && labelRoom >= minLabel
+        val tagShown = if (subtitle.isEmpty()) tag.width + gap + word.width <= maxWidth else tagFits
+        val label = if (labelShown) measurables[1].measure(Constraints(maxWidth = labelRoom)) else null
+        val tagP = if (tagShown) tag else null
+        val dotP = if (labelShown) dot else null
+        val height = listOfNotNull(word, tagP, label, dotP).maxOf { it.height }
         layout(maxWidth, height) {
-            if (showTag) tag.placeRelative(0, (height - tag.height) / 2)
-            subtitleLine.placeRelative(leading, (height - subtitleLine.height) / 2)
-            status.placeRelative(leading + subtitleLine.width + gap, (height - status.height) / 2)
+            var x = 0
+            tagP?.let {
+                it.placeRelative(x, centred(it, height))
+                x += it.width + gap
+            }
+            label?.let {
+                it.placeRelative(x, centred(it, height))
+                x += it.width + gap
+            }
+            dotP?.let {
+                it.placeRelative(x, centred(it, height))
+                x += it.width + gap
+            }
+            word.placeRelative(x, centred(word, height))
         }
     }
 }
 
-/** `· Saving…` while an edit waits to be stored, `· ✓ Saved` once it is (02 handoff "Autosave"). */
+private fun centred(placeable: Placeable, height: Int): Int = (height - placeable.height) / 2
+
+/** `✓ Saved` once the edit is stored, `Saving…` while it waits. The separator is its own node. */
 @Composable
-private fun SaveStatus(saving: Boolean) {
+private fun SaveState(saving: Boolean) {
     Text(
-        text = if (saving) "· Saving…" else "· ✓ Saved",
+        text = if (saving) "Saving…" else "✓ Saved",
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         maxLines = 1,
@@ -69,7 +100,7 @@ private fun SaveStatus(saving: Boolean) {
     )
 }
 
-/** The `STUDIO` tag on the editor's accent container (02 handoff tokens). */
+/** The `STUDIO` tag on the editor's accent container. */
 @Composable
 private fun StudioTag() {
     val accent = AccentSlot.Violet.colors()

@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -25,8 +26,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * On the narrowest phone the save state lays out whole, one line. Beside the widest verdict pill
- * the STUDIO tag is dropped whole rather than squeezed into the few dp the subtitle leaves.
+ * On the narrowest phone the save state lays out whole, one line, even beside the widest verdict
+ * pill. Beside that pill the STUDIO tag, then the label and its separator, drop whole.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -37,21 +38,28 @@ class StudioTopBarSaveStateTest {
     val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun `saving at 360 dp lays out whole`() = assertWhole(saving = true)
+    fun `saving beside the widest pill at 360 dp lays out whole`() = assertWhole(saving = true)
 
     @Test
-    fun `saved at 360 dp lays out whole`() = assertWhole(saving = false)
+    fun `saved beside the widest pill at 360 dp lays out whole`() = assertWhole(saving = false)
 
     @Test
-    fun `beside the widest pill the tag is dropped whole, not squeezed`() {
+    fun `beside the widest pill the tag, then the label, drop whole and the save state reads alone`() {
         show(saving = true, pill = WIDEST_PILL)
-        val tags = composeRule.onAllNodesWithTag(TAG, useUnmergedTree = true).fetchSemanticsNodes()
-        assertEquals(1, tags.size)
-        assertFalse("STUDIO tag was placed beside the pill", tags.single().layoutInfo.isPlaced)
+        assertFalse("STUDIO tag was placed beside the pill", layoutOf(TAG).isPlaced)
+        assertFalse("subtitle label was placed beside the pill", layoutOf(LABEL).isPlaced)
+        assertFalse("separator was placed beside the pill", layoutOf(SEPARATOR).isPlaced)
+        status("create.studio.saving").assertTextEquals("Saving…")
     }
 
-    private fun assertWhole(saving: Boolean, pill: @Composable () -> Unit = {}) {
-        show(saving, pill)
+    private fun layoutOf(tag: String) = composeRule.onAllNodesWithTag(tag, useUnmergedTree = true)
+        .fetchSemanticsNodes()
+        .also { assertEquals("one node for $tag", 1, it.size) }
+        .single()
+        .layoutInfo
+
+    private fun assertWhole(saving: Boolean) {
+        show(saving, WIDEST_PILL)
         val layouts = mutableListOf<TextLayoutResult>()
         status(if (saving) "create.studio.saving" else "create.studio.saved")
             .fetchSemanticsNode()
@@ -86,6 +94,8 @@ class StudioTopBarSaveStateTest {
 
     private companion object {
         const val TAG = "create.studio.tag"
+        const val LABEL = "create.studio.label"
+        const val SEPARATOR = "create.studio.separator"
         val WIDEST_PILL: @Composable () -> Unit = {
             VerdictPill(verdict = Verdict.Unique(Solution(listOf(1, 7, 8, 14)), needsGuessing = true), onClick = {})
         }
