@@ -4,11 +4,14 @@ import android.content.Context
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -17,6 +20,10 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
@@ -30,7 +37,9 @@ import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
+import com.ivandsky.puzzlebox.designsystem.MaxContentWidth
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.TwoColumnRightWidth
 import com.ivandsky.puzzlebox.domain.ObserveDuel
 import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.ObserveMyDuels
@@ -168,6 +177,17 @@ class DuelsTabPaneTest {
         rule.waitForIdle()
     }
 
+    /** The pane alone, [width] wide and the window's height, for a pane too narrow for two columns. */
+    private fun showAlone(width: Dp) {
+        val pane = duelsPane(navigator, PlayLayout.TwoPane)
+        rule.setContent {
+            PuzzleBoxTheme { Box(Modifier.width(width).fillMaxHeight()) { pane(Modifier.fillMaxSize()) } }
+        }
+        rule.waitForIdle()
+    }
+
+    private fun bounds(tag: String) = rule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+
     private fun inPane(tag: String) = hasTestTag(tag) and hasAnyAncestor(hasTestTag("duels.pane"))
 
     private fun pushed() = navigator.state.currentStack.drop(1)
@@ -213,5 +233,45 @@ class DuelsTabPaneTest {
         rule.waitForIdle()
 
         assertEquals(DuelRevealKey(sealed.value), pushed().single())
+    }
+
+    @Test
+    fun `a picked duel sits in a 372 dp right column, centred in the pane across and down`() {
+        show()
+
+        val pane = bounds("duels.pane")
+        val grid = bounds("duel.legs.grid")
+        val left = bounds("duel.legs.grid.left")
+        val right = bounds("duel.legs.grid.right")
+        assertEquals("the right column", TwoColumnRightWidth.value, right.width.value, 1f)
+        assertEquals("centred across", (pane.left + pane.right).value / 2f, (grid.left + grid.right).value / 2f, 1f)
+        assertTrue("left of the right column", left.right <= right.left)
+        assertTrue("the page is shorter than the pane", grid.height < pane.height)
+        assertEquals("the list column centred down", (pane.top + pane.bottom).value / 2f, (left.top + left.bottom).value / 2f, 1f)
+        assertEquals("the detail column centred down", (pane.top + pane.bottom).value / 2f, (right.top + right.bottom).value / 2f, 1f)
+    }
+
+    @Test
+    fun `the page is capped and centred in a pane wider than it needs, and Start takes the right column's width`() {
+        showAlone(1200.dp)
+
+        val pane = bounds("duels.pane")
+        val grid = bounds("duel.legs.grid")
+        assertTrue("capped: ${grid.width}", grid.width <= MaxContentWidth + 32.dp + 1.dp)
+        assertEquals("centred across", (pane.left + pane.right).value / 2f, (grid.left + grid.right).value / 2f, 1f)
+        assertEquals("Start fills the right column", bounds("duel.legs.grid.right").width.value, bounds("duel.legs.action.0").width.value, 1f)
+    }
+
+    @Test
+    fun `a pane too narrow for two columns keeps one, capped at the content width and centred, with Start on each card`() {
+        showAlone(740.dp)
+
+        rule.onAllNodesWithTag("duel.legs.grid").assertCountEquals(0)
+        rule.onAllNodesWithTag("duel.legs.detail").assertCountEquals(0)
+        val pane = bounds("duels.pane")
+        val column = bounds("duel.legs.column")
+        assertTrue("capped: ${column.width}", column.width <= MaxContentWidth + 1.dp)
+        assertEquals("centred across", (pane.left + pane.right).value / 2f, (column.left + column.right).value / 2f, 1f)
+        rule.onNode(inPane("duel.legs.action.0")).assertIsDisplayed()
     }
 }

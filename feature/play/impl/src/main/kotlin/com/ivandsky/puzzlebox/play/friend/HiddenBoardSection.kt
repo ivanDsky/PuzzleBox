@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.isSpecified
 import com.ivandsky.puzzlebox.designsystem.HiddenBoardTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
 import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.gameui.hidden.GivensBoard
 import com.ivandsky.puzzlebox.gameui.hidden.HiddenBoard
@@ -52,7 +53,7 @@ internal fun FriendLoadingBoard(modifier: Modifier = Modifier, paneHeight: Dp = 
         return
     }
     BoxWithConstraints(modifier.fillMaxSize()) {
-        if (maxWidth >= FriendGridMinWidth) FriendGridSkeleton(paneHeight) else SingleLoadingBoard(Modifier)
+        if (maxWidth >= TwoColumnMinWidth) FriendGridSkeleton(paneHeight) else SingleLoadingBoard(Modifier)
     }
 }
 
