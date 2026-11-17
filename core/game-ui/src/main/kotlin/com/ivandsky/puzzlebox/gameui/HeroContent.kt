@@ -50,13 +50,13 @@ internal fun HeroContent(
         layout(width, height) {
             header.place(pad, pad)
             val headerBottom = pad + header.height
-            val groupTop = height - pad - groupHeight
+            val groupTop = maxOf(height, natural) - pad - groupHeight
             var y = groupTop
             group.forEach { block ->
                 block.place(pad, y)
                 y += block.height
             }
-            if (height == natural) {
+            if (height <= natural) {
                 time.place(pad, headerBottom + gapTop)
             } else {
                 val clearance = maxOf(gapTop, gapBottom)

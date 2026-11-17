@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -68,6 +69,13 @@ class ShowErrorsToggleTest {
 
         composeRule.onNodeWithTag(ReplayTags.SHOW_ERRORS).assertContentDescriptionEquals(ReplayCopy.SHOW_ERRORS)
         assertEquals(ReplayCopy.ON, state())
+    }
+
+    @Test
+    fun `the toggle shows a visible Errors label beside its icon`() {
+        showPage()
+
+        composeRule.onNodeWithTag(ReplayTags.SHOW_ERRORS).assertTextEquals("Errors").assertIsDisplayed()
     }
 
     @Test

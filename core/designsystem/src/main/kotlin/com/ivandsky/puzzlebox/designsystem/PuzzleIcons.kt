@@ -160,6 +160,9 @@ object PuzzleIcons {
     /** Hub status: offline, tap to retry. */
     val Retry: ImageVector = RetryMark
 
+    /** Duel summary: watch the replay again, a ring with a play triangle. Play again keeps the retry arrow. */
+    val WatchAgain: ImageVector = WatchAgainMark
+
     /** Past day status: the puzzle is saved on this device, a phone outline. */
     val SavedOnDevice: ImageVector = SavedOnDeviceMark
 
@@ -248,6 +251,7 @@ internal fun PuzzleIconsPreview() {
             "StatusRing" to PuzzleIcons.StatusRing,
             "StatusHalf" to PuzzleIcons.StatusHalf,
             "Retry" to PuzzleIcons.Retry,
+            "WatchAgain" to PuzzleIcons.WatchAgain,
             "SavedOnDevice" to PuzzleIcons.SavedOnDevice,
             "NeedsConnection" to PuzzleIcons.NeedsConnection,
             "Add" to PuzzleIcons.Add,

@@ -22,6 +22,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PillShape
@@ -30,7 +32,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.Stamp
-import com.ivandsky.puzzlebox.designsystem.TonalIconButton
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.game.BestScore
@@ -130,13 +131,12 @@ internal fun PlayAgainLine(previousBest: BestScore?, rankOrder: RankOrder) {
 }
 
 /**
- * The result's actions, in one row: the primary takes the width the icons leave, and the two
- * 48 dp icon buttons follow it, [Spacing.sm] apart and centred on the row's height (the countdown is taller than 48 dp).
- * The primary is the button [step] gives for it (`result.next`, `result.done`, and one tag and one copy for each
- * other next thing); once every daily is solved the [ResultCountdown] to [rolloverAt] stands in its place. Then come
- * Share (tag `result.share`) and, unless [onPlayAgain] is null, Play again (`result.playAgain`), both
- * tonal icon buttons that name themselves "Share" and "Play again" for TalkBack and a long-press tooltip.
- * Under the row: "Challenge <name>" (`result.challenge`) when a [challenge] and its [onChallenge] are given.
+ * The result's actions, stacked: the primary spans the full width (the button [step] gives for it: `result.next`,
+ * `result.done`, and one tag and one copy for each other next thing; once every daily is solved the [ResultCountdown]
+ * to [rolloverAt] stands in its place). Under it, Share (tag `result.share`) and, unless [onPlayAgain] is null,
+ * Play again (`result.playAgain`) share a row as labelled pills: Share keeps its own width and Play again takes the
+ * rest, so both labels hold one line on a 360 dp phone. Under the row: "Challenge <name>" (`result.challenge`)
+ * when a [challenge] and its [onChallenge] are given.
  */
 @Composable
 internal fun ResultActions(
@@ -169,31 +169,38 @@ private fun ActionRow(
     onPlayAgain: (() -> Unit)?,
     rolloverAt: Instant?,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        val fill = Modifier.weight(1f)
-        val step = primary.step()
+    val step = primary.step()
+    val primaryButton: @Composable (Modifier) -> Unit = { modifier ->
         if (step == null) {
-            ResultCountdown(rolloverAt, fill)
+            ResultCountdown(rolloverAt, modifier)
         } else {
-            PrimaryButton(text = step.text, onClick = onPrimary, modifier = fill.testTag(step.tag))
+            PrimaryButton(text = step.text, onClick = onPrimary, modifier = modifier.testTag(step.tag))
         }
-        TonalIconButton(
-            icon = PuzzleIcons.Share,
-            contentDescription = "Share",
+    }
+    val shareButton: @Composable (Modifier) -> Unit = { modifier ->
+        SecondaryButton(
+            text = "Share",
             onClick = onShare,
-            modifier = Modifier.testTag("result.share"),
+            modifier = modifier.testTag("result.share").semantics { contentDescription = "Share" },
+            icon = PuzzleIcons.Share,
+            maxLines = 1,
         )
-        onPlayAgain?.let {
-            TonalIconButton(
-                icon = PuzzleIcons.Retry,
-                contentDescription = "Play again",
-                onClick = it,
-                modifier = Modifier.testTag("result.playAgain"),
-            )
+    }
+    val playAgainButton: @Composable (Modifier, () -> Unit) -> Unit = { modifier, onClick ->
+        SecondaryButton(
+            text = "Play again",
+            onClick = onClick,
+            modifier = modifier.testTag("result.playAgain").semantics { contentDescription = "Play again" },
+            icon = PuzzleIcons.Retry,
+            maxLines = 1,
+        )
+    }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        primaryButton(Modifier.fillMaxWidth())
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            // Share keeps its own width; Play again takes the rest, so both labels fit a phone row.
+            shareButton(if (onPlayAgain == null) Modifier.weight(1f) else Modifier)
+            onPlayAgain?.let { playAgainButton(Modifier.weight(1f), it) }
         }
     }
 }

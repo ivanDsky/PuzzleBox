@@ -157,6 +157,7 @@ fun SecondaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     icon: ImageVector? = null,
+    maxLines: Int = Int.MAX_VALUE,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     FilledTonalButton(
@@ -174,7 +175,7 @@ fun SecondaryButton(
             Icon(icon, contentDescription = null, modifier = Modifier.size(SecondaryIconSize))
             Spacer(Modifier.width(Spacing.sm))
         }
-        Text(text)
+        Text(text, maxLines = maxLines)
     }
 }
 

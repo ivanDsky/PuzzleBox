@@ -15,6 +15,7 @@ object ReplayCopy {
     const val SEEK = "Seek"
     const val BACK = "Back"
     const val SHOW_ERRORS = "Show errors"
+    const val ERRORS = "Errors"
     const val ON = "On"
     const val OFF = "Off"
 

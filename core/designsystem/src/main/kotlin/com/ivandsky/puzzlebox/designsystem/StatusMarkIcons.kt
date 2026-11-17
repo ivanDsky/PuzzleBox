@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 // mark (two sheets, the back one tucked under the front) shares the outline stroke.
 // Round caps/joins like BoxMark; the retry arrow and the outline marks stroke thinner
 // (2.5, 2) so their detail does not clot at 14dp. Colour comes from the Icon tint.
+// The duel's watch-again mark is the ring with a play triangle, drawn at the retry stroke.
 
 private const val GRID = 24f
 private const val RING_STROKE = 3f
@@ -23,6 +24,7 @@ private const val OUTLINE_STROKE = 2f
 
 private val RingPath = addPathNodes("M12 3.5A8.5 8.5 0 1 1 12 20.5A8.5 8.5 0 1 1 12 3.5Z")
 private val HalfDiscPath = addPathNodes("M12 7A5 5 0 0 1 12 17Z")
+private val PlayTrianglePath = addPathNodes("M10 8.5 16 12 10 15.5Z")
 private val RetryPath = addPathNodes("M19 12A7 7 0 1 1 16.95 7.05M19 4.5V8H15.5")
 private val PhonePath = addPathNodes("M9 3H15A2 2 0 0 1 17 5V19A2 2 0 0 1 15 21H9A2 2 0 0 1 7 19V5A2 2 0 0 1 9 3ZM11 17.5H13")
 private val CloudPath = addPathNodes("M7.5 18.5H17A3.75 3.75 0 0 0 17.6 11.05A5.75 5.75 0 0 0 6.6 11.6A3.5 3.5 0 0 0 7.5 18.5Z")
@@ -57,6 +59,11 @@ internal val StatusHalfMark: ImageVector = statusBuilder("StatusMark.Half")
 
 internal val RetryMark: ImageVector = statusBuilder("StatusMark.Retry")
     .stroked(RetryPath, RETRY_STROKE)
+    .build()
+
+internal val WatchAgainMark: ImageVector = statusBuilder("StatusMark.WatchAgain")
+    .stroked(RingPath, RETRY_STROKE)
+    .addPath(pathData = PlayTrianglePath, fill = SolidColor(Color.Black))
     .build()
 
 internal val SavedOnDeviceMark: ImageVector = statusBuilder("StatusMark.SavedOnDevice")
