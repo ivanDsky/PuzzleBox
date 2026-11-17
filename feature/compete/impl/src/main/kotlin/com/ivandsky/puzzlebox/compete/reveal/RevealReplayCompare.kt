@@ -29,7 +29,7 @@ internal fun offeredCompares(compareLegs: Set<Int>, gameOf: (Int) -> GameId?, br
     compareLegs.filterTo(HashSet()) { leg -> gameOf(leg)?.let { brands[it]?.replayBoard } != null }
 
 /** The compare of leg [open] of the duel [code], a puzzle of [game]: my side against the opponent's, ending on the reveal's own verdict. */
-internal fun compareKey(code: String, game: GameId, open: LegCompare): ReplayCompareKey =
+internal fun compareKey(code: String, game: GameId, open: LegCompare, self: Boolean = false): ReplayCompareKey =
     ReplayCompareKey.of(
         mine = ReplayKey.leg(game.value, code, open.leg),
         theirs = ReplayKey.leg(game.value, code, open.leg, theirs = true),
@@ -40,6 +40,7 @@ internal fun compareKey(code: String, game: GameId, open: LegCompare): ReplayCom
             Lead.Theirs -> ReplayCompareKey.LEAD_THEIRS
             Lead.Level -> ReplayCompareKey.LEAD_LEVEL
         },
+        theirsPast = self,
     )
 
 /**
@@ -52,12 +53,13 @@ internal fun OpenCompareEffect(
     code: String,
     gameOf: (Int) -> GameId?,
     navigator: Navigator,
+    self: Boolean,
     onOpened: () -> Unit,
 ) {
     LaunchedEffect(compare) {
         val open = compare ?: return@LaunchedEffect
         val game = gameOf(open.leg)
-        if (game != null) navigator.push(compareKey(code, game, open))
+        if (game != null) navigator.push(compareKey(code, game, open, self))
         onOpened()
     }
 }

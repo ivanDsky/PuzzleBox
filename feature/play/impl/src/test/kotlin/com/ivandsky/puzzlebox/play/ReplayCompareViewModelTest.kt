@@ -130,6 +130,14 @@ class ReplayCompareViewModelTest {
     }
 
     @Test
+    fun `a friend named Past you is not Past you, only a self duel's key says so`() {
+        val friend = pair(today, 7).copy(theirName = "Past you")
+
+        assertEquals(false, vm(friend).names.theirsPast)
+        assertEquals(true, vm(friend.copy(theirsPast = true)).names.theirsPast)
+    }
+
+    @Test
     fun `every lead of the game reaches the page as itself and an unknown one as none`() {
         val keyLeads = mapOf(
             Lead.Mine to ReplayCompareKey.LEAD_MINE,

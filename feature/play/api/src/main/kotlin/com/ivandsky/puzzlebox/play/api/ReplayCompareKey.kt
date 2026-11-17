@@ -12,7 +12,8 @@ import kotlinx.serialization.Serializable
  * or its bytes never ride a key, so the page survives process death. Build one with [of].
  *
  * The page labels the sides [myName] and [theirName] (the surface picks the words) and, with a [lead] (one of
- * [LEAD_MINE], [LEAD_THEIRS], [LEAD_LEVEL]), ends its lead line on that verdict.
+ * [LEAD_MINE], [LEAD_THEIRS], [LEAD_LEVEL]), ends its lead line on that verdict. [theirsPast] says the right side is
+ * the player's own past solve (a duel against yourself), so it wears Past you's mark; a friend's name never decides that.
  */
 @Serializable
 @SerialName("com.ivandsky.puzzlebox.play.api.ReplayCompare")
@@ -28,6 +29,7 @@ data class ReplayCompareKey(
     val code: String? = null,
     val legIndex: Int = 0,
     val lead: String? = null,
+    val theirsPast: Boolean = false,
 ) : NavKey {
 
     /** The [ReplayKey] of the left side. */
@@ -44,7 +46,7 @@ data class ReplayCompareKey(
         const val LEAD_LEVEL = "level"
 
         /** The compare of [mine] against [theirs], which must name the same puzzle and differ only in kind. */
-        fun of(mine: ReplayKey, theirs: ReplayKey, myName: String, theirName: String, lead: String? = null): ReplayCompareKey {
+        fun of(mine: ReplayKey, theirs: ReplayKey, myName: String, theirName: String, lead: String? = null, theirsPast: Boolean = false): ReplayCompareKey {
             require(mine.copy(kind = theirs.kind) == theirs) { "a compare is of one puzzle's solves: $mine against $theirs" }
             return ReplayCompareKey(
                 gameId = mine.gameId,
@@ -58,6 +60,7 @@ data class ReplayCompareKey(
                 code = mine.code,
                 legIndex = mine.legIndex,
                 lead = lead,
+                theirsPast = theirsPast,
             )
         }
     }
