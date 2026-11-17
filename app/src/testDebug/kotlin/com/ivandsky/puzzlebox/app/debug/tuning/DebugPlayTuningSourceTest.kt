@@ -151,8 +151,8 @@ class DebugPlayTuningSourceTest {
         source.setCap(DeviceClass.TabletPortrait, 2000.dp)
         source.setCap(DeviceClass.TabletLandscape, -8.dp)
 
-        assertEquals(PlayTuning(240.dp, 960.dp, 240.dp, LandscapeControls.SideColumn, tabletCellCap = 80.dp), source.tuning.value)
-        assertEquals(PlayTuning(240.dp, 960.dp, 240.dp, LandscapeControls.SideColumn, tabletCellCap = 80.dp), source().tuning.value)
+        assertEquals(PlayTuning(240.dp, 960.dp, 240.dp, LandscapeControls.SideColumn, tabletCellCap = 96.dp), source.tuning.value)
+        assertEquals(PlayTuning(240.dp, 960.dp, 240.dp, LandscapeControls.SideColumn, tabletCellCap = 96.dp), source().tuning.value)
     }
 
     @Test

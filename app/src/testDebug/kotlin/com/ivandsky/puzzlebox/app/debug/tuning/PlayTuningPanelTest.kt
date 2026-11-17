@@ -77,17 +77,17 @@ class PlayTuningPanelTest {
     }
 
     @Test
-    fun `the tablet cell cap stepper is gone while the cap is off and its switch turns it back on at 72 dp`() {
+    fun `the tablet cell cap stepper is gone while the cap is off and its switch turns it back on at 96 dp`() {
         show()
-        composeRule.onNodeWithTag("tuning.cell.value").assertTextEquals("80 dp")
+        composeRule.onNodeWithTag("tuning.cell.value").assertTextEquals("96 dp")
 
         composeRule.onNodeWithTag("tuning.cellCap").performClick()
         assertNull(source.tuning.value.tabletCellCap)
         composeRule.onNodeWithTag("tuning.cell").assertDoesNotExist()
 
         composeRule.onNodeWithTag("tuning.cellCap").performClick()
-        composeRule.onNodeWithTag("tuning.cell.value").assertTextEquals("72 dp")
-        assertEquals(72.dp, source.tuning.value.tabletCellCap)
+        composeRule.onNodeWithTag("tuning.cell.value").assertTextEquals("96 dp")
+        assertEquals(96.dp, source.tuning.value.tabletCellCap)
     }
 
     @Test

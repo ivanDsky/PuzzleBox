@@ -108,7 +108,7 @@ internal class DebugPlayTuningSource(context: Context) : PlayTuningSource {
         const val STEP_DP = 8
         const val MIN_CELL_CAP_DP = 40
         const val MAX_CELL_CAP_DP = 120
-        const val DEFAULT_CELL_CAP_DP = 72
+        const val DEFAULT_CELL_CAP_DP = 96
 
         private const val PREFERENCES_FILE = "play_tuning"
         private const val KEY_LANDSCAPE_CONTROLS = "landscape_controls"
