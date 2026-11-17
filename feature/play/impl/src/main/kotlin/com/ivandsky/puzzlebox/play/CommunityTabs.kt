@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -24,11 +26,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalTabSwipeLink
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.TabSwipeLink
 import com.ivandsky.puzzlebox.designsystem.UnderlineTab
 import com.ivandsky.puzzlebox.designsystem.UnderlineTabPager
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -99,40 +104,44 @@ internal fun CommunityTabs(
         UnderlineTab("Friends", "community.tab.friends", count = friends.size),
         UnderlineTab("Yours", "community.tab.yours", count = custom.yoursSummary().count),
     ).take(pages.size)
+    // Prototype 141: the pager's link, the tablet panes' own or one made here for the phone; the filter ⋮ fades by it.
+    val link = LocalTabSwipeLink.current ?: remember { TabSwipeLink() }
     Column(modifier) {
         CommunityHeader(onEnterCode, Modifier.padding(start = Spacing.lg, end = Spacing.sm)) {
-            FilterSlot(shown = current == CommunityTab.NewToday, state = state, actions = actions)
+            FilterSlot(shown = current == CommunityTab.NewToday, state = state, actions = actions, link = link, page = pages.indexOf(CommunityTab.NewToday))
         }
-        UnderlineTabPager(
-            tabs = tabs,
-            onReselect = { index -> scope.launch { listFor(pages[index]).animateScrollToItem(0) } },
-            modifier = Modifier.weight(1f).fillMaxWidth(),
-            selectedPage = asked,
-            onPageSettled = { settled ->
-                page = settled
-                asked = null
-            },
-        ) { index ->
-            val tab = pages[index]
-            ForTab(picks, tab) {
-                val picker = LocalCommunityPicker.current
-                val open = { code: ShareCode -> picker?.puzzle(code.value) ?: onOpen(code) }
-                when (tab) {
-                    CommunityTab.NewToday -> CommunityNewTodayPage(
-                        state = state,
-                        actions = actions.opening(open),
-                        listState = newTodayList,
-                        onMake = if (yours != null) {
-                            {
-                                asked = null
-                                asking = pages.indexOf(CommunityTab.Yours)
-                            }
-                        } else {
-                            null
-                        },
-                    )
-                    CommunityTab.Friends -> CommunityFriendsPage(friends, offline, friendsList, open, onRemove, onEnterCode)
-                    CommunityTab.Yours -> if (yours != null) YoursPage(yours, offline, yoursList)
+        CompositionLocalProvider(LocalTabSwipeLink provides link) {
+            UnderlineTabPager(
+                tabs = tabs,
+                onReselect = { index -> scope.launch { listFor(pages[index]).animateScrollToItem(0) } },
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                selectedPage = asked,
+                onPageSettled = { settled ->
+                    page = settled
+                    asked = null
+                },
+            ) { index ->
+                val tab = pages[index]
+                ForTab(picks, tab) {
+                    val picker = LocalCommunityPicker.current
+                    val open = { code: ShareCode -> picker?.puzzle(code.value) ?: onOpen(code) }
+                    when (tab) {
+                        CommunityTab.NewToday -> CommunityNewTodayPage(
+                            state = state,
+                            actions = actions.opening(open),
+                            listState = newTodayList,
+                            onMake = if (yours != null) {
+                                {
+                                    asked = null
+                                    asking = pages.indexOf(CommunityTab.Yours)
+                                }
+                            } else {
+                                null
+                            },
+                        )
+                        CommunityTab.Friends -> CommunityFriendsPage(friends, offline, friendsList, open, onRemove, onEnterCode)
+                        CommunityTab.Yours -> if (yours != null) YoursPage(yours, offline, yoursList)
+                    }
                 }
             }
         }
@@ -149,17 +158,29 @@ private fun ForTab(picks: CommunityTabPicks?, tab: CommunityTab, content: @Compo
 private fun CommunityActions.opening(open: (ShareCode) -> Unit) =
     CommunityActions(open, onReport, onGame, onDifficulty, onClearFilters, onRetry)
 
-/** The filter ⋮ in a slot that keeps its size while it is not [shown]; it fades through (out fast, in after). */
+/**
+ * The filter ⋮ in a slot that keeps its size while it is not [shown]; it fades through (out fast, in after). Prototype
+ * 141: while a prototype pager drives [link] the ⋮ instead fades by how much of its [page] shows, in step with the swipe.
+ */
 @Composable
-private fun FilterSlot(shown: Boolean, state: CommunityState, actions: CommunityActions) {
+private fun FilterSlot(shown: Boolean, state: CommunityState, actions: CommunityActions, link: TabSwipeLink, page: Int) {
     val reduced = rememberReducedMotion()
     Box(Modifier.size(FilterSlotSize)) {
-        AnimatedVisibility(
-            visible = shown,
-            enter = if (reduced) EnterTransition.None else FilterEnter,
-            exit = if (reduced) ExitTransition.None else FilterExit,
-        ) {
-            CommunityFilterMenu(state.games, state.game, state.difficulty, actions.onGame, actions.onDifficulty)
+        if (link.attached) {
+            val partly by remember(link, page) { derivedStateOf { link.shown(page) > 0f } }
+            if (partly) {
+                Box(Modifier.graphicsLayer { alpha = link.shown(page) }) {
+                    CommunityFilterMenu(state.games, state.game, state.difficulty, actions.onGame, actions.onDifficulty)
+                }
+            }
+        } else {
+            AnimatedVisibility(
+                visible = shown,
+                enter = if (reduced) EnterTransition.None else FilterEnter,
+                exit = if (reduced) ExitTransition.None else FilterExit,
+            ) {
+                CommunityFilterMenu(state.games, state.game, state.difficulty, actions.onGame, actions.onDifficulty)
+            }
         }
     }
 }
