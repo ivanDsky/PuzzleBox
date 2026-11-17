@@ -199,6 +199,30 @@ class DiGraphTest : KoinTest {
         }
     }
 
+    /**
+     * Each game that posts to LinkedIn reports its LinkedIn route through the registered source. A source
+     * bound behind a wrapper must pass it on, or the result page offers that game no Post to LinkedIn row.
+     */
+    @Test
+    fun `every game that posts to LinkedIn reports its route off the real graph`() {
+        val koinApp = startKoin {
+            androidContext(RuntimeEnvironment.getApplication())
+            modules(PuzzleBoxApplication.appModules)
+        }
+        try {
+            val daily = koinApp.koin.get<DailyRepository>()
+            val posting = koinApp.koin.get<GameRegistry>().let { it.all + it.unlisted }
+                .filter { it.linkedInPlay != null }
+                .map { it.definition.id }
+            assertEquals(
+                mapOf("queens" to "games/queens/", "tango" to "games/tango/", "zip" to "games/zip/"),
+                posting.associate { it.value to daily.linkedInGamePath(it) },
+            )
+        } finally {
+            stopKoin()
+        }
+    }
+
     /** The LinkedIn use cases resolve off the real graph, so the ViewModels that inject them bind. */
     @Test
     fun `the LinkedIn use cases resolve off the real graph`() {

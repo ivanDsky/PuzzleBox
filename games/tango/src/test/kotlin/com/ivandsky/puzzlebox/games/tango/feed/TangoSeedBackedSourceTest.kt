@@ -110,6 +110,14 @@ class TangoSeedBackedSourceTest {
     }
 
     @Test
+    fun `the LinkedIn type id and route are the primary's`() {
+        val source = seedBacked(FetchError.Unavailable("unused"))
+
+        assertEquals(5, source.linkedInGameTypeId)
+        assertEquals("games/tango/", source.linkedInGamePath)
+    }
+
+    @Test
     fun `the seed is a placeholder and a fetched puzzle is not`() = runTest {
         val source = TangoSeedBackedSource(LinkedInTangoDailySource({ FetchResult.Ok(byId758()) }, clock))
         val seed = (seedBacked(FetchError.Unavailable("offline")).fetchDaily(day) as FetchResult.Ok).value.puzzle
