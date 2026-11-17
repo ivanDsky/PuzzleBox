@@ -52,4 +52,16 @@ class StrandsLinkSettleTest {
         assertEquals(listOf(1f, 1f, 1f), rest.stepScales().toList())
         assertEquals(listOf(1f, 1f, 1f), rest.stepLit().toList())
     }
+
+    @Test
+    fun `in the solve moment a long word's link settles with its squeezed letters`() {
+        val long = StrandsLink((0 until 8).map { Coord(0, it) }, LinkKind.Theme)
+        val plainEnd = 7 * stagger + StrandsMotion.FoundSettle.enterDurationMillis
+        // 1300 ms in, the plain stagger's last step is still moving; the squeezed one is whole.
+        assertTrue(1_300 < plainEnd)
+        assertTrue(LinkSettle(long, FoundThemeSpec, 1_300).stepScales().last() != 1f)
+        val squeezed = LinkSettle(long, FoundThemeSpec, 1_300, inSolveMoment = true)
+        assertEquals(List(7) { 1f }, squeezed.stepScales().toList())
+        assertEquals(List(7) { 1f }, squeezed.stepLit().toList())
+    }
 }

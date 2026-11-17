@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.queensui
 
+import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import kotlin.math.abs
 import kotlin.math.max
@@ -51,6 +52,10 @@ internal object QueensMotion {
     private const val QUEEN_PULSE_SCALE = 1.22f
     private const val QUEEN_PULSE_PEAK_AT = 0.4f
     const val SWEEP_GAP_MS = 100L
+    private const val QUEEN_STEP_FLOOR_MS = 30L
+
+    /** The solve moment B's motion is over when its frame line closes; the rest of the moment is still. */
+    private const val MOMENT_MOTION_MS = (CelebrationMotion.FrameDrawStartMs + CelebrationMotion.FrameDrawMs).toLong()
 
     /** Chebyshev ring of [idx] around [origin] on an [n]-wide board. */
     fun ring(idx: Int, origin: Int, n: Int): Int =
@@ -60,7 +65,7 @@ internal object QueensMotion {
     fun staggerDelayMs(idx: Int, origin: Int?, n: Int): Long =
         if (origin == null) 0L else (ring(idx, origin, n) * STAGGER_STEP_MS).coerceAtMost(STAGGER_CAP_MS)
 
-    /** How long the solve frame waits so the sweep starts after the last queen's Pulse begins. */
+    /** Without the solve moment B: how long the solve frame waits so the sweep starts after the last queen's Pulse begins. */
     fun solveLeadMs(queens: Int, reducedMotion: Boolean): Long =
         if (reducedMotion) 0L else QUEEN_LEAD_MS + queens * QUEEN_STEP_MS + SWEEP_GAP_MS
 
@@ -95,8 +100,18 @@ internal object QueensMotion {
         return lerp(SHAKE_DP[i], SHAKE_DP[i + 1], at - i)
     }
 
-    fun solveTotalMs(queens: Int): Long =
-        max(CROSS_CAP_MS + CROSS_FADE_MS, QUEEN_LEAD_MS + (queens - 1).coerceAtLeast(0) * QUEEN_STEP_MS + QUEEN_PULSE_MS)
+    /**
+     * The gap between two queens' Pulses: [QUEEN_STEP_MS]. When [inMoment] (the solve moment B owns the board from
+     * the solve) and that step's last Pulse would end after the moment's motion, a shorter one, never under
+     * [QUEEN_STEP_FLOOR_MS]: past 27 queens the floor wins and the tail runs into the moment's still frame.
+     */
+    fun solveStepMs(queens: Int, inMoment: Boolean): Long {
+        if (!inMoment || solveTotalMs(queens, QUEEN_STEP_MS) <= MOMENT_MOTION_MS) return QUEEN_STEP_MS
+        return max(QUEEN_STEP_FLOOR_MS, (MOMENT_MOTION_MS - QUEEN_LEAD_MS - QUEEN_PULSE_MS) / (queens - 1))
+    }
+
+    fun solveTotalMs(queens: Int, stepMs: Long): Long =
+        max(CROSS_CAP_MS + CROSS_FADE_MS, QUEEN_LEAD_MS + (queens - 1).coerceAtLeast(0) * stepMs + QUEEN_PULSE_MS)
 
     /** A cross's presence (1 → 0) during the orchestration, [ring] rings from the last queen. */
     fun solveCross(elapsedMs: Float, ring: Int): Float {
@@ -108,9 +123,9 @@ internal object QueensMotion {
     /** A cross's scale while it fades out, 1 → [CROSS_TO] as presence falls. */
     fun solveCrossScale(presence: Float): Float = lerp(CROSS_TO, 1f, presence)
 
-    /** The [order]-th placed queen's Pulse scale during the orchestration. */
-    fun solveQueenScale(elapsedMs: Float, order: Int): Float {
-        val t = MotionTokens.EasingStandard.transform(queenProgress(elapsedMs, order))
+    /** The [order]-th placed queen's Pulse scale during the orchestration, the queens [stepMs] apart ([solveStepMs]). */
+    fun solveQueenScale(elapsedMs: Float, order: Int, stepMs: Long): Float {
+        val t = MotionTokens.EasingStandard.transform(queenProgress(elapsedMs, order, stepMs))
         return if (t <= 0f || t >= 1f) {
             1f
         } else if (t < QUEEN_PULSE_PEAK_AT) {
@@ -121,11 +136,11 @@ internal object QueensMotion {
     }
 
     /** The [order]-th placed queen's wash during its Pulse. */
-    fun solveQueenWash(elapsedMs: Float, order: Int): Float =
-        wash(elapsedMs - (QUEEN_LEAD_MS + order * QUEEN_STEP_MS), QUEEN_PULSE_MS.toFloat())
+    fun solveQueenWash(elapsedMs: Float, order: Int, stepMs: Long): Float =
+        wash(elapsedMs - (QUEEN_LEAD_MS + order * stepMs), QUEEN_PULSE_MS.toFloat())
 
-    private fun queenProgress(elapsedMs: Float, order: Int): Float =
-        progress(elapsedMs - (QUEEN_LEAD_MS + order * QUEEN_STEP_MS), QUEEN_PULSE_MS.toFloat())
+    private fun queenProgress(elapsedMs: Float, order: Int, stepMs: Long): Float =
+        progress(elapsedMs - (QUEEN_LEAD_MS + order * stepMs), QUEEN_PULSE_MS.toFloat())
 
     /** Rises to 1 at [WASH_PEAK_AT] of [durationMs], then decays back to 0. */
     private fun wash(localMs: Float, durationMs: Float): Float {

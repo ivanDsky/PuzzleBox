@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +43,7 @@ import com.ivandsky.puzzlebox.gameui.SolveRestTapLayer
 import com.ivandsky.puzzlebox.gameui.rememberSolveRest
 import com.ivandsky.puzzlebox.gameui.singlePaneDeviceClass
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.designsystem.rememberSolveMomentState
 import com.ivandsky.puzzlebox.games.strands.StrandsRating
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 import com.ivandsky.puzzlebox.games.strandsui.chrome.HintModal
@@ -50,6 +52,7 @@ import com.ivandsky.puzzlebox.games.strandsui.chrome.StrandsHeaderLine
 import com.ivandsky.puzzlebox.games.strandsui.chrome.ThemeCard
 import com.ivandsky.puzzlebox.games.strandsui.chrome.WordSlotLine
 import com.ivandsky.puzzlebox.games.strandsui.chrome.FoundWordsList
+import kotlinx.coroutines.launch
 
 /**
  * The Strands play screen (A37). On a phone one column stacks the theme card, the header
@@ -76,63 +79,75 @@ internal fun StrandsPlayScreen(
     modifier: Modifier = Modifier,
 ) {
     val rest = rememberSolveRest()
+    // With the rest on, the solve moment B plays on the board ([StrandsBoard]) from the same instant the rest begins.
+    val moment = if (rest.enabled) rememberSolveMomentState() else null
     // Seen open in this composition: only a solve the player just made rests; a restored solved board hands off at once.
     var seenOpen by remember { mutableStateOf(false) }
     // Keyed on completion, so a play-again's next win hands off again.
     LaunchedEffect(controller.isComplete) {
-        if (!controller.isComplete) seenOpen = true
+        if (!controller.isComplete) {
+            seenOpen = true
+            moment?.reset()
+        }
         val solved = controller.session?.takeIf { it.state.isComplete } ?: return@LaunchedEffect
-        if (seenOpen) rest.begin(this).await()
+        if (seenOpen) {
+            val resting = rest.begin(this)
+            // Not awaited: a tap hands off mid-motion, and the frame finishes closing behind it.
+            if (moment != null) launch { moment.play() }
+            resting.await()
+        }
         onSolved(solved.elapsedMs, solved.state.hintsUsed)
     }
     val reduceMotion = rememberReducedMotion()
     val tuning = LocalPlayTuning.current
     var boardWidth by remember { mutableStateOf<Dp?>(null) }
     val header = controller.header
-    Box(modifier.fillMaxSize().clearTraceOnBackgroundTap(controller)) {
-        if (status is PlayBoardStatus.Ready && header != null && layout == PlayLayout.SinglePane) {
-            // One scroll for the whole phone page: 8 rows of 48 dp cells (SC11) plus the chrome
-            // outgrow a landscape phone, and the scaffold's fixed side pane would leave the
-            // board a sliver. NYT's page scrolls the same way.
-            BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
-                val viewport = maxHeight
-                val cap = tuning?.boardCapForGrid(singlePaneDeviceClass(), controller.baseModel.cols.takeIf { it > 0 })
-                val pageWidth = if (cap != null) Modifier.widthIn(max = cap + Spacing.lg * 2) else Modifier
-                // heightIn(min) + Center: a page shorter than the viewport floats at its middle,
-                // a taller one grows past it and scrolls, so nothing clips.
-                Column(
-                    pageWidth.fillMaxWidth().heightIn(min = viewport).verticalScroll(rememberScrollState()).testTag("strands.scroll"),
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    val placement = if (tuning != null) HintRowPlacement.Slots else HintRowPlacement.Legacy
-                    BoardColumn(controller, header, reduceMotion, fitHeight = viewport, withChrome = true, placement = placement)
-                    SidePanel(controller, status, reduceMotion, withChrome = false)
+    CompositionLocalProvider(LocalStrandsSolveMoment provides moment) {
+        Box(modifier.fillMaxSize().clearTraceOnBackgroundTap(controller)) {
+            if (status is PlayBoardStatus.Ready && header != null && layout == PlayLayout.SinglePane) {
+                // One scroll for the whole phone page: 8 rows of 48 dp cells (SC11) plus the chrome
+                // outgrow a landscape phone, and the scaffold's fixed side pane would leave the
+                // board a sliver. NYT's page scrolls the same way.
+                BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                    val viewport = maxHeight
+                    val cap = tuning?.boardCapForGrid(singlePaneDeviceClass(), controller.baseModel.cols.takeIf { it > 0 })
+                    val pageWidth = if (cap != null) Modifier.widthIn(max = cap + Spacing.lg * 2) else Modifier
+                    // heightIn(min) + Center: a page shorter than the viewport floats at its middle,
+                    // a taller one grows past it and scrolls, so nothing clips.
+                    Column(
+                        pageWidth.fillMaxWidth().heightIn(min = viewport).verticalScroll(rememberScrollState()).testTag("strands.scroll"),
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        val placement = if (tuning != null) HintRowPlacement.Slots else HintRowPlacement.Legacy
+                        BoardColumn(controller, header, reduceMotion, fitHeight = viewport, withChrome = true, placement = placement)
+                        SidePanel(controller, status, reduceMotion, withChrome = false)
+                    }
                 }
+            } else {
+                AdaptivePlayScaffold(
+                    layout = layout,
+                    gridColumns = controller.baseModel.cols.takeIf { it > 0 },
+                    modifier = Modifier.fillMaxSize(),
+                    // Strands sizes its board by its own cell policy; a tuning only caps it (the pane cap).
+                    board = { paneCap ->
+                        if (tuning != null) {
+                            StrandsTunedBoardPane(controller, status, paneCap, onRetry, onBoardWidth = { boardWidth = it })
+                        } else {
+                            BoardPane(controller, status, reduceMotion, onRetry)
+                        }
+                    },
+                    side = { SidePanel(controller, status, reduceMotion, withChrome = true) },
+                    actions = tuning?.let {
+                        {
+                            val beside = layout == PlayLayout.TwoPane && it.landscapeControls == LandscapeControls.SideColumn
+                            StrandsTunedControls(controller, boardWidth, beside, reduceMotion)
+                        }
+                    },
+                    sidePanel = sidePanel,
+                )
             }
-        } else {
-            AdaptivePlayScaffold(
-                layout = layout,
-                gridColumns = controller.baseModel.cols.takeIf { it > 0 },
-                modifier = Modifier.fillMaxSize(),
-                // Strands sizes its board by its own cell policy; a tuning only caps it (the pane cap).
-                board = { paneCap ->
-                    if (tuning != null) {
-                        StrandsTunedBoardPane(controller, status, paneCap, onRetry, onBoardWidth = { boardWidth = it })
-                    } else {
-                        BoardPane(controller, status, reduceMotion, onRetry)
-                    }
-                },
-                side = { SidePanel(controller, status, reduceMotion, withChrome = true) },
-                actions = tuning?.let {
-                    {
-                        val beside = layout == PlayLayout.TwoPane && it.landscapeControls == LandscapeControls.SideColumn
-                        StrandsTunedControls(controller, boardWidth, beside, reduceMotion)
-                    }
-                },
-                sidePanel = sidePanel,
-            )
+            SolveRestTapLayer(rest, Modifier.matchParentSize())
         }
-        SolveRestTapLayer(rest, Modifier.matchParentSize())
     }
     controller.hintDialog?.let { dialog -> HintModal(dialog, controller::dismissHintDialog) }
 }

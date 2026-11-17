@@ -15,13 +15,18 @@ import com.ivandsky.puzzlebox.games.strandsui.FoundEvent
 
 /**
  * A found word's link [elapsedMs] into its settle. It is drawn from its letters' own frames
- * ([spec] is theirs): it carries on the trace line until its letters start, then dips and
+ * ([spec] is theirs, [inSolveMoment] their cue's): it carries on the trace line until its letters start, then dips and
  * swells with them, never thicker than the tiles it joins.
  *
  * One instance plays the whole settle: [elapsedMs] is state, read in the draw phase, and the two
  * step arrays are sized once from the link and refilled in place when it moves.
  */
-internal class LinkSettle(val link: StrandsLink, val spec: StrandsCellSpec, elapsedMs: Int) {
+internal class LinkSettle(
+    val link: StrandsLink,
+    val spec: StrandsCellSpec,
+    elapsedMs: Int,
+    private val inSolveMoment: Boolean = false,
+) {
 
     private val elapsed = mutableIntStateOf(elapsedMs)
 
@@ -34,6 +39,9 @@ internal class LinkSettle(val link: StrandsLink, val spec: StrandsCellSpec, elap
     private val scales = FloatArray((link.cells.size - 1).coerceAtLeast(0))
     private val lit = FloatArray((link.cells.size - 1).coerceAtLeast(0))
     private var filledFor = -1
+
+    /** The whole settle: until the last letter rests. */
+    val totalMs: Int get() = spec.motionMs(cue(link.cells.lastIndex))
 
     /**
      * Each step's thickness relative to rest: the smaller [StrandsCellFrame.scale] of its two
@@ -52,15 +60,16 @@ internal class LinkSettle(val link: StrandsLink, val spec: StrandsCellSpec, elap
         val now = elapsedMs
         if (now == filledFor) return
         filledFor = now
-        val count = link.cells.size
-        var from = spec.frame(now, StrandsMotionCue(0, count), reduceMotion = false)
+        var from = spec.frame(now, cue(0), reduceMotion = false)
         for (i in scales.indices) {
-            val to = spec.frame(now, StrandsMotionCue(i + 1, count), reduceMotion = false)
+            val to = spec.frame(now, cue(i + 1), reduceMotion = false)
             scales[i] = minOf(from.scale, to.scale)
             lit[i] = minOf(from.lit, to.lit)
             from = to
         }
     }
+
+    private fun cue(order: Int) = StrandsMotionCue(order, link.cells.size, inSolveMoment)
 }
 
 /**
@@ -76,18 +85,19 @@ internal fun rememberLinkSettle(
     reduceMotion: Boolean,
     touchSeq: IntState,
 ): State<LinkSettle?> {
-    val settle = remember(found?.seq, reduceMotion) {
+    val inSolveMoment = found?.inSolveMoment == true
+    val settle = remember(found?.seq, inSolveMoment, reduceMotion) {
         val kind = if (found?.spangram == true) LinkKind.Spangram else LinkKind.Theme
         val link = found?.let { event -> links.firstOrNull { it.kind == kind && it.cells == event.cells } }
         val spec = if (kind == LinkKind.Spangram) FoundSpangramSpec else FoundThemeSpec
-        val start = link?.takeUnless { reduceMotion || it.cells.size < 2 }?.let { LinkSettle(it, spec, 0) }
+        val start = link?.takeUnless { reduceMotion || it.cells.size < 2 }?.let { LinkSettle(it, spec, 0, inSolveMoment) }
         mutableStateOf(start)
     }
     // Unobserved: a touch-down must not recompose the board, only stop the motion below.
     val bornTouch = remember(settle) { Snapshot.withoutReadObservation { touchSeq.intValue } }
     LaunchedEffect(settle) {
         val first = settle.value ?: return@LaunchedEffect
-        val total = first.spec.motionMs(StrandsMotionCue(first.link.cells.lastIndex, first.link.cells.size))
+        val total = first.totalMs
         val start = withFrameMillis { it }
         var elapsed = 0L
         while (elapsed < total) {

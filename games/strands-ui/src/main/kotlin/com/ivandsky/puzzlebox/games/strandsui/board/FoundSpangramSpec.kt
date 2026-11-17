@@ -13,7 +13,8 @@ import com.ivandsky.puzzlebox.games.strandsui.StrandsMotion
  * The found spangram: the gold token with an inset ring, its non-colour cue beside the
  * thicker connector (A32), and the sweep: the settle bounce run edge to edge along the
  * word, [StrandsMotion.SweepStaggerMs] apart, squeezed so the last letter starts within
- * [StrandsMotion.SpangramSweep]'s length however long the word ([StrandsMotion.sweepDelayMs]).
+ * [StrandsMotion.SpangramSweep]'s length however long the word ([StrandsMotion.sweepDelayMs]),
+ * or within the solve moment's when it solves the board ([StrandsMotion.momentDelayMs]).
  */
 internal object FoundSpangramSpec : StrandsCellSpec {
 
@@ -44,5 +45,9 @@ internal object FoundSpangramSpec : StrandsCellSpec {
         )
     }
 
-    private fun delayMs(cue: StrandsMotionCue): Int = StrandsMotion.sweepDelayMs(cue.order, cue.count)
+    private fun delayMs(cue: StrandsMotionCue): Int = if (cue.inSolveMoment) {
+        StrandsMotion.momentDelayMs(cue.order, cue.count, StrandsMotion.SweepStaggerMs)
+    } else {
+        StrandsMotion.sweepDelayMs(cue.order, cue.count)
+    }
 }

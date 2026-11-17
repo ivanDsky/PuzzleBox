@@ -13,6 +13,10 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.core.app.ApplicationProvider
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.performClick
 import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
@@ -207,12 +211,14 @@ class SudokuMotionTest {
         rest: Boolean,
         reduced: Boolean = false,
         playFeel: Boolean = false,
+        beforeWin: () -> Unit = {},
     ): Triple<SudokuBoardState, List<Pair<Long, Int>>, () -> Unit> {
         if (reduced) {
             Settings.Global.putFloat(ApplicationProvider.getApplicationContext<Context>().contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
         }
         val solved = ArrayList<Pair<Long, Int>>()
-        val ui = SudokuPlayUi(SudokuGames.MINI, InMemorySudokuHighlightSettings())
+        // Mini's own brand, as the app registers it: the frame line is drawn in its accent.
+        val ui = SudokuPlayUi(SudokuGames.MINI, InMemorySudokuHighlightSettings(), MiniSudokuBrand)
         val controller = ui.createController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {})) as SudokuPlayController
         val envelope = Puzzle(ui.gameId, peanut450.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(peanut450))
         assertEquals(Adopt.Adopted, controller.adoptToday(envelope, ref))
@@ -239,6 +245,7 @@ class SudokuMotionTest {
         val state = composeRule.runOnIdle { controller.board!! }
         composeRule.runOnIdle { openCells.dropLast(1).forEach { state.place(it) } }
         composeRule.mainClock.advanceTimeBy(1_000)
+        beforeWin()
         composeRule.runOnIdle { state.place(openCells.last()) }
         return Triple(state, solved) { Settings.Global.putFloat(ApplicationProvider.getApplicationContext<Context>().contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) }
     }
@@ -333,6 +340,98 @@ class SudokuMotionTest {
         } finally {
             restore()
         }
+    }
+
+    private fun gridWidth(): Float = composeRule.onNodeWithTag("sudoku.grid").fetchSemanticsNode().boundsInRoot.width
+
+    private fun gridPixels(): PixelMap = composeRule.onNodeWithTag("sudoku.grid").captureToImage().toPixelMap()
+
+    // Inside the 3 dp frame line: the middle of the top edge, the right edge, and the left edge near its top (the lap's last stretch).
+    private fun PixelMap.top(): Color = this[width / 2, 2]
+    private fun PixelMap.right(): Color = this[width - 3, height / 2]
+    private fun PixelMap.left(): Color = this[2, height / 4]
+
+    /** The grid's width at every 16 ms frame for [ms] after the solve. */
+    private fun gridWidths(ms: Int): List<Float> = List(ms / 16) {
+        composeRule.mainClock.advanceTimeBy(16)
+        gridWidth()
+    }
+
+    /** [ms] in whole frames, idle after each. Measured: bare clock steps show the rest's hand-off about 180 ms late (1696 ms against 1520 ms). */
+    private fun settle(ms: Int) = repeat(ms / 16) {
+        composeRule.mainClock.advanceTimeByFrame()
+        composeRule.waitForIdle()
+    }
+
+    @Test
+    fun `with the rest on the grid pops as the band leaves and is back at rest before the frame closes`() {
+        var atRest = 0f
+        solveWithRest(rest = true, beforeWin = { atRest = gridWidth() })
+        val widths = gridWidths(1_296)
+
+        assertEquals("still at rest 400 ms in", atRest, widths[400 / 16 - 1])
+        val widest = widths.max()
+        assertEquals("the pop's peak", CelebrationMotion.BoardPopScale, widest / atRest, 0.002f)
+        val peakMs = (widths.indexOf(widest) + 1) * 16
+        assertTrue("peak at $peakMs ms", peakMs in 540..620)
+        assertEquals("nothing moves by 1300 ms", atRest, widths.last())
+    }
+
+    @Test
+    fun `with the rest on the accent line laps the grid clockwise and is closed by 1300 ms`() {
+        var before: PixelMap? = null
+        solveWithRest(rest = true, beforeWin = { before = gridPixels() })
+        settle(1_000)
+        val lapping = gridPixels()
+        settle(350)
+        val closed = gridPixels()
+
+        assertTrue("the line is on the top edge at 1000 ms", lapping.top() != before!!.top())
+        assertEquals("and down the right edge", lapping.top(), lapping.right())
+        assertEquals("the left edge is the lap's last stretch", before!!.left(), lapping.left())
+        assertEquals(lapping.top(), closed.top())
+        assertEquals("the frame is closed", closed.top(), closed.left())
+    }
+
+    @Test
+    fun `flag off, the grid does not pop`() {
+        var atRest = 0f
+        solveWithRest(rest = false, beforeWin = { atRest = gridWidth() })
+        gridWidths(1_296).forEachIndexed { frame, width -> assertEquals("frame $frame", atRest, width) }
+    }
+
+    @Test
+    fun `reduced motion shows the closed frame at once and does not pop`() {
+        var atRest = 0f
+        var before: PixelMap? = null
+        val (_, _, restore) = solveWithRest(rest = true, reduced = true, beforeWin = {
+            atRest = gridWidth()
+            before = gridPixels()
+        })
+        try {
+            frames(3)
+            val closed = gridPixels()
+            assertTrue("the line is there", closed.top() != before!!.top())
+            assertEquals(closed.top(), closed.right())
+            assertEquals(closed.top(), closed.left())
+            gridWidths(1_296).forEachIndexed { frame, width -> assertEquals("frame $frame", atRest, width) }
+        } finally {
+            restore()
+        }
+    }
+
+    @Test
+    fun `the solve wave is over inside the moment's motion, and the hand-off is 1500 ms from the solve`() {
+        val motionEnd = CelebrationMotion.FrameDrawStartMs + CelebrationMotion.FrameDrawMs
+        assertEquals(1_300, motionEnd)
+        for (geometry in listOf(SudokuGeometry(6, 2, 3), SudokuGeometry(9, 3, 3))) {
+            assertTrue("solve wave ${SudokuMotion.solveWave(geometry).totalMs} ms", SudokuMotion.solveWave(geometry).totalMs <= motionEnd)
+        }
+        val (_, solved, _) = solveWithRest(rest = true)
+        settle(CelebrationMotion.SolveMomentMs.toInt() - 100)
+        composeRule.runOnIdle { assertEquals("still resting at 1400 ms", 0, solved.size) }
+        settle(200)
+        composeRule.runOnIdle { assertEquals("handed off by 1600 ms", 1, solved.size) }
     }
 
     //endregion

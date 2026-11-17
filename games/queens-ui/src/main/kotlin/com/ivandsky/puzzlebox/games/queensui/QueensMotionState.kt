@@ -9,10 +9,12 @@ import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.games.queens.Cell
 import kotlinx.coroutines.launch
 
@@ -39,8 +41,9 @@ internal class QueensMotionState(private val n: Int) {
     /** The queen glyph's scale: its Pop in, or its turn in the solve Pulse. */
     fun scaleOf(idx: Int): Float {
         val pop = if (idx == popCell) QueensMotion.popScale(popElapsed.value) else 1f
-        val order = solve?.order?.get(idx) ?: return pop
-        return pop * QueensMotion.solveQueenScale(solveElapsed.value, order)
+        val s = solve ?: return pop
+        val order = s.order[idx] ?: return pop
+        return pop * QueensMotion.solveQueenScale(solveElapsed.value, order, s.stepMs)
     }
 
     fun alphaOf(idx: Int): Float = if (idx == popCell) QueensMotion.popAlpha(popElapsed.value) else 1f
@@ -50,8 +53,9 @@ internal class QueensMotionState(private val n: Int) {
         val region = pulse?.let { p ->
             if (idx in p.cells) QueensMotion.pulseWash(pulseElapsed.value, QueensMotion.ring(idx, p.origin, n)) else 0f
         } ?: 0f
-        val order = solve?.order?.get(idx) ?: return region
-        return maxOf(region, QueensMotion.solveQueenWash(solveElapsed.value, order))
+        val s = solve ?: return region
+        val order = s.order[idx] ?: return region
+        return maxOf(region, QueensMotion.solveQueenWash(solveElapsed.value, order, s.stepMs))
     }
 
     /** Clash Shake offset of a queen glyph, in dp. */
@@ -92,11 +96,11 @@ internal class QueensMotionState(private val n: Int) {
         }
     }
 
-    /** Runs the orchestration; the crosses stay hidden until [reset] (the board reopens). */
-    suspend fun solve(queens: List<Int>) {
-        solve = Solve(queens.last(), queens.withIndex().associate { (k, q) -> q to k })
+    /** Runs the orchestration, the queens [stepMs] apart; the crosses stay hidden until [reset] (the board reopens). */
+    suspend fun solve(queens: List<Int>, stepMs: Long) {
+        solve = Solve(queens.last(), queens.withIndex().associate { (k, q) -> q to k }, stepMs)
         solveElapsed.snapTo(0f)
-        val total = QueensMotion.solveTotalMs(queens.size)
+        val total = QueensMotion.solveTotalMs(queens.size, stepMs)
         solveElapsed.animateTo(total.toFloat(), tween(total.toInt(), easing = LinearEasing))
     }
 
@@ -106,7 +110,7 @@ internal class QueensMotionState(private val n: Int) {
 
     private class Pulse(val origin: Int, val cells: Set<Int>)
 
-    private class Solve(val lastQueen: Int, val order: Map<Int, Int>)
+    private class Solve(val lastQueen: Int, val order: Map<Int, Int>, val stepMs: Long)
 }
 
 internal val LocalQueensMotion = staticCompositionLocalOf<QueensMotionState?> { null }
@@ -114,12 +118,14 @@ internal val LocalQueensMotion = staticCompositionLocalOf<QueensMotionState?> { 
 /**
  * Plays each player commit's effect: a tapped placement Pops in, then its region Pulses
  * when it lands clean or every clashing queen Shakes; a live solve runs the
- * orchestration instead of the Pulse. The board as first seen (restore, rotation, a
+ * orchestration instead of the Pulse, stepped to end inside the solve moment B when
+ * [LocalSolveRestOnBoard] is on. The board as first seen (restore, rotation, a
  * lesson that opens solved) is the baseline and plays nothing; reduced motion plays nothing.
  */
 @Composable
 internal fun rememberQueensMotion(state: QueensBoardState): QueensMotionState {
     val reduced = rememberReducedMotion()
+    val inMoment by rememberUpdatedState(LocalSolveRestOnBoard.current)
     val motion = remember(state) { QueensMotionState(state.session.puzzle.size) }
     LaunchedEffect(state, reduced) {
         if (reduced) return@LaunchedEffect
@@ -132,7 +138,10 @@ internal fun rememberQueensMotion(state: QueensBoardState): QueensMotionState {
                 ?: return@collect
             launch { motion.pop(placed) }
             if (next.isComplete) {
-                if (!before.isComplete) launch { motion.solve(next.queens.map { it.idx }) }
+                if (!before.isComplete) {
+                    val queens = next.queens.map { it.idx }
+                    launch { motion.solve(queens, QueensMotion.solveStepMs(queens.size, inMoment)) }
+                }
                 return@collect
             }
             val model = QueensBoardModel.of(next, guide = state.guide)

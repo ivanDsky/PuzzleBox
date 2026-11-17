@@ -1,11 +1,14 @@
 package com.ivandsky.puzzlebox.games.queensui
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.games.queens.QueensSession
+import com.ivandsky.puzzlebox.games.queens.QueensPuzzle
+import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
@@ -28,11 +31,13 @@ class QueensMotionTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun host(state: QueensBoardState): () -> QueensMotionState {
+    private fun host(state: QueensBoardState, rest: Boolean = false): () -> QueensMotionState {
         var motion: QueensMotionState? = null
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
-            PuzzleBoxTheme(darkTheme = false) { motion = rememberQueensMotion(state) }
+            CompositionLocalProvider(LocalSolveRestOnBoard provides rest) {
+                PuzzleBoxTheme(darkTheme = false) { motion = rememberQueensMotion(state) }
+            }
         }
         frames(2)
         return { checkNotNull(motion) }
@@ -135,6 +140,46 @@ class QueensMotionTest {
         }
     }
 
+    /** A 13×13 board whose regions are its rows, one queen short of solved; returns the last queen's cell. */
+    private fun thirteenQueens(rest: Boolean): Triple<QueensBoardState, () -> QueensMotionState, Int> {
+        val n = 13
+        val cells = List(n) { row -> row * n + (2 * row) % n }
+        val puzzle = QueensPuzzle(size = n, regions = List(n * n) { it / n }, solution = cells.map(::Cell))
+        val state = QueensPlayFixtures.boardState(QueensSession(ref = null, puzzle = puzzle))
+        val motion = host(state, rest)
+        commit { cells.dropLast(1).forEach { state.place(it) } }
+        composeRule.mainClock.advanceTimeBy(1_000)
+        return Triple(state, motion, cells.last())
+    }
+
+    @Test
+    fun `with the rest on, thirteen queens step faster so the last pulse is over 1300 ms after the solve`() {
+        val (state, motion, last) = thirteenQueens(rest = true)
+
+        commit { state.place(last) }
+        // The 70 ms step would start the last queen 200 + 12 × 70 = 1040 ms in; the squeezed step starts it sooner.
+        composeRule.mainClock.advanceTimeBy(1_040)
+        composeRule.runOnIdle { assertTrue("last queen pulses ${motion().scaleOf(last)}", motion().scaleOf(last) > 1f) }
+        composeRule.mainClock.advanceTimeBy(1_300 - 1_040 + 32L)
+        composeRule.runOnIdle {
+            assertEquals("the last pulse is over", 1f, motion().scaleOf(last))
+            assertEquals(0f, motion().washOf(last))
+        }
+    }
+
+    @Test
+    fun `flag off, thirteen queens keep the 70 ms step`() {
+        val (state, motion, last) = thirteenQueens(rest = false)
+
+        commit { state.place(last) }
+        composeRule.mainClock.advanceTimeBy(1_040)
+        composeRule.runOnIdle { assertEquals("last queen waits its turn", 1f, motion().scaleOf(last)) }
+        composeRule.mainClock.advanceTimeBy(1_300 - 1_040 + 32L)
+        composeRule.runOnIdle { assertTrue("last queen still pulses ${motion().scaleOf(last)}", motion().scaleOf(last) > 1f) }
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.runOnIdle { assertEquals(1f, motion().scaleOf(last)) }
+    }
+
     @Test
     fun `auto crosses stagger outward by Chebyshev ring`() {
         val n = 8
@@ -151,6 +196,30 @@ class QueensMotionTest {
         val lead = QueensMotion.QUEEN_LEAD_MS + 8 * QueensMotion.QUEEN_STEP_MS + QueensMotion.SWEEP_GAP_MS
         assertEquals(lead, QueensMotion.solveLeadMs(queens = 8, reducedMotion = false))
         assertEquals(0L, QueensMotion.solveLeadMs(queens = 8, reducedMotion = true))
+    }
+
+    @Test
+    fun `in the solve moment the queens' step shortens only when the 70 ms one would run past 1300 ms`() {
+        val motionEnd = 1_300L
+        for (n in 1..12) assertEquals("$n queens", QueensMotion.QUEEN_STEP_MS, QueensMotion.solveStepMs(n, inMoment = true))
+        assertEquals(66L, QueensMotion.solveStepMs(13, inMoment = true))
+        assertEquals(57L, QueensMotion.solveStepMs(15, inMoment = true))
+        for (n in 1..27) {
+            val step = QueensMotion.solveStepMs(n, inMoment = true)
+            val lastStart = QueensMotion.QUEEN_LEAD_MS + (n - 1) * step
+            assertTrue("$n queens end at ${QueensMotion.solveTotalMs(n, step)} ms", QueensMotion.solveTotalMs(n, step) <= motionEnd)
+            assertEquals("$n queens", 1f, QueensMotion.solveQueenScale(motionEnd.toFloat(), n - 1, step))
+            assertEquals("$n queens", 0f, QueensMotion.solveQueenWash(motionEnd.toFloat(), n - 1, step))
+            assertTrue("$n queens: the last one still pulses", QueensMotion.solveQueenScale(lastStart + 150f, n - 1, step) > 1f)
+            assertEquals("$n queens: and waits its turn", 1f, QueensMotion.solveQueenScale(lastStart.toFloat(), n - 1, step))
+        }
+        assertEquals("the floor wins over the bound", 30L, QueensMotion.solveStepMs(40, inMoment = true))
+    }
+
+    @Test
+    fun `outside the solve moment the queens keep the 70 ms step whatever the board`() {
+        for (n in listOf(1, 4, 8, 13, 40)) assertEquals("$n queens", QueensMotion.QUEEN_STEP_MS, QueensMotion.solveStepMs(n, inMoment = false))
+        assertEquals(200L + 12 * 70 + 300, QueensMotion.solveTotalMs(13, QueensMotion.QUEEN_STEP_MS))
     }
 
     @Test
