@@ -8,7 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** How complete the board is ("2 of 5 boards"), set under it so a partial result is never mistaken for a final one. Plain text: it is not a button. */
+/** How complete the board is ("2 of 5 games"), set under it so a partial result is never mistaken for a final one. Plain text: it is not a button. */
 @Composable
 internal fun RanksBoardNote(text: String, modifier: Modifier = Modifier) {
     Text(

@@ -141,6 +141,6 @@ class LeaderboardSubmitWatcher(
     }
 
     private companion object {
-        const val TAG = "RanksSubmit"
+        const val TAG = "LeaderboardSubmit"
     }
 }

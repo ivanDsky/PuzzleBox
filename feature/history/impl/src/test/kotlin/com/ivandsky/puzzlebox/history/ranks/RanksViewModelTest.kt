@@ -66,7 +66,7 @@ class RanksViewModelTest {
         assertEquals(listOf(1, 2), rows.map { it.rank })
         assertEquals(listOf(false, true), rows.map { it.isSelf })
         assertEquals(BoardRowValue.Points(50.0, 1, atLeast = false), rows[1].scoreValue)
-        assertEquals("1 of 3 Ranks", slice.note)
+        assertEquals("1 of 3 games", slice.note)
     }
 
     @Test

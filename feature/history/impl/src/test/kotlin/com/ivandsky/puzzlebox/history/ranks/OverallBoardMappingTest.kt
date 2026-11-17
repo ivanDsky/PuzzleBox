@@ -75,7 +75,7 @@ class OverallBoardMappingTest {
         val state = OverallState.Partial(standings, loaded = 2, total = 5)
 
         assertEquals(3, ranked(state).rows.size)
-        assertEquals("2 of 5 Ranks", state.boardNote())
+        assertEquals("2 of 5 games", state.boardNote())
     }
 
     @Test

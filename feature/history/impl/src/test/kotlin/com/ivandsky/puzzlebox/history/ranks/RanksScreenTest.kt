@@ -70,7 +70,7 @@ class RanksScreenTest {
 
         composeRule.onNodeWithText("Maya").assertIsDisplayed()
         composeRule.onNodeWithTag("ranks.board.note").assertIsDisplayed()
-        composeRule.onNodeWithText("2 of 5 Ranks").assertIsDisplayed()
+        composeRule.onNodeWithText("2 of 5 games").assertIsDisplayed()
     }
 
     @Test

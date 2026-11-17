@@ -194,7 +194,7 @@ private fun RanksTwoPanePreview() = Tablet(
 @Composable
 private fun RanksTwoPaneOverallPreview() = Tablet(
     RanksUiState(
-        RanksBoardSlice("Overall · today", RankOrder.TimeThenHints, OverallState.Partial(Standings, loaded = 2, total = 5).toDailyBoardState("you"), "Points from every game's Ranks. Higher is better.", "2 of 5 boards"),
+        RanksBoardSlice("Overall · today", RankOrder.TimeThenHints, OverallState.Partial(Standings, loaded = 2, total = 5).toDailyBoardState("you"), "Points from every game's Ranks. Higher is better.", "2 of 5 games"),
         boardCount = TabletPlaces.size,
         calendar = Week.copy(expanded = true),
         stats = Stats,

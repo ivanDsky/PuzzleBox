@@ -24,7 +24,7 @@ internal fun OverallState.toDailyBoardState(selfUid: String?): DailyBoardState =
 
 /** What to say under the Overall rows: how complete they are. Null when they are all there is to say. */
 internal fun OverallState.boardNote(): String? = when (this) {
-    is OverallState.Partial -> "$loaded of $total Ranks"
+    is OverallState.Partial -> "$loaded of $total games"
     is OverallState.Offline -> standings?.let { "Offline — showing Ranks saved on this device" }
     else -> null
 }

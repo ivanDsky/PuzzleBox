@@ -84,7 +84,7 @@ private fun RollingLineMidRollPreview() {
 @PuzzleBoxPreviews
 @Composable
 private fun RanksBoardNotePreview() {
-    RanksPreviewHost { Box(Modifier.padding(Spacing.lg)) { RanksBoardNote("2 of 5 Ranks") } }
+    RanksPreviewHost { Box(Modifier.padding(Spacing.lg)) { RanksBoardNote("2 of 5 games") } }
 }
 
 @PuzzleBoxPreviews
