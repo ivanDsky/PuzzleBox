@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -53,6 +54,7 @@ import kotlinx.coroutines.delay
 
 private const val HOUR_MS = 3_600_000L
 private val PillMinHeight = 28.dp
+private val SignInMinHeight = 48.dp
 private val ChipMinHeight = 64.dp
 private val BurstOrigin = Offset(0.3f, 0.5f)
 
@@ -66,6 +68,7 @@ private val BurstOrigin = Offset(0.3f, 0.5f)
  * the count-up lands, and a new best adds the burst. Reduced motion fades everything at
  * once and skips the pulse, burst and sweep band; a preview shows the end state.
  * [wide] sets the 96 sp time of a wide container over the phone's 76 sp.
+ * A [ResultHeroModel.signInLine] sits under the time and starts [onSignIn] when tapped.
  * [actions] is the action row, entering on its beat; null draws none. The row sits [Spacing.lg] under the
  * chips. When the card is stretched taller than its content (a taller side card beside it) it falls into three
  * zones: the header on the top padding, the best line, chips and actions grouped on the bottom padding, and the
@@ -82,6 +85,7 @@ internal fun ResultHeroCard(
     actions: (@Composable () -> Unit)? = null,
     contentModifier: Modifier = Modifier,
     onContentHeight: ((Int) -> Unit)? = null,
+    onSignIn: (() -> Unit)? = null,
 ) {
     val accent = brand.accent.colors()
     val shape = MaterialTheme.shapes.large
@@ -146,6 +150,19 @@ internal fun ResultHeroCard(
                     style = MaterialTheme.typography.bodyLarge.tabular(),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.resultBeat(ResultBeats.Supporting, 1).testTag("result.hero.bestOn"),
+                )
+            }
+            model.signInLine?.let { line ->
+                Text(
+                    text = line,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .heightIn(min = SignInMinHeight)
+                        .then(if (onSignIn != null) Modifier.clickable(role = Role.Button, onClick = onSignIn) else Modifier)
+                        .wrapContentHeight(Alignment.CenterVertically)
+                        .resultBeat(ResultBeats.Supporting, 1)
+                        .testTag("result.hero.signin"),
                 )
             }
             Row(

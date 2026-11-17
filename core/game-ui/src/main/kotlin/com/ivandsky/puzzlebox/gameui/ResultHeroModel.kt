@@ -93,6 +93,8 @@ internal data class ResultHeroModel(
     val primary: ResultPrimaryAction?,
     val moments: List<HeroMoment>,
     val challenge: ResultPrimaryAction.ChallengeFriend?,
+    /** The sign-in invitation under the time; null when the player is signed in or the line is off. */
+    val signInLine: String? = null,
     val bestSubLine: String? = null,
     val compare: Boolean = false,
     val compareColumns: HeroCompare? = null,
@@ -138,6 +140,7 @@ internal fun resultHeroModel(
         primary = facts.primary,
         moments = if (counts) heroMoments(facts.moments) else emptyList(),
         challenge = visibleChallenge(facts.primary, facts.challenge),
+        signInLine = HERO_SIGN_IN_LINE.takeIf { facts.signInLine && counts && facts.rank == ResultRank.SignedOut },
     )
 }
 

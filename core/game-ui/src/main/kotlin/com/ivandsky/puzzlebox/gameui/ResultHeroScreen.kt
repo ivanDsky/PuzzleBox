@@ -63,7 +63,7 @@ private const val SIDE_WEIGHT = 1f
  * two, so the celebration is on the first screen; the cards still line up to one height. Without moments (a duel leg) the cards are the same height.
  * [actions] is the hero's action row (the daily result passes [ResultHeroActions]); null draws none.
  * [chip] replaces the Today chip. A non-null [onRetryWrite] shows a failed-record-write notice above
- * the cards that retries through it. [onSignIn] is the rank row's sign-in when the player is signed out.
+ * the cards that retries through it. [onSignIn] is the rank row's sign-in, and the hero's sign-in line, when the player is signed out.
  * [board], when given, is a block drawn below the cards (the duel leg result's card).
  * [replay], when given, is drawn last, below every other block in both layouts, so the actions stay on the first screen.
  * It spans the content width and is told the gap between the hero and side columns on two columns (null on one), so
@@ -119,6 +119,7 @@ fun ResultHeroScreen(
                             model, brand, Modifier.weight(HERO_WEIGHT), wide, actions,
                             contentModifier = heroMin,
                             onContentHeight = { heroHeight.intValue = it },
+                            onSignIn = onSignIn,
                         )
                         Column(Modifier.weight(SIDE_WEIGHT)) {
                             ResultMomentCard(
@@ -133,7 +134,7 @@ fun ResultHeroScreen(
                     }
                 } else {
                     Column {
-                        ResultHeroCard(model, brand, Modifier, wide, actions)
+                        ResultHeroCard(model, brand, Modifier, wide, actions, onSignIn = onSignIn)
                         ResultMomentCard(model.moments, brand, gap = gap)
                     }
                     ResultSideCard(model, brand, onSignIn, Modifier, wide)
