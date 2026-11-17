@@ -66,6 +66,8 @@ private const val SIDE_WEIGHT = 1f
  * the cards that retries through it. [onSignIn] is the rank row's sign-in when the player is signed out.
  * [board], when given, is a block drawn below the cards (the duel leg result's card).
  * [replay], when given, is drawn last, below every other block in both layouts, so the actions stay on the first screen.
+ * It spans the content width and is told the gap between the hero and side columns on two columns (null on one), so
+ * it can line its parts up under the cards with [UnderResultColumns]; content for the hero column alone puts itself there.
  */
 @Composable
 fun ResultHeroScreen(
@@ -77,7 +79,7 @@ fun ResultHeroScreen(
     actions: (@Composable () -> Unit)? = null,
     chip: ResultHeroChip? = null,
     board: (@Composable () -> Unit)? = null,
-    replay: (@Composable () -> Unit)? = null,
+    replay: (@Composable (columnGap: Dp?) -> Unit)? = null,
 ) {
     val model = remember(facts, chip) { resultHeroModel(facts, chip = chip) }
     val hasSide = model.streak != null || model.spread != null || model.rank != null
@@ -137,7 +139,7 @@ fun ResultHeroScreen(
                     ResultSideCard(model, brand, onSignIn, Modifier, wide)
                 }
                 board?.invoke()
-                if (replay != null) Box(Modifier.widthIn(max = heroWidth)) { replay() }
+                if (replay != null) Box { replay(if (twoColumns) gap else null) }
             }
         }
     }
@@ -145,6 +147,18 @@ fun ResultHeroScreen(
 
 /** The width of the hero column in a row of [HERO_WEIGHT] to [SIDE_WEIGHT] split by [gap] over [total]. */
 private fun columnWidth(total: Dp, gap: Dp): Dp = (total - gap) * (HERO_WEIGHT / (HERO_WEIGHT + SIDE_WEIGHT))
+
+/**
+ * Lays [hero] and [side] out under the hero and side columns of a two-column Results page, [gap] apart as the cards are,
+ * centred on each other. A null [side] leaves the side column empty.
+ */
+@Composable
+internal fun UnderResultColumns(gap: Dp, hero: @Composable () -> Unit, side: (@Composable () -> Unit)?) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.weight(HERO_WEIGHT)) { hero() }
+        Box(Modifier.weight(SIDE_WEIGHT)) { side?.invoke() }
+    }
+}
 
 /**
  * Reports the height this content takes when nothing stretches it. The content is measured free of the

@@ -176,12 +176,13 @@ private fun ColumnScope.HeroPage(
         replay = if (linkedInPost == null && viewModel.playUi == null) {
             null
         } else {
-            {
+            { columnGap ->
                 ResultBelowCardRows(
                     post = linkedInPost,
                     time = formatDuration(key.timeMs),
                     onPost = viewModel::postToLinkedIn,
                     pending = primary == null,
+                    columnGap = columnGap,
                     replay = viewModel.playUi?.let { ui ->
                         { hairline ->
                             ReplaySection(
