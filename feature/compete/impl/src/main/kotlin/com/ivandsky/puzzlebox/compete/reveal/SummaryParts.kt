@@ -85,21 +85,38 @@ private fun Tile(value: String, label: String, tag: String, modifier: Modifier) 
     }
 }
 
-/** Rematch, then Share and Watch again as a tonal pair, each with its icon. */
+/**
+ * Rematch, then Share and Watch again as a tonal pair, each with its icon. A self duel has no one to send an invite to:
+ * [onDone] stands in for Share.
+ */
 @Composable
-internal fun Actions(summary: DuelSummary, onRematch: () -> Unit, onWatchAgain: () -> Unit, modifier: Modifier = Modifier) {
+internal fun Actions(
+    summary: DuelSummary,
+    onRematch: () -> Unit,
+    onWatchAgain: () -> Unit,
+    modifier: Modifier = Modifier,
+    onDone: () -> Unit = {},
+) {
     val context = LocalContext.current
     Column(modifier.resultBeat(ResultBeats.Actions), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         PrimaryButton("Rematch", onRematch, Modifier.fillMaxWidth().testTag("reveal.rematch"))
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            SecondaryButton(
-                "Share", { context.shareInvite(summary.shareText) },
-                Modifier.weight(1f).testTag("reveal.share"), icon = PuzzleIcons.Share,
-            )
-            SecondaryButton(
-                "Watch again", onWatchAgain,
-                Modifier.weight(1f).testTag("reveal.watchAgain"), icon = PuzzleIcons.WatchAgain,
-            )
+            val watchAgain = @Composable {
+                SecondaryButton(
+                    "Watch again", onWatchAgain,
+                    Modifier.weight(1f).testTag("reveal.watchAgain"), icon = PuzzleIcons.WatchAgain,
+                )
+            }
+            if (summary.pastYou) {
+                watchAgain()
+                SecondaryButton("Done", onDone, Modifier.weight(1f).testTag("reveal.done"))
+            } else {
+                SecondaryButton(
+                    "Share", { context.shareInvite(summary.shareText) },
+                    Modifier.weight(1f).testTag("reveal.share"), icon = PuzzleIcons.Share,
+                )
+                watchAgain()
+            }
         }
     }
 }

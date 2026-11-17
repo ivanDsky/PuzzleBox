@@ -3,8 +3,10 @@ package com.ivandsky.puzzlebox.compete.reveal
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.match.Match
+import com.ivandsky.puzzlebox.data.match.isSelf
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.CreateOutcome
+import com.ivandsky.puzzlebox.domain.CreateSelfDuel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +21,8 @@ import kotlinx.coroutines.launch
 internal data class RematchState(val sending: Boolean = false, val note: String? = null)
 
 /**
- * The rematch sheet's state holder for [match]: Send new invite creates the duel again through [createMatch] with the
+ * The rematch sheet's state holder for [match]: Send new invite creates the duel again through [createMatch] (a self duel
+ * through [createSelfDuel], which has no sheet: the reveal sends it from Rematch) with the
  * same settings and a fresh draw. One send runs at a time; a refusal becomes a [RematchState.note] and frees the
  * button, while a created duel is handed over once on [created] and keeps the sheet [RematchState.sending] until
  * [reset] says it has left.
@@ -27,6 +30,7 @@ internal data class RematchState(val sending: Boolean = false, val note: String?
 internal class RematchViewModel(
     private val match: Match,
     private val createMatch: CreateMatch,
+    private val createSelfDuel: CreateSelfDuel,
 ) : ViewModel() {
 
     private val working = MutableStateFlow(RematchState())
@@ -40,7 +44,8 @@ internal class RematchViewModel(
     fun send() {
         if (working.getAndUpdate { RematchState(sending = true) }.sending) return
         viewModelScope.launch {
-            when (val outcome = createMatch(rematchSettings(match), rematchOf = match)) {
+            val outcome = if (match.isSelf) createSelfDuel(selfRematchSettings(match)) else createMatch(rematchSettings(match), rematchOf = match)
+            when (outcome) {
                 is CreateOutcome.Created -> createdDuels.send(outcome)
                 else -> working.update { RematchState(note = refusalNote(outcome)) }
             }

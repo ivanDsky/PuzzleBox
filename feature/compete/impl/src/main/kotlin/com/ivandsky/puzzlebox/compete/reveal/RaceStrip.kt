@@ -34,7 +34,6 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 
 private val ChipHeight = 48.dp
 private val ChipBorder = 2.dp
@@ -102,8 +101,8 @@ private fun RaceChip(plan: RevealPlan, card: RevealCard, brand: GameBrand, chipS
 @Composable
 private fun ChipResult(plan: RevealPlan, card: RevealCard) {
     when (card.leg.verdict) {
-        is LegVerdict.Win -> PlayerAvatar(plan.me.name, plan.me.photoUrl, size = ResultAvatar, tone = DuelTone.Me)
-        is LegVerdict.Loss -> PlayerAvatar(plan.opponent.name, plan.opponent.photoUrl, size = ResultAvatar, tone = DuelTone.Them)
+        is LegVerdict.Win -> RevealAvatar(plan.me.name, plan.me.photoUrl, size = ResultAvatar, tone = DuelTone.Me)
+        is LegVerdict.Loss -> RevealAvatar(plan.opponent.name, plan.opponent.photoUrl, size = ResultAvatar, tone = DuelTone.Them)
         LegVerdict.Draw -> Box(
             modifier = Modifier.size(ResultAvatar).background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape),
             contentAlignment = Alignment.Center,

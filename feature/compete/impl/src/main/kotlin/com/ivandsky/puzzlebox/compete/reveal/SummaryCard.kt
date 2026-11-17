@@ -22,7 +22,6 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberCountUp
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 
 private val WinBorder = 3.dp
 private val HeadAvatar = 40.dp
@@ -36,15 +35,21 @@ private val NumeralSize = 64.sp
  * draw fades in slowly in the outline colour, with no burst, so a loss stays quiet. The numerals count up from 0.
  */
 @Composable
-internal fun SummaryCard(summary: DuelSummary, onRematch: () -> Unit, onWatchAgain: () -> Unit, modifier: Modifier = Modifier) {
+internal fun SummaryCard(
+    summary: DuelSummary,
+    onRematch: () -> Unit,
+    onWatchAgain: () -> Unit,
+    modifier: Modifier = Modifier,
+    onDone: () -> Unit = {},
+) {
     val win = summary.kind == VerdictKind.Win
     SummaryFrame(win, WinBorder, modifier) {
-        CardBody(summary, win, onRematch, onWatchAgain)
+        CardBody(summary, win, onRematch, onWatchAgain, onDone)
     }
 }
 
 @Composable
-private fun CardBody(summary: DuelSummary, win: Boolean, onRematch: () -> Unit, onWatchAgain: () -> Unit) {
+private fun CardBody(summary: DuelSummary, win: Boolean, onRematch: () -> Unit, onWatchAgain: () -> Unit, onDone: () -> Unit) {
     val scheme = MaterialTheme.colorScheme
     Column(modifier = Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         CardHead(summary, win)
@@ -64,8 +69,9 @@ private fun CardBody(summary: DuelSummary, win: Boolean, onRematch: () -> Unit, 
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth().testTag("reveal.summary.verdict"),
         )
+        summary.improvement?.let { ImprovementSummaryLine(it) }
         Tiles(summary.tiles)
-        Actions(summary, onRematch, onWatchAgain)
+        Actions(summary, onRematch, onWatchAgain, onDone = onDone)
     }
 }
 
@@ -76,8 +82,8 @@ private fun CardHead(summary: DuelSummary, win: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Row(horizontalArrangement = Arrangement.spacedBy(HeadAvatarOverlap)) {
             val ring = Modifier.border(2.dp, scheme.surface, CircleShape)
-            PlayerAvatar(summary.me, summary.myPhotoUrl, ring, HeadAvatar, DuelTone.Me)
-            PlayerAvatar(summary.opponent, summary.theirPhotoUrl, ring, HeadAvatar, DuelTone.Them)
+            RevealAvatar(summary.me, summary.myPhotoUrl, ring, HeadAvatar, DuelTone.Me)
+            RevealAvatar(summary.opponent, summary.theirPhotoUrl, ring, HeadAvatar, DuelTone.Them)
         }
         Column(Modifier.weight(1f)) {
             FittedName(
@@ -105,7 +111,7 @@ private fun ScoreSide(score: Int, name: String, photoUrl: String?, tone: DuelTon
             modifier = Modifier.testTag(tag),
         )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            PlayerAvatar(name, photoUrl, size = NameAvatar, tone = tone)
+            RevealAvatar(name, photoUrl, size = NameAvatar, tone = tone)
             FittedName(
                 full = name,
                 short = shortName(name),

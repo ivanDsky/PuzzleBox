@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.domain.MatchVerdict
 import com.ivandsky.puzzlebox.domain.Outcome
+import com.ivandsky.puzzlebox.domain.SelfDuelSettings
 import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
@@ -42,6 +43,7 @@ internal data class PuzzleRow(
     val tied: Boolean,
     val margin: RowMargin,
     val legIndex: Int,
+    val improvement: Improvement? = null,
 )
 
 /** Everything the summary draws and shares, from the viewer's side. */
@@ -57,6 +59,10 @@ internal data class DuelSummary(
     val shareText: String,
     val myPhotoUrl: String? = null,
     val theirPhotoUrl: String? = null,
+    /** A self duel: the opponent is your own first solves, Done replaces Share and [improvement] shows. */
+    val pastYou: Boolean = false,
+    /** The line under the verdict of a self duel ("Faster on 2 of 3 · 0:41 quicker overall"); null without a comparable puzzle. */
+    val improvement: String? = null,
 ) {
     val pill: String get() = pillText(kind, opponent)
     val verdict: String get() = verdictText(kind, opponent, myScore, theirScore)
@@ -118,6 +124,7 @@ internal fun puzzleRows(cards: List<RevealCard>): List<PuzzleRow> {
             tied = card.leg.verdict == LegVerdict.Draw,
             margin = card.leg.marginAgainst(widest),
             legIndex = card.legIndex,
+            improvement = card.improvement,
         )
     }
 }
@@ -183,6 +190,13 @@ internal fun rematchSettings(match: Match) = DuelSettings(
     pastedCodes = emptyList(),
 )
 
+/** The self duel again: same count, games and friends toggle, with a fresh draw of solved puzzles. */
+internal fun selfRematchSettings(match: Match) = SelfDuelSettings(
+    rounds = match.legs.size,
+    games = match.legs.mapTo(LinkedHashSet()) { it.ref.gameId },
+    includeFriends = match.includeFriends,
+)
+
 /** The summary of [match] as the [plan] and the domain's [outcome] settled it. */
 internal fun duelSummary(match: Match, plan: RevealPlan, outcome: Outcome, zone: ZoneId, locale: Locale) = DuelSummary(
     me = plan.me.name,
@@ -198,4 +212,6 @@ internal fun duelSummary(match: Match, plan: RevealPlan, outcome: Outcome, zone:
     ),
     myPhotoUrl = plan.me.photoUrl,
     theirPhotoUrl = plan.opponent.photoUrl,
+    pastYou = plan.pastYou,
+    improvement = if (plan.pastYou) improvementSummary(plan.cards.map { it.improvement }) else null,
 )

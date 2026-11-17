@@ -4,6 +4,8 @@ import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.OutboxResult
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
+import com.ivandsky.puzzlebox.data.match.SelfSeats
+import com.ivandsky.puzzlebox.data.match.isSelf
 import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegSeen
 import com.ivandsky.puzzlebox.domain.LegVerdict
@@ -18,7 +20,8 @@ import kotlin.math.abs
  * One puzzle of the race as the screen draws it: the machine's [leg], the card's [title], the short [chip] the tablet
  * strip shows beside the game glyph, the game's [rankOrder] (which figure `DuelCompare` leads with), the [basis] line
  * under the sides and the [pill] naming who took it. [legIndex] is the puzzle's place in the match, which a settled
- * card's place in the race is not once an earlier puzzle is still pending.
+ * card's place in the race is not once an earlier puzzle is still pending. A self duel's card also holds its
+ * [improvement] over your first solve, which stands in for the basis line.
  */
 internal data class RevealCard(
     val leg: LegReveal,
@@ -28,11 +31,15 @@ internal data class RevealCard(
     val basis: String,
     val pill: String,
     val legIndex: Int,
+    val improvement: Improvement? = null,
 )
 
 /** The reveal's cast and its race: [cards] holds the settled puzzles only, in puzzle order. */
 internal data class RevealPlan(val me: Player, val opponent: Player, val cards: List<RevealCard>) {
     val legs: List<LegReveal> get() = cards.map { it.leg }
+
+    /** A self duel: the opponent is the viewer's own first solves. */
+    val pastYou: Boolean get() = opponent.uid == SelfSeats.PAST
 }
 
 /**
@@ -40,9 +47,16 @@ internal data class RevealPlan(val me: Player, val opponent: Player, val cards: 
  * counts them), the opponent's from [MatchView.theirs], and each verdict from [MatchView.outcome]: the domain rule
  * decides, nothing here compares times. A puzzle whose verdict is still Pending never enters the race.
  */
-internal fun revealPlan(view: MatchView, nameOf: (GameId) -> String, rankOrderOf: (GameId) -> RankOrder): RevealPlan {
+internal fun revealPlan(
+    view: MatchView,
+    nameOf: (GameId) -> String,
+    rankOrderOf: (GameId) -> RankOrder,
+    ownName: String? = null,
+): RevealPlan {
     val match = view.match
-    val me = (if (match.challenger.uid == view.me) match.challenger else match.opponent) ?: Player(view.me, "You", null)
+    val seated = (if (match.challenger.uid == view.me) match.challenger else match.opponent) ?: Player(view.me, "You", null)
+    // A self duel stores the literal "You" as the challenger; the viewer's own label replaces it.
+    val me = if (match.isSelf) seated.copy(name = ownName ?: seated.name) else seated
     val opponent = match.opponentOf(view.me) ?: Player("", "Opponent", null)
     val mine = view.mine.filter { it.result.uid == view.me && it.state.counts() }.associateBy { it.result.legIndex }
     val cards = match.legs.mapIndexedNotNull { index, leg ->
@@ -52,6 +66,7 @@ internal fun revealPlan(view: MatchView, nameOf: (GameId) -> String, rankOrderOf
         val order = rankOrderOf(gameId)
         val mySide = mySide(mine[index])
         val theirSide = theirSide(view.theirs.getOrNull(index))
+        val improvement = if (match.isSelf) improvementOf(mySide, theirSide) else null
         val ref = leg.ref
         RevealCard(
             leg = LegReveal(gameId, mySide, theirSide, verdict),
@@ -64,9 +79,10 @@ internal fun revealPlan(view: MatchView, nameOf: (GameId) -> String, rankOrderOf
                 is LegRef.Custom -> "Friend's"
             },
             rankOrder = order,
-            basis = basisLine(verdict, mySide, theirSide, order, opponent.name),
-            pill = pillText(verdict, me.name, opponent.name),
+            basis = improvement?.text ?: basisLine(verdict, mySide, theirSide, order, opponent.name),
+            pill = pillText(verdict, me.name, opponent.name, match.isSelf),
             legIndex = index,
+            improvement = improvement,
         )
     }
     return RevealPlan(me, opponent, cards)
@@ -86,8 +102,8 @@ private fun theirSide(seen: LegSeen?): DuelSideState = when (seen) {
     is LegSeen.Revealed -> if (seen.result.gaveUp) DuelSideState.GaveUp else DuelSideState.Time(seen.result.timeMs, seen.result.hints)
 }
 
-private fun pillText(verdict: LegVerdict, me: String, them: String): String = when (verdict) {
-    is LegVerdict.Win -> "$me wins"
+private fun pillText(verdict: LegVerdict, me: String, them: String, self: Boolean): String = when (verdict) {
+    is LegVerdict.Win -> if (self) "You win" else "$me wins"
     is LegVerdict.Loss -> "$them wins"
     LegVerdict.Draw -> "Tie"
     LegVerdict.Void, LegVerdict.Pending -> "No point"

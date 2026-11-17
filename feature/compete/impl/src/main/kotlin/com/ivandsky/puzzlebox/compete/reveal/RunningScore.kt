@@ -27,7 +27,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.tabular
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 
 private val BarHeight = 44.dp
 private val BarAvatar = 28.dp
@@ -81,7 +80,7 @@ private fun RowScope.ScoreBar(player: Player, score: Int, tone: DuelTone, wide: 
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        PlayerAvatar(
+        RevealAvatar(
             name = player.name,
             photoUrl = player.photoUrl,
             size = if (wide) WideBarAvatar else BarAvatar,

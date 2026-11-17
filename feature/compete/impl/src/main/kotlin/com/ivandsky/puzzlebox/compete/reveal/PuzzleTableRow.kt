@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -17,12 +18,14 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.AppTextButton
 import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.ResultBeats
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.beatDelayMs
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -38,11 +41,16 @@ private val RowPadding = 10.dp
 private val CompareRowPadding = 8.dp
 private const val TickAfterRowMs = 300
 
+/** The note's widest line: two lines of "No replay of your first solve" in the Compare action's slot. */
+private val NoReplayNoteWidth = 132.dp
+internal const val NoPastReplayNote = "No replay of your first solve"
+
 /**
  * One puzzle of the table: the game's tile, "{Game} #{n}" over the basis line in the game's accent, each player's time
  * cell and the margin bar. On a tablet that is one line of columns; on a phone the tile and name sit over a second line
  * with the margin bar and the two time cells, the cells in the same columns as the header's. Row [index] sets its place
  * in the entrance stagger. A non-null [onCompare] puts the [CompareAction] at the trailing end of the title line, the row the same height
+ * (a [noReplay] row, whose first solve has no replay, puts [NoPastReplayNote] there instead)
  * as without one; without one the row is laid out exactly as before.
  */
 @Composable
@@ -53,6 +61,7 @@ internal fun PuzzleTableRow(
     index: Int,
     modifier: Modifier = Modifier,
     onCompare: (() -> Unit)? = null,
+    noReplay: Boolean = false,
 ) {
     val tickDelay = beatDelayMs(ResultBeats.Blocks, index, rememberReducedMotion()) + TickAfterRowMs
     val mine = row.cell(Side.Mine)
@@ -72,7 +81,7 @@ internal fun PuzzleTableRow(
         horizontalArrangement = Arrangement.spacedBy(metrics.columnGap),
     ) {
         if (metrics.compact) {
-            PhoneBody(row, brand, bar, cells, metrics, onCompare)
+            PhoneBody(row, brand, bar, cells, metrics, onCompare, index, noReplay)
         } else {
             Row(
                 modifier = Modifier.weight(PuzzleCellWeight),
@@ -80,7 +89,7 @@ internal fun PuzzleTableRow(
                 horizontalArrangement = Arrangement.spacedBy(metrics.columnGap),
             ) {
                 GameGlyph(brand, GameGlyphSize.Tile)
-                PuzzleName(row, brand, wide = true, Modifier.weight(1f), onCompare)
+                PuzzleName(row, brand, wide = true, index, noReplay, Modifier.weight(1f), onCompare)
             }
             cells()
             bar(Modifier.weight(1f))
@@ -96,10 +105,12 @@ private fun RowScope.PhoneBody(
     cells: @Composable () -> Unit,
     metrics: TableMetrics,
     onCompare: (() -> Unit)?,
+    index: Int,
+    noReplay: Boolean,
 ) {
     GameGlyph(brand, GameGlyphSize.Tile)
     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        PuzzleName(row, brand, wide = false, Modifier.fillMaxWidth(), onCompare)
+        PuzzleName(row, brand, wide = false, index, noReplay, Modifier.fillMaxWidth(), onCompare)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(metrics.columnGap)) {
             bar(Modifier.weight(1f))
             cells()
@@ -109,7 +120,7 @@ private fun RowScope.PhoneBody(
 
 /** The game's title over its basis line ("12 s faster", "Fewer hints · 0 vs 2"), the compare action when offered at the trailing end, centred on both. */
 @Composable
-private fun PuzzleName(row: PuzzleRow, brand: GameBrand, wide: Boolean, modifier: Modifier, onCompare: (() -> Unit)?) {
+private fun PuzzleName(row: PuzzleRow, brand: GameBrand, wide: Boolean, index: Int, noReplay: Boolean, modifier: Modifier, onCompare: (() -> Unit)?) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(
@@ -119,15 +130,31 @@ private fun PuzzleName(row: PuzzleRow, brand: GameBrand, wide: Boolean, modifier
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = row.basis,
-                style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold),
-                color = brand.accent.colors().onContainer,
-                maxLines = if (wide) 1 else 2,
-                overflow = TextOverflow.Ellipsis,
-            )
+            val gap = row.improvement
+            val basisStyle = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.Bold)
+            val basisColor = brand.accent.colors().onContainer
+            if (gap != null) {
+                ImprovementGap(gap, basisStyle, basisColor, index, maxLines = if (wide) 1 else 2)
+            } else {
+                Text(
+                    text = row.basis,
+                    style = basisStyle,
+                    color = basisColor,
+                    maxLines = if (wide) 1 else 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
-        if (onCompare != null) {
+        if (noReplay) {
+            Text(
+                text = NoPastReplayNote,
+                style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, lineHeight = 16.sp),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.End,
+                maxLines = 2,
+                modifier = Modifier.widthIn(max = NoReplayNoteWidth).padding(start = Spacing.sm).testTag("reveal.noreplay.${row.legIndex}"),
+            )
+        } else if (onCompare != null) {
             val description = compareDescription(row.legIndex)
             AppTextButton(
                 CompareAction,

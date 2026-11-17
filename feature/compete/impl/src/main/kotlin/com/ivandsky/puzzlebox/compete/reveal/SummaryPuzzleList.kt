@@ -24,7 +24,8 @@ import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
  * order. Every row and the heads share one [TableMetrics], so the two time columns, the ticks and the margin bars sit
  * at the same x down the whole card. [wide] is the tablet table (one line per puzzle); otherwise the phone's, where the
  * margin bar and times drop under the puzzle's name. A puzzle in [compares] (by its leg index) offers [CompareAction],
- * which calls [onCompare] with that index; with none the table is unchanged. Rows arrive one after another, the stagger
+ * which calls [onCompare] with that index; with none the table is unchanged. A self duel's puzzle in [noReplay] (its first
+ * solve has no replay) shows a note in the Compare slot. Rows arrive one after another, the stagger
  * capped by [ResultBeats].
  */
 @Composable
@@ -34,6 +35,7 @@ internal fun SummaryPuzzleList(
     wide: Boolean,
     modifier: Modifier = Modifier,
     compares: Set<Int> = emptySet(),
+    noReplay: Set<Int> = emptySet(),
     onCompare: (Int) -> Unit = {},
 ) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -54,7 +56,7 @@ internal fun SummaryPuzzleList(
                     summary.rows.forEachIndexed { index, row ->
                         if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         val compare = if (row.legIndex in compares) ({ onCompare(row.legIndex) }) else null
-                        PuzzleTableRow(row, brands.brandOf(row.gameId), metrics, index, onCompare = compare)
+                        PuzzleTableRow(row, brands.brandOf(row.gameId), metrics, index, onCompare = compare, noReplay = row.legIndex in noReplay)
                     }
                 }
             }

@@ -16,7 +16,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 
 private val HeaderMinHeight = 48.dp
 private val HeaderAvatar = 20.dp
@@ -64,7 +63,7 @@ private fun PlayerHead(name: String, photoUrl: String?, tone: DuelTone, modifier
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
     ) {
-        PlayerAvatar(name, photoUrl, size = HeaderAvatar, tone = tone)
+        RevealAvatar(name, photoUrl, size = HeaderAvatar, tone = tone)
         FittedName(
             full = name,
             short = shortName(name),

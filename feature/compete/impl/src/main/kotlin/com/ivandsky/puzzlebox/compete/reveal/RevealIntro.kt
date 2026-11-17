@@ -42,7 +42,6 @@ import com.ivandsky.puzzlebox.designsystem.resultBeat
 import com.ivandsky.puzzlebox.gameui.GameGlyph
 import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 import kotlinx.coroutines.delay
 
 private val PhoneAvatar = 112.dp
@@ -88,7 +87,7 @@ internal fun VsIntro(plan: RevealPlan, brands: GamePlayRegistry, wide: Boolean, 
             ) {
                 Stamp(visible = stamped) { VsMark(wide) }
             }
-            IntroPlayer(plan.opponent, "Opponent", DuelTone.Them, wide, fromStart = false, Modifier.weight(1f))
+            IntroPlayer(plan.opponent, if (plan.pastYou) "First solves" else "Opponent", DuelTone.Them, wide, fromStart = false, Modifier.weight(1f))
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
             Text(
@@ -140,7 +139,7 @@ private fun IntroPlayer(player: Player, label: String, tone: DuelTone, wide: Boo
         } + fadeIn(tween(MotionTokens.DurationMedium)),
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            PlayerAvatar(player.name, player.photoUrl, size = if (wide) TabletAvatar else PhoneAvatar, tone = tone)
+            RevealAvatar(player.name, player.photoUrl, size = if (wide) TabletAvatar else PhoneAvatar, tone = tone)
             Text(
                 text = player.name,
                 style = if (wide) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleLarge,

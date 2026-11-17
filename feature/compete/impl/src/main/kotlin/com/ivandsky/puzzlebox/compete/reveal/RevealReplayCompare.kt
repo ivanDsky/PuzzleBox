@@ -15,7 +15,7 @@ internal const val CompareAction = "Compare"
 /** What a screen reader says for leg [leg]'s [CompareAction]: the bare word would be the same on every row. */
 internal fun compareDescription(leg: Int): String = "Compare puzzle ${leg + 1}"
 
-private const val MyName = "You"
+internal const val MY_NAME = "You"
 
 /**
  * The legs whose row offers [CompareAction]: the ones the view model has not ruled out (none before the reveal ran, none
@@ -30,7 +30,7 @@ internal fun compareKey(code: String, game: GameId, open: LegCompare): ReplayCom
     ReplayCompareKey.of(
         mine = ReplayKey.leg(game.value, code, open.leg),
         theirs = ReplayKey.leg(game.value, code, open.leg, theirs = true),
-        myName = MyName,
+        myName = open.me,
         theirName = open.opponent,
         lead = when (open.finalLead) {
             Lead.Mine -> ReplayCompareKey.LEAD_MINE

@@ -64,7 +64,8 @@ val competeModule: Module = module {
             brands = get(),
             recordSeen = get(),
             loadReplay = get(),
+            identity = get(),
         )
     }
-    viewModel { (match: Match) -> RematchViewModel(match = match, createMatch = get()) }
+    viewModel { (match: Match) -> RematchViewModel(match = match, createMatch = get(), createSelfDuel = get()) }
 }

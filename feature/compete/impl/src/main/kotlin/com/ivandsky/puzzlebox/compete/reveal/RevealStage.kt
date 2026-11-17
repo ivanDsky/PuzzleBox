@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -63,25 +64,27 @@ internal fun RevealStage(
         else -> "Final"
     }
     val index = (phase as? RevealPhase.Leg)?.index ?: plan.cards.lastIndex
-    Column(
-        modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow).testTag("reveal.stage"),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        RevealTopBar(plan.me.name, plan.opponent.name, count, onBack)
-        if (wide) {
-            Box(Modifier.weight(1f).fillMaxWidth()) {
-                StageBlock(plan, state, eyebrow, index, brands)
-                Tip(state, onSkip, Modifier.align(Alignment.BottomCenter))
-            }
-        } else {
-            RunningScore(plan, state, eyebrow, PhoneMaxWidth, wide = false, modifier = Modifier.padding(horizontal = Spacing.lg))
-            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                when (phase) {
-                    RevealPhase.VsIntro -> VsIntro(plan, brands, wide = false, modifier = Modifier.align(Alignment.Center))
-                    else -> RaceBody(plan, state, index, brands)
+    CompositionLocalProvider(LocalPastYouName provides plan.me.name.takeIf { plan.pastYou }) {
+        Column(
+            modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow).testTag("reveal.stage"),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            RevealTopBar(plan.me.name, plan.opponent.name, count, onBack)
+            if (wide) {
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    StageBlock(plan, state, eyebrow, index, brands)
+                    Tip(state, onSkip, Modifier.align(Alignment.BottomCenter))
                 }
+            } else {
+                RunningScore(plan, state, eyebrow, PhoneMaxWidth, wide = false, modifier = Modifier.padding(horizontal = Spacing.lg))
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+                    when (phase) {
+                        RevealPhase.VsIntro -> VsIntro(plan, brands, wide = false, modifier = Modifier.align(Alignment.Center))
+                        else -> RaceBody(plan, state, index, brands)
+                    }
+                }
+                Tip(state, onSkip)
             }
-            Tip(state, onSkip)
         }
     }
 }
