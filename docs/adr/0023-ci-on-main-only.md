@@ -53,6 +53,18 @@ user, the PR is a place to read the change, not a test gate.
    If main moves while the suite runs, the gate runs again only when the new main commits change
    a file the PR also changes. Otherwise the green run counts and the PR merges. PR #90 passed
    nine runs and never merged, because main moved every 5 minutes. `merge-local.sh` does this.
+   *Amendment 2026-11-17:* the gate is debug only:
+   `./gradlew assembleDebug test -x :app:testReleaseUnitTest -x :app:testBenchmarkUnitTest`.
+   `:app`'s release host tests (`ReleaseGameModulesTest`, `ReleaseUpdateChecksTest`,
+   `ReleaseFlagsBindingTest`, `ReleaseShareLinksTest`) compile every module a second time in
+   release. `testBenchmarkUnitTest` is disabled, but a disabled task's dependencies still run, so
+   it compiled the release-like benchmark variant as well. Without both, the gate drops from
+   2,380 to 1,777 tasks and from 110 to 78 Kotlin compile tasks. Up to three agent builds share
+   one 8-core machine through the `build-slot` queue, so every changed module paid for the
+   second compile. Main's `testUi` job still runs the release host tests after every merge, so
+   a release-only break turns main red and rule 4 applies. A ticket that touches release-only
+   wiring (`app/src/testRelease`, `app/src/release`, `buildTypeGameModules`, release flags or
+   build type config) runs `./gradlew :app:testReleaseUnitTest` before its merge.
 4. **A red main stops merges.** The next PR is either a `git revert` of the culprit squash
    commit or a one-line obvious fix forward. Other merges wait until main is green again.
    *Amendment 2026-11-11:* nobody waits for main's run.

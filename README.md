@@ -143,14 +143,15 @@ fails on drift; `-Proborazzi.record=true` runs them and records.
 ## Contributing
 
 Trunk-based: each change is a small PR into `main` that merges within hours. PRs run no CI
-([ADR-0023](docs/adr/0023-ci-on-main-only.md)): before merging, run the full suite on the branch
+([ADR-0023](docs/adr/0023-ci-on-main-only.md)): before merging, run the debug suite on the branch
 rebased onto the latest `main`:
 
 ```bash
-./gradlew assembleDebug test           # module-graph guard, every module's unit tests, :konsist
+./gradlew assembleDebug test -x :app:testReleaseUnitTest -x :app:testBenchmarkUnitTest   # module-graph guard, every module's debug unit tests, :konsist
+./gradlew :app:testReleaseUnitTest                         # only when the change touches release-only wiring
 ```
 
-Every push to `main` runs the same suite in [`.github/workflows/release.yml`](.github/workflows/release.yml),
+Every push to `main` runs the full suite, release host tests included, in [`.github/workflows/release.yml`](.github/workflows/release.yml),
 split over two parallel jobs (`assembleDebug testCore` and `testUi`), while a third builds the
 signed release. It publishes a GitHub release only if the tests pass and the `versionName` is new.
 A red `main` stops merges until a revert or fix lands. Neither the merge gate nor CI runs the
