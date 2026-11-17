@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.nav.CatalogKey
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavKeys
 import com.ivandsky.puzzlebox.app.nav.puzzleBoxNavigationState
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
@@ -184,10 +185,10 @@ class TabNavigationE2ETest {
     @Test
     fun `SC14 the tab and every stack survive a restore, saved under 100 KB`() {
         val worst = stacks(
-            tab = HistoryRootKey,
+            tab = CommunityKey,
             home = listOf(HomeKey, HistoryKey(), GameKey(QUEENS)),
             play = listOf(PlayKey, GameKey(ZIP)),
-            history = listOf(HistoryRootKey, ProfileKey, CatalogKey),
+            community = listOf(CommunityKey, ProfileKey, CatalogKey),
         )
         shellRobot(worst) {
             // Visit every tab so each stack's top composes and both games are live.
@@ -196,7 +197,7 @@ class TabNavigationE2ETest {
             assertRoute(GAME)
             switchTab(PlayKey)
             assertRoute(GAME)
-            switchTab(HistoryRootKey)
+            switchTab(CommunityKey)
             assertRoute(CATALOG)
 
             val bytes = savedStateBytes()
@@ -239,7 +240,8 @@ class TabNavigationE2ETest {
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
         history: List<NavKey> = listOf(HistoryRootKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, history))
+        community: List<NavKey> = listOf(CommunityKey),
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, community, history))
 
     private companion object {
         const val HOME = "route.home"

@@ -41,12 +41,6 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     FinishForMe(label = "Finish for me in the Studio", releaseDefault = true),
 
     /**
-     * Community puzzles in Custom (nav-rethink C1, C2): public publishing, the New today list and reporting a puzzle.
-     * Read only in a ViewModel or a DI module (spec A2).
-     */
-    CommunityPuzzles(label = "Community puzzles in Custom", releaseDefault = true),
-
-    /**
      * Fixed play controls and board size caps (nav-rethink B5, B6). Read only by the play-tuning source binding in the
      * game UI DI, which holds a non-null `PlayTuning` only while this is on (spec A2).
      */
@@ -63,11 +57,4 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * (ADR-0022 §3).
      */
     VirtualDuel(label = "Duel yourself (Past you)", releaseDefault = false),
-
-    /**
-     * Tablet crossfades (backlog #1118, #1119): rail tab switches, in-tab page changes and the Games right pane fade in
-     * place instead of rising or sliding. Read only by the app-graph's nav shell and feature/play's DI, which each hand
-     * their composables one Boolean (ADR-0022).
-     */
-    TabletCrossfade(label = "Tablet crossfades", releaseDefault = false),
 }

@@ -9,7 +9,6 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import org.junit.Assert.assertTrue
@@ -20,10 +19,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * M5-01-d's walking skeleton over the real shell: on Games' Custom pill with no drafts, the
- * first-time screen's Import from text opens the sheet, a pasted Queens board and one tap on
- * Import open the new draft in the Studio with the verdict the same board would show painted by
- * hand (Unique), and back on Custom the imported draft's row exists.
+ * M5-01-d's walking skeleton over the real shell: on Community's first-time Yours page the empty state's
+ * Import from text opens the sheet, a pasted Queens board and one tap on Import open
+ * the new draft in the Studio with the verdict the same board would show painted by hand
+ * (Unique), and back on Yours the imported draft's row exists.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -38,9 +37,8 @@ class CustomImportTextE2ETest {
         shellRobot(
             graph = E2eKoinGraph(E2E_TODAY, overrides = module { single<DraftRepository> { drafts } }),
         ) {
-            tapTab(PlayKey)
-            tap(CUSTOM_PILL)
-            assertRoute(LIBRARY)
+            openYours()
+            assertRoute(COMMUNITY)
             tap(PILL)
             awaitTag(SHEET)
             rule.onNodeWithTag(SUBMIT).assertIsNotEnabled()
@@ -58,13 +56,15 @@ class CustomImportTextE2ETest {
             assertTrue("the draft is flagged imported", stored.imported)
 
             back()
-            assertRoute(LIBRARY)
+            assertRoute(COMMUNITY)
+            tap(YOURS)
             awaitTag(ROW)
             rule.onAllNodesWithTag(ROW).assertCountEquals(1)
         }
 
     private companion object {
-        const val LIBRARY = "route.library"
+        const val COMMUNITY = "route.community"
+        const val YOURS = "community.tab.yours"
         const val EDITOR = "route.editor"
         const val PILL = "create.empty.import"
         const val SHEET = "create.import.sheet"
@@ -73,7 +73,6 @@ class CustomImportTextE2ETest {
         const val BOARD = "create.editor.board"
         const val VERDICT = "create.editor.pill"
         const val ROW = "create.draft.row"
-        const val CUSTOM_PILL = "library.tab.custom"
         // games/queens' queens-unique-5.txt fixture
         const val UNIQUE = "puzzlebox queens v1\n00001\n00031\n42033\n43333\n43333\n"
     }

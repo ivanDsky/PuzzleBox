@@ -6,7 +6,6 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
-import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.DuelPrefill
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GameRoute
@@ -43,8 +42,7 @@ import org.koin.compose.koinInject
  * replaces the board with its [CustomResultKey] result, whose Done pops back to the card and
  * whose Play again replaces it with the board again. The library opens its code sheet on
  * [codeDraft]'s text and hands it back through [onCodeDraftTaken]. A [duels] slot turns the
- * library into the Dailies, Duels and Custom tabs; without one it is the single games list.
- * The [custom] slot's list, Custom's body, holds the friend puzzles and the author's own puzzles.
+ * library into the Dailies and Duels tabs; without one it is the single games list.
  * Its [DuelsSlot.onOpenDuel] is what the code sheet calls when an entered code names a duel (no slot: duels are off, the sheet never
  * tries a code as one). A duel puzzle's [MatchLegKey] draws its leg's board; Up pops, and a
  * solve, a give up or a puzzle already taken replaces it with its [MatchLegResultKey]. The library
@@ -55,8 +53,8 @@ import org.koin.compose.koinInject
  * A non-null [onReconnectLinkedIn] turns the LinkedIn lines on the game page's day card on and is what its Reconnect opens.
  * [onOpenRanks] also opens the Ranks hub from the Result's rank chip, and the marks of the play side panel's times
  * draw as chips beside the name, as the hub's boards do. [onMakeOne] adds "Make one" to each game page.
- * With a [communityTab] (the app's Community tab, [communityEntry]) Custom is not a Games pill and the friend puzzles
- * live on that tab: Games shows Dailies and Duels only.
+ * The friend puzzles and Custom's list live on the app's Community tab ([communityEntry]): Games shows Dailies and
+ * Duels only.
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -65,12 +63,10 @@ fun EntryProviderScope<NavKey>.playEntry(
     codeDraft: () -> String? = { null },
     onCodeDraftTaken: () -> Unit = {},
     duels: DuelsSlot? = null,
-    custom: CustomSlot,
     libraryRequest: () -> LibraryRequest? = { null },
     onLibraryRequestTaken: () -> Unit = {},
     onReconnectLinkedIn: (() -> Unit)? = null,
     onMakeOne: (GameId) -> Unit,
-    communityTab: Boolean = false,
 ) {
     entry<PlayKey> {
         LibraryRoute(
@@ -80,14 +76,12 @@ fun EntryProviderScope<NavKey>.playEntry(
             codeDraft = codeDraft(),
             onCodeDraftTaken = onCodeDraftTaken,
             duels = duels,
-            custom = custom,
             request = libraryRequest(),
             onRequestTaken = onLibraryRequestTaken,
             linkedIn = onReconnectLinkedIn != null,
             onReconnectLinkedIn = onReconnectLinkedIn,
             onOpenRanks = onOpenRanks,
             onMakeOne = onMakeOne,
-            communityTab = communityTab,
         )
     }
     entry<FriendPuzzleKey> { key ->

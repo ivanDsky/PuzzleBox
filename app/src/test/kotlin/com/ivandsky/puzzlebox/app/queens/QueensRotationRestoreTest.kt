@@ -14,7 +14,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.PuzzleBoxApplication
-import com.ivandsky.puzzlebox.app.nav.testCustomSlot
 import com.ivandsky.puzzlebox.app.play.freshDailyForAllGames
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -148,7 +147,7 @@ class QueensRotationRestoreTest {
                 NavDisplay(
                     backStack = navigator.state.currentStack,
                     onBack = { navigator.pop() },
-                    entryProvider = entryProvider { playEntry(navigator, PlayLayout.SinglePane, onOpenRanks = { _, _ -> }, custom = testCustomSlot(), onMakeOne = {}) },
+                    entryProvider = entryProvider { playEntry(navigator, PlayLayout.SinglePane, onOpenRanks = { _, _ -> }, onMakeOne = {}) },
                 )
             }
         }

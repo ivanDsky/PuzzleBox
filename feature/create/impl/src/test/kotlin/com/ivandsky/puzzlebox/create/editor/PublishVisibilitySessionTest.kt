@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.create.editor
 
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.model.Draft
 import com.ivandsky.puzzlebox.data.model.SharedPuzzleDoc.Visibility
@@ -38,8 +37,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * What a publish sends (nav-rethink C1): with the community flag on, Public by default with the verdict's difficulty,
- * or Link only when picked; with it off, no picker and the doc of today. The pick lives with the open session only.
+ * What a publish sends (nav-rethink C1): Public by default with the verdict's difficulty, or Link only when picked.
+ * The pick lives with the open session only.
  */
 class PublishVisibilitySessionTest {
 
@@ -56,8 +55,8 @@ class PublishVisibilitySessionTest {
     )
 
     @Test
-    fun `flag on, the default is Public and the doc carries the verdict's difficulty`() = runTest {
-        val session = session(on = true)
+    fun `the default is Public and the doc carries the verdict's difficulty`() = runTest {
+        val session = session()
 
         assertEquals(PublishVisibility.Choice(Visibility.Public), session.state.value.details.visibility)
         publish(session)
@@ -68,8 +67,8 @@ class PublishVisibilitySessionTest {
     }
 
     @Test
-    fun `flag on, picking Link only sends a link only doc`() = runTest {
-        val session = session(on = true)
+    fun `picking Link only sends a link only doc`() = runTest {
+        val session = session()
 
         session.pickVisibility(Visibility.LinkOnly)
         assertEquals(PublishVisibility.Choice(Visibility.LinkOnly), session.state.value.details.visibility)
@@ -81,8 +80,8 @@ class PublishVisibilitySessionTest {
     }
 
     @Test
-    fun `flag on, picking Public again after Link only sends Public`() = runTest {
-        val session = session(on = true)
+    fun `picking Public again after Link only sends Public`() = runTest {
+        val session = session()
 
         session.pickVisibility(Visibility.LinkOnly)
         session.pickVisibility(Visibility.Public)
@@ -92,41 +91,27 @@ class PublishVisibilitySessionTest {
     }
 
     @Test
-    fun `flag off, nothing is offered and the doc is link only with no difficulty`() = runTest {
-        val session = session(on = false)
-
-        assertNull(session.state.value.details.visibility)
-        session.pickVisibility(Visibility.Public)
-        assertNull("a pick with no picker changes nothing", session.state.value.details.visibility)
-        publish(session)
-
-        val doc = backend.docs.values.single()
-        assertEquals(Visibility.LinkOnly, doc.visibility)
-        assertNull(doc.difficulty)
-    }
-
-    @Test
     fun `typing the author name or note keeps the pick`() = runTest {
-        val session = session(on = true)
+        val session = session()
         session.pickVisibility(Visibility.LinkOnly)
 
         session.editAuthorName("Ada")
         session.editNote("Start top left")
 
-        assertEquals(Visibility.LinkOnly, session.state.value.details.visibility?.pick)
+        assertEquals(Visibility.LinkOnly, session.state.value.details.visibility.pick)
     }
 
     @Test
     fun `an attempt that falls short freezes the pick, and the retry is the same publish`() = runTest {
-        val session = session(on = true)
+        val session = session()
         backend.commitThenOffline = true
         publish(session)
         assertEquals(PublishOutcome.Offline, session.state.value.outcome)
         val lost = backend.docs.keys.single()
-        assertTrue("the picker is off while the retry waits", session.state.value.details.visibility!!.locked)
+        assertTrue("the picker is off while the retry waits", session.state.value.details.visibility.locked)
 
         session.pickVisibility(Visibility.LinkOnly)
-        assertEquals(Visibility.Public, session.state.value.details.visibility?.pick)
+        assertEquals(Visibility.Public, session.state.value.details.visibility.pick)
         publish(session)
 
         assertEquals(PublishOutcome.Published(lost), session.state.value.outcome)
@@ -136,12 +121,12 @@ class PublishVisibilitySessionTest {
 
     @Test
     fun `a pick after the publish landed changes nothing`() = runTest {
-        val session = session(on = true)
+        val session = session()
         publish(session)
 
         session.pickVisibility(Visibility.LinkOnly)
 
-        assertEquals(Visibility.Public, session.state.value.details.visibility?.pick)
+        assertEquals(Visibility.Public, session.state.value.details.visibility.pick)
     }
 
     private fun TestScope.publish(session: PublishSession) {
@@ -149,7 +134,7 @@ class PublishVisibilitySessionTest {
         runCurrent()
     }
 
-    private suspend fun TestScope.session(on: Boolean): PublishSession {
+    private suspend fun TestScope.session(): PublishSession {
         drafts.upsert(row)
         return PublishSession(
             draftId = DRAFT_ID,
@@ -164,7 +149,7 @@ class PublishVisibilitySessionTest {
             reserved = { code -> row = row.copy(reservedCode = code) },
             storeDetails = { name, note -> row = row.copy(authorName = name, note = note) },
             storeLevel = {},
-            flags = if (on) FakeReleaseFlags(ReleaseFlag.CommunityPuzzles) else FakeReleaseFlags(),
+            flags = FakeReleaseFlags(),
         )
     }
 

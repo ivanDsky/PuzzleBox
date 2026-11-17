@@ -4,6 +4,7 @@ import androidx.navigation3.runtime.NavKey
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.leaderboard.LeaderboardSubmitWatcher
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
@@ -151,7 +152,8 @@ class ResumeSolveE2ETest {
         home: List<NavKey> = listOf(HomeKey),
         play: List<NavKey> = listOf(PlayKey),
         history: List<NavKey> = listOf(HistoryRootKey),
-    ) = NavigationState(tab = tab, stacks = listOf(home, play, history))
+        community: List<NavKey> = listOf(CommunityKey),
+    ) = NavigationState(tab = tab, stacks = listOf(home, play, community, history))
 
     private val playHub = stacks(tab = PlayKey)
     private val todaySlot = PlaySlot.Daily(ZipDefinition.id, E2E_TODAY)

@@ -30,6 +30,7 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadLegReplay
 import com.ivandsky.puzzlebox.domain.LoadPlayerReplay
@@ -77,7 +78,6 @@ import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
-import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -91,6 +91,7 @@ import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 
 /**
  * Over the real Zip game: the result route reads its slot's live play — solving stamps
@@ -246,7 +247,7 @@ class RealGamesResultRouteTest {
                         ObserveResultNextThing(
                             registry = get(), identity = get(), history = get(), todaySet = get(), friendPuzzles = get(),
                             friendUids = get(), leaderboard = get(), visibility = get(), computeStreak = get(),
-                            puzzleDay = get(), nextRollover = get(),
+                            puzzleDay = get(), nextRollover = get(), communityPuzzles = ListCommunityPuzzles(get(), get(), get()) { 0L },
                         )
                     }
                     // Tutorial seen: this path is about the result; the lessons have their own tests.

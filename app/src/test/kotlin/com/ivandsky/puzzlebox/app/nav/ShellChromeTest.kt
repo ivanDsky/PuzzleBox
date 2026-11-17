@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.e2e.E2E_TODAY
 import com.ivandsky.puzzlebox.app.e2e.ShellRobot
 import com.ivandsky.puzzlebox.app.e2e.shellRobot
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.history.api.HistoryKey
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
@@ -38,12 +39,16 @@ import org.robolectric.annotation.Config
 class ShellChromeTest {
 
     @Test
-    fun `the Today root shows the avatar, the Ranks root does not`() = shellAt {
+    fun `the Today root shows the avatar, the History and Community roots do not`() = shellAt {
         assertRoute(HOME)
         assertShellActions(shown = true)
 
         tapTab(HistoryRootKey)
         assertRoute(RANKS)
+        assertShellActions(shown = false)
+
+        tapTab(CommunityKey)
+        assertRoute(COMMUNITY)
         assertShellActions(shown = false)
     }
 
@@ -125,6 +130,7 @@ class ShellChromeTest {
         const val ZIP = "zip"
         const val HOME = "route.home"
         const val RANKS = "route.ranks"
+        const val COMMUNITY = "route.community"
         const val FRIEND = "route.friend"
         const val GAME = "route.game"
         const val RESULT = "route.result"

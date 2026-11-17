@@ -94,14 +94,14 @@ class PublishSession(
 
     /**
      * The author name and note as typed; [blocks] are what keeps them from publishing. [visibility] is the Public or Link
-     * only choice, null while the community flag is off and nothing is offered. [level] is the author's own pick over the
-     * proposal, null to follow it; [levelOffered] when the level can be changed here (FinishForMe on, Public chosen).
+     * only choice. [level] is the author's own pick over the proposal, null to follow it; [levelOffered] when the level
+     * can be changed here (FinishForMe on, Public chosen).
      */
     data class Details(
         val authorName: String = "",
         val note: String = "",
         val blocks: List<PublishBlock> = emptyList(),
-        val visibility: PublishVisibility.Choice? = null,
+        val visibility: PublishVisibility.Choice = PublishVisibility.Choice(Visibility.Public),
         val level: Level? = null,
         val levelOffered: Boolean = false,
     )
@@ -129,8 +129,8 @@ class PublishSession(
     /** The author name and note on the stored row, as last handed to [storeDetails]. */
     private var stored: Pair<String, String> = "" to ""
 
-    /** The Public or Link only choice of this open publish; the community flag is read here, once (spec A2). */
-    private val visibility = PublishVisibility(flags)
+    /** The Public or Link only choice of this open publish. */
+    private val visibility = PublishVisibility()
 
     private val levels = PublishLevel(flags, visibility)
 
@@ -180,7 +180,7 @@ class PublishSession(
         store()
     }
 
-    /** The author picked [next]. A published or running publish, a falling-short one awaiting its retry, or no picker (flag off) refuses it. */
+    /** The author picked [next]. A published or running publish, or a falling-short one awaiting its retry, refuses it. */
     fun pickVisibility(next: Visibility) {
         if (published || mutableState.value.busy || !visibility.pick(next)) return
         mutableState.update { it.copy(details = it.details.copy(visibility = visibility.choice, levelOffered = levels.offered)) }
@@ -189,7 +189,7 @@ class PublishSession(
     /** The author picked [next] over [verdict]'s proposal: kept and stored unless it is the proposal. Refused like the visibility, or with no proposal. */
     fun pickLevel(next: Level, verdict: Verdict) {
         val now = mutableState.value
-        if (published || now.busy || !now.details.levelOffered || now.details.visibility?.locked != false) return
+        if (published || now.busy || !now.details.levelOffered || now.details.visibility.locked) return
         val pick = (LevelChoice.of(verdict, null) ?: return).pickFor(next)
         if (pick == now.details.level) return
         mutableState.update { it.copy(details = it.details.copy(level = pick)) }

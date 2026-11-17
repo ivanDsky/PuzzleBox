@@ -44,7 +44,7 @@ class CommunityFilterMenuTest {
         stopKoin()
         startKoin { modules(module { viewModel { fixture.viewModel() } }) }
         rule.setContent {
-            PuzzleBoxTheme { CommunityHost(onOpen = {}) { community -> LazyColumn { community?.invoke(this) } } }
+            PuzzleBoxTheme { CommunityHost(onOpen = {}) { community -> LazyColumn { community(this) } } }
         }
         rule.waitForIdle()
     }

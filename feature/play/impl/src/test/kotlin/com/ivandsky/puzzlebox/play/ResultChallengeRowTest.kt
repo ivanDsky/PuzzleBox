@@ -9,7 +9,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.common.di.commonModule
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.cloud.CloudSync
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -39,6 +38,7 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
@@ -60,7 +60,6 @@ import com.ivandsky.puzzlebox.play.di.playModule
 import com.ivandsky.puzzlebox.play.friend.dismissedGoogleSignIn
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.cloud.FakeCloudSync
-import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.testing.game.TestGames
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeCustomBoardRepository
@@ -194,7 +193,6 @@ class ResultChallengeRowTest {
                     factory { ComputeStreak(get()) }
                     factory { ObserveGameStats(get(), get(), get()) }
                     factory { GetNextRollover(get()) }
-                    single<ReleaseFlags> { FakeReleaseFlags() }
                     factory { loadSolveReplay(get(), get(), get()) }
                     single<IdentityService> { identity }
                     single<LeaderboardRepository> { leaderboard }
@@ -210,7 +208,7 @@ class ResultChallengeRowTest {
                         ObserveResultNextThing(
                             registry = get(), identity = get(), history = get(), todaySet = get(), friendPuzzles = get(),
                             friendUids = get(), leaderboard = get(), visibility = get(), computeStreak = get(),
-                            puzzleDay = get(), nextRollover = get(),
+                            puzzleDay = get(), nextRollover = get(), communityPuzzles = ListCommunityPuzzles(get(), get(), get()) { 0L },
                         )
                     }
                 },

@@ -5,9 +5,8 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 /**
- * Community tab root (top level), a tab only while CommunityPuzzles is on (nav-rethink M10-1):
- * New today, your puzzles and your friends' puzzles, and Make a puzzle. Its key stays registered with the tab off so a
- * saved state with it still decodes; restore drops a stack whose root is no longer a tab.
+ * Community tab root (top level; nav-rethink M10-1): New today, your puzzles and your friends' puzzles, and Make a
+ * puzzle.
  */
 @Serializable
 @SerialName("com.ivandsky.puzzlebox.play.api.CommunityKey")

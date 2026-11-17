@@ -74,7 +74,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `ObserveTodaySet` reports any of today's games in progress or a duel needs the player;
   holds the Enter-code draft and the one-shot `LibraryRequests`; the rail carries the avatar), `nav/` the shell
   (ADR-0011, ADR-0027): `TopLevelDestination.kt` (`topLevelDestinations` tab registry: key, label, icon,
-  test tag, `Tab`; the three-tab set Today, Games, Ranks; `TabSetSource` swaps in Community's set while CommunityPuzzles is on),
+  test tag, `Tab`; the four-tab set Today, Games, Community, Ranks),
   `PuzzleBoxNavigationState.kt` (fresh state, start tab first),
   `RememberNavigator.kt` (`rememberNavigator`, saved under `NAVIGATION_STATE_KEY`
   `"puzzlebox.navigation.v1"`, restored via `reconciledWith`; foreign/undecodable → fresh),
@@ -404,7 +404,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   → Unavailable; undecodable row deleted), `SlotWriter` (per-slot 300 ms trailing-throttle
   saves, `discard` on solve), `WriteLane` (one Mutex-ordered lane for every saved-play I/O),
   `LibraryRoute` + `LibraryViewModel` (the Games screen: `GamesTabs` pills over `GamesTab`
-  Dailies, Duels and Custom, the Duels body handed in as a `DuelsSlot` and the Custom body (`feature:create`'s `CustomBody`) as a required `CustomSlot`; the Dailies tab is a row per game with today's status;
+  Dailies and Duels, the Duels body handed in as a `DuelsSlot`; the Dailies tab is a row per game with today's status;
   two-pane shows the list beside the selected game's `LibraryGamePage` — `ArchiveDayCard` (today, or the
   picked past day → `GameKey(game, day)`), `ArchiveMonthCalendar` (`ArchiveMonthNav` ‹ › + jumps,
   `ArchiveDayDisc` per day from `ObserveArchiveMonth`), `GameStatsCard`, `HowToPlayCard` (rules + Open the lesson); with the
@@ -414,7 +414,8 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   best live, Play again; today's solve asks `ObserveResultNextThing` once for its moments, next thing and Challenge friend,
   a past day's first solve offers `ResultArchiveNext`), duel legs
   (`MatchLegRoute`/`MatchLegViewModel`, `MatchLegResultRoute`, `LegCompletionRepository`
-  tagging a leg solve with its match), `friend/` (a friend's puzzle: `EnterCodeSheet`, `FriendPuzzleRoute`, `CustomResultRoute`), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
+  tagging a leg solve with its match), `friend/` (a friend's puzzle: `FromFriendsSection`,
+  `EnterCodeSheet`, `FriendPuzzleRoute`, `CustomResultRoute`), `di/PlayModule`; `navigation/PlayEntries` (`playEntry`,
   `resultEntry`) and `navigation/GameEntry`; `GameStatsPanel` is the tablet side panel's content (`PlayStatsPanel`: timer, today's progress and the day board).
 - `feature/history/impl/` (`:feature:history:impl`, the Ranks hub; the module keeps its History name) —
   `navigation/RanksEntry` (the tab root `HistoryRootKey` and the pushed `HistoryKey`, both open the hub),
@@ -434,7 +435,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   the back icon and `onOpenSettings` the gear, both required). The Google ID-token provider moved
   to `:core:auth`.
 - `feature/create/impl/` (`:feature:create:impl`, ADR-0019; no `games:*` dependency; `published/` hosts `PublishedPuzzleRoute`) —
-  `navigation/CreateEntries` (`EditorKey`, `PublishedPuzzleKey`; Create is not a tab: Games' Custom pill hosts `CustomBody` over
+  `navigation/CreateEntries` (`EditorKey`, `PublishedPuzzleKey`; Create is not a tab: Community's Yours page hosts `CustomBody` over
   `CreateViewModel`: the draft list over `DraftRepository`, `NewPuzzleSheet`, `DraftActionsSheet`; the Studio is full screen),
   `editor/` `EditorRoute` + `EditorViewModel` (one draft through `GameEditorRegistry`;
   `DraftAutosave`, `EditHistory`), `StudioScreen` (`StudioLayout`, top bar, `ToolStrip`, side
@@ -544,9 +545,9 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   `placementOf` throws for a key with no row. `isImmersive` (`Immersive.kt`) derives only the
   bar-hiding predicate from it. Konsist P9 fails a production `NavKey` without a row. The
   per-key table is never copied into docs.
-- **Tab set** (ADR-0027) — `topLevelDestinations` is the one registry: Today, Games, Ranks.
-  Features never read a flag for it: an entry takes a nullable callback or a slot for an optional
-  link, and the app passes it (ADR-0027 §10).
+- **Tab set** (ADR-0027) — `topLevelDestinations` is the one registry: Today, Games, Community, Ranks. Create is no tab;
+  its root and `Tab.Create` stay only so an older saved state decodes (`reconciledWith` swaps it for Community).
+  Features never read a flag for it: an entry takes a callback or a slot (`CustomSlot`, `MakeOne`) and the app passes it.
 - **Shell actions and the avatar** (ADR-0027) — `ShellAvatar` (`app/nav/ShellChrome.kt`) is the
   one avatar; it pushes `ProfileKey` with `pushOnce`. The tablet rail shows it at its bottom
   (`TopLevelNavRail` `bottomActions`, 96dp rail). The phone shows it in Today's header only,

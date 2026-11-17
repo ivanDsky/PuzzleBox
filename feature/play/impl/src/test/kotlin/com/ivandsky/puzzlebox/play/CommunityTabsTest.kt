@@ -338,7 +338,6 @@ class CommunityTabsTest {
         val ACTIONS = CommunityActions(onOpen = {}, onReport = {}, onGame = {}, onDifficulty = {}, onClearFilters = {}, onRetry = {})
 
         val LOADED = CommunityState(
-            enabled = true,
             phase = CommunityPhase.Loaded(
                 List(NEW_ROWS) { CommunityRowModel(newCode(it), "Zip", ZIP, "New puzzle $it", author = "Maya", difficulty = "Hard", age = "2 h ago") },
             ),

@@ -88,7 +88,7 @@ abstract class CommunityGoldenScreenshots(private val device: String) {
         fun row(code: String, game: String, brand: GameBrand, title: String, level: String?, age: String) =
             CommunityRowModel(code(code), game, brand, title, author = "Maya", difficulty = level, age = age)
 
-        val BASE = CommunityState(enabled = true, games = GAMES)
+        val BASE = CommunityState(games = GAMES)
 
         val LOADED = BASE.copy(
             phase = CommunityPhase.Loaded(

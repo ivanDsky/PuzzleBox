@@ -21,6 +21,7 @@ import com.ivandsky.puzzlebox.games.queensui.QueensPlayController
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.play.PlaySessionStore
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakePublishedPuzzleRepository
@@ -39,7 +40,7 @@ import org.robolectric.annotation.Config
  * The sharing loop over the real shell: a signed-in author publishes a ready Queens draft from
  * the Studio and reads its code; a friend enters that code in Play, opens the card, plays the
  * puzzle to the win and lands on its result, whose Done returns to the card, now reading Solved.
- * The author reaches the draft through Games › Custom and leaves the full-window Studio with Back.
+ * The author reaches the draft through Community › Yours and leaves the full-window Studio with Back.
  */
 @RunWith(RobolectricTestRunner::class)
 // DrainTestApplication (plain Application + looper drain): the merged manifest's PuzzleBoxApplication would start its own Koin.
@@ -62,19 +63,20 @@ class PublishOpenLoopE2ETest {
     )
 
     @Test
-    fun `a draft published from Games' Custom opens by its code and its solve lands on its result, then the card reads solved`() =
+    fun `a draft published from Community's Yours opens by its code and its solve lands on its result, then the card reads solved`() =
         publishOpenLoop(
             graph(),
             openDraft = {
-                tapTab(PlayKey)
-                tap("library.tab.custom")
+                tapTab(CommunityKey)
+                tap("community.tab.yours")
                 tap("create.draft.row")
             },
             toGames = {
-                // The Studio is full-window: Back is the way out, to Custom, which now lists the puzzle.
+                // The Studio is full-window: Back is the way out, to Yours, which now lists the puzzle.
                 back()
-                assertRoute("route.library")
+                assertRoute("route.community")
                 awaitTag("create.published.row")
+                tapTab(PlayKey)
             },
         )
 

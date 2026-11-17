@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -33,13 +32,13 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * A friend's puzzle on the Play stack: a spinner while the code opens (the board's quiet bars, [FriendLoadingBoard], when the page draws the hidden board), then the scrolling
+ * A friend's puzzle on the Play stack: the board's quiet bars ([FriendLoadingBoard]) while the code opens, then the scrolling
  * [FriendPuzzleCard], whose Play, Resume or Play again opens the puzzle's board ([onPlay]) and
  * whose board preview signs in with Google in place, or [FriendOpenError] saying why the code
  * did not open, with Try again or the store listing when either helps. Up is [onBack], the navigator's pop; with
  * [showUp] false (the Community tablet's right pane, which has no page to go back from) there is no Up bar at all, and
- * with CommunityPuzzles on the card lays out two columns when the pane has room for them.
- * Reporting the puzzle (when the card offers it) closes the card behind a short "Reported" snackbar, then [onBack]; a
+ * the card lays out two columns when the pane has room for them.
+ * Reporting the puzzle closes the card behind a short "Reported" snackbar, then [onBack]; a
  * signed-out Report opens the sign-in prompt the New today list uses.
  */
 @Composable
@@ -74,11 +73,7 @@ internal fun FriendPuzzleRoute(
                 // The pane (no Up bar) knows its own height: the grid centres in it and sizes its board by it.
                 val paneHeight = if (showUp) Dp.Unspecified else maxHeight
                 when (val card = state) {
-                    FriendCardState.Loading ->
-                        if (viewModel.hiddenBoard) FriendLoadingBoard(paneHeight = paneHeight)
-                        else Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(Modifier.testTag("friend.card.loading"))
-                        }
+                    FriendCardState.Loading -> FriendLoadingBoard(paneHeight = paneHeight)
                     is FriendCardState.Ready -> FriendPuzzleCard(
                         card = card.card,
                         onAction = { onPlay(card.card.play) },

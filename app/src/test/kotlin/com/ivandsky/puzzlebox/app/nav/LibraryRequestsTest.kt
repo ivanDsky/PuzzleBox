@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.app.nav
 
 import androidx.compose.runtime.saveable.SaverScope
-import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.navigation.Navigator
@@ -24,7 +23,7 @@ class LibraryRequestsTest {
         val navigator = todayNavigator()
         val requests = LibraryRequests()
 
-        requests.openGamesSection(navigator, TabSet.ThreeTabs, GamesTab.Duels)
+        requests.openGamesSection(navigator, GamesTab.Duels)
 
         assertEquals(PlayKey, navigator.state.tab)
         assertEquals(listOf<Any>(PlayKey), navigator.state.currentStack)
@@ -34,27 +33,11 @@ class LibraryRequestsTest {
     }
 
     @Test
-    fun `openCustom lands on Games root with Custom pending and back returns to the origin`() {
-        val navigator = todayNavigator()
-        navigator.push(EditorKey("castle"))
-        val before = navigator.state
-        val requests = LibraryRequests()
-
-        requests.openCustom(navigator, TabSet.ThreeTabs)
-
-        assertEquals(PlayKey, navigator.state.tab)
-        assertEquals(listOf<Any>(PlayKey), navigator.state.currentStack)
-        assertEquals(LibraryRequest.Section(GamesTab.Custom), requests.pending)
-        navigator.pop()
-        assertEquals(before, navigator.state)
-    }
-
-    @Test
     fun `openChallenge lands on Games root with the challenge pending and back returns to the origin`() {
         val navigator = todayNavigator()
         val requests = LibraryRequests()
 
-        requests.openChallenge(navigator, TabSet.ThreeTabs, ADA_IN_ZIP)
+        requests.openChallenge(navigator, ADA_IN_ZIP)
 
         assertEquals(PlayKey, navigator.state.tab)
         assertEquals(listOf<Any>(PlayKey), navigator.state.currentStack)
@@ -66,7 +49,7 @@ class LibraryRequestsTest {
     @Test
     fun `take clears the pending request`() {
         val requests = LibraryRequests()
-        requests.openGamesSection(todayNavigator(), TabSet.ThreeTabs, GamesTab.Duels)
+        requests.openGamesSection(todayNavigator(), GamesTab.Duels)
 
         requests.take()
 
@@ -105,7 +88,7 @@ class LibraryRequestsTest {
 
     @Test
     fun `an unreadable saved value restores as no request`() {
-        for (saved in listOf("", "section:Nope", "challenge:", "challenge:zip", "challenge:zip:uid", "challenge::uid:Ada", "challenge:zip::Ada", "duel:x")) {
+        for (saved in listOf("", "section:Nope", "section:Custom", "section:Friends", "challenge:", "challenge:zip", "challenge:zip:uid", "challenge::uid:Ada", "challenge:zip::Ada", "duel:x")) {
             assertNull("'$saved'", LibraryRequests.Saver.restore(saved)!!.pending)
         }
     }

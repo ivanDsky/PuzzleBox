@@ -102,8 +102,7 @@ internal class FriendWorld(flags: List<ReleaseFlag> = emptyList()) {
         graph.identity.currentIdentity = Identity(uid = AUTHOR, displayName = "Ivan", photoUrl = null)
         shared.signedInUid = AUTHOR
         runBlocking { drafts.upsert(readyDraft(board, title)) }
-        tapTab(PlayKey)
-        tap("library.tab.custom")
+        openYours()
         tap("create.draft.row")
         awaitTag("create.readiness.ready")
         tap("create.action.publish")

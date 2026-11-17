@@ -55,7 +55,6 @@ class MotionTokensTest {
     @Test
     fun `navigation backs are quicker than their pushes`() {
         assertTrue(MotionTokens.NavFullSlidePop < MotionTokens.NavFullSlideEnter)
-        assertTrue(MotionTokens.MixAxisPop < MotionTokens.MixAxisPush)
         assertTrue(MotionTokens.LiftExit < MotionTokens.LiftEnter)
         assertTrue(MotionTokens.NavTabExit < MotionTokens.NavTabEnter)
     }

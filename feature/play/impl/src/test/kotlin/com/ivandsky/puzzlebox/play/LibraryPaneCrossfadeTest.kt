@@ -39,8 +39,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The two-pane Games right pane (TabletCrossfade, backlog #1118): picking another row fades the old page out and the new
- * one in, in place, while the list pane stays put; the shown row does nothing; with the flag off it is one frame.
+ * The two-pane Games right pane (backlog #1118): picking another row fades the old page out and the new
+ * one in, in place, while the list pane stays put; the shown row does nothing.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -72,7 +72,7 @@ class LibraryPaneCrossfadeTest {
 
     private fun pageFor(game: GameId) = ArchivePageState(game, YearMonth.of(2026, 11), emptyList(), null)
 
-    private fun show(crossfade: Boolean, settle: Boolean = true) {
+    private fun show(settle: Boolean = true) {
         // Before setContent: otherwise its idle wait runs every entrance animation out first.
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
@@ -93,9 +93,7 @@ class LibraryPaneCrossfadeTest {
                     onOpenLesson = {},
                     calendar = CalendarActions(),
                     onOpenRanks = { _, _ -> },
-                    custom = CustomSlot { _, _, _ -> },
                     onMakeOne = {},
-                    paneCrossfade = crossfade,
                 )
             }
         }
@@ -113,7 +111,7 @@ class LibraryPaneCrossfadeTest {
 
     @Test
     fun `picking another row composes both pages mid-fade and only the new one once settled`() {
-        show(crossfade = true)
+        show()
         assertEquals(listOf(true, false), pagesShown())
         val listLeft = composeRule.onNodeWithTag("library.row.zip").getBoundsInRoot().left
 
@@ -128,7 +126,7 @@ class LibraryPaneCrossfadeTest {
 
     @Test
     fun `both pages hold one position while fading`() {
-        show(crossfade = true)
+        show()
         val before = composeRule.onNodeWithTag("library.page.zip").getBoundsInRoot()
 
         pick("tango")
@@ -146,7 +144,7 @@ class LibraryPaneCrossfadeTest {
     @Test
     @Config(sdk = [34], qualifiers = "w1280dp-h360dp")
     fun `a scrolled list keeps its offset while the pane fades`() {
-        show(crossfade = true)
+        show()
         composeRule.mainClock.autoAdvance = true
         val last = composeRule.onNodeWithTag("library.row.minisudoku").performScrollTo()
         composeRule.mainClock.autoAdvance = false
@@ -163,7 +161,7 @@ class LibraryPaneCrossfadeTest {
     @Test
     fun `a picked game's page waits for its calendar, so nothing fills in under the fade`() {
         followPick = false
-        show(crossfade = true)
+        show()
 
         pick("tango")
         composeRule.mainClock.advanceTimeBy(100L)
@@ -182,7 +180,7 @@ class LibraryPaneCrossfadeTest {
     @Test
     fun `a calendar that never arrives does not hold the pane forever`() {
         followPick = false
-        show(crossfade = true)
+        show()
 
         pick("tango")
         composeRule.mainClock.advanceTimeBy(SETTLE_MILLIS)
@@ -190,30 +188,21 @@ class LibraryPaneCrossfadeTest {
         assertEquals(listOf(false, true), pagesShown())
     }
 
-    private fun firstFrameMatchesSettled(crossfade: Boolean): Boolean {
-        show(crossfade, settle = false)
+    @Test
+    fun `games rows are at full alpha in their final place on the first frame`() {
+        show(settle = false)
         composeRule.mainClock.advanceTimeBy(16L)
         val tag = "library.row.tango"
         val first = composeRule.onNodeWithTag(tag).captureToImage().toPixelMap().buffer
         val firstTop = composeRule.onNodeWithTag(tag).getBoundsInRoot().top
         composeRule.mainClock.advanceTimeBy(SETTLE_MILLIS)
         val settled = composeRule.onNodeWithTag(tag).captureToImage().toPixelMap().buffer
-        return first.contentEquals(settled) && firstTop == composeRule.onNodeWithTag(tag).getBoundsInRoot().top
-    }
-
-    @Test
-    fun `games rows are at full alpha in their final place on the first frame`() {
-        assertTrue(firstFrameMatchesSettled(crossfade = true))
-    }
-
-    @Test
-    fun `without the flag the rows still fade in`() {
-        assertTrue(!firstFrameMatchesSettled(crossfade = false))
+        assertTrue(first.contentEquals(settled) && firstTop == composeRule.onNodeWithTag(tag).getBoundsInRoot().top)
     }
 
     @Test
     fun `picking the row already selected does nothing`() {
-        show(crossfade = true)
+        show()
 
         pick("zip")
         composeRule.mainClock.advanceTimeBy(100L)
@@ -224,7 +213,7 @@ class LibraryPaneCrossfadeTest {
     @Test
     fun `reduced motion fades over the short reduced fade`() {
         setAnimatorScale(0f)
-        show(crossfade = true)
+        show()
 
         pick("tango")
         composeRule.mainClock.advanceTimeBy(60L)
@@ -235,23 +224,13 @@ class LibraryPaneCrossfadeTest {
     }
 
     @Test
-    fun `with the flag off the new page replaces the old in one frame`() {
-        show(crossfade = false)
-
-        pick("tango")
-        composeRule.mainClock.advanceTimeBy(16L)
-
-        assertEquals(listOf(false, true), pagesShown())
-    }
-
-    @Test
     fun `the old page holds opaque under the new one fading in, never a dip to the background`() {
         val rows = previewState().rows
         composeRule.setContent {
             var selected by remember { mutableStateOf(rows[0]) }
             PuzzleBoxTheme(darkTheme = false) {
                 Box(Modifier.fillMaxSize().background(Color.White)) {
-                    LibraryPane(LibraryPaneFrame(selected, pageFor(selected.card.game), null), crossfade = true) { shown ->
+                    LibraryPane(LibraryPaneFrame(selected, pageFor(selected.card.game), null)) { shown ->
                         val color = if (shown.row == rows[0]) Color.Red else Color.Blue
                         Box(Modifier.fillMaxSize().background(color).clickable { selected = rows[1] }.testTag("probe.pane"))
                     }

@@ -53,7 +53,7 @@ abstract class CommunityTabGoldenScreenshots(private val rail: Boolean, private 
     private fun capture(dark: Boolean) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
-        val destinations = TabSet.CommunityTabs.destinations
+        val destinations = topLevelDestinations
         rule.setContent {
             PuzzleBoxTheme(darkTheme = dark) {
                 Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {

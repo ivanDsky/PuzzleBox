@@ -23,23 +23,19 @@ internal class LibraryRequests(initial: LibraryRequest? = null) {
     var pending: LibraryRequest? by mutableStateOf(initial)
         private set
 
-    fun openGamesSection(navigator: Navigator, tabSet: TabSet, tab: GamesTab) =
-        open(navigator, tabSet, LibraryRequest.Section(tab))
-
-    /** Games' Custom section, for what arrives from outside: shared text, or a link that is no code. */
-    fun openCustom(navigator: Navigator, tabSet: TabSet) =
-        openGamesSection(navigator, tabSet, GamesTab.Custom)
+    fun openGamesSection(navigator: Navigator, tab: GamesTab) =
+        open(navigator, LibraryRequest.Section(tab))
 
     /** Games' Duels tab with a challenge to [prefill]'s friend in its game pending there, from Result. */
-    fun openChallenge(navigator: Navigator, tabSet: TabSet, prefill: DuelPrefill) =
-        open(navigator, tabSet, LibraryRequest.Challenge(prefill))
+    fun openChallenge(navigator: Navigator, prefill: DuelPrefill) =
+        open(navigator, LibraryRequest.Challenge(prefill))
 
     fun take() {
         pending = null
     }
 
-    private fun open(navigator: Navigator, tabSet: TabSet, request: LibraryRequest) {
-        navigator.openOwner(PlayKey, tabSet)
+    private fun open(navigator: Navigator, request: LibraryRequest) {
+        navigator.openOwner(PlayKey)
         pending = request
     }
 

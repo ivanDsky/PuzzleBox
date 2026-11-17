@@ -1,14 +1,9 @@
 package com.ivandsky.puzzlebox.play
 
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -46,9 +41,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Games tabs (nav-rethink 125): the 120 strip over the
- * 121 pager, one swipeable page per tab with its own scroll, the Duels badge in the strip, and a horizontal drag on
- * the Custom list's chips that scrolls the chips and not the tab.
+ * Games with the underline tabs (nav-rethink 125): the 120 strip over the
+ * 121 pager, one swipeable page per tab (Dailies and Duels) with its own scroll, and the Duels badge in the strip.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -63,11 +57,11 @@ class LibraryUnderlineTabsTest {
     private var tab by mutableStateOf(GamesTab.Dailies)
     private val reported = mutableListOf<GamesTab>()
 
-    private fun show(customCount: Int = 0) {
+    private fun show() {
         composeRule.setContent {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
                 PuzzleBoxTheme {
-                    Host(customCount, needYou = { needYou }, tab = tab, onTab = { tab = it; reported += it })
+                    Host(needYou = { needYou }, tab = tab, onTab = { tab = it; reported += it })
                 }
             }
         }
@@ -85,22 +79,22 @@ class LibraryUnderlineTabsTest {
 
         composeRule.onNodeWithTag("underline.tabs").assertExists()
         composeRule.onNodeWithTag("underline.pager").assertExists()
-        listOf("dailies", "duels", "custom").forEach { composeRule.onNodeWithTag("library.tab.$it").assertExists() }
+        listOf("dailies", "duels").forEach { composeRule.onNodeWithTag("library.tab.$it").assertExists() }
+        composeRule.onNodeWithTag("library.tab.friends").assertDoesNotExist()
+        composeRule.onNodeWithTag("library.tab.custom").assertDoesNotExist()
         composeRule.onNodeWithTag("library.tab.dailies").assertIsSelected()
         composeRule.onNodeWithText("Zip").assertIsDisplayed()
     }
 
     @Test
-    fun `swipes Dailies, Duels, Custom and reports each tab`() {
+    fun `swipes Dailies to Duels and reports the tab`() {
         show()
 
         swipeToNext()
+
         composeRule.onNodeWithTag("library.tab.duels").assertIsSelected()
-        swipeToNext()
-        composeRule.onNodeWithTag("library.tab.custom").assertIsSelected()
-        composeRule.onNodeWithTag("custom.chips").assertIsDisplayed()
-        composeRule.onNodeWithTag("library.tab.friends").assertDoesNotExist()
-        assertEquals(listOf(GamesTab.Duels, GamesTab.Custom), reported)
+        composeRule.onNodeWithText("duel 0").assertIsDisplayed()
+        assertEquals(listOf(GamesTab.Duels), reported)
     }
 
     @Test
@@ -115,13 +109,12 @@ class LibraryUnderlineTabsTest {
     }
 
     @Test
-    fun `the Duels badge and the Custom count show in the strip and name themselves`() {
+    fun `the Duels badge shows in the strip and names itself`() {
         needYou = 3
-        show(customCount = 2)
+        show()
 
         composeRule.onNodeWithTag("library.tab.duels.count", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag("library.tab.duels").assertContentDescriptionEquals("Duels, 3 need you")
-        composeRule.onNodeWithTag("library.tab.custom.count", useUnmergedTree = true).assertExists()
 
         needYou = 12
         composeRule.onNodeWithTag("library.tab.duels").assertContentDescriptionEquals("Duels, 12 need you")
@@ -166,6 +159,19 @@ class LibraryUnderlineTabsTest {
     }
 
     @Test
+    fun `the bottom bar reselect scrolls the Duels list, which has its own scroll`() {
+        show()
+        composeRule.onNodeWithTag("library.tab.duels").performClick()
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag("duels.list").performScrollToIndex(DUEL_COUNT - 1)
+        composeRule.onNodeWithText("duel 0").assertIsNotDisplayed()
+
+        composeRule.runOnIdle { reselect.tryEmit(Unit) }
+
+        composeRule.onNodeWithText("duel 0").assertIsDisplayed()
+    }
+
+    @Test
     fun `a request for another tab moves the pager there`() {
         show()
 
@@ -174,22 +180,6 @@ class LibraryUnderlineTabsTest {
 
         composeRule.onNodeWithTag("library.tab.duels").assertIsSelected()
         composeRule.onNodeWithText("duel 0").assertIsDisplayed()
-    }
-
-    @Test
-    fun `a horizontal drag on the Custom chips scrolls the chips and does not change the tab`() {
-        show()
-        composeRule.onNodeWithTag("library.tab.custom").performClick()
-        composeRule.waitForIdle()
-        composeRule.onNodeWithText("chip 0").assertIsDisplayed()
-        reported.clear()
-
-        composeRule.onNodeWithTag("custom.chips").performTouchInput { swipeLeft() }
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithTag("library.tab.custom").assertIsSelected()
-        composeRule.onNodeWithText("chip 0").assertIsNotDisplayed()
-        assertTrue("the drag changed the tab: $reported", reported.isEmpty())
     }
 
     private companion object {
@@ -212,7 +202,6 @@ private val standInDuels: (() -> Int) -> DuelsSlot = { needYou ->
 
 @Composable
 private fun Host(
-    customCount: Int,
     needYou: () -> Int,
     tab: GamesTab,
     onTab: (GamesTab) -> Unit,
@@ -228,15 +217,5 @@ private fun Host(
         duels = duels,
         tab = tab,
         onTab = onTab,
-        customTab = {
-            LazyColumn(Modifier.fillMaxWidth(), state = rememberLazyListState()) {
-                item {
-                    LazyRow(Modifier.testTag("custom.chips")) {
-                        items(20) { Text("chip $it", Modifier.width(120.dp)) }
-                    }
-                }
-            }
-        },
-        customCount = customCount,
     )
 }

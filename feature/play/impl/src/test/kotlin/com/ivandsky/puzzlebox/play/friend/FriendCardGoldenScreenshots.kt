@@ -57,9 +57,6 @@ abstract class FriendCardGoldenScreenshots(private val device: String) {
     @Test fun `card fresh light`() = card("card-fresh", card(FriendCardAction.Play), dark = false)
     @Test fun `card fresh dark`() = card("card-fresh", card(FriendCardAction.Play), dark = true)
 
-    @Test fun `card report light`() = card("card-report", card(FriendCardAction.Play).copy(canReport = true), dark = false)
-    @Test fun `card report dark`() = card("card-report", card(FriendCardAction.Play).copy(canReport = true), dark = true)
-
     @Test fun `card resume light`() = card("card-resume", card(FriendCardAction.Resume(42_000L)), dark = false)
     @Test fun `card resume dark`() = card("card-resume", card(FriendCardAction.Resume(42_000L)), dark = true)
 

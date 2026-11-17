@@ -27,8 +27,8 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Ticket 132: the friend page in the Community tablet's right pane (the 400 dp list beside it) with CommunityPuzzles
- * on, light and dark: two columns in a wide pane, for an unsolved puzzle (board blurred) and a solved one (board
+ * Ticket 132: the friend page in the Community tablet's right pane (the 400 dp list beside it),
+ * light and dark: two columns in a wide pane, for an unsolved puzzle (board blurred) and a solved one (board
  * sharp, your time and your rank beside the author's), and the single column a pane too narrow for both falls back to.
  * The board is a stand-in ([StubGivensBoard]). Goldens in `snapshots/friend/grid-…`; the full-screen page's are
  * [FriendHiddenBoardGoldenScreenshots]'s, unchanged.

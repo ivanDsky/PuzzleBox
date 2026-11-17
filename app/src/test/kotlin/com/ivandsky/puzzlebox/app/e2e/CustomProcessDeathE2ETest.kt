@@ -5,10 +5,11 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.play.api.PlayKey
+import com.ivandsky.puzzlebox.home.api.HomeKey
 import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -73,8 +74,7 @@ class CustomProcessDeathE2ETest {
     @Test
     fun `a painted draft keeps its board and undo history across rotation, back and process death`() =
         shellRobot(graph = roomGraph()) {
-            tapTab(PlayKey)
-            tap(CUSTOM_PILL)
+            openYours()
             tap("create.empty.game.queens")
             awaitTag(cell(0))
             val blank = regionOf(cell(0))
@@ -90,6 +90,12 @@ class CustomProcessDeathE2ETest {
             assertNotEquals("cell 1 is painted", blank, board[1])
             assertEquals("cell 2's paint is undone", blank, board[2])
             assertKept(board, "on paint")
+
+            // The Studio is full-window, so the tab switch is the navigator's; Community returns to its Studio.
+            switchTab(HomeKey)
+            tapTab(CommunityKey)
+            awaitTag(cell(0))
+            assertKept(board, "after a tab switch")
 
             restoreState()
             awaitTag(cell(0))
@@ -157,10 +163,9 @@ class CustomProcessDeathE2ETest {
         rule.onNodeWithTag(REDO).assertIsEnabled()
     }
 
-    /** Opens the one draft from Games' Custom pill. */
+    /** Opens the one draft from Community's Yours. */
     private fun ShellRobot.reopen() {
-        tapTab(PlayKey)
-        tap(CUSTOM_PILL)
+        openYours()
         tap(ROW)
         awaitTag(cell(0))
     }
@@ -191,7 +196,6 @@ class CustomProcessDeathE2ETest {
         /** One solution on a 6×6 board. */
         const val UNIQUE = "BBBBAA BBBBCA EBBDCA EEDDDD EEFFDF EEFFFF"
         const val ROW = "create.draft.row"
-        const val CUSTOM_PILL = "library.tab.custom"
         const val UNDO = "create.tool.undo"
         const val REDO = "create.tool.redo"
         const val TIMEOUT_MS = 5_000L

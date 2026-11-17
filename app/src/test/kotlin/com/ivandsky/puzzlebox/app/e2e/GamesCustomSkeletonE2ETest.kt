@@ -7,7 +7,6 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.play.api.PlayKey
 import com.ivandsky.puzzlebox.data.repository.DraftRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDraftRepository
 import org.junit.Assert.assertEquals
@@ -19,10 +18,10 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Ticket 01's walking skeleton over the real shell: on the first-time Games › Custom pill, one tap on
+ * Ticket 01's walking skeleton over the real shell: on Community's first-time Yours page, one tap on
  * Queens in the empty state's game list opens a blank Queens at its default size (8×8) in the
  * Studio (verdict Incomplete), in Paint mode a tap selects a cell and a ring pick paints it, the draft is
- * listed under Custom, and after a relaunch the draft reopens with the same regions.
+ * listed on Yours, and after a relaunch the draft reopens with the same regions.
  * The drafts store is the fake "disk" that outlives the relaunch.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -36,9 +35,8 @@ class GamesCustomSkeletonE2ETest {
     @Test
     fun `a new Queens draft is painted, listed, and reopens with its regions after a relaunch`() =
         shellRobot(graph = E2eKoinGraph(E2E_TODAY, overrides = module { single<DraftRepository> { drafts } })) {
-            tapTab(PlayKey)
-            tap(CUSTOM_PILL)
-            assertRoute(LIBRARY)
+            openYours()
+            assertRoute(COMMUNITY)
             tap("create.empty.game.queens")
             awaitTag(BOARD)
             awaitTag(CELL_0)
@@ -62,13 +60,13 @@ class GamesCustomSkeletonE2ETest {
             assertEquals(1, drafts.rows.size)
 
             back()
-            assertRoute(LIBRARY)
+            assertRoute(COMMUNITY)
+            tap(YOURS)
             awaitTag(ROW)
             rule.onAllNodesWithTag(ROW).assertCountEquals(1)
 
             relaunch()
-            tapTab(PlayKey)
-            tap(CUSTOM_PILL)
+            openYours()
             tap(ROW)
             awaitTag(CELL_0)
             assertEquals("the reopened draft keeps its regions", painted, regionOf(CELL_0))
@@ -78,12 +76,12 @@ class GamesCustomSkeletonE2ETest {
         rule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().config[SemanticsProperties.StateDescription]
 
     private companion object {
-        const val LIBRARY = "route.library"
+        const val COMMUNITY = "route.community"
+        const val YOURS = "community.tab.yours"
         const val EDITOR = "route.editor"
         const val BOARD = "create.editor.board"
         const val PILL = "create.editor.pill"
         const val ROW = "create.draft.row"
-        const val CUSTOM_PILL = "library.tab.custom"
         const val CELL_0 = "queens.editor.cell.0"
         const val TIMEOUT_MS = 5_000L
         const val RING_NEXT = "queens.editor.ring.slot.1"

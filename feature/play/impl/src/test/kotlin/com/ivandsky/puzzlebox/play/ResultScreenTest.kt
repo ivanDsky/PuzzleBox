@@ -34,6 +34,7 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
+import com.ivandsky.puzzlebox.domain.ListCommunityPuzzles
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
@@ -534,7 +535,7 @@ class ResultScreenTest {
                         ObserveResultNextThing(
                             registry = get(), identity = get(), history = get(), todaySet = get(), friendPuzzles = get(),
                             friendUids = get(), leaderboard = get(), visibility = get(), computeStreak = get(),
-                            puzzleDay = get(), nextRollover = get(),
+                            puzzleDay = get(), nextRollover = get(), communityPuzzles = ListCommunityPuzzles(get(), get(), get()) { 0L },
                         )
                     }
                 },

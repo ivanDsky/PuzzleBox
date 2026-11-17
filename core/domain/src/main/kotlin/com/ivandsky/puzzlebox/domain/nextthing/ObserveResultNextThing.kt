@@ -79,7 +79,7 @@ class ObserveResultNextThing(
     private val computeStreak: ComputeStreak,
     private val puzzleDay: GetPuzzleDay,
     private val nextRollover: GetNextRollover,
-    private val communityPuzzles: ListCommunityPuzzles? = null,
+    private val communityPuzzles: ListCommunityPuzzles,
     private val timeout: Duration = 2.seconds,
     private val failures: FailureLog = LogcatFailureLog,
 ) {
@@ -147,12 +147,11 @@ class ObserveResultNextThing(
     }
 
     /**
-     * The community list as offers, newest first, read when the chain asks. With no [communityPuzzles] (the flag
-     * is off), or a list that is offline or refused, nothing. A puzzle of a game this build does not register is
-     * left out: it could not be opened.
+     * The community list as offers, newest first, read when the chain asks. A list that is offline or refused offers
+     * nothing. A puzzle of a game this build does not register is left out: it could not be opened.
      */
     private suspend fun communityOffers(): List<NextThing.CommunityPuzzle> {
-        val listed = communityPuzzles?.invoke() as? CommunityListResult.Listed ?: return emptyList()
+        val listed = communityPuzzles() as? CommunityListResult.Listed ?: return emptyList()
         return listed.puzzles.filter { registry[GameId(it.gameId)] != null }
             .map { NextThing.CommunityPuzzle(it.code, GameId(it.gameId), it.authorName) }
     }

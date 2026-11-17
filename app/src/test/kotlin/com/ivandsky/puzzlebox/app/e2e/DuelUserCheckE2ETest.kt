@@ -11,6 +11,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
 import com.ivandsky.puzzlebox.data.identity.Identity
@@ -173,7 +174,7 @@ class DuelUserCheckE2ETest {
     /** The Play tab is selected; Home's stack holds History. */
     private val onPlay = NavigationState(
         tab = PlayKey,
-        stacks = listOf(listOf(HomeKey, HistoryKey()), listOf(PlayKey), listOf(HistoryRootKey)),
+        stacks = listOf(listOf(HomeKey, HistoryKey()), listOf(PlayKey), listOf(CommunityKey), listOf(HistoryRootKey)),
     )
 
     private companion object {

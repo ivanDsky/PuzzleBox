@@ -6,7 +6,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.ivandsky.puzzlebox.app.DrainTestApplication
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.play.api.PlayKey
 import java.io.File
 import org.junit.After
@@ -18,7 +17,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The friend page's hidden board (nav-rethink M12-8) in each of the five real games, light and dark, on a phone, with
- * CommunityPuzzles on: the puzzle's real board blurred under "Hidden until you play". Recorded with
+ * the puzzle's real board blurred under "Hidden until you play". Recorded with
  * `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`; goldens in `snapshots/friend-hidden-board/`.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -28,7 +27,7 @@ import org.robolectric.annotation.GraphicsMode
 class FriendHiddenBoardGoldenScreenshots(name: String) {
 
     private val game: FriendGame = FRIEND_GAMES.single { it.toString() == name }
-    private val world = FriendWorld(game.flags + ReleaseFlag.CommunityPuzzles)
+    private val world = FriendWorld(game.flags)
 
     @After
     fun close() = world.close()

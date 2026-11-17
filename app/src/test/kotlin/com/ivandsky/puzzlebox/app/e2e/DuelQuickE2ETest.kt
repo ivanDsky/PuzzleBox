@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app.e2e
 
 import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.domain.GetPuzzleDay
@@ -60,6 +61,6 @@ class DuelQuickE2ETest {
     /** The Play tab is selected; Home's stack holds History. */
     private val onPlay = NavigationState(
         tab = PlayKey,
-        stacks = listOf(listOf(HomeKey, HistoryKey()), listOf(PlayKey), listOf(HistoryRootKey)),
+        stacks = listOf(listOf(HomeKey, HistoryKey()), listOf(PlayKey), listOf(CommunityKey), listOf(HistoryRootKey)),
     )
 }

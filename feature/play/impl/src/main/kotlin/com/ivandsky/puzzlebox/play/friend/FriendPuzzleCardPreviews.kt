@@ -29,7 +29,6 @@ private fun previewCard(
     yours: BestScore? = null,
     difficulty: Difficulty.Level? = Difficulty.Level.Medium,
     board: CustomBoardView? = CustomBoardView.SignedOut(PreviewBoardAuthor),
-    canReport: Boolean = false,
     givens: GivensBoard? = null,
 ) = FriendCard(
     puzzle = ReceivedPuzzle(
@@ -57,7 +56,6 @@ private fun previewCard(
     yours = yours,
     board = board,
     signIn = BoardSignIn.Idle,
-    canReport = canReport,
     givens = givens,
 )
 
@@ -90,13 +88,6 @@ internal fun FriendPuzzleCardPlayAgainPreview() {
     PreviewCard(previewCard(FriendCardAction.PlayAgain, yours = BestScore(125_000L, 0), board = CustomBoardView.Ranked(top, mine = null, author = PreviewBoardAuthor)))
 }
 
-// Preview: the community flag is on, so the ⋮ beside the title offers Report.
-@PuzzleBoxPreviews
-@Composable
-internal fun FriendPuzzleCardReportPreview() {
-    PreviewCard(previewCard(FriendCardAction.Play, canReport = true))
-}
-
 // Preview: a game without a difficulty ladder, no difficulty chip.
 @PuzzleBoxPreviews
 @Composable
@@ -118,16 +109,16 @@ private fun previewGivens(): GivensBoard = GivensBoard(PREVIEW_SIDE, PREVIEW_SID
 
 private const val PREVIEW_SIDE = 8
 
-// Preview: the community flag is on and the puzzle is new to you, its board blurred under "Hidden until you play".
+// Preview: the puzzle is new to you, its board blurred under "Hidden until you play".
 @PuzzleBoxPreviews
 @Composable
 internal fun FriendPuzzleCardHiddenBoardPreview() {
-    PreviewCard(previewCard(FriendCardAction.Play, canReport = true, givens = previewGivens()))
+    PreviewCard(previewCard(FriendCardAction.Play, givens = previewGivens()))
 }
 
-// Preview: the community flag is on and you solved it, so its board shows sharp.
+// Preview: you solved it, so its board shows sharp.
 @PuzzleBoxPreviews
 @Composable
 internal fun FriendPuzzleCardSolvedBoardPreview() {
-    PreviewCard(previewCard(FriendCardAction.PlayAgain, yours = BestScore(125_000L, 0), canReport = true, givens = previewGivens()))
+    PreviewCard(previewCard(FriendCardAction.PlayAgain, yours = BestScore(125_000L, 0), givens = previewGivens()))
 }

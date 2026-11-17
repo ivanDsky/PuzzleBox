@@ -21,9 +21,9 @@ import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.launch
 
 /**
- * The Games tabs (nav-rethink 125): the [header] over the shared underline strip over its swipeable pager, one page
- * per tab of [gamesTabs]. The tabs are tagged `library.tab.*`, Duels' red need-you badge trails its label, and
- * Custom carries its count. [tab] is the host's saved tab: a
+ * The Games tabs (nav-rethink 125): the [header] over the shared underline strip over
+ * its swipeable pager, one page per [GamesTab]. The tabs' tags and roles are `library.tab.*` and Duels'
+ * red need-you badge trails its label. [tab] is the host's saved tab: a
  * request for another moves the pager, and each page the pager settles on is reported through [onTab].
  *
  * Every tab owns its scroll ([scrolls]), so a swipe away
@@ -41,20 +41,15 @@ internal fun UnderlineTabbedList(
     duels: DuelsSlot,
     tab: GamesTab,
     onTab: (GamesTab) -> Unit,
-    customTab: @Composable () -> Unit,
-    customCount: Int,
     duelPrefill: DuelPrefill?,
     onDuelPrefillTaken: () -> Unit,
-    community: Boolean,
 ) {
     val scope = rememberCoroutineScope()
-    val tabs = gamesTabs(community)
-    val shown = tabs.indexOf(tab.shownWith(community)).coerceAtLeast(0)
+    val tabs = GamesTab.entries
+    val shown = tab.ordinal
     val needYou = duels.needYou()
-    val strip = tabs.map { it.underlineTab(needYou, customCount) }
+    val strip = tabs.map { it.underlineTab(needYou) }
     val bodyRoom = if (phone) 0.dp else OutlineRoom
-    // The tablet's list has no side padding; Custom's rows pad their own sides, so they step out of it.
-    val sides = if (phone) Modifier else Modifier.widenBy(Spacing.lg)
     Column(modifier.testTag("library.list"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         header()
         UnderlineTabPager(
@@ -82,7 +77,6 @@ internal fun UnderlineTabbedList(
                 GamesTab.Duels -> Box(
                     Modifier.fillMaxSize().padding(horizontal = if (phone) Spacing.lg else OutlineRoom),
                 ) { duels.content(scrolls.duels, duelPrefill, onDuelPrefillTaken) }
-                GamesTab.Custom -> Box(Modifier.fillMaxSize().padding(horizontal = bodyRoom).then(sides)) { customTab() }
             }
         }
     }
@@ -92,29 +86,21 @@ internal fun UnderlineTabbedList(
 internal class GamesScrolls(
     val dailies: ScrollState,
     val duels: LazyListState,
-    val custom: LazyListState,
 ) {
     /** Glides [tab]'s own list back to its first item. */
     suspend fun toTop(tab: GamesTab) = when (tab) {
         GamesTab.Dailies -> dailies.animateScrollTo(0)
         GamesTab.Duels -> duels.animateScrollToItem(0)
-        GamesTab.Custom -> custom.animateScrollToItem(0)
     }
 }
 
-/** The strip's tab for this Games tab: Custom carries its count, Duels' badge trails its label. */
-private fun GamesTab.underlineTab(duelsNeedYou: Int, customCount: Int): UnderlineTab = when (this) {
+/** The strip's tab for this Games tab: Duels' badge trailing its label. */
+private fun GamesTab.underlineTab(duelsNeedYou: Int): UnderlineTab = when (this) {
     GamesTab.Dailies -> UnderlineTab("Dailies", "library.tab.dailies")
     GamesTab.Duels -> UnderlineTab(
         "Duels",
         "library.tab.duels",
         description = if (duelsNeedYou > 0) "Duels, $duelsNeedYou need you" else null,
         trailing = { TabCountBadge(duelsNeedYou, Modifier.testTag("library.tab.duels.count")) },
-    )
-    GamesTab.Custom -> UnderlineTab(
-        "Custom",
-        "library.tab.custom",
-        count = customCount,
-        description = if (customCount > 0) "Custom, $customCount new from friends" else null,
     )
 }

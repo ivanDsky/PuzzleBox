@@ -114,7 +114,6 @@ abstract class FriendHiddenBoardGoldenScreenshots(private val device: String) {
             yours = yours,
             board = board,
             signIn = BoardSignIn.Idle,
-            canReport = true,
             givens = StubGivensBoard().givens(Puzzle(GameId("queens"), VariantId("queens/n8"), 1, ByteArray(0))),
         )
 

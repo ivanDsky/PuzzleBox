@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
-import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.create.FakeGameEditor
 import com.ivandsky.puzzlebox.create.FakeGameEditorUi
 import com.ivandsky.puzzlebox.create.TestDraft
@@ -85,7 +84,6 @@ internal const val PLAIN_LOADING = PublishedPlainBoardLoadingTag
  */
 internal class PublishedPlainWorld(
     val game: PlainGame,
-    private val flags: ReleaseFlags?,
     private val withReplayBoard: Boolean = true,
     private val title: String = TITLE,
 ) {
@@ -122,7 +120,6 @@ internal class PublishedPlainWorld(
                             GamePlayRegistry(listOf(PlayWithGivens())),
                             CreateDraftCopy(drafts, newId = { "copy" }, clock = { NOW }),
                             DefaultDispatcherProvider(), UpdatePublishState(shared, published),
-                            flags,
                         ).also { viewModel = it }
                     }
                 },

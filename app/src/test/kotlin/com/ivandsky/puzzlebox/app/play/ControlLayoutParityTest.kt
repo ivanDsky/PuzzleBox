@@ -16,7 +16,6 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.app.di.PreferencesQueensSettings
-import com.ivandsky.puzzlebox.app.nav.testCustomSlot
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.di.commonModule
@@ -325,7 +324,7 @@ class ControlLayoutParityTest {
                         backStack = navigator.state.currentStack,
                         onBack = { navigator.pop() },
                         entryProvider = entryProvider {
-                            playEntry(navigator, layout, onOpenRanks = { _, _ -> }, custom = testCustomSlot(), onMakeOne = {})
+                            playEntry(navigator, layout, onOpenRanks = { _, _ -> }, onMakeOne = {})
                             entry<ResultKey> { Text("result") }
                         },
                     )

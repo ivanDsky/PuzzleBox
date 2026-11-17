@@ -42,8 +42,7 @@ internal class TestSolveWorld(vararg flags: ReleaseFlag) {
     /** Keeps [board] as an untested draft titled [title], opens it in the Studio and taps Test solve once it is offered. */
     fun startTestSolve(robot: ShellRobot, board: EditorDraft<*>, title: String) = with(robot) {
         runBlocking { drafts.upsert(readyDraft(board, title).copy(testSolve = null)) }
-        tapTab(PlayKey)
-        tap("library.tab.custom")
+        openYours()
         tap("create.draft.row")
         testSolveAgain(this)
     }

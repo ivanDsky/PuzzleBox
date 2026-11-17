@@ -95,27 +95,24 @@ internal val placementRows: List<PlacementRow> = listOf(
     PlacementRow(ResultKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(ReplayKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(ReplayCompareKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
-    PlacementRow(CustomGameKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
-    PlacementRow(CustomResultKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
-    PlacementRow(FriendPuzzleKey::class, Placement(PushedOn(Tab.Games), Chrome.Bar)),
+    PlacementRow(CustomGameKey::class, Placement(PushedOn(Tab.Community), Chrome.Immersive)),
+    PlacementRow(CustomResultKey::class, Placement(PushedOn(Tab.Community), Chrome.Immersive)),
+    PlacementRow(FriendPuzzleKey::class, Placement(PushedOn(Tab.Community), Chrome.Bar)),
     PlacementRow(MatchLegKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(MatchLegResultKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
     PlacementRow(DuelKey::class, Placement(PushedOn(Tab.Games), Chrome.Bar)),
     PlacementRow(DuelRevealKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
-    PlacementRow(EditorKey::class, Placement(PushedOn(Tab.Games), Chrome.Immersive)),
-    PlacementRow(PublishedPuzzleKey::class, Placement(PushedOn(Tab.Games), Chrome.Bar)),
+    PlacementRow(EditorKey::class, Placement(PushedOn(Tab.Community), Chrome.Immersive)),
+    PlacementRow(PublishedPuzzleKey::class, Placement(PushedOn(Tab.Community), Chrome.Bar)),
     PlacementRow(CatalogKey::class, Placement(DebugOnly, Chrome.Bar)),
 )
 
 /** [placementRows] by key class. */
 internal val placements: Map<KClass<out NavKey>, Placement> = placementRows.associate { it.key to it.placement }
 
-/**
- * [key]'s placement: [delta]'s override when it moves the key, else the key's base row. A key without a base row
- * is a programming error.
- */
-internal fun placementOf(key: NavKey, delta: PlacementDelta): Placement =
-    delta[key::class] ?: checkNotNull(placements[key::class]) {
+/** [key]'s placement from its row. A key without a row is a programming error. */
+internal fun placementOf(key: NavKey): Placement =
+    checkNotNull(placements[key::class]) {
         "${key::class.qualifiedName} has no placement row. Add a PlacementRow to placementRows in " +
             "app/src/main/kotlin/com/ivandsky/puzzlebox/app/nav/Placement.kt (see docs/adr/0027-navigation-placement.md)."
     }

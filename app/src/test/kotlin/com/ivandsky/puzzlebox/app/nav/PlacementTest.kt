@@ -6,7 +6,6 @@ import com.ivandsky.puzzlebox.create.api.CreateKey
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
-import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
@@ -86,7 +85,7 @@ class PlacementTest {
     }
 
     @Test
-    fun `the immersive set is exactly today's seven, the replay and its compare, and the Studio`() {
+    fun `the immersive set is exactly today's seven plus the replay, its compare and the Studio`() {
         val immersive = placementRows.filter { it.placement.chrome == Chrome.Immersive }.map { it.key }.toSet()
 
         assertEquals(
@@ -110,48 +109,45 @@ class PlacementTest {
         val tabs = roots.map { it.first }
 
         assertEquals("two tab roots share a tab: $tabs", tabs.distinct(), tabs)
-        // Community is a tab only in the CommunityPuzzles set, so it is not in topLevelDestinations.
-        assertEquals(topLevelDestinations.map { it.tab }.toSet() + Tab.Community, tabs.toSet())
+        assertEquals(topLevelDestinations.map { it.tab }.toSet(), tabs.toSet())
         assertEquals(
             "a tab root's key differs from its destination's",
-            topLevelDestinations.associate { it.tab to it.key::class } + (Tab.Community to CommunityKey::class),
+            topLevelDestinations.associate { it.tab to it.key::class },
             roots.toMap(),
         )
     }
 
     @Test
-    fun `every registered key resolves under the base set and the Community set, and only the Custom keys move`() {
+    fun `every registered key resolves to its row`() {
         val keys = PlacementSamples.everyRow()
         assertEquals("a registered key has no sample to resolve", registeredKeyClasses(), keys.map { it::class }.toSet())
-        val base = keys.associate { it::class to placements.getValue(it::class) }
 
-        assertEquals(base, keys.associate { it::class to placementOf(it, PlacementDelta.None) })
+        assertEquals(placements, keys.associate { it::class to placementOf(it) })
+    }
+
+    @Test
+    fun `everything Custom's list opens is pushed on Community and keeps its chrome`() {
         assertEquals(
-            base + mapOf(
+            mapOf(
                 EditorKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Immersive),
                 PublishedPuzzleKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Bar),
                 FriendPuzzleKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Bar),
                 CustomGameKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Immersive),
                 CustomResultKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Immersive),
             ),
-            keys.associate { it::class to placementOf(it, communityPlacement) },
+            listOf(EditorKey::class, PublishedPuzzleKey::class, FriendPuzzleKey::class, CustomGameKey::class, CustomResultKey::class)
+                .associateWith { placements.getValue(it) },
         )
     }
 
     @Test
-    fun `the Studio and the published page live on Games in the base table`() {
-        assertEquals(Placement(Home.PushedOn(Tab.Games), Chrome.Immersive), placementOf(EditorKey("d1"), PlacementDelta.None))
-        assertEquals(Placement(Home.PushedOn(Tab.Games), Chrome.Bar), placementOf(PublishedPuzzleKey("K7Q2MX"), PlacementDelta.None))
-    }
-
-    @Test
     fun `the legacy Create key resolves as retired`() {
-        assertEquals(Placement(Home.Retired, Chrome.Bar), placementOf(CreateKey, PlacementDelta.None))
+        assertEquals(Placement(Home.Retired, Chrome.Bar), placementOf(CreateKey))
     }
 
     @Test
     fun `a key without a row fails with a message that names it`() {
-        val failure = assertThrows(IllegalStateException::class.java) { placementOf(NoRow, PlacementDelta.None) }
+        val failure = assertThrows(IllegalStateException::class.java) { placementOf(NoRow) }
 
         assertTrue(
             "expected the message to name NoRow, got: ${failure.message}",

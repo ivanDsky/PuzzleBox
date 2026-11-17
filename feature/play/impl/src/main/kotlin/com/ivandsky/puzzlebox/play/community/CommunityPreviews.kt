@@ -25,7 +25,7 @@ private fun row(code: String, game: String, brand: GameBrand, title: String, lev
 private fun Section(phase: CommunityPhase) {
     PuzzleBoxTheme {
         Surface {
-            LazyColumn { communitySection(CommunityState(enabled = true, games = Games, phase = phase), Actions) }
+            LazyColumn { communitySection(CommunityState(games = Games, phase = phase), Actions) }
         }
     }
 }

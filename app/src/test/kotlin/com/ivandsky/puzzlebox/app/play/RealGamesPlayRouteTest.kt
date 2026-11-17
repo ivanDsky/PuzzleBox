@@ -76,7 +76,6 @@ import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.flags.FakeReleaseFlags
 import com.ivandsky.puzzlebox.app.di.PreferencesQueensSettings
-import com.ivandsky.puzzlebox.app.nav.testCustomSlot
 import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeGameSettingsRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
@@ -200,7 +199,7 @@ class RealGamesPlayRouteTest {
                 backStack = navigator.state.currentStack,
                 onBack = { navigator.pop() },
                 entryProvider = entryProvider {
-                    playEntry(navigator, PlayLayout.SinglePane, onOpenRanks = { _, _ -> }, custom = testCustomSlot(), onMakeOne = {})
+                    playEntry(navigator, PlayLayout.SinglePane, onOpenRanks = { _, _ -> }, onMakeOne = {})
                     entry<ResultKey> { Text("result") }
                 },
             )
