@@ -37,7 +37,8 @@ import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.play.api.GameKey
 
 private val Inset = Spacing.sm
-private val BadgeColumnGap = 4.dp
+// The row shares its width, so each dp here adds only 1/count dp of visible disc gap.
+private val BadgeColumnGap = 9.dp
 private val UpNextMinHeight = 44.dp
 private val HeadSkeletonWidth = 140.dp
 private val HeadSkeletonHeight = 22.dp
