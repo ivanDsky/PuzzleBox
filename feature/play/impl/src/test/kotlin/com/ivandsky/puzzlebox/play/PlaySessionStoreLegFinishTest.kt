@@ -69,7 +69,7 @@ class PlaySessionStoreLegFinishTest {
     private val completions = FakeCompletionRepository()
     private val outbox = FakeMatchResultOutbox()
     private val identity = FakeIdentityService(me)
-    private val finishLeg = FinishLeg(outbox, identity) { Instant.EPOCH }
+    private val finishLeg = FinishLeg(outbox, FakeMatchRepository(), identity) { Instant.EPOCH }
 
     private fun TestScope.store(dispatcher: TestDispatcher = UnconfinedTestDispatcher(testScheduler)): PlaySessionStore {
         val lane = WriteLane()

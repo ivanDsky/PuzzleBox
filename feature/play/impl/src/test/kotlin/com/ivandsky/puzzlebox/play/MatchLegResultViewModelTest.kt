@@ -130,7 +130,7 @@ class MatchLegResultViewModelTest {
             ),
             writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
             completions = FakeCompletionRepository(),
-            finishLeg = FinishLeg(outbox, identity) { Instant.EPOCH },
+            finishLeg = FinishLeg(outbox, server, identity) { Instant.EPOCH },
             calendar = calendar,
             dispatchers = object : DispatcherProvider {
                 override val main = dispatcher

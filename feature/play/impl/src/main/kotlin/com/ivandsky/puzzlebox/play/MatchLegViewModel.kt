@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.OutboxResult
+import com.ivandsky.puzzlebox.data.match.mySeat
 import com.ivandsky.puzzlebox.domain.FinishResult
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
@@ -37,7 +38,8 @@ internal sealed interface MatchLegState {
 
     /**
      * The board of [play] (null when the puzzle is unplayable in this build), where it sits in its duel
-     * ([position], null until the match is known) and whether the bar's menu offers Give up ([canGiveUp]: signed in).
+     * ([position], null until the match is known) and whether the bar's menu offers Give up ([canGiveUp]: the
+     * player holds a seat, so the loss can be recorded).
      */
     data class Playing(val play: ActivePlay?, val position: LegPosition?, val canGiveUp: Boolean) : MatchLegState
 }
@@ -59,12 +61,13 @@ internal data class LegPosition(val opponent: String?, val number: Int, val coun
  * The state holder of one duel puzzle's board for [key]: the store's live play of the key's leg, opened only
  * once my own queued result for the puzzle is known not to exist. A taken puzzle never reopens: my row
  * in the outbox (the single truth for "taken") sends the route to [MatchLegExit.Taken] with that row's result.
- * The check waits up to [IDENTITY_WAIT_MS] for the signed-in player (restored after a kill only some moments in),
- * runs as signed out past that, and runs again when the player changes. The play is the store's, so it outlives
- * this ViewModel; releasing it is [PlaySessionStore.retain]'s job, never this one's.
+ * "My" is the seat the match gives the player ([seatOf]): a self duel has one signed in or out. Without a seat (a
+ * friend duel signed out) the check waits up to [IDENTITY_WAIT_MS] for the signed-in player (restored after a kill
+ * only some moments in), runs seatless past that, and runs again when the player changes. The play is the store's,
+ * so it outlives this ViewModel; releasing it is [PlaySessionStore.retain]'s job, never this one's.
  *
  * Once the match document is read [MatchLegState.Playing.position] names the puzzle in its duel; nothing
- * else of the match is read from here. [giveUp] queues the loss through the store; signed out, nothing
+ * else of the match is read from here. [giveUp] queues the loss through the store; without a seat, nothing
  * could record it and nothing happens.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -94,7 +97,8 @@ internal class MatchLegViewModel(
         } else {
             val fetch = code?.let(matches::observe) ?: flowOf(null)
             combine(fetch, uid) { fetch, uid ->
-                MatchLegState.Playing(open.play, legPosition(fetch, key, uid), canGiveUp = uid != null)
+                val seat = seatOf(fetch, uid)
+                MatchLegState.Playing(open.play, legPosition(fetch, key, seat), canGiveUp = seat != null)
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), MatchLegState.Checking)
@@ -102,9 +106,10 @@ internal class MatchLegViewModel(
     init {
         viewModelScope.launch {
             uid.collectLatest { uid ->
-                // Signed out so far: give a restoring player a moment; its arrival restarts this check.
-                if (uid == null) delay(IDENTITY_WAIT_MS)
-                val result = taken(uid)
+                val seat = seat(uid)
+                // No seat so far: give a restoring player a moment; its arrival restarts this check.
+                if (seat == null) delay(IDENTITY_WAIT_MS)
+                val result = taken(seat)
                 if (result != null) exitEvents.send(MatchLegExit.Taken(result)) else openPlay()
             }
         }
@@ -118,8 +123,10 @@ internal class MatchLegViewModel(
             when (store.giveUp(key)) {
                 FinishResult.Queued -> exitEvents.send(MatchLegExit.GaveUp)
                 // A finish landed first (a solve at the same moment): its row is the result.
-                FinishResult.AlreadyRecorded ->
-                    exitEvents.send(taken(identity.current.value?.uid)?.let(MatchLegExit::Taken) ?: MatchLegExit.GaveUp)
+                FinishResult.AlreadyRecorded -> {
+                    val result = taken(seat(identity.current.value?.uid))
+                    exitEvents.send(result?.let(MatchLegExit::Taken) ?: MatchLegExit.GaveUp)
+                }
                 FinishResult.SignedOut, null -> givingUp = false
             }
         }
@@ -129,27 +136,36 @@ internal class MatchLegViewModel(
         if (opened.value == null) opened.value = Opened(store.open(key))
     }
 
-    private suspend fun taken(uid: String?): MatchLegResultKey? =
-        code?.let { takenResultKey(outbox.observe(it).first(), key, uid) }
+    /** One read of the match, not a listener: the taken check must not run for the account before a self duel answers. */
+    private suspend fun seat(uid: String?): String? = seatOf(code?.let { matches.observe(it).first() }, uid)
+
+    private suspend fun taken(seat: String?): MatchLegResultKey? =
+        code?.let { takenResultKey(outbox.observe(it).first(), key, seat) }
 
     private class Opened(val play: ActivePlay?)
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L
 
-        /** How long a duel puzzle waits for the restored player before checking "taken" as signed out. */
+        /** How long a duel puzzle waits for the restored player before checking "taken" without a seat. */
         const val IDENTITY_WAIT_MS = 2_000L
     }
 }
 
-/** [key]'s place in a found match as [uid] sees it; null until the match is found or when the index is past its puzzles. */
+/** The seat [uid] holds in a found match: the self seat in a self duel, signed in or out; [uid] itself until the match is found. */
+internal fun seatOf(fetch: MatchFetch?, uid: String?): String? {
+    val match = (fetch as? MatchFetch.Found)?.match ?: return uid
+    return match.mySeat(uid)
+}
+
+/** [key]'s place in a found match as the seat [uid] sees it; null until the match is found or when the index is past its puzzles. */
 internal fun legPosition(fetch: MatchFetch?, key: MatchLegKey, uid: String?): LegPosition? {
     val match = (fetch as? MatchFetch.Found)?.match ?: return null
     if (key.legIndex !in match.legs.indices) return null
     return LegPosition(uid?.let(match::opponentOf)?.name, key.legIndex + 1, match.legs.size)
 }
 
-/** The result page of [key] when [rows] hold [uid]'s own result for it, else null (the board opens). */
+/** The result page of [key] when [rows] hold the seat [uid]'s own result for it, else null (the board opens). */
 internal fun takenResultKey(rows: List<OutboxResult>, key: MatchLegKey, uid: String?): MatchLegResultKey? {
     uid ?: return null
     val mine = rows.firstOrNull { it.result.uid == uid && it.result.legIndex == key.legIndex }?.result ?: return null

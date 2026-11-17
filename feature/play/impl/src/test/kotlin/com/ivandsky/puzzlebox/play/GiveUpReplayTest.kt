@@ -79,7 +79,7 @@ class GiveUpReplayTest {
         ),
         writers = { SlotWriter(it, saved, lane, CoroutineScope(dispatcher)) },
         completions = FakeCompletionRepository(),
-        finishLeg = FinishLeg(outbox, FakeIdentityService(me)) { Instant.EPOCH },
+        finishLeg = FinishLeg(outbox, FakeMatchRepository(), FakeIdentityService(me)) { Instant.EPOCH },
         calendar = calendar,
         dispatchers = testDispatchers(dispatcher),
     )
