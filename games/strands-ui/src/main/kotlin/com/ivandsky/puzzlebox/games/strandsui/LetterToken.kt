@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.BoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
 import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSemantics.letterButton
@@ -73,6 +74,8 @@ internal fun LetterToken(
     onTrace: (TraceStep) -> Unit,
 ) {
     LocalTokenComposed.current(cell.coord)
+    // Flat surfaces: the token is its face alone, no lip under it (nav-rethink M10-8).
+    val flat = LocalFlatSurfaces.current
     val traceIndex by remember(cell.coord, trace) {
         derivedStateOf { trace().path.indexOf(cell.coord).takeIf { it >= 0 } }
     }
@@ -116,14 +119,16 @@ internal fun LetterToken(
                     val half = size.minDimension / 2
                     val ended = end.value.at(cell.coord)
                     if (ended != null) {
-                        drawTokenSquare(ended.lip(colors), half, lip = true)
+                        if (!flat) drawTokenSquare(ended.lip(colors), half, lip = true)
                         drawTokenSquare(ended.fill(colors), half)
                         return@drawBehind
                     }
                     val lip = if (altTheme) colors.strandsThemeAltLip else spec.lip(colors)
                     val fill = if (altTheme) colors.strandsThemeAltFill else spec.fill(colors)
-                    tokenColor(lip, TraceOverlaySpec.lip(colors), traced, frame, join.value)?.let {
-                        drawTokenSquare(it, half, lip = true)
+                    if (!flat) {
+                        tokenColor(lip, TraceOverlaySpec.lip(colors), traced, frame, join.value)?.let {
+                            drawTokenSquare(it, half, lip = true)
+                        }
                     }
                     tokenColor(fill, TraceOverlaySpec.fill(colors), traced, frame, join.value)?.let { drawTokenSquare(it, half) }
                     if (selectionRing && traced) {
@@ -157,6 +162,8 @@ internal fun LetterToken(
  * ([lipRoomPx], from the geometry the painter and the connector clipper read), while it
  * lays out as the face's own square: the lip hangs below the face and a translucent layer clips
  * to its bounds, which would cut it. The face centre, the scale pivot, is exactly where it was.
+ * Flat surfaces draw no lip but keep this room: the layer bounds, the layout and the hit area do not move, and a
+ * dashed ring or a selection ring is never clipped differently.
  *
  * Precondition: the constraints are fixed (it follows `.size(tokenSize)`), and `graphicsLayer`
  * comes after it, so the layer takes the enlarged bounds.

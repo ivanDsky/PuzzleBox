@@ -91,8 +91,8 @@ internal object StrandsCellDrawing {
 /** The side of the token's face: [half] at [scale], doubled. */
 internal fun tokenSide(half: Float, scale: Float = 1f): Float = half * scale * 2
 
-/** How far the lip sits below a face of side [side]. */
-internal fun tokenDrop(side: Float): Float = side * StrandsBoardSpec.TokenLipFraction
+/** How far the lip sits below a face of side [side]; none when [flat] (LocalFlatSurfaces on). */
+internal fun tokenDrop(side: Float, flat: Boolean = false): Float = if (flat) 0f else side * StrandsBoardSpec.TokenLipFraction
 
 /** The corner radius of a face of side [side], and of its lip. */
 internal fun tokenCorner(side: Float): Float = side * StrandsBoardSpec.TokenCornerFraction
@@ -102,12 +102,12 @@ internal class TokenGeometry(val face: Rect, val drop: Float, val cornerRadius: 
     val lip: Rect get() = face.translate(0f, drop)
 }
 
-/** The geometry of the token of half-side [half] at [scale], its face centred on [center]. */
-internal fun tokenGeometry(center: Offset, half: Float, scale: Float = 1f): TokenGeometry {
+/** The geometry of the token of half-side [half] at [scale], its face centred on [center]; flat, the lip is the face. */
+internal fun tokenGeometry(center: Offset, half: Float, scale: Float = 1f, flat: Boolean = false): TokenGeometry {
     val reach = half * scale
     val side = tokenSide(half, scale)
     val face = Rect(center.x - reach, center.y - reach, center.x + reach, center.y + reach)
-    return TokenGeometry(face, tokenDrop(side), CornerRadius(tokenCorner(side)))
+    return TokenGeometry(face, tokenDrop(side, flat), CornerRadius(tokenCorner(side)))
 }
 
 /**
@@ -138,10 +138,10 @@ internal fun DrawScope.drawTokenSquare(
  * tokens clips this exact shape, so the line meets the visible edge with no gap at a corner or
  * below the lip.
  */
-internal fun Path.addToken(center: Offset, half: Float, scale: Float = 1f) {
-    val token = tokenGeometry(center, half, scale)
+internal fun Path.addToken(center: Offset, half: Float, scale: Float = 1f, flat: Boolean = false) {
+    val token = tokenGeometry(center, half, scale, flat)
     addRoundRect(RoundRect(token.face, token.cornerRadius))
-    addRoundRect(RoundRect(token.lip, token.cornerRadius))
+    if (!flat) addRoundRect(RoundRect(token.lip, token.cornerRadius))
 }
 
 /**

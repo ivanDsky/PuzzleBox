@@ -33,6 +33,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.BoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
 import com.ivandsky.puzzlebox.designsystem.LocalPrimaryText
 import com.ivandsky.puzzlebox.gameui.replay.ReplayHintBadge
@@ -59,11 +60,12 @@ internal fun SudokuCellView(
     val error = colors.error
     val ring = colors.onTertiaryContainer
     val motion = LocalSudokuMotion.current
+    val flat = LocalFlatSurfaces.current
     Box(
         modifier
             .background(cellTint(cell, colors, board))
             .waveTint(motion, cell.idx, colors.primary)
-            .selectionTile(cell.selected, board)
+            .selectionTile(cell.selected, board, flat)
             // The selection tint is the tap feedback; a ripple would animate a highlight. No handler = read-only: no tap, no action.
             .then(
                 if (onSelect == null) Modifier
@@ -136,18 +138,19 @@ internal fun SudokuCellView(
 
 /**
  * The selection as an inset tile sitting on a lip of its own hue (spec A14): the face drawn
- * above the lip, both inside the cell, so no neighbour paints over it.
+ * above the lip, both inside the cell, so no neighbour paints over it. [flat] (LocalFlatSurfaces on)
+ * drops the lip: the face alone, centred in the cell.
  */
-private fun Modifier.selectionTile(selected: Boolean, board: BoardColors): Modifier =
+private fun Modifier.selectionTile(selected: Boolean, board: BoardColors, flat: Boolean): Modifier =
     if (!selected) {
         this
     } else {
         drawBehind {
             val inset = SELECTION_TILE_INSET.toPx()
-            val depth = SELECTION_LIP_DEPTH.toPx()
+            val depth = if (flat) 0f else SELECTION_LIP_DEPTH.toPx()
             val corner = CornerRadius(SELECTION_TILE_RADIUS.toPx())
             val face = Size(size.width - inset * 2, size.height - inset * 2 - depth)
-            drawRoundRect(board.sudokuSelectionLip, Offset(inset, inset + depth), face, corner)
+            if (!flat) drawRoundRect(board.sudokuSelectionLip, Offset(inset, inset + depth), face, corner)
             drawRoundRect(board.sudokuSelection, Offset(inset, inset), face, corner)
         }
     }
