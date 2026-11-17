@@ -54,7 +54,8 @@ import kotlinx.coroutines.launch
  * the Friends tab is where those cards live. With a [customTab] too the pills are Dailies,
  * Duels, Custom ([gamesTabs]): Custom takes Friends' place ([shownWith]), its body is
  * [customTab], laid out on [customScroll], and its pill carries [customCount]. The Duels body is handed
- * the pending [duelPrefill] and reports it taken ([onDuelPrefillTaken]).
+ * the pending [duelPrefill] and reports it taken ([onDuelPrefillTaken]). With a [community] tab the pills are Dailies
+ * and Duels only; Friends and Custom are not shown, and a saved one shows Dailies.
  */
 @Composable
 internal fun LibraryList(
@@ -76,10 +77,11 @@ internal fun LibraryList(
     customScroll: LazyListState = rememberLazyListState(),
     duelPrefill: DuelPrefill? = null,
     onDuelPrefillTaken: () -> Unit = {},
+    community: Boolean = false,
 ) {
     val phone = layout == PlayLayout.SinglePane
     // Only the list on screen glides: a tab change already snaps the other ones back to their tops.
-    val shown by rememberUpdatedState(if (duels == null) null else tab.shownWith(customTab != null))
+    val shown by rememberUpdatedState(if (duels == null) null else tab.shownWith(customTab != null, community))
     OnTabReselect {
         when (shown) {
             GamesTab.Duels -> duelsScroll.animateScrollToItem(0)
@@ -90,7 +92,7 @@ internal fun LibraryList(
     if (duels != null) {
         TabbedList(
             state, phone, scroll, duelsScroll, onRow, modifier, headerAction, duels, tab, onTab, friendsTab, friendCount,
-            customTab, customCount, customScroll, duelPrefill, onDuelPrefillTaken,
+            customTab, customCount, customScroll, duelPrefill, onDuelPrefillTaken, community,
         )
         return
     }
@@ -128,10 +130,11 @@ private fun TabbedList(
     customScroll: LazyListState,
     duelPrefill: DuelPrefill?,
     onDuelPrefillTaken: () -> Unit,
+    community: Boolean,
 ) {
     val scope = rememberCoroutineScope()
     // A saved or requested Friends is Custom while there is a Custom tab, and the other way round.
-    val shown = tab.shownWith(customTab != null)
+    val shown = tab.shownWith(customTab != null, community)
     // The pills and the Friends body pad their own sides; the tablet's list has none, so they step out of it.
     val sides = if (phone) Modifier else Modifier.widenBy(Spacing.lg)
     // The tab switch fades the body in through an alpha layer cut to the body's bounds, which would shear the
@@ -147,7 +150,7 @@ private fun TabbedList(
     }
     Column(modifier.testTag("library.list"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         Box(if (phone) Modifier.padding(horizontal = Spacing.lg) else Modifier) { ListHeader(headerAction) }
-        Box(sides) { GamesTabRow(gamesTabs(customTab != null), shown, select, friendCount, duels.needYou(), customCount) }
+        Box(sides) { GamesTabRow(gamesTabs(customTab != null, community), shown, select, friendCount, duels.needYou(), customCount) }
         AnimatedContent(
             targetState = shown,
             transitionSpec = { fadeIn(tween(MotionTokens.ReducedFadeDuration)) togetherWith fadeOut(snap()) },
@@ -216,7 +219,7 @@ private fun DailyRows(state: LibraryUiState, phone: Boolean, onRow: (GameId) -> 
 }
 
 /** Measures the node [room] wider on each side and places it [room] left, keeping its parent's width. */
-private fun Modifier.widenBy(room: Dp): Modifier = layout { measurable, constraints ->
+internal fun Modifier.widenBy(room: Dp): Modifier = layout { measurable, constraints ->
     val r = room.roundToPx()
     val placeable = measurable.measure(constraints.offset(horizontal = 2 * r))
     layout((placeable.width - 2 * r).coerceAtLeast(0), placeable.height) { placeable.place(-r, 0) }

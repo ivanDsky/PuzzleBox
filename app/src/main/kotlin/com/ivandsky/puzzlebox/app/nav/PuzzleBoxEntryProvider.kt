@@ -28,6 +28,7 @@ import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.GamesTab
 import com.ivandsky.puzzlebox.play.SandboxPlay
 import com.ivandsky.puzzlebox.play.api.GameKey
+import com.ivandsky.puzzlebox.play.navigation.communityEntry
 import com.ivandsky.puzzlebox.play.navigation.playEntry
 import com.ivandsky.puzzlebox.play.navigation.resultEntry
 import com.ivandsky.puzzlebox.profile.api.LinkedInLoginKey
@@ -51,7 +52,8 @@ import java.time.LocalDate
  * page's Make one (the default size) and the Result's Make one like this (the played size); both are null until
  * then, and neither door shows. Back pops the layer or the current tab's stack
  * ([Navigator.pop]), including after process-death restore. A [codeDraft] (a tapped link's text that isn't a
- * code) opens the Play library's code sheet holding it.
+ * code) opens the Play library's code sheet holding it. With a Community tab in [tabSet] (M10-1) Custom is that tab's
+ * root ([communityEntry]) and not a Games pill: [custom] fills it, with its own code sheet, and Games shows Dailies and Duels.
  *
  * Each content type has one owner (ADR-0027): Today's rank summary opens the Ranks hub ([openRanks]) and its
  * duels summary the Games section through [libraryRequests]. Today hides what is owned elsewhere; the game page
@@ -89,6 +91,7 @@ internal fun puzzleBoxEntryProvider(
         summaries = homeSummaries(navigator, tabSet, duels, libraryRequests),
     )
     ranksEntry(navigator, historyLayout, linkedIn = true, tuneDefaults = tuneDefaults)
+    val communityTab = tabSet.hasCommunityTab
     playEntry(
         navigator,
         playLayout,
@@ -97,10 +100,20 @@ internal fun puzzleBoxEntryProvider(
         onLibraryRequestTaken = libraryRequests::take,
         onCodeDraftTaken = onCodeDraftTaken,
         duels = duels,
-        custom = custom,
+        // With a Community tab the Custom list is that tab's, not a Games pill.
+        custom = if (communityTab) null else custom,
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) },
         onOpenRanks = openRanks(navigator),
         onMakeOne = makeOne?.let { make -> { game -> make(game, null) } },
+        communityTab = communityTab,
+    )
+    communityEntry(
+        navigator,
+        playLayout,
+        custom = custom,
+        codeDraft = codeDraft,
+        onCodeDraftTaken = onCodeDraftTaken,
+        duels = duels,
     )
     resultEntry(
         navigator,

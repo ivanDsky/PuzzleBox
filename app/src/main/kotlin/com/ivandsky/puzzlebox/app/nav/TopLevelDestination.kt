@@ -9,6 +9,7 @@ import com.ivandsky.puzzlebox.designsystem.Ranks
 import com.ivandsky.puzzlebox.designsystem.RanksFilled
 import com.ivandsky.puzzlebox.history.api.HistoryRootKey
 import com.ivandsky.puzzlebox.home.api.HomeKey
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.PlayKey
 
 /**
@@ -39,6 +40,9 @@ private val ranks = TopLevelDestination(
 private val create = TopLevelDestination(
     CreateKey, "Create", { PuzzleIcons.Create }, { PuzzleIcons.CreateFilled }, "nav.tab.create", Tab.Create,
 )
+private val community = TopLevelDestination(
+    CommunityKey, "Community", { PuzzleIcons.Community }, { PuzzleIcons.CommunityFilled }, "nav.tab.community", Tab.Community,
+)
 
 /**
  * The four-tab set: Today, Games, Ranks, Create (ADR-0027, amended). Ranks took History's slot and keeps
@@ -52,3 +56,9 @@ internal val topLevelDestinations: List<TopLevelDestination> = listOf(home, play
  * registered so a state saved with four tabs still decodes, and restore drops its stack.
  */
 internal val customInGamesDestinations: List<TopLevelDestination> = listOf(home, play, ranks)
+
+/**
+ * The tab set with CustomInGames and CommunityPuzzles on (nav-rethink M10-1): Today, Games, Community, Ranks. Community
+ * takes Custom's list out of Games; Create is not a tab, as with CustomInGames alone.
+ */
+internal val communityDestinations: List<TopLevelDestination> = listOf(home, play, community, ranks)

@@ -56,6 +56,8 @@ import org.koin.compose.koinInject
  * A non-null [onReconnectLinkedIn] turns the LinkedIn lines on the game page's day card on and is what its Reconnect opens.
  * [onOpenRanks] also opens the Ranks hub from the Result's rank chip, and the marks of the play side panel's times
  * draw as chips beside the name, as the hub's boards do. A non-null [onMakeOne] adds "Make one" to each game page.
+ * With a [communityTab] (the app's Community tab, [communityEntry]) Custom is not a Games pill and the friend puzzles
+ * live on that tab: Games shows Dailies and Duels only.
  */
 fun EntryProviderScope<NavKey>.playEntry(
     navigator: Navigator,
@@ -69,6 +71,7 @@ fun EntryProviderScope<NavKey>.playEntry(
     onLibraryRequestTaken: () -> Unit = {},
     onReconnectLinkedIn: (() -> Unit)? = null,
     onMakeOne: ((GameId) -> Unit)? = null,
+    communityTab: Boolean = false,
 ) {
     entry<PlayKey> {
         LibraryRoute(
@@ -85,6 +88,7 @@ fun EntryProviderScope<NavKey>.playEntry(
             onReconnectLinkedIn = onReconnectLinkedIn,
             onOpenRanks = onOpenRanks,
             onMakeOne = onMakeOne,
+            communityTab = communityTab,
         )
     }
     entry<FriendPuzzleKey> { key ->

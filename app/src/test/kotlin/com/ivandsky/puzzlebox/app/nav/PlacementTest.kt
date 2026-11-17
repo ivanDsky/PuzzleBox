@@ -5,8 +5,10 @@ import com.ivandsky.puzzlebox.app.PlacementSamples
 import com.ivandsky.puzzlebox.create.api.EditorKey
 import com.ivandsky.puzzlebox.create.api.PublishedPuzzleKey
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
+import com.ivandsky.puzzlebox.play.api.CommunityKey
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.CustomResultKey
+import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
@@ -106,16 +108,17 @@ class PlacementTest {
         val tabs = roots.map { it.first }
 
         assertEquals("two tab roots share a tab: $tabs", tabs.distinct(), tabs)
-        assertEquals(topLevelDestinations.map { it.tab }.toSet(), tabs.toSet())
+        // Community is a tab only in the CustomInGames + CommunityPuzzles set, so it is not in topLevelDestinations.
+        assertEquals(topLevelDestinations.map { it.tab }.toSet() + Tab.Community, tabs.toSet())
         assertEquals(
             "a tab root's key differs from its destination's",
-            topLevelDestinations.associate { it.tab to it.key::class },
+            topLevelDestinations.associate { it.tab to it.key::class } + (Tab.Community to CommunityKey::class),
             roots.toMap(),
         )
     }
 
     @Test
-    fun `every registered key resolves under both flag states, and only the Studio and the published page move`() {
+    fun `every registered key resolves under the three flag states, and only the Custom keys move`() {
         val keys = PlacementSamples.everyRow()
         assertEquals("a registered key has no sample to resolve", registeredKeyClasses(), keys.map { it::class }.toSet())
         val base = keys.associate { it::class to placements.getValue(it::class) }
@@ -127,6 +130,16 @@ class PlacementTest {
                 PublishedPuzzleKey::class to Placement(Home.PushedOn(Tab.Games), Chrome.Bar),
             ),
             keys.associate { it::class to placementOf(it, customInGamesPlacement) },
+        )
+        assertEquals(
+            base + mapOf(
+                EditorKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Immersive),
+                PublishedPuzzleKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Bar),
+                FriendPuzzleKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Bar),
+                CustomGameKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Immersive),
+                CustomResultKey::class to Placement(Home.PushedOn(Tab.Community), Chrome.Immersive),
+            ),
+            keys.associate { it::class to placementOf(it, communityPlacement) },
         )
     }
 
