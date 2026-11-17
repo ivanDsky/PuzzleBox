@@ -15,8 +15,10 @@ import com.ivandsky.puzzlebox.testing.repository.FakeCompletionRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeFinalBoardStore
 import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeLeaderboardRepository
+import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneOffset
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -41,6 +43,7 @@ class ObserveOverallTest {
 
     private val day = LocalDate.of(2026, 11, 13)
     private val window = RankWindow.Day(day)
+    private val clock = Clock.fixed(Instant.parse("2026-11-13T12:00:00Z"), ZoneOffset.UTC)
     private val zip = GameId("zip")
     private val tango = GameId("tango")
     private val order = RankOrder.TimeThenHints
@@ -192,7 +195,7 @@ class ObserveOverallTest {
         val leaderboard = FakeLeaderboardRepository()
         leaderboard.setEntries(ref(tango), emptyList()) // zip stays null: the repository's answer for an empty cache
         val registry = TestGames.registry(listOf(zip, tango))
-        val window = ObserveRankWindow(identity, leaderboard, FakeFinalBoardStore(), registry, FakeGameCalendar(day))
+        val window = ObserveRankWindow(identity, leaderboard, FakeFinalBoardStore(), registry, FakeGameCalendar(day), clock)
 
         val state = observe(window(this@ObserveOverallTest.window, listOf(zip, tango))).drop(1).first()
 
@@ -206,7 +209,7 @@ class ObserveOverallTest {
         val zipBoard = ref(zip)
         val leaderboard = FakeLeaderboardRepository()
         val registry = TestGames.registry(listOf(zip))
-        val window = ObserveRankWindow(identity, leaderboard, FakeFinalBoardStore(), registry, FakeGameCalendar(day))
+        val window = ObserveRankWindow(identity, leaderboard, FakeFinalBoardStore(), registry, FakeGameCalendar(day), clock)
         val shared = window(this@ObserveOverallTest.window, listOf(zip)).shareIn(backgroundScope, SharingStarted.Eagerly, replay = 1)
         shared.first { it is RankWindowBoards.Boards }
         val listeners = leaderboard.observedBoards.size
