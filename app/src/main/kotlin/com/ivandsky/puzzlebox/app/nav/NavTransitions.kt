@@ -144,7 +144,7 @@ internal data class NavMotion(
  * out of (push) or shrink back into (pop); only the tablet form reads it.
  * - Reduced motion: the upper page fades for every case.
  * - Another owner tab, or the layer above the tabs opening or closing: phone fade-through;
- *   tablet rise-over, or with [tabletCrossfade] an in-place crossfade of [MotionTokens.TabletTabCrossfade].
+ *   tablet rise-over, or with [tabletCrossfade] an in-place crossfade of [MotionTokens.TabletTabCrossfade] (the Profile/Settings layer opening or closing takes [MotionTokens.TabletPageCrossfade]).
  * - Phone, same tab: the full-screen slide, result included.
  * - Tablet, into or out of a game: lift from its card, or the phone slide without one
  *   (deep link, history play-again). Game ⇄ result and every other move: full-width shared axis, or with
@@ -165,7 +165,11 @@ internal fun navMotion(
         reduceMotion -> reduced(pop, MotionTokens.ReducedFadeDuration)
         from[OWNER_TAB] != to[OWNER_TAB] -> when {
             form == NavForm.Phone -> tabFadeThrough(pop)
-            tabletCrossfade -> crossfade(pop, MotionTokens.TabletTabCrossfade)
+            // The ticket calls opening or closing the Profile/Settings layer a page move, not a tab switch.
+            tabletCrossfade -> crossfade(
+                pop,
+                if (from[OWNER_TAB] == LAYER_OWNER || to[OWNER_TAB] == LAYER_OWNER) MotionTokens.TabletPageCrossfade else MotionTokens.TabletTabCrossfade,
+            )
             else -> rise(pop)
         }
         form == NavForm.Phone -> slide(pop)

@@ -9,6 +9,7 @@ import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.GameId
@@ -116,6 +117,23 @@ class LibraryPaneCrossfadeTest {
         assertEquals(before.left, outgoing.left)
         assertEquals(before.top, outgoing.top)
         assertEquals(before.right - before.left, incoming.right - incoming.left)
+    }
+
+    @Test
+    @Config(sdk = [34], qualifiers = "w1280dp-h360dp")
+    fun `a scrolled list keeps its offset while the pane fades`() {
+        show(crossfade = true)
+        composeRule.mainClock.autoAdvance = true
+        val last = composeRule.onNodeWithTag("library.row.minisudoku").performScrollTo()
+        composeRule.mainClock.autoAdvance = false
+        val scrolledTop = last.getBoundsInRoot().top
+
+        pick("minisudoku")
+        composeRule.mainClock.advanceTimeBy(100L)
+
+        assertEquals(scrolledTop, composeRule.onNodeWithTag("library.row.minisudoku").getBoundsInRoot().top)
+        composeRule.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        assertEquals(scrolledTop, composeRule.onNodeWithTag("library.row.minisudoku").getBoundsInRoot().top)
     }
 
     @Test

@@ -218,9 +218,17 @@ class NavTransitionsTest {
         assertEquals(expected(false), crossfadeNav(homeRoot, playRoot, pop = false))
         assertEquals(expected(true), crossfadeNav(playRoot, homeRoot, pop = true))
         assertEquals(0f, expected(false).scrimAlpha)
-        // The Profile and Settings layer opens and closes over a tab like a tab switch.
+    }
+
+    @Test
+    fun `TabletCrossfade opening and closing the layer is a 200 ms page crossfade, not the tab timing`() {
+        val expected = { pop: Boolean ->
+            NavMotion(NavMotionKind.Crossfade, pop, durationMillis = 200, easing = MotionTokens.EasingStandard)
+        }
         assertEquals(expected(false), crossfadeNav(playRoot, layerProfile, pop = false))
         assertEquals(expected(true), crossfadeNav(layerProfile, playRoot, pop = true))
+        assertEquals(expected(false), crossfadeNav(homeRoot, layerSettings, pop = false))
+        assertEquals(expected(true), crossfadeNav(layerSettings, homeRoot, pop = true))
     }
 
     @Test
