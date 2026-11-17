@@ -16,10 +16,9 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.play.FriendsSectionHead
 
 /**
- * New today as rows of a list that is someone else's (the Community tab's): the head with its count and the filter ⋮
- * in its corner, a line naming the filter while one is on, then the body for [state]'s phase: a spinner while loading, one full-width [CommunityRow]
- * per puzzle, or the empty, offline or refused message (the last two with Retry). Every row pads its own sides, so the
- * list needs no padding of its own; the keys start with `community:`.
+ * New today as rows of a list that is someone else's (the tablet Community tab's): the head with its count and the
+ * filter ⋮ in its corner, then [communityFilterLine] and [communityBody]. Every row pads its own sides, so the list
+ * needs no padding of its own; the keys start with `community:`.
  */
 internal fun LazyListScope.communitySection(state: CommunityState, actions: CommunityActions) {
     val loaded = state.phase as? CommunityPhase.Loaded
@@ -32,11 +31,24 @@ internal fun LazyListScope.communitySection(state: CommunityState, actions: Comm
             CommunityFilterMenu(state.games, state.game, state.difficulty, actions.onGame, actions.onDifficulty)
         }
     }
+    communityFilterLine(state, actions)
+    communityBody(state, actions)
+}
+
+/** A line naming the filter while one is on in [state], with the × that clears it. */
+internal fun LazyListScope.communityFilterLine(state: CommunityState, actions: CommunityActions) {
     activeFilterLabel(state)?.let { label ->
         item(key = "community:filter", contentType = "community.filter") {
             CommunityActiveFilter(label, actions.onClearFilters, Modifier.padding(start = Spacing.lg))
         }
     }
+}
+
+/**
+ * The rows for [state]'s phase: a spinner while loading, one full-width [CommunityRow] per puzzle, or the empty,
+ * offline or refused message (the last two with Retry). With [onMake] the empty message offers "Make a puzzle".
+ */
+internal fun LazyListScope.communityBody(state: CommunityState, actions: CommunityActions, onMake: (() -> Unit)? = null) {
     when (val phase = state.phase) {
         CommunityPhase.Loading -> item(key = "community:loading", contentType = "community.state") {
             Box(Modifier.fillMaxWidth().padding(Spacing.xl), contentAlignment = Alignment.Center) {
@@ -49,6 +61,8 @@ internal fun LazyListScope.communitySection(state: CommunityState, actions: Comm
                     title = "No new puzzles today",
                     message = "Make one or check back later.",
                     modifier = Modifier.testTag("community.empty"),
+                    actionLabel = "Make a puzzle".takeIf { onMake != null },
+                    onAction = onMake,
                 )
             }
         } else {

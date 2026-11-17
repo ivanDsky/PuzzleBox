@@ -38,21 +38,37 @@ object CommunityHost {
             content(null)
             return
         }
-        val context = LocalContext.current
-        val actions = CommunityActions(
-            onOpen = { code: ShareCode -> onOpen(code.value) },
-            onReport = viewModel::report,
-            onGame = viewModel::pickGame,
-            onDifficulty = viewModel::pickDifficulty,
-            onClearFilters = viewModel::clearFilters,
-            onRetry = viewModel::retry,
-        )
-        Box(Modifier.fillMaxSize()) {
+        CommunityBound(viewModel, state, onOpen = { code -> onOpen(code.value) }) { actions ->
             content { communitySection(state, actions) }
-            CommunityNoticeSnackbar(state.notice, viewModel::noticeShown, Modifier.align(Alignment.BottomCenter))
-            if (state.signInPrompt) {
-                CommunitySignInDialog(state.signIn, onSignIn = { viewModel.signIn(context) }, onDismiss = viewModel::dismissSignIn)
-            }
+        }
+    }
+}
+
+/**
+ * New today's actions bound to [viewModel], handed to [content]; the snackbar and the sign-in dialog sit over it,
+ * outside its scrolling list. A row opens through [onOpen].
+ */
+@Composable
+internal fun CommunityBound(
+    viewModel: CommunityViewModel,
+    state: CommunityState,
+    onOpen: (ShareCode) -> Unit,
+    content: @Composable (CommunityActions) -> Unit,
+) {
+    val context = LocalContext.current
+    val actions = CommunityActions(
+        onOpen = onOpen,
+        onReport = viewModel::report,
+        onGame = viewModel::pickGame,
+        onDifficulty = viewModel::pickDifficulty,
+        onClearFilters = viewModel::clearFilters,
+        onRetry = viewModel::retry,
+    )
+    Box(Modifier.fillMaxSize()) {
+        content(actions)
+        CommunityNoticeSnackbar(state.notice, viewModel::noticeShown, Modifier.align(Alignment.BottomCenter))
+        if (state.signInPrompt) {
+            CommunitySignInDialog(state.signIn, onSignIn = { viewModel.signIn(context) }, onDismiss = viewModel::dismissSignIn)
         }
     }
 }

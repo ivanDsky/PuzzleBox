@@ -25,11 +25,8 @@ import com.ivandsky.puzzlebox.model.ShareCode
 
 /**
  * From friends as rows of a list that is someone else's (the Custom tab's): the section head
- * with its count, then one full-width [FriendCard] per puzzle in [cards]; with none, the head
- * over the hint that offers [onEnterCode]. Every row pads its own sides and carries its own
- * vertical spacing, so the list needs neither; the keys start with `friend:`. A card opens
- * through [onOpen]; its long-press menu removes through [onRemove]. [reduced] is the caller's
- * reduced-motion read, taken once for all the cards.
+ * with its count, then [friendRows]. [reduced] is the caller's reduced-motion read, taken once
+ * for all the cards.
  */
 internal fun LazyListScope.fromFriendsSection(
     cards: List<FriendCardModel>,
@@ -45,6 +42,22 @@ internal fun LazyListScope.fromFriendsSection(
             modifier = Modifier.padding(horizontal = Spacing.lg).padding(top = Spacing.lg, bottom = Spacing.sm),
         )
     }
+    friendRows(cards, reduced, onOpen, onRemove, onEnterCode)
+}
+
+/**
+ * One full-width [FriendCard] per puzzle in [cards]; with none, the hint that offers [onEnterCode].
+ * Every row pads its own sides and carries its own vertical spacing, so the list needs neither;
+ * the keys start with `friend:`. A card opens through [onOpen]; its long-press menu removes
+ * through [onRemove].
+ */
+internal fun LazyListScope.friendRows(
+    cards: List<FriendCardModel>,
+    reduced: Boolean,
+    onOpen: (ShareCode) -> Unit,
+    onRemove: (ShareCode) -> Unit,
+    onEnterCode: () -> Unit,
+) {
     if (cards.isEmpty()) {
         item(key = "friend:empty", contentType = "friend.empty") { FriendsEmptyHint(onEnterCode) }
         return
