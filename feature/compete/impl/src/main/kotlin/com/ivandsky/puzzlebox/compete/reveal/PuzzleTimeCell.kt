@@ -47,13 +47,12 @@ internal enum class CellResult { Won, Lost, Tied, Missing }
  * One player's time in one puzzle: right-aligned and tabular in the cell, then a tick slot that is always there, so the
  * figures keep their place whether or not the cell is ticked. A [CellResult.Won] cell is tinted in the player's [tone]
  * with a check that stamps in after [tickDelayMs]; a tie is a neutral cell with "=" in the slot; the loser's time is
- * muted; [CellResult.Missing] ("Gave up", "No result") is smaller and muted. [hints], where the game ranks on them, sits
- * under the time.
+ * muted; [CellResult.Missing] ("Gave up", "No result") is smaller and muted. Hint counts stay out of the cell: the
+ * row's caption and margin label carry a hints-decided gap.
  */
 @Composable
 internal fun PuzzleTimeCell(
     time: String,
-    hints: String?,
     result: CellResult,
     tone: DuelTone,
     compact: Boolean,
@@ -81,26 +80,16 @@ internal fun PuzzleTimeCell(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        Column(Modifier.weight(1f), horizontalAlignment = Alignment.End) {
-            Text(
-                text = time,
-                style = style,
-                fontWeight = if (result == CellResult.Lost) FontWeight.SemiBold else style.fontWeight,
-                color = content,
-                textAlign = TextAlign.End,
-                maxLines = 1,
-                softWrap = false,
-            )
-            if (hints != null) {
-                Text(
-                    text = hints,
-                    style = MaterialTheme.typography.labelMedium.copy(fontSize = 12.sp, lineHeight = 14.sp, fontWeight = FontWeight.Bold),
-                    color = if (result == CellResult.Won) content else scheme.onSurfaceVariant,
-                    maxLines = 1,
-                    softWrap = false,
-                )
-            }
-        }
+        Text(
+            text = time,
+            modifier = Modifier.weight(1f),
+            style = style,
+            fontWeight = if (result == CellResult.Lost) FontWeight.SemiBold else style.fontWeight,
+            color = content,
+            textAlign = TextAlign.End,
+            maxLines = 1,
+            softWrap = false,
+        )
         Box(Modifier.size(TickSlot), contentAlignment = Alignment.Center) {
             when (result) {
                 CellResult.Won -> Tick(content, tickDelayMs)
@@ -129,10 +118,10 @@ private fun Tick(tint: Color, delayMs: Int) {
 @Composable
 internal fun PuzzleTimeCellPreview() = PuzzleBoxTheme {
     Column(Modifier.padding(Spacing.lg), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        PuzzleTimeCell("0:42", null, CellResult.Won, DuelTone.Me, compact = false, tickDelayMs = 0, modifier = Modifier.width(188.dp))
-        PuzzleTimeCell("3:10", "0 hints", CellResult.Won, DuelTone.Them, compact = false, tickDelayMs = 0, modifier = Modifier.width(188.dp))
-        PuzzleTimeCell("0:54", null, CellResult.Lost, DuelTone.Them, compact = true, tickDelayMs = 0, modifier = Modifier.width(100.dp))
-        PuzzleTimeCell("0:41", null, CellResult.Tied, DuelTone.Me, compact = true, tickDelayMs = 0, modifier = Modifier.width(100.dp))
-        PuzzleTimeCell("No result", null, CellResult.Missing, DuelTone.Me, compact = true, tickDelayMs = 0, modifier = Modifier.width(100.dp))
+        PuzzleTimeCell("0:42", CellResult.Won, DuelTone.Me, compact = false, tickDelayMs = 0, modifier = Modifier.width(188.dp))
+        PuzzleTimeCell("3:10", CellResult.Won, DuelTone.Them, compact = false, tickDelayMs = 0, modifier = Modifier.width(188.dp))
+        PuzzleTimeCell("0:54", CellResult.Lost, DuelTone.Them, compact = true, tickDelayMs = 0, modifier = Modifier.width(100.dp))
+        PuzzleTimeCell("0:41", CellResult.Tied, DuelTone.Me, compact = true, tickDelayMs = 0, modifier = Modifier.width(100.dp))
+        PuzzleTimeCell("No result", CellResult.Missing, DuelTone.Me, compact = true, tickDelayMs = 0, modifier = Modifier.width(100.dp))
     }
 }

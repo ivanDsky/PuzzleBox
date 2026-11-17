@@ -187,17 +187,12 @@ class RevealSummaryModelTest {
     }
 
     @Test
-    fun aHintsDecidedRowShowsTheHintGapAndOnlyAHintsGameCaptionsEachTime() {
+    fun aHintsDecidedRowShowsTheHintGap() {
         val hinted = card(leg(time(70_000, hints = 0), time(60_000, hints = 2), LegVerdict.Win(LegBasis.Hints)), "Tango #1", RankOrder.HintsThenTime)
-        val timed = card(leg(time(58_000, hints = 1), time(72_000), LegVerdict.Win(LegBasis.Time)), "Zip #2")
 
-        val rows = puzzleRows(listOf(hinted, timed))
+        val rows = puzzleRows(listOf(hinted))
 
         assertEquals(RowMargin(0.4f, "2 hints"), rows[0].margin)
-        assertEquals("0 hints", rows[0].myHints)
-        assertEquals("2 hints", rows[0].theirHints)
-        assertNull(rows[1].myHints)
-        assertNull(rows[1].theirHints)
     }
 
     @Test

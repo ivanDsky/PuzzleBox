@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.DuelTone
@@ -81,13 +80,12 @@ private fun CardHead(summary: DuelSummary, win: Boolean) {
             PlayerAvatar(summary.opponent, summary.theirPhotoUrl, ring, HeadAvatar, DuelTone.Them)
         }
         Column(Modifier.weight(1f)) {
-            Text(
-                text = "${summary.me} vs ${summary.opponent}",
+            FittedName(
+                full = "${summary.me} vs ${summary.opponent}",
+                short = "${shortName(summary.me)} vs ${shortName(summary.opponent)}",
                 style = MaterialTheme.typography.titleMedium,
                 color = scheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.testTag("reveal.summary.title"),
+                textModifier = Modifier.testTag("reveal.summary.title"),
             )
             Text(summary.bestOf, style = MaterialTheme.typography.bodySmall, color = scheme.onSurfaceVariant, maxLines = 1)
         }
@@ -108,12 +106,11 @@ private fun ScoreSide(score: Int, name: String, photoUrl: String?, tone: DuelTon
         )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             PlayerAvatar(name, photoUrl, size = NameAvatar, tone = tone)
-            Text(
-                text = name,
+            FittedName(
+                full = name,
+                short = shortName(name),
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
             )
         }

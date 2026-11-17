@@ -13,7 +13,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -47,8 +46,8 @@ internal fun PuzzleTableHeader(summary: DuelSummary, metrics: TableMetrics, modi
         PlayerHead(summary.opponent, summary.theirPhotoUrl, DuelTone.Them, Modifier.width(metrics.timeWidth))
         if (!metrics.compact) {
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.SpaceBetween) {
-                MarginHead("← ${summary.me}", Modifier.weight(1f, fill = false))
-                MarginHead("${summary.opponent} →", Modifier.weight(1f, fill = false).padding(start = Spacing.sm))
+                MarginHead("← ", summary.me, "", Modifier.weight(1f, fill = false))
+                MarginHead("", summary.opponent, " →", Modifier.weight(1f, fill = false).padding(start = Spacing.sm))
             }
         }
     }
@@ -66,25 +65,24 @@ private fun PlayerHead(name: String, photoUrl: String?, tone: DuelTone, modifier
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
     ) {
         PlayerAvatar(name, photoUrl, size = HeaderAvatar, tone = tone)
-        Text(
-            text = name,
+        FittedName(
+            full = name,
+            short = shortName(name),
             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
         )
     }
 }
 
+/** One end of the margin bar's head: [name] between its [before] and [after] marks, in capitals, the short name when the full one does not fit. */
 @Composable
-private fun MarginHead(text: String, modifier: Modifier) {
-    Text(
-        text = text.uppercase(),
+private fun MarginHead(before: String, name: String, after: String, modifier: Modifier) {
+    FittedName(
+        full = "$before$name$after".uppercase(),
+        short = "$before${shortName(name)}$after".uppercase(),
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
         modifier = modifier,
     )
 }

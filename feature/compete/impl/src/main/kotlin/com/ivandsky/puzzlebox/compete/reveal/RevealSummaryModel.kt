@@ -7,7 +7,6 @@ import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.domain.MatchVerdict
 import com.ivandsky.puzzlebox.domain.Outcome
-import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.DuelSideState
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.Instant
@@ -30,9 +29,8 @@ internal data class RowMargin(val ratio: Float, val label: String)
 
 /**
  * One line of the puzzles list: the card's title and basis, each side's time text ("Gave up" or "No result" without
- * one), the [winner] (null when nobody took the puzzle), whether the puzzle was [tied], the [margin], and, in a game
- * that ranks on hints, each side's hint count ([myHints], [theirHints]; null elsewhere). [legIndex] is the puzzle's
- * place in the match, which a compare of its two replays opens by.
+ * one), the [winner] (null when nobody took the puzzle), whether the puzzle was [tied], and the [margin]. [legIndex] is
+ * the puzzle's place in the match, which a compare of its two replays opens by.
  */
 internal data class PuzzleRow(
     val gameId: GameId,
@@ -43,8 +41,6 @@ internal data class PuzzleRow(
     val winner: Side?,
     val tied: Boolean,
     val margin: RowMargin,
-    val myHints: String? = null,
-    val theirHints: String? = null,
     val legIndex: Int,
 )
 
@@ -108,7 +104,6 @@ internal fun summaryTiles(legs: List<LegReveal>): SummaryTiles {
 internal fun puzzleRows(cards: List<RevealCard>): List<PuzzleRow> {
     val widest = cards.maxOfOrNull { it.leg.timeGapSeconds() ?: 0L }?.coerceAtLeast(1L) ?: 1L
     return cards.map { card ->
-        val hinted = card.rankOrder == RankOrder.HintsThenTime
         PuzzleRow(
             gameId = card.leg.gameId,
             title = card.title,
@@ -122,15 +117,10 @@ internal fun puzzleRows(cards: List<RevealCard>): List<PuzzleRow> {
             },
             tied = card.leg.verdict == LegVerdict.Draw,
             margin = card.leg.marginAgainst(widest),
-            myHints = card.leg.mine.hintsCaption(hinted),
-            theirHints = card.leg.theirs.hintsCaption(hinted),
             legIndex = card.legIndex,
         )
     }
 }
-
-private fun DuelSideState.hintsCaption(hinted: Boolean): String? =
-    if (hinted && this is DuelSideState.Time) hintsLabel(hints) else null
 
 private fun LegVerdict.decidedBasis(): LegBasis? = when (this) {
     is LegVerdict.Win -> basis

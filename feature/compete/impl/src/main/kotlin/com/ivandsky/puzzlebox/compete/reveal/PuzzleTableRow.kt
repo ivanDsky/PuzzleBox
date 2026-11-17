@@ -58,8 +58,8 @@ internal fun PuzzleTableRow(
     val mine = row.cell(Side.Mine)
     val theirs = row.cell(Side.Theirs)
     val cells: @Composable () -> Unit = {
-        PuzzleTimeCell(row.mine, row.myHints, mine, DuelTone.Me, metrics.compact, tickDelay, Modifier.width(metrics.timeWidth))
-        PuzzleTimeCell(row.theirs, row.theirHints, theirs, DuelTone.Them, metrics.compact, tickDelay, Modifier.width(metrics.timeWidth))
+        PuzzleTimeCell(row.mine, mine, DuelTone.Me, metrics.compact, tickDelay, Modifier.width(metrics.timeWidth))
+        PuzzleTimeCell(row.theirs, theirs, DuelTone.Them, metrics.compact, tickDelay, Modifier.width(metrics.timeWidth))
     }
     val bar: @Composable (Modifier) -> Unit = { MarginBar(row.margin, row.winner, index, metrics.marginLabelWidth, it) }
     Row(

@@ -38,13 +38,12 @@ internal fun RevealTopBar(me: String, opponent: String, count: Int, onBack: () -
             Icon(PuzzleIcons.Back, contentDescription = "Back", tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Column(Modifier.weight(1f)) {
-            Text(
-                text = "$me vs $opponent",
+            FittedName(
+                full = "$me vs $opponent",
+                short = "${shortName(me)} vs ${shortName(opponent)}",
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.testTag("reveal.title"),
+                textModifier = Modifier.testTag("reveal.title"),
             )
             Text(
                 text = "Duel · Best of $count",

@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.DuelTone
@@ -81,13 +80,12 @@ private fun Identity(summary: DuelSummary, win: Boolean, modifier: Modifier) {
                 PlayerAvatar(summary.opponent, summary.theirPhotoUrl, ring, HeroAvatar, DuelTone.Them)
             }
             Column(Modifier.weight(1f)) {
-                Text(
-                    text = "${summary.me} vs ${summary.opponent}",
+                FittedName(
+                    full = "${summary.me} vs ${summary.opponent}",
+                    short = "${shortName(summary.me)} vs ${shortName(summary.opponent)}",
                     style = MaterialTheme.typography.titleMedium.copy(fontSize = 20.sp, lineHeight = 26.sp, fontWeight = FontWeight.Bold),
                     color = scheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.testTag("reveal.summary.title"),
+                    textModifier = Modifier.testTag("reveal.summary.title"),
                 )
                 Text(summary.bestOf, style = MaterialTheme.typography.bodyMedium, color = scheme.onSurfaceVariant, maxLines = 1)
             }
@@ -133,12 +131,11 @@ private fun ScoreSide(score: Int, name: String, photoUrl: String?, tone: DuelTon
         )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             PlayerAvatar(name, photoUrl, size = NameAvatar, tone = tone)
-            Text(
-                text = name,
+            FittedName(
+                full = name,
+                short = shortName(name),
                 style = MaterialTheme.typography.titleMedium.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold),
                 color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
             )
         }
