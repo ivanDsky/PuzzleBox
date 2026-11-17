@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.testing.repository.FakeSkippedPosts
 import com.ivandsky.puzzlebox.testing.repository.FakeVisibilityRepository
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
+import com.ivandsky.puzzlebox.data.di.MatchRemote
 import com.ivandsky.puzzlebox.data.di.linkedInCloudSyncModule
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
@@ -55,7 +56,8 @@ val E2E_TODAY: LocalDate = LocalDate.of(2026, 11, 4)
  * The one Koin graph every E2E test runs on: the production modules
  * ([PuzzleBoxApplication.appModules]) with core:testing fakes on the edges — daily
  * (every game's fixture fresh, so no LinkedIn call), records, saved plays, calendar,
- * preferences, identity, leaderboards, duels (the matches backend, the local match list and
+ * preferences, identity, leaderboards, duels (the matches backend behind the app's router, which
+ * keeps its real on-device self-duel store; the local match list and
  * the result outbox) and [releaseFlags] (none on, as in release; a run of an
  * unreleased feature passes its flag). [overrides] load last and win (Koin allows
  * overriding by default), e.g. a file-backed database for process-death rows.
@@ -113,7 +115,7 @@ class E2eKoinGraph(
         single<GameSettingsRepository> { gameSettings }
         single<IdentityService> { identity }
         single<LeaderboardRepository> { leaderboard }
-        single<MatchRepository> { matches }
+        single<MatchRepository>(MatchRemote) { matches }
         single<MatchLocalRepository> { matchLocal }
         single<MatchResultOutbox> { outbox }
         single<ReleaseFlags> { releaseFlags }
