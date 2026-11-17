@@ -56,6 +56,8 @@ import org.koin.compose.koinInject
  * Make-one doors on the game page and the Result; both are null until Custom lives in Games. The shell draws the
  * avatar ([ShellAvatar]) over [identityService]'s signed-in player: in Today's header on the
  * phone, at the rail's bottom on the tablet. Settings is reached through Profile's gear.
+ * [tabletCrossfade] is the app graph's TabletCrossfade flag: on the tablet, tab switches and in-tab page changes
+ * crossfade in place instead of rising or sliding.
  * Every entry sees [LocalHintCooldown] ([withHintCooldown]).
  */
 @Composable
@@ -73,6 +75,7 @@ internal fun PuzzleBoxNavShell(
     makeOne: MakeOne? = null,
     libraryRequests: LibraryRequests = rememberLibraryRequests(),
     underlineTabs: Boolean = false,
+    tabletCrossfade: Boolean = rememberTabletCrossfade(),
     store: PlaySessionStore = koinInject(),
     identityService: IdentityService = koinInject(),
 ) {
@@ -130,7 +133,7 @@ internal fun PuzzleBoxNavShell(
                 transitionSpec = {
                     val to = targetState.metadata
                     val liftable = form == NavForm.Tablet && lift.isOnScreen(to[ENTRY_KEY])
-                    val chosen = navMotion(initialState.metadata, to, pop = false, reduceMotion, form, liftable)
+                    val chosen = navMotion(initialState.metadata, to, pop = false, reduceMotion, form, liftable, tabletCrossfade)
                     lifted.key = to[ENTRY_KEY].takeIf { chosen.kind == NavMotionKind.Lift }
                     play(chosen)
                 },
@@ -138,7 +141,7 @@ internal fun PuzzleBoxNavShell(
                     val from = initialState.metadata
                     val liftable = from[ENTRY_KEY] != null && from[ENTRY_KEY] == lifted.key &&
                         lift.isOnScreen(lifted.key)
-                    play(navMotion(from, targetState.metadata, pop = true, reduceMotion, form, liftable))
+                    play(navMotion(from, targetState.metadata, pop = true, reduceMotion, form, liftable, tabletCrossfade))
                 },
                 predictivePopTransitionSpec = { swipeEdge ->
                     play(predictivePopMotion(swipeEdge, reduceMotion))

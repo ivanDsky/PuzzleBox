@@ -81,4 +81,11 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
      * (ADR-0022 §3).
      */
     VirtualDuel(label = "Duel yourself (Past you)", releaseDefault = false),
+
+    /**
+     * Tablet crossfades (backlog #1118, #1119): rail tab switches, in-tab page changes and the Games right pane fade in
+     * place instead of rising or sliding. Read only by the app-graph's nav shell and feature/play's DI, which each hand
+     * their composables one Boolean (ADR-0022).
+     */
+    TabletCrossfade(label = "Tablet crossfades", releaseDefault = false),
 }

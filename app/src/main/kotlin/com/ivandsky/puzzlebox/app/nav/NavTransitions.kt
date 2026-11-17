@@ -38,6 +38,9 @@ internal enum class NavMotionKind {
     /** D: the incoming tab fades in and rises over the outgoing one, which stays opaque. */
     Rise,
 
+    /** D with TabletCrossfade: the upper page fades in place over the opaque lower one; nothing travels or scales. */
+    Crossfade,
+
     /** B tab switch: out, then in. */
     FadeThrough,
 
@@ -102,7 +105,7 @@ internal data class NavMotion(
             NavMotionKind.FadeThrough ->
                 fadeIn(tween(durationMillis, enterDelayMillis, easing)) togetherWith
                     fadeOut(tween(exitMillis, easing = MotionTokens.EasingLinear))
-            NavMotionKind.Reduced -> if (pop) {
+            NavMotionKind.Reduced, NavMotionKind.Crossfade -> if (pop) {
                 fadeIn(hold, initialAlpha = 1f) togetherWith fadeOut(fade)
             } else {
                 fadeIn(fade) togetherWith fadeOut(hold, targetAlpha = 1f)
@@ -141,10 +144,11 @@ internal data class NavMotion(
  * out of (push) or shrink back into (pop); only the tablet form reads it.
  * - Reduced motion: the upper page fades for every case.
  * - Another owner tab, or the layer above the tabs opening or closing: phone fade-through;
- *   tablet rise-over.
+ *   tablet rise-over, or with [tabletCrossfade] an in-place crossfade of [MotionTokens.TabletTabCrossfade].
  * - Phone, same tab: the full-screen slide, result included.
  * - Tablet, into or out of a game: lift from its card, or the phone slide without one
- *   (deep link, history play-again). Game ⇄ result and every other move: full-width shared axis.
+ *   (deep link, history play-again). Game ⇄ result and every other move: full-width shared axis, or with
+ *   [tabletCrossfade] an in-place crossfade of [MotionTokens.TabletPageCrossfade].
  */
 internal fun navMotion(
     from: Map<String, Any>,
@@ -153,14 +157,20 @@ internal fun navMotion(
     reduceMotion: Boolean,
     form: NavForm,
     liftable: Boolean = false,
+    tabletCrossfade: Boolean = false,
 ): NavMotion {
     val opensGame = !pop && to[ENTRY_KEY].isBoardEntry() && !from[ENTRY_KEY].isResultEntry()
     val closesGame = pop && from[ENTRY_KEY].isBoardEntry()
     return when {
         reduceMotion -> reduced(pop, MotionTokens.ReducedFadeDuration)
-        from[OWNER_TAB] != to[OWNER_TAB] -> if (form == NavForm.Phone) tabFadeThrough(pop) else rise(pop)
+        from[OWNER_TAB] != to[OWNER_TAB] -> when {
+            form == NavForm.Phone -> tabFadeThrough(pop)
+            tabletCrossfade -> crossfade(pop, MotionTokens.TabletTabCrossfade)
+            else -> rise(pop)
+        }
         form == NavForm.Phone -> slide(pop)
         opensGame || closesGame -> if (liftable) lift(pop) else slide(pop)
+        tabletCrossfade -> crossfade(pop, MotionTokens.TabletPageCrossfade)
         else -> axis(pop)
     }
 }
@@ -204,6 +214,13 @@ private fun axis(pop: Boolean) = NavMotion(
     NavMotionKind.Axis,
     pop = pop,
     durationMillis = if (pop) MotionTokens.MixAxisPop else MotionTokens.MixAxisPush,
+    easing = MotionTokens.EasingStandard,
+)
+
+private fun crossfade(pop: Boolean, millis: Int) = NavMotion(
+    NavMotionKind.Crossfade,
+    pop = pop,
+    durationMillis = millis,
     easing = MotionTokens.EasingStandard,
 )
 

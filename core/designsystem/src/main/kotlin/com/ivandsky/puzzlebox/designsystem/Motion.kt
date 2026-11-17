@@ -80,6 +80,11 @@ object MotionTokens {
     const val MixTabIn = 220
     val MixTabRise: Dp = 16.dp
 
+    // TabletCrossfade: the tablet's rail tab switch and its in-tab page changes (also the Games right pane) fade in
+    // place on EasingStandard, with no travel and no scale; the tab switch is the quicker of the two.
+    const val TabletTabCrossfade = 160
+    const val TabletPageCrossfade = 200
+
     // Material 3 emphasized curves: decelerate on the way in, accelerate on the way out.
     val EasingStandard = CubicBezierEasing(0.2f, 0f, 0f, 1f)
     val EasingEmphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)

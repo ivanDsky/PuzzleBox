@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -16,7 +15,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -134,6 +132,7 @@ internal fun LibraryRoute(
             onOpenRanks = onOpenRanks,
             onMakeOne = onMakeOne,
             communityTab = communityTab, underlineTabs = underlineTabs,
+            paneCrossfade = rememberPaneCrossfade(),
         )
         FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))
         if (enteringCode) {
@@ -181,6 +180,7 @@ internal fun LibraryRoute(
  * also leaves its [DuelPrefill] pending (saved here) for the Duels body, until the body takes it. The game page
  * shows its rank as a summary row that calls [onOpenRanks].
  * A non-null [linkedIn] puts the LinkedIn lines on the page's day card. A non-null [onMakeOne] puts "Make one" on the page.
+ * With [paneCrossfade] the two-pane right pane fades to the picked game's page instead of switching in one frame ([LibraryPane]).
  */
 @Composable
 internal fun LibraryScreen(
@@ -207,6 +207,7 @@ internal fun LibraryScreen(
     linkedIn: LinkedInCardState? = null,
     onMakeOne: ((GameId) -> Unit)? = null,
     communityTab: Boolean = false, underlineTabs: Boolean = false,
+    paneCrossfade: Boolean = false,
 ) {
     val listScroll = rememberScrollState()
     val friendsScroll = rememberScrollState()
@@ -223,8 +224,8 @@ internal fun LibraryScreen(
         }
     }
     @Composable
-    fun Page(row: LibraryRowModel, onBack: (() -> Unit)?) = LibraryGamePage(
-        row, page, month, layout, calendar, onPlay, onRetry, onOpenLesson, onBack,
+    fun Page(row: LibraryRowModel, onBack: (() -> Unit)?, shownPage: ArchivePageState? = page, shownMonth: YearMonth? = month) = LibraryGamePage(
+        row, shownPage, shownMonth, layout, calendar, onPlay, onRetry, onOpenLesson, onBack,
         offline = state.offline, hasLesson = hasLesson(row.card.game),
         onOpenRanks = onOpenRanks, linkedIn = linkedIn, onMakeOne = onMakeOne,
     )
@@ -269,8 +270,8 @@ internal fun LibraryScreen(
             GamesList(onRow, Modifier.width(400.dp))
             Spacer(Modifier.width(Spacing.xl))
             if (selected != null) {
-                key(selected.card.game) {
-                    Box(Modifier.fillMaxWidth()) { Page(selected, onBack = null) }
+                LibraryPane(LibraryPaneFrame(selected, page, month), paneCrossfade) { shown ->
+                    Page(shown.row, onBack = null, shown.page, shown.month)
                 }
             }
         }
