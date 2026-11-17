@@ -16,6 +16,12 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.runningFold
 
 /**
+ * What the Watch replay row shows and which stored solve it opens. [latest] is false when the row read the puzzle's
+ * record, true for the newest solve; the route's open key follows it, so the page loads the replay the row showed.
+ */
+internal data class ResultReplay(val section: ReplaySectionState, val latest: Boolean = true)
+
+/**
  * Result's Watch replay row for one [solve]. The replay is read from the stored completion, never from the live play:
  * the row shows once the solve is stored and never while the write is pending or failed. [live] is the slot's live
  * play only when it held this solve as Result opened; null otherwise (as after process death).
@@ -28,14 +34,16 @@ internal class ResultReplayRow(
 ) {
     /** The row once [storedOf] says this solve is stored; [loadReplay] answers null for a solve with no replay. */
     @OptIn(ExperimentalCoroutinesApi::class)
-    fun of(ref: PuzzleRef): Flow<ReplaySectionState> =
+    fun of(ref: PuzzleRef): Flow<ResultReplay> =
         storedOf(ref)
             .distinctUntilChanged()
             .mapLatest { stored ->
                 if (!stored) {
-                    ReplaySectionState.Hidden
+                    ResultReplay(ReplaySectionState.Hidden)
                 } else {
-                    loadReplay(replayRefOf(ref))?.let(ReplaySectionState::Ready) ?: unavailableOf(ref)
+                    val replayRef = replayRefOf(ref)
+                    val section = loadReplay(replayRef)?.let(ReplaySectionState::Ready) ?: unavailableOf(ref)
+                    ResultReplay(section, latest = replayRef !is SolveReplayRef.Record)
                 }
             }
 

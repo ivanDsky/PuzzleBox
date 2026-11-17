@@ -188,7 +188,7 @@ private fun ColumnScope.HeroPage(
                             ReplaySection(
                                 state.replay,
                                 ui,
-                                onOpen = { onOpenReplay(ReplayKey.daily(key.gameId, key.day, state.puzzleNumber, latest = true)) },
+                                onOpen = { onOpenReplay(ReplayKey.daily(key.gameId, key.day, state.puzzleNumber, latest = state.replayLatest)) },
                                 hairline = hairline,
                             )
                         }
