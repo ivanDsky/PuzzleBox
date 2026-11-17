@@ -6,7 +6,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performSemanticsAction
 import com.ivandsky.puzzlebox.app.DrainTestApplication
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
+import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
 import com.ivandsky.puzzlebox.play.api.PlayKey
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
@@ -19,7 +21,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Nav-rethink 104, through the real shell with Result moments on: the win of each of the five dailies stays on its board for about 1.5 s with no stamp, and then Result opens with nothing over it; a tap on the board during the rest opens
- * Result at once. The clock is held from the winning move on and stepped a frame (16 ms) at a time.
+ * Result at once. Nav-rethink 129: a board in the solve frame pops once on the way. The clock is held from the winning move on and stepped a frame (16 ms) at a time.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -53,6 +55,13 @@ class SolveRestE2ETest {
     @Test @Config(qualifiers = TABLET)
     fun `a tap on the board during the rest opens Result at once on a tablet`() = tapped()
 
+    @Test fun `a Zip win pops the board once, then opens Result`() = pops(DailySolve.Zip)
+
+    @Test fun `a Tango win pops the board once, then opens Result`() = pops(DailySolve.Tango)
+
+    @Test @Config(qualifiers = TABLET)
+    fun `a Zip win pops the board once, then opens Result on a tablet`() = pops(DailySolve.Zip)
+
     private fun rests(game: DailySolve) = solving(game) {
         val frames = framesUntil("$game: Result") {
             assertFalse("$game: the board played a stamp", shows(BOARD_STAMP))
@@ -71,6 +80,25 @@ class SolveRestE2ETest {
         assertTrue("one tap opened Result in $frames frames, not after the rest", frames * FRAME_MS < MIN_REST_MS / 2)
         assertFalse(shows(OVERLAY))
     }
+
+    /** The tap layer fills the board and scales with it, so its width on screen is the board's. */
+    private fun pops(game: DailySolve) = solving(game) {
+        framesUntil("$game: the rest") { shows(REST) }
+        val atRest = boardWidth()
+        var widest = atRest
+        var last = atRest
+        framesUntil("$game: Result") {
+            if (shows(REST)) {
+                last = boardWidth()
+                widest = maxOf(widest, last)
+            }
+            shows("result.hero.screen")
+        }
+        assertEquals("$game: the board's pop", CelebrationMotion.BoardPopScale, widest / atRest, 0.002f)
+        assertEquals("$game: the board is back at rest for the hand-off", atRest, last, 0f)
+    }
+
+    private fun ShellRobot.boardWidth(): Float = rule.onNodeWithTag(REST).fetchSemanticsNode().boundsInRoot.width
 
     /** Plays [game] to its winning move with Result moments on, holds the clock, wins, then runs [block]. */
     private fun solving(game: DailySolve, block: ShellRobot.() -> Unit) =

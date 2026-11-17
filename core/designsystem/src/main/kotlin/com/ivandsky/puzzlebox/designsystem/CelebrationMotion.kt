@@ -1,5 +1,8 @@
 package com.ivandsky.puzzlebox.designsystem
 
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+
 /**
  * Long celebration and feedback motion (Strands spec A33). [MotionTokens] keeps feedback
  * under ~160 ms; a found word's bounce and a hint's attention pulse are
@@ -20,8 +23,26 @@ object CelebrationMotion {
     const val HintPulseMs = 1000
 
     /**
-     * The solve moment on the board (M10-6): from the winning move to the hand-off to Result, the sweep and then the
-     * solved board at rest. A pause, so it holds under reduced motion too, where only the accent outline shows.
+     * The solve moment on the board (M10-6, M12-10): from the winning move to the hand-off to Result. It is motion, not
+     * a still rest: the band sweeps, the board pops and the frame line laps it, and only the last 200 ms is the settled
+     * board. Its length holds under reduced motion too, where only the accent outline shows.
      */
     const val SolveMomentMs = 1500L
+
+    /** The board pop: as the band leaves, the whole board rises to this scale and releases on the Stamp spring. */
+    const val BoardPopScale = 1.03f
+    const val BoardPopStartMs = 440
+    const val BoardPopRiseMs = 120
+
+    /** The frame line: from this long after the solve it laps the board once, clockwise, at a steady pace. */
+    const val FrameDrawStartMs = 500
+    const val FrameDrawMs = 800
+
+    /**
+     * The comet at the head of the frame line: this share of the lap long and this wide, fading out over the last
+     * [FrameCometFadeShare] of the lap.
+     */
+    const val FrameCometFraction = 0.07f
+    const val FrameCometFadeShare = 0.08f
+    val FrameCometWidth: Dp = 7.dp
 }

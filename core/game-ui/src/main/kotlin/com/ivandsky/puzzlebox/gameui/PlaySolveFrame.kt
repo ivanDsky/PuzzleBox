@@ -44,9 +44,10 @@ private const val SOLVED_HOLD_MS = 360L
  * hands off at once, as before. Reduced motion shows only the accent outline, held
  * briefly, with no stamp.
  *
- * Under [LocalSolveRestOnBoard] there is no stamp: the sweep plays and the solved board rests so the moment lasts
- * [CelebrationMotion.SolveMomentMs] from the solve to the hand-off (reduced motion: the outline for the same rest),
- * and a tap on the board during the rest hands off at once.
+ * Under [LocalSolveRestOnBoard] it is the solve moment B instead (M12-10), with no stamp: the sweep band, the board's
+ * pop and a frame line that laps the board, so the moment lasts [CelebrationMotion.SolveMomentMs] from the solve to
+ * the hand-off (reduced motion: the outline for the same time), and a tap on the board hands off at once. The pop and
+ * the line's comet reach a little past the board, so it needs 6 dp clear around it; [PlayBoardPane] gives more.
  */
 @Composable
 fun PlaySolveFrame(
@@ -57,10 +58,31 @@ fun PlaySolveFrame(
     shape: Shape = RectangleShape,
     board: @Composable () -> Unit,
 ) {
+    val rest = rememberSolveRest()
+    if (rest.enabled) {
+        PlaySolveMoment(brand, solved, rest, onHandOff, shape, modifier, board)
+    } else {
+        PlaySolveStamp(brand, solved, rest, onHandOff, shape, modifier, board)
+    }
+}
+
+/**
+ * The solve moment without [LocalSolveRestOnBoard]: the sweep, the stamp, then the hand-off. [rest] does not rest here;
+ * beginning it still confirms the solve when PlayFeel asks for that.
+ */
+@Composable
+private fun PlaySolveStamp(
+    brand: GameBrand,
+    solved: Instant?,
+    rest: SolveRestState,
+    onHandOff: () -> Unit,
+    shape: Shape,
+    modifier: Modifier,
+    board: @Composable () -> Unit,
+) {
     val sweep = rememberSolveSweepState()
     val reducedMotion = rememberReducedMotion()
     val handOff by rememberUpdatedState(onHandOff)
-    val rest = rememberSolveRest()
     // Seen unsolved in this composition: only a solve the player just made gets the moment.
     var seenOpen by remember { mutableStateOf(false) }
     var stamped by remember { mutableStateOf(false) }
@@ -71,15 +93,11 @@ fun PlaySolveFrame(
             return@LaunchedEffect
         }
         if (seenOpen) {
-            val resting = rest.begin(this)
+            rest.begin(this)
             sweep.play()
-            if (rest.enabled) {
-                resting.await()
-            } else {
-                if (!reducedMotion) delay(MotionTokens.SweepDuration.toLong())
-                stamped = !reducedMotion
-                delay(SOLVED_HOLD_MS)
-            }
+            if (!reducedMotion) delay(MotionTokens.SweepDuration.toLong())
+            stamped = !reducedMotion
+            delay(SOLVED_HOLD_MS)
         }
         handOff()
     }
@@ -88,7 +106,6 @@ fun PlaySolveFrame(
         Stamp(visible = stamped, modifier = Modifier.testTag("play.solve_stamp")) {
             GameGlyph(brand, GameGlyphSize.Hero)
         }
-        SolveRestTapLayer(rest, Modifier.matchParentSize())
     }
 }
 

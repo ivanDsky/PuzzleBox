@@ -15,11 +15,13 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.addOutline
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.ContentDrawScope
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
@@ -89,28 +91,7 @@ private class SolveSweepNode(
 
     private fun ContentDrawScope.drawSweep(t: Float) {
         val board = shape.createOutline(size, layoutDirection, this)
-
-        val band = MotionTokens.EasingStandard.transform(t)
-        if (band < 1f) {
-            // The gradient axis runs corner to corner; the band's width is a fraction of the
-            // board width, so its share of the axis is that width over the diagonal.
-            val half = MotionTokens.SweepBandFraction * size.width / hypot(size.width, size.height) / 2f
-            val center = -half + band * (1f + 2f * half)
-            val fill = color.copy(alpha = MotionTokens.SweepAlpha)
-            val from = (center - half).coerceIn(0f, 1f)
-            val to = (center + half).coerceIn(0f, 1f)
-            val brush = Brush.linearGradient(
-                0f to Color.Transparent,
-                from to Color.Transparent,
-                from to fill,
-                to to fill,
-                to to Color.Transparent,
-                1f to Color.Transparent,
-                start = Offset.Zero,
-                end = Offset(size.width, size.height),
-            )
-            clipPath(Path().apply { addOutline(board) }) { drawRect(brush) }
-        }
+        drawSolveSweepBand(t, color, board)
 
         val outlineProgress = (t * MotionTokens.SweepDuration / MotionTokens.SweepOutlineDuration).coerceAtMost(1f)
         val stroke = MotionTokens.SweepOutlineWidth.toPx()
@@ -124,6 +105,33 @@ private class SolveSweepNode(
             )
         }
     }
+}
+
+/**
+ * The sweep's band at [t] of MotionTokens.SweepDuration (0..1): a diagonal band of [color] at MotionTokens.SweepAlpha,
+ * top-left to bottom-right, clipped to [board]. Nothing once it has crossed.
+ */
+internal fun DrawScope.drawSolveSweepBand(t: Float, color: Color, board: Outline) {
+    val band = MotionTokens.EasingStandard.transform(t)
+    if (band >= 1f) return
+    // The gradient axis runs corner to corner; the band's width is a fraction of the
+    // board width, so its share of the axis is that width over the diagonal.
+    val half = MotionTokens.SweepBandFraction * size.width / hypot(size.width, size.height) / 2f
+    val center = -half + band * (1f + 2f * half)
+    val fill = color.copy(alpha = MotionTokens.SweepAlpha)
+    val from = (center - half).coerceIn(0f, 1f)
+    val to = (center + half).coerceIn(0f, 1f)
+    val brush = Brush.linearGradient(
+        0f to Color.Transparent,
+        from to Color.Transparent,
+        from to fill,
+        to to fill,
+        to to Color.Transparent,
+        1f to Color.Transparent,
+        start = Offset.Zero,
+        end = Offset(size.width, size.height),
+    )
+    clipPath(Path().apply { addOutline(board) }) { drawRect(brush) }
 }
 
 // Previews — Studio tooling only (internal for Showkase's generated index). The sweep's
