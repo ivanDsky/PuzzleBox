@@ -27,6 +27,12 @@ object MotionTokens {
     val DurationLong = 300
     val DurationExpressive = 400
 
+    // Reduced motion snaps: a change lands on its final value with no tween.
+    const val DurationNone = 0
+
+    // The duel summary's quiet fade-in for a loss or draw: slow on purpose, so the result settles rather than pops.
+    const val RevealQuietFade = 900
+
     // In-pane transitions (library pages, game feedback); screens move on the Nav* set below.
     // Fade-through: exit fades out fast, enter starts after a delay — content from the two
     // screens never superimposes (emil-design-eng "two distinct objects" overlap fix;

@@ -19,13 +19,13 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.NewBestBurst
 import com.ivandsky.puzzlebox.designsystem.Stamp
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.designsystem.rememberSolveSweepState
 import com.ivandsky.puzzlebox.designsystem.solveSweep
 
-private const val QuietFadeMs = 900
 private val QuietBorder = 1.dp
 
 /**
@@ -70,6 +70,6 @@ internal fun SummaryFrame(win: Boolean, winBorder: Dp, modifier: Modifier = Modi
 private fun rememberQuietFade(enabled: Boolean): Animatable<Float, *> {
     val instant = rememberReducedMotion() || LocalInspectionMode.current || !enabled
     val alpha = remember { Animatable(if (instant) 1f else 0f) }
-    LaunchedEffect(alpha) { alpha.animateTo(1f, tween(QuietFadeMs)) }
+    LaunchedEffect(alpha) { alpha.animateTo(1f, tween(MotionTokens.RevealQuietFade)) }
     return alpha
 }
