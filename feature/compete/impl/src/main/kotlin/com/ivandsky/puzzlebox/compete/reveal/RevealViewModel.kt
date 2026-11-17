@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.data.match.Match
 import com.ivandsky.puzzlebox.domain.MatchState
+import com.ivandsky.puzzlebox.domain.LegReplayLoad
 import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.MatchView
@@ -119,6 +120,7 @@ internal class RevealViewModel(
     /** Races again from the intro, over every puzzle settled by now. The compare is a spoiler again until it ends. */
     fun watchAgain() {
         closeCompare()
+        withoutReplay.value = emptySet()
         ran.value = false
         reruns.update { it + 1 }
     }
@@ -130,7 +132,8 @@ internal class RevealViewModel(
 
     /**
      * Opens the compare of [leg] if the state offers it: my replay and theirs are read now, theirs online. A leg
-     * with neither stops being offered; closing is [closeCompare].
+     * with neither replay stops being offered, but only when both reads settled; a failed read (offline, a puzzle
+     * that could not be fetched) keeps the leg offered so a later tap retries. Closing is [closeCompare].
      */
     fun openCompare(leg: Int) {
         val view = latest ?: return
@@ -141,14 +144,16 @@ internal class RevealViewModel(
         closeCompare()
         opening = viewModelScope.launch {
             val (mine, theirs) = coroutineScope {
-                val mine = async { loadReplay(SolveReplayRef.MyLeg(code, leg)) }
-                val theirs = async { loadReplay(SolveReplayRef.TheirLeg(code, leg)) }
+                val mine = async { loadReplay.readLeg(SolveReplayRef.MyLeg(code, leg)) }
+                val theirs = async { loadReplay.readLeg(SolveReplayRef.TheirLeg(code, leg)) }
                 mine.await() to theirs.await()
             }
-            if (mine == null && theirs == null) {
-                withoutReplay.update { it + leg }
-            } else {
-                _compare.value = LegCompare(leg, mine, theirs, current.plan.opponent.name, lead)
+            val mineTimeline = (mine as? LegReplayLoad.Opened)?.timeline
+            val theirTimeline = (theirs as? LegReplayLoad.Opened)?.timeline
+            when {
+                mineTimeline != null || theirTimeline != null ->
+                    _compare.value = LegCompare(leg, mineTimeline, theirTimeline, current.plan.opponent.name, lead)
+                mine == LegReplayLoad.Absent && theirs == LegReplayLoad.Absent -> withoutReplay.update { it + leg }
             }
         }
     }

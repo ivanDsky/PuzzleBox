@@ -7,8 +7,10 @@ import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.ResultRead
+import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.game.FetchError
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.SolveReplay
@@ -17,6 +19,8 @@ import kotlinx.coroutines.flow.first
 /**
  * Finds the replay bytes of one side of a duel leg. Answers only MyLeg and TheirLeg; every other ref is null before any read.
  * The replay is advisory (A11): it never checks or changes a result, and a replay that does not fold is simply no replay.
+ * A leg's daily puzzle is taken from the cache, else fetched like the play path does, so a leg this device never opened
+ * still has its puzzle.
  */
 class LoadLegReplay(
     private val matches: MatchRepository,
@@ -27,39 +31,57 @@ class LoadLegReplay(
     private val loadShared: LoadSharedPuzzle,
 ) {
     /** Null = no replay, for any cause. */
-    suspend operator fun invoke(ref: SolveReplayRef): ReplaySource? {
+    suspend operator fun invoke(ref: SolveReplayRef): ReplaySource? = (read(ref) as? LegReplayRead.Found)?.source
+
+    /** The same read as [invoke], telling a settled absence from a failed read (offline match, result or puzzle). */
+    suspend fun read(ref: SolveReplayRef): LegReplayRead {
         val (code, legIndex) = when (ref) {
             is SolveReplayRef.MyLeg -> ref.code to ref.legIndex
             is SolveReplayRef.TheirLeg -> ref.code to ref.legIndex
-            is SolveReplayRef.Record, is SolveReplayRef.Latest, is SolveReplayRef.Player -> return null
+            is SolveReplayRef.Record, is SolveReplayRef.Latest, is SolveReplayRef.Player -> return LegReplayRead.Absent
         }
-        val me = identity.current.value?.uid ?: return null
-        val match = (matches.observe(code).first() as? MatchFetch.Found)?.match ?: return null
+        val me = identity.current.value?.uid ?: return LegReplayRead.Absent
+        val match = when (val fetch = matches.observe(code).first()) {
+            is MatchFetch.Found -> fetch.match
+            MatchFetch.Offline -> return LegReplayRead.Unavailable
+            MatchFetch.NotFound, is MatchFetch.UnsupportedVersion -> return LegReplayRead.Absent
+        }
         val bytes = when (ref) {
-            is SolveReplayRef.TheirLeg -> theirs(match, legIndex, me)
+            is SolveReplayRef.TheirLeg -> {
+                val opponent = match.opponentOf(me) ?: return LegReplayRead.Absent
+                when (val read = matches.readResult(match.code, legIndex, opponent.uid)) {
+                    is ResultRead.Found -> read.result.replay
+                    ResultRead.Offline -> return LegReplayRead.Unavailable
+                    ResultRead.Sealed, ResultRead.Missing -> null
+                }
+            }
             else -> mine(code, legIndex, me)
-        } ?: return null
-        val puzzle = puzzleOf(match, legIndex) ?: return null
-        return ReplaySource(puzzle, bytes)
+        } ?: return LegReplayRead.Absent
+        return puzzleOf(match, legIndex, bytes)
     }
 
     private suspend fun mine(code: ShareCode, legIndex: Int, me: String): SolveReplay? =
         outbox.observe(code).first().firstOrNull { it.result.legIndex == legIndex && it.result.uid == me }?.result?.replay
 
-    private suspend fun theirs(match: Match, legIndex: Int, me: String): SolveReplay? {
-        val opponent = match.opponentOf(me) ?: return null
-        return (matches.readResult(match.code, legIndex, opponent.uid) as? ResultRead.Found)?.result?.replay
-    }
-
-    private suspend fun puzzleOf(match: Match, legIndex: Int): Puzzle? {
-        val leg = match.legs.getOrNull(legIndex)?.ref ?: return null
-        return when (leg) {
-            is LegRef.Daily -> daily.cachedPuzzle(leg.gameId, leg.day)
+    private suspend fun puzzleOf(match: Match, legIndex: Int, bytes: SolveReplay): LegReplayRead {
+        val leg = match.legs.getOrNull(legIndex)?.ref ?: return LegReplayRead.Absent
+        val puzzle: Puzzle = when (leg) {
+            is LegRef.Daily -> daily.cachedPuzzle(leg.gameId, leg.day) ?: when (val day = daily.day(leg.gameId, leg.day)) {
+                is DailyDay.Ready -> day.puzzle
+                is DailyDay.Failed -> return if (day.error is FetchError.NotFound) LegReplayRead.Absent else LegReplayRead.Unavailable
+                DailyDay.NotCaptured, DailyDay.OutOfRange -> return LegReplayRead.Absent
+            }
             is LegRef.Custom -> {
-                val row = received.get(leg.code) ?: (loadShared(leg.code) as? OpenOutcome.Opened)?.puzzle
+                val row = received.get(leg.code) ?: when (val opened = loadShared(leg.code)) {
+                    is OpenOutcome.Opened -> opened.puzzle
+                    OpenOutcome.Offline -> return LegReplayRead.Unavailable
+                    else -> null
+                }
                 row?.takeIf { it.gameId == leg.gameId }
                     ?.let { Puzzle(it.gameId, it.variant, it.sharedFormatVersion, it.puzzleBytes) }
+                    ?: return LegReplayRead.Absent
             }
         }
+        return LegReplayRead.Found(ReplaySource(puzzle, bytes))
     }
 }
