@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.queensui
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import kotlin.math.pow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -28,21 +29,27 @@ class QueensRegionPaletteTest {
     }
 
     @Test
-    fun `dark fills are the Candy ramp at OKLCH L 0_36 and 0_44`() {
+    fun `dark fills are the retuned ramp`() {
         val candy = listOf(
-            "#662520", "#76441F", "#4C3B01", "#325F34", "#014841",
-            "#025D6D", "#153D6D", "#4A4C80", "#492E64", "#733E5D",
+            "#622819", "#6C4F35", "#49490B", "#0E3813", "#105C4C",
+            "#0D5B6A", "#084B7A", "#2A2E4F", "#6A447A", "#773048",
         )
         assertEquals(candy, List(10) { hex(darkFill(it)) })
     }
 
     @Test
-    fun `odd ids sit above even ids so parity neighbours always differ in lightness`() {
+    fun `light odd ids sit above even ids so parity neighbours always differ in lightness`() {
         for (even in listOf(0, 2, 4, 6, 8)) for (odd in listOf(1, 3, 5, 7, 9)) {
             val light = lStar(lightFill(odd)) - lStar(lightFill(even))
             assertTrue("light $even/$odd ΔL*=$light", light >= MIN_PARITY_DELTA_L)
-            val dark = lStar(darkFill(odd)) - lStar(darkFill(even))
-            assertTrue("dark $even/$odd ΔL*=$dark", dark >= MIN_PARITY_DELTA_L)
+        }
+    }
+
+    @Test
+    fun `every pair of dark fills differs by CIEDE2000 of at least 14`() {
+        for (i in 0 until 10) for (j in i + 1 until 10) {
+            val delta = deltaE2000(lab(darkFill(i)), lab(darkFill(j)))
+            assertTrue("dark $i/$j ΔE00=$delta", delta >= MIN_DARK_DELTA_E00)
         }
     }
 
@@ -97,6 +104,49 @@ class QueensRegionPaletteTest {
         return Math.sqrt((l1 - l2) * (l1 - l2) + (a1 - a2) * (a1 - a2) + (b1 - b2) * (b1 - b2))
     }
 
+    /** CIEDE2000 (Sharma et al. 2005, kL=kC=kH=1). */
+    private fun deltaE2000(x: Triple<Double, Double, Double>, y: Triple<Double, Double, Double>): Double {
+        val (l1, a1, b1) = x
+        val (l2, a2, b2) = y
+        val cBar = (Math.hypot(a1, b1) + Math.hypot(a2, b2)) / 2
+        val g = 0.5 * (1 - Math.sqrt(cBar.pow(7) / (cBar.pow(7) + 25.0.pow(7))))
+        val a1p = (1 + g) * a1
+        val a2p = (1 + g) * a2
+        val c1 = Math.hypot(a1p, b1)
+        val c2 = Math.hypot(a2p, b2)
+        val h1 = Math.toDegrees(Math.atan2(b1, a1p)).let { if (it < 0) it + 360 else it }
+        val h2 = Math.toDegrees(Math.atan2(b2, a2p)).let { if (it < 0) it + 360 else it }
+        val dL = l2 - l1
+        val dC = c2 - c1
+        val dh = when {
+            c1 * c2 == 0.0 -> 0.0
+            Math.abs(h2 - h1) <= 180 -> h2 - h1
+            h2 - h1 > 180 -> h2 - h1 - 360
+            else -> h2 - h1 + 360
+        }
+        val dH = 2 * Math.sqrt(c1 * c2) * Math.sin(Math.toRadians(dh / 2))
+        val lBar = (l1 + l2) / 2
+        val cBarP = (c1 + c2) / 2
+        val hBar = when {
+            c1 * c2 == 0.0 -> h1 + h2
+            Math.abs(h1 - h2) <= 180 -> (h1 + h2) / 2
+            h1 + h2 < 360 -> (h1 + h2 + 360) / 2
+            else -> (h1 + h2 - 360) / 2
+        }
+        val t = 1 - 0.17 * Math.cos(Math.toRadians(hBar - 30)) + 0.24 * Math.cos(Math.toRadians(2 * hBar)) +
+            0.32 * Math.cos(Math.toRadians(3 * hBar + 6)) - 0.20 * Math.cos(Math.toRadians(4 * hBar - 63))
+        val dTheta = 30 * Math.exp(-(((hBar - 275) / 25).pow(2)))
+        val rC = 2 * Math.sqrt(cBarP.pow(7) / (cBarP.pow(7) + 25.0.pow(7)))
+        val sL = 1 + 0.015 * (lBar - 50).pow(2) / Math.sqrt(20 + (lBar - 50).pow(2))
+        val sC = 1 + 0.045 * cBarP
+        val sH = 1 + 0.015 * cBarP * t
+        val rT = -Math.sin(Math.toRadians(2 * dTheta)) * rC
+        val ql = dL / sL
+        val qc = dC / sC
+        val qh = dH / sH
+        return Math.sqrt(ql * ql + qc * qc + qh * qh + rT * qc * qh)
+    }
+
     private fun lab(c: Color): Triple<Double, Double, Double> {
         fun linear(channel: Float): Double =
             if (channel <= 0.04045f) channel / 12.92 else Math.pow((channel + 0.055) / 1.055, 2.4)
@@ -115,5 +165,8 @@ class QueensRegionPaletteTest {
 
         /** Same-band neighbours must part by hue and chroma, not only by lightness. */
         const val MIN_DELTA_E = 10.0
+
+        /** Dark ramp (ticket 1181): pairs of the retuned fills sit at >= 14.4; the old ramp's closest pair was 10.2. */
+        const val MIN_DARK_DELTA_E00 = 14.0
     }
 }
