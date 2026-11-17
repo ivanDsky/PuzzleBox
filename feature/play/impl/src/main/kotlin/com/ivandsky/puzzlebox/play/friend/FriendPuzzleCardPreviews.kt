@@ -1,8 +1,12 @@
 package com.ivandsky.puzzlebox.play.friend
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import com.ivandsky.puzzlebox.data.model.PostState
 import com.ivandsky.puzzlebox.data.model.ReceivedPuzzle
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
@@ -14,6 +18,7 @@ import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.VariantId
 import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.gameui.GameBrand
+import com.ivandsky.puzzlebox.gameui.hidden.GivensBoard
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
@@ -25,6 +30,7 @@ private fun previewCard(
     difficulty: Difficulty.Level? = Difficulty.Level.Medium,
     board: CustomBoardView? = CustomBoardView.SignedOut(PreviewBoardAuthor),
     canReport: Boolean = false,
+    givens: GivensBoard? = null,
 ) = FriendCard(
     puzzle = ReceivedPuzzle(
         code = requireNotNull(ShareCode.parse("K7Q2MX")),
@@ -52,6 +58,7 @@ private fun previewCard(
     board = board,
     signIn = BoardSignIn.Idle,
     canReport = canReport,
+    givens = givens,
 )
 
 @Composable
@@ -95,4 +102,32 @@ internal fun FriendPuzzleCardReportPreview() {
 @Composable
 internal fun FriendPuzzleCardUngradedPreview() {
     PreviewCard(previewCard(FriendCardAction.Play, difficulty = null))
+}
+
+/** A stand-in 8×8 board, a checker in the theme's colours: this module knows no game. */
+private fun previewGivens(): GivensBoard = GivensBoard(PREVIEW_SIDE, PREVIEW_SIDE) { modifier ->
+    val dark = MaterialTheme.colorScheme.primary
+    val light = MaterialTheme.colorScheme.primaryContainer
+    Canvas(modifier.fillMaxSize()) {
+        val cell = Size(size.width / PREVIEW_SIDE, size.height / PREVIEW_SIDE)
+        for (row in 0 until PREVIEW_SIDE) for (col in 0 until PREVIEW_SIDE) {
+            drawRect(if ((row + col) % 2 == 0) dark else light, Offset(col * cell.width, row * cell.height), cell)
+        }
+    }
+}
+
+private const val PREVIEW_SIDE = 8
+
+// Preview: the community flag is on and the puzzle is new to you, its board blurred under "Hidden until you play".
+@PuzzleBoxPreviews
+@Composable
+internal fun FriendPuzzleCardHiddenBoardPreview() {
+    PreviewCard(previewCard(FriendCardAction.Play, canReport = true, givens = previewGivens()))
+}
+
+// Preview: the community flag is on and you solved it, so its board shows sharp.
+@PuzzleBoxPreviews
+@Composable
+internal fun FriendPuzzleCardSolvedBoardPreview() {
+    PreviewCard(previewCard(FriendCardAction.PlayAgain, yours = BestScore(125_000L, 0), canReport = true, givens = previewGivens()))
 }

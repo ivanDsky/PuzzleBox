@@ -46,7 +46,8 @@ import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
 
 /**
  * A friend's puzzle before it is played: the game's glyph, the title, "by" the author and
- * the note, the size and difficulty chips (difficulty only when the local re-check graded
+ * the note, with [FriendCard.givens] (CommunityPuzzles on) the puzzle's board between them, blurred under "Hidden until
+ * you play" until you have solved it ([HiddenBoardSection]), the size and difficulty chips (difficulty only when the local re-check graded
  * it, "Taken down · still plays" once the author took it down, popping in on the stamp's
  * spring when the card's recheck finds it), the author's time and hints beside yours once solved, the code with Copy, the one
  * primary action, [onAction], and under it the [BoardPreview], whose sign-in is [onSignIn]. A ⋮ beside the title offers
@@ -83,10 +84,13 @@ internal fun FriendPuzzleCard(
             }
         }
         if (puzzle.note.isNotBlank()) Enter(entrance, 2, reduced) { Note(puzzle.note, accent.accent) }
-        Enter(entrance, 3, reduced) { Chips(card, accent.container, accent.onContainer, reduced) }
-        Enter(entrance, 4, reduced) { Stats(card) }
-        Enter(entrance, 5, reduced) { Action(card.action, reduced, onAction) }
-        Enter(entrance, 6, reduced) {
+        // The hidden board takes the slot after the note, so the sections after it stagger one later.
+        val later = if (card.hiddenBoard) 1 else 0
+        card.givens?.let { givens -> Enter(entrance, 3, reduced) { HiddenBoardSection(givens, sharp = card.yours != null) } }
+        Enter(entrance, 3 + later, reduced) { Chips(card, accent.container, accent.onContainer, reduced) }
+        Enter(entrance, 4 + later, reduced) { Stats(card) }
+        Enter(entrance, 5 + later, reduced) { Action(card.action, reduced, onAction) }
+        Enter(entrance, 6 + later, reduced) {
             BoardPreview(
                 board = card.board,
                 author = puzzle.authorPin(),
