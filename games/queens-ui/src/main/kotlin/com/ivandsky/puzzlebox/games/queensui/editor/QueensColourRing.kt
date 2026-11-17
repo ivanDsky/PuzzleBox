@@ -140,7 +140,7 @@ private fun RingPetal(
                 }
                 .testTag("queens.editor.ring.slot.$region")
                 .clickable(interaction, indication = null, role = Role.Button) { onPick(region) }
-                .semantics { contentDescription = if (unused) "Colour $letter (unused)" else "Colour $letter" },
+                .semantics { contentDescription = if (unused) "Color $letter (unused)" else "Color $letter" },
             contentAlignment = Alignment.Center,
         ) {
             Text(letter, color = ink, style = MaterialTheme.typography.titleSmall, modifier = Modifier.clearAndSetSemantics {})

@@ -255,7 +255,7 @@ private fun StudioScreenPreview() {
                     sizeLabel = { "4×4" },
                     onResize = {},
                     onClear = {},
-                    hint = { Text("Drag across cells, then pick a colour", it, style = MaterialTheme.typography.bodySmall) },
+                    hint = { Text("Drag across cells, then pick a color", it, style = MaterialTheme.typography.bodySmall) },
                     modifier = stripModifier,
                 )
             },
