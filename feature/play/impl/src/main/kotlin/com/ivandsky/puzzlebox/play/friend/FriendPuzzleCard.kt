@@ -39,6 +39,7 @@ import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PrimaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.maxContentWidth
@@ -72,7 +73,7 @@ internal fun FriendPuzzleCard(
     val entrance = rememberCardEntrance(card.puzzle.code)
     if (paneHeight.isSpecified && card.hiddenBoard) {
         BoxWithConstraints(modifier) {
-            if (maxWidth >= FriendGridMinWidth) {
+            if (maxWidth >= TwoColumnMinWidth) {
                 FriendPuzzleGrid(card, entrance, reduced, paneHeight, onAction, onSignIn, onReport)
             } else {
                 SingleColumn(card, entrance, reduced, onAction, onSignIn, onReport, Modifier.padding(bottom = Spacing.xl))

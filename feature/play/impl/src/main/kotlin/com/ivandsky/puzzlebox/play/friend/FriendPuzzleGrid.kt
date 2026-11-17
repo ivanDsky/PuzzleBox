@@ -8,7 +8,7 @@ import com.ivandsky.puzzlebox.designsystem.colors
 /**
  * The friend page as two columns, for the Community tablet's right pane with CommunityPuzzles on: the board, the chips
  * and the time tiles on the left; the head, title and byline, note, primary action and ranks in a
- * [FriendGridRightWidth] column on the right ([FriendGridFrame]). The board fills the left column and, on a pane
+ * [com.ivandsky.puzzlebox.designsystem.TwoColumnRightWidth] column on the right ([FriendGridFrame]). The board fills the left column and, on a pane
  * [paneHeight] high, grows only as far as keeps the board, chips and tiles in view; the columns are centred, on each
  * other and on the pane. The Enter stagger runs down the left column first, then the right. Needs [FriendCard.givens]:
  * the caller checks [FriendCard.hiddenBoard].

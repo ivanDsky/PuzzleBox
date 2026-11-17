@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,7 +49,7 @@ internal fun DuelContent(code: String, navigator: Navigator, layout: PlayLayout,
     )
     Box(modifier, contentAlignment = Alignment.TopCenter) {
         when (val current = state) {
-            DuelUiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
+            DuelUiState.Loading -> DuelLoading(layout)
             is DuelUiState.Invite -> DuelInviteCard(current, actions, Modifier.verticalScroll(rememberScrollState()))
             is DuelUiState.Participant -> {
                 val now by rememberCountdownNow(time, current.view.match.closesAt)

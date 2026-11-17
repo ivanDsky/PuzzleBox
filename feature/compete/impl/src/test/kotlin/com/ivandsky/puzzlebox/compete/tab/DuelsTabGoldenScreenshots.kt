@@ -163,7 +163,7 @@ abstract class DuelsTabGoldenScreenshots(private val device: String) {
  * Shows [content] the way the app's root Scaffold does in the [dark] or light theme, system animations off
  * (reduced motion), the compose clock frozen until [settleAndCapture].
  */
-private fun ComposeContentTestRule.showGolden(dark: Boolean, content: @Composable () -> Unit) {
+internal fun ComposeContentTestRule.showGolden(dark: Boolean, content: @Composable () -> Unit) {
     val context = ApplicationProvider.getApplicationContext<Context>()
     Settings.Global.putFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
     mainClock.autoAdvance = false
@@ -185,7 +185,7 @@ private fun ComposeContentTestRule.showGolden(dark: Boolean, content: @Composabl
  * Recorded with `-Proborazzi.record=true`, verified with `-Proborazzi.verify=true`.
  */
 @OptIn(ExperimentalRoborazziApi::class)
-private fun ComposeContentTestRule.settleAndCapture(group: String, name: String, device: String, dark: Boolean) {
+internal fun ComposeContentTestRule.settleAndCapture(group: String, name: String, device: String, dark: Boolean) {
     mainClock.advanceTimeBy(SETTLE_MS)
     val file = File(checkNotNull(System.getProperty("user.dir")))
         .resolve("snapshots/$group/$name-$device-${if (dark) "dark" else "light"}.png")
