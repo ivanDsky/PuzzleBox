@@ -40,4 +40,21 @@ class FlatSurfacesThemeTest {
         composeRule.waitForIdle()
         assertEquals(false, seen)
     }
+
+    @Test
+    fun `flat strands is its own request, off by default and independent of flat surfaces`() {
+        var surfacesOn by mutableStateOf(false)
+        var strands: Boolean? = null
+        var surfaces: Boolean? = null
+        composeRule.setContent {
+            PuzzleBoxTheme(flatSurfaces = surfacesOn) { strands = LocalFlatStrands.current; surfaces = LocalFlatSurfaces.current }
+        }
+        composeRule.waitForIdle()
+        assertEquals(false, strands)
+
+        composeRule.runOnUiThread { surfacesOn = true }
+        composeRule.waitForIdle()
+        assertEquals(false, strands)
+        assertEquals(true, surfaces)
+    }
 }

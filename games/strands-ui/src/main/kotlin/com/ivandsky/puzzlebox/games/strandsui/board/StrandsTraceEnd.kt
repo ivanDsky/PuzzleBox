@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalDensity
 import com.ivandsky.puzzlebox.designsystem.BoardColors
-import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
+import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.LinkKind
@@ -95,7 +95,7 @@ private fun frameOf(end: TraceEnd, elapsedMs: Int, reduceMotion: Boolean, amplit
  */
 @Composable
 internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEndFrame?, colors: BoardColors) {
-    val flat = LocalFlatSurfaces.current
+    val flat = LocalFlatStrands.current
     Spacer(
         Modifier
             .fillMaxSize()

@@ -91,7 +91,7 @@ internal object StrandsCellDrawing {
 /** The side of the token's face: [half] at [scale], doubled. */
 internal fun tokenSide(half: Float, scale: Float = 1f): Float = half * scale * 2
 
-/** How far the lip sits below a face of side [side]; none when [flat] (LocalFlatSurfaces on). */
+/** How far the lip sits below a face of side [side]; none when [flat] (LocalFlatStrands on). */
 internal fun tokenDrop(side: Float, flat: Boolean = false): Float = if (flat) 0f else side * StrandsBoardSpec.TokenLipFraction
 
 /** The corner radius of a face of side [side], and of its lip. */

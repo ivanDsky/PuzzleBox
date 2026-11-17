@@ -15,6 +15,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LightBoardTokens
+import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.strands.Coord
@@ -35,7 +36,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Flat surfaces (nav-rethink M10-8): a Strands token is its face alone. With [LocalFlatSurfaces] on, the strip under a
+ * Flat Strands (nav-rethink M10-8, split from flat surfaces by ticket 110): a Strands token is its face alone. With [LocalFlatStrands] on, the strip under a
  * found letter's face is the bare board; the layout, so the hit area, is the lip's, unchanged. The geometry the
  * connector clipper reads loses its lip too, so a faded line is never cut out of a lip that is not drawn.
  */
@@ -51,9 +52,9 @@ class StrandsFlatTokenTest {
         PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}),
     ).also { assertEquals(Adopt.Adopted, it.adoptToday(StrandsUiFixtures.envelope(), StrandsUiFixtures.ref)) }
 
-    private fun show(flat: Boolean) = rule.setContent {
+    private fun show(flat: Boolean, surfaces: Boolean = flat) = rule.setContent {
         PuzzleBoxTheme(darkTheme = false) {
-            CompositionLocalProvider(LocalFlatSurfaces provides flat) {
+            CompositionLocalProvider(LocalFlatStrands provides flat, LocalFlatSurfaces provides surfaces) {
                 Box(Modifier.size(400.dp, 300.dp).testTag("host")) { StrandsBoard(controller) }
             }
         }
@@ -87,6 +88,21 @@ class StrandsFlatTokenTest {
         val (_, belowFace, bare) = foundLetterProbe()
         assertEquals(LightBoardTokens.strandsThemeLip, belowFace)
         assertNotEquals(bare, belowFace)
+    }
+
+    @Test
+    fun `flat surfaces on with flat strands off, a found letter keeps its lip`() {
+        show(flat = false, surfaces = true)
+        val (_, belowFace, bare) = foundLetterProbe()
+        assertEquals(LightBoardTokens.strandsThemeLip, belowFace)
+        assertNotEquals(bare, belowFace)
+    }
+
+    @Test
+    fun `flat strands on with flat surfaces off, a found letter has no lip`() {
+        show(flat = true, surfaces = false)
+        val (_, belowFace, bare) = foundLetterProbe()
+        assertEquals(bare, belowFace)
     }
 
     @Test

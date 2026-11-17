@@ -63,7 +63,7 @@ class StrandsReadableBoardGoldenTest {
 
     @Test fun `readable board dark`() = capture(dark = true)
 
-    /** The same board with flat surfaces on (nav-rethink M10-8): no lip under a token. */
+    /** The same board with flat Strands on (nav-rethink M10-8): no lip under a token. */
     @Test fun `readable board flat light`() = capture(dark = false, flat = true)
 
     @Test fun `readable board flat dark`() = capture(dark = true, flat = true)

@@ -17,6 +17,12 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     FlatSurfaces(label = "Flat buttons and cards", releaseDefault = false),
 
     /**
+     * Strands' flat look (no lip under a token, a 64 dp hint row), split from [FlatSurfaces] so that can ship without
+     * touching Strands; pending its own prototype. Read only by the app's root theme (spec A2).
+     */
+    FlatStrands(label = "Flat Strands board", releaseDefault = false),
+
+    /**
      * Custom inside Games and a full-screen Studio: Create stops being a tab, Games gets a Custom pill, and the Studio
      * hides the bar (nav-rethink N9, N10). Read only in a ViewModel, a DI module or the app-graph `TabSetSource` (ADR-0027 §10).
      */
