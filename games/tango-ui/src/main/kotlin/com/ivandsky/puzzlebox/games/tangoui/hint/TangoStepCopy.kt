@@ -49,9 +49,9 @@ internal object TangoStepCopy {
         TangoStepRung.FULL_LINE to { step, _ ->
             "${lineName(step).replaceFirstChar(Char::uppercase)} has all its ${plural(step.other)}, so the rest are ${plural(step.value)}"
         },
-        TangoStepRung.EQUAL_PAIR to { step, _ -> "Beside a ${word(step.other)}, so both of these cells are ${plural(step.value)}" },
+        TangoStepRung.EQUAL_PAIR to { step, _ -> "Joined by =, these would make three ${plural(step.other)} in a row, so both are ${plural(step.value)}" },
         TangoStepRung.SIGN_COUNT to { step, _ ->
-            "The signs use up the ${plural(step.other)}, so this is a ${word(step.value)}"
+            "Counting the signs, no ${word(step.other)} fits here, so this is a ${word(step.value)}"
         },
         TangoStepRung.SPLIT_PAIR to { step, _ -> "The gap holds one of each, so the rest are ${plural(step.value)}" },
         TangoStepRung.COUNT_SQUEEZE to { step, _ ->
