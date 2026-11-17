@@ -129,6 +129,7 @@ val domainModule = module {
             puzzleDay = get(),
             nextRollover = get(),
             communityPuzzles = get(),
+            showDayTotal = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ResultHeroPolish) == true,
         )
     }
     factory {

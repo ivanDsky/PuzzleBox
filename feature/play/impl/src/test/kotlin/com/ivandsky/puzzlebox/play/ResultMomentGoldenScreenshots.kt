@@ -50,6 +50,9 @@ abstract class ResultMomentGoldenScreenshots(private val device: String) {
     @Test fun `moments light`() = capture("moments", MOMENTS, dark = false)
     @Test fun `moments dark`() = capture("moments", MOMENTS, dark = true)
 
+    @Test fun `full set light`() = capture("full-set", FULL_SET, dark = false)
+    @Test fun `full set dark`() = capture("full-set", FULL_SET, dark = true)
+
     @Test fun `challenge row light`() = capture("challenge-row", CHALLENGE_ROW, dark = false)
     @Test fun `challenge row dark`() = capture("challenge-row", CHALLENGE_ROW, dark = true)
 
@@ -98,8 +101,9 @@ abstract class ResultMomentGoldenScreenshots(private val device: String) {
         val NEW_BEST = facts(verdict = RecordVerdict.NewBest, timeMs = 58_000L, previous = BestScore(65_000L, 0))
 
         val MOMENTS = NEW_BEST.copy(
-            moments = listOf(Moment.Streak(7), Moment.FullSetDone, Moment.TopThreeFriends(2), Moment.PersonalBest),
+            moments = listOf(Moment.Streak(7), Moment.FullSetDone(), Moment.TopThreeFriends(2), Moment.PersonalBest),
         )
+        val FULL_SET = NEW_BEST.copy(moments = listOf(Moment.FullSetDone(Moment.FullSetDone.DayTotal(timeMs = 312_000L, hints = 2))))
         val CHALLENGE_ROW = NEW_BEST.copy(moments = listOf(Moment.PassedFriend("u1", "Maya")), challenge = MAYA)
         val CHALLENGE_MAIN = NEW_BEST.copy(primary = MAYA, challenge = MAYA)
         val MISSED_DAY = NEW_BEST.copy(primary = ResultPrimaryAction.MissedDay(GameId("tango"), LocalDate.of(2026, 11, 3), "Tango"))

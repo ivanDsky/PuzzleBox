@@ -18,7 +18,7 @@ private fun Moment.strength(): Int = when (this) {
     is Moment.FirstSubX -> 1
     is Moment.TopThreeFriends -> 2
     is Moment.PassedFriend -> 3
-    Moment.FullSetDone -> 4
+    is Moment.FullSetDone -> 4
     is Moment.Streak -> 5
 }
 
@@ -27,7 +27,7 @@ private fun Moment.rowKey(): String = when (this) {
     is Moment.FirstSubX -> "sub:$thresholdMs"
     is Moment.TopThreeFriends -> "top3"
     is Moment.PassedFriend -> "passed:$uid"
-    Moment.FullSetDone -> "set"
+    is Moment.FullSetDone -> "set"
     is Moment.Streak -> "streak"
 }
 
@@ -36,6 +36,12 @@ private fun Moment.rowText(): String = when (this) {
     is Moment.FirstSubX -> "First sub-${formatDuration(thresholdMs)}"
     is Moment.TopThreeFriends -> "Top 3 among friends today"
     is Moment.PassedFriend -> "You passed $name"
-    Moment.FullSetDone -> "Full set done"
+    is Moment.FullSetDone -> fullSetText(total)
     is Moment.Streak -> "$days-day streak"
+}
+
+private fun fullSetText(total: Moment.FullSetDone.DayTotal?): String {
+    if (total == null) return "Full set done"
+    val hints = if (total.hints > 0) ", ${total.hints} ${if (total.hints == 1) "hint" else "hints"}" else ""
+    return "Full set done · ${formatDuration(total.timeMs)} total$hints"
 }

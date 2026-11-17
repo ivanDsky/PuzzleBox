@@ -25,7 +25,7 @@ internal object ResultMomentHaptics {
     fun typeFor(moment: Moment): HapticFeedbackType = when (moment) {
         Moment.PersonalBest, is Moment.FirstSubX -> HapticFeedbackType.LongPress
         is Moment.TopThreeFriends, is Moment.PassedFriend -> HapticFeedbackType.Confirm
-        Moment.FullSetDone, is Moment.Streak -> HapticFeedbackType.TextHandleMove
+        is Moment.FullSetDone, is Moment.Streak -> HapticFeedbackType.TextHandleMove
     }
 }
 

@@ -72,6 +72,6 @@ class ResultNextThingMappingTest {
 
     @Test
     fun `a next thing not yet known leaves the primary pending`() {
-        assertEquals(ResultNextFacts(moments = listOf(Moment.FullSetDone)), ResultNextThing(listOf(Moment.FullSetDone)).toResultFacts(names))
+        assertEquals(ResultNextFacts(moments = listOf(Moment.FullSetDone())), ResultNextThing(listOf(Moment.FullSetDone())).toResultFacts(names))
     }
 }
