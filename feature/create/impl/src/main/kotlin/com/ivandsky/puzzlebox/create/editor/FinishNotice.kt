@@ -29,8 +29,8 @@ internal sealed interface FinishNotice {
     /** The board was finished by changing the colour of [count] cells the author painted (107); the editor highlights them. */
     data class Recoloured(val count: Int) : FinishNotice {
         override val text =
-            if (count == 1) "Finished. 1 painted cell changed colour; it's highlighted."
-            else "Finished. $count painted cells changed colour; they're highlighted."
+            if (count == 1) "Finished. 1 painted cell changed color; it's highlighted."
+            else "Finished. $count painted cells changed color; they're highlighted."
     }
 }
 
