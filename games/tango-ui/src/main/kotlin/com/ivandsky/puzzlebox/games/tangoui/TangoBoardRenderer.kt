@@ -160,7 +160,6 @@ private fun Cell(
     val violating = violationPhrase != null
     val scheme = MaterialTheme.colorScheme
     val given = render?.isGiven == true && render.value != null
-    val outline = if (given) style.givenOutline else Color.Unspecified
     val gridLineWeight = BoardTokens.boardGridLineWeight
     val reducedMotion = rememberReducedMotion()
     // ViolationFlash retired (user QA 2026-11-02): the 1→0.86 cell scale read as a
@@ -179,7 +178,7 @@ private fun Cell(
                 // Given identity, legacy look (user QA 2026-11-02): preplaced cells read as DISABLED —
                 // a muted background wash, not a dot. Drawn before the violation tint so
                 // a given caught in a violating line still shows the error state above it.
-                // The readable look has no wash: the given's glyph wears an ink outline instead.
+                // The readable look has no wash; a given is told by its sun or moon colour alone.
                 if (given && style.givenWash.isSpecified) drawRoundRect(color = style.givenWash, cornerRadius = stateRadius)
                 if (violating) {
                     // errorContainer tint 0.7 (Zip rejection precedent) + dashed border
@@ -207,10 +206,10 @@ private fun Cell(
         contentAlignment = Alignment.Center,
     ) {
         if (glyphFade == null) {
-            render?.value?.let { Glyph(it, Modifier.fillMaxSize(), model.n, outline = outline) }
+            render?.value?.let { Glyph(it, Modifier.fillMaxSize(), model.n) }
         } else {
             Crossfade(render?.value, Modifier.fillMaxSize(), glyphFade, label = "tango.glyph") { value ->
-                value?.let { Glyph(it, Modifier.fillMaxSize(), model.n, outline = outline) }
+                value?.let { Glyph(it, Modifier.fillMaxSize(), model.n) }
             }
         }
         // Guide ghost (spec A12): the lesson's answer, faint, until the square matches —
@@ -252,29 +251,26 @@ private fun Cell(
 }
 
 /**
- * The sun or moon in its board fill, at [alpha] of that fill's own alpha (1 = the placed glyph). A specified
- * [outline] rings the glyph in that colour first (a given under the readable tokens).
+ * The sun or moon in its board fill, at [alpha] of that fill's own alpha (1 = the placed glyph).
  */
 @Composable
-private fun Glyph(value: TangoCell, modifier: Modifier, n: Int, alpha: Float = 1f, outline: Color = Color.Unspecified) {
+private fun Glyph(value: TangoCell, modifier: Modifier, n: Int, alpha: Float = 1f) {
     val colors = LocalBoardColors.current
     when (value) {
-        TangoCell.SUN -> SunGlyph(modifier, colors.sunFill.copy(alpha = colors.sunFill.alpha * alpha), n, outline)
-        TangoCell.MOON -> MoonGlyph(modifier, colors.moonFill.copy(alpha = colors.moonFill.alpha * alpha), n, outline)
+        TangoCell.SUN -> SunGlyph(modifier, colors.sunFill.copy(alpha = colors.sunFill.alpha * alpha), n)
+        TangoCell.MOON -> MoonGlyph(modifier, colors.moonFill.copy(alpha = colors.moonFill.alpha * alpha), n)
     }
 }
 
 @Composable
-private fun SunGlyph(modifier: Modifier, fill: Color, n: Int, outline: Color) = Canvas(modifier) {
-    if (outline.isSpecified) drawSun(outline, n, rim = TangoReadableBoardStyle.GivenOutlineWeight.toPx())
+private fun SunGlyph(modifier: Modifier, fill: Color, n: Int) = Canvas(modifier) {
     drawSun(fill, n)
 }
 
 @Composable
-private fun MoonGlyph(modifier: Modifier, fill: Color, n: Int, outline: Color) {
+private fun MoonGlyph(modifier: Modifier, fill: Color, n: Int) {
     val paths = remember { MoonPaths() }
     Canvas(modifier) {
-        if (outline.isSpecified) drawMoon(outline, n, paths, rim = TangoReadableBoardStyle.GivenOutlineWeight.toPx())
         drawMoon(fill, n, paths)
     }
 }
