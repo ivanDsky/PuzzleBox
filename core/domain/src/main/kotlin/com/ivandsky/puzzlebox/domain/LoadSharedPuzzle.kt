@@ -21,6 +21,10 @@ import kotlin.coroutines.cancellation.CancellationException
  * a puzzle once opened still plays offline or after its author withdraws it. A payload is
  * remote input: an exception its decode or analysis throws reads as the failed check, while
  * cancellation still propagates.
+ *
+ * The kept row's level is the label the author published, so the puzzle page agrees with the list
+ * it was opened from; a doc with none (a private link) takes the grade this device found. The
+ * re-verify still gates the open either way, and a row already stored keeps its level.
  */
 class LoadSharedPuzzle(
     private val registry: GameRegistry,
@@ -61,6 +65,7 @@ class LoadSharedPuzzle(
         }
     }
 
+    /** [difficulty] below is [SharedPuzzleDoc.difficulty], the published level, ahead of the verified grade. */
     private fun SharedPuzzleDoc.toReceived(gameId: GameId, verified: SharedOpenResult.Verified) = ReceivedPuzzle(
         code = code,
         gameId = gameId,
@@ -77,6 +82,6 @@ class LoadSharedPuzzle(
         unpublished = false,
         postState = PostState.Pending,
         postAttempts = 0,
-        difficulty = verified.difficulty?.level,
+        difficulty = difficulty ?: verified.difficulty?.level,
     )
 }
