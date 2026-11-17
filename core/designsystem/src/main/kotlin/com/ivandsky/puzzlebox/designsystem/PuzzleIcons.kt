@@ -161,7 +161,7 @@ object PuzzleIcons {
     val Retry: ImageVector = RetryMark
 
     /** Duel summary: watch the replay again, a ring with a play triangle. Play again keeps the retry arrow. */
-    val WatchAgain: ImageVector = gameGlyph("WatchAgain", stroke = "M12 3.5A8.5 8.5 0 1 1 12 20.5A8.5 8.5 0 1 1 12 3.5Z", fill = "M10 8.5 16 12 10 15.5Z")
+    val WatchAgain: ImageVector = WatchAgainMark
 
     /** Past day status: the puzzle is saved on this device, a phone outline. */
     val SavedOnDevice: ImageVector = SavedOnDeviceMark

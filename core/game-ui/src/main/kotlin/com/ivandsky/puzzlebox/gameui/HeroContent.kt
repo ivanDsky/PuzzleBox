@@ -50,7 +50,7 @@ internal fun HeroContent(
         layout(width, height) {
             header.place(pad, pad)
             val headerBottom = pad + header.height
-            val groupTop = height - pad - groupHeight
+            val groupTop = maxOf(height, natural) - pad - groupHeight
             var y = groupTop
             group.forEach { block ->
                 block.place(pad, y)

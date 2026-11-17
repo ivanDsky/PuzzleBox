@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -40,9 +39,6 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.Instant
 
 private val PillMinHeight = 28.dp
-
-/** Below this the actions stack: the primary on its own row, Share and Play again beneath it. */
-private val ActionRowSingleLineWidth = 480.dp
 
 /** The header's puzzle line, as the play top bar names it: "Queens · #918", "Tango · Practice", or just the name. */
 internal fun resultTitle(game: String, number: Int?, practice: Boolean): String = when {
@@ -138,9 +134,9 @@ internal fun PlayAgainLine(previousBest: BestScore?, rankOrder: RankOrder) {
  * The result's actions, stacked: the primary spans the full width (the button [step] gives for it: `result.next`,
  * `result.done`, and one tag and one copy for each other next thing; once every daily is solved the [ResultCountdown]
  * to [rolloverAt] stands in its place). Under it, Share (tag `result.share`) and, unless [onPlayAgain] is null,
- * Play again (`result.playAgain`) share a row as equal labelled pills. The pills are stacked rather than beside the
- * primary: a label each would crush the primary's words at a phone's width. Under the row: "Challenge <name>"
- * (`result.challenge`) when a [challenge] and its [onChallenge] are given.
+ * Play again (`result.playAgain`) share a row as labelled pills: Share keeps its own width and Play again takes the
+ * rest, so both labels hold one line on a 360 dp phone. Under the row: "Challenge <name>" (`result.challenge`)
+ * when a [challenge] and its [onChallenge] are given.
  */
 @Composable
 internal fun ResultActions(
@@ -187,6 +183,7 @@ private fun ActionRow(
             onClick = onShare,
             modifier = modifier.testTag("result.share").semantics { contentDescription = "Share" },
             icon = PuzzleIcons.Share,
+            maxLines = 1,
         )
     }
     val playAgainButton: @Composable (Modifier, () -> Unit) -> Unit = { modifier, onClick ->
@@ -195,27 +192,15 @@ private fun ActionRow(
             onClick = onClick,
             modifier = modifier.testTag("result.playAgain").semantics { contentDescription = "Play again" },
             icon = PuzzleIcons.Retry,
+            maxLines = 1,
         )
     }
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        if (maxWidth >= ActionRowSingleLineWidth) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                primaryButton(Modifier.weight(1f))
-                shareButton(Modifier)
-                onPlayAgain?.let { playAgainButton(Modifier, it) }
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                primaryButton(Modifier.fillMaxWidth())
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    shareButton(Modifier.weight(1f))
-                    onPlayAgain?.let { playAgainButton(Modifier.weight(1f), it) }
-                }
-            }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        primaryButton(Modifier.fillMaxWidth())
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            // Share keeps its own width; Play again takes the rest, so both labels fit a phone row.
+            shareButton(if (onPlayAgain == null) Modifier.weight(1f) else Modifier)
+            onPlayAgain?.let { playAgainButton(Modifier.weight(1f), it) }
         }
     }
 }
