@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.CreateMatch
 import com.ivandsky.puzzlebox.domain.CreateSelfDuel
+import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
@@ -184,6 +185,7 @@ val domainModule = module {
             random = Random.Default,
         )
     }
+    factory { DeleteSelfDuel(self = get(), outbox = get(), plays = get(), local = get()) }
     factory { UpdateMatchSeat(repo = get(), local = get(), identity = get()) }
     factory { RecordRevealSeen(local = get(), clock = { Instant.now() }) }
     factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }

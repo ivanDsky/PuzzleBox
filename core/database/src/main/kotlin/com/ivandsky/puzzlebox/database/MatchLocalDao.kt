@@ -39,4 +39,7 @@ interface MatchLocalDao {
 
     @Query("UPDATE matches_local SET dismissed = 1 WHERE code = :code")
     suspend fun dismiss(code: String)
+
+    @Query("DELETE FROM matches_local WHERE code = :code")
+    suspend fun delete(code: String)
 }

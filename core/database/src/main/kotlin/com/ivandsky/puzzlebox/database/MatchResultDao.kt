@@ -21,6 +21,10 @@ interface MatchResultDao {
     )
     suspend fun update(code: String, legIndex: Int, uid: String, state: String, attempts: Int)
 
+    /** Removes every row of [code], whatever its player or state. */
+    @Query("DELETE FROM match_results WHERE matchCode = :code")
+    suspend fun deleteAll(code: String)
+
     @Query("SELECT * FROM match_results WHERE matchCode = :code ORDER BY legIndex, uid")
     fun observe(code: String): Flow<List<MatchResultEntity>>
 

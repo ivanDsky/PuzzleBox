@@ -167,6 +167,20 @@ class MatchResultOutboxContractTest(private val adapter: String) {
             collector.cancel()
         }
 
+    @Test
+    fun `delete removes every row of one match, whatever the player or state, and leaves the others`() = runTest {
+        outbox.enqueue(A, leg("me", 0, completedAt = 10L))
+        outbox.enqueue(A, leg("them", 1, completedAt = 20L))
+        outbox.enqueue(B, leg("me", 0, completedAt = 30L))
+        outbox.update(A, 0, "me", ResultPostState.Posted, 1)
+
+        outbox.delete(A)
+        outbox.delete(C)
+
+        assertTrue(outbox.observe(A).first().isEmpty())
+        assertEquals(listOf(B), outbox.observeAll().first().map { it.code })
+    }
+
     private fun leg(
         uid: String,
         legIndex: Int,

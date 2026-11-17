@@ -167,6 +167,19 @@ class MatchLocalRepositoryContractTest(private val adapter: String) {
         assertEquals(mapOf(A.value to "Ann"), repository.opponentNames().first())
     }
 
+    @Test
+    fun `forget removes the row, dismissed or not, and its opponent name, and ignores an unknown code`() = runTest {
+        repository.remember(A, LocalRole.Participant, "Past you")
+        repository.remember(B, LocalRole.Invite, "Ann")
+        repository.dismiss(A)
+
+        repository.forget(A)
+        repository.forget(ShareCode.parse("HJK789")!!)
+
+        assertEquals(listOf(B), repository.observeAll().first().map { it.code })
+        assertEquals(mapOf(B.value to "Ann"), repository.opponentNames().first())
+    }
+
     private suspend fun only(): LocalMatch = repository.observeAll().first().single()
 
     private fun database(): PuzzleBoxDatabase = db ?: Room

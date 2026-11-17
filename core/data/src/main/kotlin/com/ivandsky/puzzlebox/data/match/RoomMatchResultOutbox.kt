@@ -42,6 +42,8 @@ internal class RoomMatchResultOutbox(private val dao: MatchResultDao) : MatchRes
         state: ResultPostState,
         attempts: Int,
     ) = dao.update(code.value, legIndex, uid, state.name, attempts)
+
+    override suspend fun delete(code: ShareCode) = dao.deleteAll(code.value)
 }
 
 private fun Flow<List<MatchResultEntity>>.mapRows(): Flow<List<OutboxResult>> =

@@ -28,4 +28,7 @@ interface MatchResultOutbox {
 
     /** Sets state and attempts of an existing row; no-op when the row is missing. */
     suspend fun update(code: ShareCode, legIndex: Int, uid: String, state: ResultPostState, attempts: Int)
+
+    /** Removes every row of [code], posted or not; a code with no rows is a no-op. */
+    suspend fun delete(code: ShareCode)
 }

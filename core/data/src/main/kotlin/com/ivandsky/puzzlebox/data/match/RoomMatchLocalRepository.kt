@@ -51,6 +51,8 @@ internal class RoomMatchLocalRepository(
 
     override suspend fun dismiss(code: ShareCode) = dao.dismiss(code.value)
 
+    override suspend fun forget(code: ShareCode) = dao.delete(code.value)
+
     override fun opponentNames(): Flow<Map<String, String>> = dao.observeNamed()
         .map { rows -> rows.associate { it.code to requireNotNull(it.opponentName) } }
         .distinctUntilChanged()
