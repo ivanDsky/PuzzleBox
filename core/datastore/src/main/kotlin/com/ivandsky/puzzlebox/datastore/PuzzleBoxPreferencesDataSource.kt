@@ -27,13 +27,15 @@ data class PuzzleBoxPreferences(
     val ranksFriendsDefault: Boolean,
     /** Whether the app plays haptics at all; on until switched off. */
     val vibration: Boolean,
+    /** Whether a duel against yourself shows the time left to beat; on until switched off. */
+    val showSelfDuelTimeLeft: Boolean,
 )
 
 /**
  * Owns the Preferences DataStore keys. Reads tolerate a missing or corrupt value by
  * falling back to [ThemeMode.SYSTEM]; writes store the enum name so the file stays
  * human-readable and forward-compatible. Seen tutorials are one string set of game ids.
- * Auto-show, replay errors, the Ranks Friends default and vibration are plain booleans, true while the key is absent.
+ * Auto-show, replay errors, the Ranks Friends default vibration and the self-duel time-left switch are plain booleans, true while the key is absent.
  */
 class PuzzleBoxPreferencesDataSource(
     private val dataStore: DataStore<Preferences>,
@@ -47,6 +49,7 @@ class PuzzleBoxPreferencesDataSource(
             showReplayErrors = preferences[KEY_SHOW_REPLAY_ERRORS] ?: true,
             ranksFriendsDefault = preferences[KEY_RANKS_FRIENDS_DEFAULT] ?: true,
             vibration = preferences[KEY_VIBRATION] ?: true,
+            showSelfDuelTimeLeft = preferences[KEY_SHOW_SELF_DUEL_TIME_LEFT] ?: true,
         )
     }
 
@@ -81,6 +84,10 @@ class PuzzleBoxPreferencesDataSource(
         dataStore.edit { preferences -> preferences[KEY_VIBRATION] = on }
     }
 
+    suspend fun setShowSelfDuelTimeLeft(on: Boolean) {
+        dataStore.edit { preferences -> preferences[KEY_SHOW_SELF_DUEL_TIME_LEFT] = on }
+    }
+
     /** A game's own boolean setting; [default] while it was never written. */
     fun gameFlag(game: GameId, name: String, default: Boolean): Flow<Boolean> =
         dataStore.data.map { it[gameFlagKey(game, name)] ?: default }
@@ -98,5 +105,6 @@ class PuzzleBoxPreferencesDataSource(
         val KEY_SHOW_REPLAY_ERRORS = booleanPreferencesKey("show_replay_errors")
         val KEY_RANKS_FRIENDS_DEFAULT = booleanPreferencesKey("ranks_friends_default")
         val KEY_VIBRATION = booleanPreferencesKey("vibration")
+        val KEY_SHOW_SELF_DUEL_TIME_LEFT = booleanPreferencesKey("showSelfDuelTimeLeft")
     }
 }

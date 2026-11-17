@@ -42,4 +42,9 @@ interface UserPreferencesRepository {
     val vibration: Flow<Boolean>
 
     suspend fun setVibration(on: Boolean)
+
+    /** Whether a duel against yourself counts down to your first solve's time; true until switched off. */
+    val showSelfDuelTimeLeft: Flow<Boolean>
+
+    suspend fun setShowSelfDuelTimeLeft(on: Boolean)
 }

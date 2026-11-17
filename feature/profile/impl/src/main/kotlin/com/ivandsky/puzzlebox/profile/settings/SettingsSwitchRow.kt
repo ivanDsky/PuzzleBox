@@ -1,9 +1,11 @@
 package com.ivandsky.puzzlebox.profile.settings
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -16,10 +18,20 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.Spacing
 
-/** The whole row is the tap target; the switch only shows the state, so a screen reader sees one switch per row. */
+/**
+ * The whole row is the tap target; the switch only shows the state, so a screen reader sees one switch per row.
+ * [support], when given, explains the switch under its label.
+ */
 @Composable
-internal fun SettingsSwitchRow(label: String, checked: Boolean, tag: String, onCheckedChange: (Boolean) -> Unit) {
+internal fun SettingsSwitchRow(
+    label: String,
+    checked: Boolean,
+    tag: String,
+    onCheckedChange: (Boolean) -> Unit,
+    support: String? = null,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -29,7 +41,16 @@ internal fun SettingsSwitchRow(label: String, checked: Boolean, tag: String, onC
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(text = label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+        Column(Modifier.weight(1f).padding(end = Spacing.lg)) {
+            Text(text = label, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+            if (support != null) {
+                Text(
+                    text = support,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         Switch(checked = checked, onCheckedChange = null)
     }
 }

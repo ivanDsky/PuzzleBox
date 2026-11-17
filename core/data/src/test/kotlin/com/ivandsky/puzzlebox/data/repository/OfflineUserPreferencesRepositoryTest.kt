@@ -130,6 +130,18 @@ class OfflineUserPreferencesRepositoryTest {
     }
 
     @Test
+    fun `self-duel time left is on until switched off`() = runTest {
+        val repository = newRepository()
+        assertTrue(repository.showSelfDuelTimeLeft.first())
+
+        repository.setShowSelfDuelTimeLeft(false)
+        assertFalse(repository.showSelfDuelTimeLeft.first())
+
+        repository.setShowSelfDuelTimeLeft(true)
+        assertTrue(repository.showSelfDuelTimeLeft.first())
+    }
+
+    @Test
     fun `the witness auto-shows on first launch`() = runTest {
         assertTrue(newRepository().autoShowWitness.first())
     }

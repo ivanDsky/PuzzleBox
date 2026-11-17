@@ -48,6 +48,7 @@ class SettingsScreenTest {
     private val tiers = mutableListOf<VisibilityTier>()
     private val ranksFriends = mutableListOf<Boolean>()
     private val vibration = mutableListOf<Boolean>()
+    private val timeLeft = mutableListOf<Boolean>()
     private var backClicks = 0
     private var catalogClicks = 0
 
@@ -67,6 +68,7 @@ class SettingsScreenTest {
                     onSelectVisibility = { tiers += it },
                     onSetRanksFriendsDefault = { ranksFriends += it },
                     onSetVibration = { vibration += it },
+                    onSetShowSelfDuelTimeLeft = { timeLeft += it },
                     onBack = { backClicks++ },
                     onOpenCatalog = if (showCatalog) ({ catalogClicks++ }) else null,
                     debugSections = debugSections,
@@ -101,6 +103,22 @@ class SettingsScreenTest {
         composeRule.onNodeWithTag("settings.vibration.switch").performScrollTo().assertIsOn().performClick()
 
         assertEquals(listOf(false), vibration)
+    }
+
+    @Test
+    fun `the play row shows the stored value and a tap reports the flipped one`() {
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", duelPlay = true, showSelfDuelTimeLeft = true))
+
+        composeRule.onNodeWithTag("settings.play.timeleft").performScrollTo().assertIsOn().performClick()
+
+        assertEquals(listOf(false), timeLeft)
+    }
+
+    @Test
+    fun `the play section is absent unless the duel flag put it there`() {
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", showSelfDuelTimeLeft = true))
+
+        composeRule.onNodeWithTag("settings.play").assertDoesNotExist()
     }
 
     @Test

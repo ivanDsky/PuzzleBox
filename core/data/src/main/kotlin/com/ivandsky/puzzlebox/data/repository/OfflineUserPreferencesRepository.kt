@@ -55,4 +55,11 @@ internal class OfflineUserPreferencesRepository(
     override suspend fun setVibration(on: Boolean) {
         dataSource.setVibration(on)
     }
+
+    override val showSelfDuelTimeLeft: Flow<Boolean> =
+        dataSource.preferences.map { it.showSelfDuelTimeLeft }.distinctUntilChanged()
+
+    override suspend fun setShowSelfDuelTimeLeft(on: Boolean) {
+        dataSource.setShowSelfDuelTimeLeft(on)
+    }
 }
