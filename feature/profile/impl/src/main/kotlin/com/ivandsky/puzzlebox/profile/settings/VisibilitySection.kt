@@ -26,7 +26,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 /**
  * The Settings Visibility block: the four-step ladder, each step saying what it opens; the effective tier of [own] is
  * selected. While [OwnTier.Unknown] (signed out, or the stored tier not read yet) none is selected and the steps are
- * shown disabled under a "Sign in to choose" line with a sign-in button: there is no tier to change yet. Stateless: it reports the tapped tier and the sign-in tap.
+ * shown disabled under a "Sign in to choose" line with a sign-in button (only when a [SignInPrompt] is given: no account): there is no tier to change yet. Stateless: it reports the tapped tier and the sign-in tap.
  */
 @Composable
 internal fun VisibilitySection(
@@ -34,7 +34,7 @@ internal fun VisibilitySection(
     onSelect: (VisibilityTier) -> Unit,
     modifier: Modifier = Modifier,
     onSignIn: () -> Unit = {},
-    signInMessage: String? = null,
+    signIn: SignInPrompt? = null,
 ) {
     val selected = own.effective
     val known = own != OwnTier.Unknown
@@ -43,7 +43,7 @@ internal fun VisibilitySection(
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         SectionTitle("Visibility")
-        if (!known) SignInPrompt(onSignIn, signInMessage)
+        if (!known && signIn != null) SignInPrompt(signIn, onSignIn)
         Column(Modifier.selectableGroup()) {
             VisibilityTier.entries.forEach { tier ->
                 VisibilityRow(tier, selected = tier == selected, enabled = known, onClick = { onSelect(tier) })
@@ -54,7 +54,7 @@ internal fun VisibilitySection(
 
 /** Why the ladder is off while there is no tier to change, and the way to get one. */
 @Composable
-private fun SignInPrompt(onSignIn: () -> Unit, message: String?) {
+private fun SignInPrompt(prompt: SignInPrompt, onSignIn: () -> Unit) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text(
             text = "Sign in to choose",
@@ -62,8 +62,13 @@ private fun SignInPrompt(onSignIn: () -> Unit, message: String?) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.testTag("settings.visibility.reason"),
         )
-        SecondaryButton(text = "Sign in with Google", onClick = onSignIn, modifier = Modifier.fillMaxWidth().testTag("settings.visibility.signin"))
-        message?.let {
+        SecondaryButton(
+            text = if (prompt.running) "Signing in…" else "Sign in with Google",
+            onClick = onSignIn,
+            enabled = !prompt.running,
+            modifier = Modifier.fillMaxWidth().testTag("settings.visibility.signin"),
+        )
+        prompt.message?.let {
             Text(text = it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         }
     }
@@ -105,6 +110,9 @@ private fun VisibilityTier.opens(): String = when (this) {
     VisibilityTier.Duel -> "Other players can challenge you to a duel."
     VisibilityTier.Replays -> "Other players can watch replays of your games."
 }
+
+/** The sign-in offer under "Sign in to choose": shown only to a player with no account; [running] disables the button, [message] says why the last try failed. */
+internal data class SignInPrompt(val running: Boolean, val message: String?)
 
 private val MinRowHeight = 56.dp
 

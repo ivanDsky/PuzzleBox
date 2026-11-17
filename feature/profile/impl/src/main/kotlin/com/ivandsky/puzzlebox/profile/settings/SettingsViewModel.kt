@@ -22,11 +22,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 private const val SIGN_IN_OFFLINE = "Sign-in is unavailable right now. Check your connection."
 private const val SIGN_IN_FAILED = "Sign-in failed. Please try again."
+
+/** Progress and outcome of the Visibility section's sign-in. */
+private data class SignInProgress(val running: Boolean = false, val message: String? = null)
 
 /**
  * Settings state: the stored theme mode, the Games switches (live from [games]) and [AppBuild.versionName]; a pick is
@@ -50,7 +52,7 @@ internal class SettingsViewModel(
 
     private val play: Flow<Pair<Boolean, Boolean>> = combine(duelPlay, preferences.showSelfDuelTimeLeft, ::Pair)
 
-    private val signInMessage = MutableStateFlow<String?>(null)
+    private val signIn = MutableStateFlow(SignInProgress())
 
     val uiState: StateFlow<SettingsUiState> =
         combine(
@@ -70,7 +72,9 @@ internal class SettingsViewModel(
                 duelPlay = duelPlay,
                 showSelfDuelTimeLeft = timeLeft,
             )
-        }.combine(signInMessage) { state, message -> state.copy(signInMessage = message) }.stateIn(
+        }.combine(signIn) { state, progress ->
+            state.copy(signingIn = progress.running, signInMessage = progress.message)
+        }.combine(identityService.current) { state, identity -> state.copy(signedIn = identity != null) }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = SettingsUiState(themeMode = ThemeMode.SYSTEM, versionName = appBuild.versionName),
@@ -92,8 +96,9 @@ internal class SettingsViewModel(
      * a failure is said in [SettingsUiState.signInMessage], a backed-out sheet is not a failure.
      */
     fun onSignIn(activityContext: Context) {
+        if (signIn.value.running) return
+        signIn.value = SignInProgress(running = true)
         viewModelScope.launch {
-            signInMessage.update { null }
             val message = when (val token = idTokenProvider.idToken(activityContext)) {
                 is GoogleIdToken.Available -> when (val result = identityService.signInWithGoogleIdToken(token.token)) {
                     is AuthResult.Ok -> null
@@ -105,7 +110,7 @@ internal class SettingsViewModel(
                     else -> SIGN_IN_FAILED
                 }
             }
-            signInMessage.update { message }
+            signIn.value = SignInProgress(message = message)
         }
     }
 

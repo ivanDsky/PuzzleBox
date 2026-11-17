@@ -178,6 +178,15 @@ class SettingsScreenTest {
     }
 
     @Test
+    fun `signed in with the tier not read yet shows no sign-in prompt but keeps the rows off`() {
+        setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", visibility = OwnTier.Unknown, signedIn = true))
+
+        composeRule.onNodeWithTag("settings.visibility.reason").assertDoesNotExist()
+        composeRule.onNodeWithTag("settings.visibility.signin").assertDoesNotExist()
+        composeRule.onNodeWithTag("settings.visibility.board").performScrollTo().assertIsNotEnabled()
+    }
+
+    @Test
     fun `a chosen tier shows no sign-in prompt`() {
         setContent(state = SettingsUiState(themeMode = ThemeMode.LIGHT, versionName = "1.4.0", visibility = OwnTier.Unset))
 

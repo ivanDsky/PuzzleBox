@@ -38,7 +38,7 @@ class SettingsViewModelTest {
     private val context: Context = org.mockito.Mockito.mock(Context::class.java)
     private val identity = FakeIdentityService()
     private var token: GoogleIdToken = GoogleIdToken.Available("id-token")
-    private val tokens = object : GoogleIdTokenProvider {
+    private var tokens: GoogleIdTokenProvider = object : GoogleIdTokenProvider {
         override suspend fun idToken(activityContext: Context): GoogleIdToken = token
     }
 
@@ -222,6 +222,35 @@ class SettingsViewModelTest {
 
         assertEquals(listOf("id-token"), identity.signInCalls)
         assertNull(vm.uiState.value.signInMessage)
+    }
+
+    @Test
+    fun `a second tap while sign-in runs starts no second credential flow`() = runTest(dispatcher) {
+        var calls = 0
+        tokens = object : GoogleIdTokenProvider {
+            override suspend fun idToken(activityContext: Context): GoogleIdToken {
+                calls++
+                return token
+            }
+        }
+        val vm = signedOutVm()
+
+        vm.onSignIn(context)
+        vm.onSignIn(context)
+        advanceUntilIdle()
+
+        assertEquals(1, calls)
+    }
+
+    @Test
+    fun `the state says signed in once the identity service has an account`() = runTest(dispatcher) {
+        val vm = signedOutVm()
+        advanceUntilIdle()
+        assertEquals(false, vm.uiState.value.signedIn)
+
+        vm.onSignIn(context)
+        advanceUntilIdle()
+        assertEquals(true, vm.uiState.value.signedIn)
     }
 
     @Test

@@ -84,7 +84,7 @@ internal fun SettingsScreen(
                 PlaySection(timeLeft = state.showSelfDuelTimeLeft, onSetTimeLeft = onSetShowSelfDuelTimeLeft)
             }
             state.visibility?.let {
-                VisibilitySection(own = it, onSelect = onSelectVisibility, onSignIn = onSignIn, signInMessage = state.signInMessage)
+                VisibilitySection(own = it, onSelect = onSelectVisibility, onSignIn = onSignIn, signIn = SignInPrompt(state.signingIn, state.signInMessage).takeIf { !state.signedIn })
                 RanksScopeSection(friends = state.ranksFriendsDefault, onSelect = onSetRanksFriendsDefault)
             }
             Column(
