@@ -1,0 +1,18 @@
+{
+  "data": {
+    "data": {
+      "$recipeTypes": [
+        "com.linkedin.90ad705a01944987c736296d4b3025db"
+      ],
+      "updateIdentityDashGames": {
+        "resourceKey": "urn:li:fsd_game:(ACoAAFAKEPROFILE0000000000000000000000000,7,463)",
+        "$recipeTypes": [
+          "com.linkedin.b6e73f2c0a36d689fbfad801c5389270"
+        ],
+        "$type": "GameUpdateResponse"
+      },
+      "$type": "com.linkedin.90ad705a01944987c736296d4b3025db"
+    }
+  },
+  "included": []
+}

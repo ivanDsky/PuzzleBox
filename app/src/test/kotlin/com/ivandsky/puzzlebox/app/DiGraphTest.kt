@@ -215,7 +215,12 @@ class DiGraphTest : KoinTest {
                 .filter { it.linkedInPlay != null }
                 .map { it.definition.id }
             assertEquals(
-                mapOf("queens" to "games/queens/", "tango" to "games/tango/", "zip" to "games/zip/"),
+                mapOf(
+                    "queens" to "games/queens/",
+                    "tango" to "games/tango/",
+                    "zip" to "games/zip/",
+                    "minisudoku" to "games/mini-sudoku/",
+                ),
                 posting.associate { it.value to daily.linkedInGamePath(it) },
             )
         } finally {

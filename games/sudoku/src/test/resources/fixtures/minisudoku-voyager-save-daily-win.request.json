@@ -1,0 +1,155 @@
+{
+  "variables": {
+    "entity": {
+      "entity": {
+        "gameStoredRecord": {
+          "gamePlayState": "END_SOLVED",
+          "timeElapsed": 41,
+          "isFlawless": true,
+          "completionAttributes": {
+            "isHintFree": true,
+            "isMistakeFree": true
+          },
+          "gameStateUnion": {
+            "miniSudokuGameState": [
+              {
+                "cellIdx": 0,
+                "cellContentUnion": {
+                  "cellValue": 5
+                }
+              },
+              {
+                "cellIdx": 1,
+                "cellContentUnion": {
+                  "cellValue": 3
+                }
+              },
+              {
+                "cellIdx": 4,
+                "cellContentUnion": {
+                  "cellValue": 6
+                }
+              },
+              {
+                "cellIdx": 5,
+                "cellContentUnion": {
+                  "cellValue": 4
+                }
+              },
+              {
+                "cellIdx": 6,
+                "cellContentUnion": {
+                  "cellValue": 4
+                }
+              },
+              {
+                "cellIdx": 11,
+                "cellContentUnion": {
+                  "cellValue": 1
+                }
+              },
+              {
+                "cellIdx": 13,
+                "cellContentUnion": {
+                  "cellValue": 5
+                }
+              },
+              {
+                "cellIdx": 16,
+                "cellContentUnion": {
+                  "cellValue": 2
+                }
+              },
+              {
+                "cellIdx": 18,
+                "cellContentUnion": {
+                  "cellValue": 6
+                }
+              },
+              {
+                "cellIdx": 19,
+                "cellContentUnion": {
+                  "cellValue": 2
+                }
+              },
+              {
+                "cellIdx": 22,
+                "cellContentUnion": {
+                  "cellValue": 1
+                }
+              },
+              {
+                "cellIdx": 23,
+                "cellContentUnion": {
+                  "cellValue": 3
+                }
+              },
+              {
+                "cellIdx": 24,
+                "cellContentUnion": {
+                  "cellValue": 3
+                }
+              },
+              {
+                "cellIdx": 25,
+                "cellContentUnion": {
+                  "cellValue": 1
+                }
+              },
+              {
+                "cellIdx": 28,
+                "cellContentUnion": {
+                  "cellValue": 4
+                }
+              },
+              {
+                "cellIdx": 29,
+                "cellContentUnion": {
+                  "cellValue": 2
+                }
+              },
+              {
+                "cellIdx": 30,
+                "cellContentUnion": {
+                  "cellValue": 2
+                }
+              },
+              {
+                "cellIdx": 31,
+                "cellContentUnion": {
+                  "cellValue": 4
+                }
+              },
+              {
+                "cellIdx": 32,
+                "cellContentUnion": {
+                  "cellValue": 6
+                }
+              },
+              {
+                "cellIdx": 33,
+                "cellContentUnion": {
+                  "cellValue": 1
+                }
+              },
+              {
+                "cellIdx": 34,
+                "cellContentUnion": {
+                  "cellValue": 3
+                }
+              },
+              {
+                "cellIdx": 35,
+                "cellContentUnion": {
+                  "cellValue": 5
+                }
+              }
+            ]
+          }
+        }
+      },
+      "resourceKey": "urn:li:fsd_game:(ACoAAFAKEPROFILE0000000000000000000000000,7,463)"
+    }
+  },
+  "queryId": "voyagerIdentityDashGames.f8508525e36bee5f9a5ab6b637854d87"
+}

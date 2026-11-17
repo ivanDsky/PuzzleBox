@@ -1,7 +1,8 @@
 package com.ivandsky.puzzlebox.network.linkedin
 
 /**
- * The three Voyager GraphQL operations the account feature calls, and how their `variables` are written.
+ * The Voyager GraphQL operations called with the player's session (the account feature's three reads, and the
+ * read and the save of a game LinkedIn still saves over voyager), and how their `variables` are written.
  *
  * The format is LinkedIn's own, not JSON: the tuple's `(`, `)`, `:` and `,` stay literal (encoding them is
  * an HTTP 400), numbers are literal, and string values are percent-encoded like `encodeURIComponent` with
@@ -13,6 +14,16 @@ internal object VoyagerQueries {
     const val TODAYS_GAME = "voyagerIdentityDashGames.e3326d1fde9a5931eef881827f23ded9"
     const val END_PAGE = "voyagerIdentityDashGameEndPage.b51bd3075ade52e7e7fb4e1e364df72f"
     const val CONNECTIONS = "voyagerIdentityDashGameConnectionsEntities.a5fed1d462445e698d896bd5563fed9c"
+
+    /**
+     * Today's game with the member's stored record of it: the read a voyager save starts from (ADR-0032 §11).
+     * The same persisted query the Mini Sudoku feed fetches its puzzle with.
+     */
+    const val TODAYS_GAME_RECORD = "voyagerIdentityDashGames.22685dd4999129d6bed79f33e65dcbc5"
+
+    /** The save mutation of a game LinkedIn has not moved to `updateGameState`, and the action that runs it. */
+    const val SAVE_GAME = "voyagerIdentityDashGames.f8508525e36bee5f9a5ab6b637854d87"
+    const val EXECUTE = "execute"
 
     /** One page, no pagination. */
     const val BOARD_COUNT = 50

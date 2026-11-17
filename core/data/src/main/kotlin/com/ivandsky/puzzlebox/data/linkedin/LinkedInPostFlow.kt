@@ -130,7 +130,7 @@ internal class LinkedInPostFlow(
             else -> return unread(key, own)
         }
         val asked = open(key) { return it }
-        val page = when (val read = poster.gamePage(asked.gamePath)) {
+        val page = when (val read = poster.gamePage(asked)) {
             is LinkedInRead.Ok -> read.value
             else -> return unread(key, read)
         }

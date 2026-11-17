@@ -123,7 +123,7 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   S5 no colour literals, S6 no infinite animation, S7 no system night flag outside theme resolution, S8 one word per concept and US spelling in visible copy, S9 haptics only through `LocalHapticFeedback`; P1 package root, P2 dispatchers location,
   P3 ViewModel shape, P4 use-case shape, P5 naming, P6 Koin module location, P7 Android-free
   pure modules, P8 NavKey payload, P9 every NavKey has a placement row (ADR-0027; `P9NavKeyPlacement`, fixtures under `fixtures/P9/`),
-  P10 LinkedIn account path GET-only (ADR-0028; `LinkedInPostApi.kt` exempt from the non-GET check), P11 app Robolectric tests run under `DrainTestApplication` (#850), P12 the LinkedIn post API has one POST, `updateGameState`, and nothing hand-builds a write (ADR-0032).
+  P10 LinkedIn account path GET-only (ADR-0028; `LinkedInPostApi.kt` exempt from the non-GET check), P11 app Robolectric tests run under `DrainTestApplication` (#850), P12 the LinkedIn post API has two POSTs, `updateGameState` and the voyager save, and nothing hand-builds a write (ADR-0032).
 - `tools/puzzle-cli/` (`:tools:puzzle-cli`, pure JVM `application`, ADR-0021; ships nowhere) —
   `PuzzleCli.kt` (`main`, the one file that names games: a `GameRegistry` over every non-UI
   plugin; `validate <file>` / `solve <file>` print one `CliVerdict` JSON line, exit codes in
@@ -198,9 +198,11 @@ and (test configurations only) `:core:testing`; and any module outside `tools:*`
   the NYT client (ADR-0014): internal `NytApi` + `NytHttpTransport` implementing `core:game`'s
   `NytTransport` (own sessionless client, call timeout); `linkedin/` (`VoyagerQueries`,
   `VoyagerTodayParser`, `VoyagerOwnResultParser`: the account reads' request shapes and parsers; `LinkedInSessionClient` +
-  `LinkedInRejection`: the client and status table both account adapters share; `SduiLinkedInResultPoster` over
-  `LinkedInPostApi` (ADR-0032): the game page GET parsed by `SduiGamePageParser`, the one `updateGameState` write built by
-  `UpdateGameStateBody` and classified by `serverRequestOutcome`); Koin `networkModule`.
+  `LinkedInRejection`: the client and status table both account adapters share; `VoyagerGraphql`: the one voyager read every
+  adapter goes through; `TwoWireLinkedInResultPoster` over `LinkedInPostApi` (ADR-0032) sends a play by the wire it carries:
+  `SduiLinkedInResultPoster` (the game page GET parsed by `SduiGamePageParser`, the `updateGameState` write built by
+  `UpdateGameStateBody` and classified by `serverRequestOutcome`) or `VoyagerGameSave` (ADR-0032 §11: today's game read parsed by
+  `VoyagerGamePageParser`, the save built by `VoyagerSaveGameBody` and classified by `voyagerSaveOutcome`)); Koin `networkModule`.
 - `core/datastore/` (`:core:datastore`) — `PuzzleBoxPreferencesDataSource` over a Preferences
   DataStore (`PuzzleBoxPreferences`); `LinkedInLinkDataSource` over a DataStore file of its own
   (`LinkedInLinkPrefs`: linked profile, consent time, pause latch; nothing secret); Koin `datastoreModule`.

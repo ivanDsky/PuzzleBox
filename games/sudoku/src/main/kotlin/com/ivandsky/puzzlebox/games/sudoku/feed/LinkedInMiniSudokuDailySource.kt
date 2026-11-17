@@ -42,6 +42,8 @@ class LinkedInMiniSudokuDailySource(
 
     override val linkedInGameTypeId: Int? = EDITION.gameTypeId
 
+    override val linkedInGamePath: String? = EDITION.path
+
     override fun puzzleNumber(day: LocalDate): Int? = EDITION.numberOrNull(day)
 
     override suspend fun fetchDaily(date: LocalDate): FetchResult<DailyFetch> {

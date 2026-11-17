@@ -1,0 +1,63 @@
+{
+  "data": {
+    "data": {
+      "$recipeTypes": [
+        "com.linkedin.4dae25b8f538b4bbd5ba992284dd18a1"
+      ],
+      "identityDashGamesByTodaysGame": {
+        "*elements": [
+          "urn:li:fsd_game:(ACoAAFAKEPROFILE0000000000000000000000000,7,463)"
+        ],
+        "$recipeTypes": [
+          "com.linkedin.922924f5db5e0933a80f3ae4fe019c30"
+        ],
+        "$type": "com.linkedin.restli.common.CollectionResponse"
+      },
+      "$type": "com.linkedin.4dae25b8f538b4bbd5ba992284dd18a1"
+    },
+    "extensions": {
+      "webMetadata": {}
+    }
+  },
+  "included": [
+    {
+      "winCount": 2,
+      "gameTypeId": 7,
+      "personalStats": {
+        "totalPlaysCount": 2,
+        "$recipeTypes": [
+          "com.linkedin.be02898d777ecaab4156c90fded69808"
+        ],
+        "$type": "com.linkedin.voyager.dash.identity.game.PersonalStats"
+      },
+      "hasPlayedGameTypeBefore": true,
+      "puzzleId": 463,
+      "$recipeTypes": [
+        "com.linkedin.120396a90d4814be79985b967f984ba0"
+      ],
+      "hasTimer": true,
+      "$type": "com.linkedin.voyager.dash.identity.game.Game",
+      "entityUrn": "urn:li:fsd_game:(ACoAAFAKEPROFILE0000000000000000000000000,7,463)",
+      "gameStoredRecord": {
+        "timeElapsed": null,
+        "completionAttributes": {
+          "isHintFree": true,
+          "$recipeTypes": [
+            "com.linkedin.07e8e445eb29e3e75db0f59d4b50cfb4"
+          ],
+          "isMistakeFree": true,
+          "$type": "com.linkedin.voyager.dash.identity.game.GameCompletionAttributes"
+        },
+        "isFlawless": false,
+        "gamePlayState": "END_SOLVED",
+        "gameState": null,
+        "gameRequestTime": null,
+        "$recipeTypes": [
+          "com.linkedin.943df5a938e1620604def64ba76595eb"
+        ],
+        "$type": "com.linkedin.voyager.dash.identity.game.GameStoredRecord"
+      },
+      "isTutorialGame": false
+    }
+  ]
+}

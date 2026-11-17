@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.app.DrainTestApplication
+import com.ivandsky.puzzlebox.app.play.MiniSudokuPlayFixture
 import com.ivandsky.puzzlebox.app.play.QueensPlayFixture
 import com.ivandsky.puzzlebox.app.play.TangoPlayFixture
 import com.ivandsky.puzzlebox.app.play.ZipPlayFixture
@@ -61,6 +62,10 @@ class LinkedInPostRowE2ETest {
     @Test fun `a Zip solve offers Post to LinkedIn`() = aSolveOffersPost(DailySolve.Zip, ZipPlayFixture.envelope())
 
     @Test
+    fun `a Mini Sudoku solve offers Post to LinkedIn`() =
+        aSolveOffersPost(DailySolve.MiniSudoku, MiniSudokuPlayFixture.envelope())
+
+    @Test
     fun `a stored Tango solve opened cold offers Post to LinkedIn`() =
         aStoredSolveOffersPost(DailySolve.Tango, TangoPlayFixture.envelope())
 
@@ -71,6 +76,10 @@ class LinkedInPostRowE2ETest {
     @Test
     fun `a stored Zip solve opened cold offers Post to LinkedIn`() =
         aStoredSolveOffersPost(DailySolve.Zip, ZipPlayFixture.envelope())
+
+    @Test
+    fun `a stored Mini Sudoku solve opened cold offers Post to LinkedIn`() =
+        aStoredSolveOffersPost(DailySolve.MiniSudoku, MiniSudokuPlayFixture.envelope())
 
     /** The row's last gate: the stored bytes must open, fold to the solved board and be taken by the game's encoder. */
     @Test

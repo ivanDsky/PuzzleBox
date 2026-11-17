@@ -386,7 +386,7 @@ Every navigation key has a row in the placement table (ADR-0027).
   chromes are ADR-0027's.
 
 ## P10
-The LinkedIn account path is GET-only, with no logging interceptor and no cookie jar (ADR-0028). The one write is governed by ADR-0032 and P12.
+The LinkedIn account path is GET-only, with no logging interceptor and no cookie jar (ADR-0028). The two writes are governed by ADR-0032 and P12.
 
 - **Scope:** production files of module `:core:network` whose package is
   `com.ivandsky.puzzlebox.network.linkedin`, where every account class lives. Test source sets are
@@ -409,31 +409,33 @@ The LinkedIn account path is GET-only, with no logging interceptor and no cookie
   spread. The runtime tests of the account adapter (request count, method assertions) are the
   other half of the GET-only guarantee.
 - **How to fix:** keep the account interface to `@GET` and build the account client without a
-  logger or a jar. A write to LinkedIn is allowed only as the post API's one POST (ADR-0032, P12);
+  logger or a jar. A write to LinkedIn is allowed only as one of the post API's two POSTs (ADR-0032, P12);
   any other write is a new decision, not an edit of this rule.
 
 ## P12
-The LinkedIn post API has one POST, the `updateGameState` server request, and nothing in the package
-builds a write by hand (ADR-0032).
+The LinkedIn post API has two POSTs, the `updateGameState` server request and the voyager save, each once,
+and nothing in the package builds a write by hand (ADR-0032 §9, §11).
 
 - **Scope:** the same files as P10: production files of module `:core:network` whose package is
   `com.ivandsky.puzzlebox.network.linkedin`. Test source sets are not scanned. No allowlist: the real
   tree is clean today, before `LinkedInPostApi.kt` exists.
 - **Detection:** matched against the file's text with comments removed and string contents kept, because
   the path literal must be visible. One violation per file, with the hints joined by `; `.
-  - A file named `LinkedInPostApi.kt` must have exactly one non-GET annotation (`@POST`, `@PUT`,
+  - A file named `LinkedInPostApi.kt` must have exactly two non-GET annotations (`@POST`, `@PUT`,
     `@PATCH`, `@DELETE`, `@HEAD`, `@OPTIONS`, `@HTTP`, plain or `retrofit2.http.`-qualified; imports are
-    not annotations), and it must be exactly `@POST("flagship-web/rsc-action/actions/server-request")`.
-    No POST, a second one, another method or another path is a violation. GET annotations are free.
+    not annotations), and they must be exactly `@POST("flagship-web/rsc-action/actions/server-request")`
+    and `@POST("voyager/api/graphql")`, one of each. A missing one, a third, one of the two repeated,
+    another method or another path is a violation. GET annotations are free.
   - No file in the package, `LinkedInPostApi.kt` included, may hand-build a write: `.post(`, `.put(`,
     `.patch(`, `.delete(` or `.method(` in the code. The match is by name, with no type resolution, so a
     `map.put(` in the package is a hit too; write `map[key] = value` instead.
 - **Why:** P10 alone would let any file declare a POST once the exemption exists. P12 makes the exemption
-  one file and the file one path, so a new write to LinkedIn fails the build.
+  one file and the file two paths, so a new write to LinkedIn fails the build.
 - **Accepted misses:** a write built by reflection, or an OkHttp `Request` made in another package or
   module, is not judged. `sduiid` is a `@Query` argument, not part of the path, so a different
-  `sduiid` value is not caught here; the post adapter's runtime tests pin it.
-- **How to fix:** keep the post API to its one `@POST` and let the OkHttp call go through it; do not
+  `sduiid` value is not caught here, and neither is a different `action` or `queryId` of the voyager
+  save; the post adapter's runtime tests pin them.
+- **How to fix:** keep the post API to its two `@POST`s and let the OkHttp call go through it; do not
   build a request body method by hand. Another write needs a new ADR that names it.
 
 ## P11
