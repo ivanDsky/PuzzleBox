@@ -23,16 +23,18 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
  * The Studio for a draft this build can't open (gone, or a game or format it doesn't know): a
- * compact bar whose Back ([onBack]) returns to the Create root, over one centred line.
+ * compact bar whose Back ([onBack]) returns to the Create root, over one centred line; a null [onBack] shows no Back.
  */
 @Composable
-internal fun MissingDraftScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+internal fun MissingDraftScreen(onBack: (() -> Unit)?, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
         CompactTopBar(
             title = "Draft",
-            navigationIcon = {
-                IconButton(onClick = onBack, modifier = Modifier.testTag("create.editor.missing.back")) {
-                    Icon(PuzzleIcons.Back, contentDescription = "Back to drafts")
+            navigationIcon = onBack?.let { back ->
+                {
+                    IconButton(onClick = back, modifier = Modifier.testTag("create.editor.missing.back")) {
+                        Icon(PuzzleIcons.Back, contentDescription = "Back to drafts")
+                    }
                 }
             },
         )

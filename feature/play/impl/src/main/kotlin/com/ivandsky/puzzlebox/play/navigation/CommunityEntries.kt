@@ -8,13 +8,16 @@ import com.ivandsky.puzzlebox.play.CommunityRoute
 import com.ivandsky.puzzlebox.play.CustomSlot
 import com.ivandsky.puzzlebox.play.DuelsSlot
 import com.ivandsky.puzzlebox.play.api.CommunityKey
+import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.FriendPuzzleKey
 
 /**
  * The Community tab's route (nav-rethink M10-1): [CommunityKey] draws the app's [custom] slot, with the friend puzzles,
- * under a Community head. A friend's puzzle pushes its [FriendPuzzleKey] card on the Community stack, so back returns
- * here. The code sheet opens on [codeDraft]'s text and hands it back through [onCodeDraftTaken]; [duels] is what it
- * calls when a code names a duel. The key is registered with no slot too (the tab is not shown then) and draws nothing.
+ * under a Community head. On the phone a friend's puzzle pushes its [FriendPuzzleKey] card on the Community stack, so
+ * back returns here; on the tablet it shows beside the list and nothing is pushed, and its Play pushes the board
+ * ([CustomGameKey]) over the two-pane, so back returns to the same selection. The code sheet opens on [codeDraft]'s
+ * text and hands it back through [onCodeDraftTaken]; [duels] is what it calls when a code names a duel. The key is
+ * registered with no slot too (the tab is not shown then) and draws nothing.
  */
 fun EntryProviderScope<NavKey>.communityEntry(
     navigator: Navigator,
@@ -29,6 +32,7 @@ fun EntryProviderScope<NavKey>.communityEntry(
             layout = layout,
             custom = custom,
             onOpen = { code -> navigator.pushOnce(FriendPuzzleKey(code.value)) },
+            onPlay = { game -> navigator.pushOnce(game) },
             codeDraft = codeDraft(),
             onCodeDraftTaken = onCodeDraftTaken,
             onOpenDuel = duels?.onOpenDuel,

@@ -46,6 +46,7 @@ import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
 import com.ivandsky.puzzlebox.designsystem.LocalMutedStatus
+import com.ivandsky.puzzlebox.designsystem.LocalSelectedRowCode
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
@@ -53,6 +54,7 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.formatDuration
+import com.ivandsky.puzzlebox.designsystem.selectedRow
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.domain.FriendPuzzleRow
 import com.ivandsky.puzzlebox.domain.FriendStatus
@@ -93,6 +95,7 @@ internal fun FriendCard(
             modifier = Modifier
                 .then(if (fillWidth) Modifier.fillMaxWidth() else Modifier.width(CardWidth))
                 .clip(AppShapes.large)
+                .selectedRow(LocalSelectedRowCode.current == code)
                 .combinedClickable(
                     onClick = onClick,
                     onLongClickLabel = "Puzzle actions",
