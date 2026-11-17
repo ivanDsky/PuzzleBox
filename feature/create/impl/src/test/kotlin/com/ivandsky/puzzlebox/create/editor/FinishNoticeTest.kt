@@ -47,7 +47,7 @@ class FinishNoticeTest {
 
     @Test
     fun `a finish that changed painted cells says how many and that they are highlighted`() {
-        assertEquals("Finished. 2 painted cells changed colour; they're highlighted.", FinishNotice.Recoloured(2).text)
-        assertEquals("Finished. 1 painted cell changed colour; it's highlighted.", FinishNotice.Recoloured(1).text)
+        assertEquals("Finished. 2 painted cells changed color; they're highlighted.", FinishNotice.Recoloured(2).text)
+        assertEquals("Finished. 1 painted cell changed color; it's highlighted.", FinishNotice.Recoloured(1).text)
     }
 }
