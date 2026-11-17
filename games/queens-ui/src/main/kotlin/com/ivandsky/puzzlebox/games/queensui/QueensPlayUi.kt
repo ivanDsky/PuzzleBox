@@ -23,6 +23,7 @@ import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardPane
@@ -38,6 +39,7 @@ import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.model.GameId
+import java.time.Instant
 import kotlinx.coroutines.delay
 
 /**
@@ -158,23 +160,13 @@ private fun BoxScope.BoardArea(
             .padding(horizontal = board?.let { queensPanePaddingFor(it.session.puzzle.size) / 2 } ?: 0.dp),
     ) {
         if (status is PlayBoardStatus.Ready && board != null) {
-            // The live solve's orchestration (A13) owns the board first: the frame sees the
-            // completion once the queens have started their Pulse. A board restored solved
-            // was never live, so it hands off at once.
+            // With the solve rest on the solve moment B starts at the solve and the queens Pulse inside it.
             val completedAt = board.session.completedAt
-            val reducedMotion = rememberReducedMotion()
-            var framed by remember(board) { mutableStateOf(completedAt) }
-            LaunchedEffect(completedAt) {
-                if (completedAt != null && framed != completedAt) {
-                    delay(QueensMotion.solveLeadMs(board.session.queens.size, reducedMotion))
-                }
-                framed = completedAt
-            }
             // Win → result route (Zip's handoff): ONE hand-off per completion, after the
             // solve frame, keyed on the completedAt instance so a play-again hands off again.
             PlaySolveFrame(
                 brand = QueensBrand,
-                solved = framed,
+                solved = if (LocalSolveRestOnBoard.current) completedAt else rememberSolveAfterLead(board, completedAt),
                 onHandOff = {
                     controller.board?.session?.takeIf { it.isComplete }?.let { onSolved(it.elapsedMs, it.hintsUsed) }
                 },
@@ -185,6 +177,23 @@ private fun BoxScope.BoardArea(
             PlayBoardFallback(status, onRetry, tagPrefix = "queens")
         }
     }
+}
+
+/**
+ * Without [LocalSolveRestOnBoard] the live solve's orchestration (A13) owns the board first: the frame sees
+ * [completedAt] once the queens have started their Pulse. A board restored solved was never live, so it is seen at once.
+ */
+@Composable
+private fun rememberSolveAfterLead(board: QueensBoardState, completedAt: Instant?): Instant? {
+    val reducedMotion = rememberReducedMotion()
+    var framed by remember(board) { mutableStateOf(completedAt) }
+    LaunchedEffect(completedAt) {
+        if (completedAt != null && framed != completedAt) {
+            delay(QueensMotion.solveLeadMs(board.session.queens.size, reducedMotion))
+        }
+        framed = completedAt
+    }
+    return framed
 }
 
 /**

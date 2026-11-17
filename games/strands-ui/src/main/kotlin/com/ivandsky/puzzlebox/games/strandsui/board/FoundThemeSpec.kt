@@ -14,7 +14,8 @@ import com.ivandsky.puzzlebox.games.strandsui.StrandsMotion
 
 /**
  * A found theme word: the pink token (magenta for every second word, [altThemeLinks]), and
- * the settle as it is found. Letter n waits n × [StrandsMotion.SettleStaggerMs], turns from
+ * the settle as it is found. Letter n waits n × [StrandsMotion.SettleStaggerMs] (less for a long
+ * word in the solve moment, [StrandsMotion.momentDelayMs]), turns from
  * the trace colour to its own, and runs NYT's
  * `Pulser bounce`, both per [StrandsMotion.FoundSettle].
  */
@@ -42,7 +43,7 @@ internal object FoundThemeSpec : StrandsCellSpec {
     /** The word just found moves; a letter of an older word, or a restored board, rests. */
     fun foundTrigger(cell: StrandsCell, found: FoundEvent?): StrandsMotionTrigger? {
         val order = found?.cells?.indexOf(cell.coord)?.takeIf { it >= 0 } ?: return null
-        return StrandsMotionTrigger(key = found.seq, cue = StrandsMotionCue(order, found.cells.size))
+        return StrandsMotionTrigger(key = found.seq, cue = StrandsMotionCue(order, found.cells.size, found.inSolveMoment))
     }
 
     override fun motionMs(cue: StrandsMotionCue): Int = delayMs(cue) + Settle.enterDurationMillis
@@ -63,7 +64,11 @@ internal object FoundThemeSpec : StrandsCellSpec {
         )
     }
 
-    private fun delayMs(cue: StrandsMotionCue): Int = cue.order * StrandsMotion.SettleStaggerMs
+    private fun delayMs(cue: StrandsMotionCue): Int = if (cue.inSolveMoment) {
+        StrandsMotion.momentDelayMs(cue.order, cue.count, StrandsMotion.SettleStaggerMs)
+    } else {
+        cue.order * StrandsMotion.SettleStaggerMs
+    }
 }
 
 /** Found theme words alternate pink and magenta (A14): every second theme link, in found order, takes the alt fill. */

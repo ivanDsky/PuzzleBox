@@ -67,8 +67,8 @@ internal data class StrandsCellFrame(val scale: Float = 1f, val ringScale: Float
 /** A motion start: [key] identifies it (a new key restarts it), [cue] places the letter in it. */
 internal data class StrandsMotionTrigger(val key: Any, val cue: StrandsMotionCue)
 
-/** A letter's place in the motion that moves it: [order] of [count] letters. */
-internal data class StrandsMotionCue(val order: Int = 0, val count: Int = 1)
+/** A letter's place in the motion that moves it: [order] of [count] letters; [inSolveMoment] as [FoundEvent.inSolveMoment]. */
+internal data class StrandsMotionCue(val order: Int = 0, val count: Int = 1, val inSolveMoment: Boolean = false)
 
 /** The one registration point: a new [CellState] fails to compile here until its spec exists. */
 internal object StrandsCellDrawing {

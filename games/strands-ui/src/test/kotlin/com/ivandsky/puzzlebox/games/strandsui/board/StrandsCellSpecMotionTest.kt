@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.strandsui.board
 
+import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.CellState
 import com.ivandsky.puzzlebox.games.strands.render.StrandsCell
@@ -84,5 +85,39 @@ class StrandsCellSpecMotionTest {
         assertNull(FoundThemeSpec.trigger(older, null))
         val hinted = StrandsCell(Coord(2, 0), 'T', CellState.HintOrderRevealed(3), traceIndex = null)
         assertEquals(StrandsMotionCue(order = 3), HintOrderRevealedSpec.trigger(hinted, null)?.cue)
+    }
+
+    @Test
+    fun `the solving word's stagger squeezes so its last letter rests inside the moment's 1300 ms`() {
+        val motionEnd = CelebrationMotion.FrameDrawStartMs + CelebrationMotion.FrameDrawMs
+        val bounce = StrandsMotion.FoundSettle.enterDurationMillis
+        for (spec in listOf(FoundThemeSpec, FoundSpangramSpec)) {
+            for (count in 1..14) {
+                val last = StrandsMotionCue(order = count - 1, count = count, inSolveMoment = true)
+                assertTrue("$spec, $count letters: ${spec.motionMs(last)} ms", spec.motionMs(last) <= motionEnd)
+                assertEquals("$spec, $count letters", StrandsCellFrame.Rest, spec.frame(motionEnd, last, reduceMotion = false))
+                assertEquals("the first letter starts at once and the bounce is whole", bounce, spec.motionMs(StrandsMotionCue(0, count, inSolveMoment = true)))
+            }
+        }
+        // A short word's plain stagger already fits, and stays.
+        assertEquals(3 * StrandsMotion.SettleStaggerMs + bounce, FoundThemeSpec.motionMs(StrandsMotionCue(3, 4, inSolveMoment = true)))
+        assertEquals(3 * StrandsMotion.SweepStaggerMs + bounce, FoundSpangramSpec.motionMs(StrandsMotionCue(3, 4, inSolveMoment = true)))
+    }
+
+    @Test
+    fun `outside the solve moment the staggers are as they were`() {
+        val bounce = StrandsMotion.FoundSettle.enterDurationMillis
+        assertEquals(7 * 50 + bounce, FoundThemeSpec.motionMs(StrandsMotionCue(7, 8)))
+        assertEquals(7 * 75 + bounce, FoundSpangramSpec.motionMs(StrandsMotionCue(7, 8)))
+        assertEquals(19 * (900 / 19) + bounce, FoundSpangramSpec.motionMs(StrandsMotionCue(19, 20)))
+    }
+
+    @Test
+    fun `a found event in the solve moment places its letters in it`() {
+        val cells = listOf(Coord(1, 0), Coord(1, 1))
+        val second = StrandsCell(Coord(1, 1), 'A', CellState.FoundTheme, traceIndex = null)
+        val solving = FoundEvent(cells, spangram = false, seq = 9, inSolveMoment = true)
+        assertEquals(StrandsMotionTrigger(9, StrandsMotionCue(1, 2, inSolveMoment = true)), FoundThemeSpec.trigger(second, solving))
+        assertEquals(StrandsMotionTrigger(9, StrandsMotionCue(1, 2)), FoundThemeSpec.trigger(second, FoundEvent(cells, spangram = false, seq = 9)))
     }
 }

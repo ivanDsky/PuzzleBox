@@ -93,9 +93,19 @@ internal object StrandsMotion {
     val BonusAlpha = floatArrayOf(0f, 1f, 1f, 0f)
 
     /** Letter n of the spangram starts at n × [SweepStaggerMs], squeezed so the last starts within the cap. */
-    fun sweepDelayMs(index: Int, letters: Int): Int {
+    fun sweepDelayMs(index: Int, letters: Int): Int = staggerDelayMs(index, letters, SweepStaggerMs, SpangramSweep.enterDurationMillis)
+
+    /**
+     * In the solve moment B the last letter of the word that solves the board starts by this, so its bounce
+     * ([FoundSettle]) is over as the moment's frame line closes.
+     */
+    const val MomentLastStartMs = CelebrationMotion.FrameDrawStartMs + CelebrationMotion.FrameDrawMs - CelebrationMotion.SettleMs
+
+    /** Letter n of the solving word starts at n × [staggerMs], squeezed so the last starts within [MomentLastStartMs]. */
+    fun momentDelayMs(index: Int, letters: Int, staggerMs: Int): Int = staggerDelayMs(index, letters, staggerMs, MomentLastStartMs)
+
+    private fun staggerDelayMs(index: Int, letters: Int, staggerMs: Int, lastStartMs: Int): Int {
         if (letters <= 1) return 0
-        val stagger = minOf(SweepStaggerMs, SpangramSweep.enterDurationMillis / (letters - 1))
-        return index * stagger
+        return index * minOf(staggerMs, lastStartMs / (letters - 1))
     }
 }

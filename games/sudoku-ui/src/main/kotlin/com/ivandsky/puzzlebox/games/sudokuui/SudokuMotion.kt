@@ -23,12 +23,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.SudokuUnit
+import com.ivandsky.puzzlebox.designsystem.SolveMomentState
+import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.designsystem.rememberSolveMomentState
+import com.ivandsky.puzzlebox.designsystem.solveFrame
+import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
 import com.ivandsky.puzzlebox.gameui.SolveRestState
@@ -173,15 +179,28 @@ internal class SudokuMotionState(cellCount: Int) {
 
 internal val LocalSudokuMotion = staticCompositionLocalOf<SudokuMotionState?> { null }
 
-/** Watches [state] for player commits and gives [content]'s grid their motion and haptics. */
+/** The solve moment B's frame for the grid ([Modifier.solveFrame]); nothing without the solve rest. */
+internal val LocalSudokuSolveFrame = staticCompositionLocalOf<Modifier> { Modifier }
+
+/**
+ * Watches [state] for player commits and gives [content]'s grid their motion and haptics. With the solve rest on, a
+ * solve also plays the solve moment B on the grid, in [brand]'s accent.
+ */
 @Composable
 internal fun SudokuMotionHost(
     state: SudokuBoardState?,
     onSolved: (SudokuSession) -> Unit = {},
+    brand: GameBrand = MiniSudokuBrand,
     content: @Composable () -> Unit,
 ) {
     val rest = rememberSolveRest()
-    CompositionLocalProvider(LocalSudokuMotion provides rememberSudokuMotion(state, onSolved, rest)) {
+    val moment = if (rest.enabled) rememberSolveMomentState() else null
+    val accent = brand.accent.colors().accent
+    val frame = remember(moment, accent) { moment?.let { Modifier.solveFrame(it, accent, RectangleShape) } ?: Modifier }
+    CompositionLocalProvider(
+        LocalSudokuMotion provides rememberSudokuMotion(state, onSolved, rest, moment),
+        LocalSudokuSolveFrame provides frame,
+    ) {
         if (rest.enabled) {
             Box(propagateMinConstraints = true) {
                 content()
@@ -198,13 +217,14 @@ internal fun SudokuMotionHost(
  * play-again) is the baseline and plays nothing; a board already solved hands off at once. A solve
  * runs its sweep, then [onSolved]; the win record was written at commit. Its CONFIRM goes out as the sweep starts
  * when the [rest] confirms, and after the sweep otherwise. With the [rest] on, [onSolved] waits for the solve moment,
- * counted from the solve.
+ * counted from the solve, and [moment] plays on the same clock; a new board drops its frame.
  */
 @Composable
 internal fun rememberSudokuMotion(
     state: SudokuBoardState?,
     onSolved: (SudokuSession) -> Unit = {},
     rest: SolveRestState = rememberSolveRest(),
+    moment: SolveMomentState? = null,
 ): SudokuMotionState? {
     if (state == null) return null
     // Keyed on the board so a swapped board never classifies its moves against the old one's baseline.
@@ -218,6 +238,7 @@ internal fun rememberSudokuMotion(
     val motion = remember(state) { SudokuMotionState(state.session.board.geometry.cellCount) }
     SideEffect { motion.reduced = reduced }
     LaunchedEffect(state) {
+        moment?.reset()
         var previous = state.session
         if (previous.isComplete) handOff(previous)
         snapshotFlow { state.session }.collect { next ->
@@ -226,6 +247,8 @@ internal fun rememberSudokuMotion(
             // With PlayFeel on, MoveHapticsEffect owns the move ticks; this path would double them.
             if (!playFeel) sudokuHapticFor(event)?.let(haptics::perform)
             val resting = if (event is SudokuPlayerEvent.Solved) rest.begin(this) else null
+            // Not awaited: a tap hands off mid-motion, and the frame finishes closing behind it.
+            if (resting != null && moment != null) launch { moment.play() }
             playSudokuEvent(motion, event, next.board.geometry) {
                 // When the rest confirms, the solve buzz went out as the sweep started; a second one would double it.
                 if (!rest.confirms) haptics.perform(SudokuHaptic.Confirm)

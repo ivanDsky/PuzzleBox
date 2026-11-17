@@ -40,7 +40,7 @@ class SudokuPlayUi(
     @Composable
     override fun Board(controller: GamePlayController, modifier: Modifier) {
         val state = (controller as SudokuPlayController).board ?: return
-        SudokuMotionHost(state) { SudokuStackedBoard(state, modifier) }
+        SudokuMotionHost(state, brand = brand) { SudokuStackedBoard(state, modifier) }
     }
 
     /** Two toggles, both on by default; they change the board's tints only, never hints or conflicts. */
@@ -75,6 +75,7 @@ class SudokuPlayUi(
             onRetry = onRetry,
             onSolved = onSolved,
             modifier = modifier,
+            brand = brand,
         )
     }
 }

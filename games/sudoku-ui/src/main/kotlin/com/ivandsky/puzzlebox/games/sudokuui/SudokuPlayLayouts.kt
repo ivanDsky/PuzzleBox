@@ -27,6 +27,7 @@ import com.ivandsky.puzzlebox.designsystem.GameButtonSize
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.AdaptivePlayScaffold
+import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.LandscapeControls
 import com.ivandsky.puzzlebox.gameui.LocalPlayTuning
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
@@ -51,7 +52,7 @@ private val PaneGutter: Dp = Spacing.md
  * Under a play tuning the keypad is the Corner pad (a small Notes toggle over the digits, Erase
  * beside it, or in the side column when the controls stack there) and Clear is in the control row.
  * The result hand-off waits for the solve sweep ([SudokuMotionHost]); one per board, so a
- * play-again's win hands off again.
+ * play-again's win hands off again. [brand] colours the solve moment's frame.
  */
 @Composable
 internal fun SudokuPlayScreen(
@@ -62,6 +63,7 @@ internal fun SudokuPlayScreen(
     onRetry: () -> Unit,
     onSolved: (timeMs: Long, hintsUsed: Int) -> Unit,
     modifier: Modifier = Modifier,
+    brand: GameBrand = MiniSudokuBrand,
 ) {
     val ready = status as? PlayBoardStatus.Ready
     val state = controller.board?.takeIf { ready != null }
@@ -73,7 +75,7 @@ internal fun SudokuPlayScreen(
     // The toolbar spans the grid's columns, and the grid is narrower than the pane cap: it
     // shares the height with the keypad. Reported after layout, so the first frame is wide.
     var gridWidth by remember { mutableStateOf<Dp?>(null) }
-    SudokuMotionHost(controller.board, onSolved = { onSolved(it.elapsedMs, it.hintsUsed) }) {
+    SudokuMotionHost(controller.board, onSolved = { onSolved(it.elapsedMs, it.hintsUsed) }, brand = brand) {
         AdaptivePlayScaffold(
             layout = layout,
             gridColumns = state?.session?.board?.geometry?.size,
@@ -119,6 +121,7 @@ internal fun SudokuPlayScreen(
  * grid's width through [onGridWidth]. [paneCap] is the two-pane board cap; null keeps
  * [PlayBoardMaxWidth]. [tuned] (a play tuning is set) keeps every key at the 48dp touch
  * floor, shrinking the grid first, and takes Clear out of the keypad: it sits in the control row.
+ * The grid alone wears the solve moment's frame ([LocalSudokuSolveFrame]), so it pops and the keypad stays put.
  */
 @Composable
 internal fun SudokuStackedBoard(
@@ -140,7 +143,7 @@ internal fun SudokuStackedBoard(
             verticalArrangement = Arrangement.spacedBy(layout.keyGap),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            SudokuGrid(state.model, state::select, Modifier.size(layout.board), spotlight = state.spotlight)
+            SudokuGrid(state.model, state::select, Modifier.size(layout.board).then(LocalSudokuSolveFrame.current), spotlight = state.spotlight)
             // A pane-filling grid is height-bound: keys as wide as the pane would be slabs.
             SudokuBoardKeypad(state, layout, Modifier.widthIn(max = if (paneCap != null) layout.board else PlayBoardMaxWidth), showErase = !eraseBeside)
         }

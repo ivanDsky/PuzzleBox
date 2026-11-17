@@ -13,16 +13,21 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
+import com.ivandsky.puzzlebox.designsystem.SolveMomentState
+import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.designsystem.solveFrame
 import com.ivandsky.puzzlebox.gameui.BoardGrid
 import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
@@ -43,6 +48,9 @@ import com.ivandsky.puzzlebox.games.strandsui.board.rememberTraceEndFrame
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsBoardColors
 import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 
+/** The play screen's solve moment B, which the board wears; null without the solve rest and off the play screen. */
+internal val LocalStrandsSolveMoment = staticCompositionLocalOf<SolveMomentState?> { null }
+
 /**
  * Strands' one board, chrome-free ([com.ivandsky.puzzlebox.gameui.GamePlayUi.Board]): the
  * daily screen and the tutorial both draw it. Draws nothing until [controller] holds a
@@ -50,6 +58,8 @@ import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
  * what it made of the step ([StrandsHaptics]), and with PlayFeel on [MoveHapticsEffect] reads
  * [moveSnapshot] instead. A found word is taken from the controller once and played
  * from local state, so a board composed afresh (rotation, re-entry) rests instead of showing it again.
+ * Under [LocalStrandsSolveMoment] the grid pops and is framed with the moment, and the word that solves the board
+ * settles inside it ([FoundEvent.inSolveMoment]).
  */
 @Composable
 internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier = Modifier) {
@@ -63,10 +73,15 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
         if (pending != null) controller.takeFound()?.let { playing = it }
     }
     MoveHapticsEffect({ controller.moveSnapshot() }, ::strandsMoveHaptic)
+    val moment = LocalStrandsSolveMoment.current
+    val accent = StrandsBrand.accent.colors().accent
+    // The word that solves the board settles inside the solve moment.
+    val solving = moment != null && controller.isComplete
+    // The pending event plays from its first frame; the taken copy carries it on (same seq, same trigger).
+    val latest = pending ?: playing
     StrandsBoardContent(
         model = model,
-        // The pending event plays from its first frame; the taken copy carries it on (same seq, same trigger).
-        found = pending ?: playing,
+        found = remember(latest, solving) { if (solving) latest?.copy(inSolveMoment = true) else latest },
         reduceMotion = rememberReducedMotion(),
         trace = { controller.trace },
         traceEnd = { controller.traceEnd },
@@ -80,6 +95,7 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
             }
         },
         modifier = modifier,
+        frame = remember(moment, accent) { moment?.let { Modifier.solveFrame(it, accent, RectangleShape) } ?: Modifier },
     )
 }
 
@@ -110,6 +126,7 @@ internal fun StrandsBoardContent(
     floor: Dp = StrandsBoardSpec.TouchFloor,
     readOnly: Boolean = false,
     hintBadges: Set<Coord> = emptySet(),
+    frame: Modifier = Modifier,
     modifier: Modifier = Modifier,
 ) {
     val colors = strandsBoardColors()
@@ -138,7 +155,7 @@ internal fun StrandsBoardContent(
             BoardGrid(
                 rows = model.rows,
                 cols = model.cols,
-                modifier = Modifier.requiredSize(boardSize).testTag("strands.board"),
+                modifier = Modifier.requiredSize(boardSize).then(frame).testTag("strands.board"),
                 // Strands has no grid: the letters float on the bare board.
                 colors = colors.copy(boardGridLine = Color.Transparent),
                 underlay = {
