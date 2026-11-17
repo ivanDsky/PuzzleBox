@@ -86,7 +86,7 @@ internal fun LinkedInRow(
         is LinkedInRowState.Paused -> AccountRow(
             lead = { LinkedInLead(state.summary) },
             title = state.summary.name ?: NO_NAME,
-            sub = if (state.needsReconnect) "LinkedIn signed this phone out." else "Paused · ${state.reason}",
+            sub = if (state.needsReconnect) "LinkedIn signed this device out." else "Paused · ${state.reason}",
             modifier = row,
             subColor = LocalWarning.current,
             subWeight = FontWeight.SemiBold,

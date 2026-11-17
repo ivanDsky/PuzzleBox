@@ -26,7 +26,7 @@ internal fun RanksSignInPrompt(signIn: RanksSignIn, onSignIn: () -> Unit, modifi
     ) {
         Text("Sign in to see the ranks", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSecondaryContainer)
         Text(
-            "Your solves stay on this phone either way. Playing never needs it.",
+            "Your solves stay on this device either way. Playing never needs it.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSecondaryContainer,
         )

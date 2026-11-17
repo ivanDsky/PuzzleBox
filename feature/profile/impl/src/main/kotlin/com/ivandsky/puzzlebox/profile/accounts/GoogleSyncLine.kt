@@ -21,9 +21,9 @@ private const val SYNCING = "Syncing…"
 private const val OFFLINE = "No connection, so your history didn't sync. It will when you're online."
 private const val DELETING = "Deleting…"
 private const val PAUSED_EXHAUSTED = "Sync paused · over today's limit, tries again later"
-private const val PAUSED_WRITE_CAP = "Sync paused · this phone is over its daily limit, tries again later"
+private const val PAUSED_WRITE_CAP = "Sync paused · this device is over its daily limit, tries again later"
 private const val PAUSED_DENIED = "Sync paused · your account was refused, tries again later"
-private const val PAUSED_LOCAL = "Sync paused · something went wrong on this phone, tries again later"
+private const val PAUSED_LOCAL = "Sync paused · something went wrong on this device, tries again later"
 
 /**
  * The signed-in Google row's sync line: what the engine is doing, with Sync now beside it (idle while a pass is

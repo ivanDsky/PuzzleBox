@@ -183,7 +183,7 @@ class BoardRowLayoutTest {
 
         composeRule.onNodeWithTag("daily_board.ghost.linkedin_dot").assertExists()
         composeRule.onNodeWithTag("daily_board.ghost.detail").assertDoesNotExist()
-        composeRule.onNode(hasText("on this phone", substring = true)).assertDoesNotExist()
+        composeRule.onNode(hasText("on this device", substring = true)).assertDoesNotExist()
         composeRule.onAllNodesWithTag("daily_board.row.linkedin_dot").assertCountEquals(1)
     }
 

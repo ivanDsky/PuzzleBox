@@ -22,8 +22,8 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 
 private const val TITLE = "Delete saved boards?"
 private const val BODY =
-    "This removes the boards saved from your LinkedIn connections from this phone and from your account. " +
-        "Another phone keeps its own copy until you delete it there too. It can't be undone."
+    "This removes the boards saved from your LinkedIn connections from this device and from your account. " +
+        "Another device keeps its own copy until you delete it there too. It can't be undone."
 
 /**
  * The destructive confirm for Delete saved boards: Cancel ([onCancel], also the scrim and Back) changes nothing;
