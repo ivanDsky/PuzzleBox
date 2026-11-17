@@ -18,7 +18,6 @@ import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.unit.dp
@@ -95,18 +94,6 @@ class LibraryReselectTest {
 
         composeRule.mainClock.autoAdvance = true
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("duel 0").assertIsDisplayed()
-    }
-
-    @Test
-    fun `leaving a scrolled Duels tab and coming back finds its list at the top`() {
-        setContent(MutableSharedFlow(), tabbed = true, tab = GamesTab.Duels)
-        composeRule.onNodeWithTag("duels.list").performScrollToIndex(DUEL_COUNT - 1)
-        composeRule.onNodeWithText("duel 0").assertIsNotDisplayed()
-
-        composeRule.onNodeWithTag("library.tab.dailies").performClick()
-        composeRule.onNodeWithTag("library.tab.duels").performClick()
-
         composeRule.onNodeWithText("duel 0").assertIsDisplayed()
     }
 

@@ -69,7 +69,7 @@ internal fun LibraryScreen(
     onRequestTaken: () -> Unit = {},
     linkedIn: LinkedInCardState? = null,
     onMakeOne: ((GameId) -> Unit)? = null,
-    communityTab: Boolean = false, underlineTabs: Boolean = false,
+    communityTab: Boolean = false,
     paneCrossfade: Boolean = false,
 ) {
     val listScroll = rememberScrollState()
@@ -126,7 +126,7 @@ internal fun LibraryScreen(
         duels = duels, tab = tab, onTab = { tab = it }, friendsTab = friendsTab, friendCount = friends.size,
         duelsScroll = duelsScroll, customTab = customTab, customCount = friends.unplayed(), customScroll = customScroll,
         duelPrefill = duelPrefill, onDuelPrefillTaken = { duelPrefill = null }, community = communityTab,
-        underlineTabs = underlineTabs, friendsScroll = friendsScroll,
+        friendsScroll = friendsScroll,
     )
     if (layout == PlayLayout.TwoPane) {
         Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {

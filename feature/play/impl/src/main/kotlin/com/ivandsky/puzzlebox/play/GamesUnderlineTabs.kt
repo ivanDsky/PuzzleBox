@@ -21,15 +21,14 @@ import com.ivandsky.puzzlebox.model.GameId
 import kotlinx.coroutines.launch
 
 /**
- * The Games tabs with the UnderlineTabs flag on (nav-rethink 125): the [header] over the shared underline strip over
- * its swipeable pager, one page per tab of [gamesTabs]. The pill row's tags and roles stay (`library.tab.*`), Duels'
- * red need-you badge trails its label, and Friends and Custom carry their counts. [tab] is the host's saved tab: a
+ * The Games tabs (nav-rethink 125): the [header] over the shared underline strip over its swipeable pager, one page
+ * per tab of [gamesTabs]. The tabs are tagged `library.tab.*`, Duels' red need-you badge trails its label, and
+ * Friends and Custom carry their counts. [tab] is the host's saved tab: a
  * request for another moves the pager, and each page the pager settles on is reported through [onTab].
  *
  * Every tab owns its scroll ([scrolls]), so a swipe away
- * and back finds it where it was, and a tap on the current tab glides that tab to its top. The pages lay their
- * bodies out as the pills' bodies do; on the tablet the pager is [OutlineRoom] wider on each side so the selected
- * row's outline is not cut at the pane's edge.
+ * and back finds it where it was, and a tap on the current tab glides that tab to its top. On the tablet the pager is
+ * [OutlineRoom] wider on each side so the selected row's outline is not cut at the pane's edge.
  */
 @Composable
 internal fun UnderlineTabbedList(
@@ -112,7 +111,7 @@ internal class GamesScrolls(
     }
 }
 
-/** The strip's tab for this Games tab: counts as the pills show them, Duels' badge trailing its label. */
+/** The strip's tab for this Games tab: Friends and Custom carry their counts, Duels' badge trails its label. */
 private fun GamesTab.underlineTab(friendCount: Int, duelsNeedYou: Int, customCount: Int): UnderlineTab = when (this) {
     GamesTab.Dailies -> UnderlineTab("Dailies", "library.tab.dailies")
     GamesTab.Friends -> UnderlineTab("Friends", "library.tab.friends", count = friendCount)

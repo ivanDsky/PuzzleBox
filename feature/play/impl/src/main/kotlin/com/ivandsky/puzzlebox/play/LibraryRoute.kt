@@ -44,7 +44,7 @@ import org.koin.core.parameter.parametersOf
  * The game page shows its rank as a summary row that calls [onOpenRanks].
  * With [linkedIn] the day card shows the LinkedIn lines, and [onReconnectLinkedIn] opens its login.
  * A non-null [onMakeOne] puts "Make one" on each game page. With a [communityTab] Custom is not a Games pill: the
- * pills are Dailies and Duels, and the friend puzzles live on that tab ([CommunityRoute]). [underlineTabs]: see [LibraryList].
+ * pills are Dailies and Duels, and the friend puzzles live on that tab ([CommunityRoute]).
  */
 @Composable
 internal fun LibraryRoute(
@@ -62,7 +62,7 @@ internal fun LibraryRoute(
     linkedIn: Boolean = false,
     onReconnectLinkedIn: (() -> Unit)? = null,
     onMakeOne: ((GameId) -> Unit)? = null,
-    communityTab: Boolean = false, underlineTabs: Boolean = false,
+    communityTab: Boolean = false,
 ) {
     val viewModel: LibraryViewModel = koinViewModel(parameters = { parametersOf(linkedIn) })
     val registry: GamePlayRegistry = koinInject()
@@ -116,7 +116,7 @@ internal fun LibraryRoute(
             linkedIn = linkedInCard,
             onOpenRanks = onOpenRanks,
             onMakeOne = onMakeOne,
-            communityTab = communityTab, underlineTabs = underlineTabs,
+            communityTab = communityTab,
             paneCrossfade = rememberPaneCrossfade(),
         )
         FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))

@@ -47,7 +47,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Games with the underline tabs (nav-rethink 125): flag off the pill row and no pager; flag on the 120 strip over the
+ * Games tabs (nav-rethink 125): the 120 strip over the
  * 121 pager, one swipeable page per tab with its own scroll, the Duels badge in the strip, and a horizontal drag on
  * the Custom list's chips that scrolls the chips and not the tab.
  */
@@ -64,11 +64,11 @@ class LibraryUnderlineTabsTest {
     private var tab by mutableStateOf(GamesTab.Dailies)
     private val reported = mutableListOf<GamesTab>()
 
-    private fun show(underline: Boolean, custom: Boolean = false, friendCount: Int = 0) {
+    private fun show(custom: Boolean = false, friendCount: Int = 0) {
         composeRule.setContent {
             CompositionLocalProvider(LocalTabReselect provides reselect) {
                 PuzzleBoxTheme {
-                    Host(underline, custom, friendCount, needYou = { needYou }, tab = tab, onTab = { tab = it; reported += it })
+                    Host(custom, friendCount, needYou = { needYou }, tab = tab, onTab = { tab = it; reported += it })
                 }
             }
         }
@@ -81,17 +81,8 @@ class LibraryUnderlineTabsTest {
     }
 
     @Test
-    fun `flag off draws the pill row and no pager`() {
-        show(underline = false)
-
-        composeRule.onNodeWithTag("library.tab.dailies").assertIsSelected()
-        composeRule.onNodeWithTag("underline.pager").assertDoesNotExist()
-        composeRule.onNodeWithTag("underline.tabs").assertDoesNotExist()
-    }
-
-    @Test
-    fun `flag on draws the underline strip over the pager with the tab tags and roles kept`() {
-        show(underline = true)
+    fun `draws the underline strip over the pager with the tab tags and roles kept`() {
+        show()
 
         composeRule.onNodeWithTag("underline.tabs").assertExists()
         composeRule.onNodeWithTag("underline.pager").assertExists()
@@ -101,8 +92,8 @@ class LibraryUnderlineTabsTest {
     }
 
     @Test
-    fun `flag on swipes Dailies to Friends to Duels and reports each tab`() {
-        show(underline = true)
+    fun `swipes Dailies to Friends to Duels and reports each tab`() {
+        show()
 
         swipeToNext()
         composeRule.onNodeWithTag("library.tab.friends").assertIsSelected()
@@ -115,8 +106,8 @@ class LibraryUnderlineTabsTest {
     }
 
     @Test
-    fun `flag on with a Custom slot swipes Dailies, Duels, Custom`() {
-        show(underline = true, custom = true)
+    fun `with a Custom slot swipes Dailies, Duels, Custom`() {
+        show(custom = true)
 
         swipeToNext()
         composeRule.onNodeWithTag("library.tab.duels").assertIsSelected()
@@ -128,7 +119,7 @@ class LibraryUnderlineTabsTest {
 
     @Test
     fun `a tap on a tab moves to its page`() {
-        show(underline = true)
+        show()
 
         composeRule.onNodeWithTag("library.tab.duels").performClick()
         composeRule.waitForIdle()
@@ -140,7 +131,7 @@ class LibraryUnderlineTabsTest {
     @Test
     fun `the Duels badge and the friend count show in the strip and name themselves`() {
         needYou = 3
-        show(underline = true, friendCount = 2)
+        show(friendCount = 2)
 
         composeRule.onNodeWithTag("library.tab.duels.count", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithTag("library.tab.duels").assertContentDescriptionEquals("Duels, 3 need you")
@@ -156,7 +147,7 @@ class LibraryUnderlineTabsTest {
 
     @Test
     fun `each tab keeps its own scroll position across a swipe there and back`() {
-        show(underline = true)
+        show()
         composeRule.onNodeWithText("Mini Sudoku").performScrollTo()
         composeRule.onNodeWithText("Zip").assertIsNotDisplayed()
 
@@ -176,7 +167,7 @@ class LibraryUnderlineTabsTest {
 
     @Test
     fun `a tap on the current tab scrolls it back to the top and keeps the page`() {
-        show(underline = true)
+        show()
         composeRule.onNodeWithText("Mini Sudoku").performScrollTo()
         composeRule.onNodeWithText("Zip").assertIsNotDisplayed()
 
@@ -190,7 +181,7 @@ class LibraryUnderlineTabsTest {
 
     @Test
     fun `the bottom bar reselect scrolls the Friends page, which has its own scroll`() {
-        show(underline = true)
+        show()
         composeRule.onNodeWithTag("library.tab.friends").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithTag(FRIENDS_END).performScrollTo()
@@ -203,7 +194,7 @@ class LibraryUnderlineTabsTest {
 
     @Test
     fun `a request for another tab moves the pager there`() {
-        show(underline = true)
+        show()
 
         tab = GamesTab.Duels
         composeRule.waitForIdle()
@@ -214,7 +205,7 @@ class LibraryUnderlineTabsTest {
 
     @Test
     fun `a horizontal drag on the Custom chips scrolls the chips and does not change the tab`() {
-        show(underline = true, custom = true)
+        show(custom = true)
         composeRule.onNodeWithTag("library.tab.custom").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("chip 0").assertIsDisplayed()
@@ -250,7 +241,6 @@ private val standInDuels: (() -> Int) -> DuelsSlot = { needYou ->
 
 @Composable
 private fun Host(
-    underline: Boolean,
     custom: Boolean,
     friendCount: Int,
     needYou: () -> Int,
@@ -289,7 +279,6 @@ private fun Host(
         } else {
             null
         },
-        underlineTabs = underline,
         friendsScroll = friendsScroll,
     )
 }

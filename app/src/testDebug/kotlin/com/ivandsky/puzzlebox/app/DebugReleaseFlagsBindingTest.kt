@@ -10,7 +10,6 @@ import com.ivandsky.puzzlebox.gameui.DeviceClass
 import com.ivandsky.puzzlebox.gameui.PlayTuning
 import com.ivandsky.puzzlebox.gameui.PlayTuningSource
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -81,24 +80,6 @@ class DebugReleaseFlagsBindingTest {
             koin.get<DebugPlayTuningSource>().setCap(DeviceClass.Phone, 400.dp)
 
             assertEquals(PlayTuning.Shipped.copy(phoneCap = 400.dp), koin.get<PlayTuningSource>().tuning.value)
-        } finally {
-            stopKoin()
-        }
-    }
-
-    @Test
-    fun `debug graph reads UnderlineTabs on, and the Catalog override turns it off live`() {
-        val koin = startKoin {
-            androidContext(RuntimeEnvironment.getApplication())
-            modules(PuzzleBoxApplication.appModules)
-        }.koin
-        try {
-            val flags = koin.get<ReleaseFlags>()
-            assertTrue(ReleaseFlag.UnderlineTabs in flags.enabled.value)
-
-            koin.get<DebugReleaseFlags>().setOverride(ReleaseFlag.UnderlineTabs, false)
-
-            assertFalse(ReleaseFlag.UnderlineTabs in flags.enabled.value)
         } finally {
             stopKoin()
         }

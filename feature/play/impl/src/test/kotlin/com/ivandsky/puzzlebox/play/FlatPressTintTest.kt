@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -33,7 +32,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Press tint (nav-rethink B1, M2 flat): the Games tab labels, the archive day discs and the archive month chips have
+ * Press tint (nav-rethink B1, M2 flat): the archive day discs and the archive month chips have
  * no ripple, so while flat is on a held press washes them (ticket 16); flat off draws nothing.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -43,18 +42,6 @@ class FlatPressTintTest {
 
     @get:Rule
     val composeRule = createComposeRule()
-
-    @Test
-    fun `flat on, a held press on a Games tab tints it within the press duration`() {
-        show(flat = true) { Tab() }
-        assertTints("tab", fx = 0f, dx = 8f)
-    }
-
-    @Test
-    fun `flat off, a held press on a Games tab leaves its pixels alone`() {
-        show(flat = false) { Tab() }
-        assertUnchanged("tab", fx = 0f, dx = 8f)
-    }
 
     @Test
     fun `flat on, a held press on a solved archive day disc tints it within the press duration`() {
@@ -102,11 +89,6 @@ class FlatPressTintTest {
     fun `flat off, a held press on the selected month chip leaves its pixels alone`() {
         show(flat = false) { Calendar() }
         assertUnchanged("library.calendar.jump.today", fx = 0f, dx = 6f)
-    }
-
-    @Composable
-    private fun Tab() = GamesTabs {
-        GamesTabPill("Duels", selected = false, onClick = {}, tag = "tab", trailing = { Text("2") })
     }
 
     @Composable
