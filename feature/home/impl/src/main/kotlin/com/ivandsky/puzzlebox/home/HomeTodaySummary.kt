@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +40,9 @@ import com.ivandsky.puzzlebox.play.api.GameKey
 
 private val Inset = Spacing.sm
 private val BadgeColumnGap = 4.dp
+// The badge row runs this far outside the text inset on each side. Columns share the extra width, so every
+// disc gap widens by 2 * (lg - md) / n dp: 1.6 dp at five games, and the 360 dp phone keeps 56 dp columns.
+private val BadgeRowInset = Spacing.md
 private val UpNextMinHeight = 44.dp
 private val HeadSkeletonWidth = 140.dp
 private val HeadSkeletonHeight = 22.dp
@@ -70,7 +75,8 @@ internal fun HomeTodaySummary(
         BoxWithConstraints {
             val badgeSize = if (maxWidth >= ExpandedFrom) TodayBadgeSize.Expanded else TodayBadgeSize.Compact
             val count = state.today.size.coerceAtLeast(1)
-            val columnWidth = (maxWidth - Spacing.lg * 2 - BadgeColumnGap * (count - 1)) / count
+            val rowWidth = maxWidth - BadgeRowInset * 2
+            val columnWidth = (rowWidth - BadgeColumnGap * (count - 1)) / count
             val widthPx = with(LocalDensity.current) { columnWidth.toPx().toInt() }
             val measurer = rememberTextMeasurer()
             val nameStyle = badgeSize.nameStyle()
@@ -83,7 +89,10 @@ internal fun HomeTodaySummary(
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
                 HeadRow(state, loading, tagPrefix)
-                Row(horizontalArrangement = Arrangement.spacedBy(BadgeColumnGap)) {
+                Row(
+                    modifier = Modifier.requiredWidth(rowWidth).offset(x = BadgeRowInset - Spacing.lg),
+                    horizontalArrangement = Arrangement.spacedBy(BadgeColumnGap),
+                ) {
                     state.today.forEach { row ->
                         TodayBadge(
                             row = row,
