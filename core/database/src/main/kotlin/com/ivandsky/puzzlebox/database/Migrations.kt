@@ -291,5 +291,6 @@ object Migrations {
             MIGRATION_11_12,
             MIGRATION_12_13,
             MIGRATION_13_14,
+            SelfMatchMigration.MIGRATION_14_15,
         )
 }

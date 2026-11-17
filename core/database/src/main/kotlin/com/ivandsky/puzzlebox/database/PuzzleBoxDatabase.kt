@@ -17,8 +17,10 @@ import androidx.room.RoomDatabase
         MatchResultEntity::class,
         SyncTombstoneEntity::class,
         CompletionReplayEntity::class,
+        SelfMatchEntity::class,
+        SelfPastLegEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true,
 )
 abstract class PuzzleBoxDatabase : RoomDatabase() {
@@ -44,6 +46,8 @@ abstract class PuzzleBoxDatabase : RoomDatabase() {
     abstract fun matchResultDao(): MatchResultDao
 
     abstract fun syncTombstoneDao(): SyncTombstoneDao
+
+    abstract fun selfMatchDao(): SelfMatchDao
 
     companion object {
         const val NAME = "puzzlebox.db"

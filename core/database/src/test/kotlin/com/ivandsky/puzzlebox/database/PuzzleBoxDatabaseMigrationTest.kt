@@ -808,8 +808,33 @@ class PuzzleBoxDatabaseMigrationTest {
     }
 
     @Test
-    fun `fresh v14 database is created by the normal builder path`() {
-        val dbName = "puzzlebox-fresh-v14.db"
+    fun `migrate 14 to 15 adds the self duel tables and keeps existing rows`() {
+        val dbName = "puzzlebox-migration-14-15-test.db"
+        val v14 = helper.createDatabase(dbName, 14)
+        v14.execSQL("INSERT INTO matches_local (code, role, opponentName, openedAt, dismissed) VALUES ('K7Q2MX', 'Invite', 'Sam', 5000, 0)")
+        v14.close()
+
+        // Validates against the committed 15.json.
+        val db = helper.runMigrationsAndValidate(dbName, 15, true, SelfMatchMigration.MIGRATION_14_15)
+
+        db.query("SELECT code, opponentName FROM matches_local").use { cursor ->
+            assertEquals(1, cursor.count)
+            assertTrue(cursor.moveToFirst())
+            assertEquals("K7Q2MX", cursor.getString(0))
+            assertEquals("Sam", cursor.getString(1))
+        }
+        db.execSQL("INSERT INTO self_matches (code, createdAtMs, roundCount, games, includeFriends, legs) VALUES ('SELF01', 1, 3, 'zip,sudoku', 1, 'a|b|c')")
+        db.execSQL("INSERT INTO self_past_legs (code, legIndex, timeMs, hints, completedAtMs) VALUES ('SELF01', 0, 61000, 1, 9)")
+        db.query("SELECT COUNT(*) FROM self_past_legs").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(1, cursor.getInt(0))
+        }
+        db.close()
+    }
+
+    @Test
+    fun `fresh v15 database is created by the normal builder path`() {
+        val dbName = "puzzlebox-fresh-v15.db"
         val context = RuntimeEnvironment.getApplication()
         context.deleteDatabase(dbName)
         val database = Room.databaseBuilder(context, PuzzleBoxDatabase::class.java, dbName)
@@ -818,7 +843,7 @@ class PuzzleBoxDatabaseMigrationTest {
             .build()
         try {
             val db = database.openHelper.writableDatabase
-            assertEquals(14, db.version)
+            assertEquals(15, db.version)
 
             // replay is omitted: a leg queued without one reads NULL.
             db.execSQL(
