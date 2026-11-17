@@ -132,6 +132,7 @@ val playModule = module {
             observePost = if (linkedIn) get() else null,
             submitPost = if (linkedIn) get() else null,
             nextThing = inject(),
+            daily = get(),
         )
     }
     viewModel { (key: ReplayKey) -> ReplayViewModel(key, get(), get(), get(), get(), get()) }

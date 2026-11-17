@@ -23,6 +23,13 @@ class ResultPrimaryStepTest {
     }
 
     @Test
+    fun `a past day's next names the game and the short date, and keeps the Next tag`() {
+        val step = ResultPrimaryAction.NextDay(GameId("zip"), LocalDate.of(2026, 11, 13), "Zip").step(Locale.US)
+        assertEquals("Next: Zip · Nov 13", step?.text)
+        assertEquals("result.next", step?.tag)
+    }
+
+    @Test
     fun `beat a friend names the friend`() {
         assertEquals("Challenge Maya", maya.step()?.text)
     }

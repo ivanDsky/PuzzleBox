@@ -83,6 +83,7 @@ fun ResultRoute(
             ResultPrimaryAction.AllDone, ResultPrimaryAction.Done -> onDone()
             is ResultPrimaryAction.ChallengeFriend -> challenge(action)
             is ResultPrimaryAction.MissedDay -> onOpenDay(action.gameId, action.day)
+            is ResultPrimaryAction.NextDay -> onOpenDay(action.gameId, action.day)
             is ResultPrimaryAction.FriendPuzzle -> onOpenPuzzle(action.code)
             is ResultPrimaryAction.CommunityPuzzle -> onOpenPuzzle(action.code)
             null -> Unit

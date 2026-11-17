@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.gameui
 
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /** The main button's words and test tag. */
@@ -8,6 +9,7 @@ internal data class ResultPrimaryStep(val text: String, val tag: String)
 /** The main button of this action, or null for [ResultPrimaryAction.AllDone], whose place the countdown takes. */
 internal fun ResultPrimaryAction.step(locale: Locale = Locale.getDefault()): ResultPrimaryStep? = when (this) {
     is ResultPrimaryAction.Next -> ResultPrimaryStep("Next: $name", "result.next")
+    is ResultPrimaryAction.NextDay -> ResultPrimaryStep("Next: $name · ${day.format(DateTimeFormatter.ofPattern("MMM d", locale))}", "result.next")
     ResultPrimaryAction.AllDone -> null
     ResultPrimaryAction.Done -> ResultPrimaryStep("Done", "result.done")
     is ResultPrimaryAction.ChallengeFriend -> ResultPrimaryStep("Challenge $name", "result.challengeMain")

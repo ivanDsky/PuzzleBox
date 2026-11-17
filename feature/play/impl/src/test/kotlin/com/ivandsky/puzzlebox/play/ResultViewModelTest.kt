@@ -204,6 +204,7 @@ class ResultViewModelTest {
             completions = completions,
             loadReplay = loadSolveReplay(games, daily, completions),
             nextThing = lazy { nextThing(games) },
+            daily = daily,
         )
     }
 
@@ -766,6 +767,86 @@ class ResultViewModelTest {
 
         assertEquals(ResultPrimaryAction.Next(beta, fakes.games.displayName(beta)), vm.primary.value)
         assertEquals(ResultNextFacts(primary = vm.primary.value), vm.nextFacts.value)
+    }
+
+    // --- a past day's Next (Result moments) -------------------------------------------------
+
+    /** [alpha]'s archive opens 30 days back; today is [day], so yesterday is the last day Next may offer. */
+    private fun archiveOpen() = daily.setArchiveRange(alpha, day.minusDays(30)..day)
+
+    /** A result of the day [daysAgo] back, whose puzzle the player has fetched (the history row Result reads its edition from). */
+    private fun pastResult(daysAgo: Long, flags: ReleaseFlags? = momentsOn): ResultViewModel {
+        val past = day.minusDays(daysAgo)
+        daily.setHistory(alpha, listOf(DailyEntry(alpha, day, 7, "alpha/v1", 0L), DailyEntry(alpha, past, 7, "alpha/v1", 0L)))
+        return vm(key.copy(day = day.minusDays(daysAgo).toString()), flags = flags).observed()
+    }
+
+    private fun nextDay(daysAgo: Long) =
+        ResultPrimaryAction.NextDay(alpha, day.minusDays(daysAgo), fakes.games.displayName(alpha))
+
+    @Test
+    fun `a past day's first solve continues on the next unsolved day after it`() {
+        archiveOpen()
+        completions.setRecords(listOf(record(80_000L, 0, date = day.minusDays(4))))
+
+        assertEquals(nextDay(3), pastResult(5).primary.value)
+    }
+
+    @Test
+    fun `Next skips solved days and stops at yesterday`() {
+        archiveOpen()
+        completions.setRecords(listOf(record(80_000L, 0, date = day.minusDays(3)), record(81_000L, 0, date = day.minusDays(2))))
+
+        assertEquals(nextDay(1), pastResult(4).primary.value)
+    }
+
+    @Test
+    fun `with every later day solved Next goes back to the nearest unsolved day before`() {
+        archiveOpen()
+        completions.setRecords((1L..2L).map { record(80_000L + it, 0, date = day.minusDays(it)) })
+
+        assertEquals(nextDay(4), pastResult(3).primary.value)
+    }
+
+    @Test
+    fun `with no unsolved day anywhere a past day keeps Done`() {
+        daily.setArchiveRange(alpha, day.minusDays(2)..day)
+        completions.setRecords(listOf(record(80_000L, 0, date = day.minusDays(2)), record(81_000L, 0, date = day.minusDays(1))))
+
+        assertEquals(ResultPrimaryAction.Done, pastResult(1).primary.value)
+    }
+
+    @Test
+    fun `a first solve whose own record is already stored still continues`() {
+        archiveOpen()
+        completions.setRecords(listOf(record(FakeController.TIME_MS, 0, date = day.minusDays(3))))
+
+        assertEquals(nextDay(2), pastResult(3).primary.value)
+    }
+
+    @Test
+    fun `a play again of a day already solved keeps Done`() {
+        archiveOpen()
+        completions.setRecords(listOf(record(80_000L, 0, date = day.minusDays(3))))
+
+        assertEquals(ResultPrimaryAction.Done, pastResult(3).primary.value)
+    }
+
+    @Test
+    fun `a game with no archive keeps Done, and the moments off keep it too`() {
+        assertEquals(ResultPrimaryAction.Done, pastResult(3).primary.value)
+
+        archiveOpen()
+        assertEquals(ResultPrimaryAction.Done, pastResult(3, flags = null).primary.value)
+    }
+
+    @Test
+    fun `today's result keeps today's Next chain, not a day`() {
+        archiveOpen()
+        slowerBestAndAnnAhead(betaSolved = false)
+        solveLive()
+
+        assertEquals(ResultPrimaryAction.Next(beta, fakes.games.displayName(beta)), vm(flags = momentsOn).observed().primary.value)
     }
 
     // --- the same puzzle's earlier solves (Result moments) ---------------------------------

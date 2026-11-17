@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
+import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.LoadSolveReplay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
@@ -50,6 +51,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.runningFold
@@ -100,7 +102,8 @@ data class ResultUiState(
  * [primary] (A7, SC10): on today's slot it is Next — [todaySet]'s next unsolved game after
  * this one that the [store] can play — or AllDone when none is left, and null until the set
  * first lands, so the screen never shows a Done that turns into Next. Any other day's
- * result (a play again) offers Done from the first frame. The read flows run only while the
+ * result (a play again) offers Done from the first frame. With Result moments on, a past day solved for the first time
+ * offers NextDay instead ([ResultArchiveNext], when [daily] is given), null until its history row lands. The read flows run only while the
  * screen is observed (plus a 5 s grace), so a day change is re-read.
  *
  * [heroInsights], [heroRank] and [playAgain] feed the hero page. A day's result shows the same side card whether
@@ -132,6 +135,7 @@ class ResultViewModel internal constructor(
     observePost: ObserveLinkedInPost? = null,
     submitPost: SubmitLinkedInResult? = null,
     nextThing: Lazy<ObserveResultNextThing>? = null,
+    daily: DailyRepository? = null,
 ) : ViewModel() {
     private val slot = PlaySlot.Daily(GameId(key.gameId), LocalDate.parse(key.day))
     private val solve = ActivePlay.Solve(key.timeMs, key.hintsUsed)
@@ -215,7 +219,14 @@ class ResultViewModel internal constructor(
     internal val nextFacts: StateFlow<ResultNextFacts> =
         moments?.stateIn(viewModelScope, SharingStarted.Lazily, ResultNextFacts()) ?: MutableStateFlow(ResultNextFacts())
 
+    /** A past day's first solve with the moments on: the same game on its next unsolved day, else Done; null until the day's row lands. */
+    private val archiveNext: Flow<ResultPrimaryAction>? = daily?.takeIf { !today && comparing }?.let { archive ->
+        val next = ResultArchiveNext(archive, completions, calendar, samePuzzleRows, slot, games.displayName(slot.gameId))
+        refOfDay.filterNotNull().flatMapLatest(next::of).distinctUntilChanged()
+    }
+
     val primary: StateFlow<ResultPrimaryAction?> = when {
+        archiveNext != null -> archiveNext.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
         !today -> MutableStateFlow(ResultPrimaryAction.Done)
         moments != null -> nextFacts.map { it.primary }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
         else -> nextUnsolved.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
