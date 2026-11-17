@@ -8,12 +8,17 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.key
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.EmptyState
+import com.ivandsky.puzzlebox.designsystem.LocalTabSwipeLink
 import com.ivandsky.puzzlebox.designsystem.Spacing
+import com.ivandsky.puzzlebox.designsystem.TabSwipeLink
+import com.ivandsky.puzzlebox.designsystem.TabSwipePane
 import com.ivandsky.puzzlebox.play.community.CommunityPhase
 
 /** The list pane's width on the tablet: Games' list column. */
@@ -40,14 +45,31 @@ internal fun CommunityPanes(
     val picks = rememberCommunityTabPicks(default)
     val tab = picks.tab
     val pick = picks.current
+    // Prototype 141: the list's pager drives this link under options A to D, and the right pane then crossfades in step
+    // with the pages (each tab's pick is its own pane) instead of swapping once the pager has settled.
+    val link = remember { TabSwipeLink() }
     Row(modifier.fillMaxSize().padding(start = Spacing.xl, top = Spacing.lg, end = Spacing.xxl, bottom = Spacing.xl)) {
-        list(Modifier.width(ListPaneWidth).fillMaxHeight(), picks)
+        CompositionLocalProvider(LocalTabSwipeLink provides link) { list(Modifier.width(ListPaneWidth).fillMaxHeight(), picks) }
         Spacer(Modifier.width(Spacing.xl))
-        Box(Modifier.weight(1f).fillMaxHeight()) {
-            if (pick == null) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { empty(tab) }
-            } else {
-                key(tab, pick) { detail(pick) { picks.clear(tab) } }
+        if (link.attached) {
+            val tabs = CommunityTab.entries
+            TabSwipePane(link, kindOf = { tabs[it.coerceIn(tabs.indices)] }, Modifier.weight(1f).fillMaxHeight()) { shown, settled ->
+                val shownPick = picks.pickOf(shown)
+                if (shownPick == null) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { empty(shown) }
+                } else {
+                    CompositionLocalProvider(LocalEnterSettled provides settled) {
+                        key(shownPick) { detail(shownPick) { picks.clear(shown) } }
+                    }
+                }
+            }
+        } else {
+            Box(Modifier.weight(1f).fillMaxHeight()) {
+                if (pick == null) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { empty(tab) }
+                } else {
+                    key(tab, pick) { detail(pick) { picks.clear(tab) } }
+                }
             }
         }
     }

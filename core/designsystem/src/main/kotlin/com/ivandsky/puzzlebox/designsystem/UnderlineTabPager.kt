@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerDefaults
 import androidx.compose.foundation.pager.PagerSnapDistance
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -51,8 +52,38 @@ fun UnderlineTabPager(
     onPageSettled: (Int) -> Unit = {},
     content: @Composable (page: Int) -> Unit,
 ) {
-    val reduced = rememberReducedMotion()
     val state = rememberPagerState(initialPage = initialPage.coerceIn(0, (tabs.size - 1).coerceAtLeast(0))) { tabs.size }
+    // Prototype 141: the option on show picks the pager; Today's is the shipped one below, untouched.
+    val option = TabSwipeProto.option
+    val pager: @Composable (Modifier) -> Unit = { place ->
+        if (option == TabSwipeOption.Today) {
+            TodayTabPager(state, tabs, onReselect, place, selectedPage, onPageSettled, content)
+        } else {
+            ProtoTabPager(option, state, tabs, onReselect, place, selectedPage, onPageSettled, content)
+        }
+    }
+    if (TabSwipeProto.switcher) {
+        Box(modifier) {
+            pager(Modifier.fillMaxSize())
+            TabSwipeSwitcher(Modifier.align(Alignment.BottomCenter))
+        }
+    } else {
+        pager(modifier)
+    }
+}
+
+/** The shipped pager ([TabSwipeOption.Today]). */
+@Composable
+private fun TodayTabPager(
+    state: PagerState,
+    tabs: List<UnderlineTab>,
+    onReselect: (Int) -> Unit,
+    modifier: Modifier,
+    selectedPage: Int?,
+    onPageSettled: (Int) -> Unit,
+    content: @Composable (page: Int) -> Unit,
+) {
+    val reduced = rememberReducedMotion()
     val scope = rememberCoroutineScope()
     val reselect by rememberUpdatedState(onReselect)
     val settled by rememberUpdatedState(onPageSettled)

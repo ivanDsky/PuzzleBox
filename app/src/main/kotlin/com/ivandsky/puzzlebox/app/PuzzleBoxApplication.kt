@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.app
 
 import android.app.Application
+import android.content.pm.ApplicationInfo
 import com.ivandsky.puzzlebox.app.di.appModule
 import com.ivandsky.puzzlebox.app.di.buildTypeReleaseFlagsModule
 import com.ivandsky.puzzlebox.app.leaderboard.CustomBoardSubmitter
@@ -21,6 +22,7 @@ import com.ivandsky.puzzlebox.data.cloud.OwnerScope
 import com.ivandsky.puzzlebox.data.di.cloudSyncModule
 import com.ivandsky.puzzlebox.data.di.dataModule
 import com.ivandsky.puzzlebox.data.di.linkedInCloudSyncModule
+import com.ivandsky.puzzlebox.designsystem.TabSwipeProto
 import com.ivandsky.puzzlebox.domain.di.domainModule
 import com.ivandsky.puzzlebox.games.queens.queensModule
 import com.ivandsky.puzzlebox.games.queensui.queensUiModule
@@ -45,6 +47,8 @@ class PuzzleBoxApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Prototype 141 (throwaway): only a debuggable build draws the tab swipe switcher over the tab pagers.
+        TabSwipeProto.switcher = applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0
         val koin = startKoin {
             androidContext(this@PuzzleBoxApplication)
             modules(appModules)

@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.model.ShareCode
+import com.ivandsky.puzzlebox.play.LocalEnterSettled
 import kotlinx.coroutines.delay
 
 /** Whether this showing of a friend's card [animates] its sections in, or starts settled. */
@@ -25,12 +26,14 @@ internal class CardEntrance(val animates: Boolean)
 /**
  * The entrance for [code]'s card: it animates the first time the card is shown, and never again
  * for that code while its saved state lives, so recomposing, coming back from the board or a
- * restored instance state show the card settled.
+ * restored instance state show the card settled. Prototype 141: a card that arrives under a tab change's
+ * pane crossfade ([LocalEnterSettled]) starts settled too.
  */
 @Composable
 internal fun rememberCardEntrance(code: ShareCode): CardEntrance {
     var played by rememberSaveable(code.value) { mutableStateOf(false) }
-    val entrance = remember(code.value) { CardEntrance(animates = !played) }
+    val settled = LocalEnterSettled.current
+    val entrance = remember(code.value) { CardEntrance(animates = !played && !settled) }
     LaunchedEffect(code.value) { played = true }
     return entrance
 }
