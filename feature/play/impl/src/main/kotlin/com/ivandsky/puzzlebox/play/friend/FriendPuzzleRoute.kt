@@ -33,7 +33,8 @@ import org.koin.core.parameter.parametersOf
  * [FriendPuzzleCard], whose Play, Resume or Play again opens the puzzle's board ([onPlay]) and
  * whose board preview signs in with Google in place, or [FriendOpenError] saying why the code
  * did not open, with Try again or the store listing when either helps. Up is [onBack], the navigator's pop; with
- * [showUp] false (the Community tablet's right pane, which has no page to go back from) there is no Up bar at all.
+ * [showUp] false (the Community tablet's right pane, which has no page to go back from) there is no Up bar at all, and
+ * with CommunityPuzzles on the card lays out two columns when the pane has room for them.
  * Reporting the puzzle (when the card offers it) closes the card behind a short "Reported" snackbar, then [onBack]; a
  * signed-out Report opens the sign-in prompt the New today list uses.
  */
@@ -77,6 +78,7 @@ internal fun FriendPuzzleRoute(
                     onSignIn = { viewModel.signIn(context) },
                     modifier = Modifier.verticalScroll(rememberScrollState()).padding(bottom = Spacing.xl),
                     onReport = viewModel::report,
+                    inPane = !showUp,
                 )
                 FriendCardState.Reported -> Unit
                 is FriendCardState.Failed -> card.outcome.errorCopy(ShareCode.parse(key.code))?.let { copy ->

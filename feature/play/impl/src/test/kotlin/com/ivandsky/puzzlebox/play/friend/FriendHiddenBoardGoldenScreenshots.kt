@@ -79,7 +79,7 @@ abstract class FriendHiddenBoardGoldenScreenshots(private val device: String) {
         rule.settleAndCapture("friend", name, device, dark)
     }
 
-    private companion object {
+    internal companion object {
         val CODE = checkNotNull(ShareCode.parse("K7Q2MX"))
 
         val TOP3 = listOf(
