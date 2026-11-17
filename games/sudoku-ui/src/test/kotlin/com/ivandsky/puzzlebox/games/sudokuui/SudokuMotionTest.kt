@@ -2,6 +2,8 @@ package com.ivandsky.puzzlebox.games.sudokuui
 
 import android.content.Context
 import android.provider.Settings
+import android.view.HapticFeedbackConstants
+import android.view.View
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.VectorConverter
@@ -10,8 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.test.core.app.ApplicationProvider
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.Puzzle
@@ -24,6 +30,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuUnit
 import com.ivandsky.puzzlebox.games.sudoku.UnitKind
 import com.ivandsky.puzzlebox.games.sudoku.codec.SudokuCodec
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -55,6 +62,15 @@ class SudokuMotionTest {
     private val ref = SudokuPuzzleRef(SudokuGames.MINI.id, PuzzleKey.Daily(LocalDate.of(2026, 11, 4), 450))
     private val openCells = givens.indices.filter { givens[it] == 0 }
     private val haptics = RecordingHaptics()
+    private val buzzes = ArrayList<Int>()
+
+    /** A view that records the haptics asked of it: the solve buzz goes through the view. */
+    private val view = object : View(ApplicationProvider.getApplicationContext<Context>()) {
+        override fun performHapticFeedback(feedbackConstant: Int): Boolean {
+            buzzes += feedbackConstant
+            return true
+        }
+    }
 
     private fun grid(text: String): List<Int> = text.filterNot { it.isWhitespace() }.map { if (it == '.') 0 else it.digitToInt() }
 
@@ -192,6 +208,103 @@ class SudokuMotionTest {
             val session = state.session
             assertEquals(listOf(session.elapsedMs to session.hintsUsed), solved)
             assertEquals(listOf(HapticFeedbackType.TextHandleMove, HapticFeedbackType.Confirm), haptics.played)
+        }
+    }
+
+    // Frame by frame: once the sweep is over nothing animates, and one big step skips past the rest timer's wake-up.
+    private fun advance(ms: Long) = repeat((ms / 50L).toInt()) { composeRule.mainClock.advanceTimeBy(50L) }
+
+    private fun solveWithRest(rest: Boolean, reduced: Boolean = false): Triple<SudokuBoardState, List<Pair<Long, Int>>, () -> Unit> {
+        if (reduced) {
+            Settings.Global.putFloat(ApplicationProvider.getApplicationContext<Context>().contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        }
+        val solved = ArrayList<Pair<Long, Int>>()
+        val ui = SudokuPlayUi(SudokuGames.MINI, InMemorySudokuHighlightSettings())
+        val controller = ui.createController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {})) as SudokuPlayController
+        val envelope = Puzzle(ui.gameId, peanut450.variant.id, SudokuCodec.VERSION, SudokuCodec.encode(peanut450))
+        assertEquals(Adopt.Adopted, controller.adoptToday(envelope, ref))
+        composeRule.mainClock.autoAdvance = false
+        composeRule.setContent {
+            PuzzleBoxTheme {
+                CompositionLocalProvider(LocalHapticFeedback provides haptics, LocalSolveRestOnBoard provides rest, LocalView provides view) {
+                    ui.Screen(
+                        controller = controller,
+                        status = PlayBoardStatus.Ready,
+                        layout = PlayLayout.SinglePane,
+                        sidePanel = null,
+                        onRetry = {},
+                        onSolved = { time, hints -> solved += time to hints },
+                        modifier = Modifier,
+                    )
+                }
+            }
+        }
+        val state = composeRule.runOnIdle { controller.board!! }
+        composeRule.runOnIdle { openCells.dropLast(1).forEach { state.place(it) } }
+        composeRule.mainClock.advanceTimeBy(1_000)
+        composeRule.runOnIdle { state.place(openCells.last()) }
+        return Triple(state, solved) { Settings.Global.putFloat(ApplicationProvider.getApplicationContext<Context>().contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) }
+    }
+
+    @Test
+    fun `with the rest on the solved board stays for the solve moment, then hands off once`() {
+        val (_, solved, _) = solveWithRest(rest = true)
+        advance(CelebrationMotion.SolveMomentMs / 2)
+        composeRule.runOnIdle { assertEquals("still resting", 0, solved.size) }
+        composeRule.onNodeWithTag("play.solve_rest").assertExists()
+
+        advance(CelebrationMotion.SolveMomentMs)
+        composeRule.runOnIdle { assertEquals(1, solved.size) }
+        composeRule.onNodeWithTag("play.solve_rest").assertDoesNotExist()
+        advance(5_000)
+        composeRule.runOnIdle { assertEquals("one solve, one hand-off", 1, solved.size) }
+    }
+
+    @Test
+    fun `a tap on the board during the rest hands off at once`() {
+        val (_, solved, _) = solveWithRest(rest = true)
+        advance(700)
+        composeRule.onNodeWithTag("play.solve_rest").performClick()
+        composeRule.mainClock.advanceTimeBy(16)
+        composeRule.runOnIdle { assertEquals(1, solved.size) }
+        advance(5_000)
+        composeRule.runOnIdle { assertEquals(1, solved.size) }
+    }
+
+    @Test
+    fun `with the rest on the success buzz comes once as the sweep starts, and the old confirm steps aside`() {
+        val (_, solved, _) = solveWithRest(rest = true)
+        advance(300)
+        assertEquals(listOf(HapticFeedbackConstants.CONFIRM), buzzes)
+        advance(CelebrationMotion.SolveMomentMs * 2)
+        composeRule.runOnIdle {
+            assertEquals(1, solved.size)
+            assertEquals("once", 1, buzzes.size)
+            assertEquals("the board's own confirm would be a second buzz", listOf(HapticFeedbackType.TextHandleMove), haptics.played)
+        }
+    }
+
+    @Test
+    fun `reduced motion keeps the success buzz`() {
+        val (_, _, restore) = solveWithRest(rest = true, reduced = true)
+        try {
+            advance(300)
+            assertEquals(listOf(HapticFeedbackConstants.CONFIRM), buzzes)
+        } finally {
+            restore()
+        }
+    }
+
+    @Test
+    fun `reduced motion keeps the same rest`() {
+        val (_, solved, restore) = solveWithRest(rest = true, reduced = true)
+        try {
+            advance(CelebrationMotion.SolveMomentMs / 2)
+            composeRule.runOnIdle { assertEquals(0, solved.size) }
+            advance(CelebrationMotion.SolveMomentMs)
+            composeRule.runOnIdle { assertEquals(1, solved.size) }
+        } finally {
+            restore()
         }
     }
 

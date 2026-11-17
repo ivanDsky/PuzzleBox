@@ -18,4 +18,10 @@ object CelebrationMotion {
      * runs once, so the ring draws the eye and then holds still.
      */
     const val HintPulseMs = 1000
+
+    /**
+     * The solve moment on the board (M10-6): from the winning move to the hand-off to Result, the sweep and then the
+     * solved board at rest. A pause, so it holds under reduced motion too, where only the accent outline shows.
+     */
+    const val SolveMomentMs = 1500L
 }

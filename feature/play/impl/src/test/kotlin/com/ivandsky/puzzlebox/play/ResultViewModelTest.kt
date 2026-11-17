@@ -180,7 +180,6 @@ class ResultViewModelTest {
         identity: Identity? = null,
         linkedIn: Boolean = false,
         flags: ReleaseFlags? = null,
-        celebration: CelebrationOnResult? = null,
     ): ResultViewModel {
         val history = ObserveGameHistory(games, daily, completions)
         val observeBoard = ObserveLeaderboard(FakeIdentityService(initial = identity), leaderboard, games, calendar)
@@ -203,7 +202,6 @@ class ResultViewModelTest {
             completions = completions,
             loadReplay = loadSolveReplay(games, daily, completions),
             nextThing = lazy { nextThing(games) },
-            celebration = celebration,
         )
     }
 
@@ -766,30 +764,6 @@ class ResultViewModelTest {
 
         assertEquals(ResultPrimaryAction.Next(beta, fakes.games.displayName(beta)), vm.primary.value)
         assertEquals(ResultNextFacts(primary = vm.primary.value), vm.nextFacts.value)
-    }
-
-    @Test
-    fun `the celebration plays once for the solve that was handed off, and never for a result opened again`() {
-        val celebration = CelebrationOnResult(enabled = true)
-        val solve = ActivePlay.Solve(key.timeMs, key.hintsUsed)
-        celebration.arm(PlaySlot.Daily(alpha, day), solve)
-
-        val first = vm(celebration = celebration)
-        assertTrue(first.celebrating.value)
-        first.celebrationDone()
-        assertFalse(first.celebrating.value)
-
-        assertFalse("the same result opened again", vm(celebration = celebration).celebrating.value)
-    }
-
-    @Test
-    fun `no celebration for another solve's result, nor when the celebration is not on Result`() {
-        val armed = CelebrationOnResult(enabled = true).apply { arm(PlaySlot.Daily(beta, day), ActivePlay.Solve(key.timeMs, key.hintsUsed)) }
-        assertFalse(vm(celebration = armed).celebrating.value)
-
-        val off = CelebrationOnResult(enabled = false).apply { arm(PlaySlot.Daily(alpha, day), ActivePlay.Solve(key.timeMs, key.hintsUsed)) }
-        assertFalse(vm(celebration = off).celebrating.value)
-        assertFalse(vm().celebrating.value)
     }
 
     private fun entry(uid: String, seconds: Int) =

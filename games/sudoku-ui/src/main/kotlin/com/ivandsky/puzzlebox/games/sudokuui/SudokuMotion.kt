@@ -7,6 +7,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -20,12 +21,16 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalHapticFeedback
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.games.sudoku.SudokuGeometry
 import com.ivandsky.puzzlebox.games.sudoku.SudokuSession
 import com.ivandsky.puzzlebox.games.sudoku.SudokuUnit
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
+import com.ivandsky.puzzlebox.gameui.SolveRestState
+import com.ivandsky.puzzlebox.gameui.SolveRestTapLayer
+import com.ivandsky.puzzlebox.gameui.rememberSolveRest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.PI
@@ -172,16 +177,31 @@ internal fun SudokuMotionHost(
     onSolved: (SudokuSession) -> Unit = {},
     content: @Composable () -> Unit,
 ) {
-    CompositionLocalProvider(LocalSudokuMotion provides rememberSudokuMotion(state, onSolved), content = content)
+    val rest = rememberSolveRest()
+    CompositionLocalProvider(LocalSudokuMotion provides rememberSudokuMotion(state, onSolved, rest)) {
+        if (rest.enabled) {
+            Box(propagateMinConstraints = true) {
+                content()
+                SolveRestTapLayer(rest, Modifier.matchParentSize())
+            }
+        } else {
+            content()
+        }
+    }
 }
 
 /**
  * Plays each player commit's effect and haptic. The board as first seen (restore, rotation,
  * play-again) is the baseline and plays nothing; a board already solved hands off at once. A solve
- * runs its sweep, then CONFIRM, then [onSolved]; the win record was written at commit.
+ * runs its sweep, then CONFIRM, then [onSolved]; the win record was written at commit. With the [rest] on, [onSolved]
+ * waits for the solve moment, counted from the solve.
  */
 @Composable
-internal fun rememberSudokuMotion(state: SudokuBoardState?, onSolved: (SudokuSession) -> Unit = {}): SudokuMotionState? {
+internal fun rememberSudokuMotion(
+    state: SudokuBoardState?,
+    onSolved: (SudokuSession) -> Unit = {},
+    rest: SolveRestState = rememberSolveRest(),
+): SudokuMotionState? {
     if (state == null) return null
     val reduced = rememberReducedMotion()
     val haptics = LocalHapticFeedback.current
@@ -195,8 +215,11 @@ internal fun rememberSudokuMotion(state: SudokuBoardState?, onSolved: (SudokuSes
             val event = sudokuPlayerEvent(previous, next)
             previous = next
             sudokuHapticFor(event)?.let(haptics::perform)
+            val resting = if (event is SudokuPlayerEvent.Solved) rest.begin(this) else null
             playSudokuEvent(motion, event, next.board.geometry) {
-                haptics.perform(SudokuHaptic.Confirm)
+                // With the rest on, the solve buzz went out as the sweep started; a second one would double it.
+                if (!rest.enabled) haptics.perform(SudokuHaptic.Confirm)
+                resting?.await()
                 handOff(state.session)
             }
         }

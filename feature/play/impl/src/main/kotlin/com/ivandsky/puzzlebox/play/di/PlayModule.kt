@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.domain.ObserveFriendPuzzles
 import com.ivandsky.puzzlebox.domain.ranks.ObserveFriendDay
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.PlaySlot
-import com.ivandsky.puzzlebox.play.CelebrationOnResult
+import com.ivandsky.puzzlebox.play.SolveRest
 import com.ivandsky.puzzlebox.play.GamePageRankViewModel
 import com.ivandsky.puzzlebox.play.GameViewModel
 import com.ivandsky.puzzlebox.play.LibraryViewModel
@@ -105,9 +105,8 @@ val playModule = module {
             linkedIn = if (params.getOrNull<Boolean>() == true) get() else null,
         )
     }
-    // Read once per graph, so the board's route and Result agree on where the celebration plays; without
-    // ReleaseFlags it is off.
-    single { CelebrationOnResult(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ResultMoments) == true) }
+    // Read once per graph: the solved board rests before Result with Result moments on; without ReleaseFlags it is off.
+    single { SolveRest(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ResultMoments) == true) }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
     // read inside the view model (the release flag), so its bindings resolve only on the same parameter.
     // Result moments read the same flags without LinkedIn: a graph without ReleaseFlags builds Result with them
@@ -133,7 +132,6 @@ val playModule = module {
             observePost = if (linkedIn) get() else null,
             submitPost = if (linkedIn) get() else null,
             nextThing = inject(),
-            celebration = get(),
         )
     }
     viewModel { (key: ReplayKey) -> ReplayViewModel(key, get(), get(), get(), get(), get()) }

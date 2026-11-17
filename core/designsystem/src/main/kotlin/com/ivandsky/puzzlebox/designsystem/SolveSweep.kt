@@ -34,12 +34,11 @@ import kotlin.math.hypot
  * A [SolveSweepState] tied to this composition. The sweep lasts
  * [MotionTokens.SweepDuration]. Reduced motion (and the preview inspector, which
  * never runs effects past the first frame) jumps straight to the end: the accent
- * outline with no band. Under [LocalEntranceSettled] it is at that end from the first frame.
+ * outline with no band.
  */
 @Composable
 fun rememberSolveSweepState(): SolveSweepState {
-    val played = LocalEntranceSettled.current
-    val state = remember { SolveSweepState(played) }
+    val state = remember { SolveSweepState() }
     val instant = rememberReducedMotion() || entranceSettled()
     LaunchedEffect(state, state.plays) {
         if (state.plays == 0) return@LaunchedEffect

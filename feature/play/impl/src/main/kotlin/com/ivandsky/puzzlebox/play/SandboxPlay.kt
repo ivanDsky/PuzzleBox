@@ -6,7 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
-import com.ivandsky.puzzlebox.gameui.LocalSolveCelebrationOverlay
+import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 
@@ -17,8 +17,8 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
  * stored play adds: no tutorial, no How to play, no stats panel, no record. The bar reads `title`, the board's name,
  * then `label`, what the screen is: a name too long for the bar is cut with an ellipsis and the label stays whole.
  *
- * The solve plays the sweep and then calls `onSolved` at once: the frame runs in the overlay mode
- * ([LocalSolveCelebrationOverlay]), which leaves out the stamp and its hold, and nothing here draws a celebration.
+ * The solve plays the sweep, rests on the board ([LocalSolveRestOnBoard]: no stamp, a tap skips the rest) and then
+ * calls `onSolved`.
  * There is no BackHandler; the caller owns back. The tag is not a `route.` one: the screen sits inside the caller's
  * route.
  *
@@ -38,7 +38,7 @@ object SandboxPlay {
         onSolved: () -> Unit,
         modifier: Modifier = Modifier,
     ) {
-        CompositionLocalProvider(LocalSolveCelebrationOverlay provides true) {
+        CompositionLocalProvider(LocalSolveRestOnBoard provides true) {
             PlayBoardChrome(
                 ui = ui,
                 controller = controller,
