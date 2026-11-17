@@ -13,6 +13,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -26,7 +27,8 @@ private val StageMaxWidth = 1352.dp
 /**
  * The reveal's end. [wide] is the Stage page: a hero card over the full-width puzzles table, centred as a block,
  * vertically too when it fits and scrolling from the top when it doesn't. A phone has one column: the score card, then
- * the puzzles. Back arrow leaves through [onBack]. [compares] are the legs offering a compare, opened through [onCompare].
+ * the puzzles. Back arrow leaves through [onBack], which is also a self duel's Done. [compares] are the legs offering a
+ * compare, opened through [onCompare]; a self duel's [noReplay] legs say their first solve has no replay.
  */
 @Composable
 internal fun RevealSummary(
@@ -38,40 +40,45 @@ internal fun RevealSummary(
     onWatchAgain: () -> Unit,
     modifier: Modifier = Modifier,
     compares: Set<Int> = emptySet(),
+    noReplay: Set<Int> = emptySet(),
     onCompare: (Int) -> Unit = {},
 ) {
-    Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow).testTag("reveal.summary")) {
-        RevealTopBar(summary.me, summary.opponent, summary.rows.size, onBack)
-        if (wide) {
-            BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-                val viewport = maxHeight
-                Column(
-                    modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = viewport),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                ) {
-                    StageSummary(
-                        summary = summary,
-                        brands = brands,
-                        onRematch = onRematch,
-                        onWatchAgain = onWatchAgain,
-                        compares = compares,
-                        onCompare = onCompare,
-                        modifier = Modifier
-                            .widthIn(max = StageMaxWidth)
-                            .fillMaxWidth()
-                            .padding(start = Spacing.xxl, top = Spacing.xs, end = Spacing.xxl, bottom = Spacing.xxl),
-                    )
+    CompositionLocalProvider(LocalPastYouName provides summary.me.takeIf { summary.pastYou }) {
+        Column(modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceContainerLow).testTag("reveal.summary")) {
+            RevealTopBar(summary.me, summary.opponent, summary.rows.size, onBack)
+            if (wide) {
+                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
+                    val viewport = maxHeight
+                    Column(
+                        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).heightIn(min = viewport),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        StageSummary(
+                            summary = summary,
+                            brands = brands,
+                            onRematch = onRematch,
+                            onWatchAgain = onWatchAgain,
+                            compares = compares,
+                            noReplay = noReplay,
+                            onCompare = onCompare,
+                            onDone = onBack,
+                            modifier = Modifier
+                                .widthIn(max = StageMaxWidth)
+                                .fillMaxWidth()
+                                .padding(start = Spacing.xxl, top = Spacing.xs, end = Spacing.xxl, bottom = Spacing.xxl),
+                        )
+                    }
                 }
-            }
-        } else {
-            Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
-                Column(
-                    modifier = Modifier.widthIn(max = PhoneMaxWidth).fillMaxWidth().padding(Spacing.lg),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.lg),
-                ) {
-                    SummaryCard(summary, onRematch, onWatchAgain)
-                    SummaryPuzzleList(summary, brands, wide = false, compares = compares, onCompare = onCompare)
+            } else {
+                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Column(
+                        modifier = Modifier.widthIn(max = PhoneMaxWidth).fillMaxWidth().padding(Spacing.lg),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.lg),
+                    ) {
+                        SummaryCard(summary, onRematch, onWatchAgain, onDone = onBack)
+                        SummaryPuzzleList(summary, brands, wide = false, compares = compares, noReplay = noReplay, onCompare = onCompare)
+                    }
                 }
             }
         }

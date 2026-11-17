@@ -8,9 +8,16 @@ import com.ivandsky.puzzlebox.data.match.MatchDraft
 import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.Player
+import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.domain.ComputeMatchLegs
+import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.CreateMatch
+import com.ivandsky.puzzlebox.domain.CreateSelfDuel
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
+import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.RecordStats
+import com.ivandsky.puzzlebox.model.GameId
+import com.ivandsky.puzzlebox.model.PuzzleKey
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.testing.calendar.FakeGameCalendar
 import com.ivandsky.puzzlebox.testing.game.TestGames
@@ -22,6 +29,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeIdentityService
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchLocalRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
@@ -57,8 +65,14 @@ class RematchViewModelTest {
     private val identity = FakeIdentityService(ANN)
     private val server = FakeMatchRepository().apply { signedInUid = ANN.uid }
     private val local = FakeMatchLocalRepository()
+    private val received = FakeReceivedPuzzleRepository()
     private val draw = ComputeMatchLegs(
-        registry, daily, calendar, ObserveGameHistory(registry, daily, completions), FakeReceivedPuzzleRepository(), Random(DRAW_SEED),
+        registry, daily, calendar, ObserveGameHistory(registry, daily, completions), received, Random(DRAW_SEED),
+    )
+    private val selfMatches = FakeSelfMatchRepository()
+    private val selfDuel = CreateSelfDuel(
+        ComputeSolvedPool(registry, completions, received), completions, received, selfMatches, local,
+        { Instant.parse("2026-11-09T10:00:00Z") }, Random(CODE_SEED),
     )
     private val played = Match(
         code = ShareCode.parse("K7Q2MX")!!,
@@ -90,7 +104,7 @@ class RematchViewModelTest {
     }
 
     private fun viewModel(repo: MatchRepository = server) =
-        RematchViewModel(match = played, createMatch = CreateMatch(repo, local, draw, identity, Random(CODE_SEED)))
+        RematchViewModel(played, CreateMatch(repo, local, draw, identity, Random(CODE_SEED)), selfDuel)
 
     @Test
     fun sendingShowsAsSendingThenHandsOverTheCreatedDuel() = runTest {
@@ -185,6 +199,40 @@ class RematchViewModelTest {
         vm.reset()
 
         assertEquals(RematchState(), vm.state.value)
+    }
+
+    private fun record(game: GameId, number: Int) = CompletionRecord(
+        puzzleRef = TestGames.Ref(game, PuzzleKey.Daily(today.minusDays(number.toLong()), puzzleNumber = number)),
+        time = 30_000L,
+        hints = 0,
+        stats = RecordStats(schemaVersion = 1, blob = "{}"),
+        firstCompletedAt = Instant.ofEpochMilli(1_000L),
+        isRecord = true,
+    )
+
+    @Test
+    fun aSelfDuelRematchDrawsANewSelfDuelWithTheSameSettings() = runTest {
+        completions.setRecords((1..4).flatMap { listOf(record(alpha, it), record(beta, it + 10)) })
+        val self = played.copy(challenger = Player(SelfSeats.ME, "You", null), opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null))
+        val vm = RematchViewModel(self, CreateMatch(server, local, draw, identity, Random(CODE_SEED)), selfDuel)
+
+        vm.send()
+
+        val created = vm.created.first()
+        assertEquals(self.legs.size, created.legs.size)
+        assertEquals(setOf(created.code), selfMatches.observeAll().first().map { it.code }.toSet())
+        assertTrue("no invite goes to the server", server.matches.isEmpty())
+    }
+
+    @Test
+    fun aSelfDuelRematchWithNothingToDrawIsANote() = runTest {
+        val self = played.copy(challenger = Player(SelfSeats.ME, "You", null), opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null))
+        val vm = RematchViewModel(self, CreateMatch(server, local, draw, identity, Random(CODE_SEED)), selfDuel)
+
+        vm.send()
+
+        assertEquals("There are no puzzles left to draw. Try again later.", vm.state.value.note)
+        assertFalse(vm.state.value.sending)
     }
 
     private companion object {

@@ -2,7 +2,9 @@ package com.ivandsky.puzzlebox.compete.reveal
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.match.Match
+import com.ivandsky.puzzlebox.data.match.isSelf
 import com.ivandsky.puzzlebox.domain.MatchState
 import com.ivandsky.puzzlebox.domain.LegReplayLoad
 import com.ivandsky.puzzlebox.domain.LegVerdict
@@ -50,7 +52,8 @@ internal sealed interface RevealUiState {
      * The reveal of [match]. The [race] the machine plays and how its first run [start]s are fixed when the race
      * opens; [rerun] counts the Watch agains, each racing what is settled at that moment. The [summary] follows
      * the latest load. [compareLegs] are the legs whose replays can be compared: none before the reveal has run
-     * (no spoiler), then every settled leg not found without a replay on both sides.
+     * (no spoiler), then every settled leg not found without a replay on both sides. [noReplay] are a self duel's legs
+     * whose first solve has no replay, once the reveal has run.
      */
     data class Running(
         val match: Match,
@@ -59,6 +62,7 @@ internal sealed interface RevealUiState {
         val rerun: Int,
         val summary: DuelSummary,
         val compareLegs: Set<Int>,
+        val noReplay: Set<Int> = emptySet(),
     ) : RevealUiState
 }
 
@@ -72,6 +76,7 @@ internal class LegCompare(
     val theirs: Timeline?,
     val opponent: String,
     val finalLead: Lead,
+    val me: String = MY_NAME,
 )
 
 private const val STOP_TIMEOUT_MS = 5_000L
@@ -92,6 +97,7 @@ internal class RevealViewModel(
     val brands: GamePlayRegistry,
     private val recordSeen: RecordRevealSeen,
     private val loadReplay: LoadSolveReplay,
+    private val identity: IdentityService,
 ) : ViewModel() {
 
     /** The race the machine plays for one run, and how the first run started. */
@@ -101,16 +107,23 @@ internal class RevealViewModel(
     private val reruns = MutableStateFlow(0)
     private val ran = MutableStateFlow(false)
     private val withoutReplay = MutableStateFlow<Set<Int>>(emptySet())
+
+    /** Self duel legs whose first solve has no replay; kept across Watch agains, since a replay never appears later. */
+    private val noPastReplay = MutableStateFlow<Set<Int>>(emptySet())
+
+    /** The compare may be offered: the reveal ended and, in a self duel, the first solves' replays were probed. */
+    private val revealed = MutableStateFlow(false)
     private val _compare = MutableStateFlow<LegCompare?>(null)
     private var opening: Job? = null
+    private var probing: Job? = null
     private var race: Race? = null
     private var latest: MatchView? = null
 
     val state: StateFlow<RevealUiState> = if (shareCode == null) {
         MutableStateFlow<RevealUiState>(RevealUiState.NotFound).asStateFlow()
     } else {
-        combine(observeMatch(shareCode), reruns, ran, withoutReplay) { match, rerun, ended, none ->
-            build(shareCode, match, rerun, if (ended) none else null)
+        combine(observeMatch(shareCode), reruns, revealed, withoutReplay, noPastReplay) { match, rerun, offered, none, noPast ->
+            build(shareCode, match, rerun, offered, none, noPast)
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), RevealUiState.Loading)
     }
 
@@ -120,14 +133,35 @@ internal class RevealViewModel(
     /** Races again from the intro, over every puzzle settled by now. The compare is a spoiler again until it ends. */
     fun watchAgain() {
         closeCompare()
+        probing?.cancel()
         withoutReplay.value = emptySet()
         ran.value = false
+        revealed.value = false
         reruns.update { it + 1 }
     }
 
     /** The screen calls this once the race has reached its summary; until then no leg offers a compare. */
     fun revealEnded() {
         ran.value = true
+        val view = latest
+        val code = shareCode
+        if (view != null && code != null && view.match.isSelf) probePastReplays(view, code) else revealed.value = true
+    }
+
+    /**
+     * Self duels only: reads each leg's first-solve replay once the reveal ended, and rules out the legs found without one
+     * so the summary says so instead of offering a Compare; the compare is offered once the probe is done. A failed read
+     * leaves the leg offered, like [openCompare].
+     */
+    private fun probePastReplays(view: MatchView, code: ShareCode) {
+        probing?.cancel()
+        probing = viewModelScope.launch {
+            for (leg in comparableLegs(view)) {
+                if (leg in noPastReplay.value) continue
+                if (loadReplay.readLeg(SolveReplayRef.TheirLeg(code, leg)) == LegReplayLoad.Absent) noPastReplay.update { it + leg }
+            }
+            revealed.value = true
+        }
     }
 
     /**
@@ -152,7 +186,10 @@ internal class RevealViewModel(
             val theirTimeline = (theirs as? LegReplayLoad.Opened)?.timeline
             when {
                 mineTimeline != null || theirTimeline != null ->
-                    _compare.value = LegCompare(leg, mineTimeline, theirTimeline, current.plan.opponent.name, lead)
+                    _compare.value = LegCompare(
+                        leg, mineTimeline, theirTimeline, current.plan.opponent.name, lead,
+                        me = if (current.plan.pastYou) current.plan.me.name else MY_NAME,
+                    )
                 mine == LegReplayLoad.Absent && theirs == LegReplayLoad.Absent -> withoutReplay.update { it + leg }
             }
         }
@@ -167,7 +204,7 @@ internal class RevealViewModel(
     fun gameName(id: GameId): String = registry.displayName(id)
 
     /** A failure after a load keeps that load: the reveal never falls back to a message once it has a match. */
-    private fun build(code: ShareCode, state: MatchState, rerun: Int, withoutReplay: Set<Int>?): RevealUiState {
+    private fun build(code: ShareCode, state: MatchState, rerun: Int, offered: Boolean, withoutReplay: Set<Int>, noPastReplay: Set<Int>): RevealUiState {
         val view = when (state) {
             is MatchState.Loaded -> state.view.also { latest = it }
             MatchState.NotFound -> latest ?: return RevealUiState.NotFound
@@ -175,7 +212,7 @@ internal class RevealViewModel(
             is MatchState.UpdateApp -> latest ?: return RevealUiState.UpdateApp
             is MatchState.SignedOut -> latest ?: return RevealUiState.SignedOut
         }
-        val plan = revealPlan(view, registry::displayName, registry::rankOrderOf)
+        val plan = revealPlan(view, registry::displayName, registry::rankOrderOf, ownName = identity.current.value?.displayName)
         val current = race
         val next = when {
             current == null && plan.cards.isEmpty() -> return RevealUiState.Unsettled
@@ -185,8 +222,9 @@ internal class RevealViewModel(
         }
         race = next
         val summary = duelSummary(view.match, plan, view.outcome, zone, locale)
-        val compareLegs = if (withoutReplay == null) emptySet() else comparableLegs(view) - withoutReplay
-        return RevealUiState.Running(view.match, next.plan, next.start, next.rerun, summary, compareLegs)
+        val noReplay = if (offered) noPastReplay else emptySet()
+        val compareLegs = if (!offered) emptySet() else comparableLegs(view) - withoutReplay - noPastReplay
+        return RevealUiState.Running(view.match, next.plan, next.start, next.rerun, summary, compareLegs, noReplay)
     }
 
     private fun comparableLegs(view: MatchView): Set<Int> =

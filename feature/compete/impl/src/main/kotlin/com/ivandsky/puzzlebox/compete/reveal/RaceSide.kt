@@ -34,7 +34,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.resultHeroTimeStyle
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 
 private val SideAvatar = 24.dp
 private val SubHeight = 16.dp
@@ -74,7 +73,7 @@ internal fun RaceSide(
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            PlayerAvatar(name = name, photoUrl = photoUrl, size = SideAvatar, tone = tone)
+            RevealAvatar(name = name, photoUrl = photoUrl, size = SideAvatar, tone = tone)
             Text(
                 text = name,
                 style = MaterialTheme.typography.labelLarge,

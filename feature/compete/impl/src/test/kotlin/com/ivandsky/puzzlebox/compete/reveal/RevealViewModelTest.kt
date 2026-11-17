@@ -15,6 +15,7 @@ import com.ivandsky.puzzlebox.data.match.OutboxResult
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
 import com.ivandsky.puzzlebox.data.match.ResultRead
+import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegSeen
@@ -174,6 +175,7 @@ class RevealViewModelTest {
         brands = GamePlayRegistry(emptyList()),
         recordSeen = RecordRevealSeen(counted) { createdAt.plusSeconds(3_600) },
         loadReplay = load,
+        identity = identity,
     )
 
     private fun TestScope.started(vm: RevealViewModel): RevealViewModel {
@@ -335,6 +337,51 @@ class RevealViewModelTest {
         vm.revealEnded()
 
         assertEquals(setOf(0, 1), running(vm).compareLegs)
+    }
+
+    // A self duel is not on the server: the first solves' replays are read through the device, and here there are none.
+    private val selfMatch = compareMatch.copy(
+        challenger = Player(SelfSeats.ME, "You", null),
+        opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null),
+    )
+
+    @Test
+    fun aSelfDuelWithoutAFirstSolveReplayShowsTheNoteAndOffersNoCompare() = runTest {
+        identity.currentIdentity = Identity("ann", "Ann", null)
+        val vm = started(viewModel())
+        matches.value = loaded(revealed = setOf(0, 1), of = selfMatch)
+        assertEquals("the viewer's own name stands in for the stored \"You\"", "Ann", running(vm).race.me.name)
+        assertEquals("before the end nothing is offered or noted", emptySet<Int>(), running(vm).noReplay)
+
+        vm.revealEnded()
+
+        val now = running(vm)
+        assertEquals("both first solves lack a replay", setOf(0, 1), now.noReplay)
+        assertEquals("so neither leg offers Compare", emptySet<Int>(), now.compareLegs)
+    }
+
+    @Test
+    fun aFriendDuelNeverNotesAMissingFirstSolve() = runTest {
+        duel()
+        play(0, null, null)
+        val vm = compared()
+
+        vm.revealEnded()
+
+        assertEquals(emptySet<Int>(), running(vm).noReplay)
+    }
+
+    @Test
+    fun theNoReplayNoteSurvivesWatchAgain() = runTest {
+        val vm = started(viewModel())
+        matches.value = loaded(revealed = setOf(0, 1), of = selfMatch)
+        vm.revealEnded()
+
+        vm.watchAgain()
+        assertEquals("a new run offers nothing again", emptySet<Int>(), running(vm).noReplay)
+        vm.revealEnded()
+
+        assertEquals(setOf(0, 1), running(vm).noReplay)
     }
 
     @Test

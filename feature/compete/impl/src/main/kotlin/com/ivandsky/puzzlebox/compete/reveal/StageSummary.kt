@@ -24,7 +24,6 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.rememberCountUp
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
-import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 
 private val HeroBorder = 2.dp
 private val HeroPadding = Spacing.xxl
@@ -38,7 +37,7 @@ private const val ActionsWeight = 1f
 
 /**
  * The tablet's final page: one full-width hero card (who played, the outcome and verdict and the three tiles on the
- * left, the score in big numerals in the middle, Rematch and Share / Watch again on the right) with the aligned
+ * left, the score in big numerals in the middle, Rematch and Share / Watch again (Watch again / Done in a self duel) on the right) with the aligned
  * puzzles table under it. The hero keeps the phone card's win and quiet entrances.
  */
 @Composable
@@ -49,7 +48,9 @@ internal fun StageSummary(
     onWatchAgain: () -> Unit,
     modifier: Modifier = Modifier,
     compares: Set<Int> = emptySet(),
+    noReplay: Set<Int> = emptySet(),
     onCompare: (Int) -> Unit = {},
+    onDone: () -> Unit = {},
 ) {
     val win = summary.kind == VerdictKind.Win
     Column(modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xl)) {
@@ -61,10 +62,10 @@ internal fun StageSummary(
             ) {
                 Identity(summary, win, Modifier.weight(IdentityWeight))
                 Score(summary, win, Modifier.weight(ScoreWeight))
-                Actions(summary, onRematch, onWatchAgain, Modifier.weight(ActionsWeight))
+                Actions(summary, onRematch, onWatchAgain, Modifier.weight(ActionsWeight), onDone)
             }
         }
-        SummaryPuzzleList(summary, brands, wide = true, compares = compares, onCompare = onCompare)
+        SummaryPuzzleList(summary, brands, wide = true, compares = compares, noReplay = noReplay, onCompare = onCompare)
     }
 }
 
@@ -76,8 +77,8 @@ private fun Identity(summary: DuelSummary, win: Boolean, modifier: Modifier) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             Row(horizontalArrangement = Arrangement.spacedBy(HeroAvatarOverlap)) {
                 val ring = Modifier.border(2.dp, scheme.surface, CircleShape)
-                PlayerAvatar(summary.me, summary.myPhotoUrl, ring, HeroAvatar, DuelTone.Me)
-                PlayerAvatar(summary.opponent, summary.theirPhotoUrl, ring, HeroAvatar, DuelTone.Them)
+                RevealAvatar(summary.me, summary.myPhotoUrl, ring, HeroAvatar, DuelTone.Me)
+                RevealAvatar(summary.opponent, summary.theirPhotoUrl, ring, HeroAvatar, DuelTone.Them)
             }
             Column(Modifier.weight(1f)) {
                 FittedName(
@@ -97,6 +98,7 @@ private fun Identity(summary: DuelSummary, win: Boolean, modifier: Modifier) {
             color = if (win) LocalPrimaryText.current else scheme.onSurface,
             modifier = Modifier.testTag("reveal.summary.verdict"),
         )
+        summary.improvement?.let { ImprovementSummaryLine(it, centred = false) }
         Tiles(summary.tiles)
     }
 }
@@ -130,7 +132,7 @@ private fun ScoreSide(score: Int, name: String, photoUrl: String?, tone: DuelTon
             modifier = Modifier.testTag(tag),
         )
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            PlayerAvatar(name, photoUrl, size = NameAvatar, tone = tone)
+            RevealAvatar(name, photoUrl, size = NameAvatar, tone = tone)
             FittedName(
                 full = name,
                 short = shortName(name),

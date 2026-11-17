@@ -31,6 +31,7 @@ import com.ivandsky.puzzlebox.compete.duel.rememberCompeteTime
 import com.ivandsky.puzzlebox.compete.share.DuelCreatedSheet
 import com.ivandsky.puzzlebox.compete.share.createdInviteSaver
 import com.ivandsky.puzzlebox.compete.share.createdInviteText
+import com.ivandsky.puzzlebox.data.match.isSelf
 import com.ivandsky.puzzlebox.designsystem.CompactTopBar
 import com.ivandsky.puzzlebox.designsystem.EmptyState
 import com.ivandsky.puzzlebox.designsystem.ErrorState
@@ -141,19 +142,22 @@ private fun RevealRunScreen(
     }
     LaunchedEffect(machine, state.phase == RevealPhase.End) { if (state.phase == RevealPhase.End) onRevealEnded() }
     BackHandler(enabled = state.phase != RevealPhase.End) { machine.skip() }
+    // A self duel has no one to invite: its Rematch draws and opens the new duel at once, with no sheet.
+    val sendSelfRematch = if (run.match.isSelf) rememberSelfRematch(run.match, navigator) else null
     if (state.phase == RevealPhase.End) {
         RevealSummary(
             summary = run.summary,
             brands = brands,
             wide = wide,
             onBack = navigator::pop,
-            onRematch = { rematch = true },
+            onRematch = sendSelfRematch ?: { rematch = true },
             onWatchAgain = {
                 rematch = false
                 invite = null
                 onWatchAgain()
             },
             compares = offeredCompares(run.compareLegs, { leg -> run.match.legs.getOrNull(leg)?.ref?.gameId }, brands),
+            noReplay = run.noReplay,
             onCompare = onCompare,
         )
     } else {

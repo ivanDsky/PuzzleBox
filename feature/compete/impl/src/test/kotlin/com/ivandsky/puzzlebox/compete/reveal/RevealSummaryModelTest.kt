@@ -118,6 +118,15 @@ class RevealSummaryModelTest {
     }
 
     @Test
+    fun aSelfDuelRematchKeepsCountGamesAndFriends() {
+        val settings = selfRematchSettings(match(refs = listOf(zip, queens, zip), deadlineHours = 48, includeFriends = true))
+
+        assertEquals(3, settings.rounds)
+        assertEquals(setOf(zip, queens), settings.games)
+        assertTrue(settings.includeFriends)
+    }
+
+    @Test
     fun puzzleRowsNameTheWinnerShowEachTimeAndMarkAMissingResult() {
         val cards = listOf(
             card(leg(time(58_000), time(72_000), LegVerdict.Win(LegBasis.Time)), "Zip #401"),

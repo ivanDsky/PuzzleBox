@@ -7,6 +7,7 @@ import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.OutboxResult
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.data.match.ResultPostState
+import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.domain.LegBasis
 import com.ivandsky.puzzlebox.domain.LegSeen
 import com.ivandsky.puzzlebox.domain.LegVerdict
@@ -193,6 +194,42 @@ class RevealLegsTest {
         assertEquals("No result from either player · no point", basis(LegVerdict.Draw, null, LegSeen.NotPlayed))
         assertEquals("No result from either player · no point", basis(LegVerdict.Draw, myRow(0, timeMs = 0, gaveUp = true), LegSeen.NotPlayed))
         assertEquals("No result from either player · no point", basis(LegVerdict.Draw, null, theirs(0, gaveUp = true)))
+    }
+
+    @Test
+    fun aSelfDuelRacesPastYouAndGapsEachCardToTheFirstSolve() {
+        val base = view(
+            legs = List(2) { legRef(it) },
+            verdicts = listOf(LegVerdict.Win(LegBasis.Time), LegVerdict.Loss(LegBasis.Time)),
+            mine = listOf(myRow(0, timeMs = 58_000), myRow(1, timeMs = 95_000)),
+            theirs = listOf(theirs(0, timeMs = 72_000), theirs(1, timeMs = 80_000)),
+        )
+        val self = base.copy(
+            me = SelfSeats.ME,
+            mine = base.mine.map { it.copy(result = it.result.copy(uid = SelfSeats.ME)) },
+            match = base.match.copy(
+                challenger = Player(SelfSeats.ME, "You", null),
+                opponent = Player(SelfSeats.PAST, SelfSeats.PAST_NAME, null),
+            ),
+        )
+
+        val plan = revealPlan(self, nameOf = { "Zip" }, rankOrderOf = { RankOrder.TimeThenHints }, ownName = "Ivan")
+
+        assertTrue(plan.pastYou)
+        assertEquals("Ivan", plan.me.name)
+        assertEquals("Past you", plan.opponent.name)
+        assertEquals(listOf(Trend.Quicker, Trend.Slower), plan.cards.map { it.improvement?.trend })
+        assertEquals("You win", plan.cards[0].pill)
+        assertEquals("14 s quicker than your first solve", plan.cards[0].basis)
+        assertEquals("15 s slower than your first solve", plan.cards[1].basis)
+    }
+
+    @Test
+    fun aFriendDuelHasNoGapAndNoPastYou() {
+        val plan = plan(view(listOf(legRef(0)), listOf(LegVerdict.Win(LegBasis.Time)), listOf(myRow(0)), listOf(theirs(0))))
+
+        assertFalse(plan.pastYou)
+        assertEquals(null, plan.cards.single().improvement)
     }
 
     @Test
