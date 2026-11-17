@@ -59,7 +59,8 @@ internal fun SudokuHaptic.feedbackType(): HapticFeedbackType = when (this) {
 
 internal fun HapticFeedback.perform(haptic: SudokuHaptic) = performHapticFeedback(haptic.feedbackType())
 
-private fun recordedCommand(previous: SudokuSession, next: SudokuSession): SudokuCommand? {
+/** The one command a step recorded, or null when the step recorded none (undo, redo, a no-op). */
+internal fun recordedCommand(previous: SudokuSession, next: SudokuSession): SudokuCommand? {
     val before = previous.history
     val after = next.history
     if (after.done.size != before.done.size + 1 || after.undone.isNotEmpty()) return null
