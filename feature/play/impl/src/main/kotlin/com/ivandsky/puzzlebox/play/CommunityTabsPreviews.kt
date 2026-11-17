@@ -48,9 +48,9 @@ private val Loaded = CommunityState(
 
 /**
  * A stand-in for the app's slot, whose Yours list is create's: New puzzle over [count] drafts, or with none the
- * first-time message. Previews and the tabs' goldens share it.
+ * first-time message, with [published] as the newest published code. Previews and the tabs' goldens share it.
  */
-internal fun previewYoursSlot(count: Int) = CustomSlot(
+internal fun previewYoursSlot(count: Int, published: String? = null) = CustomSlot(
     yours = { listState ->
         if (count == 0) {
             EmptyState("Make a puzzle for someone", "Pick a game, build the board, and share a short code.")
@@ -66,7 +66,7 @@ internal fun previewYoursSlot(count: Int) = CustomSlot(
             }
         }
     },
-    yoursSummary = { YoursSummary(count, firstPublishedCode = null) },
+    yoursSummary = { YoursSummary(count, published) },
 ) { _, _, _ -> }
 
 @Composable

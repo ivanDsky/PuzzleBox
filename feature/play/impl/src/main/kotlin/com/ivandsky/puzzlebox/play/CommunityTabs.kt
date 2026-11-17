@@ -39,9 +39,6 @@ import com.ivandsky.puzzlebox.play.community.CommunityPhase
 import com.ivandsky.puzzlebox.play.community.CommunityState
 import kotlinx.coroutines.launch
 
-/** The phone Community's tabs, in strip order. Yours is there only when the app's slot has that list. */
-private enum class CommunityTab { NewToday, Friends, Yours }
-
 /**
  * The phone's Community (nav-rethink M12-4): the head, then New today, Friends and Yours as underline tabs over a pager
  * the user can swipe. Each tab is a list of its own with its own scroll position, kept across swipes and a restore; a
@@ -52,6 +49,10 @@ private enum class CommunityTab { NewToday, Friends, Yours }
  * [state] and [actions] are New today's; [friends] open through [onOpen] and remove through [onRemove]; Yours is
  * [custom]'s own list ([CustomSlot.yours]) and its count. While New today is offline the other two say their saved
  * puzzles still play ([OfflinePill]).
+ *
+ * On the tablet the same tabs sit in the list pane under the head, with [picks] (the panes' per-tab picks): each page
+ * is given its tab's picker and selected row ([CommunityTabPicks.ProvideFor]), so a row picks for its own tab, and the
+ * tab the pager settles on is the one the right pane follows. Null on the phone, where a row opens a page of its own.
  */
 @Composable
 internal fun CommunityTabs(
@@ -63,6 +64,7 @@ internal fun CommunityTabs(
     onRemove: (ShareCode) -> Unit,
     onEnterCode: () -> Unit,
     modifier: Modifier = Modifier,
+    picks: CommunityTabPicks? = null,
 ) {
     val yours = custom.yours
     val pages = remember(yours != null) { CommunityTab.entries.filter { it != CommunityTab.Yours || yours != null } }
@@ -90,6 +92,7 @@ internal fun CommunityTabs(
     val current = pages[page.coerceIn(pages.indices)]
     val scope = rememberCoroutineScope()
     OnTabReselect { listFor(current).animateScrollToItem(0) }
+    LaunchedEffect(current) { picks?.select(current) }
     val offline = state.phase == CommunityPhase.Offline
     val tabs = listOf(
         UnderlineTab("New today", "community.tab.new", count = (state.phase as? CommunityPhase.Loaded)?.rows?.size),
@@ -110,26 +113,41 @@ internal fun CommunityTabs(
                 asked = null
             },
         ) { index ->
-            when (pages[index]) {
-                CommunityTab.NewToday -> CommunityNewTodayPage(
-                    state = state,
-                    actions = actions,
-                    listState = newTodayList,
-                    onMake = if (yours != null) {
-                        {
-                            asked = null
-                            asking = pages.indexOf(CommunityTab.Yours)
-                        }
-                    } else {
-                        null
-                    },
-                )
-                CommunityTab.Friends -> CommunityFriendsPage(friends, offline, friendsList, onOpen, onRemove, onEnterCode)
-                CommunityTab.Yours -> if (yours != null) YoursPage(yours, offline, yoursList)
+            val tab = pages[index]
+            ForTab(picks, tab) {
+                val picker = LocalCommunityPicker.current
+                val open = { code: ShareCode -> picker?.puzzle(code.value) ?: onOpen(code) }
+                when (tab) {
+                    CommunityTab.NewToday -> CommunityNewTodayPage(
+                        state = state,
+                        actions = actions.opening(open),
+                        listState = newTodayList,
+                        onMake = if (yours != null) {
+                            {
+                                asked = null
+                                asking = pages.indexOf(CommunityTab.Yours)
+                            }
+                        } else {
+                            null
+                        },
+                    )
+                    CommunityTab.Friends -> CommunityFriendsPage(friends, offline, friendsList, open, onRemove, onEnterCode)
+                    CommunityTab.Yours -> if (yours != null) YoursPage(yours, offline, yoursList)
+                }
             }
         }
     }
 }
+
+/** [content] under [tab]'s picker and selected row when the tablet's [picks] are around it; as it is without. */
+@Composable
+private fun ForTab(picks: CommunityTabPicks?, tab: CommunityTab, content: @Composable () -> Unit) {
+    if (picks == null) content() else picks.ProvideFor(tab, content)
+}
+
+/** New today's [CommunityActions] with a row opening through [open]. */
+private fun CommunityActions.opening(open: (ShareCode) -> Unit) =
+    CommunityActions(open, onReport, onGame, onDifficulty, onClearFilters, onRetry)
 
 /** The filter ⋮ in a slot that keeps its size while it is not [shown]; it fades through (out fast, in after). */
 @Composable

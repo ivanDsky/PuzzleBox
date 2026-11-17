@@ -2,7 +2,6 @@ package com.ivandsky.puzzlebox.play
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -14,7 +13,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.compete.api.DuelKey
-import com.ivandsky.puzzlebox.designsystem.OnTabReselect
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
@@ -33,10 +31,10 @@ import org.koin.core.parameter.parametersOf
  * code as one). Without a [custom] slot there is nothing to show.
  *
  * On the phone it is three tabs under the head ([CommunityTabs]: New today, Friends, Yours) and a row opens a page of
- * its own through [onOpen]. [PlayLayout.TwoPane] is Games' two-pane ([CommunityPanes]): the app's [custom] slot as one
- * list with the From friends rows among them ([CommunityList]) at Games' list width, which a reselect of the tab
- * scrolls to its top, and a row's puzzle on the right as the page that tap opens on the phone, with Play opening the
- * board full screen through [onPlay]. The first New today puzzle shows until one is picked.
+ * its own through [onOpen]. [PlayLayout.TwoPane] is Games' two-pane ([CommunityPanes]): the same three tabs at Games'
+ * list width, and on the right the page of the current tab's pick, the page that tap opens on the phone, with Play
+ * opening the board full screen through [onPlay]. Each tab keeps its own pick; until one is made the tab's first
+ * puzzle shows (a draft never does: it opens the Studio).
  */
 @Composable
 internal fun CommunityRoute(
@@ -73,14 +71,17 @@ internal fun CommunityRoute(
                 CommunityTabs(communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, Modifier.fillMaxSize())
             }
         } else {
-            val listState = rememberLazyListState()
-            OnTabReselect { listState.animateScrollToItem(0) }
-            CommunityPanes(
-                default = defaultCommunityPick(communityState.phase, friends),
-                list = { size -> CommunityList(custom, listState, friends, onOpen, viewModel::removeFriend, onEnterCode, size) },
-                empty = { CommunityEmptyPane(communityState.phase) },
-                detail = { pick, clear -> CommunityPage(pick, clear, custom, onPlay) },
-            )
+            val yours = custom.yoursSummary()
+            CommunityBound(community, communityState, onOpen) { actions ->
+                CommunityPanes(
+                    default = { tab -> defaultCommunityPick(tab, communityState.phase, friends, yours) },
+                    list = { size, picks ->
+                        CommunityTabs(communityState, actions, friends, custom, onOpen, viewModel::removeFriend, onEnterCode, size, picks)
+                    },
+                    empty = { tab -> CommunityEmptyPane(tab, communityState.phase) },
+                    detail = { pick, clear -> CommunityPage(pick, clear, custom, onPlay) },
+                )
+            }
         }
         FriendRemovedSnackbar(removedFriend, onUndo = viewModel::undoRemoveFriend, modifier = Modifier.align(Alignment.BottomCenter))
         if (enteringCode) {
