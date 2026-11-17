@@ -29,7 +29,7 @@ import org.koin.androidx.compose.koinViewModel
 import org.koin.core.parameter.parametersOf
 
 /**
- * A friend's puzzle on the Play stack: a spinner while the code opens, then the scrolling
+ * A friend's puzzle on the Play stack: a spinner while the code opens (the board's quiet bars, [FriendLoadingBoard], when the page draws the hidden board), then the scrolling
  * [FriendPuzzleCard], whose Play, Resume or Play again opens the puzzle's board ([onPlay]) and
  * whose board preview signs in with Google in place, or [FriendOpenError] saying why the code
  * did not open, with Try again or the store listing when either helps. Up is [onBack], the navigator's pop; with
@@ -66,9 +66,11 @@ internal fun FriendPuzzleRoute(
                 )
             }
             when (val card = state) {
-                FriendCardState.Loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(Modifier.testTag("friend.card.loading"))
-                }
+                FriendCardState.Loading ->
+                    if (viewModel.hiddenBoard) FriendLoadingBoard()
+                    else Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(Modifier.testTag("friend.card.loading"))
+                    }
                 is FriendCardState.Ready -> FriendPuzzleCard(
                     card = card.card,
                     onAction = { onPlay(card.card.play) },

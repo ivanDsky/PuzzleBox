@@ -20,9 +20,11 @@ import com.ivandsky.puzzlebox.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.gameui.hidden.GivensBoard
 import com.ivandsky.puzzlebox.gameui.editor.GameEditorRegistry
 import com.ivandsky.puzzlebox.model.PlaySlot
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -76,7 +78,12 @@ internal data class FriendCard(
     val board: CustomBoardView?,
     val signIn: BoardSignIn,
     val canReport: Boolean = false,
+    /** The puzzle's board before any move, from the givens alone; null when the page draws no board (flag off, or a game with none). */
+    val givens: GivensBoard? = null,
 ) {
+    /** The page draws the puzzle's board in its hidden slot (nav-rethink M12-8). */
+    val hiddenBoard: Boolean get() = givens != null
+
     /** The board the card's primary action opens. */
     val play: CustomGameKey get() = CustomGameKey(puzzle.gameId.value, puzzle.code.value)
 
@@ -130,6 +137,8 @@ internal class FriendPuzzleViewModel(
     private val reported = MutableStateFlow(false)
     private val reportUi = MutableStateFlow(FriendReportUi())
     private val canReport = flags.isEnabled(ReleaseFlag.CommunityPuzzles)
+    /** Whether the page draws the puzzle's hidden board, and the loading bars in its slot (nav-rethink M12-8): the community flag, read once here (spec A2). */
+    val hiddenBoard: Boolean = canReport
     private var reporting = false
     private var noticeCount = 0
 
@@ -211,6 +220,7 @@ internal class FriendPuzzleViewModel(
         val savedElapsed = saved.observeInProgress().map { it[slot] }.distinctUntilChanged()
         val order = games[puzzle.gameId]?.score?.rankOrder ?: RankOrder.TimeThenHints
         val current = received.observe(puzzle.code).map { it ?: puzzle }.distinctUntilChanged()
+        val givens = if (hiddenBoard) givensOf(puzzle) else null
         return combine(
             current,
             completions.observeCustom(puzzle.gameId, puzzle.code.value),
@@ -233,9 +243,14 @@ internal class FriendPuzzleViewModel(
                 board = preview,
                 signIn = signIn,
                 canReport = canReport,
+                givens = givens,
             )
         }
     }
+
+    /** [puzzle]'s board before any move, built by its game from the stored puzzle (the solution stays behind); null when the game has none to give. Built once per puzzle so the card's slot keeps its identity. */
+    private fun givensOf(puzzle: ReceivedPuzzle): GivensBoard? =
+        plays[puzzle.gameId]?.replayBoard?.givens(Puzzle(puzzle.gameId, puzzle.variant, puzzle.sharedFormatVersion, puzzle.puzzleBytes))
 
     /** The solve that stands on the board: the record row, else the oldest of [records] (newest first). */
     private fun firstSolve(records: List<CompletionRecord>): CompletionRecord? =

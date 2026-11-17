@@ -17,6 +17,7 @@ import com.ivandsky.puzzlebox.domain.ReportPuzzle
 import com.ivandsky.puzzlebox.domain.SyncReceivedStatus
 import com.ivandsky.puzzlebox.game.BestScore
 import com.ivandsky.puzzlebox.game.CompletionRecord
+import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.game.RecordStats
 import com.ivandsky.puzzlebox.game.VariantId
@@ -69,6 +70,7 @@ class FriendPuzzleViewModelTest {
     private val saved = FakeSavedPlayRepository()
     private val hidden = FakeHiddenPuzzles()
     private var boardReads = 0
+    private val stub = StubGivensBoard()
 
     /** A board that counts its reads; one that is never read stays at zero. */
     private val boards = object : CustomBoardRepository {
@@ -300,6 +302,37 @@ class FriendPuzzleViewModelTest {
         hidden.add(code)
 
         assertTrue(viewModel(communityOn = true).state.value is FriendCardState.Ready)
+    }
+
+    @Test
+    fun `with the flag on the card carries the puzzle's givens, asked of its game from the stored puzzle alone`() = runTest {
+        fakes[game].replayBoard = stub
+        received.upsert(stored())
+        val vm = viewModel(communityOn = true)
+
+        val card = readyCard(vm)
+
+        assertTrue(card.hiddenBoard)
+        assertTrue(vm.hiddenBoard)
+        assertEquals(listOf(Puzzle(game, VariantId("alpha/n8"), 1, byteArrayOf(1, 2, 3))), stub.asked.distinct())
+    }
+
+    @Test
+    fun `with the flag off the card has no board and the game is never asked for one`() = runTest {
+        fakes[game].replayBoard = stub
+        received.upsert(stored())
+        val vm = viewModel()
+
+        assertEquals(false, readyCard(vm).hiddenBoard)
+        assertEquals(false, vm.hiddenBoard)
+        assertTrue(stub.asked.isEmpty())
+    }
+
+    @Test
+    fun `with the flag on, a game that draws no such board leaves the card without one`() = runTest {
+        received.upsert(stored())
+
+        assertEquals(false, readyCard(viewModel(communityOn = true)).hiddenBoard)
     }
 
     private fun friendList() = ObserveFriendPuzzles(received, saved, completions, fakes.games, hidden)()
