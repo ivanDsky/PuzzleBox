@@ -19,6 +19,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
@@ -29,6 +30,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ivandsky.puzzlebox.designsystem.GameButton
 import com.ivandsky.puzzlebox.designsystem.GameButtonSize
+import com.ivandsky.puzzlebox.designsystem.LocalBoardColors
+import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.cooldownRing
@@ -58,6 +61,7 @@ internal fun StrandsHintControl(
     modifier: Modifier = Modifier,
     fill: Boolean = false,
 ) {
+    val outlined = LocalFlatStrands.current
     val face = rememberHintFace(hint, reduceMotion)
     val shown = face.shown
     val swell = remember { Animatable(1f) }
@@ -77,35 +81,51 @@ internal fun StrandsHintControl(
                 scaleY = scale
             },
         ) {
-            GameButton(
-                onClick = { cooldown.press(onHint) },
-                label = StrandsCopy.HINT,
-                enabled = cooldown.gate(enabled = true),
-                accent = StrandsBrand.accent.takeIf { shown.available },
-                size = GameButtonSize.Tall,
-                modifier = Modifier
-                    .then(width)
-                    .semantics { stateDescription = state }
-                    .testTag("strands.hint")
-                    .cooldownRing(cooldown.ring, StrandsBrand.accent),
-            ) { ink ->
-                Column(
-                    Modifier.align(Alignment.Center),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Icon(PuzzleIcons.Hint, contentDescription = null, modifier = Modifier.size(20.dp), tint = ink)
-                        Text(StrandsCopy.HINT, style = MaterialTheme.typography.labelLarge.merge(fontSize = 16.sp, fontWeight = FontWeight.Bold), color = ink, maxLines = 1)
-                    }
-                    HintDots(filled = shown.meterThirds, lit = shown.available, litInk = ink, reduceMotion = reduceMotion)
+            val buttonModifier = Modifier
+                .then(width)
+                .semantics { stateDescription = state }
+                .testTag("strands.hint")
+                .cooldownRing(cooldown.ring, StrandsBrand.accent)
+            if (outlined) {
+                StrandsHintPill(
+                    armed = shown.available,
+                    enabled = cooldown.gate(enabled = true),
+                    onClick = { cooldown.press(onHint) },
+                    modifier = buttonModifier,
+                ) { ink ->
+                    HintFaceContent(shown, ink, reduceMotion, Modifier, dotOn = LocalBoardColors.current.strandsFlatSelection)
                 }
+            } else {
+                GameButton(
+                    onClick = { cooldown.press(onHint) },
+                    label = StrandsCopy.HINT,
+                    enabled = cooldown.gate(enabled = true),
+                    accent = StrandsBrand.accent.takeIf { shown.available },
+                    size = GameButtonSize.Tall,
+                    modifier = buttonModifier,
+                ) { ink -> HintFaceContent(shown, ink, reduceMotion, Modifier.align(Alignment.Center)) }
             }
             if (shown.count > 0) {
                 HintBadge(shown.count, reduceMotion, Modifier.align(Alignment.TopEnd).offset(x = BadgeOutX, y = BadgeUp))
             }
         }
         HintBonus(hint, reduceMotion, Modifier.align(Alignment.CenterStart))
+    }
+}
+
+/** The icon and "Hint" over the progress dots, in [ink]; [dotOn] is the outlined pill's solid-dot colour. */
+@Composable
+private fun HintFaceContent(shown: HintUi, ink: Color, reduceMotion: Boolean, modifier: Modifier, dotOn: Color? = null) {
+    Column(
+        modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Icon(PuzzleIcons.Hint, contentDescription = null, modifier = Modifier.size(20.dp), tint = ink)
+            Text(StrandsCopy.HINT, style = MaterialTheme.typography.labelLarge.merge(fontSize = 16.sp, fontWeight = FontWeight.Bold), color = ink, maxLines = 1)
+        }
+        HintDots(filled = shown.meterThirds, lit = shown.available, litInk = ink, reduceMotion = reduceMotion, dotOn = dotOn)
     }
 }
 

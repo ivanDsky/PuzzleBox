@@ -30,17 +30,24 @@ private val DotGap = 8.dp
 /**
  * The hint's progress as [HINT_DOTS] dots, [filled] of them solid: one per non-theme word
  * toward the next hint. Off the accent face a dot's ring is the outline and its fill the
- * accent's own ink; on it ([lit]) both are [litInk]. A dot's colour crosses over
- * [MotionTokens.DotFillDuration], or lands at once under [reduceMotion].
+ * accent's own ink; on it ([lit]) both are [litInk]. With [dotOn] (the outlined pill) a solid dot is [dotOn] in
+ * ring and fill alike. A dot's colour crosses over [MotionTokens.DotFillDuration], or lands at once under [reduceMotion].
  */
 @Composable
-internal fun HintDots(filled: Int, lit: Boolean, litInk: Color, reduceMotion: Boolean, modifier: Modifier = Modifier) {
+internal fun HintDots(
+    filled: Int,
+    lit: Boolean,
+    litInk: Color,
+    reduceMotion: Boolean,
+    modifier: Modifier = Modifier,
+    dotOn: Color? = null,
+) {
     val ring = if (lit) litInk else MaterialTheme.colorScheme.outline
-    val solid = if (lit) litInk else StrandsBrand.accent.colors().onContainer
+    val solid = dotOn ?: if (lit) litInk else StrandsBrand.accent.colors().onContainer
     Row(modifier.testTag("strands.hint_dots"), horizontalArrangement = Arrangement.spacedBy(DotGap)) {
         repeat(HINT_DOTS) { index ->
             val on = index < filled
-            val ringColor by animateColorAsState(ring, colorSpec(reduceMotion), label = "hintDotRing")
+            val ringColor by animateColorAsState(if (on && dotOn != null) dotOn else ring, colorSpec(reduceMotion), label = "hintDotRing")
             val fillColor by animateColorAsState(if (on) solid else solid.copy(alpha = 0f), colorSpec(reduceMotion), label = "hintDotFill")
             Box(
                 Modifier

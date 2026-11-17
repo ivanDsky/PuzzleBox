@@ -14,8 +14,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.games.strands.editor.StrandsDraft
-import com.ivandsky.puzzlebox.games.strandsui.board.StrandsBoardSpec
+import com.ivandsky.puzzlebox.games.strandsui.board.StrandsOutlinedSpec
 import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
 
 /**
@@ -28,12 +29,13 @@ import com.ivandsky.puzzlebox.games.strandsui.board.drawTokenSquare
 internal fun StrandsIdleTiles(idle: Set<Int>, modifier: Modifier = Modifier) {
     val fill = MaterialTheme.colorScheme.surfaceVariant
     val outline = MaterialTheme.colorScheme.outline
+    val fraction = StrandsOutlinedSpec.tokenFraction(LocalFlatStrands.current)
     Column(modifier) {
         repeat(StrandsDraft.ROWS) { row ->
             Row(Modifier.fillMaxWidth().weight(1f)) {
                 repeat(StrandsDraft.COLS) { col ->
                     val tile = if (row * StrandsDraft.COLS + col in idle) {
-                        Modifier.drawBehind { drawEmptyTile(fill, outline) }.testTag("strands.editor.cell.empty")
+                        Modifier.drawBehind { drawEmptyTile(fill, outline, fraction) }.testTag("strands.editor.cell.empty")
                     } else {
                         Modifier
                     }
@@ -44,9 +46,9 @@ internal fun StrandsIdleTiles(idle: Set<Int>, modifier: Modifier = Modifier) {
     }
 }
 
-/** A filled tile in the play token's rounded square: the empty look of an unclaimed cell. */
-private fun DrawScope.drawEmptyTile(fill: Color, outline: Color) {
-    val half = size.minDimension / 2f * StrandsBoardSpec.TokenFraction
+/** A filled tile in the play token's rounded square, [fraction] of its cell: the empty look of an unclaimed cell. */
+private fun DrawScope.drawEmptyTile(fill: Color, outline: Color, fraction: Float) {
+    val half = size.minDimension / 2f * fraction
     drawTokenSquare(fill, half)
     drawTokenSquare(outline, half, style = Stroke(1.dp.toPx()))
 }

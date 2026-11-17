@@ -78,6 +78,15 @@ data class BoardColors(
     val strandsSpangramConnector: Color,
     val strandsHintConnector: Color,
 
+    // The outlined (flat) Strands look (nav-rethink 131, prototype 07 C): idle letters in thin outlined squares,
+    // found words filled with a quiet tint, the live trace and its hint ring in a deeper pink that clears 3:1.
+    // Separate roles, so the lipped and readable looks read the fields above and keep their pixels.
+    val strandsThemeTint: Color,
+    val strandsThemeAltTint: Color,
+    val strandsFlatSelection: Color,
+    val strandsFlatHintRing: Color,
+    val strandsFlatOutline: Color,
+
     // A refused word's traced path (prototype 03): red tokens and connector, letters in ink.
     val strandsPathError: Color,
     val strandsPathErrorInk: Color,
@@ -136,6 +145,11 @@ val DarkBoardTokens = BoardColors(
     strandsThemeAltConnector = Color(0xFFFF63E4),
     strandsSpangramConnector = SplashGold,
     strandsHintConnector = Color(0xFFFF77A0),
+    strandsThemeTint = Color(0xFF8A3558),
+    strandsThemeAltTint = Color(0xFF7C3487),
+    strandsFlatSelection = Color(0xFFFF77A0),
+    strandsFlatHintRing = Color(0xFFFF77A0),
+    strandsFlatOutline = DarkColorScheme.outline,
     strandsPathError = Color(0xFFFF5449),
     strandsPathErrorInk = Color.Black,
     editorDiffRing = Color(0xFF7FE3F0), // new: light teal, >= 7:1 over every dark region fill (L* 18–26)
@@ -182,6 +196,11 @@ val LightBoardTokens = BoardColors(
     strandsThemeAltConnector = Color(0xFFFD00DF),
     strandsSpangramConnector = SplashGold,
     strandsHintConnector = Color(0xFFFF528F),
+    strandsThemeTint = Color(0xFFFFA6C3),
+    strandsThemeAltTint = Color(0xFFE5A6FF),
+    strandsFlatSelection = StrandsHotPink,
+    strandsFlatHintRing = Color(0xFFF23F82),
+    strandsFlatOutline = LightColorScheme.outline,
     strandsPathError = Color(0xFFBA1A1A),
     strandsPathErrorInk = Color.White,
     editorDiffRing = Color(0xFF004F58), // deep teal, >= 4.7:1 over every light Candy fill; >= 3.8:1 as the 85% ghost

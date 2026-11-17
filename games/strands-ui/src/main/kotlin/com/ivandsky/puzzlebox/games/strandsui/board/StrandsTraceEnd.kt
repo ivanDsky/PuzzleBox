@@ -101,7 +101,7 @@ internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEn
             .fillMaxSize()
             .drawWithCache {
                 val geometry = GridGeometry(rows, cols, size.width, size.height)
-                val width = connectorWidth(LinkKind.Trace, geometry.pitch)
+                val width = connectorWidth(LinkKind.Trace, geometry.pitch, flat)
                 var builtFor: List<Coord>? = null
                 var tokensFor: List<Coord>? = null
                 var tokensScale = Float.NaN
@@ -109,7 +109,7 @@ internal fun StrandsTraceEndConnector(rows: Int, cols: Int, frame: () -> TraceEn
                 var strokeScale = 1f
                 val line = Path()
                 val tokens = Path()
-                val half = geometry.pitch * StrandsBoardSpec.TokenFraction / 2
+                val half = geometry.pitch * StrandsOutlinedSpec.tokenFraction(flat) / 2
                 onDrawBehind {
                     val now = frame() ?: return@onDrawBehind
                     if (builtFor !== now.path) {
