@@ -63,7 +63,7 @@ abstract class GameStatsCardGoldenScreenshots(private val device: String) {
         val ARCHIVE_ROW = LibraryRowModel(
             card = GameCardModel(ZIP, "Zip", GameBrand.Neutral, status = null, rankOrder = ORDER),
             today = 41,
-            progress = ArchiveProgress(TODAY.minusDays(9)..TODAY, 41, 12, 1),
+            progress = ArchiveProgress(range = TODAY.minusDays(9)..TODAY, total = 41, solved = 12, archivedSolves = 12),
             stats = GameStats(1, 1, 12, 12, 30_000L, TODAY, BestScore(30_000L, 0), ORDER),
             rules = gameRules(ZIP),
         )

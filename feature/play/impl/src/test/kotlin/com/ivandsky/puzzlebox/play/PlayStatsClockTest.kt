@@ -11,7 +11,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.game.RankOrder
 import com.ivandsky.puzzlebox.play.board.BoardSignIn
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -50,15 +50,15 @@ class PlayStatsClockTest {
     }
 
     @Test
-    fun `a second of 200 ms ticks recomposes the timer at most twice`() {
+    fun `a 3 s run in 200 ms ticks redraws the timer three times, once per new second`() {
         show()
         composeRule.waitForIdle()
         val firstFrame = timerComposes
-        repeat(5) {
+        repeat(15) {
             composeRule.runOnIdle { elapsed += 200L }
             composeRule.waitForIdle()
         }
-        assertTrue("timer composed ${timerComposes - firstFrame} times", timerComposes - firstFrame <= 2)
-        composeRule.onNodeWithTag("play.stats.timer").assertTextEquals("0:01")
+        assertEquals(3, timerComposes - firstFrame)
+        composeRule.onNodeWithTag("play.stats.timer").assertTextEquals("0:03")
     }
 }

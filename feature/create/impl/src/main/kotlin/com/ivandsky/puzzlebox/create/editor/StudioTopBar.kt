@@ -28,7 +28,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.AppDropdownMenu
 import com.ivandsky.puzzlebox.designsystem.AppShapes
 import com.ivandsky.puzzlebox.designsystem.PillShape
@@ -36,7 +35,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
-import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.pressScale
 import com.ivandsky.puzzlebox.designsystem.pressTint
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
@@ -44,7 +42,6 @@ import com.ivandsky.puzzlebox.game.editor.IncompleteReason
 import com.ivandsky.puzzlebox.game.editor.Verdict
 
 private val StudioTopBarHeight = 64.dp
-private val TagHorizontalPadding = 6.dp
 private val ChipVerticalPadding = 2.dp
 
 /**
@@ -138,51 +135,7 @@ private fun TitleBlock(title: String, subtitle: String, saving: Boolean, importe
             )
             if (imported) ImportedChip()
         }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            // The save state is unweighted, so it is measured first and keeps its width; the subtitle yields.
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                StudioTag()
-                Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-            }
-            SaveStatus(saving)
-        }
-    }
-}
-
-/** `· Saving…` while an edit waits to be stored, `· ✓ Saved` once it is (02 handoff "Autosave"). */
-@Composable
-private fun SaveStatus(saving: Boolean) {
-    Text(
-        text = if (saving) "· Saving…" else "· ✓ Saved",
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        maxLines = 1,
-        modifier = Modifier.testTag(if (saving) "create.studio.saving" else "create.studio.saved"),
-    )
-}
-
-/** The `STUDIO` tag on the editor's accent container (02 handoff tokens). */
-@Composable
-private fun StudioTag() {
-    val accent = AccentSlot.Violet.colors()
-    Box(
-        modifier = Modifier
-            .background(accent.container, AppShapes.extraSmall)
-            .padding(horizontal = TagHorizontalPadding)
-            .testTag("create.studio.tag"),
-    ) {
-        Text(text = "STUDIO", style = MaterialTheme.typography.labelSmall, color = accent.onContainer, maxLines = 1)
+        SubtitleLine(subtitle = subtitle, saving = saving, modifier = Modifier.fillMaxWidth())
     }
 }
 
