@@ -23,6 +23,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
@@ -61,6 +63,7 @@ private val ScoreCheckSize = 20.dp
 private val ScoreVertical = 6.dp
 private val ScoreHorizontal = 10.dp
 private val ChipGap = 4.dp
+private val SelectedBar = 4.dp
 
 /** A time-left chip turns urgent below this. */
 private val UrgentBelow: Duration = Duration.ofHours(1)
@@ -84,7 +87,7 @@ internal fun duelCounts(row: DuelRow): String = "You ${row.legsDone}/${row.legs}
  * first in its outcome's colours (finished).
  */
 @Composable
-internal fun DuelCard(row: DuelRow, now: () -> Instant, onClick: () -> Unit, modifier: Modifier = Modifier) {
+internal fun DuelCard(row: DuelRow, now: () -> Instant, onClick: () -> Unit, modifier: Modifier = Modifier, selected: Boolean = false) {
     val name = row.opponent?.name ?: "a friend"
     val scheme = MaterialTheme.colorScheme
     DuelRowShell(
@@ -93,6 +96,7 @@ internal fun DuelCard(row: DuelRow, now: () -> Instant, onClick: () -> Unit, mod
         subCompact = duelCounts(row).takeIf { row.kind == DuelRowKind.YourMove || row.kind == DuelRowKind.Waiting },
         onClick = onClick,
         modifier = modifier,
+        selected = selected,
         fill = if (row.kind == DuelRowKind.RevealReady) lerp(scheme.surface, scheme.primaryContainer, RESULTS_READY_BLEND) else Color.Unspecified,
         avatar = { PlayerAvatar(name, row.opponent?.photoUrl, size = AvatarSize, tone = DuelTone.Them) },
         trailing = {
@@ -113,7 +117,8 @@ internal fun DuelCard(row: DuelRow, now: () -> Instant, onClick: () -> Unit, mod
 
 /**
  * The shared compact row: [avatar], a one-line title over a [subLines]-line sub, then [trailing]; both ellipsize
- * before they push [trailing]. A [subCompact] stands in for [sub] when [sub] would not fit its line, so the counts a
+ * before they push [trailing]. A [selected] row (the duel the tablet's right pane shows) is filled with primaryContainer and
+ * marked by a primary bar on its leading edge, so it reads without the colour alone. A [subCompact] stands in for [sub] when [sub] would not fit its line, so the counts a
  * phone has no room for beside the time chip are never cut off. [below] sits in the text column under the sub line, where a row carries actions of its own. A
  * [fill] other than unspecified paints the row over its section's surface.
  */
@@ -125,6 +130,7 @@ internal fun DuelRowShell(
     avatar: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     fill: Color = Color.Unspecified,
+    selected: Boolean = false,
     subCompact: String? = null,
     subLines: Int = 1,
     trailing: @Composable () -> Unit = {},
@@ -132,10 +138,12 @@ internal fun DuelRowShell(
 ) {
     val scheme = MaterialTheme.colorScheme
     var overflowed by remember(sub) { mutableStateOf(false) }
+    val paint = if (selected) scheme.primaryContainer else fill
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .then(if (fill == Color.Unspecified) Modifier else Modifier.background(fill))
+            .then(if (paint == Color.Unspecified) Modifier else Modifier.background(paint))
+            .then(if (selected) Modifier.drawBehind { drawRect(scheme.primary, size = Size(SelectedBar.toPx(), size.height)) } else Modifier)
             .clickable(onClick = onClick)
             .heightIn(min = RowMinHeight)
             .padding(horizontal = RowHorizontal, vertical = RowVertical),

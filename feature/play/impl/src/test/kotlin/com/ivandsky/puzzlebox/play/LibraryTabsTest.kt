@@ -164,6 +164,7 @@ class LibraryTabsTest {
         content = { _, _, _ -> Text("duels body", Modifier.testTag(DUELS_BODY)) },
         needYou = { needYou },
         onOpenDuel = {},
+        pane = { _ -> },
     )
 
     private fun content(duels: DuelsSlot?, custom: CustomSlot? = null): @Composable () -> Unit = {
@@ -294,7 +295,7 @@ class LibraryTabsTest {
         val legs = listOf(MatchLeg(LegRef.Daily(zip, today, 1), authorUid = null))
         runBlocking { matches.create(MatchDraft(A, 24, Player(ANN, "Ann", null), invitedUid = null, legs, includeFriends = false, rematchOf = null)) }
         setContent(
-            duels = DuelsSlot(content = { _, _, _ -> }, needYou = { 0 }, onOpenDuel = { openedDuels.add(it) }),
+            duels = DuelsSlot(content = { _, _, _ -> }, needYou = { 0 }, onOpenDuel = { openedDuels.add(it) }, pane = { _ -> }),
             custom = CustomSlot { _, _, _ -> Text("custom body", Modifier.testTag(CUSTOM_BODY)) },
         )
         awaitTag("library.tab.custom")

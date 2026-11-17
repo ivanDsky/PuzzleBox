@@ -1,8 +1,12 @@
 package com.ivandsky.puzzlebox.compete.tab
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
@@ -48,7 +52,7 @@ class DuelsTabLayoutTest {
     private val waiting = row("WTG222", DuelRowKind.Waiting)
     private val finished = row("FNS222", DuelRowKind.Finished(2, 1))
 
-    private fun show(rows: List<DuelRow>) {
+    private fun show(rows: List<DuelRow>, selected: ShareCode? = null) {
         rule.setContent {
             PuzzleBoxTheme {
                 DuelsTabContent(
@@ -59,6 +63,7 @@ class DuelsTabLayoutTest {
                     onNewDuel = {},
                     onOpenDuel = {},
                     onOpenReveal = {},
+                    selected = selected,
                 )
             }
         }
@@ -103,5 +108,21 @@ class DuelsTabLayoutTest {
         show(listOf(row("FNS333", DuelRowKind.Finished(null, null))))
 
         rule.onAllNodesWithTag("duels.finished.tally").assertCountEquals(0)
+    }
+
+    @Test
+    fun `only the selected row is marked selected`() {
+        show(listOf(move, waiting, finished), selected = waiting.code)
+
+        rule.onNodeWithTag("duel.row.WTG222").assertIsSelected()
+        rule.onNodeWithTag("duel.row.YMV222").assertIsNotSelected()
+        rule.onNodeWithTag("duel.row.FNS222").assertIsNotSelected()
+    }
+
+    @Test
+    fun `a list with no selection leaves its rows without a selected state`() {
+        show(listOf(move, waiting))
+
+        rule.onNode(hasTestTag("duel.row.YMV222") and SemanticsMatcher.keyIsDefined(SemanticsProperties.Selected)).assertDoesNotExist()
     }
 }

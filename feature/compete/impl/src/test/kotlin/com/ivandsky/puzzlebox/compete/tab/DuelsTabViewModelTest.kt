@@ -42,6 +42,7 @@ class DuelsTabViewModelTest {
     val mainDispatcher = MainDispatcherRule()
 
     private val code = ShareCode.parse("K7Q2MX")!!
+    private val other = ShareCode.parse("B4RT9P")!!
     private val ann = Player("ann", "Ann", null)
     private val bob = Player("bob", "Bob", null)
     private val cat = Player("cat", "Cat", null)
@@ -95,15 +96,15 @@ class DuelsTabViewModelTest {
     }
 
     /** Ann opens [code]; with [invited] it is a rematch invite to Bob, without it Bob holds it as a link invite. */
-    private suspend fun annChallenges(invited: Player? = null) {
+    private suspend fun annChallenges(invited: Player? = null, newCode: ShareCode = code) {
         viewAs(ann)
         val legs = listOf(
             MatchLeg(LegRef.Daily(TestGames.alpha, date, 1), null),
             MatchLeg(LegRef.Daily(TestGames.beta, date, 2), null),
         )
-        server.create(MatchDraft(code, 24, ann, invited?.uid, legs, includeFriends = false, rematchOf = null))
+        server.create(MatchDraft(newCode, 24, ann, invited?.uid, legs, includeFriends = false, rematchOf = null))
         viewAs(bob)
-        if (invited == null) local.remember(code, LocalRole.Invite, "Ann")
+        if (invited == null) local.remember(newCode, LocalRole.Invite, "Ann")
     }
 
     private fun DuelsTabViewModel.rowCodes() = state.value.rows.map { it.code }
@@ -242,5 +243,58 @@ class DuelsTabViewModelTest {
         assertEquals(emptyList<ShareCode>(), declineCalls)
         assertEquals(listOf(code), opened)
         assertFalse(code in vm.state.value.inFlight)
+    }
+
+    @Test
+    fun `the pane starts on the duel that needs the player`() = runTest {
+        annChallenges()
+        val vm = started(viewModel())
+
+        assertEquals(code, vm.state.value.selected)
+    }
+
+    @Test
+    fun `no duels leaves nothing selected`() = runTest {
+        viewAs(bob)
+        val vm = started(viewModel())
+
+        assertEquals(null, vm.state.value.selected)
+    }
+
+    @Test
+    fun `selecting a duel swaps the pane and the pick holds`() = runTest {
+        annChallenges()
+        annChallenges(newCode = other)
+        val vm = started(viewModel())
+        val first = vm.state.value.selected!!
+        val second = (vm.rowCodes() - first).single()
+
+        vm.select(second)
+
+        assertEquals(second, vm.state.value.selected)
+    }
+
+    @Test
+    fun `leaving the shown duel falls to the next one`() = runTest {
+        annChallenges()
+        annChallenges(newCode = other)
+        val vm = started(viewModel())
+        val shown = vm.state.value.selected!!
+
+        vm.leave(shown)
+
+        assertEquals((vm.rowCodes() - shown).single(), vm.state.value.selected)
+    }
+
+    @Test
+    fun `a declined duel in the pane gives way to the next`() = runTest {
+        annChallenges(invited = bob)
+        annChallenges(invited = bob, newCode = other)
+        val vm = started(viewModel())
+        val shown = vm.state.value.selected!!
+
+        vm.decline(shown)
+
+        assertEquals(listOf(if (shown == code) other else code), listOf(vm.state.value.selected))
     }
 }

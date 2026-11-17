@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -37,6 +38,8 @@ internal data class DuelsTabState(
     val inFlight: Set<ShareCode> = emptySet(),
     /** The one-line outcome shown on an Invited row after its last call, until the next call on it starts. */
     val notes: Map<ShareCode, InviteNote> = emptyMap(),
+    /** The duel the tablet's right pane shows and its row highlights ([resolveSelection]); null with no duels. */
+    val selected: ShareCode? = null,
 )
 
 /** What an Invited row says after a call that did not open the duel or remove the row. */
@@ -52,6 +55,9 @@ private const val STOP_TIMEOUT_MS = 5_000L
  * [viewModelScope] (one call per row at a time) and keeps [DuelsTabState.now] one minute fresh from [clock].
  * Row kinds, including open, closed and reveal-ready, come only from the use case, which re-emits at each
  * time boundary itself. Nothing is collected, the ticker included, while no one is looking at the tab.
+ * It also holds which duel the tablet's right pane shows ([DuelsTabState.selected]): the one the player picked
+ * ([select]), else the [defaultSelection] pinned as soon as there is a row, so the pane does not hop to another duel
+ * when the shown one stops needing the player. The pane and the list read this one holder.
  */
 internal class DuelsTabViewModel(
     observeMyDuels: ObserveMyDuels,
@@ -62,12 +68,13 @@ internal class DuelsTabViewModel(
 
     private val calls = MutableStateFlow(RowCalls())
     private val opens = Channel<ShareCode>(Channel.BUFFERED)
+    private val pinned = MutableStateFlow<ShareCode?>(null)
 
     /** One-shot: the duel screen to open for this code, after an accept or when sign-in is needed first. */
     val openDuel: Flow<ShareCode> = opens.receiveAsFlow()
 
     val state: StateFlow<DuelsTabState> = combine(
-        observeMyDuels(),
+        observeMyDuels().onEach { pin(it.rows) },
         identity.current,
         flow {
             while (true) {
@@ -76,7 +83,8 @@ internal class DuelsTabViewModel(
             }
         },
         calls,
-    ) { duels, who, now, pending ->
+        pinned,
+    ) { duels, who, now, pending, pick ->
         DuelsTabState(
             rows = duels.rows,
             signedIn = who != null,
@@ -84,6 +92,7 @@ internal class DuelsTabViewModel(
             inviter = who?.displayName,
             inFlight = pending.inFlight,
             notes = pending.notes,
+            selected = resolveSelection(duels.rows, pick),
         )
     }
         .stateIn(
@@ -96,6 +105,21 @@ internal class DuelsTabViewModel(
                 inviter = identity.current.value?.displayName,
             ),
         )
+
+    /** Shows [code] in the tablet's right pane. */
+    fun select(code: ShareCode) {
+        pinned.value = code
+    }
+
+    /** The pane's duel [code] is done with (its invite closed): shows the next one in its place, if any. */
+    fun leave(code: ShareCode) {
+        pinned.value = defaultSelection(state.value.rows.filter { it.code != code })
+    }
+
+    private fun pin(rows: List<DuelRow>) {
+        val next = resolveSelection(rows, pinned.value)
+        if (next != pinned.value) pinned.value = next
+    }
 
     /** Claims the seat; on success, or when sign-in is needed first, the duel screen opens. */
     fun accept(code: ShareCode) = call(code, SeatAction.Claim)

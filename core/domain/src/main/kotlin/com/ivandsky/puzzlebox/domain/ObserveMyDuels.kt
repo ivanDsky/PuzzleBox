@@ -185,9 +185,6 @@ class ObserveMyDuels(
         is DuelRowKind.Finished -> 4
     }
 
-    private fun DuelRowKind.needsYou() =
-        this == DuelRowKind.Invited || this == DuelRowKind.YourMove || this == DuelRowKind.RevealReady
-
     private companion object {
         /** How long a duel stays in the list as a finished row after its reveal was first seen. */
         val FINISHED_KEPT: Duration = Duration.ofDays(7)

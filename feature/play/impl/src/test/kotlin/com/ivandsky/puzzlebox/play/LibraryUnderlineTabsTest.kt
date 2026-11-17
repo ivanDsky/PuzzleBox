@@ -244,6 +244,7 @@ private val standInDuels: (() -> Int) -> DuelsSlot = { needYou ->
         },
         needYou = { needYou() },
         onOpenDuel = {},
+        pane = { _ -> },
     )
 }
 

@@ -21,3 +21,6 @@ sealed interface DuelRowKind {
      */
     data class Finished(val myScore: Int?, val theirScore: Int?) : DuelRowKind
 }
+
+/** Whether the player owes this duel something: an invite to answer, a puzzle to play or a reveal to open. */
+fun DuelRowKind.needsYou(): Boolean = this == DuelRowKind.Invited || this == DuelRowKind.YourMove || this == DuelRowKind.RevealReady

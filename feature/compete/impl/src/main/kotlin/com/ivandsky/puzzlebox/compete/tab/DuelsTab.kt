@@ -18,6 +18,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -39,7 +41,9 @@ import org.koin.androidx.compose.koinViewModel
  * note when there are none. It scrolls as one list on [listState], which the Games host holds so it can send the list
  * to its top; the host owns the side inset. [onOpenDuel] opens the duel screen and [onOpenReveal] the reveal of a duel
  * whose reveal is ready or already seen. A pending [challenge] opens the New duel sheet filled in, once: [onChallengeTaken]
- * runs as the sheet takes it, and closing the sheet drops it.
+ * runs as the sheet takes it, and closing the sheet drops it. With [inPane] (the tablet, whose right pane is [DuelsPane])
+ * a row, an accepted invite and a reveal row select that duel for the pane instead of calling [onOpenDuel] and
+ * [onOpenReveal], and the selected row is highlighted.
  */
 @Composable
 fun DuelsTab(
@@ -49,10 +53,14 @@ fun DuelsTab(
     listState: LazyListState = rememberLazyListState(),
     challenge: DuelChallenge? = null,
     onChallengeTaken: () -> Unit = {},
+    inPane: Boolean = false,
 ) {
     val viewModel: DuelsTabViewModel = koinViewModel()
     val state = viewModel.state.collectAsStateWithLifecycle()
-    val currentOnOpenDuel by rememberUpdatedState(onOpenDuel)
+    val select: (String) -> Unit = { code -> ShareCode.parse(code)?.let(viewModel::select) }
+    val open: (DuelKey) -> Unit = if (inPane) ({ select(it.code) }) else onOpenDuel
+    val openReveal: (DuelRevealKey) -> Unit = if (inPane) ({ select(it.code) }) else onOpenReveal
+    val currentOnOpenDuel by rememberUpdatedState(open)
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(viewModel, lifecycle) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -73,10 +81,11 @@ fun DuelsTab(
         // Read only inside each row's time-left text, so the minute tick redraws that text and nothing else.
         now = { state.value.now },
         onNewDuel = { newDuelOpen = true },
-        onOpenDuel = onOpenDuel,
-        onOpenReveal = onOpenReveal,
+        onOpenDuel = open,
+        onOpenReveal = openReveal,
         modifier = modifier,
         listState = listState,
+        selected = state.value.selected.takeIf { inPane },
         inFlight = state.value.inFlight,
         notes = state.value.notes,
         onAccept = viewModel::accept,
@@ -96,7 +105,8 @@ fun DuelsTab(
 
 /**
  * The stateless tab: [rows], [signedIn], and the Invited rows' [inFlight] and [notes] in, taps out; [now] is read only by
- * the time-left text. The rows sit in their sections ([sectionRows]), one column on [listState].
+ * the time-left text. The rows sit in their sections ([sectionRows]), one column on [listState]; the row of [selected]
+ * is highlighted.
  */
 @Composable
 internal fun DuelsTabContent(
@@ -109,6 +119,7 @@ internal fun DuelsTabContent(
     onOpenReveal: (DuelRevealKey) -> Unit,
     modifier: Modifier = Modifier,
     listState: LazyListState = rememberLazyListState(),
+    selected: ShareCode? = null,
     inFlight: Set<ShareCode> = emptySet(),
     notes: Map<ShareCode, InviteNote> = emptyMap(),
     onAccept: (ShareCode) -> Unit = {},
@@ -119,7 +130,10 @@ internal fun DuelsTabContent(
         DuelSectionCard(group) { row ->
             val open = { onOpenDuel(DuelKey(row.code.value)) }
             // One tag per row of any kind: the kinds carry their own tags (an invite's, say), a second would clash.
-            Box(Modifier.testTag("duel.row.${row.code.value}")) {
+            val isSelected = row.code == selected
+            // Only a list that has a selection says which row it is; the phone's rows stay as they were.
+            val marked = if (selected == null) Modifier else Modifier.semantics { this.selected = isSelected }
+            Box(Modifier.testTag("duel.row.${row.code.value}").then(marked)) {
                 when (row.kind) {
                     DuelRowKind.Invited -> InvitedRow(
                         row = row,
@@ -128,11 +142,12 @@ internal fun DuelsTabContent(
                         onAccept = { onAccept(row.code) },
                         onDecline = { onDecline(row.code) },
                         onClick = open,
+                        selected = isSelected,
                     )
-                    DuelRowKind.Unclaimed -> UnclaimedRow(row, inviter, now, onClick = open)
+                    DuelRowKind.Unclaimed -> UnclaimedRow(row, inviter, now, onClick = open, selected = isSelected)
                     DuelRowKind.RevealReady, is DuelRowKind.Finished ->
-                        DuelCard(row, now, onClick = { onOpenReveal(DuelRevealKey(row.code.value)) })
-                    DuelRowKind.YourMove, DuelRowKind.Waiting -> DuelCard(row, now, onClick = open)
+                        DuelCard(row, now, onClick = { onOpenReveal(DuelRevealKey(row.code.value)) }, selected = isSelected)
+                    DuelRowKind.YourMove, DuelRowKind.Waiting -> DuelCard(row, now, onClick = open, selected = isSelected)
                 }
             }
         }
