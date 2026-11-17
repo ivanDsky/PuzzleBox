@@ -4,12 +4,18 @@ import android.content.Context
 import android.content.res.Configuration
 import android.provider.Settings
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.BottomSheetDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -53,7 +59,8 @@ private const val GOLDEN_PHONE = "w411dp-h891dp-420dpi"
 private const val GOLDEN_TABLET = "w1280dp-h800dp-mdpi"
 private const val SETTLE_MS = 2_000L
 private val SHEET_MAX_WIDTH = 640.dp
-private val SHEET_CORNER = 28.dp
+private val SHEET_TOP_GAP = 8.dp
+private const val SCRIM_ALPHA = 0.32f
 
 private val ZIP = GameId("zip")
 private val TANGO = GameId("tango")
@@ -198,15 +205,21 @@ private val NO_ACTIONS = NewDuelActions(
     onCreate = {}, onGoogle = {}, onCancel = {},
 )
 
-/** The sheet's own surface, bottom-aligned, at most 640 dp wide on a tablet. */
+/** ModalBottomSheet's chrome without its window: a scrim, the sheet's surface and drag handle, bottom-aligned, at most 640 dp wide on a tablet. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SheetBackdrop(tablet: Boolean, content: @Composable ColumnScope.() -> Unit) {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.BottomCenter) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(Color.Black.copy(alpha = SCRIM_ALPHA)), contentAlignment = Alignment.BottomCenter) {
         Surface(
-            modifier = (if (tablet) Modifier.widthIn(max = SHEET_MAX_WIDTH) else Modifier).fillMaxWidth(),
+            modifier = (if (tablet) Modifier.widthIn(max = SHEET_MAX_WIDTH) else Modifier).fillMaxWidth().heightIn(max = maxHeight - SHEET_TOP_GAP),
             color = MaterialTheme.colorScheme.surfaceContainerLow,
-            shape = RoundedCornerShape(topStart = SHEET_CORNER, topEnd = SHEET_CORNER),
-        ) { androidx.compose.foundation.layout.Column { content() } }
+            shape = BottomSheetDefaults.ExpandedShape,
+        ) {
+            Column {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { BottomSheetDefaults.DragHandle() }
+                content()
+            }
+        }
     }
 }
 
