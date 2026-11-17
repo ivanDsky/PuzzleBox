@@ -69,6 +69,8 @@ class TangoPlayController(
         private set
     var lastRejection by mutableStateOf<TangoVerdict.Rejected?>(null)
         private set
+    /** The last tap landed on a given: the one refusal Tango shows, until the next input. */
+    private var fixedTapped by mutableStateOf(false)
 
     override val isComplete: Boolean get() = session?.isComplete == true
 
@@ -89,19 +91,18 @@ class TangoPlayController(
 
     val suppressedSets: Set<Set<Int>> get() = settle.suppressed
 
-    /**
-     * A board tap on [idx]: the [TangoTapPolicy] cycle step read off the LIVE session, so a
-     * second tap before the board recomposes still advances sun → moon (M4-tango-28 — a
-     * step computed from the last composed model repeated the first and no-opped).
-     */
+    /** A board tap: the [TangoTapPolicy] step read off the LIVE session, so a second tap before
+     *  the board recomposes still advances sun → moon (M4-tango-28). A given says it is fixed. */
     fun onTap(idx: Int) {
         env.onInput()
         val model = rendererModel() ?: return
+        fixedTapped = model.cells.getOrNull(idx)?.isGiven == true
         TangoTapPolicy.onTap(model, idx).forEach(::onPlacement)
     }
 
     fun onPlacement(placement: TangoPlacement) {
         env.onInput()
+        fixedTapped = false
         lastRejection = null // next input clears the violation verdict (Zip hintArrow discipline)
         stepHints.inputMade()
         settle.arm()
@@ -154,6 +155,7 @@ class TangoPlayController(
         val next = moveLog.record(current, move)
         if (next == current) return // nothing to move, or the session is complete
         lastRejection = null
+        fixedTapped = false
         settle.arm()
         settle.suppress(TangoViolations.cellSets(next) - TangoViolations.cellSets(current))
         commit(next)
@@ -181,16 +183,14 @@ class TangoPlayController(
         }
         // A15: an ambiguous puzzle is never playable — the untrusted unavailable state.
         if (!TangoUniqueness.isUniquelySolvable(tango)) return Adopt.Rejected(BROKEN_PUZZLE_MESSAGE)
-        // Round-trip the initial session through the callback too: the route's saveable
-        // must exist from load, not first placement (C1 process-death window).
+        // Round-trip the initial session too: the route's saveable must exist from load (C1).
         updateSession(TangoSession(ref = ref as TangoPuzzleRef, puzzle = tango))
         clock.start() // the clock runs from the moment the puzzle opens
         return Adopt.Adopted
     }
 
-    /** Rotation/process-death + history re-apply restore (one path, Zip parity): a
-     *  restored COMPLETED session shows the win without re-emitting (emission happens
-     *  on the transition only). */
+    /** Rotation/process-death + history re-apply restore (Zip parity): a restored COMPLETED
+     *  session shows the win without re-emitting (emission is on the transition only). */
     override fun adoptRestored(bytes: ByteArray): Restored? =
         when (val restored = TangoSessionCodec.deserialize(bytes)) {
             is DecodeResult.Ok -> {
@@ -243,10 +243,10 @@ class TangoPlayController(
     override val hintEnabled: Boolean get() = session?.isComplete == false
     // The Spotlight's callout carries the hint text; a hint is never a caption (A11).
     override val hintCaption: String? get() = null
-    /** §6 state-driven live-grid violation; placements LAND, so no [rejection]. */
+    /** §6 state-driven live-grid violation; placements LAND, so the only [rejection] is a tap on a given. */
     override val violation: String? get() =
         if (spotlight != null) null else rendererModel()?.let(TangoSemantics::firstViolationPhrase)
-    override val rejection: String? get() = null
+    override val rejection: String? get() = TangoSemantics.FIXED_SQUARE.takeIf { fixedTapped }
     override fun guide() { session?.puzzle?.let(guidance::start) }
     //endregion
 

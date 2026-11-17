@@ -13,6 +13,7 @@ import com.ivandsky.puzzlebox.gameui.BROKEN_PUZZLE_MESSAGE
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.PlayClock
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import com.ivandsky.puzzlebox.gameui.PlayFeedback
 import com.ivandsky.puzzlebox.gameui.Restored
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
 import com.ivandsky.puzzlebox.games.strands.Coord
@@ -49,7 +50,7 @@ class StrandsPlayController(
     private val env: PlayEnvironment,
     private val now: () -> Instant = Instant::now,
     internal val hintMode: HintMode = HintMode.Legacy,
-) : GamePlayController, PlayClock {
+) : GamePlayController, PlayClock, PlayFeedback {
 
     var session by mutableStateOf<StrandsSession?>(null)
         private set
@@ -104,6 +105,10 @@ class StrandsPlayController(
         get() = session?.state?.takeIf { it.isComplete }?.hintsUsed
 
     override val isComplete: Boolean get() = session?.state?.isComplete == true
+
+    // Only the lesson host reads this: the play screen shows the same refusal in its word slot.
+    override val violation: String? get() = null
+    override val rejection: String? get() = (slot as? WordSlot.Verdict)?.takeIf { it.kind == VerdictKind.Reject }?.copy
 
     /** Hands the found word to the board once: rotation, re-entry or relayout never shows it again. */
     fun takeFound(): FoundEvent? = lastFound.also { lastFound = null }
