@@ -37,6 +37,7 @@ class LibraryRequestsTest {
     fun `openCustom with Custom in Games lands on Games root with Custom pending and back returns to Today`() {
         val navigator = Navigator(puzzleBoxNavigationState(TabSet.CustomInGames.destinations))
         navigator.push(EditorKey("castle"))
+        val before = navigator.state
         val requests = LibraryRequests()
 
         requests.openCustom(navigator, TabSet.CustomInGames)
@@ -45,7 +46,7 @@ class LibraryRequestsTest {
         assertEquals(listOf<Any>(PlayKey), navigator.state.currentStack)
         assertEquals(LibraryRequest.Section(GamesTab.Custom), requests.pending)
         navigator.pop()
-        assertEquals(HomeKey, navigator.state.tab)
+        assertEquals(before, navigator.state)
     }
 
     @Test

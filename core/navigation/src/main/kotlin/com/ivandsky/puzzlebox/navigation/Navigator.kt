@@ -27,6 +27,11 @@ class Navigator(initial: NavigationState) {
         state = state.selectTab(tab)
     }
 
+    /** A link's switch to [target]: its stack becomes its root plus [key], and one Back returns to where the link was tapped. */
+    fun switchTo(target: NavKey, key: NavKey? = null) {
+        state = state.switchTo(target, key)
+    }
+
     /** Pushes [key] on the current tab's stack, closing the layer first. */
     fun push(key: NavKey) {
         state = state.push(key)

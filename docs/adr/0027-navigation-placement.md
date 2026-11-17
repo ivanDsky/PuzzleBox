@@ -78,7 +78,13 @@ flag is off.)*
    unchanged. The shell has no gear; the gear is Profile's own control (§4). The rail is 96dp wide with the tabs
    centred, a 56dp avatar slot, 28dp icons, `labelLarge` labels and 12dp gaps.
 4. **Movement rules.**
-   - A summary tap switches to the owner's tab and resets it to its root. Back from that root returns to Today.
+   - A summary tap switches to the owner's tab and resets it to its root. *(Amended 2026-11-16, #1120.)* A
+     link-driven switch (Today's rank, day, streak and duels rows, the game page's rank and "Your history" rows,
+     Result's rank chip, anything that opens Custom) leaves the origin tab's stack untouched, and one Back from the
+     landed screen returns to the screen the link was tapped on, Result included. The rank links land on Ranks over its
+     root, showing that board, day or calendar, and never push onto the current tab. A rail tap is not a link: Back from
+     a tab root there still returns to Today. The reducer records the origin as `returnTo` on `NavigationState`
+     (`switchTo`); any tab select clears it.
    - Every summary targets an owner's tab root. Routing to an owner that is pushed on a tab (not a root) lands with its
      first caller.
    - *(Amended 2026-11-16, nav rethink N7; shipped in 0.33.0; the nav-doors flag was removed.)* Profile and Settings sit

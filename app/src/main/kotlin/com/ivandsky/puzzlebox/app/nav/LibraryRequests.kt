@@ -15,7 +15,7 @@ import com.ivandsky.puzzlebox.play.api.PlayKey
 
 /**
  * The one-shot request for Games: a section, made from another tab. Each verb
- * goes to Games with [openOwner] (so back returns to Today) and then stores the request;
+ * goes to Games with [openOwner] (so back returns to the screen the link was on) and then stores the request;
  * Games reads [pending], acts, and calls [take]. [pending] is Compose state, so an entry that
  * reads it recomposes when it changes. The holder is saved ([Saver]), like the code draft.
  */

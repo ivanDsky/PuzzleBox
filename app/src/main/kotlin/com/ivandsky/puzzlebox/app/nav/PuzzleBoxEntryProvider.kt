@@ -104,7 +104,7 @@ internal fun puzzleBoxEntryProvider(
         // With a Community tab the Custom list is that tab's, not a Games pill.
         custom = if (communityTab) null else custom,
         onReconnectLinkedIn = { navigator.pushOnce(LinkedInLoginKey) },
-        onOpenRanks = openRanks(navigator),
+        onOpenRanks = openRanks(navigator, tabSet),
         onMakeOne = makeOne?.let { make -> { game -> make(game) } },
         communityTab = communityTab,
         underlineTabs = underlineTabs,
@@ -120,7 +120,7 @@ internal fun puzzleBoxEntryProvider(
     resultEntry(
         navigator,
         linkedIn = true,
-        onOpenRanks = openRanks(navigator),
+        onOpenRanks = openRanks(navigator, tabSet),
         onChallenge = { prefill -> libraryRequests.openChallenge(navigator, tabSet, prefill) },
     )
     createEntry(navigator)
@@ -148,10 +148,11 @@ private val TestSolveOnPlay = TestSolvePlaySlot { ui, controller, title, label, 
 }
 
 /**
- * Opens [HistoryKey] for a game and day (null: today) on the current stack, once per tap: the Ranks hub at that board.
+ * Opens [HistoryKey] for a game and day (null: today) on the Ranks tab, once per tap: the hub at that board. One back
+ * returns to the screen the link was on.
  */
-internal fun openRanks(navigator: Navigator): (GameId, LocalDate?) -> Unit =
-    { game, day -> navigator.pushOnce(HistoryKey(game.value, day?.toString())) }
+internal fun openRanks(navigator: Navigator, tabSet: TabSet): (GameId, LocalDate?) -> Unit =
+    { game, day -> navigator.openOnOwnerTab(HistoryKey(game.value, day?.toString()), tabSet) }
 
 /**
  * What Today opens: the rank row the hub at that game, the duels row the Games section (its owner under [tabSet]),
@@ -163,13 +164,13 @@ internal fun homeSummaries(
     duels: DuelsSlot?,
     libraryRequests: LibraryRequests,
 ): HomeSummaries = HomeSummaries(
-    onOpenRank = { game -> openRanks(navigator)(game, null) },
+    onOpenRank = { game -> openRanks(navigator, tabSet)(game, null) },
     duels = duels?.let {
         HomeDuelsSummary(
             onOpen = { libraryRequests.openGamesSection(navigator, tabSet, GamesTab.Duels) },
             needYou = it.needYou,
         )
     },
-    onOpenDay = { day: String -> navigator.pushOnce(HistoryKey(gameId = null, day = day)) },
-    onOpenStreak = { navigator.pushOnce(HistoryKey(calendarExpanded = true)) },
+    onOpenDay = { day: String -> navigator.openOnOwnerTab(HistoryKey(gameId = null, day = day), tabSet) },
+    onOpenStreak = { navigator.openOnOwnerTab(HistoryKey(calendarExpanded = true), tabSet) },
 )

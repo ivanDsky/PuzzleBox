@@ -7,13 +7,12 @@ import com.ivandsky.puzzlebox.navigation.Navigator
  * Goes to [key]'s owner (ADR-0027), through the reducer's own verbs. The owner is read from
  * [tabSet]: its placement delta and its tabs.
  *
- * - A key whose home is `TabRoot(tab)` selects that tab and resets it to its root; nothing
- *   is pushed, and back from the root returns to the start tab. The owner key is found by
- *   [TopLevelDestination.tab] and then looked up in the live `state.tabs`, because the
- *   placement table names tabs, not the stacks that exist.
+ * - A key whose home is `TabRoot(tab)` switches to that tab at its root ([Navigator.switchTo]); nothing
+ *   is pushed, and one back returns to the screen the link was tapped on. The owner key is found by
+ *   [TopLevelDestination.tab], because the placement table names tabs, not the stacks that exist.
  * - Every other key (`PushedOn`, `Shell`, `DebugOnly`) is a plain push on the current tab.
  *
- * A door out of the Profile layer closes the layer on the way: both verbs do that in the
+ * A door out of the Profile layer closes the layer on the way: the verb does that in the
  * reducer, so the owner's screen is never left under it.
  */
 internal fun Navigator.openOwner(key: NavKey, tabSet: TabSet) {
@@ -22,8 +21,23 @@ internal fun Navigator.openOwner(key: NavKey, tabSet: TabSet) {
         push(key)
         return
     }
-    val owner = tabSet.destinations.first { it.tab == tab }.key
-    selectTab(owner)
-    // Selecting another tab keeps its stack; reselecting the selected tab pops it to its root.
-    if (state.currentStack.size > 1) selectTab(owner)
+    switchTo(ownerKey(tab, tabSet))
 }
+
+/**
+ * Opens [key] on the tab it is pushed on (`PushedOn(tab)`): switches there, the tab's stack becoming its root plus
+ * [key], and one back returns to the screen the link was tapped on. A key not pushed on a tab is a plain push.
+ */
+internal fun Navigator.openOnOwnerTab(key: NavKey, tabSet: TabSet) {
+    val tab = (placementOf(key, tabSet.placement).home as? Home.PushedOn)?.tab
+    if (tab == null) {
+        pushOnce(key)
+        return
+    }
+    val owner = ownerKey(tab, tabSet)
+    // A double tap lands on the same screen: the switch already happened.
+    if (state.tab == owner && state.currentStack.last() == key) return
+    switchTo(owner, key)
+}
+
+private fun ownerKey(tab: Tab, tabSet: TabSet): NavKey = tabSet.destinations.first { it.tab == tab }.key
