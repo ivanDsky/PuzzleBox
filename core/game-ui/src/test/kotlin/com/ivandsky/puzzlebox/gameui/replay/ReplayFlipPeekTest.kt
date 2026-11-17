@@ -22,6 +22,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.core.app.ApplicationProvider
@@ -88,6 +89,9 @@ class ReplayFlipPeekTest {
     private fun firstBoardLeft(): Float =
         composeRule.onAllNodesWithTag(BOARD)[0].getBoundsInRoot().left.value
 
+    private fun boardCentre(index: Int): Float =
+        composeRule.onAllNodesWithTag(BOARD)[index].getBoundsInRoot().let { (it.left.value + it.right.value) / 2 }
+
     private fun tap(tag: String) {
         composeRule.onNodeWithTag(tag).performClick()
         composeRule.mainClock.advanceTimeByFrame()
@@ -101,13 +105,27 @@ class ReplayFlipPeekTest {
     private fun settle() = composeRule.mainClock.advanceTimeBy(SETTLE_MS)
 
     @Test
-    fun `both sides show their tabs with the first selected and the other board peeking in`() {
+    fun `both sides show their tabs with the first selected and the other board a swipe away`() {
         show()
 
         composeRule.onNodeWithTag(ReplayFlipTags.TAB_MINE).assertIsSelected()
         composeRule.onNodeWithTag(ReplayFlipTags.TAB_THEIRS).assertIsNotSelected()
         assertEquals(2, boardTexts().size)
         composeRule.onAllNodesWithTag(ReplayTags.PLAY).assertCountEquals(1)
+    }
+
+    @Test
+    fun `each board is centred on the screen on both pages`() {
+        show()
+        settle()
+        val screenCentre = composeRule.onRoot().getBoundsInRoot().let { (it.left.value + it.right.value) / 2 }
+
+        assertEquals(screenCentre, boardCentre(0), 1f)
+
+        tap(ReplayFlipTags.TAB_THEIRS)
+        settle()
+
+        assertEquals(screenCentre, boardCentre(1), 1f)
     }
 
     @Test

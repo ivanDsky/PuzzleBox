@@ -7,7 +7,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.foundation.gestures.snapping.SnapPosition
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -16,8 +15,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.pager.PageSize
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -54,7 +51,6 @@ object ReplayFlipTags {
     const val TAB_THEIRS = "replay-flip-tab-theirs"
 }
 
-private val PeekWidth = 36.dp
 private val PageGap = Spacing.md
 private val UnderlineHeight = 3.dp
 private val TabHeight = 48.dp
@@ -65,11 +61,11 @@ private val NudgeDistance = 28.dp
 private enum class Side { Mine, Theirs }
 
 /**
- * Phone compare: one board fills the width and the edge of the other peeks in beside it. Two text tabs name the
+ * Phone compare: one board at a time, centred on the screen, with the other a swipe away. Two text tabs name the
  * sides and flip the pager; so does a swipe. A flip never touches [state]'s position or playing. The first time
- * both sides show, the pager nudges toward the other board and settles back; a hint on the hidden side flashes
- * on its tab. Reduced motion: no nudge, no flash, flips jump. With one side the pager shows just that side and
- * the other tab says "No replay" and cannot be selected.
+ * both sides show, the pager nudges toward the other board and settles back, so the swipe is discoverable; a
+ * hint on the hidden side flashes on its tab. Reduced motion: no nudge, no flash, flips jump. With one side the
+ * pager shows just that side and the other tab says "No replay" and cannot be selected.
  */
 @Composable
 internal fun ReplayFlipPeek(
@@ -104,8 +100,7 @@ internal fun ReplayFlipPeek(
     }
 
     BoxWithConstraints(modifier, contentAlignment = Alignment.Center) {
-        val pageWidth = (if (sides.size > 1) maxWidth - PeekWidth - PageGap else maxWidth).coerceAtLeast(0.dp)
-        val boardSize = minOf(pageWidth, maxHeight - TabsHeight - CompareTransportHeight - ControlsGap * 2).coerceAtLeast(0.dp)
+        val boardSize = minOf(maxWidth, maxHeight - TabsHeight - CompareTransportHeight - ControlsGap * 2).coerceAtLeast(0.dp)
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(ControlsGap)) {
             Row(Modifier.fillMaxWidth()) {
                 Side.entries.forEach { side ->
@@ -129,32 +124,17 @@ internal fun ReplayFlipPeek(
             HorizontalPager(
                 state = pager,
                 modifier = Modifier.fillMaxWidth().height(boardSize),
-                pageSize = PageSize.Fixed(pageWidth),
                 pageSpacing = PageGap,
-                snapPosition = EdgeSnap,
                 beyondViewportPageCount = 1,
             ) { page ->
                 val frame = if (sides[page] == Side.Mine) state.mineFrame else state.theirsFrame
-                Box(Modifier.width(pageWidth), contentAlignment = Alignment.TopCenter) {
+                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
                     ReplayBoardSlot(frame, board, options, boardSize)
                 }
             }
             ReplayCompareTransport(state, playback, mine, theirs, names)
         }
     }
-}
-
-/** The first page sits at the start edge and the last at the end edge, so the other board peeks in on the inside. */
-private val EdgeSnap = object : SnapPosition {
-    override fun position(
-        layoutSize: Int,
-        itemSize: Int,
-        beforeContentPadding: Int,
-        afterContentPadding: Int,
-        itemIndex: Int,
-        itemCount: Int,
-    ): Int =
-        if (itemIndex == itemCount - 1 && itemCount > 1) layoutSize - afterContentPadding - itemSize else beforeContentPadding
 }
 
 /** Out and back in one scroll, so a drag or a tab tap anywhere in it cancels both legs and the pager stays where the user left it. */
