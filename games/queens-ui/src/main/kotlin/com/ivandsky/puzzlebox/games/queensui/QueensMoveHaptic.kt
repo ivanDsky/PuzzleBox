@@ -7,11 +7,10 @@ import com.ivandsky.puzzlebox.gameui.MoveHaptic
 /**
  * The haptic for the step from [before] to [after]. Ticks once for each queen or cross placed or removed by a tap,
  * once per newly crossed cell of a paint drag, and once per lifted cross on every step of an erase swipe. Queens
- * refuses no input, so it never answers [MoveHaptic.Rejected]. The solving move is silent (the solve confirm owns
- * that moment), and so are undo, redo, clear, hints and auto-cross.
+ * refuses no input, so it never answers [MoveHaptic.Rejected]. The solving queen ticks like any other, and the solve
+ * confirm follows it. Undo, redo, clear, hints and auto-cross are silent.
  */
 internal fun queensMoveHaptic(before: QueensSession, after: QueensSession): MoveHaptic? {
-    if (after.isComplete) return null
     val was = before.history
     val now = after.history
     if (now.undone.isNotEmpty()) return null

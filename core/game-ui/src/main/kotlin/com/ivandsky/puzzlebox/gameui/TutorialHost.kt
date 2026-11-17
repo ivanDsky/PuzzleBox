@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -26,6 +27,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -59,7 +61,9 @@ private val CurrentDotWidth = 24.dp
  * game's own [GamePlayUi.Board] on a sandboxed controller ([TutorialSandbox]) and the
  * shared caption slot docked under the board, under the same precedence as the play
  * chrome. Solving a lesson holds its board for a short beat while it sweeps in the game's
- * accent and [LessonCleared] stamps in under it, then moves on; after the last one a calm
+ * accent and [LessonCleared] stamps in under it, then moves on; with [LocalPlayFeel] the
+ * solve also plays the success buzz, once, here: a lesson board never reaches the play
+ * screen's solve frame, which plays it for a puzzle. After the last lesson a calm
  * "You're ready" hands back through [onFinished].
  * Skip ends the session and calls [onFinished] at once. No clock runs here.
  */
@@ -138,7 +142,18 @@ private fun ColumnScope.LessonPane(
     // the lesson stamp takes its place. Keyed per lesson, so each one gets a fresh sweep.
     key(lesson.index) {
         val sweep = rememberSolveSweepState()
-        LaunchedEffect(lesson.solved) { if (lesson.solved) sweep.play() }
+        val playFeel = LocalPlayFeel.current
+        val haptics = LocalHapticFeedback.current
+        // The play screen's solve confirm, never its rest: the beat above is the lesson's pause, and with the rest
+        // off PlayFeel alone decides the buzz, so a lesson without PlayFeel stays silent where the route rests solves.
+        val confirm = remember(playFeel, haptics) { SolveRestState(enabled = false, playFeel, haptics) }
+        // A lesson that comes back already solved (a rotation inside the beat) buzzed when it was solved.
+        val seenOpen = remember { !lesson.solved }
+        LaunchedEffect(lesson.solved) {
+            if (!lesson.solved) return@LaunchedEffect
+            if (seenOpen) confirm.begin(this)
+            sweep.play()
+        }
         Column(
             Modifier
                 .weight(1f)
@@ -156,7 +171,10 @@ private fun ColumnScope.LessonPane(
                 // Lesson boards draw chrome-free, so the sweep follows the board's bounds
                 // (PlaySolveFrame's default shape).
                 Box(Modifier.solveSweep(sweep, ui.brand.accent.colors().accent, RectangleShape)) {
-                    ui.Board(controller, Modifier)
+                    // The buzz above is the lesson's one; a board that confirms its own solve (Sudoku) would double it.
+                    CompositionLocalProvider(LocalSolveConfirmHosted provides playFeel) {
+                        ui.Board(controller, Modifier)
+                    }
                 }
             }
             Box {

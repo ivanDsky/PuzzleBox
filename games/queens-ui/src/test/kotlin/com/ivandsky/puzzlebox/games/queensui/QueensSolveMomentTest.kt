@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.designsystem.CelebrationMotion
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.games.queens.Cell
 import com.ivandsky.puzzlebox.gameui.Adopt
+import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
 import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
@@ -47,7 +48,7 @@ class QueensSolveMomentTest {
     }
 
     /** The 8×8 daily, one queen short of solved, on the play screen. */
-    private fun oneQueenShort(rest: Boolean): QueensBoardState {
+    private fun oneQueenShort(rest: Boolean, playFeel: Boolean = false): QueensBoardState {
         val controller = QueensPlayController(
             env = PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}),
             settings = InMemoryQueensSettings(),
@@ -56,7 +57,11 @@ class QueensSolveMomentTest {
         assertEquals(Adopt.Adopted, controller.adoptToday(QueensPlayFixtures.envelope(), QueensPlayFixtures.ref()))
         rule.mainClock.autoAdvance = false
         rule.setContent {
-            CompositionLocalProvider(LocalSolveRestOnBoard provides rest, LocalHapticFeedback provides haptics) {
+            CompositionLocalProvider(
+                LocalSolveRestOnBoard provides rest,
+                LocalPlayFeel provides playFeel,
+                LocalHapticFeedback provides haptics,
+            ) {
                 PuzzleBoxTheme(darkTheme = false) {
                     QueensPlayScreen(
                         controller = controller,
@@ -131,6 +136,16 @@ class QueensSolveMomentTest {
         advance(3_000)
         assertEquals(1, handOffs)
         assertEquals("no rest, no PlayFeel: no buzz", 0, confirms())
+    }
+
+    @Test
+    fun `with PlayFeel the solving queen ticks, then the solve confirms once`() {
+        val board = oneQueenShort(rest = false, playFeel = true)
+
+        commit { board.place(QueensPlayFixtures.solution.last()) }
+        advance(3_000)
+
+        assertEquals(listOf(HapticFeedbackType.TextHandleMove, HapticFeedbackType.Confirm), buzzes)
     }
 
     private companion object {

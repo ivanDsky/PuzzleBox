@@ -9,8 +9,8 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * S2 for Queens: a queen or mark placed or removed by a tap ticks; the solving move, undo, redo, clear, hints and
- * auto-cross are silent. Queens refuses nothing, so it never buzzes.
+ * S2 for Queens: a queen or mark placed or removed by a tap ticks, the solving queen included; undo, redo, clear,
+ * hints and auto-cross are silent. Queens refuses nothing, so it never buzzes.
  */
 class QueensMoveHapticTest {
 
@@ -88,11 +88,11 @@ class QueensMoveHapticTest {
     }
 
     @Test
-    fun `the move that solves the board is silent, the solve confirm owns that moment`() {
+    fun `the queen that solves the board ticks like any other, ahead of the solve confirm`() {
         val three = solution.dropLast(1).fold(start) { s, cell -> s.withQueenPlaced(cell, now) }
         val solved = three.withQueenPlaced(solution.last(), now)
         assertTrue(solved.isComplete)
-        assertNull(haptic(three, solved))
+        assertEquals(MoveHaptic.Placed, haptic(three, solved))
     }
 
     @Test

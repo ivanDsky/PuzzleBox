@@ -22,14 +22,25 @@ import kotlinx.coroutines.withTimeoutOrNull
 val LocalSolveRestOnBoard = staticCompositionLocalOf { false }
 
 /**
+ * True under a host that plays the solve's success buzz itself (the tutorial host, with PlayFeel): a rest begun below
+ * it stays silent, so a board that begins its own rest never buzzes a second time.
+ */
+internal val LocalSolveConfirmHosted = staticCompositionLocalOf { false }
+
+/**
  * The solve rest of one board: [begin] it the moment the solve lands and await it where the hand-off goes. It lasts
  * [CelebrationMotion.SolveMomentMs] from [begin], and [skip] (a tap on [SolveRestTapLayer]) ends it at once. Without
  * [enabled] it is over already. A pause, so reduced motion keeps it. The success buzz is Compose's `Confirm`; below API 30
- * androidx maps it to VIRTUAL_KEY, a lighter tap than the old LONG_PRESS.
+ * androidx maps it to VIRTUAL_KEY, a lighter tap than the old LONG_PRESS. With [hostConfirms] the host above plays it.
  */
 @Stable
-class SolveRestState internal constructor(val enabled: Boolean, playFeel: Boolean, private val haptics: HapticFeedback) {
-    /** Whether [begin] plays the success buzz: with the rest, and with PlayFeel even when the rest is off. */
+class SolveRestState internal constructor(
+    val enabled: Boolean,
+    playFeel: Boolean,
+    private val haptics: HapticFeedback,
+    private val hostConfirms: Boolean = false,
+) {
+    /** Whether the success buzz goes out as the solve lands: with the rest, and with PlayFeel even when the rest is off. */
     val confirms: Boolean = enabled || playFeel
 
     /** True while the board rests: the tap layer is up. */
@@ -40,7 +51,7 @@ class SolveRestState internal constructor(val enabled: Boolean, playFeel: Boolea
 
     /** Starts the rest in [scope] now, with the success buzz (L2) once, as the solve moment starts, through [HapticFeedback] so the Vibration switch silences it; await the result to wait out what is left of it. */
     fun begin(scope: CoroutineScope): Deferred<Unit> = scope.async {
-        if (confirms) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+        if (confirms && !hostConfirms) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
         if (!enabled) return@async
         skips.tryReceive()
         resting = true
