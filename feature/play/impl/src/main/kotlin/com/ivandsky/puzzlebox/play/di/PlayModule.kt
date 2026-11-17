@@ -26,6 +26,7 @@ import com.ivandsky.puzzlebox.play.ResultViewModel
 import com.ivandsky.puzzlebox.play.SlotOpening
 import com.ivandsky.puzzlebox.play.SlotWriter
 import com.ivandsky.puzzlebox.play.WriteLane
+import com.ivandsky.puzzlebox.play.ZipDotPulse
 import com.ivandsky.puzzlebox.play.api.CustomGameKey
 import com.ivandsky.puzzlebox.play.api.GameKey
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
@@ -112,6 +113,8 @@ val playModule = module {
     // PlayFeel (spec A19) is read once per graph: every play board and the lessons host hand it down.
     single { PlayFeel(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.PlayFeel) == true) }
     single { HintPolish(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.HintPolish) == true) }
+    // ZipDotPulse (backlog #1151) too: the Zip board's next number pulses its own dot while it is on.
+    single { ZipDotPulse(enabled = getOrNull<ReleaseFlags>()?.isEnabled(ReleaseFlag.ZipDotPulse) == true) }
     // The flag-as-parameter rule again: with it off the result never touches LinkedIn. The Post button's flag is
     // read inside the view model (the release flag), so its bindings resolve only on the same parameter.
     // The next-thing use case is resolved only when the view model first asks for it (today's solve).

@@ -6,9 +6,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.game.replay.ReplayFrame
 import com.ivandsky.puzzlebox.gameui.BoardGrid
+import com.ivandsky.puzzlebox.gameui.LocalZipDotPulse
 import com.ivandsky.puzzlebox.gameui.hidden.GivensBoard
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
 import com.ivandsky.puzzlebox.gameui.replay.ReplayBoardOptions
@@ -40,6 +42,10 @@ internal object ZipReplayBoard : GameReplayBoard {
             ZipRendererModel.of(ZipState(session.puzzle, session.path), hint = null, rejection = null)
         }
         val forward = rememberStepsForward(options, frame.atMs)
+        // With ZipDotPulse the next number ripples as live, playing or paused (never under reduced motion).
+        val halo = rememberNextNumberHalo(
+            enabled = LocalZipDotPulse.current && !rememberReducedMotion() && model.cells.any { it.isNextTarget },
+        )
         BoardGrid(
             rows = model.n,
             cols = model.n,
@@ -49,7 +55,7 @@ internal object ZipReplayBoard : GameReplayBoard {
             cellContent = { row, col ->
                 val idx = row * model.n + col
                 Box(Modifier.fillMaxSize()) {
-                    ZipCellDecor(model, row, col, animated = forward)
+                    ZipCellDecor(model, row, col, animated = forward, halo = halo)
                     if (idx in frame.hinted && model.cells[idx].isOnPath) {
                         ReplayHintBadge(Modifier.align(Alignment.TopEnd))
                     }

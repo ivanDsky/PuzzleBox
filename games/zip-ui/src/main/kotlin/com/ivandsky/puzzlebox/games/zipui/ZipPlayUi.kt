@@ -32,6 +32,7 @@ import com.ivandsky.puzzlebox.gameui.GameBrand
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.GridCell
+import com.ivandsky.puzzlebox.gameui.LocalZipDotPulse
 import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
 import com.ivandsky.puzzlebox.gameui.PlayActionBar
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
@@ -203,10 +204,11 @@ private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modi
     val walls = remember(puzzle) { zipWallOverlays(model) }
     // Snapshot state read only inside ZipPipes' draw: a moving finger redraws, never recomposes.
     val finger = remember { mutableStateOf<Offset?>(null) }
-    val ringAlpha = rememberNextNumberPulse(
-        held = { finger.value != null },
-        enabled = !reducedMotion && model.cells.any { it.isNextTarget },
-    )
+    val nextNumberLive = !reducedMotion && model.cells.any { it.isNextTarget }
+    val glow = LocalZipDotPulse.current
+    // One of the two runs: the ring's fade (stills under a finger) or, with ZipDotPulse, the halo (never does).
+    val ringAlpha = rememberNextNumberPulse(held = { finger.value != null }, enabled = nextNumberLive && !glow)
+    val halo = rememberNextNumberHalo(enabled = nextNumberLive && glow)
     val cap = paneCap ?: PhoneBoardCap
     Box(modifier) {
         DragTraceBoard(
@@ -218,7 +220,7 @@ private fun ZipBoard(controller: ZipPlayController, paneCap: Dp?, modifier: Modi
             edgeOverlays = walls,
             underlay = { ZipPipes(model, { finger.value }, hooks, animate = !reducedMotion) },
             cellContent = { row, col ->
-                ZipCellDecor(model, row, col, animated = !reducedMotion, nextNumberAlpha = ringAlpha)
+                ZipCellDecor(model, row, col, animated = !reducedMotion, nextNumberAlpha = ringAlpha, halo = halo)
             },
             onPointer = { finger.value = it },
             wallWeight = LocalBoardGeometry.current.wallWeight,
