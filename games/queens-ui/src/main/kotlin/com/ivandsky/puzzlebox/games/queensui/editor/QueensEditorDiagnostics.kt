@@ -40,7 +40,8 @@ import kotlinx.coroutines.delay
  * two solutions disagree on (a Multiple verdict), [clash] the cells that break a rule (None) plus every crown clashing with another crown,
  * [split] the stray pieces of regions in more than one piece, [ghosts] the other answer's
  * queens when the author has crowns (40), [witness] the queens of the solution the verdict
- * card shows on a board without crowns (31).
+ * card shows on a board without crowns (31), [recoloured] the painted cells the last Finish for
+ * me changed the colour of (107, [QueensDraft.recoloured]).
  */
 internal data class QueensDiagnostics(
     val diff: Set<Int>,
@@ -48,6 +49,7 @@ internal data class QueensDiagnostics(
     val split: Set<Int>,
     val ghosts: Set<Int>,
     val witness: Set<Int>,
+    val recoloured: Set<Int>,
 )
 
 /**
@@ -91,6 +93,7 @@ internal fun rememberQueensDiagnostics(
             else -> ambiguous.ghosts
         },
         witness = if (ambiguous == null && shown != null) (if (b) shown.solutionB else shown.solutionA).values.toSet() else emptySet(),
+        recoloured = board.recoloured,
     )
 }
 
@@ -107,10 +110,11 @@ internal fun QueensClashWash(idx: Int, diagnostics: QueensDiagnostics, reducedMo
 
 /**
  * Cell [idx]'s marks over its crown layer: the split stripes (the play UI's violation
- * stripes, which appear after a delay rather than animate), then the diff ring, the witness
- * queen (a solid crown in the diff ring's tint) and the ghost crown ([QueensGhostLayer]),
- * each fading in; the clash fill is [QueensClashWash], beneath the crown. Each mark carries
- * `queens.editor.cell.<idx>.<split|diff|witness|ghost>`.
+ * stripes, which appear after a delay rather than animate), then the diff ring, the same ring
+ * on a cell the last finish recoloured (107), the witness queen (a solid crown in the diff
+ * ring's tint) and the ghost crown ([QueensGhostLayer]), each fading in; the clash fill is
+ * [QueensClashWash], beneath the crown. Each mark carries
+ * `queens.editor.cell.<idx>.<split|diff|recoloured|witness|ghost>`.
  */
 @Composable
 internal fun QueensCellDiagnostics(idx: Int, diagnostics: QueensDiagnostics, reducedMotion: Boolean) {
@@ -132,6 +136,9 @@ internal fun QueensCellDiagnostics(idx: Int, diagnostics: QueensDiagnostics, red
     }
     if (idx in diagnostics.diff) {
         FadingMark("queens.editor.cell.$idx.diff", reducedMotion) { drawInsetRing(tokens.editorDiffRing) }
+    }
+    if (idx in diagnostics.recoloured) {
+        FadingMark("queens.editor.cell.$idx.recoloured", reducedMotion) { drawInsetRing(tokens.editorDiffRing) }
     }
     if (idx in diagnostics.witness) {
         FadingMark("queens.editor.cell.$idx.witness", reducedMotion) {

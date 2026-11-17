@@ -87,6 +87,10 @@ class EditorDraft<D : Any>(val editor: GameEditor<D>, val state: DraftState<D>) 
     fun finishReadiness(): FinishReadiness? =
         editor.capability<D, DraftCompleter<D>>()?.readiness(state.draft)
 
+    /** The completer's [DraftCompleter.changedPieces] for this board, a finished one; 0 when !canFinish. */
+    fun finishChanged(): Int =
+        editor.capability<D, DraftCompleter<D>>()?.changedPieces(state.draft) ?: 0
+
     /**
      * Finish for me: completes the board of [pieces] (this draft by default; null when it holds
      * another editor) and applies it to this draft as one undoable [ReplaceDraft] step. Passing

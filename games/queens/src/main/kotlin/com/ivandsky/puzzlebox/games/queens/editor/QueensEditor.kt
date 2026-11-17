@@ -60,8 +60,11 @@ object QueensEditor :
     override fun publishBlocks(draft: QueensDraft, verdict: Verdict): List<PublishBlock> =
         QueensPublishGates.blocks(draft, verdict)
 
-    /** Answer crowns are author-only: placing, moving or removing one never clears a test solve. */
-    override fun layoutOf(draft: QueensDraft): QueensDraft = draft.copy(crowns = emptySet())
+    /**
+     * Answer crowns are author-only: placing, moving or removing one never clears a test solve.
+     * Nor do the marks of a finish ([QueensDraft.recoloured]), which no saved draft holds.
+     */
+    override fun layoutOf(draft: QueensDraft): QueensDraft = draft.copy(crowns = emptySet(), recoloured = emptySet())
 
     /** QueensCodec bytes of the fully painted regions with [solution]'s queen cells; crowns never reach it (A23). */
     override fun toPuzzle(draft: QueensDraft, solution: Solution): Puzzle {

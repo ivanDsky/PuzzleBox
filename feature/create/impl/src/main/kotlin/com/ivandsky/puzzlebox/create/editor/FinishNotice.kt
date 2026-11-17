@@ -4,7 +4,10 @@ import com.ivandsky.puzzlebox.game.editor.Difficulty
 import com.ivandsky.puzzlebox.game.editor.FinishReadiness
 import com.ivandsky.puzzlebox.game.editor.Verdict
 
-/** What the Studio says after a Finish that did not do what was asked (E1, 90); [text] is the message, word for word. */
+/**
+ * What the Studio says after a Finish that did not do just what was asked (E1, 90, 107); [text] is
+ * the message, word for word.
+ */
 internal sealed interface FinishNotice {
     val text: String
 
@@ -21,6 +24,13 @@ internal sealed interface FinishNotice {
     /** The board was finished, at [got] and not at the [wanted] level. */
     data class Missed(val got: Difficulty.Level, val wanted: Difficulty.Level) : FinishNotice {
         override val text = "Finished at ${got.name} \u2014 ${wanted.name} wasn't found in time. Press Finish to try again."
+    }
+
+    /** The board was finished by changing the colour of [count] cells the author painted (107); the editor highlights them. */
+    data class Recoloured(val count: Int) : FinishNotice {
+        override val text =
+            if (count == 1) "Finished. 1 painted cell changed colour; it's highlighted."
+            else "Finished. $count painted cells changed colour; they're highlighted."
     }
 }
 

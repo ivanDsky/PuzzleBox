@@ -26,10 +26,17 @@ interface DraftCompleter<D : Any> {
      * missing the level; the caller sees the miss in the board's scored verdict.
      * [ClosestCompletion] holds that rule.
      *
-     * Every piece the author placed is kept, with one exception (63b): a Queens board painted by
-     * hand, full or nearly full, often has no unique completion that keeps every painted cell, so
-     * Queens may repaint cells the author painted and, when no answer can hold every crown, move a
-     * crown along its row.
+     * Every piece the author placed is kept, with one exception (63b, 107): a Queens board painted
+     * by hand, full or nearly full, often has no unique completion that keeps every painted cell
+     * and every crown. Asked for a level, Queens then moves a crown along its row first, and only
+     * when that cannot finish the board repaints cells the author painted ([changedPieces]).
      */
     fun complete(draft: D, random: Random, budget: Budget, target: Difficulty.Level? = null): Completion<D>
+
+    /**
+     * How many of the author's pieces the finished [draft] a [complete] returned holds changed,
+     * for the Studio to say so; 0 for a completer that keeps them all. Queens counts the painted
+     * cells it recoloured, which its draft carries so the editor can highlight them.
+     */
+    fun changedPieces(draft: D): Int = 0
 }

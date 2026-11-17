@@ -85,7 +85,8 @@ open class FakeGameEditor(
  * one needs more, and a completion keeps every mark and adds one to nine from the injected
  * [Random] (so the marks stay a byte). Tests swap [readinessOf] and [completionOf] for a
  * completer that gives up, blocks until its budget is spent or counts its calls; [targets] holds
- * the level each call was asked for.
+ * the level each call was asked for, and [changedOf] says how many of the author's pieces a
+ * finished board changed.
  */
 open class FakeDraftCompleter(
     gameId: GameId = GameId("fake"),
@@ -105,7 +106,11 @@ open class FakeDraftCompleter(
         Completion.Done(TestDraft(draft.marks + random.nextInt(1, 10)))
     }
 
+    var changedOf: (TestDraft) -> Int = { 0 }
+
     override fun readiness(draft: TestDraft): FinishReadiness = readinessOf(draft)
+
+    override fun changedPieces(draft: TestDraft): Int = changedOf(draft)
 
     override fun complete(draft: TestDraft, random: Random, budget: Budget, target: Difficulty.Level?): Completion<TestDraft> {
         completed += draft

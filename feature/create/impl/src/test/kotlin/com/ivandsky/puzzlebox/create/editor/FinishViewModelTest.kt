@@ -349,6 +349,19 @@ class FinishViewModelTest {
     }
 
     @Test
+    fun `a finish that changed the author's pieces says how many as it lands`() = runTest(mainRule.testDispatcher) {
+        editor.changedOf = { 2 }
+        val vm = open(marks = 2)
+        settled()
+
+        vm.finish.press()
+        runCurrent()
+
+        assertEquals(1, controller.adopted.size)
+        assertEquals(FinishNotice.Recoloured(2), vm.finish.notices.pending.value)
+    }
+
+    @Test
     fun `an edit before the completion's check settles drops the comparison`() = runTest(mainRule.testDispatcher) {
         val scored = FakeScoredGrader().apply { levelOf = { Difficulty.Level.Medium } }
         val vm = open(marks = 2, game = scored)

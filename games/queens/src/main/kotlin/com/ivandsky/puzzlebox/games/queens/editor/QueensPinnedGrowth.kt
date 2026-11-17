@@ -18,8 +18,26 @@ import kotlin.random.Random
  *    cell is handed to a neighbouring region, which kills that answer and keeps the intended one.
  *
  * The caller checks that the crowns do not clash ([QueensCrowns.conflicts]).
+ *
+ * [spread] says where the unpainted cells may go (ticket 107); [Spread.Free] is the recipe above.
  */
-internal class QueensPinnedGrowth(private val draft: QueensDraft, private val budget: Budget) {
+internal class QueensPinnedGrowth(
+    private val draft: QueensDraft,
+    private val budget: Budget,
+    private val spread: Spread = Spread.Free,
+) {
+    /** Which regions an unpainted cell may join. */
+    enum class Spread {
+        /** Any neighbouring region, the smallest first. */
+        Free,
+
+        /** A region the author never started while one has room; a painted region grows only where no other can. */
+        UnusedFirst,
+
+        /** Only a region the author never started: no painted region gains a cell, or there is no board. */
+        UnusedOnly,
+    }
+
     private val n = draft.size
     private val started = draft.regions.filter { it != QueensDraft.UNPAINTED }.distinct()
     private val neighbours = Array(n * n) { cell ->
@@ -31,7 +49,7 @@ internal class QueensPinnedGrowth(private val draft: QueensDraft, private val bu
         ).toIntArray()
     }
 
-    private val placement = QueensPinnedPlacement(draft, neighbours, budget)
+    private val placement = QueensPinnedPlacement(draft, neighbours, budget, seedsOnly = spread == Spread.UnusedOnly)
     private val search = QueensPinnedSearch(n, budget)
 
     /** A fully painted board with exactly one answer, or null when stuck or out of budget. */
@@ -44,7 +62,8 @@ internal class QueensPinnedGrowth(private val draft: QueensDraft, private val bu
     /**
      * Steps 1 to 4, the board before any repair: every cell painted, with the queen cell of
      * each region. The queens are one of its answers, maybe one of several. [QueensRepaint]
-     * starts from it. Null when the pieces cannot be joined or seated.
+     * starts from it. Null when the pieces cannot be joined or seated, or [Spread.UnusedOnly]
+     * leaves a cell no unstarted region reaches.
      */
     fun fill(random: Random): Pair<IntArray, IntArray>? {
         val reg = draft.regions.toIntArray()
@@ -53,7 +72,7 @@ internal class QueensPinnedGrowth(private val draft: QueensDraft, private val bu
         val isQueen = BooleanArray(n * n).also { for (queen in seats) it[queen] = true }
         if (!seat(reg, seats, isQueen, random)) return null
         grow(reg, random)
-        return reg to seats
+        return if (spread == Spread.UnusedOnly && QueensDraft.UNPAINTED in reg) null else reg to seats
     }
 
     private fun join(reg: IntArray, random: Random): Boolean {
@@ -61,6 +80,7 @@ internal class QueensPinnedGrowth(private val draft: QueensDraft, private val bu
             while (true) {
                 val piece = piece(reg, reg.indexOf(region), without = NONE)
                 if (piece.size == reg.count { it == region }) break
+                if (spread == Spread.UnusedOnly) return false
                 val link = path(reg, piece, random) { reg[it] == region && it !in piece } ?: return false
                 for (cell in link) reg[cell] = region
             }
@@ -85,7 +105,11 @@ internal class QueensPinnedGrowth(private val draft: QueensDraft, private val bu
         return true
     }
 
-    /** As the generator grows regions: the smallest region with room takes one random neighbour. */
+    /**
+     * As the generator grows regions: the smallest region with room takes one random neighbour.
+     * Off [Spread.Free] a region the author never started goes before any painted one, and with
+     * [Spread.UnusedOnly] the painted ones never grow, which may leave cells unpainted.
+     */
     private fun grow(reg: IntArray, random: Random) {
         val sizes = IntArray(n)
         val frontier = List(n) { LinkedHashSet<Int>() }
@@ -97,7 +121,12 @@ internal class QueensPinnedGrowth(private val draft: QueensDraft, private val bu
         for (cell in reg.indices) if (reg[cell] != QueensDraft.UNPAINTED) claim(cell, reg[cell])
         while (true) {
             for (cells in frontier) cells.removeAll { reg[it] != QueensDraft.UNPAINTED }
-            val region = (0 until n).filter { frontier[it].isNotEmpty() }.minByOrNull { sizes[it] } ?: return
+            val region = when (spread) {
+                Spread.Free -> (0 until n).filter { frontier[it].isNotEmpty() }.minByOrNull { sizes[it] }
+                else -> (0 until n)
+                    .filter { frontier[it].isNotEmpty() && (spread == Spread.UnusedFirst || it !in started) }
+                    .minWithOrNull(compareBy({ it in started }, { sizes[it] }))
+            } ?: return
             claim(frontier[region].elementAt(random.nextInt(frontier[region].size)), region)
         }
     }
@@ -109,13 +138,15 @@ internal class QueensPinnedGrowth(private val draft: QueensDraft, private val bu
             val answers = search.answers(reg, limit = 2) ?: return false
             if (answers.size == 1) return true
             val other = answers.firstOrNull { answer -> answer.any { !isQueen[it] } } ?: return false
-            val moves = ArrayList<Pair<List<Int>, Int>>()
+            val every = ArrayList<Pair<List<Int>, Int>>()
             for (cell in other) {
                 if (isQueen[cell] || draft.regions[cell] != QueensDraft.UNPAINTED) continue
                 val targets = neighbours[cell].map { reg[it] }.filter { it != reg[cell] }.distinct()
                 val leaving = if (targets.isEmpty()) null else leaving(reg, cell, seatOf[reg[cell]])
-                if (leaving != null) targets.mapTo(moves) { leaving to it }
+                if (leaving != null) targets.mapTo(every) { leaving to it }
             }
+            val unused = if (spread == Spread.Free) every else every.filter { it.second !in started }
+            val moves = if (spread == Spread.UnusedFirst) unused.ifEmpty { every } else unused
             if (moves.isEmpty()) {
                 // No queen of the other answer can leave its region, so no repaint ends that
                 // answer: it becomes the intended one, unless it drops a crown or was tried.

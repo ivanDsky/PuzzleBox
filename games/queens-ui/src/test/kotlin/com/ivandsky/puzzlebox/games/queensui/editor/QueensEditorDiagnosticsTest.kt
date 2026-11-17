@@ -70,6 +70,22 @@ class QueensEditorDiagnosticsTest {
     }
 
     @Test
+    fun `the cells a finish recoloured wear a ring, and a board without them wears none`() {
+        val controller = controllerOf(QueensDraft(SIZE, WHOLE, recoloured = setOf(5, 6)))
+        rule.setContent {
+            PuzzleBoxTheme { QueensEditorBoard(controller, Verdict.Checking, Modifier.fillMaxWidth()) }
+        }
+
+        assertEquals(setOf(5, 6), tagged("recoloured"))
+        assertEquals(emptySet<Int>(), tagged("diff"))
+
+        controller.adopt(EditorDraft(QueensEditor, DraftState(QueensDraft(SIZE, WHOLE))))
+        rule.waitForIdle()
+
+        assertEquals(emptySet<Int>(), tagged("recoloured"))
+    }
+
+    @Test
     fun `a split region's stray piece gets stripes only after the settle pause`() {
         rule.mainClock.autoAdvance = false
         show(SPLIT, Verdict.Checking)
