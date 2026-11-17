@@ -10,7 +10,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.LayoutDirection
@@ -52,7 +51,7 @@ internal enum class NavMotionKind {
     /** A predictive-back scrub, shifted toward [NavMotion.swipeEdge]. */
     Predictive,
 
-    /** TabletCrossfade predictive back: the upper page shrinks in place as the swipe grows, then fades over the opaque lower one. */
+    /** TabletCrossfade predictive back: the upper page shifts toward the end, shrinks and fades; the lower one fades in late from the start side. */
     PredictiveShrink,
 }
 
@@ -125,13 +124,15 @@ internal data class NavMotion(
                 fadeIn(hold, initialAlpha = 1f) togetherWith (shift + lateFade)
             }
             NavMotionKind.PredictiveShrink -> {
-                // The pivot sits a little toward the swipe edge, so the page never drifts away from it.
-                val pivotX = if (swipeEdge == NavigationEvent.EDGE_RIGHT) 0.5f + PredictivePivotNudge else 0.5f - PredictivePivotNudge
-                val shrink = scaleOut(fade, PredictiveShrinkScale, TransformOrigin(pivotX, 0.5f))
-                val lateFade = fadeOut(
-                    tween(PredictiveFadeOutMillis, durationMillis - PredictiveFadeOutMillis, easing),
-                )
-                fadeIn(hold, initialAlpha = 1f) togetherWith (shrink + lateFade)
+                // The reference tablet back: the outgoing page travels toward the end (right in LTR) whichever edge the
+                // swipe starts from, shrinking a little and fading out; the page below fades in late from a small start-side offset.
+                val outFade = tween<Float>((durationMillis * PredictiveTabletFadeOutFraction).roundToInt(), easing = easing)
+                val inFade = tween<Float>(durationMillis / 2, delayMillis = durationMillis / 2, easing = easing)
+                val outgoing = slideOutHorizontally(travel) { endward * (it * PredictiveTabletShiftFraction).roundToInt() } +
+                    scaleOut(fade, PredictiveTabletScale) + fadeOut(outFade)
+                val incoming = slideInHorizontally(travel) { -endward * (it * PredictiveTabletIncomingOffset).roundToInt() } +
+                    fadeIn(inFade, initialAlpha = 0f)
+                incoming togetherWith outgoing
             }
         }
     }
@@ -144,11 +145,17 @@ internal data class NavMotion(
         /** The outgoing screen's shift toward the gesture, as a fraction of the width. */
         const val PredictiveShiftFraction = 0.08f
 
-        /** TabletCrossfade predictive back: the upper page's scale at the end of the scrub. */
-        const val PredictiveShrinkScale = 0.9f
+        /** TabletCrossfade predictive back: how far the outgoing page travels toward the end, as a fraction of the width. */
+        const val PredictiveTabletShiftFraction = 0.45f
 
-        /** Its pivot's offset from the centre toward the swipe edge, as a fraction of the width. */
-        const val PredictivePivotNudge = 0.04f
+        /** The outgoing page's scale at the end of the scrub. */
+        const val PredictiveTabletScale = 0.95f
+
+        /** The outgoing page is gone after this share of the scrub. */
+        const val PredictiveTabletFadeOutFraction = 0.85f
+
+        /** The page below fades in over the scrub's second half from this start-side offset, as a fraction of the width. */
+        const val PredictiveTabletIncomingOffset = 0.04f
 
         /** The outgoing screen fades out over the last stretch of the timeline. */
         val PredictiveFadeOutMillis = MotionTokens.DurationMedium / 2
@@ -203,7 +210,7 @@ internal fun navMotion(
  * Predictive back: a gesture-scrubbed preview of the real destination, the same for every
  * back. The outgoing screen shifts with the swipe ([swipeEdge], a [NavigationEvent] edge) over
  * the opaque destination; under reduced motion the scrub only fades the outgoing screen. With [shrink]
- * (TabletCrossfade on a tablet) the screen shrinks in place instead of shifting.
+ * (TabletCrossfade on a tablet) the screen always travels toward the end and fades, shrinking a little, whichever edge.
  */
 internal fun predictivePopMotion(swipeEdge: Int, reduceMotion: Boolean, shrink: Boolean = false): NavMotion =
     if (reduceMotion) {

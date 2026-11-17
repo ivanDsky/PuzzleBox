@@ -477,18 +477,29 @@ class NavTransitionsTest {
     }
 
     @Test
-    fun `TabletCrossfade predictive back shrinks the screen toward the swipe edge over an opaque, still destination`() {
+    fun `TabletCrossfade predictive back moves the screen right for either edge and fades it out`() {
         val probe = Probe(composeRule)
 
-        val fromLeft = probe.play(predictivePopMotion(NavigationEvent.EDGE_LEFT, reduceMotion = false, shrink = true), PREDICTIVE_HALF)
-        assertTrue("shrinks: $fromLeft", fromLeft.outgoing.right - fromLeft.outgoing.left < fromLeft.container.right - fromLeft.container.left - EPS)
-        assertTrue("left pivot: the left side moves in less than the right: $fromLeft", fromLeft.outgoing.left - fromLeft.container.left < fromLeft.container.right - fromLeft.outgoing.right)
-        assertSameRect(fromLeft.container, fromLeft.incoming)
+        listOf(NavigationEvent.EDGE_LEFT, NavigationEvent.EDGE_RIGHT).forEach { edge ->
+            val motion = predictivePopMotion(edge, reduceMotion = false, shrink = true)
+            val mid = probe.play(motion, PREDICTIVE_HALF)
+            assertTrue("edge $edge: outgoing is right of the container: $mid", mid.outgoing.left > mid.container.left + EPS)
+            assertTrue("edge $edge: outgoing shrinks: $mid", mid.outgoing.right - mid.outgoing.left < mid.container.right - mid.container.left - EPS)
+            val late = probe.play(motion, NavMotion.PredictiveMillis - LATE_MILLIS)
+            assertTrue("edge $edge: outgoing is gone by the end: $late", late.upper(true) <= 40)
+        }
+    }
 
-        val fromRight = probe.play(predictivePopMotion(NavigationEvent.EDGE_RIGHT, reduceMotion = false, shrink = true), PREDICTIVE_HALF)
-        assertTrue("right pivot: the right side moves in less than the left: $fromRight", fromRight.container.right - fromRight.outgoing.right < fromRight.outgoing.left - fromRight.container.left)
-        assertSameRect(fromRight.container, fromRight.incoming)
-        assertOpaque(fromRight)
+    @Test
+    fun `TabletCrossfade predictive back brings the lower page in late from a small left offset`() {
+        val probe = Probe(composeRule)
+        val motion = predictivePopMotion(NavigationEvent.EDGE_RIGHT, reduceMotion = false, shrink = true)
+
+        val early = probe.play(motion, SAMPLE_MILLIS)
+        assertTrue("invisible in the first half: $early", early.lower(true) <= 8)
+        val late = probe.play(motion, NavMotion.PredictiveMillis - LATE_MILLIS)
+        assertTrue("fading in by the end: $late", late.lower(true) > 8)
+        assertTrue("small left offset, never beyond: $late", late.incoming.left <= late.container.left && late.incoming.left >= late.container.left - (late.container.right - late.container.left) / 10)
     }
 
     @Test
@@ -544,6 +555,8 @@ class NavTransitionsTest {
         val outgoingChannel: Int,
     ) {
         fun upper(pop: Boolean): Int = if (pop) outgoingChannel else incomingChannel
+
+        fun lower(pop: Boolean): Int = if (pop) incomingChannel else outgoingChannel
     }
 
     /**
