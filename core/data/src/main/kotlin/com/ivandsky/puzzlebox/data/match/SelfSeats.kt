@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.data.match
 
+import com.ivandsky.puzzlebox.model.ShareCode
+
 /**
  * The two seats of a self duel (you against your own first solves). They are fixed strings, never account
  * uids, so a self duel reads the same signed in, signed out and after switching accounts.
@@ -21,3 +23,10 @@ val Match.isSelf: Boolean get() = challenger.uid == SelfSeats.ME
 
 /** The seat the player holds in this match: [SelfSeats.ME] in a self duel, else [identityUid] (null when signed out). */
 fun Match.mySeat(identityUid: String?): String? = if (isSelf) SelfSeats.ME else identityUid
+
+/**
+ * The seat this device gives the player for [code]: [SelfSeats.ME] when the code is a self duel it holds, else
+ * [uid] (null when signed out). A device-only answer, so a friend leg never waits on a remote read for it.
+ */
+suspend fun SelfMatchRepository.seatFor(code: ShareCode, uid: String?): String? =
+    if (holds(code)) SelfSeats.ME else uid

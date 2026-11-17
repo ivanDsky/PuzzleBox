@@ -7,9 +7,11 @@ import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.OutboxResult
+import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
 import com.ivandsky.puzzlebox.data.match.SelfSeats
 import com.ivandsky.puzzlebox.data.match.isSelf
 import com.ivandsky.puzzlebox.data.match.mySeat
+import com.ivandsky.puzzlebox.data.match.seatFor
 import com.ivandsky.puzzlebox.domain.FinishResult
 import com.ivandsky.puzzlebox.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.model.ShareCode
@@ -30,6 +32,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -74,13 +77,15 @@ internal data class LegPosition(val opponent: String?, val number: Int, val coun
  * The state holder of one duel puzzle's board for [key]: the store's live play of the key's leg, opened only
  * once my own queued result for the puzzle is known not to exist. A taken puzzle never reopens: my row
  * in the outbox (the single truth for "taken") sends the route to [MatchLegExit.Taken] with that row's result.
- * "My" is the seat the match gives the player ([seatOf]): a self duel has one signed in or out. Without a seat (a
+ * "My" is the seat this device gives the player ([seatFor]): a self duel has one signed in or out, read from the
+ * device, never from the match document. Without a seat (a
  * friend duel signed out) the check waits up to [IDENTITY_WAIT_MS] for the signed-in player (restored after a kill
  * only some moments in), runs seatless past that, and runs again when the player changes. The play is the store's,
  * so it outlives this ViewModel; releasing it is [PlaySessionStore.retain]'s job, never this one's.
  *
- * Once the match document is read [MatchLegState.Playing.position] names the puzzle in its duel; nothing
- * else of the match is read from here. [giveUp] queues the loss through the store; without a seat, nothing
+ * The board never waits on the match document: once it arrives [MatchLegState.Playing.position] names the
+ * puzzle in its duel and the self duel's [legTarget] and `progress[ME]` row feed the position line and the
+ * timer's target; nothing else of the match is read from here. [giveUp] queues the loss through the store; without a seat, nothing
  * could record it and nothing happens.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -90,6 +95,7 @@ internal class MatchLegViewModel(
     private val matches: MatchRepository,
     private val outbox: MatchResultOutbox,
     private val identity: IdentityService,
+    private val self: SelfMatchRepository,
     private val legTarget: ObserveLegTarget,
 ) : ViewModel() {
 
@@ -109,7 +115,8 @@ internal class MatchLegViewModel(
         if (open == null) {
             flowOf(MatchLegState.Checking)
         } else {
-            val fetch = code?.let(matches::observe) ?: flowOf(null)
+            // The board is already open: the match document only fills the position line when it arrives.
+            val fetch: Flow<MatchFetch?> = code?.let { matches.observe(it).onStart<MatchFetch?> { emit(null) } } ?: flowOf(null)
             val target = code?.let { legTarget(it, key.legIndex) } ?: flowOf(null)
             combine(fetch, uid, target) { fetch, uid, target ->
                 val seat = seatOf(fetch, uid)
@@ -151,8 +158,8 @@ internal class MatchLegViewModel(
         if (opened.value == null) opened.value = Opened(store.open(key))
     }
 
-    /** One read of the match, not a listener: the taken check must not run for the account before a self duel answers. */
-    private suspend fun seat(uid: String?): String? = seatOf(code?.let { matches.observe(it).first() }, uid)
+    /** From the device alone: the taken check must not wait on a remote read of a friend match. */
+    private suspend fun seat(uid: String?): String? = code?.let { self.seatFor(it, uid) } ?: uid
 
     private suspend fun taken(seat: String?): MatchLegResultKey? =
         code?.let { takenResultKey(outbox.observe(it).first(), key, seat) }

@@ -5,6 +5,7 @@ import com.ivandsky.puzzlebox.data.identity.Identity
 import com.ivandsky.puzzlebox.data.match.LegRef
 import com.ivandsky.puzzlebox.data.match.LegResult
 import com.ivandsky.puzzlebox.data.match.MatchDraft
+import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchLeg
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.OutboxResult
@@ -39,8 +40,11 @@ import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.advanceTimeBy
@@ -145,8 +149,9 @@ class MatchLegViewModelTest {
 
     private fun row(result: LegResult) = runBlocking { outbox.enqueue(code, result) }
 
-    private fun route(leg: Int = 1): MatchLegViewModel {
-        return MatchLegViewModel(leg(leg), store, countingServer, outbox, identity, ObserveLegTarget(FakeSelfMatchRepository(), FakeUserPreferencesRepository())).also { vm ->
+    private fun route(leg: Int = 1, matches: MatchRepository = countingServer): MatchLegViewModel {
+        val self = FakeSelfMatchRepository()
+        return MatchLegViewModel(leg(leg), store, matches, outbox, identity, self, ObserveLegTarget(self, FakeUserPreferencesRepository())).also { vm ->
             screen.launch { vm.state.collect {} }
             screen.launch {
                 vm.exits.collect {
@@ -323,5 +328,41 @@ class MatchLegViewModelTest {
         vm.giveUp()
 
         assertEquals(listOf<MatchLegExit>(MatchLegExit.GaveUp), exits)
+    }
+
+    /** A friend code's listener that is still waiting for the first remote answer (offline, not in the cache). */
+    private val silentServer = object : MatchRepository by server {
+        override fun observe(code: ShareCode): Flow<MatchFetch> = flow { awaitCancellation() }
+    }
+
+    @Test
+    fun aFriendLegOpensTheBoardBeforeAnyRemoteAnswer() {
+        duel()
+
+        val vm = route(leg = 1, matches = silentServer)
+
+        assertNotNull("the puzzle's play is open", vm.playing().play)
+        assertTrue("nothing to leave for", exits.isEmpty())
+    }
+
+    @Test
+    fun aFriendLegWithMyRowLeavesTakenBeforeAnyRemoteAnswer() {
+        duel()
+        row(solved(ann, legIndex = 1, timeMs = 61_000L, hints = 2))
+
+        route(leg = 1, matches = silentServer)
+
+        assertEquals(listOf<MatchLegExit>(MatchLegExit.Taken(MatchLegResultKey(code.value, 1, 61_000L, 2, gaveUp = false))), exits)
+    }
+
+    @Test
+    fun aGiveUpThatLostToASolveLeavesTakenBeforeAnyRemoteAnswer() {
+        duel()
+        val vm = route(leg = 1, matches = silentServer)
+        row(solved(ann, legIndex = 1, timeMs = 40_000L, hints = 1))
+
+        vm.giveUp()
+
+        assertEquals(listOf<MatchLegExit>(MatchLegExit.Taken(MatchLegResultKey(code.value, 1, 40_000L, 1, gaveUp = false))), exits)
     }
 }
