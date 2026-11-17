@@ -11,6 +11,8 @@ import com.ivandsky.puzzlebox.domain.ComputeStreak
 import com.ivandsky.puzzlebox.domain.CreateDraft
 import com.ivandsky.puzzlebox.domain.CreateDraftCopy
 import com.ivandsky.puzzlebox.domain.CreateMatch
+import com.ivandsky.puzzlebox.domain.CreateSelfDuel
+import com.ivandsky.puzzlebox.domain.ComputeSolvedPool
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
@@ -170,6 +172,18 @@ val domainModule = module {
         )
     }
     factory { CreateMatch(repo = get(), local = get(), draw = get(), identity = get(), random = Random.Default) }
+    factory { ComputeSolvedPool(registry = get(), completions = get(), received = get()) }
+    factory {
+        CreateSelfDuel(
+            pool = get(),
+            completions = get(),
+            received = get(),
+            self = get(),
+            local = get(),
+            clock = { Instant.now() },
+            random = Random.Default,
+        )
+    }
     factory { UpdateMatchSeat(repo = get(), local = get(), identity = get()) }
     factory { RecordRevealSeen(local = get(), clock = { Instant.now() }) }
     factory { ImportDraftFromText(registry = get(), createDraft = get(), drafts = get(), dispatchers = get()) }
