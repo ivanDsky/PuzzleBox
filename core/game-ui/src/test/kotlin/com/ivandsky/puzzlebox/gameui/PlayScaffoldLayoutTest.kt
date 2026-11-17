@@ -249,7 +249,7 @@ class PlayScaffoldLayoutTest {
         assertRowDirectlyUnderBoard(side = 360.dp - PlayBoardInset * 2)
     }
 
-    /** The user's choices (ticket 56, widened by ticket 57c): 552 / 640 / 640 dp caps, an 80 dp tablet cell cap, controls in the side column. */
+    /** The user's choices (ticket 56, widened by ticket 57c, cell cap raised to 96 dp by ticket 105): 552 / 640 / 640 dp caps, a 96 dp tablet cell cap, controls in the side column. */
     private val shipped = ShippedPlayTuningSource.tuning.value!!
 
     @Test
@@ -272,10 +272,10 @@ class PlayScaffoldLayoutTest {
 
     @Test
     @Config(qualifiers = "w800dp-h1280dp")
-    fun `a 6 by 6 board on a shipped portrait tablet is 480 dp`() {
+    fun `a 6 by 6 board on a shipped portrait tablet is 576 dp`() {
         setScreen(PlayLayout.SinglePane, 800, 1280, tuning = shipped, gridColumns = 6)
 
-        assertRowDirectlyUnderBoard(side = 480.dp)
+        assertRowDirectlyUnderBoard(side = 576.dp)
     }
 
     @Test
@@ -307,11 +307,11 @@ class PlayScaffoldLayoutTest {
 
     @Test
     @Config(qualifiers = "w1280dp-h800dp")
-    fun `a 6 by 6 board on a shipped landscape tablet is 480 dp with the controls in the side column`() {
+    fun `a 6 by 6 board on a shipped landscape tablet is 576 dp with the controls in the side column`() {
         setScreen(PlayLayout.TwoPane, 1280, 800, tuning = shipped, gridColumns = 6)
         val board = bounds("board")
 
-        assertEquals("board width", 480f, board.width.value, 0.5f)
+        assertEquals("board width", 576f, board.width.value, 0.5f)
         controlTags.map(::bounds).forEach { control ->
             assertEquals("$control beside board $board", (board.right + PlayBoardInset).value, control.left.value, 0.5f)
         }
