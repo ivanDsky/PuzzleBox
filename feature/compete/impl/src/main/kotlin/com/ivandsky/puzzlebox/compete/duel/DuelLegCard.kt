@@ -66,7 +66,7 @@ internal fun DuelLegCard(
                     text = row.title,
                     style = MaterialTheme.typography.titleMedium,
                     color = scheme.onSurface,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 Text(

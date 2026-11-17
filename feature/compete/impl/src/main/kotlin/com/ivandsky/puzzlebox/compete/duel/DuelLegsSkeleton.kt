@@ -6,12 +6,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,6 +26,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.AppShapes
+import com.ivandsky.puzzlebox.designsystem.HiddenBoardTokens
 import com.ivandsky.puzzlebox.designsystem.MaxContentWidth
 import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.Spacing
@@ -55,7 +58,7 @@ internal fun DuelLoading(layout: PlayLayout, modifier: Modifier = Modifier) {
 
 /**
  * The duel's two columns on a pane [paneHeight] high while it loads: quiet bars for the header, the list's cards and the
- * detail, in the same [TwoColumnFrame] as [DuelLegs], so the loaded page replaces it in place. Each bar takes the text
+ * board and detail, in the same [TwoColumnFrame] as [DuelLegs], so the loaded page replaces it in place. Each bar takes the text
  * style of what it holds, so it is as high.
  */
 @Composable
@@ -83,6 +86,7 @@ internal fun DuelLegsSkeleton(paneHeight: Dp, modifier: Modifier = Modifier) {
             }
         },
         right = {
+            Block(Modifier.widthIn(max = HiddenBoardTokens.MaxSide).fillMaxWidth().aspectRatio(1f), MaterialTheme.shapes.medium)
             Block(Modifier.size(HeroBlock), AppShapes.large)
             Bar(Modifier.fillMaxWidth(TITLE_FRACTION), MaterialTheme.typography.headlineSmall)
             Bar(Modifier.width(160.dp), MaterialTheme.typography.bodyMedium)

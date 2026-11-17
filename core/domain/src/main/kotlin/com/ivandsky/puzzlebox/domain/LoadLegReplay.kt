@@ -8,11 +8,8 @@ import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.data.match.mySeat
-import com.ivandsky.puzzlebox.data.repository.DailyDay
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
-import com.ivandsky.puzzlebox.game.FetchError
-import com.ivandsky.puzzlebox.game.Puzzle
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.model.SolveReplay
 import kotlinx.coroutines.flow.first
@@ -27,10 +24,12 @@ class LoadLegReplay(
     private val matches: MatchRepository,
     private val outbox: MatchResultOutbox,
     private val identity: IdentityService,
-    private val daily: DailyRepository,
-    private val received: ReceivedPuzzleRepository,
-    private val loadShared: LoadSharedPuzzle,
+    daily: DailyRepository,
+    received: ReceivedPuzzleRepository,
+    loadShared: LoadSharedPuzzle,
 ) {
+    private val puzzles = LoadLegPuzzle(daily, received, loadShared)
+
     /** Null = no replay, for any cause. */
     suspend operator fun invoke(ref: SolveReplayRef): ReplaySource? = (read(ref) as? LegReplayRead.Found)?.source
 
@@ -66,23 +65,10 @@ class LoadLegReplay(
 
     private suspend fun puzzleOf(match: Match, legIndex: Int, bytes: SolveReplay): LegReplayRead {
         val leg = match.legs.getOrNull(legIndex)?.ref ?: return LegReplayRead.Absent
-        val puzzle: Puzzle = when (leg) {
-            is LegRef.Daily -> daily.cachedPuzzle(leg.gameId, leg.day) ?: when (val day = daily.day(leg.gameId, leg.day)) {
-                is DailyDay.Ready -> day.puzzle
-                is DailyDay.Failed -> return if (day.error is FetchError.NotFound) LegReplayRead.Absent else LegReplayRead.Unavailable
-                DailyDay.NotCaptured, DailyDay.OutOfRange -> return LegReplayRead.Absent
-            }
-            is LegRef.Custom -> {
-                val row = received.get(leg.code) ?: when (val opened = loadShared(leg.code)) {
-                    is OpenOutcome.Opened -> opened.puzzle
-                    OpenOutcome.Offline -> return LegReplayRead.Unavailable
-                    else -> null
-                }
-                row?.takeIf { it.gameId == leg.gameId }
-                    ?.let { Puzzle(it.gameId, it.variant, it.sharedFormatVersion, it.puzzleBytes) }
-                    ?: return LegReplayRead.Absent
-            }
+        return when (val read = puzzles(leg)) {
+            is LegPuzzleRead.Found -> LegReplayRead.Found(ReplaySource(read.puzzle, bytes))
+            LegPuzzleRead.Unavailable -> LegReplayRead.Unavailable
+            LegPuzzleRead.Absent -> LegReplayRead.Absent
         }
-        return LegReplayRead.Found(ReplaySource(puzzle, bytes))
     }
 }

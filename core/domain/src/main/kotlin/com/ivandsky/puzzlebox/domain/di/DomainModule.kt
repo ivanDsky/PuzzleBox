@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.domain.GetFeaturedGame
 import com.ivandsky.puzzlebox.domain.GetNextRollover
 import com.ivandsky.puzzlebox.domain.LoadCustomReplay
 import com.ivandsky.puzzlebox.domain.LoadDailyReplay
+import com.ivandsky.puzzlebox.domain.LoadLegPuzzle
 import com.ivandsky.puzzlebox.domain.LoadLegReplay
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadPlayerReplay
@@ -226,6 +227,7 @@ val domainModule = module {
             loadShared = get(),
         )
     }
+    factory { LoadLegPuzzle(daily = get(), received = get(), loadShared = get()) }
     factory { LoadPlayerReplay(replays = get(), daily = get()) }
     factory {
         LoadSolveReplay(
