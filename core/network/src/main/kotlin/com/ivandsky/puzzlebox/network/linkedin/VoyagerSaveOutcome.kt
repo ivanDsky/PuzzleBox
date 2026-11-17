@@ -6,7 +6,6 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 
-private const val HTTP_OK = 200
 
 /**
  * What one voyager save answer means. [body] matters only for a 200: it is a save only when it carries the

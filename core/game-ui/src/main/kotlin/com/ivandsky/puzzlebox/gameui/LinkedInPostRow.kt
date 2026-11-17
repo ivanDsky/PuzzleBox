@@ -1,27 +1,18 @@
 package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.LocalIndication
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
@@ -34,16 +25,14 @@ import com.ivandsky.puzzlebox.designsystem.LinkedInBlue
 import com.ivandsky.puzzlebox.designsystem.LinkedInBluePressed
 import com.ivandsky.puzzlebox.designsystem.LocalLinkedInText
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
-import com.ivandsky.puzzlebox.designsystem.Spacing
 
-private val CircleSize = 44.dp
 private val GlyphSize = 24.dp
 private val SpinnerSize = 20.dp
 private val SpinnerStroke = 2.dp
 private val RowMinHeight = 56.dp
 
 /**
- * The result page's Post to LinkedIn row (tag `result.linkedin_post`), in the Watch replay row's pattern: a 44 dp
+ * The result page's Post to LinkedIn row (tag `result.linkedin_post`), on the shared [ResultActionRow] frame: a 44 dp
  * circle, then [LinkedInPostRowState.title] over its subtitle, the whole row at least 56 dp tall. The circle is LinkedIn
  * blue with a white glyph where a tap does something, tonal where the row only reports, muted where LinkedIn is
  * unavailable. Only a tappable state takes a click, and not while [pending] (the page is not ready), when the row is
@@ -57,12 +46,12 @@ fun LinkedInPostRow(
     modifier: Modifier = Modifier,
     pending: Boolean = false,
 ) {
-    val colors = MaterialTheme.colorScheme
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val shell = modifier.testTag("result.linkedin_post")
         .then(if (pending) Modifier.alpha(0f).clearAndSetSemantics {} else Modifier)
-    Row(
+    val look = state.look(pressed)
+    ResultActionRow(
         modifier = shell
             .fillMaxWidth()
             .heightIn(min = RowMinHeight)
@@ -71,22 +60,15 @@ fun LinkedInPostRow(
                 indication = LocalIndication.current,
                 enabled = state.enabled,
                 role = Role.Button,
-            ) { if (!pending) onClick() }
-            .padding(vertical = Spacing.md),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) { if (!pending) onClick() },
+        circleColor = look.fill,
+        title = state.title,
+        supporting = state.subtitle(time),
     ) {
-        val look = state.look(pressed)
-        Box(Modifier.size(CircleSize).background(look.fill, CircleShape), contentAlignment = Alignment.Center) {
-            if (state == LinkedInPostRowState.Posting) {
-                CircularProgressIndicator(Modifier.size(SpinnerSize), color = look.glyph, strokeWidth = SpinnerStroke)
-            } else {
-                Icon(state.icon(), contentDescription = null, tint = look.glyph, modifier = Modifier.size(GlyphSize))
-            }
-        }
-        Column(Modifier.weight(1f)) {
-            Text(state.title, style = MaterialTheme.typography.titleSmall, color = colors.onSurface)
-            Text(state.subtitle(time), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+        if (state == LinkedInPostRowState.Posting) {
+            CircularProgressIndicator(Modifier.size(SpinnerSize), color = look.glyph, strokeWidth = SpinnerStroke)
+        } else {
+            Icon(state.icon(), contentDescription = null, tint = look.glyph, modifier = Modifier.size(GlyphSize))
         }
     }
 }

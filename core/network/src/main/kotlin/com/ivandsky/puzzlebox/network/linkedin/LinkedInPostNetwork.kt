@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.network.linkedin
 
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInResultPoster
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSessionCookies
+import java.time.Instant
 import java.time.ZoneId
 import java.util.concurrent.atomic.AtomicBoolean
 import okhttp3.Call
@@ -11,11 +12,12 @@ import retrofit2.Retrofit
 /**
  * The production poster of the player's result to LinkedIn over [baseUrl], with a client of its own. Tests
  * build it through here too, so they run the wires the app runs: `updateGameState`, and the voyager save for
- * a play that carries a voyager board. [zone] is the device's timezone, which the `x-li-track` header reports.
+ * a play that carries a voyager board. [clock] and [zone] are the instant and the device's timezone the `x-li-track` header reports.
  */
 fun linkedInResultPoster(
     baseUrl: String,
     session: LinkedInSessionCookies,
+    clock: () -> Instant = Instant::now,
     zone: () -> ZoneId = ZoneId::systemDefault,
 ): LinkedInResultPoster {
     val client = linkedInSessionClient().newBuilder()
@@ -29,8 +31,8 @@ fun linkedInResultPoster(
     val api = retrofit.create(LinkedInPostApi::class.java)
     val graphql = VoyagerGraphql(retrofit.create(LinkedInAccountApi::class.java), session)
     return TwoWireLinkedInResultPoster(
-        sdui = SduiLinkedInResultPoster(api, session, zone),
-        voyager = VoyagerGameSave(api, graphql, session, zone),
+        sdui = SduiLinkedInResultPoster(api, session, clock, zone),
+        voyager = VoyagerGameSave(api, graphql, session, clock, zone),
     )
 }
 

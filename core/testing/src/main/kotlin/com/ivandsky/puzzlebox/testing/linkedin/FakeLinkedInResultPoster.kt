@@ -37,8 +37,8 @@ class FakeLinkedInResultPoster : LinkedInResultPoster {
     /** Every post sent so far with its page, oldest first. */
     val sent: List<Pair<LinkedInPost, LinkedInGamePage>> get() = posts.toList()
 
-    override suspend fun gamePage(gamePath: String): LinkedInRead<LinkedInGamePage> {
-        recorded += "page:$gamePath"
+    override suspend fun gamePage(post: LinkedInPost): LinkedInRead<LinkedInGamePage> {
+        recorded += "page:${post.gamePath}"
         return pageReply
     }
 

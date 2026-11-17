@@ -11,6 +11,7 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInDayData
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInGhost
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInOwnState
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostState
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostView
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPosts
 import com.ivandsky.puzzlebox.data.repository.DailyEntry
 import com.ivandsky.puzzlebox.data.match.LegRef
@@ -130,7 +131,7 @@ class ResultViewModelTest {
     private val linkedInPosts = FakeLinkedInPosts()
     private var observedDays = 0
     private val countedPosts = object : LinkedInPosts by linkedInPosts {
-        override fun observe(game: GameId, day: LocalDate): Flow<LinkedInPostState> {
+        override fun observe(game: GameId, day: LocalDate): Flow<LinkedInPostView> {
             observedDays++
             return linkedInPosts.observe(game, day)
         }
@@ -538,8 +539,7 @@ class ResultViewModelTest {
     @Test
     fun `a play again on a posted day names the time the day's record holds, not the replay's`() {
         val posted = FakeController.TIME_MS + 8_000
-        completions.setRecords(listOf(record(posted, 0)))
-        linkedInPosts.emit(alpha, day, LinkedInPostState.Posted)
+        linkedInPosts.emit(alpha, day, LinkedInPostState.Posted, posted)
 
         val vm = vm(key.copy(timeMs = FakeController.TIME_MS), flags = postOn).postObserved().postTimeObserved()
 
@@ -549,8 +549,7 @@ class ResultViewModelTest {
 
     @Test
     fun `the first solve's Posted row names its own time`() {
-        completions.setRecords(listOf(record(FakeController.TIME_MS, 0)))
-        linkedInPosts.emit(alpha, day, LinkedInPostState.Posted)
+        linkedInPosts.emit(alpha, day, LinkedInPostState.Posted, FakeController.TIME_MS)
 
         val vm = vm(flags = postOn).postObserved().postTimeObserved()
 

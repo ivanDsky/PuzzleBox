@@ -82,7 +82,7 @@ class LinkedInPostFlowSingleFlightTest {
 
         screen.cancelAndJoin()
         answer.complete(Unit)
-        rig.posts.observe(rig.game, rig.today).first { it == LinkedInPostState.Posted }
+        rig.posts.observe(rig.game, rig.today).first { it.state == LinkedInPostState.Posted }
 
         assertEquals(setOf("fixture/2026-11-05"), rig.stored().postedRefs)
         assertEquals(emptySet<String>(), rig.stored().sendingRefs)

@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlay
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSolve
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInVoyagerCell
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInVoyagerPlay
-import com.ivandsky.puzzlebox.game.replay.MoveKind
 
 /**
  * Encodes a solved Mini Sudoku [LinkedInSolve] for LinkedIn's voyager save, the wire Mini Sudoku is still on
@@ -27,7 +26,7 @@ object MiniSudokuLinkedInPlay {
             states = emptyMap(),
             payloadKeys = emptyMap(),
             // Same rule as Zip and Tango: a conflicting digit, a hint or an undo anywhere in the solve is a flaw.
-            mistakeFree = solve.kinds.none { it in FLAWS },
+            mistakeFree = solve.mistakeFree,
             voyager = LinkedInVoyagerPlay(
                 stateName = STATE_NAME,
                 cells = entered(final.board),
@@ -40,6 +39,4 @@ object MiniSudokuLinkedInPlay {
     /** The digits the player entered, ascending by cell index. */
     private fun entered(board: SudokuBoard): List<LinkedInVoyagerCell> =
         board.cells.mapIndexedNotNull { idx, cell -> (cell as? SudokuCell.Entry)?.let { LinkedInVoyagerCell(idx, it.digit) } }
-
-    private val FLAWS = setOf(MoveKind.Mistake, MoveKind.Hint, MoveKind.Undo)
 }

@@ -16,8 +16,6 @@ internal class TwoWireLinkedInResultPoster(
     private val voyager: VoyagerGameSave,
 ) : LinkedInResultPoster {
 
-    override suspend fun gamePage(gamePath: String): LinkedInRead<LinkedInGamePage> = sdui.gamePage(gamePath)
-
     override suspend fun gamePage(post: LinkedInPost): LinkedInRead<LinkedInGamePage> =
         if (post.play.voyager != null) voyager.game(post) else sdui.gamePage(post)
 

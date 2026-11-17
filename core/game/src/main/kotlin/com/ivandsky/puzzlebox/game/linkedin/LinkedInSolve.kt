@@ -10,4 +10,11 @@ import com.ivandsky.puzzlebox.game.replay.MoveKind
  */
 class LinkedInSolve<S : GameSession>(val boards: List<S>, val kinds: List<MoveKind>, val timesMs: List<Long>) {
     val final: S get() = boards.last()
+
+    /** No rejected move, hint or undo anywhere in the solve: the part of A13's flawless rule every game shares. */
+    val mistakeFree: Boolean get() = kinds.none { it in FLAWS }
+
+    private companion object {
+        val FLAWS = setOf(MoveKind.Mistake, MoveKind.Hint, MoveKind.Undo)
+    }
 }

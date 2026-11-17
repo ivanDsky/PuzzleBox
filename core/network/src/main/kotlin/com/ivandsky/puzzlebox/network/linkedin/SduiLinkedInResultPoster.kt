@@ -31,10 +31,12 @@ import retrofit2.Response
 internal class SduiLinkedInResultPoster(
     private val api: LinkedInPostApi,
     private val session: LinkedInSessionCookies,
+    private val clock: () -> Instant = Instant::now,
     private val zone: () -> ZoneId = ZoneId::systemDefault,
 ) : LinkedInResultPoster {
 
-    override suspend fun gamePage(gamePath: String): LinkedInRead<LinkedInGamePage> {
+    override suspend fun gamePage(post: LinkedInPost): LinkedInRead<LinkedInGamePage> {
+        val gamePath = post.gamePath
         val headers = session.current() ?: return LinkedInRead.SignedOut
         return try {
             // A session no header can carry is as useless as a refused one: it is a rejection, not a retry.
@@ -65,7 +67,7 @@ internal class SduiLinkedInResultPoster(
         return try {
             val response = request(headers, post.gamePath, body, written)
                 ?: return LinkedInSendResult.Rejected(Kind.Unexpected)
-            serverRequestOutcome(response.code(), answer(response))
+            serverRequestOutcome(response.code(), response.successText())
         } catch (_: IOException) {
             currentCoroutineContext().ensureActive()
             // Once the body is out the write may have landed; before that nothing was sent.
@@ -119,44 +121,22 @@ internal class SduiLinkedInResultPoster(
     private fun readPage(response: Response<ResponseBody>): LinkedInRead<LinkedInGamePage> {
         val code = response.code()
         if (code != HTTP_OK) {
-            response.errorBody()?.close()
-            response.body()?.close()
+            response.closeBody()
             return LinkedInRead.Rejected(linkedInRejection(code))
         }
-        val text = response.body()?.let(::capped) ?: return LinkedInRead.Rejected(Kind.Unexpected)
+        val text = response.body()?.cappedText() ?: return LinkedInRead.Rejected(Kind.Unexpected)
         val page = SduiGamePageParser.parse(text) ?: return LinkedInRead.Rejected(Kind.Unexpected)
         return LinkedInRead.Ok(page)
     }
 
-    /** The body of a 200, or empty: any other status is classified without reading it. */
-    private fun answer(response: Response<ResponseBody>): String {
-        if (response.code() != HTTP_OK) {
-            response.errorBody()?.close()
-            response.body()?.close()
-            return ""
-        }
-        return response.body()?.let(::capped).orEmpty()
-    }
-
-    /** The body as text, or null when it is longer than [BODY_CAP_BYTES]. Always closes the body. */
-    private fun capped(body: ResponseBody): String? = body.use {
-        if (it.contentLength() > BODY_CAP_BYTES) return@use null
-        val source = it.source()
-        // Asking for one byte past the cap buffers it only when the body is over: the cap is never crossed unseen.
-        source.request(BODY_CAP_BYTES + 1)
-        if (source.buffer.size > BODY_CAP_BYTES) null else source.readUtf8()
-    }
-
-    private fun track(): String = LinkedInTrack.header(zone(), Instant.now())
+    private fun track(): String = LinkedInTrack.header(zone(), clock())
 
     /** `games/zip/` is the `zip` page: the last segment of the game's LinkedIn route. */
     private fun slug(gamePath: String): String = gamePath.trim('/').substringAfterLast('/')
 
     private companion object {
-        const val HTTP_OK = 200
         const val ORIGIN = "https://www.linkedin.com"
         const val UPDATE_GAME_STATE = "updateGameState"
-        const val BODY_CAP_BYTES = 1_048_576L
         val JSON = "application/json".toMediaType()
     }
 }

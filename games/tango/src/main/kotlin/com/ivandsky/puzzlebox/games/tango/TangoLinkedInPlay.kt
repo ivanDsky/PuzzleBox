@@ -4,7 +4,6 @@ import com.ivandsky.puzzlebox.game.linkedin.LinkedInOpening
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlay
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInPlayValue
 import com.ivandsky.puzzlebox.game.linkedin.LinkedInSolve
-import com.ivandsky.puzzlebox.game.replay.MoveKind
 
 /**
  * Encodes a solved Tango [LinkedInSolve] as the LinkedIn play record (the final board and the order the cells were
@@ -33,7 +32,7 @@ object TangoLinkedInPlay {
             ),
             payloadKeys = mapOf("playRecord" to BOARD_KEY, "solveOrder" to SOLVE_ORDER_KEY),
             // Same rule as Zip: a rejected drop, hint or undo anywhere in the solve is a flaw.
-            mistakeFree = final.mistakeCount == 0 && solve.kinds.none { it in FLAWS },
+            mistakeFree = final.mistakeCount == 0 && solve.mistakeFree,
             opening = opening,
         )
     }
@@ -80,6 +79,4 @@ object TangoLinkedInPlay {
         val ranks = order.withIndex().associate { (rank, idx) -> idx to rank }
         return List(puzzle.cellCount) { idx -> if (idx in puzzle.givens) PRESET_RANK else ranks.getValue(idx).toString() }
     }
-
-    private val FLAWS = setOf(MoveKind.Mistake, MoveKind.Hint, MoveKind.Undo)
 }

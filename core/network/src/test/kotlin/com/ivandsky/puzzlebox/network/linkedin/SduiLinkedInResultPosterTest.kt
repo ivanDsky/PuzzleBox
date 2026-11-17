@@ -48,7 +48,7 @@ class SduiLinkedInResultPosterTest {
     fun `the page is one GET of the game's slug with the session, and parses`() = runBlocking {
         val server = server(rsc(pageBody))
 
-        val read = server.poster().gamePage("games/zip/")
+        val read = server.poster().gamePage(LinkedInPostFixtures.post())
 
         assertEquals(LinkedInRead.Ok(LinkedInPostFixtures.dailyPage), read)
         assertEquals(1, server.requestCount)
@@ -69,8 +69,8 @@ class SduiLinkedInResultPosterTest {
         val server = server(rsc(pageBody), rsc(pageBody))
         val poster = server.poster()
 
-        poster.gamePage("games/queens/")
-        poster.gamePage("games/tango")
+        poster.gamePage(LinkedInPostFixtures.post().copy(gamePath = "games/queens/"))
+        poster.gamePage(LinkedInPostFixtures.post().copy(gamePath = "games/tango"))
 
         assertEquals("/flagship-web/games/queens", server.takeRequest().path)
         assertEquals("/flagship-web/games/tango", server.takeRequest().path)
@@ -117,7 +117,7 @@ class SduiLinkedInResultPosterTest {
         val server = server(rsc(pageBody))
         val poster = server.poster(session = null)
 
-        assertEquals(LinkedInRead.SignedOut, poster.gamePage("games/zip/"))
+        assertEquals(LinkedInRead.SignedOut, poster.gamePage(LinkedInPostFixtures.post()))
         assertEquals(LinkedInSendResult.SignedOut, poster.send(LinkedInPostFixtures.post(), LinkedInPostFixtures.dailyPage))
         assertEquals(0, server.requestCount)
     }
@@ -275,7 +275,7 @@ class SduiLinkedInResultPosterTest {
         server.shutdown()
 
         assertEquals(LinkedInSendResult.Offline, poster.send(LinkedInPostFixtures.post(), LinkedInPostFixtures.dailyPage))
-        assertEquals(LinkedInRead.Offline, poster.gamePage("games/zip/"))
+        assertEquals(LinkedInRead.Offline, poster.gamePage(LinkedInPostFixtures.post()))
     }
 
     @Test
@@ -302,7 +302,7 @@ class SduiLinkedInResultPosterTest {
         )
         val poster = server.poster()
 
-        poster.gamePage("games/zip/")
+        poster.gamePage(LinkedInPostFixtures.post())
         poster.send(LinkedInPostFixtures.post(), LinkedInPostFixtures.dailyPage)
 
         server.takeRequest()
@@ -315,7 +315,7 @@ class SduiLinkedInResultPosterTest {
         val unsendable = LinkedInAccountSession(SESSION.cookieHeader, "ajax:SENTINEL-CSRF\n", SESSION.userAgent)
         val poster = server.poster(unsendable)
 
-        val read = poster.gamePage("games/zip/")
+        val read = poster.gamePage(LinkedInPostFixtures.post())
         val sent = poster.send(LinkedInPostFixtures.post(), LinkedInPostFixtures.dailyPage)
 
         assertEquals(pageRejected(Kind.Unexpected), read)
@@ -330,8 +330,8 @@ class SduiLinkedInResultPosterTest {
         val poster = server.poster()
 
         val results = listOf(
-            poster.gamePage("games/zip/"),
-            poster.gamePage("games/zip/"),
+            poster.gamePage(LinkedInPostFixtures.post()),
+            poster.gamePage(LinkedInPostFixtures.post()),
             poster.send(LinkedInPostFixtures.post(), LinkedInPostFixtures.dailyPage),
         )
 
@@ -344,7 +344,7 @@ class SduiLinkedInResultPosterTest {
 
     private fun page(vararg responses: MockResponse): LinkedInRead<LinkedInGamePage> = runBlocking {
         val server = server(*responses)
-        val result = server.poster().gamePage("games/zip/")
+        val result = server.poster().gamePage(LinkedInPostFixtures.post())
         // The rest are bait only a second request would reach.
         assertEquals(1, server.requestCount)
         result

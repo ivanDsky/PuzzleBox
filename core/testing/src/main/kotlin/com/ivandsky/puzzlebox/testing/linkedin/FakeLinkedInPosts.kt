@@ -1,6 +1,7 @@
 package com.ivandsky.puzzlebox.testing.linkedin
 
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostState
+import com.ivandsky.puzzlebox.data.linkedin.LinkedInPostView
 import com.ivandsky.puzzlebox.data.linkedin.LinkedInPosts
 import com.ivandsky.puzzlebox.model.GameId
 import java.time.LocalDate
@@ -20,7 +21,7 @@ import kotlinx.coroutines.flow.update
 class FakeLinkedInPosts : LinkedInPosts {
 
     private val recorded = CopyOnWriteArrayList<Pair<GameId, LocalDate>>()
-    private val states = MutableStateFlow<Map<Pair<GameId, LocalDate>, LinkedInPostState>>(emptyMap())
+    private val states = MutableStateFlow<Map<Pair<GameId, LocalDate>, LinkedInPostView>>(emptyMap())
 
     /** Every submit so far as `(game, day)`, oldest first, recorded when the submit is entered. */
     val submitCalls: List<Pair<GameId, LocalDate>> get() = recorded.toList()
@@ -40,10 +41,11 @@ class FakeLinkedInPosts : LinkedInPosts {
     }
 
     /** A day never set through [emit] has no button. */
-    override fun observe(game: GameId, day: LocalDate): Flow<LinkedInPostState> =
-        states.map { it[game to day] ?: LinkedInPostState.Hidden }.distinctUntilChanged()
+    override fun observe(game: GameId, day: LocalDate): Flow<LinkedInPostView> =
+        states.map { it[game to day] ?: LinkedInPostView(LinkedInPostState.Hidden, null) }.distinctUntilChanged()
 
-    fun emit(game: GameId, day: LocalDate, state: LinkedInPostState) {
-        states.update { it + ((game to day) to state) }
+    /** [timeMs] is the time the button names; null for a day with no record row. */
+    fun emit(game: GameId, day: LocalDate, state: LinkedInPostState, timeMs: Long? = null) {
+        states.update { it + ((game to day) to LinkedInPostView(state, timeMs)) }
     }
 }
