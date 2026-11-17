@@ -68,7 +68,8 @@ import kotlinx.coroutines.launch
  * true once the history shows the slot has none (A22: it never ranks or counts).
  * [doneToday] of [total] is today's playable set solved, this game counted the moment it
  * is solved; [rolloverAt] is when the next puzzles land. [replay] is Ready once this solve is stored with a replay,
- * Hidden before (a pending or failed write), or when there is none (A13). [samePuzzle] holds the player's earlier solves
+ * Hidden before (a pending or failed write), or when there is none (A13). [replayLatest] is false when [replay] read the puzzle's record, so Watch replay opens
+ * the record rather than the newest solve. [samePuzzle] holds the player's earlier solves
  * of this puzzle (Result moments on); null with the moments off.
  */
 data class ResultUiState(
@@ -83,6 +84,7 @@ data class ResultUiState(
     val total: Int? = null,
     val rolloverAt: Instant? = null,
     val replay: ReplaySectionState = ReplaySectionState.Hidden,
+    val replayLatest: Boolean = true,
     val samePuzzle: SamePuzzleSolves? = null,
 )
 
@@ -176,8 +178,8 @@ class ResultViewModel internal constructor(
         .distinctUntilChanged()
 
     /** Needs the edition number, which only the history row has, so it waits for that row. */
-    private val replay: Flow<ReplaySectionState> = refOfDay
-        .flatMapLatest { ref -> if (ref == null || playUi?.replayBoard == null) flowOf(ReplaySectionState.Hidden) else replayRow.of(ref) }
+    private val replay: Flow<ResultReplay> = refOfDay
+        .flatMapLatest { ref -> if (ref == null || playUi?.replayBoard == null) flowOf(ResultReplay(ReplaySectionState.Hidden)) else replayRow.of(ref) }
 
     /** With Result moments on, the player's earlier solves of this puzzle; None for a practice puzzle, null with the moments off. */
     private val samePuzzle: Flow<SamePuzzleSolves?> =
@@ -197,7 +199,8 @@ class ResultViewModel internal constructor(
             doneToday = set.count { it.status is TodayStatus.Solved || (today && it.game == slot.gameId) },
             total = set.size,
             rolloverAt = rollover(),
-            replay = replay,
+            replay = replay.section,
+            replayLatest = replay.latest,
             samePuzzle = samePuzzle,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), record.value)

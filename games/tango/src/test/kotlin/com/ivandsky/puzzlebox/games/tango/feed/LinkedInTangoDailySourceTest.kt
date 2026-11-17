@@ -217,4 +217,10 @@ class LinkedInTangoDailySourceTest {
         assertTrue((beforeDay1 as FetchResult.Err).error is FetchError.NotFound)
         assertTrue(transport.requests.isEmpty())
     }
+
+    @Test
+    fun `the LinkedIn game route is the Tango edition path the feed requests`() {
+        assertEquals("games/tango/", source("").linkedInGamePath)
+        assertEquals(LinkedInTangoDailySource.REQUEST.path, LinkedInTangoDailySource.EDITION.path)
+    }
 }
