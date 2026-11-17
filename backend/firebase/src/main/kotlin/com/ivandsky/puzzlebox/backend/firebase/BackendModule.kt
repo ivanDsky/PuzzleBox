@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.backend.firebase
 
 import android.content.Context
 import com.ivandsky.puzzlebox.data.cloud.CloudSpace
+import com.ivandsky.puzzlebox.data.di.MatchRemote
 import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.leaderboard.LeaderboardRepository
 import com.ivandsky.puzzlebox.data.match.MatchRepository
@@ -15,7 +16,8 @@ import org.koin.dsl.module
 /**
  * Backend bindings: the contract seams bind to this module's
  * implementations — swapping backends later means changing these bindings and
- * deleting the module, never touching `core/` or `:feature:*`.
+ * deleting the module, never touching `core/` or `:feature:*`. Duels bind under [MatchRemote]:
+ * the app's [MatchRepository] is core/data's router, which keeps self duels on the device.
  *
  * Wiring contract: a [CoroutineScope] single must exist in the graph (the app module
  * provides the process-long application scope the identity StateFlow shares on).
@@ -54,7 +56,7 @@ val firebaseBackendModule = module {
         )
     }
     single<MatchStore> { FirestoreMatchStore() }
-    single<MatchRepository> {
+    single<MatchRepository>(MatchRemote) {
         FirestoreMatchRepository(
             store = get(),
             currentUid = { get<IdentityService>().current.value?.uid },

@@ -5,6 +5,9 @@ import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.app.screens.ProfileViewModel
 import com.ivandsky.puzzlebox.app.leaderboard.DailyReplayPublisher
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
+import com.ivandsky.puzzlebox.data.di.MatchRemote
+import com.ivandsky.puzzlebox.data.match.MatchRepository
+import com.ivandsky.puzzlebox.data.match.RoutingMatchRepository
 import com.ivandsky.puzzlebox.common.di.commonModule
 import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.create.CreateViewModel
@@ -310,6 +313,9 @@ class DiGraphTest : KoinTest {
             assertEquals(GameId("zip"), koin.get<GetFeaturedGame>()().id)
             // Duel results: onCreate starts the poster on every launch, and the duel screen pokes the same instance.
             assertSame(koin.get<MatchResultPoster>(), koin.get<MatchResultSync>())
+            // Duels: the app's repository is the router, so a self code never reaches the backend bound behind it.
+            assertTrue(koin.get<MatchRepository>() is RoutingMatchRepository)
+            assertNotNull(koin.get<MatchRepository>(MatchRemote))
             // Daily replays: onCreate starts the publisher with the hub flag on, so its whole chain must bind.
             assertNotNull(koin.get<DailyReplayPublisher>())
 

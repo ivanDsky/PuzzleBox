@@ -19,12 +19,14 @@ import com.ivandsky.puzzlebox.data.linkedin.LinkedInStoreLock
 import com.ivandsky.puzzlebox.data.linkedin.RoomLinkedInAccount
 import com.ivandsky.puzzlebox.data.linkedin.RoomLinkedInDays
 import com.ivandsky.puzzlebox.data.match.MatchLocalRepository
+import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.MatchResultPoster
 import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.match.RoomMatchLocalRepository
 import com.ivandsky.puzzlebox.data.match.RoomMatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.RoomSelfMatchRepository
+import com.ivandsky.puzzlebox.data.match.RoutingMatchRepository
 import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -60,12 +62,16 @@ import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import org.koin.core.qualifier.Qualifier
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.koin.dsl.onClose
 
 private val LinkedInPhotoScope = named("data.linkedin_photos.scope")
 private val DailyRefreshScope = named("data.daily_refresh.scope")
+
+/** The backend's [MatchRepository]. The unqualified one is the router below, so a backend binds duels under this. */
+val MatchRemote: Qualifier = named("match.remote")
 
 /**
  * Game-agnostic data wiring. Games plug in through Koin, never through this module:
@@ -106,11 +112,13 @@ val dataModule = module {
     single<MatchLocalRepository> { RoomMatchLocalRepository(get()) }
     single<MatchResultOutbox> { RoomMatchResultOutbox(get()) }
     // Duel results post from the outbox; the duel screen pokes the same instance to retry now. The identity,
-    // the match repository, the NetworkStatus and the process scope are supplied by app and the backend.
+    // the NetworkStatus and the process scope are supplied by app and the backend.
     single { MatchResultPoster(identity = get(), outbox = get(), matches = get(), network = get(), scope = get()) }
     single<MatchResultSync> { get<MatchResultPoster>() }
-    // Duels against your own first solves stay on the device; nothing reads this store until the match router does.
+    // Duels against your own first solves stay on the device.
     single<SelfMatchRepository> { RoomSelfMatchRepository(get(), get(), get()) }
+    // The one MatchRepository the app sees: self codes go to the device store, every other duel to the backend's.
+    single<MatchRepository> { RoutingMatchRepository(self = get(), remote = get(MatchRemote)) }
     // Final boards read from the cloud are kept in their own database; nothing there is authoritative.
     single<FinalBoardStore> { RoomFinalBoardStore(get()) }
     // Process-wide so the 15-minute update-check throttle survives screen changes.
