@@ -13,7 +13,7 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.replay.WatchReplayRow
 
 // Previews of LinkedInPostRow — internal, light + dark inside PuzzleBoxTheme: every state, in enum order, at a phone's width,
-// then the states without a time, and the rows under the card on a phone and on a tablet's hero column.
+// then the states without a time, and the rows under the cards on a phone and across a tablet's two columns.
 
 @PuzzleBoxPreviews
 @Composable
@@ -51,8 +51,8 @@ internal fun ResultBelowCardRowsPhonePreview() {
 @Composable
 internal fun ResultBelowCardRowsTabletPreview() {
     PuzzleBoxTheme {
-        Column(Modifier.width(560.dp).padding(Spacing.lg)) {
-            ResultBelowCardRows(LinkedInPostRowState.Check, "0:58", onPost = {}, replay = { PreviewReplayRow(it) })
+        Column(Modifier.width(1000.dp).padding(Spacing.lg)) {
+            ResultBelowCardRows(LinkedInPostRowState.Check, "0:58", onPost = {}, replay = { PreviewReplayRow(it) }, columnGap = Spacing.lg)
         }
     }
 }

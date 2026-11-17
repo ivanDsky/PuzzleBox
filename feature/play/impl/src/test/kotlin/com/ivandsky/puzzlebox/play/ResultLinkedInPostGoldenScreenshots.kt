@@ -83,11 +83,12 @@ abstract class ResultLinkedInPostGoldenScreenshots(private val device: String) {
                     modifier = Modifier.weight(1f),
                     brand = BRAND,
                     actions = { ResultHeroActions(FACTS.primary, onPrimary = {}, onShare = {}, onPlayAgain = {}) },
-                    replay = {
+                    replay = { columnGap ->
                         ResultBelowCardRows(
                             post = state,
                             time = formatDuration(FACTS.timeMs),
                             onPost = {},
+                            columnGap = columnGap,
                             replay = { hairline ->
                                 WatchReplayRow(moves = 31, durationMs = FACTS.timeMs, onClick = {}, hairline = hairline)
                             },

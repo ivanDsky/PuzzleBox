@@ -30,6 +30,7 @@ import com.ivandsky.puzzlebox.gameui.RecordVerdict
 import com.ivandsky.puzzlebox.gameui.ResultHeroActions
 import com.ivandsky.puzzlebox.gameui.ResultHeroFacts
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
+import com.ivandsky.puzzlebox.gameui.ResultBelowCardRows
 import com.ivandsky.puzzlebox.gameui.ResultPrimaryAction
 import com.ivandsky.puzzlebox.gameui.TutorialStep
 import com.ivandsky.puzzlebox.gameui.replay.GameReplayBoard
@@ -148,7 +149,15 @@ abstract class ResultReplayGoldenScreenshots(private val device: String) {
             modifier = Modifier.weight(1f),
             brand = BRAND,
             actions = { ResultHeroActions(facts.primary, onPrimary = {}, onShare = {}, onPlayAgain = {}) },
-            replay = { ReplaySection(ReplaySectionState.Ready(timeline), GoldenReplayUi, onOpen = {}) },
+            replay = { columnGap ->
+                ResultBelowCardRows(
+                    post = null,
+                    time = null,
+                    onPost = {},
+                    replay = { hairline -> ReplaySection(ReplaySectionState.Ready(timeline), GoldenReplayUi, onOpen = {}, hairline = hairline) },
+                    columnGap = columnGap,
+                )
+            },
         )
     }
 

@@ -34,6 +34,7 @@ import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.domain.MatchState
 import com.ivandsky.puzzlebox.gameui.DuelCompare
 import com.ivandsky.puzzlebox.gameui.DuelSideState
+import com.ivandsky.puzzlebox.gameui.ResultBelowCardRows
 import com.ivandsky.puzzlebox.gameui.ResultColumnMaxWidth
 import com.ivandsky.puzzlebox.gameui.ResultHeroChip
 import com.ivandsky.puzzlebox.gameui.ResultHeroScreen
@@ -140,7 +141,9 @@ internal fun Ready(
             brand = ready.brand,
             chip = ResultHeroChip(tag = "result.hero.chip.duel", value = "${ready.number} of ${ready.count}", label = "In this duel"),
             board = card,
-            replay = replay,
+            replay = replay?.let { row ->
+                { columnGap -> ResultBelowCardRows(post = null, time = null, onPost = {}, replay = { row() }, columnGap = columnGap) }
+            },
         )
     }
 }
