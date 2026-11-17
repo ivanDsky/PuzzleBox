@@ -4,6 +4,7 @@ import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
 import com.ivandsky.puzzlebox.common.flags.isEnabled
+import com.ivandsky.puzzlebox.game.replay.ReplayFirstMove
 import com.ivandsky.puzzlebox.games.queens.QueensDefinition
 import com.ivandsky.puzzlebox.games.queensui.editor.QueensEditorUi
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
@@ -24,6 +25,11 @@ val queensUiModule: Module = module {
         QueensPlayUi(get<QueensSettings>()) { queensHintMode(flags, compute) }
     }
     single<GameEditorUi>(qualifier = qualifier("${QueensDefinition.id.value}.editor")) { QueensEditorUi }
+    // The replay of a recorded hint asks the stepper with the option the play UI gets; `queensModule` picks this up.
+    single<ReplayFirstMove>(qualifier = qualifier(QueensDefinition.id.value)) {
+        val flags = getOrNull<ReleaseFlags>()
+        ReplayFirstMove { queensFirstMove(flags) }
+    }
 }
 
 /**
@@ -31,4 +37,7 @@ val queensUiModule: Module = module {
  * a graph with no [flags] bound keeps the ladder order.
  */
 internal fun queensHintMode(flags: ReleaseFlags?, compute: CoroutineDispatcher): HintMode.Stepwise =
-    HintMode.Stepwise(compute, firstMove = flags?.isEnabled(ReleaseFlag.HintFirstMove) == true)
+    HintMode.Stepwise(compute, firstMove = queensFirstMove(flags))
+
+/** The option [queensHintMode] puts in the mode, also what a replay of a recorded hint is asked with (ticket 47b). */
+internal fun queensFirstMove(flags: ReleaseFlags?): Boolean = flags?.isEnabled(ReleaseFlag.HintFirstMove) == true

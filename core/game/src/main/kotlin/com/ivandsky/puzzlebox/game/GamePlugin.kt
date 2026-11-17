@@ -55,6 +55,11 @@ class GamePlugin<P, S : GameSession, M : RendererModel>(
     val replay: GameReplay<S>? = null,
     val linkedInPlay: ((solve: LinkedInSolve<S>) -> LinkedInPlay?)? = null,
 ) {
+    /** This plugin with [replay] in place of its own; every other member is shared, so a graph can bind a replay that asks a source. */
+    fun withReplay(replay: GameReplay<S>?): GamePlugin<P, S, M> = GamePlugin(
+        definition, rules, session, score, stateOf, initialSession, refOf, playAgainSession, rendererModel, editor, replay, linkedInPlay,
+    )
+
     /**
      * Type-erased replay entry: [S] is in scope here, so no caller casts. Null = no [replay] member, a puzzle
      * this game rejects ([initialSession] is not Ok), or bytes [Timeline.open] refuses. Never throws.
