@@ -48,6 +48,7 @@ internal fun SettingsScreen(
     onSetRanksFriendsDefault: (Boolean) -> Unit = {},
     onSetVibration: (Boolean) -> Unit = {},
     onSetShowSelfDuelTimeLeft: (Boolean) -> Unit = {},
+    onSignIn: () -> Unit = {},
 ) {
     Column(modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         CompactTopBar(
@@ -83,7 +84,7 @@ internal fun SettingsScreen(
                 PlaySection(timeLeft = state.showSelfDuelTimeLeft, onSetTimeLeft = onSetShowSelfDuelTimeLeft)
             }
             state.visibility?.let {
-                VisibilitySection(own = it, onSelect = onSelectVisibility)
+                VisibilitySection(own = it, onSelect = onSelectVisibility, onSignIn = onSignIn, signInMessage = state.signInMessage)
                 RanksScopeSection(friends = state.ranksFriendsDefault, onSelect = onSetRanksFriendsDefault)
             }
             Column(

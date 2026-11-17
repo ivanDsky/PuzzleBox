@@ -53,6 +53,31 @@ class SettingsGoldenScreenshots {
     @Config(qualifiers = GOLDEN_TABLET)
     @Test fun `play off tablet dark`() = capturePlay("tablet", timeLeft = false, dark = true)
 
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `signed out phone light`() = captureSignedOut("phone", dark = false)
+
+    @Config(qualifiers = GOLDEN_PHONE)
+    @Test fun `signed out phone dark`() = captureSignedOut("phone", dark = true)
+
+    private fun captureSignedOut(device: String, dark: Boolean) {
+        rule.showGolden(dark = dark) {
+            SettingsScreen(
+                state = SettingsUiState(
+                    themeMode = if (dark) ThemeMode.DARK else ThemeMode.LIGHT,
+                    versionName = "1.4.0",
+                    visibility = OwnTier.Unknown,
+                ),
+                onSetThemeMode = {},
+                onSetQueensAutoCross = {},
+                onSetSudokuPeerHighlight = {},
+                onSetSudokuSameDigitHighlight = {},
+                onBack = {},
+                onOpenCatalog = null,
+            )
+        }
+        rule.settleAndCapture("settings", "signed-out", device, dark = dark)
+    }
+
     private fun capturePlay(device: String, timeLeft: Boolean, dark: Boolean) {
         rule.showGolden(dark = dark) {
             SettingsScreen(

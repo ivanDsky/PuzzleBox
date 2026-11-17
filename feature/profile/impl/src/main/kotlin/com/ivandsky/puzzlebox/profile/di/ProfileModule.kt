@@ -38,7 +38,17 @@ val profileModule: Module = module {
         )
     }
     // The parameter is the app's VisibilitySlot; without it Settings has no Visibility section.
-    viewModel { params -> SettingsViewModel(preferences = get(), games = get(), appBuild = get(), releaseFlags = get(), visibility = params.getOrNull()) }
+    viewModel { params ->
+        SettingsViewModel(
+            preferences = get(),
+            games = get(),
+            appBuild = get(),
+            releaseFlags = get(),
+            identityService = get(),
+            idTokenProvider = get(),
+            visibility = params.getOrNull(),
+        )
+    }
     viewModel { LinkedInLoginViewModel(createLink = get(), cookies = get()) }
     // Both providers are lambdas, so resolving this neither starts the web view provider nor reads a cookie.
     single<LinkedInSessionCookies> { WebViewLinkedInSession({ CookieManager.getInstance() }, { WebSettings.getDefaultUserAgent(get()) }, get()) }

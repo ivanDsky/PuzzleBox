@@ -1,21 +1,32 @@
 package com.ivandsky.puzzlebox.profile.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.data.identity.AuthError
+import com.ivandsky.puzzlebox.data.identity.AuthResult
+import com.ivandsky.puzzlebox.data.identity.IdentityService
 import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.data.visibility.VisibilityTier
 import com.ivandsky.puzzlebox.domain.AppBuild
 import com.ivandsky.puzzlebox.model.ThemeMode
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+private const val SIGN_IN_OFFLINE = "Sign-in is unavailable right now. Check your connection."
+private const val SIGN_IN_FAILED = "Sign-in failed. Please try again."
 
 /**
  * Settings state: the stored theme mode, the Games switches (live from [games]) and [AppBuild.versionName]; a pick is
@@ -27,6 +38,8 @@ internal class SettingsViewModel(
     private val games: GameOptions,
     appBuild: AppBuild,
     releaseFlags: ReleaseFlags,
+    private val identityService: IdentityService,
+    private val idTokenProvider: GoogleIdTokenProvider,
     private val visibility: VisibilitySlot? = null,
 ) : ViewModel() {
 
@@ -36,6 +49,8 @@ internal class SettingsViewModel(
     private val duelPlay: Flow<Boolean> = releaseFlags.enabled.map { ReleaseFlag.VirtualDuel in it }
 
     private val play: Flow<Pair<Boolean, Boolean>> = combine(duelPlay, preferences.showSelfDuelTimeLeft, ::Pair)
+
+    private val signInMessage = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<SettingsUiState> =
         combine(
@@ -55,7 +70,7 @@ internal class SettingsViewModel(
                 duelPlay = duelPlay,
                 showSelfDuelTimeLeft = timeLeft,
             )
-        }.stateIn(
+        }.combine(signInMessage) { state, message -> state.copy(signInMessage = message) }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = SettingsUiState(themeMode = ThemeMode.SYSTEM, versionName = appBuild.versionName),
@@ -70,6 +85,28 @@ internal class SettingsViewModel(
     fun onSelectVisibility(tier: VisibilityTier) {
         val slot = visibility ?: return
         viewModelScope.launch { slot.onSelect(tier) }
+    }
+
+    /**
+     * Visibility while signed out: the same Google sign-in as Profile. Success shows as the section following the tier;
+     * a failure is said in [SettingsUiState.signInMessage], a backed-out sheet is not a failure.
+     */
+    fun onSignIn(activityContext: Context) {
+        viewModelScope.launch {
+            signInMessage.update { null }
+            val message = when (val token = idTokenProvider.idToken(activityContext)) {
+                is GoogleIdToken.Available -> when (val result = identityService.signInWithGoogleIdToken(token.token)) {
+                    is AuthResult.Ok -> null
+                    is AuthResult.Err -> if (result.error is AuthError.Unavailable) SIGN_IN_OFFLINE else SIGN_IN_FAILED
+                }
+                is GoogleIdToken.Unavailable -> when (token.reason) {
+                    GoogleIdToken.Unavailable.Reason.CANCELLED -> null
+                    GoogleIdToken.Unavailable.Reason.NETWORK -> SIGN_IN_OFFLINE
+                    else -> SIGN_IN_FAILED
+                }
+            }
+            signInMessage.update { message }
+        }
     }
 
     /** Ranks: the scope every hub landing opens on. Only with the [visibility] slot, which is what the flag builds. */
