@@ -50,7 +50,7 @@ internal fun SummaryPuzzleList(
         }
         OutlinedCard(Modifier.fillMaxWidth().testTag("reveal.summary.puzzles")) {
             BoxWithConstraints {
-                val metrics = remember(wide, maxWidth) { TableMetrics.of(compact = !wide, tableWidth = maxWidth) }
+                val metrics = remember(wide, maxWidth, summary.pastYou) { TableMetrics.of(compact = !wide, tableWidth = maxWidth, pastYou = summary.pastYou) }
                 Column {
                     PuzzleTableHeader(summary, metrics)
                     summary.rows.forEachIndexed { index, row ->

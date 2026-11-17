@@ -107,8 +107,9 @@ internal fun summaryTiles(legs: List<LegReveal>): SummaryTiles {
     )
 }
 
-internal fun puzzleRows(cards: List<RevealCard>): List<PuzzleRow> {
-    val widest = cards.maxOfOrNull { it.leg.timeGapSeconds() ?: 0L }?.coerceAtLeast(1L) ?: 1L
+/** [pastYou]: a self duel's bars share one fixed scale and a tie reads "–", as the reference draws them. */
+internal fun puzzleRows(cards: List<RevealCard>, pastYou: Boolean = false): List<PuzzleRow> {
+    val widest = if (pastYou) SelfBarScaleSeconds else cards.maxOfOrNull { it.leg.timeGapSeconds() ?: 0L }?.coerceAtLeast(1L) ?: 1L
     return cards.map { card ->
         PuzzleRow(
             gameId = card.leg.gameId,
@@ -122,7 +123,7 @@ internal fun puzzleRows(cards: List<RevealCard>): List<PuzzleRow> {
                 else -> null
             },
             tied = card.leg.verdict == LegVerdict.Draw,
-            margin = card.leg.marginAgainst(widest),
+            margin = card.leg.marginAgainst(widest, pastYou),
             legIndex = card.legIndex,
             improvement = card.improvement,
         )
@@ -143,20 +144,23 @@ private fun LegReveal.timeGapSeconds(): Long? {
 }
 
 /** The bar of a puzzle: its time gap against the [widest] one (never under a sliver), a fixed stub for hints, empty for a tie. */
-private fun LegReveal.marginAgainst(widest: Long): RowMargin {
+private fun LegReveal.marginAgainst(widest: Long, pastYou: Boolean): RowMargin {
     val a = mine as? DuelSideState.Time
     val b = theirs as? DuelSideState.Time
     val gap = timeGapSeconds()
     return when {
         gap != null -> RowMargin(maxOf(MinMarginRatio, gap.toFloat() / widest), "$gap s")
         a != null && b != null && verdict.decidedBasis() == LegBasis.Hints -> RowMargin(HintsMarginRatio, hintsLabel(abs(a.hints - b.hints)))
-        a != null && b != null && verdict == LegVerdict.Draw -> RowMargin(0f, "tie")
+        a != null && b != null && verdict == LegVerdict.Draw -> RowMargin(0f, if (pastYou) "–" else "tie")
         verdict.decidedBasis() != null -> RowMargin(1f, "—")
         else -> RowMargin(0f, "—")
     }
 }
 
 private const val MinMarginRatio = 0.12f
+
+/** A minute fills a self duel's half track: puzzles take about that long, so a gap reads as a share of one. */
+private const val SelfBarScaleSeconds = 60L
 private const val HintsMarginRatio = 0.4f
 
 private fun timeText(side: DuelSideState): String = when (side) {
@@ -206,7 +210,7 @@ internal fun duelSummary(match: Match, plan: RevealPlan, outcome: Outcome, zone:
     theirScore = outcome.theirWins,
     bestOf = bestOfLine(plan.cards.size, match.createdAt, zone, locale),
     tiles = summaryTiles(plan.legs),
-    rows = puzzleRows(plan.cards),
+    rows = puzzleRows(plan.cards, plan.pastYou),
     shareText = shareText(
         plan.me.name, plan.opponent.name, outcome.myWins, outcome.theirWins, plan.legs.map { it.verdict }, match.code.matchLink,
     ),

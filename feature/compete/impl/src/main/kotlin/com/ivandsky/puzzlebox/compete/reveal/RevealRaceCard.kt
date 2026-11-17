@@ -84,7 +84,7 @@ internal fun RaceCard(
             modifier = Modifier.padding(if (wide) Spacing.xxl else Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(if (wide) Spacing.lg else Spacing.md),
         ) {
-            CardHeader(card, position, plan.cards.size, brand, accent, showPill = resolved, wide = wide)
+            CardHeader(card, position, plan.cards.size, brand, accent, showPill = resolved, wide = wide, pastYou = plan.pastYou)
             Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 RaceSide(
                     plan.me.name, plan.me.photoUrl, DuelTone.Me, mine, accent.accent,
@@ -112,7 +112,7 @@ internal fun RaceCard(
 }
 
 @Composable
-private fun CardHeader(card: RevealCard, position: Int, count: Int, brand: GameBrand, accent: GameAccent, showPill: Boolean, wide: Boolean) {
+private fun CardHeader(card: RevealCard, position: Int, count: Int, brand: GameBrand, accent: GameAccent, showPill: Boolean, wide: Boolean, pastYou: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
         GameGlyph(brand, if (wide) GameGlyphSize.Hero else GameGlyphSize.Tile)
         Column(Modifier.weight(1f)) {
@@ -129,24 +129,25 @@ private fun CardHeader(card: RevealCard, position: Int, count: Int, brand: GameB
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (showPill) VerdictPill(card, accent)
+        if (showPill) VerdictPill(card, accent, pastYou)
     }
 }
 
-/** The winner's pill: the game's accent with a trophy; a tie gets the plain muted pill. */
+/** The winner's pill: the game's accent with a trophy (a self duel's win is the Me green, as on the summary); a tie gets the plain muted pill. */
 @Composable
-private fun VerdictPill(card: RevealCard, accent: GameAccent) {
+private fun VerdictPill(card: RevealCard, accent: GameAccent, pastYou: Boolean) {
     val tag = Modifier.testTag("reveal.pill")
     when (card.leg.verdict) {
         is LegVerdict.Win, is LegVerdict.Loss -> Row(
             modifier = tag
-                .background(accent.container, PillShape)
+                .background(if (pastYou) MaterialTheme.colorScheme.primaryContainer else accent.container, PillShape)
                 .padding(horizontal = Spacing.md, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
-            Icon(PuzzleIcons.Trophy, contentDescription = null, modifier = Modifier.size(PillIcon), tint = accent.onContainer)
-            Text(card.pill, style = MaterialTheme.typography.labelMedium, color = accent.onContainer, maxLines = 1)
+            val ink = if (pastYou) MaterialTheme.colorScheme.onPrimaryContainer else accent.onContainer
+            Icon(PuzzleIcons.Trophy, contentDescription = null, modifier = Modifier.size(PillIcon), tint = ink)
+            Text(card.pill, style = MaterialTheme.typography.labelMedium, color = ink, maxLines = 1)
         }
         else -> Pill(card.pill, tag)
     }
