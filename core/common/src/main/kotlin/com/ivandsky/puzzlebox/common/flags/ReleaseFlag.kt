@@ -23,6 +23,12 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     FlatStrands(label = "Flat Strands board", releaseDefault = false),
 
     /**
+     * Result hero polish (backlog #1162, #1170, #1171): previous and best as two labelled columns, a signed-out sign-in line
+     * under the time, and the day's total on the full-set moment. Read only in a ViewModel or a DI module (ADR-0022 §3).
+     */
+    ResultHeroPolish(label = "Result hero polish", releaseDefault = false),
+
+    /**
      * The readable board look (nav-rethink B3): shared board tokens and geometry for all five games. Read only by the app's
      * root theme, which hands the theme one Boolean (spec A2).
      */

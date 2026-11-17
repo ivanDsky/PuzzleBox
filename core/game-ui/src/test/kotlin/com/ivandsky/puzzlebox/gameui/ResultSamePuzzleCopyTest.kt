@@ -218,4 +218,109 @@ class ResultSamePuzzleCopyTest {
         assertNull(model.bestLine)
         assertNull(model.bestSubLine)
     }
+
+    // --- the compare columns ---------------------------------------------------------------
+
+    private fun compare(
+        previousMs: Long,
+        timeMs: Long = 102_000L,
+        bestMs: Long = previousMs,
+        linkedIn: Boolean = false,
+        order: RankOrder = time,
+        previousHints: Int = 0,
+        bestHints: Int = previousHints,
+        hintsUsed: Int = 0,
+    ) = heroSamePuzzleCompare(
+        SamePuzzleSolves(BestScore(previousMs, previousHints), linkedIn, BestScore(bestMs, bestHints), columns = true),
+        order, timeMs, hintsUsed,
+    )!!
+
+    @Test
+    fun `a faster solve tags the gap with a minus in the game's colour`() {
+        val compare = compare(previousMs = 114_000L, timeMs = 102_000L, bestMs = 101_000L)
+
+        assertEquals(HeroCompareColumn("PREVIOUS", "1:54"), compare.previous)
+        assertEquals(HeroGapTag("\u221212s", HeroGapTone.Better), compare.tag)
+        assertEquals(HeroCompareColumn("BEST", "1:41"), compare.best)
+    }
+
+    @Test
+    fun `a slower solve tags the gap with a plus on the neutral container`() {
+        assertEquals(HeroGapTag("+1s", HeroGapTone.Worse), compare(previousMs = 101_000L, timeMs = 102_000L).tag)
+    }
+
+    @Test
+    fun `the same second reads same`() {
+        assertEquals(HeroGapTag("same", HeroGapTone.Level), compare(previousMs = 102_400L, timeMs = 102_900L).tag)
+    }
+
+    @Test
+    fun `a column gap of a minute or more reads m colon ss`() {
+        assertEquals(HeroGapTag("+1:12", HeroGapTone.Worse), compare(previousMs = 100_000L, timeMs = 172_000L).tag)
+        assertEquals(HeroGapTag("\u22121:05", HeroGapTone.Better), compare(previousMs = 179_000L, timeMs = 114_000L).tag)
+    }
+
+    @Test
+    fun `a LinkedIn previous solve is labelled LINKEDIN`() {
+        assertEquals("LINKEDIN", compare(previousMs = 114_000L, linkedIn = true).previous.label)
+    }
+
+    @Test
+    fun `a best equal to the previous solve has no BEST column`() {
+        assertNull(compare(previousMs = 114_000L, bestMs = 114_400L).best)
+    }
+
+    @Test
+    fun `a hints-first game with different hints counts hints`() {
+        val fewer = compare(previousMs = 185_000L, timeMs = 200_000L, order = hints, previousHints = 2, hintsUsed = 1, bestMs = 150_000L, bestHints = 0)
+
+        assertEquals(HeroCompareColumn("PREVIOUS", "2 hints"), fewer.previous)
+        assertEquals(HeroGapTag("\u22121 hint", HeroGapTone.Better), fewer.tag)
+        assertEquals(HeroCompareColumn("BEST", "Perfect"), fewer.best)
+
+        val more = compare(previousMs = 185_000L, timeMs = 200_000L, order = hints, previousHints = 1, hintsUsed = 2)
+        assertEquals(HeroCompareColumn("PREVIOUS", "1 hint"), more.previous)
+        assertEquals(HeroGapTag("+1 hint", HeroGapTone.Worse), more.tag)
+        assertNull(more.best)
+    }
+
+    @Test
+    fun `a hints-first game with level hints compares the time`() {
+        val level = compare(previousMs = 210_000L, timeMs = 200_000L, order = hints, previousHints = 1, hintsUsed = 1)
+
+        assertEquals("3:30", level.previous.value)
+        assertEquals(HeroGapTag("\u221210s", HeroGapTone.Better), level.tag)
+    }
+
+    @Test
+    fun `a first solve has no columns`() {
+        assertNull(heroSamePuzzleCompare(SamePuzzleSolves.None.copy(columns = true), time, 102_000L, 0))
+    }
+
+    @Test
+    fun `the model swaps the sentence and the best line for the columns, and a first solve keeps its wording`() {
+        val columns = resultHeroModel(facts(earlier.copy(columns = true)))
+
+        assertNull(columns.bestLine)
+        assertNull(columns.bestSubLine)
+        assertEquals(HeroCompareColumn("BEST", "1:41"), columns.compareColumns!!.best)
+
+        val first = resultHeroModel(facts(SamePuzzleSolves.None.copy(columns = true), verdict = RecordVerdict.FirstSolve, previous = null))
+        assertEquals("First solve — this is your time to beat", first.bestLine)
+        assertNull(first.compareColumns)
+    }
+
+    @Test
+    fun `a play again shows the same columns and a practice puzzle none`() {
+        assertEquals("1:54", resultHeroModel(facts(earlier.copy(columns = true), playAgain = true)).compareColumns!!.previous.value)
+        assertNull(resultHeroModel(facts(earlier.copy(columns = true), practice = true)).compareColumns)
+    }
+
+    @Test
+    fun `with the columns off the sentence stays`() {
+        val model = resultHeroModel(facts(earlier))
+
+        assertNull(model.compareColumns)
+        assertEquals("12s faster than last time (1:54)", model.bestLine)
+    }
 }

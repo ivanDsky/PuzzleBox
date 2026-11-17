@@ -3,7 +3,9 @@ package com.ivandsky.puzzlebox.play
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.ivandsky.puzzlebox.common.flags.ReleaseFlag
 import com.ivandsky.puzzlebox.common.flags.ReleaseFlags
+import com.ivandsky.puzzlebox.common.flags.isEnabled
 import com.ivandsky.puzzlebox.data.calendar.GameCalendar
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
@@ -145,6 +147,7 @@ class ResultViewModel internal constructor(
     private val names: Map<GameId, String> = store.playable.toMap()
     private val today: Boolean = calendar.today(slot.gameId) == slot.day
     private val replayRow = ResultReplayRow(completions, loadReplay, solve, live.takeIf { liveHoldsSolve })
+    private val columns = releaseFlags?.isEnabled(ReleaseFlag.ResultHeroPolish) == true
     private val samePuzzleRows = ResultSamePuzzle(completions, solve, live.takeIf { liveHoldsSolve }, games.rankOrderOf(slot.gameId))
 
     val brand: GameBrand = ui.brandOf(slot.gameId)
@@ -178,9 +181,10 @@ class ResultViewModel internal constructor(
     private val replay: Flow<ResultReplay> = refOfDay
         .flatMapLatest { ref -> if (ref == null || playUi?.replayBoard == null) flowOf(ResultReplay(ReplaySectionState.Hidden)) else replayRow.of(ref) }
 
-    /** The player's earlier solves of this puzzle; None for a practice puzzle. */
+    /** The player's earlier solves of this puzzle; None for a practice puzzle. With Result hero polish on they are drawn as two columns. */
     private val samePuzzle: Flow<SamePuzzleSolves> =
         refOfDay.flatMapLatest { ref -> ref?.let(samePuzzleRows::of) ?: flowOf(SamePuzzleSolves.None) }
+            .map { it.copy(columns = columns) }
 
     val state: StateFlow<ResultUiState> = combine(
         record,

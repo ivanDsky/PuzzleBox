@@ -945,6 +945,20 @@ class ResultViewModelTest {
     }
 
     @Test
+    fun `with Result hero polish on the same-puzzle facts ask for the two columns, with it off they do not`() {
+        val before = FakeController.TIME_MS + 12_000
+        completions.setRecords(listOf(solve(before)))
+        solveLive()
+
+        val polished = FakeReleaseFlags(ReleaseFlag.ResultHeroPolish)
+        assertEquals(
+            SamePuzzleSolves(BestScore(before, 0), best = BestScore(before, 0), columns = true),
+            samePuzzle(vm(flags = polished)),
+        )
+        assertFalse(samePuzzle(vm()).columns)
+    }
+
+    @Test
     fun `a hints-first game picks its best by hints`() {
         val hintsFirst = FakeGames(listOf(alpha, beta), hintsRanked = setOf(alpha))
         val hintsStore = store(hintsFirst.games, hintsFirst.registry)
