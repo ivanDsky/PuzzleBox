@@ -37,7 +37,7 @@ private const val ActionsWeight = 1f
 
 /**
  * The tablet's final page: one full-width hero card (who played, the outcome and verdict and the three tiles on the
- * left, the score in big numerals in the middle, Rematch and Share / Watch again on the right) with the aligned
+ * left, the score in big numerals in the middle, Rematch and Share / Watch again (Watch again / Done in a self duel) on the right) with the aligned
  * puzzles table under it. The hero keeps the phone card's win and quiet entrances.
  */
 @Composable

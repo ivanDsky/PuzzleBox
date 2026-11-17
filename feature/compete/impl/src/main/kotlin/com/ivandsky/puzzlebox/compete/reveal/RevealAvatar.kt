@@ -1,12 +1,18 @@
 package com.ivandsky.puzzlebox.compete.reveal
 
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.DuelTone
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxPreviews
+import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.gameui.PlayerAvatar
 
 /**
@@ -28,4 +34,15 @@ internal fun RevealAvatar(
 ) {
     val shown = if (tone == DuelTone.Them) LocalPastYouName.current ?: name else name
     PlayerAvatar(shown, photoUrl, modifier, size, tone, fill, onFill)
+}
+
+@PuzzleBoxPreviews
+@Composable
+internal fun RevealAvatarPreview() = PuzzleBoxTheme {
+    CompositionLocalProvider(LocalPastYouName provides "Ivan") {
+        Row(Modifier.padding(Spacing.lg)) {
+            RevealAvatar("Ivan", null)
+            RevealAvatar("Past you", null, tone = DuelTone.Them)
+        }
+    }
 }

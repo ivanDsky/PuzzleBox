@@ -56,7 +56,7 @@ internal fun SummaryPuzzleList(
                     summary.rows.forEachIndexed { index, row ->
                         if (index > 0) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         val compare = if (row.legIndex in compares) ({ onCompare(row.legIndex) }) else null
-                        PuzzleTableRow(row, brands.brandOf(row.gameId), metrics, index, onCompare = compare, noReplay = row.legIndex in noReplay)
+                        PuzzleTableRow(row, brands.brandOf(row.gameId), metrics, index, onCompare = compare, noReplay = row.legIndex in noReplay, pastYou = summary.pastYou)
                     }
                 }
             }

@@ -12,6 +12,9 @@ import com.ivandsky.puzzlebox.play.api.ReplayKey
 /** The summary row's action that opens a leg's two replays side by side. */
 internal const val CompareAction = "Compare"
 
+/** A self duel's row says "Watch compare" with a play mark instead of the friend duel's bare [CompareAction]. */
+internal const val WatchCompareLabel = "Watch compare"
+
 /** What a screen reader says for leg [leg]'s [CompareAction]: the bare word would be the same on every row. */
 internal fun compareDescription(leg: Int): String = "Compare puzzle ${leg + 1}"
 

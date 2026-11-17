@@ -87,7 +87,7 @@ private fun Tile(value: String, label: String, tag: String, modifier: Modifier) 
 
 /**
  * Rematch, then Share and Watch again as a tonal pair, each with its icon. A self duel has no one to send an invite to:
- * [onDone] stands in for Share.
+ * [onDone] stands in for Share, after Watch again (Rematch, Watch again, Done).
  */
 @Composable
 internal fun Actions(

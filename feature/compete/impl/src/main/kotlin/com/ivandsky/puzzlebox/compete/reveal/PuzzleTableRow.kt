@@ -41,8 +41,8 @@ private val RowPadding = 10.dp
 private val CompareRowPadding = 8.dp
 private const val TickAfterRowMs = 300
 
-/** The note's widest line: two lines of "No replay of your first solve" in the Compare action's slot. */
-private val NoReplayNoteWidth = 132.dp
+/** The note's widest line: "No replay of / your first solve" in the Compare action's slot. */
+private val NoReplayNoteWidth = 96.dp
 internal const val NoPastReplayNote = "No replay of your first solve"
 
 /**
@@ -62,6 +62,7 @@ internal fun PuzzleTableRow(
     modifier: Modifier = Modifier,
     onCompare: (() -> Unit)? = null,
     noReplay: Boolean = false,
+    pastYou: Boolean = false,
 ) {
     val tickDelay = beatDelayMs(ResultBeats.Blocks, index, rememberReducedMotion()) + TickAfterRowMs
     val mine = row.cell(Side.Mine)
@@ -81,7 +82,7 @@ internal fun PuzzleTableRow(
         horizontalArrangement = Arrangement.spacedBy(metrics.columnGap),
     ) {
         if (metrics.compact) {
-            PhoneBody(row, brand, bar, cells, metrics, onCompare, index, noReplay)
+            PhoneBody(row, brand, bar, cells, metrics, onCompare, index, noReplay, pastYou)
         } else {
             Row(
                 modifier = Modifier.weight(PuzzleCellWeight),
@@ -89,7 +90,7 @@ internal fun PuzzleTableRow(
                 horizontalArrangement = Arrangement.spacedBy(metrics.columnGap),
             ) {
                 GameGlyph(brand, GameGlyphSize.Tile)
-                PuzzleName(row, brand, wide = true, index, noReplay, Modifier.weight(1f), onCompare)
+                PuzzleName(row, brand, wide = true, index, noReplay, pastYou, Modifier.weight(1f), onCompare)
             }
             cells()
             bar(Modifier.weight(1f))
@@ -107,10 +108,11 @@ private fun RowScope.PhoneBody(
     onCompare: (() -> Unit)?,
     index: Int,
     noReplay: Boolean,
+    pastYou: Boolean,
 ) {
     GameGlyph(brand, GameGlyphSize.Tile)
     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        PuzzleName(row, brand, wide = false, index, noReplay, Modifier.fillMaxWidth(), onCompare)
+        PuzzleName(row, brand, wide = false, index, noReplay, pastYou, Modifier.fillMaxWidth(), onCompare)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(metrics.columnGap)) {
             bar(Modifier.weight(1f))
             cells()
@@ -120,7 +122,7 @@ private fun RowScope.PhoneBody(
 
 /** The game's title over its basis line ("12 s faster", "Fewer hints · 0 vs 2"), the compare action when offered at the trailing end, centred on both. */
 @Composable
-private fun PuzzleName(row: PuzzleRow, brand: GameBrand, wide: Boolean, index: Int, noReplay: Boolean, modifier: Modifier, onCompare: (() -> Unit)?) {
+private fun PuzzleName(row: PuzzleRow, brand: GameBrand, wide: Boolean, index: Int, noReplay: Boolean, pastYou: Boolean, modifier: Modifier, onCompare: (() -> Unit)?) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(
@@ -156,11 +158,12 @@ private fun PuzzleName(row: PuzzleRow, brand: GameBrand, wide: Boolean, index: I
             )
         } else if (onCompare != null) {
             val description = compareDescription(row.legIndex)
-            AppTextButton(
-                CompareAction,
-                onCompare,
-                Modifier.testTag("reveal.compare.${row.legIndex}").semantics { contentDescription = description },
-            )
+            val tag = Modifier.testTag("reveal.compare.${row.legIndex}").semantics { contentDescription = description }
+            if (pastYou) {
+                WatchCompareAction(onCompare, tag)
+            } else {
+                AppTextButton(CompareAction, onCompare, tag)
+            }
         }
     }
 }

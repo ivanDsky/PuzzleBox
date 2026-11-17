@@ -142,7 +142,8 @@ abstract class RevealSelfGoldenScreenshots(private val device: String, private v
         val QUEENS = GameId("queens")
         val STRANDS = GameId("strands")
         val WIN_COMPARES = setOf(0, 1, 2)
-        const val RACE_MID = RevealMachine.IntroMs + 1_500L
+        /** Past the loser's 2.4 s run: leg 1 settled, so the score reads 1–0 with the pill and the gap line up. */
+        const val RACE_MID = RevealMachine.IntroMs + 2_700L
 
         fun time(ms: Long, hints: Int = 0) = DuelSideState.Time(ms, hints)
 
@@ -172,12 +173,12 @@ abstract class RevealSelfGoldenScreenshots(private val device: String, private v
 
         fun zip(mine: Long, past: Long, verdict: LegVerdict) = card(0, ZIP, "Zip #401", time(mine), time(past), verdict)
         fun strands(mine: Long, past: Long, mineHints: Int, pastHints: Int, verdict: LegVerdict) =
-            card(1, STRANDS, "Strands #12", time(mine, mineHints), time(past, pastHints), verdict, RankOrder.HintsThenTime)
+            card(1, STRANDS, "Strands #12", time(mine, mineHints), time(past, pastHints), verdict)
         fun queens(mine: Long, past: Long, verdict: LegVerdict) = card(2, QUEENS, "Queens #88", time(mine), time(past), verdict)
 
         val WIN_PLAN = plan(
             zip(58_000, 72_000, LegVerdict.Win(LegBasis.Time)),
-            strands(90_000, 132_000, 0, 2, LegVerdict.Win(LegBasis.Hints)),
+            strands(90_000, 132_000, 0, 2, LegVerdict.Win(LegBasis.Time)),
             queens(95_000, 80_000, LegVerdict.Loss(LegBasis.Time)),
         )
         val LOSS_PLAN = plan(

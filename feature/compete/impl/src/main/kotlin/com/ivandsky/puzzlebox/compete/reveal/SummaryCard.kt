@@ -31,7 +31,7 @@ private val NumeralSize = 64.sp
 
 /**
  * The phone's final-score card: who played, the outcome pill, the two numerals over their names, the verdict, the three
- * tiles, Rematch and Share / Watch again. A win stamps in with a sweep and a burst, in the primary accent; a loss or a
+ * tiles, Rematch and Share / Watch again (Watch again / Done in a self duel). A win stamps in with a sweep and a burst, in the primary accent; a loss or a
  * draw fades in slowly in the outline colour, with no burst, so a loss stays quiet. The numerals count up from 0.
  */
 @Composable
