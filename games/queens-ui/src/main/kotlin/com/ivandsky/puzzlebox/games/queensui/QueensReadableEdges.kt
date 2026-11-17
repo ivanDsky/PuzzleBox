@@ -13,9 +13,10 @@ import com.ivandsky.puzzlebox.gameui.GridGeometry
 
 /**
  * The edge layer of a board whose [geometry] outlines it at the wall weight (B3), drawn above the opaque region
- * fills: a low-alpha ink line at the shared grid-line weight on every interior cell edge, then the wall token at
- * [BoardGeometry.wallWeight] on every edge between two regions and around the board, with round ends when the
- * geometry asks for them. A region reads as one walled shape and the cells inside it stay countable.
+ * fills: a low-alpha ink line at the shared grid-line weight on every interior cell edge, then the region wall at
+ * [QueensBoardDefaults.readableRegionWallWeight] on every edge between two regions, and the wall token at
+ * [BoardGeometry.wallWeight] around the board, with round ends when the geometry asks for them. A region reads as
+ * one walled shape and the cells inside it stay countable.
  * The [drawRegionTexture] dots go down first, so the lines stay on top.
  *
  * The cell lines are [BoardColors.boardInk] at [QueensBoardDefaults.cellGridLineAlpha], not the opaque grid-line
@@ -31,7 +32,8 @@ internal fun DrawScope.drawWalledEdges(model: QueensBoardModel, colors: BoardCol
         drawLine(faint, Offset(i * g.cellWidth, 0f), Offset(i * g.cellWidth, size.height), thin)
         drawLine(faint, Offset(0f, i * g.cellHeight), Offset(size.width, i * g.cellHeight), thin)
     }
-    val weight = geometry.wallWeight.toPx()
+    val weight = QueensBoardDefaults.readableRegionWallWeight.toPx()
+    val outline = geometry.wallWeight.toPx()
     val cap = if (geometry.roundedWallCaps) StrokeCap.Round else StrokeCap.Butt
     // Each interior edge once (right and down neighbours only); round ends of neighbouring edges join into one wall.
     for (row in 0 until n) for (col in 0 until n) {
@@ -49,8 +51,8 @@ internal fun DrawScope.drawWalledEdges(model: QueensBoardModel, colors: BoardCol
     // Board outline, inset half a stroke so nothing clips outside the canvas.
     drawRect(
         colors.boardWall,
-        topLeft = Offset(weight / 2f, weight / 2f),
-        size = Size(size.width - weight, size.height - weight),
-        style = Stroke(weight, join = if (geometry.roundedWallCaps) StrokeJoin.Round else StrokeJoin.Miter),
+        topLeft = Offset(outline / 2f, outline / 2f),
+        size = Size(size.width - outline, size.height - outline),
+        style = Stroke(outline, join = if (geometry.roundedWallCaps) StrokeJoin.Round else StrokeJoin.Miter),
     )
 }
