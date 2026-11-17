@@ -13,12 +13,13 @@ import org.koin.compose.currentKoinScope
 internal class PlayFeel(val enabled: Boolean)
 
 /**
- * Provides [LocalPlayFeel] from the graph's [PlayFeel] around [content]. A graph that binds none (an isolated route
+ * Provides [LocalPlayFeel] from the graph's [PlayFeel] around [content], with [HintPolishHost] inside it: the one host every play
+ * board and lesson already wraps. A graph that binds none (an isolated route
  * test, a golden host) reads as off, as [LocalPlayFeel]'s default does.
  */
 @Composable
 internal fun PlayFeelHost(content: @Composable () -> Unit) {
     val scope = currentKoinScope()
     val enabled = remember(scope) { scope.getOrNull<PlayFeel>()?.enabled == true }
-    CompositionLocalProvider(LocalPlayFeel provides enabled, content)
+    CompositionLocalProvider(LocalPlayFeel provides enabled) { HintPolishHost(content) }
 }

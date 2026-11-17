@@ -35,6 +35,7 @@ import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.cooldownRing
+import com.ivandsky.puzzlebox.gameui.LocalHintPolish
 import com.ivandsky.puzzlebox.gameui.rememberHintCooldown
 import com.ivandsky.puzzlebox.games.strandsui.HintUi
 import com.ivandsky.puzzlebox.games.strandsui.StrandsBrand
@@ -51,7 +52,8 @@ import com.ivandsky.puzzlebox.games.strandsui.board.keyframes
  * the button and swells it ([rememberHintFace]). TalkBack hears "Hint" and the state: how many
  * hints are banked and how many words toward the next. Under the core hint cooldown (F2) every
  * press, modal or reveal, waits it out with the shared ring ([rememberHintCooldown]).
- * [fill] takes the width the parent gives instead of [HintWidth] (the tuned control row).
+ * Under [LocalHintPolish] the face is the neutral well (flat: the resting outline) banked or not, so the dots, the count badge
+ * and the ring carry the earned state. [fill] takes the width the parent gives instead of [HintWidth] (the tuned control row).
  */
 @Composable
 internal fun StrandsHintControl(
@@ -62,6 +64,7 @@ internal fun StrandsHintControl(
     fill: Boolean = false,
 ) {
     val outlined = LocalFlatStrands.current
+    val calm = LocalHintPolish.current
     val face = rememberHintFace(hint, reduceMotion)
     val shown = face.shown
     val swell = remember { Animatable(1f) }
@@ -88,7 +91,7 @@ internal fun StrandsHintControl(
                 .cooldownRing(cooldown.ring, StrandsBrand.accent)
             if (outlined) {
                 StrandsHintPill(
-                    armed = shown.available,
+                    armed = shown.available && !calm,
                     enabled = cooldown.gate(enabled = true),
                     onClick = { cooldown.press(onHint) },
                     modifier = buttonModifier,
@@ -100,7 +103,7 @@ internal fun StrandsHintControl(
                     onClick = { cooldown.press(onHint) },
                     label = StrandsCopy.HINT,
                     enabled = cooldown.gate(enabled = true),
-                    accent = StrandsBrand.accent.takeIf { shown.available },
+                    accent = StrandsBrand.accent.takeIf { shown.available && !calm },
                     size = GameButtonSize.Tall,
                     modifier = buttonModifier,
                 ) { ink -> HintFaceContent(shown, ink, reduceMotion, Modifier.align(Alignment.Center)) }

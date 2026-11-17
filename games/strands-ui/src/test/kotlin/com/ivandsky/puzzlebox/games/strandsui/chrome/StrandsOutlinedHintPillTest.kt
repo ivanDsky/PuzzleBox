@@ -1,17 +1,21 @@
 package com.ivandsky.puzzlebox.games.strandsui.chrome
 
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.LightBoardTokens
 import com.ivandsky.puzzlebox.designsystem.LocalFlatStrands
 import com.ivandsky.puzzlebox.designsystem.LocalFlatSurfaces
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
+import com.ivandsky.puzzlebox.gameui.LocalHintPolish
 import com.ivandsky.puzzlebox.games.strandsui.HintUi
 import kotlin.math.abs
 import org.junit.Assert.assertTrue
@@ -37,9 +41,9 @@ class StrandsOutlinedHintPillTest {
 
     private val light = LightBoardTokens
 
-    private fun show(hint: HintUi, strands: Boolean = true) = rule.setContent {
+    private fun show(hint: HintUi, strands: Boolean = true, calm: Boolean = false) = rule.setContent {
         PuzzleBoxTheme(darkTheme = false) {
-            CompositionLocalProvider(LocalFlatSurfaces provides true, LocalFlatStrands provides strands) {
+            CompositionLocalProvider(LocalFlatSurfaces provides true, LocalFlatStrands provides strands, LocalHintPolish provides calm) {
                 StrandsHintControl(hint = hint, onHint = {}, reduceMotion = true)
             }
         }
@@ -80,4 +84,42 @@ class StrandsOutlinedHintPillTest {
         assertTrue("face ${map[30, map.height / 2]}", !map[30, map.height / 2].near(light.strandsThemeTint))
         assertTrue(!map[30, map.height / 2].near(Color.Transparent))
     }
+
+    @Test
+    fun `HintPolish on, a banked hint leaves the pill neutral, the badge and lit dots still show`() {
+        show(HintUi(count = 1, meterThirds = 3), calm = true)
+        val map = rule.onNodeWithTag("strands.hint").captureToImage().toPixelMap()
+        val mid = map.height / 2
+        assertTrue("border ${map[2, mid]}", map[2, mid].near(light.strandsFlatOutline))
+        assertTrue("face ${map[30, mid]}", map[30, mid].near(map[0, 0]))
+        rule.onNodeWithTag("strands.hint_badge", useUnmergedTree = true).assertExists()
+        rule.onAllNodesWithTag("strands.hint_dot.on", useUnmergedTree = true).assertCountEquals(3)
+    }
+
+    private fun sharedButtonFaceIsNeutral(hint: HintUi, dark: Boolean) {
+        var neutral = Color.Unspecified
+        rule.setContent {
+            PuzzleBoxTheme(darkTheme = dark) {
+                neutral = MaterialTheme.colorScheme.surfaceContainerHigh
+                CompositionLocalProvider(LocalFlatSurfaces provides true, LocalHintPolish provides true) {
+                    StrandsHintControl(hint = hint, onHint = {}, reduceMotion = true)
+                }
+            }
+        }
+        val map = rule.onNodeWithTag("strands.hint").captureToImage().toPixelMap()
+        val face = map[map.width / 2, 16]
+        assertTrue("dark=$dark face $face vs $neutral", face.near(neutral))
+    }
+
+    @Test
+    fun `HintPolish on, light, the shared button is the neutral well with a hint banked`() =
+        sharedButtonFaceIsNeutral(HintUi(count = 1, meterThirds = 3), dark = false)
+
+    @Test
+    fun `HintPolish on, dark, the shared button is the neutral well with a hint banked`() =
+        sharedButtonFaceIsNeutral(HintUi(count = 1, meterThirds = 3), dark = true)
+
+    @Test
+    fun `HintPolish on, dark, the shared button is the neutral well with none banked`() =
+        sharedButtonFaceIsNeutral(HintUi(count = 0, meterThirds = 1), dark = true)
 }
