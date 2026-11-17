@@ -62,6 +62,8 @@ class QueensPlayController(
     private val now: () -> Instant = Instant::now,
     /** Read once at creation (spec A20); gives every board the Spotlight hint (28). */
     private val hintMode: HintMode.Stepwise,
+    /** Read once at creation like [hintMode]: the plain hint captions (HintPolish). */
+    private val plainCaptions: Boolean = false,
 ) : GamePlayController, PlayClock, PlayHints, PlayUndo, PlayFeedback, PlayGuide {
 
     /** The live interaction holder, null until a session is adopted. */
@@ -149,6 +151,7 @@ class QueensPlayController(
             settle = this::settle,
             mode = hintMode,
             scope = env.scope,
+            plainCaptions = plainCaptions,
             onInput = env.onInput,
         )
     }

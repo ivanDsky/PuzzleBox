@@ -36,11 +36,13 @@ import com.ivandsky.puzzlebox.model.GameId
 
 /**
  * Queens' one play registration (ADR-0001): its controller, its board and its play screen. [hintMode] is asked once
- * per board opened, so a hint option changed in between applies to the next board (A20).
+ * per board opened, so a hint option changed in between applies to the next board (A20). [plainCaptions] is asked the
+ * same way and picks the plain hint captions (HintPolish).
  */
 class QueensPlayUi(
     private val settings: QueensSettings,
     private val hintMode: () -> HintMode.Stepwise,
+    private val plainCaptions: () -> Boolean = { false },
 ) : GamePlayUi {
     constructor(settings: QueensSettings, hintMode: HintMode.Stepwise) : this(settings, { hintMode })
 
@@ -49,11 +51,11 @@ class QueensPlayUi(
     override val brand: GameBrand get() = QueensBrand
 
     override fun createController(env: PlayEnvironment): GamePlayController =
-        QueensPlayController(env, settings, hintMode = hintMode())
+        QueensPlayController(env, settings, hintMode = hintMode(), plainCaptions = plainCaptions())
 
     /** A lesson teaches the rules with Auto-cross on, whatever the player chose for their own puzzles. */
     override fun createLessonController(env: PlayEnvironment): GamePlayController =
-        QueensPlayController(env, settings = null, hintMode = hintMode())
+        QueensPlayController(env, settings = null, hintMode = hintMode(), plainCaptions = plainCaptions())
 
     override val tutorial: List<TutorialStep> get() = QueensTutorial.steps
 

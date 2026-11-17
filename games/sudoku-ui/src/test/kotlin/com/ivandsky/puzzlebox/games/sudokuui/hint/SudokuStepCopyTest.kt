@@ -235,6 +235,81 @@ class SudokuStepCopyTest {
         }
     }
 
+    // HintPolish (#1174): a sentence first; the technique name survives only as a trailing parenthetical.
+
+    private fun plainText(step: SudokuStep, puzzle: SudokuPuzzle = classic, board: SudokuBoard = classicBoard) =
+        SudokuStepCopy.text(step, puzzle, board, plain = true)
+
+    @Test
+    fun `plain texts are pinned for each step kind`() {
+        assertEquals(
+            "In this box only this cell can take 4 (hidden single)",
+            plainText(SudokuStep.Single(place(2, 4, SudokuTechnique.HIDDEN_SINGLE_BOX, box0), null, emptySet())),
+        )
+        assertEquals(
+            "In col 4 only this cell can take 2 (hidden single)",
+            plainText(SudokuStep.Single(place(2, 2, SudokuTechnique.HIDDEN_SINGLE_LINE, col3), null, emptySet())),
+        )
+        assertEquals(
+            "It sees 1, 3 and has 2 ruled out, so it is 4 (naked single)",
+            plainText(
+                SudokuStep.Single(place(0, 4, SudokuTechnique.NAKED_SINGLE, null), null, setOf(1, 2), mapOf(0 to bit(2))),
+                mini, miniBoard(1 to 3, 2 to 1),
+            ),
+        )
+        assertEquals(
+            "Row 1 has one cell left, and it needs 6",
+            plainText(SudokuStep.Single(place(2, 6, SudokuTechnique.HIDDEN_SINGLE_LINE, row0), row0, emptySet())),
+        )
+        assertEquals(
+            "This box puts its 3 in row 6, so the rest of row 6 can't take 3 (pointing)",
+            plainText(SudokuStep.Elimination(SudokuTechnique.POINTING, SudokuUnit(UnitKind.BOX, 3), bit(3), mapOf(51 to bit(3)), setOf(45, 46))),
+        )
+        assertEquals(
+            "Col 5 puts its 3 in this box, so the rest of the box can't take 3 (claiming)",
+            plainText(SudokuStep.Elimination(SudokuTechnique.CLAIMING, SudokuUnit(UnitKind.COLUMN, 4), bit(3), mapOf(0 to bit(3)), setOf(4))),
+        )
+        assertEquals(
+            "These two cells only take 2 and 5, so the rest of row 1 loses both (naked pair)",
+            plainText(SudokuStep.Elimination(SudokuTechnique.NAKED_PAIR, row0, bit(2) or bit(5), mapOf(6 to bit(2)), setOf(0, 1)), mini, miniBoard()),
+        )
+        assertEquals(
+            "1 and 6 only fit these two cells, so they take nothing else (hidden pair)",
+            plainText(SudokuStep.Elimination(SudokuTechnique.HIDDEN_PAIR, row0, bit(1) or bit(6), mapOf(0 to bit(4)), setOf(0, 1)), mini, miniBoard()),
+        )
+        assertEquals("Row 5, column 1 is 5 — no simple step here", plainText(SudokuStep.Reveal(36, 5)))
+        assertEquals("This 2 isn't in the solution", plainText(SudokuStep.Mistake(2, 2, null)))
+        assertEquals("This 1 repeats the 1 in its box — and isn't in the solution", plainText(SudokuStep.Mistake(2, 1, 0)))
+    }
+
+    @Test
+    fun `no plain text starts with a technique name, and each is one line within the budget`() {
+        val names = listOf(
+            "Hidden single", "Naked single", "Last cell", "Pointing", "Claiming", "Naked pair", "Hidden pair", "Reveal",
+        )
+        // The longest naked single, as the legacy budget test builds it.
+        val classicWorstBoard = (1..4).fold(classicBoard) { board, cell -> board.with(cell, SudokuCell.Given(cell)) }
+        val classicWorst = SudokuStep.Single(
+            place(0, 9, SudokuTechnique.NAKED_SINGLE, null), null, setOf(1, 2, 3, 4), mapOf(0 to (bit(5) or bit(6) or bit(7) or bit(8))),
+        )
+        val texts = everyStep().mapValues { (_, step) -> plainText(step) } +
+            ("WORST_NAKED_STRUCK" to plainText(classicWorst, classic, classicWorstBoard)) +
+            ("WORST_CLASH" to plainText(SudokuStep.Mistake(2, 8, 0)))
+
+        for ((key, line) in texts) {
+            assertFalse("$key is one line", '\n' in line)
+            assertTrue("$key is ${line.length} chars: $line", line.length <= 80)
+            for (name in names) assertFalse("$key starts with $name: $line", line.startsWith(name, ignoreCase = true))
+        }
+    }
+
+    @Test
+    fun `flag off keeps today's line for a hidden single`() {
+        val step = SudokuStep.Single(place(2, 4, SudokuTechnique.HIDDEN_SINGLE_BOX, box0), null, emptySet())
+        assertEquals("Hidden single (box): in this box only this cell can take 4", SudokuStepCopy.text(step, classic, classicBoard, plain = false))
+        assertEquals(text(step), SudokuStepCopy.text(step, classic, classicBoard, plain = false))
+    }
+
     @Test
     fun `a solved board has no callout`() {
         assertTrue(runCatching { text(SudokuStep.Solved) }.isFailure)

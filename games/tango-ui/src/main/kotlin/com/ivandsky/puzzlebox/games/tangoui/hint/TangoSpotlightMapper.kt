@@ -10,7 +10,7 @@ import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepRung
 
 /**
  * Turns a [TangoStep] into everything the Spotlight draws: roles, callout, glyphs, and the ledger [Key].
- * [grid] is the press-time board, equal to the snapshot the step was computed from.
+ * [grid] is the press-time board, equal to the snapshot the step was computed from. [plainCaptions] picks the callout set.
  */
 internal object TangoSpotlightMapper {
 
@@ -22,13 +22,21 @@ internal object TangoSpotlightMapper {
     }
 
     /** The Spotlight of a keyed [step]; [TangoStep.Solved] and [TangoStep.Unavailable] have none and throw. */
-    fun map(step: TangoStep, puzzle: TangoPuzzle, grid: List<TangoCell?>, playId: Int): Spotlight = when (step) {
+    fun map(
+        step: TangoStep,
+        puzzle: TangoPuzzle,
+        grid: List<TangoCell?>,
+        playId: Int,
+        plainCaptions: Boolean = false,
+    ): Spotlight = when (step) {
         is TangoStep.Deduction ->
-            spotlight(step, puzzle, deductionRoles(step), mapOf(step.idx to step.value), playId)
-        is TangoStep.Reveal ->
-            spotlight(step, puzzle, single(step.idx, SpotlightRole.TARGET), mapOf(step.idx to step.value), playId)
-        is TangoStep.Mistake ->
-            spotlight(step, puzzle, single(step.idx, SpotlightRole.CULPRIT), mistakeValues(step, grid), playId)
+            spotlight(step, puzzle, deductionRoles(step), mapOf(step.idx to step.value), playId, plainCaptions)
+        is TangoStep.Reveal -> spotlight(
+            step, puzzle, single(step.idx, SpotlightRole.TARGET), mapOf(step.idx to step.value), playId, plainCaptions,
+        )
+        is TangoStep.Mistake -> spotlight(
+            step, puzzle, single(step.idx, SpotlightRole.CULPRIT), mistakeValues(step, grid), playId, plainCaptions,
+        )
         TangoStep.Solved, TangoStep.Unavailable -> error("$step has no Spotlight")
     }
 
@@ -38,11 +46,12 @@ internal object TangoSpotlightMapper {
         shape: Pair<Map<Int, SpotlightRole>, Set<Int>>,
         values: Map<Int, TangoCell>,
         playId: Int,
+        plainCaptions: Boolean,
     ): Spotlight = Spotlight(
         rows = puzzle.n,
         cols = puzzle.n,
         roles = shape.first,
-        callout = SpotlightCallout(TangoStepCopy.text(step, puzzle), shape.second),
+        callout = SpotlightCallout(TangoStepCopy.text(step, puzzle, plainCaptions), shape.second),
         glyphs = TangoSpotlightGlyphs(puzzle.n, values),
         playId = playId,
     )

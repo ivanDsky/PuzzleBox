@@ -8,6 +8,7 @@ import com.ivandsky.puzzlebox.games.sudoku.SudokuGames
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
 import com.ivandsky.puzzlebox.gameui.hint.HintMode
+import com.ivandsky.puzzlebox.gameui.hint.HintModeSource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -70,7 +71,7 @@ class SudokuHintModeWiringTest {
     fun `the mode source is invoked exactly once per controller and the controller carries its value`() {
         var calls = 0
         val stepwise = HintMode.Stepwise(Dispatchers.Unconfined)
-        val ui = SudokuPlayUi(SudokuGames.MINI, InMemorySudokuHighlightSettings(), MiniSudokuBrand) { calls++; stepwise }
+        val ui = SudokuPlayUi(SudokuGames.MINI, InMemorySudokuHighlightSettings(), MiniSudokuBrand, HintModeSource { calls++; stepwise })
 
         val controller = ui.createController(env) as SudokuPlayController
 

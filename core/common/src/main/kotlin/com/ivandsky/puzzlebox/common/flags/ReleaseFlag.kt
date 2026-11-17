@@ -35,6 +35,12 @@ enum class ReleaseFlag(val label: String, val releaseDefault: Boolean) {
     HintFirstMove(label = "Hints give a real first move", releaseDefault = true),
 
     /**
+     * Hint polish (backlog #1172, #1174): the Hint button reads as a peer of Undo, and hint captions explain the step in a plain
+     * sentence before any technique name. Read only in feature/play's DI or a game UI module's DI (ADR-0022 §3).
+     */
+    HintPolish(label = "Calm hint button and plain hint captions", releaseDefault = false),
+
+    /**
      * Finish for me in the Studio (nav-rethink E1): a game whose editor has a `DraftCompleter` completes a half-built draft
      * into a unique puzzle, keeping every piece the author placed. Read only in a ViewModel or a DI module (spec A2).
      */

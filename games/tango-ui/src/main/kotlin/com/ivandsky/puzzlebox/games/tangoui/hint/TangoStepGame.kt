@@ -19,11 +19,13 @@ import com.ivandsky.puzzlebox.games.tango.engine.step.TangoStepper
  * wall-clock, so the answer is repeatable; no unique solution or a spent budget is null, and the stepper then accuses
  * only rule breaks and never reveals. Main-confined except the compute block, which only reads the snapshot and the
  * memo. [solve] is a seam for tests. [firstMove] is the mode's pick order (nav-rethink B4), fixed for the play.
+ * [plainCaptions] picks the plain callout set (HintPolish), fixed for the play too.
  */
 internal class TangoStepGame(
     private val session: () -> TangoSession,
     solve: (TangoPuzzle) -> List<TangoCell>? = { TangoBoundedSolution.of(it) },
     private val firstMove: Boolean = false,
+    private val plainCaptions: Boolean = false,
 ) : StepHints.Game<TangoStep, TangoSpotlightMapper.Key> {
 
     private val solutions = OncePerPuzzle(solve)
@@ -41,7 +43,7 @@ internal class TangoStepGame(
     /** The press-time board: any input invalidates the search before it delivers, so the live board is the snapshot. */
     override fun spotlight(step: TangoStep, playId: Int): Spotlight {
         val current = session()
-        return TangoSpotlightMapper.map(step, current.puzzle, current.grid(), playId)
+        return TangoSpotlightMapper.map(step, current.puzzle, current.grid(), playId, plainCaptions)
     }
 
     private fun solutionOf(puzzle: TangoPuzzle): List<TangoCell>? = solutions.get(puzzle)
