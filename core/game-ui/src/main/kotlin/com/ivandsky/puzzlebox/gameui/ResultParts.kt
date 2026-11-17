@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.gameui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.designsystem.PillShape
@@ -30,7 +33,6 @@ import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.Stamp
-import com.ivandsky.puzzlebox.designsystem.TonalIconButton
 import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.game.BestScore
@@ -38,6 +40,9 @@ import com.ivandsky.puzzlebox.game.RankOrder
 import java.time.Instant
 
 private val PillMinHeight = 28.dp
+
+/** Below this the actions stack: the primary on its own row, Share and Play again beneath it. */
+private val ActionRowSingleLineWidth = 480.dp
 
 /** The header's puzzle line, as the play top bar names it: "Queens · #918", "Tango · Practice", or just the name. */
 internal fun resultTitle(game: String, number: Int?, practice: Boolean): String = when {
@@ -130,13 +135,12 @@ internal fun PlayAgainLine(previousBest: BestScore?, rankOrder: RankOrder) {
 }
 
 /**
- * The result's actions, in one row: the primary takes the width the icons leave, and the two
- * 48 dp icon buttons follow it, [Spacing.sm] apart and centred on the row's height (the countdown is taller than 48 dp).
- * The primary is the button [step] gives for it (`result.next`, `result.done`, and one tag and one copy for each
- * other next thing); once every daily is solved the [ResultCountdown] to [rolloverAt] stands in its place. Then come
- * Share (tag `result.share`) and, unless [onPlayAgain] is null, Play again (`result.playAgain`), both
- * tonal icon buttons that name themselves "Share" and "Play again" for TalkBack and a long-press tooltip.
- * Under the row: "Challenge <name>" (`result.challenge`) when a [challenge] and its [onChallenge] are given.
+ * The result's actions, stacked: the primary spans the full width (the button [step] gives for it: `result.next`,
+ * `result.done`, and one tag and one copy for each other next thing; once every daily is solved the [ResultCountdown]
+ * to [rolloverAt] stands in its place). Under it, Share (tag `result.share`) and, unless [onPlayAgain] is null,
+ * Play again (`result.playAgain`) share a row as equal labelled pills. The pills are stacked rather than beside the
+ * primary: a label each would crush the primary's words at a phone's width. Under the row: "Challenge <name>"
+ * (`result.challenge`) when a [challenge] and its [onChallenge] are given.
  */
 @Composable
 internal fun ResultActions(
@@ -169,31 +173,49 @@ private fun ActionRow(
     onPlayAgain: (() -> Unit)?,
     rolloverAt: Instant?,
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        val fill = Modifier.weight(1f)
-        val step = primary.step()
+    val step = primary.step()
+    val primaryButton: @Composable (Modifier) -> Unit = { modifier ->
         if (step == null) {
-            ResultCountdown(rolloverAt, fill)
+            ResultCountdown(rolloverAt, modifier)
         } else {
-            PrimaryButton(text = step.text, onClick = onPrimary, modifier = fill.testTag(step.tag))
+            PrimaryButton(text = step.text, onClick = onPrimary, modifier = modifier.testTag(step.tag))
         }
-        TonalIconButton(
-            icon = PuzzleIcons.Share,
-            contentDescription = "Share",
+    }
+    val shareButton: @Composable (Modifier) -> Unit = { modifier ->
+        SecondaryButton(
+            text = "Share",
             onClick = onShare,
-            modifier = Modifier.testTag("result.share"),
+            modifier = modifier.testTag("result.share").semantics { contentDescription = "Share" },
+            icon = PuzzleIcons.Share,
         )
-        onPlayAgain?.let {
-            TonalIconButton(
-                icon = PuzzleIcons.Retry,
-                contentDescription = "Play again",
-                onClick = it,
-                modifier = Modifier.testTag("result.playAgain"),
-            )
+    }
+    val playAgainButton: @Composable (Modifier, () -> Unit) -> Unit = { modifier, onClick ->
+        SecondaryButton(
+            text = "Play again",
+            onClick = onClick,
+            modifier = modifier.testTag("result.playAgain").semantics { contentDescription = "Play again" },
+            icon = PuzzleIcons.Retry,
+        )
+    }
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        if (maxWidth >= ActionRowSingleLineWidth) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                primaryButton(Modifier.weight(1f))
+                shareButton(Modifier)
+                onPlayAgain?.let { playAgainButton(Modifier, it) }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                primaryButton(Modifier.fillMaxWidth())
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    shareButton(Modifier.weight(1f))
+                    onPlayAgain?.let { playAgainButton(Modifier.weight(1f), it) }
+                }
+            }
         }
     }
 }

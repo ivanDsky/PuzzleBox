@@ -4,22 +4,25 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
+import com.ivandsky.puzzlebox.designsystem.PillShape
 import com.ivandsky.puzzlebox.designsystem.PuzzleIcons
 import com.ivandsky.puzzlebox.designsystem.Spacing
 
@@ -57,25 +60,32 @@ internal fun ReplayTopBar(
     }
 }
 
-/** The "Show errors" switch of a replay page: an icon toggle, lit while rule violations show on the boards. */
+/**
+ * The "Errors" switch of a replay page: a labelled pill, lit while rule violations show on the boards. A text label
+ * rather than an icon alone, so the switch reads without knowing the glyph.
+ */
 @Composable
 internal fun ShowErrorsToggle(showErrors: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
-    IconToggleButton(
-        checked = showErrors,
-        onCheckedChange = onChange,
+    Surface(
+        shape = PillShape,
+        color = if (showErrors) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+        contentColor = if (showErrors) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier
-            .size(ReplaySizes.TouchTarget)
+            .heightIn(min = ReplaySizes.TouchTarget)
             .testTag(ReplayTags.SHOW_ERRORS)
+            .toggleable(value = showErrors, role = Role.Switch, onValueChange = onChange)
             .semantics {
                 contentDescription = ReplayCopy.SHOW_ERRORS
                 stateDescription = if (showErrors) ReplayCopy.ON else ReplayCopy.OFF
             },
-        colors = IconButtonDefaults.iconToggleButtonColors(
-            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-            checkedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-            checkedContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-        ),
     ) {
-        Icon(ReplayIcons.Errors, contentDescription = null, modifier = Modifier.size(ReplaySizes.Icon))
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            Icon(ReplayIcons.Errors, contentDescription = null, modifier = Modifier.size(ReplaySizes.Icon))
+            Text(ReplayCopy.ERRORS, style = MaterialTheme.typography.labelLarge)
+        }
     }
 }

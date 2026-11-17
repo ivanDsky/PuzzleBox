@@ -1,5 +1,7 @@
 package com.ivandsky.puzzlebox.gameui
 
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
@@ -9,6 +11,8 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.GameGlyphs
@@ -49,12 +53,14 @@ class ResultHeroCardTest {
         playAgain: Boolean = true,
         wide: Boolean = false,
         withActions: Boolean = true,
+        width: Dp = 360.dp,
     ) {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
                 ResultHeroCard(
                     model = model,
                     brand = brand,
+                    modifier = Modifier.requiredWidth(width),
                     wide = wide,
                     actions = if (withActions) {
                         {
@@ -157,32 +163,46 @@ class ResultHeroCardTest {
     }
 
     @Test
-    fun `share and play again are icon buttons named for what they do`() {
+    fun `share and play again show their labels and keep their names`() {
         setContent(heroSampleModel(verdict = RecordVerdict.NotBest))
 
-        composeRule.onNodeWithTag("result.share").assertContentDescriptionEquals("Share").assertHasClickAction()
-        composeRule.onNodeWithTag("result.playAgain").assertContentDescriptionEquals("Play again").assertHasClickAction()
-        composeRule.onNodeWithText("Share").assertDoesNotExist()
-        composeRule.onNodeWithText("Play again").assertDoesNotExist()
+        composeRule.onNodeWithTag("result.share").assertTextEquals("Share").assertContentDescriptionEquals("Share").assertHasClickAction()
+        composeRule.onNodeWithTag("result.playAgain").assertTextEquals("Play again").assertContentDescriptionEquals("Play again").assertHasClickAction()
     }
 
     @Test
-    fun `the primary and both icons share one row, vertically centred`() {
+    fun `on a phone, share and play again sit side by side under the primary, equal and 48 dp tall`() {
         setContent(heroSampleModel(verdict = RecordVerdict.NotBest))
+
+        val primary = composeRule.onNodeWithTag("result.next").getUnclippedBoundsInRoot()
+        val share = composeRule.onNodeWithTag("result.share").getUnclippedBoundsInRoot()
+        val again = composeRule.onNodeWithTag("result.playAgain").getUnclippedBoundsInRoot()
+        assertTrue("share ${share.top} must sit under primary ${primary.bottom}", share.top >= primary.bottom)
+        assertEquals("play again shares share's row", share.top.value, again.top.value, 0.5f)
+        assertTrue("play again ${again.left} must sit right of share ${share.right}", again.left >= share.right)
+        assertEquals("the pair spans the primary's width", primary.left.value, share.left.value, 0.5f)
+        assertEquals("the pair spans the primary's width", primary.right.value, again.right.value, 0.5f)
+        assertEquals("equal halves", (share.right - share.left).value, (again.right - again.left).value, 0.5f)
+        assertEquals(48f, share.height.value, 0.5f)
+        assertEquals(48f, again.height.value, 0.5f)
+    }
+
+    @Test
+    fun `on a wide card the primary, share and play again share one row`() {
+        setContent(heroSampleModel(verdict = RecordVerdict.NotBest), width = 640.dp)
 
         val primary = composeRule.onNodeWithTag("result.next").getUnclippedBoundsInRoot()
         val share = composeRule.onNodeWithTag("result.share").getUnclippedBoundsInRoot()
         val again = composeRule.onNodeWithTag("result.playAgain").getUnclippedBoundsInRoot()
         assertTrue("share ${share.left} must sit right of primary ${primary.right}", share.left >= primary.right)
         assertTrue("play again ${again.left} must sit right of share ${share.right}", again.left >= share.right)
+        assertEquals("share centred on the primary's row", (primary.top + primary.bottom).value, (share.top + share.bottom).value, 1f)
+        assertEquals("play again centred on the primary's row", (primary.top + primary.bottom).value, (again.top + again.bottom).value, 1f)
         assertEquals(48f, share.height.value, 0.5f)
-        assertEquals(48f, again.height.value, 0.5f)
-        assertEquals((primary.top + primary.bottom).value, (share.top + share.bottom).value, 1f)
-        assertEquals((primary.top + primary.bottom).value, (again.top + again.bottom).value, 1f)
     }
 
     @Test
-    fun `the countdown row keeps the icons centred on its taller primary`() {
+    fun `the countdown stands above the share and play again row`() {
         setContent(
             heroSampleModel(verdict = RecordVerdict.NotBest, primary = ResultPrimaryAction.AllDone),
             rolloverAt = Instant.now().plusSeconds(3 * 3600L),
@@ -190,8 +210,8 @@ class ResultHeroCardTest {
 
         val countdown = composeRule.onNodeWithTag("result.all_done").getUnclippedBoundsInRoot()
         val share = composeRule.onNodeWithTag("result.share").getUnclippedBoundsInRoot()
-        assertTrue("share ${share.left} must sit right of countdown ${countdown.right}", share.left >= countdown.right)
-        assertEquals((countdown.top + countdown.bottom).value, (share.top + share.bottom).value, 1f)
+        assertTrue("share ${share.top} must sit under countdown ${countdown.bottom}", share.top >= countdown.bottom)
+        assertEquals(48f, share.height.value, 0.5f)
     }
 
     @Test

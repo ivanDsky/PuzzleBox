@@ -98,7 +98,7 @@ internal fun Actions(summary: DuelSummary, onRematch: () -> Unit, onWatchAgain: 
             )
             SecondaryButton(
                 "Watch again", onWatchAgain,
-                Modifier.weight(1f).testTag("reveal.watchAgain"), icon = PuzzleIcons.Retry,
+                Modifier.weight(1f).testTag("reveal.watchAgain"), icon = PuzzleIcons.WatchAgain,
             )
         }
     }

@@ -56,7 +56,7 @@ internal fun HeroContent(
                 block.place(pad, y)
                 y += block.height
             }
-            if (height == natural) {
+            if (height <= natural) {
                 time.place(pad, headerBottom + gapTop)
             } else {
                 val clearance = maxOf(gapTop, gapBottom)
