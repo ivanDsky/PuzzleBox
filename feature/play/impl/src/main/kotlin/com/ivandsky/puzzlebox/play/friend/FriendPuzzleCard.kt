@@ -31,8 +31,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import com.ivandsky.puzzlebox.designsystem.LocalMutedStatus
 import com.ivandsky.puzzlebox.designsystem.MotionTokens
 import com.ivandsky.puzzlebox.designsystem.PillShape
@@ -42,7 +43,6 @@ import com.ivandsky.puzzlebox.designsystem.colors
 import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
-import com.ivandsky.puzzlebox.designsystem.tabular
 import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
 
 /**
@@ -54,8 +54,10 @@ import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
  * primary action, [onAction], and under it the [BoardPreview], whose sign-in is [onSignIn]. A ⋮ beside the title offers
  * Report ([onReport]) when [FriendCard.canReport].
  * Sections rise in with the Enter stagger the first time the code's card is shown; under
- * reduced motion they only fade. On a wide window the card keeps to one centred column, unless it is [inPane] (the
- * Community tablet's right pane) with the board on and room for both columns: then [FriendPuzzleGrid] lays out two.
+ * reduced motion they only fade. On a wide window the card keeps to one centred column, unless it is in the Community
+ * tablet's right pane, [paneHeight] high, with the board on and room for both columns: then [FriendPuzzleGrid] lays out
+ * two, centred in the pane. A card in a pane carries no bottom margin in its [modifier]: the single column adds its own,
+ * and the grid keeps its margins inside the pane's height.
  */
 @Composable
 internal fun FriendPuzzleCard(
@@ -64,16 +66,16 @@ internal fun FriendPuzzleCard(
     onSignIn: () -> Unit,
     modifier: Modifier = Modifier,
     onReport: () -> Unit = {},
-    inPane: Boolean = false,
+    paneHeight: Dp = Dp.Unspecified,
 ) {
     val reduced = rememberReducedMotion()
     val entrance = rememberCardEntrance(card.puzzle.code)
-    if (inPane && card.hiddenBoard) {
+    if (paneHeight.isSpecified && card.hiddenBoard) {
         BoxWithConstraints(modifier) {
             if (maxWidth >= FriendGridMinWidth) {
-                FriendPuzzleGrid(card, entrance, reduced, onAction, onSignIn, onReport)
+                FriendPuzzleGrid(card, entrance, reduced, paneHeight, onAction, onSignIn, onReport)
             } else {
-                SingleColumn(card, entrance, reduced, onAction, onSignIn, onReport, Modifier)
+                SingleColumn(card, entrance, reduced, onAction, onSignIn, onReport, Modifier.padding(bottom = Spacing.xl))
             }
         }
     } else {
@@ -203,53 +205,6 @@ private fun Chip(text: String, container: Color, content: Color, tag: String) {
 }
 
 @Composable
-internal fun Stats(card: FriendCard) {
-    Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Tile("Author", Modifier.weight(1f)) {
-            Value(formatDuration(card.puzzle.authorTimeMs), "friend.card.author.time")
-            Hints(card.puzzle.authorHints, "friend.card.author.hints")
-        }
-        card.yours?.let {
-            Tile("Your time", Modifier.weight(1f)) {
-                Value(formatDuration(it.timeMs), "friend.card.solved")
-                Hints(it.hints, "friend.card.solved.hints")
-            }
-        }
-    }
-}
-
-@Composable
-private fun Tile(label: String, modifier: Modifier, content: @Composable () -> Unit) {
-    Column(
-        modifier.fillMaxHeight().background(MaterialTheme.colorScheme.surfaceContainerLow, MaterialTheme.shapes.medium).padding(Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
-    ) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        content()
-    }
-}
-
-@Composable
-private fun Value(text: String, tag: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleLarge.tabular().copy(fontWeight = FontWeight.Bold),
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.testTag(tag),
-    )
-}
-
-@Composable
-private fun Hints(hints: Int, tag: String) {
-    Text(
-        text = hintsLabel(hints),
-        style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.testTag(tag),
-    )
-}
-
-@Composable
 internal fun Action(action: FriendCardAction, reduced: Boolean, onAction: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         AnimatedContent(targetState = action, transitionSpec = { crossfade(reduced) }, label = "cta") { shown ->
@@ -283,8 +238,6 @@ private val FriendCardAction.tag: String
         is FriendCardAction.Resume -> "resume"
         FriendCardAction.PlayAgain -> "replay"
     }
-
-private fun hintsLabel(hints: Int) = if (hints == 1) "1 hint" else "$hints hints"
 
 // The taken-down chip pops in from a little smaller, as the From friends status chip does.
 private const val TAKEN_DOWN_POP_FROM_SCALE = 0.85f

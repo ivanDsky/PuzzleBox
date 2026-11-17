@@ -3,6 +3,7 @@ package com.ivandsky.puzzlebox.play.friend
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
@@ -49,20 +50,36 @@ class FriendGridGoldenScreenshots {
     @Test fun `narrow light`() = pane("grid-narrow", FriendHiddenBoardGoldenScreenshots.HIDDEN, NARROW, dark = false)
     @Test fun `narrow dark`() = pane("grid-narrow", FriendHiddenBoardGoldenScreenshots.HIDDEN, NARROW, dark = true)
 
+    @Test fun `loading light`() = skeleton("grid-loading", WIDE, dark = false)
+    @Test fun `loading dark`() = skeleton("grid-loading", WIDE, dark = true)
+
     private fun pane(name: String, card: FriendCard, width: Dp, dark: Boolean) {
         rule.showGolden(dark) {
             Row(Modifier.fillMaxHeight()) {
                 Box(Modifier.width(LIST).fillMaxHeight().background(MaterialTheme.colorScheme.surfaceContainerLow))
-                Box(Modifier.width(width).fillMaxHeight()) {
+                BoxWithConstraints(Modifier.width(width).fillMaxHeight()) {
+                    // As the route's: the two columns keep their margins inside the pane's height; the narrow page is as before.
+                    val scrolling = Modifier.verticalScroll(rememberScrollState())
                     FriendPuzzleCard(
                         card = card,
                         onAction = {},
                         onSignIn = {},
-                        modifier = Modifier.verticalScroll(rememberScrollState()).padding(top = Spacing.lg, bottom = Spacing.xl),
+                        modifier = if (width >= WIDE) scrolling else scrolling.padding(top = Spacing.lg, bottom = Spacing.xl),
                         onReport = {},
-                        inPane = true,
+                        paneHeight = maxHeight,
                     )
                 }
+            }
+        }
+        rule.settleAndCapture("friend", name, "tablet", dark)
+    }
+
+    /** The page's loading in the wide pane: the two-column skeleton, whose board is where the loaded one lands. */
+    private fun skeleton(name: String, width: Dp, dark: Boolean) {
+        rule.showGolden(dark) {
+            Row(Modifier.fillMaxHeight()) {
+                Box(Modifier.width(LIST).fillMaxHeight().background(MaterialTheme.colorScheme.surfaceContainerLow))
+                BoxWithConstraints(Modifier.width(width).fillMaxHeight()) { FriendLoadingBoard(paneHeight = maxHeight) }
             }
         }
         rule.settleAndCapture("friend", name, "tablet", dark)

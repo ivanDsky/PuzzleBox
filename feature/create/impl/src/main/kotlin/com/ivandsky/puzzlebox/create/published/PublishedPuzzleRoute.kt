@@ -93,7 +93,8 @@ internal fun PublishedPuzzleRoute(
         label = "publishedPage",
     ) { shown ->
         when (shown) {
-            PublishedPuzzleViewModel.State.Loading -> Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface))
+            // The pane (no Back) with the plain board on draws the grid's skeleton when it has the room for both columns.
+            PublishedPuzzleViewModel.State.Loading -> PublishedPageLoading(grid = viewModel.plainBoard && onBack == null && layout == PlayLayout.TwoPane)
             PublishedPuzzleViewModel.State.Missing -> MissingDraftScreen(onBack = onBack)
             is PublishedPuzzleViewModel.State.Ready -> {
                 val page: @Composable (PlayLayout, Boolean) -> Unit = { shownLayout, grid ->
@@ -166,7 +167,7 @@ private fun PublishedPage(
         if (grid) {
             PublishedPageGrid(
                 title = page.ticket.title,
-                board = board,
+                board = { boardModifier, side -> PublishedPageBoard(page, layout, boardModifier, side) },
                 details = {
                     PublishedActions(page.ticket, onCopied = { copies++ }, onDuplicate = onDuplicate, onUnpublish = unpublish::ask)
                     page.ui.PublishFields(page.controller, enabled = false, modifier = Modifier.fillMaxWidth())
