@@ -129,7 +129,7 @@ class LinkedInPostRowE2ETest {
             linkWithPostingOn()
 
             push(ResultKey(game.id.value, "$E2E_TODAY", solve.record.time, solve.record.hints))
-            awaitIdling { shows(RESULT_ROUTE) }
+            awaitDrained(ROW_TIMEOUT_MS) { shows(RESULT_ROUTE) }
 
             assertOffersPost(game)
         }
@@ -196,13 +196,13 @@ class LinkedInPostRowE2ETest {
         val win = with(game) { playToTheLastMove() }
         rule.runOnIdle(win)
         // The win's handoff runs on the main looper, which a frame-only wait never idles.
-        awaitIdling { shows(RESULT_ROUTE) }
+        awaitDrained(ROW_TIMEOUT_MS) { shows(RESULT_ROUTE) }
     }
 
     private fun ShellRobot.assertOffersPost(game: DailySolve) {
         try {
             // The row is there but inert (no semantics) until the page's primary resolves; wait for the ready row.
-            awaitLinkedIn { rule.onAllNodes(hasTestTag(POST_ROW) and hasText("Post to LinkedIn")).fetchSemanticsNodes().isNotEmpty() }
+            awaitDrained(ROW_TIMEOUT_MS) { rule.onAllNodes(hasTestTag(POST_ROW) and hasText("Post to LinkedIn")).fetchSemanticsNodes().isNotEmpty() }
         } catch (timeout: ComposeTimeoutException) {
             throw AssertionError("$game: the result page offers no Post to LinkedIn row", timeout)
         }
@@ -212,5 +212,7 @@ class LinkedInPostRowE2ETest {
     private companion object {
         const val RESULT_ROUTE = "route.result"
         const val POST_ROW = "result.linkedin_post"
+        // Wall-clock cap only: the waits above end when the work is done, and the app's own time limits stay still meanwhile.
+        const val ROW_TIMEOUT_MS = 30_000L
     }
 }
