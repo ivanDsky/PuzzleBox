@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.DpSize
 import com.ivandsky.puzzlebox.designsystem.LocalBoardGeometry
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.BoardGrid
+import com.ivandsky.puzzlebox.gameui.LocalPlayFeel
+import com.ivandsky.puzzlebox.gameui.MoveHapticsEffect
 import com.ivandsky.puzzlebox.gameui.replay.ReplayHintBadge
 import com.ivandsky.puzzlebox.games.strands.Coord
 import com.ivandsky.puzzlebox.games.strands.render.CellState
@@ -44,8 +46,9 @@ import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 /**
  * Strands' one board, chrome-free ([com.ivandsky.puzzlebox.gameui.GamePlayUi.Board]): the
  * daily screen and the tutorial both draw it. Draws nothing until [controller] holds a
- * puzzle. Every step goes through the controller first; the buzz is read from what it made
- * of the step ([StrandsHaptics]). A found word is taken from the controller once and played
+ * puzzle. Every step goes through the controller first; with PlayFeel off the buzz is read from
+ * what it made of the step ([StrandsHaptics]), and with PlayFeel on [MoveHapticsEffect] reads
+ * [moveSnapshot] instead. A found word is taken from the controller once and played
  * from local state, so a board composed afresh (rotation, re-entry) rests instead of showing it again.
  */
 @Composable
@@ -53,11 +56,13 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
     val model = controller.baseModel
     if (model.rows == 0) return
     val haptics = LocalHapticFeedback.current
+    val playFeel = LocalPlayFeel.current
     var playing by remember { mutableStateOf<FoundEvent?>(null) }
     val pending = controller.lastFound
     LaunchedEffect(pending) {
         if (pending != null) controller.takeFound()?.let { playing = it }
     }
+    MoveHapticsEffect({ controller.moveSnapshot() }, ::strandsMoveHaptic)
     StrandsBoardContent(
         model = model,
         // The pending event plays from its first frame; the taken copy carries it on (same seq, same trigger).
@@ -69,8 +74,10 @@ internal fun StrandsBoard(controller: StrandsPlayController, modifier: Modifier 
             val traceBefore = controller.trace
             val slotBefore = controller.slot
             controller.onTrace(step)
-            StrandsHaptics.forStep(step, traceBefore, controller.trace, slotBefore, controller.slot)
-                ?.let(haptics::performHapticFeedback)
+            if (!playFeel) {
+                StrandsHaptics.forStep(step, traceBefore, controller.trace, slotBefore, controller.slot)
+                    ?.let(haptics::performHapticFeedback)
+            }
         },
         modifier = modifier,
     )
