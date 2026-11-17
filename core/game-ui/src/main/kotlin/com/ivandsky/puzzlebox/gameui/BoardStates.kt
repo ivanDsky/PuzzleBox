@@ -1,13 +1,10 @@
 package com.ivandsky.puzzlebox.gameui
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,34 +16,28 @@ import com.ivandsky.puzzlebox.designsystem.Spacing
 
 /**
  * Board-level async states (A7/A8): the copy stays game-agnostic — screens pass their own wording when
- * they must. Loading holds the square a board will fill, so the board lands without moving the page (A18).
+ * they must. Loading holds the square a board will fill, so the board lands without moving the page (A18):
+ * a quiet board-shaped surface with the sheen the cards' skeletons use, capped like a board in a wide pane.
  */
 @Composable
 fun BoardLoading(
+    label: String,
     modifier: Modifier = Modifier,
-    label: String = "Getting today's puzzle…",
 ) {
     Box(
         modifier = modifier
+            .widthIn(max = PlayBoardMaxWidth)
             .fillMaxWidth()
             .aspectRatio(1f)
+            .skeleton(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.shapes.medium)
             .padding(Spacing.xl),
         contentAlignment = Alignment.Center,
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(Spacing.xxl),
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

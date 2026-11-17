@@ -258,6 +258,7 @@ class PlaySessionStore internal constructor(
             completions = completions.forSlot(slot, finishLeg),
             scope = playScope(),
             recordScope = scope,
+            isTodays = { slot is PlaySlot.Daily && calendar.today(slot.gameId) == slot.day },
         ).also {
             slots[slot] = it
             it.load()

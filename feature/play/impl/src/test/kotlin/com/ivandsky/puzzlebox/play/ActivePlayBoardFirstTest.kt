@@ -35,6 +35,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.util.IdentityHashMap
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import org.junit.Assert.assertArrayEquals
@@ -67,7 +68,11 @@ class ActivePlayBoardFirstTest {
     private val calendar = FakeGameCalendar(day)
     private val lane = WriteLane()
 
-    private fun open(repo: FakeDailyRepository = daily, games: GameRegistry = withReplay): ActivePlay = PlaySessionStore(
+    private fun open(
+        repo: FakeDailyRepository = daily,
+        games: GameRegistry = withReplay,
+        key: GameKey = this.key,
+    ): ActivePlay = PlaySessionStore(
         games = games,
         ui = GamePlayRegistry(listOf(ui)),
         opening = SlotOpening(
@@ -103,6 +108,25 @@ class ActivePlayBoardFirstTest {
         assertSame(stored, shown(play))
         assertEquals("the refresh has started and is still out", 1, daily.todayCalls(game))
         gate.complete(Unit)
+    }
+
+    @Test
+    fun `loading says today's puzzle only for the game's today`() {
+        assertEquals(PlayBoardStatus.Loading(todaysDaily = true), loadingOf(key))
+
+        val earlier = day.minusDays(1)
+        daily.setCached(game, earlier, stored)
+        assertEquals(PlayBoardStatus.Loading(todaysDaily = false), loadingOf(GameKey(game.value, earlier.toString())))
+    }
+
+    /** The loading status a retry of [at]'s play passes through, seen by a collector that was already watching. */
+    private fun loadingOf(at: GameKey): PlayBoardStatus {
+        val play = open(key = at)
+        val seen = mutableListOf<PlayBoardStatus>()
+        val watching = CoroutineScope(dispatcher).launch { play.board.collect { seen += it.status } }
+        play.retry()
+        watching.cancel()
+        return seen.first { it is PlayBoardStatus.Loading }
     }
 
     @Test
@@ -200,7 +224,7 @@ class ActivePlayBoardFirstTest {
         }
         val gate = fresh.holdRefresh(game)
         val play = open(fresh)
-        assertEquals(PlayBoardStatus.Loading, play.board.value.status)
+        assertEquals(PlayBoardStatus.Loading(todaysDaily = true), play.board.value.status)
 
         gate.complete(Unit)
 

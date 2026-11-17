@@ -104,7 +104,7 @@ class ZipPlayUiScreenTest {
 
     @Test
     fun `loading state renders the board loading indicator`() {
-        setContent(bareController(), PlayBoardStatus.Loading)
+        setContent(bareController(), PlayBoardStatus.Loading())
         composeRule.onNodeWithTag("play.loading").assertExists()
     }
 

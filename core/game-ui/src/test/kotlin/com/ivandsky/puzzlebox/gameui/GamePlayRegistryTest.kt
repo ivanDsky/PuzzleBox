@@ -3,10 +3,16 @@ package com.ivandsky.puzzlebox.gameui
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.designsystem.AccentSlot
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.model.GameId
@@ -86,14 +92,37 @@ class GamePlayRegistryTest {
     }
 
     @Test
-    fun `loading status renders the loading state`() {
+    fun `loading status renders a board-shaped placeholder without a spinner`() {
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                PlayBoardFallback(PlayBoardStatus.Loading, onRetry = {}, tagPrefix = "fake")
+                PlayBoardFallback(PlayBoardStatus.Loading(), onRetry = {}, tagPrefix = "fake")
             }
         }
         composeRule.onNodeWithTag("fake.loading").assertExists()
+        composeRule.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.ProgressBarRangeInfo)).assertCountEquals(0)
+        val bounds = composeRule.onNodeWithTag("fake.loading").getBoundsInRoot()
+        assertEquals("a square, as a board is", bounds.width, bounds.height)
+    }
+
+    @Test
+    fun `loading says today's puzzle only for the game's today`() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                PlayBoardFallback(PlayBoardStatus.Loading(todaysDaily = true), onRetry = {}, tagPrefix = "fake")
+            }
+        }
         composeRule.onNodeWithText("Getting today's puzzle…").assertExists()
+    }
+
+    @Test
+    fun `loading any other slot says the puzzle, not today's`() {
+        composeRule.setContent {
+            PuzzleBoxTheme(darkTheme = false) {
+                PlayBoardFallback(PlayBoardStatus.Loading(todaysDaily = false), onRetry = {}, tagPrefix = "fake")
+            }
+        }
+        composeRule.onNodeWithText("Getting the puzzle…").assertExists()
+        composeRule.onNodeWithText("Getting today's puzzle…").assertDoesNotExist()
     }
 
     @Test
