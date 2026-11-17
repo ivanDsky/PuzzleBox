@@ -2,41 +2,23 @@ package com.ivandsky.puzzlebox.games.strandsui
 
 import com.ivandsky.puzzlebox.gameui.MoveHaptic
 
-/**
- * What a Strands board change is read from (S2). [trace] is the live drag, so a letter joining it is
- * a change; [rejections] is a counter of refused words, never the last refusal, so a second refusal of
- * the same word still differs.
- */
-internal data class StrandsMoveSnapshot(
-    val trace: Trace,
-    val found: Int,
-    val hintsUsed: Int,
-    val rejections: Int,
-    val solved: Boolean,
-)
+/** What a Strands board step is read from: the live drag, the word slot's verdict, and whether the board is solved. */
+internal data class StrandsMoveSnapshot(val trace: Trace, val slot: WordSlot, val solved: Boolean)
 
-/** The snapshot the move-haptic effect reads: committed session state, the drag, and the refusal counter. */
-internal fun StrandsPlayController.moveSnapshot(): StrandsMoveSnapshot {
-    val state = session?.state
-    return StrandsMoveSnapshot(
-        trace = trace,
-        found = state?.found?.size ?: 0,
-        hintsUsed = state?.hintsUsed ?: 0,
-        rejections = rejections,
-        solved = state?.isComplete == true,
-    )
-}
+internal fun StrandsPlayController.moveSnapshot() = StrandsMoveSnapshot(trace, slot, isComplete)
 
 /**
  * The haptic for the step from [before] to [after]. The solving move is null: the solve confirm owns
- * that moment. A hint is null. A refused word is [MoveHaptic.Rejected]; a found word, or a letter that
- * joins the drag, is [MoveHaptic.Placed].
+ * that moment. A new verdict is [MoveHaptic.Rejected] when refused, [MoveHaptic.Placed] otherwise. A
+ * drag that grows past the last read is a placed letter; one that only shrinks is not.
  */
-internal fun strandsMoveHaptic(before: StrandsMoveSnapshot, after: StrandsMoveSnapshot): MoveHaptic? = when {
-    after.solved -> null
-    after.hintsUsed > before.hintsUsed -> null
-    after.rejections > before.rejections -> MoveHaptic.Rejected
-    after.found > before.found -> MoveHaptic.Placed
-    after.trace.path.size > before.trace.path.size -> MoveHaptic.Placed
-    else -> null
+internal fun strandsMoveHaptic(before: StrandsMoveSnapshot, after: StrandsMoveSnapshot): MoveHaptic? {
+    if (after.solved) return null
+    val verdict = (after.slot as? WordSlot.Verdict)?.takeIf { it != before.slot }
+    val path = after.trace.path
+    return when {
+        verdict != null -> if (verdict.kind == VerdictKind.Reject) MoveHaptic.Rejected else MoveHaptic.Placed
+        path.isNotEmpty() && before.trace.path.take(path.size) != path -> MoveHaptic.Placed
+        else -> null
+    }
 }

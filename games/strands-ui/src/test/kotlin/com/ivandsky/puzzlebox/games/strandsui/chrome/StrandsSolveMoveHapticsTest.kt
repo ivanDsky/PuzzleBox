@@ -32,9 +32,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * With PlayFeel on, the board's move haptics replace the legacy per-verdict buzzes: a drag that
- * solves the board buzzes exactly one Confirm (the solve confirm from the rest), and a rejected
- * drag buzzes once.
+ * With PlayFeel on, the board's move haptics replace the legacy per-verdict buzzes: a word ticks
+ * per letter joined and once when found, a refused word buzzes once, and the solving lift buzzes
+ * only the solve confirm from the rest.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -82,13 +82,25 @@ class StrandsSolveMoveHapticsTest {
     private fun TouchInjectionScope.centreOf(at: Coord) =
         Offset(width * (at.col + 0.5f) / 4, height * (at.row + 0.5f) / 4)
 
-    /** Drags along [path] on the board, as a finger does. */
+    /** Drags along [path] and lifts, as a finger does. */
     private fun drag(path: List<Coord>) {
-        rule.onNodeWithTag("strands.board").performTouchInput {
-            down(centreOf(path.first()))
-            path.drop(1).forEach { moveTo(centreOf(it)) }
-            up()
+        press(path)
+        lift()
+    }
+
+    /** Puts the finger down on [path] and drags it along; the finger stays down. */
+    private fun press(path: List<Coord>) {
+        rule.onNodeWithTag("strands.board").performTouchInput { down(centreOf(path.first())) }
+        rule.waitForIdle()
+        // One frame per letter: a single gesture would recompose once, and the effect would see one step.
+        path.drop(1).forEach { at ->
+            rule.onNodeWithTag("strands.board").performTouchInput { moveTo(centreOf(at)) }
+            rule.waitForIdle()
         }
+    }
+
+    private fun lift() {
+        rule.onNodeWithTag("strands.board").performTouchInput { up() }
         rule.waitForIdle()
     }
 
@@ -96,27 +108,38 @@ class StrandsSolveMoveHapticsTest {
     private fun advance(ms: Long) = repeat((ms / STEP_MS).toInt()) { rule.mainClock.advanceTimeBy(STEP_MS) }
 
     @Test
-    fun `with PlayFeel on a drag that solves the board buzzes one confirm`() {
+    fun `with PlayFeel on a drag that solves the board buzzes one confirm, on the lift`() {
         val controller = adopted()
         show(controller)
         (0 until 3).forEach { row -> drag(StrandsUiFixtures.row(row)) }
-        buzzes.clear()
 
-        drag(StrandsUiFixtures.row(3))
+        press(StrandsUiFixtures.row(3))
+        buzzes.clear()
+        lift()
         advance(CelebrationMotion.SolveMomentMs * 2)
 
-        assertEquals(listOf(HapticFeedbackType.Confirm), buzzes.filterNot { it == HapticFeedbackType.TextHandleMove })
+        assertEquals(listOf(HapticFeedbackType.Confirm), buzzes)
     }
 
     @Test
-    fun `with PlayFeel on a rejected word buzzes once`() {
+    fun `with PlayFeel on a word found buzzes a tick per join and one for the word`() {
+        val controller = adopted()
+        show(controller)
+
+        drag(StrandsUiFixtures.row(1))
+
+        // Four letters: three joins tick, and the found word ticks once on the lift.
+        assertEquals(List(4) { HapticFeedbackType.TextHandleMove }, buzzes)
+    }
+
+    @Test
+    fun `with PlayFeel on a rejected word buzzes a tick per join and one reject`() {
         val controller = adopted()
         show(controller)
 
         drag(listOf(Coord(0, 0), Coord(0, 1), Coord(1, 2)))
 
-        assertEquals(1, buzzes.count { it == HapticFeedbackType.Reject })
-        assertEquals(listOf(HapticFeedbackType.Reject), buzzes.filterNot { it == HapticFeedbackType.TextHandleMove })
+        assertEquals(List(2) { HapticFeedbackType.TextHandleMove } + HapticFeedbackType.Reject, buzzes)
     }
 
     private companion object {

@@ -1,76 +1,122 @@
 package com.ivandsky.puzzlebox.games.strandsui
 
 import com.ivandsky.puzzlebox.games.strands.Coord
+import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.MoveHaptic
+import com.ivandsky.puzzlebox.gameui.PlayEnvironment
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Before
 import org.junit.Test
 
+/** Each row drives the real controller: the snapshot before, one input, the snapshot after. */
 class StrandsMoveHapticTest {
 
-    private fun snap(
-        letters: Int = 0,
-        found: Int = 0,
-        hints: Int = 0,
-        rejections: Int = 0,
-        solved: Boolean = false,
-    ) = StrandsMoveSnapshot(
-        trace = Trace(List(letters) { Coord(0, it) }),
-        found = found,
-        hintsUsed = hints,
-        rejections = rejections,
-        solved = solved,
-    )
+    private lateinit var controller: StrandsPlayController
 
-    private fun classify(before: StrandsMoveSnapshot, after: StrandsMoveSnapshot) = strandsMoveHaptic(before, after)
+    @Before
+    fun adopt() {
+        controller = StrandsPlayController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}))
+        assertEquals(Adopt.Adopted, controller.adoptToday(StrandsUiFixtures.envelope(), StrandsUiFixtures.ref))
+    }
+
+    /** The haptic the effect would play for [input]: the snapshots either side of it. */
+    private fun haptic(input: () -> Unit): MoveHaptic? {
+        val before = controller.moveSnapshot()
+        input()
+        return strandsMoveHaptic(before, controller.moveSnapshot())
+    }
+
+    private fun drag(path: List<Coord>) {
+        controller.onTrace(TraceInput.dragStart(path.first()))
+        path.drop(1).forEach { controller.onTrace(TraceInput.dragTo(controller.trace, it)) }
+    }
+
+    private fun lift() = controller.onTrace(TraceInput.dragEnd(controller.trace))
+
+    private val pies = StrandsUiFixtures.row(0)
+    private val bake = StrandsUiFixtures.row(1)
+    private val pike = listOf(Coord(0, 0), Coord(0, 1), Coord(1, 2), Coord(1, 3))
+    private val pik = listOf(Coord(0, 0), Coord(0, 1), Coord(1, 2))
 
     @Test
-    fun `a letter added during a drag is a placed tick`() {
-        assertEquals(MoveHaptic.Placed, classify(snap(letters = 1), snap(letters = 2)))
+    fun `a letter tapped onto an empty board is placed`() {
+        assertEquals(MoveHaptic.Placed, haptic { controller.tap(Coord(0, 0)) })
     }
 
     @Test
-    fun `a found theme word is a placed tick`() {
-        assertEquals(MoveHaptic.Placed, classify(snap(letters = 4), snap(found = 1)))
+    fun `a letter joining the drag is placed`() {
+        controller.onTrace(TraceInput.dragStart(Coord(0, 0)))
+        assertEquals(MoveHaptic.Placed, haptic { controller.onTrace(TraceInput.dragTo(controller.trace, Coord(0, 1))) })
     }
 
     @Test
-    fun `a found spangram is a placed tick`() {
-        assertEquals(MoveHaptic.Placed, classify(snap(letters = 5), snap(found = 1)))
+    fun `backtracking one letter is null`() {
+        drag(listOf(Coord(0, 0), Coord(0, 1)))
+        assertNull(haptic { controller.onTrace(TraceStep.Updated(Trace(listOf(Coord(0, 0))))) })
     }
 
     @Test
-    fun `the solving move is null, the solve confirm owns it`() {
-        assertNull(classify(snap(letters = 4, found = 3), snap(found = 4, solved = true)))
+    fun `backtracking and joining another letter in one read is placed`() {
+        drag(listOf(Coord(0, 0), Coord(0, 1), Coord(0, 2)))
+        assertEquals(
+            MoveHaptic.Placed,
+            haptic { controller.onTrace(TraceStep.Updated(Trace(listOf(Coord(0, 0), Coord(0, 1), Coord(1, 2))))) },
+        )
     }
 
     @Test
-    fun `a rejected word is a rejected buzz`() {
-        assertEquals(MoveHaptic.Rejected, classify(snap(letters = 3), snap(rejections = 1)))
+    fun `the drag leaving the board is null`() {
+        drag(listOf(Coord(0, 0), Coord(0, 1)))
+        assertNull(haptic { controller.onTrace(TraceStep.Cleared) })
     }
 
     @Test
-    fun `a second rejection of the same kind still buzzes`() {
-        assertEquals(MoveHaptic.Rejected, classify(snap(rejections = 1), snap(rejections = 2)))
+    fun `a theme word found is placed`() {
+        drag(pies)
+        assertEquals(MoveHaptic.Placed, haptic { lift() })
     }
 
     @Test
-    fun `a hint is null, even when it turns up a word`() {
-        assertNull(classify(snap(), snap(hints = 1, found = 1)))
+    fun `the spangram found is placed`() {
+        drag(bake)
+        assertEquals(MoveHaptic.Placed, haptic { lift() })
     }
 
     @Test
-    fun `a valid non-theme word is null`() {
-        assertNull(classify(snap(letters = 4), snap()))
+    fun `a valid non-theme word found is placed`() {
+        drag(pike)
+        assertEquals(MoveHaptic.Placed, haptic { lift() })
     }
 
     @Test
-    fun `a letter removed is null`() {
-        assertNull(classify(snap(letters = 2), snap(letters = 1)))
+    fun `a word too short is rejected`() {
+        drag(pik)
+        assertEquals(MoveHaptic.Rejected, haptic { lift() })
     }
 
     @Test
-    fun `no change is null`() {
-        assertNull(classify(snap(letters = 2, found = 1), snap(letters = 2, found = 1)))
+    fun `the same refused word again is rejected again`() {
+        drag(pik)
+        lift()
+        drag(pik)
+        assertEquals(MoveHaptic.Rejected, haptic { lift() })
+    }
+
+    @Test
+    fun `the solving lift is null, the solve confirm owns it`() {
+        (0 until 3).forEach { drag(StrandsUiFixtures.row(it)); lift() }
+        drag(StrandsUiFixtures.row(3))
+        assertNull(haptic { lift() })
+    }
+
+    @Test
+    fun `a hint leaves the snapshot as it was, so it is null`() {
+        val before = controller.moveSnapshot()
+        controller.pressHint()
+        assertEquals(before, controller.moveSnapshot())
+        assertNull(strandsMoveHaptic(before, controller.moveSnapshot()))
     }
 }

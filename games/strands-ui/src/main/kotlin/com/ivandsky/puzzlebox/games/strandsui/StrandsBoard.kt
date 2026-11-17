@@ -46,8 +46,9 @@ import com.ivandsky.puzzlebox.games.strandsui.board.strandsCellSizeFor
 /**
  * Strands' one board, chrome-free ([com.ivandsky.puzzlebox.gameui.GamePlayUi.Board]): the
  * daily screen and the tutorial both draw it. Draws nothing until [controller] holds a
- * puzzle. Every step goes through the controller first; the buzz is read from what it made
- * of the step ([StrandsHaptics]). A found word is taken from the controller once and played
+ * puzzle. Every step goes through the controller first; with PlayFeel off the buzz is read from
+ * what it made of the step ([StrandsHaptics]), and with PlayFeel on [MoveHapticsEffect] reads
+ * [moveSnapshot] instead. A found word is taken from the controller once and played
  * from local state, so a board composed afresh (rotation, re-entry) rests instead of showing it again.
  */
 @Composable

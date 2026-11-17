@@ -1,5 +1,4 @@
 package com.ivandsky.puzzlebox.games.strandsui
-import androidx.compose.runtime.mutableIntStateOf
 
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -57,9 +56,6 @@ class StrandsPlayController(
     var trace by mutableStateOf(Trace())
         private set
     var slot: WordSlot by mutableStateOf(WordSlot.Empty)
-        private set
-    /** Refused words so far: a counter, so a second refusal of the same word is a change too (the move haptic reads it). */
-    var rejections by mutableIntStateOf(0)
         private set
     /** The word just found, until the board takes it with [takeFound]; then null, so a re-entered board rests. */
     var lastFound by mutableStateOf<FoundEvent?>(null)
@@ -144,7 +140,7 @@ class StrandsPlayController(
     private fun submit(current: StrandsSession, path: List<Coord>) {
         val verdict = StrandsRules.validate(StrandsMove(path), current.state) as StrandsVerdict
         trace = Trace()
-        slot = StrandsVerdictSlot.of(verdict, ++verdictSeq).also { if (it.kind == VerdictKind.Reject) rejections++ }
+        slot = StrandsVerdictSlot.of(verdict, ++verdictSeq)
         val repeatsFound = verdict == StrandsVerdict.AlreadyFound &&
             path.map(current.state.puzzle::letterAt).joinToString("") in current.state.found
         traceEnd = TraceEndKind.of(verdict)?.let { TraceEnd(path, it, verdictSeq, pulse = repeatsFound) }
