@@ -125,35 +125,37 @@ internal fun GameBoard(
     }
     val record by play.record.collectAsStateWithLifecycle()
     val board by play.board.collectAsStateWithLifecycle()
-    PlayBoardChrome(
-        ui = play.ui,
-        controller = board.controller,
-        status = board.status,
-        title = if (pastDay) PAST_DAY else record.label,
-        label = null,
-        pastDay = pastDay,
-        tutorial = tutorial,
-        onHowToPlay = onHowToPlay,
-        onTutorialFinished = onTutorialFinished,
-        layout = layout,
-        onBack = onBack,
-        onRetry = play::retry,
-        onSolved = { timeMs, hintsUsed -> onSolved(play.slot, timeMs, hintsUsed) },
-        overflow = overflow,
-        sidePanel = { clock, showTimer ->
-            // Phones never build the stats: only the two-pane side panel shows them.
-            val stats: PlayStatsViewModel? = if (layout == PlayLayout.TwoPane) {
-                koinViewModel(key = "stats:${play.slot}", parameters = { parametersOf(play.slot, linkedIn) })
-            } else {
-                null
-            }
-            val activityContext = LocalContext.current
-            remember(stats, clock, activityContext, boardStyle, showTimer) {
-                stats?.let { statsPanel(it, clock, activityContext, boardStyle, showTimer) }
-            }
-        },
-        modifier = modifier.testTag("route.game"),
-    )
+    HintCostHost(play.ui.gameId) {
+        PlayBoardChrome(
+            ui = play.ui,
+            controller = board.controller,
+            status = board.status,
+            title = if (pastDay) PAST_DAY else record.label,
+            label = null,
+            pastDay = pastDay,
+            tutorial = tutorial,
+            onHowToPlay = onHowToPlay,
+            onTutorialFinished = onTutorialFinished,
+            layout = layout,
+            onBack = onBack,
+            onRetry = play::retry,
+            onSolved = { timeMs, hintsUsed -> onSolved(play.slot, timeMs, hintsUsed) },
+            overflow = overflow,
+            sidePanel = { clock, showTimer ->
+                // Phones never build the stats: only the two-pane side panel shows them.
+                val stats: PlayStatsViewModel? = if (layout == PlayLayout.TwoPane) {
+                    koinViewModel(key = "stats:${play.slot}", parameters = { parametersOf(play.slot, linkedIn) })
+                } else {
+                    null
+                }
+                val activityContext = LocalContext.current
+                remember(stats, clock, activityContext, boardStyle, showTimer) {
+                    stats?.let { statsPanel(it, clock, activityContext, boardStyle, showTimer) }
+                }
+            },
+            modifier = modifier.testTag("route.game"),
+        )
+    }
 }
 
 private const val UNPLAYABLE = "This game isn't available in this build."

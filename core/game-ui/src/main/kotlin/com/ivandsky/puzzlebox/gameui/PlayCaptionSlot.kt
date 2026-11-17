@@ -3,12 +3,16 @@ package com.ivandsky.puzzlebox.gameui
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -32,9 +36,17 @@ private const val CAPTION_LINES = 2
  * instantly. One polite live-region node carries the current caption, so each change is
  * announced once (the cross-fade's two layers stay out of the semantics tree). [textAlign]
  * lets a host centre the line under a centred instruction; the daily chrome keeps Start.
+ *
+ * A [note] (the one-time hint cost line) takes the second line and the caption keeps the first, ellipsized if it needs
+ * more: the slot never grows, so the board never moves. With no caption the note sits alone on the first line.
  */
 @Composable
-fun PlayCaptionSlot(caption: String?, modifier: Modifier = Modifier, textAlign: TextAlign = TextAlign.Start) {
+fun PlayCaptionSlot(
+    caption: String?,
+    modifier: Modifier = Modifier,
+    textAlign: TextAlign = TextAlign.Start,
+    note: String? = null,
+) {
     val reducedMotion = rememberReducedMotion()
     Box(
         modifier
@@ -42,30 +54,55 @@ fun PlayCaptionSlot(caption: String?, modifier: Modifier = Modifier, textAlign: 
             .testTag("play.caption_slot")
             .clearAndSetSemantics {
                 liveRegion = LiveRegionMode.Polite
-                if (caption != null) text = AnnotatedString(caption)
+                val spoken = listOfNotNull(caption, note).joinToString(". ")
+                if (spoken.isNotEmpty()) text = AnnotatedString(spoken)
             },
     ) {
         if (reducedMotion) {
-            CaptionText(caption, textAlign)
+            CaptionText(caption, note, textAlign)
         } else {
             Crossfade(
-                targetState = caption,
+                targetState = caption to note,
                 animationSpec = tween(MotionTokens.DurationShort, easing = MotionTokens.EasingStandard),
                 label = "play-caption",
-            ) { shown -> CaptionText(shown, textAlign) }
+            ) { (shown, shownNote) -> CaptionText(shown, shownNote, textAlign) }
         }
     }
 }
 
 @Composable
-private fun CaptionText(caption: String?, textAlign: TextAlign) {
+private fun CaptionText(caption: String?, note: String?, textAlign: TextAlign) {
+    if (note == null) {
+        CaptionLines(caption.orEmpty(), CAPTION_LINES, CAPTION_LINES, textAlign)
+    } else {
+        // Two stacked one-line texts round differently from one two-line text, so the empty slot's own height sizes the
+        // box and the lines draw over it: the board never moves.
+        Box {
+            CaptionLines("", CAPTION_LINES, CAPTION_LINES, textAlign, Color.Transparent)
+            Column(Modifier.matchParentSize().wrapContentHeight(Alignment.Top, unbounded = true)) {
+                if (caption != null) CaptionLines(caption, 1, 1, textAlign)
+                val noteLines = if (caption == null) CAPTION_LINES else 1
+                CaptionLines(note, noteLines, noteLines, textAlign)
+            }
+        }
+    }
+}
+
+@Composable
+private fun CaptionLines(
+    text: String,
+    minLines: Int,
+    maxLines: Int,
+    textAlign: TextAlign,
+    color: Color = MaterialTheme.colorScheme.onSurface,
+) {
     Text(
-        text = caption.orEmpty(),
+        text = text,
         style = MaterialTheme.typography.bodyMedium,
-        color = MaterialTheme.colorScheme.onSurface,
+        color = color,
         textAlign = textAlign,
-        minLines = CAPTION_LINES,
-        maxLines = CAPTION_LINES,
+        minLines = minLines,
+        maxLines = maxLines,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier.fillMaxWidth(),
     )

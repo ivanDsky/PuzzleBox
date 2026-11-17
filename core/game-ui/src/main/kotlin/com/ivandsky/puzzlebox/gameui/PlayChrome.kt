@@ -113,7 +113,7 @@ fun PlayClockEffects(clock: PlayClock) {
 /**
  * The play chrome every game shares beside or under its board: the
  * one reserved caption slot ([PlayCaptionSlot] over [playCaption]: violation > rejection > hint, then the
- * route's [LocalRouteCaption]). The controls are the scaffold's [AdaptivePlayScaffold]
+ * route's [LocalRouteCaption]), with the route's one-time [LocalHintCostLine] as its second line. The controls are the scaffold's [AdaptivePlayScaffold]
  * actions ([PlayActionBar]); the title, timer, How to play and the overflow live in the
  * route's top bar. [clock] runs the shared clock loop here so the fold follows the game's
  * screen.
@@ -134,6 +134,7 @@ fun PlayChrome(
             .testTag("play.side_panel"),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        PlayCaptionSlot(caption = playCaption(feedback, hints) ?: LocalRouteCaption.current)
+        val own = playCaption(feedback, hints)
+        PlayCaptionSlot(caption = own ?: LocalRouteCaption.current, note = hintCostNote(hints, own))
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.ivandsky.puzzlebox.gameui.GamePlayController
 import com.ivandsky.puzzlebox.gameui.GamePlayUi
+import com.ivandsky.puzzlebox.gameui.LocalHintCostLine
 import com.ivandsky.puzzlebox.gameui.LocalSolveRestOnBoard
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -38,7 +39,8 @@ object SandboxPlay {
         onSolved: () -> Unit,
         modifier: Modifier = Modifier,
     ) {
-        CompositionLocalProvider(LocalSolveRestOnBoard provides true) {
+        // The Studio test solve records no result, so it never says hints are counted on one.
+        CompositionLocalProvider(LocalSolveRestOnBoard provides true, LocalHintCostLine provides null) {
             PlayBoardChrome(
                 ui = ui,
                 controller = controller,
