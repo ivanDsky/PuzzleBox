@@ -56,12 +56,12 @@ class StrandsSolveMoveHapticsTest {
         PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}),
     ).also { assertEquals(Adopt.Adopted, it.adoptToday(StrandsUiFixtures.envelope(), StrandsUiFixtures.ref)) }
 
-    private fun show(controller: StrandsPlayController) {
+    private fun show(controller: StrandsPlayController, playFeel: Boolean = true) {
         rule.mainClock.autoAdvance = false
         rule.setContent {
             CompositionLocalProvider(
                 LocalSolveRestOnBoard provides true,
-                LocalPlayFeel provides true,
+                LocalPlayFeel provides playFeel,
                 LocalHapticFeedback provides haptics,
             ) {
                 PuzzleBoxTheme(darkTheme = false) {
@@ -140,6 +140,20 @@ class StrandsSolveMoveHapticsTest {
         drag(listOf(Coord(0, 0), Coord(0, 1), Coord(1, 2)))
 
         assertEquals(List(2) { HapticFeedbackType.TextHandleMove } + HapticFeedbackType.Reject, buzzes)
+    }
+
+    @Test
+    fun `with PlayFeel off the legacy buzzes play and the shared seam plays nothing`() {
+        val controller = adopted()
+        show(controller, playFeel = false)
+
+        drag(StrandsUiFixtures.row(1))
+        // Row 1 is the spangram: a tick per letter, then the legacy spangram buzz the seam never plays.
+        assertEquals(List(4) { HapticFeedbackType.TextHandleMove } + HapticFeedbackType.LongPress, buzzes)
+
+        buzzes.clear()
+        drag(listOf(Coord(0, 0), Coord(0, 1), Coord(1, 2)))
+        assertEquals(List(3) { HapticFeedbackType.TextHandleMove } + HapticFeedbackType.Reject, buzzes)
     }
 
     private companion object {
