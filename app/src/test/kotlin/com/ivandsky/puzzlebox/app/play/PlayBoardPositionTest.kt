@@ -38,6 +38,7 @@ import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.ObserveGameHistory
 import com.ivandsky.puzzlebox.domain.ObserveGameStats
 import com.ivandsky.puzzlebox.domain.ObserveLeaderboard
+import com.ivandsky.puzzlebox.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.domain.ObservePlayStats
 import com.ivandsky.puzzlebox.domain.ObserveTodaySet
 import com.ivandsky.puzzlebox.domain.SyncTodayPuzzles
@@ -147,6 +148,7 @@ class PlayBoardPositionTest {
                     single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
                     single<MatchRepository> { FakeMatchRepository() }
                     factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
+                    factory { ObserveLegTarget(FakeSelfMatchRepository(), FakeUserPreferencesRepository()) }
                     single<SavedPlayRepository> { FakeSavedPlayRepository() }
                     single<ReleaseFlags> { FakeReleaseFlags() }
                     single<GameCalendar> { FakeGameCalendar(cadenceToday) }

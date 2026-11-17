@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.OutboxResult
 import com.ivandsky.puzzlebox.data.match.Player
+import com.ivandsky.puzzlebox.data.match.SelfMatchRepository
 import com.ivandsky.puzzlebox.data.repository.CompletionRepository
 import com.ivandsky.puzzlebox.data.repository.DailyRepository
 import com.ivandsky.puzzlebox.data.repository.ReceivedPuzzleRepository
@@ -25,6 +26,7 @@ import com.ivandsky.puzzlebox.data.repository.UserPreferencesRepository
 import com.ivandsky.puzzlebox.designsystem.PuzzleBoxTheme
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
@@ -200,6 +202,8 @@ class MatchLegRouteTest {
                     single<MatchResultOutbox> { outbox }
                     single<IdentityService> { identity }
                     factory { FinishLeg(get(), FakeSelfMatchRepository(), get()) { Instant.EPOCH } }
+                    single<SelfMatchRepository> { FakeSelfMatchRepository() }
+                    factory { ObserveLegTarget(get(), get()) }
                     factory { LoadPastDay(get(), get()) }
                 },
                 module { single<CloudSync> { FakeCloudSync() } },

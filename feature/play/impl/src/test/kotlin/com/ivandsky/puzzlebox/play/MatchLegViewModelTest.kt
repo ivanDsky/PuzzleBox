@@ -14,6 +14,7 @@ import com.ivandsky.puzzlebox.data.match.ResultRead
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
+import com.ivandsky.puzzlebox.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.game.SessionBlob
 import com.ivandsky.puzzlebox.game.editor.Budget
 import com.ivandsky.puzzlebox.model.PlaySlot
@@ -32,6 +33,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
@@ -144,7 +146,7 @@ class MatchLegViewModelTest {
     private fun row(result: LegResult) = runBlocking { outbox.enqueue(code, result) }
 
     private fun route(leg: Int = 1): MatchLegViewModel {
-        return MatchLegViewModel(leg(leg), store, countingServer, outbox, identity).also { vm ->
+        return MatchLegViewModel(leg(leg), store, countingServer, outbox, identity, ObserveLegTarget(FakeSelfMatchRepository(), FakeUserPreferencesRepository())).also { vm ->
             screen.launch { vm.state.collect {} }
             screen.launch {
                 vm.exits.collect {

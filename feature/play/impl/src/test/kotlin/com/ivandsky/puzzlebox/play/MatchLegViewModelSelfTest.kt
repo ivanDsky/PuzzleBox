@@ -16,6 +16,7 @@ import com.ivandsky.puzzlebox.domain.LegVerdict
 import com.ivandsky.puzzlebox.domain.LoadPastDay
 import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
 import com.ivandsky.puzzlebox.domain.MatchState
+import com.ivandsky.puzzlebox.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.domain.ObserveMatch
 import com.ivandsky.puzzlebox.domain.buildSelfMatch
 import com.ivandsky.puzzlebox.game.CompletionRecord
@@ -40,9 +41,11 @@ import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import com.ivandsky.puzzlebox.testing.rule.MainDispatcherRule
 import java.time.Instant
 import java.time.LocalDate
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
@@ -74,6 +77,7 @@ class MatchLegViewModelSelfTest {
     private val created = Instant.parse("2026-11-04T10:00:00Z")
 
     private val self = FakeSelfMatchRepository()
+    private val preferences = FakeUserPreferencesRepository()
     private val matches = RoutingMatchRepository(self, FakeMatchRepository())
     private val outbox = FakeMatchResultOutbox()
     private val identity = FakeIdentityService()
@@ -136,7 +140,7 @@ class MatchLegViewModelSelfTest {
     private fun rows(): List<OutboxResult> = runBlocking { outbox.observe(code).first() }
 
     private fun route(leg: Int = 1): MatchLegViewModel =
-        MatchLegViewModel(leg(leg), store, matches, outbox, identity).also { vm ->
+        MatchLegViewModel(leg(leg), store, matches, outbox, identity, ObserveLegTarget(self, preferences)).also { vm ->
             screen.launch { vm.state.collect {} }
             screen.launch { vm.exits.collect { exits += it } }
             dispatcher.scheduler.runCurrent()
@@ -151,9 +155,21 @@ class MatchLegViewModelSelfTest {
         val playing = route(leg = 1).playing()
 
         assertNotNull("the board opens at once: no identity wait for a seat the match already gives", playing.play)
-        assertEquals(LegPosition(SelfSeats.PAST_NAME, 2, 3), playing.position)
+        assertEquals(LegPosition(SelfSeats.PAST_NAME, 2, 3, played = 0), playing.position)
         assertTrue("the self seat can record a give up", playing.canGiveUp)
         assertTrue(exits.isEmpty())
+    }
+
+    @Test
+    fun aSelfDuelPuzzleCarriesPastYousTimeAsItsTimerTargetWhileTheSettingIsOn() {
+        selfDuel()
+
+        val vm = route(leg = 1)
+        assertEquals(PAST_TIME_MS.milliseconds, vm.playing().target)
+
+        runBlocking { preferences.setShowSelfDuelTimeLeft(false) }
+        dispatcher.scheduler.runCurrent()
+        assertNull("setting off: the normal timer", vm.playing().target)
     }
 
     @Test
@@ -191,7 +207,7 @@ class MatchLegViewModelSelfTest {
 
         val other = route(leg = 2).playing()
         assertNotNull("a row under the account is not the self seat's", other.play)
-        assertEquals(LegPosition(SelfSeats.PAST_NAME, 3, 3), other.position)
+        assertEquals(LegPosition(SelfSeats.PAST_NAME, 3, 3, played = 0), other.position)
     }
 
     @Test

@@ -12,6 +12,7 @@ import com.ivandsky.puzzlebox.data.repository.SavedPlayRepository
 import com.ivandsky.puzzlebox.data.repository.SharedPuzzleRepository
 import com.ivandsky.puzzlebox.domain.FinishLeg
 import com.ivandsky.puzzlebox.domain.LoadPastDay
+import com.ivandsky.puzzlebox.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.game.GameRegistry
 import com.ivandsky.puzzlebox.game.today
 import com.ivandsky.puzzlebox.gameui.GamePlayController
@@ -37,6 +38,7 @@ import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSavedPlayRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSelfMatchRepository
 import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeUserPreferencesRepository
 import java.time.Instant
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -77,6 +79,7 @@ class TangoCompeteLoopTest {
             single<SharedPuzzleRepository> { FakeSharedPuzzleRepository() }
             single<MatchRepository> { FakeMatchRepository() }
             factory { FinishLeg(FakeMatchResultOutbox(), FakeSelfMatchRepository(), FakeIdentityService()) { Instant.EPOCH } }
+            factory { ObserveLegTarget(FakeSelfMatchRepository(), FakeUserPreferencesRepository()) }
             single<SavedPlayRepository> { FakeSavedPlayRepository() }
             single<GameCalendar> { FakeGameCalendar(TangoDefinition.cadence.today()) }
             single<DispatcherProvider> {

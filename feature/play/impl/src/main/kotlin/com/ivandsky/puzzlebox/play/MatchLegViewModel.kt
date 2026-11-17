@@ -7,11 +7,15 @@ import com.ivandsky.puzzlebox.data.match.MatchFetch
 import com.ivandsky.puzzlebox.data.match.MatchRepository
 import com.ivandsky.puzzlebox.data.match.MatchResultOutbox
 import com.ivandsky.puzzlebox.data.match.OutboxResult
+import com.ivandsky.puzzlebox.data.match.SelfSeats
+import com.ivandsky.puzzlebox.data.match.isSelf
 import com.ivandsky.puzzlebox.data.match.mySeat
 import com.ivandsky.puzzlebox.domain.FinishResult
+import com.ivandsky.puzzlebox.domain.ObserveLegTarget
 import com.ivandsky.puzzlebox.model.ShareCode
 import com.ivandsky.puzzlebox.play.api.MatchLegKey
 import com.ivandsky.puzzlebox.play.api.MatchLegResultKey
+import kotlin.time.Duration
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -39,9 +43,15 @@ internal sealed interface MatchLegState {
     /**
      * The board of [play] (null when the puzzle is unplayable in this build), where it sits in its duel
      * ([position], null until the match is known) and whether the bar's menu offers Give up ([canGiveUp]: the
-     * player holds a seat, so the loss can be recorded).
+     * player holds a seat, so the loss can be recorded). [target] is past you's time while the leg's timer counts
+     * down to it (a self duel with the setting on), else null.
      */
-    data class Playing(val play: ActivePlay?, val position: LegPosition?, val canGiveUp: Boolean) : MatchLegState
+    data class Playing(
+        val play: ActivePlay?,
+        val position: LegPosition?,
+        val canGiveUp: Boolean,
+        val target: Duration? = null,
+    ) : MatchLegState
 }
 
 /** Where the route leaves to. */
@@ -54,8 +64,11 @@ internal sealed interface MatchLegExit {
     data object GaveUp : MatchLegExit
 }
 
-/** Where a duel puzzle sits: the [opponent]'s name (null while the seat is open), its 1-based [number] of [count]. */
-internal data class LegPosition(val opponent: String?, val number: Int, val count: Int)
+/**
+ * Where a duel puzzle sits: the [opponent]'s name (null while the seat is open), its 1-based [number] of [count].
+ * [played] is how many of my puzzles are posted, and is set only for a self duel (null for a friend duel).
+ */
+internal data class LegPosition(val opponent: String?, val number: Int, val count: Int, val played: Int? = null)
 
 /**
  * The state holder of one duel puzzle's board for [key]: the store's live play of the key's leg, opened only
@@ -77,6 +90,7 @@ internal class MatchLegViewModel(
     private val matches: MatchRepository,
     private val outbox: MatchResultOutbox,
     private val identity: IdentityService,
+    private val legTarget: ObserveLegTarget,
 ) : ViewModel() {
 
     private val code = ShareCode.parse(key.code)
@@ -96,9 +110,10 @@ internal class MatchLegViewModel(
             flowOf(MatchLegState.Checking)
         } else {
             val fetch = code?.let(matches::observe) ?: flowOf(null)
-            combine(fetch, uid) { fetch, uid ->
+            val target = code?.let { legTarget(it, key.legIndex) } ?: flowOf(null)
+            combine(fetch, uid, target) { fetch, uid, target ->
                 val seat = seatOf(fetch, uid)
-                MatchLegState.Playing(open.play, legPosition(fetch, key, seat), canGiveUp = seat != null)
+                MatchLegState.Playing(open.play, legPosition(fetch, key, seat), canGiveUp = seat != null, target = target)
             }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), MatchLegState.Checking)
@@ -162,7 +177,8 @@ internal fun seatOf(fetch: MatchFetch?, uid: String?): String? {
 internal fun legPosition(fetch: MatchFetch?, key: MatchLegKey, uid: String?): LegPosition? {
     val match = (fetch as? MatchFetch.Found)?.match ?: return null
     if (key.legIndex !in match.legs.indices) return null
-    return LegPosition(uid?.let(match::opponentOf)?.name, key.legIndex + 1, match.legs.size)
+    val played = if (match.isSelf) match.progress[SelfSeats.ME].orEmpty().size else null
+    return LegPosition(uid?.let(match::opponentOf)?.name, key.legIndex + 1, match.legs.size, played)
 }
 
 /** The result page of [key] when [rows] hold the seat [uid]'s own result for it, else null (the board opens). */

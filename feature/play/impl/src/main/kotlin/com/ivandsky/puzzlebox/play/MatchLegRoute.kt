@@ -75,7 +75,9 @@ internal fun GameRoute(
     var confirming by rememberSaveable { mutableStateOf(false) }
     val giveUp = remember(viewModel) { listOf(PlayOverflowItem(GIVE_UP, checked = null) { confirming = true }) }
 
-    CompositionLocalProvider(LocalRouteCaption provides playing.position?.caption()) {
+    val position = playing.position
+    val selfLeg = position?.played?.let { SelfLeg(playing.target, it, position.count) }
+    CompositionLocalProvider(LocalRouteCaption provides position?.caption()) {
         GameBoard(
             play = playing.play,
             pastDay = false,
@@ -87,6 +89,7 @@ internal fun GameRoute(
             onSolved = { _, timeMs, hintsUsed -> onSolved(timeMs, hintsUsed) },
             overflow = if (playing.canGiveUp) giveUp else emptyList(),
             modifier = modifier,
+            selfLeg = selfLeg,
         )
     }
     if (confirming && playing.canGiveUp) {

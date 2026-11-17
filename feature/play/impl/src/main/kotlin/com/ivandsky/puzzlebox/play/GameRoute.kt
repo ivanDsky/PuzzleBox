@@ -10,6 +10,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ivandsky.puzzlebox.gameui.PlayBoardFallback
 import com.ivandsky.puzzlebox.gameui.PlayBoardStatus
+import com.ivandsky.puzzlebox.gameui.PlayHints
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlayOverflowItem
 import com.ivandsky.puzzlebox.gameui.board.DailyBoardStyle
@@ -93,7 +94,8 @@ internal fun GameRoute(
 /** One live [play]'s top bar and board ([PlayBoardChrome]), behind the [tutorial] gate; How to play shows
  *  when [onHowToPlay] is given and the game has lessons, and the route's [overflow] items
  *  follow the game's own in the bar's menu. [linkedIn] ranks the day's LinkedIn connections into the side panel's times
- *  and [boardStyle] is how their board looks (see [PlayTimesCard]). */
+ *  and [boardStyle] is how their board looks (see [PlayTimesCard]). A [selfLeg] puts past you's time on the timer
+ *  and, on two panes, swaps the side panel for the self-duel leg's own ([legSidePanel]). */
 @Composable
 internal fun GameBoard(
     play: ActivePlay?,
@@ -108,6 +110,7 @@ internal fun GameBoard(
     modifier: Modifier,
     linkedIn: Boolean = false,
     boardStyle: DailyBoardStyle = DailyBoardStyle.defaults(),
+    selfLeg: SelfLeg? = null,
 ) {
     if (play == null) {
         PlayTuningHost {
@@ -138,17 +141,23 @@ internal fun GameBoard(
             overflow = overflow,
             sidePanel = { clock, showTimer ->
                 // Phones never build the stats: only the two-pane side panel shows them.
-                val stats: PlayStatsViewModel? = if (layout == PlayLayout.TwoPane) {
+                val stats: PlayStatsViewModel? = if (layout == PlayLayout.TwoPane && selfLeg == null) {
                     koinViewModel(key = "stats:${play.slot}", parameters = { parametersOf(play.slot, linkedIn) })
                 } else {
                     null
                 }
                 val activityContext = LocalContext.current
-                remember(stats, clock, activityContext, boardStyle, showTimer) {
-                    stats?.let { statsPanel(it, clock, activityContext, boardStyle, showTimer) }
+                val controller = board.controller
+                remember(stats, clock, activityContext, boardStyle, showTimer, selfLeg, controller) {
+                    when {
+                        selfLeg != null && layout == PlayLayout.TwoPane ->
+                            legSidePanel(selfLeg, clock, { (controller as? PlayHints)?.hintsUsed ?: 0 }, showTimer)
+                        else -> stats?.let { statsPanel(it, clock, activityContext, boardStyle, showTimer) }
+                    }
                 }
             },
             modifier = modifier.testTag("route.game"),
+            targetMs = selfLeg?.target?.inWholeMilliseconds,
         )
     }
 }
