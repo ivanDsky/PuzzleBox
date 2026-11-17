@@ -1,5 +1,6 @@
 package com.ivandsky.puzzlebox.games.zipui
 
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.captureToImage
@@ -17,7 +18,6 @@ import java.time.LocalDate
 import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -45,21 +45,20 @@ class ZipDragFeelTest {
     // No walls: at every cell of row 0 the step down is as legal as the step along the row.
     private val open get() = walled.let { it.copy(board = it.board.copy(walls = emptySet())) }
 
+    private var cellComposed: (Int) -> Unit = {}
+
     private fun show(puzzle: ZipPuzzle) {
         val controller = ZipPlayController(PlayEnvironment(CoroutineScope(Dispatchers.Unconfined), {}, {}))
         check(controller.adoptToday(ZipPlayFixture.envelope(puzzle), ZipPlayFixture.ref(LocalDate.of(2026, 10, 31))) == Adopt.Adopted)
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false) {
-                ZipPlayScreen(controller, PlayBoardStatus.Ready, PlayLayout.SinglePane, sidePanel = null, onRetry = {}, onSolved = { _, _ -> })
+                CompositionLocalProvider(LocalZipCellComposed provides { cellComposed(it) }) {
+                    ZipPlayScreen(controller, PlayBoardStatus.Ready, PlayLayout.SinglePane, sidePanel = null, onRetry = {}, onSolved = { _, _ -> })
+                }
             }
         }
         composeRule.waitForIdle()
         composeRule.mainClock.autoAdvance = false
-    }
-
-    @After
-    fun clearProbe() {
-        zipCellRecomposeProbe = null
     }
 
     private fun board() = composeRule.onNodeWithTag("play.board")
@@ -133,7 +132,7 @@ class ZipDragFeelTest {
     fun `a drag recomposes each cell it changes once and no cell per frame`() {
         show(walled)
         val recomposed = mutableListOf<Int>()
-        zipCellRecomposeProbe = { recomposed += it }
+        cellComposed = { recomposed += it }
 
         board().performTouchInput { down(Offset(width * 0.5f / CELLS, height * 0.5f / CELLS)) }
         for (tenth in 7..25) {

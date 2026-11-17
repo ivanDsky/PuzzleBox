@@ -178,7 +178,7 @@ private val PreviewTimeline: Timeline by lazy {
 }
 
 // A game with a replay board, which is all the solve row reads from its play UI.
-private object PreviewPlayUi : GamePlayUi {
+internal object PreviewPlayUi : GamePlayUi {
     override val gameId: GameId = PreviewGame
     override val replayBoard: GameReplayBoard = object : GameReplayBoard {
         override val pieces = "pieces"

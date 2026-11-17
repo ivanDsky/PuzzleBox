@@ -2,6 +2,7 @@ package com.ivandsky.puzzlebox.games.zipui
 
 import android.content.Context
 import android.provider.Settings
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
@@ -21,7 +22,6 @@ import com.ivandsky.puzzlebox.gameui.PlayLayout
 import java.time.LocalDate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -52,10 +52,7 @@ class ZipNextNumberPulseTest {
         it.onDragEvent(DragEvent.Extend(GridCell(0, 0)))
     }
 
-    @After
-    fun clearProbe() {
-        zipCellRecomposeProbe = null
-    }
+    private var cellComposed: (Int) -> Unit = {}
 
     private fun show(readable: Boolean, reducedMotion: Boolean = false) {
         if (reducedMotion) {
@@ -65,14 +62,16 @@ class ZipNextNumberPulseTest {
         composeRule.mainClock.autoAdvance = false
         composeRule.setContent {
             PuzzleBoxTheme(darkTheme = false, readableBoard = readable) {
-                ZipPlayScreen(
-                    controller = controller,
-                    status = PlayBoardStatus.Ready,
-                    layout = PlayLayout.SinglePane,
-                    sidePanel = null,
-                    onRetry = {},
-                    onSolved = { _, _ -> },
-                )
+                CompositionLocalProvider(LocalZipCellComposed provides { cellComposed(it) }) {
+                    ZipPlayScreen(
+                        controller = controller,
+                        status = PlayBoardStatus.Ready,
+                        layout = PlayLayout.SinglePane,
+                        sidePanel = null,
+                        onRetry = {},
+                        onSolved = { _, _ -> },
+                    )
+                }
             }
         }
         // No frame is run here: the board is laid out and at rest, the pulse has not taken a step.
@@ -107,7 +106,7 @@ class ZipNextNumberPulseTest {
         show(readable = true)
         assertEquals("at rest the ring is the full target colour", ReadableLightBoardTokens.boardTarget, ringPixel())
         val recomposed = mutableListOf<Int>()
-        zipCellRecomposeProbe = { recomposed += it }
+        cellComposed = { recomposed += it }
 
         val seen = ringOverACycle()
 
