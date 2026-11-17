@@ -93,6 +93,7 @@ internal fun ListPane(
             StaggeredItem(3) {
                 HomeRecentSection(
                     days = state.history,
+                    loaded = state.isLocalStateLoaded,
                     selectedDay = selectedDay,
                     onDayClick = onDayClick,
                     selectable = selectable,

@@ -234,7 +234,7 @@ class HomeRouteTest {
         setContent(daily, FakeCompletionRepository())
 
         // Nothing captured yet: the honest empty state.
-        composeRule.onNodeWithText("Earlier days will show here").assertExists()
+        composeRule.onNodeWithText("Finished puzzles show here").assertExists()
 
         // A day lands in the compete loop's store (Play fetches/History captures) —
         // the teaser must follow, formatted like the rows the user knows.
@@ -244,14 +244,14 @@ class HomeRouteTest {
             composeRule.onAllNodesWithText("October 31").fetchSemanticsNodes().isNotEmpty()
         }
         composeRule.onNodeWithText("October 31").assertExists()
-        composeRule.onNodeWithText("Earlier days will show here").assertDoesNotExist()
+        composeRule.onNodeWithText("Finished puzzles show here").assertDoesNotExist()
     }
 
     @Test
     fun `a completion without a captured day surfaces in the teaser - fix round 5 defect C`() = kotlinx.coroutines.test.runTest {
         val completions = FakeCompletionRepository()
         setContent(FakeDailyRepository(), completions)
-        composeRule.onNodeWithText("Earlier days will show here").assertExists()
+        composeRule.onNodeWithText("Finished puzzles show here").assertExists()
 
         // A solved game writes only its record (no daily capture anywhere) — the teaser
         // must still surface it.
@@ -269,7 +269,7 @@ class HomeRouteTest {
         }
         composeRule.onNodeWithText("November 1").assertExists()
         composeRule.onNodeWithTag("home.history_row_2026-11-01").assertExists()
-        composeRule.onNodeWithText("Earlier days will show here").assertDoesNotExist()
+        composeRule.onNodeWithText("Finished puzzles show here").assertDoesNotExist()
     }
 
     @Test

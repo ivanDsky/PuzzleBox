@@ -42,7 +42,7 @@ internal fun HomeDoorsPhonePreview() {
                 onOpenStreak = {},
                 onOpenDay = {},
             )
-            HomeRecentSection(days = DoorsRecent, selectedDay = null, onDayClick = {}, selectable = false, onOpenDay = {})
+            HomeRecentSection(days = DoorsRecent, loaded = true, selectedDay = null, onDayClick = {}, selectable = false, onOpenDay = {})
         }
     }
 }
