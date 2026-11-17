@@ -1,5 +1,13 @@
 package com.ivandsky.puzzlebox.compete.duel
 
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
+import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
+import com.ivandsky.puzzlebox.domain.LoadLegPuzzle
+import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.ivandsky.puzzlebox.compete.create.DuelSignIn
@@ -103,6 +111,19 @@ class DuelViewModelTest {
         idTokens = idTokens,
         registry = registry,
         deleteSelfDuel = DeleteSelfDuel(self, FakeMatchResultOutbox(), FakeSavedPlayRepository(), local),
+        loadLegPuzzle = LoadLegPuzzle(
+            daily = FakeDailyRepository(),
+            received = FakeReceivedPuzzleRepository(),
+            loadShared = LoadSharedPuzzle(
+                registry = registry,
+                shared = FakeSharedPuzzleRepository(),
+                received = FakeReceivedPuzzleRepository(),
+                budget = { Budget.within(1_000, System::nanoTime) },
+                clock = { now },
+            ),
+        ),
+        plays = GamePlayRegistry(emptyList()),
+        dispatchers = DefaultDispatcherProvider(),
     )
 
     private fun TestScope.started(vm: DuelViewModel): DuelViewModel {

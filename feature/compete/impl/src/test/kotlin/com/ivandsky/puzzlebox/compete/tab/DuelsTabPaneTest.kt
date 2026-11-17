@@ -25,6 +25,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import com.ivandsky.puzzlebox.auth.GoogleIdToken
+import com.ivandsky.puzzlebox.testing.repository.FakeSharedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeReceivedPuzzleRepository
+import com.ivandsky.puzzlebox.testing.repository.FakeDailyRepository
+import com.ivandsky.puzzlebox.game.editor.Budget
+import com.ivandsky.puzzlebox.domain.LoadSharedPuzzle
+import com.ivandsky.puzzlebox.domain.LoadLegPuzzle
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
+import com.ivandsky.puzzlebox.common.dispatcher.DefaultDispatcherProvider
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
 import com.ivandsky.puzzlebox.compete.api.DuelRevealKey
 import com.ivandsky.puzzlebox.compete.di.competeModule
@@ -106,6 +114,14 @@ class DuelsTabPaneTest {
     private val outbox = FakeMatchResultOutbox()
     private val identity = FakeIdentityService()
     private val registry = TestGames.registry(listOf(TestGames.alpha, TestGames.beta))
+    private val received = FakeReceivedPuzzleRepository()
+    private val loadShared = LoadSharedPuzzle(
+        registry = registry,
+        shared = FakeSharedPuzzleRepository(),
+        received = received,
+        budget = { Budget.within(1_000, System::nanoTime) },
+        clock = { now },
+    )
 
     private fun viewAs(player: Player) {
         identity.currentIdentity = Identity(player.uid, player.name, null)
@@ -161,6 +177,8 @@ class DuelsTabPaneTest {
                     }
                     single { registry }
                     single { GamePlayRegistry(emptyList()) }
+                    single<DispatcherProvider> { DefaultDispatcherProvider() }
+                    single { LoadLegPuzzle(daily = FakeDailyRepository(), received = received, loadShared = loadShared) }
                 },
             )
         }

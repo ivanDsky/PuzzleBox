@@ -80,3 +80,9 @@ internal fun HiddenBoardWidePreview() {
 internal fun HiddenBoardLoadingPreview() {
     PreviewPage { HiddenBoardLoading() }
 }
+
+@PuzzleBoxPreviews
+@Composable
+internal fun HiddenBoardSectionPreview() {
+    PreviewPage { HiddenBoardSection(sampleGivensBoard(), sharp = false, tagPrefix = "preview.board") }
+}

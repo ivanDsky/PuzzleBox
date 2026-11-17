@@ -53,7 +53,7 @@ internal fun DuelContent(code: String, navigator: Navigator, layout: PlayLayout,
             is DuelUiState.Invite -> DuelInviteCard(current, actions, Modifier.verticalScroll(rememberScrollState()))
             is DuelUiState.Participant -> {
                 val now by rememberCountdownNow(time, current.view.match.closesAt)
-                DuelLegs(current, layout, now, time, legsActions(current, context, navigator, vm::askRemove), Modifier.fillMaxSize())
+                DuelLegs(current, layout, now, time, legsActions(current, context, navigator, vm::askRemove), Modifier.fillMaxSize(), vm.legBoards)
                 if (current.removeAsked) RemoveDuelDialog(onRemove = vm::remove, onKeep = vm::keep)
             }
             DuelUiState.NotFound -> EmptyState("This duel link doesn't work", "Check the code with your friend and try again.")

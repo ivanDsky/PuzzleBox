@@ -45,6 +45,7 @@ import com.ivandsky.puzzlebox.designsystem.formatDuration
 import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.designsystem.rememberReducedMotion
 import com.ivandsky.puzzlebox.gameui.PlayAgainCopy
+import com.ivandsky.puzzlebox.gameui.hidden.HiddenBoardSection
 
 /**
  * A friend's puzzle before it is played: the game's glyph, the title, "by" the author and
@@ -102,7 +103,7 @@ private fun SingleColumn(
         if (puzzle.note.isNotBlank()) Enter(entrance, 2, reduced) { Note(puzzle.note, accent.accent) }
         // The hidden board takes the slot after the note, so the sections after it stagger one later.
         val later = if (card.hiddenBoard) 1 else 0
-        card.givens?.let { givens -> Enter(entrance, 3, reduced) { HiddenBoardSection(givens, sharp = card.yours != null) } }
+        card.givens?.let { givens -> Enter(entrance, 3, reduced) { HiddenBoardSection(givens, sharp = card.yours != null, tagPrefix = "friend.card.board") } }
         Enter(entrance, 3 + later, reduced) { Chips(card, accent.container, accent.onContainer, reduced) }
         Enter(entrance, 4 + later, reduced) { Stats(card) }
         Enter(entrance, 5 + later, reduced) { Action(card.action, reduced, onAction) }

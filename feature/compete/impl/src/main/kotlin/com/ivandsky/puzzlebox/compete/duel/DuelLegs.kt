@@ -1,6 +1,5 @@
 package com.ivandsky.puzzlebox.compete.duel
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -30,19 +28,14 @@ import androidx.compose.ui.unit.dp
 import com.ivandsky.puzzlebox.gameui.PastYouAvatar
 import com.ivandsky.puzzlebox.designsystem.DuelTone
 import com.ivandsky.puzzlebox.designsystem.MaxContentWidth
-import com.ivandsky.puzzlebox.designsystem.PrimaryButton
-import com.ivandsky.puzzlebox.designsystem.SecondaryButton
 import com.ivandsky.puzzlebox.designsystem.Spacing
 import com.ivandsky.puzzlebox.designsystem.TwoColumnFrame
 import com.ivandsky.puzzlebox.designsystem.TwoColumnMinWidth
 import com.ivandsky.puzzlebox.designsystem.maxContentWidth
 import com.ivandsky.puzzlebox.game.GameRegistry
-import com.ivandsky.puzzlebox.gameui.GameGlyph
-import com.ivandsky.puzzlebox.gameui.GameGlyphSize
 import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.gameui.PlayLayout
 import com.ivandsky.puzzlebox.gameui.PlayerAvatar
-import com.ivandsky.puzzlebox.gameui.rankRuleText
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
 import org.koin.compose.koinInject
@@ -75,6 +68,7 @@ internal fun DuelLegs(
     time: CompeteTime,
     actions: LegsActions,
     modifier: Modifier = Modifier,
+    boards: LegBoards = NoLegBoards,
 ) {
     val view = state.view
     val games = koinInject<GameRegistry>()
@@ -91,12 +85,14 @@ internal fun DuelLegs(
             dayOf = time::day,
         )
     }
-    val content = LegsContent(model, view.match.deadline, time.ends(view.match.deadline), view.match.closesAt, view.match.code, now, actions)
+    val legs = view.match.legs
+    val board = remember<suspend (Int) -> LegBoard>(legs, boards) { { index -> boards.of(legs[index].ref) } }
+    val content = LegsContent(model, view.match.deadline, time.ends(view.match.deadline), view.match.closesAt, view.match.code, now, actions, board)
     BoxWithConstraints(modifier.fillMaxSize()) {
         val twoPane = layout == PlayLayout.TwoPane
         when {
-            model.self -> SelfDuelLegs(content, layout, brands, Modifier.fillMaxSize())
             twoPane && maxWidth >= TwoColumnMinWidth -> TwoColumnLegs(content, brands, maxHeight)
+            model.self -> SelfDuelLegs(content, brands, capped = twoPane)
             else -> SingleColumnLegs(content, brands, capped = twoPane)
         }
     }
@@ -126,6 +122,7 @@ internal class LegsContent(
     val code: ShareCode,
     val now: Instant,
     val actions: LegsActions,
+    val board: suspend (Int) -> LegBoard,
 )
 
 /**
@@ -152,7 +149,7 @@ private fun TwoColumnLegs(content: LegsContent, brands: GamePlayRegistry, paneHe
             },
             right = {
                 if (selected != null) {
-                    LegDetail(selected, content.model.opponent.name, brands, onAction = { content.actions.onOpenLeg(selected) })
+                    LegDetail(selected, content, brands, height = paneHeight - Spacing.lg * 2)
                 }
             },
         )
@@ -226,59 +223,5 @@ internal fun PuzzleList(content: LegsContent, brands: GamePlayRegistry, selected
             onClick = onSelect?.let { select -> { select(row.legIndex) } },
             onAction = if (onSelect == null) ({ content.actions.onOpenLeg(row) }) else null,
         )
-    }
-}
-
-/** The tablet's right pane: the selected puzzle large, with the Start / Resume button moved here from its card. */
-@Composable
-private fun LegDetail(row: LegRowModel, opponentName: String, brands: GamePlayRegistry, onAction: () -> Unit) {
-    Column(Modifier.testTag("duel.legs.detail"), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        GameGlyph(brands.brandOf(row.gameId), GameGlyphSize.Hero)
-        Text(row.title, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
-        Text(rankRuleText(row.rankOrder), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        LegStatusPill(row.status)
-        OpponentText(row.opponent, opponentName)
-        PostingNote(row.posting)
-        LegActionButton(row, onAction, Modifier.fillMaxWidth())
-    }
-}
-
-@Composable
-private fun LegsFooter(content: LegsContent) {
-    val model = content.model
-    val name = model.opponent.name
-    when (model.footer) {
-        DuelFooter.Playing -> Unit
-        DuelFooter.Waiting -> FooterCard("Waiting on $name") {
-            SecondaryButton(
-                text = "Nudge",
-                onClick = { content.actions.onNudge(nudgeText(name, content.code, content.deadline, content.now)) },
-                modifier = Modifier.testTag("duel.legs.nudge"),
-            )
-        }
-        DuelFooter.RevealReady -> FooterCard(if (isClosed(content.closesAt, content.now)) "Closed" else "Both finished") {
-            PrimaryButton("See results", onClick = content.actions.onReveal, modifier = Modifier.testTag("duel.legs.reveal"))
-        }
-    }
-}
-
-@Composable
-internal fun FooterCard(title: String, action: @Composable () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(Spacing.md))
-            .padding(Spacing.md)
-            .testTag("duel.legs.footer"),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.weight(1f),
-        )
-        action()
     }
 }

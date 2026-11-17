@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ivandsky.puzzlebox.auth.GoogleIdTokenProvider
+import com.ivandsky.puzzlebox.common.dispatcher.DispatcherProvider
 import com.ivandsky.puzzlebox.compete.create.DuelSignIn
 import com.ivandsky.puzzlebox.compete.create.DuelSignInStep
 import com.ivandsky.puzzlebox.data.identity.IdentityService
@@ -12,6 +13,7 @@ import com.ivandsky.puzzlebox.data.match.MatchResultSync
 import com.ivandsky.puzzlebox.data.match.Player
 import com.ivandsky.puzzlebox.domain.DeleteSelfDuel
 import com.ivandsky.puzzlebox.domain.DuelSnapshot
+import com.ivandsky.puzzlebox.domain.LoadLegPuzzle
 import com.ivandsky.puzzlebox.domain.MatchState
 import com.ivandsky.puzzlebox.domain.MatchView
 import com.ivandsky.puzzlebox.domain.ObserveDuel
@@ -19,6 +21,7 @@ import com.ivandsky.puzzlebox.domain.SeatAction
 import com.ivandsky.puzzlebox.domain.SeatResult
 import com.ivandsky.puzzlebox.domain.UpdateMatchSeat
 import com.ivandsky.puzzlebox.game.GameRegistry
+import com.ivandsky.puzzlebox.gameui.GamePlayRegistry
 import com.ivandsky.puzzlebox.model.GameId
 import com.ivandsky.puzzlebox.model.ShareCode
 import java.time.Instant
@@ -120,7 +123,13 @@ internal class DuelViewModel(
     idTokens: GoogleIdTokenProvider,
     private val registry: GameRegistry,
     deleteSelfDuel: DeleteSelfDuel,
+    loadLegPuzzle: LoadLegPuzzle,
+    plays: GamePlayRegistry,
+    dispatchers: DispatcherProvider,
 ) : ViewModel() {
+
+    /** The boards of the duel's legs, for the tablet's detail column; kept while the screen is. */
+    internal val legBoards: LegBoards = DuelLegBoards(loadLegPuzzle, plays, dispatchers)
 
     private data class Working(
         val seat: SeatAction? = null,

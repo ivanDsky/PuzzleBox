@@ -52,6 +52,9 @@ val competeModule: Module = module {
             idTokens = get(),
             registry = get(),
             deleteSelfDuel = get(),
+            loadLegPuzzle = get(),
+            plays = get(),
+            dispatchers = get(),
         )
     }
     viewModel { (code: String, reducedMotion: Boolean, zone: ZoneId, locale: Locale) ->

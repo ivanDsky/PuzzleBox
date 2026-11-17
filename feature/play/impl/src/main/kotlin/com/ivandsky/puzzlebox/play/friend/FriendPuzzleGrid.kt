@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import com.ivandsky.puzzlebox.designsystem.colors
+import com.ivandsky.puzzlebox.gameui.hidden.HiddenBoardSection
 
 /**
  * The friend page as two columns, for the Community tablet's right pane: the board, the chips
@@ -31,7 +32,7 @@ internal fun FriendPuzzleGrid(
         tag = "friend.card.grid",
         modifier = modifier,
         board = { side ->
-            card.givens?.let { givens -> Enter(entrance, 0, reduced) { HiddenBoardSection(givens, sharp = card.yours != null, maxSide = side) } }
+            card.givens?.let { givens -> Enter(entrance, 0, reduced) { HiddenBoardSection(givens, sharp = card.yours != null, tagPrefix = "friend.card.board", maxSide = side) } }
         },
         below = {
             Enter(entrance, 1, reduced) { Chips(card, accent.container, accent.onContainer, reduced) }
