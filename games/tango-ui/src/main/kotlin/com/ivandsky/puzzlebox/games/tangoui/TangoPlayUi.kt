@@ -158,7 +158,7 @@ private fun BoxScope.TangoBoardArea(
  */
 @Composable
 private fun TangoBoard(controller: TangoPlayController, paneCap: Dp?, modifier: Modifier) {
-    MoveHapticsEffect(TangoPlaySnapshot(controller.session, controller.lastRejection), ::tangoMoveHaptic)
+    MoveHapticsEffect({ controller.session }, ::tangoMoveHaptic)
     // suppressedSets is a key: the settle debounce clears it 0.5 s after the last touch,
     // and the model must rebuild then or newly introduced violations stay hidden forever.
     val model = remember(

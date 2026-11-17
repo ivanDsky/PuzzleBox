@@ -1,7 +1,6 @@
 package com.ivandsky.puzzlebox.games.tangoui
 
 import com.ivandsky.puzzlebox.games.tango.TangoCell
-import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
 import com.ivandsky.puzzlebox.gameui.Adopt
 import com.ivandsky.puzzlebox.gameui.MoveHaptic
 import com.ivandsky.puzzlebox.gameui.PlayEnvironment
@@ -12,11 +11,12 @@ import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * S2 for Tango: a mark the player lands ticks, refused input buzzes, and history steps, hints and a fresh board are
- * silent. Each row is one real controller step, classified from the snapshot before it to the one after.
+ * S2 for Tango: a mark the player lands ticks; the solving mark, history steps, hints and a fresh board are silent,
+ * and Tango never buzzes. Each row is real controller input, classified from the session before it to the one after.
  */
 class TangoMoveHapticTest {
 
@@ -27,12 +27,10 @@ class TangoMoveHapticTest {
         assertEquals(Adopt.Adopted, it.adoptToday(TangoPlayFixture.envelope(), TangoPlayFixture.ref(LocalDate.parse("2026-11-16"))))
     }
 
-    private fun snapshot() = TangoPlaySnapshot(controller.session, controller.lastRejection)
-
-    private fun haptic(step: TangoPlayController.() -> Unit): MoveHaptic? {
-        val before = snapshot()
-        controller.step()
-        return tangoMoveHaptic(before, snapshot())
+    private fun haptic(input: TangoPlayController.() -> Unit): MoveHaptic? {
+        val before = controller.session
+        controller.input()
+        return tangoMoveHaptic(before, controller.session)
     }
 
     /** Row 0 is S S . . . . with givens at 0 and 1; cells 2..5 are the player's. */
@@ -64,24 +62,24 @@ class TangoMoveHapticTest {
     }
 
     @Test
-    fun `a new rejection that lands nothing buzzes`() {
-        place(2, TangoCell.MOON)
-        val before = snapshot()
+    fun `marks that land between two reads tick once`() {
+        val both = haptic {
+            onTap(2)
+            onTap(3)
+        }
 
-        val refused = before.copy(lastRejection = TangoVerdict.Rejected(TangoVerdict.Reason.LockedGiven, 0))
-
-        assertEquals(MoveHaptic.Rejected, tangoMoveHaptic(before, refused))
-        assertNull("the same rejection, seen again", tangoMoveHaptic(refused, refused.copy()))
-        // Rejected is a data class: a second refusal of the same cell equals the first and must still buzz.
-        assertEquals(MoveHaptic.Rejected, tangoMoveHaptic(refused, refused.copy(lastRejection = refused.lastRejection!!.copy())))
+        assertEquals(MoveHaptic.Placed, both)
     }
 
     @Test
-    fun `a rejection that clears is silent`() {
-        place(2, TangoCell.MOON)
-        val refused = snapshot().copy(lastRejection = TangoVerdict.Rejected(TangoVerdict.Reason.LockedGiven, 0))
+    fun `the mark that solves the board is silent, the solve confirm owns that moment`() {
+        val marks = TangoPlayFixture.placements.map { (idx, value) -> TangoPlacement(idx, value) }
+        marks.dropLast(1).forEach(controller::onPlacement)
 
-        assertNull(tangoMoveHaptic(refused, refused.copy(lastRejection = null)))
+        val solving = haptic { onPlacement(marks.last()) }
+
+        assertTrue(controller.isComplete)
+        assertNull(solving)
     }
 
     @Test
@@ -107,6 +105,21 @@ class TangoMoveHapticTest {
     }
 
     @Test
+    fun `redos that land between two reads are silent`() {
+        place(2, TangoCell.MOON)
+        place(3, TangoCell.SUN)
+        controller.undo()
+        controller.undo()
+
+        val both = haptic {
+            redo()
+            redo()
+        }
+
+        assertNull(both)
+    }
+
+    @Test
     fun `clear is silent`() {
         place(2, TangoCell.MOON)
         place(3, TangoCell.SUN)
@@ -118,11 +131,11 @@ class TangoMoveHapticTest {
     @Test
     fun `a hint step is silent`() {
         place(2, TangoCell.MOON)
-        val before = snapshot()
+        val before = controller.session!!
 
         val hinted = haptic { requestHint() }
 
-        assertEquals("the hint counted", before.session!!.hintsUsed + 1, controller.session!!.hintsUsed)
+        assertEquals("the hint counted", before.hintsUsed + 1, controller.session!!.hintsUsed)
         assertNull(hinted)
     }
 
@@ -131,8 +144,8 @@ class TangoMoveHapticTest {
         place(2, TangoCell.MOON)
 
         assertNull(haptic { playAgain() })
-        assertNull(tangoMoveHaptic(TangoPlaySnapshot(null, null), snapshot()))
-        assertNull(tangoMoveHaptic(snapshot(), TangoPlaySnapshot(null, null)))
-        assertNull(tangoMoveHaptic(snapshot(), snapshot()))
+        assertNull(tangoMoveHaptic(null, controller.session))
+        assertNull(tangoMoveHaptic(controller.session, null))
+        assertNull(tangoMoveHaptic(controller.session, controller.session))
     }
 }

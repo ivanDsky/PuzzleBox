@@ -2,30 +2,21 @@ package com.ivandsky.puzzlebox.games.tangoui
 
 import com.ivandsky.puzzlebox.games.tango.TangoPlace
 import com.ivandsky.puzzlebox.games.tango.TangoSession
-import com.ivandsky.puzzlebox.games.tango.engine.TangoVerdict
 import com.ivandsky.puzzlebox.gameui.MoveHaptic
 
-/** What the Tango move haptic is read from: the session, and the rejection marker for input that leaves it untouched. */
-internal data class TangoPlaySnapshot(val session: TangoSession?, val lastRejection: TangoVerdict.Rejected?)
-
 /**
- * The haptic of the step from [before] to [after] (S2). A mark the player lands, sets or cycles back to empty, is
- * [MoveHaptic.Placed], with or without a rule break: the break shows on the board. A new rejection that landed
- * nothing is [MoveHaptic.Rejected]. Undo, redo, clear, a hint, play-again and a board with no session are null.
+ * The haptic for the step from [before] to [after]: a tick when the player landed a mark, rule break or not. Tango
+ * refuses only a tap on a given, which is inert, so it never answers [MoveHaptic.Rejected].
  */
-internal fun tangoMoveHaptic(before: TangoPlaySnapshot, after: TangoPlaySnapshot): MoveHaptic? {
-    if (landedMark(before.session, after.session)) return MoveHaptic.Placed
-    // By instance: a second refusal of the same cell equals the first.
-    val rejection = after.lastRejection
-    return if (rejection != null && rejection !== before.lastRejection) MoveHaptic.Rejected else null
-}
-
-private fun landedMark(before: TangoSession?, after: TangoSession?): Boolean {
-    if (before == null || after == null) return false
+internal fun tangoMoveHaptic(before: TangoSession?, after: TangoSession?): MoveHaptic? {
+    if (before == null || after == null) return null
+    // The solve confirm owns the solving mark.
+    if (after.isComplete) return null
     val was = before.history
     val now = after.history
-    if (now.done.size != was.done.size + 1 || now.undone.isNotEmpty()) return false
+    // Marks that land between two reads grow the history by more than one and still tick once.
+    if (now.done.size <= was.done.size || now.undone.isNotEmpty()) return null
     val command = now.done.last()
-    // Redo of the last undone command has the stack shape of a new record; redo moves the very same instance.
-    return command is TangoPlace && command !== was.undone.lastOrNull()
+    // A redo that empties the redo stack has the shape of a placement, but moves the undone command itself.
+    return if (command is TangoPlace && was.undone.none { it === command }) MoveHaptic.Placed else null
 }

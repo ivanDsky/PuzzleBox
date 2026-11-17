@@ -34,10 +34,17 @@ class MoveHapticsEffectTest {
 
     private var snapshot by mutableIntStateOf(0)
 
+    /** Read by the host only: a write recomposes it without touching [snapshot]. */
+    private var hostState by mutableIntStateOf(0)
+    private var compositions = 0
+
     private fun setEffect(playFeel: Boolean, classify: (Int, Int) -> MoveHaptic?) {
         composeRule.setContent {
             CompositionLocalProvider(LocalHapticFeedback provides haptics, LocalPlayFeel provides playFeel) {
-                MoveHapticsEffect(snapshot, classify)
+                val host = hostState
+                compositions++
+                // A lambda that captures composition state is a new instance each time, as a real caller's may be.
+                MoveHapticsEffect({ snapshot + host * 0 }, classify)
             }
         }
         composeRule.waitForIdle()
@@ -66,6 +73,16 @@ class MoveHapticsEffectTest {
 
         change(3)
         assertEquals(listOf(HapticFeedbackType.TextHandleMove, HapticFeedbackType.Reject), played)
+    }
+
+    @Test
+    fun `two refusals in a row each buzz`() {
+        setEffect(playFeel = true, byParity)
+
+        change(1)
+        change(3)
+
+        assertEquals(listOf(HapticFeedbackType.Reject, HapticFeedbackType.Reject), played)
     }
 
     @Test
@@ -98,6 +115,29 @@ class MoveHapticsEffectTest {
         setEffect(playFeel = true) { _, _ -> MoveHaptic.Placed }
 
         assertEquals(emptyList<HapticFeedbackType>(), played)
+    }
+
+    @Test
+    fun `a recomposition with the snapshot unchanged plays nothing`() {
+        setEffect(playFeel = true) { _, _ -> MoveHaptic.Placed }
+        val before = compositions
+
+        composeRule.runOnIdle { hostState = 1 }
+        composeRule.waitForIdle()
+
+        assertEquals("the host recomposed", before + 1, compositions)
+        assertEquals(emptyList<HapticFeedbackType>(), played)
+    }
+
+    @Test
+    fun `a change of the snapshot does not recompose the caller`() {
+        setEffect(playFeel = true, byParity)
+        val before = compositions
+
+        change(2)
+
+        assertEquals(listOf(HapticFeedbackType.TextHandleMove), played)
+        assertEquals(before, compositions)
     }
 
     @Test
